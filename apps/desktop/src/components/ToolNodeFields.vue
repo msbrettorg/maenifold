@@ -1,8 +1,26 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import type { AgentProbeResult } from '../lib/agent-probe-types';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
+import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import {
+  buildAgentConfigDefaults,
+  formatPipelineAgentOptionLabel,
+  getAgentConfigOptionValue,
+  getAgentModelValue,
+  getAgentThoughtLevelValue,
+  getEditableAgentConfigOptions,
+  getAgentModeValue,
+  isSessionConfigSelectGroup,
+  setAgentConfigOptionValue,
+  setAgentModelValue,
+  setAgentModeValue,
+  setAgentThoughtLevelValue,
+} from '../composables/pipeline-node-form-helpers';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import type { McpDiscoveredTool } from '../lib/types';
+import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
+import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
 import SchemaForm from './SchemaForm.vue';
 
@@ -13,16 +31,24 @@ interface ToolPickerSection {
 const props = withDefaults(defineProps<{
   active?: boolean;
   toolName: string;
+  agentName?: string;
+  agentConfig?: PipelineNodeAgentConfig;
   toolArgs: Record<string, unknown>;
 }>(), {
   active: false,
+  agentName: '',
+  agentConfig: () => ({}),
 });
 const emit = defineEmits<{
   'update:toolName': [value: string];
+  'update:agentName': [value: string];
+  'update:agentConfig': [value: PipelineNodeAgentConfig];
   'update:toolArgs': [value: Record<string, unknown>];
   validation: [state: { valid: boolean }];
 }>();
 const pipelineStore = usePipelineStore();
+const configStore = useConfigStore();
+const capabilitiesStore = useAgentCapabilitiesStore();
 const { serverResults, loading, error, refreshTools } = useMcpToolDiscovery();
 const refreshing = ref(false);
 const attemptedInitialLoad = ref(false);
@@ -108,6 +134,48 @@ function onToolArgsChange(data: Record<string, unknown>): void {
 function onToolArgsValidation(state: { valid: boolean }): void {
   emit('validation', state);
 }
+function getProbe(agentName: string): AgentProbeResult | undefined {
+  return agentName ? capabilitiesStore.getProbe(agentName) : undefined;
+}
+function formatAgentOptionLabel(agentName: string): string {
+  return formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
+}
+function selectedAgentProbe(): AgentProbeResult | undefined {
+  return props.agentName ? getProbe(props.agentName) : undefined;
+}
+function readyProbe(): AgentProbeResult | undefined {
+  const probe = selectedAgentProbe();
+  if (probe?.state === 'ready' && Object.keys(props.agentConfig ?? {}).length === 0) {
+    emit('update:agentConfig', buildAgentConfigDefaults(probe) ?? {});
+  }
+  return probe?.state === 'ready' ? probe : undefined;
+}
+function updateAgentName(event: Event): void {
+  emit('update:agentName', (event.target as HTMLSelectElement).value);
+  emit('update:agentConfig', {});
+}
+function updateAgentMode(modeId: string): void {
+  emit('update:agentConfig', setAgentModeValue(props.agentConfig, modeId) ?? {});
+}
+function updateAgentModel(event: Event): void {
+  emit(
+    'update:agentConfig',
+    setAgentModelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {},
+  );
+}
+function updateAgentThoughtLevel(event: Event): void {
+  emit(
+    'update:agentConfig',
+    setAgentThoughtLevelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {},
+  );
+}
+function updateAgentConfigOption(option: ReturnType<typeof getEditableAgentConfigOptions>[number], event: Event): void {
+  emit(
+    'update:agentConfig',
+    setAgentConfigOptionValue(props.agentConfig, option, (event.target as HTMLSelectElement).value)
+      ?? {},
+  );
+}
 watch(
   () => props.active,
   (active) => {
@@ -129,6 +197,109 @@ watch(sections, (next, prev) => {
 
 <template>
   <div class="tool-picker field-wide">
+    <label>
+      <span>Agent Override</span>
+      <select
+        class="field-input"
+        data-testid="tool-agent-select"
+        :value="agentName"
+        @change="updateAgentName"
+      >
+        <option value="">Use tool default</option>
+        <option v-for="name in configStore.agentNames" :key="name" :value="name">
+          {{ formatAgentOptionLabel(name) }}
+        </option>
+      </select>
+    </label>
+    <div v-if="agentName" class="tool-agent-panel">
+      <template v-if="readyProbe()">
+        <div v-if="readyProbe()?.modeOptions.length" class="agent-mode-badges">
+          <button
+            v-for="mode in readyProbe()?.modeOptions"
+            :key="mode.id"
+            type="button"
+            class="mode-badge"
+            :class="{ selected: getAgentModeValue(agentConfig, readyProbe()) === mode.id }"
+            :data-testid="`tool-mode-badge-${mode.id}`"
+            @click="updateAgentMode(mode.id)"
+          >
+            {{ mode.name }}
+          </button>
+        </div>
+        <div class="tool-agent-grid">
+          <label v-if="readyProbe()?.modelOptions.length">
+            <span>Model</span>
+            <select
+              class="field-input"
+              data-testid="tool-model-select"
+              :value="getAgentModelValue(agentConfig, readyProbe())"
+              @change="updateAgentModel"
+            >
+              <option v-for="model in readyProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">
+                {{ model.name }}
+              </option>
+            </select>
+          </label>
+          <label v-if="readyProbe()?.thoughtLevelConfigOption">
+            <span>{{ readyProbe()?.thoughtLevelConfigOption?.name }}</span>
+            <select
+              class="field-input"
+              data-testid="tool-thought-level-select"
+              :value="getAgentThoughtLevelValue(agentConfig, readyProbe())"
+              @change="updateAgentThoughtLevel"
+            >
+              <template
+                v-for="entry in readyProbe()?.thoughtLevelConfigOption?.options ?? []"
+                :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+              >
+                <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                  <option
+                    v-for="groupOption in entry.options"
+                    :key="groupOption.value"
+                    :value="groupOption.value"
+                  >
+                    {{ groupOption.name }}
+                  </option>
+                </optgroup>
+                <option v-else :value="entry.value">{{ entry.name }}</option>
+              </template>
+            </select>
+          </label>
+          <label
+            v-for="option in getEditableAgentConfigOptions(readyProbe())"
+            :key="option.id"
+          >
+            <span>{{ option.name }}</span>
+            <select
+              class="field-input"
+              :data-testid="`tool-config-${option.id}`"
+              :value="getAgentConfigOptionValue(agentConfig, option)"
+              @change="updateAgentConfigOption(option, $event)"
+            >
+              <template
+                v-for="entry in option.options"
+                :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+              >
+                <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                  <option
+                    v-for="groupOption in entry.options"
+                    :key="groupOption.value"
+                    :value="groupOption.value"
+                  >
+                    {{ groupOption.name }}
+                  </option>
+                </optgroup>
+                <option v-else :value="entry.value">{{ entry.name }}</option>
+              </template>
+            </select>
+          </label>
+        </div>
+      </template>
+      <div v-else class="tool-agent-status" :class="selectedAgentProbe()?.state ?? 'pending'">
+        <span class="status-pill">{{ selectedAgentProbe()?.state === 'offline' ? 'Offline' : selectedAgentProbe()?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
+        <span>{{ selectedAgentProbe()?.error ?? 'Waiting for agent capability probe.' }}</span>
+      </div>
+    </div>
     <div class="tool-picker__header">
       <div>
         <span>Tool Picker</span>
@@ -208,6 +379,53 @@ watch(sections, (next, prev) => {
 
 <style scoped>
 .tool-picker, .field-block { display: grid; gap: 0.75rem; }
+.tool-agent-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
+}
+.tool-agent-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+.agent-mode-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.mode-badge,.status-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+.mode-badge {
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.mode-badge.selected {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-user) 45%, transparent);
+}
+.tool-agent-status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  color: var(--text-secondary);
+}
+.status-pill {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
 .tool-picker__header {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem;
 }

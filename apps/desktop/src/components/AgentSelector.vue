@@ -2,6 +2,7 @@
 import { computed, watch } from 'vue';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
+import AgentProbePreview from './AgentProbePreview.vue';
 
 const emit = defineEmits<{
   select: [agentName: string];
@@ -15,7 +16,12 @@ const selectedAgent = defineModel<string>('selected', { default: '' });
 const agents = computed(() => configStore.agentNames);
 const hasAgents = computed(() => configStore.hasAgents);
 const configPath = computed(() => configStore.configPath);
-const selectedCapabilityBadges = computed(() => formatCapabilityBadges(selectedAgent.value));
+const selectedProbe = computed(() =>
+  selectedAgent.value ? capabilitiesStore.getProbe(selectedAgent.value) : undefined,
+);
+const selectedProbeLoading = computed(
+  () => Boolean(selectedAgent.value) && !selectedProbe.value && capabilitiesStore.probeStatus === 'probing',
+);
 
 // Auto-select first agent when agents are available and none selected
 watch(agents, (newAgents) => {
@@ -37,33 +43,12 @@ function getProbe(agentName: string) {
   return capabilitiesStore.getProbe(agentName);
 }
 
-function formatModes(agentName: string): string[] {
-  const modes = getProbe(agentName)?.modes ?? [];
-  return modes.length > 2 ? [...modes.slice(0, 2), `+${modes.length - 2}`] : modes;
-}
-
-function formatModelSummary(agentName: string): string | null {
-  const models = getProbe(agentName)?.models ?? [];
-  if (models.length === 0) return null;
-  return models.length === 1 ? models[0] : `${models.length} models`;
-}
-
-function formatCapabilityBadges(agentName: string): string[] {
-  if (!agentName) return [];
-  const probe = getProbe(agentName);
-  if (!probe) return [];
-  if (probe.error) return ['⚠ probe failed'];
-
-  return [...formatModes(agentName), ...(formatModelSummary(agentName) ? [formatModelSummary(agentName)!] : [])];
-}
-
 function formatAgentOptionLabel(agentName: string): string {
   const probe = getProbe(agentName);
   if (!probe) return agentName;
-  if (probe.error) return `${agentName} ⚠`;
-  if (probe.modes.length <= 2 && probe.modes.length > 0) return `${agentName} — ${probe.modes.join(', ')}`;
-  if (probe.modes.length > 2) return `${agentName} (${probe.modes.length} modes)`;
-  return probe.models.length ? `${agentName} (${probe.models.length} model${probe.models.length === 1 ? '' : 's'})` : agentName;
+  if (probe.state === 'offline') return `${agentName} — offline`;
+  if (probe.error) return `${agentName} — probe failed`;
+  return agentName;
 }
 </script>
 
@@ -84,12 +69,13 @@ function formatAgentOptionLabel(agentName: string): string {
       </option>
     </select>
 
-    <div
-      v-if="selectedAgent && selectedCapabilityBadges.length"
-      class="capability-badges"
-    >
-      <span v-for="badge in selectedCapabilityBadges" :key="badge" class="capability-badge">{{ badge }}</span>
-    </div>
+    <AgentProbePreview
+      v-if="selectedAgent"
+      :agent-name="selectedAgent"
+      :probe="selectedProbe"
+      :loading="selectedProbeLoading"
+      compact
+    />
     
     <div v-if="!hasAgents" class="config-hint">
       <p>No agents found. Add agents to:</p>
@@ -126,23 +112,6 @@ select {
 option {
   background: var(--bg-input);
   color: var(--text-primary);
-}
-
-.capability-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.capability-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.45rem;
-  border: 1px solid var(--border-color);
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-  background: color-mix(in srgb, var(--bg-input) 86%, transparent);
 }
 
 select:disabled {

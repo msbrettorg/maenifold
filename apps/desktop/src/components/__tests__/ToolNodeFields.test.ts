@@ -3,7 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import ToolNodeFields from '../ToolNodeFields.vue';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
 import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';
+import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
+import { useConfigStore } from '../../stores/config';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { McpServerDiscoveryResult } from '../../lib/types';
 
@@ -54,13 +57,51 @@ function createTestEnv() {
   const pinia = createPinia();
   setActivePinia(pinia);
 
+  const configStore = useConfigStore();
+  configStore.config = {
+    mcpServers: [],
+    agents: {
+      architect: { command: 'architect' },
+      offline: { command: 'offline' },
+    },
+  };
+
+  const capabilitiesStore = useAgentCapabilitiesStore();
+  capabilitiesStore.probeResults = new Map([
+    ['architect', normalizeAgentProbeResult({
+      configOptions: [
+        {
+          id: 'mode',
+          name: 'Mode',
+          category: 'mode',
+          currentValue: 'prompt',
+          options: [
+            { value: 'prompt', name: 'Prompt' },
+            { value: 'workflow', name: 'Workflow' },
+          ],
+        },
+        {
+          id: 'model',
+          name: 'Model',
+          category: 'model',
+          currentValue: 'gpt-4.1',
+          options: [
+            { value: 'gpt-4.1', name: 'GPT-4.1' },
+            { value: 'gpt-5-mini', name: 'GPT-5 mini' },
+          ],
+        },
+      ],
+    })],
+    ['offline', normalizeAgentProbeResult({}, { error: 'network error' })],
+  ]);
+
   const discoveryStore = useMcpToolDiscoveryStore();
   discoveryStore.serverResults = fakeDiscoveryResults();
 
   const pipelineStore = usePipelineStore();
   pipelineStore.tools = [];
 
-  return { pinia, discoveryStore, pipelineStore };
+  return { pinia, discoveryStore, pipelineStore, configStore, capabilitiesStore };
 }
 
 beforeEach(() => {
@@ -75,6 +116,8 @@ describe('ToolNodeFields — tool name namespacing', () => {
       props: {
         active: true,
         toolName: '',
+        agentName: '',
+        agentConfig: {},
         toolArgs: {},
       },
       global: {
@@ -106,6 +149,8 @@ describe('ToolNodeFields — tool name namespacing', () => {
       props: {
         active: true,
         toolName: 'filesystem.ReadFile',
+        agentName: '',
+        agentConfig: {},
         toolArgs: {},
       },
       global: {
@@ -128,6 +173,8 @@ describe('ToolNodeFields — tool name namespacing', () => {
       props: {
         active: true,
         toolName: '',
+        agentName: '',
+        agentConfig: {},
         toolArgs: {},
       },
       global: {
@@ -146,5 +193,29 @@ describe('ToolNodeFields — tool name namespacing', () => {
     // Must NOT contain the double-prefixed form
     expect(labels).not.toContain('maenifold.SearchMemories');
     expect(labels).not.toContain('maenifold.WriteMemory');
+  });
+
+  it('shows offline fallback for tool agent override when probe fails', async () => {
+    const { pinia } = createTestEnv();
+
+    const wrapper = mount(ToolNodeFields, {
+      props: {
+        active: true,
+        toolName: 'filesystem.ReadFile',
+        agentName: 'offline',
+        agentConfig: {},
+        toolArgs: {},
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { SchemaForm: true },
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Offline');
+    expect(wrapper.text()).toContain('network error');
+    expect(wrapper.find('[data-testid="tool-model-select"]').exists()).toBe(false);
   });
 });

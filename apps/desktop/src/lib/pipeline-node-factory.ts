@@ -1,4 +1,5 @@
 import type {
+  PipelineNodeAgentConfig,
   PipelineNode,
   PipelineNodeType,
   PromptNode,
@@ -7,6 +8,15 @@ import type {
   WorkflowNode,
 } from './pipeline-types';
 
+interface PipelineNodeExecutionFields {
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
+}
+
 export interface WorkflowNodeInput {
   id: string;
   workflowId: string;
@@ -14,13 +24,14 @@ export interface WorkflowNodeInput {
   prompt?: string;
 }
 
-export interface PromptNodeInput {
+export interface PromptNodeInput extends PipelineNodeExecutionFields {
   id: string;
   prompt: string;
   agent: string;
+  toolMode?: string;
 }
 
-export interface SequentialThinkingNodeInput {
+export interface SequentialThinkingNodeInput extends PipelineNodeExecutionFields {
   id: string;
   topic: string;
   agent: string;
@@ -28,7 +39,7 @@ export interface SequentialThinkingNodeInput {
   analysisType?: string;
 }
 
-export interface ToolNodeInput {
+export interface ToolNodeInput extends PipelineNodeExecutionFields {
   id: string;
   toolName: string;
   agent?: string;
@@ -55,6 +66,105 @@ export type PipelineNodeDraftByType = {
 };
 
 const DEFAULT_TOTAL_THOUGHTS = 5;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function cloneStringArray(value: string[] | undefined, fieldName: string): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
+    throw new Error(`${fieldName} must be an array of strings`);
+  }
+
+  return [...value];
+}
+
+function cloneOptionalNumber(
+  value: number | undefined,
+  fieldName: string,
+): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Number.isFinite(value) || value < 0) {
+    throw new Error(`${fieldName} must be a non-negative number`);
+  }
+
+  return value;
+}
+
+function cloneAgentConfig(
+  value: PipelineNodeAgentConfig | undefined,
+): PipelineNodeAgentConfig | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    throw new Error('agentConfig must be a JSON object');
+  }
+
+  if (value.model !== undefined && typeof value.model !== 'string') {
+    throw new Error('agentConfig.model must be a string');
+  }
+
+  if (value.mode !== undefined && typeof value.mode !== 'string') {
+    throw new Error('agentConfig.mode must be a string');
+  }
+
+  if (value.thoughtLevel !== undefined && typeof value.thoughtLevel !== 'string') {
+    throw new Error('agentConfig.thoughtLevel must be a string');
+  }
+
+  if (
+    value.configOptions !== undefined
+    && (!isRecord(value.configOptions) || Array.isArray(value.configOptions))
+  ) {
+    throw new Error('agentConfig.configOptions must be a JSON object');
+  }
+
+  return {
+    ...(typeof value.model === 'string' && value.model.length > 0
+      ? { model: value.model }
+      : {}),
+    ...(typeof value.mode === 'string' && value.mode.length > 0
+      ? { mode: value.mode }
+      : {}),
+    ...(typeof value.thoughtLevel === 'string' && value.thoughtLevel.length > 0
+      ? { thoughtLevel: value.thoughtLevel }
+      : {}),
+    ...(value.configOptions && Object.keys(value.configOptions).length > 0
+      ? { configOptions: { ...value.configOptions } }
+      : {}),
+  };
+}
+
+function buildExecutionFields(
+  fields: PipelineNodeExecutionFields,
+): PipelineNodeExecutionFields {
+  const allowedTools = cloneStringArray(fields.allowedTools, 'allowedTools');
+  const maxTurns = cloneOptionalNumber(fields.maxTurns, 'maxTurns');
+  const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
+  const agentConfig = cloneAgentConfig(fields.agentConfig);
+
+  return {
+    ...(typeof fields.model === 'string' && fields.model.length > 0
+      ? { model: fields.model }
+      : {}),
+    ...(typeof fields.thoughtLevel === 'string' && fields.thoughtLevel.length > 0
+      ? { thoughtLevel: fields.thoughtLevel }
+      : {}),
+    ...(allowedTools ? { allowedTools } : {}),
+    ...(maxTurns !== undefined ? { maxTurns } : {}),
+    ...(timeout !== undefined ? { timeout } : {}),
+    ...(agentConfig ? { agentConfig } : {}),
+  };
+}
 
 export function createNodeId(type: PipelineNodeType): string {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -129,6 +239,10 @@ export function createNode(
         type: 'prompt',
         prompt: promptFields.prompt,
         agent: promptFields.agent,
+        ...(typeof promptFields.toolMode === 'string' && promptFields.toolMode.length > 0
+          ? { toolMode: promptFields.toolMode }
+          : {}),
+        ...buildExecutionFields(promptFields),
       };
     }
     case 'sequentialThinking': {
@@ -161,6 +275,7 @@ export function createNode(
         sequentialThinkingFields.analysisType.length > 0
           ? { analysisType: sequentialThinkingFields.analysisType }
           : {}),
+        ...buildExecutionFields(sequentialThinkingFields),
       };
     }
     case 'tool': {
@@ -189,6 +304,7 @@ export function createNode(
           ? { agent: toolFields.agent }
           : {}),
         ...(toolFields.toolArgs ? { toolArgs: toolFields.toolArgs } : {}),
+        ...buildExecutionFields(toolFields),
       };
     }
     default:

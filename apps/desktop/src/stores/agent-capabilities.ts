@@ -2,7 +2,10 @@ import { defineStore } from 'pinia';
 import { ref, watch } from 'vue';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { unwrapToolData } from '../composables/pipeline-mcp-transport';
-import type { AgentProbeResult } from '../lib/agent-probe-types';
+import {
+  normalizeAgentProbeResult,
+  type AgentProbeResult,
+} from '../lib/agent-probe-types';
 import { useConfigStore } from './config';
 
 type ProbeStatus = 'idle' | 'probing' | 'done' | 'error';
@@ -11,16 +14,11 @@ interface ProbeAgentRecord {
   name?: string;
   agent?: string;
   id?: string;
-  error?: unknown;
-  modes?: unknown;
-  models?: unknown;
-  configOptions?: unknown;
   capabilities?: {
     error?: unknown;
-    modes?: unknown;
-    models?: unknown;
-    configOptions?: unknown;
+    [key: string]: unknown;
   };
+  [key: string]: unknown;
 }
 
 const RETRY_DELAY_MS = 3_000;
@@ -29,26 +27,9 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function normalizeStringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is string => typeof entry === 'string')
-    : [];
-}
-
-function normalizeConfigOptions(value: unknown): Record<string, unknown> {
-  return isRecord(value) ? value : {};
-}
-
 function toProbeResult(record?: ProbeAgentRecord, error?: string): AgentProbeResult {
   const source = isRecord(record?.capabilities) ? record.capabilities : record;
-  const embeddedError = typeof source?.error === 'string' ? source.error : undefined;
-  return {
-    modes: embeddedError ? [] : normalizeStringList(source?.modes),
-    models: embeddedError ? [] : normalizeStringList(source?.models),
-    configOptions: embeddedError ? {} : normalizeConfigOptions(source?.configOptions),
-    probedAt: Date.now(),
-    ...((error ?? embeddedError) ? { error: error ?? embeddedError } : {}),
-  };
+  return normalizeAgentProbeResult(source, { error, probedAt: Date.now() });
 }
 
 function extractAgentRecords(result: unknown): ProbeAgentRecord[] {

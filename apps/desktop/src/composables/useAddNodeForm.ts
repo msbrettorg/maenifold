@@ -28,12 +28,16 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     workflowAgent,
     workflowPrompt,
     promptAgent,
+    promptAgentConfig,
     promptTemplate,
     thinkingTopic,
     thinkingAgent,
+    thinkingAgentConfig,
     thinkingTotalThoughts,
     thinkingAnalysisType,
     toolName,
+    toolAgent,
+    toolAgentConfig,
     toolArgs,
     toolArgsValid,
     getFormValues,
@@ -50,16 +54,20 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     switch (nodeType.value) {
       case 'prompt':
         promptAgent.value = '';
+        promptAgentConfig.value = {};
         promptTemplate.value = '';
         break;
       case 'sequentialThinking':
         thinkingTopic.value = '';
         thinkingAgent.value = '';
+        thinkingAgentConfig.value = {};
         thinkingTotalThoughts.value = DEFAULT_PIPELINE_NODE_THOUGHTS;
         thinkingAnalysisType.value = '';
         break;
       case 'tool':
         toolName.value = '';
+        toolAgent.value = '';
+        toolAgentConfig.value = {};
         toolArgs.value = {};
         toolArgsValid.value = false;
         break;
@@ -103,12 +111,16 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     workflowAgent,
     workflowPrompt,
     promptAgent,
+    promptAgentConfig,
     promptTemplate,
     thinkingTopic,
     thinkingAgent,
+    thinkingAgentConfig,
     thinkingTotalThoughts,
     thinkingAnalysisType,
     toolName,
+    toolAgent,
+    toolAgentConfig,
     toolArgs,
     toolArgsValid,
     canAdd,

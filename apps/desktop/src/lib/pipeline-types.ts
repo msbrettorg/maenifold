@@ -27,6 +27,13 @@ interface PipelineNodeBase {
   id: string;
 }
 
+export interface PipelineNodeAgentConfig {
+  model?: string;
+  mode?: string;
+  thoughtLevel?: string;
+  configOptions?: Record<string, unknown>;
+}
+
 export interface WorkflowNode extends PipelineNodeBase {
   type?: "workflow";
   workflowId: string;
@@ -38,6 +45,13 @@ export interface PromptNode extends PipelineNodeBase {
   type: "prompt";
   prompt: string;
   agent: string;
+  toolMode?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
 }
 
 export interface SequentialThinkingNode extends PipelineNodeBase {
@@ -46,6 +60,12 @@ export interface SequentialThinkingNode extends PipelineNodeBase {
   agent: string;
   totalThoughts?: number;
   analysisType?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
 }
 
 export interface ToolNode extends PipelineNodeBase {
@@ -53,6 +73,12 @@ export interface ToolNode extends PipelineNodeBase {
   toolName: string;
   toolArgs?: Record<string, unknown>;
   agent?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
 }
 
 export type PipelineNode =
@@ -111,6 +137,13 @@ export interface PromptViewNode extends ViewNodeBase {
   type: "prompt";
   prompt: string;
   agent: string;
+  toolMode?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
   assembled_prompt?: string | null;
 }
 
@@ -120,6 +153,12 @@ export interface SequentialThinkingViewNode extends ViewNodeBase {
   agent: string;
   totalThoughts?: number;
   analysisType?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
   assembled_prompt?: string | null;
   thinking_trace?: Array<{
     thought_number: number;
@@ -133,6 +172,12 @@ export interface ToolViewNode extends ViewNodeBase {
   toolName: string;
   toolArgs?: Record<string, unknown>;
   agent?: string;
+  model?: string;
+  thoughtLevel?: string;
+  allowedTools?: string[];
+  maxTurns?: number;
+  timeout?: number;
+  agentConfig?: PipelineNodeAgentConfig;
 }
 
 export type ViewNode =

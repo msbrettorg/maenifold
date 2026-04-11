@@ -2,7 +2,9 @@
 import { computed, ref } from 'vue';
 import type { AgentConfig, McpServerEntry } from '../lib/types';
 import { useConfigStore } from '../stores/config';
+import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { addAgent, removeAgent, updateAgent } from '../lib/tauri';
+import AgentProbePreview from './AgentProbePreview.vue';
 
 interface AgentRow {
   name: string;
@@ -24,6 +26,7 @@ interface McpServerFormRow {
 }
 
 const configStore = useConfigStore();
+const capabilitiesStore = useAgentCapabilitiesStore();
 const agents = computed<AgentRow[]>(() =>
   Object.entries(configStore.config.agents).map(([name, config]) => ({
     name,
@@ -48,6 +51,14 @@ function formatServerCount(count: number) {
 
 function formatEnvCount(count: number) {
   return `${count} env var${count === 1 ? '' : 's'}`;
+}
+
+function getProbe(agentName: string) {
+  return capabilitiesStore.getProbe(agentName);
+}
+
+function isProbeLoading(agentName: string) {
+  return capabilitiesStore.probeStatus === 'probing' && !getProbe(agentName);
 }
 
 function toEnvRows(env: Record<string, string> = {}): EnvVarRow[] {
@@ -305,6 +316,11 @@ async function handleDelete(name: string) {
           <div class="agent-summary">
             {{ formatEnvCount(Object.keys(agent.env).length) }} · {{ formatServerCount(agent.mcpServers.length) }}
           </div>
+          <AgentProbePreview
+            :agent-name="agent.name"
+            :probe="getProbe(agent.name)"
+            :loading="isProbeLoading(agent.name)"
+          />
         </div>
         <div class="agent-actions">
           <button class="edit-btn" @click="startEdit(agent)">Edit</button>
@@ -497,10 +513,12 @@ async function handleDelete(name: string) {
 }
 
 .agent-item {
-  align-items: center;
+  align-items: flex-start;
 }
 
 .agent-info {
+  display: grid;
+  gap: 0.75rem;
   min-width: 0;
 }
 

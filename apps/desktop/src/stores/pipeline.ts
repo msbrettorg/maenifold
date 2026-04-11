@@ -24,6 +24,7 @@ import {
   isCreateResult,
   normalizePipelineList,
   normalizeView,
+  serializePipelineDefinition,
   toLocalDefinition,
 } from './pipeline-view-transforms';
 
@@ -44,19 +45,6 @@ function serializeEdge(edge: PipelineEdge): PipelineEdge {
     ...(edge.mapping && Object.keys(edge.mapping).length > 0
       ? { mapping: { ...edge.mapping } }
       : {}),
-  };
-}
-
-function serializeDefinition(definition: PipelineDefinition): PipelineDefinition {
-  return {
-    nodes: definition.nodes.map((node) => {
-      const copy = { ...node };
-      if (copy.type === 'workflow' && !('workflowId' in copy && (copy as { workflowId?: string }).workflowId)) {
-        throw new Error(`Workflow node '${copy.id}' is missing workflowId`);
-      }
-      return copy;
-    }),
-    edges: definition.edges.map(serializeEdge),
   };
 }
 
@@ -147,7 +135,16 @@ export const usePipelineStore = defineStore('pipeline', () => {
   }
   async function createPipeline() {
     return withError('create_pipeline', async () => {
-      const result = await mcp.createPipeline(serializeDefinition(localDefinition.value), maxConcurrency.value);
+      const definition = serializePipelineDefinition(localDefinition.value);
+      definition.nodes.forEach((node) => {
+        if (node.type === 'workflow' && !('workflowId' in node && node.workflowId)) {
+          throw new Error(`Workflow node '${node.id}' is missing workflowId`);
+        }
+      });
+      const result = await mcp.createPipeline({
+        ...definition,
+        edges: definition.edges.map(serializeEdge),
+      }, maxConcurrency.value);
       if (isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0) {
         currentPipelineId.value = result.pipelineId;
         designMode.value = false;

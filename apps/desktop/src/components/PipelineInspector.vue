@@ -1,5 +1,22 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import type { AgentProbeConfigOption } from '../lib/agent-probe-types';
+import AgentProbePreview from './AgentProbePreview.vue';
+import {
+  buildAgentConfigDefaults,
+  formatPipelineAgentOptionLabel,
+  getAgentConfigOptionValue,
+  getAgentModelValue,
+  getAgentThoughtLevelValue,
+  getEditableAgentConfigOptions,
+  getPipelineAgentCapabilityBadges,
+  getAgentModeValue,
+  isSessionConfigSelectGroup,
+  setAgentConfigOptionValue,
+  setAgentModelValue,
+  setAgentModeValue,
+  setAgentThoughtLevelValue,
+} from '../composables/pipeline-node-form-helpers';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfigStore } from '../stores/config';
@@ -91,20 +108,12 @@ function getProbe(agentName: string) {
 }
 
 function formatAgentOptionLabel(agentName: string): string {
-  const probe = getProbe(agentName);
-  if (!probe) return agentName;
-  if (probe.error) return `${agentName} ⚠`;
-  if (probe.modes.length <= 2 && probe.modes.length > 0) return `${agentName} — ${probe.modes.join(', ')}`;
-  if (probe.modes.length > 2) return `${agentName} (${probe.modes.length} modes)`;
-  return probe.models.length ? `${agentName} (${probe.models.length} model${probe.models.length === 1 ? '' : 's'})` : agentName;
+  return formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
 }
 
 function capabilityBadges(agentName?: string | null): string[] {
   if (!agentName) return [];
-  const probe = getProbe(agentName);
-  if (!probe) return [];
-  if (probe.error) return ['⚠ probe failed'];
-  return [...probe.modes, ...(probe.models.length ? [probe.models.length === 1 ? probe.models[0] : `${probe.models.length} models`] : [])];
+  return getPipelineAgentCapabilityBadges(getProbe(agentName));
 }
 
 function getFieldValue(event: Event): string {
@@ -156,6 +165,63 @@ function updateThinkingField(event: Event, field: 'topic' | 'agent' | 'analysisT
     isSequentialThinkingNode(node) ? { ...node, [field]: getFieldValue(event) } : node,
   );
 }
+function updatePromptAgent(event: Event): void {
+  const agent = getFieldValue(event);
+  updateDesignNode((node) => {
+    if (!isPromptNode(node)) return node;
+    const { agentConfig: _agentConfig, ...rest } = node;
+    return { ...rest, agent };
+  });
+}
+function updatePromptAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+  updateDesignNode((node) =>
+    isPromptNode(node)
+      ? (() => {
+          const { model: _model, thoughtLevel: _thoughtLevel, agentConfig: _agentConfig, ...rest } = node;
+          return { ...rest, ...(nextAgentConfig ? { agentConfig: nextAgentConfig } : {}) };
+        })()
+      : node,
+  );
+}
+function updateThinkingAgent(event: Event): void {
+  const agent = getFieldValue(event);
+  updateDesignNode((node) => {
+    if (!isSequentialThinkingNode(node)) return node;
+    const { agentConfig: _agentConfig, ...rest } = node;
+    return { ...rest, agent };
+  });
+}
+function updateThinkingAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+  updateDesignNode((node) =>
+    isSequentialThinkingNode(node)
+      ? (() => {
+          const { model: _model, thoughtLevel: _thoughtLevel, agentConfig: _agentConfig, ...rest } = node;
+          return { ...rest, ...(nextAgentConfig ? { agentConfig: nextAgentConfig } : {}) };
+        })()
+      : node,
+  );
+}
+function updateToolAgent(nextAgent: string): void {
+  updateDesignNode((node) => {
+    if (!isToolNode(node)) return node;
+    const { agentConfig: _agentConfig, ...rest } = node;
+    if (!nextAgent) {
+      const { agent: _agent, ...withoutAgent } = rest;
+      return withoutAgent;
+    }
+    return { ...rest, agent: nextAgent };
+  });
+}
+function updateToolAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+  updateDesignNode((node) =>
+    isToolNode(node)
+      ? (() => {
+          const { model: _model, thoughtLevel: _thoughtLevel, agentConfig: _agentConfig, ...rest } = node;
+          return { ...rest, ...(nextAgentConfig ? { agentConfig: nextAgentConfig } : {}) };
+        })()
+      : node,
+  );
+}
 function updateToolNameValue(nextToolName: string): void {
   updateDesignNode((node) => {
     if (!isToolNode(node)) return node;
@@ -187,6 +253,72 @@ function updateTotalThoughts(event: Event): void {
     isSequentialThinkingNode(node) ? { ...node, totalThoughts } : node,
   );
 }
+function readyPromptProbe() {
+  const probe = selectedPromptDesignNode.value?.agent
+    ? getProbe(selectedPromptDesignNode.value.agent)
+    : undefined;
+  if (
+    probe?.state === 'ready'
+    && selectedPromptDesignNode.value
+    && !selectedPromptDesignNode.value.agentConfig
+  ) {
+    updatePromptAgentConfig(buildAgentConfigDefaults(probe));
+  }
+  return probe?.state === 'ready' ? probe : undefined;
+}
+function readyThinkingProbe() {
+  const probe = selectedThinkingDesignNode.value?.agent
+    ? getProbe(selectedThinkingDesignNode.value.agent)
+    : undefined;
+  if (
+    probe?.state === 'ready'
+    && selectedThinkingDesignNode.value
+    && !selectedThinkingDesignNode.value.agentConfig
+  ) {
+    updateThinkingAgentConfig(buildAgentConfigDefaults(probe));
+  }
+  return probe?.state === 'ready' ? probe : undefined;
+}
+function updatePromptMode(modeId: string): void {
+  updatePromptAgentConfig(setAgentModeValue(selectedPromptDesignNode.value?.agentConfig, modeId));
+}
+function updatePromptModel(event: Event): void {
+  updatePromptAgentConfig(
+    setAgentModelValue(selectedPromptDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updatePromptThoughtLevel(event: Event): void {
+  updatePromptAgentConfig(
+    setAgentThoughtLevelValue(selectedPromptDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updatePromptConfigOption(option: AgentProbeConfigOption, event: Event): void {
+  updatePromptAgentConfig(
+    setAgentConfigOptionValue(selectedPromptDesignNode.value?.agentConfig, option, getFieldValue(event)),
+  );
+}
+function updateThinkingMode(modeId: string): void {
+  updateThinkingAgentConfig(setAgentModeValue(selectedThinkingDesignNode.value?.agentConfig, modeId));
+}
+function updateThinkingModel(event: Event): void {
+  updateThinkingAgentConfig(
+    setAgentModelValue(selectedThinkingDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updateThinkingThoughtLevel(event: Event): void {
+  updateThinkingAgentConfig(
+    setAgentThoughtLevelValue(selectedThinkingDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event): void {
+  updateThinkingAgentConfig(
+    setAgentConfigOptionValue(
+      selectedThinkingDesignNode.value?.agentConfig,
+      option,
+      getFieldValue(event),
+    ),
+  );
+}
 </script>
 
 <template>
@@ -208,17 +340,123 @@ function updateTotalThoughts(event: Event): void {
       <template v-if="selectedWorkflowDesignNode">
         <label class="field"><span>Workflow ID</span><input class="field-input" :value="selectedWorkflowDesignNode.workflowId" :list="workflowListId" type="text" @input="updateWorkflowField($event, 'workflowId')" /><datalist :id="workflowListId"><option v-for="workflow in store.workflows" :key="workflow" :value="workflow" /></datalist></label>
         <label class="field"><span>ACP client</span><select class="field-input" :value="selectedWorkflowDesignNode.acpClient ?? ''" @change="updateWorkflowField($event, 'acpClient')"><option value="">Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedWorkflowDesignNode.acpClient).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedWorkflowDesignNode.acpClient)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <AgentProbePreview
+          v-if="selectedWorkflowDesignNode.acpClient"
+          compact
+          :agent-name="selectedWorkflowDesignNode.acpClient"
+          :probe="getProbe(selectedWorkflowDesignNode.acpClient)"
+        />
         <label class="field"><span>Prompt</span><textarea class="field-textarea" :value="selectedWorkflowDesignNode.prompt ?? ''" rows="5" placeholder="Optional per-node prompt" @input="updateWorkflowField($event, 'prompt')" /></label>
       </template>
 
       <template v-else-if="selectedPromptDesignNode">
-        <label class="field"><span>Agent</span><select class="field-input" :value="selectedPromptDesignNode.agent" @change="updatePromptField($event, 'agent')"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedPromptDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedPromptDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <label class="field"><span>Agent</span><select class="field-input" :value="selectedPromptDesignNode.agent" data-testid="inspector-prompt-agent-select" @change="updatePromptAgent"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedPromptDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedPromptDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <div v-if="selectedPromptDesignNode.agent" class="agent-config-panel">
+          <template v-if="readyPromptProbe()">
+            <div v-if="readyPromptProbe()?.modeOptions.length" class="agent-mode-badges">
+              <button
+                v-for="mode in readyPromptProbe()?.modeOptions"
+                :key="mode.id"
+                type="button"
+                class="mode-badge"
+                :class="{ selected: getAgentModeValue(selectedPromptDesignNode.agentConfig, readyPromptProbe()) === mode.id }"
+                @click="updatePromptMode(mode.id)"
+              >
+                {{ mode.name }}
+              </button>
+            </div>
+            <div class="agent-config-grid">
+              <label v-if="readyPromptProbe()?.modelOptions.length" class="field">
+                <span>Model</span>
+                <select class="field-input" :value="getAgentModelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe())" @change="updatePromptModel">
+                  <option v-for="model in readyPromptProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                </select>
+              </label>
+              <label v-if="readyPromptProbe()?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyPromptProbe()?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe())" @change="updatePromptThoughtLevel">
+                  <template v-for="entry in readyPromptProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+              <label v-for="option in getEditableAgentConfigOptions(readyPromptProbe())" :key="option.id" class="field">
+                <span>{{ option.name }}</span>
+                <select class="field-input" :value="getAgentConfigOptionValue(selectedPromptDesignNode.agentConfig, option)" @change="updatePromptConfigOption(option, $event)">
+                  <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+            </div>
+          </template>
+          <div v-else class="agent-status" :class="getProbe(selectedPromptDesignNode.agent)?.state ?? 'pending'">
+            <span class="status-pill">{{ getProbe(selectedPromptDesignNode.agent)?.state === 'offline' ? 'Offline' : getProbe(selectedPromptDesignNode.agent)?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
+            <span>{{ getProbe(selectedPromptDesignNode.agent)?.error ?? 'Waiting for agent capability probe.' }}</span>
+          </div>
+        </div>
         <label class="field"><span>Prompt template</span><textarea class="field-textarea" :value="selectedPromptDesignNode.prompt" rows="6" @input="updatePromptField($event, 'prompt')" /></label>
       </template>
 
       <template v-else-if="selectedThinkingDesignNode">
         <label class="field"><span>Topic</span><textarea class="field-textarea" :value="selectedThinkingDesignNode.topic" rows="5" @input="updateThinkingField($event, 'topic')" /></label>
-        <label class="field"><span>Agent</span><select class="field-input" :value="selectedThinkingDesignNode.agent" @change="updateThinkingField($event, 'agent')"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedThinkingDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedThinkingDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <label class="field"><span>Agent</span><select class="field-input" :value="selectedThinkingDesignNode.agent" data-testid="inspector-thinking-agent-select" @change="updateThinkingAgent"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedThinkingDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedThinkingDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <div v-if="selectedThinkingDesignNode.agent" class="agent-config-panel">
+          <template v-if="readyThinkingProbe()">
+            <div v-if="readyThinkingProbe()?.modeOptions.length" class="agent-mode-badges">
+              <button
+                v-for="mode in readyThinkingProbe()?.modeOptions"
+                :key="mode.id"
+                type="button"
+                class="mode-badge"
+                :class="{ selected: getAgentModeValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe()) === mode.id }"
+                @click="updateThinkingMode(mode.id)"
+              >
+                {{ mode.name }}
+              </button>
+            </div>
+            <div class="agent-config-grid">
+              <label v-if="readyThinkingProbe()?.modelOptions.length" class="field">
+                <span>Model</span>
+                <select class="field-input" :value="getAgentModelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe())" @change="updateThinkingModel">
+                  <option v-for="model in readyThinkingProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                </select>
+              </label>
+              <label v-if="readyThinkingProbe()?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyThinkingProbe()?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe())" @change="updateThinkingThoughtLevel">
+                  <template v-for="entry in readyThinkingProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+              <label v-for="option in getEditableAgentConfigOptions(readyThinkingProbe())" :key="option.id" class="field">
+                <span>{{ option.name }}</span>
+                <select class="field-input" :value="getAgentConfigOptionValue(selectedThinkingDesignNode.agentConfig, option)" @change="updateThinkingConfigOption(option, $event)">
+                  <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+            </div>
+          </template>
+          <div v-else class="agent-status" :class="getProbe(selectedThinkingDesignNode.agent)?.state ?? 'pending'">
+            <span class="status-pill">{{ getProbe(selectedThinkingDesignNode.agent)?.state === 'offline' ? 'Offline' : getProbe(selectedThinkingDesignNode.agent)?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
+            <span>{{ getProbe(selectedThinkingDesignNode.agent)?.error ?? 'Waiting for agent capability probe.' }}</span>
+          </div>
+        </div>
         <label class="field"><span>Total thoughts</span><input class="field-input" :value="selectedThinkingDesignNode.totalThoughts ?? ''" type="number" min="1" @input="updateTotalThoughts" /></label>
         <label class="field"><span>Analysis type</span><input class="field-input" :value="selectedThinkingDesignNode.analysisType ?? ''" type="text" @input="updateThinkingField($event, 'analysisType')" /></label>
       </template>
@@ -227,7 +465,11 @@ function updateTotalThoughts(event: Event): void {
         <ToolNodeFields
           :active="selectedToolDesignNode !== null"
           :tool-name="selectedToolDesignNode.toolName"
+          :agent-name="selectedToolDesignNode.agent ?? ''"
+          :agent-config="selectedToolDesignNode.agentConfig ?? {}"
           :tool-args="selectedToolArgsData"
+          @update:agent-name="updateToolAgent"
+          @update:agent-config="updateToolAgentConfig"
           @update:tool-name="updateToolNameValue"
           @update:tool-args="updateToolArgs"
         />
@@ -265,6 +507,14 @@ function updateTotalThoughts(event: Event): void {
 .field,.field-group { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .agent-capabilities { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .agent-capability { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-color); border-radius: 999px; color: var(--text-secondary); background: var(--bg-main); font-size: var(--text-xs); }
+.agent-config-panel { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-main) 92%, transparent); }
+.agent-config-grid,.agent-mode-badges { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+.agent-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+.mode-badge,.status-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-color); border-radius: 999px; font-size: var(--text-xs); }
+.mode-badge { background: var(--bg-main); color: var(--text-secondary); cursor: pointer; }
+.mode-badge.selected { border-color: var(--border-focus); color: var(--text-primary); background: color-mix(in srgb, var(--bg-user) 45%, transparent); }
+.agent-status { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; color: var(--text-secondary); }
+.status-pill { text-transform: uppercase; letter-spacing: 0.04em; }
 .field-group { border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; background: var(--bg-main); }
 .field-group legend { padding: 0 0.25rem; color: var(--text-primary); }
 .summary-row,.radio-option,.stat-card { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }

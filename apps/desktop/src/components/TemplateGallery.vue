@@ -23,6 +23,7 @@ const discoveredToolNames = computed<ReadonlySet<string>>(
 const availableTemplates = computed(() =>
   getAvailableTemplates(discoveredToolNames.value),
 );
+const hasIntentAgent = computed(() => resolveAgents(agentNames.value).primaryAgent.trim().length > 0);
 
 const selectedTemplate = computed<PipelineTemplate | null>(() =>
   availableTemplates.value.find((t) => t.id === selectedTemplateId.value) ?? null,
@@ -82,6 +83,9 @@ async function handleIntentSubmit(): Promise<void> {
         />
         <p class="gallery-intent-hint">
           Press Enter to create a pipeline from your request.
+        </p>
+        <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
+          Configure an agent before creating a pipeline from an intent.
         </p>
       </form>
     </section>

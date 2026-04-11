@@ -20,7 +20,7 @@ import type {
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
 import { type PipelineTemplate, type TemplateVariables } from '../lib/pipeline-templates';
-import { instantiateTemplate } from '../lib/pipeline-template-runtime';
+import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
 import { createNodeId } from '../lib/pipeline-node-factory';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
@@ -94,7 +94,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   let stopPolling: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
-  const primaryAgent = computed(() => configStore.agentNames[0] ?? '');
+  const primaryAgent = computed(() => resolveAgents(configStore.agentNames).primaryAgent.trim());
   function withLocalMetadata(
     definition: PipelineDefinition,
     metadata?: {
@@ -230,26 +230,17 @@ export const usePipelineStore = defineStore('pipeline', () => {
       templateId: template.id,
     });
   }
-  function buildIntentDefinition(prompt: string): PipelineDefinition {
-    const agent = primaryAgent.value;
+  function buildIntentDefinition(prompt: string, agent: string): PipelineDefinition {
     const nodeId = createNodeId('prompt');
 
     return {
       nodes: [
-        agent.length > 0
-          ? createNode('prompt', {
-              id: nodeId,
-              prompt,
-              agent,
-              displayLabel: 'Intent',
-            })
-          : {
-              id: nodeId,
-              type: 'prompt',
-              prompt,
-              agent: '',
-              displayLabel: 'Intent',
-            },
+        createNode('prompt', {
+          id: nodeId,
+          prompt,
+          agent,
+          displayLabel: 'Intent',
+        }),
       ],
       edges: [],
     };
@@ -260,11 +251,22 @@ export const usePipelineStore = defineStore('pipeline', () => {
       return false;
     }
 
-    const definition = buildIntentDefinition(prompt);
-    localDefinition.value = definition;
+    const agent = primaryAgent.value;
+    if (agent.length === 0) {
+      setError('create_intent_pipeline', new Error('No agent is available for intent-based creation. Configure an agent before creating a pipeline.'));
+      return false;
+    }
 
+    const definition = buildIntentDefinition(prompt, agent);
     const result = await createPipeline(definition);
-    return isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0;
+    if (isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0) {
+      return true;
+    }
+
+    if (!errorMessage.value) {
+      setError('create_intent_pipeline', new Error('Failed to create pipeline from intent.'));
+    }
+    return false;
   }
   function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
     if (!pipelineSessionId) {

@@ -3,8 +3,8 @@
  *
  * Each template declares an intent-first label, a human-readable description,
  * the raw PipelineDefinition with `{{variable}}` placeholders, a nodeLabels
- * map for human-readable display, and optional capability requirements that
- * gate availability.
+ * authoring map that the runtime stamps onto instantiated nodes as
+ * `displayLabel`, and optional capability requirements that gate availability.
  *
  * Templates are resolved at instantiation time by pipeline-template-runtime.ts.
  */
@@ -173,12 +173,4 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
 
 export function getPipelineTemplateById(id: string): PipelineTemplate | undefined {
   return PIPELINE_TEMPLATES.find((template) => template.id === id);
-}
-
-export function getTemplateNodeLabels(templateId?: string): Record<string, string> {
-  if (!templateId) {
-    return {};
-  }
-
-  return { ...(getPipelineTemplateById(templateId)?.nodeLabels ?? {}) };
 }

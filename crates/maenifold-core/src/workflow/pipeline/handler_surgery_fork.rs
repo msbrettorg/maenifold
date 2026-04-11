@@ -76,6 +76,7 @@ pub(super) fn fork_pipeline(
             .filter(|node| reachable.contains(node.id()))
             .map(|node| match node {
                 super::super::PipelineNode::Workflow {
+                    display_label,
                     workflow_id,
                     acp_client,
                     prompt,
@@ -83,12 +84,14 @@ pub(super) fn fork_pipeline(
                     ..
                 } => super::super::PipelineNode::Workflow {
                     id: node_id_map[node.id()].clone(),
+                    display_label: display_label.clone(),
                     workflow_id: workflow_id.clone(),
                     acp_client: acp_client.clone(),
                     prompt: prompt.clone(),
                     timeout: *timeout,
                 },
                 super::super::PipelineNode::Prompt {
+                    display_label,
                     prompt,
                     agent,
                     tool_mode,
@@ -101,6 +104,7 @@ pub(super) fn fork_pipeline(
                     ..
                 } => super::super::PipelineNode::Prompt {
                     id: node_id_map[node.id()].clone(),
+                    display_label: display_label.clone(),
                     prompt: prompt.clone(),
                     agent: agent.clone(),
                     tool_mode: tool_mode.clone(),
@@ -112,6 +116,7 @@ pub(super) fn fork_pipeline(
                     agent_config: agent_config.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
+                    display_label,
                     topic,
                     total_thoughts,
                     analysis_type,
@@ -125,6 +130,7 @@ pub(super) fn fork_pipeline(
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
                     id: node_id_map[node.id()].clone(),
+                    display_label: display_label.clone(),
                     topic: topic.clone(),
                     total_thoughts: *total_thoughts,
                     analysis_type: analysis_type.clone(),
@@ -137,6 +143,7 @@ pub(super) fn fork_pipeline(
                     agent_config: agent_config.clone(),
                 },
                 super::super::PipelineNode::Tool {
+                    display_label,
                     tool_name,
                     tool_args,
                     agent,
@@ -149,6 +156,7 @@ pub(super) fn fork_pipeline(
                     ..
                 } => super::super::PipelineNode::Tool {
                     id: node_id_map[node.id()].clone(),
+                    display_label: display_label.clone(),
                     tool_name: tool_name.clone(),
                     tool_args: tool_args.clone(),
                     agent: agent.clone(),

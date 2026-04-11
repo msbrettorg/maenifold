@@ -141,6 +141,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
       return {
         id: node.nodeId,
         type: 'prompt',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
@@ -155,6 +156,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
       return {
         id: node.nodeId,
         type: 'sequentialThinking',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         topic: node.topic,
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
@@ -170,6 +172,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
       return {
         id: node.nodeId,
         type: 'workflow',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
@@ -179,6 +182,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
       return {
         id: node.nodeId,
         type: 'tool',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         toolName: node.toolName,
         ...(node.agent ? { agent: node.agent } : {}),
         ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
@@ -206,6 +210,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
       return {
         id: node.id,
         type: 'prompt',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
@@ -220,6 +225,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
       return {
         id: node.id,
         type: 'sequentialThinking',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         topic: node.topic,
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
@@ -235,6 +241,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
       return {
         id: node.id,
         type: 'workflow',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
@@ -244,6 +251,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
       return {
         id: node.id,
         type: 'tool',
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         toolName: node.toolName,
         ...(node.agent ? { agent: node.agent } : {}),
         ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),

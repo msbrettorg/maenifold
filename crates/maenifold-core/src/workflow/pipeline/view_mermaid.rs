@@ -45,6 +45,10 @@ fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> Res
 }
 
 fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> Result<String> {
+    if let Some(display_label) = node.display_label() {
+        return Ok(format!("{} {}", status_emoji(status), display_label));
+    }
+
     let node_label = match node {
         PipelineNode::Workflow { .. } => {
             let workflow_id = node.workflow_id().ok_or_else(|| {

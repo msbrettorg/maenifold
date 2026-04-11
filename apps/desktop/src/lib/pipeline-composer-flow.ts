@@ -17,7 +17,7 @@ import { createNode } from './pipeline-node-factory';
 
 export type FlowNodeData = {
   nodeId: string;
-  label: string;
+  displayLabel: string;
   type: PipelineNodeType;
   acpSessionId?: string;
   thinkingSessionId?: string;
@@ -72,11 +72,10 @@ function defaultPosition(index: number): { x: number; y: number } {
 function toFlowNodeData(
   node: PipelineNode,
   viewNode?: ViewNode,
-  nodeLabels?: Record<string, string>,
 ): FlowNodeData {
   const base = {
     nodeId: node.id,
-    label: nodeLabels?.[node.id] ?? node.id,
+    displayLabel: viewNode?.displayLabel ?? node.displayLabel ?? node.id,
     type: node.type ?? 'workflow',
     acpSessionId: viewNode?.acpSessionId,
     thinkingSessionId: viewNode?.thinkingSessionId,
@@ -144,12 +143,18 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
     case 'prompt':
       return createNode('prompt', {
         id: data.nodeId,
+        ...(data.displayLabel && data.displayLabel !== data.nodeId
+          ? { displayLabel: data.displayLabel }
+          : {}),
         prompt: data.prompt ?? '',
         agent: data.agent ?? '',
       });
     case 'sequentialThinking':
       return createNode('sequentialThinking', {
         id: data.nodeId,
+        ...(data.displayLabel && data.displayLabel !== data.nodeId
+          ? { displayLabel: data.displayLabel }
+          : {}),
         topic: data.topic ?? '',
         agent: data.agent ?? '',
         ...(typeof data.totalThoughts === 'number'
@@ -160,6 +165,9 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
     case 'tool':
       return createNode('tool', {
         id: data.nodeId,
+        ...(data.displayLabel && data.displayLabel !== data.nodeId
+          ? { displayLabel: data.displayLabel }
+          : {}),
         toolName: data.toolName ?? '',
         ...(data.agent ? { agent: data.agent } : {}),
         ...(data.toolArgs ? { toolArgs: data.toolArgs } : {}),
@@ -167,6 +175,9 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
     default:
       return createNode('workflow', {
         id: data.nodeId,
+        ...(data.displayLabel && data.displayLabel !== data.nodeId
+          ? { displayLabel: data.displayLabel }
+          : {}),
         workflowId: data.workflowId ?? '',
         agent: data.agent ?? data.acpClient ?? '',
         ...(data.prompt ? { prompt: data.prompt } : {}),
@@ -179,12 +190,14 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
     case 'prompt':
       return createNode('prompt', {
         id: node.nodeId,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
       });
     case 'sequentialThinking':
       return createNode('sequentialThinking', {
         id: node.nodeId,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         topic: node.topic,
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number'
@@ -195,6 +208,7 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
     case 'tool':
       return createNode('tool', {
         id: node.nodeId,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         toolName: node.toolName,
         ...(node.agent ? { agent: node.agent } : {}),
         ...(node.toolArgs ? { toolArgs: node.toolArgs } : {}),
@@ -202,6 +216,7 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
     default:
       return createNode('workflow', {
         id: node.nodeId,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         agent: node.acpClient ?? '',
         ...(node.prompt ? { prompt: node.prompt } : {}),
@@ -213,7 +228,6 @@ export function pipelineNodesToFlow(
   pipelineNodes: PipelineNode[],
   pipelineId?: string,
   viewNodes?: ViewNode[],
-  nodeLabels?: Record<string, string>,
 ): Node[] {
   const cached = loadPositions(pipelineId);
   const viewMap = new Map(viewNodes?.map((node) => [node.nodeId, node]) ?? []);
@@ -221,7 +235,7 @@ export function pipelineNodesToFlow(
     id: node.id,
     type: 'pipelineNode',
     position: cached[node.id] ?? defaultPosition(index),
-    data: toFlowNodeData(node, viewMap.get(node.id), nodeLabels),
+    data: toFlowNodeData(node, viewMap.get(node.id)),
   }));
 }
 

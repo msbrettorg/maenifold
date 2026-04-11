@@ -191,7 +191,7 @@ describe('PipelineInspector', () => {
 
     await flushPromises();
 
-    expect(wrapper.text()).toContain('Executed tool');
+    expect(wrapper.text()).toContain('Tool node — executed directly, no interactive session');
     expect(wrapper.text()).toContain('example.echo');
     expect(wrapper.text()).toContain('Response summary');
     expect(wrapper.text()).toContain('{"value":1}');

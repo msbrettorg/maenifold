@@ -113,7 +113,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const hasCachedPositions =
       definition.nodes.length > 0 && definition.nodes.every((node) => cached[node.id]);
 
-    nodes.value = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes, definition.nodeLabels);
+    nodes.value = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
     edges.value = pipelineEdgesToFlow(definition.edges);
 
     if (!hasCachedPositions && nodes.value.length > 0) {
@@ -126,16 +126,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   function emitDefinitionUpdate(): void {
     const nextDefinition = definitionFromFlow(getNodes.value, getEdges.value);
-    const nextNodeIds = new Set(nextDefinition.nodes.map((node) => node.id));
-    const nextNodeLabels = Object.fromEntries(
-      Object.entries(options.localDefinition()?.nodeLabels ?? {}).filter(([nodeId]) =>
-        nextNodeIds.has(nodeId),
-      ),
-    );
-    options.updateDefinition({
-      ...nextDefinition,
-      nodeLabels: nextNodeLabels,
-    });
+    options.updateDefinition(nextDefinition);
   }
 
   function persistPositions(nextNodes: Node[]): void {
@@ -178,7 +169,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         {
           nodes: view.nodes.map(toPipelineNodeFromViewNode),
           edges: view.edges,
-          nodeLabels: options.localDefinition()?.nodeLabels ?? {},
         },
         view,
       );
@@ -327,6 +317,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (isWorkflowNode(node)) {
       return createNode('workflow', {
         id,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         agent: node.acpClient ?? '',
         ...(node.prompt ? { prompt: node.prompt } : {}),
@@ -336,6 +327,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (isPromptNode(node)) {
       return createNode('prompt', {
         id,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
@@ -346,6 +338,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (isSequentialThinkingNode(node)) {
       return createNode('sequentialThinking', {
         id,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         topic: node.topic,
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
@@ -357,6 +350,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (isToolNode(node)) {
       return createNode('tool', {
         id,
+        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         toolName: node.toolName,
         ...(node.agent ? { agent: node.agent } : {}),
         ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
@@ -396,7 +390,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         id: node.id,
         type: 'pipelineNode',
         position,
-        data: { ...pipelineNodesToFlow([node], undefined, undefined, options.localDefinition()?.nodeLabels)[0]!.data },
+        data: { ...pipelineNodesToFlow([node])[0]!.data },
       } satisfies Node,
     ];
     syncLocalGraph(nextNodes, getEdges.value);

@@ -59,12 +59,13 @@ struct RunContext<'a> {
     tool_context: &'a ToolContext,
     session_id: String,
     pool: Arc<AgentPool>,
+    cwd: std::path::PathBuf,
     model: Option<String>,
 }
 
 impl RunContext<'_> {
-    fn default_session_opts(&self, cwd: std::path::PathBuf) -> SessionOpts {
-        workflow_driver_session_opts(cwd, self.model.clone())
+    fn default_session_opts(&self) -> SessionOpts {
+        workflow_driver_session_opts(self.cwd.clone(), self.model.clone())
     }
 }
 
@@ -173,9 +174,10 @@ pub(crate) async fn run_workflow_with_pool(
         tool_context: context,
         session_id,
         pool,
+        cwd,
         model,
     };
-    let mut driver_opts = run_ctx.default_session_opts(cwd);
+    let mut driver_opts = run_ctx.default_session_opts();
     driver_opts.timeout_seconds = timeout_seconds;
     let driver = open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, driver_opts).await?;
     let mut step = workflow_text(&start_text);
@@ -287,6 +289,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         tool_context: context,
         session_id,
         pool,
+        cwd: session_opts.cwd.clone(),
         model: session_opts.model.clone(),
     };
     let driver =

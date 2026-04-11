@@ -25,6 +25,7 @@ export type PipelineStatus =
 
 interface PipelineNodeBase {
   id: string;
+  displayLabel?: string;
 }
 
 export interface PipelineNodeAgentConfig {
@@ -114,16 +115,11 @@ export interface PipelineDefinition {
    * round-trips and app reloads.
    */
   templateId?: string;
-  /**
-   * Optional human-readable labels keyed by node id.
-   * Populated by template instantiation; used by the flow layer and cards
-   * so users see intent-first names instead of raw IDs.
-   */
-  nodeLabels?: Record<string, string>;
 }
 
 interface ViewNodeBase {
   nodeId: string;
+  displayLabel?: string;
   sessionId: string;
   acpSessionId?: string;
   thinkingSessionId?: string;
@@ -267,6 +263,14 @@ export function isSequentialThinkingNode(
 
 export function isToolNode(node: PipelineNode): node is ToolNode {
   return getNodeType(node) === "tool";
+}
+
+export function getPipelineNodeDisplayLabel(node: PipelineNode): string {
+  return node.displayLabel ?? node.id;
+}
+
+export function getViewNodeDisplayLabel(node: ViewNode): string {
+  return node.displayLabel ?? node.nodeId;
 }
 
 export function nodeLabel(node: PipelineNode): string {

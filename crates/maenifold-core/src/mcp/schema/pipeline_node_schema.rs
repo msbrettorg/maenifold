@@ -79,6 +79,10 @@ fn node_schema_value() -> serde_json::Value {
                         "type": "string",
                         "description": "New node identifier"
                     },
+                    "displayLabel": {
+                        "type": "string",
+                        "description": "Optional presentation-only label for UI surfaces"
+                    },
                     "type": {
                         "type": "string",
                         "enum": ["workflow"],
@@ -112,6 +116,10 @@ fn node_schema_value() -> serde_json::Value {
                     "id": {
                         "type": "string",
                         "description": "New node identifier"
+                    },
+                    "displayLabel": {
+                        "type": "string",
+                        "description": "Optional presentation-only label for UI surfaces"
                     },
                     "type": {
                         "type": "string",
@@ -166,6 +174,10 @@ fn node_schema_value() -> serde_json::Value {
                     "id": {
                         "type": "string",
                         "description": "New node identifier"
+                    },
+                    "displayLabel": {
+                        "type": "string",
+                        "description": "Optional presentation-only label for UI surfaces"
                     },
                     "type": {
                         "type": "string",
@@ -226,6 +238,10 @@ fn node_schema_value() -> serde_json::Value {
                     "id": {
                         "type": "string",
                         "description": "New node identifier"
+                    },
+                    "displayLabel": {
+                        "type": "string",
+                        "description": "Optional presentation-only label for UI surfaces"
                     },
                     "type": {
                         "type": "string",

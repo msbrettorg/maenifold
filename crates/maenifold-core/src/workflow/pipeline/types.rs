@@ -58,6 +58,7 @@ impl PipelineDefinition {
 pub enum PipelineNode {
     Workflow {
         id: String,
+        display_label: Option<String>,
         workflow_id: String,
         acp_client: Option<String>,
         prompt: Option<String>,
@@ -65,6 +66,7 @@ pub enum PipelineNode {
     },
     Prompt {
         id: String,
+        display_label: Option<String>,
         prompt: String,
         agent: String,
         tool_mode: String,
@@ -77,6 +79,7 @@ pub enum PipelineNode {
     },
     SequentialThinking {
         id: String,
+        display_label: Option<String>,
         topic: String,
         total_thoughts: u32,
         analysis_type: Option<String>,
@@ -90,6 +93,7 @@ pub enum PipelineNode {
     },
     Tool {
         id: String,
+        display_label: Option<String>,
         tool_name: String,
         tool_args: Option<Value>,
         agent: Option<String>,
@@ -116,6 +120,15 @@ impl PipelineNode {
         match self {
             Self::Workflow { workflow_id, .. } => Some(workflow_id),
             Self::Prompt { .. } | Self::SequentialThinking { .. } | Self::Tool { .. } => None,
+        }
+    }
+
+    pub fn display_label(&self) -> Option<&str> {
+        match self {
+            Self::Workflow { display_label, .. }
+            | Self::Prompt { display_label, .. }
+            | Self::SequentialThinking { display_label, .. }
+            | Self::Tool { display_label, .. } => display_label.as_deref(),
         }
     }
 

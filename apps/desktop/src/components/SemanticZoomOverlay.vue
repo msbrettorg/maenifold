@@ -3,6 +3,7 @@ import { computed, onMounted, onUnmounted } from 'vue';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
 import type { ViewNode } from '../lib/pipeline-types';
+import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 
 const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
@@ -14,6 +15,7 @@ const viewNode = computed<ViewNode | undefined>(() => {
 
 const nodeType = computed(() => viewNode.value?.type ?? 'workflow');
 const statusLabel = computed(() => viewNode.value?.status ?? 'pending');
+const displayLabel = computed(() => (viewNode.value ? getViewNodeDisplayLabel(viewNode.value) : ''));
 
 const assembledPrompt = computed(() => {
   const node = viewNode.value;
@@ -62,7 +64,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
       <div class="zoom-panel">
         <header class="zoom-header">
           <div class="zoom-header-left">
-            <span class="zoom-node-id">{{ viewNode.nodeId }}</span>
+            <span class="zoom-node-id">{{ displayLabel }}</span>
             <span :class="['zoom-type-pill', `zoom-type--${nodeType}`]">{{ nodeType }}</span>
             <span :class="['zoom-status', `zoom-status--${statusLabel}`]">{{ statusLabel }}</span>
           </div>

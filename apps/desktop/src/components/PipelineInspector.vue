@@ -69,7 +69,7 @@ const selectedToolArgsData = computed<Record<string, unknown>>(
 );
 const selectedNodeLabel = computed(() =>
   selectedDesignNode.value
-    ? store.localDefinition.nodeLabels?.[selectedDesignNode.value.id] ?? ''
+    ? selectedDesignNode.value.displayLabel ?? ''
     : '',
 );
 const selectedEdgeSourceNode = computed(() =>
@@ -137,23 +137,15 @@ function updateMaxConcurrency(event: Event): void {
   const value = Number((event.target as HTMLInputElement).value);
   store.maxConcurrency = Number.isFinite(value) ? Math.min(32, Math.max(1, value)) : 1;
 }
-function cloneNodeLabels(): Record<string, string> {
-  return { ...(store.localDefinition.nodeLabels ?? {}) };
-}
 function replaceNode(previousId: string, nextNode: PipelineNode): void {
-  const nextNodeLabels = cloneNodeLabels();
-  if (previousId !== nextNode.id && nextNodeLabels[previousId]) {
-    nextNodeLabels[nextNode.id] = nextNodeLabels[previousId];
-    delete nextNodeLabels[previousId];
-  }
   store.localDefinition = {
+    ...store.localDefinition,
     nodes: store.localDefinition.nodes.map((node) => (node.id === previousId ? nextNode : node)),
     edges: store.localDefinition.edges.map((edge) => ({
       ...edge,
       source: edge.source === previousId ? nextNode.id : edge.source,
       target: edge.target === previousId ? nextNode.id : edge.target,
     })),
-    nodeLabels: nextNodeLabels,
   };
 }
 function updateDesignNode(update: (node: PipelineNode) => PipelineNode): void {
@@ -165,26 +157,20 @@ function updateDesignNode(update: (node: PipelineNode) => PipelineNode): void {
 function updateEdgeType(type: PipelineEdge['type']): void {
   if (!props.selectedEdge) return;
   store.localDefinition = {
+    ...store.localDefinition,
     nodes: [...store.localDefinition.nodes],
     edges: store.localDefinition.edges.map((edge) =>
       edge.source === props.selectedEdge?.source && edge.target === props.selectedEdge?.target ? { ...edge, type } : edge,
     ),
-    nodeLabels: cloneNodeLabels(),
   };
 }
 function updateNodeLabel(event: Event): void {
   if (!selectedDesignNode.value) return;
   const label = getFieldValue(event).trim();
-  const nextNodeLabels = cloneNodeLabels();
-  if (label) {
-    nextNodeLabels[selectedDesignNode.value.id] = label;
-  } else {
-    delete nextNodeLabels[selectedDesignNode.value.id];
-  }
-  store.localDefinition = {
-    ...store.localDefinition,
-    nodeLabels: nextNodeLabels,
-  };
+  updateDesignNode((node) => {
+    const { displayLabel: _displayLabel, ...rest } = node;
+    return label ? { ...rest, displayLabel: label } : rest;
+  });
 }
 function updateNodeId(event: Event): void {
   updateDesignNode((node) => ({ ...node, id: getFieldValue(event) }));
@@ -370,7 +356,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
     </section>
 
     <section v-else-if="inspectorMode === 'design-node' && selectedDesignNode" class="panel">
-      <h2>{{ selectedNodeLabel || 'Node' }}</h2>
+      <h2>{{ selectedNodeLabel || selectedDesignNode.id || 'Node' }}</h2>
       <label class="field">
         <span>Label</span>
         <input

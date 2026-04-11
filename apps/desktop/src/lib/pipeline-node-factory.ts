@@ -19,6 +19,7 @@ interface PipelineNodeExecutionFields {
 
 export interface WorkflowNodeInput {
   id: string;
+  displayLabel?: string;
   workflowId: string;
   agent: string;
   prompt?: string;
@@ -26,6 +27,7 @@ export interface WorkflowNodeInput {
 
 export interface PromptNodeInput extends PipelineNodeExecutionFields {
   id: string;
+  displayLabel?: string;
   prompt: string;
   agent: string;
   toolMode?: string;
@@ -33,6 +35,7 @@ export interface PromptNodeInput extends PipelineNodeExecutionFields {
 
 export interface SequentialThinkingNodeInput extends PipelineNodeExecutionFields {
   id: string;
+  displayLabel?: string;
   topic: string;
   agent: string;
   totalThoughts?: number;
@@ -41,6 +44,7 @@ export interface SequentialThinkingNodeInput extends PipelineNodeExecutionFields
 
 export interface ToolNodeInput extends PipelineNodeExecutionFields {
   id: string;
+  displayLabel?: string;
   toolName: string;
   agent?: string;
   toolArgs?: Record<string, unknown>;
@@ -166,6 +170,18 @@ function buildExecutionFields(
   };
 }
 
+function buildDisplayLabel(
+  value: string | undefined,
+): Pick<WorkflowNode, 'displayLabel'>
+| Pick<PromptNode, 'displayLabel'>
+| Pick<SequentialThinkingNode, 'displayLabel'>
+| Pick<ToolNode, 'displayLabel'>
+| Record<string, never> {
+  return typeof value === 'string' && value.length > 0
+    ? { displayLabel: value }
+    : {};
+}
+
 export function createNodeId(type: PipelineNodeType): string {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? `${type}-${crypto.randomUUID()}`
@@ -208,6 +224,7 @@ export function createNode(
       return {
         id: workflowFields.id,
         type: 'workflow',
+        ...buildDisplayLabel(workflowFields.displayLabel),
         workflowId: workflowFields.workflowId,
         ...(workflowFields.agent.length > 0
           ? { acpClient: workflowFields.agent }
@@ -237,6 +254,7 @@ export function createNode(
       return {
         id: promptFields.id,
         type: 'prompt',
+        ...buildDisplayLabel(promptFields.displayLabel),
         prompt: promptFields.prompt,
         agent: promptFields.agent,
         ...(typeof promptFields.toolMode === 'string' && promptFields.toolMode.length > 0
@@ -264,6 +282,7 @@ export function createNode(
       return {
         id: sequentialThinkingFields.id,
         type: 'sequentialThinking',
+        ...buildDisplayLabel(sequentialThinkingFields.displayLabel),
         topic: sequentialThinkingFields.topic,
         agent: sequentialThinkingFields.agent,
         totalThoughts:
@@ -299,6 +318,7 @@ export function createNode(
       return {
         id: toolFields.id,
         type: 'tool',
+        ...buildDisplayLabel(toolFields.displayLabel),
         toolName: toolFields.toolName,
         ...(typeof toolFields.agent === 'string' && toolFields.agent.length > 0
           ? { agent: toolFields.agent }

@@ -38,6 +38,9 @@ pub(super) fn pipeline_nodes_json(
                 ambient_prompt,
             )?;
             if let Some(node_object) = node_json.as_object_mut() {
+                if let Some(display_label) = node.display_label() {
+                    node_object.insert("displayLabel".to_string(), json!(display_label));
+                }
                 if let Some(retry_after) = &state.retry_after {
                     node_object.insert("retryAfter".to_string(), json!(retry_after));
                 }
@@ -235,6 +238,7 @@ mod tests {
             nodes: vec![
                 PipelineNode::SequentialThinking {
                     id: "think".to_string(),
+                    display_label: Some("Deep Reasoning".to_string()),
                     topic: "Topic".to_string(),
                     total_thoughts: 3,
                     analysis_type: None,
@@ -248,6 +252,7 @@ mod tests {
                 },
                 PipelineNode::Tool {
                     id: "tool".to_string(),
+                    display_label: None,
                     tool_name: "example.echo".to_string(),
                     tool_args: None,
                     agent: None,
@@ -311,6 +316,7 @@ mod tests {
             .find(|node| node["nodeId"] == "think")
             .expect("think node");
         assert_eq!(think["sessionId"], "workflow-think-local");
+        assert_eq!(think["displayLabel"], "Deep Reasoning");
         assert_eq!(think["acpSessionId"], "acp-think-remote");
         assert_eq!(think["thinkingSessionId"], "thinking-remote");
         assert_eq!(think["provenance"]["agent"], "agent-think");

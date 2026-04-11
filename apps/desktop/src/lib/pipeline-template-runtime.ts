@@ -142,28 +142,30 @@ function interpolateEdge(
 
 export interface InstantiateResult {
   definition: PipelineDefinition;
-  nodeLabels: Record<string, string>;
 }
 
 /**
  * Instantiate a template by interpolating variables and cloning the
- * definition. Returns both the ready-to-create definition and the
- * human-readable node labels.
+ * definition. Authoring-time template labels are stamped onto each runtime
+ * node as `displayLabel`.
  */
 export function instantiateTemplate(
   template: PipelineTemplate,
   variables: TemplateVariables,
 ): InstantiateResult {
-  const nodes = template.definition.nodes.map((node) =>
-    interpolateNode(node, variables),
-  );
+  const nodes = template.definition.nodes.map((node) => {
+    const interpolatedNode = interpolateNode(node, variables);
+    const displayLabel = template.nodeLabels[node.id];
+
+    return displayLabel
+      ? { ...interpolatedNode, displayLabel }
+      : interpolatedNode;
+  });
   const edges = template.definition.edges.map((edge) =>
     interpolateEdge(edge, variables),
   );
-  const nodeLabels = { ...template.nodeLabels };
 
   return {
     definition: { nodes, edges },
-    nodeLabels,
   };
 }

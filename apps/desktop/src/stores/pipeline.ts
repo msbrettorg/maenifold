@@ -18,11 +18,7 @@ import type {
   ToolNodeInput,
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
-import {
-  getTemplateNodeLabels,
-  type PipelineTemplate,
-  type TemplateVariables,
-} from '../lib/pipeline-templates';
+import { type PipelineTemplate, type TemplateVariables } from '../lib/pipeline-templates';
 import { instantiateTemplate } from '../lib/pipeline-template-runtime';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
@@ -34,7 +30,7 @@ import {
   toLocalDefinition,
 } from './pipeline-view-transforms';
 
-const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [], nodeLabels: {} });
+const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [] });
 const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'cancelled', 'stuck']);
 
 interface ToolDefinition {
@@ -97,22 +93,18 @@ export const usePipelineStore = defineStore('pipeline', () => {
     definition: PipelineDefinition,
     metadata?: {
       templateId?: string;
-      nodeLabels?: Record<string, string>;
     },
   ): PipelineDefinition {
     const templateId = metadata?.templateId;
-    const nodeLabels = metadata?.nodeLabels ?? getTemplateNodeLabels(templateId);
     return {
       ...definition,
       ...(templateId ? { templateId } : {}),
-      nodeLabels: { ...nodeLabels },
     };
   }
   function setView(
     view: PipelineView | null,
     metadata?: {
       templateId?: string;
-      nodeLabels?: Record<string, string>;
     },
   ) {
     currentView.value = view;
@@ -210,7 +202,6 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const result = instantiateTemplate(template, variables);
     localDefinition.value = withLocalMetadata(result.definition, {
       templateId: template.id,
-      nodeLabels: result.nodeLabels,
     });
   }
   async function refreshWorkflows() {

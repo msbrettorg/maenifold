@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia';
 import type mermaidType from 'mermaid';
 import { usePipelineStore } from '../stores/pipeline';
 import type { LogEntry } from '../lib/pipeline-types';
+import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
 
 type RunnerTab = 'event-log' | 'mermaid';
 
@@ -20,8 +21,17 @@ let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidInitialized = false;
 let renderToken = 0;
 
-const nodeLabels = computed(() => localDefinition.value.nodeLabels ?? {});
-const displayNodeId = (nodeId: string) => nodeLabels.value[nodeId] ?? nodeId;
+const localNodesById = computed(() => new Map(localDefinition.value.nodes.map((node) => [node.id, node])));
+const viewNodesById = computed(() => new Map((currentView.value?.nodes ?? []).map((node) => [node.nodeId, node])));
+const displayNodeId = (nodeId: string) => {
+  const viewNode = viewNodesById.value.get(nodeId);
+  if (viewNode) {
+    return getViewNodeDisplayLabel(viewNode);
+  }
+
+  const localNode = localNodesById.value.get(nodeId);
+  return localNode ? getPipelineNodeDisplayLabel(localNode) : nodeId;
+};
 
 const statusLine = computed(() => {
   if (designMode.value) {
@@ -42,7 +52,6 @@ const canResume = computed(() => !designMode.value && !isRunning.value && !!curr
 const canCancel = computed(() => !designMode.value && (isRunning.value || currentView.value?.status === 'paused'));
 const canDelete = computed(() => !designMode.value && !!currentPipelineId.value);
 
-const viewNodesById = computed(() => new Map((currentView.value?.nodes ?? []).map((node) => [node.nodeId, node])));
 const formattedLog = computed(() => eventLog.value.map((entry) => formatLogEntry(entry)));
 
 watch(() => eventLog.value.length, async (length, previousLength) => {

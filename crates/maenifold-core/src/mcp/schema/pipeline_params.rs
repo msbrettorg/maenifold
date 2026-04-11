@@ -170,6 +170,9 @@ pub enum PipelineNodeSchema {
 pub struct PipelineWorkflowNodeSchema {
     /// New node identifier
     pub id: String,
+    /// Optional presentation-only label for UI surfaces
+    #[serde(default)]
+    pub display_label: Option<String>,
     /// Workflow node type
     #[serde(rename = "type")]
     pub kind: PipelineWorkflowNodeType,
@@ -195,6 +198,9 @@ pub enum PipelineWorkflowNodeType {
 pub struct PipelinePromptNodeSchema {
     /// New node identifier
     pub id: String,
+    /// Optional presentation-only label for UI surfaces
+    #[serde(default)]
+    pub display_label: Option<String>,
     /// Node type 'prompt'
     #[serde(rename = "type")]
     pub kind: PipelinePromptNodeType,
@@ -233,6 +239,9 @@ pub enum PipelinePromptNodeType {
 pub struct PipelineSequentialThinkingNodeSchema {
     /// New node identifier
     pub id: String,
+    /// Optional presentation-only label for UI surfaces
+    #[serde(default)]
+    pub display_label: Option<String>,
     /// Node type 'sequentialThinking'
     #[serde(rename = "type")]
     pub kind: PipelineSequentialThinkingNodeType,
@@ -273,6 +282,9 @@ pub enum PipelineSequentialThinkingNodeType {
 pub struct PipelineToolNodeSchema {
     /// New node identifier
     pub id: String,
+    /// Optional presentation-only label for UI surfaces
+    #[serde(default)]
+    pub display_label: Option<String>,
     /// Node type 'tool'
     #[serde(rename = "type")]
     pub kind: PipelineToolNodeType,

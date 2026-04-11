@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import GateTaskDetail from './GateTaskDetail.vue';
 import GateTaskTable from './GateTaskTable.vue';
 import GateViewFilters from './GateViewFilters.vue';
@@ -7,6 +8,7 @@ import GateViewToolbar from './GateViewToolbar.vue';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
 import type { GateSnapshot, GateTask, GateTaskHistoryEntry } from '../lib/gate';
+import { parseGateTaskBodyContent } from '../lib/gate-task-body';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
@@ -22,10 +24,12 @@ const selectedState = ref('all');
 const selectedLocation = ref('todo');
 const issuesOnly = ref(false);
 const selectedTaskId = ref('');
+const selectedTaskBody = ref('');
 const selectedTaskHistory = ref<GateTaskHistoryEntry[]>([]);
 const detailLoading = ref(false);
 const detailError = ref('');
 const activeWatcherRoot = ref('');
+let detailRequestToken = 0;
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress';
 type SortDirection = 'asc' | 'desc';
@@ -110,18 +114,51 @@ function stopWatcher() {
   gate.stopPolling();
 }
 
-async function loadTaskDetail(task: GateTask | null) {
-  selectedTaskHistory.value = [];
-  detailError.value = '';
-  if (!task) return;
+async function loadTaskDetail(task: GateTask | null, options: { preserveExisting?: boolean; showLoading?: boolean } = {}) {
+  const requestToken = ++detailRequestToken;
+  const preserveExisting = options.preserveExisting ?? false;
+  const showLoading = options.showLoading ?? false;
 
-  detailLoading.value = true;
+  if (!task) {
+    selectedTaskBody.value = '';
+    selectedTaskHistory.value = [];
+    detailError.value = '';
+    detailLoading.value = false;
+    return;
+  }
+
+  if (!preserveExisting) {
+    selectedTaskBody.value = '';
+    selectedTaskHistory.value = [];
+    detailError.value = '';
+  }
+
+  if (showLoading) {
+    detailLoading.value = true;
+  }
   try {
-    selectedTaskHistory.value = await gate.readTaskHistory(task.taskId, registry.selectedGateRoot.value);
+    const [history, rawBody] = await Promise.all([
+      gate.readTaskHistory(task.taskId, registry.selectedGateRoot.value),
+      readTextFile(task.path),
+    ]);
+
+    if (requestToken !== detailRequestToken || selectedTaskId.value !== task.taskId) {
+      return;
+    }
+
+    selectedTaskHistory.value = history;
+    selectedTaskBody.value = parseGateTaskBodyContent(rawBody);
+    detailError.value = '';
   } catch (loadError) {
+    if (requestToken !== detailRequestToken || selectedTaskId.value !== task.taskId) {
+      return;
+    }
+
     detailError.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
-    detailLoading.value = false;
+    if (requestToken === detailRequestToken) {
+      detailLoading.value = false;
+    }
   }
 }
 
@@ -140,7 +177,11 @@ async function refreshSnapshot(background = false) {
     const nextSnapshot = await gate.loadSnapshot(registry.selectedGateRoot.value);
     snapshot.value = nextSnapshot;
     lastRefreshLabel.value = formatRefreshTime();
-    await loadTaskDetail(nextSnapshot.tasks.find((task) => task.taskId === selectedTaskId.value) ?? null);
+    if (!selectedTaskId.value) return;
+    await loadTaskDetail(nextSnapshot.tasks.find((task) => task.taskId === selectedTaskId.value) ?? null, {
+      preserveExisting: background,
+      showLoading: !background,
+    });
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
@@ -162,7 +203,7 @@ async function startWatcher(root: string) {
 
 async function handleTaskSelect(task: GateTask) {
   selectedTaskId.value = task.taskId;
-  await loadTaskDetail(task);
+  await loadTaskDetail(task, { showLoading: true });
 }
 
 async function handleGateRootChange(root: string) {
@@ -176,8 +217,11 @@ async function handleRemoveCurrentGate() {
 }
 
 function clearSelection() {
+  detailRequestToken += 1;
   selectedTaskId.value = '';
+  selectedTaskBody.value = '';
   selectedTaskHistory.value = [];
+  detailLoading.value = false;
   detailError.value = '';
 }
 
@@ -210,7 +254,7 @@ onBeforeUnmount(() => {
 
     <div v-else class="gate-content">
       <GateTaskTable :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" @sort="toggleSort" @select="handleTaskSelect" />
-      <GateTaskDetail :task="activeTask" :history="selectedTaskHistory" :loading="detailLoading" :error="detailError" @close="clearSelection" />
+      <GateTaskDetail :task="activeTask" :body="selectedTaskBody" :history="selectedTaskHistory" :loading="detailLoading" :error="detailError" @close="clearSelection" />
     </div>
   </section>
 </template>

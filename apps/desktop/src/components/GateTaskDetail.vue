@@ -6,6 +6,7 @@ import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 
 const props = defineProps<{
   task: GateTask | null;
+  body: string;
   history: GateTaskHistoryEntry[];
   loading: boolean;
   error: string;
@@ -19,9 +20,9 @@ const processLabel = computed(() => {
   return props.task.location === 'done' ? `${pipeline.toUpperCase()} done` : pipeline.toUpperCase();
 });
 
-function renderNotes(notes: string | null) {
-  if (!notes) return '';
-  const parsed = marked.parse(notes, { async: false });
+function renderMarkdown(content: string | null) {
+  if (!content) return '';
+  const parsed = marked.parse(content, { async: false });
   return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
 }
 
@@ -44,6 +45,16 @@ function formatTimestamp(timestamp: string | null) {
     </div>
 
     <template v-if="task">
+      <section class="gate-detail__section">
+        <p class="gate-detail__section-label">Spec</p>
+        <p v-if="loading" class="gate-detail__message">Loading task detail…</p>
+        <p v-else-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
+        <p v-else-if="!body.trim()" class="gate-detail__message">No task body content found.</p>
+        <div v-else class="gate-detail__markdown gate-detail__body" v-html="renderMarkdown(body)" />
+      </section>
+
+      <section class="gate-detail__section">
+        <p class="gate-detail__section-label">Metadata</p>
       <dl class="gate-detail__meta">
         <div>
           <dt>Process</dt>
@@ -70,33 +81,38 @@ function formatTimestamp(timestamp: string | null) {
           <dd>{{ task.path }}</dd>
         </div>
       </dl>
+      </section>
 
       <p v-if="task.issue" class="gate-detail__issue">{{ task.issue }}</p>
-      <p v-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
-      <p v-else-if="loading" class="gate-detail__message">Loading task history…</p>
-      <p v-else-if="!history.length" class="gate-detail__message">No recorded gate history yet.</p>
-      <ol v-else class="gate-detail__history">
-        <li v-for="(entry, index) in history" :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`" class="gate-detail__history-item">
-          <div class="gate-detail__history-header">
-            <div>
-              <p class="gate-detail__history-stage">{{ entry.stage }}</p>
-              <h4>{{ entry.event }}</h4>
+
+      <section class="gate-detail__section">
+        <p class="gate-detail__section-label">History</p>
+        <p v-if="loading" class="gate-detail__message">Loading task history…</p>
+        <p v-else-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
+        <p v-else-if="!history.length" class="gate-detail__message">No recorded gate history yet.</p>
+        <ol v-else class="gate-detail__history">
+          <li v-for="(entry, index) in history" :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`" class="gate-detail__history-item">
+            <div class="gate-detail__history-header">
+              <div>
+                <p class="gate-detail__history-stage">{{ entry.stage }}</p>
+                <h4>{{ entry.event }}</h4>
+              </div>
+              <time class="gate-detail__history-time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
             </div>
-            <time class="gate-detail__history-time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
-          </div>
-          <dl class="gate-detail__history-meta">
-            <div>
-              <dt>Agent</dt>
-              <dd>{{ entry.agent || '—' }}</dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd>{{ entry.model || '—' }}</dd>
-            </div>
-          </dl>
-          <div v-if="entry.notes" class="gate-detail__markdown" v-html="renderNotes(entry.notes)" />
-        </li>
-      </ol>
+            <dl class="gate-detail__history-meta">
+              <div>
+                <dt>Agent</dt>
+                <dd>{{ entry.agent || '—' }}</dd>
+              </div>
+              <div>
+                <dt>Model</dt>
+                <dd>{{ entry.model || '—' }}</dd>
+              </div>
+            </dl>
+            <div v-if="entry.notes" class="gate-detail__markdown" v-html="renderMarkdown(entry.notes)" />
+          </li>
+        </ol>
+      </section>
     </template>
 
     <p v-else class="gate-detail__message">
@@ -121,6 +137,7 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail__header,
+.gate-detail__section,
 .gate-detail__meta,
 .gate-detail__history,
 .gate-detail__history-item,
@@ -135,12 +152,25 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail__eyebrow,
+.gate-detail__section-label,
 .gate-detail__meta dt,
 .gate-detail__message {
   color: var(--text-muted);
 }
 
 .gate-detail__eyebrow {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.gate-detail__section,
+.gate-detail__section-label {
+  display: flex;
+  flex-direction: column;
+}
+
+.gate-detail__section-label {
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -237,6 +267,13 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail__markdown {
   color: var(--text-primary);
   overflow-wrap: anywhere;
+}
+
+.gate-detail__body {
+  padding: 0.9rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
 }
 
 .gate-detail__markdown :deep(*) {

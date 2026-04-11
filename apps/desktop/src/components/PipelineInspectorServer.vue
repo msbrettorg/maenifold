@@ -17,6 +17,7 @@ import type {
   ViewNode,
   WorkflowViewNode,
 } from '../lib/pipeline-types';
+import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 
 const props = defineProps<{
   selectedNodeId: string | null;
@@ -66,9 +67,19 @@ const selectedEdgeTargetNode = computed<ViewNode | null>(() =>
 );
 const selectedViewNodeLabel = computed(() =>
   selectedViewNode.value
-    ? store.localDefinition.nodeLabels?.[selectedViewNode.value.nodeId] ?? ''
+    ? getViewNodeDisplayLabel(selectedViewNode.value)
     : '',
 );
+const selectedEdgePathLabel = computed(() => {
+  if (!selectedViewEdge.value) return '';
+  const source = selectedEdgeSourceNode.value
+    ? getViewNodeDisplayLabel(selectedEdgeSourceNode.value)
+    : selectedViewEdge.value.source;
+  const target = selectedEdgeTargetNode.value
+    ? getViewNodeDisplayLabel(selectedEdgeTargetNode.value)
+    : selectedViewEdge.value.target;
+  return `${source} → ${target}`;
+});
 const selectedEdgeMappings = computed(() => Object.entries(selectedViewEdge.value?.mapping ?? {}));
 const selectedEdgeResolvedInput = computed<Record<string, unknown> | null>(() => {
   if (selectedEdgeTargetNode.value?.type !== 'tool') return null;
@@ -442,7 +453,7 @@ function copyToClipboard(value: string): void {
 
   <section v-else-if="inspectorMode === 'server-edge' && selectedViewEdge" class="panel">
     <h2>Edge Details</h2>
-    <div class="summary-row"><span>Path</span><strong>{{ selectedViewEdge.source }} → {{ selectedViewEdge.target }}</strong></div>
+    <div class="summary-row"><span>Path</span><strong>{{ selectedEdgePathLabel }}</strong></div>
     <div class="summary-row"><span>Source status</span><strong :class="['status-text', `status-text--${selectedEdgeSourceNode?.status ?? 'pending'}`]">{{ selectedEdgeSourceNode?.status ?? '—' }}</strong></div>
     <div class="read-block">
       <span>Mapping</span>

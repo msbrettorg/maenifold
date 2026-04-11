@@ -11,6 +11,12 @@ pub(super) struct PipelineNodeWire {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
     id: String,
+    #[serde(
+        default,
+        rename = "displayLabel",
+        skip_serializing_if = "Option::is_none"
+    )]
+    display_label: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     workflow_id: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -91,6 +97,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
         Ok(match kind {
             "workflow" => Self::Workflow {
                 id: wire.id,
+                display_label: wire.display_label,
                 workflow_id: required(wire.workflow_id, "workflowId")?,
                 acp_client: Some(required(wire.acp_client, "acpClient")?),
                 prompt: wire.prompt,
@@ -98,6 +105,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
             },
             "prompt" => Self::Prompt {
                 id: wire.id,
+                display_label: wire.display_label,
                 prompt: required(wire.prompt, "prompt")?,
                 agent: required(wire.agent, "agent")?,
                 tool_mode: wire.tool_mode,
@@ -110,6 +118,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
+                display_label: wire.display_label,
                 topic: required(wire.topic, "topic")?,
                 total_thoughts: wire.total_thoughts,
                 analysis_type: wire.analysis_type,
@@ -123,6 +132,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
             },
             "tool" => Self::Tool {
                 id: wire.id,
+                display_label: wire.display_label,
                 tool_name: required(wire.tool_name, "toolName")?,
                 tool_args: wire.tool_args,
                 agent: wire.agent,
@@ -148,6 +158,7 @@ impl From<PipelineNode> for PipelineNodeWire {
         match node {
             PipelineNode::Workflow {
                 id,
+                display_label,
                 workflow_id,
                 acp_client,
                 prompt,
@@ -155,6 +166,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             } => Self {
                 kind: Some("workflow".to_string()),
                 id,
+                display_label,
                 workflow_id: Some(workflow_id),
                 acp_client,
                 prompt,
@@ -174,6 +186,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             },
             PipelineNode::Prompt {
                 id,
+                display_label,
                 prompt,
                 agent,
                 tool_mode,
@@ -186,6 +199,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
+                display_label,
                 workflow_id: None,
                 acp_client: None,
                 prompt: Some(prompt),
@@ -205,6 +219,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             },
             PipelineNode::SequentialThinking {
                 id,
+                display_label,
                 topic,
                 total_thoughts,
                 analysis_type,
@@ -218,6 +233,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
+                display_label,
                 workflow_id: None,
                 acp_client: None,
                 prompt: None,
@@ -237,6 +253,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             },
             PipelineNode::Tool {
                 id,
+                display_label,
                 tool_name,
                 tool_args,
                 agent,
@@ -249,6 +266,7 @@ impl From<PipelineNode> for PipelineNodeWire {
             } => Self {
                 kind: Some("tool".to_string()),
                 id,
+                display_label,
                 workflow_id: None,
                 acp_client: None,
                 prompt: None,
@@ -312,6 +330,7 @@ mod tests {
     fn tool_node_serialization_emits_timeout() {
         let node = PipelineNode::Tool {
             id: "tool".to_string(),
+            display_label: None,
             tool_name: "GetConfig".to_string(),
             tool_args: None,
             agent: None,
@@ -326,5 +345,27 @@ mod tests {
         let value = serde_json::to_value(node).expect("serialize tool node");
 
         assert_eq!(value["timeout"], json!(21));
+    }
+
+    #[test]
+    fn prompt_node_round_trips_display_label() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "id": "prompt",
+            "type": "prompt",
+            "displayLabel": "Prompt label",
+            "prompt": "Say hi",
+            "agent": "agent"
+        }))
+        .expect("deserialize prompt node");
+
+        match &node {
+            PipelineNode::Prompt { display_label, .. } => {
+                assert_eq!(display_label.as_deref(), Some("Prompt label"));
+            }
+            other => panic!("expected prompt node, got {other:?}"),
+        }
+
+        let value = serde_json::to_value(node).expect("serialize prompt node");
+        assert_eq!(value["displayLabel"], json!("Prompt label"));
     }
 }

@@ -15,11 +15,11 @@ import { getToolCategory } from '../lib/tool-categories';
 
 type NodeCardData = {
   nodeId: string;
+  displayLabel?: string;
   workflowId?: string;
   acpClient?: string;
   status?: NodeStatus;
   attempts?: number;
-  label?: string;
   type?: PipelineNode['type'];
   prompt?: string;
   agent?: string;
@@ -61,7 +61,7 @@ function inferNode(data: NodeCardData): PipelineNode {
       id: data.nodeId,
       type: 'prompt',
       agent: data.agent ?? data.acpClient ?? 'agent',
-      prompt: (data.prompt ?? preview) || data.label || data.nodeId,
+      prompt: (data.prompt ?? preview) || data.displayLabel || data.nodeId,
     };
   }
 
@@ -69,7 +69,7 @@ function inferNode(data: NodeCardData): PipelineNode {
     return {
       id: data.nodeId,
       type: 'sequentialThinking',
-      topic: (data.topic ?? topic) || data.label || data.nodeId,
+      topic: (data.topic ?? topic) || data.displayLabel || data.nodeId,
       agent: data.agent ?? data.acpClient ?? 'agent',
       ...(typeof data.totalThoughts === 'number' ? { totalThoughts: data.totalThoughts } : {}),
       ...(data.analysisType ? { analysisType: data.analysisType } : {}),
@@ -80,7 +80,7 @@ function inferNode(data: NodeCardData): PipelineNode {
     return {
       id: data.nodeId,
       type: 'tool',
-      toolName: data.toolName ?? data.label ?? data.nodeId,
+      toolName: data.toolName ?? data.displayLabel ?? data.nodeId,
       ...(data.agent ? { agent: data.agent } : {}),
       ...(isRecord(data.toolArgs) ? { toolArgs: data.toolArgs } : {}),
     };
@@ -89,7 +89,7 @@ function inferNode(data: NodeCardData): PipelineNode {
   return {
     id: data.nodeId,
     type: 'workflow',
-    workflowId: data.workflowId ?? data.label ?? data.nodeId,
+    workflowId: data.workflowId ?? data.displayLabel ?? data.nodeId,
     ...(data.acpClient ? { acpClient: data.acpClient } : {}),
     ...(data.prompt ? { prompt: data.prompt } : {}),
   };
@@ -129,12 +129,13 @@ const typeIcon = computed(() => {
   if (isSequentialThinkingNode(node.value)) return '🧠';
   return '⚙️';
 });
+const displayLabel = computed(() => props.data.displayLabel || props.data.nodeId);
 const titleText = computed(() => shorten(nodeLabel(node.value), 44));
-const hasCustomLabel = computed(() => Boolean(props.data.label && props.data.label !== props.data.nodeId));
-const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !== props.data.label);
+const hasCustomLabel = computed(() => Boolean(props.data.displayLabel && props.data.displayLabel !== props.data.nodeId));
+const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !== displayLabel.value);
 const currentStatus = computed(() => props.data.status ?? 'pending');
 const isActive = computed(() => currentStatus.value === 'active');
-const ariaLabel = computed(() => `${typeLabel.value} node: ${props.id}`);
+const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
 const attempts = computed(() => props.data.attempts && props.data.attempts > 1 ? `×${props.data.attempts}` : '');
 const promptPreview = computed(() => isPromptNode(node.value) ? shorten(node.value.prompt, 120) : '');
 const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.prompt ? shorten(node.value.prompt, 120) : '');
@@ -155,7 +156,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
       <div class="node-header">
         <div class="header-main">
           <span :class="['status-dot', `status-dot--${currentStatus}`]" />
-          <span class="node-title">{{ data.label || data.nodeId }}</span>
+          <span class="node-title">{{ displayLabel }}</span>
         </div>
         <span class="type-pill">{{ typeIcon }} {{ typeLabel }}</span>
       </div>

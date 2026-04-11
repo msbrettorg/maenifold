@@ -12,7 +12,6 @@ import '@vue-flow/minimap/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
-import TemplateGallery from './TemplateGallery.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import { usePipelineMobile } from '../composables/usePipelineMobile';
@@ -85,12 +84,11 @@ const paletteResize = useResizeHandle({
   max: 720,
 });
 
-const showGallery = computed(() => props.designMode && showEmptyState.value);
 const paletteOpen = ref(false);
 const { isNarrowViewport } = usePipelineMobile(computed(() => hasSelection.value));
 
 const designGridStyle = computed(() => ({
-  'grid-template-columns': showGallery.value || !paletteOpen.value
+  'grid-template-columns': !paletteOpen.value
     ? 'minmax(0, 1fr)'
     : `${paletteResize.width.value}px minmax(0, 1fr)`,
 }));
@@ -347,7 +345,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 <template>
   <div class="pipeline-composer" @keydown="handleFlowKeyDown">
     <div v-if="designMode" class="composer-layout" :style="designGridStyle">
-      <section v-if="paletteOpen && !showGallery" class="composer-palette">
+      <section v-if="paletteOpen" class="composer-palette">
         <AddNodeForm
           :workflows="store.workflows"
           :submit-node="submitNode"
@@ -395,8 +393,8 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           class="pipeline-flow"
         >
           <Background color="#2a2a2a" />
-          <Controls :show-interactive="designMode && !showGallery" />
-          <MiniMap v-if="!showGallery" :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
+          <Controls :show-interactive="designMode" />
+          <MiniMap :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
           <template v-slot:edge-smoothstep="edgeProps">
             <g>
               <BaseEdge
@@ -420,10 +418,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
             </EdgeLabelRenderer>
           </template>
         </VueFlow>
-        <section v-if="showGallery" class="composer-gallery-panel">
-          <TemplateGallery />
-        </section>
-        <div v-else-if="showEmptyState" class="composer-empty-state">
+        <div v-if="showEmptyState" class="composer-empty-state">
           <span>Add nodes using the form or right-click the canvas</span>
         </div>
         <PipelineComposerContextMenu
@@ -520,20 +515,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 }
 
 .composer-palette,
-.composer-canvas,
-.composer-gallery-panel {
+.composer-canvas {
   position: relative;
   min-width: 0;
   min-height: 0;
-}
-
-.composer-gallery-panel {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  justify-content: center;
-  overflow-y: auto;
-  z-index: 4;
 }
 
 .composer-palette-resize {

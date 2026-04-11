@@ -80,10 +80,8 @@ export class MockAcpClientBridge {
   listSessions = vi.fn().mockResolvedValue({ sessions: [] });
   prompt = vi.fn().mockResolvedValue({ stopReason: 'end_turn' });
   cancel = vi.fn().mockResolvedValue(undefined);
-  setMode = vi.fn().mockResolvedValue(undefined);
   supportsAgentMethod = vi.fn().mockReturnValue(false);
   supportsSessionClose = vi.fn().mockReturnValue(false);
-  unstable_setSessionModel = vi.fn().mockResolvedValue(undefined);
   unstable_setSessionConfigOption = vi.fn().mockResolvedValue({ configOptions: [] });
   closeSession = vi.fn().mockResolvedValue(undefined);
   authenticate = vi.fn().mockResolvedValue({});

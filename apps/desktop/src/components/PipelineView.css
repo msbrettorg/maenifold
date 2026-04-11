@@ -28,8 +28,13 @@
   grid-template-areas:
     'rail composer'
     'rail runner';
+  transition: grid-template-rows 0.25s ease;
   overflow: hidden;
   position: relative;
+}
+.pipeline-grid.grid-empty {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'rail composer';
 }
 .pipeline-grid.runner-expanded .runner-panel { max-height: 50vh; }
 .rail-panel,
@@ -135,6 +140,7 @@
   max-height: 36px;
   transition: max-height 0.25s ease;
 }
+.grid-empty .runner-panel { display: none; }
 .runner-panel-header {
   position: absolute;
   top: 0.75rem;
@@ -156,6 +162,10 @@
     grid-template-areas:
       'composer'
       'runner';
+  }
+  .pipeline-grid.grid-empty {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'composer';
   }
   .rail-panel { display: none; }
   .sidebar-panel {

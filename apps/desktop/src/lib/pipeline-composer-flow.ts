@@ -4,6 +4,7 @@ import type {
   PipelineDefinition,
   PipelineEdge,
   PipelineNode,
+  PipelineNodeAgentConfig,
   PipelineNodeType,
   ToolProvenance,
   ViewNode,
@@ -20,6 +21,8 @@ export type FlowNodeData = {
   displayLabel: string;
   type: PipelineNodeType;
   model?: string;
+  /** Full agentConfig for workflow nodes — carries mode, thoughtLevel, configOptions. */
+  agentConfig?: PipelineNodeAgentConfig;
   acpSessionId?: string;
   thinkingSessionId?: string;
   workflowId?: string;
@@ -96,6 +99,9 @@ function toFlowNodeData(
       workflowId: node.workflowId,
       ...(node.acpClient ? { acpClient: node.acpClient } : {}),
       ...(node.prompt ? { prompt: node.prompt } : {}),
+      // Preserve full agentConfig so mode/thoughtLevel/configOptions survive the
+      // PipelineNode → FlowNodeData → PipelineNode round-trip.
+      ...(node.agentConfig ? { agentConfig: { ...node.agentConfig, ...(node.agentConfig.configOptions ? { configOptions: { ...node.agentConfig.configOptions } } : {}) } } : {}),
     };
   }
 
@@ -191,6 +197,8 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
         workflowId: data.workflowId ?? '',
         acpClient: data.acpClient ?? data.agent ?? '',
         ...(data.model ? { model: data.model } : {}),
+        // Restore agentConfig so mode/thoughtLevel/configOptions are not silently dropped.
+        ...(data.agentConfig ? { agentConfig: data.agentConfig } : {}),
         ...(data.prompt ? { prompt: data.prompt } : {}),
       });
   }
@@ -233,7 +241,22 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         acpClient: node.acpClient ?? '',
-        ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),
+        // Merge flat model/thoughtLevel with agentConfig, preferring agentConfig values.
+        // This ensures mode, thoughtLevel, and configOptions are not dropped when the
+        // view node is converted back to a pipeline node definition.
+        ...((): { agentConfig?: PipelineNodeAgentConfig } => {
+          const effectiveModel = (node.agentConfig?.model?.length ? node.agentConfig.model : undefined) ?? (node.model?.length ? node.model : undefined);
+          const effectiveMode = node.agentConfig?.mode?.length ? node.agentConfig.mode : undefined;
+          const effectiveThoughtLevel = (node.agentConfig?.thoughtLevel?.length ? node.agentConfig.thoughtLevel : undefined) ?? (node.thoughtLevel?.length ? node.thoughtLevel : undefined);
+          const effectiveConfigOptions = node.agentConfig?.configOptions;
+          const merged: PipelineNodeAgentConfig = {
+            ...(effectiveModel ? { model: effectiveModel } : {}),
+            ...(effectiveMode ? { mode: effectiveMode } : {}),
+            ...(effectiveThoughtLevel ? { thoughtLevel: effectiveThoughtLevel } : {}),
+            ...(effectiveConfigOptions && Object.keys(effectiveConfigOptions).length > 0 ? { configOptions: { ...effectiveConfigOptions } } : {}),
+          };
+          return Object.keys(merged).length > 0 ? { agentConfig: merged } : {};
+        })(),
         ...(node.prompt ? { prompt: node.prompt } : {}),
       });
   }

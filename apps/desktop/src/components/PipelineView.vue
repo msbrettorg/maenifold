@@ -10,6 +10,7 @@ import PipelineInspector from './PipelineInspector.vue';
 import PipelineRunner from './PipelineRunner.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
 import SemanticZoomOverlay from './SemanticZoomOverlay.vue';
+import TemplateGallery from './TemplateGallery.vue';
 import { useFlyout } from '../composables/useFlyout';
 import { usePipelineStore } from '../stores/pipeline';
 import { usePipelineDialogs } from '../composables/usePipelineDialogs';
@@ -37,6 +38,11 @@ const bannerError = computed(() => connectionError.value || error.value || '');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
 const existingNodeIds = computed(() => currentView.value?.nodes.map((node) => node.nodeId) ?? []);
 const activePipelineLabel = computed(() => currentView.value?.pipelineId ?? currentPipelineId.value ?? '');
+const showFullScreenEmpty = computed(() =>
+  designMode.value
+  && !currentView.value
+  && (localDefinition.value?.nodes?.length ?? 0) === 0
+);
 
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; }, { immediate: true });
 watch(() => String(currentView.value?.status ?? ''), (status) => {
@@ -121,6 +127,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
     <div
       class="pipeline-grid"
       :class="{
+        'grid-empty': showFullScreenEmpty,
         'runner-expanded': runnerExpanded,
         'mobile-sidebar-open': mobileSidebarOpen,
         'mobile-inspector-open': mobileInspectorOpen,
@@ -148,14 +155,17 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             {{ mobileInspectorOpen ? 'Close Inspector' : 'Open Inspector' }}
           </button>
         </div>
-        <PipelineComposer
-          :design-mode="designMode"
-          :local-definition="localDefinition"
-          :view="currentView"
-          @update:local-definition="handleDefinitionUpdate"
-          @node-selected="handleNodeSelected"
-          @edge-selected="handleEdgeSelected"
-        />
+        <TemplateGallery v-if="showFullScreenEmpty" />
+        <template v-else>
+          <PipelineComposer
+            :design-mode="designMode"
+            :local-definition="localDefinition"
+            :view="currentView"
+            @update:local-definition="handleDefinitionUpdate"
+            @node-selected="handleNodeSelected"
+            @edge-selected="handleEdgeSelected"
+          />
+        </template>
         <Transition name="pipeline-flyout">
           <PipelineFlyout
             v-if="isPipelineFlyoutOpen"
@@ -167,7 +177,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @retry="handleRetryLoad"
           />
         </Transition>
-        <div class="inspector-overlay">
+        <div v-if="!showFullScreenEmpty" class="inspector-overlay">
           <section class="inspector-panel" :class="{ 'is-visible': isInspectorVisible }" :aria-hidden="!isInspectorVisible">
             <div v-if="isNarrowViewport" class="mobile-inspector-header">
               <span>Inspector</span>
@@ -177,7 +187,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
           </section>
         </div>
       </section>
-      <section class="runner-panel">
+      <section v-if="!showFullScreenEmpty" class="runner-panel">
         <div class="runner-panel-header">
           <button
             v-if="hasLoadedPipeline && runnerExpanded"

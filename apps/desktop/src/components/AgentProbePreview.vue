@@ -288,7 +288,7 @@ function currentLabel(field: PreviewField): string {
   display: grid;
   gap: 0.65rem;
   padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--border-color) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
   border-radius: 10px;
   background: color-mix(in srgb, var(--bg-main) 88%, transparent);
 }
@@ -358,9 +358,9 @@ function currentLabel(field: PreviewField): string {
 }
 
 .refresh-btn {
-  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-default) 70%, transparent);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
   color: var(--text-secondary);
   cursor: pointer;
   font-size: var(--text-xs);
@@ -385,9 +385,9 @@ function currentLabel(field: PreviewField): string {
   gap: 0.35rem;
   min-width: 0;
   padding: 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--border-color) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-default) 75%, transparent);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
 }
 
 .field-heading {
@@ -402,7 +402,7 @@ function currentLabel(field: PreviewField): string {
 .preview-select {
   width: 100%;
   padding: 0.45rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-default) 70%, transparent);
   border-radius: 6px;
   background: color-mix(in srgb, var(--bg-input) 92%, transparent);
   color: var(--text-primary);
@@ -416,13 +416,13 @@ function currentLabel(field: PreviewField): string {
 }
 
 .probe-preview.ready .status-pill {
-  background: color-mix(in srgb, var(--bg-user) 45%, transparent);
-  color: var(--text-accent);
+  background: color-mix(in srgb, var(--border-focus) 45%, transparent);
+  color: var(--border-focus);
 }
 
 .probe-preview.pending .status-pill,
 .probe-preview.idle .status-pill {
-  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
   color: var(--text-secondary);
 }
 
@@ -440,8 +440,8 @@ function currentLabel(field: PreviewField): string {
 }
 
 .probe-preview.error .status-pill {
-  background: color-mix(in srgb, var(--bg-danger) 18%, transparent);
-  color: var(--bg-danger);
+  background: color-mix(in srgb, var(--border-error) 18%, transparent);
+  color: var(--border-error);
 }
 
 @media (max-width: 640px) {

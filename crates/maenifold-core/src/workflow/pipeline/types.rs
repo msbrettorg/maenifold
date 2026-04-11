@@ -1,6 +1,6 @@
 use petgraph::stable_graph::StableGraph;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -11,6 +11,8 @@ use super::types_wire::PipelineNodeWire;
 pub struct PipelineDefinition {
     pub nodes: Vec<PipelineNode>,
     pub edges: Vec<PipelineEdge>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inputs: Option<Map<String, Value>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub template_id: Option<String>,
 }

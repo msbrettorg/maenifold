@@ -334,11 +334,8 @@ pub(super) async fn run_prompt_node(
             (Ok(value), Err(error)) => {
                 let response = match decode_prompt_failure(&value.response) {
                     Some(reason) => encode_prompt_failure(
-                        &runner::append_close_error_context(
-                            MaenifoldError::Message(reason),
-                            error,
-                        )
-                        .to_string(),
+                        &runner::append_close_error_context(MaenifoldError::Message(reason), error)
+                            .to_string(),
                     ),
                     None => return Err(error),
                 };

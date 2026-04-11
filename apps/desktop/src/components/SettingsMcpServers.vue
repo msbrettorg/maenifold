@@ -219,24 +219,24 @@ function getServerMeta(server: McpServerEntry): string | null {
 .section-header h3,.section-header p,.agent-form h4,.empty-state,.server-meta { margin: 0; }
 .section-header p,.empty-state,.server-meta { color: var(--text-secondary); }
 .add-btn,.save-btn,.cancel-btn,.edit-btn,.delete-btn { border-radius: 6px; cursor: pointer; }
-.add-btn,.edit-btn,.cancel-btn { border: 1px solid var(--border-color); background: transparent; color: inherit; }
+.add-btn,.edit-btn,.cancel-btn { border: 1px solid var(--border-default); background: transparent; color: inherit; }
 .add-btn,.save-btn,.cancel-btn { padding: 0.5rem 0.9rem; }
-.agent-form,.agent-item { padding: 1rem; border-radius: 8px; background: var(--bg-sidebar); }
+.agent-form,.agent-item { padding: 1rem; border-radius: 8px; background: var(--bg-panel); }
 .form-group { display: block; margin-bottom: 0.75rem; }
 .form-group span { display: block; margin-bottom: 0.25rem; font-weight: 500; }
 .form-group input,.form-group select,.form-group textarea {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
 }
 .form-group textarea { resize: vertical; }
 .form-group small,.agent-command,.server-meta { font-size: var(--text-sm); }
-.form-error,.delete-btn { color: var(--bg-danger); }
-.save-btn { border: none; background: var(--bg-primary); color: white; }
-.delete-btn { border: 1px solid var(--bg-danger); background: transparent; padding: 0.25rem 0.6rem; }
+.form-error,.delete-btn { color: var(--border-error); }
+.save-btn { border: none; background: var(--border-focus); color: white; }
+.delete-btn { border: 1px solid var(--border-error); background: transparent; padding: 0.25rem 0.6rem; }
 .agent-item { align-items: center; }
 .agent-info { min-width: 0; }
 .agent-name-row { align-items: center; justify-content: flex-start; }
@@ -252,7 +252,7 @@ function getServerMeta(server: McpServerEntry): string | null {
   align-items: center;
   padding: 0.15rem 0.45rem;
   border-radius: 999px;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   text-transform: lowercase;

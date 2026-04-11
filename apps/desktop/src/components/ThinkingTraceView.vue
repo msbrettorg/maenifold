@@ -125,9 +125,9 @@ function statusClass(status: string): string {
   border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent);
 }
 .trace-status--revision {
-  color: var(--bg-primary);
-  background: color-mix(in srgb, var(--bg-primary) 12%, var(--bg-main));
-  border-color: color-mix(in srgb, var(--bg-primary) 30%, transparent);
+  color: var(--border-focus);
+  background: color-mix(in srgb, var(--border-focus) 12%, var(--bg-main));
+  border-color: color-mix(in srgb, var(--border-focus) 30%, transparent);
 }
 .trace-status--pending {
   color: var(--color-status-pending);

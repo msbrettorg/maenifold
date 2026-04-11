@@ -29,7 +29,7 @@ const renderedThought = computed(() => marked.parse(props.thought, { async: fals
 .thought-section {
   margin-bottom: 0.75rem;
   overflow: hidden;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
 }
 .thought-toggle {
@@ -39,20 +39,20 @@ const renderedThought = computed(() => marked.parse(props.thought, { async: fals
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: none;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-muted);
   font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.thought-toggle:hover { background: var(--bg-user); }
+.thought-toggle:hover { background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel)); }
 .thought-icon { flex-shrink: 0; font-size: var(--text-base); }
 .thought-label { flex: 1; font-weight: 500; }
 .thought-chevron { color: var(--text-muted); font-size: var(--text-xs); }
 .thought-content {
   padding: 0.75rem 1rem 0.75rem 1.25rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   background: var(--bg-main);
   color: var(--text-muted);
   font-size: var(--text-base);
@@ -64,7 +64,7 @@ const renderedThought = computed(() => marked.parse(props.thought, { async: fals
 .thought-content :deep(code) {
   padding: 0.125rem 0.25rem;
   border-radius: 3px;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   font-size: var(--text-sm);
 }
 </style>

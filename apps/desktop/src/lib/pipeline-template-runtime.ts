@@ -90,9 +90,13 @@ function interpolateString(
   text: string,
   variables: TemplateVariables,
 ): string {
-  return text.replace(VARIABLE_PATTERN, (match, key: string) =>
-    key in variables ? variables[key] : match,
-  );
+  return text.replace(VARIABLE_PATTERN, (match, key: string) => {
+    if (key === 'primaryAgent' || key === 'criticAgent') {
+      return variables[key];
+    }
+
+    return match;
+  });
 }
 
 /**
@@ -166,6 +170,9 @@ export function instantiateTemplate(
   );
 
   return {
-    definition: { nodes, edges },
+    definition: {
+      nodes,
+      edges,
+    },
   };
 }

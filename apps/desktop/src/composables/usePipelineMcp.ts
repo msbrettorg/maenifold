@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import type {
   PipelineDefinition,
   PipelineEdge,
+  PipelineInputs,
   PipelineListItem,
   PipelineNode,
   PipelineView,
@@ -59,8 +60,13 @@ export function usePipelineMcp(baseUrl?: string) {
     return callPipeline<PipelineView>({ sessionId, view: true });
   }
 
-  function runPipeline(sessionId: string, prompt?: string) {
-    return callPipeline({ sessionId, run: true, ...(prompt ? { prompt } : {}) });
+  function runPipeline(sessionId: string, prompt?: string, inputs?: PipelineInputs) {
+    return callPipeline({
+      sessionId,
+      run: true,
+      ...(prompt ? { prompt } : {}),
+      ...(inputs && Object.keys(inputs).length > 0 ? { inputs } : {}),
+    });
   }
 
   function pausePipeline(sessionId: string) {

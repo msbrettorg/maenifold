@@ -71,6 +71,7 @@ fn orphan_cascade_loader_keeps_abandoned_pipeline_state_over_stale_active_workfl
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("blocked")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = states(&[("blocked", NodeStatus::Abandoned, 1, None)]);
@@ -99,6 +100,7 @@ fn orphan_cascade_restart_reload_errors_when_persisted_workflow_is_missing() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("restartable")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     seed_pipeline_session_with_workflows(

@@ -540,26 +540,26 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 </template>
 
 <style scoped>
-.inspector { height: 100%; background: var(--bg-sidebar); color: var(--text-primary); border-left: 1px solid var(--border-color); overflow-y: auto; }
+.inspector { height: 100%; background: var(--bg-panel); color: var(--text-primary); border-left: 1px solid var(--border-default); overflow-y: auto; }
 .panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
 .panel h2 { font-size: var(--text-xl); font-weight: 600; }
 .field,.field-group { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .agent-capabilities { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.agent-capability { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-color); border-radius: 999px; color: var(--text-secondary); background: var(--bg-main); font-size: var(--text-xs); }
-.agent-config-panel { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-main) 92%, transparent); }
+.agent-capability { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-default); border-radius: 999px; color: var(--text-secondary); background: var(--bg-main); font-size: var(--text-xs); }
+.agent-config-panel { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-main) 92%, transparent); }
 .agent-config-grid,.agent-mode-badges { display: flex; flex-wrap: wrap; gap: 0.65rem; }
 .agent-config-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
-.mode-badge,.status-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-color); border-radius: 999px; font-size: var(--text-xs); }
+.mode-badge,.status-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-default); border-radius: 999px; font-size: var(--text-xs); }
 .mode-badge { background: var(--bg-main); color: var(--text-secondary); cursor: pointer; }
-.mode-badge.selected { border-color: var(--border-focus); color: var(--text-primary); background: color-mix(in srgb, var(--bg-user) 45%, transparent); }
+.mode-badge.selected { border-color: var(--border-focus); color: var(--text-primary); background: color-mix(in srgb, var(--border-focus) 45%, transparent); }
 .agent-status { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; color: var(--text-secondary); }
 .status-pill { text-transform: uppercase; letter-spacing: 0.04em; }
-.field-group { border: 1px solid var(--border-color); border-radius: 8px; padding: 0.75rem; background: var(--bg-main); }
+.field-group { border: 1px solid var(--border-default); border-radius: 8px; padding: 0.75rem; background: var(--bg-main); }
 .field-group legend { padding: 0 0.25rem; color: var(--text-primary); }
 .summary-row,.radio-option,.stat-card { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span,.stat-label { color: var(--text-secondary); }
 .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-.stat-card,.type-pill { padding: 0.875rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-main); }
+.stat-card,.type-pill { padding: 0.875rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
 .type-pill { padding: 0.2rem 0.6rem; font-size: var(--text-sm); }
 .radio-option { justify-content: flex-start; }
 .empty-state { justify-content: center; min-height: 220px; }

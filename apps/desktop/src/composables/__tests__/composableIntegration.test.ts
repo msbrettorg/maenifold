@@ -7,6 +7,7 @@ import { createEmptySessionState } from '../../lib/types';
 import { useSessionStore } from '../../stores/session';
 import { useMessageHandler } from '../useMessageHandler';
 import { useMemoryApi } from '../useMemoryApi';
+import { useMcpClient } from '../useMcpClient';
 import { useWorkflowTree } from '../useWorkflowTree';
 
 interface ProbeResult {
@@ -43,37 +44,24 @@ function skipSuite(suite: MutableSuite): void {
   });
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-  const controller = new AbortController();
-  const timer = globalThis.setTimeout(() => controller.abort(), PROBE_TIMEOUT_MS);
-
-  try {
-    return await fetch(input, { ...init, signal: controller.signal });
-  } finally {
-    globalThis.clearTimeout(timer);
-  }
-}
-
 async function probeMemoryApi(): Promise<ProbeResult> {
+  const client = useMcpClient(SERVER_ORIGIN);
+  const timeout = globalThis.setTimeout(() => {
+    void client.disconnect();
+  }, PROBE_TIMEOUT_MS);
+
   try {
-    const response = await fetchWithTimeout(
-      `${SERVER_ORIGIN}/api/memory/recent?filter=thinking&limit=1`,
-      { headers: { Accept: 'application/json' } },
-    );
-
-    if (!response.ok) {
-      return {
-        available: false,
-        reason: `Probe returned HTTP ${response.status}`,
-      };
-    }
-
+    await client.connect();
+    await client.callTool('RecentActivity', { filter: 'thinking', limit: 1 });
     return { available: true };
   } catch (error: unknown) {
     return {
       available: false,
       reason: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    globalThis.clearTimeout(timeout);
+    await client.disconnect();
   }
 }
 

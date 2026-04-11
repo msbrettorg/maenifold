@@ -400,7 +400,7 @@ async function handleDelete(name: string) {
 .cancel-btn,
 .add-inline-btn,
 .remove-btn {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   background: transparent;
   color: inherit;
 }
@@ -417,7 +417,7 @@ async function handleDelete(name: string) {
 .config-card {
   padding: 1rem;
   border-radius: 8px;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
 }
 
 .agent-form,
@@ -429,7 +429,7 @@ async function handleDelete(name: string) {
 
 .form-section {
   padding: 0.9rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--bg-main);
 }
@@ -452,7 +452,7 @@ async function handleDelete(name: string) {
   align-self: flex-start;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
   color: var(--text-secondary);
   font-size: var(--text-sm);
   white-space: nowrap;
@@ -472,7 +472,7 @@ async function handleDelete(name: string) {
 .form-group select {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
@@ -488,17 +488,17 @@ async function handleDelete(name: string) {
 
 .form-error,
 .delete-btn {
-  color: var(--bg-danger);
+  color: var(--border-error);
 }
 
 .save-btn {
   border: none;
-  background: var(--bg-primary);
+  background: var(--border-focus);
   color: white;
 }
 
 .delete-btn {
-  border: 1px solid var(--bg-danger);
+  border: 1px solid var(--border-error);
   background: transparent;
   padding: 0.25rem 0.6rem;
 }
@@ -548,9 +548,9 @@ async function handleDelete(name: string) {
 
 .server-editor {
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
 }
 
 .server-editor-header {

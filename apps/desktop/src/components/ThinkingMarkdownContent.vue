@@ -126,7 +126,7 @@ const renderedContent = computed(() => renderMarkdown(props.content));
   padding: 0.08rem 0.42rem;
   margin: 0 0.08rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-primary) 18%, var(--bg-code));
+  background: color-mix(in srgb, var(--border-focus) 18%, var(--bg-code));
   color: var(--thinking-markdown-link);
   font-size: var(--text-xs);
   font-weight: 600;

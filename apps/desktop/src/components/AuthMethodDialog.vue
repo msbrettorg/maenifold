@@ -89,7 +89,7 @@ function handleSelect(methodId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .dialog-header h3 {
@@ -131,17 +131,17 @@ function handleSelect(methodId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .auth-method-btn:hover {
-  border-color: var(--bg-primary);
-  background: var(--bg-hover);
+  border-color: var(--border-focus);
+  background: var(--bg-surface);
 }
 
 .method-info {
@@ -166,19 +166,19 @@ function handleSelect(methodId: string) {
 }
 
 .auth-method-btn:hover .arrow {
-  color: var(--bg-primary);
+  color: var(--border-focus);
 }
 
 .dialog-footer {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   display: flex;
   justify-content: flex-end;
 }
 
 .cancel-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
@@ -187,6 +187,6 @@ function handleSelect(methodId: string) {
 }
 
 .cancel-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 </style>

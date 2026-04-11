@@ -69,7 +69,7 @@ const queueHint = computed(() =>
   gap: 0.5rem;
   padding: 1rem;
   background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .dialog-header .icon {

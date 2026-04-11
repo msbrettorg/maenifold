@@ -47,7 +47,7 @@ const emit = defineEmits<{
 .permission-status {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--bg-warning);
   color: var(--text-primary);
@@ -62,15 +62,15 @@ const emit = defineEmits<{
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border-color);
-  border-top-color: var(--text-accent);
+  border: 2px solid var(--border-default);
+  border-top-color: var(--border-focus);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 .cancel-btn {
   margin-left: auto;
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   background: transparent;
   font-size: var(--text-sm);

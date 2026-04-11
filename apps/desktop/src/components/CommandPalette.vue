@@ -136,7 +136,7 @@ function selectCommand(cmd: AvailableCommand) {
   border-bottom: none;
 }
 .command-item.selected {
-  background: var(--bg-primary);
+  background: var(--border-focus);
   color: var(--text-on-accent);
   border-radius: 6px;
 }
@@ -164,7 +164,7 @@ function selectCommand(cmd: AvailableCommand) {
   word-break: break-word;
 }
 .command-item:hover:not(.selected) {
-  background: color-mix(in srgb, var(--bg-primary) 6%, var(--bg-main));
+  background: color-mix(in srgb, var(--border-focus) 6%, var(--bg-main));
 }
 
 /* Command row: command and description on same line */
@@ -176,7 +176,7 @@ function selectCommand(cmd: AvailableCommand) {
 }
 .command-name {
   font-weight: 600;
-  color: var(--text-accent);
+  color: var(--border-focus);
   font-family: var(--font-mono);
   font-size: var(--text-base);
   min-width: 110px;

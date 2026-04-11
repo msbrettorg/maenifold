@@ -5,12 +5,11 @@ import { ref, computed, reactive } from 'vue';
 import type { SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
-import { SESSION_SET_MODEL_METHOD } from '../lib/acp-meta';
 import { createSessionGetters } from './session-getters';
 import {
   applyConfigOptionsUpdate,
-  isActiveSessionContextCurrent,
   requireActiveSessionContext,
+  isActiveSessionContextCurrent,
 } from '../composables/session-state-helpers';
 
 // Composables
@@ -98,55 +97,6 @@ export const useSessionStore = defineStore('session', () => {
   const sessionGetters = createSessionGetters({ activeSession });
 
   // ── Actions that remain in the orchestrator ───────────────────────
-
-  async function setMode(modeId: string): Promise<void> {
-    const context = requireActiveSessionContext(activeSessionId, sessions, bridges);
-    const { session, bridge } = context;
-
-    try {
-      await bridge.setMode({
-        sessionId: session.session.sessionId,
-        modeId,
-      });
-    } catch (error) {
-      if (!session.error) {
-        session.error = error instanceof Error ? error.message : String(error);
-      }
-      throw error;
-    }
-
-    if (!isActiveSessionContextCurrent(context, sessions, bridges)) {
-      return;
-    }
-
-    session.currentModeId = modeId;
-  }
-
-  async function setModel(modelId: string): Promise<void> {
-    const context = requireActiveSessionContext(activeSessionId, sessions, bridges);
-    const { session, bridge } = context;
-    if (!bridge.supportsAgentMethod(SESSION_SET_MODEL_METHOD)) {
-      throw new Error('Active agent does not advertise support for _session/set_model');
-    }
-
-    try {
-      await bridge.unstable_setSessionModel({
-        sessionId: session.session.sessionId,
-        modelId,
-      });
-    } catch (error) {
-      if (!session.error) {
-        session.error = error instanceof Error ? error.message : String(error);
-      }
-      throw error;
-    }
-
-    if (!isActiveSessionContextCurrent(context, sessions, bridges)) {
-      return;
-    }
-
-    session.currentModelId = modelId;
-  }
 
   async function setConfigOption(configId: string, value: string | boolean): Promise<void> {
     const context = requireActiveSessionContext(activeSessionId, sessions, bridges);
@@ -301,8 +251,6 @@ export const useSessionStore = defineStore('session', () => {
     cancelAuthSelection,
     disconnect,
     deleteSession,
-    setMode,
-    setModel,
     setConfigOption,
     focusOrResumeRemoteSession,
     setError,

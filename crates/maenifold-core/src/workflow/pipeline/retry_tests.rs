@@ -62,6 +62,7 @@ fn retrying_node_not_in_ready_set() {
             edge_type: super::super::EdgeType::Always,
             mapping: None,
         }],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([
@@ -156,6 +157,7 @@ fn pre_exec_failure_transitions_to_retrying() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -205,6 +207,7 @@ fn post_exec_failure_stays_abandoned() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -254,6 +257,7 @@ fn max_attempts_exceeded_becomes_stuck() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -304,6 +308,7 @@ fn retrying_node_state_has_retry_metadata() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

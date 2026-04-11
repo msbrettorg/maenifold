@@ -26,6 +26,9 @@ pub struct PipelineParams {
     /// Ambient prompt for autonomous pipeline execution
     #[serde(default)]
     pub prompt: Option<String>,
+    /// Optional runtime inputs visible to pipeline execution. Run-time values override persisted inputs.
+    #[serde(default)]
+    pub inputs: Option<Map<String, Value>>,
     /// Cancel a running pipeline and stop future execution
     #[serde(default)]
     pub cancel: bool,
@@ -79,6 +82,9 @@ pub struct PipelineDefinitionSchema {
     pub nodes: Vec<PipelineNodeSchema>,
     /// Pipeline edges connecting nodes
     pub edges: Vec<PipelineEdgeSchema>,
+    /// Optional pipeline inputs persisted with the definition and session
+    #[serde(default)]
+    pub inputs: Option<Map<String, Value>>,
     /// Optional template identifier preserved across pipeline round-trips
     #[serde(default)]
     pub template_id: Option<String>,

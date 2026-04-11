@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use handlebars::Handlebars;
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 
@@ -102,12 +103,66 @@ fn parse_dot_path(path: &str) -> Option<Vec<String>> {
     Some(segments)
 }
 
+pub(super) fn pipeline_inputs_scope(inputs: &serde_json::Map<String, JsonValue>) -> JsonValue {
+    JsonValue::Object(serde_json::Map::from_iter([(
+        "inputs".to_string(),
+        JsonValue::Object(inputs.clone()),
+    )]))
+}
+
+pub(super) fn interpolate_string(template: &str, scope: &JsonValue) -> Result<String> {
+    let mut handlebars = Handlebars::new();
+    handlebars.set_strict_mode(true);
+    handlebars
+        .render_template(template, scope)
+        .map_err(|error| {
+            MaenifoldError::InvalidArgument(format!(
+                "Pipeline string interpolation failed: {error}"
+            ))
+        })
+}
+
+pub(super) fn resolve_template_value(value: &JsonValue, scope: &JsonValue) -> Result<JsonValue> {
+    match value {
+        JsonValue::String(template) => Ok(JsonValue::String(interpolate_string(template, scope)?)),
+        JsonValue::Array(items) => Ok(JsonValue::Array(
+            items
+                .iter()
+                .map(|item| resolve_template_value(item, scope))
+                .collect::<Result<Vec<_>>>()?,
+        )),
+        JsonValue::Object(map) if map.len() == 1 => match map.get("$ref") {
+            Some(JsonValue::String(path)) => resolve_dot_path(scope, path).map_err(|error| {
+                MaenifoldError::InvalidArgument(format!(
+                    "Pipeline $ref resolution for '{path}' failed: {error}"
+                ))
+            }),
+            _ => Ok(JsonValue::Object(
+                map.iter()
+                    .map(|(key, value)| Ok((key.clone(), resolve_template_value(value, scope)?)))
+                    .collect::<Result<serde_json::Map<_, _>>>()?,
+            )),
+        },
+        JsonValue::Object(map) => Ok(JsonValue::Object(
+            map.iter()
+                .map(|(key, value)| Ok((key.clone(), resolve_template_value(value, scope)?)))
+                .collect::<Result<serde_json::Map<_, _>>>()?,
+        )),
+        _ => Ok(value.clone()),
+    }
+}
+
 pub(super) fn mapped_tool_args(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
     target_node_id: &str,
     static_args: Option<JsonValue>,
+    scope: &JsonValue,
 ) -> Result<Option<JsonValue>> {
+    let static_args = static_args
+        .as_ref()
+        .map(|value| resolve_template_value(value, scope))
+        .transpose()?;
     let mut merged_args = match static_args.clone() {
         Some(JsonValue::Object(map)) => map,
         _ => serde_json::Map::new(),
@@ -286,7 +341,8 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -304,7 +360,7 @@ mod tests {
             },
         )]);
 
-        let error = mapped_tool_args(&definition, &node_states, "target", None)
+        let error = mapped_tool_args(&definition, &node_states, "target", None, &json!({}))
             .expect_err("invalid source output should error");
 
         assert!(
@@ -327,7 +383,8 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -345,7 +402,7 @@ mod tests {
             },
         )]);
 
-        let error = mapped_tool_args(&definition, &node_states, "target", None)
+        let error = mapped_tool_args(&definition, &node_states, "target", None, &json!({}))
             .expect_err("missing mapping path should error");
 
         assert!(error.to_string().contains("target 'payload' failed"));
@@ -377,7 +434,8 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -400,9 +458,32 @@ mod tests {
             &node_states,
             "target",
             Some(json!({ "static": true })),
+            &json!({}),
         )
         .expect("mapping should succeed");
 
         assert_eq!(mapped, Some(json!({ "static": true, "payload": 7 })));
+    }
+
+    #[test]
+    fn resolve_template_value_renders_strings_in_strict_mode() {
+        let resolved = resolve_template_value(
+            &json!({ "message": "hello {{inputs.name}}" }),
+            &json!({ "inputs": { "name": "world" } }),
+        )
+        .expect("template should resolve");
+
+        assert_eq!(resolved, json!({ "message": "hello world" }));
+    }
+
+    #[test]
+    fn resolve_template_value_resolves_typed_refs() {
+        let resolved = resolve_template_value(
+            &json!({ "count": { "$ref": "inputs.payload.count" } }),
+            &json!({ "inputs": { "payload": { "count": 3 } } }),
+        )
+        .expect("ref should resolve");
+
+        assert_eq!(resolved, json!({ "count": 3 }));
     }
 }

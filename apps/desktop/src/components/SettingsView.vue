@@ -93,7 +93,7 @@ const activeSection = ref<SectionId>('connection');
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .settings-header h2,
@@ -130,8 +130,8 @@ const activeSection = ref<SectionId>('connection');
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
-  border-right: 1px solid var(--border-color);
-  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-panel);
 }
 
 .nav-item {
@@ -148,12 +148,12 @@ const activeSection = ref<SectionId>('connection');
 }
 
 .nav-item:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .nav-item.active {
   background: var(--bg-main);
-  border-color: var(--border-color);
+  border-color: var(--border-default);
 }
 
 .nav-label {
@@ -182,7 +182,7 @@ const activeSection = ref<SectionId>('connection');
 
   .settings-nav {
     border-right: none;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-default);
   }
 }
 </style>

@@ -4,13 +4,11 @@ import type {
   AgentInfo,
   AvailableCommand,
   ChatMessage,
-  ModelInfo,
   PermissionRequest,
   PlanEntry,
   PromptCapabilities,
   SavedSession,
   SessionConfigOption,
-  SessionMode,
   SessionState,
 } from '../lib/types';
 
@@ -55,12 +53,6 @@ export function createSessionGetters({ activeSession }: SessionGetterSource) {
   const pendingAuthAgentName = computed<string>(
     () => activeSession.value?.pendingAuthAgentName ?? ''
   );
-  const availableModes = computed<SessionMode[]>(
-    () => activeSession.value?.availableModes ?? []
-  );
-  const currentModeId = computed<string>(
-    () => activeSession.value?.currentModeId ?? ''
-  );
   const configOptions = computed<SessionConfigOption[]>(
     () => activeSession.value?.configOptions ?? []
   );
@@ -72,12 +64,6 @@ export function createSessionGetters({ activeSession }: SessionGetterSource) {
   );
   const currentPlan = computed<PlanEntry[] | null>(
     () => activeSession.value?.currentPlan ?? null
-  );
-  const availableModels = computed<ModelInfo[]>(
-    () => activeSession.value?.availableModels ?? []
-  );
-  const currentModelId = computed<string>(
-    () => activeSession.value?.currentModelId ?? ''
   );
   const startupPhase = computed<string>(
     () => activeSession.value?.startupPhase ?? ''
@@ -104,14 +90,10 @@ export function createSessionGetters({ activeSession }: SessionGetterSource) {
     agentPromptCapabilities,
     pendingAuthMethods,
     pendingAuthAgentName,
-    availableModes,
-    currentModeId,
     configOptions,
     hasConfigOptions,
     availableCommands,
     currentPlan,
-    availableModels,
-    currentModelId,
     startupPhase,
     startupLogs,
     startupElapsed,

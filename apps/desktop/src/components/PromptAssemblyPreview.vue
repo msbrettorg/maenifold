@@ -100,7 +100,7 @@ const sections = computed<PreviewSection[]>(() => {
 
 <style scoped>
 .assembly-preview {
-  border: 1px solid var(--border-default, var(--border-color));
+  border: 1px solid var(--border-default, var(--border-default));
   border-radius: 10px;
   background: var(--bg-panel, var(--bg-main));
 }
@@ -152,7 +152,7 @@ const sections = computed<PreviewSection[]>(() => {
   overflow: auto;
   padding: 0.75rem;
   border-radius: 8px;
-  border: 1px solid var(--border-default, var(--border-color));
+  border: 1px solid var(--border-default, var(--border-default));
   background: var(--bg-main);
   color: var(--text-primary);
   font-family: var(--font-mono);

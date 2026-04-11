@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
-import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
+import type { PipelineEdge, PipelineInputs, PipelineNode } from '../lib/pipeline-types';
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;
@@ -40,9 +40,9 @@ export function createPipelineLifecycleActions({
     });
   }
 
-  async function runPipeline(prompt?: string) {
+  async function runPipeline(prompt?: string, inputs?: PipelineInputs) {
     await withCurrentPipeline('run_pipeline', async (sessionId) => {
-      await mcp.runPipeline(sessionId, prompt);
+      await mcp.runPipeline(sessionId, prompt, inputs);
       startViewPolling();
       await refreshView();
     });

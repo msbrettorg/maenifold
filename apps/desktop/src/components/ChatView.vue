@@ -5,8 +5,6 @@ import { resolve } from '@tauri-apps/api/path';
 import { useSessionStore } from '../stores/session';
 import { useMermaid } from '../composables/useMermaid';
 import { isAbsolutePath } from '../lib/acp-meta';
-import ModePicker from './ModePicker.vue';
-import ModelPicker from './ModelPicker.vue';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
@@ -26,12 +24,7 @@ const expandedToolCalls = ref<Set<string>>(new Set());
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const currentSession = computed(() => sessionStore.currentSession);
-const availableModes = computed(() => sessionStore.availableModes);
-const currentModeId = computed(() => sessionStore.currentModeId);
-const availableModels = computed(() => sessionStore.availableModels);
-const currentModelId = computed(() => sessionStore.currentModelId);
 const configOptions = computed(() => sessionStore.configOptions);
-const hasConfigOptions = computed(() => sessionStore.hasConfigOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 const currentPlan = computed(() => sessionStore.currentPlan);
 const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
@@ -80,10 +73,6 @@ function handleCommandSelect(command: AvailableCommand): void {
       handleConfigOptionChange(String(meta.configId), String(meta.value));
       return;
     }
-    if (action === 'setMode' && meta.modeId) {
-      handleModeChange(String(meta.modeId));
-      return;
-    }
     if (action === 'clearMessages') {
       sessionStore.clearMessages();
       return;
@@ -93,12 +82,6 @@ function handleCommandSelect(command: AvailableCommand): void {
   activeCommandHint.value = command.input?.hint ?? null;
 }
 function handleCancel(): void { sessionStore.cancelOperation(); }
-async function handleModeChange(modeId: string): Promise<void> {
-  try { await sessionStore.setMode(modeId); } catch (error) { console.error('Failed to change mode:', error); }
-}
-async function handleModelChange(modelId: string): Promise<void> {
-  try { await sessionStore.setModel(modelId); } catch (error) { console.error('Failed to change model:', error); }
-}
 async function handleConfigOptionChange(configId: string, value: string): Promise<void> {
   try { await sessionStore.setConfigOption(configId, value); } catch (error) { console.error('Failed to change config option:', error); }
 }
@@ -165,18 +148,12 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
     <div class="chat-header">
       <h2>{{ currentSession?.title || 'Chat' }}</h2>
       <div class="header-right">
-        <template v-if="hasConfigOptions">
-          <ConfigOptionPicker
-            v-for="option in configOptions"
-            :key="option.id"
-            :option="option"
-            @change="handleConfigOptionChange"
-          />
-        </template>
-        <template v-else>
-          <ModelPicker v-if="availableModels.length" :models="availableModels" :current-model-id="currentModelId" @change="handleModelChange" />
-          <ModePicker v-if="availableModes.length" :modes="availableModes" :current-mode-id="currentModeId" @change="handleModeChange" />
-        </template>
+        <ConfigOptionPicker
+          v-for="option in configOptions"
+          :key="option.id"
+          :option="option"
+          @change="handleConfigOptionChange"
+        />
         <span class="agent-name">{{ currentSession?.agentName }}</span>
       </div>
     </div>
@@ -221,7 +198,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 
 <style scoped>
 .chat-view { display: flex; flex-direction: column; height: 100%; }
-.chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border-color); }
+.chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border-default); }
 .chat-header h2 {
   margin: 0;
   overflow: hidden;
@@ -230,7 +207,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   font-size: var(--text-xl);
 }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
-.agent-name { font-size: var(--text-sm); color: var(--text-accent); }
+.agent-name { font-size: var(--text-sm); color: var(--border-focus); }
 .messages-container { flex: 1; overflow-y: auto; padding: 1rem; }
 .messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
 .messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: 6px; }

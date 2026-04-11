@@ -1,7 +1,7 @@
 import { readonly, ref } from 'vue';
 import { DEFAULT_MCP_BASE_URL, MCP_PROTOCOL_VERSION } from '../lib/constants';
+import { getApiBase } from '../lib/api-base';
 import { getTauriFetch } from '../lib/http';
-import { getApiBase } from './useMemoryApi';
 import type {
   JsonRpcRequest,
   JsonRpcResponse,

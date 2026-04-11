@@ -14,11 +14,10 @@ import type { PipelineDefinition } from './pipeline-types';
 // Types
 // ---------------------------------------------------------------------------
 
-/** Variables the runtime must interpolate before creating the pipeline. */
+/** Structural variables the runtime must interpolate before creating the pipeline. */
 export interface TemplateVariables {
   primaryAgent: string;
   criticAgent: string;
-  [key: string]: string;
 }
 
 /** A tool that must be discovered via MCP for the template to be available. */
@@ -28,6 +27,19 @@ export interface TemplateCapabilityGate {
 }
 
 export type TemplateCategory = 'universal' | 'enterprise';
+
+export interface TemplateInputDefinition {
+  /** Key passed to MCP `Pipeline run` as `inputs[key]`. */
+  key: string;
+  /** Human-readable label shown in the run form. */
+  label: string;
+  /** Optional helper copy shown under the field label. */
+  description?: string;
+  /** Placeholder text for the runtime field. */
+  placeholder?: string;
+  /** Whether the run is blocked until a non-empty value is provided. */
+  required?: boolean;
+}
 
 export interface PipelineTemplate {
   /** Unique slug used as registry key. */
@@ -43,6 +55,8 @@ export interface PipelineTemplate {
   capabilities: readonly TemplateCapabilityGate[];
   /** Raw pipeline definition with `{{variable}}` placeholders in string values. */
   definition: PipelineDefinition;
+  /** Explicit runtime inputs shown only when the user runs the pipeline. */
+  runInputs: readonly TemplateInputDefinition[];
   /** Map from node id → human-readable label. */
   nodeLabels: Readonly<Record<string, string>>;
 }
@@ -62,13 +76,21 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     capabilities: [],
     definition: {
       nodes: [
-        { id: 'investigate', type: 'workflow', workflowId: 'scientific-method', acpClient: '{{primaryAgent}}', prompt: '{{topic}}' },
+        { id: 'investigate', type: 'workflow', workflowId: 'scientific-method', acpClient: '{{primaryAgent}}', prompt: '{{inputs.topic}}' },
         { id: 'review', type: 'workflow', workflowId: 'peer-review', acpClient: '{{criticAgent}}', prompt: 'Review the investigation results for soundness.' },
       ],
       edges: [
         { source: 'investigate', target: 'review', type: 'success' },
       ],
     },
+    runInputs: [
+      {
+        key: 'topic',
+        label: 'Topic or question',
+        placeholder: 'e.g. Investigate the tradeoffs of X vs Y',
+        required: true,
+      },
+    ],
     nodeLabels: {
       investigate: 'Investigate Topic',
       review: 'Peer Review',
@@ -83,13 +105,21 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     capabilities: [],
     definition: {
       nodes: [
-        { id: 'reason', type: 'sequentialThinking', topic: '{{topic}}', agent: '{{primaryAgent}}', totalThoughts: 8 },
+        { id: 'reason', type: 'sequentialThinking', topic: '{{inputs.topic}}', agent: '{{primaryAgent}}', totalThoughts: 8 },
         { id: 'critique', type: 'workflow', workflowId: 'critical-thinking', acpClient: '{{criticAgent}}', prompt: 'Critically evaluate the reasoning above.' },
       ],
       edges: [
         { source: 'reason', target: 'critique', type: 'success' },
       ],
     },
+    runInputs: [
+      {
+        key: 'topic',
+        label: 'Topic or question',
+        placeholder: 'e.g. Think through an architecture decision',
+        required: true,
+      },
+    ],
     nodeLabels: {
       reason: 'Deep Reasoning',
       critique: 'Critical Review',
@@ -104,7 +134,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     capabilities: [],
     definition: {
       nodes: [
-        { id: 'draft', type: 'prompt', prompt: '{{topic}}', agent: '{{primaryAgent}}' },
+        { id: 'draft', type: 'prompt', prompt: '{{inputs.topic}}', agent: '{{primaryAgent}}' },
         { id: 'stress-test', type: 'workflow', workflowId: 'falsification', acpClient: '{{criticAgent}}', prompt: 'Attempt to falsify the draft above.' },
         { id: 'revise', type: 'prompt', prompt: 'Incorporate the falsification feedback and produce a refined version.', agent: '{{primaryAgent}}' },
       ],
@@ -113,6 +143,14 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
         { source: 'stress-test', target: 'revise', type: 'success' },
       ],
     },
+    runInputs: [
+      {
+        key: 'topic',
+        label: 'Topic or question',
+        placeholder: 'e.g. Draft a response about an upcoming launch',
+        required: true,
+      },
+    ],
     nodeLabels: {
       draft: 'Initial Draft',
       'stress-test': 'Stress Test',
@@ -128,13 +166,21 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     capabilities: [],
     definition: {
       nodes: [
-        { id: 'explore', type: 'workflow', workflowId: 'agentic-research', acpClient: '{{primaryAgent}}', prompt: '{{topic}}' },
+        { id: 'explore', type: 'workflow', workflowId: 'agentic-research', acpClient: '{{primaryAgent}}', prompt: '{{inputs.topic}}' },
         { id: 'synthesize', type: 'workflow', workflowId: 'crta', acpClient: '{{criticAgent}}', prompt: 'Synthesize and critically analyze the research findings.' },
       ],
       edges: [
         { source: 'explore', target: 'synthesize', type: 'success' },
       ],
     },
+    runInputs: [
+      {
+        key: 'topic',
+        label: 'Topic or question',
+        placeholder: 'e.g. Explore a market, customer, or technical topic',
+        required: true,
+      },
+    ],
     nodeLabels: {
       explore: 'Explore Topic',
       synthesize: 'Synthesize Findings',
@@ -154,15 +200,24 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     ],
     definition: {
       nodes: [
-        { id: 'fetch-account', type: 'tool', toolName: 'msx-mcp-get_account_overview', toolArgs: { account_name: '{{accountName}}' } },
-        { id: 'query-workiq', type: 'tool', toolName: 'workiq-ask_work_iq', toolArgs: { question: 'What is the current engagement status for {{accountName}}?' } },
-        { id: 'analyze', type: 'prompt', prompt: 'Analyze the account overview and WorkIQ data to assess deal readiness for {{accountName}}.', agent: '{{primaryAgent}}' },
+        { id: 'fetch-account', type: 'tool', toolName: 'msx-mcp-get_account_overview', toolArgs: { account_name: '{{inputs.accountName}}' } },
+        { id: 'query-workiq', type: 'tool', toolName: 'workiq-ask_work_iq', toolArgs: { question: 'What is the current engagement status for {{inputs.accountName}}?' } },
+        { id: 'analyze', type: 'prompt', prompt: 'Analyze the account overview and WorkIQ data to assess deal readiness for {{inputs.accountName}}.', agent: '{{primaryAgent}}' },
       ],
       edges: [
         { source: 'fetch-account', target: 'analyze', type: 'success' },
         { source: 'query-workiq', target: 'analyze', type: 'success' },
       ],
     },
+    runInputs: [
+      {
+        key: 'accountName',
+        label: 'Account name',
+        description: 'Used for the MSX and WorkIQ queries at run time.',
+        placeholder: 'e.g. Contoso Ltd',
+        required: true,
+      },
+    ],
     nodeLabels: {
       'fetch-account': 'Fetch Account Overview',
       'query-workiq': 'Query Work Intelligence',

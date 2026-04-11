@@ -11,8 +11,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: color-mix(in srgb, var(--bg-danger) 12%, var(--bg-main));
-  border-bottom: 1px solid color-mix(in srgb, var(--bg-danger) 30%, var(--border-color));
+  background: color-mix(in srgb, var(--border-error) 12%, var(--bg-main));
+  border-bottom: 1px solid color-mix(in srgb, var(--border-error) 30%, var(--border-default));
   color: var(--text-primary);
   flex-shrink: 0;
 }
@@ -117,7 +117,7 @@
 
 .sidebar-panel {
   grid-area: sidebar;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-default);
 }
 
 .composer-panel {
@@ -126,12 +126,12 @@
 
 .inspector-panel {
   grid-area: inspector;
-  border-left: 1px solid var(--border-color);
+  border-left: 1px solid var(--border-default);
 }
 
 .runner-panel {
   grid-area: runner;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   position: relative;
 }
 
@@ -147,7 +147,7 @@
 
 .grid-resize-handle:hover,
 .grid-resize-handle:active {
-  background: var(--text-accent);
+  background: var(--border-focus);
 }
 
 .grid-resize-handle--sidebar { margin-left: -3px; }
@@ -195,8 +195,8 @@
     z-index: 20;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    box-shadow: 0 0 0 1px var(--border-color), 0 1rem 2rem color-mix(in srgb, var(--text-primary) 25%, transparent);
-    border-right: 1px solid var(--border-color);
+    box-shadow: 0 0 0 1px var(--border-default), 0 1rem 2rem color-mix(in srgb, var(--text-primary) 25%, transparent);
+    border-right: 1px solid var(--border-default);
   }
 
   .pipeline-grid.mobile-sidebar-open .sidebar-panel {
@@ -223,7 +223,7 @@
     min-height: 2.75rem;
     min-width: 2.75rem;
     padding: 0.5rem 0.875rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-default);
     border-radius: 0.5rem;
     background: color-mix(in srgb, var(--bg-main) 88%, transparent);
     color: var(--text-primary);
@@ -247,7 +247,7 @@
     z-index: 24;
     transform: translateY(100%);
     transition: transform 0.2s ease;
-    border-top: 1px solid var(--border-color);
+    border-top: 1px solid var(--border-default);
     border-left: none;
     box-shadow: 0 -0.75rem 1.5rem color-mix(in srgb, var(--text-primary) 20%, transparent);
   }
@@ -262,7 +262,7 @@
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-default);
     background: var(--bg-main);
     font-size: var(--text-sm);
   }
@@ -270,7 +270,7 @@
   .mobile-inspector-close {
     min-height: 2.5rem;
     padding: 0.25rem 0.75rem;
-    border: 1px solid var(--border-color);
+    border: 1px solid var(--border-default);
     border-radius: 0.5rem;
     background: transparent;
     color: var(--text-primary);

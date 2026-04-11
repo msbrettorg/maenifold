@@ -192,7 +192,7 @@ ul {
 }
 
 .session-item:hover {
-  background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
 }
 
 .session-info {
@@ -230,7 +230,7 @@ ul {
 
 .connection-badge.connected {
   background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main));
-  color: var(--bg-success);
+  color: var(--color-status-completed);
 }
 
 .connection-badge.connected .connection-dot {
@@ -261,7 +261,7 @@ ul {
   margin-left: 0.375rem;
   padding: 0.0625rem 0.375rem;
   border-radius: 999px;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-muted);
   font-size: var(--text-xs);
   font-weight: 500;
@@ -284,7 +284,7 @@ ul {
 }
 
 .delete-btn:hover {
-  background: var(--bg-danger);
+  background: var(--border-error);
   color: var(--text-error);
 }
 

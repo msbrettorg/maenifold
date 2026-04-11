@@ -68,7 +68,7 @@ function copyPayload() {
 
 <style scoped>
 .entry {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .entry-header {
@@ -80,7 +80,7 @@ function copyPayload() {
 }
 
 .entry-header:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .expand-icon {
@@ -100,7 +100,7 @@ function copyPayload() {
 }
 
 .entry.out .direction-icon {
-  color: var(--text-accent);
+  color: var(--border-focus);
 }
 
 .entry.in .direction-icon {
@@ -119,7 +119,7 @@ function copyPayload() {
 
 .request-id {
   margin-left: auto;
-  color: var(--text-accent);
+  color: var(--border-focus);
   font-size: var(--text-xs);
 }
 

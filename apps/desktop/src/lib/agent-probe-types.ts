@@ -8,7 +8,7 @@ import type {
   SessionMode,
 } from './types';
 
-export type AgentProbeStyle = 'legacy' | 'modern' | 'unknown';
+export type AgentProbeStyle = 'modern' | 'unknown';
 export type AgentProbeState = 'ready' | 'offline' | 'error';
 
 export interface AgentProbePromptCapabilities {
@@ -182,60 +182,6 @@ function normalizeConfigValue(currentValue: unknown): Pick<
     currentValue: JSON.stringify(currentValue),
     rawCurrentValue: currentValue,
     valueType: 'json',
-  };
-}
-
-function normalizeModeEntry(value: unknown): SessionMode | null {
-  if (typeof value === 'string' && value.length > 0) {
-    return { id: value, name: value };
-  }
-
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const id =
-    normalizeString(value.id)
-    ?? normalizeString(value.modeId)
-    ?? normalizeString(value.value);
-  const name = normalizeString(value.name) ?? id;
-
-  if (!id || !name) {
-    return null;
-  }
-
-  return {
-    id,
-    name,
-    description: normalizeString(value.description),
-    _meta: normalizeMetadata(value._meta),
-  };
-}
-
-function normalizeModelEntry(value: unknown): ModelInfo | null {
-  if (typeof value === 'string' && value.length > 0) {
-    return { modelId: value, name: value };
-  }
-
-  if (!isRecord(value)) {
-    return null;
-  }
-
-  const modelId =
-    normalizeString(value.modelId)
-    ?? normalizeString(value.id)
-    ?? normalizeString(value.value);
-  const name = normalizeString(value.name) ?? modelId;
-
-  if (!modelId || !name) {
-    return null;
-  }
-
-  return {
-    modelId,
-    name,
-    description: normalizeString(value.description),
-    _meta: normalizeMetadata(value._meta),
   };
 }
 
@@ -437,39 +383,19 @@ export function normalizeAgentProbeResult(
   const style = normalizeString(source.style);
   const configOptionList =
     state === 'ready' ? normalizeConfigOptions(source.configOptions) : [];
-  const directModeOptions =
-    state === 'ready' && Array.isArray(source.modes)
-      ? source.modes
-          .map(normalizeModeEntry)
-          .filter((entry): entry is SessionMode => entry !== null)
-      : [];
-  const directModelOptions =
-    state === 'ready' && Array.isArray(source.models)
-      ? source.models
-          .map(normalizeModelEntry)
-          .filter((entry): entry is ModelInfo => entry !== null)
-      : [];
-  const modeOptions =
-    directModeOptions.length > 0
-      ? directModeOptions
-      : modeOptionsFromConfigOptions(configOptionList);
-  const modelOptions =
-    directModelOptions.length > 0
-      ? directModelOptions
-      : modelOptionsFromConfigOptions(configOptionList);
+  const modeOptions = modeOptionsFromConfigOptions(configOptionList);
+  const modelOptions = modelOptionsFromConfigOptions(configOptionList);
   const configOptions = Object.fromEntries(
     configOptionList.map((option) => [option.id, option]),
   );
 
   return {
     style:
-      style === 'legacy' || style === 'modern'
+      style === 'modern'
         ? style
         : configOptionList.length > 0
           ? 'modern'
-          : modeOptions.length > 0 || modelOptions.length > 0
-            ? 'legacy'
-            : 'unknown',
+          : 'unknown',
     state,
     offline: state === 'offline',
     modes: modeOptions.map((option) => option.id),

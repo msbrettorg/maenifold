@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use serde::Deserialize;
+use serde_json::{Map as JsonMap, Value as JsonValue};
 use serde_yaml::Value as YamlValue;
 
 use crate::error::{MaenifoldError, Result};
@@ -9,8 +10,8 @@ use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 
 use super::session_io::{
-    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state_with_status,
-    read_pipeline_session, update_workflow_node_frontmatter,
+    derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
+    persist_pipeline_state_with_status, read_pipeline_session, update_workflow_node_frontmatter,
 };
 use super::update::update_pipeline_node_status;
 use super::{
@@ -20,6 +21,12 @@ use super::{
 
 pub(super) const DEFAULT_MAX_CONCURRENCY: usize = 8;
 pub(super) const MAX_CONCLUSION_CHARS: usize = 4096;
+
+pub(super) struct PipelineExecutionConfig {
+    pub(super) definition: PipelineDefinition,
+    pub(super) max_concurrency: usize,
+    pub(super) inputs: JsonMap<String, JsonValue>,
+}
 
 #[derive(Debug, Deserialize)]
 struct Envelope<T> {
@@ -57,7 +64,7 @@ pub(super) fn load_pipeline_node_states(
 pub(super) fn load_execution_config(
     context: &ToolContext,
     session_id: &str,
-) -> Result<(PipelineDefinition, usize)> {
+) -> Result<PipelineExecutionConfig> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let max_concurrency = frontmatter
@@ -65,7 +72,14 @@ pub(super) fn load_execution_config(
         .and_then(YamlValue::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or(DEFAULT_MAX_CONCURRENCY);
-    Ok((definition, max_concurrency))
+    let inputs = optional_frontmatter_value(&frontmatter, "inputs")?
+        .or(definition.inputs.clone())
+        .unwrap_or_default();
+    Ok(PipelineExecutionConfig {
+        definition,
+        max_concurrency,
+        inputs,
+    })
 }
 
 pub(super) fn parse_dispatch_result(raw: String) -> Result<Vec<DispatchedNode>> {
@@ -204,8 +218,10 @@ pub(super) fn derive_execution_status(
     let node_states = load_pipeline_node_states(context, session_id)?;
 
     // Use terminal-node-aware status when the definition is available.
-    if let Ok((definition, _)) = load_execution_config(context, session_id) {
-        return Ok(compute_pipeline_status_with_definition(&definition, &node_states).to_string());
+    if let Ok(config) = load_execution_config(context, session_id) {
+        return Ok(
+            compute_pipeline_status_with_definition(&config.definition, &node_states).to_string(),
+        );
     }
 
     // Fallback (definition unreadable): derive from raw node states.
@@ -233,6 +249,7 @@ pub(super) fn truncate_chars(text: &str, max_chars: usize) -> String {
     text.chars().take(max_chars).collect()
 }
 
+#[allow(dead_code)]
 pub(super) fn assemble_node_prompt(
     context: &ToolContext,
     definition: &PipelineDefinition,
@@ -253,23 +270,40 @@ pub(super) fn assemble_node_prompt(
     .filter(|value| !value.is_empty());
     let workflow_fallback =
         matches!(node, PipelineNode::Workflow { .. }) && node_instruction.is_none();
+    Ok(assemble_prompt_from_parts(
+        predecessor_context.as_deref(),
+        ambient_prompt,
+        node_instruction,
+        workflow_fallback,
+    ))
+}
+
+pub(super) fn assemble_prompt_from_parts(
+    predecessor_context: Option<&str>,
+    ambient_prompt: &str,
+    node_instruction: Option<&str>,
+    workflow_fallback: bool,
+) -> String {
     let mut parts = Vec::new();
 
     if let Some(context) = predecessor_context
-        .as_deref()
         .map(str::trim)
         .filter(|value| !value.is_empty())
     {
         parts.push(context.to_string());
     }
-    if !ambient_prompt.is_empty() {
-        parts.push(ambient_prompt.to_string());
+    if !ambient_prompt.trim().is_empty() {
+        parts.push(ambient_prompt.trim().to_string());
     }
-    if !workflow_fallback && let Some(instruction) = node_instruction {
+    if !workflow_fallback
+        && let Some(instruction) = node_instruction
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+    {
         parts.push(instruction.to_string());
     }
 
-    Ok(parts.join("\n\n"))
+    parts.join("\n\n")
 }
 
 pub(super) fn predecessor_context_content(

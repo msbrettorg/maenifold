@@ -125,9 +125,9 @@ async function addAttachments(kind: 'image' | 'audio'): Promise<void> {
 .ab-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ab-wrap { display: inline-flex; }
 .ab-btn {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
   padding: 0.35rem 0.75rem;
   font-size: var(--text-sm);
@@ -141,8 +141,8 @@ async function addAttachments(kind: 'image' | 'audio'): Promise<void> {
   gap: 0.375rem;
   padding: 0.25rem 0.625rem;
   border-radius: 999px;
-  background: var(--bg-hover);
-  border: 1px solid var(--border-color);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
   font-size: var(--text-sm);
 }
 .ab-remove { border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }

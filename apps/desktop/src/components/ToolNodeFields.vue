@@ -677,9 +677,9 @@ watch(
 .tool-agent-panel,
 .tool-palette__detail {
   padding: 0.8rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 0.85rem;
-  background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
 }
 
 .tool-agent-grid {
@@ -703,7 +703,7 @@ watch(
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.45rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
   font-size: var(--text-xs);
 }
@@ -758,7 +758,7 @@ watch(
   display: grid;
   gap: 0.35rem;
   padding: 0.7rem 0.8rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
   background: var(--bg-main);
   color: var(--text-primary);
@@ -801,7 +801,7 @@ watch(
 }
 
 .tool-palette__tag--warning {
-  border-color: color-mix(in srgb, var(--color-status-abandoned) 35%, var(--border-color));
+  border-color: color-mix(in srgb, var(--color-status-abandoned) 35%, var(--border-default));
 }
 
 .tool-palette__required {

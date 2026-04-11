@@ -65,9 +65,9 @@ async fn execute_pipeline_inner(
     pool: Arc<AgentPool>,
 ) -> Result<ExecutionResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
-    let (definition, max_concurrency) = load_execution_config(&json_context, session_id)?;
-    let nodes_by_id = build_node_index(&definition);
-    let semaphore = Arc::new(Semaphore::new(max_concurrency));
+    let execution_config = load_execution_config(&json_context, session_id)?;
+    let nodes_by_id = build_node_index(&execution_config.definition);
+    let semaphore = Arc::new(Semaphore::new(execution_config.max_concurrency));
     let mut join_set = JoinSet::new();
     let mut counts = ExecutionCounts::default();
     let prompt = prompt.to_string();
@@ -89,10 +89,11 @@ async fn execute_pipeline_inner(
                 &json_context,
                 context,
                 session_id,
-                &definition,
+                &execution_config.definition,
                 &node_states,
                 &nodes_by_id,
                 &prompt,
+                &execution_config.inputs,
                 pool.clone(),
                 semaphore.clone(),
                 &mut join_set,
@@ -259,6 +260,7 @@ async fn schedule_dispatched_node(
     node_states: &HashMap<String, NodeState>,
     nodes_by_id: &HashMap<String, PipelineNode>,
     ambient_prompt: &str,
+    inputs: &serde_json::Map<String, serde_json::Value>,
     pool: Arc<AgentPool>,
     semaphore: Arc<Semaphore>,
     join_set: &mut JoinSet<NodeJoinResult>,
@@ -295,6 +297,7 @@ async fn schedule_dispatched_node(
         node,
         dispatch,
         ambient_prompt,
+        inputs,
     )?;
     let ctx = ToolContext::new(output_context.config.clone(), output_context.output_format);
     let timeout = extract_timeout(&execution);

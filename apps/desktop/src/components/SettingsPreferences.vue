@@ -141,7 +141,7 @@ onMounted(async () => {
 
 .card {
   padding: 1rem;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
 }
 
 .toggle-card {
@@ -155,23 +155,23 @@ onMounted(async () => {
 
 .status-chip {
   padding: 0.35rem 0.6rem;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
   color: var(--text-secondary);
   font-size: var(--text-sm);
 }
 
 .status-chip.saving,
 .message.success {
-  color: var(--bg-primary);
+  color: var(--border-focus);
 }
 
 .message.error {
-  color: var(--bg-danger);
+  color: var(--border-error);
 }
 
 .secondary-btn {
   padding: 0.5rem 0.85rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: transparent;
   color: inherit;

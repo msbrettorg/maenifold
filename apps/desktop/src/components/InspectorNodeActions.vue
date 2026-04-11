@@ -172,7 +172,7 @@ function openPromotionDialog(): void {
 <style scoped>
 .field { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-main); }
+.fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
 .fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
 .error-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-error); color: var(--text-error); border: 1px solid var(--border-error); border-radius: 6px; font-size: var(--text-sm); }
 .error-banner__message { flex: 1; }

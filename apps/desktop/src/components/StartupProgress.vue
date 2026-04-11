@@ -103,7 +103,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 .startup-progress {
   padding: 1rem;
   background: var(--bg-main);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   margin-top: 0.75rem;
 }
@@ -131,7 +131,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
@@ -163,7 +163,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 
 .details-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
@@ -172,12 +172,12 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 }
 
 .details-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .cancel-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
@@ -186,25 +186,25 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 }
 
 .cancel-btn:hover {
-  background: var(--bg-hover);
-  border-color: var(--bg-danger);
-  color: var(--bg-danger);
+  background: var(--bg-surface);
+  border-color: var(--border-error);
+  color: var(--border-error);
 }
 
 .logs-container {
   margin-top: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .logs-header {
   padding: 0.375rem 0.5rem;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .logs-content {

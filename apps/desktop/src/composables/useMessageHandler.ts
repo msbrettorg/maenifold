@@ -109,16 +109,6 @@ export function useMessageHandler({
         handleToolCallUpdate(session, update);
         break;
 
-      case 'current_mode_update':
-        // Agent changed the mode
-        if (session.hasConfigOptions) {
-          break;
-        }
-        if ('modeId' in update && update.modeId) {
-          session.currentModeId = update.modeId as string;
-        }
-        break;
-
       case 'config_option_update':
         applyConfigOptionsUpdate(session, update.configOptions);
         break;

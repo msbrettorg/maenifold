@@ -5,6 +5,7 @@ import type mermaidType from 'mermaid';
 import { usePipelineStore } from '../stores/pipeline';
 import type { LogEntry } from '../lib/pipeline-types';
 import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
+import { getPipelineTemplateById, type TemplateInputDefinition } from '../lib/pipeline-templates';
 
 type RunnerTab = 'event-log' | 'mermaid';
 
@@ -15,6 +16,7 @@ const activeTab = ref<RunnerTab>('event-log');
 const busyAction = ref<string | null>(null);
 const logContainer = ref<HTMLElement | null>(null);
 const runPrompt = ref('');
+const runInputValues = ref<Record<string, string>>({});
 const renderedSvg = ref('');
 const mermaidFallback = ref('');
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
@@ -45,8 +47,20 @@ const statusLine = computed(() => {
 });
 
 const canCreate = computed(() => designMode.value && localDefinition.value.nodes.length > 0);
-const canRun = computed(() => !designMode.value && !isRunning.value && !!currentView.value && currentView.value.ready.length > 0);
-const canShowRunPrompt = computed(() => canRun.value);
+const canRunBase = computed(() => !designMode.value && !isRunning.value && !!currentView.value && currentView.value.ready.length > 0);
+const currentTemplateId = computed(() => currentView.value?.templateId ?? localDefinition.value.templateId ?? null);
+const currentRunInputDraftKey = computed(() => currentPipelineId.value);
+const currentTemplate = computed(() => getPipelineTemplateById(currentTemplateId.value ?? ''));
+const runInputDefinitions = computed<readonly TemplateInputDefinition[]>(
+  () => currentTemplate.value?.runInputs ?? [],
+);
+const missingRequiredInputs = computed(() =>
+  runInputDefinitions.value.filter((input) =>
+    input.required && !(runInputValues.value[input.key] ?? '').trim(),
+  ),
+);
+const canRun = computed(() => canRunBase.value && missingRequiredInputs.value.length === 0);
+const canShowRunPrompt = computed(() => canRunBase.value);
 const canPause = computed(() => !designMode.value && isRunning.value);
 const canResume = computed(() => !designMode.value && !isRunning.value && !!currentView.value && !['completed', 'cancelled', 'stuck'].includes(currentView.value.status));
 const canCancel = computed(() => !designMode.value && (isRunning.value || currentView.value?.status === 'paused'));
@@ -61,6 +75,23 @@ watch(() => eventLog.value.length, async (length, previousLength) => {
     logContainer.value.scrollTop = logContainer.value.scrollHeight;
   }
 });
+
+watch(currentRunInputDraftKey, (pipelineSessionId) => {
+  runInputValues.value = Object.fromEntries(
+    Object.entries(store.getRunInputDraft(pipelineSessionId)).map(([key, value]) => [
+      key,
+      typeof value === 'string' ? value : String(value ?? ''),
+    ]),
+  );
+}, { immediate: true });
+
+watch(runInputValues, (values) => {
+  if (!currentRunInputDraftKey.value) {
+    return;
+  }
+
+  store.replaceRunInputDraft(currentRunInputDraftKey.value, values);
+}, { deep: true });
 
 watch([activeTab, () => currentView.value?.mermaid ?? ''], async ([tab, diagram]) => {
   if (tab !== 'mermaid') return;
@@ -141,9 +172,24 @@ function handleDelete() {
 }
 
 function handleRun() {
+  if (!canRun.value) {
+    return;
+  }
+
   void runAction('run', async () => {
     const prompt = runPrompt.value.trim();
-    await store.runPipeline(prompt.length > 0 ? prompt : undefined);
+    const inputs = runInputDefinitions.value.reduce<Record<string, string>>((acc, input) => {
+      const value = runInputValues.value[input.key]?.trim() ?? '';
+      if (value.length > 0) {
+        acc[input.key] = value;
+      }
+      return acc;
+    }, {});
+
+    await store.runPipeline(
+      prompt.length > 0 ? prompt : undefined,
+      Object.keys(inputs).length > 0 ? inputs : undefined,
+    );
     runPrompt.value = '';
   });
 }
@@ -152,6 +198,33 @@ function handleRun() {
 <template>
   <section class="runner-panel">
     <div v-if="canShowRunPrompt" class="prompt-panel">
+      <div v-if="runInputDefinitions.length > 0" class="run-inputs-panel">
+        <label
+          v-for="input in runInputDefinitions"
+          :key="input.key"
+          class="prompt-field"
+        >
+          <span class="prompt-label">
+            {{ input.label }}
+            <span v-if="input.required" class="prompt-required">*</span>
+          </span>
+          <span v-if="input.description" class="prompt-help">
+            {{ input.description }}
+          </span>
+          <input
+            v-model="runInputValues[input.key]"
+            type="text"
+            class="field-input"
+            :placeholder="input.placeholder"
+            :aria-invalid="input.required && !(runInputValues[input.key] ?? '').trim()"
+            @keydown.enter="handleRun"
+          />
+        </label>
+        <p v-if="missingRequiredInputs.length > 0" class="prompt-validation" role="alert">
+          Required: {{ missingRequiredInputs.map((input) => input.label).join(', ') }}
+        </p>
+      </div>
+
       <label class="prompt-label" for="pipeline-run-prompt">Run prompt</label>
       <textarea
         id="pipeline-run-prompt"
@@ -169,7 +242,7 @@ function handleRun() {
 
     <div class="control-bar">
       <button v-if="canCreate" class="btn btn-primary" :disabled="busyAction !== null" @click="runAction('create', () => store.createPipeline())">Create</button>
-      <button v-if="canRun" class="btn btn-success" :disabled="busyAction !== null" @click="handleRun">Run</button>
+      <button v-if="canRunBase" class="btn btn-success" :disabled="busyAction !== null || !canRun" @click="handleRun">Run</button>
       <button v-if="canPause" class="btn btn-pause" :disabled="busyAction !== null" @click="runAction('pause', () => store.pausePipeline())">Pause</button>
       <button v-if="canResume" class="btn btn-primary" :disabled="busyAction !== null" @click="runAction('resume', () => store.resumePipeline())">Resume</button>
       <button v-if="canCancel" class="btn btn-danger" :disabled="busyAction !== null" @click="runAction('cancel', () => store.cancelPipeline())">Cancel</button>
@@ -201,7 +274,7 @@ function handleRun() {
   display: flex;
   flex-direction: column;
   min-height: 260px;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   background: var(--bg-main);
 }
 .error-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; background: var(--bg-error); color: var(--text-error); border-bottom: 1px solid var(--border-error); font-size: var(--text-sm); }
@@ -214,10 +287,40 @@ function handleRun() {
   gap: 0.4rem;
   padding: 0.75rem 1rem 0;
 }
+.run-inputs-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.prompt-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
 .prompt-label {
   color: var(--text-secondary);
   font-size: var(--text-sm);
   font-weight: 600;
+}
+.prompt-required,
+.prompt-validation {
+  color: var(--color-status-stuck, #e57373);
+}
+.prompt-help {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+.field-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+.field-input[aria-invalid="true"] {
+  border-color: var(--color-status-stuck, #e57373);
 }
 .control-bar, .tab-bar {
   display: flex;
@@ -225,15 +328,15 @@ function handleRun() {
   gap: 0.5rem;
   padding: 0.75rem 1rem;
 }
-.control-bar { border-bottom: 1px solid var(--border-color); }
+.control-bar { border-bottom: 1px solid var(--border-default); }
 .status-line {
   padding: 0 1rem 0.75rem;
   color: var(--text-secondary);
   font-size: var(--text-base);
 }
 .tab-bar {
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border-default);
   padding-top: 0;
   padding-bottom: 0;
 }
@@ -242,8 +345,8 @@ function handleRun() {
   border-bottom: 2px solid transparent;
 }
 .tab.active {
-  color: var(--text-accent);
-  border-bottom-color: var(--text-accent);
+  color: var(--border-focus);
+  border-bottom-color: var(--border-focus);
 }
 .tab-panel {
   flex: 1;
@@ -252,7 +355,7 @@ function handleRun() {
   overflow: auto;
 }
 .log-panel {
-  background: var(--bg-assistant);
+  background: var(--bg-surface);
 }
 .log-lines, .fallback {
   margin: 0;

@@ -43,11 +43,11 @@ html, body, #app {
 
 /* ── Button variants ── */
 .btn-primary {
-  background-color: var(--bg-primary);
+  background-color: var(--border-focus);
   color: var(--text-on-accent);
 }
 .btn-primary:hover:not(:disabled):not(.btn--busy) {
-  background-color: var(--bg-primary-hover);
+  background-color: var(--border-focus);
 }
 
 .btn-success {

@@ -6,6 +6,7 @@ import {
   type LogEntry,
   type PipelineDefinition,
   type PipelineEdge,
+  type PipelineInputs,
   type PipelineListItem,
   type PipelineNode,
   type PipelineNodeType,
@@ -86,6 +87,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const eventLog = ref<LogEntry[]>([]);
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
+  const runInputDrafts = ref<Record<string, PipelineInputs>>({});
   let stopPolling: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
@@ -204,6 +206,28 @@ export const usePipelineStore = defineStore('pipeline', () => {
       templateId: template.id,
     });
   }
+  function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
+    if (!pipelineSessionId) {
+      return {};
+    }
+
+    return { ...(runInputDrafts.value[pipelineSessionId] ?? {}) };
+  }
+  function setRunInputDraft(pipelineSessionId: string, key: string, value: string) {
+    runInputDrafts.value = {
+      ...runInputDrafts.value,
+      [pipelineSessionId]: {
+        ...(runInputDrafts.value[pipelineSessionId] ?? {}),
+        [key]: value,
+      },
+    };
+  }
+  function replaceRunInputDraft(pipelineSessionId: string, inputs: PipelineInputs) {
+    runInputDrafts.value = {
+      ...runInputDrafts.value,
+      [pipelineSessionId]: { ...inputs },
+    };
+  }
   async function refreshWorkflows() {
     await withLoading(async () => {
       try { workflows.value = await mcp.listWorkflows(); } catch { /* non-critical */ }
@@ -297,6 +321,9 @@ export const usePipelineStore = defineStore('pipeline', () => {
     createPipeline,
     addNode,
     applyTemplate,
+    getRunInputDraft,
+    setRunInputDraft,
+    replaceRunInputDraft,
     runPipeline,
     pausePipeline,
     resumePipeline,

@@ -91,9 +91,9 @@ function toggleExpanded(): void {
 <style scoped>
 .plan-view {
   margin-bottom: 1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 10px;
-  background: var(--bg-assistant);
+  background: var(--bg-surface);
   overflow: hidden;
 }
 
@@ -112,7 +112,7 @@ function toggleExpanded(): void {
 }
 
 .plan-toggle:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .plan-heading {
@@ -138,7 +138,7 @@ function toggleExpanded(): void {
 }
 
 .plan-body {
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
   padding: 0.75rem 1rem 1rem;
 }
 

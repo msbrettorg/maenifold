@@ -106,9 +106,12 @@ export interface PipelineEdge {
   mapping?: Record<string, string>;
 }
 
+export type PipelineInputs = Record<string, unknown>;
+
 export interface PipelineDefinition {
   nodes: PipelineNode[];
   edges: PipelineEdge[];
+  inputs?: PipelineInputs;
   /**
    * Optional template identifier used to re-derive default human-readable
    * labels for pipelines instantiated from a template after backend
@@ -219,7 +222,8 @@ export type ViewNode =
 export interface PipelineView {
   pipelineId: string;
   status: PipelineStatus;
-   templateId?: string;
+  templateId?: string;
+  inputs?: PipelineInputs;
   nodes: ViewNode[];
   edges: PipelineEdge[];
   ready: string[];

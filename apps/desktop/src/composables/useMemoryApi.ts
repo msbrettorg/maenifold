@@ -5,8 +5,9 @@ import type {
   RecentResult,
   SearchResult,
 } from '../lib/workflow-types';
-import { DEFAULT_MCP_BASE_URL } from '../lib/constants';
-import { getTauriFetch } from '../lib/http';
+import { getApiBase } from '../lib/api-base';
+import { unwrapToolData } from './pipeline-mcp-transport';
+import { getSharedMcpClient } from './usePipelineMcp';
 
 interface SearchMemoriesOptions {
   mode?: MemorySearchMode;
@@ -22,125 +23,239 @@ interface RecentActivityOptions {
   includeContent?: boolean;
 }
 
-async function getErrorMessage(response: Response): Promise<string> {
-  const contentType = response.headers.get('content-type') ?? '';
-  const bodyText = await response.text();
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
 
-  if (contentType.includes('application/json') && bodyText.trim()) {
-    try {
-      const payload = JSON.parse(bodyText) as unknown;
+function toNonEmptyString(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null;
+  }
 
-      if (typeof payload === 'string' && payload.trim()) {
-        return payload;
-      }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
 
-      if (payload && typeof payload === 'object') {
-        const message = 'message' in payload ? payload.message : undefined;
-        if (typeof message === 'string' && message.trim()) {
-          return message;
-        }
+function extractUri(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const direct = value.match(/memory:\/\/[^\s)]+/i);
+    return direct?.[0] ?? null;
+  }
 
-        const error = 'error' in payload ? payload.error : undefined;
-        if (typeof error === 'string' && error.trim()) {
-          return error;
-        }
-      }
-    } catch {
-      // Fall back to the raw response body below when the server returns invalid JSON.
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  for (const key of ['uri', 'memoryUri', 'identifier']) {
+    const candidate = toNonEmptyString(value[key]);
+    if (candidate) {
+      return candidate;
     }
   }
 
-  return bodyText.trim() || `Request failed with status ${response.status}`;
+  return null;
 }
 
-/**
- * Derive a fetchable API origin from the current browser location.
- *
- * Returning an absolute origin keeps requests same-origin in the browser while
- * also allowing jsdom/undici integration tests to issue real network calls,
- * because Node's fetch implementation does not accept relative URLs.
- *
- * Exported for integration testing.
- */
-export function getApiBase(): string {
-  if (typeof window === 'undefined') {
-    return '';
+function normalizeSearchItem(value: unknown): SearchResult['results'][number] | null {
+  if (!isRecord(value)) {
+    return null;
   }
 
-  // Always target the maenifold backend directly.
-  // In tauri dev, window.location.origin is the Vite server (localhost:1420),
-  // NOT the MCP backend. Returning that origin causes 404s on /mcp and /memory.
-  // Both dev and production use tauri-plugin-http which bypasses CORS.
-  return import.meta.env.VITE_MCP_BASE_URL ?? DEFAULT_MCP_BASE_URL;
-}
-
-async function fetchJson<T>(path: string, params: URLSearchParams): Promise<T> {
-  const apiBase = getApiBase();
-  const query = params.toString();
-  const url = query ? `${apiBase}${path}?${query}` : `${apiBase}${path}`;
-  const httpFetch = await getTauriFetch();
-  const response = await httpFetch(url);
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
+  const uri = extractUri(value);
+  if (!uri) {
+    return null;
   }
 
-  return await response.json() as T;
+  return {
+    uri,
+    title: toNonEmptyString(value.title) ?? uri,
+    snippet: toNonEmptyString(value.snippet) ?? toNonEmptyString(value.preview) ?? '',
+    score:
+      typeof value.score === 'number'
+        ? value.score
+        : typeof value.rank === 'number'
+          ? value.rank
+          : 0,
+  };
 }
 
-export function useMemoryApi() {
-  async function readMemory(uri: string): Promise<MemoryFile> {
-    const params = new URLSearchParams({ uri });
-    return fetchJson<MemoryFile>('/api/memory/read', params);
+function normalizeReadMemoryResponse(value: unknown): MemoryFile {
+  const data = unwrapToolData<unknown>(value);
+  if (!isRecord(data)) {
+    throw new Error('Memory read returned an unexpected response.');
+  }
+
+  const uri = extractUri(data);
+  const content = typeof data.content === 'string' ? data.content : null;
+  if (!uri || content === null) {
+    throw new Error('Memory read did not include the expected content.');
+  }
+
+  return {
+    uri,
+    title: toNonEmptyString(data.title) ?? uri,
+    content,
+    created: typeof data.created === 'string' ? data.created : null,
+    modified: typeof data.modified === 'string' ? data.modified : null,
+  };
+}
+
+function normalizeSearchResponse(value: unknown, fallbackPageSize: number): SearchResult {
+  const data = unwrapToolData<unknown>(value);
+  const record = isRecord(data) ? data : {};
+  const collection = Array.isArray(record.results)
+    ? record.results
+    : Array.isArray(record.items)
+      ? record.items
+      : Array.isArray(data)
+        ? data
+        : [];
+
+  const results = collection
+    .map((entry) => normalizeSearchItem(entry))
+    .filter((entry): entry is SearchResult['results'][number] => entry !== null)
+    .sort((left, right) => right.score - left.score);
+
+  return {
+    results,
+    totalCount: typeof record.totalCount === 'number' ? record.totalCount : results.length,
+    page: typeof record.page === 'number' ? record.page : 1,
+    pageSize: typeof record.pageSize === 'number' ? record.pageSize : fallbackPageSize,
+  };
+}
+
+function normalizeRecentItem(value: unknown): RecentResult['items'][number] | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const uri = extractUri(value);
+  const modified =
+    toNonEmptyString(value.modified)
+    ?? toNonEmptyString(value.updatedAt)
+    ?? toNonEmptyString(value.created);
+
+  if (!uri || !modified) {
+    return null;
+  }
+
+  const rawSections = Array.isArray(value.sections)
+    ? value.sections
+    : Array.isArray(value.headings)
+      ? value.headings
+      : [];
+
+  return {
+    uri,
+    title: toNonEmptyString(value.title) ?? uri,
+    modified,
+    sections: rawSections.flatMap((section) => {
+      if (typeof section === 'string') {
+        return [section];
+      }
+
+      if (isRecord(section)) {
+        const title = toNonEmptyString(section.title) ?? toNonEmptyString(section.heading);
+        return title ? [title] : [];
+      }
+
+      return [];
+    }),
+  };
+}
+
+function normalizeRecentResponse(value: unknown): RecentResult {
+  const data = unwrapToolData<unknown>(value);
+  const record = isRecord(data) ? data : {};
+  const collection = Array.isArray(record.items)
+    ? record.items
+    : Array.isArray(record.results)
+      ? record.results
+      : Array.isArray(data)
+        ? data
+        : [];
+
+  return {
+    items: collection
+      .map((entry) => normalizeRecentItem(entry))
+      .filter((entry): entry is RecentResult['items'][number] => entry !== null),
+  };
+}
+
+export function useMemoryApi(baseUrl?: string) {
+  const mcp = getSharedMcpClient(baseUrl ?? getApiBase());
+
+  async function ensureConnected(): Promise<void> {
+    if (mcp.connected.value) {
+      return;
+    }
+
+    await mcp.connect();
+  }
+
+  async function readMemory(identifier: string): Promise<MemoryFile> {
+    await ensureConnected();
+    return normalizeReadMemoryResponse(
+      await mcp.callTool('ReadMemory', { identifier }),
+    );
   }
 
   async function searchMemories(
     query: string,
-    opts: SearchMemoriesOptions = {}
+    opts: SearchMemoriesOptions = {},
   ): Promise<SearchResult> {
-    const params = new URLSearchParams({ query });
+    await ensureConnected();
+
+    const pageSize = opts.pageSize ?? 10;
+    const payload: Record<string, unknown> = {
+      query,
+      pageSize,
+    };
 
     if (opts.mode) {
-      params.set('mode', opts.mode);
-    }
-
-    if (opts.pageSize !== undefined) {
-      params.set('pageSize', String(opts.pageSize));
+      payload.mode = opts.mode;
     }
 
     if (opts.page !== undefined) {
-      params.set('page', String(opts.page));
+      payload.page = opts.page;
     }
 
     if (opts.folder) {
-      params.set('folder', opts.folder);
+      payload.folder = opts.folder;
     }
 
-    return fetchJson<SearchResult>('/api/memory/search', params);
+    return normalizeSearchResponse(
+      await mcp.callTool('SearchMemories', payload),
+      pageSize,
+    );
   }
 
   async function recentActivity(
-    opts: RecentActivityOptions = {}
+    opts: RecentActivityOptions = {},
   ): Promise<RecentResult> {
-    const params = new URLSearchParams();
+    await ensureConnected();
+
+    const payload: Record<string, unknown> = {};
 
     if (opts.filter) {
-      params.set('filter', opts.filter);
+      payload.filter = opts.filter;
     }
 
     if (opts.limit !== undefined) {
-      params.set('limit', String(opts.limit));
+      payload.limit = opts.limit;
     }
 
     if (opts.timespan) {
-      params.set('timespan', opts.timespan);
+      payload.timespan = opts.timespan;
     }
 
     if (opts.includeContent !== undefined) {
-      params.set('includeContent', String(opts.includeContent));
+      payload.includeContent = opts.includeContent;
     }
 
-    return fetchJson<RecentResult>('/api/memory/recent', params);
+    return normalizeRecentResponse(
+      await mcp.callTool('RecentActivity', payload),
+    );
   }
 
   return {

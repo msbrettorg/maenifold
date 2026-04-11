@@ -1,13 +1,18 @@
 use super::context::{ToolContext, render};
-use crate::acp_config::AgentsConfig;
+use crate::acp_config::{AgentEntry, AgentsConfig};
 use crate::acp_native::{GLOBAL_AGENT_POOL, SessionInfo, SessionOpts};
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
+use futures_util::future::join_all;
 use serde_json::{Map, Value, json};
 use std::future::Future;
 use std::sync::LazyLock;
+use std::time::Duration;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
+use tokio::time::timeout;
+
+const PER_AGENT_PROBE_TIMEOUT: Duration = Duration::from_secs(5);
 
 static AGENTS_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
     Builder::new_multi_thread()
@@ -36,19 +41,27 @@ fn list_agents_value(root: &std::path::Path, probe: bool) -> Result<Value> {
     names.sort();
 
     let mut agents = Vec::with_capacity(names.len());
+    let mut probe_entries = Vec::with_capacity(names.len());
     for name in &names {
         let entry = config
             .agents
             .get(name)
             .expect("sorted key should resolve to an agent entry");
-        let mut value = list_agent_entry(name, entry)?;
+        let value = list_agent_entry(name, entry)?;
         if probe {
-            let caps = probe_agent(root, name, entry);
-            if let Value::Object(ref mut obj) = value {
+            probe_entries.push((name.clone(), entry.clone()));
+        }
+        agents.push(value);
+    }
+
+    if probe {
+        let capabilities = probe_agents_value(root, probe_entries, PER_AGENT_PROBE_TIMEOUT)
+            .map_err(MaenifoldError::Message)?;
+        for (value, caps) in agents.iter_mut().zip(capabilities) {
+            if let Value::Object(obj) = value {
                 obj.insert("capabilities".to_string(), caps);
             }
         }
-        agents.push(value);
     }
 
     Ok(Value::Array(agents))
@@ -162,49 +175,142 @@ where
     }
 }
 
+fn probe_error_value(error: impl Into<String>) -> Value {
+    json!({ "error": error.into() })
+}
+
+fn block_on_probe_future<F, T>(future: F) -> std::result::Result<T, String>
+where
+    F: Future<Output = T> + Send + 'static,
+    T: Send + 'static,
+{
+    match Handle::try_current() {
+        Ok(handle) if matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) => {
+            Ok(task::block_in_place(|| handle.block_on(future)))
+        }
+        Ok(_) => {
+            let (sender, receiver) = std::sync::mpsc::sync_channel(1);
+            std::thread::spawn(move || {
+                let result = agents_runtime().map(|runtime| runtime.block_on(future));
+                let _ = sender.send(result);
+            });
+            receiver
+                .recv()
+                .map_err(|_| "failed to join probe runtime thread".to_string())?
+        }
+        Err(_) => Ok(agents_runtime()?.block_on(future)),
+    }
+}
+
+fn describe_timeout(duration: Duration) -> String {
+    if duration.subsec_nanos() == 0 && duration.as_secs() > 0 {
+        format!("{}s", duration.as_secs())
+    } else if duration.as_millis() > 0 {
+        format!("{}ms", duration.as_millis())
+    } else {
+        format!("{}ns", duration.as_nanos())
+    }
+}
+
+async fn collect_probe_result<F>(probe: F, per_agent_timeout: Duration) -> Value
+where
+    F: Future<Output = std::result::Result<Value, String>>,
+{
+    match timeout(per_agent_timeout, probe).await {
+        Ok(Ok(value)) => value,
+        Ok(Err(error)) => probe_error_value(error),
+        Err(_) => probe_error_value(format!(
+            "probe timed out after {}",
+            describe_timeout(per_agent_timeout)
+        )),
+    }
+}
+
+fn probe_agent_capabilities(
+    root: std::path::PathBuf,
+    name: String,
+    entry: AgentEntry,
+    per_agent_timeout: Duration,
+) -> Value {
+    match run_agent_future(async move {
+        Ok(collect_probe_result(probe_agent_once(root, name, entry), per_agent_timeout).await)
+    }) {
+        Ok(value) => value,
+        Err(error) => probe_error_value(error),
+    }
+}
+
+fn probe_agents_value(
+    root: &std::path::Path,
+    agents: Vec<(String, AgentEntry)>,
+    per_agent_timeout: Duration,
+) -> std::result::Result<Vec<Value>, String> {
+    let root = root.to_path_buf();
+    block_on_probe_future(async move {
+        join_all(agents.into_iter().map(|(name, entry)| {
+            let root = root.clone();
+            task::spawn_blocking(move || {
+                probe_agent_capabilities(root, name, entry, per_agent_timeout)
+            })
+        }))
+        .await
+        .into_iter()
+        .map(|result| match result {
+            Ok(value) => value,
+            Err(error) => probe_error_value(error.to_string()),
+        })
+        .collect()
+    })
+}
+
 /// Spawn an agent, initialize, create a session, and capture advertised
 /// capabilities (modes, models, configOptions).
-fn probe_agent(root: &std::path::Path, name: &str, entry: &crate::acp_config::AgentEntry) -> Value {
-    let command = entry.command.clone();
-    let env = entry.env.clone();
-    let cwd = root.to_path_buf();
-    let agent_name = name.to_string();
+async fn probe_agent_once(
+    root: std::path::PathBuf,
+    name: String,
+    entry: AgentEntry,
+) -> std::result::Result<Value, String> {
+    let command = entry.command;
+    let env = entry.env;
+    let handle = GLOBAL_AGENT_POOL
+        .get_or_create(&name, &command, &root, env, true)
+        .await;
 
-    let result: std::result::Result<Value, String> = run_agent_future(async move {
-        let handle = GLOBAL_AGENT_POOL
-            .get_or_create(&agent_name, &command, &cwd, env, true)
-            .await;
+    let info = handle
+        .new_session(SessionOpts {
+            cwd: root.clone(),
+            auto_grant_permissions: true,
+            model: None,
+            mode: None,
+            thought_level: None,
+            config_options: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout_seconds: None,
+            mcp_servers: vec![],
+        })
+        .await
+        .map_err(|e| e.to_string())?;
 
-        let info = handle
-            .new_session(SessionOpts {
-                cwd: cwd.clone(),
-                auto_grant_permissions: true,
-                model: None,
-                mode: None,
-                thought_level: None,
-                config_options: None,
-                allowed_tools: None,
-                max_turns: None,
-                timeout_seconds: None,
-                mcp_servers: vec![],
-            })
-            .await
-            .map_err(|e| e.to_string())?;
+    let session_id = info.session_id.clone();
+    let agent_info = handle.agent_info();
+    let agent_capabilities = handle.capabilities();
+    let _ = handle.close_session(&session_id).await;
+    Ok(build_probe_capabilities(
+        &info,
+        &agent_info,
+        &agent_capabilities,
+    ))
+}
 
-        let session_id = info.session_id.clone();
-        let agent_info = handle.agent_info();
-        let agent_capabilities = handle.capabilities();
-        let _ = handle.close_session(&session_id).await;
-        Ok(build_probe_capabilities(
-            &info,
-            &agent_info,
-            &agent_capabilities,
-        ))
-    });
-
-    match result {
-        Ok(value) => value,
-        Err(error) => json!({ "error": error }),
+#[cfg(test)]
+fn delayed_probe(
+    delay_ms: u64,
+    result: std::result::Result<Value, String>,
+) -> impl Future<Output = std::result::Result<Value, String>> {
+    async move {
+        tokio::time::sleep(Duration::from_millis(delay_ms)).await;
+        result
     }
 }
 
@@ -221,5 +327,46 @@ mod tests {
             capabilities.get("closeSessionError").is_none(),
             "unsupported close_session cleanup must not poison otherwise-valid probe results"
         );
+    }
+
+    #[tokio::test]
+    async fn join_all_preserves_sorted_order_for_probe_results() {
+        let results = join_all(vec![
+            collect_probe_result(
+                delayed_probe(5, Ok(json!({"id": "alpha"}))),
+                Duration::from_secs(5),
+            ),
+            collect_probe_result(
+                delayed_probe(200, Ok(json!({"id": "bravo"}))),
+                Duration::from_secs(5),
+            ),
+            collect_probe_result(
+                delayed_probe(20, Ok(json!({"id": "charlie"}))),
+                Duration::from_secs(5),
+            ),
+        ])
+        .await;
+
+        assert_eq!(results[0], json!({"id": "alpha"}));
+        assert_eq!(results[1], json!({"id": "bravo"}));
+        assert_eq!(results[2], json!({"id": "charlie"}));
+    }
+
+    #[tokio::test]
+    async fn collect_probe_result_preserves_per_agent_timeout_and_failure_errors() {
+        let results = join_all(vec![
+            collect_probe_result(
+                delayed_probe(50, Ok(json!({"id": "slow"}))),
+                Duration::from_millis(10),
+            ),
+            collect_probe_result(
+                delayed_probe(1, Err("probe failed".to_string())),
+                Duration::from_secs(1),
+            ),
+        ])
+        .await;
+
+        assert_eq!(results[0], json!({"error": "probe timed out after 10ms"}));
+        assert_eq!(results[1], json!({"error": "probe failed"}));
     }
 }

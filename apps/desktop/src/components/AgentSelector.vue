@@ -101,7 +101,7 @@ label {
 
 select {
   padding: 0.5rem 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--border-color) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
   background: var(--bg-input);

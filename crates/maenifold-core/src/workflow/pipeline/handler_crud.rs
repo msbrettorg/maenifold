@@ -5,7 +5,7 @@ use crate::sessions::pipeline_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use serde_json::{Value, json};
+use serde_json::{Map as JsonMap, Value, json};
 use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
@@ -29,7 +29,9 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
 
     AssetManager::initialize_assets(&context.config)?;
 
-    let definition: PipelineDefinition = serde_json::from_value(definition_value.clone())?;
+    let mut definition: PipelineDefinition = serde_json::from_value(definition_value.clone())?;
+    let payload_inputs = parse_inputs_payload(payload.get("inputs"))?;
+    definition.inputs = merge_pipeline_inputs(definition.inputs.take(), payload_inputs);
     validate_pipeline(&definition)?;
     validate_workflow_node_definitions(context, &definition.nodes)?;
 
@@ -73,6 +75,7 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
         &definition,
         &node_states_frontmatter,
         max_concurrency,
+        None,
     )?;
     for node_file in &node_files {
         write_workflow_node_session(context, &pipeline_id, node_file)?;
@@ -269,6 +272,27 @@ fn parse_pipeline_id_prefix(payload: &Value) -> Result<&str> {
     Ok(prefix)
 }
 
+fn parse_inputs_payload(value: Option<&Value>) -> Result<Option<JsonMap<String, Value>>> {
+    match value {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Object(map)) => Ok(Some(map.clone())),
+        Some(_) => Err(MaenifoldError::InvalidArgument(
+            "inputs must be a JSON object".to_string(),
+        )),
+    }
+}
+
+fn merge_pipeline_inputs(
+    existing: Option<JsonMap<String, Value>>,
+    overrides: Option<JsonMap<String, Value>>,
+) -> Option<JsonMap<String, Value>> {
+    let mut merged = existing.unwrap_or_default();
+    if let Some(overrides) = overrides {
+        merged.extend(overrides);
+    }
+    (!merged.is_empty()).then_some(merged)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -292,6 +316,22 @@ mod tests {
             acp_client: Some(format!("agent-{id}")),
             prompt: None,
             timeout: None,
+        }
+    }
+
+    fn tool_node(id: &str) -> PipelineNode {
+        PipelineNode::Tool {
+            id: id.to_string(),
+            display_label: None,
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
         }
     }
 
@@ -326,7 +366,8 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -362,13 +403,61 @@ mod tests {
 
     #[test]
     #[serial]
+    fn create_pipeline_persists_effective_inputs_on_definition_and_session() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let response = create_pipeline(
+            &context,
+            &json!({
+                "definition": {
+                    "nodes": [
+                        { "id": "tool", "type": "tool", "toolName": "GetConfig" }
+                    ],
+                    "edges": [],
+                    "inputs": { "existing": 1 }
+                },
+                "inputs": {
+                    "existing": 2,
+                    "runtime": "value"
+                }
+            }),
+        )
+        .expect("create pipeline");
+        let payload: Value = serde_json::from_str(&response).expect("json response");
+        let pipeline_id = payload["data"]["pipelineId"].as_str().expect("pipeline id");
+        let (_, frontmatter, _) =
+            read_pipeline_session(&context, pipeline_id).expect("read pipeline");
+        let definition: PipelineDefinition =
+            frontmatter_value(&frontmatter, "definition").expect("definition");
+        let inputs: JsonMap<String, Value> =
+            frontmatter_value(&frontmatter, "inputs").expect("inputs");
+
+        assert_eq!(definition.nodes, vec![tool_node("tool")]);
+        assert_eq!(
+            definition.inputs,
+            Some(serde_json::Map::from_iter([
+                ("existing".to_string(), json!(2)),
+                ("runtime".to_string(), json!("value")),
+            ]))
+        );
+        assert_eq!(
+            inputs,
+            serde_json::Map::from_iter([
+                ("existing".to_string(), json!(2)),
+                ("runtime".to_string(), json!("value")),
+            ])
+        );
+    }
+
+    #[test]
+    #[serial]
     fn delete_pipeline_falls_back_to_raw_node_states_when_derived_state_is_corrupt() {
         let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
         let session_id = "pipeline-1735689600000-delete-corrupt-derived-state";
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -417,7 +506,8 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -473,12 +563,14 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("target-node")],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let sibling_definition = PipelineDefinition {
             nodes: vec![workflow_node("sibling-node")],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let target_node_states = states(&[("target-node", NodeStatus::Completed, 1)]);
         let sibling_node_states = states(&[("sibling-node", NodeStatus::Completed, 1)]);

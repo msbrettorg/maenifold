@@ -212,7 +212,7 @@ function submitNode<T extends EvidenceNodeType>(type: T, fields: PipelineNodeDra
   padding: 2rem;
   background:
     radial-gradient(circle at top, color-mix(in srgb, var(--color-accent-primary) 16%, transparent), transparent 42%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-sidebar) 92%, #02030a), #05060d);
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-panel) 92%, #02030a), #05060d);
   color: var(--text-primary);
 }
 
@@ -265,7 +265,7 @@ code {
 
 .evidence-meta {
   padding: 1rem 1.1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 1rem;
   background: color-mix(in srgb, var(--bg-main) 82%, transparent);
 }
@@ -294,7 +294,7 @@ code {
   position: sticky;
   top: 2rem;
   padding: 1rem 1.1rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 1rem;
   background: color-mix(in srgb, var(--bg-main) 84%, transparent);
 }

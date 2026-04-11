@@ -8,8 +8,10 @@ use crate::error::Result;
 use crate::tools::ToolContext;
 
 use super::super::runner;
-use super::executor_helpers::{DispatchedNode, assemble_node_prompt};
-use super::executor_mapping::mapped_tool_args;
+use super::executor_helpers::{
+    DispatchedNode, assemble_prompt_from_parts, predecessor_context_content,
+};
+use super::executor_mapping::{interpolate_string, mapped_tool_args, pipeline_inputs_scope};
 use super::executor_run::{run_prompt_node, run_tool_node};
 use super::types::AgentConfig;
 use super::{NodeState, PipelineDefinition, PipelineNode};
@@ -56,16 +58,28 @@ pub(super) fn build_node_execution_request(
     node: &PipelineNode,
     dispatch: &DispatchedNode,
     ambient_prompt: &str,
+    inputs: &serde_json::Map<String, JsonValue>,
 ) -> Result<NodeExecutionRequest> {
+    let scope = pipeline_inputs_scope(inputs);
     Ok(match node {
         PipelineNode::Workflow {
             workflow_id,
+            prompt,
             timeout,
             ..
         } => NodeExecutionRequest::Workflow {
-            workflow_id: workflow_id.clone(),
+            workflow_id: interpolate_string(workflow_id, &scope)?,
             existing_session_id: Some(node_session_id(node_states, node.id(), dispatch)),
-            prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
+            prompt: resolve_execution_prompt(
+                context,
+                definition,
+                node_states,
+                node.id(),
+                ambient_prompt,
+                prompt.as_deref(),
+                true,
+                &scope,
+            )?,
             session_opts: merged_session_opts(
                 context,
                 node.id(),
@@ -78,6 +92,7 @@ pub(super) fn build_node_execution_request(
             ),
         },
         PipelineNode::Prompt {
+            prompt,
             tool_mode,
             agent_config,
             model,
@@ -88,7 +103,16 @@ pub(super) fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::Prompt {
             session_id: node_session_id(node_states, node.id(), dispatch),
-            prompt: assemble_node_prompt(context, definition, node_states, node, ambient_prompt)?,
+            prompt: resolve_execution_prompt(
+                context,
+                definition,
+                node_states,
+                node.id(),
+                ambient_prompt,
+                Some(prompt.as_str()),
+                false,
+                &scope,
+            )?,
             tool_mode: tool_mode.clone(),
             session_opts: merged_session_opts(
                 context,
@@ -113,13 +137,16 @@ pub(super) fn build_node_execution_request(
             ..
         } => NodeExecutionRequest::SequentialThinking {
             node_session_id: node_session_id(node_states, node.id(), dispatch),
-            topic: topic.trim().to_string(),
-            prompt_context: assemble_node_prompt(
+            topic: interpolate_string(topic.trim(), &scope)?,
+            prompt_context: resolve_execution_prompt(
                 context,
                 definition,
                 node_states,
-                node,
+                node.id(),
                 ambient_prompt,
+                Some(topic.as_str()),
+                false,
+                &scope,
             )?,
             total_thoughts: *total_thoughts,
             session_opts: merged_session_opts(
@@ -141,13 +168,45 @@ pub(super) fn build_node_execution_request(
             timeout,
             ..
         } => NodeExecutionRequest::Tool {
-            tool_name: tool_name.clone(),
-            tool_args: mapped_tool_args(definition, node_states, node.id(), tool_args.clone())?,
+            tool_name: interpolate_string(tool_name, &scope)?,
+            tool_args: mapped_tool_args(
+                definition,
+                node_states,
+                node.id(),
+                tool_args.clone(),
+                &scope,
+            )?,
             agent: agent.clone(),
             allowed_tools: allowed_tools.clone(),
             timeout_seconds: *timeout,
         },
     })
+}
+
+fn resolve_execution_prompt(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    node_id: &str,
+    ambient_prompt: &str,
+    node_instruction: Option<&str>,
+    workflow_fallback: bool,
+    scope: &JsonValue,
+) -> Result<String> {
+    let predecessor_context =
+        predecessor_context_content(context, definition, node_states, node_id)?;
+    let ambient_prompt = interpolate_string(ambient_prompt.trim(), scope)?;
+    let node_instruction = node_instruction
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| interpolate_string(value, scope))
+        .transpose()?;
+    Ok(assemble_prompt_from_parts(
+        predecessor_context.as_deref(),
+        &ambient_prompt,
+        node_instruction.as_deref(),
+        workflow_fallback,
+    ))
 }
 
 fn node_session_id(
@@ -355,7 +414,8 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::new();
         let node = PipelineNode::Prompt {
@@ -376,9 +436,16 @@ mod tests {
             session_id: Some("workflow-1700000000000-prompt".to_string()),
         };
 
-        let request =
-            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
-                .expect("build request");
+        let request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &node,
+            &dispatch,
+            "",
+            &serde_json::Map::new(),
+        )
+        .expect("build request");
 
         match request {
             NodeExecutionRequest::Prompt { session_opts, .. } => {
@@ -399,7 +466,8 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::new();
         let node = PipelineNode::Prompt {
@@ -420,9 +488,16 @@ mod tests {
             session_id: Some("workflow-1700000000000-prompt".to_string()),
         };
 
-        let request =
-            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
-                .expect("build request");
+        let request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &node,
+            &dispatch,
+            "",
+            &serde_json::Map::new(),
+        )
+        .expect("build request");
 
         match request {
             NodeExecutionRequest::Prompt { session_opts, .. } => {
@@ -443,7 +518,8 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::new();
         let node = PipelineNode::Tool {
@@ -464,9 +540,16 @@ mod tests {
             session_id: Some("pipeline-1700000000000-tool".to_string()),
         };
 
-        let request =
-            build_node_execution_request(&context, &definition, &node_states, &node, &dispatch, "")
-                .expect("build request");
+        let request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &node,
+            &dispatch,
+            "",
+            &serde_json::Map::new(),
+        )
+        .expect("build request");
 
         match request {
             NodeExecutionRequest::Tool {
@@ -504,7 +587,8 @@ mod tests {
                 agent_config: None,
             }],
             edges: vec![],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::from([(
             "prompt-timeout".to_string(),
@@ -599,7 +683,8 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -622,15 +707,106 @@ mod tests {
             session_id: Some("pipeline-target".to_string()),
         };
 
-        let error =
-            build_node_execution_request(&context, &definition, &node_states, node, &dispatch, "")
-                .expect_err("invalid mapped tool args should abort dispatch");
+        let error = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            node,
+            &dispatch,
+            "",
+            &serde_json::Map::new(),
+        )
+        .expect_err("invalid mapped tool args should abort dispatch");
 
         assert!(
             error
                 .to_string()
                 .contains("could not parse node 'source' output as JSON")
         );
+    }
+
+    #[test]
+    #[serial]
+    fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+            inputs: None,
+            template_id: None,
+        };
+        let node_states = HashMap::new();
+        let inputs = serde_json::Map::from_iter([("name".to_string(), json!("world"))]);
+
+        let prompt_node = PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            display_label: None,
+            prompt: "Hello {{inputs.name}}".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "auto".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: prompt_node.id().to_string(),
+            session_id: Some("workflow-1700000000000-prompt".to_string()),
+        };
+        let prompt_request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &prompt_node,
+            &dispatch,
+            "",
+            &inputs,
+        )
+        .expect("build prompt request");
+        match prompt_request {
+            NodeExecutionRequest::Prompt { prompt, .. } => assert_eq!(prompt, "Hello world"),
+            other => panic!("expected prompt request, got {other:?}"),
+        }
+
+        let tool_node = PipelineNode::Tool {
+            id: "tool".to_string(),
+            display_label: None,
+            tool_name: "GetConfig".to_string(),
+            tool_args: Some(json!({
+                "message": "Hello {{inputs.name}}",
+                "typed": { "$ref": "inputs.name" }
+            })),
+            agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let tool_dispatch = DispatchedNode {
+            node_id: tool_node.id().to_string(),
+            session_id: Some("workflow-1700000000000-tool".to_string()),
+        };
+        let tool_request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &tool_node,
+            &tool_dispatch,
+            "",
+            &inputs,
+        )
+        .expect("build tool request");
+        match tool_request {
+            NodeExecutionRequest::Tool { tool_args, .. } => assert_eq!(
+                tool_args,
+                Some(json!({ "message": "Hello world", "typed": "world" }))
+            ),
+            other => panic!("expected tool request, got {other:?}"),
+        }
     }
 
     #[tokio::test]

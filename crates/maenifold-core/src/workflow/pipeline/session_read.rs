@@ -110,3 +110,18 @@ where
     })?;
     serde_yaml::from_value(value).map_err(Into::into)
 }
+
+pub(super) fn optional_frontmatter_value<T>(
+    frontmatter: &Frontmatter,
+    key: &str,
+) -> Result<Option<T>>
+where
+    T: DeserializeOwned,
+{
+    frontmatter
+        .get(key)
+        .cloned()
+        .map(serde_yaml::from_value)
+        .transpose()
+        .map_err(Into::into)
+}

@@ -54,6 +54,7 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -107,6 +108,7 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -153,6 +155,7 @@ fn restart_pipeline_node_clears_failure_reason() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(
@@ -195,6 +198,7 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
             edge_type: EdgeType::Success,
             mapping: None,
         }],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([
@@ -306,6 +310,7 @@ fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpo
                 mapping: None,
             },
         ],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([
@@ -394,6 +399,7 @@ fn update_pipeline_node_status_supports_stuck_cascade_over_success_edges() {
             edge_type: EdgeType::Success,
             mapping: None,
         }],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([

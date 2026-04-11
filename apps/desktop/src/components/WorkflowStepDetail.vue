@@ -272,7 +272,7 @@ function renderMarkdown(text: string | undefined): string {
 /* ── WikiLink pills ────────────────────────────────────────────────────────── */
 .step-response :deep(.wiki-pill) {
   display: inline-block;
-  background: color-mix(in srgb, var(--bg-primary) 18%, var(--bg-code));
+  background: color-mix(in srgb, var(--border-focus) 18%, var(--bg-code));
   color: var(--workflow-step-link);
   border-radius: 3px;
   padding: 0.05em 0.4em;

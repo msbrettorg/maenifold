@@ -19,8 +19,6 @@ const configStore = useConfigStore();
 const discoveryStore = useMcpToolDiscoveryStore();
 const { agentNames } = storeToRefs(configStore);
 
-const topicInput = ref('');
-const accountInput = ref('');
 const selectedTemplateId = ref<string | null>(null);
 
 const discoveredToolNames = computed<ReadonlySet<string>>(
@@ -35,14 +33,7 @@ const selectedTemplate = computed<PipelineTemplate | null>(() =>
   availableTemplates.value.find((t) => t.id === selectedTemplateId.value) ?? null,
 );
 
-const needsAccount = computed(() => selectedTemplate.value?.id === 'deal-preparation');
-
-const canInstantiate = computed(() => {
-  if (!selectedTemplate.value) return false;
-  if (!topicInput.value.trim() && !needsAccount.value) return false;
-  if (needsAccount.value && !accountInput.value.trim()) return false;
-  return true;
-});
+const canInstantiate = computed(() => selectedTemplate.value !== null);
 
 function selectTemplate(template: PipelineTemplate): void {
   selectedTemplateId.value = template.id;
@@ -52,13 +43,7 @@ function handleInstantiate(): void {
   if (!selectedTemplate.value || !canInstantiate.value) return;
 
   const agents = resolveAgents(agentNames.value);
-  const variables = {
-    ...agents,
-    topic: topicInput.value.trim(),
-    accountName: accountInput.value.trim(),
-  };
-
-  store.applyTemplate(selectedTemplate.value, variables);
+  store.applyTemplate(selectedTemplate.value, agents);
 }
 </script>
 
@@ -91,30 +76,30 @@ function handleInstantiate(): void {
     </div>
 
     <div v-if="selectedTemplate" class="gallery-input-section">
-      <template v-if="needsAccount">
-        <label class="gallery-field">
-          <span class="gallery-field-label">Account name</span>
-          <input
-            v-model="accountInput"
-            type="text"
-            class="gallery-field-input"
-            placeholder="e.g. Contoso Ltd"
-            @keydown.enter="handleInstantiate"
-          />
-        </label>
-      </template>
-      <template v-else>
-        <label class="gallery-field">
-          <span class="gallery-field-label">Topic or question</span>
-          <input
-            v-model="topicInput"
-            type="text"
-            class="gallery-field-input"
-            :placeholder="`e.g. ${selectedTemplate.description}`"
-            @keydown.enter="handleInstantiate"
-          />
-        </label>
-      </template>
+      <div
+        v-if="selectedTemplate.runInputs.length > 0"
+        class="gallery-runtime-inputs"
+      >
+        <span class="gallery-field-label">Run-time inputs</span>
+        <ul class="gallery-runtime-input-list">
+          <li
+            v-for="input in selectedTemplate.runInputs"
+            :key="input.key"
+            class="gallery-runtime-input-item"
+          >
+            <span class="gallery-runtime-input-name">
+              {{ input.label }}
+              <span v-if="input.required" class="gallery-runtime-input-required">*</span>
+            </span>
+            <span v-if="input.description" class="gallery-runtime-input-desc">
+              {{ input.description }}
+            </span>
+          </li>
+        </ul>
+        <p class="gallery-runtime-note">
+          These values are requested when you run the pipeline, not when you create it.
+        </p>
+      </div>
 
       <div class="gallery-actions">
         <span v-if="agentNames.length === 0" class="gallery-agent-warning">
@@ -173,7 +158,7 @@ function handleInstantiate(): void {
   align-items: flex-start;
   gap: 0.25rem;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--surface-container-highest);
   cursor: pointer;
@@ -224,7 +209,7 @@ function handleInstantiate(): void {
   flex-direction: column;
   gap: 0.75rem;
   padding-top: 0.5rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .gallery-field {
@@ -239,9 +224,42 @@ function handleInstantiate(): void {
   color: var(--text-secondary);
 }
 
+.gallery-runtime-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gallery-runtime-input-list {
+  margin: 0;
+  padding-left: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gallery-runtime-input-item {
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+}
+
+.gallery-runtime-input-name {
+  font-weight: 500;
+}
+
+.gallery-runtime-input-required {
+  color: var(--color-status-stuck, #e57373);
+}
+
+.gallery-runtime-input-desc,
+.gallery-runtime-note {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
 .gallery-field-input {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);

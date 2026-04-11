@@ -349,7 +349,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 .schema-form :deep(input[type='radio']) {
   inline-size: 1rem;
   block-size: 1rem;
-  accent-color: var(--text-accent);
+  accent-color: var(--border-focus);
   flex: 0 0 auto;
 }
 
@@ -372,7 +372,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 
 .schema-form :deep(.schema-form__asterisk),
 .schema-form :deep(.schema-form__required) {
-  color: var(--text-accent);
+  color: var(--border-focus);
 }
 
 .schema-form :deep(.schema-form__group),

@@ -64,8 +64,8 @@ function renderMarkdown(content: string): string {
 
 <style scoped>
 .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; }
-.message-user { margin-left: 2rem; background: var(--bg-user); }
-.message-assistant { margin-right: 2rem; background: var(--bg-assistant); }
+.message-user { margin-left: 2rem; background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel)); }
+.message-assistant { margin-right: 2rem; background: var(--bg-surface); }
 .message-header { margin-bottom: 0.5rem; }
 .role { color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; }
 .message-content {

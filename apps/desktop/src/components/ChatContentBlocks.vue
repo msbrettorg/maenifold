@@ -124,17 +124,17 @@ function getResourceBody(block: ContentBlock): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   text-align: left;
 }
-.message-content :deep(th) { background: var(--bg-hover); font-weight: 600; }
+.message-content :deep(th) { background: var(--bg-surface); font-weight: 600; }
 .message-content :deep(tr:nth-child(even)) { background: var(--bg-main); }
-.message-content :deep(tr:hover) { background: var(--bg-hover); }
+.message-content :deep(tr:hover) { background: var(--bg-surface); }
 .message-image {
   display: block;
   max-width: min(100%, 32rem);
   max-height: 24rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
 }
 .message-audio { width: min(100%, 28rem); }
@@ -143,10 +143,10 @@ function getResourceBody(block: ContentBlock): string {
   align-items: flex-start;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
-  background: var(--bg-hover);
-  color: var(--text-accent);
+  background: var(--bg-surface);
+  color: var(--border-focus);
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: 500;

@@ -84,8 +84,8 @@ function handleRootChange(event: Event) {
 }
 
 .gate-chip--filtered {
-  color: var(--text-accent);
-  background: color-mix(in srgb, var(--text-accent) 10%, var(--bg-surface));
+  color: var(--border-focus);
+  background: color-mix(in srgb, var(--border-focus) 10%, var(--bg-surface));
 }
 
 .gate-refreshed,

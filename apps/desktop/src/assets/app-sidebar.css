@@ -1,7 +1,7 @@
 /* Scoped to AppSidebar.vue via <style scoped> @import. */
 .sidebar {
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-default);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -20,7 +20,7 @@
 
 .app-resize-handle:hover,
 .app-resize-handle:active {
-  background: var(--text-accent, var(--bg-primary));
+  background: var(--border-focus);
 }
 
 .sidebar-header {
@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .sidebar-header h1 {
@@ -59,8 +59,8 @@
 }
 
 .settings-btn.active {
-  color: var(--text-accent);
-  background: var(--bg-hover);
+  color: var(--border-focus);
+  background: var(--bg-surface);
   border-radius: 4px;
 }
 
@@ -75,7 +75,7 @@
 }
 
 .section + .section {
-  border-top: 1px solid color-mix(in srgb, var(--border-color) 40%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-default) 40%, transparent);
 }
 
 .tab-section {
@@ -98,13 +98,13 @@
 
 .new-session-btn {
   background: transparent;
-  color: var(--text-accent);
-  border: 1px solid var(--text-accent);
+  color: var(--border-focus);
+  border: 1px solid var(--border-focus);
 }
 
 .new-session-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--text-accent) 12%, transparent);
-  border-color: var(--bg-primary-hover);
+  background: color-mix(in srgb, var(--border-focus) 12%, transparent);
+  border-color: var(--border-focus);
 }
 
 .new-session-btn:disabled {
@@ -136,7 +136,7 @@
   flex: 1;
   padding: 0.375rem 0.5rem;
   background: var(--bg-main);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font-size: var(--text-sm);
   color: var(--text-primary);
@@ -147,7 +147,7 @@
 
 .cwd-btn {
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
@@ -155,7 +155,7 @@
 }
 
 .cwd-btn:hover:not(:disabled) {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .cwd-btn:disabled {
@@ -164,12 +164,12 @@
 }
 
 .disconnect-btn {
-  background: var(--bg-danger);
+  background: var(--border-error);
   color: white;
 }
 
 .disconnect-btn:hover {
-  background: var(--bg-danger);
+  background: var(--border-error);
 }
 
 .sidebar-toggle-collapsed {
@@ -178,10 +178,10 @@
   top: 50%;
   transform: translateY(-50%);
   padding: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-left: none;
   border-radius: 0 4px 4px 0;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
   color: var(--text-muted);
   cursor: pointer;
 }
@@ -206,12 +206,12 @@
 }
 
 .workflows-btn:hover {
-  background: color-mix(in srgb, var(--bg-hover) 60%, transparent);
+  background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
   color: var(--text-primary);
 }
 
 .workflows-btn.active {
-  background: color-mix(in srgb, var(--text-accent) 8%, transparent);
-  color: var(--text-accent);
-  border-left-color: var(--text-accent);
+  background: color-mix(in srgb, var(--border-focus) 8%, transparent);
+  color: var(--border-focus);
+  border-left-color: var(--border-focus);
 }

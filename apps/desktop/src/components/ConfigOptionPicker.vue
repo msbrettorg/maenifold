@@ -139,7 +139,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.625rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
@@ -150,8 +150,8 @@ onUnmounted(() => {
 }
 
 .config-option-button:hover {
-  background: var(--bg-hover);
-  border-color: var(--text-accent);
+  background: var(--bg-surface);
+  border-color: var(--border-focus);
 }
 
 .config-option-icon {
@@ -182,7 +182,7 @@ onUnmounted(() => {
   max-height: 320px;
   overflow-y: auto;
   background: var(--bg-main);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   box-shadow: 0 4px 12px color-mix(in srgb, var(--bg-main) 15%, transparent);
   z-index: 100;
@@ -198,7 +198,7 @@ onUnmounted(() => {
 .dropdown-item + .dropdown-item,
 .dropdown-group + .dropdown-item,
 .dropdown-item + .dropdown-group {
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 
 .dropdown-group-header {
@@ -220,11 +220,11 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .dropdown-item.selected {
-  background: var(--bg-user);
+  background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel));
 }
 
 .item-icon {
@@ -254,7 +254,7 @@ onUnmounted(() => {
 }
 
 .check-mark {
-  color: var(--text-accent);
+  color: var(--border-focus);
   font-weight: bold;
   margin-left: auto;
   flex-shrink: 0;

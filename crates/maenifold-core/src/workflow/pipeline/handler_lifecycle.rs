@@ -1,10 +1,10 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
-use serde_json::Value;
+use serde_json::{Map as JsonMap, Value};
 use std::process::Command;
 
 use super::lease;
-use super::session_write::persist_final_pipeline_status;
+use super::session_write::{persist_final_pipeline_status, persist_pipeline_runtime_context};
 
 #[path = "handler_lifecycle_rewind.rs"]
 mod rewind;
@@ -19,7 +19,8 @@ pub(super) fn handle_lifecycle_operation(
     }
     if payload.get("run").and_then(Value::as_bool).unwrap_or(false) {
         let prompt = payload.get("prompt").and_then(Value::as_str);
-        return run_pipeline(context, session_id, prompt).map(Some);
+        let inputs = parse_inputs_payload(payload.get("inputs"))?;
+        return run_pipeline(context, session_id, prompt, inputs.as_ref()).map(Some);
     }
     if payload
         .get("cancel")
@@ -74,17 +75,23 @@ fn find_driver_binary() -> Result<std::path::PathBuf> {
     )))
 }
 
-fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -> Result<String> {
+fn run_pipeline(
+    context: &ToolContext,
+    session_id: &str,
+    prompt: Option<&str>,
+    inputs: Option<&JsonMap<String, Value>>,
+) -> Result<String> {
     if lease::session_lock_is_held(session_id, &context.config) {
         return Err(MaenifoldError::Message(format!(
             "Pipeline {session_id} is already running"
         )));
     }
 
+    let prompt = persist_pipeline_runtime_context(context, session_id, prompt, inputs)?;
     let driver = find_driver_binary()?;
     let mut cmd = Command::new(&driver);
     cmd.arg(session_id);
-    if let Some(prompt) = prompt {
+    if !prompt.is_empty() {
         cmd.arg(prompt);
     }
     cmd.stdin(std::process::Stdio::null())
@@ -112,6 +119,16 @@ fn run_pipeline(context: &ToolContext, session_id: &str, prompt: Option<&str>) -
     })?;
 
     Ok(format!("Pipeline {session_id} started"))
+}
+
+fn parse_inputs_payload(value: Option<&Value>) -> Result<Option<JsonMap<String, Value>>> {
+    match value {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Object(map)) => Ok(Some(map.clone())),
+        Some(_) => Err(MaenifoldError::InvalidArgument(
+            "inputs must be a JSON object".to_string(),
+        )),
+    }
 }
 
 fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
@@ -195,6 +212,8 @@ mod tests {
     use std::collections::HashMap;
     use std::io::Write as _;
 
+    use crate::markdown::read_markdown;
+    use crate::sessions::pipeline_session_uri;
     use crate::util::json::OutputFormat;
     use crate::workflow::pipeline::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 
@@ -268,6 +287,63 @@ mod tests {
         let _ = result;
     }
 
+    #[test]
+    #[serial]
+    fn run_pipeline_persists_merged_inputs_before_driver_spawn() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let session_id = "pipeline-1700000002000-run-inputs";
+        let definition = PipelineDefinition {
+            nodes: vec![make_tool_node("tool")],
+            edges: vec![],
+            inputs: Some(serde_json::Map::from_iter([(
+                "persisted".to_string(),
+                json!(1),
+            )])),
+            template_id: None,
+        };
+        let node_states = HashMap::from([(
+            "tool".to_string(),
+            make_state("workflow-1700000002000-tool", NodeStatus::Pending),
+        )]);
+        seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 1);
+
+        let previous_driver = std::env::var("MAENIFOLD_PIPELINE_DRIVER").ok();
+        unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", "/usr/bin/true") };
+        let result = handle_lifecycle_operation(
+            &context,
+            session_id,
+            &json!({
+                "run": true,
+                "prompt": "hello {{inputs.runtime}}",
+                "inputs": { "persisted": 2, "runtime": "world" }
+            }),
+        );
+        match previous_driver {
+            Some(value) => unsafe { std::env::set_var("MAENIFOLD_PIPELINE_DRIVER", value) },
+            None => unsafe { std::env::remove_var("MAENIFOLD_PIPELINE_DRIVER") },
+        }
+        result.expect("run pipeline");
+
+        let (frontmatter, _, _) = read_markdown(&pipeline_session_uri(session_id), &context.config)
+            .expect("read pipeline session");
+        let frontmatter = frontmatter.expect("frontmatter");
+        let inputs: serde_json::Map<String, serde_json::Value> =
+            serde_yaml::from_value(frontmatter["inputs"].clone()).expect("inputs");
+        assert_eq!(
+            frontmatter
+                .get("prompt")
+                .and_then(serde_yaml::Value::as_str),
+            Some("hello {{inputs.runtime}}")
+        );
+        assert_eq!(
+            inputs,
+            serde_json::Map::from_iter([
+                ("persisted".to_string(), json!(2)),
+                ("runtime".to_string(), json!("world")),
+            ])
+        );
+    }
+
     /// force-complete should succeed on a stopped pipeline and persist "completed".
     #[test]
     #[serial]
@@ -283,7 +359,8 @@ mod tests {
                 edge_type: EdgeType::Always,
                 mapping: None,
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
             (
@@ -372,7 +449,8 @@ mod tests {
                 edge_type: EdgeType::Always,
                 mapping: None,
             }],
-        template_id: None,
+            inputs: None,
+            template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
             (

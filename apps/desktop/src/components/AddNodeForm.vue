@@ -525,7 +525,7 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
   align-content: start;
   height: 100%;
   padding: 1rem;
-  border-right: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-default);
   background: color-mix(in srgb, var(--bg-main) 96%, transparent);
   overflow-y: auto;
 }
@@ -577,7 +577,7 @@ label {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.45rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
   font-size: var(--text-xs);
 }
@@ -586,9 +586,9 @@ label {
   display: grid;
   gap: 0.65rem;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--bg-sidebar) 70%, transparent);
+  background: color-mix(in srgb, var(--bg-panel) 70%, transparent);
 }
 
 .agent-config-grid {
@@ -606,6 +606,6 @@ label {
 .mode-badge.selected {
   border-color: var(--border-focus);
   color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-user) 45%, transparent);
+  background: color-mix(in srgb, var(--border-focus) 45%, transparent);
 }
 </style>

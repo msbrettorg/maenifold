@@ -7,6 +7,7 @@ use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use petgraph::Direction::Incoming;
 use petgraph::visit::{Bfs, Walker};
+use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use super::super::handler_validation::workflow_node_file;
@@ -180,6 +181,7 @@ pub(super) fn fork_pipeline(
                 mapping: edge.mapping.clone(),
             })
             .collect(),
+        inputs: definition.inputs.clone(),
         template_id: None,
     };
     validate_pipeline(&forked_definition)?;
@@ -241,6 +243,7 @@ pub(super) fn fork_pipeline(
         &forked_definition,
         &node_states_frontmatter,
         max_concurrency,
+        frontmatter.get("prompt").and_then(YamlValue::as_str),
     )?;
     let result = build_pipeline_view_result(
         context,

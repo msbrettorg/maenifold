@@ -32,6 +32,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             timeout: None,
         }],
         edges: vec![],
+        inputs: None,
         template_id: None,
     };
     let node_states = HashMap::from([(

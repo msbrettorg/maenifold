@@ -122,7 +122,7 @@ function sortIndicator(column: SortColumn) {
 }
 
 .gate-row--active {
-  background: color-mix(in srgb, var(--bg-primary) 12%, var(--bg-panel));
+  background: color-mix(in srgb, var(--border-focus) 12%, var(--bg-panel));
 }
 
 .gate-row--issue .gate-title,

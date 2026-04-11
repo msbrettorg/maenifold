@@ -441,11 +441,11 @@ onMounted(loadSettings);
 .settings-card {
   padding: 1rem;
   border-radius: 8px;
-  background: var(--bg-sidebar);
+  background: var(--bg-panel);
 }
 
 .details-section {
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
 }
 
 .details-section summary {
@@ -484,7 +484,7 @@ onMounted(loadSettings);
 .form-group select {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
@@ -501,7 +501,7 @@ onMounted(loadSettings);
   align-items: center;
   min-height: 42px;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--bg-main);
 }
@@ -512,7 +512,7 @@ onMounted(loadSettings);
 
 .optional-field {
   padding: 0.9rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 8px;
   background: var(--bg-main);
 }
@@ -527,13 +527,13 @@ onMounted(loadSettings);
 }
 
 .feedback.success {
-  background: color-mix(in srgb, var(--bg-primary) 18%, transparent);
+  background: color-mix(in srgb, var(--border-focus) 18%, transparent);
   color: var(--text-primary);
 }
 
 .feedback.error {
-  background: color-mix(in srgb, var(--bg-danger) 18%, transparent);
-  color: var(--bg-danger);
+  background: color-mix(in srgb, var(--border-error) 18%, transparent);
+  color: var(--border-error);
 }
 
 .save-btn,
@@ -545,14 +545,14 @@ onMounted(loadSettings);
 
 .save-btn {
   border: none;
-  background: var(--bg-primary);
+  background: var(--border-focus);
   color: white;
 }
 
 .reset-btn {
-  border: 1px solid var(--bg-danger);
+  border: 1px solid var(--border-error);
   background: transparent;
-  color: var(--bg-danger);
+  color: var(--border-error);
 }
 
 @media (max-width: 640px) {

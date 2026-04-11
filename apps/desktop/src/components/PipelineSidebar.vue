@@ -114,8 +114,8 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   width: 100%;
   min-width: 0;
   height: 100%;
-  border-right: 1px solid var(--border-color);
-  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-default);
+  background: var(--bg-panel);
   display: flex;
   flex-direction: column;
 }
@@ -125,7 +125,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .sidebar-header h3 {
@@ -164,7 +164,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-left: 3px solid transparent;
   border-radius: 6px;
   background: var(--bg-main);
@@ -173,12 +173,12 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 }
 
 .pipeline-item:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .pipeline-item.active {
-  border-left-color: var(--text-accent);
-  background: var(--bg-hover);
+  border-left-color: var(--border-focus);
+  background: var(--bg-surface);
 }
 
 .pipeline-main {

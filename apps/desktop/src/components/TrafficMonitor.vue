@@ -139,8 +139,8 @@ onUnmounted(stopResize);
   display: flex;
   flex-direction: column;
   position: relative;
-  background: var(--bg-sidebar);
-  border-top: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-default);
   font-size: var(--text-sm);
 }
 
@@ -155,7 +155,7 @@ onUnmounted(stopResize);
 
 .resize-handle:hover,
 .resize-handle:active {
-  background: var(--bg-primary);
+  background: var(--border-focus);
   opacity: 0.5;
 }
 
@@ -169,7 +169,7 @@ onUnmounted(stopResize);
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
   background: var(--bg-main);
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
 }
 
 .title {
@@ -184,7 +184,7 @@ onUnmounted(stopResize);
 .control-btn,
 .filter-select {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
   font-size: var(--text-xs);
   cursor: pointer;
@@ -196,7 +196,7 @@ onUnmounted(stopResize);
 
 .control-btn:hover,
 .close-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
 }
 
 .control-btn.active,
@@ -210,7 +210,7 @@ onUnmounted(stopResize);
   align-items: center;
   padding: 0 0.25rem;
   background: var(--bg-main);
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 4px;
 }
 

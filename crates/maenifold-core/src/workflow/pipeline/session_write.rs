@@ -10,6 +10,7 @@ use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
 use crate::workflow::initial_workflow_frontmatter;
 use chrono::Utc;
+use serde_json::{Map as JsonMap, Value as JsonValue};
 use serde_yaml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
@@ -277,6 +278,7 @@ pub(super) fn write_pipeline_session(
     definition: &PipelineDefinition,
     node_states: &BTreeMap<String, YamlValue>,
     max_concurrency: u64,
+    prompt: Option<&str>,
 ) -> Result<()> {
     let uri = pipeline_session_uri(pipeline_id);
     let (year, month, day) = date_parts_from_session_id(pipeline_id);
@@ -307,6 +309,13 @@ pub(super) fn write_pipeline_session(
         YamlValue::String("active".to_string()),
     );
     frontmatter.insert("definition".to_string(), serde_yaml::to_value(definition)?);
+    if let Some(inputs) = definition
+        .inputs
+        .as_ref()
+        .filter(|inputs| !inputs.is_empty())
+    {
+        frontmatter.insert("inputs".to_string(), serde_yaml::to_value(inputs)?);
+    }
     frontmatter.insert(
         "nodeStates".to_string(),
         YamlValue::Mapping(
@@ -324,6 +333,9 @@ pub(super) fn write_pipeline_session(
     frontmatter.insert("last".to_string(), serde_yaml::to_value(0u64)?);
     // T-93.4: cursor tracks completed dispatch cycles for crash-recovery continuity.
     frontmatter.insert("cursor".to_string(), serde_yaml::to_value(0u64)?);
+    if let Some(prompt) = prompt.map(str::trim).filter(|prompt| !prompt.is_empty()) {
+        frontmatter.insert("prompt".to_string(), YamlValue::String(prompt.to_string()));
+    }
 
     write_markdown(
         &uri,
@@ -331,6 +343,52 @@ pub(super) fn write_pipeline_session(
         "# Pipeline Session\n",
         &context.config,
     )
+}
+
+pub(super) fn persist_pipeline_runtime_context(
+    context: &ToolContext,
+    session_id: &str,
+    prompt_override: Option<&str>,
+    input_overrides: Option<&JsonMap<String, JsonValue>>,
+) -> Result<String> {
+    let (uri, mut frontmatter, pipeline_content) =
+        super::session_read::read_pipeline_session(context, session_id)?;
+    let definition: PipelineDefinition =
+        super::session_read::frontmatter_value(&frontmatter, "definition")?;
+    let mut inputs = super::session_read::optional_frontmatter_value::<JsonMap<String, JsonValue>>(
+        &frontmatter,
+        "inputs",
+    )?
+    .or(definition.inputs.clone())
+    .unwrap_or_default();
+    if let Some(overrides) = input_overrides {
+        inputs.extend(overrides.clone());
+    }
+    if inputs.is_empty() {
+        frontmatter.remove("inputs");
+    } else {
+        frontmatter.insert("inputs".to_string(), serde_yaml::to_value(&inputs)?);
+    }
+
+    let prompt = prompt_override
+        .map(str::trim)
+        .filter(|prompt| !prompt.is_empty())
+        .map(ToOwned::to_owned)
+        .or_else(|| {
+            frontmatter
+                .get("prompt")
+                .and_then(YamlValue::as_str)
+                .map(str::to_owned)
+        })
+        .unwrap_or_default();
+    if prompt.is_empty() {
+        frontmatter.remove("prompt");
+    } else {
+        frontmatter.insert("prompt".to_string(), YamlValue::String(prompt.clone()));
+    }
+
+    write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    Ok(prompt)
 }
 
 pub(super) fn write_workflow_node_session(

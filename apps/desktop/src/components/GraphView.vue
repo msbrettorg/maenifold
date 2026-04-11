@@ -236,7 +236,7 @@ onMounted(async () => {
 .breadcrumb-link {
   background: none;
   border: none;
-  color: var(--text-accent);
+  color: var(--border-focus);
   cursor: pointer;
   padding: 0;
   font-size: var(--text-sm);
@@ -292,7 +292,7 @@ onMounted(async () => {
 }
 
 .graph-action-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
   border-color: var(--text-muted);
 }
@@ -358,9 +358,9 @@ onMounted(async () => {
 }
 
 .empty-retry:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
-  border-color: var(--text-accent);
+  border-color: var(--border-focus);
 }
 
 /* Loading state */
@@ -378,7 +378,7 @@ onMounted(async () => {
   width: 32px;
   height: 32px;
   border: 2px solid var(--border-default);
-  border-top-color: var(--text-accent);
+  border-top-color: var(--border-focus);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 0.75rem;

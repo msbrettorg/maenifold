@@ -551,7 +551,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
   place-items: center;
   width: 1.4rem;
   height: 1.4rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
   background: var(--bg-main);
   color: var(--text-primary);

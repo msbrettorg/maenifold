@@ -1,18 +1,6 @@
 /* Design tokens for pipeline-ui. Imported by App.vue. */
 
 :root {
-  /* ── Legacy tokens (kept for backward compat) ── */
-  --bg-primary: #4da6ff;
-  --bg-primary-hover: #3399ff;
-  --bg-sidebar: #1c1b1b;
-  --bg-hover: #2a2a2a;
-  --bg-user: #1a3a5c;
-  --bg-assistant: #2d2d2d;
-  --bg-success: #1e7e34;
-  --bg-danger: #a71d2a;
-  --text-accent: #4da6ff;
-  --border-color: #404040;
-
   /* ── Font stacks ── */
   --font-headline: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
@@ -115,7 +103,7 @@
 .vue-flow__edge.selected .vue-flow__edge-path,
 .vue-flow__edge:focus .vue-flow__edge-path,
 .vue-flow__edge:focus-visible .vue-flow__edge-path {
-  stroke: var(--text-accent);
+  stroke: var(--border-focus);
 }
 
 .vue-flow__edge.updating .vue-flow__edge-path {

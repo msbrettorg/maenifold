@@ -1,6 +1,7 @@
 import type {
   NodeProvenance,
   PipelineDefinition,
+  PipelineInputs,
   PipelineListItem,
   PipelineNodeAgentConfig,
   PipelineView,
@@ -99,6 +100,14 @@ function cloneNodeProvenance(provenance: NodeProvenance): NodeProvenance {
   };
 }
 
+function cloneInputs(inputs: PipelineInputs | undefined): PipelineInputs | undefined {
+  if (!inputs) {
+    return undefined;
+  }
+
+  return { ...inputs };
+}
+
 function firstNonEmptyString(...values: Array<string | undefined>): string | undefined {
   return values.find((value): value is string => typeof value === 'string' && value.length > 0);
 }
@@ -129,6 +138,7 @@ function mergeAgentConfig(node: LegacyExecutionFields): PipelineNodeAgentConfig 
 export function normalizeView(view: PipelineView): PipelineView {
   return {
     ...view,
+    ...(view.inputs ? { inputs: cloneInputs(view.inputs) } : {}),
     nodes: view.nodes.map(normalizeViewNode),
     edges: view.edges.map((edge) => ({ ...edge })),
   };
@@ -198,6 +208,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
 export function toLocalDefinition(view: PipelineView): PipelineDefinition {
   return {
     ...(view.templateId ? { templateId: view.templateId } : {}),
+    ...(view.inputs ? { inputs: cloneInputs(view.inputs) } : {}),
     nodes: view.nodes.map(toLocalNode),
     edges: view.edges.map((edge) => ({ ...edge })),
   };
@@ -267,6 +278,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
 export function serializePipelineDefinition(definition: PipelineDefinition): PipelineDefinition {
   return {
     ...(definition.templateId ? { templateId: definition.templateId } : {}),
+    ...(definition.inputs ? { inputs: cloneInputs(definition.inputs) } : {}),
     nodes: definition.nodes.map(serializeNode),
     edges: definition.edges.map((edge) => ({ ...edge })),
   };

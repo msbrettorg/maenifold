@@ -234,7 +234,7 @@ function formatAbsolute(iso: string): string {
 
 .progress-fill {
   height: 100%;
-  background: var(--bg-success);
+  background: var(--color-status-completed);
   border-radius: 2px;
   transition: width 0.3s ease;
 }

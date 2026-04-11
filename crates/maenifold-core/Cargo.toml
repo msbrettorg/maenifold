@@ -27,6 +27,7 @@ serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true
 serde_yaml.workspace = true
+handlebars = "6"
 sha2.workspace = true
 slug.workspace = true
 rust-embed.workspace = true
@@ -67,7 +68,6 @@ serial_test = "3"
 similar-asserts.workspace = true
 tower = "0.5"
 filetime = "0.2.25"
-
 
 
 

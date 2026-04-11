@@ -171,7 +171,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 .context-rows dd { margin: 0; color: var(--text-primary); word-break: break-word; }
 .locations,
 .content-preview,
-.raw-payload pre { background: var(--bg-hover); border: 1px solid var(--border-color); border-radius: 4px; }
+.raw-payload pre { background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: 4px; }
 .locations { padding: 0.5rem 0.75rem; }
 .location { color: var(--text-primary); font-family: var(--font-mono); font-size: var(--text-sm); padding: 0.125rem 0; word-break: break-all; }
 .content-block + .content-block,
@@ -180,18 +180,18 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 .content-preview,
 .raw-payload pre { margin: 0; padding: 0.75rem; font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.4; white-space: pre-wrap; word-break: break-word; }
 .raw-payload summary { cursor: pointer; font-weight: 600; }
-.dialog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--border-color); }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--border-default); }
 .option-btn,
 .cancel-btn { flex: 1; min-width: 120px; padding: 0.625rem 1rem; border-radius: 4px; font-size: var(--text-base); cursor: pointer; }
 .option-btn { border: none; font-weight: 500; transition: background 0.15s; }
 .option-allow_once,
-.option-allow_always { background: var(--bg-success); color: var(--text-on-accent); }
+.option-allow_always { background: var(--color-status-completed); color: var(--text-on-accent); }
 .option-allow_once:hover,
-.option-allow_always:hover { background: color-mix(in srgb, var(--bg-success) 88%, var(--bg-main)); }
+.option-allow_always:hover { background: color-mix(in srgb, var(--color-status-completed) 88%, var(--bg-main)); }
 .option-reject_once,
-.option-reject_always { background: var(--bg-danger); color: var(--text-on-accent); }
+.option-reject_always { background: var(--border-error); color: var(--text-on-accent); }
 .option-reject_once:hover,
-.option-reject_always:hover { background: color-mix(in srgb, var(--bg-danger) 88%, var(--bg-main)); }
-.cancel-btn { background: var(--bg-main); border: 1px solid var(--border-color); }
-.cancel-btn:hover { background: var(--bg-hover); }
+.option-reject_always:hover { background: color-mix(in srgb, var(--border-error) 88%, var(--bg-main)); }
+.cancel-btn { background: var(--bg-main); border: 1px solid var(--border-default); }
+.cancel-btn:hover { background: var(--bg-surface); }
 </style>

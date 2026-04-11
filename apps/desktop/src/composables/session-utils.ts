@@ -112,60 +112,8 @@ function applyConfigOptionsState(
 ): void {
   session.hasConfigOptions = 'configOptions' in response && response.configOptions !== null;
   session.configOptions = session.hasConfigOptions ? normalizeConfigOptions(response.configOptions) : [];
-}
-
-function applyLegacySessionState(
-  session: SessionState,
-  response: {
-    modes?: {
-      availableModes?: Array<{
-        id: string;
-        name: string;
-        description?: string | null;
-        _meta?: Record<string, unknown> | null;
-      }>;
-      currentModeId?: string | null;
-    } | null;
-    models?: {
-      availableModels?: Array<{
-        modelId: string;
-        name: string;
-        description?: string | null;
-        _meta?: Record<string, unknown> | null;
-      }>;
-      currentModelId?: string | null;
-    } | null;
-  }
-): void {
-  if (session.hasConfigOptions) {
-    session.availableModes = [];
-    session.currentModeId = '';
-    session.availableModels = [];
-    session.currentModelId = '';
-    return;
-  }
-  if (response.modes) {
-    session.availableModes = (response.modes.availableModes || []).map(m => ({
-      id: m.id,
-      name: m.name,
-      description: m.description ?? undefined,
-      _meta: isRecord(m._meta) ? m._meta : null,
-    }));
-    session.currentModeId = response.modes.currentModeId || '';
-  } else {
-    session.availableModes = [];
-    session.currentModeId = '';
-  }
-  if (response.models) {
-    session.availableModels = (response.models.availableModels || []).map(m => ({
-      modelId: m.modelId,
-      name: m.name,
-      description: m.description ?? undefined,
-      _meta: isRecord(m._meta) ? m._meta : null,
-    }));
-    session.currentModelId = response.models.currentModelId || '';
-    return;
-  }
+  session.availableModes = [];
+  session.currentModeId = '';
   session.availableModels = [];
   session.currentModelId = '';
 }
@@ -175,28 +123,9 @@ export function applySessionConfigurationState(
   response: {
     configOptions?: unknown[] | null;
     availableCommands?: unknown[] | null;
-    modes?: {
-      availableModes?: Array<{
-        id: string;
-        name: string;
-        description?: string | null;
-        _meta?: Record<string, unknown> | null;
-      }>;
-      currentModeId?: string | null;
-    } | null;
-    models?: {
-      availableModels?: Array<{
-        modelId: string;
-        name: string;
-        description?: string | null;
-        _meta?: Record<string, unknown> | null;
-      }>;
-      currentModelId?: string | null;
-    } | null;
   }
 ): void {
   applyConfigOptionsState(session, response);
-  applyLegacySessionState(session, response);
   applyAvailableCommandsState(session, response);
 }
 
@@ -226,14 +155,6 @@ function synthesizeClientCommands(session: SessionState): void {
           _meta: { clientAction: 'setConfigOption', configId: modeOption.id, value: opt.value },
         });
       }
-    }
-  } else {
-    for (const mode of session.availableModes) {
-      commands.push({
-        name: deriveCommandName(mode.id),
-        description: mode.description || `Switch to ${mode.name} mode`,
-        _meta: { clientAction: 'setMode', modeId: mode.id },
-      });
     }
   }
   commands.push({ name: 'clear', description: 'Clear chat messages', _meta: { clientAction: 'clearMessages' } });

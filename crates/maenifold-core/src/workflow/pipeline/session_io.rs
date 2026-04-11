@@ -1,5 +1,6 @@
 pub(super) use super::session_read::{
-    derive_pipeline_node_states, frontmatter_value, read_pipeline_session,
+    derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
+    read_pipeline_session,
 };
 pub(super) use super::session_write::{
     NodeFile, allocate_node_session_id, delete_pipeline_session_files,

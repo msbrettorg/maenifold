@@ -120,15 +120,15 @@ function handleClose(): void {}
   align-items: flex-end;
   gap: 0.5rem;
   padding: 1rem;
-  border-top: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-default);
 }
 .composer { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
 .composer-control-wrapper { display: inline-flex; }
 .attachment-btn {
   padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 999px;
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
   font-size: var(--text-sm);
   cursor: pointer;
@@ -141,7 +141,7 @@ function handleClose(): void {}
 textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--border-default);
   border-radius: 6px;
   resize: none;
   font: inherit;
@@ -157,12 +157,12 @@ textarea:focus {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 6px;
-  background: var(--bg-primary);
+  background: var(--border-focus);
   color: var(--text-on-accent);
   font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
   transition: background 0.15s;
 }
-.send-btn:hover:not(:disabled) { background: var(--bg-primary-hover); }
+.send-btn:hover:not(:disabled) { background: var(--border-focus); }
 </style>

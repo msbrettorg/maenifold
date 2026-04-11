@@ -70,7 +70,7 @@ function statusIcon(status: string): string {
   border-radius: 4px;
   font-size: var(--text-sm);
   background: var(--bg-surface);
-  border-left: 2px solid var(--border-color);
+  border-left: 2px solid var(--border-default);
   overflow: hidden;
 }
 .tci-summary {
@@ -86,7 +86,7 @@ function statusIcon(status: string): string {
   text-align: left;
 }
 .tci-summary-expandable { cursor: pointer; }
-.tci-summary-expandable:hover { background: var(--bg-hover); }
+.tci-summary-expandable:hover { background: var(--bg-surface); }
 .tool-pending { border-left-color: var(--color-status-stuck); }
 .tool-in_progress {
   border-left-color: var(--color-status-active);

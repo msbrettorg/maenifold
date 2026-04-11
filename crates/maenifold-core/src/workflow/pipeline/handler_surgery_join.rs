@@ -78,6 +78,7 @@ pub(super) fn join_pipeline(
             .chain(source_definition.edges.iter().cloned())
             .chain(join.edges.iter().cloned())
             .collect(),
+        inputs: target_definition.inputs.clone(),
         template_id: None,
     };
     validate_pipeline(&merged_definition)?;

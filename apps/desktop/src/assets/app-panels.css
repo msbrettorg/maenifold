@@ -1,7 +1,7 @@
 /* Scoped to App.vue via <style scoped> @import. Do not add :root or body rules. */
 .traffic-panel {
   flex-shrink: 0;
-  border-top: 2px solid var(--border-color);
+  border-top: 2px solid var(--border-default);
 }
 
 .error-banner {
@@ -83,7 +83,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-secondary);
@@ -102,7 +102,7 @@
 }
 
 .workflow-close-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -131,7 +131,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-secondary);
@@ -150,7 +150,7 @@
 }
 
 .pipeline-close-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -159,7 +159,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-secondary);
@@ -178,7 +178,7 @@
 }
 
 .gate-close-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
 }
 
@@ -194,7 +194,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-default);
   font-size: var(--text-base);
   font-weight: 500;
   color: var(--text-secondary);
@@ -213,7 +213,7 @@
 }
 
 .graph-close-btn:hover {
-  background: var(--bg-hover);
+  background: var(--bg-surface);
   color: var(--text-primary);
 }
 

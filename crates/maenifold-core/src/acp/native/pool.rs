@@ -46,7 +46,7 @@ impl AgentPool {
     pub fn new() -> Self {
         Self {
             agents: Mutex::new(HashMap::new()),
-            max_agents: 10,
+            max_agents: 20,
         }
     }
 

@@ -137,7 +137,7 @@ describe('usePipelineStore pipeline loading', () => {
     viewPipeline.mockResolvedValueOnce(initialView);
     const store = usePipelineStore();
 
-    await store.loadPipeline('pipeline-1');
+    await expect(store.loadPipeline('pipeline-1')).resolves.toBe(true);
 
     expect(store.currentPipelineId).toBe('pipeline-1');
     expect(store.designMode).toBe(false);
@@ -204,5 +204,26 @@ describe('usePipelineStore pipeline loading', () => {
     }));
 
     expect(store.eventLog).toHaveLength(hydratedEntries.length + 1);
+  });
+
+  it('preserves draft state when loading a different pipeline fails', async () => {
+    viewPipeline.mockRejectedValueOnce(new Error('pipeline missing'));
+    const store = usePipelineStore();
+    store.designMode = true;
+    store.currentPipelineId = null;
+    store.localDefinition = {
+      nodes: [{ id: 'draft-node', workflowId: 'workflow.alpha' }],
+      edges: [],
+    };
+
+    await expect(store.loadPipeline('pipeline-2')).resolves.toBe(false);
+
+    expect(store.designMode).toBe(true);
+    expect(store.currentPipelineId).toBeNull();
+    expect(store.localDefinition.nodes).toHaveLength(1);
+    expect(store.hasDirtyDraft).toBe(true);
+    expect(store.errorMessage).toBe('view_pipeline: pipeline missing');
+    expect(startPolling).not.toHaveBeenCalled();
+    expect(stopPolling).not.toHaveBeenCalled();
   });
 });

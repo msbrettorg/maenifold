@@ -88,6 +88,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     });
   }
   const designMode = ref(true);
+  const hasDirtyDraft = computed(() => designMode.value && (localDefinition.value?.nodes?.length ?? 0) > 0);
   const eventLog = ref<LogEntry[]>([]);
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
@@ -164,18 +165,22 @@ export const usePipelineStore = defineStore('pipeline', () => {
       pipelines.value = normalizePipelineList(await mcp.listPipelines());
     });
   }
-  async function loadPipeline(pipelineId: string) {
-    await withError('view_pipeline', async () => {
-      stopCurrentPolling();
-      currentPipelineId.value = pipelineId;
-      const view = normalizeView(await mcp.viewPipeline(pipelineId));
-      setView(view);
-      designMode.value = false;
-      eventLog.value = hydrateEventLogFromView(view);
-      if (!TERMINAL_PIPELINE_STATUSES.has(view.status)) {
-        startViewPolling();
-      }
-    });
+  async function loadPipeline(pipelineId: string): Promise<boolean> {
+    const view = await withError('view_pipeline', async () => normalizeView(await mcp.viewPipeline(pipelineId)));
+    if (!view) {
+      return false;
+    }
+
+    stopCurrentPolling();
+    currentPipelineId.value = pipelineId;
+    setView(view);
+    designMode.value = false;
+    eventLog.value = hydrateEventLogFromView(view);
+    if (!TERMINAL_PIPELINE_STATUSES.has(view.status)) {
+      startViewPolling();
+    }
+
+    return true;
   }
   function newPipeline() {
     stopCurrentPolling();
@@ -374,6 +379,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     maxConcurrency,
     loading,
     designMode,
+    hasDirtyDraft,
     eventLog,
     workflows,
     tools,

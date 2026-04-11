@@ -77,6 +77,59 @@ describe('pipeline smoke tests', () => {
     expect(store.designMode).toBe(true);
   });
 
+  it('PipelineSidebar confirms before discarding a dirty draft on pipeline switch', async () => {
+    const { pinia, store } = createStore();
+    store.designMode = true;
+    store.localDefinition = {
+      nodes: [{ id: 'draft-node', workflowId: 'workflow.alpha' }],
+      edges: [],
+    };
+    store.currentPipelineId = 'pipeline-current';
+    store.pipelines = [
+      { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0 },
+      { pipelineId: 'pipeline-next', status: 'paused', nodeCount: 1, completedCount: 0 },
+    ];
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const loadPipelineSpy = vi.spyOn(store, 'loadPipeline').mockResolvedValue(true);
+
+    const wrapper = mount(PipelineSidebar, {
+      global: { plugins: [pinia] },
+    });
+
+    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+
+    expect(confirmSpy).toHaveBeenCalledWith('Discard unsaved pipeline draft?');
+    expect(loadPipelineSpy).not.toHaveBeenCalled();
+    expect(wrapper.emitted('pipeline-selected')).toBeUndefined();
+  });
+
+  it('PipelineSidebar emits only after a successful pipeline load', async () => {
+    const { pinia, store } = createStore();
+    store.designMode = false;
+    store.currentPipelineId = 'pipeline-current';
+    store.pipelines = [
+      { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0 },
+      { pipelineId: 'pipeline-next', status: 'paused', nodeCount: 1, completedCount: 0 },
+    ];
+
+    const loadPipelineSpy = vi.spyOn(store, 'loadPipeline')
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+
+    const wrapper = mount(PipelineSidebar, {
+      global: { plugins: [pinia] },
+    });
+
+    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+    expect(loadPipelineSpy).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('pipeline-selected')).toBeUndefined();
+
+    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+    expect(loadPipelineSpy).toHaveBeenCalledTimes(2);
+    expect(wrapper.emitted('pipeline-selected')).toEqual([['pipeline-next']]);
+  });
+
   it('PipelineComposer adds a node through the design toolbar', async () => {
     const { pinia, store } = createStore();
     const nodePaletteStore = useNodePaletteStore();

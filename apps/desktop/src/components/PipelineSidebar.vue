@@ -4,8 +4,12 @@ import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
+const emit = defineEmits<{
+  (e: 'pipeline-selected', pipelineId: string): void;
+}>();
+
 const store = usePipelineStore();
-const { connected, pipelines, currentPipelineId } = storeToRefs(store);
+const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
 
 const STATUS_ICONS: Record<string, string> = {
   active: '🔄',
@@ -44,7 +48,20 @@ function formatStatus(status: PipelineStatus): string {
 }
 
 async function handleSelect(pipelineId: string) {
-  await store.loadPipeline(pipelineId);
+  if (currentPipelineId.value === pipelineId) {
+    return;
+  }
+
+  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) {
+    return;
+  }
+
+  const loaded = await store.loadPipeline(pipelineId);
+  if (!loaded) {
+    return;
+  }
+
+  emit('pipeline-selected', pipelineId);
 }
 
 async function handleDelete(item: PipelineListItem, event: Event) {
@@ -76,6 +93,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
       <li
         v-for="item in pipelineItems"
         :key="item.pipelineId"
+        :data-pipeline-id="item.pipelineId"
         :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
         @click="handleSelect(item.pipelineId)"
       >

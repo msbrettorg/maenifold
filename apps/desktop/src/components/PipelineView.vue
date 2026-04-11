@@ -133,7 +133,7 @@ function handleEdgeSelected(edge: SelectedEdge) {
       <section class="runner-panel">
         <div class="runner-panel-header">
           <button
-            v-if="hasLoadedPipeline"
+            v-if="hasLoadedPipeline && runnerExpanded"
             type="button"
             class="btn btn-primary"
             :disabled="graftSubmitting"
@@ -142,7 +142,7 @@ function handleEdgeSelected(edge: SelectedEdge) {
             Graft Nodes
           </button>
           <button
-            v-if="hasLoadedPipeline"
+            v-if="hasLoadedPipeline && runnerExpanded"
             type="button"
             class="btn btn-ghost"
             :disabled="joinSubmitting"
@@ -160,7 +160,7 @@ function handleEdgeSelected(edge: SelectedEdge) {
             {{ runnerExpanded ? '▼' : '▲' }}
           </button>
         </div>
-        <PipelineRunner />
+        <PipelineRunner :collapsed="!runnerExpanded" />
       </section>
 
       <!-- Resize handles (desktop only) -->

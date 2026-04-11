@@ -9,6 +9,8 @@ import { getPipelineTemplateById, type TemplateInputDefinition } from '../lib/pi
 
 type RunnerTab = 'event-log' | 'mermaid';
 
+const props = defineProps<{ collapsed?: boolean }>();
+
 const store = usePipelineStore();
 const { currentPipelineId, currentView, designMode, errorMessage, eventLog, isRunning, localDefinition } = storeToRefs(store);
 
@@ -200,8 +202,8 @@ function handleRun() {
 </script>
 
 <template>
-  <section class="runner-panel">
-    <div v-if="canShowRunPrompt" class="prompt-panel">
+  <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
+    <div v-if="canShowRunPrompt" v-show="!props.collapsed" class="prompt-panel">
       <div v-if="runInputDefinitions.length > 0" class="run-inputs-panel">
         <label
           v-for="input in runInputDefinitions"
@@ -239,12 +241,12 @@ function handleRun() {
       />
     </div>
 
-    <div v-if="errorMessage" class="error-banner" role="alert">
+    <div v-if="errorMessage" v-show="!props.collapsed" class="error-banner" role="alert">
       <span class="error-banner__message">{{ errorMessage }}</span>
       <button class="btn btn-ghost error-banner__dismiss" type="button" aria-label="Dismiss error" @click="store.clearError()">✕</button>
     </div>
 
-    <div class="control-bar">
+    <div v-show="!props.collapsed" class="control-bar">
       <button v-if="canCreate" class="btn btn-primary" :disabled="busyAction !== null" @click="runAction('create', () => store.createPipeline())">Create</button>
       <button v-if="canRunBase" class="btn btn-success" :disabled="busyAction !== null || !canRun" @click="handleRun">Run</button>
       <button v-if="canPause" class="btn btn-pause" :disabled="busyAction !== null" @click="runAction('pause', () => store.pausePipeline())">Pause</button>
@@ -255,17 +257,17 @@ function handleRun() {
 
     <div class="status-line">{{ statusLine }}</div>
 
-    <div class="tab-bar">
+    <div v-show="!props.collapsed" class="tab-bar">
       <button class="btn btn-ghost tab" :class="{ active: activeTab === 'event-log' }" @click="activeTab = 'event-log'">Event Log</button>
       <button class="btn btn-ghost tab" :class="{ active: activeTab === 'mermaid' }" @click="activeTab = 'mermaid'">Mermaid</button>
     </div>
 
-    <div v-if="activeTab === 'event-log'" ref="logContainer" class="tab-panel log-panel" aria-live="polite" aria-label="Event log">
+    <div v-if="activeTab === 'event-log'" v-show="!props.collapsed" ref="logContainer" class="tab-panel log-panel" aria-live="polite" aria-label="Event log">
       <p v-if="formattedLog.length === 0" class="empty-state">No events yet.</p>
       <pre v-else class="log-lines"><code>{{ formattedLog.join('\n') }}</code></pre>
     </div>
 
-    <div v-else class="tab-panel mermaid-panel">
+    <div v-else v-show="!props.collapsed" class="tab-panel mermaid-panel">
       <div v-if="renderedSvg" class="diagram" v-html="renderedSvg" />
       <pre v-else-if="mermaidFallback" class="fallback"><code>{{ mermaidFallback }}</code></pre>
       <p v-else class="empty-state">No Mermaid diagram available.</p>
@@ -280,6 +282,9 @@ function handleRun() {
   min-height: 260px;
   border-top: 1px solid var(--border-default);
   background: var(--bg-main);
+}
+.runner-panel--collapsed {
+  min-height: 0;
 }
 .error-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; background: var(--bg-error); color: var(--text-error); border-bottom: 1px solid var(--border-error); font-size: var(--text-sm); }
 .error-banner__message { flex: 1; }

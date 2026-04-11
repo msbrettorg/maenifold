@@ -26,10 +26,13 @@ const issuesOnly = ref(false);
 const selectedTaskId = ref('');
 const selectedTaskBody = ref('');
 const selectedTaskHistory = ref<GateTaskHistoryEntry[]>([]);
-const detailLoading = ref(false);
-const detailError = ref('');
+const detailBodyLoading = ref(false);
+const detailHistoryLoading = ref(false);
+const detailBodyError = ref('');
+const detailHistoryError = ref('');
 const activeWatcherRoot = ref('');
 let detailRequestToken = 0;
+let snapshotRequestToken = 0;
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress';
 type SortDirection = 'asc' | 'desc';
@@ -115,58 +118,95 @@ function stopWatcher() {
 }
 
 async function loadTaskDetail(task: GateTask | null, options: { preserveExisting?: boolean; showLoading?: boolean } = {}) {
-  const requestToken = ++detailRequestToken;
+  const requestId = ++detailRequestToken;
   const preserveExisting = options.preserveExisting ?? false;
   const showLoading = options.showLoading ?? false;
 
   if (!task) {
     selectedTaskBody.value = '';
     selectedTaskHistory.value = [];
-    detailError.value = '';
-    detailLoading.value = false;
+    detailBodyError.value = '';
+    detailHistoryError.value = '';
+    detailBodyLoading.value = false;
+    detailHistoryLoading.value = false;
     return;
   }
 
   if (!preserveExisting) {
     selectedTaskBody.value = '';
     selectedTaskHistory.value = [];
-    detailError.value = '';
+    detailBodyError.value = '';
+    detailHistoryError.value = '';
   }
 
-  if (showLoading) {
-    detailLoading.value = true;
+  detailBodyError.value = '';
+  detailHistoryError.value = '';
+
+  if (showLoading || !preserveExisting) {
+    detailBodyLoading.value = true;
+    detailHistoryLoading.value = true;
   }
-  try {
-    const [history, rawBody] = await Promise.all([
-      gate.readTaskHistory(task.taskId, registry.selectedGateRoot.value),
-      readTextFile(task.path),
-    ]);
 
-    if (requestToken !== detailRequestToken || selectedTaskId.value !== task.taskId) {
-      return;
-    }
+  const isCurrentRequest = () => requestId === detailRequestToken && selectedTaskId.value === task.taskId;
+  const root = registry.selectedGateRoot.value;
 
-    selectedTaskHistory.value = history;
-    selectedTaskBody.value = parseGateTaskBodyContent(rawBody);
-    detailError.value = '';
-  } catch (loadError) {
-    if (requestToken !== detailRequestToken || selectedTaskId.value !== task.taskId) {
-      return;
-    }
+  const bodyRequest = readTextFile(task.path)
+    .then((rawBody) => {
+      if (!isCurrentRequest()) return;
+      selectedTaskBody.value = parseGateTaskBodyContent(rawBody);
+      detailBodyError.value = '';
+    })
+    .catch((loadError) => {
+      if (!isCurrentRequest()) return;
+      selectedTaskBody.value = '';
+      detailBodyError.value = loadError instanceof Error ? loadError.message : String(loadError);
+    })
+    .finally(() => {
+      if (isCurrentRequest()) {
+        detailBodyLoading.value = false;
+      }
+    });
 
-    detailError.value = loadError instanceof Error ? loadError.message : String(loadError);
-  } finally {
-    if (requestToken === detailRequestToken) {
-      detailLoading.value = false;
-    }
-  }
+  const historyRequest = gate.readTaskHistory(task.taskId, root)
+    .then((history) => {
+      if (!isCurrentRequest()) return;
+      selectedTaskHistory.value = history;
+      detailHistoryError.value = '';
+    })
+    .catch((loadError) => {
+      if (!isCurrentRequest()) return;
+      selectedTaskHistory.value = [];
+      detailHistoryError.value = loadError instanceof Error ? loadError.message : String(loadError);
+    })
+    .finally(() => {
+      if (isCurrentRequest()) {
+        detailHistoryLoading.value = false;
+      }
+    });
+
+  await Promise.allSettled([bodyRequest, historyRequest]);
+}
+
+function clearSelection() {
+  detailRequestToken += 1;
+  selectedTaskId.value = '';
+  selectedTaskBody.value = '';
+  selectedTaskHistory.value = [];
+  detailBodyLoading.value = false;
+  detailHistoryLoading.value = false;
+  detailBodyError.value = '';
+  detailHistoryError.value = '';
 }
 
 async function refreshSnapshot(background = false) {
-  if (!hasGateRoot.value) {
+  const root = registry.selectedGateRoot.value;
+  const requestId = ++snapshotRequestToken;
+
+  if (!root) {
     snapshot.value = null;
     error.value = '';
     lastRefreshLabel.value = '';
+    clearSelection();
     return;
   }
 
@@ -174,7 +214,10 @@ async function refreshSnapshot(background = false) {
   error.value = '';
 
   try {
-    const nextSnapshot = await gate.loadSnapshot(registry.selectedGateRoot.value);
+    const nextSnapshot = await gate.loadSnapshot(root);
+    if (requestId !== snapshotRequestToken || registry.selectedGateRoot.value !== root) {
+      return;
+    }
     snapshot.value = nextSnapshot;
     lastRefreshLabel.value = formatRefreshTime();
     if (!selectedTaskId.value) return;
@@ -183,9 +226,14 @@ async function refreshSnapshot(background = false) {
       showLoading: !background,
     });
   } catch (loadError) {
+    if (requestId !== snapshotRequestToken || registry.selectedGateRoot.value !== root) {
+      return;
+    }
     error.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
-    if (!background) isLoading.value = false;
+    if (!background && requestId === snapshotRequestToken && registry.selectedGateRoot.value === root) {
+      isLoading.value = false;
+    }
   }
 }
 
@@ -214,15 +262,6 @@ async function handleRemoveCurrentGate() {
   const removed = await registry.removeSelectedRoot();
   if (!removed) return;
   clearSelection();
-}
-
-function clearSelection() {
-  detailRequestToken += 1;
-  selectedTaskId.value = '';
-  selectedTaskBody.value = '';
-  selectedTaskHistory.value = [];
-  detailLoading.value = false;
-  detailError.value = '';
 }
 
 watch(() => registry.selectedGateRoot.value, async (root) => {
@@ -254,7 +293,16 @@ onBeforeUnmount(() => {
 
     <div v-else class="gate-content">
       <GateTaskTable :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" @sort="toggleSort" @select="handleTaskSelect" />
-      <GateTaskDetail :task="activeTask" :body="selectedTaskBody" :history="selectedTaskHistory" :loading="detailLoading" :error="detailError" @close="clearSelection" />
+      <GateTaskDetail
+        :task="activeTask"
+        :body="selectedTaskBody"
+        :history="selectedTaskHistory"
+        :body-loading="detailBodyLoading"
+        :history-loading="detailHistoryLoading"
+        :body-error="detailBodyError"
+        :history-error="detailHistoryError"
+        @close="clearSelection"
+      />
     </div>
   </section>
 </template>

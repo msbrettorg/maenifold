@@ -8,8 +8,10 @@ const props = defineProps<{
   task: GateTask | null;
   body: string;
   history: GateTaskHistoryEntry[];
-  loading: boolean;
-  error: string;
+  bodyLoading: boolean;
+  historyLoading: boolean;
+  bodyError: string;
+  historyError: string;
 }>();
 
 defineEmits<{ close: [] }>();
@@ -47,8 +49,8 @@ function formatTimestamp(timestamp: string | null) {
     <template v-if="task">
       <section class="gate-detail__section">
         <p class="gate-detail__section-label">Spec</p>
-        <p v-if="loading" class="gate-detail__message">Loading task detail…</p>
-        <p v-else-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
+        <p v-if="bodyLoading" class="gate-detail__message">Loading task detail…</p>
+        <p v-else-if="bodyError" class="gate-detail__message gate-detail__message--error">{{ bodyError }}</p>
         <p v-else-if="!body.trim()" class="gate-detail__message">No task body content found.</p>
         <div v-else class="gate-detail__markdown gate-detail__body" v-html="renderMarkdown(body)" />
       </section>
@@ -87,8 +89,8 @@ function formatTimestamp(timestamp: string | null) {
 
       <section class="gate-detail__section">
         <p class="gate-detail__section-label">History</p>
-        <p v-if="loading" class="gate-detail__message">Loading task history…</p>
-        <p v-else-if="error" class="gate-detail__message gate-detail__message--error">{{ error }}</p>
+        <p v-if="historyLoading" class="gate-detail__message">Loading task history…</p>
+        <p v-else-if="historyError" class="gate-detail__message gate-detail__message--error">{{ historyError }}</p>
         <p v-else-if="!history.length" class="gate-detail__message">No recorded gate history yet.</p>
         <ol v-else class="gate-detail__history">
           <li v-for="(entry, index) in history" :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`" class="gate-detail__history-item">

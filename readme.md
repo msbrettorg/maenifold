@@ -18,9 +18,11 @@
 
 maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
 
-Pipelines can execute MCP tools directly against real systems before any model is invoked. That means you can pull structured context from anything that speaks MCP, including local shell-backed servers and external services, then spend tokens only on the downstream steps that actually require reasoning, synthesis, or generation.
+Pipelines can execute MCP tools directly against real systems before any model is invoked. That means you can pull structured context from anything that speaks MCP, including local shell-backed servers and external services, then spend tokens only on the downstream steps that actually require reasoning, synthesis, or generation. A single pipeline can mix ACP-backed agents and harnesses, per-node model and reasoning settings, zero-token tool calls, reusable workflow nodes, and graph-backed context in one executable graph.
 
 The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
+
+Those pieces are meant to work as one system rather than five disconnected features. Memory, workflows, pipelines, gate records, and retained artifacts all meet in the same local substrate, so context, execution, and provenance can stay connected.
 
 The backend centers on `crates/maenifold-core` and exposes 29 MCP tools. The desktop app has five surfaces: Agents for ACP chat, Pipelines for DAG orchestration, Gates for staged task flow, Workflows for the 69-workflow asset library, and Graph for community-level concept exploration. Current repo configuration targets `Copilot`, `Goose`, `OpenCode`, `Codex`, and `claude-code` agents. The backend and all persistent state run locally. MIT licensed.
 
@@ -29,20 +31,23 @@ The backend centers on `crates/maenifold-core` and exposes 29 MCP tools. The des
 ### Agents
 
 - ACP chat sessions against external agents from one desktop shell.
-- Mode and model pickers, permission prompts, and traffic inspection are built into the session UI.
+- Choose the ACP harness, mode, model, and reasoning effort per session, with permission prompts and traffic inspection built into the UI.
 - Designed for multi-agent work without changing the backend protocol.
 
 ### Pipelines
 
 - Visual DAG editor with runtime status, logs, and inspector panels.
 - Four node types: `workflow`, `prompt`, `sequentialThinking`, and `tool`.
+- A single pipeline can mix different ACP harnesses, modes, models, and reasoning settings across nodes.
 - Tool nodes can execute MCP calls directly, so structured retrieval and system actions do not require model-token spend.
+- Workflow nodes and graph-backed context let pipelines reuse codified reasoning methods instead of rebuilding cognition from scratch on every run.
 - Supports pipeline surgery: `fork`, `graft`, `join`, and `rewind`.
 - North star: self-evolving pipelines that learn from execution traces and improve how they gather context, route reasoning, and shape the graph over time.
 
 ### Gates
 
 - `gate` is a separate binary for file-authoritative task management.
+- Gates provide the local work ledger for staged delivery, review, and rework inside the larger intelligence system.
 - Supports staged delivery flows through `status`, `append`, `pass`, `fail`, `history`, and `sync`.
 - The same task system can be driven from CLI, MCP, or the desktop UI.
 
@@ -57,13 +62,24 @@ The backend centers on `crates/maenifold-core` and exposes 29 MCP tools. The des
 
 - Community view for the whole graph, then concept drill-down inside a selected cluster.
 - Built from local WikiLinks, not a hidden hosted service.
+- The Graph tab is an inspection surface for the same shared context layer that feeds sessions, workflows, pipelines, and retained knowledge.
+- The same graph can feed sessions, workflows, and pipelines with reusable context instead of acting as a passive note map.
 - Useful for spotting domain neighborhoods before opening the underlying memory files.
 
 ## Architecture
 
 maenifold is MCP-native by design. The desktop app, the CLI, and external agent clients all use the same protocol and meet at the same constitutional boundary: domain state lives behind MCP instead of being reimplemented in each frontend. The server speaks stdio MCP and streamable HTTP; the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as a Tauri + Vue app and is excluded from the Rust workspace itself.
 
-The long-term shape is a no-code intelligence environment: workflows codify reusable reasoning methods, pipelines ground those methods in real systems through direct MCP execution, and work outputs emerge as artifacts of the intelligence substrate rather than the product's sole purpose.
+The long-term shape is a no-code intelligence environment: workflows codify reusable reasoning methods, pipelines ground those methods in real systems through direct MCP execution, and the graph ties memory, execution, and outputs together as an executable substrate rather than a passive visualization. Work outputs emerge as artifacts of the intelligence layer instead of the product's sole purpose.
+
+## Example Flow
+
+One concrete path through the system can look like this:
+
+1. Call MCP tools against a CRM, shell-backed server, or operations system to pull structured context without invoking a model.
+2. Route that context through workflow, prompt, or sequential thinking nodes, choosing the ACP harness, model, and reasoning settings per node as needed.
+3. Inspect the run in the pipeline UI, then `fork`, `rewind`, `graft`, or `join` if the execution path needs correction.
+4. Keep staged follow-up work in `gate` and promote only the durable knowledge worth retaining back into memory and the graph.
 
 ```text
 maenifold-rs/

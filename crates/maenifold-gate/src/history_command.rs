@@ -1,6 +1,5 @@
 use crate::cli::HistoryArgs;
 use crate::error::GateError;
-use crate::task_file::TaskFileReader;
 use crate::task_repository::TaskRepository;
 use crate::task_sections::TaskStageRecord;
 
@@ -10,7 +9,7 @@ pub struct HistoryCommand;
 impl HistoryCommand {
     pub fn execute(args: HistoryArgs) -> Result<(), GateError> {
         let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
-        let document = TaskFileReader::read(&task.path)?;
+        let document = TaskRepository::read_task_document(&args.context.root, &task)?;
 
         println!("{} history", args.task_id);
         println!("title: {}", document.metadata.title);

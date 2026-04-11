@@ -1,16 +1,18 @@
+use std::fs;
 use std::path::Path;
 
 use serde_json::{Value, json};
 
 use crate::append_command::append_task;
 use crate::cache_db::GateCacheDb;
-use crate::cli::{AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs};
+use crate::cli::{
+    AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
+};
 use crate::error::GateError;
 use crate::fail_command::fail_task;
 use crate::pass_command::pass_task;
 use crate::status_filter::StatusFilter;
 use crate::sync_command::sync_gate;
-use crate::task_file::TaskFileReader;
 use crate::task_repository::TaskRepository;
 
 #[derive(Debug, Clone)]
@@ -46,8 +48,9 @@ impl GateToolService {
     }
 
     pub fn history(args: HistoryArgs) -> Result<Value, GateError> {
-        let task = TaskRepository::find_task(args.context.root, &args.task_id)?;
-        let document = TaskFileReader::read(&task.path)?;
+        let root = args.context.root;
+        let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
+        let document = TaskRepository::read_task_document(&root, &task)?;
         Ok(Value::Array(
             document
                 .records
@@ -64,6 +67,18 @@ impl GateToolService {
                 })
                 .collect(),
         ))
+    }
+
+    pub fn task_body(args: TaskBodyArgs) -> Result<Value, GateError> {
+        let root = args.context.root;
+        let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
+        let path = TaskRepository::canonical_task_markdown_path(&root, &task)?;
+        let markdown = fs::read_to_string(&path)?;
+        Ok(json!({
+            "taskId": task.task_id,
+            "path": path,
+            "markdown": markdown,
+        }))
     }
 
     pub fn sync(args: SyncArgs) -> Result<Value, GateError> {
@@ -193,11 +208,13 @@ fn history_event(record_kind: &str, outcome: Option<&str>) -> String {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs as unix_fs;
     use std::path::{Path, PathBuf};
 
     use tempfile::TempDir;
 
-    use crate::cli::{GateContext, OutcomeArgs, StatusArgs};
+    use crate::cli::{GateContext, HistoryArgs, OutcomeArgs, StatusArgs, TaskBodyArgs};
     use crate::status_filter::StatusFilter;
 
     use super::GateToolService;
@@ -275,6 +292,89 @@ mod tests {
         assert!(!root.path().join(".gitignore").exists());
         assert!(!gate_dir.join("gate.db-wal").exists());
         assert!(!gate_dir.join("gate.db-shm").exists());
+    }
+
+    #[test]
+    fn task_body_returns_raw_markdown_for_task() {
+        let root = new_pipeline_root();
+        let task_path = write_pending_task(root.path(), "T-1.1");
+
+        let result = GateToolService::task_body(TaskBodyArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            task_id: "T-1.1".to_string(),
+        })
+        .expect("task body should succeed");
+
+        assert_eq!(result["taskId"], "T-1.1");
+        assert_eq!(
+            result["path"],
+            fs::canonicalize(task_path)
+                .expect("canonicalize task path")
+                .to_string_lossy()
+                .as_ref()
+        );
+        assert!(
+            result["markdown"]
+                .as_str()
+                .expect("markdown string")
+                .contains("## Acceptance Criteria")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn task_body_rejects_symlink_escape_outside_gate_root() {
+        let root = new_pipeline_root();
+        let escaped = root.path().join("..").join("escaped.md");
+        fs::write(&escaped, "# escaped\n").expect("write escaped file");
+        let task_path = root.path().join("todo").join("T-1.1.md");
+        unix_fs::symlink(&escaped, &task_path).expect("create task symlink");
+
+        let error = GateToolService::task_body(TaskBodyArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            task_id: "T-1.1".to_string(),
+        })
+        .expect_err("symlink escape should fail");
+
+        assert!(
+            error
+                .to_string()
+                .contains("resolves outside the gate root corpus")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn history_rejects_symlinked_task_path() {
+        let root = new_pipeline_root();
+        let target = root.path().join("todo").join("history-target.md");
+        fs::write(
+            &target,
+            "# T-1.2 — History target\n\n**Pipeline**: sdd\n\n## Acceptance Criteria\n\n1. history should reject symlinks\n",
+        )
+        .expect("write history target");
+        let task_path = root.path().join("todo").join("T-1.2.md");
+        unix_fs::symlink(&target, &task_path).expect("create history symlink");
+
+        let error = GateToolService::history(HistoryArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            task_id: "T-1.2".to_string(),
+        })
+        .expect_err("symlinked history should fail");
+
+        assert!(error.to_string().contains("through a symlink"));
     }
 
     fn new_pipeline_root() -> TempDir {

@@ -41,6 +41,12 @@ pub struct HistoryArgs {
 }
 
 #[derive(Debug, Clone)]
+pub struct TaskBodyArgs {
+    pub context: GateContext,
+    pub task_id: String,
+}
+
+#[derive(Debug, Clone)]
 pub struct OutcomeArgs {
     pub context: GateContext,
     pub task_id: String,

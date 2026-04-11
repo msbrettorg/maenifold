@@ -41,6 +41,12 @@ export interface GateTaskHistoryEntry {
   timestamp: string | null;
 }
 
+export interface GateTaskBody {
+  taskId: string;
+  path: string;
+  markdown: string;
+}
+
 export const GATE_POLL_INTERVAL_MS = 5000;
 
 export function createGateSnapshot(root: string, tasks: GateTask[]): GateSnapshot {

@@ -15,7 +15,9 @@ use serde_json::{Map, Value};
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
 use self::schema::{McpToolDefinition, list};
-use crate::cli::{AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs};
+use crate::cli::{
+    AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
+};
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
 use crate::status_filter::StatusFilter;
@@ -263,6 +265,10 @@ fn call_gate_tool(
             model: optional_string(arguments, "model")?,
         })?,
         "history" => GateToolService::history(HistoryArgs {
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+        })?,
+        "task_body" => GateToolService::task_body(TaskBodyArgs {
             context: context_from_value(arguments, false, root)?,
             task_id: required_string(arguments, "taskId")?,
         })?,
@@ -589,6 +595,33 @@ mod tests {
         assert_eq!(history[2]["event"], "FAIL");
         assert_eq!(history[2]["agent"], "red-team");
         assert_eq!(history[2]["notes"], "requested rework");
+    }
+
+    #[test]
+    fn mcp_task_body_tool_returns_raw_markdown() {
+        let root = new_custom_pipeline_root();
+        let root_path = root.path().to_path_buf();
+
+        let output = call_gate_tool(
+            "task_body",
+            &json!({ "root": root.path(), "taskId": "T-9.1" }),
+            Some(&root_path),
+        )
+        .expect("task_body tool should succeed");
+        let value: serde_json::Value = serde_json::from_str(&output).expect("valid JSON output");
+
+        assert_eq!(value["taskId"], "T-9.1");
+        assert_eq!(
+            value["path"],
+            std::fs::canonicalize(root.path().join("todo").join("T-9.1.md"))
+                .expect("canonicalize task path")
+                .to_string_lossy()
+                .as_ref()
+        );
+        assert!(value["markdown"]
+            .as_str()
+            .expect("markdown string")
+            .contains("## Acceptance Criteria"));
     }
 
     #[test]

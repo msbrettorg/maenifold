@@ -1,10 +1,14 @@
 import { onMounted, ref, toValue, watch, type MaybeRefOrGetter } from 'vue';
-import { open } from '@tauri-apps/plugin-dialog';
-import { load, type Store } from '@tauri-apps/plugin-store';
 import { PREFS_STORE_PATH } from '../lib/constants';
 
 const GATE_ROOTS_KEY = 'gateRoots';
 const SELECTED_GATE_ROOT_KEY = 'selectedGateRoot';
+
+type GateRegistryStore = {
+  get<T>(key: string): Promise<T | null>;
+  set(key: string, value: unknown): Promise<void>;
+  save(): Promise<void>;
+};
 
 function normalizeRoot(value: string | null | undefined) {
   return value?.trim() ?? '';
@@ -14,13 +18,78 @@ function uniqueRoots(values: string[]) {
   return [...new Set(values.map(normalizeRoot).filter(Boolean))];
 }
 
+function browserStorageAvailable() {
+  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
+}
+
+function createBrowserStore(): GateRegistryStore | null {
+  if (!browserStorageAvailable()) return null;
+
+  return {
+    async get<T>(key: string) {
+      const raw = window.localStorage.getItem(`${PREFS_STORE_PATH}:${key}`);
+      if (raw === null) return null;
+
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return raw as T;
+      }
+    },
+    async set(key: string, value: unknown) {
+      window.localStorage.setItem(`${PREFS_STORE_PATH}:${key}`, JSON.stringify(value));
+    },
+    async save() {
+      // Browser persistence is written eagerly to localStorage.
+    },
+  };
+}
+
+async function loadPrefsStore(): Promise<GateRegistryStore | null> {
+  try {
+    const { load } = await import('@tauri-apps/plugin-store');
+    const store = await load(PREFS_STORE_PATH);
+    return {
+      async get<T>(key: string) {
+        return (await store.get<T>(key)) ?? null;
+      },
+      async set(key: string, value: unknown) {
+        await store.set(key, value);
+      },
+      async save() {
+        await store.save();
+      },
+    };
+  } catch {
+    return createBrowserStore();
+  }
+}
+
+async function pickGateRoot(): Promise<string> {
+  try {
+    const { open } = await import('@tauri-apps/plugin-dialog');
+    const folder = await open({
+      directory: true,
+      multiple: false,
+      title: 'Register Gate Root',
+    });
+    return typeof folder === 'string' ? folder : '';
+  } catch {
+    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
+      return '';
+    }
+
+    return normalizeRoot(window.prompt('Enter the absolute Gate root path') ?? '');
+  }
+}
+
 export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
   const gateRoots = ref<string[]>([]);
   const selectedGateRoot = ref('');
   const isReady = ref(false);
   const error = ref('');
 
-  let prefsStore: Store | null = null;
+  let prefsStore: GateRegistryStore | null = null;
 
   async function persist() {
     if (!prefsStore) return;
@@ -52,13 +121,17 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
   }
 
   async function browseForRoot() {
-    const folder = await open({
-      directory: true,
-      multiple: false,
-      title: 'Register Gate Root',
-    });
+    error.value = '';
+    const folder = await pickGateRoot();
 
-    return typeof folder === 'string' ? addAndSelectRoot(folder) : '';
+    if (!folder) {
+      if (!browserStorageAvailable()) {
+        error.value = 'Gate root selection requires a Tauri desktop runtime or browser prompt support.';
+      }
+      return '';
+    }
+
+    return addAndSelectRoot(folder);
   }
 
   async function removeSelectedRoot() {
@@ -79,10 +152,10 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
 
   onMounted(async () => {
     try {
-      prefsStore = await load(PREFS_STORE_PATH);
-      gateRoots.value = uniqueRoots((await prefsStore.get<string[]>(GATE_ROOTS_KEY)) ?? []);
+      prefsStore = await loadPrefsStore();
+      gateRoots.value = uniqueRoots((await prefsStore?.get<string[]>(GATE_ROOTS_KEY)) ?? []);
       selectedGateRoot.value = normalizeRoot(
-        (await prefsStore.get<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',
+        (await prefsStore?.get<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',
       );
       gateRoots.value = uniqueRoots([...gateRoots.value, selectedGateRoot.value]);
     } catch (loadError) {

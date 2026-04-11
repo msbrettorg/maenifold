@@ -28,6 +28,10 @@ const HISTORY_DESCRIPTION: &str = "Return the stage journey for a gate task from
      JSON array of history records. Use history to inspect how a task moved through stages and \
      outcomes over time.";
 
+const TASK_BODY_DESCRIPTION: &str = "Return the authoritative markdown content for a single gate task so clients can render \
+     task details without reading task files directly from disk. Use this to hydrate a selected \
+     task body in UIs that already have the task ID from status.";
+
 const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the authoritative markdown task files that define \
      the project task tracker. Use gate instead of ad-hoc todo lists and SQL todo-table tracking. \
      Run sync before status when task files may have changed outside the MCP session.";
@@ -196,6 +200,25 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
+            name: "task_body",
+            description: TASK_BODY_DESCRIPTION,
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "taskId": {
+                        "type": "string",
+                        "description": "Required gate task identifier to read markdown for, for example 'T-90.20'."
+                    },
+                    "root": {
+                        "type": "string",
+                        "description": ROOT_PARAMETER_DESCRIPTION
+                    }
+                },
+                "required": ["taskId"],
+                "additionalProperties": false
+            }),
+        },
+        McpToolDefinition {
             name: "sync",
             description: SYNC_DESCRIPTION,
             input_schema: json!({
@@ -231,7 +254,7 @@ mod tests {
         let names: Vec<_> = tools.iter().map(|tool| tool.name).collect();
         assert_eq!(
             names,
-            vec!["status", "append", "pass", "fail", "history", "sync"]
+            vec!["status", "append", "pass", "fail", "history", "task_body", "sync"]
         );
     }
 
@@ -359,6 +382,13 @@ mod tests {
                 .description
                 .contains("JSON array of history records")
         );
+
+        let task_body = tools
+            .iter()
+            .find(|tool| tool.name == "task_body")
+            .expect("task_body tool should exist");
+        assert!(task_body.description.contains("authoritative markdown content"));
+        assert!(task_body.description.contains("without reading task files directly from disk"));
 
         let sync = tools
             .iter()

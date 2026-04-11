@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { readTextFile } from '@tauri-apps/plugin-fs';
 import GateTaskDetail from './GateTaskDetail.vue';
 import GateTaskTable from './GateTaskTable.vue';
 import GateViewFilters from './GateViewFilters.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
-import type { GateSnapshot, GateTask, GateTaskHistoryEntry } from '../lib/gate';
+import type { GateSnapshot, GateTask, GateTaskBody, GateTaskHistoryEntry } from '../lib/gate';
 import { parseGateTaskBodyContent } from '../lib/gate-task-body';
 
 const props = defineProps<{ cwd: string }>();
@@ -33,6 +32,14 @@ const detailHistoryError = ref('');
 const activeWatcherRoot = ref('');
 let detailRequestToken = 0;
 let snapshotRequestToken = 0;
+
+function resolveTaskBodyContent(taskBody: GateTaskBody | string) {
+  if (typeof taskBody === 'string') {
+    return parseGateTaskBodyContent(taskBody);
+  }
+
+  return parseGateTaskBodyContent(taskBody.markdown);
+}
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress';
 type SortDirection = 'asc' | 'desc';
@@ -150,10 +157,10 @@ async function loadTaskDetail(task: GateTask | null, options: { preserveExisting
   const isCurrentRequest = () => requestId === detailRequestToken && selectedTaskId.value === task.taskId;
   const root = registry.selectedGateRoot.value;
 
-  const bodyRequest = readTextFile(task.path)
-    .then((rawBody) => {
+  const bodyRequest = gate.readTaskBody(task.taskId, root)
+    .then((taskBody) => {
       if (!isCurrentRequest()) return;
-      selectedTaskBody.value = parseGateTaskBodyContent(rawBody);
+      selectedTaskBody.value = resolveTaskBodyContent(taskBody);
       detailBodyError.value = '';
     })
     .catch((loadError) => {

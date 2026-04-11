@@ -7,6 +7,7 @@ import {
   type GateStatusArgs,
   type GateSyncArgs,
   type GateSyncResult,
+  type GateTaskBody,
   type GateTask,
   type GateTaskHistoryEntry,
 } from '../lib/gate';
@@ -16,6 +17,7 @@ import { getSharedMcpClient } from './usePipelineMcp';
 const GATE_SYNC_TOOLS = ['sync', 'gate-sync'] as const;
 const GATE_STATUS_TOOLS = ['status', 'gate-status'] as const;
 const GATE_HISTORY_TOOLS = ['history', 'gate-history'] as const;
+const GATE_TASK_BODY_TOOLS = ['task_body'] as const;
 
 interface GatePollingState {
   root: string | null;
@@ -109,6 +111,13 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
     });
   }
 
+  function readTaskBody(taskId: string, root?: string): Promise<GateTaskBody> {
+    return callGateTool<GateTaskBody>(GATE_TASK_BODY_TOOLS, {
+      taskId,
+      ...(root ? { root } : {}),
+    });
+  }
+
   async function loadSnapshot(root: string): Promise<GateSnapshot> {
     await sync({ root });
     const tasks = await status({ root, includeDone: true });
@@ -129,6 +138,7 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
     loadSnapshot,
     sync,
     status,
+    readTaskBody,
     readTaskHistory,
     startPolling,
     stopPolling,

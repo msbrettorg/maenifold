@@ -7,10 +7,9 @@ use serde_json::{Value, json};
 
 use crate::error::GateError;
 use crate::gate_catalog::GateDefinitionCatalog;
-use crate::task_file::TaskFileReader;
 use crate::task_id;
 use crate::task_metadata::is_linked_session_id;
-use crate::task_repository::TaskPathSet;
+use crate::task_repository::{TaskPathSet, TaskRepository};
 use crate::task_status::TaskStatusDeriver;
 
 #[derive(Debug)]
@@ -186,7 +185,7 @@ impl CachedTaskStatusRow {
     }
 
     fn load_success(root: &Path, task: &TaskPathSet, cache_key: &str) -> Result<Self, GateError> {
-        let document = TaskFileReader::read(&task.path)?;
+        let document = TaskRepository::read_task_document(root, task)?;
         let definition = GateDefinitionCatalog::resolve_for_task(root, &document.metadata, None)?;
         let effective = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
         let stages_json = serde_json::to_string(&definition.ordered_stage_ids()?)?;
@@ -498,6 +497,7 @@ mod tests {
     use std::fs;
 
     use rusqlite::params;
+    use serde_json::Value;
     use tempfile::tempdir;
 
     use super::{GateCacheDb, ensure_schema};
@@ -682,6 +682,50 @@ mod tests {
             .expect("load cached status");
         assert_eq!(rows[0]["linked"], true);
         assert_eq!(rows[1]["linked"], false);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn rebuild_reports_symlinked_task_without_parsing_target() {
+        use std::os::unix::fs as unix_fs;
+
+        let temp = tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+
+        let target = root.join("todo").join("status-target.md");
+        fs::write(
+            &target,
+            "---\nid: T-999.9\ntitle: Status target\npipeline: sdd\n---\n# Status target\n",
+        )
+        .expect("write status target");
+        let task_path = root.join("todo").join("T-90.29.md");
+        unix_fs::symlink(&target, &task_path).expect("create symlinked task");
+
+        let error = GateCacheDb::rebuild(
+            root,
+            &[TaskPathSet {
+                task_id: "T-90.29".to_string(),
+                path: task_path,
+                location: "todo".to_string(),
+            }],
+        )
+        .expect_err("symlinked task should be surfaced");
+        assert!(error.to_string().contains("through a symlink"));
+
+        let rows = GateCacheDb::open(root)
+            .expect("open db")
+            .list_task_status(root, None)
+            .expect("load cached status");
+        assert_eq!(rows[0]["taskId"], "T-90.29");
+        assert_eq!(rows[0]["canonicalTaskId"], Value::Null);
+        assert_eq!(rows[0]["state"], "error");
+        assert!(
+            rows[0]["issue"]
+                .as_str()
+                .expect("issue string")
+                .contains("through a symlink")
+        );
     }
 
     #[test]

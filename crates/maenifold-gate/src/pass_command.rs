@@ -4,7 +4,7 @@ use crate::gate_catalog::GateDefinitionCatalog;
 use crate::gate_tool_service::GateToolService;
 use crate::section_factory::CanonicalSectionFactory;
 use crate::state_machine::StateMachine;
-use crate::task_file::{TaskFileLock, TaskFileReader, TaskFileWriter};
+use crate::task_file::TaskFileLock;
 use crate::task_repository::TaskRepository;
 use crate::task_status::TaskStatusDeriver;
 
@@ -29,7 +29,7 @@ pub(crate) fn fail_task(args: OutcomeArgs) -> Result<(), GateError> {
 fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
     let _task_lock = TaskFileLock::acquire(&args.context.root, &args.task_id)?;
     let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
-    let document = TaskFileReader::read(&task.path)?;
+    let document = TaskRepository::read_task_document(&args.context.root, &task)?;
     let definition = GateDefinitionCatalog::resolve_for_task(
         &args.context.root,
         &document.metadata,
@@ -64,13 +64,13 @@ fn apply_outcome(args: OutcomeArgs, outcome: &str) -> Result<(), GateError> {
         &args.notes,
         args.model.as_deref(),
     );
-    TaskFileWriter::append_section(&task.path, &section)?;
+    TaskRepository::append_task_section(&args.context.root, &task, &section)?;
     if definition
         .find_state(&transition.next_state)
         .ok_or_else(|| GateError::UnknownState(transition.next_state.clone()))?
         .terminal
     {
-        TaskRepository::move_to_done(&task)?;
+        TaskRepository::move_to_done(&args.context.root, &task)?;
     }
     Ok(())
 }
@@ -87,7 +87,57 @@ fn reopen_completed_task(
         &args.notes,
         args.model.as_deref(),
     );
-    TaskFileWriter::append_section(&task.path, &section)?;
-    TaskRepository::move_to_todo(&task)?;
+    TaskRepository::append_task_section(&args.context.root, &task, &section)?;
+    TaskRepository::move_to_todo(&args.context.root, &task)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs as unix_fs;
+
+    use tempfile::TempDir;
+
+    use super::pass_task;
+    use crate::cli::{GateContext, OutcomeArgs};
+
+    #[cfg(unix)]
+    #[test]
+    fn pass_rejects_symlinked_task_path() {
+        let root = new_pipeline_root();
+        let target = root.path().join("todo").join("pass-target.md");
+        fs::write(
+            &target,
+            "# T-90.19 — Pass target\n\n**Pipeline**: sdd\n\n## Acceptance Criteria\n\n1. pass should not touch symlinks\n",
+        )
+        .expect("write pass target");
+        let task_path = root.path().join("todo").join("T-90.19.md");
+        unix_fs::symlink(&target, &task_path).expect("create symlinked task");
+
+        let error = pass_task(OutcomeArgs {
+            context: GateContext {
+                root: root.path().to_path_buf(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            task_id: "T-90.19".to_string(),
+            agent: "blue-team".to_string(),
+            notes: "approved".to_string(),
+            model: None,
+        })
+        .expect_err("symlinked pass should fail");
+
+        assert!(error.to_string().contains("through a symlink"));
+        let unchanged = fs::read_to_string(&target).expect("read pass target");
+        assert!(!unchanged.contains("## Pending"));
+    }
+
+    fn new_pipeline_root() -> TempDir {
+        let temp = tempfile::tempdir().expect("create temp root");
+        fs::create_dir_all(temp.path().join("todo")).expect("create todo");
+        fs::create_dir_all(temp.path().join("done")).expect("create done");
+        temp
+    }
 }

@@ -12,6 +12,7 @@ use crate::cli::{GateContext, StatusArgs};
 use crate::gate_tool_service::GateToolService;
 use crate::status_filter::StatusFilter;
 use crate::task_id;
+use crate::task_repository::{TaskPathSet, TaskRepository};
 
 const READ_MODEL_POLL_INTERVAL: Duration = Duration::from_secs(2);
 
@@ -160,7 +161,14 @@ impl GateUiApp {
     }
 
     fn open_task(&mut self, task: &TaskEntry) {
-        match std::fs::read_to_string(&task.path) {
+        let task_path = TaskPathSet {
+            task_id: task.task_id.clone(),
+            path: task.path.clone(),
+            location: task.location.clone(),
+        };
+        match TaskRepository::canonical_task_markdown_path(&self.root, &task_path)
+            .and_then(|path| fs::read_to_string(path).map_err(Into::into))
+        {
             Ok(markdown) => {
                 self.selected = Some(TaskDetail {
                     entry: task.clone(),
@@ -758,6 +766,9 @@ enum StageProgress {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs as unix_fs;
     use std::path::PathBuf;
 
     use super::*;
@@ -773,6 +784,38 @@ mod tests {
         let visible = app.visible_tasks();
         assert_eq!(visible.len(), 1);
         assert_eq!(visible[0].task_id, "T-2");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn open_task_rejects_symlinked_task_path() {
+        let temp = tempfile::tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done")).expect("create done");
+
+        let target = root.join("todo").join("ui-target.md");
+        fs::write(&target, "# UI target\n").expect("write ui target");
+        let task_path = root.join("todo").join("T-1.md");
+        unix_fs::symlink(&target, &task_path).expect("create task symlink");
+
+        let task = TaskEntry {
+            task_id: "T-1".to_string(),
+            title: "Symlinked UI task".to_string(),
+            pipeline: Some("sdd".to_string()),
+            state: "pending".to_string(),
+            stages: vec!["pending".to_string()],
+            location: "todo".to_string(),
+            attempts: 0,
+            path: task_path,
+            issue: String::new(),
+        };
+        let mut app = GateUiApp::new(root.to_path_buf(), vec![task.clone()], None);
+
+        app.open_task(&task);
+
+        assert!(app.selected.is_none());
+        assert!(!app.detail_open);
     }
 
     #[test]

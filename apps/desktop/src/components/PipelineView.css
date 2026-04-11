@@ -29,11 +29,11 @@
   flex: 1;
   min-height: 0;
   display: grid;
-  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 280px;
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr) auto;
   grid-template-areas:
-    'sidebar composer inspector'
-    'sidebar runner runner';
+    'sidebar composer'
+    'sidebar runner';
   overflow: hidden;
   position: relative;
 }
@@ -106,7 +106,6 @@
 
 .sidebar-panel,
 .composer-panel,
-.inspector-panel,
 .runner-panel {
   min-width: 0;
   min-height: 0;
@@ -121,11 +120,43 @@
 
 .composer-panel {
   grid-area: composer;
+  position: relative;
+}
+
+.inspector-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
 }
 
 .inspector-panel {
-  grid-area: inspector;
-  border-left: 1px solid var(--border-default);
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 10;
+  border-left: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-main) 88%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: -0.75rem 0 1.75rem color-mix(in srgb, var(--text-primary) 10%, transparent);
+  visibility: hidden;
+  transform: translateX(100%);
+  transition:
+    transform 0.2s ease-out,
+    visibility 0s linear 0.2s;
+}
+
+.inspector-panel.is-visible {
+  visibility: visible;
+  transform: translateX(0);
+  transition: transform 0.2s ease-out;
 }
 
 .runner-panel {
@@ -152,7 +183,6 @@
 }
 
 .grid-resize-handle--sidebar { margin-left: -3px; }
-.grid-resize-handle--inspector { margin-right: -3px; }
 
 .runner-panel-header {
   position: absolute;
@@ -172,7 +202,7 @@
 
 @media (max-width: 1200px) {
   .pipeline-grid {
-    grid-template-columns: var(--sidebar-min-width) minmax(0, 1fr) 260px;
+    grid-template-columns: var(--sidebar-min-width) minmax(0, 1fr);
   }
 }
 
@@ -240,21 +270,25 @@
   }
 
   .inspector-panel {
-    position: absolute;
     left: 0;
     right: 0;
+    top: auto;
     bottom: 0;
+    width: auto;
     height: min(52vh, 24rem);
-    z-index: 24;
     transform: translateY(100%);
-    transition: transform 0.2s ease;
+    transition: transform 0.2s ease-out;
     border-top: 1px solid var(--border-default);
     border-left: none;
     box-shadow: 0 -0.75rem 1.5rem color-mix(in srgb, var(--text-primary) 20%, transparent);
   }
 
-  .pipeline-grid.mobile-inspector-open .inspector-panel {
+  .inspector-panel.is-visible {
     transform: translateY(0);
+  }
+
+  .inspector-overlay {
+    z-index: 10;
   }
 
   .mobile-inspector-header {
@@ -290,7 +324,7 @@
   }
 
   .pipeline-grid.mobile-inspector-open .mobile-overlay {
-    z-index: 22;
+    z-index: 9;
   }
 
   .runner-panel-header {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import JoinPipelineDialog from './JoinPipelineDialog.vue';
@@ -36,12 +36,14 @@ const sidebarResize = useResizeHandle({
   min: sidebarSizing.minWidth,
   max: sidebarSizing.maxWidth,
 });
-const inspectorResize = useResizeHandle({ initial: 280, min: 180, max: 500 });
 
 const gridStyle = computed(() =>
   isNarrowViewport.value
     ? {}
-    : { 'grid-template-columns': `${sidebarResize.width.value}px minmax(0, 1fr) ${inspectorResize.width.value}px` }
+    : { 'grid-template-columns': `${sidebarResize.width.value}px minmax(0, 1fr)` }
+);
+const isInspectorVisible = computed(() =>
+  isNarrowViewport.value ? mobileInspectorOpen.value : hasInspectorSelection.value
 );
 
 const bannerError = computed(() => connectionError.value || error.value || '');
@@ -85,6 +87,28 @@ function handleEdgeSelected(edge: SelectedEdge) {
   selectedEdge.value = edge;
   if (edge) selectedNodeId.value = null;
 }
+
+function clearInspectorSelection() {
+  selectedNodeId.value = null;
+  selectedEdge.value = null;
+}
+
+function handleWindowKeyDown(event: KeyboardEvent) {
+  if (event.key !== 'Escape' || !isInspectorVisible.value) return;
+
+  clearInspectorSelection();
+  if (isNarrowViewport.value) {
+    mobileInspectorOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleWindowKeyDown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleWindowKeyDown);
+});
 </script>
 
 <template>
@@ -139,19 +163,24 @@ function handleEdgeSelected(edge: SelectedEdge) {
           @node-selected="handleNodeSelected"
           @edge-selected="handleEdgeSelected"
         />
-      </section>
-
-      <section class="inspector-panel">
-        <div v-if="isNarrowViewport" class="mobile-inspector-header">
-          <span>Inspector</span>
-          <button type="button" class="mobile-inspector-close" @click="mobileInspectorOpen = false">
-            Close
-          </button>
+        <div class="inspector-overlay">
+          <section
+            class="inspector-panel"
+            :class="{ 'is-visible': isInspectorVisible }"
+            :aria-hidden="!isInspectorVisible"
+          >
+            <div v-if="isNarrowViewport" class="mobile-inspector-header">
+              <span>Inspector</span>
+              <button type="button" class="mobile-inspector-close" @click="mobileInspectorOpen = false">
+                Close
+              </button>
+            </div>
+            <PipelineInspector
+              :selected-node-id="selectedNodeId"
+              :selected-edge="selectedEdge"
+            />
+          </section>
         </div>
-        <PipelineInspector
-          :selected-node-id="selectedNodeId"
-          :selected-edge="selectedEdge"
-        />
       </section>
 
       <section class="runner-panel">
@@ -194,12 +223,6 @@ function handleEdgeSelected(edge: SelectedEdge) {
         class="grid-resize-handle grid-resize-handle--sidebar"
         :style="{ left: sidebarResize.width.value + 'px' }"
         @mousedown="sidebarResize.startResize($event, 'right')"
-      />
-      <div
-        v-if="!isNarrowViewport"
-        class="grid-resize-handle grid-resize-handle--inspector"
-        :style="{ right: inspectorResize.width.value + 'px' }"
-        @mousedown="inspectorResize.startResize($event, 'left')"
       />
 
       <button

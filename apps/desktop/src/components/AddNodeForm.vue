@@ -6,7 +6,7 @@ import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
 import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
 import AgentProbePreview from './AgentProbePreview.vue';
-import ToolNodeFields from './ToolNodeFields.vue';
+import ToolPaletteFields from './ToolPaletteFields.vue';
 import {
   buildAgentConfigDefaults,
   formatPipelineAgentOptionLabel,
@@ -615,7 +615,7 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
       </template>
 
       <template v-else>
-        <ToolNodeFields
+        <ToolPaletteFields
           :active="nodeType === 'tool'"
           :tool-name="toolName"
           :agent-name="toolAgent"

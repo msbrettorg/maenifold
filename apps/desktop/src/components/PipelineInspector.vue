@@ -24,7 +24,7 @@ import type { PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeli
 import { getNodeType, isPromptNode, isSequentialThinkingNode, isToolNode, isWorkflowNode } from '../lib/pipeline-types';
 import EdgeMappingEditor from './EdgeMappingEditor.vue';
 import PipelineInspectorServer from './PipelineInspectorServer.vue';
-import ToolNodeFields from './ToolNodeFields.vue';
+import ToolPaletteFields from './ToolPaletteFields.vue';
 
 const EMPTY_TOOL_ARGS: Readonly<Record<string, unknown>> = Object.freeze({});
 
@@ -599,7 +599,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
       </template>
 
       <template v-else-if="selectedToolDesignNode">
-        <ToolNodeFields
+        <ToolPaletteFields
           :active="selectedToolDesignNode !== null"
           :tool-name="selectedToolDesignNode.toolName"
           :agent-name="selectedToolDesignNode.agent ?? ''"

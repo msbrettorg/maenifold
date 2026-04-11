@@ -33,6 +33,8 @@ export interface McpDiscoveredTool {
   inputSchema: Record<string, unknown>;
 }
 
+export type ServerHealthStatus = 'ready' | 'auth_required' | 'stale' | 'unavailable';
+
 export interface McpServerDiscoveryResult {
   server: string;
   type: string;

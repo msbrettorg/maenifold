@@ -2,7 +2,7 @@
 import { computed, toRef } from 'vue';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
-import ToolNodeFields from './ToolNodeFields.vue';
+import ToolPaletteFields from './ToolPaletteFields.vue';
 
 const props = defineProps<{
   existingNodeIds: string[];
@@ -151,7 +151,7 @@ const {
           </template>
 
           <template v-else>
-            <ToolNodeFields
+            <ToolPaletteFields
               :active="nodeType === 'tool'"
               :tool-name="toolName"
               :tool-args="toolArgs"

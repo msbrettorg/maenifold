@@ -1,7 +1,12 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { discoverMcpTools } from '../lib/tauri';
-import type { McpDiscoveredTool, McpServerDiscoveryResult } from '../lib/types';
+import { deriveServerHealth } from '../lib/palette-health';
+import type {
+  McpDiscoveredTool,
+  McpServerDiscoveryResult,
+  ServerHealthStatus,
+} from '../lib/types';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -23,6 +28,21 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       acc[result.server] = result.tools;
       return acc;
     }, {})
+  );
+
+  const hasStaleCacheByServer = computed<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      serverResults.value.map((result) => [result.server, result.server in lastKnownTools.value]),
+    )
+  );
+
+  const serverHealth = computed<Record<string, ServerHealthStatus>>(() =>
+    Object.fromEntries(
+      serverResults.value.map((result) => [
+        result.server,
+        deriveServerHealth(result, hasStaleCacheByServer.value[result.server] ?? false),
+      ]),
+    )
   );
 
   function cloneTool(tool: McpDiscoveredTool): McpDiscoveredTool {
@@ -72,6 +92,8 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     serverResults,
     allTools,
     toolsByServer,
+    hasStaleCacheByServer,
+    serverHealth,
     loading,
     error,
     hasLoadedCatalog,

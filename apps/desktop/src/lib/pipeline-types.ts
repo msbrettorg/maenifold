@@ -115,9 +115,22 @@ interface ViewNodeBase {
   sessionId: string;
   acpSessionId?: string;
   thinkingSessionId?: string;
+  provenance?: NodeProvenance;
   status: NodeStatus;
   attempts: number;
   output?: string;
+}
+
+export interface NodeProvenanceDetail {
+  sessionId?: string | null;
+  thinkingSessionId?: string | null;
+  canReconnect: boolean;
+}
+
+export interface NodeProvenance {
+  agent?: string | null;
+  inspectable: boolean;
+  detail: NodeProvenanceDetail;
 }
 
 export interface ToolProvenance {

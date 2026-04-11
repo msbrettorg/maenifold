@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import { usePipelineStore } from '../stores/pipeline';
 import type { ViewNode } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
+import PromotionDialog from './PromotionDialog.vue';
 
 const props = defineProps<{
   node: ViewNode;
@@ -12,6 +13,8 @@ const props = defineProps<{
 const store = usePipelineStore();
 const conclusionText = ref('');
 const forkedSessionId = ref<string | null>(null);
+const showPromotionDialog = ref(false);
+const promotionBusy = ref(false);
 
 const { busyAction, runBusyAction, completeNode, restartNode, rewindNode, abandonNode } = useInspectorActions({
   store,
@@ -20,8 +23,23 @@ const { busyAction, runBusyAction, completeNode, restartNode, rewindNode, abando
   conclusionText,
 });
 
+const canPromote = computed(() => (
+  props.node.status === 'completed'
+  && typeof props.node.output === 'string'
+  && props.node.output.trim().length > 0
+  && typeof store.currentView?.pipelineId === 'string'
+  && store.currentView.pipelineId.length > 0
+));
+const promoteButtonTitle = computed(() => (
+  promotionBusy.value
+    ? 'Promotion in progress…'
+    : 'Save this completed output to memory'
+));
+
 watch(() => props.nodeId, () => {
   forkedSessionId.value = null;
+  showPromotionDialog.value = false;
+  promotionBusy.value = false;
 });
 
 function extractForkedSessionId(result: unknown): string | null {
@@ -63,6 +81,14 @@ async function forkNode(): Promise<void> {
 
   forkedSessionId.value = extractForkedSessionId(result);
 }
+
+function openPromotionDialog(): void {
+  if (!canPromote.value || promotionBusy.value) {
+    return;
+  }
+
+  showPromotionDialog.value = true;
+}
 </script>
 
 <template>
@@ -75,6 +101,16 @@ async function forkNode(): Promise<void> {
     <button class="btn btn-ghost error-banner__dismiss" type="button" aria-label="Dismiss error" @click="store.clearError()">✕</button>
   </div>
   <div class="actions">
+    <button
+      v-if="canPromote"
+      :class="['btn', 'btn-primary', { 'btn--busy': promotionBusy }]"
+      :disabled="promotionBusy"
+      :title="promoteButtonTitle"
+      type="button"
+      @click="openPromotionDialog"
+    >
+      {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
+    </button>
     <button
       :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'fork' }]"
       :disabled="busyAction !== null"
@@ -124,6 +160,13 @@ async function forkNode(): Promise<void> {
     <span>Forked session</span>
     <strong class="mono">{{ forkedSessionId }}</strong>
   </div>
+  <PromotionDialog
+    v-if="showPromotionDialog && canPromote && store.currentView?.pipelineId"
+    :node="node"
+    :pipeline-id="store.currentView.pipelineId"
+    @busy-change="promotionBusy = $event"
+    @close="showPromotionDialog = false"
+  />
 </template>
 
 <style scoped>

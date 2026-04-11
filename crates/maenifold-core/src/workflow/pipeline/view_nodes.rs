@@ -57,6 +57,10 @@ pub(super) fn pipeline_nodes_json(
                     node_object.insert("toolProvenance".to_string(), json!(tool_provenance));
                 }
                 node_object.insert(
+                    "provenance".to_string(),
+                    pipeline_node_provenance_json(node, state),
+                );
+                node_object.insert(
                     "assembled_prompt".to_string(),
                     assembled_prompt.map(Value::String).unwrap_or(Value::Null),
                 );
@@ -90,6 +94,35 @@ pub(super) fn pipeline_nodes_json(
             Ok(node_json)
         })
         .collect()
+}
+
+fn pipeline_node_provenance_json(node: &PipelineNode, state: &NodeState) -> Value {
+    let can_reconnect = node_can_reconnect(node, state);
+    let inspectable =
+        can_reconnect || state.thinking_session_id.is_some() || state.tool_provenance.is_some();
+
+    json!({
+        "agent": node_agent_name(node),
+        "inspectable": inspectable,
+        "detail": {
+            "sessionId": state.acp_session_id.as_deref(),
+            "thinkingSessionId": state.thinking_session_id.as_deref(),
+            "canReconnect": can_reconnect,
+        }
+    })
+}
+
+fn node_agent_name(node: &PipelineNode) -> Option<&str> {
+    match node {
+        PipelineNode::Workflow { acp_client, .. } => acp_client.as_deref(),
+        PipelineNode::Prompt { agent, .. } => Some(agent.as_str()),
+        PipelineNode::SequentialThinking { agent, .. } => Some(agent.as_str()),
+        PipelineNode::Tool { agent, .. } => agent.as_deref(),
+    }
+}
+
+fn node_can_reconnect(node: &PipelineNode, state: &NodeState) -> bool {
+    !matches!(node, PipelineNode::Tool { .. }) && state.acp_session_id.is_some()
 }
 
 fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
@@ -280,6 +313,17 @@ mod tests {
         assert_eq!(think["sessionId"], "workflow-think-local");
         assert_eq!(think["acpSessionId"], "acp-think-remote");
         assert_eq!(think["thinkingSessionId"], "thinking-remote");
+        assert_eq!(think["provenance"]["agent"], "agent-think");
+        assert_eq!(think["provenance"]["inspectable"], true);
+        assert_eq!(
+            think["provenance"]["detail"]["sessionId"],
+            "acp-think-remote"
+        );
+        assert_eq!(
+            think["provenance"]["detail"]["thinkingSessionId"],
+            "thinking-remote"
+        );
+        assert_eq!(think["provenance"]["detail"]["canReconnect"], true);
 
         let tool = nodes
             .iter()
@@ -289,5 +333,13 @@ mod tests {
         assert_eq!(tool["toolProvenance"]["toolName"], "example.echo");
         assert_eq!(tool["toolProvenance"]["resolvedArgs"]["value"], 1);
         assert_eq!(tool["toolProvenance"]["responseSummary"], "{\"value\":1}");
+        assert_eq!(tool["provenance"]["agent"], Value::Null);
+        assert_eq!(tool["provenance"]["inspectable"], true);
+        assert_eq!(tool["provenance"]["detail"]["sessionId"], Value::Null);
+        assert_eq!(
+            tool["provenance"]["detail"]["thinkingSessionId"],
+            Value::Null
+        );
+        assert_eq!(tool["provenance"]["detail"]["canReconnect"], false);
     }
 }

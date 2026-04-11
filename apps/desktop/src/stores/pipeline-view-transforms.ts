@@ -1,4 +1,5 @@
 import type {
+  NodeProvenance,
   PipelineDefinition,
   PipelineListItem,
   PipelineNodeAgentConfig,
@@ -50,6 +51,10 @@ function normalizeViewNode(node: ViewNode): ViewNode {
     normalized.toolProvenance = cloneToolProvenance(normalized.toolProvenance);
   }
 
+  if ('provenance' in normalized && normalized.provenance) {
+    normalized.provenance = cloneNodeProvenance(normalized.provenance);
+  }
+
   return normalized;
 }
 
@@ -75,6 +80,22 @@ function cloneToolProvenance(toolProvenance: ToolProvenance): ToolProvenance {
     ...(toolProvenance.responseSummary != null
       ? { responseSummary: toolProvenance.responseSummary }
       : {}),
+  };
+}
+
+function cloneNodeProvenance(provenance: NodeProvenance): NodeProvenance {
+  return {
+    ...(provenance.agent !== undefined ? { agent: provenance.agent } : {}),
+    inspectable: provenance.inspectable,
+    detail: {
+      ...(provenance.detail.sessionId !== undefined
+        ? { sessionId: provenance.detail.sessionId }
+        : {}),
+      ...(provenance.detail.thinkingSessionId !== undefined
+        ? { thinkingSessionId: provenance.detail.thinkingSessionId }
+        : {}),
+      canReconnect: provenance.detail.canReconnect,
+    },
   };
 }
 

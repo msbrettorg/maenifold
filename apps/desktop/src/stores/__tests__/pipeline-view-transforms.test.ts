@@ -184,6 +184,14 @@ describe('pipeline view transforms', () => {
           nodeId: 'prompt-1',
           sessionId: 'local-prompt-1',
           acpSessionId: 'acp-remote-1',
+          provenance: {
+            agent: 'architect',
+            inspectable: true,
+            detail: {
+              sessionId: 'acp-remote-1',
+              canReconnect: true,
+            },
+          },
           status: 'active',
           attempts: 1,
           type: 'prompt',
@@ -193,6 +201,13 @@ describe('pipeline view transforms', () => {
         {
           nodeId: 'tool-1',
           sessionId: 'local-tool-1',
+          provenance: {
+            agent: null,
+            inspectable: true,
+            detail: {
+              canReconnect: false,
+            },
+          },
           status: 'completed',
           attempts: 1,
           type: 'tool',
@@ -210,9 +225,24 @@ describe('pipeline view transforms', () => {
     expect(normalized.nodes[0]).toMatchObject({
       nodeId: 'prompt-1',
       acpSessionId: 'acp-remote-1',
+      provenance: {
+        agent: 'architect',
+        inspectable: true,
+        detail: {
+          sessionId: 'acp-remote-1',
+          canReconnect: true,
+        },
+      },
     });
     expect(normalized.nodes[1]).toMatchObject({
       nodeId: 'tool-1',
+      provenance: {
+        agent: null,
+        inspectable: true,
+        detail: {
+          canReconnect: false,
+        },
+      },
       toolProvenance: {
         toolName: 'example.echo',
         resolvedArgs: { value: 1 },
@@ -223,9 +253,13 @@ describe('pipeline view transforms', () => {
     if (normalized.nodes[1]?.type === 'tool' && normalized.nodes[1].toolProvenance?.resolvedArgs) {
       normalized.nodes[1].toolProvenance.resolvedArgs.value = 2;
     }
+    if (normalized.nodes[0]?.provenance?.detail) {
+      normalized.nodes[0].provenance.detail.sessionId = 'acp-mutated';
+    }
 
     expect(
       original.nodes[1]?.type === 'tool' ? original.nodes[1].toolProvenance?.resolvedArgs?.value : undefined,
     ).toBe(1);
+    expect(original.nodes[0]?.provenance?.detail.sessionId).toBe('acp-remote-1');
   });
 });

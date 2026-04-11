@@ -227,9 +227,12 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (options.designMode()) return;
 
     const viewNode = options.view()?.nodes.find((candidate) => candidate.nodeId === node.id);
-    const acpSessionId = viewNode?.type !== 'tool' ? viewNode?.acpSessionId : undefined;
+    const canReconnect = viewNode?.provenance?.detail.canReconnect
+      ?? (viewNode?.type !== 'tool' && !!viewNode?.acpSessionId);
+    const acpSessionId = viewNode?.provenance?.detail.sessionId
+      ?? (viewNode?.type !== 'tool' ? viewNode?.acpSessionId : undefined);
 
-    if (!viewNode || !acpSessionId) {
+    if (!viewNode || !canReconnect || !acpSessionId) {
       enterInspect(node.id, event);
       return;
     }

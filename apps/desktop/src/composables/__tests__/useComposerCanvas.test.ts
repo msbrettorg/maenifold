@@ -65,6 +65,14 @@ function createView(overrides?: Partial<PipelineView>): PipelineView {
         nodeId: 'prompt-1',
         sessionId: 'workflow-prompt-local',
         acpSessionId: 'acp-remote-1',
+        provenance: {
+          agent: 'architect',
+          inspectable: true,
+          detail: {
+            sessionId: 'acp-remote-1',
+            canReconnect: true,
+          },
+        },
         status: 'active',
         attempts: 1,
         type: 'prompt',
@@ -75,6 +83,14 @@ function createView(overrides?: Partial<PipelineView>): PipelineView {
         nodeId: 'tool-1',
         sessionId: 'workflow-tool-local',
         acpSessionId: 'tool-acp-ignored',
+        provenance: {
+          agent: null,
+          inspectable: true,
+          detail: {
+            sessionId: 'tool-acp-ignored',
+            canReconnect: false,
+          },
+        },
         status: 'completed',
         attempts: 1,
         type: 'tool',
@@ -166,6 +182,48 @@ describe('useComposerCanvas double-click behavior', () => {
     expect(reconnectSpy).not.toHaveBeenCalled();
     expect(inspectSpy).toHaveBeenCalledWith('tool-1', expect.any(DOMRect));
     expect(appShellStore.activeTab).toBe('pipelines');
+  });
+
+  it('honors provenance canReconnect even when a non-tool ACP session id exists', async () => {
+    const sessionStore = useSessionStore();
+    const zoomStore = useSemanticZoomStore();
+
+    const reconnectSpy = vi.spyOn(sessionStore, 'focusOrResumeRemoteSession');
+    const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
+
+    mountComposerCanvas(
+      createView({
+        nodes: [
+          {
+            nodeId: 'prompt-1',
+            sessionId: 'workflow-prompt-local',
+            acpSessionId: 'acp-remote-1',
+            provenance: {
+              agent: 'architect',
+              inspectable: true,
+              detail: {
+                sessionId: 'acp-remote-1',
+                canReconnect: false,
+              },
+            },
+            status: 'active',
+            attempts: 1,
+            type: 'prompt',
+            prompt: 'Inspect me instead',
+            agent: 'architect',
+          },
+        ],
+      }),
+    );
+    const { target } = createEventTarget();
+
+    await flowHooks.nodeDoubleClick?.({
+      node: { id: 'prompt-1' },
+      event: createMouseEvent(target),
+    });
+
+    expect(reconnectSpy).not.toHaveBeenCalled();
+    expect(inspectSpy).toHaveBeenCalledWith('prompt-1', expect.any(DOMRect));
   });
 
   it('preserves inspect zoom when no ACP session is available', async () => {

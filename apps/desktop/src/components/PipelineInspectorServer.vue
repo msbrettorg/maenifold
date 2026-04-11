@@ -227,7 +227,7 @@ function resolveDotPath(input: unknown, path: string): unknown {
       </template>
     </template>
 
-    <details v-if="selectedViewNode.output" class="output-block"><summary>Output</summary><pre>{{ selectedViewNode.output }}</pre></details>
+    <details v-if="typeof selectedViewNode.output === 'string' && selectedViewNode.output.trim().length > 0" class="output-block"><summary>Output</summary><pre>{{ selectedViewNode.output }}</pre></details>
     <InspectorNodeActions :node="selectedViewNode" :node-id="selectedViewNode.nodeId" />
   </section>
 

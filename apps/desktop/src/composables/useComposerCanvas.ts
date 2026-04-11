@@ -125,7 +125,17 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   function emitDefinitionUpdate(): void {
-    options.updateDefinition(definitionFromFlow(getNodes.value, getEdges.value));
+    const nextDefinition = definitionFromFlow(getNodes.value, getEdges.value);
+    const nextNodeIds = new Set(nextDefinition.nodes.map((node) => node.id));
+    const nextNodeLabels = Object.fromEntries(
+      Object.entries(options.localDefinition()?.nodeLabels ?? {}).filter(([nodeId]) =>
+        nextNodeIds.has(nodeId),
+      ),
+    );
+    options.updateDefinition({
+      ...nextDefinition,
+      nodeLabels: nextNodeLabels,
+    });
   }
 
   function persistPositions(nextNodes: Node[]): void {
@@ -165,7 +175,11 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     (view) => {
       if (!view || options.designMode()) return;
       syncCanvas(
-        { nodes: view.nodes.map(toPipelineNodeFromViewNode), edges: view.edges },
+        {
+          nodes: view.nodes.map(toPipelineNodeFromViewNode),
+          edges: view.edges,
+          nodeLabels: options.localDefinition()?.nodeLabels ?? {},
+        },
         view,
       );
       nextTick(() => fitView());
@@ -382,7 +396,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         id: node.id,
         type: 'pipelineNode',
         position,
-        data: { ...pipelineNodesToFlow([node])[0]!.data },
+        data: { ...pipelineNodesToFlow([node], undefined, undefined, options.localDefinition()?.nodeLabels)[0]!.data },
       } satisfies Node,
     ];
     syncLocalGraph(nextNodes, getEdges.value);

@@ -63,20 +63,24 @@ struct RunContext<'a> {
 }
 
 impl RunContext<'_> {
-    fn default_session_opts(&self) -> SessionOpts {
-        sanitize_workflow_session_opts(SessionOpts {
-            cwd: self.tool_context.config.maenifold_root.clone(),
-            auto_grant_permissions: true,
-            model: self.model.clone(),
-            mode: None,
-            thought_level: None,
-            config_options: None,
-            allowed_tools: None,
-            max_turns: None,
-            timeout_seconds: None,
-            mcp_servers: vec![],
-        })
+    fn default_session_opts(&self, cwd: std::path::PathBuf) -> SessionOpts {
+        workflow_driver_session_opts(cwd, self.model.clone())
     }
+}
+
+fn workflow_driver_session_opts(cwd: std::path::PathBuf, model: Option<String>) -> SessionOpts {
+    sanitize_workflow_session_opts(SessionOpts {
+        cwd,
+        auto_grant_permissions: true,
+        model,
+        mode: None,
+        thought_level: None,
+        config_options: None,
+        allowed_tools: None,
+        max_turns: None,
+        timeout_seconds: None,
+        mcp_servers: vec![],
+    })
 }
 
 pub(crate) fn sanitize_workflow_session_opts(mut opts: SessionOpts) -> SessionOpts {
@@ -153,6 +157,7 @@ pub(crate) async fn run_workflow_with_pool(
     existing_session_id: Option<String>,
     agent: &str,
     prompt: &str,
+    cwd: std::path::PathBuf,
     timeout_seconds: Option<u64>,
     model: Option<String>,
     content_blocks: Option<Vec<acp::ContentBlock>>,
@@ -170,7 +175,7 @@ pub(crate) async fn run_workflow_with_pool(
         pool,
         model,
     };
-    let mut driver_opts = run_ctx.default_session_opts();
+    let mut driver_opts = run_ctx.default_session_opts(cwd);
     driver_opts.timeout_seconds = timeout_seconds;
     let driver = open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, driver_opts).await?;
     let mut step = workflow_text(&start_text);
@@ -380,6 +385,7 @@ async fn maybe_run_step_thinking(
 mod tests {
     use super::{
         append_close_error_context, is_reentrant_workflow_tool, sanitize_workflow_session_opts,
+        workflow_driver_session_opts,
     };
     use crate::acp_native::SessionOpts;
     use std::path::PathBuf;
@@ -444,5 +450,14 @@ mod tests {
             combined.to_string(),
             "primary failure\nAdditionally, closing the workflow agent session failed: close failure"
         );
+    }
+
+    #[test]
+    fn workflow_driver_session_opts_preserves_supplied_cwd() {
+        let cwd = PathBuf::from("/tmp/workflow-cwd");
+        let opts = workflow_driver_session_opts(cwd.clone(), Some("model-x".to_string()));
+
+        assert_eq!(opts.cwd, cwd);
+        assert_eq!(opts.model.as_deref(), Some("model-x"));
     }
 }

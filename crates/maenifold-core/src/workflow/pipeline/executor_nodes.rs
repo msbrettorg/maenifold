@@ -175,7 +175,9 @@ fn merged_session_opts(
     timeout_seconds: Option<u64>,
 ) -> SessionOpts {
     SessionOpts {
-        cwd: context.config.maenifold_root.clone(),
+        cwd: agent_config
+            .and_then(|config| config.cwd.clone())
+            .unwrap_or_else(|| context.config.maenifold_root.clone()),
         auto_grant_permissions: true,
         model: model
             .clone()

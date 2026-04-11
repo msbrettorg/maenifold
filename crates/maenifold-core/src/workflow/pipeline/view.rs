@@ -94,7 +94,7 @@ pub(super) fn build_pipeline_view_result(
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
     let running = lease::session_lock_is_held(session_id, &context.config);
 
-    Ok(json!({
+    let mut result = json!({
         "pipelineId": session_id,
         "status": status,
         "nodes": nodes,
@@ -104,7 +104,12 @@ pub(super) fn build_pipeline_view_result(
         "completed": completed,
         "mermaid": mermaid,
         "running": running,
-    }))
+    });
+    if let Some(template_id) = definition.template_id.as_deref() {
+        result["templateId"] = json!(template_id);
+    }
+
+    Ok(result)
 }
 
 pub(super) fn node_state_for<'a>(

@@ -109,6 +109,12 @@ export interface PipelineDefinition {
   nodes: PipelineNode[];
   edges: PipelineEdge[];
   /**
+   * Optional template identifier used to re-derive default human-readable
+   * labels for pipelines instantiated from a template after backend
+   * round-trips and app reloads.
+   */
+  templateId?: string;
+  /**
    * Optional human-readable labels keyed by node id.
    * Populated by template instantiation; used by the flow layer and cards
    * so users see intent-first names instead of raw IDs.
@@ -217,6 +223,7 @@ export type ViewNode =
 export interface PipelineView {
   pipelineId: string;
   status: PipelineStatus;
+   templateId?: string;
   nodes: ViewNode[];
   edges: PipelineEdge[];
   ready: string[];

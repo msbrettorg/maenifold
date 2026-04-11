@@ -18,7 +18,11 @@ import type {
   ToolNodeInput,
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
-import type { PipelineTemplate, TemplateVariables } from '../lib/pipeline-templates';
+import {
+  getTemplateNodeLabels,
+  type PipelineTemplate,
+  type TemplateVariables,
+} from '../lib/pipeline-templates';
 import { instantiateTemplate } from '../lib/pipeline-template-runtime';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
@@ -30,7 +34,7 @@ import {
   toLocalDefinition,
 } from './pipeline-view-transforms';
 
-const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [] });
+const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [], nodeLabels: {} });
 const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'cancelled', 'stuck']);
 
 interface ToolDefinition {
@@ -84,16 +88,37 @@ export const usePipelineStore = defineStore('pipeline', () => {
   }
   const designMode = ref(true);
   const eventLog = ref<LogEntry[]>([]);
-  const nodeLabels = ref<Record<string, string>>({});
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
   let stopPolling: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
-  function setView(view: PipelineView | null) {
+  function withLocalMetadata(
+    definition: PipelineDefinition,
+    metadata?: {
+      templateId?: string;
+      nodeLabels?: Record<string, string>;
+    },
+  ): PipelineDefinition {
+    const templateId = metadata?.templateId;
+    const nodeLabels = metadata?.nodeLabels ?? getTemplateNodeLabels(templateId);
+    return {
+      ...definition,
+      ...(templateId ? { templateId } : {}),
+      nodeLabels: { ...nodeLabels },
+    };
+  }
+  function setView(
+    view: PipelineView | null,
+    metadata?: {
+      templateId?: string;
+      nodeLabels?: Record<string, string>;
+    },
+  ) {
     currentView.value = view;
-    localDefinition.value = view ? toLocalDefinition(view) : EMPTY_DEFINITION();
-    if (view) nodeLabels.value = {};
+    localDefinition.value = view
+      ? withLocalMetadata(toLocalDefinition(view), metadata)
+      : EMPTY_DEFINITION();
     if (view && !view.running && TERMINAL_PIPELINE_STATUSES.has(view.status)) stopCurrentPolling();
   }
   function appendNode(node: PipelineNode): PipelineNode {
@@ -133,7 +158,6 @@ export const usePipelineStore = defineStore('pipeline', () => {
     stopCurrentPolling();
     currentPipelineId.value = null;
     setView(null);
-    nodeLabels.value = {};
     maxConcurrency.value = 8;
     designMode.value = true;
     eventLog.value = [];
@@ -151,9 +175,16 @@ export const usePipelineStore = defineStore('pipeline', () => {
         edges: definition.edges.map(serializeEdge),
       }, maxConcurrency.value);
       if (isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0) {
-        currentPipelineId.value = result.pipelineId;
+        const pipelineId = result.pipelineId;
+        currentPipelineId.value = pipelineId;
         designMode.value = false;
-        await loadPipeline(result.pipelineId);
+        await withError('view_pipeline', async () => {
+          stopCurrentPolling();
+          currentPipelineId.value = pipelineId;
+          setView(normalizeView(await mcp.viewPipeline(pipelineId)));
+          designMode.value = false;
+          eventLog.value = [];
+        });
         await refreshList();
       }
       return result;
@@ -177,8 +208,10 @@ export const usePipelineStore = defineStore('pipeline', () => {
   }
   function applyTemplate(template: PipelineTemplate, variables: TemplateVariables) {
     const result = instantiateTemplate(template, variables);
-    localDefinition.value = result.definition;
-    nodeLabels.value = result.nodeLabels;
+    localDefinition.value = withLocalMetadata(result.definition, {
+      templateId: template.id,
+      nodeLabels: result.nodeLabels,
+    });
   }
   async function refreshWorkflows() {
     await withLoading(async () => {
@@ -253,7 +286,6 @@ export const usePipelineStore = defineStore('pipeline', () => {
     currentPipelineId,
     currentView,
     localDefinition,
-    nodeLabels,
     maxConcurrency,
     loading,
     designMode,

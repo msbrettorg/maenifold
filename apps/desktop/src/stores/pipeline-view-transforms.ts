@@ -193,6 +193,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
 
 export function toLocalDefinition(view: PipelineView): PipelineDefinition {
   return {
+    ...(view.templateId ? { templateId: view.templateId } : {}),
     nodes: view.nodes.map(toLocalNode),
     edges: view.edges.map((edge) => ({ ...edge })),
   };
@@ -257,6 +258,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
 
 export function serializePipelineDefinition(definition: PipelineDefinition): PipelineDefinition {
   return {
+    ...(definition.templateId ? { templateId: definition.templateId } : {}),
     nodes: definition.nodes.map(serializeNode),
     edges: definition.edges.map((edge) => ({ ...edge })),
   };

@@ -130,6 +130,7 @@ fn merge_graft_definition(
             .cloned()
             .chain(graft.edges.iter().cloned())
             .collect(),
+        template_id: None,
     };
     let graph = merged_definition.build_graph();
     if let Err(error) = validate_pipeline(&merged_definition) {

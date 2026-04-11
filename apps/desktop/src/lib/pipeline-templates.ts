@@ -170,3 +170,15 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     },
   },
 ] as const satisfies readonly PipelineTemplate[];
+
+export function getPipelineTemplateById(id: string): PipelineTemplate | undefined {
+  return PIPELINE_TEMPLATES.find((template) => template.id === id);
+}
+
+export function getTemplateNodeLabels(templateId?: string): Record<string, string> {
+  if (!templateId) {
+    return {};
+  }
+
+  return { ...(getPipelineTemplateById(templateId)?.nodeLabels ?? {}) };
+}

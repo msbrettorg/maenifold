@@ -172,6 +172,7 @@ pub(super) fn fork_pipeline(
                 mapping: edge.mapping.clone(),
             })
             .collect(),
+        template_id: None,
     };
     validate_pipeline(&forked_definition)?;
 

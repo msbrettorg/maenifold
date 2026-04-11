@@ -79,6 +79,9 @@ pub struct PipelineDefinitionSchema {
     pub nodes: Vec<PipelineNodeSchema>,
     /// Pipeline edges connecting nodes
     pub edges: Vec<PipelineEdgeSchema>,
+    /// Optional template identifier preserved across pipeline round-trips
+    #[serde(default)]
+    pub template_id: Option<String>,
 }
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -138,6 +141,9 @@ pub enum PipelineEdgeType {
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineAgentConfigSchema {
+    /// Optional working directory for the agent session
+    #[serde(default)]
+    pub cwd: Option<String>,
     /// Model override for the agent session
     #[serde(default)]
     pub model: Option<String>,

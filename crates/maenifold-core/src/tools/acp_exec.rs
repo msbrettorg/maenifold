@@ -193,6 +193,7 @@ async fn exec_workflow_async(
         None,
         &agent,
         &prompt,
+        opts.cwd.clone(),
         opts.timeout_seconds,
         opts.model.clone(),
         context_blocks,
@@ -205,7 +206,9 @@ async fn exec_workflow_async(
 
 pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> Result<SessionOpts> {
     Ok(SessionOpts {
-        cwd,
+        cwd: optional_string(payload, "cwd")
+            .map(PathBuf::from)
+            .unwrap_or(cwd),
         auto_grant_permissions: required_bool(payload, "autoGrantPermissions")?,
         model: optional_string(payload, "model"),
         mode: optional_string(payload, "sessionMode"),
@@ -370,5 +373,41 @@ fn log_acp_exec_result<T>(
             error = %error,
             "[acp-exec] invocation failed"
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::session_opts_from;
+    use serde_json::json;
+    use std::path::PathBuf;
+
+    #[test]
+    fn session_opts_from_uses_payload_cwd_when_present() {
+        let root = PathBuf::from("/repo/root");
+        let opts = session_opts_from(
+            root,
+            &json!({
+                "autoGrantPermissions": true,
+                "cwd": "/repo/feature"
+            }),
+        )
+        .expect("session opts");
+
+        assert_eq!(opts.cwd, PathBuf::from("/repo/feature"));
+    }
+
+    #[test]
+    fn session_opts_from_defaults_cwd_to_root_when_omitted() {
+        let root = PathBuf::from("/repo/root");
+        let opts = session_opts_from(
+            root.clone(),
+            &json!({
+                "autoGrantPermissions": true
+            }),
+        )
+        .expect("session opts");
+
+        assert_eq!(opts.cwd, root);
     }
 }

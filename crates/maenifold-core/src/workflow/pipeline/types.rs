@@ -2,6 +2,7 @@ use petgraph::stable_graph::StableGraph;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 use super::types_wire::PipelineNodeWire;
 
@@ -10,11 +11,15 @@ use super::types_wire::PipelineNodeWire;
 pub struct PipelineDefinition {
     pub nodes: Vec<PipelineNode>,
     pub edges: Vec<PipelineEdge>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub template_id: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]

@@ -20,12 +20,17 @@ let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidInitialized = false;
 let renderToken = 0;
 
+const nodeLabels = computed(() => localDefinition.value.nodeLabels ?? {});
+const displayNodeId = (nodeId: string) => nodeLabels.value[nodeId] ?? nodeId;
+
 const statusLine = computed(() => {
   if (designMode.value) {
     return `Design mode — ${localDefinition.value.nodes.length} nodes, ${localDefinition.value.edges.length} edges`;
   }
   if (!currentView.value) return 'No pipeline loaded';
-  const activeList = currentView.value.active.length > 0 ? currentView.value.active.join(', ') : 'none';
+  const activeList = currentView.value.active.length > 0
+    ? currentView.value.active.map(displayNodeId).join(', ')
+    : 'none';
   return `● ${currentView.value.status} — ${currentView.value.completed.length}/${currentView.value.nodes.length} completed — Active: ${activeList}`;
 });
 
@@ -94,9 +99,9 @@ function formatLogEntry(entry: LogEntry) {
     const preview = nodeOutput.trim().replace(/\s+/g, ' ');
     const snippet = preview.slice(0, 100);
     const suffix = preview.length > 100 ? '...' : '';
-    return `[${timestamp}] ✅ ${entry.nodeId} completed — output: ${snippet}${suffix}`;
+    return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${snippet}${suffix}`;
   }
-  return `[${timestamp}] ${iconFor(entry.to)} ${entry.nodeId}: ${entry.from} → ${entry.to}`;
+  return `[${timestamp}] ${iconFor(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
 }
 
 function ensureMermaidInit(mermaid: typeof mermaidType): void {

@@ -436,9 +436,7 @@ fn schedule_node_retry(
 
     if current_attempts >= max_attempts {
         state.status = NodeStatus::Stuck;
-        state.acp_session_id = None;
         state.output = None;
-        state.thinking_session_id = None;
         state.tool_provenance = None;
         state.failure_reason = Some(reason.to_string());
         state.retry_after = None;

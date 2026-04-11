@@ -14,7 +14,14 @@ import {
   savePositions,
   toPipelineNodeFromViewNode,
 } from '../lib/pipeline-composer-flow';
-import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
+import { createNode, createNodeId } from '../lib/pipeline-node-factory';
+import type { PipelineDefinition, PipelineNode, PipelineView } from '../lib/pipeline-types';
+import {
+  isPromptNode,
+  isSequentialThinkingNode,
+  isToolNode,
+  isWorkflowNode,
+} from '../lib/pipeline-types';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { useSessionStore } from '../stores/session';
 import { useAppShellStore } from '../stores/app-shell';
@@ -34,6 +41,8 @@ type FlowEdgeData = {
   edgeType: 'success' | 'always';
   mapping?: Record<string, string>;
 };
+
+type Point = { x: number; y: number };
 
 export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const {
@@ -117,6 +126,19 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   function emitDefinitionUpdate(): void {
     options.updateDefinition(definitionFromFlow(getNodes.value, getEdges.value));
+  }
+
+  function persistPositions(nextNodes: Node[]): void {
+    savePositions(nextNodes, options.view()?.pipelineId);
+  }
+
+  function syncLocalGraph(nextNodes: Node[], nextEdges: Edge[]): void {
+    nodes.value = nextNodes;
+    edges.value = nextEdges;
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    persistPositions(nextNodes);
+    emitDefinitionUpdate();
   }
 
   const { clearPendingDefinitionSync, scheduleDefinitionSync, shouldSyncCanvasImmediately } =
@@ -247,28 +269,175 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const nodeIds = new Set(selectedNodes.value.map((node) => node.id));
     const edgeIds = new Set(selectedEdges.value.map((edge) => edge.id));
 
-    nodes.value = getNodes.value.filter((node) => !nodeIds.has(node.id));
-    edges.value = getEdges.value.filter(
+    const nextNodes = getNodes.value.filter((node) => !nodeIds.has(node.id));
+    const nextEdges = getEdges.value.filter(
       (edge) => !edgeIds.has(edge.id) && !nodeIds.has(edge.source) && !nodeIds.has(edge.target),
     );
-
-    setNodes(nodes.value);
-    setEdges(edges.value);
-    emitDefinitionUpdate();
+    syncLocalGraph(nextNodes, nextEdges);
   }
 
   function handleAutoLayout(direction: 'LR' | 'TB'): void {
     nodes.value = layout(getNodes.value, getEdges.value, direction);
     setNodes(nodes.value);
+    persistPositions(nodes.value);
     nextTick(() => fitView());
   }
 
+  function cloneExecutionFields(node: Extract<PipelineNode, { agentConfig?: unknown }>) {
+    return {
+      ...(node.model ? { model: node.model } : {}),
+      ...(node.thoughtLevel ? { thoughtLevel: node.thoughtLevel } : {}),
+      ...(node.allowedTools ? { allowedTools: [...node.allowedTools] } : {}),
+      ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+      ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
+      ...(node.agentConfig
+        ? {
+            agentConfig: {
+              ...node.agentConfig,
+              ...(node.agentConfig.configOptions
+                ? { configOptions: { ...node.agentConfig.configOptions } }
+                : {}),
+            },
+          }
+        : {}),
+    };
+  }
+
+  function cloneNodeWithNewId(node: PipelineNode): PipelineNode {
+    const type = node.type ?? 'workflow';
+    const id = createNodeId(type);
+
+    if (isWorkflowNode(node)) {
+      return createNode('workflow', {
+        id,
+        workflowId: node.workflowId,
+        agent: node.acpClient ?? '',
+        ...(node.prompt ? { prompt: node.prompt } : {}),
+      });
+    }
+
+    if (isPromptNode(node)) {
+      return createNode('prompt', {
+        id,
+        prompt: node.prompt,
+        agent: node.agent,
+        ...(node.toolMode ? { toolMode: node.toolMode } : {}),
+        ...cloneExecutionFields(node),
+      });
+    }
+
+    if (isSequentialThinkingNode(node)) {
+      return createNode('sequentialThinking', {
+        id,
+        topic: node.topic,
+        agent: node.agent,
+        ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
+        ...(node.analysisType ? { analysisType: node.analysisType } : {}),
+        ...cloneExecutionFields(node),
+      });
+    }
+
+    if (isToolNode(node)) {
+      return createNode('tool', {
+        id,
+        toolName: node.toolName,
+        ...(node.agent ? { agent: node.agent } : {}),
+        ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
+        ...cloneExecutionFields(node),
+      });
+    }
+
+    const unreachable: never = node;
+    throw new Error(`Unsupported node type: ${JSON.stringify(unreachable)}`);
+  }
+
+  function findDefinitionNode(nodeId: string): PipelineNode | undefined {
+    return options.localDefinition()?.nodes.find((node) => node.id === nodeId);
+  }
+
+  function toFlowPosition(clientX: number, clientY: number, rootElement: HTMLElement): Point {
+    const rootRect = rootElement.getBoundingClientRect();
+    const viewportElement = rootElement.querySelector<HTMLElement>('.vue-flow__viewport');
+    const transform = viewportElement ? getComputedStyle(viewportElement).transform : 'none';
+    const matrix = transform && transform !== 'none'
+      ? new DOMMatrixReadOnly(transform)
+      : new DOMMatrixReadOnly();
+    const zoom = matrix.a || 1;
+
+    return {
+      x: Math.round(((clientX - rootRect.left - matrix.m41) / zoom) / 20) * 20,
+      y: Math.round(((clientY - rootRect.top - matrix.m42) / zoom) / 20) * 20,
+    };
+  }
+
+  function createNodeAt(node: PipelineNode, position: Point): void {
+    if (!options.designMode()) return;
+
+    const nextNodes = [
+      ...getNodes.value,
+      {
+        id: node.id,
+        type: 'pipelineNode',
+        position,
+        data: { ...pipelineNodesToFlow([node])[0]!.data },
+      } satisfies Node,
+    ];
+    syncLocalGraph(nextNodes, getEdges.value);
+    options.selectNode(node.id);
+    options.selectEdge(null);
+  }
+
+  function deleteNode(nodeId: string): void {
+    if (!options.designMode()) return;
+
+    const nextNodes = getNodes.value.filter((node) => node.id !== nodeId);
+    const nextEdges = getEdges.value.filter(
+      (edge) => edge.source !== nodeId && edge.target !== nodeId,
+    );
+    syncLocalGraph(nextNodes, nextEdges);
+    options.selectNode(null);
+    options.selectEdge(null);
+  }
+
+  function disconnectNodeEdges(nodeId: string): void {
+    if (!options.designMode()) return;
+
+    const nextEdges = getEdges.value.filter(
+      (edge) => edge.source !== nodeId && edge.target !== nodeId,
+    );
+    syncLocalGraph(getNodes.value, nextEdges);
+    options.selectNode(nodeId);
+    options.selectEdge(null);
+  }
+
+  function duplicateNode(nodeId: string, offset = 50): void {
+    if (!options.designMode()) return;
+
+    const sourceNode = findDefinitionNode(nodeId);
+    const sourceFlowNode = getNodes.value.find((node) => node.id === nodeId);
+    if (!sourceNode || !sourceFlowNode) return;
+
+    createNodeAt(cloneNodeWithNewId(sourceNode), {
+      x: sourceFlowNode.position.x + offset,
+      y: sourceFlowNode.position.y + offset,
+    });
+  }
+
+  function editNode(nodeId: string): void {
+    options.selectNode(nodeId);
+    options.selectEdge(null);
+  }
+
   return {
+    createNodeAt,
+    deleteNode,
     defaultEdgeOptions,
     deleteSelected,
+    disconnectNodeEdges,
     edgeIndicator,
     edgePath,
     edgeTooltip,
+    editNode,
     edges,
     fitView,
     handleAutoLayout,
@@ -277,6 +446,8 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     nodeTypes,
     nodes,
     showEmptyState,
+    toFlowPosition,
+    duplicateNode,
     zoomStore,
   };
 }

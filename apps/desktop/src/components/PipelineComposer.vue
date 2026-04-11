@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { BaseEdge, EdgeLabelRenderer, VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -11,9 +11,12 @@ import '@vue-flow/controls/dist/style.css';
 import '@vue-flow/minimap/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
+import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
+import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import { useResizeHandle } from '../composables/useResizeHandle';
 import type {
+  PipelineNode,
   PipelineDefinition,
   PipelineNodeType,
   PipelineView,
@@ -24,7 +27,9 @@ import {
   type PipelineNodeDraftByType,
   type PipelineNodeInputByType,
 } from '../lib/pipeline-node-factory';
+import { getBareToolName } from '../lib/tool-categories';
 import { NODE_PALETTE_MIN_WIDTH, useNodePaletteStore } from '../stores/node-palette';
+import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
 
 const props = defineProps<{
@@ -40,11 +45,16 @@ const emit = defineEmits<{
 }>();
 
 const {
+  createNodeAt,
   defaultEdgeOptions,
   deleteSelected,
+  deleteNode,
+  disconnectNodeEdges,
+  duplicateNode,
   edgeIndicator,
   edgePath,
   edgeTooltip,
+  editNode,
   edges,
   fitView,
   handleAutoLayout,
@@ -53,6 +63,7 @@ const {
   nodeTypes,
   nodes,
   showEmptyState,
+  toFlowPosition,
 } = useComposerCanvas({
   designMode: () => props.designMode,
   localDefinition: () => props.localDefinition,
@@ -63,7 +74,9 @@ const {
 });
 
 const store = usePipelineStore();
+const configStore = useConfigStore();
 const nodePaletteStore = useNodePaletteStore();
+const { serverResults, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
 const paletteResize = useResizeHandle({
   initial: nodePaletteStore.panelWidth,
   min: NODE_PALETTE_MIN_WIDTH,
@@ -103,9 +116,213 @@ function submitNode<T extends PipelineNodeType>(
   void nextTick(() => fitView());
 }
 
-if (props.designMode && store.workflows.length === 0) {
-  void store.refreshWorkflows();
+type ContextMenuState =
+  | {
+      mode: 'canvas';
+      x: number;
+      y: number;
+      position: { x: number; y: number };
+    }
+  | {
+      mode: 'node';
+      x: number;
+      y: number;
+      nodeId: string;
+    };
+
+const contextMenu = ref<ContextMenuState | null>(null);
+
+const firstAgent = computed(() => configStore.agentNames[0] ?? '');
+const firstWorkflow = computed(() => store.workflows[0] ?? '');
+const toolGroups = computed(() =>
+  serverResults.value
+    .map((result) => ({
+      server: result.server,
+      tools: [...result.tools]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((tool) => ({
+          name: tool.name,
+          displayName: tool.name.startsWith(`${result.server}.`)
+            ? tool.name.slice(result.server.length + 1)
+            : getBareToolName(tool.name),
+          description: tool.description,
+        })),
+    }))
+    .filter((group) => group.tools.length > 0),
+);
+
+function closeContextMenu(): void {
+  contextMenu.value = null;
 }
+
+function createNodeAtPosition(node: PipelineNode, position: { x: number; y: number }): void {
+  createNodeAt(node, position);
+  closeContextMenu();
+}
+
+function maybeRefreshComposerCatalogs(): void {
+  if (!props.designMode) return;
+  if (store.workflows.length === 0) {
+    void store.refreshWorkflows();
+  }
+  if (!hasLoadedCatalog.value) {
+    void refreshTools();
+  }
+}
+
+function handleComposerContextMenu(event: MouseEvent): void {
+  if (!props.designMode) {
+    return;
+  }
+
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return;
+  }
+
+  if (target.closest('.composer-context-menu, .vue-flow__controls, .vue-flow__minimap')) {
+    return;
+  }
+
+  event.preventDefault();
+
+  const flowRoot = target.closest<HTMLElement>('.vue-flow');
+  if (!flowRoot) {
+    closeContextMenu();
+    return;
+  }
+
+  const nodeElement = target.closest<HTMLElement>('.vue-flow__node');
+  const nodeId = nodeElement?.dataset.id;
+  if (nodeId) {
+    editNode(nodeId);
+    contextMenu.value = {
+      mode: 'node',
+      x: event.clientX,
+      y: event.clientY,
+      nodeId,
+    };
+    return;
+  }
+
+  if (target.closest('.vue-flow__edge, .edge-indicator')) {
+    closeContextMenu();
+    return;
+  }
+
+  contextMenu.value = {
+    mode: 'canvas',
+    x: event.clientX,
+    y: event.clientY,
+    position: toFlowPosition(event.clientX, event.clientY, flowRoot),
+  };
+}
+
+function handleWindowPointerDown(event: PointerEvent): void {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    closeContextMenu();
+    return;
+  }
+
+  if (!target.closest('.composer-context-menu')) {
+    closeContextMenu();
+  }
+}
+
+function handleWindowKeyDown(event: KeyboardEvent): void {
+  if (event.key === 'Escape') {
+    closeContextMenu();
+  }
+}
+
+function createPromptNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'canvas' || !firstAgent.value) return;
+
+  createNodeAtPosition(
+    createNode('prompt', {
+      id: createNodeId('prompt'),
+      agent: firstAgent.value,
+      prompt: 'Ask an agent',
+    }),
+    contextMenu.value.position,
+  );
+}
+
+function createThinkingNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'canvas' || !firstAgent.value) return;
+
+  createNodeAtPosition(
+    createNode('sequentialThinking', {
+      id: createNodeId('sequentialThinking'),
+      agent: firstAgent.value,
+      topic: 'Think through a problem',
+      totalThoughts: 5,
+    }),
+    contextMenu.value.position,
+  );
+}
+
+function createWorkflowNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'canvas' || !firstWorkflow.value) return;
+
+  createNodeAtPosition(
+    createNode('workflow', {
+      id: createNodeId('workflow'),
+      workflowId: firstWorkflow.value,
+      agent: '',
+    }),
+    contextMenu.value.position,
+  );
+}
+
+function createToolNode(toolName: string): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'canvas') return;
+
+  createNodeAtPosition(
+    createNode('tool', {
+      id: createNodeId('tool'),
+      toolName,
+    }),
+    contextMenu.value.position,
+  );
+}
+
+function handleEditNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  editNode(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDuplicateNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  duplicateNode(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDeleteNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  deleteNode(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDisconnectEdges(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  disconnectNodeEdges(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
+
+onMounted(() => {
+  window.addEventListener('pointerdown', handleWindowPointerDown);
+  window.addEventListener('keydown', handleWindowKeyDown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('pointerdown', handleWindowPointerDown);
+  window.removeEventListener('keydown', handleWindowKeyDown);
+});
 
 defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 </script>
@@ -128,7 +345,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
         />
       </section>
 
-      <section class="composer-canvas">
+      <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -177,6 +394,25 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           <span>Add your first node</span>
           <span class="composer-empty-state-arrow" aria-hidden="true">↖</span>
         </div>
+        <PipelineComposerContextMenu
+          v-if="contextMenu"
+          :x="contextMenu.x"
+          :y="contextMenu.y"
+          :mode="contextMenu.mode"
+          :tool-groups="toolGroups"
+          :can-ask-agent="Boolean(firstAgent)"
+          :can-think="Boolean(firstAgent)"
+          :can-run-workflow="Boolean(firstWorkflow)"
+          @close="closeContextMenu"
+          @ask-agent="createPromptNode"
+          @think-problem="createThinkingNode"
+          @run-workflow="createWorkflowNode"
+          @run-tool="createToolNode"
+          @edit="handleEditNode"
+          @duplicate="handleDuplicateNode"
+          @delete="handleDeleteNode"
+          @disconnect-edges="handleDisconnectEdges"
+        />
       </section>
     </div>
 

@@ -65,14 +65,37 @@ const PROMPT_FAILURE_PREFIX: &str = "\u{0}pipeline_prompt_failure:";
 
 pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
     match result {
-        NodeTaskResult::Workflow(result) => classify_workflow_result(node_id, result),
-        NodeTaskResult::Prompt(result) => classify_prompt_result(node_id, result),
-        NodeTaskResult::SequentialThinking(result) => classify_think_result(node_id, result),
+        NodeTaskResult::Workflow(result) => {
+            let acp_session_id = result
+                .as_ref()
+                .ok()
+                .and_then(|workflow| workflow.acp_session_id.clone());
+            classify_workflow_result(node_id, result, acp_session_id)
+        }
+        NodeTaskResult::Prompt(result) => {
+            let acp_session_id = result
+                .as_ref()
+                .ok()
+                .and_then(|prompt| prompt.acp_session_id.clone());
+            classify_prompt_result(node_id, result, acp_session_id)
+        }
+        NodeTaskResult::SequentialThinking(result) => {
+            let acp_session_id = result
+                .as_ref()
+                .ok()
+                .and_then(|think| think.acp_session_id.clone());
+            let thinking_session_id = result.as_ref().ok().map(|think| think.session_id.clone());
+            classify_think_result(node_id, result, acp_session_id, thinking_session_id)
+        }
         NodeTaskResult::Tool(result) => classify_tool_result(node_id, result),
     }
 }
 
-fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult>) -> NodeOutcome {
+fn classify_workflow_result(
+    node_id: &str,
+    result: Result<runner::WorkflowResult>,
+    acp_session_id: Option<String>,
+) -> NodeOutcome {
     match result {
         Ok(workflow) => match workflow.status {
             WorkflowRunStatus::Completed => NodeOutcome::Completed {
@@ -112,13 +135,17 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
-            acp_session_id: None,
+            acp_session_id,
             thinking_session_id: None,
         },
     }
 }
 
-fn classify_prompt_result(node_id: &str, result: Result<PromptExecutionResult>) -> NodeOutcome {
+fn classify_prompt_result(
+    node_id: &str,
+    result: Result<PromptExecutionResult>,
+    acp_session_id: Option<String>,
+) -> NodeOutcome {
     match result {
         Ok(result) => {
             if let Some(reason) = decode_prompt_failure(&result.response) {
@@ -154,13 +181,18 @@ fn classify_prompt_result(node_id: &str, result: Result<PromptExecutionResult>) 
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
-            acp_session_id: None,
+            acp_session_id,
             thinking_session_id: None,
         },
     }
 }
 
-fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> NodeOutcome {
+fn classify_think_result(
+    node_id: &str,
+    result: Result<runner::ThinkResult>,
+    acp_session_id: Option<String>,
+    thinking_session_id: Option<String>,
+) -> NodeOutcome {
     match result {
         Ok(think) => {
             let runner::ThinkResult {
@@ -194,8 +226,8 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
-            acp_session_id: None,
-            thinking_session_id: None,
+            acp_session_id,
+            thinking_session_id,
         },
     }
 }
@@ -399,6 +431,7 @@ mod tests {
                 response: "  \n\t  ".to_string(),
                 acp_session_id: Some("acp-prompt-1".to_string()),
             }),
+            None,
         );
 
         match outcome {
@@ -417,6 +450,7 @@ mod tests {
                 response: "  kept  ".to_string(),
                 acp_session_id: Some("acp-prompt-2".to_string()),
             }),
+            None,
         );
 
         match outcome {

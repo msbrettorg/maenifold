@@ -17,6 +17,7 @@ import type {
 export interface PipelineNodeFormValues {
   workflowId: string;
   workflowAgent: string;
+  workflowAgentConfig: PipelineNodeAgentConfig;
   workflowPrompt: string;
   promptAgent: string;
   promptAgentConfig: PipelineNodeAgentConfig;
@@ -46,6 +47,7 @@ function normalizeToolArgsRecord(
 export interface PipelineNodeFormRefs {
   workflowId: Ref<string>;
   workflowAgent: Ref<string>;
+  workflowAgentConfig: Ref<PipelineNodeAgentConfig>;
   workflowPrompt: Ref<string>;
   promptAgent: Ref<string>;
   promptAgentConfig: Ref<PipelineNodeAgentConfig>;
@@ -66,6 +68,7 @@ export interface PipelineNodeFormRefs {
 export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
   const workflowId = ref('');
   const workflowAgent = ref('');
+  const workflowAgentConfig = ref<PipelineNodeAgentConfig>({});
   const workflowPrompt = ref('');
   const promptAgent = ref('');
   const promptAgentConfig = ref<PipelineNodeAgentConfig>({});
@@ -84,6 +87,7 @@ export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
   return {
     workflowId,
     workflowAgent,
+    workflowAgentConfig,
     workflowPrompt,
     promptAgent,
     promptAgentConfig,
@@ -101,6 +105,7 @@ export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
     getFormValues: () => ({
       workflowId: workflowId.value,
       workflowAgent: workflowAgent.value,
+      workflowAgentConfig: workflowAgentConfig.value,
       workflowPrompt: workflowPrompt.value,
       promptAgent: promptAgent.value,
       promptAgentConfig: promptAgentConfig.value,
@@ -480,10 +485,19 @@ export function buildPipelineNodeDraft(
       };
     }
     default:
-      return {
-        workflowId: trim(values.workflowId),
-        agent: trim(values.workflowAgent),
-        ...(trim(values.workflowPrompt) ? { prompt: trim(values.workflowPrompt) } : {}),
-      };
+      return buildWorkflowDraft(values);
   }
+}
+
+export function buildWorkflowDraft(
+  values: PipelineNodeFormValues,
+): PipelineNodeDraftByType['workflow'] {
+  return {
+    workflowId: trim(values.workflowId),
+    ...(trim(values.workflowAgent) ? { acpClient: trim(values.workflowAgent) } : {}),
+    ...(trim(values.workflowPrompt) ? { prompt: trim(values.workflowPrompt) } : {}),
+    ...(normalizePipelineNodeAgentConfig(values.workflowAgentConfig)
+      ? { agentConfig: normalizePipelineNodeAgentConfig(values.workflowAgentConfig) }
+      : {}),
+  };
 }

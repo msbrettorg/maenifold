@@ -314,7 +314,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     nextTick(() => fitView());
   }
 
-  function cloneExecutionFields(node: Extract<PipelineNode, { agentConfig?: unknown }>) {
+  function cloneExecutionFields(
+    node: Extract<PipelineNode, { type: 'prompt' | 'sequentialThinking' | 'tool' }>,
+  ) {
     return {
       ...(node.model ? { model: node.model } : {}),
       ...(node.thoughtLevel ? { thoughtLevel: node.thoughtLevel } : {}),

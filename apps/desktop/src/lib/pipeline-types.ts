@@ -40,6 +40,9 @@ export interface WorkflowNode extends PipelineNodeBase {
   workflowId: string;
   acpClient?: string;
   prompt?: string;
+  model?: string;
+  thoughtLevel?: string;
+  agentConfig?: PipelineNodeAgentConfig;
 }
 
 export interface PromptNode extends PipelineNodeBase {
@@ -161,6 +164,9 @@ export interface WorkflowViewNode extends ViewNodeBase {
   workflowId: string;
   acpClient?: string;
   prompt?: string;
+  model?: string;
+  thoughtLevel?: string;
+  agentConfig?: PipelineNodeAgentConfig;
   assembled_prompt?: string | null;
   workflow_steps?: WorkflowStepEntry[] | null;
 }

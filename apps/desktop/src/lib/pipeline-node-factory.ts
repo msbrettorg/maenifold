@@ -17,11 +17,18 @@ interface PipelineNodeExecutionFields {
   agentConfig?: PipelineNodeAgentConfig;
 }
 
-export interface WorkflowNodeInput {
+interface WorkflowNodeExecutionSelection {
+  model?: string;
+  thoughtLevel?: string;
+  agentConfig?: PipelineNodeAgentConfig;
+}
+
+export interface WorkflowNodeInput extends WorkflowNodeExecutionSelection {
   id: string;
   displayLabel?: string;
   workflowId: string;
-  agent: string;
+  acpClient?: string;
+  agent?: string;
   prompt?: string;
 }
 
@@ -170,6 +177,22 @@ function buildExecutionFields(
   };
 }
 
+function buildWorkflowExecutionFields(
+  fields: WorkflowNodeExecutionSelection,
+): WorkflowNodeExecutionSelection {
+  const agentConfig = cloneAgentConfig(fields.agentConfig);
+
+  return {
+    ...(typeof fields.model === 'string' && fields.model.length > 0
+      ? { model: fields.model }
+      : {}),
+    ...(typeof fields.thoughtLevel === 'string' && fields.thoughtLevel.length > 0
+      ? { thoughtLevel: fields.thoughtLevel }
+      : {}),
+    ...(agentConfig ? { agentConfig } : {}),
+  };
+}
+
 function buildDisplayLabel(
   value: string | undefined,
 ): Pick<WorkflowNode, 'displayLabel'>
@@ -226,13 +249,14 @@ export function createNode(
         type: 'workflow',
         ...buildDisplayLabel(workflowFields.displayLabel),
         workflowId: workflowFields.workflowId,
-        ...(workflowFields.agent.length > 0
-          ? { acpClient: workflowFields.agent }
+        ...((workflowFields.acpClient ?? workflowFields.agent ?? '').length > 0
+          ? { acpClient: workflowFields.acpClient ?? workflowFields.agent }
           : {}),
         ...(typeof workflowFields.prompt === 'string' &&
         workflowFields.prompt.length > 0
           ? { prompt: workflowFields.prompt }
           : {}),
+        ...buildWorkflowExecutionFields(workflowFields),
       };
     }
     case 'prompt': {

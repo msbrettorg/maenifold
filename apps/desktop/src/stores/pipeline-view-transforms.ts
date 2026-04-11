@@ -186,6 +186,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
+        ...(mergeAgentConfig(node) ? { agentConfig: mergeAgentConfig(node) } : {}),
       };
     case 'tool': {
       const agentConfig = mergeAgentConfig(node);
@@ -256,6 +257,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
+        ...(mergeAgentConfig(node) ? { agentConfig: mergeAgentConfig(node) } : {}),
       };
     case 'tool': {
       const agentConfig = mergeAgentConfig(node);

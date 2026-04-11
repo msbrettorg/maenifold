@@ -28,6 +28,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
   const {
     workflowId,
     workflowAgent,
+    workflowAgentConfig,
     workflowPrompt,
     promptAgent,
     promptAgentConfig,
@@ -49,6 +50,10 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
   watch(toolName, () => {
     toolArgs.value = {};
     toolArgsValid.value = true;
+  });
+
+  watch(workflowAgent, () => {
+    workflowAgentConfig.value = {};
   });
 
   watch(
@@ -94,6 +99,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
       default:
         workflowId.value = '';
         workflowAgent.value = '';
+        workflowAgentConfig.value = {};
         workflowPrompt.value = '';
         break;
     }
@@ -130,6 +136,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     nodeType,
     workflowId,
     workflowAgent,
+    workflowAgentConfig,
     workflowPrompt,
     promptAgent,
     promptAgentConfig,

@@ -178,7 +178,24 @@ function updateNodeId(event: Event): void {
 function updateWorkflowField(event: Event, field: 'workflowId' | 'acpClient' | 'prompt'): void {
   const value = getFieldValue(event);
   const resolved = field === 'workflowId' ? value : (value || undefined);
-  updateDesignNode((node) => (isWorkflowNode(node) ? { ...node, [field]: resolved } : node));
+  updateDesignNode((node) => {
+    if (!isWorkflowNode(node)) return node;
+    if (field !== 'acpClient') {
+      return { ...node, [field]: resolved };
+    }
+    const { model: _model, thoughtLevel: _thoughtLevel, agentConfig: _agentConfig, ...rest } = node;
+    return { ...rest, [field]: resolved };
+  });
+}
+function updateWorkflowAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+  updateDesignNode((node) =>
+    isWorkflowNode(node)
+      ? (() => {
+          const { model: _model, thoughtLevel: _thoughtLevel, agentConfig: _agentConfig, ...rest } = node;
+          return { ...rest, ...(nextAgentConfig ? { agentConfig: nextAgentConfig } : {}) };
+        })()
+      : node,
+  );
 }
 function updatePromptField(event: Event, field: 'agent' | 'prompt'): void {
   updateDesignNode((node) => (isPromptNode(node) ? { ...node, [field]: getFieldValue(event) } : node));
@@ -289,6 +306,19 @@ function readyPromptProbe() {
   }
   return probe?.state === 'ready' ? probe : undefined;
 }
+function readyWorkflowProbe() {
+  const probe = selectedWorkflowDesignNode.value?.acpClient
+    ? getProbe(selectedWorkflowDesignNode.value.acpClient)
+    : undefined;
+  if (
+    probe?.state === 'ready'
+    && selectedWorkflowDesignNode.value
+    && !selectedWorkflowDesignNode.value.agentConfig
+  ) {
+    updateWorkflowAgentConfig(buildAgentConfigDefaults(probe));
+  }
+  return probe?.state === 'ready' ? probe : undefined;
+}
 function readyThinkingProbe() {
   const probe = selectedThinkingDesignNode.value?.agent
     ? getProbe(selectedThinkingDesignNode.value.agent)
@@ -304,6 +334,28 @@ function readyThinkingProbe() {
 }
 function updatePromptMode(modeId: string): void {
   updatePromptAgentConfig(setAgentModeValue(selectedPromptDesignNode.value?.agentConfig, modeId));
+}
+function updateWorkflowMode(modeId: string): void {
+  updateWorkflowAgentConfig(setAgentModeValue(selectedWorkflowDesignNode.value?.agentConfig, modeId));
+}
+function updateWorkflowModel(event: Event): void {
+  updateWorkflowAgentConfig(
+    setAgentModelValue(selectedWorkflowDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updateWorkflowThoughtLevel(event: Event): void {
+  updateWorkflowAgentConfig(
+    setAgentThoughtLevelValue(selectedWorkflowDesignNode.value?.agentConfig, getFieldValue(event)),
+  );
+}
+function updateWorkflowConfigOption(option: AgentProbeConfigOption, event: Event): void {
+  updateWorkflowAgentConfig(
+    setAgentConfigOptionValue(
+      selectedWorkflowDesignNode.value?.agentConfig,
+      option,
+      getFieldValue(event),
+    ),
+  );
 }
 function updatePromptModel(event: Event): void {
   updatePromptAgentConfig(
@@ -379,6 +431,52 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           :agent-name="selectedWorkflowDesignNode.acpClient"
           :probe="getProbe(selectedWorkflowDesignNode.acpClient)"
         />
+        <div v-if="selectedWorkflowDesignNode.acpClient" class="agent-config-panel">
+          <template v-if="readyWorkflowProbe()">
+            <div v-if="readyWorkflowProbe()?.modeOptions.length" class="agent-mode-badges">
+              <button
+                v-for="mode in readyWorkflowProbe()?.modeOptions"
+                :key="mode.id"
+                type="button"
+                class="mode-badge"
+                :class="{ selected: getAgentModeValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe()) === mode.id }"
+                @click="updateWorkflowMode(mode.id)"
+              >
+                {{ mode.name }}
+              </button>
+            </div>
+            <div class="agent-config-grid">
+              <label v-if="readyWorkflowProbe()?.modelOptions.length" class="field">
+                <span>Model</span>
+                <select class="field-input" :value="getAgentModelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe())" @change="updateWorkflowModel">
+                  <option v-for="model in readyWorkflowProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                </select>
+              </label>
+              <label v-if="readyWorkflowProbe()?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyWorkflowProbe()?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe())" @change="updateWorkflowThoughtLevel">
+                  <template v-for="entry in readyWorkflowProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+              <label v-for="option in getEditableAgentConfigOptions(readyWorkflowProbe())" :key="option.id" class="field">
+                <span>{{ option.name }}</span>
+                <select class="field-input" :value="getAgentConfigOptionValue(selectedWorkflowDesignNode.agentConfig, option)" @change="updateWorkflowConfigOption(option, $event)">
+                  <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+            </div>
+          </template>
+        </div>
         <label class="field"><span>Prompt</span><textarea class="field-textarea" :value="selectedWorkflowDesignNode.prompt ?? ''" rows="5" placeholder="Optional per-node prompt" @input="updateWorkflowField($event, 'prompt')" /></label>
       </template>
 

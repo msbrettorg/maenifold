@@ -32,13 +32,7 @@ interface SubmitNode {
 
 const props = defineProps<{
   workflows: string[];
-  hasSelection: boolean;
   submitNode: SubmitNode;
-}>();
-
-const emit = defineEmits<{
-  (e: 'deleteSelected'): void;
-  (e: 'autoLayout', direction: 'LR' | 'TB'): void;
 }>();
 
 const {
@@ -46,6 +40,7 @@ const {
   nodeType,
   workflowId,
   workflowAgent,
+  workflowAgentConfig,
   workflowPrompt,
   promptAgent,
   promptAgentConfig,
@@ -100,6 +95,12 @@ function ensurePromptDefaults(probe: AgentProbeResult | undefined): void {
   }
 }
 
+function ensureWorkflowDefaults(probe: AgentProbeResult | undefined): void {
+  if (probe?.state === 'ready' && Object.keys(workflowAgentConfig.value).length === 0) {
+    workflowAgentConfig.value = buildAgentConfigDefaults(probe) ?? {};
+  }
+}
+
 function ensureThinkingDefaults(probe: AgentProbeResult | undefined): void {
   if (probe?.state === 'ready' && Object.keys(thinkingAgentConfig.value).length === 0) {
     thinkingAgentConfig.value = buildAgentConfigDefaults(probe) ?? {};
@@ -110,13 +111,31 @@ function updatePromptMode(modeId: string): void {
   promptAgentConfig.value = setAgentModeValue(promptAgentConfig.value, modeId) ?? {};
 }
 
+function updateWorkflowMode(modeId: string): void {
+  workflowAgentConfig.value = setAgentModeValue(workflowAgentConfig.value, modeId) ?? {};
+}
+
 function updateThinkingMode(modeId: string): void {
   thinkingAgentConfig.value = setAgentModeValue(thinkingAgentConfig.value, modeId) ?? {};
+}
+
+function updateWorkflowModel(event: Event): void {
+  workflowAgentConfig.value = setAgentModelValue(
+    workflowAgentConfig.value,
+    (event.target as HTMLSelectElement).value,
+  ) ?? {};
 }
 
 function updatePromptModel(event: Event): void {
   promptAgentConfig.value = setAgentModelValue(
     promptAgentConfig.value,
+    (event.target as HTMLSelectElement).value,
+  ) ?? {};
+}
+
+function updateWorkflowThoughtLevel(event: Event): void {
+  workflowAgentConfig.value = setAgentThoughtLevelValue(
+    workflowAgentConfig.value,
     (event.target as HTMLSelectElement).value,
   ) ?? {};
 }
@@ -142,6 +161,14 @@ function updateThinkingThoughtLevel(event: Event): void {
   ) ?? {};
 }
 
+function updateWorkflowConfigOption(option: AgentProbeConfigOption, event: Event): void {
+  workflowAgentConfig.value = setAgentConfigOptionValue(
+    workflowAgentConfig.value,
+    option,
+    (event.target as HTMLSelectElement).value,
+  ) ?? {};
+}
+
 function updatePromptConfigOption(option: AgentProbeConfigOption, event: Event): void {
   promptAgentConfig.value = setAgentConfigOptionValue(
     promptAgentConfig.value,
@@ -162,8 +189,18 @@ function promptProbe(): AgentProbeResult | undefined {
   return promptAgent.value ? getProbe(promptAgent.value) : undefined;
 }
 
+function workflowProbe(): AgentProbeResult | undefined {
+  return workflowAgent.value ? getProbe(workflowAgent.value) : undefined;
+}
+
 function thinkingProbe(): AgentProbeResult | undefined {
   return thinkingAgent.value ? getProbe(thinkingAgent.value) : undefined;
+}
+
+function readyWorkflowProbe(): AgentProbeResult | undefined {
+  const probe = workflowProbe();
+  ensureWorkflowDefaults(probe);
+  return probe?.state === 'ready' ? probe : undefined;
 }
 
 function readyPromptProbe(): AgentProbeResult | undefined {
@@ -193,16 +230,6 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
       </label>
       <div class="toolbar-actions">
         <button type="submit" class="btn btn-primary" :disabled="!canAdd">{{ addButtonLabel }}</button>
-        <button
-          v-if="hasSelection"
-          type="button"
-          class="btn btn-outline-danger"
-          @click="emit('deleteSelected')"
-        >
-          Delete Selected
-        </button>
-        <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'LR')">↔ Layout LR</button>
-        <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'TB')">↕ Layout TB</button>
       </div>
     </div>
 
@@ -235,6 +262,95 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
             <span v-for="badge in getCapabilityBadges(workflowAgent)" :key="badge" class="agent-capability">{{ badge }}</span>
           </div>
           <AgentProbePreview compact :agent-name="workflowAgent" :probe="getProbe(workflowAgent)" />
+        </div>
+        <div v-if="workflowAgent" class="field-wide agent-config-panel">
+          <template v-if="readyWorkflowProbe()">
+            <div v-if="readyWorkflowProbe()?.modeOptions.length" class="agent-mode-badges">
+              <button
+                v-for="mode in readyWorkflowProbe()?.modeOptions"
+                :key="mode.id"
+                type="button"
+                class="mode-badge"
+                :class="{ selected: getAgentModeValue(workflowAgentConfig, readyWorkflowProbe()) === mode.id }"
+                :data-testid="`workflow-mode-badge-${mode.id}`"
+                @click="updateWorkflowMode(mode.id)"
+              >
+                {{ mode.name }}
+              </button>
+            </div>
+            <div class="agent-config-grid">
+              <label v-if="readyWorkflowProbe()?.modelOptions.length">
+                <span>Model</span>
+                <select
+                  class="field-input"
+                  data-testid="workflow-model-select"
+                  :value="getAgentModelValue(workflowAgentConfig, readyWorkflowProbe())"
+                  @change="updateWorkflowModel"
+                >
+                  <option
+                    v-for="model in readyWorkflowProbe()?.modelOptions"
+                    :key="model.modelId"
+                    :value="model.modelId"
+                  >
+                    {{ model.name }}
+                  </option>
+                </select>
+              </label>
+              <label v-if="readyWorkflowProbe()?.thoughtLevelConfigOption">
+                <span>{{ readyWorkflowProbe()?.thoughtLevelConfigOption?.name }}</span>
+                <select
+                  class="field-input"
+                  data-testid="workflow-thought-level-select"
+                  :value="getAgentThoughtLevelValue(workflowAgentConfig, readyWorkflowProbe())"
+                  @change="updateWorkflowThoughtLevel"
+                >
+                  <template
+                    v-for="entry in readyWorkflowProbe()?.thoughtLevelConfigOption?.options ?? []"
+                    :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                  >
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option
+                        v-for="groupOption in entry.options"
+                        :key="groupOption.value"
+                        :value="groupOption.value"
+                      >
+                        {{ groupOption.name }}
+                      </option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+              <label
+                v-for="option in getEditableAgentConfigOptions(readyWorkflowProbe())"
+                :key="option.id"
+              >
+                <span>{{ option.name }}</span>
+                <select
+                  class="field-input"
+                  :data-testid="`workflow-config-${option.id}`"
+                  :value="getAgentConfigOptionValue(workflowAgentConfig, option)"
+                  @change="updateWorkflowConfigOption(option, $event)"
+                >
+                  <template
+                    v-for="entry in option.options"
+                    :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                  >
+                    <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
+                      <option
+                        v-for="groupOption in entry.options"
+                        :key="groupOption.value"
+                        :value="groupOption.value"
+                      >
+                        {{ groupOption.name }}
+                      </option>
+                    </optgroup>
+                    <option v-else :value="entry.value">{{ entry.name }}</option>
+                  </template>
+                </select>
+              </label>
+            </div>
+          </template>
         </div>
         <label class="field-wide">
           <span>Prompt</span>

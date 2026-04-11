@@ -19,6 +19,7 @@ export type FlowNodeData = {
   nodeId: string;
   displayLabel: string;
   type: PipelineNodeType;
+  model?: string;
   acpSessionId?: string;
   thinkingSessionId?: string;
   workflowId?: string;
@@ -34,6 +35,11 @@ export type FlowNodeData = {
   status?: ViewNode['status'];
   attempts?: number;
 };
+
+function getNodeModel(node: PipelineNode): string | undefined {
+  const fromAgentConfig = 'agentConfig' in node ? node.agentConfig?.model : undefined;
+  return fromAgentConfig ?? ('model' in node ? node.model : undefined);
+}
 
 function positionCacheKey(pipelineId?: string): string {
   return `pipeline-positions-v3-${pipelineId ?? 'design'}`;
@@ -77,6 +83,7 @@ function toFlowNodeData(
     nodeId: node.id,
     displayLabel: viewNode?.displayLabel ?? node.displayLabel ?? node.id,
     type: node.type ?? 'workflow',
+    ...(getNodeModel(node) ? { model: getNodeModel(node) } : {}),
     acpSessionId: viewNode?.acpSessionId,
     thinkingSessionId: viewNode?.thinkingSessionId,
     status: viewNode?.status,
@@ -148,6 +155,7 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
           : {}),
         prompt: data.prompt ?? '',
         agent: data.agent ?? '',
+        ...(data.model ? { model: data.model } : {}),
       });
     case 'sequentialThinking':
       return createNode('sequentialThinking', {
@@ -157,6 +165,7 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
           : {}),
         topic: data.topic ?? '',
         agent: data.agent ?? '',
+        ...(data.model ? { model: data.model } : {}),
         ...(typeof data.totalThoughts === 'number'
           ? { totalThoughts: data.totalThoughts }
           : {}),
@@ -170,6 +179,7 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
           : {}),
         toolName: data.toolName ?? '',
         ...(data.agent ? { agent: data.agent } : {}),
+        ...(data.model ? { model: data.model } : {}),
         ...(data.toolArgs ? { toolArgs: data.toolArgs } : {}),
       });
     default:
@@ -179,7 +189,8 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
           ? { displayLabel: data.displayLabel }
           : {}),
         workflowId: data.workflowId ?? '',
-        agent: data.agent ?? data.acpClient ?? '',
+        acpClient: data.acpClient ?? data.agent ?? '',
+        ...(data.model ? { model: data.model } : {}),
         ...(data.prompt ? { prompt: data.prompt } : {}),
       });
   }
@@ -193,6 +204,7 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
+        ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),
       });
     case 'sequentialThinking':
       return createNode('sequentialThinking', {
@@ -200,6 +212,7 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         topic: node.topic,
         agent: node.agent,
+        ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),
         ...(typeof node.totalThoughts === 'number'
           ? { totalThoughts: node.totalThoughts }
           : {}),
@@ -211,6 +224,7 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         toolName: node.toolName,
         ...(node.agent ? { agent: node.agent } : {}),
+        ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),
         ...(node.toolArgs ? { toolArgs: node.toolArgs } : {}),
       });
     default:
@@ -218,7 +232,8 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         id: node.nodeId,
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
-        agent: node.acpClient ?? '',
+        acpClient: node.acpClient ?? '',
+        ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
       });
   }

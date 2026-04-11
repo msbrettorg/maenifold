@@ -16,6 +16,7 @@ import { getToolCategory } from '../lib/tool-categories';
 type NodeCardData = {
   nodeId: string;
   displayLabel?: string;
+  model?: string;
   workflowId?: string;
   acpClient?: string;
   status?: NodeStatus;
@@ -137,6 +138,7 @@ const currentStatus = computed(() => props.data.status ?? 'pending');
 const isActive = computed(() => currentStatus.value === 'active');
 const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
 const attempts = computed(() => props.data.attempts && props.data.attempts > 1 ? `×${props.data.attempts}` : '');
+const modelBadge = computed(() => props.data.model?.trim() ?? '');
 const promptPreview = computed(() => isPromptNode(node.value) ? shorten(node.value.prompt, 120) : '');
 const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.prompt ? shorten(node.value.prompt, 120) : '');
 </script>
@@ -167,6 +169,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
         <div class="meta-row">
           <span class="meta-pill">workflow: {{ node.workflowId }}</span>
           <span v-if="node.acpClient" class="meta-pill">{{ node.acpClient }}</span>
+          <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
             :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
@@ -180,6 +183,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
       <template v-else-if="isPromptNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
+          <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
             :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
@@ -193,6 +197,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
       <template v-else-if="isToolNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ toolCategory }}: {{ node.toolName }}</span>
+          <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
             :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
@@ -205,6 +210,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
       <template v-else-if="isSequentialThinkingNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
+          <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span class="meta-pill">topic: {{ node.topic }}</span>
           <span v-if="typeof node.totalThoughts === 'number'" class="meta-pill">thoughts: {{ node.totalThoughts }}</span>
           <span v-if="node.analysisType" class="meta-pill">{{ node.analysisType }}</span>

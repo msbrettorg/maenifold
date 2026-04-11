@@ -68,7 +68,7 @@ pub(super) fn build_node_execution_request(
             timeout,
             ..
         } => NodeExecutionRequest::Workflow {
-            workflow_id: interpolate_string(workflow_id, &scope)?,
+            workflow_id: workflow_id.clone(),
             existing_session_id: Some(node_session_id(node_states, node.id(), dispatch)),
             prompt: resolve_execution_prompt(
                 context,
@@ -168,7 +168,7 @@ pub(super) fn build_node_execution_request(
             timeout,
             ..
         } => NodeExecutionRequest::Tool {
-            tool_name: interpolate_string(tool_name, &scope)?,
+            tool_name: tool_name.clone(),
             tool_args: mapped_tool_args(
                 definition,
                 node_states,
@@ -806,6 +806,147 @@ mod tests {
                 Some(json!({ "message": "Hello world", "typed": "world" }))
             ),
             other => panic!("expected tool request, got {other:?}"),
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+            inputs: None,
+            template_id: None,
+        };
+        let node_states = HashMap::new();
+        let inputs = serde_json::Map::from_iter([
+            ("workflow".to_string(), json!("resolved.workflow")),
+            ("tool".to_string(), json!("GetConfig")),
+            ("name".to_string(), json!("world")),
+        ]);
+
+        let workflow_node = PipelineNode::Workflow {
+            id: "workflow".to_string(),
+            display_label: None,
+            workflow_id: "{{inputs.workflow}}".to_string(),
+            prompt: Some("Hello {{inputs.name}}".to_string()),
+            timeout: None,
+            acp_client: None,
+        };
+        let workflow_dispatch = DispatchedNode {
+            node_id: workflow_node.id().to_string(),
+            session_id: Some("workflow-1700000000000-workflow".to_string()),
+        };
+        let workflow_request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &workflow_node,
+            &workflow_dispatch,
+            "",
+            &inputs,
+        )
+        .expect("build workflow request");
+        match workflow_request {
+            NodeExecutionRequest::Workflow { workflow_id, .. } => {
+                assert_eq!(workflow_id, "{{inputs.workflow}}");
+            }
+            other => panic!("expected workflow request, got {other:?}"),
+        }
+
+        let tool_node = PipelineNode::Tool {
+            id: "tool".to_string(),
+            display_label: None,
+            tool_name: "{{inputs.tool}}".to_string(),
+            tool_args: Some(json!({ "message": "Hello {{inputs.name}}" })),
+            agent: None,
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let tool_dispatch = DispatchedNode {
+            node_id: tool_node.id().to_string(),
+            session_id: Some("workflow-1700000000000-tool".to_string()),
+        };
+        let tool_request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &tool_node,
+            &tool_dispatch,
+            "",
+            &inputs,
+        )
+        .expect("build tool request");
+        match tool_request {
+            NodeExecutionRequest::Tool {
+                tool_name,
+                tool_args,
+                ..
+            } => {
+                assert_eq!(tool_name, "{{inputs.tool}}");
+                assert_eq!(tool_args, Some(json!({ "message": "Hello world" })));
+            }
+            other => panic!("expected tool request, got {other:?}"),
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn build_node_execution_request_interpolates_sequential_thinking_topic() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+            inputs: None,
+            template_id: None,
+        };
+        let node_states = HashMap::new();
+        let inputs = serde_json::Map::from_iter([("name".to_string(), json!("world"))]);
+        let node = PipelineNode::SequentialThinking {
+            id: "think".to_string(),
+            display_label: None,
+            topic: "Plan for {{inputs.name}}".to_string(),
+            total_thoughts: 3,
+            analysis_type: None,
+            agent: "agent-think".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: node.id().to_string(),
+            session_id: Some("workflow-1700000000000-think".to_string()),
+        };
+
+        let request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &node,
+            &dispatch,
+            "",
+            &inputs,
+        )
+        .expect("build sequential thinking request");
+
+        match request {
+            NodeExecutionRequest::SequentialThinking {
+                topic,
+                prompt_context,
+                ..
+            } => {
+                assert_eq!(topic, "Plan for world");
+                assert_eq!(prompt_context, "Plan for world");
+            }
+            other => panic!("expected sequential thinking request, got {other:?}"),
         }
     }
 

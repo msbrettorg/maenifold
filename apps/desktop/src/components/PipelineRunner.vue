@@ -16,7 +16,6 @@ const activeTab = ref<RunnerTab>('event-log');
 const busyAction = ref<string | null>(null);
 const logContainer = ref<HTMLElement | null>(null);
 const runPrompt = ref('');
-const runInputValues = ref<Record<string, string>>({});
 const renderedSvg = ref('');
 const mermaidFallback = ref('');
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
@@ -54,6 +53,28 @@ const currentTemplate = computed(() => getPipelineTemplateById(currentTemplateId
 const runInputDefinitions = computed<readonly TemplateInputDefinition[]>(
   () => currentTemplate.value?.runInputs ?? [],
 );
+const currentRunInputDraft = computed(() => store.getRunInputDraft(currentRunInputDraftKey.value));
+const runInputValues = computed<Record<string, string>>(() => {
+  void currentRunInputDraft.value;
+  return new Proxy({} as Record<string, string>, {
+    get(_target, property) {
+      if (typeof property !== 'string') {
+        return '';
+      }
+
+      const value = currentRunInputDraft.value[property];
+      return typeof value === 'string' ? value : String(value ?? '');
+    },
+    set(_target, property, value) {
+      if (typeof property !== 'string' || !currentRunInputDraftKey.value) {
+        return true;
+      }
+
+      store.setRunInputDraft(currentRunInputDraftKey.value, property, String(value ?? ''));
+      return true;
+    },
+  });
+});
 const missingRequiredInputs = computed(() =>
   runInputDefinitions.value.filter((input) =>
     input.required && !(runInputValues.value[input.key] ?? '').trim(),
@@ -75,23 +96,6 @@ watch(() => eventLog.value.length, async (length, previousLength) => {
     logContainer.value.scrollTop = logContainer.value.scrollHeight;
   }
 });
-
-watch(currentRunInputDraftKey, (pipelineSessionId) => {
-  runInputValues.value = Object.fromEntries(
-    Object.entries(store.getRunInputDraft(pipelineSessionId)).map(([key, value]) => [
-      key,
-      typeof value === 'string' ? value : String(value ?? ''),
-    ]),
-  );
-}, { immediate: true });
-
-watch(runInputValues, (values) => {
-  if (!currentRunInputDraftKey.value) {
-    return;
-  }
-
-  store.replaceRunInputDraft(currentRunInputDraftKey.value, values);
-}, { deep: true });
 
 watch([activeTab, () => currentView.value?.mermaid ?? ''], async ([tab, diagram]) => {
   if (tab !== 'mermaid') return;

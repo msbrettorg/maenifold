@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use handlebars::Handlebars;
+use handlebars::{Handlebars, no_escape};
 use serde_json::Value as JsonValue;
 use serde_yaml::Value as YamlValue;
 
@@ -110,10 +110,46 @@ pub(super) fn pipeline_inputs_scope(inputs: &serde_json::Map<String, JsonValue>)
     )]))
 }
 
-pub(super) fn interpolate_string(template: &str, scope: &JsonValue) -> Result<String> {
+const DISABLED_HANDLEBARS_HELPERS: &[&str] = &[
+    "if",
+    "unless",
+    "each",
+    "with",
+    "lookup",
+    "raw",
+    "log",
+    "eq",
+    "ne",
+    "gt",
+    "gte",
+    "lt",
+    "lte",
+    "and",
+    "or",
+    "not",
+    "len",
+    "lowerCamelCase",
+    "upperCamelCase",
+    "snakeCase",
+    "kebabCase",
+    "shoutySnakeCase",
+    "shoutyKebabCase",
+    "titleCase",
+    "trainCase",
+];
+
+fn simple_path_substitution_handlebars() -> Handlebars<'static> {
     let mut handlebars = Handlebars::new();
+    for helper in DISABLED_HANDLEBARS_HELPERS {
+        handlebars.unregister_helper(helper);
+    }
+    handlebars.register_escape_fn(no_escape);
     handlebars.set_strict_mode(true);
     handlebars
+}
+
+pub(super) fn interpolate_string(template: &str, scope: &JsonValue) -> Result<String> {
+    simple_path_substitution_handlebars()
         .render_template(template, scope)
         .map_err(|error| {
             MaenifoldError::InvalidArgument(format!(
@@ -485,5 +521,32 @@ mod tests {
         .expect("ref should resolve");
 
         assert_eq!(resolved, json!({ "count": 3 }));
+    }
+
+    #[test]
+    fn interpolate_string_rejects_default_helpers() {
+        let error = interpolate_string(
+            "{{#if inputs.enabled}}enabled{{/if}}",
+            &json!({ "inputs": { "enabled": true } }),
+        )
+        .expect_err("default helpers should be disabled");
+
+        assert!(
+            error
+                .to_string()
+                .contains("Pipeline string interpolation failed")
+        );
+        assert!(error.to_string().contains("if"));
+    }
+
+    #[test]
+    fn interpolate_string_preserves_raw_value_substitution() {
+        let resolved = interpolate_string(
+            "Hello {{inputs.name}}",
+            &json!({ "inputs": { "name": "<world>" } }),
+        )
+        .expect("simple substitution should preserve raw value");
+
+        assert_eq!(resolved, "Hello <world>");
     }
 }

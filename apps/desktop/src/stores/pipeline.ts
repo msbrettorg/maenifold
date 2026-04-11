@@ -237,19 +237,8 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const definition = withLocalMetadata(result.definition, {
       templateId: template.id,
     });
-    const previousDefinition = localDefinition.value;
     localDefinition.value = definition;
-
-    const createResult = await createPipeline(definition);
-    if (isCreateResult(createResult) && typeof createResult.pipelineId === 'string' && createResult.pipelineId.length > 0) {
-      return true;
-    }
-
-    localDefinition.value = previousDefinition;
-    if (!errorMessage.value) {
-      setError('apply_template', new Error('Failed to create pipeline from template.'));
-    }
-    return false;
+    return true;
   }
   function buildIntentDefinition(prompt: string, agent: string): PipelineDefinition {
     const nodeId = createNodeId('prompt');
@@ -279,15 +268,8 @@ export const usePipelineStore = defineStore('pipeline', () => {
     }
 
     const definition = buildIntentDefinition(prompt, agent);
-    const result = await createPipeline(definition);
-    if (isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0) {
-      return true;
-    }
-
-    if (!errorMessage.value) {
-      setError('create_intent_pipeline', new Error('Failed to create pipeline from intent.'));
-    }
-    return false;
+    localDefinition.value = definition;
+    return true;
   }
   function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
     if (!pipelineSessionId) {

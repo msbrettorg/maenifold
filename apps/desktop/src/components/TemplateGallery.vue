@@ -98,7 +98,7 @@ function handleIntentInput(): void {
           {{ intentError }}
         </p>
         <p class="gallery-intent-hint">
-          Press Enter to create a pipeline from your request.
+          Press Enter to start designing your pipeline.
         </p>
         <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
           Configure an agent before creating a pipeline.

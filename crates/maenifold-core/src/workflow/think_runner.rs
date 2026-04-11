@@ -128,6 +128,7 @@ pub(crate) async fn drive_think_session(
     session_opts: SessionOpts,
     pool: &AgentPool,
     content_blocks: Option<Vec<acp::ContentBlock>>,
+    keep_session_alive: bool,
 ) -> Result<ThinkResult> {
     let driver = open_agent_session(
         pool,
@@ -146,11 +147,16 @@ pub(crate) async fn drive_think_session(
         content_blocks,
     )
     .await;
-    match (result, driver.close().await) {
-        (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) => Err(error),
-        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-        (Err(error), Ok(())) => Err(error),
+    if keep_session_alive {
+        driver.keep_alive();
+        result
+    } else {
+        match (result, driver.close().await) {
+            (Ok(value), Ok(())) => Ok(value),
+            (Ok(_), Err(error)) => Err(error),
+            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
+            (Err(error), Ok(())) => Err(error),
+        }
     }
 }
 
@@ -215,6 +221,7 @@ pub(crate) async fn run_think_with_pool(
     session_opts: SessionOpts,
     pool: Arc<AgentPool>,
     content_blocks: Option<Vec<acp::ContentBlock>>,
+    keep_session_alive: bool,
 ) -> Result<ThinkResult> {
     let session_id = seed_think_session(context, topic, &opts).await?;
     drive_think_session(
@@ -227,6 +234,7 @@ pub(crate) async fn run_think_with_pool(
         session_opts,
         pool.as_ref(),
         content_blocks,
+        keep_session_alive,
     )
     .await
 }

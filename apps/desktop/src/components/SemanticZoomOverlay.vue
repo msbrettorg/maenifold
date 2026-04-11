@@ -36,6 +36,15 @@ const workflowSteps = computed(() => {
 });
 
 const nodeOutput = computed(() => viewNode.value?.output ?? null);
+const toolProvenance = computed(() => {
+  const node = viewNode.value;
+  if (!node || node.type !== 'tool') return null;
+  return node.toolProvenance ?? null;
+});
+
+function formatJson(value: Record<string, unknown> | null | undefined): string {
+  return value ? JSON.stringify(value, null, 2) : '—';
+}
 
 function handleKeyDown(e: KeyboardEvent) {
   if (e.key === 'Escape') {
@@ -95,7 +104,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
             <pre class="zoom-pre">{{ nodeOutput }}</pre>
           </details>
 
-          <div v-if="!assembledPrompt && !thinkingTrace && !workflowSteps && !nodeOutput" class="zoom-empty">
+          <details v-if="toolProvenance" class="zoom-section" open>
+            <summary class="zoom-section-title">Tool Provenance</summary>
+            <div class="zoom-metadata">
+              <span class="item-label">Tool</span>
+              <strong>{{ toolProvenance.toolName }}</strong>
+            </div>
+            <pre class="zoom-pre">{{ formatJson(toolProvenance.resolvedArgs ?? null) }}</pre>
+            <pre v-if="toolProvenance.responseSummary" class="zoom-pre">{{ toolProvenance.responseSummary }}</pre>
+          </details>
+
+          <div v-if="!assembledPrompt && !thinkingTrace && !workflowSteps && !nodeOutput && !toolProvenance" class="zoom-empty">
             This node hasn't produced any output yet.
           </div>
         </div>
@@ -169,6 +188,13 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 .zoom-list-item {
   display: flex; flex-direction: column; gap: var(--space-1);
   padding: var(--space-2); background: var(--bg-surface); border-radius: var(--radius-md);
+}
+.zoom-metadata {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
 }
 .item-label { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
 .item-status { font-size: var(--text-xs); color: var(--text-muted); }

@@ -378,9 +378,42 @@ impl AgentHandle {
         Ok(())
     }
 
+    #[cfg(test)]
+    pub(crate) async fn register_test_session(&self, session_id: &str) {
+        self.client.register_session(session_id).await;
+    }
+
+    #[cfg(test)]
+    pub(crate) async fn has_tracked_session(&self, session_id: &str) -> bool {
+        self.client.has_session(session_id).await
+    }
+
     pub(crate) fn shutdown_nowait(&self) -> Result<()> {
         self.mailbox.enqueue_control(AgentCommand::Shutdown)
     }
+}
+
+#[cfg(test)]
+pub(crate) fn test_handle_for_tests(
+    capacity: usize,
+) -> (
+    AgentHandle,
+    mpsc::Receiver<AgentCommand>,
+    mpsc::Receiver<AgentCommand>,
+) {
+    let (request_tx, request_rx) = mpsc::channel(capacity);
+    let (control_tx, control_rx) = mpsc::channel(capacity);
+    (
+        AgentHandle {
+            mailbox: CommandMailbox::bounded_for_test(request_tx, control_tx),
+            init: Arc::new(StdMutex::new(None)),
+            conn: Arc::new(StdMutex::new(None)),
+            alive: Arc::new(AtomicBool::new(true)),
+            client: HeadlessClient::new(PathBuf::from("."), true),
+        },
+        request_rx,
+        control_rx,
+    )
 }
 
 #[cfg(test)]

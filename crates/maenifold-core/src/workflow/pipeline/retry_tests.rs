@@ -180,6 +180,8 @@ fn pre_exec_failure_transitions_to_retrying() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         &mut counts,
     )
@@ -226,6 +228,8 @@ fn post_exec_failure_stays_abandoned() {
         NodeOutcome::Abandoned {
             reason: "prompt failed".to_string(),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         &mut counts,
     )
@@ -273,6 +277,8 @@ fn max_attempts_exceeded_becomes_stuck() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         &mut counts,
     )
@@ -319,6 +325,8 @@ fn retrying_node_state_has_retry_metadata() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         &mut counts,
     )

@@ -157,6 +157,7 @@ pub(crate) async fn run_workflow_with_pool(
     model: Option<String>,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     pool: Arc<AgentPool>,
+    keep_session_alive: bool,
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
         init_workflow_session(context, workflow_id, existing_session_id)?;
@@ -244,12 +245,17 @@ pub(crate) async fn run_workflow_with_pool(
         }
     }
     .await;
-    let close_result = driver.close().await;
-    match (result, close_result) {
-        (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) => Err(error),
-        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-        (Err(error), Ok(())) => Err(error),
+    if keep_session_alive {
+        driver.keep_alive();
+        result
+    } else {
+        let close_result = driver.close().await;
+        match (result, close_result) {
+            (Ok(value), Ok(())) => Ok(value),
+            (Ok(_), Err(error)) => Err(error),
+            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
+            (Err(error), Ok(())) => Err(error),
+        }
     }
 }
 
@@ -265,6 +271,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     prompt: &str,
     session_opts: SessionOpts,
     pool: Arc<AgentPool>,
+    keep_session_alive: bool,
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
         init_workflow_session(context, workflow_id, existing_session_id)?;
@@ -320,12 +327,17 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         }
     }
     .await;
-    let close_result = driver.close().await;
-    match (result, close_result) {
-        (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) => Err(error),
-        (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-        (Err(error), Ok(())) => Err(error),
+    if keep_session_alive {
+        driver.keep_alive();
+        result
+    } else {
+        let close_result = driver.close().await;
+        match (result, close_result) {
+            (Ok(value), Ok(())) => Ok(value),
+            (Ok(_), Err(error)) => Err(error),
+            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
+            (Err(error), Ok(())) => Err(error),
+        }
     }
 }
 

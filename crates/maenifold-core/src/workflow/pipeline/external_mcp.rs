@@ -106,8 +106,7 @@ async fn invoke_via_http(
     arguments: Option<JsonMap<String, JsonValue>>,
 ) -> Result<String> {
     use rmcp::transport::{
-        StreamableHttpClientTransport,
-        streamable_http_client::StreamableHttpClientTransportConfig,
+        StreamableHttpClientTransport, streamable_http_client::StreamableHttpClientTransportConfig,
     };
 
     // Build an explicit reqwest client with a 30-second timeout.

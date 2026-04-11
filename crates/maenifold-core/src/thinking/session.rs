@@ -113,7 +113,10 @@ pub(crate) fn validate_session_state(
             existing_status.as_str(),
             "completed" | "cancelled" | "abandoned"
         ) {
-            let message = format!("Session {} is already {}", input.session_id, existing_status);
+            let message = format!(
+                "Session {} is already {}",
+                input.session_id, existing_status
+            );
             return Ok((
                 false,
                 Some(render_failure(context, "SESSION_CLOSED", &message)),

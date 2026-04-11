@@ -41,6 +41,34 @@ function createPromptRoundTripView(): PipelineView {
   };
 }
 
+function createToolProvenanceView(): PipelineView {
+  return {
+    pipelineId: 'pipeline-2',
+    status: 'paused',
+    running: false,
+    ready: [],
+    active: [],
+    completed: ['tool-1'],
+    mermaid: 'graph TD;',
+    edges: [],
+    nodes: [
+      {
+        nodeId: 'tool-1',
+        sessionId: 'workflow-tool-local',
+        status: 'completed',
+        attempts: 1,
+        type: 'tool',
+        toolName: 'example.echo',
+        toolProvenance: {
+          toolName: 'example.echo',
+          resolvedArgs: { value: 1 },
+          responseSummary: '{"value":1}',
+        },
+      },
+    ],
+  };
+}
+
 function createTestEnv() {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -144,5 +172,29 @@ describe('PipelineInspector', () => {
     });
     expect('model' in pipelineStore.localDefinition.nodes[0]!).toBe(false);
     expect('thoughtLevel' in pipelineStore.localDefinition.nodes[0]!).toBe(false);
+  });
+
+  it('shows read-only tool provenance for server-side tool nodes', async () => {
+    const { pinia, pipelineStore } = createTestEnv();
+    pipelineStore.designMode = false;
+    pipelineStore.currentView = createToolProvenanceView();
+
+    const wrapper = mount(PipelineInspector, {
+      props: {
+        selectedNodeId: 'tool-1',
+        selectedEdge: null,
+      },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Executed tool');
+    expect(wrapper.text()).toContain('example.echo');
+    expect(wrapper.text()).toContain('Response summary');
+    expect(wrapper.text()).toContain('{"value":1}');
+    expect(wrapper.text()).toContain('"value": 1');
   });
 });

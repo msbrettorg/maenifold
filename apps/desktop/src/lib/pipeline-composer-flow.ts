@@ -5,6 +5,7 @@ import type {
   PipelineEdge,
   PipelineNode,
   PipelineNodeType,
+  ToolProvenance,
   ViewNode,
 } from './pipeline-types';
 import {
@@ -18,6 +19,8 @@ export type FlowNodeData = {
   nodeId: string;
   label: string;
   type: PipelineNodeType;
+  acpSessionId?: string;
+  thinkingSessionId?: string;
   workflowId?: string;
   acpClient?: string;
   prompt?: string;
@@ -27,6 +30,7 @@ export type FlowNodeData = {
   analysisType?: string;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
+  toolProvenance?: ToolProvenance | null;
   status?: ViewNode['status'];
   attempts?: number;
 };
@@ -73,6 +77,8 @@ function toFlowNodeData(
     nodeId: node.id,
     label: node.id,
     type: node.type ?? 'workflow',
+    acpSessionId: viewNode?.acpSessionId,
+    thinkingSessionId: viewNode?.thinkingSessionId,
     status: viewNode?.status,
     attempts: viewNode?.attempts,
   };
@@ -112,6 +118,19 @@ function toFlowNodeData(
       ...(node.agent ? { agent: node.agent } : {}),
       toolName: node.toolName,
       ...(node.toolArgs ? { toolArgs: node.toolArgs } : {}),
+      ...(viewNode?.type === 'tool' && viewNode.toolProvenance
+        ? {
+            toolProvenance: {
+              toolName: viewNode.toolProvenance.toolName,
+              ...(viewNode.toolProvenance.resolvedArgs
+                ? { resolvedArgs: { ...viewNode.toolProvenance.resolvedArgs } }
+                : {}),
+              ...(viewNode.toolProvenance.responseSummary != null
+                ? { responseSummary: viewNode.toolProvenance.responseSummary }
+                : {}),
+            },
+          }
+        : {}),
     };
   }
 

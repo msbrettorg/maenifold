@@ -3,14 +3,14 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_yaml::Value as YamlValue;
 
+use super::compute_blocked_cascade;
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
     update_workflow_node_frontmatter,
 };
+use super::types::ToolProvenance;
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
-use super::compute_blocked_cascade;
-use super::types::ToolProvenance;
 use super::{NodeStatus, PipelineDefinition};
 
 #[allow(clippy::too_many_lines)]
@@ -97,8 +97,12 @@ pub(super) fn update_pipeline_node_status(
                 ))
             })?;
             state.status = transitioned_status;
-            state.acp_session_id = None;
-            state.thinking_session_id = None;
+            if let Some(acp_session_id) = acp_session_id {
+                state.acp_session_id = Some(acp_session_id.to_string());
+            }
+            if let Some(thinking_session_id) = thinking_session_id {
+                state.thinking_session_id = Some(thinking_session_id.to_string());
+            }
             state.tool_provenance = None;
             state.output = None;
             state.failure_reason = failure_reason

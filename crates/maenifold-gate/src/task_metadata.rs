@@ -1,5 +1,5 @@
 use regex::Regex;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
 use std::sync::LazyLock;
 
 use crate::error::GateError;
@@ -15,6 +15,7 @@ pub struct TaskMetadata {
     pub title: String,
     pub pipeline: String,
     pub state: Option<String>,
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -23,6 +24,12 @@ struct FrontmatterTask {
     title: Option<String>,
     pipeline: Option<String>,
     state: Option<String>,
+    #[serde(
+        default,
+        rename = "sessionId",
+        deserialize_with = "deserialize_optional_session_id"
+    )]
+    session_id: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,6 +53,7 @@ impl TaskMetadataParser {
                     .pipeline
                     .ok_or(GateError::MissingMetadataField("pipeline"))?,
                 state: frontmatter.state,
+                session_id: frontmatter.session_id,
             });
         }
 
@@ -55,6 +63,7 @@ impl TaskMetadataParser {
             pipeline: parse_labeled_value(lines, "Pipeline")?
                 .ok_or(GateError::MissingMetadataField("Pipeline"))?,
             state: None,
+            session_id: None,
         })
     }
 
@@ -65,6 +74,24 @@ impl TaskMetadataParser {
             .flatten()
             .and_then(|frontmatter| frontmatter.id)
     }
+}
+
+pub fn is_linked_session_id(session_id: Option<&str>) -> bool {
+    matches!(
+        session_id,
+        Some(value) if value.starts_with("session-") || value.starts_with("workflow-")
+    )
+}
+
+fn deserialize_optional_session_id<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<serde_yaml::Value>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_yaml::Value::String(value)) => Some(value),
+        _ => None,
+    })
 }
 
 fn parse_frontmatter(lines: &[&str]) -> Result<Option<FrontmatterTask>, GateError> {
@@ -108,4 +135,44 @@ fn parse_labeled_value(lines: &[&str], label: &str) -> Result<Option<String>, Ga
             None
         }
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TaskMetadataParser, is_linked_session_id};
+
+    #[test]
+    fn parses_optional_session_id_from_frontmatter() {
+        let lines = vec![
+            "---",
+            "id: T-108.2",
+            "title: Linked task",
+            "pipeline: sdd",
+            "sessionId: session-1775916753112-57359",
+            "---",
+        ];
+
+        let metadata = TaskMetadataParser::parse(&lines).expect("parse metadata");
+        assert_eq!(
+            metadata.session_id.as_deref(),
+            Some("session-1775916753112-57359")
+        );
+        assert!(is_linked_session_id(metadata.session_id.as_deref()));
+    }
+
+    #[test]
+    fn ignores_non_string_session_id_values() {
+        let lines = vec![
+            "---",
+            "title: Lenient task",
+            "pipeline: sdd",
+            "sessionId:",
+            "  - malformed",
+            "---",
+        ];
+
+        let metadata = TaskMetadataParser::parse(&lines).expect("parse metadata");
+        assert_eq!(metadata.session_id, None);
+        assert!(!is_linked_session_id(metadata.session_id.as_deref()));
+    }
 }

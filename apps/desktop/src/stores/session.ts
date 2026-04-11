@@ -179,6 +179,69 @@ export const useSessionStore = defineStore('session', () => {
     applyConfigOptionsUpdate(session, response.configOptions);
   }
 
+  function findLocalSessionByRemoteSessionId(
+    remoteSessionId: string
+  ): { localId: string; session: SessionState } | null {
+    const matches = [...sessions.value.entries()]
+      .filter(([, session]) => session.session?.sessionId === remoteSessionId)
+      .sort(([leftLocalId, leftSession], [rightLocalId, rightSession]) => {
+        if (leftSession.isConnected !== rightSession.isConnected) {
+          return Number(rightSession.isConnected) - Number(leftSession.isConnected);
+        }
+
+        const leftCreatedAt = Number(leftLocalId.split('-')[1] ?? 0);
+        const rightCreatedAt = Number(rightLocalId.split('-')[1] ?? 0);
+        return rightCreatedAt - leftCreatedAt;
+      });
+
+    const [localId, session] = matches[0] ?? [];
+    return localId && session ? { localId, session } : null;
+  }
+
+  async function focusOrResumeRemoteSession(remoteSessionId: string): Promise<{
+    status: 'activated' | 'resumed' | 'missing' | 'error';
+    localSessionId?: string;
+  }> {
+    const trimmedSessionId = remoteSessionId.trim();
+    if (!trimmedSessionId) {
+      setError('Unable to reconnect: missing ACP session identifier.');
+      return { status: 'missing' };
+    }
+
+    const localSession = findLocalSessionByRemoteSessionId(trimmedSessionId);
+    if (localSession?.session.isConnected) {
+      setActiveSession(localSession.localId);
+      return { status: 'activated', localSessionId: localSession.localId };
+    }
+
+    const savedSession = savedSessions.value.find(
+      (session) =>
+        session.sessionId === trimmedSessionId && session.supportsLoadSession === true,
+    );
+
+    if (!savedSession) {
+      setError(
+        `ACP session ${trimmedSessionId} is unavailable. The originating agent session may have expired.`,
+      );
+      return { status: 'missing' };
+    }
+
+    try {
+      await resumeSession(savedSession);
+      return {
+        status: 'resumed',
+        localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
+      };
+    } catch (error) {
+      setError(
+        error instanceof Error
+          ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
+          : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+      );
+      return { status: 'error' };
+    }
+  }
+
   // ── Error helpers ─────────────────────────────────────────────────
 
   function clearError() {
@@ -241,6 +304,7 @@ export const useSessionStore = defineStore('session', () => {
     setMode,
     setModel,
     setConfigOption,
+    focusOrResumeRemoteSession,
     setError,
     clearError,
     clearMessages,

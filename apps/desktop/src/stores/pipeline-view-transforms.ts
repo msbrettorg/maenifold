@@ -4,6 +4,7 @@ import type {
   PipelineNodeAgentConfig,
   PipelineView,
   PipelineNode,
+  ToolProvenance,
   ViewNode,
 } from '../lib/pipeline-types';
 interface PipelineListResult {
@@ -45,6 +46,10 @@ function normalizeViewNode(node: ViewNode): ViewNode {
     normalized.agentConfig = cloneAgentConfig(normalized.agentConfig);
   }
 
+  if ('toolProvenance' in normalized && normalized.toolProvenance) {
+    normalized.toolProvenance = cloneToolProvenance(normalized.toolProvenance);
+  }
+
   return normalized;
 }
 
@@ -57,6 +62,18 @@ function cloneAgentConfig(
     ...(agentConfig.thoughtLevel ? { thoughtLevel: agentConfig.thoughtLevel } : {}),
     ...(agentConfig.configOptions
       ? { configOptions: { ...agentConfig.configOptions } }
+      : {}),
+  };
+}
+
+function cloneToolProvenance(toolProvenance: ToolProvenance): ToolProvenance {
+  return {
+    toolName: toolProvenance.toolName,
+    ...(toolProvenance.resolvedArgs
+      ? { resolvedArgs: { ...toolProvenance.resolvedArgs } }
+      : {}),
+    ...(toolProvenance.responseSummary != null
+      ? { responseSummary: toolProvenance.responseSummary }
       : {}),
   };
 }

@@ -284,26 +284,27 @@ mod tests {
             }],
         };
         let node_states: HashMap<String, NodeState> = [
-            ("upstream".to_string(), make_state("workflow-1700000001000-upstream", NodeStatus::Abandoned)),
-            ("terminal".to_string(), make_state("workflow-1700000001000-terminal", NodeStatus::Completed)),
+            (
+                "upstream".to_string(),
+                make_state("workflow-1700000001000-upstream", NodeStatus::Abandoned),
+            ),
+            (
+                "terminal".to_string(),
+                make_state("workflow-1700000001000-terminal", NodeStatus::Completed),
+            ),
         ]
         .into();
 
-        seed_pipeline_session_with_node_sessions(
-            &context,
-            session_id,
-            definition,
-            node_states,
-            8,
-        );
+        seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 8);
 
-        let result = handle_lifecycle_operation(
-            &context,
-            session_id,
-            &json!({ "forceComplete": true }),
-        );
+        let result =
+            handle_lifecycle_operation(&context, session_id, &json!({ "forceComplete": true }));
 
-        assert!(result.is_ok(), "force-complete should succeed: {:?}", result);
+        assert!(
+            result.is_ok(),
+            "force-complete should succeed: {:?}",
+            result
+        );
         let msg = result.unwrap().expect("should have Some response");
         assert!(
             msg.contains("force-completed"),
@@ -329,19 +330,19 @@ mod tests {
         let mut rw = fd_lock::RwLock::new(file);
         // Hold the exclusive write lock for the duration of the call so that
         // `session_lock_is_held` sees WouldBlock and returns true.
-        let mut guard = rw.try_write().expect("should acquire pipeline lock in test");
+        let mut guard = rw
+            .try_write()
+            .expect("should acquire pipeline lock in test");
         guard.write_all(b"test-holder").unwrap();
 
-        let result = handle_lifecycle_operation(
-            &context,
-            session_id,
-            &json!({ "forceComplete": true }),
-        );
+        let result =
+            handle_lifecycle_operation(&context, session_id, &json!({ "forceComplete": true }));
 
         drop(guard); // release before any cleanup
         assert!(
             result.is_err(),
-            "force-complete must be rejected while pipeline lock is held; got: {:?}", result
+            "force-complete must be rejected while pipeline lock is held; got: {:?}",
+            result
         );
         let err_msg = result.unwrap_err().to_string();
         assert!(
@@ -373,28 +374,16 @@ mod tests {
         let node_states: HashMap<String, NodeState> = [
             (
                 "upstream".to_string(),
-                make_state(
-                    "workflow-1700000003000-upstream",
-                    NodeStatus::Abandoned,
-                ),
+                make_state("workflow-1700000003000-upstream", NodeStatus::Abandoned),
             ),
             (
                 "terminal".to_string(),
-                make_state(
-                    "workflow-1700000003000-terminal",
-                    NodeStatus::Completed,
-                ),
+                make_state("workflow-1700000003000-terminal", NodeStatus::Completed),
             ),
         ]
         .into();
 
-        seed_pipeline_session_with_node_sessions(
-            &context,
-            session_id,
-            definition,
-            node_states,
-            8,
-        );
+        seed_pipeline_session_with_node_sessions(&context, session_id, definition, node_states, 8);
 
         // Force-complete the pipeline.
         handle_lifecycle_operation(&context, session_id, &json!({ "forceComplete": true }))

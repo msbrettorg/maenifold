@@ -57,6 +57,8 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
         NodeOutcome::Abandoned {
             reason: "runner crashed".to_string(),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         &mut counts,
     )

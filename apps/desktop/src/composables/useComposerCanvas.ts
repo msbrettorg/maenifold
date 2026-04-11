@@ -16,6 +16,8 @@ import {
 } from '../lib/pipeline-composer-flow';
 import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
+import { useSessionStore } from '../stores/session';
+import { useAppShellStore } from '../stores/app-shell';
 
 type SelectedEdge = { source: string; target: string };
 
@@ -188,12 +190,44 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   });
 
   const zoomStore = useSemanticZoomStore();
+  const sessionStore = useSessionStore();
+  const appShellStore = useAppShellStore();
+
+  function enterInspect(nodeId: string, event: MouseEvent | TouchEvent): void {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const nodeEl = target.closest<HTMLElement>('.vue-flow__node');
+    if (!nodeEl) return;
+    zoomStore.enterInspect(nodeId, nodeEl.getBoundingClientRect());
+  }
+
+  async function handleNodeDoubleClick(node: Node, event: MouseEvent | TouchEvent): Promise<void> {
+    if (options.designMode()) return;
+
+    const viewNode = options.view()?.nodes.find((candidate) => candidate.nodeId === node.id);
+    const acpSessionId = viewNode?.type !== 'tool' ? viewNode?.acpSessionId : undefined;
+
+    if (!viewNode || !acpSessionId) {
+      enterInspect(node.id, event);
+      return;
+    }
+
+    try {
+      const result = await sessionStore.focusOrResumeRemoteSession(acpSessionId);
+      if (result.status === 'activated' || result.status === 'resumed') {
+        appShellStore.openAgents();
+      }
+    } catch (error) {
+      sessionStore.setError(
+        error instanceof Error
+          ? `Failed to reconnect ACP session: ${error.message}`
+          : 'Failed to reconnect ACP session.',
+      );
+    }
+  }
 
   onNodeDoubleClick(({ node, event }) => {
-    if (options.designMode()) return;
-    const nodeEl = (event.target as Element).closest<HTMLElement>('.vue-flow__node');
-    if (!nodeEl) return;
-    zoomStore.enterInspect(node.id, nodeEl.getBoundingClientRect());
+    void handleNodeDoubleClick(node, event);
   });
 
   function handleFlowKeyDown(event: KeyboardEvent): void {

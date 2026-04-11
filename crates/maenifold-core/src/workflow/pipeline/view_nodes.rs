@@ -77,7 +77,9 @@ pub(super) fn pipeline_nodes_json(
                     state
                         .thinking_session_id
                         .as_deref()
-                        .and_then(|thinking_session_id| parse_thinking_trace(context, thinking_session_id))
+                        .and_then(|thinking_session_id| {
+                            parse_thinking_trace(context, thinking_session_id)
+                        })
                         .map(Value::Array)
                         .unwrap_or(Value::Null)
                 } else {

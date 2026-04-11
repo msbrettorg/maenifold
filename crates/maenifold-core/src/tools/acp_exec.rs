@@ -168,6 +168,7 @@ async fn exec_think_async(
         opts,
         Arc::clone(&GLOBAL_AGENT_POOL),
         context_blocks,
+        false,
     )
     .await
     .map(|result| {
@@ -196,6 +197,7 @@ async fn exec_workflow_async(
         opts.model.clone(),
         context_blocks,
         Arc::clone(&GLOBAL_AGENT_POOL),
+        false,
     )
     .await
     .and_then(workflow_conclusion_text)

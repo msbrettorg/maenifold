@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
+use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown, write_markdown};
 use crate::sessions::{display_utc_now, frontmatter_string, workflow_session_uri};
 use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
@@ -648,11 +648,11 @@ fn extract_yaml_frontmatter(content: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{
-        find_gate_task_status, maybe_resume_submachine, parse_submachine_type,
-        register_host_submachine, HostSessionType, ResumeSubmachineResult, SubmachineType,
+        HostSessionType, ResumeSubmachineResult, SubmachineType, find_gate_task_status,
+        maybe_resume_submachine, parse_submachine_type, register_host_submachine,
     };
     use crate::config::Config;
-    use crate::markdown::{read_markdown, write_markdown, Frontmatter};
+    use crate::markdown::{Frontmatter, read_markdown, write_markdown};
     use crate::sessions::frontmatter_string;
     use crate::tools::ToolContext;
     use crate::util::json::OutputFormat;

@@ -215,6 +215,7 @@ pub(super) async fn execute_node_request(
                     &prompt,
                     session_opts,
                     pool.clone(),
+                    true,
                 )
                 .await,
             ),
@@ -237,6 +238,7 @@ pub(super) async fn execute_node_request(
                     &prompt,
                     &tool_mode,
                     session_opts,
+                    true,
                 )
                 .await,
             ),
@@ -263,6 +265,7 @@ pub(super) async fn execute_node_request(
                     session_opts,
                     pool,
                     None,
+                    true,
                 )
                 .await,
             ),

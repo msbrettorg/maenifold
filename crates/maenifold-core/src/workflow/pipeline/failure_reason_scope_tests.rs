@@ -90,7 +90,10 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
         node_states["node"].failure_reason.as_deref(),
         Some("agent refused prompt")
     );
-    assert_eq!(node_states["node"].thinking_session_id, None);
+    assert_eq!(
+        node_states["node"].thinking_session_id.as_deref(),
+        Some("session-1735689600000-node")
+    );
     assert_eq!(node_states["node"].output, None);
 }
 

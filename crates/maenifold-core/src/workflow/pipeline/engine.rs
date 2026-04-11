@@ -128,12 +128,7 @@ pub fn compute_terminal_node_ids(definition: &PipelineDefinition) -> Vec<&str> {
     definition
         .nodes
         .iter()
-        .filter(|node| {
-            !definition
-                .edges
-                .iter()
-                .any(|edge| edge.source == node.id())
-        })
+        .filter(|node| !definition.edges.iter().any(|edge| edge.source == node.id()))
         .map(|node| node.id())
         .collect()
 }

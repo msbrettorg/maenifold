@@ -113,9 +113,17 @@ export interface PipelineDefinition {
 interface ViewNodeBase {
   nodeId: string;
   sessionId: string;
+  acpSessionId?: string;
+  thinkingSessionId?: string;
   status: NodeStatus;
   attempts: number;
   output?: string;
+}
+
+export interface ToolProvenance {
+  toolName: string;
+  resolvedArgs?: Record<string, unknown> | null;
+  responseSummary?: string | null;
 }
 
 export interface WorkflowStepEntry {
@@ -171,6 +179,7 @@ export interface ToolViewNode extends ViewNodeBase {
   type: "tool";
   toolName: string;
   toolArgs?: Record<string, unknown>;
+  toolProvenance?: ToolProvenance | null;
   agent?: string;
   model?: string;
   thoughtLevel?: string;

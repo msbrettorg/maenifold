@@ -56,8 +56,12 @@ pub(super) enum NodeOutcome {
     Abandoned {
         reason: String,
         phase: FailurePhase,
+        acp_session_id: Option<String>,
+        thinking_session_id: Option<String>,
     },
 }
+
+const PROMPT_FAILURE_PREFIX: &str = "\u{0}pipeline_prompt_failure:";
 
 pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> NodeOutcome {
     match result {
@@ -85,6 +89,8 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 NodeOutcome::Abandoned {
                     reason: msg.clone(),
                     phase: FailurePhase::PostPrompt,
+                    acp_session_id: workflow.acp_session_id.clone(),
+                    thinking_session_id: None,
                 }
             }
             WorkflowRunStatus::Cancelled => {
@@ -92,66 +98,104 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                 NodeOutcome::Abandoned {
                     reason: "workflow cancelled".to_string(),
                     phase: FailurePhase::PostPrompt,
+                    acp_session_id: workflow.acp_session_id,
+                    thinking_session_id: None,
                 }
             }
         },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
     }
 }
 
 fn classify_prompt_result(node_id: &str, result: Result<PromptExecutionResult>) -> NodeOutcome {
     match result {
-        Ok(result) if !result.response.trim().is_empty() => NodeOutcome::Completed {
-            conclusion: result.response,
-            acp_session_id: result.acp_session_id,
-            thinking_session_id: None,
-            tool_provenance: None,
-        },
-        Ok(_) => NodeOutcome::Abandoned {
-            reason: "empty response".to_string(),
-            phase: FailurePhase::PostPrompt,
-        },
+        Ok(result) => {
+            if let Some(reason) = decode_prompt_failure(&result.response) {
+                eprintln!("[pipeline] node {node_id} failed: {reason}");
+                NodeOutcome::Abandoned {
+                    reason,
+                    phase: FailurePhase::PostPrompt,
+                    acp_session_id: result.acp_session_id,
+                    thinking_session_id: None,
+                }
+            } else if !result.response.trim().is_empty() {
+                NodeOutcome::Completed {
+                    conclusion: result.response,
+                    acp_session_id: result.acp_session_id,
+                    thinking_session_id: None,
+                    tool_provenance: None,
+                }
+            } else {
+                NodeOutcome::Abandoned {
+                    reason: "empty response".to_string(),
+                    phase: FailurePhase::PostPrompt,
+                    acp_session_id: result.acp_session_id,
+                    thinking_session_id: None,
+                }
+            }
+        }
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
     }
 }
 
 fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> NodeOutcome {
     match result {
-        Ok(think) => think
-            .conclusion
-            .map(|conclusion| conclusion.trim().to_string())
-            .filter(|conclusion| !conclusion.is_empty())
-            .map(|conclusion| NodeOutcome::Completed {
+        Ok(think) => {
+            let runner::ThinkResult {
+                session_id,
+                acp_session_id,
                 conclusion,
-                acp_session_id: think.acp_session_id,
-                thinking_session_id: Some(think.session_id),
-                tool_provenance: None,
-            })
-            .unwrap_or(NodeOutcome::Abandoned {
-                reason: "missing conclusion".to_string(),
-                phase: FailurePhase::PostPrompt,
-            }),
+                ..
+            } = think;
+            conclusion
+                .map(|conclusion| conclusion.trim().to_string())
+                .filter(|conclusion| !conclusion.is_empty())
+                .map(|conclusion| NodeOutcome::Completed {
+                    conclusion,
+                    acp_session_id: acp_session_id.clone(),
+                    thinking_session_id: Some(session_id.clone()),
+                    tool_provenance: None,
+                })
+                .unwrap_or(NodeOutcome::Abandoned {
+                    reason: "missing conclusion".to_string(),
+                    phase: FailurePhase::PostPrompt,
+                    acp_session_id,
+                    thinking_session_id: Some(session_id),
+                })
+        }
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
     }
 }
@@ -167,14 +211,20 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
         Err(error) => NodeOutcome::Abandoned {
             reason: log_node_execution_error(node_id, &error),
             phase: FailurePhase::PostPrompt,
+            acp_session_id: None,
+            thinking_session_id: None,
         },
     }
 }
@@ -199,6 +249,16 @@ fn log_node_execution_error_str(node_id: &str, message: &str) -> String {
     message.to_string()
 }
 
+fn encode_prompt_failure(message: &str) -> String {
+    format!("{PROMPT_FAILURE_PREFIX}{message}")
+}
+
+fn decode_prompt_failure(response: &str) -> Option<String> {
+    response
+        .strip_prefix(PROMPT_FAILURE_PREFIX)
+        .map(str::to_string)
+}
+
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn run_prompt_node(
     _context: &ToolContext,
@@ -208,15 +268,18 @@ pub(super) async fn run_prompt_node(
     prompt: &str,
     _tool_mode: &str,
     session_opts: SessionOpts,
+    keep_session_alive: bool,
 ) -> Result<PromptExecutionResult> {
     let session = open_agent_session(pool, agent, session_id, session_opts).await?;
     let response_result = session.prompt(prompt).await;
     let acp_session_id = session.remote_id().to_string();
-    let close_result = session.close().await;
     let prompt_result = match response_result {
         Ok(response) => {
             if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
-                Err(MaenifoldError::Message(error))
+                Ok(PromptExecutionResult {
+                    response: encode_prompt_failure(&error),
+                    acp_session_id: Some(acp_session_id),
+                })
             } else {
                 Ok(PromptExecutionResult {
                     response: response.text.trim().to_string(),
@@ -224,13 +287,39 @@ pub(super) async fn run_prompt_node(
                 })
             }
         }
-        Err(error) => Err(error),
+        Err(error) => Ok(PromptExecutionResult {
+            response: encode_prompt_failure(&error.to_string()),
+            acp_session_id: Some(acp_session_id),
+        }),
     };
-    match (prompt_result, close_result) {
-        (Ok(value), Ok(())) => Ok(value),
-        (Ok(_), Err(error)) => Err(error),
-        (Err(error), Ok(())) => Err(error),
-        (Err(error), Err(close_error)) => Err(runner::append_close_error_context(error, close_error)),
+    if keep_session_alive {
+        session.keep_alive();
+        prompt_result
+    } else {
+        let close_result = session.close().await;
+        match (prompt_result, close_result) {
+            (Ok(value), Ok(())) => Ok(value),
+            (Ok(value), Err(error)) => {
+                let response = match decode_prompt_failure(&value.response) {
+                    Some(reason) => encode_prompt_failure(
+                        &runner::append_close_error_context(
+                            MaenifoldError::Message(reason),
+                            error,
+                        )
+                        .to_string(),
+                    ),
+                    None => return Err(error),
+                };
+                Ok(PromptExecutionResult {
+                    response,
+                    acp_session_id: value.acp_session_id,
+                })
+            }
+            (Err(error), Ok(())) => Err(error),
+            (Err(error), Err(close_error)) => {
+                Err(runner::append_close_error_context(error, close_error))
+            }
+        }
     }
 }
 
@@ -245,25 +334,26 @@ pub(super) async fn run_tool_node(
         .cloned()
         .unwrap_or_else(|| JsonValue::Object(Default::default()));
 
-    let response = if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
-        if server_name == "maenifold" {
-            invoke_local_tool(remote_tool_name, &arguments)?
+    let response =
+        if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
+            if server_name == "maenifold" {
+                invoke_local_tool(remote_tool_name, &arguments)?
+            } else {
+                let agents_config = AgentsConfig::load(&context.config.maenifold_root);
+                invoke_external_tool(
+                    context,
+                    &agents_config,
+                    server_name,
+                    remote_tool_name,
+                    tool_args,
+                    agent,
+                    allowed_tools,
+                )
+                .await?
+            }
         } else {
-            let agents_config = AgentsConfig::load(&context.config.maenifold_root);
-            invoke_external_tool(
-                context,
-                &agents_config,
-                server_name,
-                remote_tool_name,
-                tool_args,
-                agent,
-                allowed_tools,
-            )
-            .await?
-        }
-    } else {
-        invoke_local_tool(tool_name, &arguments)?
-    };
+            invoke_local_tool(tool_name, &arguments)?
+        };
 
     let response_summary = truncate_chars(&response, MAX_CONCLUSION_CHARS);
     Ok(ToolExecutionResult {

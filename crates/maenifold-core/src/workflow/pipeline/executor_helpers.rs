@@ -205,9 +205,7 @@ pub(super) fn derive_execution_status(
 
     // Use terminal-node-aware status when the definition is available.
     if let Ok((definition, _)) = load_execution_config(context, session_id) {
-        return Ok(
-            compute_pipeline_status_with_definition(&definition, &node_states).to_string(),
-        );
+        return Ok(compute_pipeline_status_with_definition(&definition, &node_states).to_string());
     }
 
     // Fallback (definition unreadable): derive from raw node states.

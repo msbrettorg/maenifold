@@ -193,7 +193,7 @@ export function useSessionStartup({
 
   async function resumeSession(savedSession: SavedSession): Promise<void> {
     for (const [localId, session] of sessions.value.entries()) {
-      if (session.session?.sessionId === savedSession.sessionId) {
+      if (session.session?.sessionId === savedSession.sessionId && session.isConnected) {
         activeSessionId.value = localId;
         return;
       }

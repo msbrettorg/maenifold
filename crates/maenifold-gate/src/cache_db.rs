@@ -9,6 +9,7 @@ use crate::error::GateError;
 use crate::gate_catalog::GateDefinitionCatalog;
 use crate::task_file::TaskFileReader;
 use crate::task_id;
+use crate::task_metadata::is_linked_session_id;
 use crate::task_repository::TaskPathSet;
 use crate::task_status::TaskStatusDeriver;
 
@@ -34,6 +35,7 @@ struct CachedTaskStatusRow {
     location: String,
     attempts: u32,
     stages_json: String,
+    linked: bool,
     issue: String,
 }
 
@@ -99,7 +101,7 @@ impl GateCacheDb {
     ) -> Result<Vec<Value>, GateError> {
         let connection = self.read_only_connection()?;
         let mut statement = connection.prepare(
-            "SELECT file, task_id, canonical_task_id, title, pipeline, status, location, attempts, stages_json, issue
+            "SELECT file, task_id, canonical_task_id, title, pipeline, status, location, attempts, stages_json, linked, issue
              FROM tasks
              ORDER BY task_id",
         )?;
@@ -115,7 +117,8 @@ impl GateCacheDb {
                 location: row.get(6)?,
                 attempts: row.get(7)?,
                 stages_json: row.get(8)?,
-                issue: row.get(9)?,
+                linked: row.get(9)?,
+                issue: row.get(10)?,
             })
         })?;
 
@@ -144,10 +147,10 @@ impl GateCacheDb {
     }
 
     /// gate.db is a pure cache derived from markdown task files.
-    /// When the schema changes between releases, delete and let
-    /// `ensure_schema` recreate it on the next transaction.
+    /// Additive schema updates must preserve the existing SQLite file; only
+    /// pre-v2 incompatible caches are discarded and recreated.
     fn migrate_if_stale(path: &Path) -> Result<(), GateError> {
-        const CURRENT_SCHEMA_VERSION: i32 = 2;
+        const MIN_COMPATIBLE_SCHEMA_VERSION: i32 = 2;
         if !path.exists() {
             return Ok(());
         }
@@ -156,7 +159,7 @@ impl GateCacheDb {
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap_or(0);
         drop(conn);
-        if version < CURRENT_SCHEMA_VERSION {
+        if version > 0 && version < MIN_COMPATIBLE_SCHEMA_VERSION {
             fs::remove_file(path)?;
         }
         Ok(())
@@ -198,6 +201,7 @@ impl CachedTaskStatusRow {
             location: task.location.clone(),
             attempts: effective.attempts,
             stages_json,
+            linked: is_linked_session_id(document.metadata.session_id.as_deref()),
             issue: String::new(),
         })
     }
@@ -213,6 +217,7 @@ impl CachedTaskStatusRow {
             location: task.location.clone(),
             attempts: 0,
             stages_json: "[]".to_string(),
+            linked: false,
             issue,
         }
     }
@@ -231,6 +236,7 @@ impl CachedTaskStatusRow {
                 &self.file,
                 &self.task_id,
                 &self.location,
+                self.linked,
                 requested,
                 self.pipeline.as_deref(),
             ));
@@ -242,6 +248,7 @@ impl CachedTaskStatusRow {
                 &self.file,
                 &self.task_id,
                 &self.location,
+                self.linked,
                 &self.issue,
             ));
         }
@@ -257,6 +264,7 @@ impl CachedTaskStatusRow {
             "attempts": self.attempts,
             "location": self.location,
             "path": root.join(&self.file),
+            "linked": self.linked,
             "issue": self.issue,
         }))
     }
@@ -279,8 +287,8 @@ fn upsert_task_row(
 ) -> Result<(), GateError> {
     transaction.execute(
         "INSERT INTO tasks (
-            file, task_id, canonical_task_id, title, pipeline, status, location, attempts, stages_json, issue
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+            file, task_id, canonical_task_id, title, pipeline, status, location, attempts, stages_json, linked, issue
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
          ON CONFLICT(file) DO UPDATE SET
             task_id = excluded.task_id,
             canonical_task_id = excluded.canonical_task_id,
@@ -290,6 +298,7 @@ fn upsert_task_row(
             location = excluded.location,
             attempts = excluded.attempts,
             stages_json = excluded.stages_json,
+            linked = excluded.linked,
             issue = excluded.issue,
             updated_at = datetime('now')",
         params![
@@ -302,6 +311,7 @@ fn upsert_task_row(
             &row.location,
             row.attempts,
             &row.stages_json,
+            row.linked,
             &row.issue,
         ],
     )?;
@@ -336,7 +346,14 @@ fn clear_task_rows(transaction: &Transaction<'_>) -> Result<(), GateError> {
     Ok(())
 }
 
-fn error_status_row(root: &Path, file: &str, task_id: &str, location: &str, issue: &str) -> Value {
+fn error_status_row(
+    root: &Path,
+    file: &str,
+    task_id: &str,
+    location: &str,
+    linked: bool,
+    issue: &str,
+) -> Value {
     json!({
         "taskId": task_id,
         "title": task_id,
@@ -346,6 +363,7 @@ fn error_status_row(root: &Path, file: &str, task_id: &str, location: &str, issu
         "attempts": 0,
         "location": location,
         "path": root.join(file),
+        "linked": linked,
         "issue": issue,
     })
 }
@@ -356,6 +374,7 @@ fn pipeline_mismatch_row(
     file: &str,
     task_id: &str,
     location: &str,
+    linked: bool,
     requested: &str,
     bound: Option<&str>,
 ) -> Value {
@@ -364,6 +383,7 @@ fn pipeline_mismatch_row(
         file,
         task_id,
         location,
+        linked,
         &GateError::PipelineOverrideMismatch {
             requested: requested.to_string(),
             bound: bound.unwrap_or("unbound").to_string(),
@@ -385,6 +405,7 @@ fn ensure_schema(transaction: &Transaction<'_>) -> Result<(), GateError> {
             location TEXT NOT NULL DEFAULT 'todo' CHECK(location IN ('todo','done')),
             attempts INTEGER NOT NULL DEFAULT 0,
             stages_json TEXT NOT NULL DEFAULT '[]',
+            linked INTEGER NOT NULL DEFAULT 0,
             issue TEXT NOT NULL DEFAULT '',
             created_at TEXT NOT NULL DEFAULT (datetime('now')),
             updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -400,9 +421,32 @@ fn ensure_schema(transaction: &Transaction<'_>) -> Result<(), GateError> {
             notes TEXT,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         );
-        PRAGMA user_version = 2;
         ",
     )?;
+    ensure_tasks_linked_column(transaction)?;
+    transaction.execute_batch("PRAGMA user_version = 3;")?;
+    Ok(())
+}
+
+fn ensure_tasks_linked_column(transaction: &Transaction<'_>) -> Result<(), GateError> {
+    let mut statement = transaction.prepare("PRAGMA table_info(tasks)")?;
+    let columns = statement.query_map([], |row| row.get::<_, String>(1))?;
+    let mut has_linked = false;
+    for column in columns {
+        if column? == "linked" {
+            has_linked = true;
+            break;
+        }
+    }
+    drop(statement);
+
+    if !has_linked {
+        transaction.execute(
+            "ALTER TABLE tasks ADD COLUMN linked INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
+
     Ok(())
 }
 
@@ -592,6 +636,52 @@ mod tests {
                 .expect("issue string")
                 .contains("invalid task frontmatter")
         );
+        assert_eq!(rows[0]["linked"], false);
+    }
+
+    #[test]
+    fn rebuild_caches_linked_status_leniently() {
+        let temp = tempdir().expect("create temp root");
+        let root = temp.path();
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+
+        let linked_path = root.join("todo").join("T-90.27.md");
+        fs::write(
+            &linked_path,
+            "---\ntitle: Linked task\npipeline: sdd\nsessionId: session-1775916753112-57359\n---\n# Linked task\n",
+        )
+        .expect("write linked task");
+
+        let malformed_path = root.join("todo").join("T-90.28.md");
+        fs::write(
+            &malformed_path,
+            "---\ntitle: Malformed linkage\npipeline: sdd\nsessionId:\n  - malformed\n---\n# Malformed linkage\n",
+        )
+        .expect("write malformed task");
+
+        GateCacheDb::rebuild(
+            root,
+            &[
+                TaskPathSet {
+                    task_id: "T-90.27".to_string(),
+                    path: linked_path,
+                    location: "todo".to_string(),
+                },
+                TaskPathSet {
+                    task_id: "T-90.28".to_string(),
+                    path: malformed_path,
+                    location: "todo".to_string(),
+                },
+            ],
+        )
+        .expect("rebuild cache db");
+
+        let rows = GateCacheDb::open(root)
+            .expect("open db")
+            .list_task_status(root, None)
+            .expect("load cached status");
+        assert_eq!(rows[0]["linked"], true);
+        assert_eq!(rows[1]["linked"], false);
     }
 
     #[test]

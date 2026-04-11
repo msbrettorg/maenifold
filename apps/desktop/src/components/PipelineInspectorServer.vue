@@ -102,6 +102,10 @@ function hasAssembledPrompt(value?: string | null): value is string {
   return value !== undefined && value !== null;
 }
 
+function hasResponseSummary(value?: string | null): value is string {
+  return value !== undefined && value !== null && value.length > 0;
+}
+
 function parseJsonValue(value?: string | null): unknown {
   if (!value) return undefined;
   try {
@@ -156,6 +160,14 @@ function resolveDotPath(input: unknown, path: string): unknown {
       <strong :class="['status-text', `status-text--${selectedViewNode.status}`]">{{ selectedViewNode.status }}</strong>
     </div>
     <div class="summary-row"><span>Session</span><strong class="mono">{{ selectedViewNode.sessionId }}</strong></div>
+    <div v-if="selectedViewNode.acpSessionId" class="summary-row">
+      <span>ACP session</span>
+      <strong class="mono">{{ selectedViewNode.acpSessionId }}</strong>
+    </div>
+    <div v-if="selectedViewNode.thinkingSessionId" class="summary-row">
+      <span>Thinking session</span>
+      <strong class="mono">{{ selectedViewNode.thinkingSessionId }}</strong>
+    </div>
     <div class="summary-row"><span>Attempts</span><strong>{{ selectedViewNode.attempts }}</strong></div>
 
     <template v-if="selectedWorkflowViewNode">
@@ -199,6 +211,20 @@ function resolveDotPath(input: unknown, path: string): unknown {
     <template v-else-if="selectedToolViewNode">
       <div class="summary-row"><span>Tool name</span><strong>{{ selectedToolViewNode.toolName }}</strong></div>
       <div class="read-block"><span>Tool args</span><pre>{{ formatJsonValue(selectedToolViewNode.toolArgs) }}</pre></div>
+      <template v-if="selectedToolViewNode.toolProvenance">
+        <div class="summary-row">
+          <span>Executed tool</span>
+          <strong>{{ selectedToolViewNode.toolProvenance.toolName }}</strong>
+        </div>
+        <div class="read-block">
+          <span>Resolved args</span>
+          <pre>{{ formatJsonValue(selectedToolViewNode.toolProvenance.resolvedArgs ?? undefined) }}</pre>
+        </div>
+        <div v-if="hasResponseSummary(selectedToolViewNode.toolProvenance.responseSummary)" class="read-block">
+          <span>Response summary</span>
+          <pre>{{ selectedToolViewNode.toolProvenance.responseSummary }}</pre>
+        </div>
+      </template>
     </template>
 
     <details v-if="selectedViewNode.output" class="output-block"><summary>Output</summary><pre>{{ selectedViewNode.output }}</pre></details>

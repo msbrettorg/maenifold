@@ -52,6 +52,8 @@ impl AgentSession {
         &self.remote_id
     }
 
+    pub(crate) fn keep_alive(self) {}
+
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AcpxResponse> {
         self.prompt_with_context(prompt, vec![]).await
     }
@@ -87,4 +89,39 @@ fn session_setup_error(error: AgentError) -> MaenifoldError {
 
 fn prompt_execution_error(error: AgentError) -> MaenifoldError {
     MaenifoldError::Message(error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use crate::acp_native::test_handle_for_tests;
+
+    use super::*;
+
+    #[tokio::test]
+    async fn keep_alive_preserves_tracked_session_without_queue_traffic() {
+        let (handle, mut request_rx, mut control_rx) = test_handle_for_tests(1);
+        handle.register_test_session("session-keep-alive").await;
+        let handle = Arc::new(handle);
+        let session = AgentSession {
+            handle: Arc::clone(&handle),
+            remote_id: "session-keep-alive".to_string(),
+        };
+
+        session.keep_alive();
+
+        assert!(
+            request_rx.try_recv().is_err(),
+            "keep_alive should not enqueue request commands"
+        );
+        assert!(
+            control_rx.try_recv().is_err(),
+            "keep_alive should not enqueue control commands"
+        );
+        assert!(
+            handle.has_tracked_session("session-keep-alive").await,
+            "keep_alive should preserve tracked ACP session state"
+        );
+    }
 }

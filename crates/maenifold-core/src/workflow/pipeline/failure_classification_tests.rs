@@ -23,7 +23,7 @@ fn classify_prompt_error_produces_abandoned_with_phase() {
     );
 
     match outcome {
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned { reason, phase, .. } => {
             assert_eq!(reason, "prompt execution failed");
             assert_eq!(phase, FailurePhase::PostPrompt);
         }
@@ -41,7 +41,7 @@ fn classify_agent_setup_error_is_pre_execution() {
     );
 
     match outcome {
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned { reason, phase, .. } => {
             assert_eq!(reason, "session setup failed");
             assert_eq!(phase, FailurePhase::PreExecution);
         }
@@ -63,7 +63,7 @@ fn classify_workflow_cancelled_is_post_prompt() {
     );
 
     match outcome {
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned { reason, phase, .. } => {
             assert_eq!(reason, "workflow cancelled");
             assert_eq!(phase, FailurePhase::PostPrompt);
         }
@@ -85,7 +85,7 @@ fn classify_workflow_failed_is_post_prompt() {
     );
 
     match outcome {
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned { reason, phase, .. } => {
             assert_eq!(reason, "workflow failed");
             assert_eq!(phase, FailurePhase::PostPrompt);
         }
@@ -104,7 +104,7 @@ fn classify_empty_response_is_post_prompt() {
     );
 
     match outcome {
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned { reason, phase, .. } => {
             assert_eq!(reason, "empty response");
             assert_eq!(phase, FailurePhase::PostPrompt);
         }

@@ -305,7 +305,10 @@ mod tests {
             frontmatter_string(&frontmatter, "activeSubmachineSessionId"),
             ""
         );
-        assert_eq!(frontmatter_string(&frontmatter, "activeSubmachineTarget"), "");
+        assert_eq!(
+            frontmatter_string(&frontmatter, "activeSubmachineTarget"),
+            ""
+        );
     }
 
     #[test]

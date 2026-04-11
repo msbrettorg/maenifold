@@ -1,32 +1,45 @@
 import { computed, ref } from 'vue';
 import { useAppSession } from './useAppSession';
 import type { ConfigStoreLike, SessionStoreLike } from './useAppSession';
+import { useAppShellStore, type AppShellTab } from '../stores/app-shell';
 
 export function useAppShell({
   configStore,
   sessionStore,
 }: { configStore: ConfigStoreLike; sessionStore: SessionStoreLike }) {
+  const appShellStore = useAppShellStore();
   const showSidebar = ref(true);
   const showSettings = ref(false);
   const showTrafficMonitor = ref(false);
   const showStartupDetails = ref(false);
-  const showWorkflows = ref(false);
-  const showPipelines = ref(false);
-  const showGate = ref(false);
-  const showGraph = ref(false);
   const activeTab = computed({
-    get: () => {
-      if (showPipelines.value) return 'pipelines';
-      if (showGate.value) return 'gates';
-      if (showGraph.value) return 'graph';
-      if (showWorkflows.value) return 'workflows';
-      return 'agents';
-    },
+    get: () => appShellStore.activeTab,
     set: (tab: string) => {
-      showWorkflows.value = tab === 'workflows';
-      showPipelines.value = tab === 'pipelines';
-      showGate.value = tab === 'gates';
-      showGraph.value = tab === 'graph';
+      appShellStore.setActiveTab(tab as AppShellTab);
+    },
+  });
+  const showWorkflows = computed({
+    get: () => appShellStore.showWorkflows,
+    set: (value: boolean) => {
+      appShellStore.showWorkflows = value;
+    },
+  });
+  const showPipelines = computed({
+    get: () => appShellStore.showPipelines,
+    set: (value: boolean) => {
+      appShellStore.showPipelines = value;
+    },
+  });
+  const showGate = computed({
+    get: () => appShellStore.showGate,
+    set: (value: boolean) => {
+      appShellStore.showGate = value;
+    },
+  });
+  const showGraph = computed({
+    get: () => appShellStore.showGraph,
+    set: (value: boolean) => {
+      appShellStore.showGraph = value;
     },
   });
 
@@ -35,35 +48,15 @@ export function useAppShell({
   function toggleSidebar() { showSidebar.value = !showSidebar.value; }
   function toggleWorkflows() {
     showWorkflows.value = !showWorkflows.value;
-    if (showWorkflows.value) {
-      showPipelines.value = false;
-      showGate.value = false;
-      showGraph.value = false;
-    }
   }
   function togglePipelines() {
     showPipelines.value = !showPipelines.value;
-    if (showPipelines.value) {
-      showWorkflows.value = false;
-      showGate.value = false;
-      showGraph.value = false;
-    }
   }
   function toggleGate() {
     showGate.value = !showGate.value;
-    if (showGate.value) {
-      showWorkflows.value = false;
-      showPipelines.value = false;
-      showGraph.value = false;
-    }
   }
   function toggleGraph() {
     showGraph.value = !showGraph.value;
-    if (showGraph.value) {
-      showWorkflows.value = false;
-      showPipelines.value = false;
-      showGate.value = false;
-    }
   }
   function clearError() { sessionStore.clearError(); configStore.clearError(); }
 

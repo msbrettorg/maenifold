@@ -376,7 +376,12 @@ fn apply_node_outcome(
             )?;
             counts.completed += 1;
         }
-        NodeOutcome::Abandoned { reason, phase } => {
+        NodeOutcome::Abandoned {
+            reason,
+            phase,
+            acp_session_id,
+            thinking_session_id,
+        } => {
             if phase.is_retryable() {
                 schedule_node_retry(context, session_id, node_id, &reason)?;
             } else {
@@ -386,8 +391,8 @@ fn apply_node_outcome(
                     node_id,
                     "abandoned",
                     None,
-                    None,
-                    None,
+                    acp_session_id.as_deref(),
+                    thinking_session_id.as_deref(),
                     None,
                     Some(&reason),
                 )?;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { PipelineDefinition, PipelineView } from '../../lib/pipeline-types';
 import {
+  normalizeView,
   serializePipelineDefinition,
   toLocalDefinition,
 } from '../pipeline-view-transforms';
@@ -166,5 +167,65 @@ describe('pipeline view transforms', () => {
     });
     expect('model' in toolNode!).toBe(false);
     expect('thoughtLevel' in toolNode!).toBe(false);
+  });
+
+  it('preserves ACP session and tool provenance view fields', () => {
+    const original: PipelineView = {
+      pipelineId: 'pipeline-2',
+      status: 'active',
+      running: true,
+      ready: [],
+      active: ['prompt-1'],
+      completed: ['tool-1'],
+      mermaid: 'graph TD;',
+      edges: [],
+      nodes: [
+        {
+          nodeId: 'prompt-1',
+          sessionId: 'local-prompt-1',
+          acpSessionId: 'acp-remote-1',
+          status: 'active',
+          attempts: 1,
+          type: 'prompt',
+          prompt: 'Reconnect me',
+          agent: 'architect',
+        },
+        {
+          nodeId: 'tool-1',
+          sessionId: 'local-tool-1',
+          status: 'completed',
+          attempts: 1,
+          type: 'tool',
+          toolName: 'example.echo',
+          toolProvenance: {
+            toolName: 'example.echo',
+            resolvedArgs: { value: 1 },
+            responseSummary: '{"value":1}',
+          },
+        },
+      ],
+    };
+
+    const normalized = normalizeView(original);
+    expect(normalized.nodes[0]).toMatchObject({
+      nodeId: 'prompt-1',
+      acpSessionId: 'acp-remote-1',
+    });
+    expect(normalized.nodes[1]).toMatchObject({
+      nodeId: 'tool-1',
+      toolProvenance: {
+        toolName: 'example.echo',
+        resolvedArgs: { value: 1 },
+        responseSummary: '{"value":1}',
+      },
+    });
+
+    if (normalized.nodes[1]?.type === 'tool' && normalized.nodes[1].toolProvenance?.resolvedArgs) {
+      normalized.nodes[1].toolProvenance.resolvedArgs.value = 2;
+    }
+
+    expect(
+      original.nodes[1]?.type === 'tool' ? original.nodes[1].toolProvenance?.resolvedArgs?.value : undefined,
+    ).toBe(1);
   });
 });

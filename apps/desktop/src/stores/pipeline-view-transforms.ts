@@ -112,7 +112,15 @@ function firstNonEmptyString(...values: Array<string | undefined>): string | und
   return values.find((value): value is string => typeof value === 'string' && value.length > 0);
 }
 
-function mergeAgentConfig(node: LegacyExecutionFields): PipelineNodeAgentConfig | undefined {
+function cloneAndExtractAgentConfig(
+  agentConfig: PipelineNodeAgentConfig | undefined,
+): PipelineNodeAgentConfig | undefined {
+  if (!agentConfig) return undefined;
+  return cloneAgentConfig(agentConfig);
+}
+
+// COMPAT: remove when backend drops top-level model/thoughtLevel from wire format
+function mergeLegacyExecutionFields(node: LegacyExecutionFields): PipelineNodeAgentConfig | undefined {
   const configOptions = node.agentConfig?.configOptions
     ? { ...node.agentConfig.configOptions }
     : undefined;
@@ -147,7 +155,7 @@ export function normalizeView(view: PipelineView): PipelineView {
 function toLocalNode(node: ViewNode): PipelineNode {
   switch (node.type) {
     case 'prompt': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.nodeId,
         type: 'prompt',
@@ -162,7 +170,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
       };
     }
     case 'sequentialThinking': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.nodeId,
         type: 'sequentialThinking',
@@ -178,7 +186,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
       };
     }
     case 'workflow':
-    case undefined:
+    case undefined: {
+      const agentConfig = cloneAndExtractAgentConfig(node.agentConfig);
       return {
         id: node.nodeId,
         type: 'workflow',
@@ -186,10 +195,11 @@ function toLocalNode(node: ViewNode): PipelineNode {
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
-        ...(mergeAgentConfig(node) ? { agentConfig: mergeAgentConfig(node) } : {}),
+        ...(agentConfig ? { agentConfig } : {}),
       };
+    }
     case 'tool': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.nodeId,
         type: 'tool',
@@ -218,7 +228,7 @@ export function toLocalDefinition(view: PipelineView): PipelineDefinition {
 function serializeNode(node: PipelineNode): PipelineNode {
   switch (node.type) {
     case 'prompt': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.id,
         type: 'prompt',
@@ -233,7 +243,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
       };
     }
     case 'sequentialThinking': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.id,
         type: 'sequentialThinking',
@@ -249,7 +259,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
       };
     }
     case 'workflow':
-    case undefined:
+    case undefined: {
+      const agentConfig = cloneAndExtractAgentConfig(node.agentConfig);
       return {
         id: node.id,
         type: 'workflow',
@@ -257,10 +268,11 @@ function serializeNode(node: PipelineNode): PipelineNode {
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
-        ...(mergeAgentConfig(node) ? { agentConfig: mergeAgentConfig(node) } : {}),
+        ...(agentConfig ? { agentConfig } : {}),
       };
+    }
     case 'tool': {
-      const agentConfig = mergeAgentConfig(node);
+      const agentConfig = mergeLegacyExecutionFields(node);
       return {
         id: node.id,
         type: 'tool',

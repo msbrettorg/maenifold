@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import JoinPipelineDialog from './JoinPipelineDialog.vue';
@@ -47,6 +47,30 @@ const gridStyle = computed(() =>
 const bannerError = computed(() => connectionError.value || error.value || '');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
 const existingNodeIds = computed(() => currentView.value?.nodes.map((node) => node.nodeId) ?? []);
+
+watch(
+  () => error.value,
+  (message) => {
+    if (message) runnerExpanded.value = true;
+  },
+  { immediate: true }
+);
+
+watch(
+  () => String(currentView.value?.status ?? ''),
+  (status) => {
+    if (status === 'stuck' || status === 'abandoned') runnerExpanded.value = true;
+  },
+  { immediate: true }
+);
+
+watch(
+  () => designMode.value && (localDefinition.value?.nodes?.length ?? 0) > 0,
+  (hasContent) => {
+    if (hasContent) runnerExpanded.value = true;
+  },
+  { immediate: true }
+);
 
 function handleDefinitionUpdate(nextDefinition: PipelineDefinition) {
   localDefinition.value = nextDefinition;
@@ -154,6 +178,7 @@ function handleEdgeSelected(edge: SelectedEdge) {
             class="runner-expand-btn"
             type="button"
             aria-label="Toggle runner panel"
+            :aria-expanded="runnerExpanded"
             :title="runnerExpanded ? 'Collapse panel' : 'Expand panel'"
             @click="runnerExpanded = !runnerExpanded"
           >

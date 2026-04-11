@@ -24,7 +24,7 @@ interface ProbeAgentRecord {
 
 const RETRY_DELAY_MS = 3_000;
 export const AGENT_PROBE_CACHE_TTL_MS = 5 * 60_000;
-export const AGENT_PROBE_SOFT_TIMEOUT_MS = 10_000;
+export const AGENT_PROBE_SOFT_TIMEOUT_MS = 60_000;
 const AGENT_PROBE_TIMEOUT_MESSAGE =
   `ListAgents probe timed out after ${AGENT_PROBE_SOFT_TIMEOUT_MS / 1_000}s`;
 

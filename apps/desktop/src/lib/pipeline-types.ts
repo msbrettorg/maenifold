@@ -245,6 +245,7 @@ export interface LogEntry {
   from: string;
   to: string;
   timestamp: number;
+  preview?: string;
 }
 
 export function getNodeType(node: PipelineNode): PipelineNodeType {

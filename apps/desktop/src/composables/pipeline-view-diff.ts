@@ -1,5 +1,38 @@
 import type { LogEntry, PipelineView } from '../lib/pipeline-types';
 
+const OUTPUT_PREVIEW_LENGTH = 100;
+
+export function buildNodeOutputPreview(
+  node: { output?: string } | null | undefined,
+): string {
+  const output = node?.output?.trim();
+  if (!output) return '';
+  const normalizedOutput = output.replace(/\s+/g, ' ');
+  return normalizedOutput.length > OUTPUT_PREVIEW_LENGTH
+    ? `${normalizedOutput.slice(0, OUTPUT_PREVIEW_LENGTH)}...`
+    : normalizedOutput;
+}
+
+export function hydrateEventLogFromView(
+  view: PipelineView | null | undefined,
+): LogEntry[] {
+  if (!view?.nodes) return [];
+  const loadedAt = Date.now();
+  return view.nodes.flatMap((node, index) => {
+    if (node.status === 'pending') {
+      return [];
+    }
+    const preview = node.status === 'completed' ? buildNodeOutputPreview(node) : '';
+    return [{
+      nodeId: node.nodeId,
+      from: 'loaded',
+      to: node.status,
+      timestamp: loadedAt + index,
+      ...(preview ? { preview } : {}),
+    }];
+  });
+}
+
 export function diffPipelineViews(
   prev: PipelineView | null | undefined,
   curr: PipelineView | null | undefined,

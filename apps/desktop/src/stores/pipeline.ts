@@ -32,6 +32,7 @@ import {
   serializePipelineDefinition,
   toLocalDefinition,
 } from './pipeline-view-transforms';
+import { hydrateEventLogFromView } from '../composables/pipeline-view-diff';
 
 const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [] });
 const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'cancelled', 'stuck']);
@@ -167,9 +168,13 @@ export const usePipelineStore = defineStore('pipeline', () => {
     await withError('view_pipeline', async () => {
       stopCurrentPolling();
       currentPipelineId.value = pipelineId;
-      setView(normalizeView(await mcp.viewPipeline(pipelineId)));
+      const view = normalizeView(await mcp.viewPipeline(pipelineId));
+      setView(view);
       designMode.value = false;
-      eventLog.value = [];
+      eventLog.value = hydrateEventLogFromView(view);
+      if (!TERMINAL_PIPELINE_STATUSES.has(view.status)) {
+        startViewPolling();
+      }
     });
   }
   function newPipeline() {

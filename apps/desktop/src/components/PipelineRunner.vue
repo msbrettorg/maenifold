@@ -6,6 +6,7 @@ import { usePipelineStore } from '../stores/pipeline';
 import type { LogEntry } from '../lib/pipeline-types';
 import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { getPipelineTemplateById, type TemplateInputDefinition } from '../lib/pipeline-templates';
+import { buildNodeOutputPreview } from '../composables/pipeline-view-diff';
 
 type RunnerTab = 'event-log' | 'mermaid';
 
@@ -140,12 +141,15 @@ function formatLogEntry(entry: LogEntry) {
     second: '2-digit',
     hour12: false,
   });
-  const nodeOutput = viewNodesById.value.get(entry.nodeId)?.output;
-  if (entry.to === 'completed' && typeof nodeOutput === 'string' && nodeOutput.trim().length > 0) {
-    const preview = nodeOutput.trim().replace(/\s+/g, ' ');
-    const snippet = preview.slice(0, 100);
-    const suffix = preview.length > 100 ? '...' : '';
-    return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${snippet}${suffix}`;
+  if (entry.from === 'loaded') {
+    const base = `[${timestamp}] ↺ ${displayNodeId(entry.nodeId)} loaded as ${entry.to}`;
+    return entry.to === 'completed' && entry.preview
+      ? `${base} — output: ${entry.preview}`
+      : base;
+  }
+  const preview = buildNodeOutputPreview(viewNodesById.value.get(entry.nodeId));
+  if (entry.to === 'completed' && preview) {
+    return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${preview}`;
   }
   return `[${timestamp}] ${iconFor(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
 }

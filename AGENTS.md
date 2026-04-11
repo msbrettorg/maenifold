@@ -24,6 +24,14 @@ No silent defaults. Every policy choice must be explicit and required. Errors ar
 
 No stubs, no mocks, no scaffolds, no placeholders, no fake surfaces. A feature is either complete enough to trust or it is not ready.
 
+### No Backwards Compatibility
+
+User base of one. No shims, no compat layers, no legacy code paths, no version negotiation. When the contract changes, everything changes — code, tests, fixtures, data. Old behavior is not preserved; it is replaced. Backwards-compat code is technical debt with zero users to justify it. If a new feature requires touching old files, touch them — don't write adapter code to avoid it. Any backwards-compat shim, migration path, or dual-mode code is a P0 engineering failure.
+
+### Help Before Workflow
+
+Never make the user understand the workflow before the workflow helps the user. Default surfaces lead with intent, examples, and outputs — not internal orchestration primitives. The engine can be arbitrarily rigorous; the surface must not require users to internalize that rigor before they get value. Show what happened, what came out, and what needs review before exposing session IDs, prompts, tool arguments, or thinking traces. Progressive disclosure separates the operator console (meaning first) from expert mode (machinery on demand). If a feature exposes orchestration before intent or outputs, it is not ready.
+
 ---
 
 ## The MCP Boundary
@@ -47,7 +55,11 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 - Hand-rolling something that exists as a library? → Stop. Escalate.
 - Mock, stub, scaffold, or placeholder? → Delete it. Escalate.
 - Silent default or hidden recovery? → Make the choice explicit and required.
+- Backwards-compat shim, migration path, or dual-mode code? → **P0.** Delete it. Change the contract everywhere.
 - Code compiles but no visual verification (UI work)? → **Not done.**
+- Exposing raw machinery on the default path? → **Redesign.** Summary first, detail on demand.
+- Blank-canvas first-run with no examples or templates? → **Not done.**
+- Simplified surface hides routing or persistence choices? → Make the choice explicit.
 
 ---
 
@@ -55,7 +67,7 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 
 **Backend:** `cargo build --release -p <crate>` succeeds. Debug builds are not delivery.
 
-**UI:** Typecheck passes + app launches + visual verification. Visual verification means a human or browser automation observed the real UI outcome at intended viewport(s), confirmed affected controls are visible, correctly sized, named, and usable. A screenshot alone is not verification — the reviewer must state what was inspected, what was expected, and what was actually seen.
+**UI:** Typecheck passes + app launches + visual verification. Visual verification means a human or browser automation observed the real UI outcome at intended viewport(s), confirmed affected controls are visible, correctly sized, named, and usable. A screenshot alone is not verification — the reviewer must state what was inspected, what was expected, and what was actually seen. A first-time user must be able to get value from the feature without learning internal workflow vocabulary.
 
 **Both:** Release build. If the release build does not work, the feature is not done.
 

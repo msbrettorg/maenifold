@@ -25,12 +25,14 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
     let definition = PipelineDefinition {
         nodes: vec![PipelineNode::Workflow {
             id: "node".to_string(),
+            display_label: None,
             workflow_id: "test-workflow-a".to_string(),
             acp_client: Some("agent-node".to_string()),
             prompt: None,
             timeout: None,
         }],
         edges: vec![],
+        template_id: None,
     };
     let node_states = HashMap::from([(
         "node".to_string(),

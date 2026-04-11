@@ -286,6 +286,7 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
+        template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -326,6 +327,7 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
+        template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),
@@ -355,6 +357,7 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![PipelineNode::Tool {
                 id: "target".to_string(),
+                display_label: None,
                 tool_name: "noop".to_string(),
                 tool_args: None,
                 agent: None,
@@ -374,6 +377,7 @@ mod tests {
                     "result.value".to_string(),
                 )])),
             }],
+        template_id: None,
         };
         let node_states = HashMap::from([(
             "source".to_string(),

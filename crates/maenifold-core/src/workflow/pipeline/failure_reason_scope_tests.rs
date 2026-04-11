@@ -15,6 +15,7 @@ use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, P
 fn workflow_node(id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.to_string(),
+        display_label: None,
         workflow_id: "test-workflow-a".to_string(),
         acp_client: Some(format!("agent-{id}")),
         prompt: None,
@@ -53,6 +54,7 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        template_id: None,
     };
     let node_states = HashMap::from([(
         "node".to_string(),
@@ -105,6 +107,7 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        template_id: None,
     };
     let node_states = HashMap::from([(
         "node".to_string(),
@@ -150,6 +153,7 @@ fn restart_pipeline_node_clears_failure_reason() {
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
         edges: vec![],
+        template_id: None,
     };
     let node_states = HashMap::from([(
         "node".to_string(),
@@ -191,6 +195,7 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
             edge_type: EdgeType::Success,
             mapping: None,
         }],
+        template_id: None,
     };
     let node_states = HashMap::from([
         (
@@ -301,6 +306,7 @@ fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpo
                 mapping: None,
             },
         ],
+        template_id: None,
     };
     let node_states = HashMap::from([
         ("root".to_string(), node_state("root", NodeStatus::Active)),
@@ -388,6 +394,7 @@ fn update_pipeline_node_status_supports_stuck_cascade_over_success_edges() {
             edge_type: EdgeType::Success,
             mapping: None,
         }],
+        template_id: None,
     };
     let node_states = HashMap::from([
         (

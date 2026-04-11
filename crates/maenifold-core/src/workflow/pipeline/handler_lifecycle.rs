@@ -208,6 +208,7 @@ mod tests {
         use crate::workflow::pipeline::PipelineNode;
         PipelineNode::Tool {
             id: id.to_string(),
+            display_label: None,
             tool_name: "test.tool".to_string(),
             tool_args: None,
             agent: None,
@@ -282,6 +283,7 @@ mod tests {
                 edge_type: EdgeType::Always,
                 mapping: None,
             }],
+        template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
             (
@@ -370,6 +372,7 @@ mod tests {
                 edge_type: EdgeType::Always,
                 mapping: None,
             }],
+        template_id: None,
         };
         let node_states: HashMap<String, NodeState> = [
             (

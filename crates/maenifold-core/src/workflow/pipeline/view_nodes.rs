@@ -270,6 +270,7 @@ mod tests {
                 edge_type: EdgeType::Success,
                 mapping: None,
             }],
+            template_id: None,
         };
         let node_states = HashMap::from([
             (

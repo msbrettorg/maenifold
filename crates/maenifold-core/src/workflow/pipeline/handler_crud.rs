@@ -287,6 +287,7 @@ mod tests {
     fn workflow_node(id: &str) -> PipelineNode {
         PipelineNode::Workflow {
             id: id.to_string(),
+            display_label: None,
             workflow_id: "test-workflow-a".to_string(),
             acp_client: Some(format!("agent-{id}")),
             prompt: None,
@@ -325,6 +326,7 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
+        template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -366,6 +368,7 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
+        template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -414,6 +417,7 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("node")],
             edges: vec![],
+        template_id: None,
         };
         let node_states = states(&[("node", NodeStatus::Completed, 1)]);
         seed_pipeline_session_with_workflows(
@@ -469,10 +473,12 @@ mod tests {
         let definition = PipelineDefinition {
             nodes: vec![workflow_node("target-node")],
             edges: vec![],
+        template_id: None,
         };
         let sibling_definition = PipelineDefinition {
             nodes: vec![workflow_node("sibling-node")],
             edges: vec![],
+        template_id: None,
         };
         let target_node_states = states(&[("target-node", NodeStatus::Completed, 1)]);
         let sibling_node_states = states(&[("sibling-node", NodeStatus::Completed, 1)]);

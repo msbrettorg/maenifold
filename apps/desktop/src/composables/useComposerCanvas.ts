@@ -61,6 +61,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   const nodes = ref<Node[]>([]);
   const edges = ref<Edge[]>([]);
+  const fittedPipelineId = ref<string | null>(null);
   const nodeTypes: Record<string, any> = { pipelineNode: markRaw(PipelineNodeCard) };
   const defaultEdgeOptions = {
     type: 'smoothstep',
@@ -162,6 +163,25 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   );
 
   watch(
+    options.designMode,
+    (designMode) => {
+      if (designMode) {
+        fittedPipelineId.value = null;
+      }
+    },
+    { immediate: true },
+  );
+
+  watch(
+    () => options.view()?.pipelineId ?? null,
+    (pipelineId, previousPipelineId) => {
+      if (pipelineId !== previousPipelineId) {
+        fittedPipelineId.value = null;
+      }
+    },
+  );
+
+  watch(
     options.view,
     (view) => {
       if (!view || options.designMode()) return;
@@ -172,7 +192,11 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         },
         view,
       );
-      nextTick(() => fitView());
+      const loadedPipelineId = view.pipelineId ?? null;
+      if (loadedPipelineId && loadedPipelineId !== fittedPipelineId.value) {
+        fittedPipelineId.value = loadedPipelineId;
+        nextTick(() => fitView({ padding: 0.15, duration: 200 }));
+      }
     },
     { deep: true, immediate: true },
   );

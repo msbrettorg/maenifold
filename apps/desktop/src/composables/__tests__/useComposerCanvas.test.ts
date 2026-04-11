@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, getActivePinia, setActivePinia } from 'pinia';
-import { defineComponent, nextTick } from 'vue';
+import { defineComponent, nextTick, ref } from 'vue';
 import { mount } from '@vue/test-utils';
 
 const flowHooks = vi.hoisted(() => ({
+  fitView: vi.fn(),
   nodeDoubleClick:
     null as ((payload: { node: { id: string }; event: MouseEvent }) => void | Promise<void>) | null,
+  setEdges: vi.fn(),
+  setNodes: vi.fn(),
 }));
 
 vi.mock('@vue-flow/core', () => ({
@@ -20,11 +23,11 @@ vi.mock('@vue-flow/core', () => ({
     },
     onNodeDragStop: vi.fn(),
     onPaneClick: vi.fn(),
-    fitView: vi.fn(),
+    fitView: flowHooks.fitView,
     getEdges: { value: [] },
     getNodes: { value: [] },
-    setEdges: vi.fn(),
-    setNodes: vi.fn(),
+    setEdges: flowHooks.setEdges,
+    setNodes: flowHooks.setNodes,
   }),
 }));
 
@@ -106,15 +109,22 @@ function createView(overrides?: Partial<PipelineView>): PipelineView {
   };
 }
 
-function mountComposerCanvas(view: PipelineView) {
-  const definition: PipelineDefinition = { nodes: [], edges: [] };
+function mountComposerCanvas(options?: {
+  designMode?: boolean;
+  definition?: PipelineDefinition;
+  view?: PipelineView | null;
+}) {
+  const designMode = ref(options?.designMode ?? false);
+  const definition = ref<PipelineDefinition>(options?.definition ?? { nodes: [], edges: [] });
+  const view = ref<PipelineView | null | undefined>(options?.view ?? createView());
+
   mount(
     defineComponent({
       setup() {
         useComposerCanvas({
-          designMode: () => false,
-          localDefinition: () => definition,
-          view: () => view,
+          designMode: () => designMode.value,
+          localDefinition: () => definition.value,
+          view: () => view.value,
           updateDefinition: vi.fn(),
           selectNode: vi.fn(),
           selectEdge: vi.fn(),
@@ -128,12 +138,22 @@ function mountComposerCanvas(view: PipelineView) {
       },
     },
   );
+
+  return { definition, designMode, view };
+}
+
+async function flushComposerCanvas() {
+  await nextTick();
+  await nextTick();
 }
 
 describe('useComposerCanvas double-click behavior', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     flowHooks.nodeDoubleClick = null;
+    flowHooks.fitView.mockReset();
+    flowHooks.setEdges.mockReset();
+    flowHooks.setNodes.mockReset();
     document.body.innerHTML = '';
   });
 
@@ -148,7 +168,7 @@ describe('useComposerCanvas double-click behavior', () => {
       .mockResolvedValue({ status: 'resumed', localSessionId: 'local-1' });
     const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
 
-    mountComposerCanvas(createView());
+    mountComposerCanvas({ view: createView() });
     const { target } = createEventTarget();
 
     await flowHooks.nodeDoubleClick?.({
@@ -171,7 +191,7 @@ describe('useComposerCanvas double-click behavior', () => {
     const reconnectSpy = vi.spyOn(sessionStore, 'focusOrResumeRemoteSession');
     const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
 
-    mountComposerCanvas(createView());
+    mountComposerCanvas({ view: createView() });
     const { target } = createEventTarget();
 
     await flowHooks.nodeDoubleClick?.({
@@ -191,8 +211,8 @@ describe('useComposerCanvas double-click behavior', () => {
     const reconnectSpy = vi.spyOn(sessionStore, 'focusOrResumeRemoteSession');
     const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
 
-    mountComposerCanvas(
-      createView({
+    mountComposerCanvas({
+      view: createView({
         nodes: [
           {
             nodeId: 'prompt-1',
@@ -214,7 +234,7 @@ describe('useComposerCanvas double-click behavior', () => {
           },
         ],
       }),
-    );
+    });
     const { target } = createEventTarget();
 
     await flowHooks.nodeDoubleClick?.({
@@ -233,8 +253,8 @@ describe('useComposerCanvas double-click behavior', () => {
     const reconnectSpy = vi.spyOn(sessionStore, 'focusOrResumeRemoteSession');
     const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
 
-    mountComposerCanvas(
-      createView({
+    mountComposerCanvas({
+      view: createView({
         nodes: [
           {
             nodeId: 'prompt-1',
@@ -247,7 +267,7 @@ describe('useComposerCanvas double-click behavior', () => {
           },
         ],
       }),
-    );
+    });
     const { target } = createEventTarget();
 
     await flowHooks.nodeDoubleClick?.({
@@ -268,7 +288,7 @@ describe('useComposerCanvas double-click behavior', () => {
     vi.spyOn(sessionStore, 'focusOrResumeRemoteSession').mockResolvedValue({ status: 'missing' });
     const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
 
-    mountComposerCanvas(createView());
+    mountComposerCanvas({ view: createView() });
     const { target } = createEventTarget();
 
     await flowHooks.nodeDoubleClick?.({
@@ -279,5 +299,67 @@ describe('useComposerCanvas double-click behavior', () => {
 
     expect(appShellStore.activeTab).toBe('pipelines');
     expect(inspectSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('useComposerCanvas runtime auto-fit behavior', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    flowHooks.nodeDoubleClick = null;
+    flowHooks.fitView.mockReset();
+    flowHooks.setEdges.mockReset();
+    flowHooks.setNodes.mockReset();
+    document.body.innerHTML = '';
+  });
+
+  it('fits once on the initial runtime load for a pipeline', async () => {
+    mountComposerCanvas({ view: createView() });
+
+    await flushComposerCanvas();
+
+    expect(flowHooks.fitView).toHaveBeenCalledTimes(1);
+    expect(flowHooks.fitView).toHaveBeenCalledWith({ padding: 0.15, duration: 200 });
+  });
+
+  it('does not refit when the same pipeline receives subsequent view updates', async () => {
+    const { view } = mountComposerCanvas({ view: createView() });
+
+    await flushComposerCanvas();
+    flowHooks.fitView.mockClear();
+
+    view.value = createView({ mermaid: 'graph LR;' });
+    await flushComposerCanvas();
+
+    expect(flowHooks.fitView).not.toHaveBeenCalled();
+  });
+
+  it('refits when runtime view switches to a different pipeline id', async () => {
+    const { view } = mountComposerCanvas({ view: createView() });
+
+    await flushComposerCanvas();
+    flowHooks.fitView.mockClear();
+
+    view.value = createView({ pipelineId: 'pipeline-2' });
+    await flushComposerCanvas();
+
+    expect(flowHooks.fitView).toHaveBeenCalledTimes(1);
+    expect(flowHooks.fitView).toHaveBeenCalledWith({ padding: 0.15, duration: 200 });
+  });
+
+  it('clears the fit sentinel in design mode so a later runtime load can fit again', async () => {
+    const { designMode, view } = mountComposerCanvas({ view: createView() });
+
+    await flushComposerCanvas();
+    flowHooks.fitView.mockClear();
+
+    designMode.value = true;
+    await flushComposerCanvas();
+
+    designMode.value = false;
+    view.value = createView({ mermaid: 'graph RL;' });
+    await flushComposerCanvas();
+
+    expect(flowHooks.fitView).toHaveBeenCalledTimes(1);
+    expect(flowHooks.fitView).toHaveBeenCalledWith({ padding: 0.15, duration: 200 });
   });
 });

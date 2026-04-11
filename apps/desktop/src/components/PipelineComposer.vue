@@ -450,7 +450,6 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
         :edges-updatable="designMode"
         :elements-selectable="designMode"
         :delete-key-code="designMode ? 'Backspace' : null"
-        fit-view-on-init
         class="pipeline-flow"
       >
         <Background color="#2a2a2a" />

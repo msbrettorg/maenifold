@@ -103,6 +103,25 @@ export const usePipelineStore = defineStore('pipeline', () => {
       ...(templateId ? { templateId } : {}),
     };
   }
+  function seedRunInputDraftFromView(view: PipelineView | null) {
+    if (!view?.pipelineId) {
+      return;
+    }
+
+    const existingDraft = runInputDrafts.value[view.pipelineId];
+    if (existingDraft && Object.keys(existingDraft).length > 0) {
+      return;
+    }
+
+    if (!view.inputs || Object.keys(view.inputs).length === 0) {
+      return;
+    }
+
+    runInputDrafts.value = {
+      ...runInputDrafts.value,
+      [view.pipelineId]: { ...view.inputs },
+    };
+  }
   function setView(
     view: PipelineView | null,
     metadata?: {
@@ -110,6 +129,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     },
   ) {
     currentView.value = view;
+    seedRunInputDraftFromView(currentView.value);
     localDefinition.value = view
       ? withLocalMetadata(toLocalDefinition(view), metadata)
       : EMPTY_DEFINITION();

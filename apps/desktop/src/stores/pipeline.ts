@@ -200,6 +200,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
           stopCurrentPolling();
           currentPipelineId.value = pipelineId;
           setView(normalizeView(await mcp.viewPipeline(pipelineId)));
+          startViewPolling();
           designMode.value = false;
           eventLog.value = [];
         });
@@ -236,6 +237,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const definition = withLocalMetadata(result.definition, {
       templateId: template.id,
     });
+    const previousDefinition = localDefinition.value;
     localDefinition.value = definition;
 
     const createResult = await createPipeline(definition);
@@ -243,6 +245,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
       return true;
     }
 
+    localDefinition.value = previousDefinition;
     if (!errorMessage.value) {
       setError('apply_template', new Error('Failed to create pipeline from template.'));
     }

@@ -14,6 +14,7 @@ const { agentNames } = storeToRefs(configStore);
 
 const selectedTemplateId = ref<string | null>(null);
 const intentDraft = ref('');
+const intentError = ref('');
 const intentSubmitting = ref(false);
 
 const discoveredToolNames = computed<ReadonlySet<string>>(
@@ -46,16 +47,27 @@ async function handleIntentSubmit(): Promise<void> {
     return;
   }
 
+  intentError.value = '';
   intentSubmitting.value = true;
   try {
     const created = await store.createIntentPipeline(intentDraft.value);
     if (!created) {
+      if (intentDraft.value.trim().length === 0) {
+        intentError.value = 'Enter an intent to create a pipeline.';
+      }
       return;
     }
 
     intentDraft.value = '';
+    intentError.value = '';
   } finally {
     intentSubmitting.value = false;
+  }
+}
+
+function handleIntentInput(): void {
+  if (intentError.value) {
+    intentError.value = '';
   }
 }
 </script>
@@ -79,7 +91,12 @@ async function handleIntentSubmit(): Promise<void> {
           placeholder="What do you want to do?"
           autocomplete="off"
           :disabled="intentSubmitting"
+          :aria-invalid="intentError.length > 0"
+          @input="handleIntentInput"
         />
+        <p v-if="intentError" class="gallery-intent-error" role="alert">
+          {{ intentError }}
+        </p>
         <p class="gallery-intent-hint">
           Press Enter to create a pipeline from your request.
         </p>
@@ -224,6 +241,13 @@ async function handleIntentSubmit(): Promise<void> {
   margin: 0;
   font-size: var(--text-sm);
   color: var(--text-muted);
+  text-align: center;
+}
+
+.gallery-intent-error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-status-stuck, #e57373);
   text-align: center;
 }
 

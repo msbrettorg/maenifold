@@ -1,10 +1,6 @@
 <script setup lang="ts">
-import { marked } from 'marked';
-import type { ContentBlock, ToolCallContentBlock, ToolCallInfo } from '../lib/types';
-
-type InlineTextToolCallContentBlock = Extract<ToolCallContentBlock, { type: 'content' }> & {
-  content: Extract<ContentBlock, { type: 'text' }>;
-};
+import ChatContentBlocks from './ChatContentBlocks.vue';
+import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
 type DiffLine = {
   kind: 'header' | 'context' | 'add' | 'remove';
@@ -13,18 +9,14 @@ type DiffLine = {
 
 defineProps<{ toolCall: ToolCallInfo }>();
 
-function renderMarkdown(content: string): string {
-  return marked.parse(content, { async: false }) as string;
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function isInlineTextToolCallContentBlock(
+function isContentToolCallContentBlock(
   block: ToolCallContentBlock
-): block is InlineTextToolCallContentBlock {
-  return block.type === 'content' && isRecord(block.content) && block.content.type === 'text';
+): block is Extract<ToolCallContentBlock, { type: 'content' }> & { content: NonNullable<Extract<ToolCallContentBlock, { type: 'content' }>['content']> } {
+  return block.type === 'content' && block.content != null;
 }
 
 function isDiffToolCallContentBlock(
@@ -101,7 +93,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   <div class="tool-call-details">
     <div v-if="toolCall.content?.length" class="tool-call-content-list">
       <div v-for="(block, blockIndex) in toolCall.content" :key="`${toolCall.toolCallId}-content-${blockIndex}`" class="tool-content-block">
-        <div v-if="isInlineTextToolCallContentBlock(block)" class="tool-content-markdown" v-html="renderMarkdown(block.content.text)" />
+        <ChatContentBlocks v-if="isContentToolCallContentBlock(block)" :blocks="[block.content]" />
         <div v-else-if="isDiffToolCallContentBlock(block)" class="tool-content-diff">
           <div class="tool-content-label">{{ block.path }}</div>
           <pre class="tool-diff-pre"><code><span
@@ -151,9 +143,6 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   font-size: var(--text-xs);
   font-weight: 600;
 }
-.tool-content-markdown { line-height: 1.5; overflow-wrap: break-word; word-wrap: break-word; }
-.tool-content-markdown :deep(p) { margin: 0.5rem 0; }
-.tool-content-markdown :deep(pre),
 .tool-content-unknown,
 .tool-diff-pre,
 .tool-terminal-output,

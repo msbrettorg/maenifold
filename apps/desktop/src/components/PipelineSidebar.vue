@@ -4,6 +4,12 @@ import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
+withDefaults(defineProps<{
+  hideHeader?: boolean;
+}>(), {
+  hideHeader: false,
+});
+
 const emit = defineEmits<{
   (e: 'pipeline-selected', pipelineId: string): void;
 }>();
@@ -77,7 +83,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 <template>
   <aside class="pipeline-sidebar">
-    <div class="sidebar-header">
+    <div v-if="!hideHeader" class="sidebar-header">
       <h3>Pipelines</h3>
       <div class="sidebar-actions">
         <button class="btn btn-ghost" type="button" title="Refresh" @click="handleRefresh">↻</button>
@@ -93,20 +99,27 @@ async function handleDelete(item: PipelineListItem, event: Event) {
       <li
         v-for="item in pipelineItems"
         :key="item.pipelineId"
-        :data-pipeline-id="item.pipelineId"
         :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
-        @click="handleSelect(item.pipelineId)"
       >
-        <div class="pipeline-main">
-          <span class="status-icon" :aria-label="`${item.status} pipeline`">
-            {{ getStatusIcon(item.status) }}
-          </span>
+        <button
+          type="button"
+          class="pipeline-select"
+          :data-pipeline-id="item.pipelineId"
+          data-pipeline-item
+          :aria-current="currentPipelineId === item.pipelineId ? 'page' : undefined"
+          @click="handleSelect(item.pipelineId)"
+        >
+          <div class="pipeline-main">
+            <span class="status-icon" :aria-label="`${item.status} pipeline`">
+              {{ getStatusIcon(item.status) }}
+            </span>
 
-          <div class="pipeline-meta">
-            <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
-            <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+            <div class="pipeline-meta">
+              <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
+              <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+            </div>
           </div>
-        </div>
+        </button>
 
         <div class="pipeline-side">
           <span :class="['pipeline-status', 'status-text', `status-text--${item.status}`]">
@@ -186,7 +199,6 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   border-left: 3px solid transparent;
   border-radius: 6px;
   background: var(--bg-main);
-  cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
@@ -197,6 +209,25 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 .pipeline-item.active {
   border-left-color: var(--border-focus);
   background: var(--bg-surface);
+}
+
+.pipeline-select {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  border: 0;
+  display: flex;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pipeline-select:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .pipeline-main {

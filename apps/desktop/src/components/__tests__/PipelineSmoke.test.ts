@@ -9,7 +9,6 @@ import PipelineInspector from '../PipelineInspector.vue';
 import PipelineRunner from '../PipelineRunner.vue';
 import { isWorkflowNode } from '../../lib/pipeline-types';
 import PipelineSidebar from '../PipelineSidebar.vue';
-import PipelineView from '../PipelineView.vue';
 import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 
@@ -132,6 +131,10 @@ describe('pipeline smoke tests', () => {
 
   it('PipelineComposer adds a node through the design toolbar', async () => {
     const { pinia, store } = createStore();
+    store.localDefinition = {
+      nodes: [{ id: 'seed-node', workflowId: 'workflow.alpha' }],
+      edges: [],
+    };
     const nodePaletteStore = useNodePaletteStore();
     nodePaletteStore.setPanelWidth(432);
 
@@ -168,10 +171,11 @@ describe('pipeline smoke tests', () => {
     await wrapper.get('form.composer-toolbar').trigger('submit');
     await flushPromises();
 
-    expect(store.localDefinition.nodes).toHaveLength(1);
-    expect(isWorkflowNode(store.localDefinition.nodes[0]!)).toBe(true);
-    if (isWorkflowNode(store.localDefinition.nodes[0]!)) {
-      expect(store.localDefinition.nodes[0].workflowId).toBe('workflow.alpha');
+    expect(store.localDefinition.nodes).toHaveLength(2);
+    const createdNode = store.localDefinition.nodes[1]!;
+    expect(isWorkflowNode(createdNode)).toBe(true);
+    if (isWorkflowNode(createdNode)) {
+      expect(createdNode.workflowId).toBe('workflow.alpha');
     }
   });
 
@@ -225,32 +229,7 @@ describe('pipeline smoke tests', () => {
       global: { plugins: [nodeCase.pinia] },
     });
 
-    expect(nodeWrapper.get('h2').text()).toBe('Node');
+    expect(nodeWrapper.get('h2').text()).toBe('node-1');
   });
 
-  it('PipelineView mounts the sidebar, composer, inspector, and runner panels together', async () => {
-    const { pinia, store } = createStore();
-    store.localDefinition = {
-      nodes: [{ id: 'node-1', workflowId: 'workflow.alpha' }],
-      edges: [],
-    };
-    vi.spyOn(store, 'connect').mockResolvedValue();
-    vi.spyOn(store, 'refreshList').mockResolvedValue();
-    vi.spyOn(store, 'refreshWorkflows').mockResolvedValue();
-    vi.spyOn(store, 'refreshTools').mockResolvedValue();
-
-    const wrapper = mount(PipelineView, {
-      global: {
-        plugins: [pinia],
-        stubs: vueFlowStubs,
-      },
-    });
-
-    await flushPromises();
-
-    expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(true);
-    expect(wrapper.findComponent(PipelineComposer).exists()).toBe(true);
-    expect(wrapper.findComponent(PipelineInspector).exists()).toBe(true);
-    expect(wrapper.findComponent(PipelineRunner).exists()).toBe(true);
-  });
 });

@@ -113,4 +113,16 @@ describe('useAgentCapabilitiesStore', () => {
     expect(store.getProbe('architect')?.degradedMessage).toContain('timed out');
     expect(store.getProbe('architect')?.probedAt).toBe(cachedProbedAt);
   });
+
+  it('does not surface legacy style from probe results', async () => {
+    const store = useAgentCapabilitiesStore();
+    callTool.mockResolvedValue([
+      { name: 'architect', capabilities: { style: 'legacy' } },
+    ]);
+
+    await store.probeAll({ force: true });
+
+    expect(store.getProbe('architect')?.style).toBe('unknown');
+    expect(store.getProbe('architect')?.state).toBe('ready');
+  });
 });

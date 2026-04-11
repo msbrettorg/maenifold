@@ -19,3 +19,37 @@ describe('agent probe error classification', () => {
     expect(probe.offline).toBe(false);
   });
 });
+
+describe('normalizeAgentProbeResult', () => {
+  it('preserves modern style for modern probe payloads', () => {
+    const probe = normalizeAgentProbeResult({
+      style: 'modern',
+      configOptions: [],
+    });
+
+    expect(probe.style).toBe('modern');
+  });
+
+  it('does not preserve legacy style once legacy probe support is removed', () => {
+    const probe = normalizeAgentProbeResult({ style: 'legacy' });
+
+    expect(probe.style).toBe('unknown');
+  });
+
+  it('treats config-option payloads as modern even without an explicit style', () => {
+    const probe = normalizeAgentProbeResult({
+      configOptions: [
+        {
+          id: 'mode',
+          name: 'Mode',
+          category: 'mode',
+          currentValue: 'prompt',
+          options: [{ value: 'prompt', name: 'Prompt' }],
+        },
+      ],
+    });
+
+    expect(probe.style).toBe('modern');
+    expect(probe.modes).toEqual(['prompt']);
+  });
+});

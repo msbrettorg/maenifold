@@ -372,6 +372,17 @@ function classifyProbeState(error?: string): AgentProbeState {
   return isOfflineProbeError(error) ? 'offline' : 'error';
 }
 
+function normalizeProbeStyle(
+  value: unknown,
+  hasConfigOptions: boolean,
+): AgentProbeStyle {
+  if (value === 'modern') {
+    return 'modern';
+  }
+
+  return hasConfigOptions ? 'modern' : 'unknown';
+}
+
 export function normalizeAgentProbeResult(
   value: unknown,
   options: { probedAt?: number; error?: string } = {},
@@ -380,7 +391,6 @@ export function normalizeAgentProbeResult(
   const embeddedError = normalizeString(source.error);
   const error = options.error ?? embeddedError;
   const state = classifyProbeState(error);
-  const style = normalizeString(source.style);
   const configOptionList =
     state === 'ready' ? normalizeConfigOptions(source.configOptions) : [];
   const modeOptions = modeOptionsFromConfigOptions(configOptionList);
@@ -390,12 +400,7 @@ export function normalizeAgentProbeResult(
   );
 
   return {
-    style:
-      style === 'modern'
-        ? style
-        : configOptionList.length > 0
-          ? 'modern'
-          : 'unknown',
+    style: normalizeProbeStyle(source.style, configOptionList.length > 0),
     state,
     offline: state === 'offline',
     modes: modeOptions.map((option) => option.id),

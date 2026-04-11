@@ -5,7 +5,6 @@ import type {
   RecentResult,
   SearchResult,
 } from '../lib/workflow-types';
-import { getApiBase } from '../lib/api-base';
 import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
@@ -182,8 +181,8 @@ function normalizeRecentResponse(value: unknown): RecentResult {
   };
 }
 
-export function useMemoryApi(baseUrl?: string) {
-  const mcp = getSharedMcpClient(baseUrl ?? getApiBase());
+export function useMemoryApi() {
+  const mcp = getSharedMcpClient();
 
   async function ensureConnected(): Promise<void> {
     if (mcp.connected.value) {

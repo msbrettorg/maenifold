@@ -180,9 +180,9 @@ export const usePipelineStore = defineStore('pipeline', () => {
     designMode.value = true;
     eventLog.value = [];
   }
-  async function createPipeline() {
+  async function createPipeline(definitionOverride?: PipelineDefinition) {
     return withError('create_pipeline', async () => {
-      const definition = serializePipelineDefinition(localDefinition.value);
+      const definition = serializePipelineDefinition(definitionOverride ?? localDefinition.value);
       definition.nodes.forEach((node) => {
         if (node.type === 'workflow' && !('workflowId' in node && node.workflowId)) {
           throw new Error(`Workflow node '${node.id}' is missing workflowId`);
@@ -230,16 +230,11 @@ export const usePipelineStore = defineStore('pipeline', () => {
       templateId: template.id,
     });
   }
-  function createIntentPipeline(intent: string): boolean {
-    const prompt = intent.trim();
-    if (prompt.length === 0) {
-      return false;
-    }
-
+  function buildIntentDefinition(prompt: string): PipelineDefinition {
     const agent = primaryAgent.value;
     const nodeId = createNodeId('prompt');
 
-    localDefinition.value = {
+    return {
       nodes: [
         agent.length > 0
           ? createNode('prompt', {
@@ -258,8 +253,18 @@ export const usePipelineStore = defineStore('pipeline', () => {
       ],
       edges: [],
     };
+  }
+  async function createIntentPipeline(intent: string): Promise<boolean> {
+    const prompt = intent.trim();
+    if (prompt.length === 0) {
+      return false;
+    }
 
-    return true;
+    const definition = buildIntentDefinition(prompt);
+    localDefinition.value = definition;
+
+    const result = await createPipeline(definition);
+    return isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0;
   }
   function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
     if (!pipelineSessionId) {

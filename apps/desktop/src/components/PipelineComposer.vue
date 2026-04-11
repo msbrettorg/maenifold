@@ -84,14 +84,7 @@ const paletteResize = useResizeHandle({
   max: 720,
 });
 
-const advancedMode = ref(false);
-const showGallery = computed(
-  () => props.designMode && showEmptyState.value && !advancedMode.value,
-);
-
-function switchToAdvanced(): void {
-  advancedMode.value = true;
-}
+const showGallery = computed(() => props.designMode && showEmptyState.value);
 
 const designGridStyle = computed(() => ({
   'grid-template-columns': showGallery.value
@@ -342,14 +335,14 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 <template>
   <div class="pipeline-composer" @keydown="handleFlowKeyDown">
     <div v-if="designMode" class="composer-layout" :style="designGridStyle">
-      <!-- Intent-first gallery shown when canvas is empty and not in advanced mode -->
+      <!-- Intent-first gallery shown when the design canvas is empty -->
       <template v-if="showGallery">
         <section class="composer-gallery-panel">
-          <TemplateGallery @switch-to-advanced="switchToAdvanced" />
+          <TemplateGallery />
         </section>
       </template>
 
-      <!-- Standard palette + canvas shown when nodes exist or advanced mode is active -->
+      <!-- Standard palette + canvas shown once the pipeline has content -->
       <template v-else>
         <section class="composer-palette">
           <AddNodeForm

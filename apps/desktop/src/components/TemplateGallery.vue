@@ -5,14 +5,7 @@ import { usePipelineStore } from '../stores/pipeline';
 import { useConfigStore } from '../stores/config';
 import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
 import type { PipelineTemplate } from '../lib/pipeline-templates';
-import {
-  getAvailableTemplates,
-  resolveAgents,
-} from '../lib/pipeline-template-runtime';
-
-const emit = defineEmits<{
-  (e: 'switchToAdvanced'): void;
-}>();
+import { getAvailableTemplates, resolveAgents } from '../lib/pipeline-template-runtime';
 
 const store = usePipelineStore();
 const configStore = useConfigStore();
@@ -21,6 +14,7 @@ const { agentNames } = storeToRefs(configStore);
 
 const selectedTemplateId = ref<string | null>(null);
 const intentDraft = ref('');
+const intentSubmitting = ref(false);
 
 const discoveredToolNames = computed<ReadonlySet<string>>(
   () => new Set(discoveryStore.allTools.map((tool) => tool.name)),
@@ -47,13 +41,22 @@ function handleInstantiate(): void {
   store.applyTemplate(selectedTemplate.value, agents);
 }
 
-function handleIntentSubmit(): void {
-  const created = store.createIntentPipeline(intentDraft.value);
-  if (!created) {
+async function handleIntentSubmit(): Promise<void> {
+  if (intentSubmitting.value) {
     return;
   }
 
-  intentDraft.value = '';
+  intentSubmitting.value = true;
+  try {
+    const created = await store.createIntentPipeline(intentDraft.value);
+    if (!created) {
+      return;
+    }
+
+    intentDraft.value = '';
+  } finally {
+    intentSubmitting.value = false;
+  }
 }
 </script>
 
@@ -61,13 +64,6 @@ function handleIntentSubmit(): void {
   <div class="template-gallery">
     <header class="gallery-header">
       <h3 class="gallery-title">What would you like to do?</h3>
-      <button
-        type="button"
-        class="btn btn-ghost gallery-advanced-btn"
-        @click="emit('switchToAdvanced')"
-      >
-        Advanced →
-      </button>
     </header>
 
     <section class="gallery-hero">
@@ -82,6 +78,7 @@ function handleIntentSubmit(): void {
           class="gallery-intent-input"
           placeholder="What do you want to do?"
           autocomplete="off"
+          :disabled="intentSubmitting"
         />
         <p class="gallery-intent-hint">
           Press Enter to create a pipeline from your request.
@@ -225,11 +222,6 @@ function handleIntentSubmit(): void {
   font-size: var(--text-sm);
   color: var(--text-muted);
   text-align: center;
-}
-
-.gallery-advanced-btn {
-  font-size: var(--text-sm);
-  color: var(--text-muted);
 }
 
 .gallery-card-section {

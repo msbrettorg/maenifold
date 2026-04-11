@@ -15,6 +15,7 @@ import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
 import TemplateGallery from './TemplateGallery.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
+import { usePipelineMobile } from '../composables/usePipelineMobile';
 import { useResizeHandle } from '../composables/useResizeHandle';
 import type {
   PipelineNode,
@@ -85,9 +86,11 @@ const paletteResize = useResizeHandle({
 });
 
 const showGallery = computed(() => props.designMode && showEmptyState.value);
+const paletteOpen = ref(false);
+const { isNarrowViewport } = usePipelineMobile(computed(() => hasSelection.value));
 
 const designGridStyle = computed(() => ({
-  'grid-template-columns': showGallery.value
+  'grid-template-columns': showGallery.value || !paletteOpen.value
     ? 'minmax(0, 1fr)'
     : `${paletteResize.width.value}px minmax(0, 1fr)`,
 }));
@@ -99,6 +102,12 @@ watch(
   },
   { immediate: true },
 );
+
+watch(isNarrowViewport, (narrow) => {
+  if (narrow) {
+    paletteOpen.value = false;
+  }
+});
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   workflow: '#4d8eff',
@@ -191,7 +200,10 @@ function handleComposerContextMenu(event: MouseEvent): void {
 
   event.preventDefault();
 
-  const flowRoot = target.closest<HTMLElement>('.vue-flow');
+  const currentTarget = event.currentTarget;
+  const flowRoot = currentTarget instanceof HTMLElement
+    ? currentTarget.querySelector<HTMLElement>('.vue-flow')
+    : target.closest<HTMLElement>('.vue-flow');
   if (!flowRoot) {
     closeContextMenu();
     return;
@@ -335,32 +347,35 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 <template>
   <div class="pipeline-composer" @keydown="handleFlowKeyDown">
     <div v-if="designMode" class="composer-layout" :style="designGridStyle">
-      <!-- Intent-first gallery shown when the design canvas is empty -->
-      <template v-if="showGallery">
-        <section class="composer-gallery-panel">
-          <TemplateGallery />
-        </section>
-      </template>
+      <section v-if="paletteOpen && !showGallery" class="composer-palette">
+        <AddNodeForm
+          :workflows="store.workflows"
+          :submit-node="submitNode"
+        />
+        <div
+          class="composer-palette-resize"
+          :style="{ left: `${paletteResize.width.value}px` }"
+          @mousedown="paletteResize.startResize($event, 'right')"
+        />
+      </section>
 
-      <!-- Standard palette + canvas shown once the pipeline has content -->
-      <template v-else>
-        <section class="composer-palette">
-          <AddNodeForm
-            :workflows="store.workflows"
-            :has-selection="hasSelection"
-            :submit-node="submitNode"
-            @auto-layout="handleAutoLayout"
-            @delete-selected="deleteSelected"
-          />
-          <div
-            class="composer-palette-resize"
-            :style="{ left: `${paletteResize.width.value}px` }"
-            @mousedown="paletteResize.startResize($event, 'right')"
-          />
-        </section>
-      </template>
-
-      <section v-if="!showGallery" class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
+      <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
+        <div class="flow-toolbar">
+          <button type="button" class="btn btn-ghost" @click="handleAutoLayout('LR')">↔ Layout LR</button>
+          <button type="button" class="btn btn-ghost" @click="handleAutoLayout('TB')">↕ Layout TB</button>
+          <button v-if="hasSelection" type="button" class="btn btn-outline-danger" @click="deleteSelected()">
+            Delete Selected
+          </button>
+          <button type="button" class="btn btn-ghost" @click="fitView()">⊞ Fit View</button>
+          <button
+            type="button"
+            class="btn btn-ghost composer-palette-toggle"
+            :aria-pressed="paletteOpen"
+            @click="paletteOpen = !paletteOpen"
+          >
+            {{ paletteOpen ? '✕ Palette' : '+ Palette' }}
+          </button>
+        </div>
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -380,8 +395,8 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           class="pipeline-flow"
         >
           <Background color="#2a2a2a" />
-          <Controls :show-interactive="designMode" />
-          <MiniMap :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
+          <Controls :show-interactive="designMode && !showGallery" />
+          <MiniMap v-if="!showGallery" :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
           <template v-slot:edge-smoothstep="edgeProps">
             <g>
               <BaseEdge
@@ -405,7 +420,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
             </EdgeLabelRenderer>
           </template>
         </VueFlow>
-        <div v-if="showEmptyState" class="composer-empty-state">
+        <section v-if="showGallery" class="composer-gallery-panel">
+          <TemplateGallery />
+        </section>
+        <div v-else-if="showEmptyState" class="composer-empty-state">
           <span>Add nodes using the form or right-click the canvas</span>
         </div>
         <PipelineComposerContextMenu
@@ -510,9 +528,12 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 }
 
 .composer-gallery-panel {
+  position: absolute;
+  inset: 0;
   display: flex;
   justify-content: center;
   overflow-y: auto;
+  z-index: 4;
 }
 
 .composer-palette-resize {
@@ -532,6 +553,12 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
   z-index: 5;
   display: flex;
   gap: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .composer-palette-toggle {
+    display: none;
+  }
 }
 
 .pipeline-flow {

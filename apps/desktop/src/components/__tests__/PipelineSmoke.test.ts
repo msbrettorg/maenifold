@@ -4,17 +4,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 
+import TemplateGallery from '../TemplateGallery.vue';
 import PipelineComposer from '../PipelineComposer.vue';
 import PipelineInspector from '../PipelineInspector.vue';
 import PipelineRunner from '../PipelineRunner.vue';
 import { isWorkflowNode } from '../../lib/pipeline-types';
 import PipelineSidebar from '../PipelineSidebar.vue';
+import { useConfigStore } from '../../stores/config';
 import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 
 const vueFlowStubs = {
   VueFlow: {
-    template: '<div data-testid="vue-flow"><slot /></div>',
+    template: '<div class="vue-flow" data-testid="vue-flow"><slot /></div>',
   },
   Background: true,
   Controls: true,
@@ -24,6 +26,13 @@ const vueFlowStubs = {
 function createStore() {
   const pinia = createPinia();
   setActivePinia(pinia);
+  const configStore = useConfigStore();
+  configStore.config = {
+    mcpServers: [],
+    agents: {
+      architect: { command: 'architect' },
+    },
+  };
   const store = usePipelineStore();
   store.designMode = true;
   store.localDefinition = { nodes: [], edges: [] };
@@ -39,22 +48,50 @@ function findButton(wrapper: VueWrapper<any>, label: string) {
   return wrapper.findAll('button').find((button) => button.text() === label);
 }
 
-beforeEach(() => {
-  vi.restoreAllMocks();
+function installMatchMedia(initialMatches = false) {
+  let matches = initialMatches;
+  const listeners = new Set<(event: MediaQueryListEvent) => void>();
+
   Object.defineProperty(window, 'matchMedia', {
     writable: true,
     configurable: true,
     value: vi.fn().mockImplementation((query: string) => ({
-      matches: false,
+      get matches() { return matches; },
       media: query,
       onchange: null,
       addListener: vi.fn(),
       removeListener: vi.fn(),
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn(),
+      addEventListener: vi.fn((event: string, listener: (event: MediaQueryListEvent) => void) => {
+        if (event === 'change') listeners.add(listener);
+      }),
+      removeEventListener: vi.fn((event: string, listener: (event: MediaQueryListEvent) => void) => {
+        if (event === 'change') listeners.delete(listener);
+      }),
       dispatchEvent: vi.fn(),
     })),
   });
+
+  return {
+    setMatches(nextMatches: boolean) {
+      matches = nextMatches;
+      const event = { matches, media: '(max-width: 900px)' } as MediaQueryListEvent;
+      listeners.forEach((listener) => listener(event));
+    },
+  };
+}
+
+beforeEach(() => {
+  vi.restoreAllMocks();
+  Object.defineProperty(window, 'DOMMatrixReadOnly', {
+    writable: true,
+    configurable: true,
+    value: class {
+      a = 1;
+      m41 = 0;
+      m42 = 0;
+    },
+  });
+  installMatchMedia();
 });
 
 describe('pipeline smoke tests', () => {
@@ -129,7 +166,7 @@ describe('pipeline smoke tests', () => {
     expect(wrapper.emitted('pipeline-selected')).toEqual([['pipeline-next']]);
   });
 
-  it('PipelineComposer adds a node through the design toolbar', async () => {
+  it('PipelineComposer keeps the floating toolbar visible in design mode, starts with the palette closed, and toggles the palette on desktop', async () => {
     const { pinia, store } = createStore();
     store.localDefinition = {
       nodes: [{ id: 'seed-node', workflowId: 'workflow.alpha' }],
@@ -163,6 +200,15 @@ describe('pipeline smoke tests', () => {
       },
     });
 
+    const paletteToggle = findButton(wrapper, '+ Palette');
+    expect(findButton(wrapper, '↔ Layout LR')).toBeTruthy();
+    expect(findButton(wrapper, '↕ Layout TB')).toBeTruthy();
+    expect(findButton(wrapper, '⊞ Fit View')).toBeTruthy();
+    expect(paletteToggle).toBeTruthy();
+    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(false);
+    expect(wrapper.find('.composer-layout').attributes('style')).toContain('minmax(0, 1fr)');
+
+    await paletteToggle!.trigger('click');
     expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
     expect(wrapper.find('.composer-layout').attributes('style')).toContain('432px');
     expect(findButton(wrapper, 'Add Node')).toBeTruthy();
@@ -177,6 +223,63 @@ describe('pipeline smoke tests', () => {
     if (isWorkflowNode(createdNode)) {
       expect(createdNode.workflowId).toBe('workflow.alpha');
     }
+
+    await findButton(wrapper, '✕ Palette')!.trigger('click');
+    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(false);
+  });
+
+  it('PipelineComposer keeps the toolbar and context-menu-first entry path available in the empty gallery state', async () => {
+    const { pinia, store } = createStore();
+
+    const wrapper = mount(PipelineComposer, {
+      props: {
+        designMode: store.designMode,
+        localDefinition: store.localDefinition,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: vueFlowStubs,
+      },
+    });
+
+    expect(wrapper.findComponent(TemplateGallery).exists()).toBe(true);
+    expect(findButton(wrapper, '+ Palette')).toBeTruthy();
+
+    await wrapper.get('.composer-canvas').trigger('contextmenu', { clientX: 160, clientY: 120 });
+    await flushPromises();
+
+    expect(wrapper.find('.composer-context-menu').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Ask an agent…');
+    expect(wrapper.text()).toContain('Run a workflow…');
+  });
+
+  it('PipelineComposer forces the palette closed on narrow viewports', async () => {
+    const viewport = installMatchMedia(false);
+    const { pinia, store } = createStore();
+
+    const wrapper = mount(PipelineComposer, {
+      props: {
+        designMode: store.designMode,
+        localDefinition: {
+          nodes: [{ id: 'seed-node', workflowId: 'workflow.alpha' }],
+          edges: [],
+        },
+      },
+      global: {
+        plugins: [pinia],
+        stubs: vueFlowStubs,
+      },
+    });
+
+    await findButton(wrapper, '+ Palette')!.trigger('click');
+    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
+
+    viewport.setMatches(true);
+    await flushPromises();
+
+    const paletteToggle = wrapper.get('button.composer-palette-toggle');
+    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(false);
+    expect(paletteToggle.attributes('aria-pressed')).toBe('false');
   });
 
   it('PipelineRunner only shows Create when design mode has nodes to create', async () => {

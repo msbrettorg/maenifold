@@ -57,11 +57,26 @@ pub struct ThinkResult {
     pub thoughts_completed: u32,
 }
 
+const THINK_FAILURE_PREFIX: &str = "\u{0}pipeline_think_failure:";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkOptions {
     pub total_thoughts: u32,
     pub parent_workflow_id: Option<String>,
     pub model: Option<String>,
+}
+
+fn think_failure_result(
+    session_id: impl Into<String>,
+    acp_session_id: impl Into<String>,
+    error: &MaenifoldError,
+) -> ThinkResult {
+    ThinkResult {
+        session_id: session_id.into(),
+        acp_session_id: Some(acp_session_id.into()),
+        conclusion: Some(encode_think_failure(error)),
+        thoughts_completed: 0,
+    }
 }
 
 impl Default for ThinkOptions {
@@ -148,8 +163,12 @@ pub(crate) async fn drive_think_session(
     )
     .await;
     if keep_session_alive {
+        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
-        result
+        match result {
+            Ok(value) => Ok(value),
+            Err(error) => Ok(think_failure_result(session_id, acp_session_id, &error)),
+        }
     } else {
         match (result, driver.close().await) {
             (Ok(value), Ok(())) => Ok(value),
@@ -287,6 +306,16 @@ fn think_response_text(response: AcpxResponse) -> Result<String> {
     Ok(response.text)
 }
 
+pub(crate) fn decode_think_failure(response: &str) -> Option<String> {
+    response
+        .strip_prefix(THINK_FAILURE_PREFIX)
+        .map(str::to_string)
+}
+
+fn encode_think_failure(error: &MaenifoldError) -> String {
+    format!("{THINK_FAILURE_PREFIX}{error}")
+}
+
 fn normalize_think_prompt_response(response: Result<AcpxResponse>) -> Result<String> {
     response
         .and_then(think_response_text)
@@ -325,7 +354,10 @@ fn serialize_payload<T: Serialize>(payload: T) -> Value {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_completion_response, normalize_think_prompt_response, think_prompt};
+    use super::{
+        decode_think_failure, is_completion_response, normalize_think_prompt_response,
+        think_failure_result, think_prompt,
+    };
     use crate::acp_native::AcpxResponse;
     use crate::error::MaenifoldError;
 
@@ -383,5 +415,22 @@ mod tests {
             response.is_err(),
             "think transport failures should propagate instead of falling back to agent error text"
         );
+    }
+
+    #[test]
+    fn think_failure_result_preserves_session_provenance() {
+        let result = think_failure_result(
+            "thinking-123",
+            "acp-456",
+            &MaenifoldError::Message("transport failed".to_string()),
+        );
+
+        assert_eq!(result.session_id, "thinking-123");
+        assert_eq!(result.acp_session_id.as_deref(), Some("acp-456"));
+        assert_eq!(
+            result.conclusion.as_deref().and_then(decode_think_failure),
+            Some("transport failed".to_string())
+        );
+        assert_eq!(result.thoughts_completed, 0);
     }
 }

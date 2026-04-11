@@ -11,6 +11,7 @@ use crate::util::json::OutputFormat;
 
 use super::super::agent_session::open_agent_session;
 use super::super::runner::{self, WorkflowRunStatus};
+use super::super::think_runner::decode_think_failure;
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
 use super::external_mcp::{invoke_external_tool, split_namespaced_tool_name};
 use super::types::ToolProvenance;
@@ -204,11 +205,22 @@ fn classify_think_result(
             conclusion
                 .map(|conclusion| conclusion.trim().to_string())
                 .filter(|conclusion| !conclusion.is_empty())
-                .map(|conclusion| NodeOutcome::Completed {
-                    conclusion,
-                    acp_session_id: acp_session_id.clone(),
-                    thinking_session_id: Some(session_id.clone()),
-                    tool_provenance: None,
+                .map(|conclusion| {
+                    if let Some(reason) = decode_think_failure(&conclusion) {
+                        NodeOutcome::Abandoned {
+                            reason,
+                            phase: FailurePhase::PostPrompt,
+                            acp_session_id: acp_session_id.clone(),
+                            thinking_session_id: Some(session_id.clone()),
+                        }
+                    } else {
+                        NodeOutcome::Completed {
+                            conclusion,
+                            acp_session_id: acp_session_id.clone(),
+                            thinking_session_id: Some(session_id.clone()),
+                            tool_provenance: None,
+                        }
+                    }
                 })
                 .unwrap_or(NodeOutcome::Abandoned {
                     reason: "missing conclusion".to_string(),

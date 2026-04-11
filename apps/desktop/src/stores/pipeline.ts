@@ -21,8 +21,10 @@ import type {
 } from '../lib/pipeline-node-factory';
 import { type PipelineTemplate, type TemplateVariables } from '../lib/pipeline-templates';
 import { instantiateTemplate } from '../lib/pipeline-template-runtime';
+import { createNodeId } from '../lib/pipeline-node-factory';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
+import { useConfigStore } from './config';
 import {
   isCreateResult,
   normalizePipelineList,
@@ -53,6 +55,7 @@ function serializeEdge(edge: PipelineEdge): PipelineEdge {
 
 export const usePipelineStore = defineStore('pipeline', () => {
   const mcp = usePipelineMcp();
+  const configStore = useConfigStore();
   const pipelines = ref<PipelineListItem[]>([]);
   const currentPipelineId = ref<string | null>(null);
   const currentView = ref<PipelineView | null>(null);
@@ -91,6 +94,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   let stopPolling: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
+  const primaryAgent = computed(() => configStore.agentNames[0] ?? '');
   function withLocalMetadata(
     definition: PipelineDefinition,
     metadata?: {
@@ -226,6 +230,37 @@ export const usePipelineStore = defineStore('pipeline', () => {
       templateId: template.id,
     });
   }
+  function createIntentPipeline(intent: string): boolean {
+    const prompt = intent.trim();
+    if (prompt.length === 0) {
+      return false;
+    }
+
+    const agent = primaryAgent.value;
+    const nodeId = createNodeId('prompt');
+
+    localDefinition.value = {
+      nodes: [
+        agent.length > 0
+          ? createNode('prompt', {
+              id: nodeId,
+              prompt,
+              agent,
+              displayLabel: 'Intent',
+            })
+          : {
+              id: nodeId,
+              type: 'prompt',
+              prompt,
+              agent: '',
+              displayLabel: 'Intent',
+            },
+      ],
+      edges: [],
+    };
+
+    return true;
+  }
   function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
     if (!pipelineSessionId) {
       return {};
@@ -341,6 +376,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     createPipeline,
     addNode,
     applyTemplate,
+    createIntentPipeline,
     getRunInputDraft,
     setRunInputDraft,
     replaceRunInputDraft,

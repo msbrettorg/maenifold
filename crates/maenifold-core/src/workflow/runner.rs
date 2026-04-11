@@ -54,6 +54,20 @@ pub struct WorkflowResult {
     pub status: WorkflowRunStatus,
 }
 
+fn workflow_failure_result(
+    session_id: impl Into<String>,
+    acp_session_id: impl Into<String>,
+    error: &MaenifoldError,
+) -> WorkflowResult {
+    WorkflowResult {
+        session_id: session_id.into(),
+        acp_session_id: Some(acp_session_id.into()),
+        conclusion: None,
+        steps_completed: 0,
+        status: WorkflowRunStatus::Failed(error.to_string()),
+    }
+}
+
 /// Shared state carried through the workflow run loop.
 struct RunContext<'a> {
     tool_context: &'a ToolContext,
@@ -253,8 +267,16 @@ pub(crate) async fn run_workflow_with_pool(
     }
     .await;
     if keep_session_alive {
+        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
-        result
+        match result {
+            Ok(value) => Ok(value),
+            Err(error) => Ok(workflow_failure_result(
+                run_ctx.session_id.clone(),
+                acp_session_id,
+                &error,
+            )),
+        }
     } else {
         let close_result = driver.close().await;
         match (result, close_result) {
@@ -336,8 +358,16 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     }
     .await;
     if keep_session_alive {
+        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
-        result
+        match result {
+            Ok(value) => Ok(value),
+            Err(error) => Ok(workflow_failure_result(
+                run_ctx.session_id.clone(),
+                acp_session_id,
+                &error,
+            )),
+        }
     } else {
         let close_result = driver.close().await;
         match (result, close_result) {
@@ -387,10 +417,11 @@ async fn maybe_run_step_thinking(
 #[cfg(test)]
 mod tests {
     use super::{
-        append_close_error_context, is_reentrant_workflow_tool, sanitize_workflow_session_opts,
-        workflow_driver_session_opts,
+        WorkflowRunStatus, append_close_error_context, is_reentrant_workflow_tool,
+        sanitize_workflow_session_opts, workflow_driver_session_opts, workflow_failure_result,
     };
     use crate::acp_native::SessionOpts;
+    use crate::error::MaenifoldError;
     use std::path::PathBuf;
 
     fn session_opts(allowed_tools: Option<Vec<&str>>) -> SessionOpts {
@@ -462,5 +493,23 @@ mod tests {
 
         assert_eq!(opts.cwd, cwd);
         assert_eq!(opts.model.as_deref(), Some("model-x"));
+    }
+
+    #[test]
+    fn workflow_failure_result_preserves_session_provenance() {
+        let result = workflow_failure_result(
+            "workflow-123",
+            "acp-456",
+            &MaenifoldError::Message("prompt failed".to_string()),
+        );
+
+        assert_eq!(result.session_id, "workflow-123");
+        assert_eq!(result.acp_session_id.as_deref(), Some("acp-456"));
+        assert_eq!(result.conclusion, None);
+        assert_eq!(result.steps_completed, 0);
+        assert_eq!(
+            result.status,
+            WorkflowRunStatus::Failed("prompt failed".to_string())
+        );
     }
 }

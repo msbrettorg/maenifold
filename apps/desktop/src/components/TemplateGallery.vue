@@ -20,6 +20,7 @@ const discoveryStore = useMcpToolDiscoveryStore();
 const { agentNames } = storeToRefs(configStore);
 
 const selectedTemplateId = ref<string | null>(null);
+const intentDraft = ref('');
 
 const discoveredToolNames = computed<ReadonlySet<string>>(
   () => new Set(discoveryStore.allTools.map((tool) => tool.name)),
@@ -45,6 +46,15 @@ function handleInstantiate(): void {
   const agents = resolveAgents(agentNames.value);
   store.applyTemplate(selectedTemplate.value, agents);
 }
+
+function handleIntentSubmit(): void {
+  const created = store.createIntentPipeline(intentDraft.value);
+  if (!created) {
+    return;
+  }
+
+  intentDraft.value = '';
+}
 </script>
 
 <template>
@@ -60,20 +70,44 @@ function handleInstantiate(): void {
       </button>
     </header>
 
-    <div class="gallery-cards">
-      <button
-        v-for="template in availableTemplates"
-        :key="template.id"
-        type="button"
-        :class="['gallery-card', { 'gallery-card--selected': selectedTemplateId === template.id }]"
-        @click="selectTemplate(template)"
-      >
-        <span class="gallery-card-icon">{{ template.icon }}</span>
-        <span class="gallery-card-label">{{ template.label }}</span>
-        <span class="gallery-card-desc">{{ template.description }}</span>
-        <span v-if="template.category === 'enterprise'" class="gallery-card-badge">Enterprise</span>
-      </button>
-    </div>
+    <section class="gallery-hero">
+      <form class="gallery-intent-form" @submit.prevent="handleIntentSubmit">
+        <label class="gallery-intent-label" for="pipeline-intent-input">
+          Start with an intent
+        </label>
+        <input
+          id="pipeline-intent-input"
+          v-model="intentDraft"
+          type="text"
+          class="gallery-intent-input"
+          placeholder="What do you want to do?"
+          autocomplete="off"
+        />
+        <p class="gallery-intent-hint">
+          Press Enter to create a pipeline from your request.
+        </p>
+      </form>
+    </section>
+
+    <section class="gallery-card-section">
+      <div class="gallery-card-section-header">
+        <span class="gallery-card-section-label">Or start from an intent card</span>
+      </div>
+      <div class="gallery-cards">
+        <button
+          v-for="template in availableTemplates"
+          :key="template.id"
+          type="button"
+          :class="['gallery-card', { 'gallery-card--selected': selectedTemplateId === template.id }]"
+          @click="selectTemplate(template)"
+        >
+          <span class="gallery-card-icon">{{ template.icon }}</span>
+          <span class="gallery-card-label">{{ template.label }}</span>
+          <span class="gallery-card-desc">{{ template.description }}</span>
+          <span v-if="template.category === 'enterprise'" class="gallery-card-badge">Enterprise</span>
+        </button>
+      </div>
+    </section>
 
     <div v-if="selectedTemplate" class="gallery-input-section">
       <div
@@ -122,8 +156,8 @@ function handleInstantiate(): void {
 .template-gallery {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem;
+  gap: 1.5rem;
+  padding: 1.5rem;
   height: 100%;
   overflow-y: auto;
 }
@@ -141,8 +175,79 @@ function handleInstantiate(): void {
   color: var(--text-primary);
 }
 
+.gallery-hero {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 0.25rem;
+}
+
+.gallery-intent-form {
+  width: min(100%, 720px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gallery-intent-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.gallery-intent-input {
+  width: 100%;
+  min-height: 4rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent, #4d8eff) 35%, var(--border-default));
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-container-highest) 84%, var(--bg-main));
+  color: var(--text-primary);
+  font-size: clamp(1.05rem, 1rem + 0.35vw, 1.35rem);
+  line-height: 1.4;
+  box-shadow: 0 18px 40px color-mix(in srgb, var(--color-accent, #4d8eff) 10%, transparent);
+}
+
+.gallery-intent-input::placeholder {
+  color: var(--text-muted);
+}
+
+.gallery-intent-input:focus {
+  outline: none;
+  border-color: var(--color-accent, #4d8eff);
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--color-accent, #4d8eff) 18%, transparent),
+    0 18px 40px color-mix(in srgb, var(--color-accent, #4d8eff) 12%, transparent);
+}
+
+.gallery-intent-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .gallery-advanced-btn {
   font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.gallery-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gallery-card-section-header {
+  display: flex;
+  justify-content: center;
+}
+
+.gallery-card-section-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 

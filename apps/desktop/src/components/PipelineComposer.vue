@@ -518,6 +518,8 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 }
 
 .composer-gallery-panel {
+  display: flex;
+  justify-content: center;
   overflow-y: auto;
 }
 

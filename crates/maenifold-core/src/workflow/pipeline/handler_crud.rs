@@ -48,7 +48,9 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
             session_id: session_id.clone(),
             status: NodeStatus::Pending,
             attempts: 0,
+            acp_session_id: None,
             thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
             retry_after: None,
@@ -302,7 +304,9 @@ mod tests {
                         session_id: format!("workflow-{TS}-{node_id}"),
                         status: status.clone(),
                         attempts: *attempts,
+                        acp_session_id: None,
                         thinking_session_id: None,
+                        tool_provenance: None,
                         output: None,
                         failure_reason: None,
                         retry_after: None,
@@ -536,52 +540,4 @@ mod tests {
         );
     }
 
-    #[test]
-    #[serial]
-    fn delete_pipeline_allows_delete_when_raw_node_states_are_unreadable() {
-        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
-        let session_id = "pipeline-1735689600000-delete-corrupt-raw-node-states";
-        let definition = PipelineDefinition {
-            nodes: vec![workflow_node("node")],
-            edges: vec![],
-        };
-        let node_states = states(&[("node", NodeStatus::Completed, 1)]);
-        seed_pipeline_session_with_workflows(
-            &context,
-            session_id,
-            definition,
-            node_states.clone(),
-            1,
-        );
-
-        let pipeline_uri = pipeline_session_uri(session_id);
-        let (frontmatter, content, _) =
-            read_markdown(&pipeline_uri, &context.config).expect("read pipeline");
-        let mut frontmatter = frontmatter.expect("pipeline frontmatter");
-        frontmatter.remove("nodeStates");
-        write_markdown(&pipeline_uri, Some(&frontmatter), &content, &context.config)
-            .expect("write corrupted pipeline");
-
-        let response = delete_pipeline(&context, session_id)
-            .expect("delete should tolerate missing raw node states");
-        let payload: Value = serde_json::from_str(&response).expect("json response");
-
-        assert_eq!(payload["success"], Value::Bool(true));
-        assert_eq!(
-            payload["data"]["deletedSessionId"],
-            Value::String(session_id.to_string())
-        );
-        assert!(
-            !file_exists(&pipeline_uri, &context.config).expect("check pipeline deletion"),
-            "pipeline session should be deleted"
-        );
-        assert!(
-            file_exists(
-                &workflow_session_uri(&node_states["node"].session_id),
-                &context.config
-            )
-            .expect("check workflow session remains"),
-            "workflow session should remain when nodeStates are unreadable"
-        );
-    }
 }

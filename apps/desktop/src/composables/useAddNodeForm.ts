@@ -7,6 +7,7 @@ import {
   DEFAULT_PIPELINE_NODE_THOUGHTS,
   usePipelineNodeFormFields,
 } from './pipeline-node-form-helpers';
+import { useNodePaletteStore } from '../stores/node-palette';
 
 interface SubmitNode {
   (type: 'workflow', fields: PipelineNodeDraftByType['workflow']): void;
@@ -20,6 +21,7 @@ interface UseAddNodeFormOptions {
 }
 
 export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
+  const nodePaletteStore = useNodePaletteStore();
   const workflowListId = 'pipeline-composer-workflows';
   const panelOpen = ref(true);
   const nodeType = ref<PipelineNodeType>('workflow');
@@ -46,8 +48,30 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
 
   watch(toolName, () => {
     toolArgs.value = {};
-    toolArgsValid.value = false;
+    toolArgsValid.value = true;
   });
+
+  watch(
+    toolName,
+    (value) => {
+      nodePaletteStore.setSelectedTool(value);
+    },
+    { immediate: true },
+  );
+
+  watch(
+    nodeType,
+    (value) => {
+      if (
+        value === 'tool'
+        && !toolName.value
+        && nodePaletteStore.selectedToolName
+      ) {
+        toolName.value = nodePaletteStore.selectedToolName;
+      }
+    },
+    { immediate: true },
+  );
 
 
   function resetCurrentDraft(): void {
@@ -65,11 +89,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
         thinkingAnalysisType.value = '';
         break;
       case 'tool':
-        toolName.value = '';
-        toolAgent.value = '';
-        toolAgentConfig.value = {};
-        toolArgs.value = {};
-        toolArgsValid.value = false;
+        // Preserve palette selection and current tool configuration for repeated adds.
         break;
       default:
         workflowId.value = '';
@@ -94,6 +114,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
         break;
       case 'tool':
         submitNode('tool', buildPipelineNodeDraft('tool', getFormValues()));
+        nodePaletteStore.recordRecentTool(toolName.value);
         break;
       default:
         submitNode('workflow', buildPipelineNodeDraft('workflow', getFormValues()));

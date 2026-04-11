@@ -9,6 +9,7 @@ import type {
   SessionMode,
 } from '../lib/types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
+import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 
 const EMPTY_VALUE = '__preview-empty__';
 
@@ -33,6 +34,7 @@ const props = withDefaults(
     compact: false,
   },
 );
+const capabilitiesStore = useAgentCapabilitiesStore();
 
 function isGroup(
   option: SessionConfigSelectOption | SessionConfigSelectGroup,
@@ -77,6 +79,8 @@ function toPreviewField(
 }
 
 const ready = computed(() => props.probe?.state === 'ready');
+const refreshing = computed(() => props.probe?.refreshing === true);
+const degradedMessage = computed(() => props.probe?.degradedMessage);
 
 const previewFields = computed<PreviewField[]>(() => {
   const probe = props.probe;
@@ -191,8 +195,28 @@ const statusMessage = computed(() => {
       : 'No dynamic session controls advertised';
   }
 
-  return props.probe.error ?? `Agent is ${props.probe.state}.`;
+  if (props.probe.state === 'offline') {
+    return 'Live probe unavailable. Retry before starting a workflow, or keep using cached defaults when they are available.';
+  }
+
+  return 'Agent returned an unexpected capability payload. Retry or inspect the agent before relying on dynamic overrides.';
 });
+
+const technicalDetail = computed(() => {
+  if (!props.probe || props.probe.state === 'ready') {
+    return null;
+  }
+
+  return props.probe.error ?? null;
+});
+
+const refreshDisabled = computed(
+  () => props.loading || capabilitiesStore.probeStatus === 'probing',
+);
+
+async function handleRefresh() {
+  await capabilitiesStore.refreshAll();
+}
 
 function optionCount(field: PreviewField): number {
   return flattenOptions(field.options).length;
@@ -211,9 +235,17 @@ function currentLabel(field: PreviewField): string {
 <template>
   <section class="probe-preview" :class="[statusTone, { compact }]">
     <div class="preview-header">
-      <span class="status-pill">{{ statusLabel }}</span>
-      <span class="status-message">{{ statusMessage }}</span>
+      <div class="status-copy">
+        <span class="status-pill">{{ statusLabel }}</span>
+        <span class="status-message">{{ statusMessage }}</span>
+      </div>
+      <button type="button" class="refresh-btn" :disabled="refreshDisabled" @click="handleRefresh">
+        {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+      </button>
     </div>
+
+    <p v-if="degradedMessage" class="degraded-note">{{ degradedMessage }}</p>
+    <p v-if="technicalDetail" class="technical-detail">{{ technicalDetail }}</p>
 
     <div v-if="ready && currentDefaults.length" class="default-summary">
       {{ currentDefaults.join(' · ') }}
@@ -268,6 +300,14 @@ function currentLabel(field: PreviewField): string {
 .preview-header {
   display: flex;
   flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.status-copy {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
   align-items: center;
 }
@@ -289,19 +329,49 @@ function currentLabel(field: PreviewField): string {
 .default-summary,
 .field-current,
 .field-description,
-.option-count {
+.option-count,
+.degraded-note,
+.technical-detail {
   font-size: var(--text-sm);
 }
 
 .status-message,
 .field-description,
-.option-count {
+.option-count,
+.technical-detail {
   color: var(--text-secondary);
 }
 
 .default-summary {
   color: var(--text-primary);
   word-break: break-word;
+}
+
+.degraded-note {
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.technical-detail {
+  margin: 0;
+  word-break: break-word;
+}
+
+.refresh-btn {
+  border: 1px solid color-mix(in srgb, var(--border-color) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-sidebar) 82%, transparent);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 0.25rem 0.65rem;
+  white-space: nowrap;
+}
+
+.refresh-btn:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .field-grid {
@@ -362,6 +432,10 @@ function currentLabel(field: PreviewField): string {
 
 .probe-preview.offline .status-pill {
   background: color-mix(in srgb, var(--bg-warning) 65%, transparent);
+  color: var(--text-primary);
+}
+
+.probe-preview.offline .degraded-note {
   color: var(--text-primary);
 }
 

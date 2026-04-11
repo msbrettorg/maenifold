@@ -9,6 +9,10 @@ This document is the authoritative implementation spec for `gate`.
 - Bundled built-ins are copied to the gate directory only when missing or stale
 - Existing runtime gate JSON files are authoritative and must never be overwritten by bootstrap
 - Files under `todo/` and `done/` are authoritative task state
+- Live task files in `todo/` must declare canonical frontmatter `sessionId`
+  referencing a reasoning session ID beginning with `session-` or `workflow-`
+- Completed tasks under `done/legacy/` are treated as legacy archive and are
+  skipped by live linkage validation
 - `gate.db` is a rebuildable read model derived from authoritative files and has no authority over task truth
 - No source module may exist unless it is named in this spec
 
@@ -325,6 +329,7 @@ class TaskMetadata {
   +title: String
   +pipeline: String
   +status: Option~String~
+  +sessionId: Option~String~
 }
 
 class TaskStageRecord {
@@ -563,6 +568,7 @@ If implementation requires a new file, this spec must be updated first.
 - Parse frontmatter `title`
 - Parse frontmatter `pipeline`
 - Parse frontmatter `status`
+- Parse canonical frontmatter `sessionId` (with low-cost legacy alias support when present)
 - Parse title
 - Parse `Pipeline`
 - Parse canonical task ID from frontmatter (`parse_task_id`)
@@ -604,6 +610,8 @@ If implementation requires a new file, this spec must be updated first.
 
 - Open and maintain the `gate.db` read model
 - Rebuild task pipeline/status snapshots in place
+- Error on missing/invalid `sessionId` for live `todo/` tasks
+- Warn on missing/invalid linkage for completed tasks still sitting in top-level `done/`
 - Cache work log history entries
 - Preserve the existing DB file and WAL/SHM sidecars during refresh
 - Serve task status rows for `status` and UI consumers

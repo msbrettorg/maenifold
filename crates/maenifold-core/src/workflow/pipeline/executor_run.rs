@@ -9,15 +9,29 @@ use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
+use super::super::agent_session::open_agent_session;
 use super::super::runner::{self, WorkflowRunStatus};
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
 use super::external_mcp::{invoke_external_tool, split_namespaced_tool_name};
+use super::types::ToolProvenance;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct PromptExecutionResult {
+    pub response: String,
+    pub acp_session_id: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(super) struct ToolExecutionResult {
+    pub response: String,
+    pub provenance: ToolProvenance,
+}
 
 pub(super) enum NodeTaskResult {
     Workflow(Result<runner::WorkflowResult>),
-    Prompt(Result<String>),
+    Prompt(Result<PromptExecutionResult>),
     SequentialThinking(Result<runner::ThinkResult>),
-    Tool(Result<String>),
+    Tool(Result<ToolExecutionResult>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +49,9 @@ impl FailurePhase {
 pub(super) enum NodeOutcome {
     Completed {
         conclusion: String,
+        acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
+        tool_provenance: Option<ToolProvenance>,
     },
     Abandoned {
         reason: String,
@@ -48,7 +64,7 @@ pub(super) fn classify_node_result(node_id: &str, result: NodeTaskResult) -> Nod
         NodeTaskResult::Workflow(result) => classify_workflow_result(node_id, result),
         NodeTaskResult::Prompt(result) => classify_prompt_result(node_id, result),
         NodeTaskResult::SequentialThinking(result) => classify_think_result(node_id, result),
-        NodeTaskResult::Tool(result) => classify_prompt_result(node_id, result),
+        NodeTaskResult::Tool(result) => classify_tool_result(node_id, result),
     }
 }
 
@@ -60,7 +76,9 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
                     &workflow.conclusion.unwrap_or_default(),
                     MAX_CONCLUSION_CHARS,
                 ),
+                acp_session_id: workflow.acp_session_id,
                 thinking_session_id: None,
+                tool_provenance: None,
             },
             WorkflowRunStatus::Failed(ref msg) => {
                 eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
@@ -88,11 +106,13 @@ fn classify_workflow_result(node_id: &str, result: Result<runner::WorkflowResult
     }
 }
 
-fn classify_prompt_result(node_id: &str, result: Result<String>) -> NodeOutcome {
+fn classify_prompt_result(node_id: &str, result: Result<PromptExecutionResult>) -> NodeOutcome {
     match result {
-        Ok(response) if !response.trim().is_empty() => NodeOutcome::Completed {
-            conclusion: response,
+        Ok(result) if !result.response.trim().is_empty() => NodeOutcome::Completed {
+            conclusion: result.response,
+            acp_session_id: result.acp_session_id,
             thinking_session_id: None,
+            tool_provenance: None,
         },
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
@@ -117,12 +137,37 @@ fn classify_think_result(node_id: &str, result: Result<runner::ThinkResult>) -> 
             .filter(|conclusion| !conclusion.is_empty())
             .map(|conclusion| NodeOutcome::Completed {
                 conclusion,
+                acp_session_id: think.acp_session_id,
                 thinking_session_id: Some(think.session_id),
+                tool_provenance: None,
             })
             .unwrap_or(NodeOutcome::Abandoned {
                 reason: "missing conclusion".to_string(),
                 phase: FailurePhase::PostPrompt,
             }),
+        Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error_str(node_id, &message),
+            phase: FailurePhase::PreExecution,
+        },
+        Err(error) => NodeOutcome::Abandoned {
+            reason: log_node_execution_error(node_id, &error),
+            phase: FailurePhase::PostPrompt,
+        },
+    }
+}
+
+fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> NodeOutcome {
+    match result {
+        Ok(result) if !result.response.trim().is_empty() => NodeOutcome::Completed {
+            conclusion: result.response,
+            acp_session_id: None,
+            thinking_session_id: None,
+            tool_provenance: Some(result.provenance),
+        },
+        Ok(_) => NodeOutcome::Abandoned {
+            reason: "empty response".to_string(),
+            phase: FailurePhase::PostPrompt,
+        },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
@@ -159,12 +204,34 @@ pub(super) async fn run_prompt_node(
     _context: &ToolContext,
     pool: &AgentPool,
     agent: &str,
-    _session_id: &str,
+    session_id: &str,
     prompt: &str,
     _tool_mode: &str,
     session_opts: SessionOpts,
-) -> Result<String> {
-    super::super::runner::run_prompt_with_pool(pool, agent, prompt, session_opts).await
+) -> Result<PromptExecutionResult> {
+    let session = open_agent_session(pool, agent, session_id, session_opts).await?;
+    let response_result = session.prompt(prompt).await;
+    let acp_session_id = session.remote_id().to_string();
+    let close_result = session.close().await;
+    let prompt_result = match response_result {
+        Ok(response) => {
+            if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+                Err(MaenifoldError::Message(error))
+            } else {
+                Ok(PromptExecutionResult {
+                    response: response.text.trim().to_string(),
+                    acp_session_id: Some(acp_session_id),
+                })
+            }
+        }
+        Err(error) => Err(error),
+    };
+    match (prompt_result, close_result) {
+        (Ok(value), Ok(())) => Ok(value),
+        (Ok(_), Err(error)) => Err(error),
+        (Err(error), Ok(())) => Err(error),
+        (Err(error), Err(close_error)) => Err(runner::append_close_error_context(error, close_error)),
+    }
 }
 
 pub(super) async fn run_tool_node(
@@ -173,30 +240,40 @@ pub(super) async fn run_tool_node(
     tool_args: Option<&JsonValue>,
     agent: Option<&str>,
     allowed_tools: Option<&[String]>,
-) -> Result<String> {
+) -> Result<ToolExecutionResult> {
     let arguments = tool_args
         .cloned()
         .unwrap_or_else(|| JsonValue::Object(Default::default()));
 
-    if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
+    let response = if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
         if server_name == "maenifold" {
-            return invoke_local_tool(remote_tool_name, &arguments);
+            invoke_local_tool(remote_tool_name, &arguments)?
+        } else {
+            let agents_config = AgentsConfig::load(&context.config.maenifold_root);
+            invoke_external_tool(
+                context,
+                &agents_config,
+                server_name,
+                remote_tool_name,
+                tool_args,
+                agent,
+                allowed_tools,
+            )
+            .await?
         }
+    } else {
+        invoke_local_tool(tool_name, &arguments)?
+    };
 
-        let agents_config = AgentsConfig::load(&context.config.maenifold_root);
-        return invoke_external_tool(
-            context,
-            &agents_config,
-            server_name,
-            remote_tool_name,
-            tool_args,
-            agent,
-            allowed_tools,
-        )
-        .await;
-    }
-
-    invoke_local_tool(tool_name, &arguments)
+    let response_summary = truncate_chars(&response, MAX_CONCLUSION_CHARS);
+    Ok(ToolExecutionResult {
+        response,
+        provenance: ToolProvenance {
+            tool_name: tool_name.to_string(),
+            resolved_args: Some(arguments),
+            response_summary,
+        },
+    })
 }
 
 fn invoke_local_tool(tool_name: &str, arguments: &JsonValue) -> Result<String> {
@@ -226,7 +303,13 @@ mod tests {
 
     #[test]
     fn classify_prompt_result_abandons_whitespace_only_output() {
-        let outcome = classify_prompt_result("prompt-node", Ok("  \n\t  ".to_string()));
+        let outcome = classify_prompt_result(
+            "prompt-node",
+            Ok(PromptExecutionResult {
+                response: "  \n\t  ".to_string(),
+                acp_session_id: Some("acp-prompt-1".to_string()),
+            }),
+        );
 
         match outcome {
             NodeOutcome::Abandoned { reason, .. } => assert_eq!(reason, "empty response"),
@@ -238,12 +321,60 @@ mod tests {
 
     #[test]
     fn classify_prompt_result_completes_non_empty_output() {
-        let outcome = classify_prompt_result("prompt-node", Ok("  kept  ".to_string()));
+        let outcome = classify_prompt_result(
+            "prompt-node",
+            Ok(PromptExecutionResult {
+                response: "  kept  ".to_string(),
+                acp_session_id: Some("acp-prompt-2".to_string()),
+            }),
+        );
 
         match outcome {
-            NodeOutcome::Completed { conclusion, .. } => assert_eq!(conclusion, "  kept  "),
+            NodeOutcome::Completed {
+                conclusion,
+                acp_session_id,
+                ..
+            } => {
+                assert_eq!(conclusion, "  kept  ");
+                assert_eq!(acp_session_id.as_deref(), Some("acp-prompt-2"));
+            }
             NodeOutcome::Abandoned { reason, .. } => {
                 panic!("non-empty prompt output should complete, got: {reason}")
+            }
+        }
+    }
+
+    #[test]
+    fn classify_tool_result_records_structured_provenance() {
+        let outcome = classify_tool_result(
+            "tool-node",
+            Ok(ToolExecutionResult {
+                response: "{\"success\":true}".to_string(),
+                provenance: ToolProvenance {
+                    tool_name: "example.echo".to_string(),
+                    resolved_args: Some(serde_json::json!({ "value": 1 })),
+                    response_summary: "{\"success\":true}".to_string(),
+                },
+            }),
+        );
+
+        match outcome {
+            NodeOutcome::Completed {
+                conclusion,
+                tool_provenance,
+                ..
+            } => {
+                assert_eq!(conclusion, "{\"success\":true}");
+                let provenance = tool_provenance.expect("tool provenance should be captured");
+                assert_eq!(provenance.tool_name, "example.echo");
+                assert_eq!(
+                    provenance.resolved_args,
+                    Some(serde_json::json!({ "value": 1 }))
+                );
+                assert_eq!(provenance.response_summary, "{\"success\":true}");
+            }
+            NodeOutcome::Abandoned { reason, .. } => {
+                panic!("successful tool output should complete, got: {reason}")
             }
         }
     }

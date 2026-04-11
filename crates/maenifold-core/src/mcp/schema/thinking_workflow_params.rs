@@ -5,6 +5,14 @@ use schemars::JsonSchema;
 use serde::Deserialize;
 
 #[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum SubmachineType {
+    Sequential,
+    Workflow,
+    Gate,
+}
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SequentialThinkingParams {
     /// Main thought content; must include [[WikiLinks]] unless cancelling
@@ -51,6 +59,12 @@ pub struct SequentialThinkingParams {
     /// Optional parent workflow session identifier
     #[serde(default)]
     pub parent_workflow_id: Option<String>,
+    /// Child session or task identifier to register as a submachine
+    #[serde(default)]
+    pub submachine_session_id: Option<String>,
+    /// Type of child submachine to register; defaults to sequential when omitted
+    #[serde(default)]
+    pub submachine_type: Option<SubmachineType>,
     /// Structured ConfessionReport used when completing the session
     #[serde(default)]
     pub conclusion: Option<String>,
@@ -103,6 +117,9 @@ pub struct WorkflowParams {
     /// SequentialThinking session identifier registered as a submachine
     #[serde(default)]
     pub submachine_session_id: Option<String>,
+    /// Type of submachine to register; defaults to sequential when omitted
+    #[serde(default)]
+    pub submachine_type: Option<SubmachineType>,
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,

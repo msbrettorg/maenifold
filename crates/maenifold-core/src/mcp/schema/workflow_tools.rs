@@ -7,7 +7,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
         "Workflow" => derived_tool_definition::<WorkflowParams>(
             registry_name,
-            "Runs structured workflows with optional sequential-thinking submachines.",
+            "Runs structured workflows with optional nested submachines.",
         ),
         "RecentActivity" => recent_activity_tool(registry_name),
         _ => return None,

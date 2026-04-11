@@ -225,9 +225,11 @@ mod tests {
             session_id: session_id.to_string(),
             status,
             attempts: 0,
+            acp_session_id: None,
+            thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
-            thinking_session_id: None,
             retry_after: None,
             retry_count: None,
         }

@@ -242,6 +242,10 @@ pub(crate) fn initial_workflow_frontmatter(
         "activeSubmachineSessionId".to_string(),
         YamlValue::String(String::new()),
     );
+    frontmatter.insert(
+        "activeSubmachineTarget".to_string(),
+        YamlValue::String(String::new()),
+    );
     frontmatter
 }
 

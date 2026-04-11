@@ -69,7 +69,9 @@ fn retrying_node_not_in_ready_set() {
                 session_id: "workflow-1735689600000-upstream".to_string(),
                 status: NodeStatus::Retrying,
                 attempts: 1,
+                acp_session_id: None,
                 thinking_session_id: None,
+                tool_provenance: None,
                 output: None,
                 failure_reason: None,
                 retry_after: Some("2025-01-01T00:00:00Z".to_string()),
@@ -82,7 +84,9 @@ fn retrying_node_not_in_ready_set() {
                 session_id: "workflow-1735689600000-downstream".to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                acp_session_id: None,
                 thinking_session_id: None,
+                tool_provenance: None,
                 output: None,
                 failure_reason: None,
                 retry_after: None,
@@ -107,7 +111,9 @@ fn retrying_is_remaining_work() {
             session_id: "workflow-1735689600001-node".to_string(),
             status: NodeStatus::Retrying,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
             retry_after: Some("2025-01-01T00:00:00Z".to_string()),
@@ -126,7 +132,9 @@ fn retrying_pipeline_status_is_active() {
             session_id: "workflow-1735689600002-node".to_string(),
             status: NodeStatus::Retrying,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
             retry_after: Some("2025-01-01T00:00:00Z".to_string()),
@@ -153,7 +161,9 @@ fn pre_exec_failure_transitions_to_retrying() {
             session_id: original_session_id.clone(),
             status: NodeStatus::Active,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
             retry_after: None,
@@ -197,7 +207,9 @@ fn post_exec_failure_stays_abandoned() {
             session_id: "workflow-1735689602001-node".to_string(),
             status: NodeStatus::Active,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: Some("thinking-1735689602001-node".to_string()),
+            tool_provenance: None,
             output: Some("stale output".to_string()),
             failure_reason: None,
             retry_after: None,
@@ -241,7 +253,9 @@ fn max_attempts_exceeded_becomes_stuck() {
             session_id: "workflow-1735689603001-node".to_string(),
             status: NodeStatus::Active,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: None,
+            tool_provenance: None,
             output: None,
             failure_reason: None,
             retry_after: None,
@@ -286,7 +300,9 @@ fn retrying_node_state_has_retry_metadata() {
             session_id: original_session_id.clone(),
             status: NodeStatus::Active,
             attempts: 1,
+            acp_session_id: None,
             thinking_session_id: Some("thinking-1735689604001-node".to_string()),
+            tool_provenance: None,
             output: Some("stale output".to_string()),
             failure_reason: Some("stale failure".to_string()),
             retry_after: None,
@@ -312,8 +328,10 @@ fn retrying_node_state_has_retry_metadata() {
     let state = &node_states["node"];
     assert_eq!(state.status, NodeStatus::Retrying);
     assert_ne!(state.session_id, original_session_id);
+    assert_eq!(state.acp_session_id, None);
     assert_eq!(state.output, None);
     assert_eq!(state.thinking_session_id, None);
+    assert_eq!(state.tool_provenance, None);
     assert_eq!(state.failure_reason, None);
     let retry_after = state
         .retry_after

@@ -116,6 +116,14 @@ function capabilityBadges(agentName?: string | null): string[] {
   return getPipelineAgentCapabilityBadges(getProbe(agentName));
 }
 
+function isProbeLoading(agentName?: string | null): boolean {
+  if (!agentName) {
+    return false;
+  }
+
+  return capabilitiesStore.probeStatus === 'probing' && !getProbe(agentName);
+}
+
 function getFieldValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
 }
@@ -351,6 +359,13 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 
       <template v-else-if="selectedPromptDesignNode">
         <label class="field"><span>Agent</span><select class="field-input" :value="selectedPromptDesignNode.agent" data-testid="inspector-prompt-agent-select" @change="updatePromptAgent"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedPromptDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedPromptDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <AgentProbePreview
+          v-if="selectedPromptDesignNode.agent"
+          compact
+          :agent-name="selectedPromptDesignNode.agent"
+          :probe="getProbe(selectedPromptDesignNode.agent)"
+          :loading="isProbeLoading(selectedPromptDesignNode.agent)"
+        />
         <div v-if="selectedPromptDesignNode.agent" class="agent-config-panel">
           <template v-if="readyPromptProbe()">
             <div v-if="readyPromptProbe()?.modeOptions.length" class="agent-mode-badges">
@@ -396,10 +411,6 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
               </label>
             </div>
           </template>
-          <div v-else class="agent-status" :class="getProbe(selectedPromptDesignNode.agent)?.state ?? 'pending'">
-            <span class="status-pill">{{ getProbe(selectedPromptDesignNode.agent)?.state === 'offline' ? 'Offline' : getProbe(selectedPromptDesignNode.agent)?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
-            <span>{{ getProbe(selectedPromptDesignNode.agent)?.error ?? 'Waiting for agent capability probe.' }}</span>
-          </div>
         </div>
         <label class="field"><span>Prompt template</span><textarea class="field-textarea" :value="selectedPromptDesignNode.prompt" rows="6" @input="updatePromptField($event, 'prompt')" /></label>
       </template>
@@ -407,6 +418,13 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
       <template v-else-if="selectedThinkingDesignNode">
         <label class="field"><span>Topic</span><textarea class="field-textarea" :value="selectedThinkingDesignNode.topic" rows="5" @input="updateThinkingField($event, 'topic')" /></label>
         <label class="field"><span>Agent</span><select class="field-input" :value="selectedThinkingDesignNode.agent" data-testid="inspector-thinking-agent-select" @change="updateThinkingAgent"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select><div v-if="capabilityBadges(selectedThinkingDesignNode.agent).length" class="agent-capabilities"><span v-for="badge in capabilityBadges(selectedThinkingDesignNode.agent)" :key="badge" class="agent-capability">{{ badge }}</span></div></label>
+        <AgentProbePreview
+          v-if="selectedThinkingDesignNode.agent"
+          compact
+          :agent-name="selectedThinkingDesignNode.agent"
+          :probe="getProbe(selectedThinkingDesignNode.agent)"
+          :loading="isProbeLoading(selectedThinkingDesignNode.agent)"
+        />
         <div v-if="selectedThinkingDesignNode.agent" class="agent-config-panel">
           <template v-if="readyThinkingProbe()">
             <div v-if="readyThinkingProbe()?.modeOptions.length" class="agent-mode-badges">
@@ -452,10 +470,6 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
               </label>
             </div>
           </template>
-          <div v-else class="agent-status" :class="getProbe(selectedThinkingDesignNode.agent)?.state ?? 'pending'">
-            <span class="status-pill">{{ getProbe(selectedThinkingDesignNode.agent)?.state === 'offline' ? 'Offline' : getProbe(selectedThinkingDesignNode.agent)?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
-            <span>{{ getProbe(selectedThinkingDesignNode.agent)?.error ?? 'Waiting for agent capability probe.' }}</span>
-          </div>
         </div>
         <label class="field"><span>Total thoughts</span><input class="field-input" :value="selectedThinkingDesignNode.totalThoughts ?? ''" type="number" min="1" @input="updateTotalThoughts" /></label>
         <label class="field"><span>Analysis type</span><input class="field-input" :value="selectedThinkingDesignNode.analysisType ?? ''" type="text" @input="updateThinkingField($event, 'analysisType')" /></label>

@@ -55,6 +55,7 @@ fn classify_workflow_cancelled_is_post_prompt() {
         "workflow-node",
         NodeTaskResult::Workflow(Ok(WorkflowResult {
             session_id: "workflow-1".to_string(),
+            acp_session_id: Some("acp-workflow-1".to_string()),
             conclusion: None,
             steps_completed: 1,
             status: WorkflowRunStatus::Cancelled,
@@ -76,6 +77,7 @@ fn classify_workflow_failed_is_post_prompt() {
         "workflow-node",
         NodeTaskResult::Workflow(Ok(WorkflowResult {
             session_id: "workflow-2".to_string(),
+            acp_session_id: Some("acp-workflow-2".to_string()),
             conclusion: None,
             steps_completed: 1,
             status: WorkflowRunStatus::Failed("workflow failed".to_string()),
@@ -95,7 +97,10 @@ fn classify_workflow_failed_is_post_prompt() {
 fn classify_empty_response_is_post_prompt() {
     let outcome = classify_node_result(
         "prompt-node",
-        NodeTaskResult::Prompt(Ok(" \n\t ".to_string())),
+        NodeTaskResult::Prompt(Ok(PromptExecutionResult {
+            response: " \n\t ".to_string(),
+            acp_session_id: Some("acp-prompt-empty".to_string()),
+        })),
     );
 
     match outcome {

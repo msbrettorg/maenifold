@@ -10,6 +10,7 @@ import PipelineRunner from '../PipelineRunner.vue';
 import { isWorkflowNode } from '../../lib/pipeline-types';
 import PipelineSidebar from '../PipelineSidebar.vue';
 import PipelineView from '../PipelineView.vue';
+import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 
 const vueFlowStubs = {
@@ -78,6 +79,8 @@ describe('pipeline smoke tests', () => {
 
   it('PipelineComposer adds a node through the design toolbar', async () => {
     const { pinia, store } = createStore();
+    const nodePaletteStore = useNodePaletteStore();
+    nodePaletteStore.setPanelWidth(432);
 
     const ComposerHarness = defineComponent({
       components: { PipelineComposer },
@@ -105,6 +108,7 @@ describe('pipeline smoke tests', () => {
     });
 
     expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
+    expect(wrapper.find('.composer-layout').attributes('style')).toContain('432px');
     expect(findButton(wrapper, 'Add Node')).toBeTruthy();
 
     await wrapper.get('input[placeholder="Workflow ID"]').setValue('workflow.alpha');

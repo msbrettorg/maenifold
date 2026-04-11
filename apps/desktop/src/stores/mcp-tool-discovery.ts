@@ -11,6 +11,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
   const serverResults = ref<McpServerDiscoveryResult[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const hasLoadedCatalog = ref(false);
   const lastKnownTools = ref<Record<string, McpDiscoveredTool[]>>({});
 
   const allTools = computed<McpDiscoveredTool[]>(() =>
@@ -57,6 +58,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     try {
       const results = await discoverMcpTools();
       serverResults.value = mergeServerResults(results);
+      hasLoadedCatalog.value = true;
       return serverResults.value;
     } catch (cause) {
       error.value = getErrorMessage(cause);
@@ -72,6 +74,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     toolsByServer,
     loading,
     error,
+    hasLoadedCatalog,
     refreshTools,
   };
 });

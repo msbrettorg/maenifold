@@ -6,7 +6,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
         "SequentialThinking" => derived_tool_definition::<SequentialThinkingParams>(
             registry_name,
-            "Creates structured thinking sessions with persistent branching and conclusions.",
+            "Creates structured thinking sessions with persistent branching, conclusions, and child submachines.",
         ),
         _ => return None,
     };

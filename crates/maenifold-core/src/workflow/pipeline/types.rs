@@ -193,7 +193,11 @@ pub struct NodeState {
     pub status: NodeStatus,
     pub attempts: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub acp_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub thinking_session_id: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_provenance: Option<ToolProvenance>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -202,6 +206,15 @@ pub struct NodeState {
     pub retry_after: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub retry_count: Option<u32>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolProvenance {
+    pub tool_name: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub resolved_args: Option<Value>,
+    pub response_summary: String,
 }
 
 /// A snapshot of a completed predecessor node's output, captured at fork time
@@ -226,4 +239,29 @@ pub enum NodeStatus {
     Abandoned,
     Stuck,
     Retrying,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{NodeState, NodeStatus};
+
+    #[test]
+    fn node_state_deserializes_without_optional_provenance_fields() {
+        let node_state: NodeState = serde_yaml::from_str(
+            r#"
+sessionId: workflow-node-1
+status: completed
+attempts: 1
+output: done
+"#,
+        )
+        .expect("legacy node state should deserialize");
+
+        assert_eq!(node_state.session_id, "workflow-node-1");
+        assert_eq!(node_state.status, NodeStatus::Completed);
+        assert_eq!(node_state.acp_session_id, None);
+        assert_eq!(node_state.thinking_session_id, None);
+        assert_eq!(node_state.tool_provenance, None);
+        assert_eq!(node_state.output.as_deref(), Some("done"));
+    }
 }

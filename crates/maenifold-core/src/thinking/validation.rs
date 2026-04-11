@@ -19,6 +19,8 @@ pub(crate) struct SequentialThinkingInput {
     pub(crate) branch_id: Option<String>,
     pub(crate) analysis_type: Option<String>,
     pub(crate) parent_workflow_id: Option<String>,
+    pub(crate) submachine_session_id: Option<String>,
+    pub(crate) submachine_type: Option<String>,
     pub(crate) conclusion: Option<String>,
     pub(crate) session_id_provided: bool,
     pub(crate) session_id: String,
@@ -80,6 +82,14 @@ impl SequentialThinkingInput {
                 .get("parentWorkflowId")
                 .and_then(Value::as_str)
                 .map(str::to_string),
+            submachine_session_id: payload
+                .get("submachineSessionId")
+                .and_then(Value::as_str)
+                .map(str::to_string),
+            submachine_type: payload
+                .get("submachineType")
+                .and_then(Value::as_str)
+                .map(str::to_string),
             conclusion: payload
                 .get("conclusion")
                 .and_then(Value::as_str)
@@ -104,6 +114,24 @@ pub(crate) fn validate_payload(
         let message =
             "branchId required when branchFromThought is specified for multi-agent coordination";
         return Ok(Some(render_failure(context, "BRANCH_ID_REQUIRED", message)));
+    }
+
+    if input.submachine_type.is_some() && input.submachine_session_id.is_none() {
+        let message = "submachineType requires submachineSessionId";
+        return Ok(Some(render_failure(
+            context,
+            "SUBMACHINE_SESSION_REQUIRED",
+            message,
+        )));
+    }
+
+    if input.cancel && input.submachine_session_id.is_some() {
+        let message = "Cannot cancel a session and register a submachine in the same request";
+        return Ok(Some(render_failure(
+            context,
+            "SUBMACHINE_CANCEL_CONFLICT",
+            message,
+        )));
     }
 
     Ok(None)

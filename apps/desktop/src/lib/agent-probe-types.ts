@@ -64,6 +64,8 @@ export interface AgentProbeResult {
   agentCapabilities?: AgentProbeTransportCapabilities | null;
   probedAt: number;
   error?: string;
+  refreshing?: boolean;
+  degradedMessage?: string;
 }
 
 const BOOLEAN_CONFIG_OPTIONS: SessionConfigSelectOption[] = [
@@ -384,23 +386,44 @@ function modelOptionsFromConfigOptions(
   }));
 }
 
+const OFFLINE_PROBE_ERROR_PATTERNS = [
+  'not connected',
+  'network error',
+  'fetch',
+  'timed out',
+  'http 404',
+  'channel closed',
+  'connection refused',
+  'broken pipe',
+  'pipe closed',
+  'socket hang up',
+  'transport closed',
+  'econnrefused',
+  'econnreset',
+  'enoent',
+  'spawn failed',
+  'failed to spawn',
+  'failed to initialize',
+  'initialization failed',
+  'init failed',
+  'handshake failed',
+];
+
+export function isOfflineProbeError(error?: string): boolean {
+  if (!error) {
+    return false;
+  }
+
+  const normalized = error.toLowerCase();
+  return OFFLINE_PROBE_ERROR_PATTERNS.some((pattern) => normalized.includes(pattern));
+}
+
 function classifyProbeState(error?: string): AgentProbeState {
   if (!error) {
     return 'ready';
   }
 
-  const normalized = error.toLowerCase();
-  if (
-    normalized.includes('not connected')
-    || normalized.includes('network error')
-    || normalized.includes('fetch')
-    || normalized.includes('timed out')
-    || normalized.includes('http 404')
-  ) {
-    return 'offline';
-  }
-
-  return 'error';
+  return isOfflineProbeError(error) ? 'offline' : 'error';
 }
 
 export function normalizeAgentProbeResult(

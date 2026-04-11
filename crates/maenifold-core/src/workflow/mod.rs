@@ -31,6 +31,8 @@ pub(crate) use status::{
 };
 #[allow(unused_imports)]
 pub(crate) use submachine::{
-    ResumeWorkflowResult, maybe_resume_workflow_submachine, register_workflow_submachine,
+    HostSessionType, ResumeSubmachineResult, SubmachineType, clear_submachine_frontmatter,
+    maybe_resume_submachine, parse_submachine_type, register_host_submachine,
+    register_workflow_submachine,
 };
 pub use think_runner::{ThinkOptions, ThinkResult};

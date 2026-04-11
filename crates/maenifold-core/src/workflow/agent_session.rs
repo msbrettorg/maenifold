@@ -48,6 +48,10 @@ pub(crate) async fn open_agent_session(
 }
 
 impl AgentSession {
+    pub(crate) fn remote_id(&self) -> &str {
+        &self.remote_id
+    }
+
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AcpxResponse> {
         self.prompt_with_context(prompt, vec![]).await
     }

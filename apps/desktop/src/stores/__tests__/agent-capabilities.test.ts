@@ -1,0 +1,116 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { ref } from 'vue';
+import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+import { useConfigStore } from '../config';
+import {
+  AGENT_PROBE_CACHE_TTL_MS,
+  AGENT_PROBE_SOFT_TIMEOUT_MS,
+  useAgentCapabilitiesStore,
+} from '../agent-capabilities';
+
+const connected = ref(true);
+const error = ref<string | null>(null);
+const connect = vi.fn(async () => {
+  connected.value = true;
+});
+const callTool = vi.fn();
+
+vi.mock('../../composables/usePipelineMcp', () => ({
+  usePipelineMcp: () => ({
+    connected,
+    error,
+    connect,
+    callTool,
+  }),
+}));
+
+function seedConfig() {
+  const configStore = useConfigStore();
+  configStore.config = {
+    mcpServers: [],
+    agents: {
+      architect: { command: 'architect' },
+    },
+  };
+}
+
+describe('useAgentCapabilitiesStore', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.useRealTimers();
+    setActivePinia(createPinia());
+    connected.value = true;
+    error.value = null;
+    connect.mockClear();
+    callTool.mockReset();
+    seedConfig();
+  });
+
+  it('reuses fresh cached probe data until the TTL expires', async () => {
+    const store = useAgentCapabilitiesStore();
+    store.probeResults = new Map([
+      ['architect', normalizeAgentProbeResult({ configOptions: [] }, { probedAt: Date.now() })],
+    ]);
+
+    await store.probeAll();
+
+    expect(callTool).not.toHaveBeenCalled();
+    expect(store.probeStatus).toBe('done');
+  });
+
+  it('forces a live refresh when requested even if the cache is still fresh', async () => {
+    const store = useAgentCapabilitiesStore();
+    store.probeResults = new Map([
+      ['architect', normalizeAgentProbeResult({ configOptions: [] }, { probedAt: Date.now() })],
+    ]);
+    callTool.mockResolvedValue([
+      { name: 'architect', capabilities: { configOptions: [] } },
+    ]);
+
+    await store.refreshAll();
+
+    expect(callTool).toHaveBeenCalledWith('ListAgents', { probe: true });
+    expect(store.getProbe('architect')?.state).toBe('ready');
+    expect(store.getProbe('architect')?.degradedMessage).toBeUndefined();
+  });
+
+  it('keeps the last ready probe when a forced refresh times out', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-11T12:00:00Z'));
+
+    const store = useAgentCapabilitiesStore();
+    const cachedProbedAt = Date.now() - AGENT_PROBE_CACHE_TTL_MS - 1_000;
+    store.probeResults = new Map([
+      ['architect', normalizeAgentProbeResult(
+        {
+          configOptions: [
+            {
+              id: 'mode',
+              name: 'Mode',
+              category: 'mode',
+              currentValue: 'prompt',
+              options: [{ value: 'prompt', name: 'Prompt' }],
+            },
+          ],
+        },
+        { probedAt: cachedProbedAt },
+      )],
+    ]);
+    callTool.mockImplementation(() => new Promise(() => {}));
+
+    const refreshPromise = store.refreshAll();
+
+    expect(store.getProbe('architect')?.state).toBe('ready');
+    expect(store.getProbe('architect')?.refreshing).toBe(true);
+    expect(store.getProbe('architect')?.degradedMessage).toContain('Refreshing live capabilities');
+
+    await vi.advanceTimersByTimeAsync(AGENT_PROBE_SOFT_TIMEOUT_MS);
+    await refreshPromise;
+
+    expect(store.getProbe('architect')?.state).toBe('ready');
+    expect(store.getProbe('architect')?.refreshing).toBeUndefined();
+    expect(store.getProbe('architect')?.degradedMessage).toContain('timed out');
+    expect(store.getProbe('architect')?.probedAt).toBe(cachedProbedAt);
+  });
+});

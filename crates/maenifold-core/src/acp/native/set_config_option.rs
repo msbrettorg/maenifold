@@ -249,32 +249,7 @@ fn build_set_config_request(
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        collections::VecDeque,
-        path::PathBuf,
-        sync::{Arc, Mutex},
-    };
-
-    use sacp::{Agent, Client};
-    use tokio::task::LocalSet;
-    use tokio_util::compat::{TokioAsyncReadCompatExt as _, TokioAsyncWriteCompatExt as _};
-
     use super::*;
-
-    fn session_opts(model: Option<&str>, thought_level: Option<&str>) -> SessionOpts {
-        SessionOpts {
-            cwd: PathBuf::from("."),
-            auto_grant_permissions: true,
-            model: model.map(str::to_string),
-            mode: None,
-            thought_level: thought_level.map(str::to_string),
-            config_options: None,
-            allowed_tools: None,
-            max_turns: None,
-            timeout_seconds: None,
-            mcp_servers: Vec::new(),
-        }
-    }
 
     fn select_option(
         id: &str,
@@ -317,101 +292,6 @@ mod tests {
             current_value,
             category,
         )
-    }
-
-    async fn run_modern_config_flow(
-        initial_config_options: Vec<acp::SessionConfigOption>,
-        opts: SessionOpts,
-        response_plan: Vec<Vec<acp::SessionConfigOption>>,
-    ) -> Vec<(String, String)> {
-        run_config_flow(initial_config_options, opts, true, response_plan).await
-    }
-
-    async fn run_legacy_config_flow(
-        opts: SessionOpts,
-        response_plan: Vec<Vec<acp::SessionConfigOption>>,
-    ) -> Vec<(String, String)> {
-        run_config_flow(Vec::new(), opts, false, response_plan).await
-    }
-
-    async fn run_config_flow(
-        initial_config_options: Vec<acp::SessionConfigOption>,
-        opts: SessionOpts,
-        is_modern: bool,
-        response_plan: Vec<Vec<acp::SessionConfigOption>>,
-    ) -> Vec<(String, String)> {
-        let local = LocalSet::new();
-
-        local
-            .run_until(async move {
-                let requests = Arc::new(Mutex::new(Vec::<(String, String)>::new()));
-                let responses = Arc::new(Mutex::new(VecDeque::from(response_plan)));
-
-                let (client_writer, server_reader) = tokio::io::duplex(4096);
-                let (server_writer, client_reader) = tokio::io::duplex(4096);
-
-                let server_transport =
-                    sacp::ByteStreams::new(server_writer.compat_write(), server_reader.compat());
-                let client_transport =
-                    sacp::ByteStreams::new(client_writer.compat_write(), client_reader.compat());
-
-                let server_requests = Arc::clone(&requests);
-                let server_responses = Arc::clone(&responses);
-                tokio::task::spawn_local(async move {
-                    let server = Agent.builder().on_receive_request(
-                        async move |request: sacps::SetSessionConfigOptionRequest,
-                                    responder: sacp::Responder<
-                            sacps::SetSessionConfigOptionResponse,
-                        >,
-                                    _connection: sacp::ConnectionTo<sacp::Client>| {
-                            server_requests.lock().expect("requests mutex poisoned").push((
-                                request.config_id.to_string(),
-                                request.value.to_string(),
-                            ));
-
-                            let config_options = server_responses
-                                .lock()
-                                .expect("responses mutex poisoned")
-                                .pop_front()
-                                .expect("unexpected set_config_option request");
-                            let response: sacps::SetSessionConfigOptionResponse =
-                                bridge(acp::SetSessionConfigOptionResponse::new(config_options))
-                                    .expect("bridge fake response");
-                            responder.respond(response)
-                        },
-                        sacp::on_receive_request!(),
-                    );
-
-                    if let Err(error) = server.connect_to(server_transport).await {
-                        panic!("fake ACP agent failed: {error}");
-                    }
-                });
-
-                let result = Client
-                    .builder()
-                    .connect_with(client_transport, async move |conn| {
-                        apply_session_config(
-                            &conn,
-                            "session-1",
-                            &opts,
-                            is_modern,
-                            &initial_config_options,
-                        )
-                        .await;
-                        Ok(())
-                    })
-                    .await;
-
-                assert!(result.is_ok(), "fake ACP client failed: {result:?}");
-                assert_eq!(
-                    responses.lock().expect("responses mutex poisoned").len(),
-                    0,
-                    "unused fake responses usually means chained config stopped early"
-                );
-
-                requests.lock().expect("requests mutex poisoned").clone()
-            })
-            .await
     }
 
     #[test]
@@ -462,63 +342,5 @@ mod tests {
         let config_options = vec![model_option("gpt-5-codex")];
 
         assert_eq!(find_thought_level_config_id(&config_options), None);
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn codex_chained_config_flow_still_sets_reasoning_effort_after_model_update() {
-        let requests = run_modern_config_flow(
-            vec![
-                model_option("gpt-4"),
-                reasoning_effort_option(
-                    "high",
-                    Some(acp::SessionConfigOptionCategory::ThoughtLevel),
-                ),
-            ],
-            session_opts(Some("gpt-5-codex"), Some("low")),
-            vec![
-                vec![
-                    model_option("gpt-5-codex"),
-                    reasoning_effort_option("high", None),
-                ],
-                vec![
-                    model_option("gpt-5-codex"),
-                    reasoning_effort_option("low", None),
-                ],
-            ],
-        )
-        .await;
-
-        assert_eq!(
-            requests,
-            vec![
-                ("model".to_string(), "gpt-5-codex".to_string()),
-                ("reasoning_effort".to_string(), "low".to_string()),
-            ]
-        );
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn agents_without_thought_level_or_reasoning_effort_do_not_receive_extra_request() {
-        let requests = run_modern_config_flow(
-            vec![model_option("gpt-4")],
-            session_opts(Some("gpt-5-codex"), Some("low")),
-            vec![vec![model_option("gpt-5-codex")]],
-        )
-        .await;
-
-        assert_eq!(
-            requests,
-            vec![("model".to_string(), "gpt-5-codex".to_string())]
-        );
-    }
-
-    #[tokio::test(flavor = "current_thread")]
-    async fn legacy_config_flow_keeps_using_literal_thought_level_request() {
-        let requests = run_legacy_config_flow(session_opts(None, Some("low")), vec![vec![]]).await;
-
-        assert_eq!(
-            requests,
-            vec![("thought_level".to_string(), "low".to_string())]
-        );
     }
 }

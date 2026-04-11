@@ -2,23 +2,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
+
 import ToolNodeFields from '../ToolNodeFields.vue';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
-import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
+import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';
+import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { McpServerDiscoveryResult } from '../../lib/types';
 
-/**
- * Regression test for T-123.3 — double-prefix bug.
- *
- * The backend (mcp_discovery.rs) already returns tool names as
- * "server.toolName". The picker must NOT re-prefix them, otherwise
- * selection emits "server.server.toolName".
- */
+function installMockLocalStorage() {
+  const storage = new Map<string, string>();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+      clear: () => storage.clear(),
+    },
+  });
+}
 
-/** Backend-shaped discovery result — names are already namespaced. */
 function fakeDiscoveryResults(): McpServerDiscoveryResult[] {
   return [
     {
@@ -28,13 +34,17 @@ function fakeDiscoveryResults(): McpServerDiscoveryResult[] {
       tools: [
         {
           name: 'maenifold.WriteMemory',
-          description: 'Write a memory',
+          description: 'Write <b>memory</b> safely',
           inputSchema: { type: 'object', properties: {} },
         },
         {
           name: 'maenifold.SearchMemories',
           description: 'Search memories',
-          inputSchema: { type: 'object', properties: {} },
+          inputSchema: {
+            type: 'object',
+            required: ['query'],
+            properties: { query: { type: 'string' } },
+          },
         },
       ],
     },
@@ -56,6 +66,8 @@ function fakeDiscoveryResults(): McpServerDiscoveryResult[] {
 function createTestEnv() {
   const pinia = createPinia();
   setActivePinia(pinia);
+  installMockLocalStorage();
+  window.localStorage.clear();
 
   const configStore = useConfigStore();
   configStore.config = {
@@ -97,20 +109,26 @@ function createTestEnv() {
 
   const discoveryStore = useMcpToolDiscoveryStore();
   discoveryStore.serverResults = fakeDiscoveryResults();
+  discoveryStore.hasLoadedCatalog = true;
 
   const pipelineStore = usePipelineStore();
   pipelineStore.tools = [];
 
-  return { pinia, discoveryStore, pipelineStore, configStore, capabilitiesStore };
+  const nodePaletteStore = useNodePaletteStore();
+
+  return { pinia, nodePaletteStore };
 }
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  installMockLocalStorage();
 });
 
-describe('ToolNodeFields — tool name namespacing', () => {
-  it('emits single-prefixed "server.toolName" on picker click (no double-prefix)', async () => {
-    const { pinia } = createTestEnv();
+describe('ToolNodeFields', () => {
+  it('shows Quick Add from pinned and recent tools only when search is empty', async () => {
+    const { pinia, nodePaletteStore } = createTestEnv();
+    nodePaletteStore.togglePinnedTool('filesystem.ReadFile');
+    nodePaletteStore.recordRecentTool('maenifold.SearchMemories');
 
     const wrapper = mount(ToolNodeFields, {
       props: {
@@ -128,50 +146,134 @@ describe('ToolNodeFields — tool name namespacing', () => {
 
     await flushPromises();
 
-    const toolButtons = wrapper.findAll('.tool-picker__tool');
-    expect(toolButtons.length).toBeGreaterThanOrEqual(3);
+    expect(wrapper.text()).toContain('Quick Add');
+    const options = wrapper.findAll('[role="option"]');
+    expect(options).toHaveLength(2);
+    expect(options[0]!.text()).toContain('ReadFile');
+    expect(options[1]!.text()).toContain('SearchMemories');
+  });
 
-    // Click the first tool (maenifold.SearchMemories or maenifold.WriteMemory — sorted)
-    await toolButtons[0]!.trigger('click');
+  it('shows a flat cross-server result list with result count and escaped highlighting when searching', async () => {
+    const { pinia } = createTestEnv();
+
+    const wrapper = mount(ToolNodeFields, {
+      props: {
+        active: true,
+        toolName: '',
+        agentName: '',
+        agentConfig: {},
+        toolArgs: {},
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { SchemaForm: true },
+      },
+    });
+
+    await wrapper.get('input[type="search"]').setValue('mem');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('2 results');
+    expect(wrapper.findAll('[role="option"]')).toHaveLength(2);
+    expect(wrapper.findAll('mark').map((node) => node.text().toLowerCase())).toContain('mem');
+    expect(wrapper.html()).not.toContain('<b>memory</b>');
+    expect(wrapper.html()).toContain('&lt;b&gt;');
+  });
+
+  it('does not block spacebar text entry in the search input', async () => {
+    const { pinia } = createTestEnv();
+
+    const wrapper = mount(ToolNodeFields, {
+      props: {
+        active: true,
+        toolName: '',
+        agentName: '',
+        agentConfig: {},
+        toolArgs: {},
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { SchemaForm: true },
+      },
+    });
+
+    const searchInput = wrapper.get('input[type="search"]');
+    const keydown = new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true });
+
+    expect(searchInput.element.dispatchEvent(keydown)).toBe(true);
+    expect(keydown.defaultPrevented).toBe(false);
+  });
+
+  it('supports keyboard listbox navigation and submit without trapping focus', async () => {
+    const { pinia } = createTestEnv();
+
+    const wrapper = mount(ToolNodeFields, {
+      props: {
+        active: true,
+        toolName: '',
+        agentName: '',
+        agentConfig: {},
+        toolArgs: {},
+        canSubmit: true,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { SchemaForm: true },
+      },
+    });
+
+    await wrapper.get('input[type="search"]').setValue('read');
+    await flushPromises();
+
+    const listbox = wrapper.get('[role="listbox"]');
+    await listbox.trigger('keydown', { key: 'ArrowDown' });
+    await flushPromises();
 
     const emitted = wrapper.emitted('update:toolName');
     expect(emitted).toBeTruthy();
-    expect(emitted![0]![0]).toBe('maenifold.SearchMemories');
+    expect(emitted![0]![0]).toBe('filesystem.ReadFile');
 
-    // Verify it does NOT double-prefix
-    expect(emitted![0]![0]).not.toMatch(/^maenifold\.maenifold\./);
+    await wrapper.setProps({ toolName: 'filesystem.ReadFile' });
+    await listbox.trigger('keydown', { key: 'Enter' });
+    await listbox.trigger('keydown', { key: ' ' });
+
+    expect(listbox.attributes('aria-activedescendant')).toContain('filesystem-ReadFile');
+    expect(listbox.attributes('tabindex')).toBe('0');
+    expect(wrapper.emitted('submitRequest')).toHaveLength(2);
   });
 
-  it('marks a tool as selected when toolName prop matches backend name', async () => {
-    const { pinia } = createTestEnv();
+  it('preserves persisted quick-add history until the catalog has really loaded', async () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    installMockLocalStorage();
+    window.localStorage.setItem('pipeline-node-palette-v1', JSON.stringify({
+      recentTools: ['filesystem.ReadFile'],
+      pinnedTools: ['maenifold.SearchMemories'],
+    }));
+
+    const configStore = useConfigStore();
+    configStore.config = {
+      mcpServers: [],
+      agents: {
+        architect: { command: 'architect' },
+      },
+    };
+
+    const capabilitiesStore = useAgentCapabilitiesStore();
+    capabilitiesStore.probeResults = new Map();
+
+    const discoveryStore = useMcpToolDiscoveryStore();
+    discoveryStore.serverResults = [];
+    discoveryStore.hasLoadedCatalog = false;
+
+    const pipelineStore = usePipelineStore();
+    pipelineStore.tools = [];
+
+    const nodePaletteStore = useNodePaletteStore();
 
     const wrapper = mount(ToolNodeFields, {
       props: {
-        active: true,
-        toolName: 'filesystem.ReadFile',
-        agentName: '',
-        agentConfig: {},
-        toolArgs: {},
-      },
-      global: {
-        plugins: [pinia],
-        stubs: { SchemaForm: true },
-      },
-    });
-
-    await flushPromises();
-
-    const selected = wrapper.findAll('.tool-picker__tool.is-selected');
-    expect(selected).toHaveLength(1);
-    expect(selected[0]!.text()).toContain('ReadFile');
-  });
-
-  it('displays bare tool name in button labels (not the namespaced form)', async () => {
-    const { pinia } = createTestEnv();
-
-    const wrapper = mount(ToolNodeFields, {
-      props: {
-        active: true,
+        active: false,
         toolName: '',
         agentName: '',
         agentConfig: {},
@@ -185,14 +287,18 @@ describe('ToolNodeFields — tool name namespacing', () => {
 
     await flushPromises();
 
-    const labels = wrapper.findAll('.tool-picker__tool strong').map((el) => el.text());
-    // Labels should be bare names, not "server.toolName"
-    expect(labels).toContain('SearchMemories');
-    expect(labels).toContain('WriteMemory');
-    expect(labels).toContain('ReadFile');
-    // Must NOT contain the double-prefixed form
-    expect(labels).not.toContain('maenifold.SearchMemories');
-    expect(labels).not.toContain('maenifold.WriteMemory');
+    expect(nodePaletteStore.pinnedTools).toEqual(['maenifold.SearchMemories']);
+    expect(nodePaletteStore.recentTools).toEqual(['filesystem.ReadFile']);
+    expect(wrapper.text()).toContain('Refresh to load tools from MCP servers.');
+
+    discoveryStore.serverResults = fakeDiscoveryResults();
+    discoveryStore.hasLoadedCatalog = true;
+    await flushPromises();
+
+    const optionTexts = wrapper.findAll('[role="option"]').map((option) => option.text());
+    expect(optionTexts).toHaveLength(2);
+    expect(optionTexts[0]).toContain('SearchMemories');
+    expect(optionTexts[1]).toContain('ReadFile');
   });
 
   it('shows offline fallback for tool agent override when probe fails', async () => {

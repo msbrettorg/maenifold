@@ -52,6 +52,7 @@ Only tag concepts worth a wiki page. Never tag meta-terms like [[code]], [[bug]]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkResult {
     pub session_id: String,
+    pub acp_session_id: Option<String>,
     pub conclusion: Option<String>,
     pub thoughts_completed: u32,
 }
@@ -195,6 +196,7 @@ pub(crate) async fn drive_think_session_with_driver(
             }
             return Ok(ThinkResult {
                 session_id: session_id.to_string(),
+                acp_session_id: Some(driver.remote_id().to_string()),
                 conclusion: Some(response_text),
                 thoughts_completed: thought_number,
             });

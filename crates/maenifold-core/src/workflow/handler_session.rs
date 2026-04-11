@@ -6,10 +6,11 @@ use serde_json::Value;
 use serde_yaml::Value as YamlValue;
 
 use super::{
-    ResumeWorkflowResult, build_workflow_response_content, format_workflow_step, frontmatter_usize,
-    handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
-    maybe_resume_workflow_submachine, read_workflow_definition, read_workflow_queue,
-    register_workflow_submachine, set_current_step, transition_to_next_workflow, workflow_steps,
+    HostSessionType, ResumeSubmachineResult, build_workflow_response_content, format_workflow_step,
+    frontmatter_usize, handle_cancelled_workflow_status, handle_completed_workflow_status,
+    handle_queue_exhaustion, maybe_resume_submachine, parse_submachine_type,
+    read_workflow_definition, read_workflow_queue, register_workflow_submachine, set_current_step,
+    transition_to_next_workflow, workflow_steps,
 };
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
@@ -21,6 +22,7 @@ pub(crate) fn continue_workflow_session(
     status: Option<&str>,
     conclusion: Option<&str>,
     submachine_session_id: Option<&str>,
+    submachine_type: Option<&str>,
 ) -> Result<String> {
     let uri = workflow_session_uri(session_id);
     if !file_exists(&uri, &context.config)? {
@@ -35,19 +37,28 @@ pub(crate) fn continue_workflow_session(
     frontmatter =
         gate_workflow_session_status(context, &uri, session_id, frontmatter, &existing_content)?;
 
-    match maybe_resume_workflow_submachine(context, &uri, frontmatter, &existing_content)? {
-        ResumeWorkflowResult::Ready(updated_frontmatter) => frontmatter = updated_frontmatter,
-        ResumeWorkflowResult::Waiting(message) => return Ok(message),
+    match maybe_resume_submachine(
+        context,
+        HostSessionType::Workflow,
+        &uri,
+        frontmatter,
+        &existing_content,
+    )? {
+        ResumeSubmachineResult::Ready(updated_frontmatter) => frontmatter = updated_frontmatter,
+        ResumeSubmachineResult::Waiting(message) => return Ok(message),
     }
 
     if let Some(submachine_session_id) = submachine_session_id.filter(|value| !value.is_empty()) {
+        let submachine_type = parse_submachine_type(submachine_type)?;
         return register_workflow_submachine(
             context,
+            session_id,
             &uri,
             frontmatter,
             response,
             thoughts,
             submachine_session_id,
+            submachine_type,
         );
     }
 

@@ -9,7 +9,9 @@ use super::session_io::{
 };
 use super::update_context::inject_predecessor_context;
 use super::view::build_pipeline_view_result;
-use super::{NodeStatus, PipelineDefinition, compute_blocked_cascade};
+use super::compute_blocked_cascade;
+use super::types::ToolProvenance;
+use super::{NodeStatus, PipelineDefinition};
 
 #[allow(clippy::too_many_lines)]
 #[allow(clippy::too_many_arguments)]
@@ -19,7 +21,9 @@ pub(super) fn update_pipeline_node_status(
     node_id: &str,
     status: &str,
     conclusion: Option<&str>,
+    acp_session_id: Option<&str>,
     thinking_session_id: Option<&str>,
+    tool_provenance: Option<&ToolProvenance>,
     failure_reason: Option<&str>,
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
@@ -73,7 +77,9 @@ pub(super) fn update_pipeline_node_status(
                     ))
                 })?;
                 state.status = NodeStatus::Completed;
+                state.acp_session_id = acp_session_id.map(str::to_string);
                 state.thinking_session_id = thinking_session_id.map(str::to_string);
+                state.tool_provenance = tool_provenance.cloned();
                 state.output = Some(conclusion.to_string());
                 state.failure_reason = None;
             }
@@ -91,7 +97,9 @@ pub(super) fn update_pipeline_node_status(
                 ))
             })?;
             state.status = transitioned_status;
+            state.acp_session_id = None;
             state.thinking_session_id = None;
+            state.tool_provenance = None;
             state.output = None;
             state.failure_reason = failure_reason
                 .map(str::trim)
@@ -106,7 +114,9 @@ pub(super) fn update_pipeline_node_status(
                     ))
                 })?;
                 cascaded_state.status = NodeStatus::Abandoned;
+                cascaded_state.acp_session_id = None;
                 cascaded_state.thinking_session_id = None;
+                cascaded_state.tool_provenance = None;
                 cascaded_state.output = None;
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }

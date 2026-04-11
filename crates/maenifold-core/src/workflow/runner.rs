@@ -48,6 +48,7 @@ pub enum WorkflowRunStatus {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct WorkflowResult {
     pub session_id: String,
+    pub acp_session_id: Option<String>,
     pub conclusion: Option<String>,
     pub steps_completed: u32,
     pub status: WorkflowRunStatus,
@@ -103,6 +104,7 @@ pub(crate) fn is_reentrant_workflow_tool(tool: &str) -> bool {
 }
 
 /// Send a single prompt to an ACP agent using a specific pool.
+#[allow(dead_code)]
 pub(crate) async fn run_prompt_with_pool(
     pool: &AgentPool,
     agent: &str,
@@ -193,6 +195,7 @@ pub(crate) async fn run_workflow_with_pool(
                 }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
+                    acp_session_id: Some(driver.remote_id().to_string()),
                     conclusion,
                     steps_completed,
                     status,
@@ -290,6 +293,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
                 }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
+                    acp_session_id: Some(driver.remote_id().to_string()),
                     conclusion,
                     steps_completed,
                     status,

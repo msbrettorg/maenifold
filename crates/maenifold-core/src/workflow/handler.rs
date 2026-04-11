@@ -40,6 +40,7 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
         .unwrap_or(false);
     let append = payload.get("append");
     let submachine_session_id = payload.get("submachineSessionId").and_then(Value::as_str);
+    let submachine_type = payload.get("submachineType").and_then(Value::as_str);
 
     if workflow_ids.is_some() && session_id.is_some() {
         return Err(MaenifoldError::Message(format!(
@@ -74,6 +75,7 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
                 status,
                 conclusion,
                 submachine_session_id,
+                submachine_type,
             );
         }
     }

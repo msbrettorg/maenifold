@@ -23,7 +23,6 @@ struct FrontmatterTask {
     title: Option<String>,
     pipeline: Option<String>,
     state: Option<String>,
-    status: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -46,7 +45,7 @@ impl TaskMetadataParser {
                 pipeline: frontmatter
                     .pipeline
                     .ok_or(GateError::MissingMetadataField("pipeline"))?,
-                state: frontmatter.state.or(frontmatter.status),
+                state: frontmatter.state,
             });
         }
 

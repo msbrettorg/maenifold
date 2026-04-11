@@ -4,6 +4,7 @@ import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { unwrapToolData } from '../composables/pipeline-mcp-transport';
 import {
   normalizeAgentProbeResult,
+  isOfflineProbeError,
   type AgentProbeResult,
 } from '../lib/agent-probe-types';
 import { useConfigStore } from './config';
@@ -22,6 +23,10 @@ interface ProbeAgentRecord {
 }
 
 const RETRY_DELAY_MS = 3_000;
+export const AGENT_PROBE_CACHE_TTL_MS = 5 * 60_000;
+export const AGENT_PROBE_SOFT_TIMEOUT_MS = 10_000;
+const AGENT_PROBE_TIMEOUT_MESSAGE =
+  `ListAgents probe timed out after ${AGENT_PROBE_SOFT_TIMEOUT_MS / 1_000}s`;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -76,12 +81,62 @@ function getErrorMessage(error: unknown): string {
 }
 
 function shouldRetryProbe(error: string): boolean {
-  const normalized = error.toLowerCase();
-  return normalized.includes('not connected')
-    || normalized.includes('network error')
-    || normalized.includes('fetch')
-    || normalized.includes('timed out')
-    || normalized.includes('http 404');
+  return isOfflineProbeError(error);
+}
+
+function stripProbeUiState(probe: AgentProbeResult): AgentProbeResult {
+  const { refreshing: _refreshing, degradedMessage: _degradedMessage, ...rest } = probe;
+  return rest;
+}
+
+function formatProbeAge(probedAt: number, now = Date.now()): string {
+  const elapsedMs = Math.max(0, now - probedAt);
+  const elapsedSeconds = Math.round(elapsedMs / 1_000);
+  if (elapsedSeconds < 60) {
+    return `${elapsedSeconds}s`;
+  }
+
+  const elapsedMinutes = Math.round(elapsedSeconds / 60);
+  if (elapsedMinutes < 60) {
+    return `${elapsedMinutes}m`;
+  }
+
+  const elapsedHours = Math.round(elapsedMinutes / 60);
+  return `${elapsedHours}h`;
+}
+
+function refreshingMessage(probedAt: number): string {
+  return `Refreshing live capabilities. Cached options from ${formatProbeAge(probedAt)} ago stay available until the probe finishes.`;
+}
+
+function cachedFailureMessage(probedAt: number, error: string): string {
+  const age = formatProbeAge(probedAt);
+  if (error.toLowerCase().includes('timed out')) {
+    return `Live refresh timed out. Showing cached capabilities from ${age} ago.`;
+  }
+
+  return `Live probe is unavailable right now. Showing cached capabilities from ${age} ago.`;
+}
+
+async function listAgentsWithSoftTimeout(
+  callTool: ReturnType<typeof usePipelineMcp>['callTool'],
+): Promise<unknown> {
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+
+  try {
+    return await Promise.race([
+      callTool<unknown>('ListAgents', { probe: true }),
+      new Promise<never>((_, reject) => {
+        timeoutHandle = setTimeout(() => {
+          reject(new Error(AGENT_PROBE_TIMEOUT_MESSAGE));
+        }, AGENT_PROBE_SOFT_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+    }
+  }
 }
 
 export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () => {
@@ -95,6 +150,56 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
 
   function getProbe(agentName: string): AgentProbeResult | undefined {
     return probeResults.value.get(agentName);
+  }
+
+  function shouldProbeAgent(agentName: string, force = false): boolean {
+    if (force) {
+      return true;
+    }
+
+    const probe = probeResults.value.get(agentName);
+    if (!probe) {
+      return true;
+    }
+
+    if (probe.state !== 'ready' || probe.degradedMessage) {
+      return true;
+    }
+
+    return Date.now() - probe.probedAt >= AGENT_PROBE_CACHE_TTL_MS;
+  }
+
+  function filterProbeResults(agentNames: string[]) {
+    const allowed = new Set(agentNames);
+    probeResults.value = new Map(
+      [...probeResults.value.entries()].filter(([agentName]) => allowed.has(agentName)),
+    );
+  }
+
+  function markRefreshPending(agentNames: string[]) {
+    let changed = false;
+    const next = new Map(probeResults.value);
+
+    for (const agentName of agentNames) {
+      const existing = next.get(agentName);
+      if (!existing) {
+        continue;
+      }
+
+      changed = true;
+      next.set(agentName, {
+        ...stripProbeUiState(existing),
+        refreshing: true,
+        degradedMessage:
+          existing.state === 'ready'
+            ? refreshingMessage(existing.probedAt)
+            : 'Retrying the live capability probe…',
+      });
+    }
+
+    if (changed) {
+      probeResults.value = next;
+    }
   }
 
   function clearRetry() {
@@ -130,7 +235,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     return mcp.connected.value;
   }
 
-  async function probeAll() {
+  async function probeAll(options: { force?: boolean } = {}) {
     const runId = ++currentRunId;
     retryPending = false;
     clearRetry();
@@ -142,12 +247,30 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       return;
     }
 
+    filterProbeResults(agentNames);
+
+    if (!agentNames.some((agentName) => shouldProbeAgent(agentName, options.force))) {
+      probeStatus.value = 'done';
+      return;
+    }
+
     probeStatus.value = 'probing';
+    markRefreshPending(agentNames);
 
     if (!(await ensureConnected())) {
       const message = mcp.error.value ?? 'MCP client is not connected';
       const next = new Map<string, AgentProbeResult>();
+      const preserveCached = shouldRetryProbe(message);
       for (const agentName of agentNames) {
+        const existing = probeResults.value.get(agentName);
+        if (preserveCached && existing?.state === 'ready') {
+          next.set(agentName, {
+            ...stripProbeUiState(existing),
+            degradedMessage: cachedFailureMessage(existing.probedAt, message),
+          });
+          continue;
+        }
+
         next.set(agentName, toProbeResult(undefined, message));
       }
       if (runId !== currentRunId) {
@@ -164,7 +287,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     const next = new Map<string, AgentProbeResult>();
 
     try {
-      const result = await mcp.callTool<unknown>('ListAgents', { probe: true });
+      const result = await listAgentsWithSoftTimeout(mcp.callTool);
       const records = extractAgentRecords(result);
 
       for (const agentName of agentNames) {
@@ -181,7 +304,17 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       const message = getErrorMessage(error);
       hasErrors = true;
       needsRetry = shouldRetryProbe(message);
+      const preserveCached = needsRetry;
       for (const agentName of agentNames) {
+        const existing = probeResults.value.get(agentName);
+        if (preserveCached && existing?.state === 'ready') {
+          next.set(agentName, {
+            ...stripProbeUiState(existing),
+            degradedMessage: cachedFailureMessage(existing.probedAt, message),
+          });
+          continue;
+        }
+
         next.set(agentName, toProbeResult(undefined, message));
       }
     }
@@ -202,9 +335,13 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     currentRunId += 1;
     retryPending = false;
     clearRetry();
-    probeResults.value = new Map();
-    probeStatus.value = 'idle';
-    void probeAll();
+    filterProbeResults([...configStore.agentNames]);
+    probeStatus.value = probeResults.value.size > 0 ? 'done' : 'idle';
+    void probeAll({ force: true });
+  }
+
+  async function refreshAll() {
+    await probeAll({ force: true });
   }
 
   watch(mcp.connected, (connected) => {
@@ -220,6 +357,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     probeStatus,
     getProbe,
     probeAll,
+    refreshAll,
     invalidateAll,
   };
 });

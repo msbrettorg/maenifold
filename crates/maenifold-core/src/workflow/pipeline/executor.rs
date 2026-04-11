@@ -359,7 +359,9 @@ fn apply_node_outcome(
     match outcome {
         NodeOutcome::Completed {
             conclusion,
+            acp_session_id,
             thinking_session_id,
+            tool_provenance,
         } => {
             update_pipeline_node_status(
                 context,
@@ -367,7 +369,9 @@ fn apply_node_outcome(
                 node_id,
                 "completed",
                 Some(&conclusion),
+                acp_session_id.as_deref(),
                 thinking_session_id.as_deref(),
+                tool_provenance.as_ref(),
                 None,
             )?;
             counts.completed += 1;
@@ -381,6 +385,8 @@ fn apply_node_outcome(
                     session_id,
                     node_id,
                     "abandoned",
+                    None,
+                    None,
                     None,
                     None,
                     Some(&reason),
@@ -425,8 +431,10 @@ fn schedule_node_retry(
 
     if current_attempts >= max_attempts {
         state.status = NodeStatus::Stuck;
+        state.acp_session_id = None;
         state.output = None;
         state.thinking_session_id = None;
+        state.tool_provenance = None;
         state.failure_reason = Some(reason.to_string());
         state.retry_after = None;
         persist_pipeline_state(
@@ -445,8 +453,10 @@ fn schedule_node_retry(
     state.session_id = next_session_id.clone();
     state.status = NodeStatus::Retrying;
     state.attempts += 1;
+    state.acp_session_id = None;
     state.output = None;
     state.thinking_session_id = None;
+    state.tool_provenance = None;
     state.failure_reason = None;
     state.retry_after = Some(compute_retry_after(state.attempts));
     state.retry_count = Some(retry_count);

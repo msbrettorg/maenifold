@@ -51,7 +51,6 @@ pub(crate) struct TokenizerAssets {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) struct BertTokenizerConfig {
-    #[serde(alias = "tokenizerClass", alias = "tokenizer_Class")]
     pub(crate) tokenizer_class: Option<String>,
     pub(crate) do_lower_case: Option<bool>,
     pub(crate) unk_token: Option<String>,

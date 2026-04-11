@@ -5,6 +5,7 @@ use crate::sessions::{
     now_iso8601_roundtrip, workflow_session_uri,
 };
 use crate::tools::ToolContext;
+use crate::workflow::clear_submachine_frontmatter;
 use chrono::Utc;
 use serde_yaml::Value as YamlValue;
 use std::collections::BTreeMap;
@@ -104,6 +105,22 @@ pub(crate) fn validate_session_state(
     }
 
     let session_exists = file_exists(uri, &context.config)?;
+    if session_exists {
+        let (frontmatter, _, _) = read_markdown(uri, &context.config)?;
+        let frontmatter = frontmatter.unwrap_or_default();
+        let existing_status = frontmatter_string(&frontmatter, "status").to_ascii_lowercase();
+        if matches!(
+            existing_status.as_str(),
+            "completed" | "cancelled" | "abandoned"
+        ) {
+            let message = format!("Session {} is already {}", input.session_id, existing_status);
+            return Ok((
+                false,
+                Some(render_failure(context, "SESSION_CLOSED", &message)),
+            ));
+        }
+    }
+
     if input.session_id_provided
         && input.thought_number == 0
         && !session_exists
@@ -178,6 +195,22 @@ pub(crate) fn initialize_session(
     frontmatter.insert(
         "status".to_string(),
         YamlValue::String("active".to_string()),
+    );
+    frontmatter.insert(
+        "phase".to_string(),
+        YamlValue::String("running".to_string()),
+    );
+    frontmatter.insert(
+        "activeSubmachineType".to_string(),
+        YamlValue::String(String::new()),
+    );
+    frontmatter.insert(
+        "activeSubmachineSessionId".to_string(),
+        YamlValue::String(String::new()),
+    );
+    frontmatter.insert(
+        "activeSubmachineTarget".to_string(),
+        YamlValue::String(String::new()),
     );
     if let Some(analysis_type) = input
         .analysis_type
@@ -258,6 +291,7 @@ pub(crate) fn finalize_session(
 ) -> Result<()> {
     let (frontmatter, content, _) = read_markdown(uri, &context.config)?;
     let mut frontmatter = frontmatter.unwrap_or_default();
+    clear_submachine_frontmatter(&mut frontmatter);
     frontmatter.insert("status".to_string(), YamlValue::String(status.to_string()));
     frontmatter.insert(
         "thoughtCount".to_string(),

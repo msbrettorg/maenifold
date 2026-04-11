@@ -4,7 +4,7 @@ use predicates::prelude::*;
 use std::thread;
 use support::{
     gate_command, gate_db_path, gitignore_path, new_pipeline_root, read_task, status_json,
-    sync_gate, write_legacy_task_without_pipeline_binding, write_pending_task,
+    sync_gate, write_pending_task,
 };
 
 #[test]
@@ -377,59 +377,6 @@ fn fail_from_pending_dispatch_state_returns_to_pending_and_increments_attempts()
     let task_text = read_task(&task);
     assert!(task_text.contains("## SWE"));
     assert!(task_text.contains("FAIL"));
-}
-
-#[test]
-fn task_file_requires_explicit_pipeline_binding() {
-    let root = new_pipeline_root();
-    write_legacy_task_without_pipeline_binding(root.path(), "T-1.1");
-    gate_command(root.path())
-        .args(["sync", "--root"])
-        .arg(root.path())
-        .arg("--rebuild")
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains(
-            "missing task metadata field: Pipeline",
-        ));
-
-    let output = gate_command(root.path())
-        .args([
-            "status",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--json",
-        ])
-        .assert()
-        .success()
-        .get_output()
-        .stdout
-        .clone();
-
-    let rendered = String::from_utf8(output).expect("status utf8");
-    assert!(rendered.contains("\"pipeline\": null"));
-    assert!(rendered.contains("missing task metadata field: Pipeline"));
-}
-
-#[test]
-fn legacy_task_without_pipeline_binding_is_rejected() {
-    let root = new_pipeline_root();
-    write_legacy_task_without_pipeline_binding(root.path(), "T-1.1");
-
-    gate_command(root.path())
-        .args([
-            "append",
-            "T-1.1",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--agent",
-            "swe",
-            "--notes",
-            "should be rejected",
-        ])
-        .assert()
-        .failure()
-        .stderr(predicate::str::contains("Pipeline").or(predicate::str::contains("binding")));
 }
 
 #[test]

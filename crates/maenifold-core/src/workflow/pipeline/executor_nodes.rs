@@ -499,7 +499,9 @@ mod tests {
                 session_id: "workflow-1735689600001-prompt-timeout".to_string(),
                 status: NodeStatus::Pending,
                 attempts: 0,
+                acp_session_id: None,
                 thinking_session_id: None,
+                tool_provenance: None,
                 output: None,
                 failure_reason: None,
                 retry_after: None,
@@ -590,7 +592,9 @@ mod tests {
                 session_id: "pipeline-source".to_string(),
                 status: NodeStatus::Completed,
                 attempts: 1,
+                acp_session_id: None,
                 thinking_session_id: None,
+                tool_provenance: None,
                 output: Some("not-json".to_string()),
                 failure_reason: None,
                 retry_after: None,
@@ -623,7 +627,7 @@ mod tests {
             .await
             .expect("local tool should execute through ToolRegistry");
 
-        assert!(output.contains("Maenifold Configuration"));
+        assert!(output.response.contains("Maenifold Configuration"));
     }
 
     #[tokio::test]
@@ -635,7 +639,7 @@ mod tests {
             .await
             .expect("maenifold namespaced tool should execute through ToolRegistry");
 
-        assert!(output.contains("Maenifold Configuration"));
+        assert!(output.response.contains("Maenifold Configuration"));
     }
 
     #[tokio::test]

@@ -61,18 +61,6 @@ pub fn write_bound_task(root: &Path, task_id: &str, pipeline: &str) -> PathBuf {
     path
 }
 
-pub fn write_legacy_task_without_pipeline_binding(root: &Path, task_id: &str) -> PathBuf {
-    let path = root.join("todo").join(format!("{task_id}.md"));
-    fs::write(
-        &path,
-        format!(
-            "# {task_id} — Auth Login JWT\n\n## Acceptance Criteria\n\n1. `POST /login` with valid credentials returns a signed JWT\n"
-        ),
-    )
-    .expect("write legacy task");
-    path
-}
-
 pub fn task_path(root: &Path, task_id: &str) -> PathBuf {
     root.join("todo").join(format!("{task_id}.md"))
 }

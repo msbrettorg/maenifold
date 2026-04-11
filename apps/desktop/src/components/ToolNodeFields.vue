@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
@@ -17,44 +17,58 @@ import {
   setAgentModeValue,
   setAgentThoughtLevelValue,
 } from '../composables/pipeline-node-form-helpers';
-import { resolveToolDefinition } from '../lib/tool-categories';
+import { getBareToolName, resolveToolDefinition } from '../lib/tool-categories';
 import type { McpDiscoveredTool } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
+import { useNodePaletteStore } from '../stores/node-palette';
 import { usePipelineStore } from '../stores/pipeline';
+import AgentProbePreview from './AgentProbePreview.vue';
 import SchemaForm from './SchemaForm.vue';
 
-interface ToolPickerSection {
-  server: string; status: 'ok' | 'error'; error?: string | null;
-  tools: Array<McpDiscoveredTool & { namespacedName: string; displayName: string }>;
+interface ToolPaletteItem extends McpDiscoveredTool {
+  server: string;
+  status: 'ok' | 'error';
+  error?: string | null;
+  namespacedName: string;
+  displayName: string;
 }
+
+interface HighlightPart {
+  text: string;
+  match: boolean;
+}
+
 const props = withDefaults(defineProps<{
   active?: boolean;
   toolName: string;
   agentName?: string;
   agentConfig?: PipelineNodeAgentConfig;
   toolArgs: Record<string, unknown>;
+  canSubmit?: boolean;
 }>(), {
   active: false,
   agentName: '',
   agentConfig: () => ({}),
+  canSubmit: false,
 });
+
 const emit = defineEmits<{
   'update:toolName': [value: string];
   'update:agentName': [value: string];
   'update:agentConfig': [value: PipelineNodeAgentConfig];
   'update:toolArgs': [value: Record<string, unknown>];
   validation: [state: { valid: boolean }];
+  submitRequest: [];
 }>();
+
 const pipelineStore = usePipelineStore();
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
-const { serverResults, loading, error, refreshTools } = useMcpToolDiscovery();
-const refreshing = ref(false);
-const attemptedInitialLoad = ref(false);
-const searchQuery = ref('');
-const expandedServers = ref(new Set<string>());
-const sections = computed<ToolPickerSection[]>(() =>
+const nodePaletteStore = useNodePaletteStore();
+const { serverResults, loading, error, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
+
+const sections = computed(() =>
   serverResults.value.map((result) => ({
     server: result.server,
     status: result.status,
@@ -63,86 +77,105 @@ const sections = computed<ToolPickerSection[]>(() =>
       .sort((left, right) => left.name.localeCompare(right.name))
       .map((tool) => ({
         ...tool,
-        // Backend already returns names as "server.toolName" — do NOT re-prefix.
+        server: result.server,
+        status: result.status,
+        error: result.error,
         namespacedName: tool.name,
         displayName: tool.name.startsWith(`${result.server}.`)
           ? tool.name.slice(result.server.length + 1)
-          : tool.name,
+          : getBareToolName(tool.name),
       })),
   })),
 );
-const filteredSections = computed<ToolPickerSection[]>(() => {
-  const q = searchQuery.value.toLowerCase().trim();
-  if (!q) return sections.value;
-  return sections.value
-    .map((s) => ({
-      ...s,
-      tools: s.tools.filter(
-        (t) =>
-          t.displayName.toLowerCase().includes(q) ||
-          (t.description ?? '').toLowerCase().includes(q),
-      ),
-    }))
-    .filter((s) => s.tools.length > 0 || s.status === 'error');
+
+const catalogTools = computed<ToolPaletteItem[]>(() =>
+  sections.value.flatMap((section) => section.tools),
+);
+
+const hasCatalog = computed(() => catalogTools.value.length > 0);
+const searchQuery = computed({
+  get: () => nodePaletteStore.searchQuery,
+  set: (value: string) => nodePaletteStore.setSearchQuery(value),
 });
-const selectedDiscoveryTool = computed<McpDiscoveredTool | null>(() => {
-  for (const section of sections.value) {
-    const match = section.tools.find((t) => t.namespacedName === props.toolName);
-    if (match) return match;
-  }
-  return null;
-});
+const isSearching = computed(() => searchQuery.value.trim().length > 0);
+const selectedDiscoveryTool = computed<ToolPaletteItem | null>(() =>
+  catalogTools.value.find((tool) => tool.namespacedName === props.toolName) ?? null,
+);
 const selectedFallbackTool = computed(() =>
   resolveToolDefinition(pipelineStore.tools, props.toolName) ?? null,
 );
 const selectedToolSchema = computed(
   () => selectedDiscoveryTool.value?.inputSchema ?? selectedFallbackTool.value?.inputSchema ?? null,
 );
-const hasCatalog = computed(() => sections.value.length > 0);
-const isBusy = computed(() => loading.value || refreshing.value);
-const isSearching = computed(() => searchQuery.value.trim().length > 0);
-function toggleServer(server: string): void {
-  const next = new Set(expandedServers.value);
-  if (next.has(server)) next.delete(server);
-  else next.add(server);
-  expandedServers.value = next;
-}
-function isExpanded(server: string): boolean {
-  return expandedServers.value.has(server) || isSearching.value;
-}
-async function refreshCatalog(): Promise<void> {
-  refreshing.value = true;
-  try {
-    await Promise.allSettled([
-      refreshTools(),
-      pipelineStore.tools.length > 0 ? Promise.resolve(pipelineStore.tools) : pipelineStore.refreshTools(),
-    ]);
-  } finally {
-    refreshing.value = false;
-    attemptedInitialLoad.value = true;
+const selectedToolDescription = computed(
+  () => selectedDiscoveryTool.value?.description ?? selectedFallbackTool.value?.description ?? null,
+);
+const requiredArgNames = computed(() => {
+  const schema = selectedToolSchema.value;
+  if (!schema || typeof schema !== 'object' || Array.isArray(schema)) {
+    return [];
   }
+
+  const required = (schema as { required?: unknown }).required;
+  return Array.isArray(required)
+    ? required.filter((entry): entry is string => typeof entry === 'string')
+    : [];
+});
+
+const quickAddTools = computed<ToolPaletteItem[]>(() => {
+  const orderedNames = [
+    ...nodePaletteStore.pinnedTools,
+    ...nodePaletteStore.recentTools.filter((name) => !nodePaletteStore.pinnedTools.includes(name)),
+  ];
+
+  return orderedNames
+    .map((name) => catalogTools.value.find((tool) => tool.namespacedName === name) ?? null)
+    .filter((tool): tool is ToolPaletteItem => tool !== null);
+});
+
+const searchResults = computed<ToolPaletteItem[]>(() => {
+  const query = searchQuery.value.toLowerCase().trim();
+  if (!query) {
+    return [];
+  }
+
+  return catalogTools.value.filter((tool) =>
+    tool.displayName.toLowerCase().includes(query)
+    || tool.namespacedName.toLowerCase().includes(query)
+    || (tool.description ?? '').toLowerCase().includes(query),
+  );
+});
+
+const visibleTools = computed<ToolPaletteItem[]>(() =>
+  isSearching.value ? searchResults.value : quickAddTools.value,
+);
+
+const activeDescendantId = computed(() =>
+  visibleTools.value.some((tool) => tool.namespacedName === nodePaletteStore.selectedToolName)
+    ? optionId(nodePaletteStore.selectedToolName!)
+    : undefined,
+);
+
+function optionId(name: string): string {
+  return `tool-palette-option-${name.replace(/[^a-z0-9_-]+/gi, '-')}`;
 }
-function selectTool(name: string): void {
-  emit('update:toolName', name);
-}
-function updateToolName(event: Event): void {
-  emit('update:toolName', (event.target as HTMLInputElement).value);
-}
-function onToolArgsChange(data: Record<string, unknown>): void {
-  emit('update:toolArgs', data);
-}
-function onToolArgsValidation(state: { valid: boolean }): void {
-  emit('validation', state);
-}
+
 function getProbe(agentName: string): AgentProbeResult | undefined {
   return agentName ? capabilitiesStore.getProbe(agentName) : undefined;
 }
+
 function formatAgentOptionLabel(agentName: string): string {
   return formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
 }
+
 function selectedAgentProbe(): AgentProbeResult | undefined {
   return props.agentName ? getProbe(props.agentName) : undefined;
 }
+
+function isProbeLoading(agentName: string): boolean {
+  return capabilitiesStore.probeStatus === 'probing' && !getProbe(agentName);
+}
+
 function readyProbe(): AgentProbeResult | undefined {
   const probe = selectedAgentProbe();
   if (probe?.state === 'ready' && Object.keys(props.agentConfig ?? {}).length === 0) {
@@ -150,53 +183,239 @@ function readyProbe(): AgentProbeResult | undefined {
   }
   return probe?.state === 'ready' ? probe : undefined;
 }
+
+async function refreshCatalog(): Promise<void> {
+  await Promise.allSettled([
+    refreshTools(),
+    pipelineStore.tools.length > 0 ? Promise.resolve(pipelineStore.tools) : pipelineStore.refreshTools(),
+  ]);
+}
+
+function selectTool(name: string): void {
+  nodePaletteStore.setSelectedTool(name);
+  emit('update:toolName', name);
+}
+
+function togglePin(toolName: string): void {
+  nodePaletteStore.togglePinnedTool(toolName);
+}
+
+function clearSelection(): void {
+  nodePaletteStore.setSelectedTool(null);
+  emit('update:toolName', '');
+  emit('update:toolArgs', {});
+  emit('validation', { valid: true });
+}
+
+function clearSearch(): void {
+  nodePaletteStore.clearSearchQuery();
+}
+
+function updateToolName(event: Event): void {
+  selectTool((event.target as HTMLInputElement).value);
+}
+
+function onToolArgsChange(data: Record<string, unknown>): void {
+  emit('update:toolArgs', data);
+}
+
+function onToolArgsValidation(state: { valid: boolean }): void {
+  emit('validation', state);
+}
+
 function updateAgentName(event: Event): void {
   emit('update:agentName', (event.target as HTMLSelectElement).value);
   emit('update:agentConfig', {});
 }
+
 function updateAgentMode(modeId: string): void {
   emit('update:agentConfig', setAgentModeValue(props.agentConfig, modeId) ?? {});
 }
+
 function updateAgentModel(event: Event): void {
   emit(
     'update:agentConfig',
     setAgentModelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {},
   );
 }
+
 function updateAgentThoughtLevel(event: Event): void {
   emit(
     'update:agentConfig',
     setAgentThoughtLevelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {},
   );
 }
+
 function updateAgentConfigOption(option: ReturnType<typeof getEditableAgentConfigOptions>[number], event: Event): void {
   emit(
     'update:agentConfig',
-    setAgentConfigOptionValue(props.agentConfig, option, (event.target as HTMLSelectElement).value)
-      ?? {},
+    setAgentConfigOptionValue(props.agentConfig, option, (event.target as HTMLSelectElement).value) ?? {},
   );
 }
+
+function isSelected(toolName: string): boolean {
+  return toolName === nodePaletteStore.selectedToolName;
+}
+
+function focusDelta(delta: number): void {
+  if (visibleTools.value.length === 0) {
+    return;
+  }
+
+  const currentIndex = visibleTools.value.findIndex(
+    (tool) => tool.namespacedName === nodePaletteStore.selectedToolName,
+  );
+  const nextIndex = currentIndex === -1
+    ? (delta > 0 ? 0 : visibleTools.value.length - 1)
+    : (currentIndex + delta + visibleTools.value.length) % visibleTools.value.length;
+  selectTool(visibleTools.value[nextIndex]!.namespacedName);
+}
+
+function submitSelectedTool(): void {
+  if (props.canSubmit) {
+    emit('submitRequest');
+  }
+}
+
+function handlePaletteKeydown(event: KeyboardEvent): void {
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      focusDelta(1);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      focusDelta(-1);
+      break;
+    case 'Enter':
+    case ' ':
+      if (visibleTools.value.length === 0) {
+        return;
+      }
+
+      event.preventDefault();
+      if (!nodePaletteStore.selectedToolName) {
+        selectTool(visibleTools.value[0]!.namespacedName);
+        return;
+      }
+
+      if (nodePaletteStore.selectedToolName !== props.toolName) {
+        selectTool(nodePaletteStore.selectedToolName);
+        return;
+      }
+
+      submitSelectedTool();
+      break;
+    case 'Escape':
+      if (!searchQuery.value) {
+        return;
+      }
+
+      event.preventDefault();
+      clearSearch();
+      break;
+    default:
+      break;
+  }
+}
+
+function handleSearchKeydown(event: KeyboardEvent): void {
+  if (event.key !== 'Escape' || !searchQuery.value) {
+    return;
+  }
+
+  event.preventDefault();
+  clearSearch();
+}
+
+function highlightText(text: string, query: string): HighlightPart[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return [{ text, match: false }];
+  }
+
+  const normalizedText = text.toLowerCase();
+  const parts: HighlightPart[] = [];
+  let cursor = 0;
+
+  while (cursor < text.length) {
+    const matchIndex = normalizedText.indexOf(normalizedQuery, cursor);
+    if (matchIndex === -1) {
+      parts.push({ text: text.slice(cursor), match: false });
+      break;
+    }
+
+    if (matchIndex > cursor) {
+      parts.push({ text: text.slice(cursor, matchIndex), match: false });
+    }
+
+    parts.push({
+      text: text.slice(matchIndex, matchIndex + normalizedQuery.length),
+      match: true,
+    });
+    cursor = matchIndex + normalizedQuery.length;
+  }
+
+  return parts.length > 0 ? parts : [{ text, match: false }];
+}
+
 watch(
   () => props.active,
   (active) => {
-    if (!active || attemptedInitialLoad.value || hasCatalog.value) return;
+    if (!active || hasCatalog.value) {
+      return;
+    }
+
     void refreshCatalog();
   },
   { immediate: true },
 );
-/* Auto-expand newly discovered servers; preserve user-collapsed state. */
-watch(sections, (next, prev) => {
-  const known = new Set((prev ?? []).map((s) => s.server));
-  const expanded = new Set(expandedServers.value);
-  for (const s of next) {
-    if (!known.has(s.server)) expanded.add(s.server);
-  }
-  expandedServers.value = expanded;
-}, { immediate: true });
+
+watch(
+  catalogTools,
+  (tools) => {
+    if (!hasLoadedCatalog.value) {
+      return;
+    }
+
+    nodePaletteStore.pruneUnavailableTools(tools.map((tool) => tool.namespacedName));
+    if (!props.toolName && nodePaletteStore.selectedToolName) {
+      emit('update:toolName', nodePaletteStore.selectedToolName);
+    }
+  },
+  { immediate: true },
+);
+
+watch(
+  () => props.toolName,
+  (value) => {
+    nodePaletteStore.setSelectedTool(value || null);
+  },
+  { immediate: true },
+);
+
+watch(
+  visibleTools,
+  (tools) => {
+    if (tools.length === 0) {
+      return;
+    }
+
+    if (!nodePaletteStore.selectedToolName) {
+      selectTool(tools[0]!.namespacedName);
+      return;
+    }
+
+    if (!tools.some((tool) => tool.namespacedName === nodePaletteStore.selectedToolName) && isSearching.value) {
+      selectTool(tools[0]!.namespacedName);
+    }
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
-  <div class="tool-picker field-wide">
+  <div class="tool-palette field-wide">
     <label>
       <span>Agent Override</span>
       <select
@@ -211,7 +430,14 @@ watch(sections, (next, prev) => {
         </option>
       </select>
     </label>
+
     <div v-if="agentName" class="tool-agent-panel">
+      <AgentProbePreview
+        compact
+        :agent-name="agentName"
+        :probe="selectedAgentProbe()"
+        :loading="isProbeLoading(agentName)"
+      />
       <template v-if="readyProbe()">
         <div v-if="readyProbe()?.modeOptions.length" class="agent-mode-badges">
           <button
@@ -295,109 +521,185 @@ watch(sections, (next, prev) => {
           </label>
         </div>
       </template>
-      <div v-else class="tool-agent-status" :class="selectedAgentProbe()?.state ?? 'pending'">
-        <span class="status-pill">{{ selectedAgentProbe()?.state === 'offline' ? 'Offline' : selectedAgentProbe()?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
-        <span>{{ selectedAgentProbe()?.error ?? 'Waiting for agent capability probe.' }}</span>
-      </div>
     </div>
-    <div class="tool-picker__header">
+
+    <div class="tool-palette__header">
       <div>
-        <span>Tool Picker</span>
-        <p>Select an MCP tool by server, or type a name manually below.</p>
+        <span>Tool Palette</span>
+        <p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p>
       </div>
-      <button type="button" class="btn btn-ghost" :disabled="isBusy" @click="refreshCatalog">
-        {{ isBusy ? 'Refreshing…' : 'Refresh' }}
+      <button type="button" class="btn btn-ghost" :disabled="loading" @click="refreshCatalog">
+        {{ loading ? 'Refreshing…' : 'Refresh' }}
       </button>
     </div>
-    <p v-if="error && !hasCatalog" class="tool-picker__status tool-picker__status--error">{{ error }}</p>
-    <template v-if="hasCatalog">
-      <input
-        v-model="searchQuery"
-        class="field-input tool-picker__search"
-        type="search"
-        placeholder="Search tools by name or description…"
-      />
-      <div class="tool-picker__accordion">
-        <section
-          v-for="section in filteredSections"
-          :key="section.server"
-          class="tool-picker__server"
-          :class="{ 'tool-picker__server--error': section.status === 'error' }"
-        >
-          <button
-            type="button"
-            class="tool-picker__server-toggle"
-            :aria-expanded="isExpanded(section.server)"
-            @click="toggleServer(section.server)"
-          >
-            <span class="tool-picker__chevron" :class="{ 'is-open': isExpanded(section.server) }">▸</span>
-            <strong>{{ section.server }}</strong>
-            <small>{{ section.tools.length }} tool{{ section.tools.length === 1 ? '' : 's' }}</small>
-            <span :class="['tool-picker__badge', `tool-picker__badge--${section.status}`]">{{ section.status }}</span>
-          </button>
-          <p v-if="section.error && isExpanded(section.server)" class="tool-picker__server-error">
-            {{ section.error }}<span v-if="section.tools.length > 0"> Showing last known tools.</span>
-          </p>
-          <div v-if="isExpanded(section.server) && section.tools.length > 0" class="tool-picker__tool-list">
-            <button
-              v-for="tool in section.tools"
-              :key="tool.namespacedName"
-              type="button"
-              class="tool-picker__tool"
-              :class="{ 'is-selected': tool.namespacedName === toolName }"
-              @click="selectTool(tool.namespacedName)"
-            >
-              <div class="tool-picker__tool-head">
-                <strong>{{ tool.displayName }}</strong>
-                <span class="tool-picker__tool-server">{{ section.server }}</span>
-              </div>
-              <span class="tool-picker__tool-desc">{{ tool.description || 'No description.' }}</span>
-            </button>
-          </div>
-          <p v-else-if="isExpanded(section.server)" class="tool-picker__status">No tools from this server.</p>
-        </section>
-      </div>
-      <p v-if="isSearching && filteredSections.length === 0" class="tool-picker__status">
-        No tools match "{{ searchQuery }}".
+
+    <p v-if="error && !hasCatalog" class="tool-palette__status tool-palette__status--error">{{ error }}</p>
+
+    <input
+      v-model="searchQuery"
+      class="field-input tool-palette__search"
+      type="search"
+      placeholder="Search tools by name or description…"
+      aria-label="Search tools"
+      @keydown="handleSearchKeydown"
+    />
+
+    <div class="tool-palette__status-row">
+      <strong>{{ isSearching ? `${searchResults.length} results` : 'Quick Add' }}</strong>
+      <button
+        v-if="searchQuery"
+        type="button"
+        class="btn btn-ghost btn-xs"
+        @click="clearSearch"
+      >
+        Clear search
+      </button>
+    </div>
+
+    <div
+      class="tool-palette__listbox"
+      role="listbox"
+      :aria-label="isSearching ? 'Tool search results' : 'Quick Add tools'"
+      :aria-activedescendant="activeDescendantId"
+      tabindex="0"
+      @keydown="handlePaletteKeydown"
+    >
+      <p v-if="!hasCatalog" class="tool-palette__status">Refresh to load tools from MCP servers.</p>
+      <p v-else-if="visibleTools.length === 0 && isSearching" class="tool-palette__status">
+        No tools match “{{ searchQuery }}”.
       </p>
-    </template>
+      <p v-else-if="visibleTools.length === 0" class="tool-palette__status">
+        Quick Add is empty. Start typing to search across all connected servers.
+      </p>
+      <button
+        v-for="tool in visibleTools"
+        :id="optionId(tool.namespacedName)"
+        :key="tool.namespacedName"
+        type="button"
+        class="tool-palette__option"
+        :class="{ 'is-selected': isSelected(tool.namespacedName) }"
+        role="option"
+        :aria-selected="isSelected(tool.namespacedName)"
+        @click="selectTool(tool.namespacedName)"
+      >
+        <div class="tool-palette__option-head">
+          <strong>
+            <template v-for="(part, index) in highlightText(tool.displayName, searchQuery)" :key="`${tool.namespacedName}-name-${index}`">
+              <mark v-if="part.match">{{ part.text }}</mark>
+              <span v-else>{{ part.text }}</span>
+            </template>
+          </strong>
+          <span class="tool-palette__server">{{ tool.server }}</span>
+        </div>
+        <span class="tool-palette__option-desc">
+          <template v-for="(part, index) in highlightText(tool.description || 'No description.', searchQuery)" :key="`${tool.namespacedName}-desc-${index}`">
+            <mark v-if="part.match">{{ part.text }}</mark>
+            <span v-else>{{ part.text }}</span>
+          </template>
+        </span>
+        <span class="tool-palette__option-tags">
+          <span v-if="nodePaletteStore.isToolPinned(tool.namespacedName)" class="tool-palette__tag">Pinned</span>
+          <span v-if="nodePaletteStore.recentTools.includes(tool.namespacedName)" class="tool-palette__tag">Recent</span>
+          <span v-if="tool.status === 'error'" class="tool-palette__tag tool-palette__tag--warning">Stale catalog</span>
+        </span>
+      </button>
+    </div>
+
     <label>
       <span>Tool Name</span>
-      <input class="field-input" :value="toolName" type="text" placeholder="server.ToolName" @input="updateToolName" />
+      <input
+        class="field-input"
+        :value="toolName"
+        type="text"
+        placeholder="server.ToolName"
+        @input="updateToolName"
+      />
     </label>
-    <div v-if="toolName" class="field-block">
-      <div class="tool-picker__args-label"><span>Tool Args</span><code>{{ toolName }}</code></div>
+
+    <section v-if="toolName" class="tool-palette__detail">
+      <div class="tool-palette__detail-head">
+        <div>
+          <strong>{{ selectedDiscoveryTool?.displayName ?? getBareToolName(toolName) }}</strong>
+          <p>{{ selectedToolDescription || 'No description.' }}</p>
+        </div>
+        <div class="tool-palette__detail-actions">
+          <span v-if="selectedDiscoveryTool?.server" class="tool-palette__server">
+            {{ selectedDiscoveryTool.server }}
+          </span>
+          <button type="button" class="btn btn-ghost btn-xs" @click="togglePin(toolName)">
+            {{ nodePaletteStore.isToolPinned(toolName) ? 'Unpin' : 'Pin' }}
+          </button>
+          <button type="button" class="btn btn-ghost btn-xs" @click="clearSelection">Clear</button>
+        </div>
+      </div>
+
+      <div class="tool-palette__required">
+        <span>Required args</span>
+        <div class="tool-palette__required-tags">
+          <span
+            v-for="requiredName in requiredArgNames"
+            :key="requiredName"
+            class="tool-palette__required-tag"
+          >
+            {{ requiredName }}
+          </span>
+          <span v-if="requiredArgNames.length === 0" class="tool-palette__required-empty">
+            No required args
+          </span>
+        </div>
+      </div>
+
       <SchemaForm
         :schema="selectedToolSchema"
         :data="toolArgs"
         @change="onToolArgsChange"
         @validation="onToolArgsValidation"
       />
-    </div>
+
+      <div class="tool-palette__detail-footer">
+        <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="submitSelectedTool">
+          Add Tool
+        </button>
+      </div>
+    </section>
   </div>
 </template>
 
 <style scoped>
-.tool-picker, .field-block { display: grid; gap: 0.75rem; }
-.tool-agent-panel {
+.tool-palette,
+.tool-agent-panel,
+.tool-agent-grid,
+.tool-palette__detail {
   display: grid;
-  gap: 0.65rem;
-  padding: 0.75rem;
+  gap: 0.75rem;
+}
+
+.tool-agent-panel,
+.tool-palette__detail {
+  padding: 0.8rem;
   border: 1px solid var(--border-color);
-  border-radius: 0.75rem;
+  border-radius: 0.85rem;
   background: color-mix(in srgb, var(--bg-sidebar) 72%, transparent);
 }
+
 .tool-agent-grid {
-  display: grid;
-  gap: 0.65rem;
   grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
 }
-.agent-mode-badges {
+
+.agent-mode-badges,
+.tool-palette__option-tags,
+.tool-palette__required-tags,
+.tool-palette__detail-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+  align-items: center;
 }
-.mode-badge,.status-pill {
+
+.mode-badge,
+.tool-palette__tag,
+.tool-palette__required-tag,
+.tool-palette__server {
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.45rem;
@@ -405,105 +707,115 @@ watch(sections, (next, prev) => {
   border-radius: 999px;
   font-size: var(--text-xs);
 }
+
 .mode-badge {
   background: var(--bg-main);
   color: var(--text-secondary);
   cursor: pointer;
 }
-.mode-badge.selected {
+
+.mode-badge.selected,
+.tool-palette__option.is-selected {
   border-color: var(--border-focus);
-  color: var(--text-primary);
-  background: color-mix(in srgb, var(--bg-user) 45%, transparent);
+  box-shadow: 0 0 0 1px var(--border-focus);
 }
-.tool-agent-status {
+
+.tool-palette__header,
+.tool-palette__status-row,
+.tool-palette__detail-head,
+.tool-palette__detail-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.tool-palette__header p,
+.tool-palette__detail-head p,
+.tool-palette__status,
+.tool-palette__option-desc,
+.tool-palette__required-empty {
   color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
-.status-pill {
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.tool-picker__header {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem;
-}
-.tool-picker__header p, .tool-picker__status, .tool-picker__tool-desc, .field-block {
-  color: var(--text-secondary); font-size: var(--text-sm);
-}
-.tool-picker__status--error, .tool-picker__server-error {
-  color: var(--color-status-abandoned); font-size: var(--text-sm);
-}
-.tool-picker__server-error { padding: 0 0.75rem 0.5rem 2rem; }
-.tool-picker__accordion {
-  display: flex; flex-direction: column; gap: 0.25rem;
-  max-height: min(28rem, 50vh); overflow-y: auto;
-  scrollbar-width: thin; scrollbar-color: var(--border-default) transparent;
-}
-.tool-picker__server {
-  border: 1px solid var(--border-color); border-radius: 0.75rem;
-  background: var(--bg-main); overflow: hidden;
-}
-.tool-picker__server--error {
-  border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, var(--border-color));
-}
-.tool-picker__server-toggle {
-  display: flex; align-items: center; gap: 0.5rem;
-  width: 100%; padding: 0.6rem 0.75rem;
-  border: none; background: none; color: var(--text-primary);
-  font-size: var(--text-sm); cursor: pointer; text-align: left;
-}
-.tool-picker__server-toggle:hover {
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-}
-.tool-picker__server-toggle small { color: var(--text-secondary); margin-left: auto; }
-.tool-picker__chevron {
-  display: inline-block; transition: transform 0.15s ease; font-size: 0.7rem; flex-shrink: 0;
-}
-.tool-picker__chevron.is-open { transform: rotate(90deg); }
-.tool-picker__badge {
-  padding: 0.1rem 0.45rem; border-radius: 999px;
-  font-size: var(--text-xs); text-transform: uppercase; flex-shrink: 0;
-}
-.tool-picker__badge--ok {
-  background: color-mix(in srgb, var(--color-status-completed) 18%, transparent);
-  color: var(--color-status-completed);
-}
-.tool-picker__badge--error {
-  background: color-mix(in srgb, var(--color-status-abandoned) 18%, transparent);
+
+.tool-palette__status--error,
+.tool-palette__tag--warning {
   color: var(--color-status-abandoned);
 }
-.tool-picker__tool-list {
-  display: flex; flex-direction: column; gap: 0.35rem; padding: 0 0.5rem 0.5rem;
+
+.tool-palette__listbox {
+  display: grid;
+  gap: 0.45rem;
+  max-height: min(18rem, 38vh);
+  padding: 0.1rem;
+  overflow-y: auto;
+  border-radius: 0.8rem;
+  outline: none;
 }
-.tool-picker__tool {
-  display: grid; gap: 0.2rem; padding: 0.5rem 0.65rem;
-  border: 1px solid var(--border-color); border-radius: 0.5rem;
-  background: var(--bg-main); color: var(--text-primary);
-  text-align: left; cursor: pointer;
-  transition: border-color 0.1s, box-shadow 0.1s, background 0.1s;
+
+.tool-palette__option {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: var(--bg-main);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
 }
-.tool-picker__tool:hover {
+
+.tool-palette__option:hover {
   background: color-mix(in srgb, var(--text-primary) 4%, var(--bg-main));
-  border-color: var(--text-secondary);
 }
-.tool-picker__tool.is-selected {
-  border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus);
+
+.tool-palette__option:focus-visible,
+.tool-palette__listbox:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
-.tool-picker__tool-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+
+.tool-palette__option-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
-.tool-picker__tool-server {
-  padding: 0.05rem 0.4rem; border-radius: 999px;
+
+.tool-palette__option-desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.tool-palette__server {
   background: color-mix(in srgb, var(--text-primary) 8%, transparent);
-  color: var(--text-secondary); font-size: var(--text-xs); flex-shrink: 0; white-space: nowrap;
+  color: var(--text-secondary);
 }
-.tool-picker__tool-desc {
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+
+.tool-palette__tag {
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  color: var(--text-secondary);
 }
-.tool-picker__args-label {
-  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+
+.tool-palette__tag--warning {
+  border-color: color-mix(in srgb, var(--color-status-abandoned) 35%, var(--border-color));
 }
-.tool-picker__args-label code { font-size: var(--text-xs); color: var(--text-secondary); }
+
+.tool-palette__required {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.tool-palette__required-tag {
+  background: color-mix(in srgb, var(--bg-main) 84%, transparent);
+}
+
+mark {
+  padding: 0;
+  background: color-mix(in srgb, var(--color-status-active) 24%, transparent);
+  color: inherit;
+}
 </style>

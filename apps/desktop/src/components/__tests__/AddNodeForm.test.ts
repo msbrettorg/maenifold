@@ -7,10 +7,28 @@ import AddNodeForm from '../AddNodeForm.vue';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
+import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';
+import { useNodePaletteStore } from '../../stores/node-palette';
+import { usePipelineStore } from '../../stores/pipeline';
+
+function installMockLocalStorage() {
+  const storage = new Map<string, string>();
+  Object.defineProperty(window, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => storage.get(key) ?? null,
+      setItem: (key: string, value: string) => storage.set(key, value),
+      removeItem: (key: string) => storage.delete(key),
+      clear: () => storage.clear(),
+    },
+  });
+}
 
 function createTestEnv() {
   const pinia = createPinia();
   setActivePinia(pinia);
+  installMockLocalStorage();
+  window.localStorage.clear();
 
   const configStore = useConfigStore();
   configStore.config = {
@@ -68,11 +86,33 @@ function createTestEnv() {
     })],
   ]);
 
-  return { pinia, configStore, capabilitiesStore };
+  const discoveryStore = useMcpToolDiscoveryStore();
+  discoveryStore.serverResults = [
+    {
+      server: 'maenifold',
+      type: 'stdio',
+      status: 'ok',
+      tools: [
+        {
+          name: 'maenifold.SearchMemories',
+          description: 'Search memories',
+          inputSchema: { type: 'object', properties: {} },
+        },
+      ],
+    },
+  ];
+
+  const pipelineStore = usePipelineStore();
+  pipelineStore.tools = [];
+
+  const nodePaletteStore = useNodePaletteStore();
+
+  return { pinia, nodePaletteStore };
 }
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  installMockLocalStorage();
 });
 
 describe('AddNodeForm', () => {
@@ -115,5 +155,41 @@ describe('AddNodeForm', () => {
         },
       },
     });
+  });
+
+  it('keeps tool palette state and selection across repeated adds', async () => {
+    const { pinia, nodePaletteStore } = createTestEnv();
+    const submitNode = vi.fn();
+
+    const wrapper = mount(AddNodeForm, {
+      props: {
+        workflows: ['workflow.alpha'],
+        hasSelection: false,
+        submitNode,
+      },
+      global: {
+        plugins: [pinia],
+        stubs: { SchemaForm: true },
+      },
+    });
+
+    await wrapper.get('select[aria-label="Node type"]').setValue('tool');
+    await wrapper.get('input[type="search"]').setValue('search');
+    await flushPromises();
+
+    await wrapper.get('[role="option"]').trigger('click');
+    await flushPromises();
+
+    expect(nodePaletteStore.searchQuery).toBe('search');
+
+    await wrapper.get('form.composer-toolbar').trigger('submit');
+
+    expect(submitNode).toHaveBeenCalledWith('tool', {
+      toolName: 'maenifold.SearchMemories',
+    });
+    expect(nodePaletteStore.searchQuery).toBe('search');
+    expect(nodePaletteStore.selectedToolName).toBe('maenifold.SearchMemories');
+    expect(nodePaletteStore.recentTools).toContain('maenifold.SearchMemories');
+    expect((wrapper.get('input[type="search"]').element as HTMLInputElement).value).toBe('search');
   });
 });

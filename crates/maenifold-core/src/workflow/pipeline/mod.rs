@@ -61,7 +61,7 @@ pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
-    PredecessorOutput,
+    PredecessorOutput, ToolProvenance,
 };
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;

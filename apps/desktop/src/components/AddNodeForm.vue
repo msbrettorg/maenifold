@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { useAddNodeForm } from '../composables/useAddNodeForm';
 import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
@@ -42,7 +43,6 @@ const emit = defineEmits<{
 
 const {
   workflowListId,
-  panelOpen,
   nodeType,
   workflowId,
   workflowAgent,
@@ -64,6 +64,7 @@ const {
   handleSubmit,
 } = useAddNodeForm({ submitNode: props.submitNode });
 
+const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 'Add Node'));
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
 
@@ -77,6 +78,10 @@ function formatAgentOptionLabel(agentName: string): string {
 
 function getCapabilityBadges(agentName: string): string[] {
   return getPipelineAgentCapabilityBadges(getProbe(agentName));
+}
+
+function isProbeLoading(agentName: string): boolean {
+  return capabilitiesStore.probeStatus === 'probing' && !getProbe(agentName);
 }
 
 function handlePromptAgentChange(event: Event): void {
@@ -177,34 +182,31 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
 <template>
   <form class="composer-toolbar" @submit.prevent="handleSubmit">
     <div class="toolbar-row toolbar-row-top">
-      <select v-model="nodeType" class="field-select" aria-label="Node type">
-        <option value="workflow">Workflow</option>
-        <option value="prompt">Prompt</option>
-        <option value="sequentialThinking">Sequential Thinking</option>
-        <option value="tool">Tool</option>
-      </select>
-      <button
-        type="button"
-        class="btn btn-ghost"
-        :aria-expanded="panelOpen"
-        @click="panelOpen = !panelOpen"
-      >
-        {{ panelOpen ? 'Hide Fields' : 'Show Fields' }}
-      </button>
-      <button type="submit" class="btn btn-primary" :disabled="!canAdd">Add Node</button>
-      <button
-        v-if="hasSelection"
-        type="button"
-        class="btn btn-outline-danger"
-        @click="emit('deleteSelected')"
-      >
-        Delete Selected
-      </button>
-      <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'LR')">↔ Layout LR</button>
-      <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'TB')">↕ Layout TB</button>
+      <label class="toolbar-type-field">
+        <span>Node type</span>
+        <select v-model="nodeType" class="field-input" aria-label="Node type">
+          <option value="workflow">Workflow</option>
+          <option value="prompt">Prompt</option>
+          <option value="sequentialThinking">Sequential Thinking</option>
+          <option value="tool">Tool</option>
+        </select>
+      </label>
+      <div class="toolbar-actions">
+        <button type="submit" class="btn btn-primary" :disabled="!canAdd">{{ addButtonLabel }}</button>
+        <button
+          v-if="hasSelection"
+          type="button"
+          class="btn btn-outline-danger"
+          @click="emit('deleteSelected')"
+        >
+          Delete Selected
+        </button>
+        <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'LR')">↔ Layout LR</button>
+        <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'TB')">↕ Layout TB</button>
+      </div>
     </div>
 
-    <div v-show="panelOpen" class="toolbar-row toolbar-row-fields">
+    <div class="toolbar-section">
       <template v-if="nodeType === 'workflow'">
         <label>
           <span>Workflow ID</span>
@@ -221,7 +223,12 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
         </datalist>
         <label>
           <span>Agent</span>
-          <select v-model="workflowAgent" class="field-input" data-testid="workflow-agent-select"><option value="">Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select>
+          <select v-model="workflowAgent" class="field-input" data-testid="workflow-agent-select">
+            <option value="">Select agent…</option>
+            <option v-for="name in configStore.agentNames" :key="name" :value="name">
+              {{ formatAgentOptionLabel(name) }}
+            </option>
+          </select>
         </label>
         <div v-if="workflowAgent" class="field-wide">
           <div v-if="getCapabilityBadges(workflowAgent).length" class="agent-capabilities">
@@ -243,8 +250,21 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
       <template v-else-if="nodeType === 'prompt'">
         <label>
           <span>Agent</span>
-          <select class="field-input" data-testid="prompt-agent-select" :value="promptAgent" @change="handlePromptAgentChange"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select>
+          <select class="field-input" data-testid="prompt-agent-select" :value="promptAgent" @change="handlePromptAgentChange">
+            <option value="" disabled>Select agent…</option>
+            <option v-for="name in configStore.agentNames" :key="name" :value="name">
+              {{ formatAgentOptionLabel(name) }}
+            </option>
+          </select>
         </label>
+        <AgentProbePreview
+          v-if="promptAgent"
+          compact
+          class="field-wide"
+          :agent-name="promptAgent"
+          :probe="getProbe(promptAgent)"
+          :loading="isProbeLoading(promptAgent)"
+        />
         <div v-if="promptAgent" class="field-wide agent-config-panel">
           <template v-if="readyPromptProbe()">
             <div v-if="readyPromptProbe()?.modeOptions.length" class="agent-mode-badges">
@@ -333,10 +353,6 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
               </label>
             </div>
           </template>
-          <div v-else class="agent-status" :class="promptProbe()?.state ?? 'pending'">
-            <span class="status-pill">{{ promptProbe()?.state === 'offline' ? 'Offline' : promptProbe()?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
-            <span>{{ promptProbe()?.error ?? 'Waiting for agent capability probe.' }}</span>
-          </div>
         </div>
         <label class="field-wide">
           <span>Prompt</span>
@@ -356,8 +372,21 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
         </label>
         <label>
           <span>Agent</span>
-          <select class="field-input" data-testid="thinking-agent-select" :value="thinkingAgent" @change="handleThinkingAgentChange"><option value="" disabled>Select agent…</option><option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option></select>
+          <select class="field-input" data-testid="thinking-agent-select" :value="thinkingAgent" @change="handleThinkingAgentChange">
+            <option value="" disabled>Select agent…</option>
+            <option v-for="name in configStore.agentNames" :key="name" :value="name">
+              {{ formatAgentOptionLabel(name) }}
+            </option>
+          </select>
         </label>
+        <AgentProbePreview
+          v-if="thinkingAgent"
+          compact
+          class="field-wide"
+          :agent-name="thinkingAgent"
+          :probe="getProbe(thinkingAgent)"
+          :loading="isProbeLoading(thinkingAgent)"
+        />
         <div v-if="thinkingAgent" class="field-wide agent-config-panel">
           <template v-if="readyThinkingProbe()">
             <div v-if="readyThinkingProbe()?.modeOptions.length" class="agent-mode-badges">
@@ -446,10 +475,6 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
               </label>
             </div>
           </template>
-          <div v-else class="agent-status" :class="thinkingProbe()?.state ?? 'pending'">
-            <span class="status-pill">{{ thinkingProbe()?.state === 'offline' ? 'Offline' : thinkingProbe()?.state === 'error' ? 'Probe failed' : 'Pending' }}</span>
-            <span>{{ thinkingProbe()?.error ?? 'Waiting for agent capability probe.' }}</span>
-          </div>
         </div>
         <label>
           <span>Total thoughts</span>
@@ -480,11 +505,13 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
           :agent-name="toolAgent"
           :agent-config="toolAgentConfig"
           :tool-args="toolArgs"
+          :can-submit="canAdd"
           @update:tool-name="toolName = $event"
           @update:agent-name="toolAgent = $event"
           @update:agent-config="toolAgentConfig = $event"
           @update:tool-args="toolArgs = $event"
           @validation="toolArgsValid = $event.valid"
+          @submit-request="handleSubmit"
         />
       </template>
     </div>
@@ -492,20 +519,93 @@ function readyThinkingProbe(): AgentProbeResult | undefined {
 </template>
 
 <style scoped>
-.composer-toolbar { position: absolute; top: 0.75rem; left: 0.75rem; z-index: 5; display: grid; gap: 0.6rem; padding: 0.75rem; min-width: min(44rem, calc(100% - 1.5rem)); border: 1px solid var(--border-color); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-main) 94%, transparent); box-shadow: 0 6px 24px color-mix(in srgb, var(--bg-main) 12%, transparent); }
-.toolbar-row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-start; }
-.toolbar-row-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
-label { display: grid; gap: 0.35rem; min-width: 0; color: var(--text-secondary); font-size: var(--text-sm); }
-.field-block { display: grid; gap: 0.35rem; min-width: 0; color: var(--text-secondary); font-size: var(--text-sm); }
-.field-wide { grid-column: 1 / -1; }
-.toggle-field { align-content: end; }
-.toggle-button { min-width: 7.5rem; }
-.agent-capabilities,.agent-mode-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.agent-capability,.status-pill,.mode-badge { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-color); border-radius: 999px; font-size: var(--text-xs); }
-.agent-config-panel { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-sidebar) 70%, transparent); }
-.agent-config-grid { display: grid; gap: 0.65rem; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
-.mode-badge { background: var(--bg-main); color: var(--text-secondary); cursor: pointer; }
-.mode-badge.selected { border-color: var(--border-focus); color: var(--text-primary); background: color-mix(in srgb, var(--bg-user) 45%, transparent); }
-.agent-status { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; color: var(--text-secondary); }
-.status-pill { text-transform: uppercase; letter-spacing: 0.04em; }
+.composer-toolbar {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+  height: 100%;
+  padding: 1rem;
+  border-right: 1px solid var(--border-color);
+  background: color-mix(in srgb, var(--bg-main) 96%, transparent);
+  overflow-y: auto;
+}
+
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.toolbar-type-field {
+  min-width: 12rem;
+}
+
+.toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.toolbar-section {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.agent-capabilities,
+.agent-mode-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.agent-capability,
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  font-size: var(--text-xs);
+}
+
+.agent-config-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--bg-sidebar) 70%, transparent);
+}
+
+.agent-config-grid {
+  display: grid;
+  gap: 0.65rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+}
+
+.mode-badge {
+  background: var(--bg-main);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.mode-badge.selected {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--bg-user) 45%, transparent);
+}
 </style>

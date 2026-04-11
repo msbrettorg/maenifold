@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { WorkflowStep } from '../lib/workflow-types';
 
@@ -42,14 +43,14 @@ function relativeTime(iso: string | undefined): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function renderMarkdown(text: string | undefined): string {
+function renderMarkdownWithDOMPurify(text: string | undefined): string {
   if (!text) return '';
   const withPills = text.replace(/\[\[([^\]]+)\]\]/g, (_match, label: string) => {
     const escaped = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<span class="wiki-pill">${escaped}</span>`;
   });
-  const result = marked.parse(withPills);
-  return typeof result === 'string' ? result : '';
+  const result = marked.parse(withPills, { async: false });
+  return DOMPurify.sanitize(typeof result === 'string' ? result : '');
 }
 </script>
 
@@ -84,7 +85,7 @@ function renderMarkdown(text: string | undefined): string {
     <div
       v-if="expanded && step.response"
       class="step-response"
-      v-html="renderMarkdown(step.response)"
+      v-html="renderMarkdownWithDOMPurify(step.response)"
     />
   </li>
 </template>

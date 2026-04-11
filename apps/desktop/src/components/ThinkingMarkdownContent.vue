@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 
 const props = withDefaults(defineProps<{
@@ -27,17 +28,17 @@ function renderMarkdown(content: string): string {
   });
 
   const result = marked.parse(withWikiPills, { async: false });
-  return typeof result === 'string' ? result : '';
+  return DOMPurify.sanitize(typeof result === 'string' ? result : '');
 }
 
-const renderedContent = computed(() => renderMarkdown(props.content));
+const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content));
 </script>
 
 <template>
   <div
     class="thinking-markdown-content"
     :class="{ 'thinking-markdown-content--clamped': clamp }"
-    v-html="renderedContent"
+    v-html="renderedContentWithDOMPurify"
   />
 </template>
 

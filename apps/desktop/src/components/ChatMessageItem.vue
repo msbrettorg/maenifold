@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import ChatThoughtSection from './ChatThoughtSection.vue';
@@ -19,7 +20,7 @@ const emit = defineEmits<{
 
 const toolCalls = computed(() => props.message.toolCalls ?? []);
 const blocks = computed(() => props.message.blocks ?? []);
-const legacyContent = computed(() =>
+const legacyContentWithDOMPurify = computed(() =>
   props.message.content && !blocks.value.some((block) => block.type === 'text')
     ? renderMarkdown(props.message.content)
     : null
@@ -32,7 +33,8 @@ const isToolOnlyAssistantMessage = computed(() =>
 );
 
 function renderMarkdown(content: string): string {
-  return marked.parse(content, { async: false }) as string;
+  const parsed = marked.parse(content, { async: false });
+  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
 }
 </script>
 
@@ -58,7 +60,7 @@ function renderMarkdown(content: string): string {
     />
 
     <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
-    <div v-if="legacyContent" class="message-content" v-html="legacyContent" />
+    <div v-if="legacyContentWithDOMPurify" class="message-content" v-html="legacyContentWithDOMPurify" />
   </div>
 </template>
 

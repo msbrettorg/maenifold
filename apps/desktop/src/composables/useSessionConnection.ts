@@ -264,10 +264,6 @@ export function useSessionConnection({
     session.pendingPermissions = [];
     cancelPendingToolCalls(session);
     session.currentPlan = null;
-    session.availableModes = [];
-    session.currentModeId = '';
-    session.availableModels = [];
-    session.currentModelId = '';
     session.configOptions = [];
     session.hasConfigOptions = false;
     session.usage = null;

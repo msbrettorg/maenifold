@@ -112,10 +112,6 @@ function applyConfigOptionsState(
 ): void {
   session.hasConfigOptions = 'configOptions' in response && response.configOptions !== null;
   session.configOptions = session.hasConfigOptions ? normalizeConfigOptions(response.configOptions) : [];
-  session.availableModes = [];
-  session.currentModeId = '';
-  session.availableModels = [];
-  session.currentModelId = '';
 }
 
 export function applySessionConfigurationState(

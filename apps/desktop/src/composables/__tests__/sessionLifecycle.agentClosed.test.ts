@@ -117,10 +117,6 @@ describe('useSessionLifecycle agent closed handling', () => {
     ];
     session.pendingAuthMethods = [{ id: 'browser', name: 'Browser' }];
     session.pendingAuthAgentName = 'OpenCode';
-    session.availableModes = [{ id: 'build', name: 'Build' }];
-    session.currentModeId = 'build';
-    session.availableModels = [{ modelId: 'sonnet', name: 'Sonnet' }];
-    session.currentModelId = 'sonnet';
     session.configOptions = [
       {
         id: 'temperature',
@@ -160,10 +156,6 @@ describe('useSessionLifecycle agent closed handling', () => {
     expect(session.pendingAuthMethods).toEqual([]);
     expect(session.pendingAuthAgentName).toBe('');
     expect(session.currentPlan).toBeNull();
-    expect(session.availableModes).toEqual([]);
-    expect(session.currentModeId).toBe('');
-    expect(session.availableModels).toEqual([]);
-    expect(session.currentModelId).toBe('');
     expect(session.configOptions).toEqual([]);
     expect(session.hasConfigOptions).toBe(false);
     expect(session.toolCalls.get('tool-pending')?.status).toBe('cancelled');

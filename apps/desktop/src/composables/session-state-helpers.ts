@@ -59,8 +59,4 @@ export function applyConfigOptionsUpdate(
 ): void {
   session.hasConfigOptions = true;
   session.configOptions = normalizeConfigOptions(configOptions);
-  session.availableModes = [];
-  session.currentModeId = '';
-  session.availableModels = [];
-  session.currentModelId = '';
 }

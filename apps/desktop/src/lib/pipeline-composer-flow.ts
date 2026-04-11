@@ -72,10 +72,11 @@ function defaultPosition(index: number): { x: number; y: number } {
 function toFlowNodeData(
   node: PipelineNode,
   viewNode?: ViewNode,
+  nodeLabels?: Record<string, string>,
 ): FlowNodeData {
   const base = {
     nodeId: node.id,
-    label: node.id,
+    label: nodeLabels?.[node.id] ?? node.id,
     type: node.type ?? 'workflow',
     acpSessionId: viewNode?.acpSessionId,
     thinkingSessionId: viewNode?.thinkingSessionId,
@@ -212,6 +213,7 @@ export function pipelineNodesToFlow(
   pipelineNodes: PipelineNode[],
   pipelineId?: string,
   viewNodes?: ViewNode[],
+  nodeLabels?: Record<string, string>,
 ): Node[] {
   const cached = loadPositions(pipelineId);
   const viewMap = new Map(viewNodes?.map((node) => [node.nodeId, node]) ?? []);
@@ -219,7 +221,7 @@ export function pipelineNodesToFlow(
     id: node.id,
     type: 'pipelineNode',
     position: cached[node.id] ?? defaultPosition(index),
-    data: toFlowNodeData(node, viewMap.get(node.id)),
+    data: toFlowNodeData(node, viewMap.get(node.id), nodeLabels),
   }));
 }
 

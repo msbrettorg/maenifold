@@ -130,6 +130,8 @@ const typeIcon = computed(() => {
   return '⚙️';
 });
 const titleText = computed(() => shorten(nodeLabel(node.value), 44));
+const hasCustomLabel = computed(() => Boolean(props.data.label && props.data.label !== props.data.nodeId));
+const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !== props.data.label);
 const currentStatus = computed(() => props.data.status ?? 'pending');
 const isActive = computed(() => currentStatus.value === 'active');
 const ariaLabel = computed(() => `${typeLabel.value} node: ${props.id}`);
@@ -158,7 +160,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
         <span class="type-pill">{{ typeIcon }} {{ typeLabel }}</span>
       </div>
 
-      <div class="node-subtitle">{{ titleText }}</div>
+      <div v-if="showSubtitle" class="node-subtitle">{{ titleText }}</div>
 
       <template v-if="isWorkflowNode(node)">
         <div class="meta-row">

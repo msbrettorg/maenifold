@@ -1,0 +1,172 @@
+/**
+ * Pipeline template registry — pure typed data.
+ *
+ * Each template declares an intent-first label, a human-readable description,
+ * the raw PipelineDefinition with `{{variable}}` placeholders, a nodeLabels
+ * map for human-readable display, and optional capability requirements that
+ * gate availability.
+ *
+ * Templates are resolved at instantiation time by pipeline-template-runtime.ts.
+ */
+import type { PipelineDefinition } from './pipeline-types';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+/** Variables the runtime must interpolate before creating the pipeline. */
+export interface TemplateVariables {
+  primaryAgent: string;
+  criticAgent: string;
+  [key: string]: string;
+}
+
+/** A tool that must be discovered via MCP for the template to be available. */
+export interface TemplateCapabilityGate {
+  /** Fully-qualified MCP tool name, e.g. "msx-mcp-get_account_overview". */
+  toolName: string;
+}
+
+export type TemplateCategory = 'universal' | 'enterprise';
+
+export interface PipelineTemplate {
+  /** Unique slug used as registry key. */
+  id: string;
+  /** Intent-first label shown in the gallery. */
+  label: string;
+  /** One-line description of what this pipeline does. */
+  description: string;
+  /** Emoji icon for the gallery card. */
+  icon: string;
+  category: TemplateCategory;
+  /** When non-empty, ALL listed tools must be discovered for the template to appear. */
+  capabilities: readonly TemplateCapabilityGate[];
+  /** Raw pipeline definition with `{{variable}}` placeholders in string values. */
+  definition: PipelineDefinition;
+  /** Map from node id → human-readable label. */
+  nodeLabels: Readonly<Record<string, string>>;
+}
+
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
+export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
+  // ── Universal templates ─────────────────────────────────────────────
+  {
+    id: 'research-and-verify',
+    label: 'Research & Verify',
+    description: 'Investigate a topic using the scientific method, then peer-review the findings.',
+    icon: '🔬',
+    category: 'universal',
+    capabilities: [],
+    definition: {
+      nodes: [
+        { id: 'investigate', type: 'workflow', workflowId: 'scientific-method', acpClient: '{{primaryAgent}}', prompt: '{{topic}}' },
+        { id: 'review', type: 'workflow', workflowId: 'peer-review', acpClient: '{{criticAgent}}', prompt: 'Review the investigation results for soundness.' },
+      ],
+      edges: [
+        { source: 'investigate', target: 'review', type: 'success' },
+      ],
+    },
+    nodeLabels: {
+      investigate: 'Investigate Topic',
+      review: 'Peer Review',
+    },
+  },
+  {
+    id: 'think-and-critique',
+    label: 'Think & Critique',
+    description: 'Deeply reason through a problem, then critically evaluate the reasoning.',
+    icon: '🧠',
+    category: 'universal',
+    capabilities: [],
+    definition: {
+      nodes: [
+        { id: 'reason', type: 'sequentialThinking', topic: '{{topic}}', agent: '{{primaryAgent}}', totalThoughts: 8 },
+        { id: 'critique', type: 'workflow', workflowId: 'critical-thinking', acpClient: '{{criticAgent}}', prompt: 'Critically evaluate the reasoning above.' },
+      ],
+      edges: [
+        { source: 'reason', target: 'critique', type: 'success' },
+      ],
+    },
+    nodeLabels: {
+      reason: 'Deep Reasoning',
+      critique: 'Critical Review',
+    },
+  },
+  {
+    id: 'draft-and-refine',
+    label: 'Draft & Refine',
+    description: 'Draft a response, stress-test it via falsification, then revise.',
+    icon: '✍️',
+    category: 'universal',
+    capabilities: [],
+    definition: {
+      nodes: [
+        { id: 'draft', type: 'prompt', prompt: '{{topic}}', agent: '{{primaryAgent}}' },
+        { id: 'stress-test', type: 'workflow', workflowId: 'falsification', acpClient: '{{criticAgent}}', prompt: 'Attempt to falsify the draft above.' },
+        { id: 'revise', type: 'prompt', prompt: 'Incorporate the falsification feedback and produce a refined version.', agent: '{{primaryAgent}}' },
+      ],
+      edges: [
+        { source: 'draft', target: 'stress-test', type: 'success' },
+        { source: 'stress-test', target: 'revise', type: 'success' },
+      ],
+    },
+    nodeLabels: {
+      draft: 'Initial Draft',
+      'stress-test': 'Stress Test',
+      revise: 'Refined Output',
+    },
+  },
+  {
+    id: 'explore-and-synthesize',
+    label: 'Explore & Synthesize',
+    description: 'Run agentic research, then synthesize findings through critical analysis.',
+    icon: '🌐',
+    category: 'universal',
+    capabilities: [],
+    definition: {
+      nodes: [
+        { id: 'explore', type: 'workflow', workflowId: 'agentic-research', acpClient: '{{primaryAgent}}', prompt: '{{topic}}' },
+        { id: 'synthesize', type: 'workflow', workflowId: 'crta', acpClient: '{{criticAgent}}', prompt: 'Synthesize and critically analyze the research findings.' },
+      ],
+      edges: [
+        { source: 'explore', target: 'synthesize', type: 'success' },
+      ],
+    },
+    nodeLabels: {
+      explore: 'Explore Topic',
+      synthesize: 'Synthesize Findings',
+    },
+  },
+
+  // ── Enterprise templates (capability-gated) ─────────────────────────
+  {
+    id: 'deal-preparation',
+    label: 'Deal Preparation',
+    description: 'Fetch account data from MSX, query WorkIQ, then analyze for deal readiness.',
+    icon: '💼',
+    category: 'enterprise',
+    capabilities: [
+      { toolName: 'msx-mcp-get_account_overview' },
+      { toolName: 'workiq-ask_work_iq' },
+    ],
+    definition: {
+      nodes: [
+        { id: 'fetch-account', type: 'tool', toolName: 'msx-mcp-get_account_overview', toolArgs: { account_name: '{{accountName}}' } },
+        { id: 'query-workiq', type: 'tool', toolName: 'workiq-ask_work_iq', toolArgs: { question: 'What is the current engagement status for {{accountName}}?' } },
+        { id: 'analyze', type: 'prompt', prompt: 'Analyze the account overview and WorkIQ data to assess deal readiness for {{accountName}}.', agent: '{{primaryAgent}}' },
+      ],
+      edges: [
+        { source: 'fetch-account', target: 'analyze', type: 'success' },
+        { source: 'query-workiq', target: 'analyze', type: 'success' },
+      ],
+    },
+    nodeLabels: {
+      'fetch-account': 'Fetch Account Overview',
+      'query-workiq': 'Query Work Intelligence',
+      analyze: 'Deal Readiness Analysis',
+    },
+  },
+] as const satisfies readonly PipelineTemplate[];

@@ -108,6 +108,12 @@ export interface PipelineEdge {
 export interface PipelineDefinition {
   nodes: PipelineNode[];
   edges: PipelineEdge[];
+  /**
+   * Optional human-readable labels keyed by node id.
+   * Populated by template instantiation; used by the flow layer and cards
+   * so users see intent-first names instead of raw IDs.
+   */
+  nodeLabels?: Record<string, string>;
 }
 
 interface ViewNodeBase {

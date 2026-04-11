@@ -18,6 +18,8 @@ import type {
   ToolNodeInput,
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
+import type { PipelineTemplate, TemplateVariables } from '../lib/pipeline-templates';
+import { instantiateTemplate } from '../lib/pipeline-template-runtime';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
 import {
@@ -82,6 +84,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   }
   const designMode = ref(true);
   const eventLog = ref<LogEntry[]>([]);
+  const nodeLabels = ref<Record<string, string>>({});
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
   let stopPolling: (() => void) | null = null;
@@ -90,6 +93,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   function setView(view: PipelineView | null) {
     currentView.value = view;
     localDefinition.value = view ? toLocalDefinition(view) : EMPTY_DEFINITION();
+    if (view) nodeLabels.value = {};
     if (view && !view.running && TERMINAL_PIPELINE_STATUSES.has(view.status)) stopCurrentPolling();
   }
   function appendNode(node: PipelineNode): PipelineNode {
@@ -129,6 +133,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     stopCurrentPolling();
     currentPipelineId.value = null;
     setView(null);
+    nodeLabels.value = {};
     maxConcurrency.value = 8;
     designMode.value = true;
     eventLog.value = [];
@@ -169,6 +174,11 @@ export const usePipelineStore = defineStore('pipeline', () => {
     }
 
     return appendNode(createNode(nodeOrType, fields));
+  }
+  function applyTemplate(template: PipelineTemplate, variables: TemplateVariables) {
+    const result = instantiateTemplate(template, variables);
+    localDefinition.value = result.definition;
+    nodeLabels.value = result.nodeLabels;
   }
   async function refreshWorkflows() {
     await withLoading(async () => {
@@ -243,6 +253,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     currentPipelineId,
     currentView,
     localDefinition,
+    nodeLabels,
     maxConcurrency,
     loading,
     designMode,
@@ -262,6 +273,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     newPipeline,
     createPipeline,
     addNode,
+    applyTemplate,
     runPipeline,
     pausePipeline,
     resumePipeline,

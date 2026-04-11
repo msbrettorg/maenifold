@@ -12,6 +12,7 @@ import '@vue-flow/minimap/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
+import TemplateGallery from './TemplateGallery.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import { useResizeHandle } from '../composables/useResizeHandle';
@@ -83,8 +84,19 @@ const paletteResize = useResizeHandle({
   max: 720,
 });
 
+const advancedMode = ref(false);
+const showGallery = computed(
+  () => props.designMode && showEmptyState.value && !advancedMode.value,
+);
+
+function switchToAdvanced(): void {
+  advancedMode.value = true;
+}
+
 const designGridStyle = computed(() => ({
-  'grid-template-columns': `${paletteResize.width.value}px minmax(0, 1fr)`,
+  'grid-template-columns': showGallery.value
+    ? 'minmax(0, 1fr)'
+    : `${paletteResize.width.value}px minmax(0, 1fr)`,
 }));
 
 watch(
@@ -330,22 +342,32 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 <template>
   <div class="pipeline-composer" @keydown="handleFlowKeyDown">
     <div v-if="designMode" class="composer-layout" :style="designGridStyle">
-      <section class="composer-palette">
-        <AddNodeForm
-          :workflows="store.workflows"
-          :has-selection="hasSelection"
-          :submit-node="submitNode"
-          @auto-layout="handleAutoLayout"
-          @delete-selected="deleteSelected"
-        />
-        <div
-          class="composer-palette-resize"
-          :style="{ left: `${paletteResize.width.value}px` }"
-          @mousedown="paletteResize.startResize($event, 'right')"
-        />
-      </section>
+      <!-- Intent-first gallery shown when canvas is empty and not in advanced mode -->
+      <template v-if="showGallery">
+        <section class="composer-gallery-panel">
+          <TemplateGallery @switch-to-advanced="switchToAdvanced" />
+        </section>
+      </template>
 
-      <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
+      <!-- Standard palette + canvas shown when nodes exist or advanced mode is active -->
+      <template v-else>
+        <section class="composer-palette">
+          <AddNodeForm
+            :workflows="store.workflows"
+            :has-selection="hasSelection"
+            :submit-node="submitNode"
+            @auto-layout="handleAutoLayout"
+            @delete-selected="deleteSelected"
+          />
+          <div
+            class="composer-palette-resize"
+            :style="{ left: `${paletteResize.width.value}px` }"
+            @mousedown="paletteResize.startResize($event, 'right')"
+          />
+        </section>
+      </template>
+
+      <section v-if="!showGallery" class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -391,8 +413,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           </template>
         </VueFlow>
         <div v-if="showEmptyState" class="composer-empty-state">
-          <span>Add your first node</span>
-          <span class="composer-empty-state-arrow" aria-hidden="true">↖</span>
+          <span>Add nodes using the form or right-click the canvas</span>
         </div>
         <PipelineComposerContextMenu
           v-if="contextMenu"
@@ -489,10 +510,15 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 }
 
 .composer-palette,
-.composer-canvas {
+.composer-canvas,
+.composer-gallery-panel {
   position: relative;
   min-width: 0;
   min-height: 0;
+}
+
+.composer-gallery-panel {
+  overflow-y: auto;
 }
 
 .composer-palette-resize {

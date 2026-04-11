@@ -113,7 +113,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const hasCachedPositions =
       definition.nodes.length > 0 && definition.nodes.every((node) => cached[node.id]);
 
-    nodes.value = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
+    nodes.value = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes, definition.nodeLabels);
     edges.value = pipelineEdgesToFlow(definition.edges);
 
     if (!hasCachedPositions && nodes.value.length > 0) {

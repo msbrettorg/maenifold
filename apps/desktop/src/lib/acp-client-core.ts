@@ -286,8 +286,6 @@ export class AcpClientBridgeCore {
     switch (method) {
       case 'session/prompt':
       case 'terminal/wait_for_exit':
-      case 'session/set_mode':
-      case '_session/set_model':
       case 'session/set_config_option':
         return 30 * 60 * 1000;
       case 'terminal/create':

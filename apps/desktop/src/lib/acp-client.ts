@@ -14,7 +14,6 @@ import type {
 import {
   isRecord,
   readAdvertisedAgentMethods,
-  SESSION_SET_MODEL_METHOD,
   withAcpMeta,
   withExtensionCapabilities,
 } from './acp-meta';
@@ -62,14 +61,6 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Client {
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
     return this.sendRequest<PromptResponse>('session/prompt', params);
-  }
-
-  async setMode(params: { sessionId: string; modeId: string }): Promise<void> {
-    await this.sendRequest('session/set_mode', params);
-  }
-
-  async unstable_setSessionModel(params: { sessionId: string; modelId: string }): Promise<void> {
-    await this.sendRequest(SESSION_SET_MODEL_METHOD, params);
   }
 
   async unstable_setSessionConfigOption(params: {

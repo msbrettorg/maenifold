@@ -4,7 +4,6 @@ const WINDOWS_ABSOLUTE_PATH = /^[A-Za-z]:[\\/]/;
 const WINDOWS_UNC_PATH = /^\\\\/;
 const ACP_EXTENSION_META_KEY = 'maenifold/extensions';
 
-export const SESSION_SET_MODEL_METHOD = '_session/set_model';
 type AcpMeta = AcpMetadata;
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -65,10 +64,6 @@ export function withExtensionCapabilities(
         (method): method is string => typeof method === 'string'
       )
     : [];
-
-  if (!supportedAgentMethods.includes(SESSION_SET_MODEL_METHOD)) {
-    supportedAgentMethods.push(SESSION_SET_MODEL_METHOD);
-  }
 
   return {
     ...existing,

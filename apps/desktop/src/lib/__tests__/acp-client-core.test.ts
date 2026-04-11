@@ -112,8 +112,6 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('uses long-lived timeouts for ACP control mutations', () => {
     const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
 
-    expect(bridge.timeoutFor('session/set_mode')).toBe(30 * 60 * 1000);
-    expect(bridge.timeoutFor('_session/set_model')).toBe(30 * 60 * 1000);
     expect(bridge.timeoutFor('session/set_config_option')).toBe(30 * 60 * 1000);
   });
 });

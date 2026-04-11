@@ -18,6 +18,18 @@
 
 For anyone who spends more time gathering context and re-doing analysis than doing the actual work.
 
+**Product thesis:** Build the reasoning layer first. Useful work follows.
+
+# maenifold
+
+maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all hit the same tool surface — agents and humans share the same core domain operations. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
+
+Pipelines can mix tool calls, agent sessions, and workflow nodes in a single executable DAG.
+
+The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
+
+These pieces connect through shared local state — memory, workflows, pipelines, gate records, and the graph all reference each other.
+
 ## Core Concepts
 
 - **MCP** (Model Context Protocol) — the protocol maenifold uses to expose tools. Any MCP-compatible client can connect.
@@ -26,18 +38,6 @@ For anyone who spends more time gathering context and re-doing analysis than doi
 - **Pipeline** — a directed acyclic graph (DAG) of nodes that execute in dependency order.
 - **Gate** — file-authoritative task management. Tasks live as markdown files and progress through stages.
 - **Workflow** — a reusable JSON template that defines a structured reasoning process.
-
-**Product thesis:** Build the reasoning layer first. Useful work follows.
-
-# maenifold
-
-maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all talk to the same MCP-native tool surface — agents can do anything humans can and vice versa. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
-
-Pipelines can mix tool calls, agent sessions, and workflow nodes in a single executable DAG.
-
-The knowledge graph starts with ordinary markdown and `[[WikiLinks]]`. Each WikiLink becomes a concept node; co-occurrence becomes edges; sync turns the corpus into a graph you can search, visualize, and use to prime new sessions. Community detection clusters related concepts, and graph context can be pulled back into workflows or chat when needed. The source of truth stays readable because the memory layer is still just files plus a local database. You can inspect the graph and the underlying notes side by side.
-
-These pieces connect through shared local state — memory, workflows, pipelines, gate records, and the graph all reference each other.
 
 The backend centers on `crates/maenifold-core` and exposes MCP tools across eight categories. The desktop app includes dedicated surfaces for Agents, Pipelines, Gates, Workflows, and Graph. Current repo configuration targets `Copilot`, `Goose`, `OpenCode`, `Codex`, and `claude-code` agents. The backend and all persistent state run locally. MIT licensed.
 
@@ -48,6 +48,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - ACP chat sessions against external agents from one desktop shell.
 - Choose the ACP harness, mode, model, and reasoning effort per session, with permission prompts and traffic inspection built into the UI.
 - Designed for multi-agent work without changing the backend protocol.
+- The reasoning layer needs a way to talk to agents. This is it.
 
 ### Pipelines
 
@@ -65,6 +66,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Think of it as a local issue tracker that agents and humans can both drive.
 - Supports staged delivery flows through `status`, `append`, `pass`, `fail`, `history`, and `sync`.
 - The same task system can be driven from CLI, MCP, or the desktop UI.
+- How the reasoning layer tracks and stages work that matters.
 
 ### Workflows
 
@@ -72,6 +74,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Each workflow is a structured reasoning template — more than a prompt, less than a full application.
 - Author and inspect workflow JSON in the desktop workflow editor.
 - Import external workflow JSON and save it back into the local library.
+- Reasoning methods you define once and reuse across pipelines and sessions.
 
 ### Graph
 
@@ -127,6 +130,8 @@ maenifold-rs/
 
 ## Quick Start
 
+**Fastest first win — CLI in three commands:**
+
 Build the CLI from source:
 
 ```bash
@@ -157,12 +162,14 @@ maenifold tool BuildContext '{"conceptName":"authentication","depth":2}'
 
 On a fresh install with no memory files, SearchMemories returns an empty result set — that's expected.
 
-Desktop app:
+**Desktop app (requires Tauri prerequisites above):**
 
 ```bash
 cd apps/desktop
 npm install && npm run tauri dev
 ```
+
+A desktop window should open with tabs for Agents, Pipelines, Gates, Workflows, and Graph across the top.
 
 For HTTP mode, the backend also supports `maenifold --http` and exposes streamable MCP at `/mcp`.
 
@@ -220,6 +227,15 @@ MAENIFOLD_FULL_SUITE=1 cargo test
 Desktop work happens under `apps/desktop/` with its own Node/Tauri toolchain. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full build, test, and quality workflow.
 
 Release automation currently packages macOS ARM64, Linux x64, and Windows x64. There are no release tags in this repository today, so treat source builds as the supported path.
+
+Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/maenifold-rs).
+
+## Troubleshooting
+
+- **`maenifold` not found after build:** The binary is at `./target/release/maenifold`. Either add it to your PATH or use the full path in MCP configs.
+- **SearchMemories returns empty results:** Expected on a fresh install with no memory files. Write a memory first with `WriteMemory`.
+- **Tauri build fails on Linux:** Install the system dependencies listed in the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) — this typically includes `libwebkit2gtk-4.1-dev` and friends.
+- **MCP client can't spawn the server:** Ensure the `command` in your MCP config points to an absolute path or a binary on your PATH.
 
 ## Documentation
 

@@ -70,6 +70,13 @@ async function handleSelect(pipelineId: string) {
   emit('pipeline-selected', pipelineId);
 }
 
+function handleNew() {
+  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) {
+    return;
+  }
+  store.newPipeline();
+}
+
 async function handleDelete(item: PipelineListItem, event: Event) {
   event.stopPropagation();
 
@@ -87,7 +94,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
       <h3>Pipelines</h3>
       <div class="sidebar-actions">
         <button class="btn btn-ghost" type="button" title="Refresh" @click="handleRefresh">↻</button>
-        <button class="btn btn-ghost" type="button" @click="store.newPipeline()">+ New</button>
+        <button class="btn btn-ghost" type="button" @click="handleNew">+ New</button>
       </div>
     </div>
 

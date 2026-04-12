@@ -53,7 +53,6 @@ async function handleRefresh() {
 }
 
 function handleNewPipeline() {
-  store.newPipeline();
   emit('new-pipeline');
 }
 

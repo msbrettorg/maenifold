@@ -173,7 +173,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             :show-error-state="showErrorState"
             :show-loading-state="showLoadingState"
             @close="handlePipelineSelected"
-            @new-pipeline="closePipelineFlyout"
+            @new-pipeline="handleNewPipeline"
             @retry="handleRetryLoad"
           />
         </Transition>

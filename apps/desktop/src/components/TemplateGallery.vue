@@ -173,6 +173,7 @@ function handleIntentInput(): void {
 .template-gallery {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1.5rem;
   padding: 1.5rem;
   height: 100%;
@@ -182,7 +183,9 @@ function handleIntentInput(): void {
 .gallery-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
+  width: min(100%, 960px);
+  text-align: center;
 }
 
 .gallery-title {
@@ -254,7 +257,10 @@ function handleIntentInput(): void {
 .gallery-card-section {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 0.75rem;
+  width: min(100%, 960px);
+  text-align: center;
 }
 
 .gallery-card-section-header {
@@ -272,8 +278,10 @@ function handleIntentInput(): void {
 
 .gallery-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  width: min(100%, 960px);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 180px));
   gap: 0.75rem;
+  justify-content: center;
 }
 
 .gallery-card {
@@ -333,6 +341,7 @@ function handleIntentInput(): void {
   flex-direction: column;
   gap: 0.75rem;
   padding-top: 0.5rem;
+  width: min(100%, 720px);
   border-top: 1px solid var(--border-default);
 }
 
@@ -398,12 +407,13 @@ function handleIntentInput(): void {
 .gallery-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 0.75rem;
 }
 
 .gallery-agent-warning {
   font-size: var(--text-xs);
   color: var(--color-status-stuck, #e57373);
+  text-align: center;
 }
 </style>

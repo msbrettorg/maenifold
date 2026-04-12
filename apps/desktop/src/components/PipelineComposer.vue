@@ -398,6 +398,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           >
             {{ paletteOpen ? '✕ Palette' : '+ Palette' }}
           </button>
+          <slot name="toolbar-actions" />
         </div>
         <VueFlow
           v-model:nodes="nodes"
@@ -477,6 +478,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
       <div class="flow-toolbar">
         <button type="button" class="btn btn-ghost" @click="handleAutoLayout('LR')">↔ Layout LR</button>
         <button type="button" class="btn btn-ghost" @click="handleAutoLayout('TB')">↕ Layout TB</button>
+        <slot name="toolbar-actions" />
       </div>
       <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
         <VueFlow
@@ -597,6 +599,18 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 .pipeline-flow {
   width: 100%;
   height: 100%;
+}
+
+.pipeline-composer :deep(.vue-flow__controls) {
+  left: 0.75rem;
+  right: auto;
+  bottom: 0.75rem;
+}
+
+.pipeline-composer :deep(.vue-flow__minimap) {
+  left: auto;
+  right: 0.75rem;
+  bottom: 0.75rem;
 }
 
 .edge-indicator {

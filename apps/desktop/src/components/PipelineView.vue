@@ -169,8 +169,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @update:local-definition="handleDefinitionUpdate"
             @node-selected="handleNodeSelected"
             @edge-selected="handleEdgeSelected"
-          />
-          <PipelineActionBar />
+          >
+            <template #toolbar-actions>
+              <PipelineActionBar />
+            </template>
+          </PipelineComposer>
         </template>
         <Transition name="pipeline-flyout">
           <PipelineFlyout

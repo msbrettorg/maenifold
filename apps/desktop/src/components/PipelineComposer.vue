@@ -494,7 +494,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           :nodes-draggable="designMode"
           :nodes-connectable="designMode"
           :edges-updatable="designMode"
-          :elements-selectable="designMode"
+          :elements-selectable="true"
           :delete-key-code="designMode ? 'Backspace' : null"
           class="pipeline-flow"
         >

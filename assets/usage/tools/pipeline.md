@@ -9,9 +9,6 @@ Creates and manages pipeline sessions composed of DAG nodes.
 - `definition` (object, optional): Pipeline definition to create. Must include `nodes` and `edges`.
 - `maxConcurrency` (integer, optional, default: `8`): Maximum number of nodes the scheduler may activate concurrently.
 - `prompt` (string, optional): Ambient prompt passed to all agent-dispatched nodes during autonomous execution.
-- `inputs` (object, optional): Optional runtime inputs visible to pipeline execution. Runtime values override persisted definition inputs.
-- `list` (bool, default: false): Return all pipeline sessions with status summaries.
-- `forceComplete` (bool, default: false): Admin override to mark a pipeline completed. The pipeline must not be actively running.
 - `learn` (bool, default: false): Return this help text.
 
 ## Create
@@ -24,60 +21,12 @@ Use `name` to set a prefix for the session ID: `{name}-{epoch}`. This enables na
 
 ```json
 {
-  "templateId": "research-template-v1",
   "nodes": [
-    { "id": "root", "type": "workflow", "displayLabel": "Root", "workflowId": "workflow-a" },
-    { "id": "child", "type": "workflow", "displayLabel": "Child", "workflowId": "workflow-b", "acpClient": "agent-b" },
-    {
-      "id": "draft",
-      "type": "prompt",
-      "displayLabel": "Draft",
-      "prompt": "Summarize {{input}}",
-      "agent": "agent-c",
-      "toolMode": "disabled",
-      "agentConfig": {
-        "cwd": "/workspace",
-        "model": "gpt-5.4-mini",
-        "mode": "prompt",
-        "thoughtLevel": "medium",
-        "configOptions": {
-          "temperature": "0.2"
-        }
-      }
-    },
-    {
-      "id": "analyze",
-      "type": "sequentialThinking",
-      "displayLabel": "Analyze",
-      "topic": "Evaluate tradeoffs",
-      "agent": "agent-d",
-      "totalThoughts": 5,
-      "agentConfig": {
-        "cwd": "/workspace",
-        "model": "gpt-5.4-mini",
-        "mode": "think",
-        "thoughtLevel": "high",
-        "configOptions": {
-          "temperature": "0.1"
-        }
-      }
-    },
-    {
-      "id": "publish",
-      "type": "tool",
-      "displayLabel": "Publish",
-      "toolName": "pipeline",
-      "toolArgs": {},
-      "agentConfig": {
-        "cwd": "/workspace",
-        "model": "gpt-5.4-mini",
-        "mode": "prompt",
-        "thoughtLevel": "low",
-        "configOptions": {
-          "temperature": "0.0"
-        }
-      }
-    }
+    { "id": "root", "workflowId": "workflow-a" },
+    { "id": "child", "type": "workflow", "workflowId": "workflow-b", "acpClient": "agent-b" },
+    { "id": "draft", "type": "prompt", "prompt": "Summarize {{input}}", "agent": "agent-c", "toolMode": "disabled" },
+    { "id": "analyze", "type": "sequentialThinking", "topic": "Evaluate tradeoffs", "agent": "agent-d", "totalThoughts": 5 },
+    { "id": "publish", "type": "tool", "toolName": "pipeline", "toolArgs": {} }
   ],
   "edges": [
     { "source": "root", "target": "child", "type": "success" },
@@ -88,26 +37,12 @@ Use `name` to set a prefix for the session ID: `{name}-{epoch}`. This enables na
 }
 ```
 
-Optional definition fields:
-
-- `templateId` (string, optional): Template identifier preserved across pipeline round-trips.
-
 Supported node shapes:
 
-- Workflow: `{ "id": "...", "type": "workflow", "displayLabel": "...", "workflowId": "...", "acpClient": "..." }`
-- Prompt: `{ "id": "...", "type": "prompt", "displayLabel": "...", "prompt": "...", "agent": "...", "toolMode": "disabled", "agentConfig": { "cwd": "...", "model": "...", "mode": "...", "thoughtLevel": "...", "configOptions": {} } }`
-- SequentialThinking: `{ "id": "...", "type": "sequentialThinking", "displayLabel": "...", "topic": "...", "agent": "...", "totalThoughts": 5, "agentConfig": { "cwd": "...", "model": "...", "mode": "...", "thoughtLevel": "...", "configOptions": {} } }`
-- Tool: `{ "id": "...", "type": "tool", "displayLabel": "...", "toolName": "...", "toolArgs": {}, "agentConfig": { "cwd": "...", "model": "...", "mode": "...", "thoughtLevel": "...", "configOptions": {} } }`
-
-`displayLabel` is optional on all node types and is preserved for presentation-only UI surfaces.
-
-`agentConfig` is optional on Prompt, SequentialThinking, and Tool nodes. Supported fields:
-
-- `cwd` (string, optional): Working directory for the agent session.
-- `model` (string, optional): Model override for the agent session.
-- `mode` (string, optional): Session mode override for the agent session.
-- `thoughtLevel` (string, optional): Thought level override for the agent session.
-- `configOptions` (object, optional): Arbitrary config options forwarded to the agent session.
+- Workflow: `{ "id": "...", "workflowId": "...", "acpClient": "..." }`
+- Prompt: `{ "id": "...", "type": "prompt", "prompt": "...", "agent": "...", "toolMode": "disabled" }`
+- SequentialThinking: `{ "id": "...", "type": "sequentialThinking", "topic": "...", "agent": "...", "totalThoughts": 5 }`
+- Tool: `{ "id": "...", "type": "tool", "toolName": "...", "toolArgs": {} }`
 
 ### Returns
 
@@ -118,13 +53,11 @@ Supported node shapes:
 ## Lifecycle operations
 
 - `sessionId + run=true (+ prompt)`: Start autonomous execution for an existing pipeline session. When provided, `prompt` is passed through as ambient context for agent-dispatched nodes.
-- `list=true`: Return all pipeline sessions with status summaries.
 - `sessionId + cancel=true`: Cancel a running pipeline and prevent further work from starting.
 - `sessionId + view=true`: Inspect the current pipeline state.
 - `sessionId + dispatch=true`: Claim ready nodes as active and return them.
 - `sessionId + nodeId + restart=true`: Recreate an abandoned or stuck node session.
 - `sessionId + nodeId + status`: Update a node to `completed` or `abandoned`.
-- `sessionId + forceComplete=true`: Mark the pipeline completed without executing additional nodes. The pipeline must not be actively running.
 
 ## Topology operations
 

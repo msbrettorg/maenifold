@@ -6,7 +6,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
     let tool = match registry_name {
         "Pipeline" => tool_definition(
             registry_name,
-            "Create and manage DAG pipeline sessions with autonomous execution, lifecycle controls, topology edits (graft, join, fork, rewind), and runtime inputs.",
+            "Creates and manages pipeline sessions composed of DAG nodes.",
             schema_value_no_null_options::<PipelineParams>(),
         ),
         _ => return None,

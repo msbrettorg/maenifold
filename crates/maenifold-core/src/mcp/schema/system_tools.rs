@@ -1,6 +1,7 @@
 use super::params::{
     AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAgentsParams, ListAssetsParams,
-    MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams, UpdateAssetsParams,
+    ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
+    UpdateAssetsParams,
 };
 use super::support::derived_tool_definition;
 use crate::mcp::McpToolDefinition;
@@ -43,6 +44,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "ListAgents" => derived_tool_definition::<ListAgentsParams>(
             registry_name,
             "Lists configured ACP agents and their serialized configuration fields.",
+        ),
+        "ListSessions" => derived_tool_definition::<ListSessionsParams>(
+            registry_name,
+            "Lists resumable ACP sessions across configured agents.",
         ),
         "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,

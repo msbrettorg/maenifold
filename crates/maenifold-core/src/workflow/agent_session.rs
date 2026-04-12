@@ -39,11 +39,22 @@ pub(crate) async fn open_agent_session(
             opts.auto_grant_permissions,
         )
         .await;
-    let remote_id = handle
-        .new_session(opts)
-        .await
-        .map_err(session_setup_error)?
-        .session_id;
+    let remote_id = match opts.session_id.take() {
+        Some(session_id) => {
+            handle
+                .load_session(&session_id, opts)
+                .await
+                .map_err(session_setup_error)?
+                .session_id
+        }
+        None => {
+            handle
+                .new_session(opts)
+                .await
+                .map_err(session_setup_error)?
+                .session_id
+        }
+    };
     Ok(AgentSession { handle, remote_id })
 }
 

@@ -75,16 +75,27 @@ struct RunContext<'a> {
     pool: Arc<AgentPool>,
     cwd: std::path::PathBuf,
     model: Option<String>,
+    /// ACP session ID for resuming an existing agent session.
+    acp_session_id: Option<String>,
 }
 
 impl RunContext<'_> {
     fn default_session_opts(&self) -> SessionOpts {
-        workflow_driver_session_opts(self.cwd.clone(), self.model.clone())
+        workflow_driver_session_opts(
+            self.cwd.clone(),
+            self.model.clone(),
+            self.acp_session_id.clone(),
+        )
     }
 }
 
-fn workflow_driver_session_opts(cwd: std::path::PathBuf, model: Option<String>) -> SessionOpts {
+fn workflow_driver_session_opts(
+    cwd: std::path::PathBuf,
+    model: Option<String>,
+    acp_session_id: Option<String>,
+) -> SessionOpts {
     sanitize_workflow_session_opts(SessionOpts {
+        session_id: acp_session_id,
         cwd,
         auto_grant_permissions: true,
         model,
@@ -175,6 +186,7 @@ pub(crate) async fn run_workflow_with_pool(
     cwd: std::path::PathBuf,
     timeout_seconds: Option<u64>,
     model: Option<String>,
+    acp_session_id: Option<String>,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     pool: Arc<AgentPool>,
     keep_session_alive: bool,
@@ -190,6 +202,7 @@ pub(crate) async fn run_workflow_with_pool(
         pool,
         cwd,
         model,
+        acp_session_id,
     };
     let mut driver_opts = run_ctx.default_session_opts();
     driver_opts.timeout_seconds = timeout_seconds;
@@ -315,6 +328,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         pool,
         cwd: session_opts.cwd.clone(),
         model: session_opts.model.clone(),
+        acp_session_id: session_opts.session_id.clone(),
     };
     let driver =
         open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, session_opts).await?;
@@ -430,6 +444,7 @@ mod tests {
 
     fn session_opts(allowed_tools: Option<Vec<&str>>) -> SessionOpts {
         SessionOpts {
+            session_id: None,
             cwd: PathBuf::from("."),
             auto_grant_permissions: true,
             model: None,
@@ -493,10 +508,23 @@ mod tests {
     #[test]
     fn workflow_driver_session_opts_preserves_supplied_cwd() {
         let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_opts(cwd.clone(), Some("model-x".to_string()));
+        let opts = workflow_driver_session_opts(cwd.clone(), Some("model-x".to_string()), None);
 
         assert_eq!(opts.cwd, cwd);
         assert_eq!(opts.model.as_deref(), Some("model-x"));
+        assert_eq!(opts.session_id, None);
+    }
+
+    #[test]
+    fn workflow_driver_session_opts_preserves_acp_session_id() {
+        let cwd = PathBuf::from("/tmp/workflow-cwd");
+        let opts = workflow_driver_session_opts(
+            cwd,
+            None,
+            Some("sess-resume-42".to_string()),
+        );
+
+        assert_eq!(opts.session_id.as_deref(), Some("sess-resume-42"));
     }
 
     #[test]

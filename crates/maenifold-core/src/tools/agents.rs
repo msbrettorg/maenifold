@@ -278,6 +278,7 @@ async fn probe_agent_once(
 
     let info = handle
         .new_session(SessionOpts {
+            session_id: None,
             cwd: root.clone(),
             auto_grant_permissions: true,
             model: None,

@@ -123,6 +123,14 @@ pub struct ListAgentsParams {
     pub probe: bool,
 }
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ListSessionsParams {
+    /// Return help documentation instead of executing
+    #[serde(default)]
+    pub learn: bool,
+}
+
 /// Additional content blocks included alongside an ACP prompt request.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "lowercase")]
@@ -176,6 +184,9 @@ pub struct AcpExecResourceContext {
 pub struct AcpExecParams {
     /// ACP agent name from maenifold.json
     pub agent: String,
+    /// Optional ACP session ID to load instead of creating a new session
+    #[serde(default)]
+    pub session_id: Option<String>,
     /// Optional working directory for the ACP session
     #[serde(default)]
     pub cwd: Option<String>,

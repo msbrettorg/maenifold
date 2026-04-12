@@ -196,6 +196,7 @@ async fn exec_workflow_async(
         opts.cwd.clone(),
         opts.timeout_seconds,
         opts.model.clone(),
+        opts.session_id.clone(),
         context_blocks,
         Arc::clone(&GLOBAL_AGENT_POOL),
         false,
@@ -206,6 +207,7 @@ async fn exec_workflow_async(
 
 pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> Result<SessionOpts> {
     Ok(SessionOpts {
+        session_id: optional_string(payload, "sessionId"),
         cwd: optional_string(payload, "cwd")
             .map(PathBuf::from)
             .unwrap_or(cwd),
@@ -389,11 +391,13 @@ mod tests {
             root,
             &json!({
                 "autoGrantPermissions": true,
+                "sessionId": "sess-123",
                 "cwd": "/repo/feature"
             }),
         )
         .expect("session opts");
 
+        assert_eq!(opts.session_id.as_deref(), Some("sess-123"));
         assert_eq!(opts.cwd, PathBuf::from("/repo/feature"));
     }
 
@@ -408,6 +412,7 @@ mod tests {
         )
         .expect("session opts");
 
+        assert_eq!(opts.session_id, None);
         assert_eq!(opts.cwd, root);
     }
 }

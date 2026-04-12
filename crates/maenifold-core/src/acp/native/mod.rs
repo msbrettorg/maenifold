@@ -24,7 +24,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc, oneshot};
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 use types::{InitInfo, reply_agent_died};
 
@@ -68,6 +68,7 @@ async fn run_agent(
     alive: Arc<AtomicBool>,
     mut request_rx: mpsc::Receiver<AgentCommand>,
     mut control_rx: mpsc::UnboundedReceiver<AgentCommand>,
+    stderr_tx: broadcast::Sender<String>,
 ) {
     if trace_enabled() {
         eprintln!("[acp] spawning agent: {}", command);
@@ -94,7 +95,10 @@ async fn run_agent(
         }
     };
 
-    let stderr_task = child.stderr.take().map(spawn_stderr_reader);
+    let stderr_task = child
+        .stderr
+        .take()
+        .map(|stderr| spawn_stderr_reader(stderr, stderr_tx));
     let stdin = match child.stdin.take() {
         Some(stdin) => stdin.compat_write(),
         None => {
@@ -381,12 +385,14 @@ pub fn spawn_agent(
     let conn = Arc::new(StdMutex::new(None));
     let alive = Arc::new(AtomicBool::new(true));
     let client = HeadlessClient::new(cwd.clone(), auto_grant_permissions);
+    let (stderr_tx, _) = broadcast::channel(64);
 
     tokio::task::spawn_blocking({
         let init = Arc::clone(&init);
         let conn = Arc::clone(&conn);
         let alive = Arc::clone(&alive);
         let client = client.clone();
+        let stderr_tx = stderr_tx.clone();
         move || {
             let runtime = match tokio::runtime::Builder::new_current_thread()
                 .enable_all()
@@ -405,7 +411,7 @@ pub fn spawn_agent(
 
             runtime.block_on(async move {
                 run_agent(
-                    command, cwd, env, client, init, conn, alive, request_rx, control_rx,
+                    command, cwd, env, client, init, conn, alive, request_rx, control_rx, stderr_tx,
                 )
                 .await;
             });
@@ -418,6 +424,7 @@ pub fn spawn_agent(
         conn,
         alive,
         client,
+        stderr: stderr_tx,
     }
 }
 
@@ -435,6 +442,7 @@ mod tests {
 
     fn test_session_opts() -> SessionOpts {
         SessionOpts {
+            session_id: None,
             cwd: PathBuf::from("."),
             auto_grant_permissions: true,
             model: None,

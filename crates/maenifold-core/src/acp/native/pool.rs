@@ -92,21 +92,43 @@ impl AgentPool {
         agents.remove(&pool_key);
 
         if agents.len() >= self.max_agents {
-            let evicted_name = agents
+            let candidates = agents
                 .iter()
-                .find(|(_, entry)| !entry.handle.is_alive())
-                .map(|(name, _)| name.clone())
-                .or_else(|| {
-                    agents
-                        .iter()
-                        .min_by_key(|(_, entry)| entry.last_used)
-                        .map(|(name, _)| name.clone())
-                });
+                .map(|(name, entry)| (name.clone(), Arc::clone(&entry.handle), entry.last_used))
+                .collect::<Vec<_>>();
 
-            if let Some(name) = evicted_name
-                && let Some(entry) = agents.remove(&name)
-            {
-                let _ = entry.handle.shutdown_nowait();
+            let mut evicted_name = candidates
+                .iter()
+                .find(|(_, handle, _)| !handle.is_alive())
+                .map(|(name, _, _)| name.clone());
+
+            if evicted_name.is_none() {
+                let mut oldest: Option<(PoolKey, Instant)> = None;
+                for (name, handle, last_used) in candidates {
+                    if handle.has_tracked_sessions().await {
+                        continue;
+                    }
+                    match oldest {
+                        Some((_, oldest_last_used)) if oldest_last_used <= last_used => {}
+                        _ => oldest = Some((name, last_used)),
+                    }
+                }
+                evicted_name = oldest.map(|(name, _)| name);
+            }
+
+            if let Some(name) = evicted_name {
+                let should_evict = if let Some(entry) = agents.get(&name) {
+                    let handle = Arc::clone(&entry.handle);
+                    !handle.is_alive() || !handle.has_tracked_sessions().await
+                } else {
+                    false
+                };
+
+                if should_evict
+                    && let Some(entry) = agents.remove(&name)
+                {
+                    let _ = entry.handle.shutdown_nowait();
+                }
             }
         }
 
@@ -134,6 +156,35 @@ impl AgentPool {
     pub async fn close_all(&self) {
         for (_, entry) in self.agents.lock().await.drain() {
             let _ = entry.handle.shutdown_nowait();
+        }
+    }
+
+    pub async fn shutdown_handle(&self, handle: &Arc<AgentHandle>) -> bool {
+        let mut agents = self.agents.lock().await;
+        let key = agents
+            .iter()
+            .find_map(|(key, entry)| Arc::ptr_eq(&entry.handle, handle).then_some(key.clone()));
+        let Some(key) = key else {
+            return false;
+        };
+        if let Some(entry) = agents.remove(&key) {
+            let _ = entry.handle.shutdown_nowait();
+            true
+        } else {
+            false
+        }
+    }
+
+    pub async fn touch_handle(&self, handle: &Arc<AgentHandle>) -> bool {
+        let mut agents = self.agents.lock().await;
+        if let Some(entry) = agents
+            .values_mut()
+            .find(|entry| Arc::ptr_eq(&entry.handle, handle))
+        {
+            entry.last_used = Instant::now();
+            true
+        } else {
+            false
         }
     }
 }

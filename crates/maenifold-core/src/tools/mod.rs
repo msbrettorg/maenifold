@@ -6,6 +6,7 @@ mod diagnostics;
 mod recent_activity;
 mod recent_activity_format;
 mod response;
+mod sessions;
 
 pub use acp_exec::acp_exec;
 pub use agents::list_agents;
@@ -20,5 +21,6 @@ pub use recent_activity_format::{
     format_recent_activity_report, is_valid_session_id_format, recent_activity_determine_file_type,
     recent_activity_extract_session_id, recent_activity_extract_snippet,
 };
+pub use sessions::list_sessions;
 // T-13.5: RTM FR-8 — ToolResponse helpers ported from C# Utils/ToolResponse.cs
 pub use response::{with_hint, with_next_steps};

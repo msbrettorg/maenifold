@@ -4,6 +4,7 @@ use std::{io, time::Duration};
 use tokio::time::{Instant, sleep};
 use tokio::{
     io::{AsyncBufReadExt, BufReader},
+    sync::broadcast,
     task::JoinHandle,
 };
 
@@ -34,11 +35,15 @@ pub(super) fn log_io_task_exit<E: std::fmt::Display>(
     }
 }
 
-pub(super) fn spawn_stderr_reader(stderr: tokio::process::ChildStderr) -> JoinHandle<()> {
+pub(super) fn spawn_stderr_reader(
+    stderr: tokio::process::ChildStderr,
+    stderr_tx: broadcast::Sender<String>,
+) -> JoinHandle<()> {
     tokio::task::spawn(async move {
         let mut lines = BufReader::new(stderr).lines();
         while let Ok(Some(line)) = lines.next_line().await {
             tracing::debug!("ACP stderr: {line}");
+            let _ = stderr_tx.send(line);
         }
     })
 }

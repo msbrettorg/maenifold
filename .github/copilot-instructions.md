@@ -1,5 +1,6 @@
 # Agent Team — maenifold-rs
 
+**This file is the authoritative source for agent operating rules.** Process changes, dispatch policies, and lessons learned go HERE — not in memory://, not in session state. This file is durable and read by every agent on every session.
 
 ## Test Execution Policy
 
@@ -9,6 +10,14 @@
 **PM:** One `cargo test -p <crate>` at sprint close to confirm green. Never mid-sprint.
 
 Agents running full test suites in parallel is a waste and creates race conditions. Violating this policy is grounds for the PM to kill the agent immediately.
+
+## Red-team and Blue-team Scoping
+
+**Red-team:** Audit ONLY the files modified by the SWE for this task. Pre-existing issues in untouched files are out of scope — note them as informational, do NOT FAIL. Verdict is on the DELTA, not the codebase.
+
+**Blue-team:** Run ONLY tests that exercise code changed by this task. If test compilation fails due to unrelated code from other tasks, report the blockage and recommend waiver — do NOT treat unrelated compilation failures as task failures.
+
+**Sub-PMs:** Maximum 2 remediation cycles per task. If blue-team reports unrelated compilation failure, escalate to PM immediately. Do NOT dispatch another remediation SWE for someone else's breakage.
 
 ## Research Before Building
 

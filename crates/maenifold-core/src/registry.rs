@@ -232,6 +232,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::list_agents,
     },
     ToolDescriptor {
+        name: "ListSessions",
+        aliases: &["listsessions", "list_sessions"],
+        invoke: tools::list_sessions,
+    },
+    ToolDescriptor {
         name: "AcpExec",
         aliases: &["acpexec", "acp_exec"],
         invoke: tools::acp_exec,

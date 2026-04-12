@@ -1,5 +1,6 @@
 /// ACP native client types — errors, options, responses, commands, and handle.
 use agent_client_protocol as acp;
+use agent_client_protocol_schema as acp_schema;
 use sacp::{ConnectionTo, schema as sacps};
 use std::{
     path::PathBuf,
@@ -8,7 +9,8 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use tokio::sync::{mpsc, oneshot};
+use tokio::sync::{broadcast, mpsc, oneshot};
+use tokio::time::{Duration, Instant};
 
 use super::client::HeadlessClient;
 
@@ -42,6 +44,7 @@ impl From<acp::Error> for AgentError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SessionOpts {
+    pub session_id: Option<String>,
     pub cwd: PathBuf,
     pub auto_grant_permissions: bool,
     pub model: Option<String>,
@@ -258,6 +261,7 @@ pub struct AgentHandle {
     pub(super) conn: Arc<StdMutex<Option<ConnectionTo<sacp::Agent>>>>,
     pub(super) alive: Arc<AtomicBool>,
     pub(super) client: HeadlessClient,
+    pub(super) stderr: broadcast::Sender<String>,
 }
 
 impl AgentHandle {
@@ -318,6 +322,64 @@ impl AgentHandle {
     pub fn is_alive(&self) -> bool {
         self.alive.load(Ordering::SeqCst)
     }
+    pub(crate) fn connection(&self) -> Result<ConnectionTo<sacp::Agent>> {
+        self.conn
+            .lock()
+            .map_err(|error| AgentError::Acp(format!("ACP connection state poisoned: {error}")))?
+            .as_ref()
+            .cloned()
+            .ok_or_else(|| AgentError::Acp("ACP connection not ready".to_string()))
+    }
+    pub async fn register_relay_session(&self, session_id: &str, outbound: mpsc::Sender<String>) {
+        self.client
+            .register_relay_session(session_id.to_string(), outbound)
+            .await;
+    }
+    pub async fn unregister_relay_session(&self, session_id: &str) {
+        self.client.unregister_relay_session(session_id).await;
+    }
+    pub(crate) async fn forget_session(&self, session_id: &str) {
+        self.client.remove_session(session_id).await;
+    }
+    pub(crate) async fn track_session(&self, session_id: &str) {
+        self.client.register_session(session_id.to_string()).await;
+    }
+    pub(crate) async fn has_tracked_sessions(&self) -> bool {
+        self.client.has_any_sessions().await
+    }
+    pub async fn resolve_relay_response(
+        &self,
+        request_id: u64,
+        payload: std::result::Result<serde_json::Value, String>,
+    ) -> bool {
+        self.client
+            .resolve_relay_response(request_id, payload)
+            .await
+    }
+    pub(crate) async fn wait_for_connection(
+        &self,
+        timeout: Duration,
+    ) -> Result<ConnectionTo<sacp::Agent>> {
+        let deadline = Instant::now() + timeout;
+        loop {
+            match self.connection() {
+                Ok(conn) => return Ok(conn),
+                Err(error) if !self.is_alive() => return Err(error),
+                Err(_) if Instant::now() >= deadline => {
+                    return Err(AgentError::Timeout {
+                        message: format!(
+                            "ACP connection not ready after {}ms",
+                            timeout.as_millis()
+                        ),
+                    });
+                }
+                Err(_) => tokio::time::sleep(Duration::from_millis(10)).await,
+            }
+        }
+    }
+    pub fn subscribe_stderr(&self) -> broadcast::Receiver<String> {
+        self.stderr.subscribe()
+    }
     pub async fn new_session(&self, opts: SessionOpts) -> Result<SessionInfo> {
         self.request(|reply| AgentCommand::NewSession { opts, reply })
             .await
@@ -374,8 +436,24 @@ impl AgentHandle {
             .map_err(|error| AgentError::Acp(error.to_string()))
     }
     pub async fn close_session(&self, session_id: &str) -> Result<()> {
+        let result = if self.supports_session_close() && self.is_alive() {
+            let conn = self.connection()?;
+            let request = sacp::UntypedMessage::new(
+                "session/close",
+                acp_schema::CloseSessionRequest::new(session_id.to_string()),
+            )
+            .map_err(|error| AgentError::Acp(error.to_string()))?;
+            conn.send_request(request)
+                .block_task()
+                .await
+                .map(|_| ())
+                .map_err(|error| AgentError::Acp(error.to_string()))
+        } else {
+            Ok(())
+        };
+
         self.client.remove_session(session_id).await;
-        Ok(())
+        result
     }
 
     #[cfg(test)]
@@ -383,13 +461,20 @@ impl AgentHandle {
         self.client.register_session(session_id).await;
     }
 
-    #[cfg(test)]
     pub(crate) async fn has_tracked_session(&self, session_id: &str) -> bool {
         self.client.has_session(session_id).await
     }
 
     pub(crate) fn shutdown_nowait(&self) -> Result<()> {
         self.mailbox.enqueue_control(AgentCommand::Shutdown)
+    }
+
+    fn supports_session_close(&self) -> bool {
+        self.init
+            .lock()
+            .ok()
+            .and_then(|init| init.as_ref().and_then(|init| init.capabilities.session_capabilities.close.clone()))
+            .is_some()
     }
 }
 
@@ -410,6 +495,7 @@ pub(crate) fn test_handle_for_tests(
             conn: Arc::new(StdMutex::new(None)),
             alive: Arc::new(AtomicBool::new(true)),
             client: HeadlessClient::new(PathBuf::from("."), true),
+            stderr: broadcast::channel(16).0,
         },
         request_rx,
         control_rx,
@@ -423,6 +509,7 @@ mod tests {
 
     fn test_session_opts() -> SessionOpts {
         SessionOpts {
+            session_id: None,
             cwd: PathBuf::from("."),
             auto_grant_permissions: true,
             model: None,
@@ -482,6 +569,7 @@ mod tests {
                 conn: Arc::new(StdMutex::new(None)),
                 alive: Arc::new(AtomicBool::new(true)),
                 client: HeadlessClient::new(PathBuf::from("."), true),
+                stderr: broadcast::channel(16).0,
             },
             request_rx,
             control_rx,
@@ -588,6 +676,7 @@ mod tests {
             conn: Arc::new(StdMutex::new(None)),
             alive: Arc::new(AtomicBool::new(true)),
             client: HeadlessClient::new(PathBuf::from("."), true),
+            stderr: broadcast::channel(16).0,
         };
 
         let result =
@@ -632,6 +721,7 @@ mod tests {
             conn: Arc::new(StdMutex::new(None)),
             alive: Arc::new(AtomicBool::new(true)),
             client: HeadlessClient::new(PathBuf::from("."), true),
+            stderr: broadcast::channel(16).0,
         };
 
         let result = tokio::time::timeout(Duration::from_millis(50), async {

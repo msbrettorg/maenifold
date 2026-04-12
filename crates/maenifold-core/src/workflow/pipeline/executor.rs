@@ -504,6 +504,7 @@ mod tests {
 
     fn sample_session_opts(timeout_seconds: Option<u64>) -> SessionOpts {
         SessionOpts {
+            session_id: None,
             cwd: PathBuf::from("."),
             auto_grant_permissions: true,
             model: None,

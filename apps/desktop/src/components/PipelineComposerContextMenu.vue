@@ -15,7 +15,8 @@ interface ToolMenuGroup {
 const props = defineProps<{
   x: number;
   y: number;
-  mode: 'canvas' | 'node';
+  mode: 'design' | 'server';
+  target: 'canvas' | 'node';
   toolGroups: ToolMenuGroup[];
   canAskAgent: boolean;
   canThink: boolean;
@@ -32,6 +33,10 @@ const emit = defineEmits<{
   (e: 'duplicate'): void;
   (e: 'delete'): void;
   (e: 'disconnect-edges'): void;
+  (e: 'restart'): void;
+  (e: 'rewind'): void;
+  (e: 'fork'): void;
+  (e: 'abandon'): void;
 }>();
 
 const toolMenuOpen = ref(false);
@@ -53,8 +58,13 @@ function handleTool(toolName: string): void {
 </script>
 
 <template>
-  <div class="composer-context-menu" :style="menuStyle" @contextmenu.prevent>
-    <template v-if="mode === 'canvas'">
+  <div
+    v-if="mode === 'design' || target === 'node'"
+    class="composer-context-menu"
+    :style="menuStyle"
+    @contextmenu.prevent
+  >
+    <template v-if="mode === 'design' && target === 'canvas'">
       <button
         type="button"
         class="composer-context-menu__item"
@@ -115,7 +125,7 @@ function handleTool(toolName: string): void {
       </button>
     </template>
 
-    <template v-else>
+    <template v-else-if="mode === 'design'">
       <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('edit'))">
         Edit
       </button>
@@ -127,6 +137,21 @@ function handleTool(toolName: string): void {
       </button>
       <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('disconnect-edges'))">
         Disconnect all edges
+      </button>
+    </template>
+
+    <template v-else>
+      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('restart'))">
+        Restart
+      </button>
+      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('rewind'))">
+        Rewind
+      </button>
+      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('fork'))">
+        Fork
+      </button>
+      <button type="button" class="composer-context-menu__item composer-context-menu__item--danger" @click="handleAction(() => emit('abandon'))">
+        Abandon
       </button>
     </template>
   </div>

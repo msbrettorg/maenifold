@@ -43,6 +43,10 @@ const emit = defineEmits<{
   (e: 'update:localDefinition', value: PipelineDefinition): void;
   (e: 'nodeSelected', nodeId: string | null): void;
   (e: 'edgeSelected', value: { source: string; target: string } | null): void;
+  (e: 'restartNode', nodeId: string): void;
+  (e: 'rewindNode', nodeId: string): void;
+  (e: 'forkNode', nodeId: string): void;
+  (e: 'abandonNode', nodeId: string): void;
 }>();
 
 const {
@@ -183,9 +187,7 @@ function maybeRefreshComposerCatalogs(): void {
 }
 
 function handleComposerContextMenu(event: MouseEvent): void {
-  if (!props.designMode) {
-    return;
-  }
+  event.preventDefault();
 
   const target = event.target;
   if (!(target instanceof Element)) {
@@ -195,8 +197,6 @@ function handleComposerContextMenu(event: MouseEvent): void {
   if (target.closest('.composer-context-menu, .vue-flow__controls, .vue-flow__minimap')) {
     return;
   }
-
-  event.preventDefault();
 
   const currentTarget = event.currentTarget;
   const flowRoot = currentTarget instanceof HTMLElement
@@ -221,6 +221,11 @@ function handleComposerContextMenu(event: MouseEvent): void {
   }
 
   if (target.closest('.vue-flow__edge, .edge-indicator')) {
+    closeContextMenu();
+    return;
+  }
+
+  if (!props.designMode) {
     closeContextMenu();
     return;
   }
@@ -327,6 +332,26 @@ function handleDisconnectEdges(): void {
   closeContextMenu();
 }
 
+function emitServerNodeAction(eventName: 'restartNode' | 'rewindNode' | 'forkNode' | 'abandonNode'): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  const { nodeId } = contextMenu.value;
+  switch (eventName) {
+    case 'restartNode':
+      emit('restartNode', nodeId);
+      break;
+    case 'rewindNode':
+      emit('rewindNode', nodeId);
+      break;
+    case 'forkNode':
+      emit('forkNode', nodeId);
+      break;
+    case 'abandonNode':
+      emit('abandonNode', nodeId);
+      break;
+  }
+  closeContextMenu();
+}
+
 watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
 
 onMounted(() => {
@@ -425,7 +450,8 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           v-if="contextMenu"
           :x="contextMenu.x"
           :y="contextMenu.y"
-          :mode="contextMenu.mode"
+          :mode="designMode ? 'design' : 'server'"
+          :target="contextMenu.mode"
           :tool-groups="toolGroups"
           :can-ask-agent="Boolean(firstAgent)"
           :can-think="Boolean(firstAgent)"
@@ -439,6 +465,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           @duplicate="handleDuplicateNode"
           @delete="handleDeleteNode"
           @disconnect-edges="handleDisconnectEdges"
+          @restart="emitServerNodeAction('restartNode')"
+          @rewind="emitServerNodeAction('rewindNode')"
+          @fork="emitServerNodeAction('forkNode')"
+          @abandon="emitServerNodeAction('abandonNode')"
         />
       </section>
     </div>
@@ -448,53 +478,71 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
         <button type="button" class="btn btn-ghost" @click="handleAutoLayout('LR')">↔ Layout LR</button>
         <button type="button" class="btn btn-ghost" @click="handleAutoLayout('TB')">↕ Layout TB</button>
       </div>
-      <VueFlow
-        v-model:nodes="nodes"
-        v-model:edges="edges"
-        :node-types="nodeTypes"
-        :default-edge-options="defaultEdgeOptions"
-        :default-viewport="{ zoom: 1, x: 0, y: 0 }"
-        :min-zoom="0.2"
-        :max-zoom="2"
-        :snap-to-grid="true"
-        :snap-grid="[20, 20]"
-        :nodes-draggable="designMode"
-        :nodes-connectable="designMode"
-        :edges-updatable="designMode"
-        :elements-selectable="designMode"
-        :delete-key-code="designMode ? 'Backspace' : null"
-        class="pipeline-flow"
-      >
-        <Background color="#2a2a2a" />
-        <Controls :show-interactive="designMode" />
-        <MiniMap :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
-        <template v-slot:edge-smoothstep="edgeProps">
-          <g>
-            <BaseEdge
-              :id="edgeProps.id"
-              :path="edgePath(edgeProps).d"
-              :style="edgeProps.style"
-              :marker-start="edgeProps.markerStart"
-              :marker-end="edgeProps.markerEnd"
-              :interaction-width="edgeProps.interactionWidth"
-            />
-            <title>{{ edgeTooltip(edgeProps.data) }}</title>
-          </g>
-          <EdgeLabelRenderer v-if="edgeIndicator(edgeProps)">
-            <div
-              :class="['edge-indicator', `edge-indicator--${edgeIndicator(edgeProps)}`]"
-              :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
-              :title="edgeTooltip(edgeProps.data)"
-            >
-              {{ edgeIndicator(edgeProps) === 'mapped' ? '⇄' : '⚠' }}
-            </div>
-          </EdgeLabelRenderer>
-        </template>
-      </VueFlow>
-      <div v-if="showEmptyState" class="composer-empty-state">
-        <span>Add your first node</span>
-        <span class="composer-empty-state-arrow" aria-hidden="true">↖</span>
-      </div>
+      <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
+        <VueFlow
+          v-model:nodes="nodes"
+          v-model:edges="edges"
+          :node-types="nodeTypes"
+          :default-edge-options="defaultEdgeOptions"
+          :default-viewport="{ zoom: 1, x: 0, y: 0 }"
+          :min-zoom="0.2"
+          :max-zoom="2"
+          :snap-to-grid="true"
+          :snap-grid="[20, 20]"
+          :nodes-draggable="designMode"
+          :nodes-connectable="designMode"
+          :edges-updatable="designMode"
+          :elements-selectable="designMode"
+          :delete-key-code="designMode ? 'Backspace' : null"
+          class="pipeline-flow"
+        >
+          <Background color="#2a2a2a" />
+          <Controls :show-interactive="designMode" />
+          <MiniMap :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
+          <template v-slot:edge-smoothstep="edgeProps">
+            <g>
+              <BaseEdge
+                :id="edgeProps.id"
+                :path="edgePath(edgeProps).d"
+                :style="edgeProps.style"
+                :marker-start="edgeProps.markerStart"
+                :marker-end="edgeProps.markerEnd"
+                :interaction-width="edgeProps.interactionWidth"
+              />
+              <title>{{ edgeTooltip(edgeProps.data) }}</title>
+            </g>
+            <EdgeLabelRenderer v-if="edgeIndicator(edgeProps)">
+              <div
+                :class="['edge-indicator', `edge-indicator--${edgeIndicator(edgeProps)}`]"
+                :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
+                :title="edgeTooltip(edgeProps.data)"
+              >
+                {{ edgeIndicator(edgeProps) === 'mapped' ? '⇄' : '⚠' }}
+              </div>
+            </EdgeLabelRenderer>
+          </template>
+        </VueFlow>
+        <div v-if="showEmptyState" class="composer-empty-state">
+          <span>Add your first node</span>
+          <span class="composer-empty-state-arrow" aria-hidden="true">↖</span>
+        </div>
+        <PipelineComposerContextMenu
+          v-if="contextMenu"
+          :x="contextMenu.x"
+          :y="contextMenu.y"
+          mode="server"
+          :target="contextMenu.mode"
+          :tool-groups="toolGroups"
+          :can-ask-agent="Boolean(firstAgent)"
+          :can-think="Boolean(firstAgent)"
+          :can-run-workflow="Boolean(firstWorkflow)"
+          @close="closeContextMenu"
+          @restart="emitServerNodeAction('restartNode')"
+          @rewind="emitServerNodeAction('rewindNode')"
+          @fork="emitServerNodeAction('forkNode')"
+          @abandon="emitServerNodeAction('abandonNode')"
+        />
+      </section>
     </template>
   </div>
 </template>

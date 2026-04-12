@@ -42,11 +42,11 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         ),
         "ListAgents" => derived_tool_definition::<ListAgentsParams>(
             registry_name,
-            "Lists configured ACP agents and their serialized configuration fields.",
+            "List configured ACP agents and their serialized config. Use probe=true to discover live capabilities such as modes, models, and configOptions.",
         ),
         "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,
-            "Unified ACP agent invocation. Supports prompt (single message), think (sequential thinking), and workflow (structured workflow) modes. All modes share a global agent pool for process reuse.",
+            "Run an ACP agent in prompt, think, or workflow mode with session overrides and optional embedded context blocks (text, image, resource). All modes share a global agent pool for process reuse.",
         ),
         _ => return None,
     };

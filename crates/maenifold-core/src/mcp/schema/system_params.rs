@@ -181,10 +181,19 @@ pub struct AcpExecParams {
     pub cwd: Option<String>,
     /// Whether ACP permission requests should be auto-granted by the native client.
     pub auto_grant_permissions: bool,
-    /// Execution mode
+    /// Execution mode: prompt, think, or workflow. See also sessionMode for ACP session mode override.
     #[serde(default = "default_prompt_mode")]
     #[schemars(default = "default_prompt_mode")]
     pub mode: Option<String>,
+    /// Optional ACP session mode override. Not to be confused with `mode` which selects the execution mode (prompt/think/workflow).
+    #[serde(default)]
+    pub session_mode: Option<String>,
+    /// Arbitrary config options forwarded to the ACP session via session/set_config_option
+    #[serde(default)]
+    pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
+    /// Additional content blocks included alongside the prompt (text, image, or resource)
+    #[serde(default)]
+    pub context: Option<Vec<AcpExecContextBlock>>,
     /// Prompt text to send to the agent (required for prompt and workflow modes)
     #[serde(default)]
     pub prompt: Option<String>,

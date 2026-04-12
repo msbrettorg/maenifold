@@ -27,6 +27,8 @@ export const AGENT_PROBE_CACHE_TTL_MS = 5 * 60_000;
 export const AGENT_PROBE_SOFT_TIMEOUT_MS = 60_000;
 const AGENT_PROBE_TIMEOUT_MESSAGE =
   `ListAgents probe timed out after ${AGENT_PROBE_SOFT_TIMEOUT_MS / 1_000}s`;
+const AGENT_PROBE_FALLBACK_WARNING =
+  'Live agent capability probe timed out. Showing configured agents and any cached capabilities until refresh succeeds.';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -82,6 +84,10 @@ function getErrorMessage(error: unknown): string {
 
 function shouldRetryProbe(error: string): boolean {
   return isOfflineProbeError(error);
+}
+
+function isProbeTimeout(error: string): boolean {
+  return error.includes(AGENT_PROBE_TIMEOUT_MESSAGE);
 }
 
 function stripProbeUiState(probe: AgentProbeResult): AgentProbeResult {
@@ -144,6 +150,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
   const mcp = usePipelineMcp();
   const probeResults = ref<Map<string, AgentProbeResult>>(new Map());
   const probeStatus = ref<ProbeStatus>('idle');
+  const warningMessage = ref<string | null>(null);
   let currentRunId = 0;
   let retryHandle: ReturnType<typeof setTimeout> | null = null;
   let retryPending = false;
@@ -244,10 +251,12 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     if (agentNames.length === 0) {
       probeResults.value = new Map();
       probeStatus.value = 'done';
+      warningMessage.value = null;
       return;
     }
 
     filterProbeResults(agentNames);
+    warningMessage.value = null;
 
     if (!agentNames.some((agentName) => shouldProbeAgent(agentName, options.force))) {
       probeStatus.value = 'done';
@@ -302,9 +311,11 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       }
     } catch (error) {
       const message = getErrorMessage(error);
+      const timedOut = isProbeTimeout(message);
       hasErrors = true;
       needsRetry = shouldRetryProbe(message);
       const preserveCached = needsRetry;
+      warningMessage.value = timedOut ? AGENT_PROBE_FALLBACK_WARNING : null;
       for (const agentName of agentNames) {
         const existing = probeResults.value.get(agentName);
         if (preserveCached && existing?.state === 'ready') {
@@ -312,6 +323,10 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
             ...stripProbeUiState(existing),
             degradedMessage: cachedFailureMessage(existing.probedAt, message),
           });
+          continue;
+        }
+
+        if (timedOut) {
           continue;
         }
 
@@ -324,7 +339,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     }
 
     probeResults.value = next;
-    probeStatus.value = hasErrors ? 'error' : 'done';
+    probeStatus.value = hasErrors && !warningMessage.value ? 'error' : 'done';
 
     if (needsRetry) {
       scheduleRetry();
@@ -336,6 +351,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     retryPending = false;
     clearRetry();
     filterProbeResults([...configStore.agentNames]);
+    warningMessage.value = null;
     probeStatus.value = probeResults.value.size > 0 ? 'done' : 'idle';
     void probeAll({ force: true });
   }
@@ -355,6 +371,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
   return {
     probeResults,
     probeStatus,
+    warningMessage,
     getProbe,
     probeAll,
     refreshAll,

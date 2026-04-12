@@ -81,6 +81,9 @@ function toPreviewField(
 const ready = computed(() => props.probe?.state === 'ready');
 const refreshing = computed(() => props.probe?.refreshing === true);
 const degradedMessage = computed(() => props.probe?.degradedMessage);
+const warningMessage = computed(() =>
+  degradedMessage.value ? null : capabilitiesStore.warningMessage,
+);
 
 const previewFields = computed<PreviewField[]>(() => {
   const probe = props.probe;
@@ -186,7 +189,9 @@ const statusMessage = computed(() => {
   }
 
   if (!props.probe) {
-    return `Probe results for ${props.agentName} are not available yet.`;
+    return warningMessage.value
+      ? `Using the configured ${props.agentName} entry until live capability discovery succeeds.`
+      : `Probe results for ${props.agentName} are not available yet.`;
   }
 
   if (props.probe.state === 'ready') {
@@ -196,7 +201,7 @@ const statusMessage = computed(() => {
   }
 
   if (props.probe.state === 'offline') {
-    return 'Live probe unavailable. Retry before starting a workflow, or keep using cached defaults when they are available.';
+    return `Live capability discovery is unavailable for ${props.agentName}. You can still keep configuring this node with the configured agent entry and refresh again later for dynamic session options.`;
   }
 
   return 'Agent returned an unexpected capability payload. Retry or inspect the agent before relying on dynamic overrides.';
@@ -244,6 +249,7 @@ function currentLabel(field: PreviewField): string {
       </button>
     </div>
 
+    <p v-if="warningMessage" class="warning-note" role="status" aria-live="polite">{{ warningMessage }}</p>
     <p v-if="degradedMessage" class="degraded-note">{{ degradedMessage }}</p>
     <p v-if="technicalDetail" class="technical-detail">{{ technicalDetail }}</p>
 
@@ -330,6 +336,7 @@ function currentLabel(field: PreviewField): string {
 .field-current,
 .field-description,
 .option-count,
+.warning-note,
 .degraded-note,
 .technical-detail {
   font-size: var(--text-sm);
@@ -347,9 +354,17 @@ function currentLabel(field: PreviewField): string {
   word-break: break-word;
 }
 
+.warning-note,
 .degraded-note {
   margin: 0;
   color: var(--text-primary);
+}
+
+.warning-note {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--bg-warning) 55%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-warning) 30%, transparent);
 }
 
 .technical-detail {

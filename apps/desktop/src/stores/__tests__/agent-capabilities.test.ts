@@ -112,6 +112,23 @@ describe('useAgentCapabilitiesStore', () => {
     expect(store.getProbe('architect')?.refreshing).toBeUndefined();
     expect(store.getProbe('architect')?.degradedMessage).toContain('timed out');
     expect(store.getProbe('architect')?.probedAt).toBe(cachedProbedAt);
+    expect(store.warningMessage).toContain('timed out');
+  });
+
+  it('falls back to the configured agent list when a probe times out without cache', async () => {
+    vi.useFakeTimers();
+
+    const store = useAgentCapabilitiesStore();
+    callTool.mockImplementation(() => new Promise(() => {}));
+
+    const refreshPromise = store.refreshAll();
+
+    await vi.advanceTimersByTimeAsync(AGENT_PROBE_SOFT_TIMEOUT_MS);
+    await refreshPromise;
+
+    expect(store.getProbe('architect')).toBeUndefined();
+    expect(store.probeStatus).toBe('done');
+    expect(store.warningMessage).toContain('timed out');
   });
 
   it('does not surface legacy style from probe results', async () => {

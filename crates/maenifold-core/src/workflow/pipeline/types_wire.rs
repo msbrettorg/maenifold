@@ -99,7 +99,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 id: wire.id,
                 display_label: wire.display_label,
                 workflow_id: required(wire.workflow_id, "workflowId")?,
-                acp_client: Some(required(wire.acp_client, "acpClient")?),
+                acp_client: wire.acp_client,
                 prompt: wire.prompt,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,

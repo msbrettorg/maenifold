@@ -10,6 +10,22 @@
 
 Agents running full test suites in parallel is a waste and creates race conditions. Violating this policy is grounds for the PM to kill the agent immediately.
 
+## Research Before Building
+
+When given a new feature area, research existing ecosystems and libraries FIRST. Never propose building infrastructure that an established project already provides. If the user names a specific ecosystem (e.g., "use Codex plugins"), that means become a consumer of it — do not reimplement its capabilities. Hand-rolling something that a mature library or platform already solves is a P0 escalation.
+
+## Visual Verification Required
+
+For UI changes, `vue-tsc --noEmit` passing is necessary but NOT sufficient. Vue `<style scoped>` does NOT apply to child component internals — every new Vue component MUST have its own `<style>` block with its own styles. UI work is not done until visually verified (Playwright screenshot, browser automation, or human confirmation). A feature that typechecks but renders at 0px is a failed delivery.
+
+## No Over-Parallelization
+
+One sub-PM per crate. Never run parallel SWE agents on files in the same Rust crate — they conflict at `cargo build` time even on different files because `target/` is workspace-global. Stagger by crate boundary. Blue-team verification is only meaningful after all SWEs on a crate have completed. Cap sub-PM task lists to 4-5 items to avoid spawning 30+ agents.
+
+## Full-Stack Spec Verification
+
+Before implementing, verify the spec covers the FULL STACK for the feature. Frontend-only changes that require backend support are no-ops. If a spec mentions UI controls for a backend capability, confirm the backend fields, wire format, and execution path exist first. A frontend selector with no backend plumbing is not a feature — it is a lie.
+
 ## Build
 
 ```bash
@@ -40,3 +56,16 @@ The only valid ACP invocation path is `AcpExec` (via MCP `--tool` or the MCP pro
 - WebSocket URI must include `?agent=<name>`. Never connect without it.
 - No default agent fallback. Missing `?agent=` must be rejected with an error.
 - PM smoke tests must connect to a named agent. Bare `/ws/acp` is a test failure.
+
+## Gate CLI Fallback
+
+Gate MCP sessions go stale frequently ('Session not found'). Always be prepared to fall back to CLI:
+
+```bash
+gate sync --root . --rebuild    # rebuild read model from task files
+gate status --root .            # show all pending tasks
+gate pass <task-id> --agent <name> --notes "..." --root .
+gate fail <task-id> --agent <name> --notes "..." --root .
+```
+
+Prefer Gate MCP when healthy, but do not retry more than once — switch to CLI immediately.

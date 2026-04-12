@@ -240,6 +240,7 @@ fn merged_session_opts(
             .and_then(|config| config.cwd.clone())
             .unwrap_or_else(|| context.config.maenifold_root.clone()),
         auto_grant_permissions: true,
+        acp_connection_timeout_seconds: None,
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),

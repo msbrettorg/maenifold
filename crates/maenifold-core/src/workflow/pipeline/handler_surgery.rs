@@ -18,11 +18,30 @@ struct JoinRequest {
 }
 
 #[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct ForkRequest {
-    from_node_id: String,
-    #[serde(default)]
-    new_session_id: Option<String>,
+#[serde(untagged)]
+enum ForkRequest {
+    NodeId(String),
+    Config {
+        from_node_id: String,
+        #[serde(default)]
+        new_session_id: Option<String>,
+    },
+}
+
+impl ForkRequest {
+    fn from_node_id(&self) -> &str {
+        match self {
+            Self::NodeId(from_node_id) => from_node_id,
+            Self::Config { from_node_id, .. } => from_node_id,
+        }
+    }
+
+    fn new_session_id(&self) -> Option<&str> {
+        match self {
+            Self::NodeId(_) => None,
+            Self::Config { new_session_id, .. } => new_session_id.as_deref(),
+        }
+    }
 }
 
 #[derive(Deserialize)]

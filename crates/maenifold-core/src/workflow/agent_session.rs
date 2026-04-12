@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
-use crate::acp_config::AgentsConfig;
+use crate::acp_config::{AgentsConfig, MaenifoldSettings};
 use crate::acp_native::{AcpxResponse, AgentError, AgentHandle, AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
+use tokio::runtime::{Builder, Handle};
 
 pub(crate) struct AgentSession {
     handle: Arc<AgentHandle>,
     remote_id: String,
+    cleanup_on_drop: bool,
 }
 
 pub(crate) async fn open_agent_session(
@@ -29,6 +31,15 @@ pub(crate) async fn open_agent_session(
         let mut servers: Vec<_> = config.mcp_servers.iter().map(|s| s.to_acp()).collect();
         servers.extend(config_entry.mcp_servers.iter().map(|s| s.to_acp()));
         opts.mcp_servers = servers;
+    }
+    if opts.acp_connection_timeout_seconds.is_none() {
+        opts.acp_connection_timeout_seconds = Some(
+            config
+                .settings
+                .as_ref()
+                .map(|settings| settings.acp_connection_timeout_seconds)
+                .unwrap_or_else(|| MaenifoldSettings::default().acp_connection_timeout_seconds),
+        );
     }
     let handle = pool
         .get_or_create(
@@ -55,7 +66,11 @@ pub(crate) async fn open_agent_session(
                 .session_id
         }
     };
-    Ok(AgentSession { handle, remote_id })
+    Ok(AgentSession {
+        handle,
+        remote_id,
+        cleanup_on_drop: true,
+    })
 }
 
 impl AgentSession {
@@ -63,7 +78,9 @@ impl AgentSession {
         &self.remote_id
     }
 
-    pub(crate) fn keep_alive(self) {}
+    pub(crate) fn keep_alive(mut self) {
+        self.cleanup_on_drop = false;
+    }
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AcpxResponse> {
         self.prompt_with_context(prompt, vec![]).await
@@ -82,7 +99,8 @@ impl AgentSession {
         Ok(response)
     }
 
-    pub(crate) async fn close(self) -> Result<()> {
+    pub(crate) async fn close(mut self) -> Result<()> {
+        self.cleanup_on_drop = false;
         if let Err(error) = self.handle.close_session(&self.remote_id).await {
             tracing::warn!(
                 session_id = %self.remote_id,
@@ -91,6 +109,35 @@ impl AgentSession {
             );
         }
         Ok(())
+    }
+}
+
+impl Drop for AgentSession {
+    fn drop(&mut self) {
+        if !self.cleanup_on_drop {
+            return;
+        }
+
+        let handle = Arc::clone(&self.handle);
+        let session_id = self.remote_id.clone();
+        let cleanup = async move {
+            handle.forget_session(&session_id).await;
+            tracing::warn!(
+                session_id = %session_id,
+                "ACP session dropped without explicit close (for example after timeout); removed local session tracking"
+            );
+        };
+
+        if let Ok(runtime) = Handle::try_current() {
+            runtime.spawn(cleanup);
+            return;
+        }
+
+        std::thread::spawn(move || {
+            if let Ok(runtime) = Builder::new_current_thread().enable_all().build() {
+                runtime.block_on(cleanup);
+            }
+        });
     }
 }
 
@@ -118,6 +165,7 @@ mod tests {
         let session = AgentSession {
             handle: Arc::clone(&handle),
             remote_id: "session-keep-alive".to_string(),
+            cleanup_on_drop: true,
         };
 
         session.keep_alive();
@@ -133,6 +181,40 @@ mod tests {
         assert!(
             handle.has_tracked_session("session-keep-alive").await,
             "keep_alive should preserve tracked ACP session state"
+        );
+    }
+
+    #[tokio::test]
+    async fn drop_cleans_up_tracked_session_without_queue_traffic() {
+        let (handle, mut request_rx, mut control_rx) = test_handle_for_tests(1);
+        handle.register_test_session("session-drop-cleanup").await;
+        let handle = Arc::new(handle);
+        let session = AgentSession {
+            handle: Arc::clone(&handle),
+            remote_id: "session-drop-cleanup".to_string(),
+            cleanup_on_drop: true,
+        };
+
+        drop(session);
+
+        tokio::time::timeout(std::time::Duration::from_millis(50), async {
+            loop {
+                if !handle.has_tracked_session("session-drop-cleanup").await {
+                    break;
+                }
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("drop cleanup should remove tracked session");
+
+        assert!(
+            request_rx.try_recv().is_err(),
+            "drop cleanup should not enqueue request commands"
+        );
+        assert!(
+            control_rx.try_recv().is_err(),
+            "drop cleanup should not enqueue control commands"
         );
     }
 }

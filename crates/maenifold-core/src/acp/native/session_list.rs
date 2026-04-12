@@ -11,6 +11,8 @@ use super::{
     types::{AcpxSessionInfo, AgentError, InitInfo, Result, SessionInfo, SessionOpts},
 };
 
+const CONNECTION_TIMEOUT_SECS: u64 = 60;
+
 pub(super) async fn list_sessions(
     conn: &ConnectionTo<sacp::Agent>,
     init_info: &StdMutex<Option<InitInfo>>,
@@ -65,7 +67,9 @@ pub(super) async fn load_session(
         ));
     }
 
-    let timeout_seconds = opts.timeout_seconds.unwrap_or(3600);
+    let timeout_seconds = opts
+        .acp_connection_timeout_seconds
+        .unwrap_or(CONNECTION_TIMEOUT_SECS);
     let mcp_servers = opts
         .mcp_servers
         .clone()

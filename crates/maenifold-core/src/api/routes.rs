@@ -172,8 +172,9 @@ fn resolve_requested_file_path(path: &str, cwd: Option<&str>) -> ApiResult<PathB
         return Ok(requested);
     }
 
-    let cwd =
-        cwd.ok_or_else(|| ApiError::bad_request("relative file paths require a cwd query parameter"))?;
+    let cwd = cwd.ok_or_else(|| {
+        ApiError::bad_request("relative file paths require a cwd query parameter")
+    })?;
     let resolved = FsPath::new(cwd).join(requested);
 
     if resolved.is_absolute() {

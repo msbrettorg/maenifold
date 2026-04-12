@@ -220,7 +220,9 @@ pub struct AcpExecParams {
     /// Optional max turns override
     #[serde(default)]
     pub max_turns: Option<u32>,
-    /// Optional session timeout in seconds
+    /// Optional execution timeout in seconds. When set, cancels the operation
+    /// if it exceeds this duration. Connection timeout is configured separately
+    /// in maenifold.json settings.
     #[serde(default)]
     pub timeout_seconds: Option<u32>,
 }

@@ -78,6 +78,10 @@ fn default_sqlite_busy_timeout() -> u64 {
     5000
 }
 
+fn default_acp_connection_timeout() -> u64 {
+    60
+}
+
 fn default_sync_lease_ms() -> u64 {
     10000
 }
@@ -153,6 +157,8 @@ pub struct MaenifoldSettings {
     pub session_cleanup: bool,
     #[serde(default = "default_sqlite_busy_timeout")]
     pub sqlite_busy_timeout_ms: u64,
+    #[serde(default = "default_acp_connection_timeout")]
+    pub acp_connection_timeout_seconds: u64,
     #[serde(default = "default_sync_lease_ms")]
     pub sync_lease_ms: u64,
     #[serde(default = "default_watcher_buffer")]
@@ -186,6 +192,7 @@ impl Default for MaenifoldSettings {
             sync_logging: default_true(),
             session_cleanup: default_true(),
             sqlite_busy_timeout_ms: default_sqlite_busy_timeout(),
+            acp_connection_timeout_seconds: default_acp_connection_timeout(),
             sync_lease_ms: default_sync_lease_ms(),
             watcher_buffer_size: default_watcher_buffer(),
             incremental_optimize_every: default_optimize_every(),
@@ -429,6 +436,7 @@ mod settings_tests {
             "syncLogging": false,
             "sessionCleanup": false,
             "sqliteBusyTimeoutMs": 7000,
+            "acpConnectionTimeoutSeconds": 90,
             "syncLeaseMs": 15000,
             "watcherBufferSize": 131072,
             "incrementalOptimizeEvery": 55,
@@ -472,6 +480,7 @@ mod settings_tests {
             sync_logging: false,
             session_cleanup: false,
             sqlite_busy_timeout_ms: 7000,
+            acp_connection_timeout_seconds: 90,
             sync_lease_ms: 15000,
             watcher_buffer_size: 131072,
             incremental_optimize_every: 55,
@@ -532,6 +541,7 @@ mod settings_tests {
         assert!(settings.sync_logging);
         assert!(settings.session_cleanup);
         assert_eq!(settings.sqlite_busy_timeout_ms, 5000);
+        assert_eq!(settings.acp_connection_timeout_seconds, 60);
         assert_eq!(settings.sync_lease_ms, 10000);
         assert_eq!(settings.watcher_buffer_size, 65536);
         assert_eq!(settings.incremental_optimize_every, 40);

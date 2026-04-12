@@ -8,6 +8,8 @@ use super::{
     types::{AgentError, Result, SessionInfo, SessionOpts},
 };
 
+const CONNECTION_TIMEOUT_SECS: u64 = 60;
+
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
         .map(|value| {
@@ -24,7 +26,9 @@ pub(super) async fn session_new(
     client: &HeadlessClient,
     opts: SessionOpts,
 ) -> Result<SessionInfo> {
-    let timeout_seconds = opts.timeout_seconds.unwrap_or(3600);
+    let timeout_seconds = opts
+        .acp_connection_timeout_seconds
+        .unwrap_or(CONNECTION_TIMEOUT_SECS);
     let cwd = opts.cwd.clone();
     let mcp_servers = opts
         .mcp_servers

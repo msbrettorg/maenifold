@@ -507,6 +507,7 @@ mod tests {
             session_id: None,
             cwd: PathBuf::from("."),
             auto_grant_permissions: true,
+            acp_connection_timeout_seconds: None,
             model: None,
             mode: None,
             thought_level: None,

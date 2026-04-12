@@ -11,7 +11,7 @@ use serde_json::Value;
 use std::future::Future;
 use std::path::PathBuf;
 use std::sync::{Arc, LazyLock};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
 
@@ -64,15 +64,14 @@ pub fn acp_exec(context: &ToolContext, payload: &Value) -> Result<String> {
 
 fn exec_prompt(context: &ToolContext, payload: &Value, agent: &str) -> Result<String> {
     let prompt = required_str(payload, "prompt")?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let mut opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let timeout = opts.timeout_seconds.take();
     let context_blocks = optional_context_blocks(payload)?;
     let prompt_owned = prompt.to_string();
-    run_acp_future(exec_prompt_async(
-        agent,
-        &prompt_owned,
-        context_blocks,
-        opts,
-    ))
+    run_acp_future(
+        exec_prompt_async(agent, &prompt_owned, context_blocks, opts),
+        timeout,
+    )
 }
 
 fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<String> {
@@ -82,7 +81,8 @@ fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<Str
         .and_then(Value::as_u64)
         .unwrap_or(DEFAULT_TOTAL_THOUGHTS as u64) as u32;
     let context_blocks = optional_context_blocks(payload)?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let mut opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let timeout = opts.timeout_seconds.take();
     let think_opts = ThinkOptions {
         total_thoughts,
         model: opts.model.clone(),
@@ -92,40 +92,55 @@ fn exec_think(context: &ToolContext, payload: &Value, agent: &str) -> Result<Str
     let topic_owned = topic.to_string();
     let agent_owned = agent.to_string();
     let ctx = ToolContext::new(context.config.clone(), context.output_format);
-    run_acp_future(exec_think_async(
-        ctx,
-        agent_owned,
-        topic_owned,
-        think_opts,
-        opts,
-        context_blocks,
-    ))
+    run_acp_future(
+        exec_think_async(
+            ctx,
+            agent_owned,
+            topic_owned,
+            think_opts,
+            opts,
+            context_blocks,
+        ),
+        timeout,
+    )
 }
 
 fn exec_workflow(context: &ToolContext, payload: &Value, agent: &str) -> Result<String> {
     let workflow_id = required_str(payload, "workflowId")?;
     let prompt = payload.get("prompt").and_then(Value::as_str).unwrap_or("");
     let context_blocks = optional_context_blocks(payload)?;
-    let opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let mut opts = session_opts_from(context.config.maenifold_root.clone(), payload)?;
+    let timeout = opts.timeout_seconds.take();
 
     let workflow_id_owned = workflow_id.to_string();
     let prompt_owned = prompt.to_string();
     let agent_owned = agent.to_string();
     let ctx = ToolContext::new(context.config.clone(), context.output_format);
-    run_acp_future(exec_workflow_async(
-        ctx,
-        workflow_id_owned,
-        agent_owned,
-        prompt_owned,
-        opts,
-        context_blocks,
-    ))
+    run_acp_future(
+        exec_workflow_async(
+            ctx,
+            workflow_id_owned,
+            agent_owned,
+            prompt_owned,
+            opts,
+            context_blocks,
+        ),
+        timeout,
+    )
 }
 
-fn run_acp_future<F, T>(future: F) -> Result<T>
+fn run_acp_future<F, T>(future: F, timeout: Option<u64>) -> Result<T>
 where
     F: Future<Output = Result<T>>,
 {
+    let future = async move {
+        match timeout {
+            Some(secs) => tokio::time::timeout(Duration::from_secs(secs), future)
+                .await
+                .map_err(|_| MaenifoldError::Message(format!("AcpExec timed out after {secs}s")))?,
+            None => future.await,
+        }
+    };
     match Handle::try_current() {
         Ok(handle) => {
             if !matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) {
@@ -212,6 +227,7 @@ pub(crate) fn session_opts_from(cwd: PathBuf, payload: &Value) -> Result<Session
             .map(PathBuf::from)
             .unwrap_or(cwd),
         auto_grant_permissions: required_bool(payload, "autoGrantPermissions")?,
+        acp_connection_timeout_seconds: None,
         model: optional_string(payload, "model"),
         mode: optional_string(payload, "sessionMode"),
         thought_level: optional_string(payload, "thoughtLevel"),

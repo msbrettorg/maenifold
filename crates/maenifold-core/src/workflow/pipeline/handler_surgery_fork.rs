@@ -29,8 +29,8 @@ pub(super) fn fork_pipeline(
 ) -> Result<String> {
     AssetManager::initialize_assets(&context.config)?;
     let new_session_id = fork
-        .new_session_id
-        .clone()
+        .new_session_id()
+        .map(ToOwned::to_owned)
         .unwrap_or_else(|| format!("pipeline-{}", Utc::now().timestamp_millis()));
 
     let new_pipeline_uri = pipeline_session_uri(&new_session_id);
@@ -49,11 +49,11 @@ pub(super) fn fork_pipeline(
         frontmatter_value(&frontmatter, "nodeStates")?;
     let node_index = graph
         .node_indices()
-        .find(|index| graph[*index] == fork.from_node_id)
+        .find(|index| graph[*index] == fork.from_node_id())
         .ok_or_else(|| {
             MaenifoldError::InvalidArgument(format!(
                 "Pipeline doesn't contain node '{}'",
-                fork.from_node_id
+                fork.from_node_id()
             ))
         })?;
 

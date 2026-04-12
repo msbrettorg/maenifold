@@ -112,8 +112,17 @@ pub struct PipelineJoinSchema {
     pub edges: Vec<PipelineEdgeSchema>,
 }
 #[derive(Deserialize, JsonSchema)]
+#[serde(untagged)]
+pub enum PipelineForkSchema {
+    /// Node identifier where the forked subgraph starts
+    NodeId(String),
+    /// Structured fork configuration with an optional session identifier override
+    Config(PipelineForkConfigSchema),
+}
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct PipelineForkSchema {
+pub struct PipelineForkConfigSchema {
     /// Node identifier where the forked subgraph starts
     pub from_node_id: String,
     /// Optional pipeline session identifier for the forked pipeline

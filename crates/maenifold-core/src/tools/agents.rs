@@ -281,6 +281,7 @@ async fn probe_agent_once(
             session_id: None,
             cwd: root.clone(),
             auto_grant_permissions: true,
+            acp_connection_timeout_seconds: None,
             model: None,
             mode: None,
             thought_level: None,

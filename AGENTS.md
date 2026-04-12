@@ -75,6 +75,12 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 
 ## Guardrails (Hard-Learned)
 
+### Build Commands
+
+- **Desktop app bundle:** `cd apps/desktop && npx tauri build` builds the desktop app. Treat the `.app` bundle as the deliverable; DMG bundling may fail.
+- **Desktop frontend typecheck:** `cd apps/desktop && npx vue-tsc --noEmit`
+- **Tauri Rust code:** `cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml` — `apps/desktop/src-tauri` is excluded from the workspace root, so do **not** use `cargo build -p` for the Tauri app.
+
 ### Test Execution Policy
 
 - **SWE agents:** `cargo build -p <crate>` only. Never `cargo test`.
@@ -86,9 +92,23 @@ Agents running full test suites in parallel creates race conditions. Violation i
 
 ### ACP Invariants
 
+- **Version baselines:** TypeScript uses `@agentclientprotocol/sdk` `^0.18.2`. Rust uses `sacp` `11.0.0` (git rev pinned in `[patch.crates-io]`) and `rmcp` `1.4.0`.
 - **`prompt` is the only primitive.** Think and workflow are orchestration loops that chain prompt calls. Neither has a direct path to the ACP agent. See [docs/acp-client-architecture.md](docs/acp-client-architecture.md).
 - All ACP agent interactions MUST specify `model` explicitly. No defaults. Different agents default to different models with wildly different latency and cost.
 - WebSocket URI must include `?agent=<name>`. Missing `?agent=` must be rejected with an error. Bare `/ws/acp` is a test failure.
+
+### Desktop UI Conventions
+
+- **Icon library:** `lucide-vue-next` is the established structural UI icon set. Current pipeline rail/flyout usage includes `PanelLeftOpen`, `PanelLeftClose`, `Plus`, and `RefreshCw`.
+- **Pipeline layout contract:** canvas is the base layer; backdrop `9`; inspector `10`; flyout `11`; context menu `60`; dialogs `1000`.
+- **Pipeline layout tokens:** `--rail-width: 48px`; `--flyout-width: 320px`.
+
+### Gate CLI Fallback
+
+- Prefer Gate MCP when healthy, but Gate MCP sessions can go stale. Fall back to CLI with `--root .`.
+- `gate sync --root . --rebuild`
+- `gate status --root .`
+- `gate pass --root . <task-id> --agent <name> --notes "..."`
 
 ### Protected Files
 

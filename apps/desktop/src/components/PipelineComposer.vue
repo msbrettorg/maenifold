@@ -126,10 +126,13 @@ function submitNode<T extends PipelineNodeType>(
   type: T,
   fields: PipelineNodeDraftByType[T],
 ): void {
-  store.addNode(
+  const node = store.addNode(
     createNode(type, { id: createNodeId(type), ...fields } as PipelineNodeInputByType[T]),
   );
-  void nextTick(() => fitView());
+  void nextTick(() => {
+    editNode(node.id);
+    fitView();
+  });
 }
 
 type ContextMenuState =

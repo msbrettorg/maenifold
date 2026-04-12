@@ -16,6 +16,7 @@ interface PipelineLifecycleActionDependencies {
   newPipeline: () => void;
   withError: WithError;
   serializeEdge: (edge: PipelineEdge) => PipelineEdge;
+  setSuccessMessage: (message: string | null) => void;
 }
 
 export function createPipelineLifecycleActions({
@@ -28,6 +29,7 @@ export function createPipelineLifecycleActions({
   newPipeline,
   withError,
   serializeEdge,
+  setSuccessMessage,
 }: PipelineLifecycleActionDependencies) {
   async function withCurrentPipeline(
     tool: string,
@@ -68,7 +70,10 @@ export function createPipelineLifecycleActions({
   async function cancelPipeline() {
     await withCurrentPipeline('cancel_pipeline', async (sessionId) => {
       await mcp.cancelPipeline(sessionId);
-      stopCurrentPolling();
+      // Start polling so the view updates when the backend commits the
+      // `cancelled` status.  `setView` will call `stopCurrentPolling`
+      // automatically once a terminal status is observed.
+      startViewPolling();
       await refreshView();
     });
   }
@@ -86,6 +91,7 @@ export function createPipelineLifecycleActions({
         newPipeline();
       }
       await refreshList();
+      setSuccessMessage(`Deleted pipeline ${sessionId}.`);
     });
   }
 

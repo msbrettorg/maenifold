@@ -19,6 +19,26 @@
 }
 .error-icon { flex-shrink: 0; }
 .error-text { min-width: 0; }
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main));
+  border-bottom: 1px solid color-mix(in srgb, var(--color-status-completed) 30%, var(--border-default));
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.success-icon { flex-shrink: 0; color: var(--color-status-completed); }
+.success-text { min-width: 0; flex: 1; }
+.banner-dismiss {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
 .pipeline-grid {
   flex: 1;
   min-height: 0;

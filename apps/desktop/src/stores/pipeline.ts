@@ -65,6 +65,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const pendingRequests = ref(0);
   const loading = computed(() => pendingRequests.value > 0);
   const errorMessage = ref<string | null>(null);
+  const successMessage = ref<string | null>(null);
   async function withLoading<T>(fn: () => Promise<T>): Promise<T> {
     pendingRequests.value += 1;
     try {
@@ -77,8 +78,15 @@ export const usePipelineStore = defineStore('pipeline', () => {
   function clearError() {
     errorMessage.value = null;
   }
+  function clearSuccess() {
+    successMessage.value = null;
+  }
+  function setSuccessMessage(message: string | null) {
+    successMessage.value = message;
+  }
   function setError(tool: string, err: unknown) {
     errorMessage.value = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
+    successMessage.value = null;
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();
@@ -371,8 +379,18 @@ export const usePipelineStore = defineStore('pipeline', () => {
     newPipeline,
     withError,
     serializeEdge,
+    setSuccessMessage,
   });
-  const { forkPipeline, joinPipeline, dispatchPipeline } = createPipelineMutationActions({ mcp, currentPipelineId, refreshView, refreshList, startViewPolling, withError });
+  const { forkPipeline, joinPipeline, dispatchPipeline } = createPipelineMutationActions({
+    mcp,
+    currentPipelineId,
+    refreshView,
+    refreshList,
+    startViewPolling,
+    loadPipeline,
+    withError,
+    setSuccessMessage,
+  });
   return {
     pipelines,
     currentPipelineId,
@@ -390,7 +408,10 @@ export const usePipelineStore = defineStore('pipeline', () => {
     connected: mcp.connected,
     error: mcp.error,
     errorMessage,
+    successMessage,
     clearError,
+    clearSuccess,
+    setSuccessMessage,
     connect,
     disconnect,
     refreshList,

@@ -70,33 +70,35 @@ async function promptForAbsolutePath(title: string, initialValue = ''): Promise<
 
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
+    dialog.className = 'native-path-dialog';
     const form = document.createElement('form');
     form.method = 'dialog';
+    form.className = 'native-path-dialog__form';
 
     const heading = document.createElement('h3');
     heading.textContent = title;
+    heading.className = 'native-path-dialog__title';
 
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = '/absolute/path';
     input.value = initialValue;
     input.autofocus = true;
-    input.style.width = '100%';
-    input.style.margin = '0.75rem 0';
+    input.className = 'native-path-dialog__input';
 
     const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.justifyContent = 'flex-end';
-    actions.style.gap = '0.5rem';
+    actions.className = 'native-path-dialog__actions';
 
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.textContent = 'Cancel';
+    cancel.className = 'native-path-dialog__button native-path-dialog__button--cancel';
     cancel.addEventListener('click', () => dialog.close('cancel'));
 
     const submit = document.createElement('button');
     submit.type = 'submit';
     submit.textContent = 'Use Path';
+    submit.className = 'native-path-dialog__button native-path-dialog__button--submit';
 
     actions.append(cancel, submit);
     form.append(heading, input, actions);

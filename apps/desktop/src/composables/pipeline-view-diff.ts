@@ -32,6 +32,15 @@ export function hydrateEventLogFromView(
         timestamp: loadedAt + index,
         ...(preview ? { preview } : {}),
       });
+    } else if (node.status === 'abandoned' || node.status === 'stuck') {
+      const preview = buildNodeOutputPreview(node);
+      entries.push({
+        nodeId: node.nodeId,
+        from: 'loaded',
+        to: node.status,
+        timestamp: loadedAt + index,
+        ...(preview ? { preview } : {}),
+      });
     } else if (node.status === 'retrying') {
       entries.push({
         nodeId: node.nodeId,
@@ -64,11 +73,16 @@ export function diffPipelineViews(
   for (const node of curr.nodes) {
     const prevStatus = prevMap.get(node.nodeId);
     if (prevStatus != null && prevStatus !== node.status) {
+      const preview =
+        (node.status === 'abandoned' || node.status === 'stuck')
+          ? buildNodeOutputPreview(node)
+          : '';
       entries.push({
         nodeId: node.nodeId,
         from: prevStatus,
         to: node.status,
         timestamp: Date.now(),
+        ...(preview ? { preview } : {}),
       });
     }
   }

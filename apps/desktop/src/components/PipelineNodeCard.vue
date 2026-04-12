@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 
-import type { NodeStatus, PipelineNode } from '../lib/pipeline-types';
+import type { NodeStatus, PipelineNode, PipelineStatus } from '../lib/pipeline-types';
 import {
   getNodeType,
   isPromptNode,
@@ -19,7 +19,7 @@ type NodeCardData = {
   model?: string;
   workflowId?: string;
   acpClient?: string;
-  status?: NodeStatus;
+  status?: NodeStatus | PipelineStatus | 'running';
   attempts?: number;
   type?: PipelineNode['type'];
   prompt?: string;
@@ -135,7 +135,28 @@ const titleText = computed(() => shorten(nodeLabel(node.value), 44));
 const hasCustomLabel = computed(() => Boolean(props.data.displayLabel && props.data.displayLabel !== props.data.nodeId));
 const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !== displayLabel.value);
 const currentStatus = computed(() => props.data.status ?? 'pending');
-const isActive = computed(() => currentStatus.value === 'active');
+const statusAppearance = computed(() => {
+  switch (currentStatus.value) {
+    case 'active':
+    case 'running':
+    case 'retrying':
+      return 'active';
+    case 'completed':
+      return 'completed';
+    case 'abandoned':
+      return 'abandoned';
+    case 'stuck':
+      return 'stuck';
+    case 'cancelled':
+      return 'cancelled';
+    case 'pending':
+    case 'ready':
+    default:
+      return 'pending';
+  }
+});
+const nodeStatusClass = computed(() => `node-status-${statusAppearance.value}`);
+const isActive = computed(() => statusAppearance.value === 'active');
 const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
 const attempts = computed(() => props.data.attempts && props.data.attempts > 1 ? `×${props.data.attempts}` : '');
 const modelBadge = computed(() => props.data.model?.trim() ?? '');
@@ -146,7 +167,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 <template>
   <div
     class="pipeline-node"
-    :class="{ 'is-active': isActive }"
+    :class="[nodeStatusClass, { 'is-active': isActive }]"
     :style="{ '--node-accent': accentColor }"
     :title="`${titleText} • ${data.status ?? 'pending'}`"
     role="button"
@@ -157,7 +178,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
     <div class="node-content">
       <div class="node-header">
         <div class="header-main">
-          <span :class="['status-dot', `status-dot--${currentStatus}`]" />
+          <span :class="['status-dot', `status-dot--${statusAppearance}`]" />
           <span class="node-title">{{ displayLabel }}</span>
         </div>
         <span class="type-pill">{{ typeIcon }} {{ typeLabel }}</span>
@@ -172,7 +193,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
+            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
           >
             {{ attempts }}
           </span>
@@ -186,7 +207,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
+            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
           >
             {{ attempts }}
           </span>
@@ -200,7 +221,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span
             v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
+            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
           >
             {{ attempts }}
           </span>
@@ -216,7 +237,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span v-if="node.analysisType" class="meta-pill">{{ node.analysisType }}</span>
           <span
             v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${currentStatus}`]"
+            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
           >
             {{ attempts }}
           </span>
@@ -233,8 +254,9 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 .pipeline-node {
   position: relative; display: flex; min-width: 200px; max-width: 280px; max-height: 200px; overflow: hidden;
   background: var(--surface-container-highest);
+  border: 1px solid var(--node-status-border, #4b5563);
   border-radius: 8px; overflow: visible;
-  transition: box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
+  transition: border-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
   font-family: var(--font-sans);
 }
 .pipeline-node:hover {
@@ -242,8 +264,14 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
   transform: translateY(-1px);
 }
 .pipeline-node.is-active {
-  animation: node-pulse 2s ease-in-out infinite;
+  animation: node-pulse 2s ease-in-out infinite, pulse-border 2s ease-in-out infinite;
 }
+.node-status-pending { --node-status-border: #4b5563; }
+.node-status-active { --node-status-border: #3b82f6; }
+.node-status-completed { --node-status-border: #22c55e; }
+.node-status-abandoned { --node-status-border: #ef4444; }
+.node-status-stuck { --node-status-border: #f59e0b; }
+.node-status-cancelled { --node-status-border: #6b7280; border-style: dashed; }
 .accent-bar { width: 4px; flex-shrink: 0; background: var(--node-accent); border-radius: 8px 0 0 8px; }
 .node-content { flex: 1; min-width: 0; }
 .node-header {
@@ -286,5 +314,10 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
   50% {
     box-shadow: 0 0 20px color-mix(in srgb, var(--node-accent) 18%, transparent);
   }
+}
+
+@keyframes pulse-border {
+  0%, 100% { border-color: #3b82f6; }
+  50% { border-color: #60a5fa; }
 }
 </style>

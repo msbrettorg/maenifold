@@ -80,4 +80,22 @@ describe('pipeline view diff hydration', () => {
     expect(entry?.preview).toBe(buildNodeOutputPreview({ output: '  alpha\nbeta  ' }));
     expect(entry?.preview).not.toBe(buildNodeOutputPreview(view.nodes[2]));
   });
+
+  it('captures abandoned previews during hydration', () => {
+    const view = createView();
+    view.nodes[1] = {
+      ...view.nodes[1]!,
+      status: 'abandoned',
+      output: '  tool execution failed  ',
+    };
+
+    const [entry] = hydrateEventLogFromView(view);
+
+    expect(entry).toMatchObject({
+      nodeId: 'node-active',
+      from: 'loaded',
+      to: 'abandoned',
+      preview: 'tool execution failed',
+    });
+  });
 });

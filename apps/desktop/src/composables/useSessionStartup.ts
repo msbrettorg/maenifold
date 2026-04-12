@@ -4,7 +4,11 @@ import { createAcpClient } from '../lib/acp-client';
 import type { AgentInstance, SavedSession, SessionState } from '../lib/types';
 import { trackError, trackEvent } from '../lib/telemetry';
 import type { SessionRuntimeDeps } from './session-runtime-deps';
-import { applySessionConfigurationState, detectPhase } from './session-utils';
+import {
+  applySessionConfigurationState,
+  createDefaultSessionTitle,
+  detectPhase,
+} from './session-utils';
 import { useSessionBootstrap } from './useSessionBootstrap';
 
 interface UseSessionStartupDeps extends SessionRuntimeDeps {
@@ -160,7 +164,7 @@ export function useSessionStartup({
         id: crypto.randomUUID(),
         agentName,
         sessionId: sessionResponse.sessionId,
-        title: `Session ${new Date().toLocaleString()}`,
+        title: createDefaultSessionTitle(agentName, savedSessions.value),
         lastUpdated: Date.now(),
         cwd,
         supportsLoadSession: initialized.initResponse.agentCapabilities?.loadSession ?? false,

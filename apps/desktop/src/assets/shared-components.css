@@ -11,10 +11,117 @@ html, body, #app {
   height: 100%;
 }
 
+body {
+  background: var(--bg-main);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+}
+
 /* ============================================================
    SHARED COMPONENT CLASSES — T-63.0
    Global, not scoped. Any component can use these.
    ============================================================ */
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select
+) {
+  background: var(--bg-input, #1e1e1e);
+  color: var(--text-primary, #e8e8e8);
+  border: 1px solid var(--border-default, #3a3a3a);
+  border-radius: var(--radius-sm, 4px);
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: inherit;
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea,
+  select
+):focus {
+  outline: none;
+  border-color: var(--border-focus, #3b82f6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-focus, #3b82f6) 15%, transparent);
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+  textarea
+)::placeholder {
+  color: var(--text-muted, #6b7280);
+}
+
+select,
+select option,
+select optgroup {
+  background: var(--bg-input, #1e1e1e);
+  color: var(--text-primary, #e8e8e8);
+}
+
+.native-path-dialog {
+  width: min(420px, calc(100vw - 32px));
+  margin: auto;
+  padding: 0;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-lg);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.native-path-dialog::backdrop {
+  background: var(--bg-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.native-path-dialog__form {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.native-path-dialog__title {
+  margin: 0;
+  font-family: var(--font-headline);
+  font-size: var(--text-base);
+}
+
+.native-path-dialog__input {
+  width: 100%;
+}
+
+.native-path-dialog__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.native-path-dialog__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 36px;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-md);
+  font: 500 var(--text-sm)/1 var(--font-sans);
+  cursor: pointer;
+}
+
+.native-path-dialog__button--cancel {
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-primary);
+}
+
+.native-path-dialog__button--submit {
+  border: 1px solid var(--border-focus);
+  background: var(--border-focus);
+  color: var(--text-on-accent);
+}
 
 /* ── Button base ── */
 .btn {

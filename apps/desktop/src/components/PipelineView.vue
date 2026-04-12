@@ -24,7 +24,7 @@ type SelectedEdge = { source: string; target: string } | null;
 type PipelineIconRailExpose = { focusPipelineToggle: () => void };
 
 const store = usePipelineStore();
-const { currentPipelineId, currentView, designMode, error, localDefinition, workflows } = storeToRefs(store);
+const { currentPipelineId, currentView, designMode, error, errorMessage, localDefinition, successMessage, workflows } = storeToRefs(store);
 const selectedNodeId = ref<string | null>(null);
 const selectedEdge = ref<SelectedEdge>(null);
 const runnerExpanded = ref(false);
@@ -38,7 +38,7 @@ const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handle
 const { activeFlyout, close: closeFlyout, toggle: toggleFlyout } = useFlyout();
 const promotionNode = ref<ViewNode | null>(null);
 const isPipelineFlyoutOpen = computed(() => !isNarrowViewport.value && activeFlyout.value === 'pipelines');
-const bannerError = computed(() => connectionError.value || error.value || '');
+const bannerError = computed(() => connectionError.value || errorMessage.value || error.value || '');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
 const existingNodeIds = computed(() => currentView.value?.nodes.map((node) => node.nodeId) ?? []);
 const activePipelineLabel = computed(() => currentView.value?.pipelineId ?? currentPipelineId.value ?? '');
@@ -139,6 +139,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
     <div v-if="bannerError" class="error-banner" role="alert">
       <span class="error-icon">⚠</span>
       <span class="error-text">{{ bannerError }}</span>
+    </div>
+    <div v-if="successMessage" class="success-banner" role="status">
+      <span class="success-icon">✓</span>
+      <span class="success-text">{{ successMessage }}</span>
+      <button class="banner-dismiss" type="button" aria-label="Dismiss success" @click="store.clearSuccess()">✕</button>
     </div>
     <div
       class="pipeline-grid"

@@ -167,9 +167,7 @@ function updateNodeLabel(event: Event): void {
     return label ? { ...rest, displayLabel: label } : rest;
   });
 }
-function updateNodeId(event: Event): void {
-  updateDesignNode((node) => ({ ...node, id: getFieldValue(event) }));
-}
+
 function updateWorkflowField(event: Event, field: 'workflowId' | 'acpClient' | 'prompt'): void {
   const value = getFieldValue(event);
   const resolved = field === 'workflowId' ? value : (value || undefined);
@@ -414,7 +412,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           @input="updateNodeLabel"
         />
       </label>
-      <label class="field"><span>ID</span><input class="field-input" :value="selectedDesignNode.id" type="text" @input="updateNodeId" /></label>
+      <label class="field"><span>ID</span><input class="field-input field-input--readonly" :value="selectedDesignNode.id" type="text" readonly /></label>
       <div class="summary-row"><span>Type</span><strong class="type-pill">{{ formatNodeType(getNodeType(selectedDesignNode)) }}</strong></div>
 
       <template v-if="selectedWorkflowDesignNode">
@@ -653,4 +651,5 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 .radio-option { justify-content: flex-start; }
 .empty-state { justify-content: center; min-height: 220px; }
 .empty-state p { color: var(--text-secondary); }
+.field-input--readonly { opacity: 0.6; cursor: default; user-select: text; background: var(--bg-main); }
 </style>

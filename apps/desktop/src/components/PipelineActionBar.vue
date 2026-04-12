@@ -139,6 +139,15 @@ const actions = computed<ActionConfig[]>(() => {
             },
           ]
         : [
+            ...(rewindableNodeIds.value.length > 0
+              ? [{
+                  key: 'rewind' as ActionKey,
+                  label: 'Rewind',
+                  icon: RotateCcw,
+                  className: 'btn-primary',
+                  run: handleRewind,
+                }]
+              : []),
             {
               key: 'run',
               label: 'Run',

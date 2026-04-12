@@ -72,7 +72,7 @@ const activeSection = ref<SectionId>('connection');
   .settings-overlay {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.4);
+    background: var(--bg-overlay);
   }
 }
 

@@ -347,11 +347,14 @@ function handleServerNodeAction(action: 'restartNode' | 'rewindNode' | 'forkNode
     case 'rewindNode':
       void store.rewindNodes([nodeId]);
       break;
-    case 'forkNode':
-      if (store.currentPipelineId) {
-        void store.forkPipeline(store.currentPipelineId, nodeId);
-      }
+    case 'forkNode': {
+      if (!store.currentPipelineId) break;
+      const nameInput = window.prompt('Optional name for the forked pipeline session:', '');
+      if (nameInput === null) break;
+      const forkName = nameInput.trim() || undefined;
+      void store.forkPipeline(store.currentPipelineId, nodeId, forkName);
       break;
+    }
     case 'abandonNode':
       void store.updateNodeStatus(nodeId, 'abandoned');
       break;

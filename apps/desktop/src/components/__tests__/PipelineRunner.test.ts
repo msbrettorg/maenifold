@@ -56,4 +56,41 @@ describe('PipelineRunner loaded event formatting', () => {
     expect(wrapper.text()).toContain('↺ Compile assets loaded as completed — output: snapshotted output preview');
     expect(wrapper.text()).not.toContain('live output should not be used');
   });
+
+  it('renders abandoned entries with preview details', () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    const store = usePipelineStore();
+    store.designMode = false;
+    store.currentPipelineId = 'pipeline-1';
+    store.currentView = {
+      ...createView(),
+      nodes: [{
+        nodeId: 'node-1',
+        displayLabel: 'Compile assets',
+        sessionId: 'session-1',
+        status: 'abandoned',
+        attempts: 1,
+        type: 'tool',
+        toolName: 'example.compile',
+        output: 'backend error should not replace snapshotted details',
+      }],
+    };
+    store.localDefinition = { nodes: [], edges: [] };
+    store.eventLog = [{
+      nodeId: 'node-1',
+      from: 'active',
+      to: 'abandoned',
+      timestamp: Date.parse('2026-04-11T12:00:00Z'),
+      preview: 'tool execution failed: missing credentials',
+    }];
+
+    const wrapper = mount(PipelineRunner, {
+      global: { plugins: [pinia] },
+    });
+
+    expect(wrapper.text()).toContain('❌ Compile assets abandoned — details: tool execution failed: missing credentials');
+    expect(wrapper.text()).not.toContain('backend error should not replace');
+  });
 });

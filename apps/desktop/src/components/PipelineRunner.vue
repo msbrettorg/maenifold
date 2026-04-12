@@ -65,15 +65,25 @@ function formatLogEntry(entry: LogEntry) {
     second: '2-digit',
     hour12: false,
   });
+  const preview = entry.preview ?? buildNodeOutputPreview(viewNodesById.value.get(entry.nodeId));
   if (entry.from === 'loaded') {
     const base = `[${timestamp}] ↺ ${displayNodeId(entry.nodeId)} loaded as ${entry.to}`;
-    return entry.to === 'completed' && entry.preview
-      ? `${base} — output: ${entry.preview}`
-      : base;
+    if (entry.to === 'completed' && preview) {
+      return `${base} — output: ${preview}`;
+    }
+    if ((entry.to === 'abandoned' || entry.to === 'stuck') && preview) {
+      return `${base} — details: ${preview}`;
+    }
+    return base;
   }
-  const preview = buildNodeOutputPreview(viewNodesById.value.get(entry.nodeId));
   if (entry.to === 'completed' && preview) {
     return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${preview}`;
+  }
+  if (entry.to === 'abandoned' && preview) {
+    return `[${timestamp}] ❌ ${displayNodeId(entry.nodeId)} abandoned — details: ${preview}`;
+  }
+  if (entry.to === 'stuck' && preview) {
+    return `[${timestamp}] 🚫 ${displayNodeId(entry.nodeId)} stuck — details: ${preview}`;
   }
   return `[${timestamp}] ${iconFor(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
 }

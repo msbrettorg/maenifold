@@ -116,7 +116,7 @@ async function handleDelete(session: SavedSession, event: Event) {
       >
         <div class="session-info">
           <div class="session-title-row">
-            <span class="session-title">{{ session.title }}</span>
+            <span class="session-title" :title="session.title">{{ session.title }}</span>
             <span
               v-if="isCurrentConnectedSession(session)"
               class="connection-badge connected"
@@ -198,11 +198,15 @@ ul {
 .session-info {
   display: flex;
   flex-direction: column;
+  flex: 1;
   gap: 0.25rem;
+  min-width: 0;
   overflow: hidden;
 }
 
 .session-title {
+  display: block;
+  max-width: 200px;
   font-size: var(--text-sm);
   font-weight: 500;
   white-space: nowrap;

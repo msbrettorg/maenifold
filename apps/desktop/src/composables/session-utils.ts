@@ -1,5 +1,6 @@
 import type {
   AvailableCommand,
+  SavedSession,
   SessionConfigOption,
   SessionConfigSelectGroup,
   SessionConfigSelectOption,
@@ -11,6 +12,8 @@ const BOOLEAN_CONFIG_OPTIONS: SessionConfigSelectOption[] = [
   { value: 'true', name: 'Enabled' },
   { value: 'false', name: 'Disabled' },
 ];
+const LEGACY_TIMESTAMP_SESSION_PREFIX = 'New session -';
+const UNTITLED_SESSION_NAME = 'Untitled session';
 
 export function detectPhase(line: string): string | null {
   const lower = line.toLowerCase();
@@ -104,6 +107,42 @@ export function parseUpdatedAt(updatedAt?: string | null): number | undefined {
   if (!updatedAt) return undefined;
   const timestamp = new Date(updatedAt).getTime();
   return Number.isNaN(timestamp) ? undefined : timestamp;
+}
+
+function normalizeAgentSessionName(agentName: string): string {
+  return agentName.trim() || 'Agent';
+}
+
+export function createDefaultSessionTitle(agentName: string, savedSessions: SavedSession[]): string {
+  const normalizedAgentName = normalizeAgentSessionName(agentName);
+  const nextIndex =
+    savedSessions.filter(
+      (session) => normalizeAgentSessionName(session.agentName) === normalizedAgentName,
+    ).length + 1;
+  return `${normalizedAgentName} Session #${nextIndex}`;
+}
+
+export function deriveSessionTitleFromFirstMessage(text: string, maxLength = 40): string | null {
+  const normalized = text.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  return normalized.slice(0, maxLength);
+}
+
+export function isGeneratedSessionTitle(title: string, agentName: string): boolean {
+  const normalizedTitle = title.trim();
+  if (!normalizedTitle || normalizedTitle === UNTITLED_SESSION_NAME) {
+    return true;
+  }
+
+  const normalizedAgentName = normalizeAgentSessionName(agentName);
+  return (
+    normalizedTitle.startsWith(`${normalizedAgentName} Session #`) ||
+    normalizedTitle.startsWith(LEGACY_TIMESTAMP_SESSION_PREFIX) ||
+    /^Session \d/.test(normalizedTitle)
+  );
 }
 
 function applyConfigOptionsState(

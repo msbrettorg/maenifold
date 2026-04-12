@@ -94,7 +94,10 @@ export function usePipelineMcp(baseUrl?: string) {
   }
 
   function forkPipeline(sessionId: string, fromNodeId: string, newSessionId?: string) {
-    return callPipeline({ sessionId, fork: { fromNodeId, ...(newSessionId ? { newSessionId } : {}) } });
+    return callPipeline({
+      sessionId,
+      fork: newSessionId ? { fromNodeId, newSessionId } : fromNodeId,
+    });
   }
 
   function joinPipeline(sessionId: string, sourceSessionId: string, edges: PipelineEdge[]) {

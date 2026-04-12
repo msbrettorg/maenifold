@@ -10,7 +10,12 @@ import type {
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
-import { isClientCommand, parseUpdatedAt } from './session-utils';
+import {
+  deriveSessionTitleFromFirstMessage,
+  isClientCommand,
+  isGeneratedSessionTitle,
+  parseUpdatedAt,
+} from './session-utils';
 import {
   applyConfigOptionsUpdate,
   getActiveSessionContext,
@@ -42,6 +47,28 @@ export function useMessageHandler({
   saveSessionsToStore,
   cancelPermission,
 }: UseMessageHandlerDeps) {
+  async function renameSessionFromFirstPrompt(session: SessionState, text: string): Promise<void> {
+    if (!session.session || session.messages.some((message) => message.role === 'user')) {
+      return;
+    }
+
+    if (!isGeneratedSessionTitle(session.session.title, session.session.agentName || session.agentName)) {
+      return;
+    }
+
+    const nextTitle = deriveSessionTitleFromFirstMessage(text);
+    if (!nextTitle) {
+      return;
+    }
+
+    session.session.title = nextTitle;
+    const savedSession = savedSessions.value.find((entry) => entry.sessionId === session.session?.sessionId);
+    if (savedSession) {
+      savedSession.title = nextTitle;
+    }
+    await saveSessionsToStore();
+  }
+
   function pushSystemMessage(session: SessionState, content: string): void {
     session.messages.push({
       id: crypto.randomUUID(),
@@ -192,6 +219,7 @@ export function useMessageHandler({
     attachments: ContentBlock[] = [],
   ): Promise<void> {
     const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
+    await renameSessionFromFirstPrompt(session, text);
 
     const prompt = [
       { type: 'text', text } as const,

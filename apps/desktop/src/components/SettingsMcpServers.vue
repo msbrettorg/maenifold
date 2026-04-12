@@ -18,6 +18,7 @@ const formArgs = ref('');
 const formUrl = ref('');
 const formError = ref('');
 const isSubmitting = ref(false);
+const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
 
 async function parseConfigResponse(response: Response, action: string): Promise<AgentsConfig> {
   if (!response.ok) {
@@ -80,6 +81,7 @@ function buildEntry(): McpServerEntry {
 
 async function handleSubmit() {
   formError.value = '';
+  feedback.value = null;
 
   if (!formName.value.trim()) return void (formError.value = 'Name is required');
   if (/^\d+$/.test(formName.value.trim())) {
@@ -115,9 +117,14 @@ async function handleSubmit() {
           body: JSON.stringify({ entry }),
         });
     configStore.updateFromEvent(await parseConfigResponse(response, editingServer.value ? 'Update MCP server' : 'Add MCP server'));
+    feedback.value = {
+      type: 'success',
+      message: editingServer.value ? `Updated MCP server "${entry.name}".` : `Added MCP server "${entry.name}".`,
+    };
     resetForm();
   } catch (error) {
     formError.value = error instanceof Error ? error.message : String(error);
+    feedback.value = { type: 'error', message: formError.value };
   } finally {
     isSubmitting.value = false;
   }
@@ -127,11 +134,19 @@ async function handleDelete(name: string) {
   if (!confirm(`Delete MCP server "${name}"?`)) return;
 
   try {
+    feedback.value = null;
     const response = await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     configStore.updateFromEvent(await parseConfigResponse(response, 'Delete MCP server'));
+    await configStore.loadConfig();
+    if (editingServer.value === name) {
+      resetForm();
+    }
+    feedback.value = { type: 'success', message: `Deleted MCP server "${name}".` };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    feedback.value = { type: 'error', message };
     console.error('Failed to delete MCP server:', error);
   }
 }
@@ -157,6 +172,8 @@ function getServerMeta(server: McpServerEntry): string | null {
       </div>
       <button class="add-btn" :disabled="showAddForm" @click="startAdd">+ Add MCP Server</button>
     </div>
+
+    <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
 
     <div v-if="showAddForm || editingServer" class="agent-form">
       <h4>{{ editingServer ? 'Edit MCP Server' : 'Add New MCP Server' }}</h4>
@@ -253,6 +270,23 @@ function getServerMeta(server: McpServerEntry): string | null {
 .form-group textarea { resize: vertical; }
 .form-group small,.agent-command,.server-meta { font-size: var(--text-sm); }
 .form-error,.delete-btn { color: var(--border-error); }
+.feedback {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  font-size: var(--text-sm);
+}
+.feedback.success {
+  border-color: color-mix(in srgb, var(--color-status-completed) 45%, transparent);
+  background: color-mix(in srgb, var(--color-status-completed) 14%, var(--bg-panel));
+  color: var(--text-primary);
+}
+.feedback.error {
+  border-color: color-mix(in srgb, var(--border-error) 45%, transparent);
+  background: color-mix(in srgb, var(--border-error) 12%, var(--bg-panel));
+  color: var(--border-error);
+}
 .save-btn { border: none; background: var(--border-focus); color: white; }
 .delete-btn { border: 1px solid var(--border-error); background: transparent; padding: 0.25rem 0.6rem; }
 .agent-item { align-items: center; }

@@ -310,7 +310,7 @@ fn is_default_total_thoughts(value: &u32) -> bool {
 mod tests {
     use serde_json::json;
 
-    use super::super::types::PipelineNode;
+    use super::{super::types::PipelineNode, PipelineNodeWire};
 
     #[test]
     fn tool_node_deserialization_preserves_timeout() {
@@ -369,5 +369,74 @@ mod tests {
 
         let value = serde_json::to_value(node).expect("serialize prompt node");
         assert_eq!(value["displayLabel"], json!("Prompt label"));
+    }
+
+    #[test]
+    fn test_workflow_wire_round_trip_with_agent_config() {
+        let json = r#"{
+            "id": "workflow-node",
+            "type": "workflow",
+            "workflowId": "wf-123",
+            "acpClient": "acp-client",
+            "prompt": "Run workflow",
+            "timeout": 30,
+            "agentConfig": {
+                "model": "gpt-5",
+                "mode": "chat",
+                "thoughtLevel": "high",
+                "configOptions": {
+                    "temperature": 0.2,
+                    "stream": true
+                }
+            }
+        }"#;
+
+        let wire: PipelineNodeWire =
+            serde_json::from_str(json).expect("deserialize workflow wire");
+        let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
+        let wire = PipelineNodeWire::from(node);
+        let value = serde_json::to_value(&wire).expect("serialize workflow wire");
+
+        assert_eq!(value["workflowId"], json!("wf-123"));
+        assert_eq!(value["acpClient"], json!("acp-client"));
+        assert_eq!(value["agentConfig"]["model"], json!("gpt-5"));
+        assert_eq!(value["agentConfig"]["thoughtLevel"], json!("high"));
+    }
+
+    #[test]
+    fn test_workflow_wire_without_agent_config() {
+        let json = r#"{
+            "id": "workflow-node",
+            "type": "workflow",
+            "workflowId": "wf-123",
+            "acpClient": "acp-client"
+        }"#;
+
+        let wire: PipelineNodeWire =
+            serde_json::from_str(json).expect("deserialize workflow wire without agent config");
+        let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
+
+        match node {
+            PipelineNode::Workflow { agent_config, .. } => assert!(agent_config.is_none()),
+            other => panic!("expected workflow node, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn test_workflow_wire_without_acp_client() {
+        let json = r#"{
+            "id": "workflow-node",
+            "type": "workflow",
+            "workflowId": "wf-123"
+        }"#;
+
+        let wire: PipelineNodeWire =
+            serde_json::from_str(json).expect("deserialize workflow wire without acp client");
+        let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
+
+        match node {
+            PipelineNode::Workflow { acp_client, .. } => assert!(acp_client.is_none()),
+            other => panic!("expected workflow node, got {other:?}"),
+        }
     }
 }

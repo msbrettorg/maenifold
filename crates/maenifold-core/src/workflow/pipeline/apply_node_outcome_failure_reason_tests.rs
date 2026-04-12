@@ -30,6 +30,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             acp_client: Some("agent-node".to_string()),
             prompt: None,
             timeout: None,
+            agent_config: None,
         }],
         edges: vec![],
         inputs: None,

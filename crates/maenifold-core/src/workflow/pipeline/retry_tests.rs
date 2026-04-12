@@ -20,6 +20,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         acp_client: Some(format!("agent-{id}")),
         prompt: None,
         timeout: None,
+        agent_config: None,
     }
 }
 

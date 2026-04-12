@@ -656,6 +656,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 .field-group legend { padding: 0 0.25rem; color: var(--text-primary); }
 .summary-row,.radio-option,.stat-card { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span,.stat-label { color: var(--text-secondary); }
+.summary-row strong,.agent-capability { min-width: 0; word-break: break-word; overflow-wrap: break-word; }
 .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
 .stat-card,.type-pill { padding: 0.875rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
 .type-pill { padding: 0.2rem 0.6rem; font-size: var(--text-sm); }

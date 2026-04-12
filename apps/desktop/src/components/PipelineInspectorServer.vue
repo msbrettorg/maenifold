@@ -490,10 +490,11 @@ function copyToClipboard(value: string): void {
 .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span,.output-block summary,.expert-disclosure summary { color: var(--text-secondary); }
 .type-pill { padding: 0.2rem 0.6rem; font-size: var(--text-sm); border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
-.read-block pre,.output-block pre { margin: 0; white-space: pre-wrap; word-break: break-word; font: inherit; color: var(--text-primary); }
+.read-block pre,.output-block pre { margin: 0; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--text-primary); }
 .mapping-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .mapping-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-.mono { font-family: var(--font-mono); word-break: break-all; }
+.summary-row strong,.copy-row strong,.operator-callout span,.operator-callout code { min-width: 0; word-break: break-word; overflow-wrap: break-word; }
+.mono { font-family: var(--font-mono); word-break: break-word; overflow-wrap: break-word; }
 .status-headline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.875rem; border: 1px solid var(--border-default); border-radius: 10px; background: var(--bg-main); }
 .status-headline__meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .status-headline p { margin: 0; color: var(--text-primary); }

@@ -40,11 +40,26 @@ const emit = defineEmits<{
 }>();
 
 const toolMenuOpen = ref(false);
+const expandedServers = ref(new Set<string>());
 
 const menuStyle = computed(() => ({
   left: `${props.x}px`,
   top: `${props.y}px`,
 }));
+
+function toggleServer(server: string): void {
+  const next = new Set(expandedServers.value);
+  if (next.has(server)) {
+    next.delete(server);
+  } else {
+    next.add(server);
+  }
+  expandedServers.value = next;
+}
+
+function isServerExpanded(server: string): boolean {
+  return expandedServers.value.has(server);
+}
 
 function handleAction(action: () => void): void {
   action();
@@ -93,17 +108,32 @@ function handleTool(toolName: string): void {
             :key="group.server"
             class="composer-context-menu__tool-group"
           >
-            <header class="composer-context-menu__tool-group-title">{{ group.server }}</header>
             <button
-              v-for="tool in group.tools"
-              :key="tool.name"
               type="button"
-              class="composer-context-menu__tool-item"
-              :title="tool.description ?? tool.name"
-              @click="handleTool(tool.name)"
+              class="composer-context-menu__server-toggle"
+              :aria-expanded="isServerExpanded(group.server)"
+              @click.stop="toggleServer(group.server)"
             >
-              {{ tool.displayName }}
+              <span
+                class="composer-context-menu__chevron"
+                :class="{ 'composer-context-menu__chevron--open': isServerExpanded(group.server) }"
+                aria-hidden="true"
+              >▸</span>
+              <span class="composer-context-menu__server-name">{{ group.server }}</span>
+              <span class="composer-context-menu__tool-count">{{ group.tools.length }}</span>
             </button>
+            <div v-if="isServerExpanded(group.server)" class="composer-context-menu__tool-list">
+              <button
+                v-for="tool in group.tools"
+                :key="tool.name"
+                type="button"
+                class="composer-context-menu__tool-item"
+                :title="tool.description ?? tool.name"
+                @click="handleTool(tool.name)"
+              >
+                {{ tool.displayName }}
+              </button>
+            </div>
           </section>
         </div>
       </div>
@@ -219,9 +249,62 @@ function handleTool(toolName: string): void {
 }
 
 .composer-context-menu__tool-group + .composer-context-menu__tool-group {
-  margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  margin-top: 0.25rem;
+  padding-top: 0.25rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.composer-context-menu__server-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  text-align: left;
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.composer-context-menu__server-toggle:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.composer-context-menu__chevron {
+  display: inline-block;
+  font-size: 0.7rem;
+  transition: transform 0.15s ease;
+}
+
+.composer-context-menu__chevron--open {
+  transform: rotate(90deg);
+}
+
+.composer-context-menu__server-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-context-menu__tool-count {
+  flex-shrink: 0;
+  padding: 0.1rem 0.45rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 0.7rem;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.composer-context-menu__tool-list {
+  padding-left: 0.6rem;
 }
 
 .composer-context-menu__tool-group-title {

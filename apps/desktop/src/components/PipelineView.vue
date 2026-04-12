@@ -7,6 +7,7 @@ import PipelineComposer from './PipelineComposer.vue';
 import PipelineFlyout from './PipelineFlyout.vue';
 import PipelineIconRail from './PipelineIconRail.vue';
 import PipelineInspector from './PipelineInspector.vue';
+import PipelineActionBar from './PipelineActionBar.vue';
 import PipelineRunner from './PipelineRunner.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
 import SemanticZoomOverlay from './SemanticZoomOverlay.vue';
@@ -28,11 +29,15 @@ const selectedEdge = ref<SelectedEdge>(null);
 const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
 const hasInspectorSelection = computed(() => Boolean(selectedNodeId.value || selectedEdge.value));
+const hasDesignInspectorSelection = computed(() => designMode.value && hasInspectorSelection.value);
 const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = usePipelineLoading();
-const { isNarrowViewport, mobileSidebarOpen, mobileInspectorOpen, toggleMobileSidebar, toggleMobileInspector } = usePipelineMobile(hasInspectorSelection);
+const { isNarrowViewport, mobileSidebarOpen, mobileInspectorOpen, toggleMobileSidebar, toggleMobileInspector } = usePipelineMobile(hasDesignInspectorSelection);
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
 const { activeFlyout, close: closeFlyout, toggle: toggleFlyout } = useFlyout();
-const isInspectorVisible = computed(() => isNarrowViewport.value ? mobileInspectorOpen.value : hasInspectorSelection.value);
+const isInspectorVisible = computed(() => {
+  if (!designMode.value) return false;
+  return isNarrowViewport.value ? mobileInspectorOpen.value : hasInspectorSelection.value;
+});
 const isPipelineFlyoutOpen = computed(() => !isNarrowViewport.value && activeFlyout.value === 'pipelines');
 const bannerError = computed(() => connectionError.value || error.value || '');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
@@ -151,7 +156,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
           <button type="button" class="mobile-panel-toggle" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
           </button>
-          <button type="button" class="mobile-panel-toggle" :disabled="!hasInspectorSelection" @click="toggleMobileInspector">
+          <button v-if="designMode" type="button" class="mobile-panel-toggle" :disabled="!hasInspectorSelection" @click="toggleMobileInspector">
             {{ mobileInspectorOpen ? 'Close Inspector' : 'Open Inspector' }}
           </button>
         </div>
@@ -165,6 +170,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @node-selected="handleNodeSelected"
             @edge-selected="handleEdgeSelected"
           />
+          <PipelineActionBar />
         </template>
         <Transition name="pipeline-flyout">
           <PipelineFlyout
@@ -177,7 +183,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @retry="handleRetryLoad"
           />
         </Transition>
-        <div v-if="!showFullScreenEmpty" class="inspector-overlay">
+        <div v-if="designMode && !showFullScreenEmpty" class="inspector-overlay">
           <section class="inspector-panel" :class="{ 'is-visible': isInspectorVisible }" :aria-hidden="!isInspectorVisible">
             <div v-if="isNarrowViewport" class="mobile-inspector-header">
               <span>Inspector</span>
@@ -230,7 +236,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
         @contextmenu="handleFlyoutBackdropContextMenu"
       />
       <button v-if="isNarrowViewport && mobileSidebarOpen" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
-      <button v-if="isNarrowViewport && mobileInspectorOpen" type="button" class="mobile-overlay" aria-label="Close inspector" @click="mobileInspectorOpen = false" />
+      <button v-if="designMode && isNarrowViewport && mobileInspectorOpen" type="button" class="mobile-overlay" aria-label="Close inspector" @click="mobileInspectorOpen = false" />
     </div>
     <GraftNodesDialog
       v-if="graftDialogOpen && currentView"

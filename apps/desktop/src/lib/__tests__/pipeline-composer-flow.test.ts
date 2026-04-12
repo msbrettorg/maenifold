@@ -136,6 +136,33 @@ describe('workflow agentConfig round-trip via flow (pipelineNodesToFlow → defi
     expect(result.prompt).toBe('hello');
     expect(result.agent).toBe('architect');
   });
+
+  it('applies status shell classes and border styles to vue-flow wrappers from view-node status', () => {
+    const original = createNode('tool', {
+      id: 'tool-1',
+      toolName: 'msx-mcp-get_account_overview',
+    });
+
+    const [flowNode] = pipelineNodesToFlow(
+      [original],
+      undefined,
+      [{
+        nodeId: 'tool-1',
+        sessionId: 'session-1',
+        status: 'completed',
+        attempts: 1,
+        type: 'tool',
+        toolName: 'msx-mcp-get_account_overview',
+      }],
+    );
+
+    expect(flowNode?.class).toBe('pipeline-node-shell pipeline-node-shell--completed');
+    expect(flowNode?.style).toMatchObject({
+      borderLeftWidth: '4px',
+      borderLeftStyle: 'solid',
+      borderLeftColor: '#22c55e',
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------

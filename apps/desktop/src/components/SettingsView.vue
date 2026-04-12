@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
@@ -19,10 +19,47 @@ const sections = [
 type SectionId = (typeof sections)[number]['id'];
 
 const activeSection = ref<SectionId>('connection');
+const overlayRef = ref<HTMLElement | null>(null);
+
+const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+function onKeydown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    emit('close');
+    return;
+  }
+  if (e.key === 'Tab') {
+    const panel = overlayRef.value?.querySelector('.settings-panel') as HTMLElement | null;
+    if (!panel) return;
+    const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE));
+    if (focusable.length === 0) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+}
+
+onMounted(async () => {
+  document.addEventListener('keydown', onKeydown);
+  await nextTick();
+  const panel = overlayRef.value?.querySelector('.settings-panel') as HTMLElement | null;
+  const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
+  first?.focus();
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('keydown', onKeydown);
+});
 </script>
 
 <template>
-  <div class="settings-overlay" @click.self="emit('close')">
+  <div ref="overlayRef" class="settings-overlay" @click.self="emit('close')">
     <div class="settings-panel">
       <header class="settings-header">
         <div>

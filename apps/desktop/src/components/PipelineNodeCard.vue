@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { Handle, Position } from '@vue-flow/core';
 
 import type { NodeStatus, PipelineNode, PipelineStatus } from '../lib/pipeline-types';
+import { normalizeNodeStatusAppearance } from '../lib/pipeline-node-status';
 import {
   getNodeType,
   isPromptNode,
@@ -135,26 +136,7 @@ const titleText = computed(() => shorten(nodeLabel(node.value), 44));
 const hasCustomLabel = computed(() => Boolean(props.data.displayLabel && props.data.displayLabel !== props.data.nodeId));
 const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !== displayLabel.value);
 const currentStatus = computed(() => props.data.status ?? 'pending');
-const statusAppearance = computed(() => {
-  switch (currentStatus.value) {
-    case 'active':
-    case 'running':
-    case 'retrying':
-      return 'active';
-    case 'completed':
-      return 'completed';
-    case 'abandoned':
-      return 'abandoned';
-    case 'stuck':
-      return 'stuck';
-    case 'cancelled':
-      return 'cancelled';
-    case 'pending':
-    case 'ready':
-    default:
-      return 'pending';
-  }
-});
+const statusAppearance = computed(() => normalizeNodeStatusAppearance(currentStatus.value));
 const nodeStatusClass = computed(() => `node-status-${statusAppearance.value}`);
 const isActive = computed(() => statusAppearance.value === 'active');
 const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
@@ -306,6 +288,9 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 }
 .pipeline-node :deep(.vue-flow__handle-left) { left: -5px; }
 .pipeline-node :deep(.vue-flow__handle-right) { right: -5px; }
+:deep(.vue-flow__node.pipeline-node-shell--active) {
+  animation: pipeline-node-shell-pulse 2s ease-in-out infinite;
+}
 
 @keyframes node-pulse {
   0%, 100% {
@@ -319,5 +304,10 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 @keyframes pulse-border {
   0%, 100% { border-color: #3b82f6; }
   50% { border-color: #60a5fa; }
+}
+
+@keyframes pipeline-node-shell-pulse {
+  0%, 100% { border-left-color: #3b82f6; }
+  50% { border-left-color: #60a5fa; }
 }
 </style>

@@ -50,7 +50,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   position: fixed;
   right: 1rem;
   bottom: 1rem;
-  z-index: 1300;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -70,7 +70,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   border-radius: 0.75rem;
   background: #1e1e1e;
   color: #f5f5f5;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }
 

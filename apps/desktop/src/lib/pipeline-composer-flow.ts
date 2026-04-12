@@ -14,6 +14,7 @@ import {
   isToolNode,
   isWorkflowNode,
 } from './pipeline-types';
+import { getNodeShellClassName, getNodeShellStyle } from './pipeline-node-status';
 import { createNode } from './pipeline-node-factory';
 
 export type FlowNodeData = {
@@ -272,7 +273,9 @@ export function pipelineNodesToFlow(
   return pipelineNodes.map((node, index) => ({
     id: node.id,
     type: 'pipelineNode',
+    class: getNodeShellClassName(viewMap.get(node.id)?.status),
     position: cached[node.id] ?? defaultPosition(index),
+    style: getNodeShellStyle(viewMap.get(node.id)?.status),
     data: toFlowNodeData(node, viewMap.get(node.id)),
   }));
 }

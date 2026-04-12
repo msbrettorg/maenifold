@@ -3,12 +3,22 @@
   "private": true,
   "version": "0.1.10",
   "type": "module",
+  "main": "dist-electron/main.js",
+  "productName": "maenifold",
+  "config": {
+    "forge": "./forge.config.ts"
+  },
   "scripts": {
     "dev": "vite",
+    "dev:electron": "vite",
     "build": "vue-tsc --noEmit && vite build",
+    "build:electron": "vite build",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
     "preview": "vite preview",
     "test": "NODE_OPTIONS='--no-warnings' vitest run",
-    "test:e2e": "vitest run --reporter verbose src/composables/__tests__/mcpIntegration.test.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
     "test:watch": "vitest"
   },
   "dependencies": {
@@ -35,12 +45,18 @@
     "vue": "^3.5.13"
   },
   "devDependencies": {
+    "@electron-forge/cli": "^7.11.1",
+    "@electron-forge/maker-zip": "^7.11.1",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^25.1.0",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/test-utils": "^2.4.6",
+    "electron": "^37.3.1",
     "jsdom": "^29.0.0",
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
+    "vite-plugin-electron": "^0.29.1",
+    "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^4.1.0",
     "vue-tsc": "^2.1.10"
   }

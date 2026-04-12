@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-electron
 dist-ssr
 *.local
 
@@ -42,6 +43,7 @@ Desktop.ini
 *.sw?
 
 # Build outputs
+out/
 *.exe
 *.msi
 *.dmg

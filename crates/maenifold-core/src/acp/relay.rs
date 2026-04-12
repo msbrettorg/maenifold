@@ -13,6 +13,7 @@ use futures_util::{SinkExt, StreamExt};
 use sacp::{UntypedMessage, schema as sacps};
 use serde_json::{Value, json};
 use std::collections::{HashMap, HashSet};
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc};
 use tokio::time::{Duration, sleep};
@@ -20,7 +21,7 @@ use tokio::time::{Duration, sleep};
 pub async fn ws_handler(
     ws: WebSocketUpgrade,
     Query(params): Query<HashMap<String, String>>,
-    ) -> Response {
+) -> Response {
     let agent = match resolve_agent(&params) {
         Ok(selection) => selection,
         Err(message) => return (StatusCode::BAD_REQUEST, message).into_response(),
@@ -40,12 +41,8 @@ where
     Router::new().route("/api/acp/session", get(ws_handler))
 }
 
-async fn handle_socket(
-    socket: WebSocket,
-    agent: RelayAgent,
-    keep_session_alive: bool,
-) {
-    let cwd = crate::config::Config::current().maenifold_root;
+async fn handle_socket(socket: WebSocket, agent: RelayAgent, keep_session_alive: bool) {
+    let cwd = relay_server_cwd();
     let handle = GLOBAL_AGENT_POOL
         .get_or_create(
             &agent.name,
@@ -87,14 +84,9 @@ async fn handle_socket(
         match receiver.next().await {
             Some(Ok(Message::Text(payload))) => {
                 let _ = GLOBAL_AGENT_POOL.touch_handle(&handle).await;
-                if handle_client_message(
-                    &payload,
-                    &handle,
-                    &outbound_tx,
-                    &mut relay_sessions,
-                )
-                .await
-                .is_err()
+                if handle_client_message(&payload, &handle, &cwd, &outbound_tx, &mut relay_sessions)
+                    .await
+                    .is_err()
                 {
                     break;
                 }
@@ -175,9 +167,7 @@ impl RelayError {
     }
 }
 
-fn resolve_agent(
-    params: &HashMap<String, String>,
-    ) -> std::result::Result<RelayAgent, String> {
+fn resolve_agent(params: &HashMap<String, String>) -> std::result::Result<RelayAgent, String> {
     let cwd = crate::config::Config::current().maenifold_root;
     let config = AgentsConfig::load(&cwd);
     let available_agents_msg = available_agents_message(&config);
@@ -222,6 +212,22 @@ fn available_agents_message(config: &AgentsConfig) -> String {
         "none".to_string()
     } else {
         available_agents.join(", ")
+    }
+}
+
+fn relay_server_cwd() -> PathBuf {
+    std::env::current_dir().unwrap_or_else(|_| crate::config::Config::current().maenifold_root)
+}
+
+fn enforce_server_cwd(request_cwd: &mut PathBuf, server_cwd: &Path, method: &str) {
+    if request_cwd != server_cwd {
+        tracing::warn!(
+            method,
+            client_cwd = %request_cwd.display(),
+            server_cwd = %server_cwd.display(),
+            "Ignoring client-supplied ACP cwd for relay filesystem scope"
+        );
+        *request_cwd = server_cwd.to_path_buf();
     }
 }
 
@@ -289,6 +295,7 @@ async fn watch_agent_death(handle: Arc<AgentHandle>, outbound: mpsc::Sender<Outb
 async fn handle_client_message(
     payload: &str,
     handle: &Arc<AgentHandle>,
+    server_cwd: &Path,
     outbound: &mpsc::Sender<OutboundEvent>,
     relay_sessions: &mut HashSet<String>,
 ) -> std::result::Result<(), ()> {
@@ -322,7 +329,15 @@ async fn handle_client_message(
     let params = value.get("params").cloned().unwrap_or(Value::Null);
     match value.get("id").cloned() {
         Some(id) => {
-            let message = match dispatch_request(method, params, handle, outbound, relay_sessions).await
+            let message = match dispatch_request(
+                method,
+                params,
+                handle,
+                server_cwd,
+                outbound,
+                relay_sessions,
+            )
+            .await
             {
                 Ok(result) => json_rpc_success(&id, result),
                 Err(error) => json_rpc_error(&id, error.code, &error.message),
@@ -332,8 +347,7 @@ async fn handle_client_message(
             }
         }
         None => {
-            if let Err(error) =
-                dispatch_notification(method, params, handle, relay_sessions).await
+            if let Err(error) = dispatch_notification(method, params, handle, relay_sessions).await
             {
                 let _ = outbound
                     .send(OutboundEvent::Text(error_msg(&error.message)))
@@ -347,6 +361,7 @@ async fn handle_client_message(
 }
 
 async fn handle_client_response(value: &Value, handle: &Arc<AgentHandle>) {
+    let _ = GLOBAL_AGENT_POOL.touch_handle(handle).await;
     let request_id = value.get("id").and_then(Value::as_u64);
     let Some(request_id) = request_id else {
         return;
@@ -370,14 +385,16 @@ async fn dispatch_request(
     method: &str,
     params: Value,
     handle: &Arc<AgentHandle>,
+    server_cwd: &Path,
     outbound: &mpsc::Sender<OutboundEvent>,
     relay_sessions: &mut HashSet<String>,
 ) -> std::result::Result<Value, RelayError> {
     match method {
         "initialize" => initialize_response(handle).await,
         "session/new" => {
-            let request: sacps::NewSessionRequest =
+            let mut request: sacps::NewSessionRequest =
                 serde_json::from_value(params).map_err(invalid_params_error)?;
+            enforce_server_cwd(&mut request.cwd, server_cwd, "session/new");
             let conn = ready_connection(handle).await?;
             let response = conn
                 .send_request(request.clone())
@@ -394,8 +411,9 @@ async fn dispatch_request(
             serde_json::to_value(response).map_err(internal_json_error)
         }
         "session/load" => {
-            let request: sacps::LoadSessionRequest =
+            let mut request: sacps::LoadSessionRequest =
                 serde_json::from_value(params).map_err(invalid_params_error)?;
+            enforce_server_cwd(&mut request.cwd, server_cwd, "session/load");
             let conn = ready_connection(handle).await?;
             let response = conn
                 .send_request(request.clone())
@@ -443,15 +461,22 @@ async fn register_relay_session(
     if relay_sessions.insert(session_id.clone()) {
         handle.track_session(&session_id).await;
         handle
-            .register_relay_session(&session_id, relay_outbound(outbound.clone()))
+            .register_relay_session(
+                &session_id,
+                relay_outbound(handle.clone(), outbound.clone()),
+            )
             .await;
     }
 }
 
-fn relay_outbound(outbound: mpsc::Sender<OutboundEvent>) -> mpsc::Sender<String> {
+fn relay_outbound(
+    handle: Arc<AgentHandle>,
+    outbound: mpsc::Sender<OutboundEvent>,
+) -> mpsc::Sender<String> {
     let (tx, mut rx) = mpsc::channel::<String>(64);
     tokio::spawn(async move {
         while let Some(message) = rx.recv().await {
+            let _ = GLOBAL_AGENT_POOL.touch_handle(&handle).await;
             if outbound.send(OutboundEvent::Text(message)).await.is_err() {
                 break;
             }
@@ -476,8 +501,8 @@ async fn forward_request(
     handle: &Arc<AgentHandle>,
 ) -> std::result::Result<Value, RelayError> {
     let conn = ready_connection(handle).await?;
-    let request =
-        UntypedMessage::new(method, params).map_err(|error| RelayError::internal(error.to_string()))?;
+    let request = UntypedMessage::new(method, params)
+        .map_err(|error| RelayError::internal(error.to_string()))?;
     conn.send_request(request)
         .block_task()
         .await
@@ -490,8 +515,8 @@ async fn forward_notification(
     handle: &Arc<AgentHandle>,
 ) -> std::result::Result<(), RelayError> {
     let conn = ready_connection(handle).await?;
-    let notification =
-        UntypedMessage::new(method, params).map_err(|error| RelayError::internal(error.to_string()))?;
+    let notification = UntypedMessage::new(method, params)
+        .map_err(|error| RelayError::internal(error.to_string()))?;
     conn.send_notification(notification)
         .map_err(internal_acp_error)
 }
@@ -536,4 +561,19 @@ fn json_rpc_error(id: &Value, code: i64, message: &str) -> String {
         }
     }))
     .expect("error responses must serialize")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn enforce_server_cwd_replaces_client_scope() {
+        let server_cwd = PathBuf::from("/server-root");
+        let mut request_cwd = PathBuf::from("/client-root");
+
+        enforce_server_cwd(&mut request_cwd, &server_cwd, "session/new");
+
+        assert_eq!(request_cwd, server_cwd);
+    }
 }

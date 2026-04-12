@@ -338,11 +338,11 @@ impl AgentHandle {
     pub async fn unregister_relay_session(&self, session_id: &str) {
         self.client.unregister_relay_session(session_id).await;
     }
-    pub(crate) async fn forget_session(&self, session_id: &str) {
-        self.client.remove_session(session_id).await;
-    }
     pub(crate) async fn track_session(&self, session_id: &str) {
         self.client.register_session(session_id.to_string()).await;
+    }
+    pub(crate) async fn forget_session(&self, session_id: &str) {
+        self.client.remove_session(session_id).await;
     }
     pub(crate) async fn has_tracked_sessions(&self) -> bool {
         self.client.has_any_sessions().await
@@ -473,7 +473,10 @@ impl AgentHandle {
         self.init
             .lock()
             .ok()
-            .and_then(|init| init.as_ref().and_then(|init| init.capabilities.session_capabilities.close.clone()))
+            .and_then(|init| {
+                init.as_ref()
+                    .and_then(|init| init.capabilities.session_capabilities.close.clone())
+            })
             .is_some()
     }
 }

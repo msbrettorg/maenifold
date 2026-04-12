@@ -124,9 +124,7 @@ impl AgentPool {
                     false
                 };
 
-                if should_evict
-                    && let Some(entry) = agents.remove(&name)
-                {
+                if should_evict && let Some(entry) = agents.remove(&name) {
                     let _ = entry.handle.shutdown_nowait();
                 }
             }
@@ -177,15 +175,14 @@ impl AgentPool {
 
     pub async fn touch_handle(&self, handle: &Arc<AgentHandle>) -> bool {
         let mut agents = self.agents.lock().await;
-        if let Some(entry) = agents
-            .values_mut()
-            .find(|entry| Arc::ptr_eq(&entry.handle, handle))
-        {
-            entry.last_used = Instant::now();
-            true
-        } else {
-            false
-        }
+        let Some((_, entry)) = agents
+            .iter_mut()
+            .find(|(_, entry)| Arc::ptr_eq(&entry.handle, handle))
+        else {
+            return false;
+        };
+        entry.last_used = Instant::now();
+        true
     }
 }
 
@@ -275,6 +272,7 @@ fn lexical_normalize_path(path: &Path) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::acp_native::test_handle_for_tests;
 
     fn env_pairs(pairs: &[(&str, &str)]) -> HashMap<String, String> {
         let mut env = HashMap::new();
@@ -381,5 +379,96 @@ mod tests {
             first, second,
             "nonexistent cwd aliases should normalize deterministically via safe fallback"
         );
+    }
+
+    #[tokio::test]
+    async fn eviction_skips_handles_with_tracked_sessions() {
+        let pool = AgentPool {
+            agents: Mutex::new(HashMap::new()),
+            max_agents: 1,
+        };
+        let (tracked_handle, _request_rx, _control_rx) = test_handle_for_tests(1);
+        let tracked_handle = Arc::new(tracked_handle);
+        tracked_handle.register_test_session("session-in-use").await;
+
+        let tracked_key = AgentPool::pool_key(
+            "tracked",
+            "tracked --serve",
+            Path::new("."),
+            &HashMap::new(),
+            false,
+        );
+        pool.agents.lock().await.insert(
+            tracked_key,
+            PoolEntry {
+                handle: Arc::clone(&tracked_handle),
+                last_used: Instant::now() - Duration::from_secs(60),
+            },
+        );
+
+        let returned = pool
+            .get_or_create(
+                "fresh",
+                "fresh --serve",
+                Path::new("."),
+                HashMap::new(),
+                false,
+            )
+            .await;
+
+        assert!(
+            !Arc::ptr_eq(&returned, &tracked_handle),
+            "pool should not evict a handle with live tracked sessions"
+        );
+        assert!(
+            tracked_handle.has_tracked_sessions().await,
+            "tracked handle should remain live in the pool"
+        );
+        assert_eq!(
+            pool.agents.lock().await.len(),
+            2,
+            "pool should retain the tracked handle and admit the new one"
+        );
+        pool.close_all().await;
+    }
+
+    #[tokio::test]
+    async fn touch_handle_refreshes_last_used() {
+        let pool = AgentPool {
+            agents: Mutex::new(HashMap::new()),
+            max_agents: 1,
+        };
+        let (handle, _request_rx, _control_rx) = test_handle_for_tests(1);
+        let handle = Arc::new(handle);
+        let key = AgentPool::pool_key(
+            "tracked",
+            "tracked --serve",
+            Path::new("."),
+            &HashMap::new(),
+            false,
+        );
+        let stale = Instant::now() - Duration::from_secs(60);
+        pool.agents.lock().await.insert(
+            key.clone(),
+            PoolEntry {
+                handle: Arc::clone(&handle),
+                last_used: stale,
+            },
+        );
+
+        assert!(pool.touch_handle(&handle).await);
+
+        let refreshed = pool
+            .agents
+            .lock()
+            .await
+            .get(&key)
+            .expect("entry must still exist")
+            .last_used;
+        assert!(
+            refreshed > stale,
+            "touch_handle should update last_used for active relay traffic"
+        );
+        pool.close_all().await;
     }
 }

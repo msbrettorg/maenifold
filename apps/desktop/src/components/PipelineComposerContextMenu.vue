@@ -21,6 +21,9 @@ const props = defineProps<{
   canAskAgent: boolean;
   canThink: boolean;
   canRunWorkflow: boolean;
+  pipelineStatus?: string | null;
+  pipelineRunning?: boolean;
+  hasCompletedNodes?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -37,7 +40,21 @@ const emit = defineEmits<{
   (e: 'rewind'): void;
   (e: 'fork'): void;
   (e: 'abandon'): void;
+  (e: 'run-pipeline'): void;
+  (e: 'rewind-all'): void;
+  (e: 'graft'): void;
+  (e: 'promote-to-memory'): void;
 }>();
+
+const isNonTerminal = computed(() => {
+  const s = props.pipelineStatus;
+  return s === 'active' || s === 'paused' || s === 'stuck';
+});
+
+const hasServerCanvasActions = computed(() => {
+  if (props.mode !== 'server' || props.target !== 'canvas') return false;
+  return isNonTerminal.value || Boolean(props.hasCompletedNodes);
+});
 
 const toolMenuOpen = ref(false);
 const expandedServers = ref(new Set<string>());
@@ -74,7 +91,7 @@ function handleTool(toolName: string): void {
 
 <template>
   <div
-    v-if="mode === 'design' || target === 'node'"
+    v-if="mode === 'design' || target === 'node' || hasServerCanvasActions"
     class="composer-context-menu"
     :style="menuStyle"
     @contextmenu.prevent
@@ -170,7 +187,7 @@ function handleTool(toolName: string): void {
       </button>
     </template>
 
-    <template v-else>
+    <template v-else-if="mode === 'server' && target === 'node'">
       <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('restart'))">
         Restart
       </button>
@@ -182,6 +199,41 @@ function handleTool(toolName: string): void {
       </button>
       <button type="button" class="composer-context-menu__item composer-context-menu__item--danger" @click="handleAction(() => emit('abandon'))">
         Abandon
+      </button>
+    </template>
+
+    <template v-else-if="mode === 'server' && target === 'canvas'">
+      <button
+        v-if="pipelineStatus === 'active' && !pipelineRunning"
+        type="button"
+        class="composer-context-menu__item"
+        @click="handleAction(() => emit('run-pipeline'))"
+      >
+        ▶ Run Pipeline
+      </button>
+      <button
+        v-if="hasCompletedNodes && isNonTerminal"
+        type="button"
+        class="composer-context-menu__item"
+        @click="handleAction(() => emit('rewind-all'))"
+      >
+        ↩ Rewind
+      </button>
+      <button
+        v-if="isNonTerminal"
+        type="button"
+        class="composer-context-menu__item"
+        @click="handleAction(() => emit('graft'))"
+      >
+        ⑂ Graft
+      </button>
+      <button
+        v-if="hasCompletedNodes"
+        type="button"
+        class="composer-context-menu__item"
+        @click="handleAction(() => emit('promote-to-memory'))"
+      >
+        ✦ Promote to Memory
       </button>
     </template>
   </div>

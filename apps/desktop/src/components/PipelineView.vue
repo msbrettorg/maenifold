@@ -10,6 +10,7 @@ import PipelineInspector from './PipelineInspector.vue';
 import PipelineActionBar from './PipelineActionBar.vue';
 import PipelineRunner from './PipelineRunner.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
+import PromotionDialog from './PromotionDialog.vue';
 import SemanticZoomOverlay from './SemanticZoomOverlay.vue';
 import TemplateGallery from './TemplateGallery.vue';
 import { useFlyout } from '../composables/useFlyout';
@@ -17,7 +18,7 @@ import { usePipelineStore } from '../stores/pipeline';
 import { usePipelineDialogs } from '../composables/usePipelineDialogs';
 import { usePipelineLoading } from '../composables/usePipelineLoading';
 import { usePipelineMobile } from '../composables/usePipelineMobile';
-import type { PipelineDefinition } from '../lib/pipeline-types';
+import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 
 type SelectedEdge = { source: string; target: string } | null;
 type PipelineIconRailExpose = { focusPipelineToggle: () => void };
@@ -34,6 +35,7 @@ const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = u
 const { isNarrowViewport, mobileSidebarOpen, mobileInspectorOpen, toggleMobileSidebar, toggleMobileInspector } = usePipelineMobile(hasDesignInspectorSelection);
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
 const { activeFlyout, close: closeFlyout, toggle: toggleFlyout } = useFlyout();
+const promotionNode = ref<ViewNode | null>(null);
 const isInspectorVisible = computed(() => {
   if (!designMode.value) return false;
   return isNarrowViewport.value ? mobileInspectorOpen.value : hasInspectorSelection.value;
@@ -96,6 +98,13 @@ function handleNewPipeline() {
     mobileSidebarOpen.value = false;
     mobileInspectorOpen.value = false;
   }
+}
+function handleOpenGraft() {
+  if (hasLoadedPipeline.value) graftDialogOpen.value = true;
+}
+function handleOpenPromotion() {
+  const node = currentView.value?.nodes.find((n) => n.status === 'completed' && n.output);
+  if (node) promotionNode.value = node;
 }
 function handleFlyoutBackdropClick(event: MouseEvent) {
   event.preventDefault();
@@ -169,6 +178,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @update:local-definition="handleDefinitionUpdate"
             @node-selected="handleNodeSelected"
             @edge-selected="handleEdgeSelected"
+            @open-graft="handleOpenGraft"
+            @open-promotion="handleOpenPromotion"
           >
             <template #toolbar-actions>
               <PipelineActionBar />
@@ -250,6 +261,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
       @submit="handleGraftSubmit"
     />
     <JoinPipelineDialog v-if="joinDialogOpen && currentView" :busy="joinSubmitting" @cancel="joinDialogOpen = false" @submit="handleJoinSubmit" />
+    <PromotionDialog
+      v-if="promotionNode && currentView?.pipelineId"
+      :node="promotionNode"
+      :pipeline-id="currentView.pipelineId"
+      @close="promotionNode = null"
+    />
     <SemanticZoomOverlay />
   </div>
 </template>

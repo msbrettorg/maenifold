@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
 import { usePipelineStore } from '../stores/pipeline';
 
-type ActionKey = 'create' | 'pause' | 'resume' | 'cancel' | 'delete';
+type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'delete';
 
 interface ActionConfig {
   key: ActionKey;
@@ -96,6 +96,14 @@ const actions = computed<ActionConfig[]>(() => {
           run: handleDelete,
         },
       ];
+    case 'active':
+      return [{
+        key: 'run',
+        label: 'Run',
+        icon: Play,
+        className: 'btn-primary',
+        run: () => store.runPipeline(),
+      }];
     default:
       return [];
   }

@@ -47,6 +47,8 @@ const emit = defineEmits<{
   (e: 'rewindNode', nodeId: string): void;
   (e: 'forkNode', nodeId: string): void;
   (e: 'abandonNode', nodeId: string): void;
+  (e: 'openGraft'): void;
+  (e: 'openPromotion'): void;
 }>();
 
 const {
@@ -229,7 +231,12 @@ function handleComposerContextMenu(event: MouseEvent): void {
   }
 
   if (!props.designMode) {
-    closeContextMenu();
+    contextMenu.value = {
+      mode: 'canvas',
+      x: event.clientX,
+      y: event.clientY,
+      position: toFlowPosition(event.clientX, event.clientY, flowRoot),
+    };
     return;
   }
 
@@ -352,6 +359,37 @@ function emitServerNodeAction(eventName: 'restartNode' | 'rewindNode' | 'forkNod
       emit('abandonNode', nodeId);
       break;
   }
+  closeContextMenu();
+}
+
+const currentPipelineStatus = computed(() => props.view?.status ?? null);
+const currentPipelineRunning = computed(() => props.view?.running ?? false);
+const hasCompletedNodes = computed(() =>
+  props.view?.nodes.some((n) => n.status === 'completed') ?? false,
+);
+
+function handleCanvasRunPipeline(): void {
+  void store.runPipeline();
+  closeContextMenu();
+}
+
+function handleCanvasRewindAll(): void {
+  const rewindableIds = props.view?.nodes
+    .filter((n) => n.status === 'completed' || n.status === 'abandoned' || n.status === 'stuck')
+    .map((n) => n.nodeId) ?? [];
+  if (rewindableIds.length > 0) {
+    void store.rewindNodes(rewindableIds);
+  }
+  closeContextMenu();
+}
+
+function handleCanvasGraft(): void {
+  emit('openGraft');
+  closeContextMenu();
+}
+
+function handleCanvasPromoteToMemory(): void {
+  emit('openPromotion');
   closeContextMenu();
 }
 
@@ -541,11 +579,18 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           :can-ask-agent="Boolean(firstAgent)"
           :can-think="Boolean(firstAgent)"
           :can-run-workflow="Boolean(firstWorkflow)"
+          :pipeline-status="currentPipelineStatus"
+          :pipeline-running="currentPipelineRunning"
+          :has-completed-nodes="hasCompletedNodes"
           @close="closeContextMenu"
           @restart="emitServerNodeAction('restartNode')"
           @rewind="emitServerNodeAction('rewindNode')"
           @fork="emitServerNodeAction('forkNode')"
           @abandon="emitServerNodeAction('abandonNode')"
+          @run-pipeline="handleCanvasRunPipeline"
+          @rewind-all="handleCanvasRewindAll"
+          @graft="handleCanvasGraft"
+          @promote-to-memory="handleCanvasPromoteToMemory"
         />
       </section>
     </template>

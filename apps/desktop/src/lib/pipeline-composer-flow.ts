@@ -195,7 +195,7 @@ function toPipelineNode(data: FlowNodeData): PipelineNode {
           ? { displayLabel: data.displayLabel }
           : {}),
         workflowId: data.workflowId ?? '',
-        acpClient: data.acpClient ?? data.agent ?? '',
+        acpClient: data.acpClient ?? '',
         ...(data.model ? { model: data.model } : {}),
         // Restore agentConfig so mode/thoughtLevel/configOptions are not silently dropped.
         ...(data.agentConfig ? { agentConfig: data.agentConfig } : {}),

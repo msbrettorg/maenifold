@@ -139,7 +139,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             ..
         } => json!({
             "workflowId": workflow_id,
-            "agent": acp_client,
+            "acpClient": acp_client,
             "prompt": prompt,
             "timeout": timeout,
             "agentConfig": agent_config,

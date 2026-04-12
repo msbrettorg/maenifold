@@ -165,7 +165,6 @@ export interface WorkflowViewNode extends ViewNodeBase {
   type?: "workflow";
   workflowId: string;
   acpClient?: string;
-  agent?: string;
   prompt?: string;
   model?: string;
   thoughtLevel?: string;

@@ -249,8 +249,8 @@ export function createNode(
         type: 'workflow',
         ...buildDisplayLabel(workflowFields.displayLabel),
         workflowId: workflowFields.workflowId,
-        ...((workflowFields.acpClient ?? workflowFields.agent ?? '').length > 0
-          ? { acpClient: workflowFields.acpClient ?? workflowFields.agent }
+        ...((workflowFields.acpClient ?? '').length > 0
+          ? { acpClient: workflowFields.acpClient }
           : {}),
         ...(typeof workflowFields.prompt === 'string' &&
         workflowFields.prompt.length > 0

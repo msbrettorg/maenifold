@@ -196,6 +196,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         workflowId: node.workflowId,
         ...(client ? { acpClient: client } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
+        ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
     }

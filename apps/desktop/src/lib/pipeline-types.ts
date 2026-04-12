@@ -14,7 +14,8 @@ export type NodeStatus =
   | "active"
   | "completed"
   | "abandoned"
-  | "stuck";
+  | "stuck"
+  | "retrying";
 
 export type PipelineStatus =
   | "active"
@@ -43,6 +44,7 @@ export interface WorkflowNode extends PipelineNodeBase {
   model?: string;
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
+  timeout?: number;
 }
 
 export interface PromptNode extends PipelineNodeBase {
@@ -168,6 +170,7 @@ export interface WorkflowViewNode extends ViewNodeBase {
   model?: string;
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
+  timeout?: number;
   assembled_prompt?: string | null;
   workflow_steps?: WorkflowStepEntry[] | null;
 }

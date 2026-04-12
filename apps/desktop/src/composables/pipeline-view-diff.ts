@@ -17,19 +17,38 @@ export function hydrateEventLogFromView(
   view: PipelineView | null | undefined,
 ): LogEntry[] {
   if (!view?.nodes) return [];
-  const loadedAt = Date.now();
   return view.nodes.flatMap((node, index) => {
+    const loadedAt = Date.now();
+    const entries: LogEntry[] = [];
     if (node.status === 'pending') {
-      return [];
+      return entries;
     }
-    const preview = node.status === 'completed' ? buildNodeOutputPreview(node) : '';
-    return [{
-      nodeId: node.nodeId,
-      from: 'loaded',
-      to: node.status,
-      timestamp: loadedAt + index,
-      ...(preview ? { preview } : {}),
-    }];
+    if (node.status === 'completed') {
+      const preview = buildNodeOutputPreview(node);
+      entries.push({
+        nodeId: node.nodeId,
+        from: 'loaded',
+        to: node.status,
+        timestamp: loadedAt + index,
+        ...(preview ? { preview } : {}),
+      });
+    } else if (node.status === 'retrying') {
+      entries.push({
+        nodeId: node.nodeId,
+        from: 'loaded',
+        to: node.status,
+        timestamp: loadedAt + index,
+        preview: `Retrying${node.output ? ': ' + node.output.slice(0, 80) : ''}`,
+      });
+    } else {
+      entries.push({
+        nodeId: node.nodeId,
+        from: 'loaded',
+        to: node.status,
+        timestamp: loadedAt + index,
+      });
+    }
+    return entries;
   });
 }
 

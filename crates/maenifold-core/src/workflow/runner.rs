@@ -266,24 +266,26 @@ pub(crate) async fn run_workflow_with_pool(
         }
     }
     .await;
+    let acp_session_id = driver.remote_id().to_string();
+    let failure_result = |error: &MaenifoldError| {
+        workflow_failure_result(run_ctx.session_id.clone(), acp_session_id.clone(), error)
+    };
     if keep_session_alive {
-        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
         match result {
             Ok(value) => Ok(value),
-            Err(error) => Ok(workflow_failure_result(
-                run_ctx.session_id.clone(),
-                acp_session_id,
-                &error,
-            )),
+            Err(error) => Ok(failure_result(&error)),
         }
     } else {
         let close_result = driver.close().await;
         match (result, close_result) {
             (Ok(value), Ok(())) => Ok(value),
             (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-            (Err(error), Ok(())) => Err(error),
+            (Err(error), Err(close_error)) => {
+                let error = append_close_error_context(error, close_error);
+                Ok(failure_result(&error))
+            }
+            (Err(error), Ok(())) => Ok(failure_result(&error)),
         }
     }
 }
@@ -357,24 +359,26 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         }
     }
     .await;
+    let acp_session_id = driver.remote_id().to_string();
+    let failure_result = |error: &MaenifoldError| {
+        workflow_failure_result(run_ctx.session_id.clone(), acp_session_id.clone(), error)
+    };
     if keep_session_alive {
-        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
         match result {
             Ok(value) => Ok(value),
-            Err(error) => Ok(workflow_failure_result(
-                run_ctx.session_id.clone(),
-                acp_session_id,
-                &error,
-            )),
+            Err(error) => Ok(failure_result(&error)),
         }
     } else {
         let close_result = driver.close().await;
         match (result, close_result) {
             (Ok(value), Ok(())) => Ok(value),
             (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-            (Err(error), Ok(())) => Err(error),
+            (Err(error), Err(close_error)) => {
+                let error = append_close_error_context(error, close_error);
+                Ok(failure_result(&error))
+            }
+            (Err(error), Ok(())) => Ok(failure_result(&error)),
         }
     }
 }

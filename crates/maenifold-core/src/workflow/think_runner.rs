@@ -162,19 +162,24 @@ pub(crate) async fn drive_think_session(
         content_blocks,
     )
     .await;
+    let acp_session_id = driver.remote_id().to_string();
+    let failure_result =
+        |error: &MaenifoldError| think_failure_result(session_id, acp_session_id.clone(), error);
     if keep_session_alive {
-        let acp_session_id = driver.remote_id().to_string();
         driver.keep_alive();
         match result {
             Ok(value) => Ok(value),
-            Err(error) => Ok(think_failure_result(session_id, acp_session_id, &error)),
+            Err(error) => Ok(failure_result(&error)),
         }
     } else {
         match (result, driver.close().await) {
             (Ok(value), Ok(())) => Ok(value),
             (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(close_error)) => Err(append_close_error_context(error, close_error)),
-            (Err(error), Ok(())) => Err(error),
+            (Err(error), Err(close_error)) => {
+                let error = append_close_error_context(error, close_error);
+                Ok(failure_result(&error))
+            }
+            (Err(error), Ok(())) => Ok(failure_result(&error)),
         }
     }
 }

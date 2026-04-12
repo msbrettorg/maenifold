@@ -8,6 +8,7 @@ import {
   type AgentProbeResult,
 } from '../lib/agent-probe-types';
 import { useConfigStore } from './config';
+import { useToastStore } from './toast';
 
 type ProbeStatus = 'idle' | 'probing' | 'done' | 'error';
 
@@ -148,6 +149,7 @@ async function listAgentsWithSoftTimeout(
 export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () => {
   const configStore = useConfigStore();
   const mcp = usePipelineMcp();
+  const toastStore = useToastStore();
   const probeResults = ref<Map<string, AgentProbeResult>>(new Map());
   const probeStatus = ref<ProbeStatus>('idle');
   const warningMessage = ref<string | null>(null);
@@ -287,6 +289,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       }
       probeResults.value = next;
       probeStatus.value = 'error';
+      toastStore.addToast({ message, level: 'warning' });
       scheduleRetry();
       return;
     }
@@ -316,6 +319,10 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       needsRetry = shouldRetryProbe(message);
       const preserveCached = needsRetry;
       warningMessage.value = timedOut ? AGENT_PROBE_FALLBACK_WARNING : null;
+      toastStore.addToast({
+        message: warningMessage.value ?? message,
+        level: 'warning',
+      });
       for (const agentName of agentNames) {
         const existing = probeResults.value.get(agentName);
         if (preserveCached && existing?.state === 'ready') {

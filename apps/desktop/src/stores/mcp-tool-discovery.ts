@@ -7,12 +7,14 @@ import type {
   McpServerDiscoveryResult,
   ServerHealthStatus,
 } from '../lib/types';
+import { useToastStore } from './toast';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => {
+  const toastStore = useToastStore();
   const serverResults = ref<McpServerDiscoveryResult[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -87,6 +89,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       return serverResults.value;
     } catch (cause) {
       error.value = getErrorMessage(cause);
+      toastStore.addToast({ message: error.value, level: 'warning' });
       return serverResults.value;
     } finally {
       loading.value = false;

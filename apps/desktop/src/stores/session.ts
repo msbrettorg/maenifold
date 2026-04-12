@@ -17,11 +17,13 @@ import { useSessionPersistence } from '../composables/useSessionPersistence';
 import { usePermissions } from '../composables/usePermissions';
 import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
+import { useToastStore } from './toast';
 
 // `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
 // for W3C trace context and must not be repurposed for custom ACP metadata.
 
 export const useSessionStore = defineStore('session', () => {
+  const toastStore = useToastStore();
   // ── Core multi-session state (owned by orchestrator) ──────────────
   const sessions = ref<Map<string, SessionState>>(new Map());
   const activeSessionId = ref<string | null>(null);
@@ -211,6 +213,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   function setError(msg: string) {
+    toastStore.addToast({ message: msg, level: 'error' });
     const session = activeSession.value;
     if (session) {
       session.error = msg;

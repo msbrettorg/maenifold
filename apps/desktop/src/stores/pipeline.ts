@@ -25,6 +25,7 @@ import { createNodeId } from '../lib/pipeline-node-factory';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
 import { useConfigStore } from './config';
+import { useToastStore } from './toast';
 import {
   isCreateResult,
   normalizePipelineList,
@@ -57,6 +58,7 @@ function serializeEdge(edge: PipelineEdge): PipelineEdge {
 export const usePipelineStore = defineStore('pipeline', () => {
   const mcp = usePipelineMcp();
   const configStore = useConfigStore();
+  const toastStore = useToastStore();
   const pipelines = ref<PipelineListItem[]>([]);
   const currentPipelineId = ref<string | null>(null);
   const currentView = ref<PipelineView | null>(null);
@@ -87,6 +89,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   function setError(tool: string, err: unknown) {
     errorMessage.value = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
     successMessage.value = null;
+    toastStore.addToast({ message: errorMessage.value, level: 'error' });
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();

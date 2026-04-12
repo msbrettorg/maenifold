@@ -13,6 +13,7 @@ import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
+import ToastContainer from './components/ToastContainer.vue';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
@@ -31,7 +32,6 @@ const {
     activeTab,
     isConnected,
     isConnecting,
-    error,
   hasAgents,
   pendingPermission,
   pendingPermissionCount,
@@ -47,7 +47,6 @@ const {
   handlePermissionCancel,
   handleAuthMethodSelect,
   handleAuthMethodCancel,
-  clearError,
 } = useAppShell({ configStore, sessionStore });
 
 function closeWorkflowPanel() {
@@ -83,13 +82,6 @@ function closeWorkflowPanel() {
     <!-- Main Content Area -->
     <div class="main-area">
       <main class="main-content">
-        <!-- Error display -->
-        <div v-if="error" class="error-banner">
-          <span class="error-icon">⚠</span>
-          <span class="error-text">{{ error }}</span>
-          <button class="error-close" @click="clearError" title="Dismiss">×</button>
-        </div>
-        
         <Transition name="view-fade" mode="out-in">
           <!-- Chat View when connected and not showing workflows -->
           <ChatView
@@ -173,6 +165,8 @@ function closeWorkflowPanel() {
       v-if="showSettings"
       @close="showSettings = false"
     />
+
+    <ToastContainer />
   </div>
 </template>
 

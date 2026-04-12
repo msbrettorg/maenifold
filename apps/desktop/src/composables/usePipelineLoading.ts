@@ -1,12 +1,14 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
+import { useToastStore } from '../stores/toast';
 
 /**
  * Manages initial data loading, connection, and load-failure state for PipelineView.
  */
 export function usePipelineLoading() {
   const store = usePipelineStore();
+  const toastStore = useToastStore();
   const { connected, loading } = storeToRefs(store);
 
   const initialLoadComplete = ref(false);
@@ -38,6 +40,7 @@ export function usePipelineLoading() {
       connectionError.value = cause instanceof Error
         ? cause.message
         : 'Failed to connect to the pipeline service.';
+      toastStore.addToast({ message: connectionError.value, level: 'error' });
     }
   }
 

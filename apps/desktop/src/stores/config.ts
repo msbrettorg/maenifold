@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
+import { useToastStore } from './toast';
 
 interface ConfigChangedEventPayload {
   path?: string;
@@ -18,6 +19,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
+  const toastStore = useToastStore();
   const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
@@ -47,6 +49,7 @@ export const useConfigStore = defineStore('config', () => {
       configPath.value = await pathResponse.json() as string;
     } catch (e) {
       error.value = getErrorMessage(e);
+      toastStore.addToast({ message: error.value, level: 'error' });
     } finally {
       loading.value = false;
     }
@@ -67,6 +70,7 @@ export const useConfigStore = defineStore('config', () => {
       config.value = payload.config;
     } catch (e) {
       error.value = getErrorMessage(e);
+      toastStore.addToast({ message: error.value, level: 'error' });
     } finally {
       loading.value = false;
     }
@@ -92,13 +96,16 @@ export const useConfigStore = defineStore('config', () => {
     source.addEventListener('config-error', (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
       error.value = payload.message ?? 'Config reload failed';
+      toastStore.addToast({ message: error.value, level: 'warning' });
     });
     source.addEventListener('watch-error', (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
       error.value = payload.message ?? 'Config watch failed';
+      toastStore.addToast({ message: error.value, level: 'warning' });
     });
     source.onerror = () => {
       error.value = error.value ?? 'Config watch connection lost';
+      toastStore.addToast({ message: error.value, level: 'warning' });
     };
     configWatch.value = source;
   }

@@ -2,25 +2,6 @@
 import { vi } from 'vitest';
 import { ref } from 'vue';
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn().mockResolvedValue(() => {}),
-}));
-
-vi.mock('@tauri-apps/plugin-fs', () => ({
-  mkdir: vi.fn().mockResolvedValue(undefined),
-  readTextFile: vi.fn().mockResolvedValue(''),
-  writeTextFile: vi.fn().mockResolvedValue(undefined),
-  watch: vi.fn().mockResolvedValue(() => {}),
-}));
-
-vi.mock('@tauri-apps/api/path', () => ({
-  dirname: vi.fn().mockResolvedValue('/mock'),
-}));
-
 export class MockAcpClientBridge {
   agentId: string;
   onSessionUpdate: ((notification: unknown) => void) | null = null;

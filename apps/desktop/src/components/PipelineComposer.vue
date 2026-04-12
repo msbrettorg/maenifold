@@ -314,7 +314,7 @@ function createToolNode(toolName: string): void {
 
 function handleEditNode(): void {
   if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  editNode(contextMenu.value.nodeId);
+  emit('nodeDoubleClick', contextMenu.value.nodeId);
   closeContextMenu();
 }
 
@@ -363,9 +363,25 @@ function handleServerNodeAction(action: 'restartNode' | 'rewindNode' | 'forkNode
 
 const currentPipelineStatus = computed(() => props.view?.status ?? null);
 const currentPipelineRunning = computed(() => props.view?.running ?? false);
-const hasCompletedNodes = computed(() =>
+const hasRewindableNodes = computed(() =>
   props.view?.nodes.some((n) => n.status === 'completed' || n.status === 'abandoned' || n.status === 'stuck') ?? false,
 );
+const hasCompletedNodesWithOutput = computed(() =>
+  props.view?.nodes.some((n) => n.status === 'completed' && Boolean(n.output)) ?? false,
+);
+
+const contextMenuNodeStatus = computed(() => {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return null;
+  const nodeId = contextMenu.value.nodeId;
+  return props.view?.nodes.find((n) => n.nodeId === nodeId)?.status ?? null;
+});
+
+const contextMenuNodeHasOutput = computed(() => {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return false;
+  const nodeId = contextMenu.value.nodeId;
+  const viewNode = props.view?.nodes.find((n) => n.nodeId === nodeId);
+  return Boolean(viewNode?.output);
+});
 
 function handleCanvasRunPipeline(): void {
   void store.runPipeline();
@@ -600,7 +616,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           :can-run-workflow="Boolean(firstWorkflow)"
           :pipeline-status="currentPipelineStatus"
           :pipeline-running="currentPipelineRunning"
-          :has-completed-nodes="hasCompletedNodes"
+          :has-rewindable-nodes="hasRewindableNodes"
+          :has-completed-nodes-with-output="hasCompletedNodesWithOutput"
+          :node-status="contextMenuNodeStatus"
+          :node-has-output="contextMenuNodeHasOutput"
           @close="closeContextMenu"
           @restart="handleServerNodeAction('restartNode')"
           @rewind="handleServerNodeAction('rewindNode')"

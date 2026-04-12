@@ -23,7 +23,14 @@ const props = defineProps<{
   canRunWorkflow: boolean;
   pipelineStatus?: string | null;
   pipelineRunning?: boolean;
-  hasCompletedNodes?: boolean;
+  /** Canvas-level: pipeline has completed/abandoned/stuck nodes. */
+  hasRewindableNodes?: boolean;
+  /** Canvas-level: pipeline has completed nodes with non-empty output. */
+  hasCompletedNodesWithOutput?: boolean;
+  /** Node-level: status of the right-clicked node (server mode). */
+  nodeStatus?: string | null;
+  /** Node-level: whether the right-clicked node has output (server mode). */
+  nodeHasOutput?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -53,7 +60,33 @@ const isNonTerminal = computed(() => {
 
 const hasServerCanvasActions = computed(() => {
   if (props.mode !== 'server' || props.target !== 'canvas') return false;
-  return isNonTerminal.value || Boolean(props.hasCompletedNodes);
+  return isNonTerminal.value || Boolean(props.hasRewindableNodes) || Boolean(props.hasCompletedNodesWithOutput);
+});
+
+// Node-level action visibility (server mode, target === 'node').
+// When nodeStatus is unknown/null, fall back to showing all items.
+const showRestart = computed(() => {
+  const s = props.nodeStatus;
+  if (!s) return true;
+  return s === 'completed' || s === 'abandoned' || s === 'stuck';
+});
+
+const showRewind = computed(() => {
+  const s = props.nodeStatus;
+  if (!s) return true;
+  return s === 'completed' || s === 'abandoned' || s === 'stuck';
+});
+
+const showFork = computed(() => {
+  const s = props.nodeStatus;
+  if (!s) return true;
+  return s === 'completed' && Boolean(props.nodeHasOutput);
+});
+
+const showAbandon = computed(() => {
+  const s = props.nodeStatus;
+  if (!s) return true;
+  return s === 'pending' || s === 'ready' || s === 'active' || s === 'retrying' || s === 'stuck';
 });
 
 const toolMenuOpen = ref(false);
@@ -188,16 +221,16 @@ function handleTool(toolName: string): void {
     </template>
 
     <template v-else-if="mode === 'server' && target === 'node'">
-      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('restart'))">
+      <button v-if="showRestart" type="button" class="composer-context-menu__item" @click="handleAction(() => emit('restart'))">
         Restart
       </button>
-      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('rewind'))">
+      <button v-if="showRewind" type="button" class="composer-context-menu__item" @click="handleAction(() => emit('rewind'))">
         Rewind
       </button>
-      <button type="button" class="composer-context-menu__item" @click="handleAction(() => emit('fork'))">
+      <button v-if="showFork" type="button" class="composer-context-menu__item" @click="handleAction(() => emit('fork'))">
         Fork
       </button>
-      <button type="button" class="composer-context-menu__item composer-context-menu__item--danger" @click="handleAction(() => emit('abandon'))">
+      <button v-if="showAbandon" type="button" class="composer-context-menu__item composer-context-menu__item--danger" @click="handleAction(() => emit('abandon'))">
         Abandon
       </button>
     </template>
@@ -212,7 +245,7 @@ function handleTool(toolName: string): void {
         ▶ Run Pipeline
       </button>
       <button
-        v-if="hasCompletedNodes && isNonTerminal"
+        v-if="hasRewindableNodes"
         type="button"
         class="composer-context-menu__item"
         @click="handleAction(() => emit('rewind-all'))"
@@ -228,7 +261,7 @@ function handleTool(toolName: string): void {
         ⑂ Graft
       </button>
       <button
-        v-if="hasCompletedNodes"
+        v-if="hasCompletedNodesWithOutput"
         type="button"
         class="composer-context-menu__item"
         @click="handleAction(() => emit('promote-to-memory'))"

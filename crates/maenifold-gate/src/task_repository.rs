@@ -72,6 +72,8 @@ impl TaskRepository {
                         },
                     ) {
                         Ok(text) => TaskMetadataParser::parse_task_id(&text)
+                            .ok()
+                            .flatten()
                             .unwrap_or_else(|| file_task_id.to_string()),
                         Err(_) => file_task_id.to_string(),
                     };

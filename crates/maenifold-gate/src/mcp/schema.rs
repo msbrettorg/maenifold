@@ -254,7 +254,15 @@ mod tests {
         let names: Vec<_> = tools.iter().map(|tool| tool.name).collect();
         assert_eq!(
             names,
-            vec!["status", "append", "pass", "fail", "history", "task_body", "sync"]
+            vec![
+                "status",
+                "append",
+                "pass",
+                "fail",
+                "history",
+                "task_body",
+                "sync"
+            ]
         );
     }
 
@@ -387,8 +395,16 @@ mod tests {
             .iter()
             .find(|tool| tool.name == "task_body")
             .expect("task_body tool should exist");
-        assert!(task_body.description.contains("authoritative markdown content"));
-        assert!(task_body.description.contains("without reading task files directly from disk"));
+        assert!(
+            task_body
+                .description
+                .contains("authoritative markdown content")
+        );
+        assert!(
+            task_body
+                .description
+                .contains("without reading task files directly from disk")
+        );
 
         let sync = tools
             .iter()

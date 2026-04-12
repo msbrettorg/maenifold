@@ -618,10 +618,12 @@ mod tests {
                 .to_string_lossy()
                 .as_ref()
         );
-        assert!(value["markdown"]
-            .as_str()
-            .expect("markdown string")
-            .contains("## Acceptance Criteria"));
+        assert!(
+            value["markdown"]
+                .as_str()
+                .expect("markdown string")
+                .contains("## Acceptance Criteria")
+        );
     }
 
     #[test]

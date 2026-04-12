@@ -8,6 +8,8 @@ static LABELED_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^\*\*(?P<label>[^*]+)\*\*:\s*(?P<value>.+?)\s*$")
         .expect("task metadata label regex")
 });
+static TASK_ID_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^[A-Za-z0-9._-]+$").expect("task id regex"));
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskMetadata {
@@ -20,6 +22,7 @@ pub struct TaskMetadata {
 
 #[derive(Debug, Clone, Default, Deserialize)]
 struct FrontmatterTask {
+    #[serde(default, deserialize_with = "deserialize_optional_string")]
     id: Option<String>,
     title: Option<String>,
     pipeline: Option<String>,
@@ -39,7 +42,7 @@ impl TaskMetadataParser {
     pub fn parse(lines: &[&str]) -> Result<TaskMetadata, GateError> {
         if let Some(frontmatter) = parse_frontmatter(lines)? {
             return Ok(TaskMetadata {
-                id: frontmatter.id,
+                id: validate_task_id(frontmatter.id)?,
                 title: frontmatter
                     .title
                     .or_else(|| parse_title(lines).ok().map(str::to_string))
@@ -67,12 +70,10 @@ impl TaskMetadataParser {
         })
     }
 
-    pub fn parse_task_id(text: &str) -> Option<String> {
+    pub fn parse_task_id(text: &str) -> Result<Option<String>, GateError> {
         let lines: Vec<_> = text.lines().collect();
-        parse_frontmatter(&lines)
-            .ok()
-            .flatten()
-            .and_then(|frontmatter| frontmatter.id)
+        let frontmatter = parse_frontmatter(&lines)?;
+        validate_task_id(frontmatter.and_then(|frontmatter| frontmatter.id))
     }
 }
 
@@ -81,6 +82,17 @@ pub fn is_linked_session_id(session_id: Option<&str>) -> bool {
         session_id,
         Some(value) if value.starts_with("session-") || value.starts_with("workflow-")
     )
+}
+
+fn deserialize_optional_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let value = Option::<serde_yaml::Value>::deserialize(deserializer)?;
+    Ok(match value {
+        Some(serde_yaml::Value::String(value)) => Some(value),
+        _ => None,
+    })
 }
 
 fn deserialize_optional_session_id<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
@@ -137,6 +149,23 @@ fn parse_labeled_value(lines: &[&str], label: &str) -> Result<Option<String>, Ga
     }))
 }
 
+fn validate_task_id(task_id: Option<String>) -> Result<Option<String>, GateError> {
+    task_id
+        .map(|task_id| {
+            if task_id.contains("..")
+                || task_id.contains('/')
+                || task_id.contains('\\')
+                || !TASK_ID_RE.is_match(&task_id)
+            {
+                return Err(GateError::TaskMetadataParse(format!(
+                    "invalid task id '{task_id}': must match ^[A-Za-z0-9._-]+$ and must not contain path separators or '..'"
+                )));
+            }
+            Ok(task_id)
+        })
+        .transpose()
+}
+
 #[cfg(test)]
 mod tests {
     use super::{TaskMetadataParser, is_linked_session_id};
@@ -174,5 +203,25 @@ mod tests {
         let metadata = TaskMetadataParser::parse(&lines).expect("parse metadata");
         assert_eq!(metadata.session_id, None);
         assert!(!is_linked_session_id(metadata.session_id.as_deref()));
+    }
+
+    #[test]
+    fn parse_task_id_accepts_valid_ids_and_rejects_path_traversal() {
+        let valid = "---\nid: T-138.4\ntitle: Valid task\npipeline: sdd\n---\n# Valid task\n";
+        assert_eq!(
+            TaskMetadataParser::parse_task_id(valid).expect("valid id"),
+            Some("T-138.4".to_string())
+        );
+
+        let traversal =
+            "---\nid: ../../escape\ntitle: Escape task\npipeline: sdd\n---\n# Escape task\n";
+        assert!(TaskMetadataParser::parse_task_id(traversal).is_err());
+
+        let slash = "---\nid: foo/bar\ntitle: Slash task\npipeline: sdd\n---\n# Slash task\n";
+        assert!(TaskMetadataParser::parse_task_id(slash).is_err());
+
+        let backslash =
+            "---\nid: foo\\bar\ntitle: Backslash task\npipeline: sdd\n---\n# Backslash task\n";
+        assert!(TaskMetadataParser::parse_task_id(backslash).is_err());
     }
 }

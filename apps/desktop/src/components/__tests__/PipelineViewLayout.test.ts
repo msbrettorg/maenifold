@@ -112,7 +112,14 @@ describe('PipelineView layout behavior', () => {
   });
 
   it('closes the flyout on Escape before clearing the inspector selection', async () => {
-    const { wrapper } = mountPipelineView();
+    const { wrapper } = mountPipelineView({
+      setupStore(store) {
+        store.localDefinition = {
+          nodes: [{ id: 'node-1', workflowId: 'workflow.alpha' }],
+          edges: [],
+        };
+      },
+    });
 
     await flushPromises();
     await openFlyout(wrapper);
@@ -131,6 +138,42 @@ describe('PipelineView layout behavior', () => {
     await flushPromises();
 
     expect(wrapper.find('.inspector-panel').classes()).not.toContain('is-visible');
+  });
+
+  it('keeps node selection in server mode without rendering inspector controls', async () => {
+    const { wrapper } = mountPipelineView({
+      narrowViewport: true,
+      setupStore(store) {
+        store.designMode = false;
+        store.currentPipelineId = 'pipeline-current';
+        store.currentView = {
+          pipelineId: 'pipeline-current',
+          status: 'paused',
+          running: false,
+          ready: ['node-1'],
+          active: [],
+          completed: [],
+          mermaid: 'graph TD;',
+          edges: [],
+          nodes: [{
+            nodeId: 'node-1',
+            sessionId: 'session-1',
+            status: 'pending',
+            attempts: 0,
+            type: 'workflow',
+            workflowId: 'workflow.alpha',
+          }],
+        };
+      },
+    });
+
+    await flushPromises();
+    wrapper.findComponent(PipelineComposer).vm.$emit('nodeSelected', 'node-1');
+    await flushPromises();
+
+    expect(wrapper.find('.inspector-panel').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('Open Inspector');
+    expect(wrapper.find('[aria-label="Close inspector"]').exists()).toBe(false);
   });
 
   it('keeps the flyout open for cancelled or failed switches and closes it after a successful switch', async () => {

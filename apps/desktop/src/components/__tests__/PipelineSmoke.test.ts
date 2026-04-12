@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 
-import TemplateGallery from '../TemplateGallery.vue';
 import PipelineComposer from '../PipelineComposer.vue';
 import PipelineInspector from '../PipelineInspector.vue';
 import PipelineRunner from '../PipelineRunner.vue';
@@ -242,7 +241,8 @@ describe('pipeline smoke tests', () => {
       },
     });
 
-    expect(wrapper.findComponent(TemplateGallery).exists()).toBe(true);
+    expect(wrapper.find('.composer-empty-state').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Add nodes using the form or right-click the canvas');
     expect(findButton(wrapper, '+ Palette')).toBeTruthy();
 
     await wrapper.get('.composer-canvas').trigger('contextmenu', { clientX: 160, clientY: 120 });
@@ -282,27 +282,29 @@ describe('pipeline smoke tests', () => {
     expect(paletteToggle.attributes('aria-pressed')).toBe('false');
   });
 
-  it('PipelineRunner only shows Create when design mode has nodes to create', async () => {
+  it('PipelineRunner stays read-only and keeps only status/log output', async () => {
     const first = createStore();
     first.store.localDefinition = {
       nodes: [{ id: 'node-1', workflowId: 'workflow.alpha' }],
       edges: [],
     };
+    first.store.eventLog = [{
+      nodeId: 'node-1',
+      from: 'pending',
+      to: 'completed',
+      timestamp: Date.parse('2026-04-11T12:00:00Z'),
+    }];
 
     const visibleWrapper = mount(PipelineRunner, {
       global: { plugins: [first.pinia] },
     });
 
-    expect(findButton(visibleWrapper, 'Create')).toBeTruthy();
-
-    const second = createStore();
-    second.store.localDefinition = { nodes: [], edges: [] };
-
-    const hiddenWrapper = mount(PipelineRunner, {
-      global: { plugins: [second.pinia] },
-    });
-
-    expect(findButton(hiddenWrapper, 'Create')).toBeFalsy();
+    expect(findButton(visibleWrapper, 'Create')).toBeFalsy();
+    expect(findButton(visibleWrapper, 'Run')).toBeFalsy();
+    expect(findButton(visibleWrapper, 'Pause')).toBeFalsy();
+    expect(findButton(visibleWrapper, 'Cancel')).toBeFalsy();
+    expect(visibleWrapper.text()).toContain('Design mode');
+    expect(visibleWrapper.text()).toContain('node-1: pending → completed');
   });
 
   it('PipelineInspector switches between design overview and node inspector', async () => {

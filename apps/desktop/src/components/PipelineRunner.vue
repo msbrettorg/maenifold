@@ -9,7 +9,7 @@ import { buildNodeOutputPreview } from '../composables/pipeline-view-diff';
 const props = defineProps<{ collapsed?: boolean }>();
 
 const store = usePipelineStore();
-const { currentView, designMode, errorMessage, eventLog, localDefinition } = storeToRefs(store);
+const { currentView, designMode, eventLog, localDefinition } = storeToRefs(store);
 
 const logContainer = ref<HTMLElement | null>(null);
 
@@ -91,11 +91,6 @@ function formatLogEntry(entry: LogEntry) {
 
 <template>
   <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
-    <div v-if="errorMessage" v-show="!props.collapsed" class="error-banner" role="alert">
-      <span class="error-banner__message">{{ errorMessage }}</span>
-      <button class="btn btn-ghost error-banner__dismiss" type="button" aria-label="Dismiss error" @click="store.clearError()">✕</button>
-    </div>
-
     <div class="status-line">{{ statusLine }}</div>
 
     <div v-show="!props.collapsed" ref="logContainer" class="tab-panel log-panel" aria-live="polite" aria-label="Event log">
@@ -116,10 +111,6 @@ function formatLogEntry(entry: LogEntry) {
 .runner-panel--collapsed {
   min-height: 0;
 }
-.error-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.6rem 1rem; background: var(--bg-error); color: var(--text-error); border-bottom: 1px solid var(--border-error); font-size: var(--text-sm); }
-.error-banner__message { flex: 1; }
-.error-banner__dismiss { flex-shrink: 0; color: inherit; }
-.error-banner__dismiss:hover { opacity: 0.75; }
 .status-line {
   padding: 0.75rem 1rem;
   color: var(--text-secondary);

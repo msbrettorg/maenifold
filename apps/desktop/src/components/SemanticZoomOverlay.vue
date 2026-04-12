@@ -228,18 +228,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
         </div>
 
         <footer class="zoom-footer">
-          <div v-if="pipeline.errorMessage" class="zoom-error-banner" role="alert">
-            <span class="zoom-error-banner__message">{{ pipeline.errorMessage }}</span>
-            <button
-              class="btn btn-ghost zoom-error-banner__dismiss"
-              type="button"
-              aria-label="Dismiss error"
-              @click="pipeline.clearError()"
-            >
-              ✕
-            </button>
-          </div>
-
           <div class="zoom-actions">
             <button
               :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'fork' }]"
@@ -391,20 +379,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   background: var(--bg-main);
 }
 .zoom-fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
-.zoom-error-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-error);
-  color: var(--text-error);
-  border: 1px solid var(--border-error);
-  border-radius: 6px;
-  font-size: var(--text-sm);
-}
-.zoom-error-banner__message { flex: 1; }
-.zoom-error-banner__dismiss { flex-shrink: 0; color: inherit; }
-.zoom-error-banner__dismiss:hover { opacity: 0.75; }
 .zoom-section-title {
   font-family: var(--font-headline, var(--font-sans));
   font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);

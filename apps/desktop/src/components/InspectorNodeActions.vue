@@ -96,10 +96,6 @@ function openPromotionDialog(): void {
     <span>Completion note</span>
     <textarea v-model="conclusionText" class="field-textarea" rows="4" placeholder="Optional conclusion for this node" />
   </label>
-  <div v-if="store.errorMessage" class="error-banner" role="alert">
-    <span class="error-banner__message">{{ store.errorMessage }}</span>
-    <button class="btn btn-ghost error-banner__dismiss" type="button" aria-label="Dismiss error" @click="store.clearError()">✕</button>
-  </div>
   <div class="actions">
     <button
       v-if="canPromote"
@@ -174,9 +170,5 @@ function openPromotionDialog(): void {
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
 .fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
-.error-banner { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background: var(--bg-error); color: var(--text-error); border: 1px solid var(--border-error); border-radius: 6px; font-size: var(--text-sm); }
-.error-banner__message { flex: 1; }
-.error-banner__dismiss { flex-shrink: 0; color: inherit; }
-.error-banner__dismiss:hover { opacity: 0.75; }
 .mono { font-family: var(--font-mono); word-break: break-all; }
 </style>

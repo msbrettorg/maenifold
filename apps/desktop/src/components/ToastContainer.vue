@@ -55,7 +55,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   flex-direction: column;
   gap: 0.75rem;
   width: min(24rem, calc(100vw - 2rem));
-  max-height: min(20rem, calc(100vh - 2rem));
+  max-height: min(15rem, calc(100vh - 2rem));
   overflow-y: auto;
   pointer-events: none;
 }

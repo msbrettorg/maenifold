@@ -48,8 +48,9 @@ export const useConfigStore = defineStore('config', () => {
       config.value = await configResponse.json() as AgentsConfig;
       configPath.value = await pathResponse.json() as string;
     } catch (e) {
-      error.value = getErrorMessage(e);
-      toastStore.addToast({ message: error.value, level: 'error' });
+      const message = getErrorMessage(e);
+      error.value = message;
+      toastStore.addToast({ message, level: 'error' });
     } finally {
       loading.value = false;
     }
@@ -69,8 +70,9 @@ export const useConfigStore = defineStore('config', () => {
       const payload = await response.json() as ReloadConfigResponse;
       config.value = payload.config;
     } catch (e) {
-      error.value = getErrorMessage(e);
-      toastStore.addToast({ message: error.value, level: 'error' });
+      const message = getErrorMessage(e);
+      error.value = message;
+      toastStore.addToast({ message, level: 'error' });
     } finally {
       loading.value = false;
     }
@@ -95,17 +97,20 @@ export const useConfigStore = defineStore('config', () => {
     });
     source.addEventListener('config-error', (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-      error.value = payload.message ?? 'Config reload failed';
-      toastStore.addToast({ message: error.value, level: 'warning' });
+      const message = payload.message ?? 'Config reload failed';
+      error.value = message;
+      toastStore.addToast({ message, level: 'warning' });
     });
     source.addEventListener('watch-error', (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-      error.value = payload.message ?? 'Config watch failed';
-      toastStore.addToast({ message: error.value, level: 'warning' });
+      const message = payload.message ?? 'Config watch failed';
+      error.value = message;
+      toastStore.addToast({ message, level: 'warning' });
     });
     source.onerror = () => {
-      error.value = error.value ?? 'Config watch connection lost';
-      toastStore.addToast({ message: error.value, level: 'warning' });
+      const message = error.value ?? 'Config watch connection lost';
+      error.value = message;
+      toastStore.addToast({ message, level: 'warning' });
     };
     configWatch.value = source;
   }

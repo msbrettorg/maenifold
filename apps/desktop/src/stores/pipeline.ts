@@ -87,9 +87,10 @@ export const usePipelineStore = defineStore('pipeline', () => {
     successMessage.value = message;
   }
   function setError(tool: string, err: unknown) {
-    errorMessage.value = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
+    const message = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
+    errorMessage.value = message;
     successMessage.value = null;
-    toastStore.addToast({ message: errorMessage.value, level: 'error' });
+    toastStore.addToast({ message, level: 'error' });
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();

@@ -88,8 +88,9 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       hasLoadedCatalog.value = true;
       return serverResults.value;
     } catch (cause) {
-      error.value = getErrorMessage(cause);
-      toastStore.addToast({ message: error.value, level: 'warning' });
+      const message = getErrorMessage(cause);
+      error.value = message;
+      toastStore.addToast({ message, level: 'warning' });
       return serverResults.value;
     } finally {
       loading.value = false;

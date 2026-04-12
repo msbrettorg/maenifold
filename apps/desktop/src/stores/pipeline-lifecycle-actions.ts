@@ -4,11 +4,12 @@ import type { PipelineEdge, PipelineInputs, PipelineNode } from '../lib/pipeline
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;
+type RefreshView = (options?: { resetEventLog?: boolean }) => Promise<void>;
 
 interface PipelineLifecycleActionDependencies {
   mcp: PipelineMcp;
   currentPipelineId: Ref<string | null>;
-  refreshView: () => Promise<void>;
+  refreshView: RefreshView;
   refreshList: () => Promise<void>;
   startViewPolling: () => void;
   stopCurrentPolling: () => void;
@@ -91,14 +92,16 @@ export function createPipelineLifecycleActions({
   async function rewindNodes(nodeIds: string[]) {
     await withCurrentPipeline('rewind_nodes', async (sessionId) => {
       await mcp.rewindPipeline(sessionId, nodeIds);
-      await refreshView();
+      startViewPolling();
+      await refreshView({ resetEventLog: true });
     });
   }
 
   async function restartNode(nodeId: string) {
     await withCurrentPipeline('restart_node', async (sessionId) => {
       await mcp.restartNode(sessionId, nodeId);
-      await refreshView();
+      startViewPolling();
+      await refreshView({ resetEventLog: true });
     });
   }
 

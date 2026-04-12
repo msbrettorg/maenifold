@@ -22,6 +22,7 @@ export type PipelineStatus =
   | "paused"
   | "cancelled"
   | "completed"
+  | "abandoned"
   | "stuck";
 
 interface PipelineNodeBase {

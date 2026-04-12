@@ -42,11 +42,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:localDefinition', value: PipelineDefinition): void;
   (e: 'nodeSelected', nodeId: string | null): void;
+  (e: 'nodeDoubleClick', nodeId: string): void;
   (e: 'edgeSelected', value: { source: string; target: string } | null): void;
-  (e: 'restartNode', nodeId: string): void;
-  (e: 'rewindNode', nodeId: string): void;
-  (e: 'forkNode', nodeId: string): void;
-  (e: 'abandonNode', nodeId: string): void;
   (e: 'openGraft'): void;
   (e: 'openPromotion'): void;
 }>();
@@ -78,6 +75,7 @@ const {
   updateDefinition: (definition) => emit('update:localDefinition', definition),
   selectNode: (nodeId) => emit('nodeSelected', nodeId),
   selectEdge: (edge) => emit('edgeSelected', edge),
+  designNodeDoubleClick: (nodeId) => emit('nodeDoubleClick', nodeId),
 });
 
 const store = usePipelineStore();
@@ -93,8 +91,10 @@ const paletteResize = useResizeHandle({
 const paletteOpen = ref(false);
 const { isNarrowViewport } = usePipelineMobile(computed(() => hasSelection.value));
 
+const paletteAsOverlay = computed(() => isNarrowViewport.value && paletteOpen.value);
+
 const designGridStyle = computed(() => ({
-  'grid-template-columns': !paletteOpen.value
+  'grid-template-columns': !paletteOpen.value || isNarrowViewport.value
     ? 'minmax(0, 1fr)'
     : `${paletteResize.width.value}px minmax(0, 1fr)`,
 }));
@@ -106,12 +106,6 @@ watch(
   },
   { immediate: true },
 );
-
-watch(isNarrowViewport, (narrow) => {
-  if (narrow) {
-    paletteOpen.value = false;
-  }
-});
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   workflow: '#4d8eff',
@@ -342,30 +336,32 @@ function handleDisconnectEdges(): void {
   closeContextMenu();
 }
 
-function emitServerNodeAction(eventName: 'restartNode' | 'rewindNode' | 'forkNode' | 'abandonNode'): void {
+function handleServerNodeAction(action: 'restartNode' | 'rewindNode' | 'forkNode' | 'abandonNode'): void {
   if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
   const { nodeId } = contextMenu.value;
-  switch (eventName) {
+  closeContextMenu();
+  switch (action) {
     case 'restartNode':
-      emit('restartNode', nodeId);
+      void store.restartNode(nodeId);
       break;
     case 'rewindNode':
-      emit('rewindNode', nodeId);
+      void store.rewindNodes([nodeId]);
       break;
     case 'forkNode':
-      emit('forkNode', nodeId);
+      if (store.currentPipelineId) {
+        void store.forkPipeline(store.currentPipelineId, nodeId);
+      }
       break;
     case 'abandonNode':
-      emit('abandonNode', nodeId);
+      void store.updateNodeStatus(nodeId, 'abandoned');
       break;
   }
-  closeContextMenu();
 }
 
 const currentPipelineStatus = computed(() => props.view?.status ?? null);
 const currentPipelineRunning = computed(() => props.view?.running ?? false);
 const hasCompletedNodes = computed(() =>
-  props.view?.nodes.some((n) => n.status === 'completed') ?? false,
+  props.view?.nodes.some((n) => n.status === 'completed' || n.status === 'abandoned' || n.status === 'stuck') ?? false,
 );
 
 function handleCanvasRunPipeline(): void {
@@ -411,7 +407,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 <template>
   <div class="pipeline-composer" @keydown="handleFlowKeyDown">
     <div v-if="designMode" class="composer-layout" :style="designGridStyle">
-      <section v-if="paletteOpen" class="composer-palette">
+      <section v-if="paletteOpen && !paletteAsOverlay" class="composer-palette">
         <AddNodeForm
           :workflows="store.workflows"
           :submit-node="submitNode"
@@ -441,6 +437,26 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           </button>
           <slot name="toolbar-actions" />
         </div>
+
+        <Transition name="palette-overlay">
+          <section v-if="paletteAsOverlay" class="composer-palette-overlay">
+            <div class="composer-palette-overlay-header">
+              <strong>Add Node</strong>
+              <button type="button" class="btn btn-ghost btn-xs" @click="paletteOpen = false">✕ Close</button>
+            </div>
+            <AddNodeForm
+              :workflows="store.workflows"
+              :submit-node="submitNode"
+            />
+          </section>
+        </Transition>
+        <button
+          v-if="paletteAsOverlay"
+          type="button"
+          class="composer-palette-backdrop"
+          aria-label="Close palette"
+          @click="paletteOpen = false"
+        />
         <VueFlow
           v-model:nodes="nodes"
           v-model:edges="edges"
@@ -507,10 +523,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           @duplicate="handleDuplicateNode"
           @delete="handleDeleteNode"
           @disconnect-edges="handleDisconnectEdges"
-          @restart="emitServerNodeAction('restartNode')"
-          @rewind="emitServerNodeAction('rewindNode')"
-          @fork="emitServerNodeAction('forkNode')"
-          @abandon="emitServerNodeAction('abandonNode')"
+          @restart="handleServerNodeAction('restartNode')"
+          @rewind="handleServerNodeAction('rewindNode')"
+          @fork="handleServerNodeAction('forkNode')"
+          @abandon="handleServerNodeAction('abandonNode')"
         />
       </section>
     </div>
@@ -583,10 +599,10 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
           :pipeline-running="currentPipelineRunning"
           :has-completed-nodes="hasCompletedNodes"
           @close="closeContextMenu"
-          @restart="emitServerNodeAction('restartNode')"
-          @rewind="emitServerNodeAction('rewindNode')"
-          @fork="emitServerNodeAction('forkNode')"
-          @abandon="emitServerNodeAction('abandonNode')"
+          @restart="handleServerNodeAction('restartNode')"
+          @rewind="handleServerNodeAction('rewindNode')"
+          @fork="handleServerNodeAction('forkNode')"
+          @abandon="handleServerNodeAction('abandonNode')"
           @run-pipeline="handleCanvasRunPipeline"
           @rewind-all="handleCanvasRewindAll"
           @graft="handleCanvasGraft"
@@ -640,10 +656,62 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
   gap: 0.5rem;
 }
 
-@media (max-width: 900px) {
-  .composer-palette-toggle {
-    display: none;
-  }
+.composer-palette-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(360px, 88vw);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
+  background: color-mix(in srgb, var(--bg-main) 94%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0.75rem 0 1.75rem color-mix(in srgb, var(--text-primary) 12%, transparent);
+  overflow: hidden;
+}
+
+.composer-palette-overlay-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.composer-palette-overlay :deep(.catalog-shell) {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.composer-palette-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 18;
+  border: 0;
+  background: color-mix(in srgb, var(--bg-main) 40%, transparent);
+  cursor: pointer;
+}
+
+.palette-overlay-enter-active,
+.palette-overlay-leave-active {
+  transition: transform 0.2s ease-out, visibility 0s linear 0.2s;
+}
+
+.palette-overlay-enter-to,
+.palette-overlay-leave-from {
+  visibility: visible;
+  transform: translateX(0);
+}
+
+.palette-overlay-enter-from,
+.palette-overlay-leave-to {
+  visibility: hidden;
+  transform: translateX(-100%);
 }
 
 .pipeline-flow {

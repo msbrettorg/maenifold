@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import DesignNodeConfigModal from './DesignNodeConfigModal.vue';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import JoinPipelineDialog from './JoinPipelineDialog.vue';
 import PipelineComposer from './PipelineComposer.vue';
 import PipelineFlyout from './PipelineFlyout.vue';
 import PipelineIconRail from './PipelineIconRail.vue';
-import PipelineInspector from './PipelineInspector.vue';
 import PipelineActionBar from './PipelineActionBar.vue';
 import PipelineRunner from './PipelineRunner.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
@@ -29,17 +29,14 @@ const selectedNodeId = ref<string | null>(null);
 const selectedEdge = ref<SelectedEdge>(null);
 const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
-const hasInspectorSelection = computed(() => Boolean(selectedNodeId.value || selectedEdge.value));
-const hasDesignInspectorSelection = computed(() => designMode.value && hasInspectorSelection.value);
+const configModalNodeId = ref<string | null>(null);
+const configModalEdge = ref<SelectedEdge>(null);
+const isConfigModalOpen = computed(() => designMode.value && (configModalNodeId.value !== null || configModalEdge.value !== null));
 const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = usePipelineLoading();
-const { isNarrowViewport, mobileSidebarOpen, mobileInspectorOpen, toggleMobileSidebar, toggleMobileInspector } = usePipelineMobile(hasDesignInspectorSelection);
+const { isNarrowViewport, mobileSidebarOpen, toggleMobileSidebar } = usePipelineMobile(ref(false));
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
 const { activeFlyout, close: closeFlyout, toggle: toggleFlyout } = useFlyout();
 const promotionNode = ref<ViewNode | null>(null);
-const isInspectorVisible = computed(() => {
-  if (!designMode.value) return false;
-  return isNarrowViewport.value ? mobileInspectorOpen.value : hasInspectorSelection.value;
-});
 const isPipelineFlyoutOpen = computed(() => !isNarrowViewport.value && activeFlyout.value === 'pipelines');
 const bannerError = computed(() => connectionError.value || error.value || '');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
@@ -92,12 +89,20 @@ function handlePipelineSelected() {
 }
 function handleNewPipeline() {
   clearInspectorSelection();
+  closeConfigModal();
   store.newPipeline();
   closePipelineFlyout();
   if (isNarrowViewport.value) {
     mobileSidebarOpen.value = false;
-    mobileInspectorOpen.value = false;
   }
+}
+function handleNodeDoubleClick(nodeId: string) {
+  configModalNodeId.value = nodeId;
+  configModalEdge.value = null;
+}
+function closeConfigModal() {
+  configModalNodeId.value = null;
+  configModalEdge.value = null;
 }
 function handleOpenGraft() {
   if (hasLoadedPipeline.value) graftDialogOpen.value = true;
@@ -123,9 +128,6 @@ function handleWindowKeyDown(event: KeyboardEvent) {
     closePipelineFlyout({ restoreFocus: true });
     return;
   }
-  if (!isInspectorVisible.value) return;
-  clearInspectorSelection();
-  if (isNarrowViewport.value) mobileInspectorOpen.value = false;
 }
 
 onMounted(() => window.addEventListener('keydown', handleWindowKeyDown));
@@ -144,7 +146,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
         'grid-empty': showFullScreenEmpty,
         'runner-expanded': runnerExpanded,
         'mobile-sidebar-open': mobileSidebarOpen,
-        'mobile-inspector-open': mobileInspectorOpen,
       }"
     >
       <section v-if="!isNarrowViewport" class="rail-panel">
@@ -165,9 +166,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
           <button type="button" class="mobile-panel-toggle" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
           </button>
-          <button v-if="designMode" type="button" class="mobile-panel-toggle" :disabled="!hasInspectorSelection" @click="toggleMobileInspector">
-            {{ mobileInspectorOpen ? 'Close Inspector' : 'Open Inspector' }}
-          </button>
         </div>
         <TemplateGallery v-if="showFullScreenEmpty" />
         <template v-else>
@@ -177,6 +175,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             :view="currentView"
             @update:local-definition="handleDefinitionUpdate"
             @node-selected="handleNodeSelected"
+            @node-double-click="handleNodeDoubleClick"
             @edge-selected="handleEdgeSelected"
             @open-graft="handleOpenGraft"
             @open-promotion="handleOpenPromotion"
@@ -197,15 +196,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @retry="handleRetryLoad"
           />
         </Transition>
-        <div v-if="designMode && !showFullScreenEmpty" class="inspector-overlay">
-          <section class="inspector-panel" :class="{ 'is-visible': isInspectorVisible }" :aria-hidden="!isInspectorVisible">
-            <div v-if="isNarrowViewport" class="mobile-inspector-header">
-              <span>Inspector</span>
-              <button type="button" class="mobile-inspector-close" @click="mobileInspectorOpen = false">Close</button>
-            </div>
-            <PipelineInspector :selected-node-id="selectedNodeId" :selected-edge="selectedEdge" />
-          </section>
-        </div>
       </section>
       <section v-if="!showFullScreenEmpty" class="runner-panel">
         <div class="runner-panel-header">
@@ -250,7 +240,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
         @contextmenu="handleFlyoutBackdropContextMenu"
       />
       <button v-if="isNarrowViewport && mobileSidebarOpen" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
-      <button v-if="designMode && isNarrowViewport && mobileInspectorOpen" type="button" class="mobile-overlay" aria-label="Close inspector" @click="mobileInspectorOpen = false" />
     </div>
     <GraftNodesDialog
       v-if="graftDialogOpen && currentView"
@@ -266,6 +255,12 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
       :node="promotionNode"
       :pipeline-id="currentView.pipelineId"
       @close="promotionNode = null"
+    />
+    <DesignNodeConfigModal
+      v-if="isConfigModalOpen"
+      :selected-node-id="configModalNodeId"
+      :selected-edge="configModalEdge"
+      @close="closeConfigModal"
     />
     <SemanticZoomOverlay />
   </div>

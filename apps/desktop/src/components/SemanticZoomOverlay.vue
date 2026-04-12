@@ -1,15 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { storeToRefs } from 'pinia';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
-import type { ViewNode } from '../lib/pipeline-types';
+import type { PipelineEdge, PipelineNode, ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
+import GraftNodesDialog from './GraftNodesDialog.vue';
+import PromotionDialog from './PromotionDialog.vue';
 
 const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
+const { currentView, workflows } = storeToRefs(pipeline);
 const conclusionText = ref('');
 const forkedSessionId = ref<string | null>(null);
+const showGraftDialog = ref(false);
+const graftSubmitting = ref(false);
+const showPromotionDialog = ref(false);
+const promotionBusy = ref(false);
 
 const viewNode = computed<ViewNode | undefined>(() => {
   if (!zoom.focusedNodeId || !pipeline.currentView) return undefined;
@@ -54,6 +62,46 @@ const { busyAction, runBusyAction, restartNode, rewindNode, abandonNode } = useI
   selectedViewNode,
   conclusionText,
 });
+
+const existingNodeIds = computed(() => currentView.value?.nodes.map((n) => n.nodeId) ?? []);
+
+const hasResults = computed(() => {
+  const node = viewNode.value;
+  return node?.status === 'completed' && typeof node.output === 'string' && node.output.trim().length > 0;
+});
+
+const canPromote = computed(() => (
+  hasResults.value
+  && typeof currentView.value?.pipelineId === 'string'
+  && currentView.value.pipelineId.length > 0
+));
+
+function openGraftDialog(): void {
+  if (!currentView.value) return;
+  showGraftDialog.value = true;
+}
+
+async function handleGraftSubmit(nodes: PipelineNode[], edges: PipelineEdge[]): Promise<void> {
+  if (!currentView.value?.pipelineId || graftSubmitting.value) return;
+
+  graftSubmitting.value = true;
+  const pipelineId = currentView.value.pipelineId;
+
+  try {
+    await pipeline.graftNodes(nodes, edges);
+    if (pipeline.errorMessage) return;
+    await pipeline.loadPipeline(pipelineId);
+    if (pipeline.errorMessage) return;
+    showGraftDialog.value = false;
+  } finally {
+    graftSubmitting.value = false;
+  }
+}
+
+function openPromotionDialog(): void {
+  if (!canPromote.value || promotionBusy.value) return;
+  showPromotionDialog.value = true;
+}
 
 function formatJson(value: Record<string, unknown> | null | undefined): string {
   return value ? JSON.stringify(value, null, 2) : '—';
@@ -107,6 +155,9 @@ function handleKeyDown(e: KeyboardEvent) {
 
 watch(() => viewNode.value?.nodeId, () => {
   forkedSessionId.value = null;
+  showGraftDialog.value = false;
+  showPromotionDialog.value = false;
+  promotionBusy.value = false;
 });
 
 onMounted(() => document.addEventListener('keydown', handleKeyDown));
@@ -225,6 +276,25 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
             >
               {{ busyAction === 'abandon' ? 'Abandoning...' : 'Abandon node' }}
             </button>
+            <button
+              v-if="hasResults"
+              :class="['btn', 'btn-ghost']"
+              :disabled="busyAction !== null || graftSubmitting"
+              type="button"
+              @click="openGraftDialog"
+            >
+              Graft from node
+            </button>
+            <button
+              v-if="canPromote"
+              :class="['btn', 'btn-primary', { 'btn--busy': promotionBusy }]"
+              :disabled="promotionBusy || busyAction !== null"
+              :title="promotionBusy ? 'Promotion in progress…' : 'Save this completed output to memory'"
+              type="button"
+              @click="openPromotionDialog"
+            >
+              {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
+            </button>
           </div>
 
           <div v-if="forkedSessionId" class="zoom-fork-result" role="status">
@@ -232,6 +302,22 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
             <strong class="zoom-mono">{{ forkedSessionId }}</strong>
           </div>
         </footer>
+
+        <GraftNodesDialog
+          v-if="showGraftDialog && currentView"
+          :busy="graftSubmitting"
+          :existing-node-ids="existingNodeIds"
+          :workflows="workflows"
+          @cancel="showGraftDialog = false"
+          @submit="handleGraftSubmit"
+        />
+        <PromotionDialog
+          v-if="showPromotionDialog && canPromote && currentView?.pipelineId"
+          :node="viewNode!"
+          :pipeline-id="currentView.pipelineId"
+          @busy-change="promotionBusy = $event"
+          @close="showPromotionDialog = false"
+        />
       </div>
     </div>
   </Teleport>

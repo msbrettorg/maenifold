@@ -35,6 +35,7 @@ type UseComposerCanvasOptions = {
   updateDefinition: (definition: PipelineDefinition) => void;
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edge: SelectedEdge | null) => void;
+  designNodeDoubleClick?: (nodeId: string) => void;
 };
 
 type FlowEdgeData = {
@@ -271,7 +272,10 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   async function handleNodeDoubleClick(node: Node, event: MouseEvent | TouchEvent): Promise<void> {
-    if (options.designMode()) return;
+    if (options.designMode()) {
+      options.designNodeDoubleClick?.(node.id);
+      return;
+    }
 
     const viewNode = options.view()?.nodes.find((candidate) => candidate.nodeId === node.id);
     const canReconnect = viewNode?.provenance?.detail.canReconnect

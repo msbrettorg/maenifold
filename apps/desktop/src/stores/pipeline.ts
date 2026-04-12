@@ -315,12 +315,14 @@ export const usePipelineStore = defineStore('pipeline', () => {
       try { tools.value = await mcp.listTools(); } catch { /* non-critical */ }
     });
   }
-  async function refreshView() {
+  async function refreshView(options?: { resetEventLog?: boolean }) {
     if (!currentPipelineId.value) return;
     await withLoading(async () => {
       const previousView = currentView.value;
       const nextView = normalizeView(await mcp.viewPipeline(currentPipelineId.value!));
-      if (previousView) {
+      if (options?.resetEventLog) {
+        eventLog.value = hydrateEventLogFromView(nextView);
+      } else if (previousView) {
         const entries = mcp.diffViews(previousView, nextView);
         if (entries.length > 0) {
           eventLog.value = [...eventLog.value, ...entries];

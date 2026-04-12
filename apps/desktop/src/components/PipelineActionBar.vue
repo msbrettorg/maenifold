@@ -2,9 +2,10 @@
 import { computed, ref, type Component } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
+import type { PipelineStatus } from '../lib/pipeline-types';
 import { usePipelineStore } from '../stores/pipeline';
 
-type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'delete';
+type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'rewind' | 'delete';
 
 interface ActionConfig {
   key: ActionKey;
@@ -14,12 +15,21 @@ interface ActionConfig {
   run: () => Promise<unknown>;
 }
 
+type PipelineActionStatus = PipelineStatus | 'abandoned';
+
 const store = usePipelineStore();
 const { currentView, designMode, isRunning, localDefinition } = storeToRefs(store);
 const busyAction = ref<ActionKey | null>(null);
 
 const hasDraftNodes = computed(() => (localDefinition.value?.nodes?.length ?? 0) > 0);
-const currentStatus = computed(() => currentView.value?.status ?? null);
+const currentStatus = computed<PipelineActionStatus | null>(
+  () => (currentView.value?.status as PipelineActionStatus | undefined) ?? null,
+);
+const rewindableNodeIds = computed(() =>
+  currentView.value?.nodes
+    .filter((node) => node.status === 'completed' || node.status === 'abandoned' || node.status === 'stuck')
+    .map((node) => node.nodeId) ?? [],
+);
 
 const actions = computed<ActionConfig[]>(() => {
   if (designMode.value) {
@@ -34,32 +44,13 @@ const actions = computed<ActionConfig[]>(() => {
       : [];
   }
 
-  if (isRunning.value) {
-    return [
-      {
-        key: 'pause',
-        label: 'Pause',
-        icon: Pause,
-        className: 'btn-pause',
-        run: () => store.pausePipeline(),
-      },
-      {
-        key: 'cancel',
-        label: 'Cancel',
-        icon: XCircle,
-        className: 'btn-danger',
-        run: () => store.cancelPipeline(),
-      },
-    ];
-  }
-
   switch (currentStatus.value) {
     case 'paused':
       return [
         {
           key: 'resume',
           label: 'Resume',
-          icon: RotateCcw,
+          icon: Play,
           className: 'btn-primary',
           run: () => store.resumePipeline(),
         },
@@ -72,15 +63,48 @@ const actions = computed<ActionConfig[]>(() => {
         },
       ];
     case 'completed':
-      return [{
-        key: 'delete',
-        label: 'Delete',
-        icon: Trash2,
-        className: 'btn-danger',
-        run: handleDelete,
-      }];
+      return [
+        {
+          key: 'rewind',
+          label: 'Rewind',
+          icon: RotateCcw,
+          className: 'btn-primary',
+          run: handleRewind,
+        },
+        {
+          key: 'delete',
+          label: 'Delete',
+          icon: Trash2,
+          className: 'btn-danger',
+          run: handleDelete,
+        },
+      ];
+    case 'abandoned':
+      return [
+        {
+          key: 'rewind',
+          label: 'Rewind',
+          icon: RotateCcw,
+          className: 'btn-primary',
+          run: handleRewind,
+        },
+        {
+          key: 'delete',
+          label: 'Delete',
+          icon: Trash2,
+          className: 'btn-danger',
+          run: handleDelete,
+        },
+      ];
     case 'stuck':
       return [
+        {
+          key: 'rewind',
+          label: 'Rewind',
+          icon: RotateCcw,
+          className: 'btn-primary',
+          run: handleRewind,
+        },
         {
           key: 'cancel',
           label: 'Cancel',
@@ -97,13 +121,56 @@ const actions = computed<ActionConfig[]>(() => {
         },
       ];
     case 'active':
-      return [{
-        key: 'run',
-        label: 'Run',
-        icon: Play,
-        className: 'btn-primary',
-        run: () => store.runPipeline(),
-      }];
+      return isRunning.value
+        ? [
+            {
+              key: 'pause',
+              label: 'Pause',
+              icon: Pause,
+              className: 'btn-pause',
+              run: () => store.pausePipeline(),
+            },
+            {
+              key: 'cancel',
+              label: 'Cancel',
+              icon: XCircle,
+              className: 'btn-danger',
+              run: () => store.cancelPipeline(),
+            },
+          ]
+        : [
+            {
+              key: 'run',
+              label: 'Run',
+              icon: Play,
+              className: 'btn-primary',
+              run: () => store.runPipeline(),
+            },
+            {
+              key: 'delete',
+              label: 'Delete',
+              icon: Trash2,
+              className: 'btn-danger',
+              run: handleDelete,
+            },
+          ];
+    case 'cancelled':
+      return [
+        {
+          key: 'rewind',
+          label: 'Rewind',
+          icon: RotateCcw,
+          className: 'btn-primary',
+          run: handleRewind,
+        },
+        {
+          key: 'delete',
+          label: 'Delete',
+          icon: Trash2,
+          className: 'btn-danger',
+          run: handleDelete,
+        },
+      ];
     default:
       return [];
   }
@@ -124,6 +191,14 @@ function handleDelete(): Promise<void | undefined> {
   }
 
   return store.deletePipeline();
+}
+
+function handleRewind(): Promise<void | undefined> {
+  if (rewindableNodeIds.value.length === 0) {
+    return Promise.resolve(undefined);
+  }
+
+  return store.rewindNodes(rewindableNodeIds.value);
 }
 </script>
 

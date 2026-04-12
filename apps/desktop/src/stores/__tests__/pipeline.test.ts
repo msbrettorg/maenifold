@@ -226,4 +226,98 @@ describe('usePipelineStore pipeline loading', () => {
     expect(startPolling).not.toHaveBeenCalled();
     expect(stopPolling).not.toHaveBeenCalled();
   });
+
+  it('rewind resets execution log, refreshes the view, and restarts polling for a rewound pipeline', async () => {
+    const completedView = createView({
+      status: 'completed',
+      running: false,
+      active: [],
+      ready: [],
+      completed: ['node-done', 'node-active'],
+      nodes: [
+        {
+          nodeId: 'node-done',
+          sessionId: 'session-done',
+          status: 'completed',
+          attempts: 1,
+          type: 'tool',
+          toolName: 'example.done',
+          output: 'done output',
+        },
+        {
+          nodeId: 'node-active',
+          sessionId: 'session-active',
+          status: 'completed',
+          attempts: 1,
+          type: 'tool',
+          toolName: 'example.active',
+          output: 'also done',
+        },
+        {
+          nodeId: 'node-pending',
+          sessionId: 'session-pending',
+          status: 'pending',
+          attempts: 0,
+          type: 'tool',
+          toolName: 'example.pending',
+        },
+      ],
+    });
+    const rewoundView = createView({
+      status: 'paused',
+      running: false,
+      active: [],
+      ready: ['node-active'],
+      completed: [],
+      nodes: [
+        {
+          nodeId: 'node-done',
+          sessionId: 'session-done',
+          status: 'pending',
+          attempts: 0,
+          type: 'tool',
+          toolName: 'example.done',
+        },
+        {
+          nodeId: 'node-active',
+          sessionId: 'session-active',
+          status: 'ready',
+          attempts: 0,
+          type: 'tool',
+          toolName: 'example.active',
+        },
+        {
+          nodeId: 'node-pending',
+          sessionId: 'session-pending',
+          status: 'pending',
+          attempts: 0,
+          type: 'tool',
+          toolName: 'example.pending',
+        },
+      ],
+    });
+    viewPipeline
+      .mockResolvedValueOnce(completedView)
+      .mockResolvedValueOnce(rewoundView);
+    const store = usePipelineStore();
+
+    await expect(store.loadPipeline('pipeline-1')).resolves.toBe(true);
+    expect(store.eventLog).toEqual([
+      expect.objectContaining({ nodeId: 'node-done', from: 'loaded', to: 'completed' }),
+      expect.objectContaining({ nodeId: 'node-active', from: 'loaded', to: 'completed' }),
+    ]);
+
+    startPolling.mockClear();
+
+    await expect(store.rewindNodes(['node-done'])).resolves.toBeUndefined();
+
+    expect(rewindPipeline).toHaveBeenCalledWith('pipeline-1', ['node-done']);
+    expect(viewPipeline).toHaveBeenCalledTimes(2);
+    expect(startPolling).toHaveBeenCalledWith('pipeline-1', expect.any(Function), 3000);
+    expect(store.currentView?.ready).toEqual(['node-active']);
+    expect(store.currentView?.nodes.find((node) => node.nodeId === 'node-done')?.status).toBe('pending');
+    expect(store.eventLog).toEqual([
+      expect.objectContaining({ nodeId: 'node-active', from: 'loaded', to: 'ready' }),
+    ]);
+  });
 });

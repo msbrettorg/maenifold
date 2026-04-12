@@ -1,4 +1,4 @@
-export const DAEMON_BASE_URL = import.meta.env.VITE_DAEMON_URL ?? 'http://localhost:19760';
+export const DAEMON_BASE_URL = import.meta.env.VITE_DAEMON_URL ?? 'http://localhost:8080';
 
 export function getDaemonUrl(
   path = '',

@@ -66,6 +66,7 @@ pub(super) fn build_node_execution_request(
             workflow_id,
             prompt,
             timeout,
+            agent_config,
             ..
         } => NodeExecutionRequest::Workflow {
             workflow_id: workflow_id.clone(),
@@ -83,7 +84,7 @@ pub(super) fn build_node_execution_request(
             session_opts: merged_session_opts(
                 context,
                 node.id(),
-                None,
+                agent_config.as_ref(),
                 &None,
                 &None,
                 &None,
@@ -833,6 +834,7 @@ mod tests {
             prompt: Some("Hello {{inputs.name}}".to_string()),
             timeout: None,
             acp_client: None,
+            agent_config: None,
         };
         let workflow_dispatch = DispatchedNode {
             node_id: workflow_node.id().to_string(),

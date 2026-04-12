@@ -316,6 +316,7 @@ mod tests {
             acp_client: Some(format!("agent-{id}")),
             prompt: None,
             timeout: None,
+            agent_config: None,
         }
     }
 

@@ -102,6 +102,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 acp_client: Some(required(wire.acp_client, "acpClient")?),
                 prompt: wire.prompt,
                 timeout: wire.timeout,
+                agent_config: wire.agent_config,
             },
             "prompt" => Self::Prompt {
                 id: wire.id,
@@ -163,6 +164,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client,
                 prompt,
                 timeout,
+                agent_config,
             } => Self {
                 kind: Some("workflow".to_string()),
                 id,
@@ -171,7 +173,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 acp_client,
                 prompt,
                 agent: None,
-                agent_config: None,
+                agent_config,
                 tool_mode: default_prompt_tool_mode(),
                 topic: None,
                 total_thoughts: default_total_thoughts(),

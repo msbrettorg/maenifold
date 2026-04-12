@@ -65,6 +65,7 @@ pub enum PipelineNode {
         acp_client: Option<String>,
         prompt: Option<String>,
         timeout: Option<u64>,
+        agent_config: Option<AgentConfig>,
     },
     Prompt {
         id: String,

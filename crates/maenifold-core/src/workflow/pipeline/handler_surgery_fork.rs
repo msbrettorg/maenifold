@@ -82,6 +82,7 @@ pub(super) fn fork_pipeline(
                     acp_client,
                     prompt,
                     timeout,
+                    agent_config,
                     ..
                 } => super::super::PipelineNode::Workflow {
                     id: node_id_map[node.id()].clone(),
@@ -90,6 +91,7 @@ pub(super) fn fork_pipeline(
                     acp_client: acp_client.clone(),
                     prompt: prompt.clone(),
                     timeout: *timeout,
+                    agent_config: agent_config.clone(),
                 },
                 super::super::PipelineNode::Prompt {
                     display_label,

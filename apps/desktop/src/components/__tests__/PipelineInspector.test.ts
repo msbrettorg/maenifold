@@ -87,7 +87,7 @@ function createWorkflowClientResetView(): PipelineView {
         attempts: 0,
         type: 'workflow',
         workflowId: 'workflow.alpha',
-        acpClient: 'architect',
+        agent: 'architect',
         prompt: 'Run the workflow',
         agentConfig: {
           mode: 'prompt',

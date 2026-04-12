@@ -188,12 +188,13 @@ function toLocalNode(node: ViewNode): PipelineNode {
     case 'workflow':
     case undefined: {
       const agentConfig = cloneAndExtractAgentConfig(node.agentConfig);
+      const client = node.acpClient || (node as any).agent;
       return {
         id: node.nodeId,
         type: 'workflow',
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
-        ...(node.acpClient ? { acpClient: node.acpClient } : {}),
+        ...(client ? { acpClient: client } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };

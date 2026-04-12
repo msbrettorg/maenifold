@@ -1,17 +1,22 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
 import type { ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
+import { useInspectorActions } from '../composables/useInspectorActions';
 
 const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
+const conclusionText = ref('');
+const forkedSessionId = ref<string | null>(null);
 
 const viewNode = computed<ViewNode | undefined>(() => {
   if (!zoom.focusedNodeId || !pipeline.currentView) return undefined;
   return pipeline.currentView.nodes.find((n) => n.nodeId === zoom.focusedNodeId);
 });
+const selectedNodeId = computed<string | null>(() => viewNode.value?.nodeId ?? null);
+const selectedViewNode = computed<ViewNode | null>(() => viewNode.value ?? null);
 
 const nodeType = computed(() => viewNode.value?.type ?? 'workflow');
 const statusLabel = computed(() => viewNode.value?.status ?? 'pending');
@@ -43,9 +48,55 @@ const toolProvenance = computed(() => {
   if (!node || node.type !== 'tool') return null;
   return node.toolProvenance ?? null;
 });
+const { busyAction, runBusyAction, restartNode, rewindNode, abandonNode } = useInspectorActions({
+  store: pipeline,
+  selectedNodeId,
+  selectedViewNode,
+  conclusionText,
+});
 
 function formatJson(value: Record<string, unknown> | null | undefined): string {
   return value ? JSON.stringify(value, null, 2) : '—';
+}
+
+function extractForkedSessionId(result: unknown): string | null {
+  if (typeof result === 'string') {
+    return result.trim() || null;
+  }
+
+  if (!result || typeof result !== 'object') {
+    return null;
+  }
+
+  const record = result as Record<string, unknown>;
+  for (const key of ['sessionId', 'pipelineId', 'newSessionId', 'forkedSessionId']) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+async function forkNode(): Promise<void> {
+  if (!viewNode.value?.sessionId || !viewNode.value.nodeId) return;
+
+  const requestedSessionIdInput = window.prompt('Optional name for the forked pipeline session:', '');
+  if (requestedSessionIdInput === null) return;
+  const requestedSessionId = requestedSessionIdInput.trim();
+
+  forkedSessionId.value = null;
+
+  const result = await runBusyAction('fork', () =>
+    pipeline.forkPipeline(
+      viewNode.value!.sessionId!,
+      viewNode.value!.nodeId,
+      requestedSessionId || undefined,
+    ),
+  );
+
+  forkedSessionId.value = extractForkedSessionId(result);
 }
 
 function handleKeyDown(e: KeyboardEvent) {
@@ -53,6 +104,10 @@ function handleKeyDown(e: KeyboardEvent) {
     zoom.back();
   }
 }
+
+watch(() => viewNode.value?.nodeId, () => {
+  forkedSessionId.value = null;
+});
 
 onMounted(() => document.addEventListener('keydown', handleKeyDown));
 onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
@@ -120,6 +175,63 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
             This node hasn't produced any output yet.
           </div>
         </div>
+
+        <footer class="zoom-footer">
+          <div v-if="pipeline.errorMessage" class="zoom-error-banner" role="alert">
+            <span class="zoom-error-banner__message">{{ pipeline.errorMessage }}</span>
+            <button
+              class="btn btn-ghost zoom-error-banner__dismiss"
+              type="button"
+              aria-label="Dismiss error"
+              @click="pipeline.clearError()"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div class="zoom-actions">
+            <button
+              :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'fork' }]"
+              :disabled="busyAction !== null"
+              type="button"
+              @click="forkNode"
+            >
+              {{ busyAction === 'fork' ? 'Forking...' : 'Fork from node' }}
+            </button>
+            <button
+              v-if="['abandoned', 'stuck'].includes(viewNode.status)"
+              :class="['btn', 'btn-primary', { 'btn--busy': busyAction === 'restart' }]"
+              :disabled="busyAction !== null"
+              type="button"
+              @click="restartNode"
+            >
+              {{ busyAction === 'restart' ? 'Restarting...' : 'Restart node' }}
+            </button>
+            <button
+              v-if="['completed', 'abandoned', 'stuck'].includes(viewNode.status)"
+              :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'rewind' }]"
+              :disabled="busyAction !== null"
+              type="button"
+              @click="rewindNode"
+            >
+              {{ busyAction === 'rewind' ? 'Rewinding...' : 'Rewind node' }}
+            </button>
+            <button
+              v-if="viewNode.status === 'active'"
+              :class="['btn', 'btn-danger', { 'btn--busy': busyAction === 'abandon' }]"
+              :disabled="busyAction !== null"
+              type="button"
+              @click="abandonNode"
+            >
+              {{ busyAction === 'abandon' ? 'Abandoning...' : 'Abandon node' }}
+            </button>
+          </div>
+
+          <div v-if="forkedSessionId" class="zoom-fork-result" role="status">
+            <span>Forked session</span>
+            <strong class="zoom-mono">{{ forkedSessionId }}</strong>
+          </div>
+        </footer>
       </div>
     </div>
   </Teleport>
@@ -136,6 +248,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   display: flex; flex-direction: column;
   background: var(--surface-container, #201f1f);
   border-radius: var(--radius-xl); overflow: hidden;
+  border: 1px solid var(--border-default);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
 }
 .zoom-header {
   display: flex; align-items: center; justify-content: space-between;
@@ -172,6 +286,39 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   flex: 1; overflow-y: auto; padding: var(--space-4);
   display: flex; flex-direction: column; gap: var(--space-3);
 }
+.zoom-footer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
+  border-top: 1px solid var(--border-default);
+  background: color-mix(in srgb, var(--surface-container-highest, #353534) 55%, var(--surface-container, #201f1f));
+}
+.zoom-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.zoom-fork-result {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 8px;
+  background: var(--bg-main);
+}
+.zoom-fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
+.zoom-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-error);
+  color: var(--text-error);
+  border: 1px solid var(--border-error);
+  border-radius: 6px;
+  font-size: var(--text-sm);
+}
+.zoom-error-banner__message { flex: 1; }
+.zoom-error-banner__dismiss { flex-shrink: 0; color: inherit; }
+.zoom-error-banner__dismiss:hover { opacity: 0.75; }
 .zoom-section-title {
   font-family: var(--font-headline, var(--font-sans));
   font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
@@ -198,6 +345,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
+.zoom-mono { font-family: var(--font-mono); word-break: break-all; }
 .item-label { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
 .item-status { font-size: var(--text-xs); color: var(--text-muted); }
 .zoom-empty { padding: var(--space-8); text-align: center; color: var(--text-muted); font-size: var(--text-sm); }

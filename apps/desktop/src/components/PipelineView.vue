@@ -33,7 +33,7 @@ const configModalNodeId = ref<string | null>(null);
 const configModalEdge = ref<SelectedEdge>(null);
 const isConfigModalOpen = computed(() => designMode.value && (configModalNodeId.value !== null || configModalEdge.value !== null));
 const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = usePipelineLoading();
-const { isNarrowViewport, mobileSidebarOpen, toggleMobileSidebar } = usePipelineMobile(ref(false));
+const { isNarrowViewport, mobileSidebarOpen, toggleMobileSidebar } = usePipelineMobile();
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
 const { activeFlyout, close: closeFlyout, toggle: toggleFlyout } = useFlyout();
 const promotionNode = ref<ViewNode | null>(null);

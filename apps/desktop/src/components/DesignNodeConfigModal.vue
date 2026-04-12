@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
-import PipelineInspector from './PipelineInspector.vue';
+import DesignNodeConfigPanel from './DesignNodeConfigPanel.vue';
 
 defineProps<{
   selectedNodeId: string | null;
@@ -38,7 +38,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
           </button>
         </header>
         <div class="config-body">
-          <PipelineInspector
+          <DesignNodeConfigPanel
             :selected-node-id="selectedNodeId"
             :selected-edge="selectedEdge"
           />

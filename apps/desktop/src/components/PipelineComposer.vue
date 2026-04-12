@@ -89,7 +89,7 @@ const paletteResize = useResizeHandle({
 });
 
 const paletteOpen = ref(false);
-const { isNarrowViewport } = usePipelineMobile(computed(() => hasSelection.value));
+const { isNarrowViewport } = usePipelineMobile();
 
 const paletteAsOverlay = computed(() => isNarrowViewport.value && paletteOpen.value);
 

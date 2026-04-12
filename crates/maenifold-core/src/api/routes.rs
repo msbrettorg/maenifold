@@ -1,8 +1,8 @@
-use crate::api::graph;
-use crate::api::{config_watch, mcp_discovery};
+use crate::acp_config::{AgentEntry, AgentsConfig, MaenifoldSettings, McpServerEntry};
 use crate::api::config_manager::ConfigManager;
 use crate::api::config_watch::ConfigWatchState;
-use crate::acp_config::{AgentEntry, AgentsConfig, MaenifoldSettings, McpServerEntry};
+use crate::api::graph;
+use crate::api::{config_watch, mcp_discovery};
 use crate::markdown::{extract_h2_sections, file_exists, find_file_as_uri, read_markdown};
 use crate::search::search_memories;
 use crate::tools::{ToolContext, collect_recent_activity_records, parse_recent_activity_timespan};
@@ -16,10 +16,11 @@ use axum::{
     routing::{get, post, put},
 };
 use parking_lot::RwLock;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::fmt::Display;
+use std::path::{Path as FsPath, PathBuf};
 use std::str::FromStr;
 use std::sync::Arc;
 
@@ -152,6 +153,51 @@ async fn graph_community_concepts(
     Ok(Json(concepts))
 }
 
+#[derive(Deserialize)]
+struct FileTextQuery {
+    path: String,
+    cwd: Option<String>,
+}
+
+#[derive(Serialize)]
+struct FileTextResponse {
+    path: String,
+    content: String,
+}
+
+fn resolve_requested_file_path(path: &str, cwd: Option<&str>) -> ApiResult<PathBuf> {
+    let requested = PathBuf::from(path);
+
+    if requested.is_absolute() {
+        return Ok(requested);
+    }
+
+    let cwd =
+        cwd.ok_or_else(|| ApiError::bad_request("relative file paths require a cwd query parameter"))?;
+    let resolved = FsPath::new(cwd).join(requested);
+
+    if resolved.is_absolute() {
+        Ok(resolved)
+    } else {
+        Err(ApiError::bad_request("resolved file path must be absolute"))
+    }
+}
+
+async fn file_text(Query(params): Query<FileTextQuery>) -> ApiResult<Json<FileTextResponse>> {
+    let resolved_path = resolve_requested_file_path(&params.path, params.cwd.as_deref())?;
+
+    match std::fs::read_to_string(&resolved_path) {
+        Ok(content) => Ok(Json(FileTextResponse {
+            path: resolved_path.to_string_lossy().into_owned(),
+            content,
+        })),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Err(ApiError::not_found(
+            format!("File not found: {}", resolved_path.to_string_lossy()),
+        )),
+        Err(error) => Err(ApiError::internal(error)),
+    }
+}
+
 #[derive(Serialize)]
 struct MemoryReadResponse {
     uri: String,
@@ -186,7 +232,8 @@ async fn memory_read(
         )));
     }
 
-    let (frontmatter, content, _checksum) = read_markdown(&uri, &config).map_err(ApiError::internal)?;
+    let (frontmatter, content, _checksum) =
+        read_markdown(&uri, &config).map_err(ApiError::internal)?;
 
     let title = frontmatter
         .as_ref()
@@ -468,9 +515,7 @@ async fn get_config_handler(State(state): State<ApiState>) -> ApiResult<Json<Age
     Ok(Json(state.config_manager.get_config()))
 }
 
-async fn get_config_path_handler(
-    State(state): State<ApiState>,
-) -> ApiResult<Json<String>> {
+async fn get_config_path_handler(State(state): State<ApiState>) -> ApiResult<Json<String>> {
     Ok(Json(
         state
             .config_manager
@@ -631,6 +676,7 @@ pub fn api_routes(state: ApiState) -> Router {
             put(update_mcp_server_handler).delete(delete_mcp_server_handler),
         )
         .route("/api/config/settings", post(update_settings_handler))
+        .route("/api/files/text", get(file_text))
         .route("/api/graph/communities", get(graph_communities))
         .route(
             "/api/graph/communities/{id}/concepts",

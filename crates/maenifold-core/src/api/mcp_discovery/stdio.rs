@@ -15,8 +15,8 @@ const PROCESS_GROUP_TERM_WAIT: Duration = Duration::from_millis(200);
 const PROCESS_GROUP_POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 async fn send_stdio_message(stdin: &mut ChildStdin, message: &Value) -> Result<(), String> {
-    let mut body =
-        serde_json::to_vec(message).map_err(|error| format!("failed to serialize message: {error}"))?;
+    let mut body = serde_json::to_vec(message)
+        .map_err(|error| format!("failed to serialize message: {error}"))?;
     body.push(b'\n');
     stdin
         .write_all(&body)

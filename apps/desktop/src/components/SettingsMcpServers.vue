@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { McpServerEntry } from '../lib/types';
-import { addMcpServer, removeMcpServer, updateMcpServer } from '../lib/tauri';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import type { AgentsConfig, McpServerEntry } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 
 type McpServerType = McpServerEntry['type'];
@@ -18,6 +18,13 @@ const formArgs = ref('');
 const formUrl = ref('');
 const formError = ref('');
 const isSubmitting = ref(false);
+
+async function parseConfigResponse(response: Response, action: string): Promise<AgentsConfig> {
+  if (!response.ok) {
+    throw new Error(`${action} failed: HTTP ${response.status}`);
+  }
+  return response.json() as Promise<AgentsConfig>;
+}
 
 function resetForm() {
   showAddForm.value = false;
@@ -96,10 +103,18 @@ async function handleSubmit() {
 
   try {
     const entry = buildEntry();
-    const nextConfig = editingServer.value
-      ? await updateMcpServer(editingServer.value, entry)
-      : await addMcpServer(entry);
-    configStore.updateFromEvent(nextConfig);
+    const response = editingServer.value
+      ? await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(editingServer.value)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entry }),
+        })
+      : await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ entry }),
+        });
+    configStore.updateFromEvent(await parseConfigResponse(response, editingServer.value ? 'Update MCP server' : 'Add MCP server'));
     resetForm();
   } catch (error) {
     formError.value = error instanceof Error ? error.message : String(error);
@@ -112,7 +127,10 @@ async function handleDelete(name: string) {
   if (!confirm(`Delete MCP server "${name}"?`)) return;
 
   try {
-    configStore.updateFromEvent(await removeMcpServer(name));
+    const response = await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    });
+    configStore.updateFromEvent(await parseConfigResponse(response, 'Delete MCP server'));
   } catch (error) {
     console.error('Failed to delete MCP server:', error);
   }

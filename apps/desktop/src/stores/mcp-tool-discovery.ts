@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
-import { discoverMcpTools } from '../lib/tauri';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import { deriveServerHealth } from '../lib/palette-health';
 import type {
   McpDiscoveredTool,
@@ -76,7 +76,12 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     loading.value = true;
     error.value = null;
     try {
-      const results = await discoverMcpTools();
+      const response = await fetch(`${DAEMON_BASE_URL}/api/discovery/mcp-tools`);
+      if (!response.ok) {
+        throw new Error(`Failed to discover MCP tools: HTTP ${response.status}`);
+      }
+
+      const results = await response.json() as McpServerDiscoveryResult[];
       serverResults.value = mergeServerResults(results);
       hasLoadedCatalog.value = true;
       return serverResults.value;

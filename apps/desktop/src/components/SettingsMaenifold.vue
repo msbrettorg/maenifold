@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { MaenifoldSettings } from '../lib/types';
-import { getMaenifoldSettings, updateMaenifoldSettings } from '../lib/tauri';
+import type { AgentsConfig } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 
 const DEFAULT_SETTINGS: MaenifoldSettings = {
@@ -111,7 +112,13 @@ async function loadSettings() {
   feedback.value = null;
 
   try {
-    applySettings(await getMaenifoldSettings());
+    const response = await fetch(`${DAEMON_BASE_URL}/api/config`);
+    if (!response.ok) {
+      throw new Error(`Failed to load maenifold settings: HTTP ${response.status}`);
+    }
+
+    const config = await response.json() as AgentsConfig;
+    applySettings(config.settings ?? DEFAULT_SETTINGS);
   } catch (error) {
     feedback.value = {
       type: 'error',
@@ -127,7 +134,16 @@ async function saveSettings(settings: MaenifoldSettings, successMessage: string)
   feedback.value = null;
 
   try {
-    const nextConfig = await updateMaenifoldSettings(cloneSettings(settings));
+    const response = await fetch(`${DAEMON_BASE_URL}/api/config/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ settings: cloneSettings(settings) }),
+    });
+    if (!response.ok) {
+      throw new Error(`Failed to save maenifold settings: HTTP ${response.status}`);
+    }
+
+    const nextConfig = await response.json() as AgentsConfig;
     configStore.updateFromEvent(nextConfig);
     applySettings(nextConfig.settings ?? settings);
     feedback.value = { type: 'success', message: successMessage };

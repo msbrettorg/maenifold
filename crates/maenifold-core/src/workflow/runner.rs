@@ -518,11 +518,7 @@ mod tests {
     #[test]
     fn workflow_driver_session_opts_preserves_acp_session_id() {
         let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_opts(
-            cwd,
-            None,
-            Some("sess-resume-42".to_string()),
-        );
+        let opts = workflow_driver_session_opts(cwd, None, Some("sess-resume-42".to_string()));
 
         assert_eq!(opts.session_id.as_deref(), Some("sess-resume-42"));
     }

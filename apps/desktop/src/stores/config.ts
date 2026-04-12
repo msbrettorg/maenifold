@@ -1,27 +1,52 @@
-// Agent configuration store with hot-reload support
+// Agent configuration store with daemon-backed hot-reload support
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import type { AgentsConfig, AgentConfig } from '../lib/types';
-import { getConfig, reloadConfig, getConfigPath, onConfigChanged } from '../lib/tauri';
+import { computed, ref } from 'vue';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import type { AgentConfig, AgentsConfig } from '../lib/types';
+
+interface ConfigChangedEventPayload {
+  path?: string;
+  config: AgentsConfig;
+}
+
+interface ReloadConfigResponse {
+  config: AgentsConfig;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export const useConfigStore = defineStore('config', () => {
   const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
   const error = ref<string | null>(null);
+  const configWatch = ref<EventSource | null>(null);
 
   const agentNames = computed(() => Object.keys(config.value.agents));
-  
   const hasAgents = computed(() => agentNames.value.length > 0);
 
   async function loadConfig() {
     loading.value = true;
     error.value = null;
     try {
-      config.value = await getConfig();
-      configPath.value = await getConfigPath();
+      const [configResponse, pathResponse] = await Promise.all([
+        fetch(`${DAEMON_BASE_URL}/api/config`),
+        fetch(`${DAEMON_BASE_URL}/api/config/path`),
+      ]);
+
+      if (!configResponse.ok) {
+        throw new Error(`Failed to load config: HTTP ${configResponse.status}`);
+      }
+      if (!pathResponse.ok) {
+        throw new Error(`Failed to load config path: HTTP ${pathResponse.status}`);
+      }
+
+      config.value = await configResponse.json() as AgentsConfig;
+      configPath.value = await pathResponse.json() as string;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = getErrorMessage(e);
     } finally {
       loading.value = false;
     }
@@ -31,9 +56,17 @@ export const useConfigStore = defineStore('config', () => {
     loading.value = true;
     error.value = null;
     try {
-      config.value = await reloadConfig();
+      const response = await fetch(`${DAEMON_BASE_URL}/api/config/reload`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to reload config: HTTP ${response.status}`);
+      }
+
+      const payload = await response.json() as ReloadConfigResponse;
+      config.value = payload.config;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : String(e);
+      error.value = getErrorMessage(e);
     } finally {
       loading.value = false;
     }
@@ -43,17 +76,33 @@ export const useConfigStore = defineStore('config', () => {
     return config.value.agents[name];
   }
 
-  // Set up hot-reload listener
   async function setupHotReload() {
-    await onConfigChanged((newConfig) => {
-      config.value = newConfig;
+    configWatch.value?.close();
+
+    const source = new EventSource(`${DAEMON_BASE_URL}/api/config/watch`);
+    source.addEventListener('config-changed', (event) => {
+      const payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
+      config.value = payload.config;
+      configPath.value = payload.path ?? configPath.value;
+      error.value = null;
       if (import.meta.env.DEV) {
-        console.log('Config hot-reloaded:', newConfig);
+        console.log('Config hot-reloaded:', payload.config);
       }
     });
+    source.addEventListener('config-error', (event) => {
+      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      error.value = payload.message ?? 'Config reload failed';
+    });
+    source.addEventListener('watch-error', (event) => {
+      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      error.value = payload.message ?? 'Config watch failed';
+    });
+    source.onerror = () => {
+      error.value = error.value ?? 'Config watch connection lost';
+    };
+    configWatch.value = source;
   }
 
-  // Update config from event (for settings updates)
   function updateFromEvent(newConfig: AgentsConfig) {
     config.value = newConfig;
   }

@@ -1,9 +1,7 @@
-import { ref, computed, onMounted, watch } from 'vue';
-import { open } from '@tauri-apps/plugin-dialog';
-import { load, type Store } from '@tauri-apps/plugin-store';
+import { computed, onMounted, ref, watch } from 'vue';
+import type { AppAuthMethod } from '../lib/auth-methods';
 import { isAbsolutePath } from '../lib/acp-meta';
 import { PREFS_STORE_PATH } from '../lib/constants';
-import type { AppAuthMethod } from '../lib/auth-methods';
 import { initTelemetry } from '../lib/telemetry';
 import type { AgentsConfig, PermissionRequest, SavedSession, SessionState } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
@@ -28,6 +26,93 @@ export type SessionStoreLike = {
   setActiveSession(localId: string): void; setError(message: string): void; clearError(): void;
 };
 
+type BrowserPrefsStore = {
+  get<T>(key: string): Promise<T | null>;
+  set(key: string, value: unknown): Promise<void>;
+};
+
+function createPrefsStore(): BrowserPrefsStore {
+  return {
+    async get<T>(key: string) {
+      if (typeof window === 'undefined') {
+        return null;
+      }
+
+      const raw = window.localStorage.getItem(`${PREFS_STORE_PATH}:${key}`);
+      if (raw === null) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(raw) as T;
+      } catch {
+        return raw as T;
+      }
+    },
+    async set(key: string, value: unknown) {
+      if (typeof window === 'undefined') {
+        return;
+      }
+
+      window.localStorage.setItem(`${PREFS_STORE_PATH}:${key}`, JSON.stringify(value));
+    },
+  };
+}
+
+async function promptForAbsolutePath(title: string, initialValue = ''): Promise<string> {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  if (typeof HTMLDialogElement === 'undefined') {
+    return (window.prompt(title, initialValue) ?? '').trim();
+  }
+
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    const form = document.createElement('form');
+    form.method = 'dialog';
+
+    const heading = document.createElement('h3');
+    heading.textContent = title;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = '/absolute/path';
+    input.value = initialValue;
+    input.autofocus = true;
+    input.style.width = '100%';
+    input.style.margin = '0.75rem 0';
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.gap = '0.5rem';
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => dialog.close('cancel'));
+
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = 'Use Path';
+
+    actions.append(cancel, submit);
+    form.append(heading, input, actions);
+    dialog.append(form);
+    document.body.append(dialog);
+
+    dialog.addEventListener('close', () => {
+      const value = dialog.returnValue === 'cancel' ? '' : input.value.trim();
+      dialog.remove();
+      resolve(value);
+    }, { once: true });
+
+    dialog.showModal();
+  });
+}
+
 export function useAppSession({
   configStore,
   sessionStore,
@@ -37,7 +122,7 @@ export function useAppSession({
   const agentCapabilitiesStore = useAgentCapabilitiesStore();
   let agentProbeBootstrapped = false;
 
-  let prefsStore: Store | null = null;
+  const prefsStore = createPrefsStore();
 
   const isConnected = computed(() => sessionStore.isConnected);
   const isConnecting = computed(() => sessionStore.isConnecting);
@@ -60,24 +145,18 @@ export function useAppSession({
     { deep: true },
   );
 
-  // Bootstrap: load preferences, init telemetry, load config, init session store
   onMounted(async () => {
-    try {
-      prefsStore = await load(PREFS_STORE_PATH);
-      const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? true;
-      await initTelemetry(telemetryEnabled);
-      await configStore.loadConfig();
-      await configStore.setupHotReload();
-      agentProbeBootstrapped = true;
-      void agentCapabilitiesStore.probeAll();
-      await sessionStore.initStore();
+    const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? true;
+    await initTelemetry(telemetryEnabled);
+    await configStore.loadConfig();
+    await configStore.setupHotReload();
+    agentProbeBootstrapped = true;
+    void agentCapabilitiesStore.probeAll();
+    await sessionStore.initStore();
 
-      const savedCwd = await prefsStore.get<string>('lastCwd');
-      if (savedCwd) {
-        selectedCwd.value = savedCwd;
-      }
-    } catch {
-      console.warn('Tauri APIs unavailable, running in browser mode');
+    const savedCwd = await prefsStore.get<string>('lastCwd');
+    if (savedCwd) {
+      selectedCwd.value = savedCwd;
     }
   });
 
@@ -86,11 +165,13 @@ export function useAppSession({
   }
 
   async function handleSelectFolder() {
-    const folder = await open({ directory: true, multiple: false, title: 'Select Working Directory' });
-    if (folder) {
-      selectedCwd.value = folder as string;
-      if (prefsStore) await prefsStore.set('lastCwd', folder);
+    const folder = await promptForAbsolutePath('Enter Working Directory', selectedCwd.value);
+    if (!folder) {
+      return;
     }
+
+    selectedCwd.value = folder;
+    await prefsStore.set('lastCwd', folder);
   }
 
   async function handleNewSession() {

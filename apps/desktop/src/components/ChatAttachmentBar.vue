@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { open } from '@tauri-apps/plugin-dialog';
-import { readFile } from '@tauri-apps/plugin-fs';
+import { ref } from 'vue';
 import type { ContentBlock } from '../lib/types';
 
 export type PendingAttachment = {
@@ -36,77 +35,114 @@ const AUDIO_MIME: Record<string, string> = {
   '.opus': 'audio/opus', '.weba': 'audio/webm',
 };
 
-function toBase64(bytes: Uint8Array): string {
-  let binary = '';
-  const chunk = 0x8000;
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-  }
-  return btoa(binary);
+const imageInputRef = ref<HTMLInputElement | null>(null);
+const audioInputRef = ref<HTMLInputElement | null>(null);
+
+function fileLabel(name: string): string {
+  const segs = name.replace(/\\/g, '/').split('/');
+  return segs[segs.length - 1] || name;
 }
 
-function fileLabel(path: string): string {
-  const segs = path.replace(/\\/g, '/').split('/');
-  return segs[segs.length - 1] || path;
-}
-
-function mimeType(path: string, kind: 'image' | 'audio'): string {
-  const ext = path.lastIndexOf('.') >= 0 ? path.slice(path.lastIndexOf('.')).toLowerCase() : '';
+function mimeType(name: string, kind: 'image' | 'audio'): string {
+  const ext = name.lastIndexOf('.') >= 0 ? name.slice(name.lastIndexOf('.')).toLowerCase() : '';
   const known = kind === 'image' ? IMAGE_MIME[ext] : AUDIO_MIME[ext];
   return known ?? (kind === 'image' ? 'image/png' : 'audio/mpeg');
 }
 
-function normSelection(sel: string | string[] | null): string[] {
-  if (!sel) return [];
-  return Array.isArray(sel) ? sel : [sel];
+function readFileAsBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onerror = () => {
+      reject(reader.error ?? new Error(`Failed to read ${file.name}.`));
+    };
+
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error(`Unexpected file reader result for ${file.name}.`));
+        return;
+      }
+
+      const commaIndex = reader.result.indexOf(',');
+      resolve(commaIndex >= 0 ? reader.result.slice(commaIndex + 1) : reader.result);
+    };
+
+    reader.readAsDataURL(file);
+  });
 }
 
-async function addAttachments(kind: 'image' | 'audio'): Promise<void> {
+function triggerPicker(kind: 'image' | 'audio'): void {
   if (props.isLoading) return;
   if (kind === 'image' && !props.supportsImage) return;
   if (kind === 'audio' && !props.supportsAudio) return;
+  const target = kind === 'image' ? imageInputRef.value : audioInputRef.value;
+  target?.click();
+}
+
+async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<void> {
+  const input = event.target as HTMLInputElement | null;
+  const files = Array.from(input?.files ?? []);
+
+  if (!files.length) {
+    return;
+  }
+
   emit('attachment-error', null);
+
   try {
-    const sel = await open({
-      multiple: true,
-      title: kind === 'image' ? 'Select image attachments' : 'Select audio attachments',
-      filters: [
-        kind === 'image'
-          ? { name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'ico', 'tif', 'tiff'] }
-          : { name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'm4a', 'aac', 'flac', 'opus', 'weba'] },
-      ],
-    });
-    const paths = normSelection(sel);
-    if (!paths.length) return;
     const next = await Promise.all(
-      paths.map(async (path) => {
-        const data = await readFile(path);
-        const label = fileLabel(path);
-        const mime = mimeType(path, kind);
+      files.map(async (file) => {
+        const label = fileLabel(file.name);
+        const resolvedMimeType = file.type || mimeType(file.name, kind);
+        const data = await readFileAsBase64(file);
         const block: ContentBlock =
           kind === 'image'
-            ? { type: 'image', data: toBase64(data), mimeType: mime, uri: path }
-            : { type: 'audio', data: toBase64(data), mimeType: mime };
+            ? { type: 'image', data, mimeType: resolvedMimeType, uri: file.name }
+            : { type: 'audio', data, mimeType: resolvedMimeType };
         return { id: crypto.randomUUID(), kind, label, block } satisfies PendingAttachment;
       }),
     );
+
     emit('add-attachments', next);
-  } catch (e) {
-    emit('attachment-error', e instanceof Error ? e.message : `Failed to load ${kind} attachment(s).`);
+  } catch (error) {
+    emit(
+      'attachment-error',
+      error instanceof Error ? error.message : `Failed to load ${kind} attachment(s).`,
+    );
+  } finally {
+    if (input) {
+      input.value = '';
+    }
   }
 }
 </script>
 
 <template>
   <div class="ab-root">
+    <input
+      ref="imageInputRef"
+      class="ab-input"
+      type="file"
+      accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.ico,.tif,.tiff,image/*"
+      multiple
+      @change="handleSelection($event, 'image')"
+    />
+    <input
+      ref="audioInputRef"
+      class="ab-input"
+      type="file"
+      accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,audio/*"
+      multiple
+      @change="handleSelection($event, 'audio')"
+    />
     <div class="ab-toolbar">
       <span class="ab-wrap" :title="imageTooltip">
-        <button type="button" class="ab-btn" :disabled="!supportsImage || isLoading" @click="addAttachments('image')">
+        <button type="button" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
           🖼️ Image
         </button>
       </span>
       <span class="ab-wrap" :title="audioTooltip">
-        <button type="button" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="addAttachments('audio')">
+        <button type="button" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="triggerPicker('audio')">
           🎧 Audio
         </button>
       </span>
@@ -122,6 +158,7 @@ async function addAttachments(kind: 'image' | 'audio'): Promise<void> {
 
 <style scoped>
 .ab-root { display: flex; flex-direction: column; gap: 0.5rem; }
+.ab-input { display: none; }
 .ab-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ab-wrap { display: inline-flex; }
 .ab-btn {

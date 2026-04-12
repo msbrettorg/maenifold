@@ -4,12 +4,6 @@ import { PREFS_STORE_PATH } from '../lib/constants';
 const GATE_ROOTS_KEY = 'gateRoots';
 const SELECTED_GATE_ROOT_KEY = 'selectedGateRoot';
 
-type GateRegistryStore = {
-  get<T>(key: string): Promise<T | null>;
-  set(key: string, value: unknown): Promise<void>;
-  save(): Promise<void>;
-};
-
 function normalizeRoot(value: string | null | undefined) {
   return value?.trim() ?? '';
 }
@@ -18,69 +12,91 @@ function uniqueRoots(values: string[]) {
   return [...new Set(values.map(normalizeRoot).filter(Boolean))];
 }
 
+function storageKey(key: string) {
+  return `${PREFS_STORE_PATH}:${key}`;
+}
+
 function browserStorageAvailable() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
-function createBrowserStore(): GateRegistryStore | null {
-  if (!browserStorageAvailable()) return null;
+async function readStoredValue<T>(key: string): Promise<T | null> {
+  if (!browserStorageAvailable()) {
+    return null;
+  }
 
-  return {
-    async get<T>(key: string) {
-      const raw = window.localStorage.getItem(`${PREFS_STORE_PATH}:${key}`);
-      if (raw === null) return null;
+  const raw = window.localStorage.getItem(storageKey(key));
+  if (raw === null) {
+    return null;
+  }
 
-      try {
-        return JSON.parse(raw) as T;
-      } catch {
-        return raw as T;
-      }
-    },
-    async set(key: string, value: unknown) {
-      window.localStorage.setItem(`${PREFS_STORE_PATH}:${key}`, JSON.stringify(value));
-    },
-    async save() {
-      // Browser persistence is written eagerly to localStorage.
-    },
-  };
-}
-
-async function loadPrefsStore(): Promise<GateRegistryStore | null> {
   try {
-    const { load } = await import('@tauri-apps/plugin-store');
-    const store = await load(PREFS_STORE_PATH);
-    return {
-      async get<T>(key: string) {
-        return (await store.get<T>(key)) ?? null;
-      },
-      async set(key: string, value: unknown) {
-        await store.set(key, value);
-      },
-      async save() {
-        await store.save();
-      },
-    };
+    return JSON.parse(raw) as T;
   } catch {
-    return createBrowserStore();
+    return raw as T;
   }
 }
 
-async function pickGateRoot(): Promise<string> {
-  try {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    const folder = await open({
-      directory: true,
-      multiple: false,
-      title: 'Register Gate Root',
-    });
-    return typeof folder === 'string' ? folder : '';
-  } catch {
-    if (typeof window === 'undefined' || typeof window.prompt !== 'function') {
-      return '';
-    }
-
-    return normalizeRoot(window.prompt('Enter the absolute Gate root path') ?? '');
+async function writeStoredValue(key: string, value: unknown): Promise<void> {
+  if (!browserStorageAvailable()) {
+    return;
   }
+
+  window.localStorage.setItem(storageKey(key), JSON.stringify(value));
+}
+
+async function promptForRoot(initialValue = ''): Promise<string> {
+  if (typeof document === 'undefined') {
+    return '';
+  }
+
+  if (typeof HTMLDialogElement === 'undefined') {
+    return normalizeRoot(window.prompt('Enter the absolute Gate root path', initialValue) ?? '');
+  }
+
+  return new Promise((resolve) => {
+    const dialog = document.createElement('dialog');
+    const form = document.createElement('form');
+    form.method = 'dialog';
+
+    const heading = document.createElement('h3');
+    heading.textContent = 'Register Gate Root';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = initialValue;
+    input.placeholder = '/absolute/path';
+    input.autofocus = true;
+    input.style.width = '100%';
+    input.style.margin = '0.75rem 0';
+
+    const actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.gap = '0.5rem';
+
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', () => dialog.close('cancel'));
+
+    const submit = document.createElement('button');
+    submit.type = 'submit';
+    submit.textContent = 'Use Path';
+
+    actions.append(cancel, submit);
+    form.append(heading, input, actions);
+    dialog.append(form);
+    document.body.append(dialog);
+
+    dialog.addEventListener('close', () => {
+      const value = dialog.returnValue === 'cancel' ? '' : normalizeRoot(input.value);
+      dialog.remove();
+      resolve(value);
+    }, { once: true });
+
+    dialog.showModal();
+  });
 }
 
 export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
@@ -89,17 +105,12 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
   const isReady = ref(false);
   const error = ref('');
 
-  let prefsStore: GateRegistryStore | null = null;
-
   async function persist() {
-    if (!prefsStore) return;
-
     error.value = '';
 
     try {
-      await prefsStore.set(GATE_ROOTS_KEY, gateRoots.value);
-      await prefsStore.set(SELECTED_GATE_ROOT_KEY, selectedGateRoot.value);
-      await prefsStore.save();
+      await writeStoredValue(GATE_ROOTS_KEY, gateRoots.value);
+      await writeStoredValue(SELECTED_GATE_ROOT_KEY, selectedGateRoot.value);
     } catch (persistError) {
       error.value = persistError instanceof Error ? persistError.message : String(persistError);
     }
@@ -122,11 +133,11 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
 
   async function browseForRoot() {
     error.value = '';
-    const folder = await pickGateRoot();
+    const folder = await promptForRoot(selectedGateRoot.value);
 
     if (!folder) {
       if (!browserStorageAvailable()) {
-        error.value = 'Gate root selection requires a Tauri desktop runtime or browser prompt support.';
+        error.value = 'Gate root selection requires browser localStorage support.';
       }
       return '';
     }
@@ -152,10 +163,9 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
 
   onMounted(async () => {
     try {
-      prefsStore = await loadPrefsStore();
-      gateRoots.value = uniqueRoots((await prefsStore?.get<string[]>(GATE_ROOTS_KEY)) ?? []);
+      gateRoots.value = uniqueRoots((await readStoredValue<string[]>(GATE_ROOTS_KEY)) ?? []);
       selectedGateRoot.value = normalizeRoot(
-        (await prefsStore?.get<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',
+        (await readStoredValue<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',
       );
       gateRoots.value = uniqueRoots([...gateRoots.value, selectedGateRoot.value]);
     } catch (loadError) {

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { readTextFile } from '@tauri-apps/plugin-fs';
-import { resolve } from '@tauri-apps/api/path';
 import { useSessionStore } from '../stores/session';
 import { useMermaid } from '../composables/useMermaid';
 import { isAbsolutePath } from '../lib/acp-meta';
+import { getDaemonUrl } from '../lib/daemon-url';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
 
 type PendingAttachment = { id: string; kind: 'image' | 'audio'; label: string; block: ContentBlock };
+type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
 const { renderMermaidBlocks } = useMermaid();
@@ -119,22 +119,43 @@ function isPathLikeMention(candidate: string): boolean {
 }
 function normalizeMentionPath(candidate: string): string { return candidate.trim().replace(/[),.;!?]+$/, ''); }
 
+async function fetchEmbeddedContextFile(path: string, cwd?: string): Promise<FileTextResponse> {
+  const response = await fetch(getDaemonUrl('/api/files/text', { path, cwd }));
+  if (!response.ok) {
+    throw new Error((await response.text()) || `Unable to read ${getFileLabel(path)} (${response.status}).`);
+  }
+
+  return await response.json() as FileTextResponse;
+}
+
 async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlock[]> {
-  if (!supportsEmbeddedContext.value || !currentSession.value?.cwd) {
+  if (!supportsEmbeddedContext.value) {
     return [];
   }
   const attachments: ContentBlock[] = [];
   const seenPaths = new Set<string>();
+  const cwd = currentSession.value?.cwd;
   for (const match of text.matchAll(EMBEDDED_CONTEXT_MENTION)) {
     const rawCandidate = match[2] ?? match[3];
     if (!rawCandidate) continue;
     const candidate = normalizeMentionPath(rawCandidate);
     if (!candidate || !isPathLikeMention(candidate)) continue;
-    const resolvedPath = isAbsolutePath(candidate) ? candidate : await resolve(currentSession.value.cwd, candidate);
-    if (seenPaths.has(resolvedPath)) continue;
+    if (!isAbsolutePath(candidate) && !cwd) {
+      throw new Error(`Relative embedded file paths require an active working directory: ${candidate}`);
+    }
+    const dedupeKey = `${cwd ?? ''}:${candidate}`;
+    if (seenPaths.has(dedupeKey)) continue;
     try {
-      attachments.push({ type: 'resource', resource: { uri: resolvedPath, text: await readTextFile(resolvedPath), mimeType: 'text/plain' } });
-      seenPaths.add(resolvedPath);
+      const file = await fetchEmbeddedContextFile(candidate, cwd);
+      attachments.push({
+        type: 'resource',
+        resource: {
+          uri: file.path,
+          text: file.content,
+          mimeType: 'text/plain',
+        },
+      });
+      seenPaths.add(dedupeKey);
     } catch (error) {
       throw new Error(`Failed to embed file context for ${getFileLabel(candidate)}: ${error instanceof Error ? error.message : 'Unable to read file'}`);
     }

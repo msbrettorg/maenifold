@@ -7,7 +7,7 @@ const { fetchMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../lib/http', () => ({
-  getTauriFetch: vi.fn(async () => fetchMock),
+  getHttpFetch: vi.fn(() => fetchMock),
 }));
 
 const BASE_URL = 'http://127.0.0.1:8080';

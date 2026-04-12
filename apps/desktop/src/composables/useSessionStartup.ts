@@ -1,8 +1,7 @@
 // Session startup composable — create and resume flows built on shared bootstrap helpers.
-import type { SavedSession, SessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createAcpClient } from '../lib/acp-client';
-import { killAgent, onAgentStderr, spawnAgent } from '../lib/tauri';
+import type { AgentInstance, SavedSession, SessionState } from '../lib/types';
 import { trackError, trackEvent } from '../lib/telemetry';
 import type { SessionRuntimeDeps } from './session-runtime-deps';
 import { applySessionConfigurationState, detectPhase } from './session-utils';
@@ -18,6 +17,13 @@ interface UseSessionStartupDeps extends SessionRuntimeDeps {
   ) => { localId: string; sessionState: SessionState };
   clearSessionAbort: (sessionId: string) => void;
   isSessionAborted: (sessionId: string) => boolean;
+}
+
+function createAgentInstance(name: string): AgentInstance {
+  return {
+    id: crypto.randomUUID(),
+    name,
+  };
 }
 
 export function useSessionStartup({
@@ -49,9 +55,22 @@ export function useSessionStartup({
 
   async function createBoundBridge(
     localId: string,
-    agentInstance: Awaited<ReturnType<typeof spawnAgent>>
+    agentInstance: AgentInstance
   ): Promise<AcpClientBridge> {
-    const bridge = await createAcpClient(agentInstance);
+    const bridge = await createAcpClient(agentInstance, {
+      onStderr: (line) => {
+        const session = sessions.value.get(localId);
+        if (!session) {
+          return;
+        }
+
+        session.startupLogs.push(line);
+        const detectedPhase = detectPhase(line);
+        if (detectedPhase) {
+          session.startupPhase = detectedPhase;
+        }
+      },
+    });
     bridges.set(localId, bridge);
     bindPendingPermission(localId, bridge);
     bridge.onSessionUpdate = (notification) => handleSessionUpdate(localId, notification);
@@ -106,7 +125,6 @@ export function useSessionStartup({
       startupPhase: 'starting',
     });
     let startupTimer: ReturnType<typeof setInterval> | null = null;
-    let stderrUnlisten: (() => void) | null = null;
 
     startupTimer = setInterval(() => {
       const session = sessions.value.get(localId);
@@ -116,27 +134,8 @@ export function useSessionStartup({
     }, 1000);
 
     try {
-      const agentInstance = await spawnAgent(agentName);
-      // Track the Tauri agent process ID so agent-closed events can target this session.
+      const agentInstance = createAgentInstance(agentName);
       sessionState.agentId = agentInstance.id;
-      stderrUnlisten = await onAgentStderr((stderr) => {
-        if (stderr.agent_id !== agentInstance.id) {
-          return;
-        }
-
-        const session = sessions.value.get(localId);
-        if (!session) {
-          return;
-        }
-
-        session.startupLogs.push(stderr.line);
-        const detectedPhase = detectPhase(stderr.line);
-        if (detectedPhase) {
-          session.startupPhase = detectedPhase;
-        }
-      });
-
-      await ensureNotAborted(localId, () => killAgent(agentInstance.id));
       sessionState.startupPhase = 'initializing';
 
       const bridge = await createBoundBridge(localId, agentInstance);
@@ -185,9 +184,6 @@ export function useSessionStartup({
       if (startupTimer) {
         clearInterval(startupTimer);
       }
-      if (stderrUnlisten) {
-        stderrUnlisten();
-      }
     }
   }
 
@@ -202,10 +198,8 @@ export function useSessionStartup({
     const { localId, sessionState } = createSessionSlot(savedSession.agentName, savedSession.cwd);
 
     try {
-      const agentInstance = await spawnAgent(savedSession.agentName);
-      // Track the Tauri agent process ID so agent-closed events can target this session.
+      const agentInstance = createAgentInstance(savedSession.agentName);
       sessionState.agentId = agentInstance.id;
-      await ensureNotAborted(localId, () => killAgent(agentInstance.id));
 
       const bridge = await createBoundBridge(localId, agentInstance);
       const initialized = await initializeConnectedBridge(localId, bridge, sessionState);

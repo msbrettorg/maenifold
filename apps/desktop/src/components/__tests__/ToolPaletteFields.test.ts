@@ -13,19 +13,14 @@ import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { McpServerDiscoveryResult } from '../../lib/types';
 
-const { callTool, connect, connected, discoverMcpTools } = vi.hoisted(() => {
+const { callTool, connect, connected } = vi.hoisted(() => {
   const connected = { value: false, __v_isRef: true };
   return {
     callTool: vi.fn(async () => ({})),
     connect: vi.fn(async () => { connected.value = true; }),
     connected,
-    discoverMcpTools: vi.fn(),
   };
 });
-
-vi.mock('../../lib/tauri', () => ({
-  discoverMcpTools,
-}));
 
 vi.mock('../../composables/usePipelineMcp', () => ({
   usePipelineMcp: () => ({
@@ -135,6 +130,19 @@ function healthyDiscoveryResults(): McpServerDiscoveryResult[] {
   ];
 }
 
+function mockDiscoveryFetch(...results: McpServerDiscoveryResult[][]) {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockImplementation(() => {
+      const next = results.shift() ?? healthyDiscoveryResults();
+      return Promise.resolve({
+        ok: true,
+        json: async () => next,
+      });
+    }),
+  );
+}
+
 function firstRunErrorDiscoveryResults(): McpServerDiscoveryResult[] {
   const healthy = healthyDiscoveryResults();
   return [
@@ -208,9 +216,9 @@ async function mountPalette(results: McpServerDiscoveryResult[] = healthyDiscove
 beforeEach(() => {
   vi.restoreAllMocks();
   connected.value = false;
-  discoverMcpTools.mockReset();
   connect.mockClear();
   callTool.mockClear();
+  mockDiscoveryFetch(healthyDiscoveryResults());
 });
 
 describe('ToolPaletteFields', () => {
@@ -229,7 +237,7 @@ describe('ToolPaletteFields', () => {
 
   it('runs setup from a first-run auth card and refreshes the real tools after auth succeeds', async () => {
     const { wrapper, discoveryStore } = await mountPalette(firstRunErrorDiscoveryResults());
-    discoverMcpTools.mockResolvedValueOnce(healthyDiscoveryResults());
+    mockDiscoveryFetch(healthyDiscoveryResults());
 
     await wrapper.get('input[type="search"]').setValue('msx');
     await flushPromises();
@@ -322,9 +330,7 @@ describe('ToolPaletteFields', () => {
 
   it('blocks cached auth-error tools into auth setup path even when stale cache exists', async () => {
     const env = await createTestEnv();
-    discoverMcpTools
-      .mockResolvedValueOnce(healthyDiscoveryResults())
-      .mockResolvedValueOnce(firstRunErrorDiscoveryResults());
+    mockDiscoveryFetch(healthyDiscoveryResults(), firstRunErrorDiscoveryResults());
     await env.discoveryStore.refreshTools();
     await env.discoveryStore.refreshTools();
 
@@ -355,14 +361,15 @@ describe('ToolPaletteFields', () => {
   it('keeps stale cached tools selectable for non-auth server errors', async () => {
     const env = await createTestEnv();
     const healthy = healthyDiscoveryResults();
-    discoverMcpTools
-      .mockResolvedValueOnce(healthy)
-      .mockResolvedValueOnce([
+    mockDiscoveryFetch(
+      healthy,
+      [
         healthy[0]!,
         healthy[1]!,
         healthy[2]!,
         { server: 'ranking', type: 'stdio', status: 'error', error: 'connection timed out', tools: [] },
-      ]);
+      ],
+    );
     await env.discoveryStore.refreshTools();
     await env.discoveryStore.refreshTools();
 

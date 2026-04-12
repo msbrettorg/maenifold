@@ -11,6 +11,7 @@ import type {
 import { useTrafficStore } from '../stores/traffic';
 import { handleReadTextFileRequest, handleWriteTextFileRequest } from './acp-file-system';
 import { PermissionHandler } from './acp-permissions';
+import { DAEMON_BASE_URL } from './daemon-url';
 import {
   asJsonRpcRecord,
   createJsonRpcErrorResponse,
@@ -23,7 +24,6 @@ import {
   type JsonRpcError,
   type JsonRpcId,
 } from './acp-rpc';
-import { killAgent, onAgentClosed, onAgentMessage, sendToAgent } from './tauri';
 
 let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
 
@@ -34,53 +34,92 @@ function getTrafficStore() {
   return trafficStore;
 }
 
+function buildRelayUrl(agentName: string): string {
+  const base = new URL(DAEMON_BASE_URL);
+  base.protocol = base.protocol === 'https:' ? 'wss:' : 'ws:';
+  base.pathname = '/api/acp/session';
+  base.search = '';
+  base.searchParams.set('agent', agentName);
+  base.searchParams.set('keepSessionAlive', 'true');
+  return base.toString();
+}
+
 export class AcpClientBridgeCore {
   protected agentId: string;
+  protected agentName: string;
   protected permissionHandler: PermissionHandler;
   private messageResolvers: Map<JsonRpcId, (response: unknown) => void> = new Map();
   private messageRejecters: Map<JsonRpcId, (error: Error) => void> = new Map();
   private pendingMethods: Map<JsonRpcId, string> = new Map();
   private timeoutHandles: Map<JsonRpcId, ReturnType<typeof setTimeout>> = new Map();
   private nextRequestId = 0;
-  private unlistenMessage: (() => void) | null = null;
-  private unlistenClosed: (() => void) | null = null;
+  private socket: WebSocket | null = null;
+  private transportClosed = false;
+  private transportCloseReason: string | null = null;
   protected supportedAgentMethods = new Set<string>();
   public pendingPermissionRequests: PermissionHandler['pendingPermissionRequests'];
   public onSessionUpdate: ((notification: SessionNotification) => void) | null = null;
+  public onStderr: ((line: string) => void) | null = null;
 
-  constructor(agentId: string, permissionHandler: PermissionHandler) {
+  constructor(agentId: string, agentName: string, permissionHandler: PermissionHandler) {
     this.agentId = agentId;
+    this.agentName = agentName;
     this.permissionHandler = permissionHandler;
     this.pendingPermissionRequests = permissionHandler.pendingPermissionRequests;
   }
 
   async connect(): Promise<void> {
-    this.unlistenMessage = (await onAgentMessage((msg) => {
-      if (msg.agent_id === this.agentId) {
-        this.handleMessage(msg.message);
-      }
-    })) as unknown as () => void;
-    this.unlistenClosed = (await onAgentClosed((closedAgentId) => {
-      if (closedAgentId === this.agentId) {
-        this.rejectPendingRequests(new Error(`ACP agent terminated before responding (${this.agentId})`));
-      }
-    })) as unknown as () => void;
+    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    this.transportClosed = false;
+    this.transportCloseReason = null;
+
+    await new Promise<void>((resolve, reject) => {
+      const socket = new WebSocket(buildRelayUrl(this.agentName));
+      this.socket = socket;
+
+      socket.addEventListener('open', () => resolve(), { once: true });
+      socket.addEventListener('error', () => {
+        reject(new Error(`Failed to connect ACP relay for ${this.agentName}`));
+      }, { once: true });
+      socket.addEventListener('message', (event) => {
+        if (typeof event.data === 'string') {
+          this.handleMessage(event.data);
+        }
+      });
+      socket.addEventListener('close', (event) => {
+        this.transportClosed = true;
+        this.transportCloseReason = event.reason || `socket closed (${event.code})`;
+        this.socket = null;
+        this.rejectPendingRequests(
+          new Error(`ACP agent terminated before responding (${this.agentName})`),
+        );
+      });
+    });
+  }
+
+  isTransportClosed(): boolean {
+    return this.transportClosed;
+  }
+
+  getTransportCloseReason(): string | null {
+    return this.transportCloseReason;
   }
 
   async disconnect(): Promise<void> {
-    if (this.unlistenMessage) {
-      this.unlistenMessage();
-      this.unlistenMessage = null;
-    }
-    if (this.unlistenClosed) {
-      this.unlistenClosed();
-      this.unlistenClosed = null;
-    }
     this.supportedAgentMethods.clear();
     this.cancelPermission();
-    this.rejectPendingRequests(new Error(`ACP client disconnected before response (${this.agentId})`));
-    await killAgent(this.agentId);
+    this.rejectPendingRequests(new Error(`ACP client disconnected before response (${this.agentName})`));
+
+    const socket = this.socket;
+    this.socket = null;
+    if (socket && socket.readyState < WebSocket.CLOSING) {
+      socket.close(1000, 'client disconnect');
+    }
   }
+
   private clearRequest(id: JsonRpcId): void {
     const handle = this.timeoutHandles.get(id);
     if (handle !== undefined) {
@@ -127,10 +166,13 @@ export class AcpClientBridgeCore {
         resolve(response as T);
       });
       this.messageRejecters.set(id, reject);
-      sendToAgent(this.agentId, JSON.stringify(request)).catch((e) => {
+      try {
+        this.sendRaw(JSON.stringify(request));
+      } catch (e) {
         this.clearRequest(id);
-        reject(e);
-      });
+        reject(e instanceof Error ? e : new Error(String(e)));
+        return;
+      }
       const handle = setTimeout(() => {
         if (this.messageResolvers.has(id)) {
           this.clearRequest(id);
@@ -151,7 +193,15 @@ export class AcpClientBridgeCore {
       payload: notification,
     });
 
-    await sendToAgent(this.agentId, JSON.stringify(notification));
+    this.sendRaw(JSON.stringify(notification));
+  }
+
+  private sendRaw(payload: string): void {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      throw new Error(`ACP relay socket is not connected (${this.agentName})`);
+    }
+
+    this.socket.send(payload);
   }
 
   async cancel(params: CancelNotification): Promise<void> {
@@ -220,7 +270,7 @@ export class AcpClientBridgeCore {
           requestId: parsed.id,
           payload: parsed,
         });
-        this.handleRequest(parsed.id, parsed.method, parsed.params);
+        void this.handleRequest(parsed.id, parsed.method, parsed.params);
       }
 
       if (isJsonRpcNotification(parsed)) {
@@ -273,12 +323,22 @@ export class AcpClientBridgeCore {
       payload: response,
       error: !!error,
     });
-    await sendToAgent(this.agentId, JSON.stringify(response));
+    this.sendRaw(JSON.stringify(response));
   }
 
   private handleNotification(method: string, params: unknown): void {
     if (method === 'session/update' && this.onSessionUpdate) {
       this.onSessionUpdate(params as SessionNotification);
+      return;
+    }
+
+    if (method === '_relay/stderr' && this.onStderr) {
+      const line = typeof (params as { data?: unknown })?.data === 'string'
+        ? (params as { data: string }).data
+        : '';
+      if (line) {
+        this.onStderr(line);
+      }
     }
   }
 

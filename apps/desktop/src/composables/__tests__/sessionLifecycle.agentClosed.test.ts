@@ -1,10 +1,9 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { reactive, ref } from 'vue';
-import { onAgentClosed } from '../../lib/tauri';
 import type { AcpClientBridge } from '../../lib/acp-client';
-import type { SavedSession, SessionState, ToolCallInfo } from '../../lib/types';
 import { createEmptySessionState } from '../../lib/types';
+import type { SavedSession, SessionState, ToolCallInfo } from '../../lib/types';
 import { createMockBridge } from '../../test/setup';
 import { useSessionLifecycle } from '../useSessionLifecycle';
 
@@ -30,15 +29,6 @@ function createToolCall(toolCallId: string, status: ToolCallInfo['status']): Too
 }
 
 function buildLifecycleHarness(session: SessionState) {
-  let closeListener: ((agentId: string) => Promise<void>) | null = null;
-
-  vi.mocked(onAgentClosed).mockImplementation(async (callback) => {
-    closeListener = async (agentId: string) => {
-      await callback(agentId);
-    };
-    return () => {};
-  });
-
   const sessions = ref(new Map([[session.sessionId, session]]));
   const activeSessionId = ref<string | null>(session.sessionId);
   const savedSessions = ref<SavedSession[]>([]);
@@ -83,11 +73,10 @@ function buildLifecycleHarness(session: SessionState) {
     },
   });
 
-  if (!closeListener) {
-    throw new Error('Expected onAgentClosed listener registration');
+  async function emitAgentClosed() {
+    bridge.markTransportClosed('socket closed');
+    await vi.advanceTimersByTimeAsync(600);
   }
-
-  const emitAgentClosed: (agentId: string) => Promise<void> = closeListener;
 
   return {
     bridge,
@@ -99,6 +88,7 @@ function buildLifecycleHarness(session: SessionState) {
 describe('useSessionLifecycle agent closed handling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers();
   });
 
   it('tears down a connected session immediately when the agent exits', async () => {
@@ -144,7 +134,7 @@ describe('useSessionLifecycle agent closed handling', () => {
 
     const { bridge, emitAgentClosed } = buildLifecycleHarness(session);
 
-    await emitAgentClosed('runtime-agent-1');
+    await emitAgentClosed();
 
     expect(bridge.disconnect).toHaveBeenCalledOnce();
     expect(session.agentId).toBeNull();
@@ -177,7 +167,7 @@ describe('useSessionLifecycle agent closed handling', () => {
 
     const { bridge, emitAgentClosed } = buildLifecycleHarness(session);
 
-    await emitAgentClosed('runtime-agent-2');
+    await emitAgentClosed();
 
     expect(bridge.disconnect).toHaveBeenCalledOnce();
     expect(session.agentId).toBeNull();

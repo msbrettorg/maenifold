@@ -1,9 +1,9 @@
 #[path = "acp/config.rs"]
 pub(crate) mod acp_config;
-#[path = "acp/relay.rs"]
-pub(crate) mod acp_relay;
 #[path = "acp/native/mod.rs"]
 pub mod acp_native;
+#[path = "acp/relay.rs"]
+pub(crate) mod acp_relay;
 pub(crate) mod api;
 pub mod assets;
 pub mod benchmark;

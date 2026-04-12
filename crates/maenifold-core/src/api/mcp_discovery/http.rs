@@ -65,9 +65,12 @@ pub(super) async fn discover_http_tools(
     url: &str,
     timeout_duration: Duration,
 ) -> Result<Vec<Value>, String> {
-    timeout(timeout_duration, discover_http_tools_inner(url, timeout_duration))
-        .await
-        .map_err(|_| "timed out waiting for HTTP MCP server (10 s total budget exceeded)".to_string())?
+    timeout(
+        timeout_duration,
+        discover_http_tools_inner(url, timeout_duration),
+    )
+    .await
+    .map_err(|_| "timed out waiting for HTTP MCP server (10 s total budget exceeded)".to_string())?
 }
 
 async fn discover_http_tools_inner(

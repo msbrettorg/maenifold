@@ -4,50 +4,53 @@ import type {
   WriteTextFileRequest,
   WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
-import {
-  mkdir,
-  readTextFile as tauriReadTextFile,
-  writeTextFile as tauriWriteTextFile,
-} from '@tauri-apps/plugin-fs';
-import { dirname } from '@tauri-apps/api/path';
-import { assertAbsolutePath } from './acp-meta';
 
-export async function handleWriteTextFileRequest(
-  params: WriteTextFileRequest
-): Promise<WriteTextFileResponse> {
-  try {
-    assertAbsolutePath(params.path);
-    const dir = await dirname(params.path);
-    await mkdir(dir, { recursive: true });
-    await tauriWriteTextFile(params.path, params.content);
-    if (import.meta.env.DEV) {
-      console.log('writeTextFile completed:', params.path);
-    }
-    return null as unknown as WriteTextFileResponse;
-  } catch (e) {
-    console.error('writeTextFile failed:', params.path, e);
-    throw e;
+function ensureBrowserFsAvailable() {
+  const browserWindow = window as Window & {
+    showSaveFilePicker?: unknown;
+    showOpenFilePicker?: unknown;
+  };
+
+  if (
+    typeof window === 'undefined' ||
+    !browserWindow.showSaveFilePicker ||
+    !browserWindow.showOpenFilePicker
+  ) {
+    throw new Error('Browser file access is unavailable in this environment');
   }
 }
 
+export async function handleWriteTextFileRequest(
+  params: WriteTextFileRequest,
+): Promise<WriteTextFileResponse> {
+  ensureBrowserFsAvailable();
+  const picker = (window as Window & {
+    showSaveFilePicker?: unknown;
+  }).showSaveFilePicker as unknown as (options?: Record<string, unknown>) => Promise<{
+    createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }>;
+  }>;
+  const handle = await picker({
+    suggestedName: params.path?.split('/').pop() ?? 'untitled.txt',
+  });
+  const writable = await handle.createWritable();
+  await writable.write(params.content);
+  await writable.close();
+  return {};
+}
+
 export async function handleReadTextFileRequest(
-  params: ReadTextFileRequest
+  _params: ReadTextFileRequest,
 ): Promise<ReadTextFileResponse> {
-  try {
-    assertAbsolutePath(params.path);
-    let content = await tauriReadTextFile(params.path);
-    if (params.line !== undefined || params.limit !== undefined) {
-      const lines = content.split('\n');
-      const startLine = params.line ? params.line - 1 : 0;
-      const endLine = params.limit ? startLine + params.limit : lines.length;
-      content = lines.slice(startLine, endLine).join('\n');
-    }
-    if (import.meta.env.DEV) {
-      console.log('readTextFile completed:', params.path);
-    }
-    return { content, _meta: null };
-  } catch (e) {
-    console.error('readTextFile failed:', params.path, e);
-    throw e;
+  ensureBrowserFsAvailable();
+  const picker = (window as Window & {
+    showOpenFilePicker?: unknown;
+  }).showOpenFilePicker as unknown as () => Promise<Array<{
+    getFile: () => Promise<{ text: () => Promise<string> }>;
+  }>>;
+  const [handle] = await picker();
+  if (!handle) {
+    throw new Error('No file selected');
   }
+  const file = await handle.getFile();
+  return { content: await file.text() };
 }

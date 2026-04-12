@@ -2,8 +2,55 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { AcpClientBridgeCore } from '../acp-client-core';
 import { PermissionHandler } from '../acp-permissions';
-import { killAgent, onAgentClosed, onAgentMessage, sendToAgent } from '../tauri';
 import { useTrafficStore } from '../../stores/traffic';
+
+class MockWebSocket {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+  static instances: MockWebSocket[] = [];
+
+  readonly url: string;
+  readonly sent: string[] = [];
+  readyState = MockWebSocket.CONNECTING;
+  onopen: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
+  throwOnSend: Error | null = null;
+
+  constructor(url: string | URL) {
+    this.url = String(url);
+    MockWebSocket.instances.push(this);
+  }
+
+  send(data: string): void {
+    if (this.throwOnSend) {
+      throw this.throwOnSend;
+    }
+    this.sent.push(data);
+  }
+
+  close(): void {
+    this.readyState = MockWebSocket.CLOSED;
+    this.onclose?.({ code: 1000, reason: '', wasClean: true } as CloseEvent);
+  }
+
+  triggerOpen(): void {
+    this.readyState = MockWebSocket.OPEN;
+    this.onopen?.({} as Event);
+  }
+
+  triggerMessage(data: string): void {
+    this.onmessage?.({ data } as MessageEvent);
+  }
+
+  triggerClose(code = 1011, reason = 'Agent process exited'): void {
+    this.readyState = MockWebSocket.CLOSED;
+    this.onclose?.({ code, reason, wasClean: false } as CloseEvent);
+  }
+}
 
 class TestAcpClientBridgeCore extends AcpClientBridgeCore {
   request<T>(method: string, params?: unknown): Promise<T> {
@@ -11,76 +58,124 @@ class TestAcpClientBridgeCore extends AcpClientBridgeCore {
   }
 
   timeoutFor(method: string): number {
-    return (this as any).getTimeoutForMethod(method);
-  }
-
-  receive(message: unknown): void {
-    (this as any).handleMessage(JSON.stringify(message));
+    return (
+      this as unknown as {
+        getTimeoutForMethod(method: string): number;
+      }
+    ).getTimeoutForMethod(method);
   }
 }
 
 describe('AcpClientBridgeCore request hardening', () => {
+  const originalWebSocket = globalThis.WebSocket;
+
+  function getLatestSocket(): MockWebSocket | undefined {
+    return MockWebSocket.instances[MockWebSocket.instances.length - 1];
+  }
+
+  async function connectBridge(agentId = 'agent-1') {
+    const bridge = new TestAcpClientBridgeCore(agentId, agentId, new PermissionHandler());
+    const connectPromise = bridge.connect();
+    const socket = getLatestSocket();
+    if (!socket) {
+      throw new Error('Expected WebSocket to be created');
+    }
+    socket.triggerOpen();
+    await connectPromise;
+    return { bridge, socket };
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
     setActivePinia(createPinia());
     useTrafficStore().clear();
-    vi.mocked(sendToAgent).mockReset().mockResolvedValue(undefined);
-    vi.mocked(killAgent).mockReset().mockResolvedValue(undefined);
-    vi.mocked(onAgentMessage).mockReset().mockResolvedValue(() => {});
-    vi.mocked(onAgentClosed).mockReset().mockResolvedValue(() => {});
+    MockWebSocket.instances = [];
+    globalThis.WebSocket = MockWebSocket as unknown as typeof WebSocket;
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     vi.useRealTimers();
+    globalThis.WebSocket = originalWebSocket;
+  });
+
+  it('connects over the ACP relay websocket path', async () => {
+    const connectPromise = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler()).connect();
+    const socket = getLatestSocket();
+
+    expect(socket?.url).toBe(
+      'ws://127.0.0.1:8080/api/acp/session?agent=agent-1&keepSessionAlive=true'
+    );
+
+    socket?.triggerOpen();
+    await expect(connectPromise).resolves.toBeUndefined();
   });
 
   it('clears request timeout handles after a successful response', async () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
+    const { bridge, socket } = await connectBridge();
     const promise = bridge.request<{ ok: boolean }>('initialize', {});
 
     expect(vi.getTimerCount()).toBe(1);
 
-    bridge.receive({ jsonrpc: '2.0', id: 0, result: { ok: true } });
+    socket.triggerMessage(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } }));
 
     await expect(promise).resolves.toEqual({ ok: true });
     expect(vi.getTimerCount()).toBe(0);
-    expect(((bridge as any).timeoutHandles as Map<number, ReturnType<typeof setTimeout>>).size).toBe(0);
+    expect(
+      (
+        bridge as unknown as {
+          timeoutHandles: Map<number, ReturnType<typeof setTimeout>>;
+        }
+      ).timeoutHandles.size
+    ).toBe(0);
   });
 
   it('clears request timeout handles after an error response', async () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
+    const { bridge, socket } = await connectBridge();
     const promise = bridge.request('initialize', {});
 
     expect(vi.getTimerCount()).toBe(1);
 
-    bridge.receive({
-      jsonrpc: '2.0',
-      id: 0,
-      error: { code: -32000, message: 'backend failed' },
-    });
+    socket.triggerMessage(
+      JSON.stringify({
+        jsonrpc: '2.0',
+        id: 0,
+        error: { code: -32000, message: 'backend failed' },
+      })
+    );
 
     await expect(promise).rejects.toThrow('backend failed');
     expect(vi.getTimerCount()).toBe(0);
-    expect(((bridge as any).timeoutHandles as Map<number, ReturnType<typeof setTimeout>>).size).toBe(0);
+    expect(
+      (
+        bridge as unknown as {
+          timeoutHandles: Map<number, ReturnType<typeof setTimeout>>;
+        }
+      ).timeoutHandles.size
+    ).toBe(0);
   });
 
-  it('clears request timeout handles when sendToAgent fails', async () => {
-    vi.mocked(sendToAgent).mockRejectedValueOnce(new Error('send failed'));
+  it('clears request timeout handles when websocket send fails', async () => {
+    const { bridge, socket } = await connectBridge();
+    socket.throwOnSend = new Error('send failed');
 
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
     const promise = bridge.request('initialize', {});
 
     await expect(promise).rejects.toThrow('send failed');
     expect(vi.getTimerCount()).toBe(0);
-    expect(((bridge as any).timeoutHandles as Map<number, ReturnType<typeof setTimeout>>).size).toBe(0);
+    expect(
+      (
+        bridge as unknown as {
+          timeoutHandles: Map<number, ReturnType<typeof setTimeout>>;
+        }
+      ).timeoutHandles.size
+    ).toBe(0);
   });
 
   it('rejects pending requests immediately on disconnect', async () => {
-    vi.mocked(sendToAgent).mockImplementation(() => new Promise(() => {}));
-
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
+    const { bridge, socket } = await connectBridge();
     const promise = bridge.request('session/new', {});
 
     expect(vi.getTimerCount()).toBe(1);
@@ -88,29 +183,22 @@ describe('AcpClientBridgeCore request hardening', () => {
     await bridge.disconnect();
 
     await expect(promise).rejects.toThrow('ACP client disconnected before response (agent-1)');
-    expect(vi.mocked(killAgent)).toHaveBeenCalledWith('agent-1');
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED);
     expect(vi.getTimerCount()).toBe(0);
   });
 
-  it('rejects pending requests when the agent terminates', async () => {
-    let closedCallback: (agentId: string) => void = () => {};
-    vi.mocked(onAgentClosed).mockImplementation(async (callback) => {
-      closedCallback = callback;
-      return () => {};
-    });
-
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
-    await bridge.connect();
-
+  it('rejects pending requests when the websocket closes unexpectedly', async () => {
+    const { bridge, socket } = await connectBridge();
     const promise = bridge.request('session/new', {});
-    closedCallback('agent-1');
+
+    socket.triggerClose();
 
     await expect(promise).rejects.toThrow('ACP agent terminated before responding (agent-1)');
     expect(vi.getTimerCount()).toBe(0);
   });
 
   it('uses long-lived timeouts for ACP control mutations', () => {
-    const bridge = new TestAcpClientBridgeCore('agent-1', new PermissionHandler());
+    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
 
     expect(bridge.timeoutFor('session/set_config_option')).toBe(30 * 60 * 1000);
   });

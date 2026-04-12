@@ -43,6 +43,11 @@ type FlowEdgeData = {
 };
 
 type Point = { x: number; y: number };
+type SelectableFlowElement = { selected?: boolean };
+
+function isSelected(element: SelectableFlowElement): boolean {
+  return !!element.selected;
+}
 
 export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const {
@@ -70,12 +75,22 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   };
   const { layout } = useLayout();
 
-  const selectedNodes = computed(() =>
-    nodes.value.filter((node) => (node as Node & { selected?: boolean }).selected),
-  );
-  const selectedEdges = computed(() =>
-    edges.value.filter((edge) => (edge as Edge & { selected?: boolean }).selected),
-  );
+  const selectedNodes = computed<Node[]>(() => {
+    const currentNodes = nodes.value as Node[];
+    const selected: Node[] = [];
+    for (const node of currentNodes) {
+      if (isSelected(node as SelectableFlowElement)) selected.push(node);
+    }
+    return selected;
+  });
+  const selectedEdges = computed<Edge[]>(() => {
+    const currentEdges = edges.value as Edge[];
+    const selected: Edge[] = [];
+    for (const edge of currentEdges) {
+      if (isSelected(edge as SelectableFlowElement)) selected.push(edge);
+    }
+    return selected;
+  });
   const hasSelection = computed(
     () => selectedNodes.value.length + selectedEdges.value.length > 0,
   );
@@ -114,15 +129,17 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const hasCachedPositions =
       definition.nodes.length > 0 && definition.nodes.every((node) => cached[node.id]);
 
-    nodes.value = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
-    edges.value = pipelineEdgesToFlow(definition.edges);
+    let nextNodes: Node[] = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
+    const nextEdges: Edge[] = pipelineEdgesToFlow(definition.edges);
 
-    if (!hasCachedPositions && nodes.value.length > 0) {
-      nodes.value = layout(nodes.value, edges.value, 'LR');
+    if (!hasCachedPositions && nextNodes.length > 0) {
+      nextNodes = layout(nextNodes, nextEdges, 'LR');
     }
 
-    setNodes(nodes.value);
-    setEdges(edges.value);
+    nodes.value = nextNodes;
+    edges.value = nextEdges;
+    setNodes(nextNodes);
+    setEdges(nextEdges);
   }
 
   function emitDefinitionUpdate(): void {
@@ -209,8 +226,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   onConnect((connection: Connection) => {
     if (!options.designMode() || !connection.source || !connection.target) return;
 
-    edges.value = [
-      ...edges.value,
+    const currentEdges = edges.value as Edge[];
+    const nextEdges: Edge[] = [
+      ...currentEdges,
       {
         id: `${connection.source}->${connection.target}`,
         source: connection.source,
@@ -220,7 +238,8 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         data: { edgeType: 'success' },
       },
     ];
-    setEdges(edges.value);
+    edges.value = nextEdges;
+    setEdges(nextEdges);
     emitDefinitionUpdate();
   });
 
@@ -308,9 +327,12 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   function handleAutoLayout(direction: 'LR' | 'TB'): void {
-    nodes.value = layout(getNodes.value, getEdges.value, direction);
-    setNodes(nodes.value);
-    persistPositions(nodes.value);
+    const currentNodes: Node[] = getNodes.value;
+    const currentEdges: Edge[] = getEdges.value;
+    const nextNodes: Node[] = layout(currentNodes, currentEdges, direction);
+    nodes.value = nextNodes;
+    setNodes(nextNodes);
+    persistPositions(nextNodes);
     nextTick(() => fitView());
   }
 
@@ -410,8 +432,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   function createNodeAt(node: PipelineNode, position: Point): void {
     if (!options.designMode()) return;
 
+    const currentNodes = getNodes.value as Node[];
     const nextNodes = [
-      ...getNodes.value,
+      ...currentNodes,
       {
         id: node.id,
         type: 'pipelineNode',

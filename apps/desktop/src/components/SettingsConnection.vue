@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import type { AgentConfig, McpServerEntry } from '../lib/types';
+import type { AgentConfig, AgentsConfig, McpServerEntry } from '../lib/types';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import { useConfigStore } from '../stores/config';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
-import { addAgent, removeAgent, updateAgent } from '../lib/tauri';
 import AgentProbePreview from './AgentProbePreview.vue';
 
 interface AgentRow {
@@ -104,6 +104,13 @@ function buildMcpServers(rows: McpServerFormRow[]): McpServerEntry[] {
     );
 }
 
+async function parseConfigResponse(response: Response, action: string): Promise<AgentsConfig> {
+  if (!response.ok) {
+    throw new Error(`${action} failed: HTTP ${response.status}`);
+  }
+  return response.json() as Promise<AgentsConfig>;
+}
+
 function resetForm() {
   showAddForm.value = false;
   editingAgent.value = null;
@@ -175,10 +182,18 @@ async function handleSubmit() {
       ),
       mcpServers: buildMcpServers(formMcpServers.value),
     };
-    const nextConfig = editingAgent.value
-      ? await updateAgent(formName.value, config)
-      : await addAgent(formName.value, config);
-    configStore.updateFromEvent(nextConfig);
+    const response = editingAgent.value
+      ? await fetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(formName.value)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ config }),
+        })
+      : await fetch(`${DAEMON_BASE_URL}/api/config/agents`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: formName.value, config }),
+        });
+    configStore.updateFromEvent(await parseConfigResponse(response, editingAgent.value ? 'Update agent' : 'Add agent'));
     resetForm();
   } catch (error) {
     formError.value = error instanceof Error ? error.message : String(error);
@@ -191,7 +206,10 @@ async function handleDelete(name: string) {
   if (!confirm(`Delete agent "${name}"?`)) return;
 
   try {
-    configStore.updateFromEvent(await removeAgent(name));
+    const response = await fetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(name)}`, {
+      method: 'DELETE',
+    });
+    configStore.updateFromEvent(await parseConfigResponse(response, 'Delete agent'));
   } catch (error) {
     console.error('Failed to delete agent:', error);
   }

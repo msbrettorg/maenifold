@@ -264,7 +264,7 @@ export interface PlanEntry extends AcpMetadataCarrier {
 
 export interface SessionState {
   sessionId: string;
-  /** Tauri runtime agent process ID — used to route `agent-closed` events to the correct session. */
+  /** Client-side bridge instance ID — used to route relay disconnects to the correct session. */
   agentId: string | null;
   agentName: string;
   cwd: string;

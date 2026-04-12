@@ -391,8 +391,7 @@ mod tests {
             }
         }"#;
 
-        let wire: PipelineNodeWire =
-            serde_json::from_str(json).expect("deserialize workflow wire");
+        let wire: PipelineNodeWire = serde_json::from_str(json).expect("deserialize workflow wire");
         let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
         let wire = PipelineNodeWire::from(node);
         let value = serde_json::to_value(&wire).expect("serialize workflow wire");

@@ -26,8 +26,8 @@ impl ConfigWatchState {
         config: Arc<parking_lot::RwLock<Config>>,
     ) -> Self {
         let (sender, _) = broadcast::channel(32);
-        let (watcher, startup_error) =
-            create_watcher(config_manager, config, sender.clone()).map_or_else(
+        let (watcher, startup_error) = create_watcher(config_manager, config, sender.clone())
+            .map_or_else(
                 |error| {
                     tracing::warn!("config watch initialization failed: {error}");
                     (None, Some(Arc::<str>::from(error)))
@@ -77,7 +77,11 @@ fn create_watcher(
         move |result: Result<notify::Event, notify::Error>| match result {
             Ok(event) => match event.kind {
                 EventKind::Modify(_) | EventKind::Create(_) => {
-                    if event.paths.iter().any(|path| path == &config_path_for_watcher) {
+                    if event
+                        .paths
+                        .iter()
+                        .any(|path| path == &config_path_for_watcher)
+                    {
                         match config_manager.reload() {
                             Ok(new_config) => {
                                 update_runtime_settings(&config, new_config.settings.as_ref());
@@ -167,7 +171,10 @@ pub(crate) async fn config_watch_stream(
     config_watch: ConfigWatchState,
     config_path: PathBuf,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    config_watch_sse(config_watch.subscribe(), config_path.to_string_lossy().to_string())
+    config_watch_sse(
+        config_watch.subscribe(),
+        config_path.to_string_lossy().to_string(),
+    )
 }
 
 fn config_watch_sse(
@@ -201,7 +208,11 @@ fn config_watch_sse(
         }
     });
 
-    Sse::new(stream).keep_alive(KeepAlive::new().interval(Duration::from_secs(30)).text("ping"))
+    Sse::new(stream).keep_alive(
+        KeepAlive::new()
+            .interval(Duration::from_secs(30))
+            .text("ping"),
+    )
 }
 
 #[cfg(test)]

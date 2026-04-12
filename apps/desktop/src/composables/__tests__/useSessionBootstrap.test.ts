@@ -19,13 +19,15 @@ describe('useSessionBootstrap', () => {
       disconnect: vi.fn(),
     } as never);
 
-    expect(initialize).toHaveBeenCalledWith(
+    const initializeRequest = initialize.mock.calls[0]?.[0];
+
+    expect(initializeRequest).toEqual(
       expect.objectContaining({
         clientCapabilities: expect.objectContaining({
-          fs: { readTextFile: true, writeTextFile: true },
           terminal: false,
         }),
       })
     );
+    expect(initializeRequest?.clientCapabilities?.fs).toBeUndefined();
   });
 });

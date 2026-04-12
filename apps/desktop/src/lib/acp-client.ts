@@ -84,8 +84,14 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Client {
   }
 }
 
-export async function createAcpClient(agentInstance: AgentInstance): Promise<AcpClientBridge> {
-  const client = new AcpClientBridge(agentInstance.id, new PermissionHandler());
+export async function createAcpClient(
+  agentInstance: AgentInstance,
+  options: { onStderr?: (line: string) => void } = {},
+): Promise<AcpClientBridge> {
+  const client = new AcpClientBridge(agentInstance.id, agentInstance.name, new PermissionHandler());
+  if (options.onStderr) {
+    client.onStderr = options.onStderr;
+  }
   await client.connect();
   return client;
 }

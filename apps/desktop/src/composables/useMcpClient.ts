@@ -1,7 +1,7 @@
 import { readonly, ref } from 'vue';
 import { DEFAULT_MCP_BASE_URL, MCP_PROTOCOL_VERSION } from '../lib/constants';
 import { getApiBase } from '../lib/api-base';
-import { getTauriFetch } from '../lib/http';
+import { getHttpFetch } from '../lib/http';
 import type {
   JsonRpcRequest,
   JsonRpcResponse,
@@ -53,7 +53,7 @@ export function useMcpClient(baseUrl?: string) {
 
   async function sendRequest(method: string, request: JsonRpcRequest): Promise<Response> {
     try {
-      const httpFetch = await getTauriFetch();
+      const httpFetch = getHttpFetch();
       return await httpFetch(mcpUrl, {
         method: 'POST',
         headers: buildHeaders(),
@@ -219,7 +219,7 @@ export function useMcpClient(baseUrl?: string) {
     }
 
     try {
-      const httpFetch = await getTauriFetch();
+      const httpFetch = getHttpFetch();
       await httpFetch(mcpUrl, {
         method: 'DELETE',
         headers: {

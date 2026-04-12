@@ -72,13 +72,9 @@ describe('useGateRegistry', () => {
     vi.restoreAllMocks();
   });
 
-  it('falls back to localStorage when the Tauri store is unavailable', async () => {
+  it('loads roots from localStorage', async () => {
     window.localStorage.setItem('preferences.json:gateRoots', JSON.stringify(['/alpha', '/beta']));
     window.localStorage.setItem('preferences.json:selectedGateRoot', JSON.stringify('/beta'));
-
-    vi.doMock('@tauri-apps/plugin-store', () => ({
-      load: vi.fn().mockRejectedValue(new Error('tauri unavailable')),
-    }));
 
     const registry = await loadRegistry();
 
@@ -88,14 +84,10 @@ describe('useGateRegistry', () => {
     expect(registry.error.value).toBe('');
   });
 
-  it('uses a browser prompt fallback when the Tauri dialog is unavailable', async () => {
-    vi.doMock('@tauri-apps/plugin-store', () => ({
-      load: vi.fn().mockRejectedValue(new Error('tauri unavailable')),
-    }));
-    vi.doMock('@tauri-apps/plugin-dialog', () => ({
-      open: vi.fn().mockRejectedValue(new Error('dialog unavailable')),
-    }));
+  it('uses a browser prompt fallback when dialog is unavailable', async () => {
     vi.spyOn(window, 'prompt').mockReturnValue('/browser/root');
+    // @ts-expect-error test shim
+    globalThis.HTMLDialogElement = undefined;
 
     const registry = await loadRegistry();
     const selected = await registry.browseForRoot();

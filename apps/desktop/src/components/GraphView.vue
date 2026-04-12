@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { invoke } from '@tauri-apps/api/core';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { useForceGraph } from '../composables/useForceGraph';
 import type {
@@ -8,6 +7,7 @@ import type {
   ForceEdge,
   ForceNode,
 } from '../lib/graph-types';
+import { getDaemonUrl } from '../lib/daemon-url';
 
 const containerRef = ref<HTMLElement | null>(null);
 const isLoading = ref(false);
@@ -54,7 +54,11 @@ async function loadCommunities() {
   isLoading.value = true;
   error.value = '';
   try {
-    const data = await invoke<CommunityGraph>('load_graph_communities');
+    const response = await fetch(getDaemonUrl('/api/graph/communities'));
+    if (!response.ok) {
+      throw new Error((await response.text()) || `Failed to load communities (${response.status}).`);
+    }
+    const data = await response.json() as CommunityGraph;
     nodeCount.value = data.nodes.length;
     edgeCount.value = data.edges.length;
 
@@ -98,7 +102,11 @@ async function loadConcepts(communityId: number) {
   isLoading.value = true;
   error.value = '';
   try {
-    const data = await invoke<ConceptGraph>('load_community_concepts', { communityId });
+    const response = await fetch(getDaemonUrl(`/api/graph/communities/${communityId}/concepts`));
+    if (!response.ok) {
+      throw new Error((await response.text()) || `Failed to load concepts (${response.status}).`);
+    }
+    const data = await response.json() as ConceptGraph;
     nodeCount.value = data.nodes.length;
     edgeCount.value = data.edges.length;
 

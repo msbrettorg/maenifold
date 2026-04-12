@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { convertFileSrc } from '@tauri-apps/api/core'
-import { open } from '@tauri-apps/plugin-dialog'
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
@@ -30,6 +28,7 @@ const chips: CategoryChip[] = [
 
 const importError = ref<string | null>(null)
 const importConflict = ref<{ id: string, json: string, name: string } | null>(null)
+const importInputRef = ref<HTMLInputElement | null>(null)
 
 function clearImportState() {
   importError.value = null
@@ -79,12 +78,8 @@ function prepareImportedWorkflow(json: string, resolution?: 'overwrite' | 'copy'
   }
 }
 
-async function readImportedWorkflow(path: string) {
-  const response = await fetch(convertFileSrc(path))
-  if (!response.ok) {
-    throw new Error(`Failed to read workflow file (${response.status}).`)
-  }
-  return response.text()
+async function readImportedWorkflow(file: File) {
+  return file.text()
 }
 
 async function loadImportedWorkflow(id: string) {
@@ -120,18 +115,27 @@ async function importWorkflow(json: string, resolution?: 'overwrite' | 'copy') {
 }
 
 async function handleImportClick() {
+  importInputRef.value?.click()
+}
+
+async function handleImportSelection(event: Event) {
   clearImportState()
+  const input = event.target as HTMLInputElement | null
+  const file = input?.files?.[0]
+
+  if (!file) {
+    return
+  }
+
   try {
-    const selection = await open({
-      filters: [{ name: 'Workflow JSON', extensions: ['json'] }],
-      title: 'Import workflow',
-    })
-    const path = Array.isArray(selection) ? selection[0] : selection
-    if (!path) return
-    const json = await readImportedWorkflow(path)
+    const json = await readImportedWorkflow(file)
     await importWorkflow(json)
   } catch (error) {
     importError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    if (input) {
+      input.value = ''
+    }
   }
 }
 
@@ -153,6 +157,13 @@ async function handleRetry() {
 
 <template>
   <aside class="workflow-browser">
+    <input
+      ref="importInputRef"
+      class="sr-only-input"
+      type="file"
+      accept=".json,application/json"
+      @change="handleImportSelection"
+    />
     <div class="browser-header">
       <span class="header-title">WORKFLOW BROWSER</span>
     </div>
@@ -261,6 +272,9 @@ async function handleRetry() {
 </template>
 
 <style scoped>
+.sr-only-input {
+  display: none;
+}
 .workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--bg-panel); display: flex; flex-direction: column; overflow: hidden; }
 .browser-header { min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; flex-shrink: 0; }
 .header-title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; }

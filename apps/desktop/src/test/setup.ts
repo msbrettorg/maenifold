@@ -1,10 +1,6 @@
-// Global test setup — mocks Tauri IPC layer so tests run in plain jsdom.
+// Global test setup — safe browser mocks for jsdom.
 import { vi } from 'vitest';
 import { ref } from 'vue';
-
-// ── Mock Tauri packages ───────────────────────────────────────────────
-// These packages require the Tauri runtime. We mock them at the npm
-// module level so every source file that imports them gets safe stubs.
 
 vi.mock('@tauri-apps/api/core', () => ({
   invoke: vi.fn(),
@@ -25,48 +21,13 @@ vi.mock('@tauri-apps/api/path', () => ({
   dirname: vi.fn().mockResolvedValue('/mock'),
 }));
 
-vi.mock('@tauri-apps/plugin-store', () => ({
-  load: vi.fn().mockResolvedValue({
-    get: vi.fn().mockResolvedValue(null),
-    set: vi.fn().mockResolvedValue(undefined),
-    save: vi.fn().mockResolvedValue(undefined),
-  }),
-  Store: vi.fn(),
-}));
-
-vi.mock('@tauri-apps/api/app', () => ({
-  getVersion: vi.fn().mockResolvedValue('0.1.0'),
-}));
-
-// ── Mock local Tauri wrapper ──────────────────────────────────────────
-// src/lib/tauri.ts wraps @tauri-apps invoke/listen calls.
-// Mocking it prevents any transitive Tauri IPC at the application layer.
-
-vi.mock('../lib/tauri', () => ({
-  getConfig: vi.fn().mockResolvedValue({ agents: {} }),
-  reloadConfig: vi.fn().mockResolvedValue({ agents: {} }),
-  getConfigPath: vi.fn().mockResolvedValue('/mock/config/path'),
-  spawnAgent: vi.fn().mockResolvedValue({ id: 'mock-agent-id', name: 'mock-agent' }),
-  sendToAgent: vi.fn().mockResolvedValue(undefined),
-  killAgent: vi.fn().mockResolvedValue(undefined),
-  listRunningAgents: vi.fn().mockResolvedValue([]),
-  addAgent: vi.fn().mockResolvedValue({ agents: {} }),
-  removeAgent: vi.fn().mockResolvedValue({ agents: {} }),
-  updateAgent: vi.fn().mockResolvedValue({ agents: {} }),
-  onAgentMessage: vi.fn().mockResolvedValue(() => {}),
-  onAgentClosed: vi.fn().mockResolvedValue(() => {}),
-  onConfigChanged: vi.fn().mockResolvedValue(() => {}),
-  onAgentStderr: vi.fn().mockResolvedValue(() => {}),
-  getMachineId: vi.fn().mockResolvedValue('mock-machine-id'),
-}));
-
-// ── MockAcpClientBridge ───────────────────────────────────────────────
-// Drop-in test double for AcpClientBridge that never touches IPC.
-
 export class MockAcpClientBridge {
   agentId: string;
   onSessionUpdate: ((notification: unknown) => void) | null = null;
+  onStderr: ((line: string) => void) | null = null;
   pendingPermissionRequests = ref<unknown[]>([]);
+  private transportClosed = false;
+  private transportCloseReason: string | null = null;
 
   constructor(agentId = 'mock-agent') {
     this.agentId = agentId;
@@ -91,6 +52,13 @@ export class MockAcpClientBridge {
   sessionUpdate = vi.fn();
   writeTextFile = vi.fn().mockResolvedValue(null);
   readTextFile = vi.fn().mockResolvedValue({ content: '' });
+  isTransportClosed = vi.fn(() => this.transportClosed);
+  getTransportCloseReason = vi.fn(() => this.transportCloseReason);
+
+  markTransportClosed(reason = 'mock close') {
+    this.transportClosed = true;
+    this.transportCloseReason = reason;
+  }
 }
 
 /** Factory shorthand for creating a fresh MockAcpClientBridge. */

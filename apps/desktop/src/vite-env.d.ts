@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_MCP_BASE_URL?: string;
+  readonly VITE_DAEMON_URL?: string;
+  readonly VITE_APP_VERSION?: string;
 }
 
 interface ImportMeta {

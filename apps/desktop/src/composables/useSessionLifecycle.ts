@@ -1,6 +1,5 @@
 // Session lifecycle composable — composition root for startup and connection flows.
 import type { SessionState } from '../lib/types';
-import { onAgentClosed } from '../lib/tauri';
 import type { SessionRuntimeDeps } from './session-runtime-deps';
 import { useSessionConnection } from './useSessionConnection';
 import { useSessionStartup } from './useSessionStartup';
@@ -51,12 +50,21 @@ export function useSessionLifecycle({
     isSessionAborted: connection.isSessionAborted,
   });
 
-  void onAgentClosed((agentId) => {
-    void connection.handleAgentClosed(agentId, {
-      cancelPendingToolCalls,
-      pushSystemMessage,
-    });
-  });
+  const bridgeClosePoll = globalThis.setInterval(() => {
+    for (const [localId, session] of sessions.value.entries()) {
+      const bridge = bridges.get(localId);
+      if (!bridge || !session.agentId || !bridge.isTransportClosed()) {
+        continue;
+      }
+
+      void connection.handleAgentClosed(session.agentId, {
+        cancelPendingToolCalls,
+        pushSystemMessage,
+      });
+    }
+  }, 500);
+
+  void bridgeClosePoll;
 
   return {
     performInitialization: startup.performInitialization,

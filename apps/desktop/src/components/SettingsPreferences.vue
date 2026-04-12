@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { load, type Store } from '@tauri-apps/plugin-store';
 import { PREFS_STORE_PATH } from '../lib/constants';
+import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/local-storage';
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
 
 const telemetryEnabled = ref(true);
@@ -11,18 +11,13 @@ const saving = ref(false);
 const error = ref('');
 const status = ref('');
 
-let prefsStore: Store | null = null;
-
 async function persistPreference(key: string, value: string | boolean) {
-  if (!prefsStore) return;
-
   saving.value = true;
   error.value = '';
   status.value = '';
 
   try {
-    await prefsStore.set(key, value);
-    await prefsStore.save();
+    writeStorageValue(PREFS_STORE_PATH, key, value);
     status.value = 'Preferences saved.';
   } catch (persistError) {
     error.value = persistError instanceof Error ? persistError.message : String(persistError);
@@ -44,15 +39,25 @@ async function handleTelemetryToggle() {
 }
 
 async function clearLastCwd() {
-  await persistPreference('lastCwd', '');
-  if (!error.value) lastCwd.value = '';
+  saving.value = true;
+  error.value = '';
+  status.value = '';
+
+  try {
+    removeStorageValue(PREFS_STORE_PATH, 'lastCwd');
+    lastCwd.value = '';
+    status.value = 'Preferences saved.';
+  } catch (persistError) {
+    error.value = persistError instanceof Error ? persistError.message : String(persistError);
+  } finally {
+    saving.value = false;
+  }
 }
 
 onMounted(async () => {
   try {
-    prefsStore = await load(PREFS_STORE_PATH);
-    telemetryEnabled.value = (await prefsStore.get<boolean>('telemetryEnabled')) ?? true;
-    lastCwd.value = (await prefsStore.get<string>('lastCwd')) ?? '';
+    telemetryEnabled.value = readStorageValue<boolean>(PREFS_STORE_PATH, 'telemetryEnabled') ?? true;
+    lastCwd.value = readStorageValue<string>(PREFS_STORE_PATH, 'lastCwd') ?? '';
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : String(loadError);
   } finally {
@@ -66,7 +71,7 @@ onMounted(async () => {
     <div class="section-header">
       <div>
         <h3>Preferences</h3>
-        <p>These values are persisted locally in <code>{{ PREFS_STORE_PATH }}</code>.</p>
+        <p>These values are persisted locally under <code>{{ PREFS_STORE_PATH }}</code>.</p>
       </div>
       <span class="status-chip" :class="{ saving }">
         {{ saving ? 'Saving…' : 'Local only' }}

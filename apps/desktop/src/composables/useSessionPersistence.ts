@@ -1,19 +1,32 @@
-// Session persistence composable — owns savedSessions and store persistence
-import { ref, computed } from 'vue';
-import { load, Store } from '@tauri-apps/plugin-store';
-import { getVersion } from '@tauri-apps/api/app';
-import type { SavedSession } from '../lib/types';
+// Session persistence composable — owns savedSessions and browser persistence
+import { computed, ref } from 'vue';
 import type { AcpClientBridge } from '../lib/acp-client';
+import type { SavedSession } from '../lib/types';
 import { parseUpdatedAt } from './session-utils';
 
-const STORE_PATH = 'sessions.json';
+const STORAGE_KEY = 'maenifold:sessions';
+const appVersion = import.meta.env.VITE_APP_VERSION ?? '0.1.0';
+
+function loadSavedSessions(): SavedSession[] {
+  if (typeof window === 'undefined') {
+    return [];
+  }
+
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed as SavedSession[] : [];
+  } catch {
+    return [];
+  }
+}
 
 export function useSessionPersistence() {
   const savedSessions = ref<SavedSession[]>([]);
-  let store: Store | null = null;
-
-  // App version (loaded once at startup, exposed for other composables)
-  let appVersion = '0.1.0';
 
   function getAppVersion(): string {
     return appVersion;
@@ -24,25 +37,15 @@ export function useSessionPersistence() {
   );
 
   async function initStore() {
-    store = await load(STORE_PATH);
-    const saved = await store.get<SavedSession[]>('sessions');
-    if (saved) {
-      savedSessions.value = saved;
-    }
-
-    // Load app version from Tauri
-    try {
-      appVersion = await getVersion();
-    } catch (e) {
-      console.warn('Failed to get app version:', e);
-    }
+    savedSessions.value = loadSavedSessions();
   }
 
   async function saveSessionsToStore() {
-    if (store) {
-      await store.set('sessions', savedSessions.value);
-      await store.save();
+    if (typeof window === 'undefined') {
+      return;
     }
+
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSessions.value));
   }
 
   async function deleteSession(sessionId: string): Promise<void> {

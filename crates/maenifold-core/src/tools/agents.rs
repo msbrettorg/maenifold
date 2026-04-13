@@ -218,18 +218,8 @@ async fn probe_agent_once(
     root: PathBuf,
     agent: ProbeAgent,
 ) -> std::result::Result<Value, String> {
-    let runtime_kind = infer_runtime_kind(&agent.entry).ok_or_else(|| {
-        format!(
-            "unsupported agent runtime for '{}': {}",
-            agent.name, agent.entry.command
-        )
-    })?;
-    let (available, message) = jockey::acp::probe_runtime(runtime_kind)
-        .unwrap_or((false, format!("unsupported runtime kind: {runtime_kind}")));
-    if !available {
-        return Err(message);
-    }
-
+    // The agent name is the runtime key — our adapter resolves from AgentsConfig
+    let runtime_kind = &agent.name;
     let cwd = root.to_string_lossy().into_owned();
     let mcp_servers = agent
         .mcp_servers

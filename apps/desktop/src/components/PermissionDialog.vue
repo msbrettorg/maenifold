@@ -43,6 +43,9 @@ const queueHint = computed(() =>
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+  overflow: hidden;
   z-index: 1000;
 }
 
@@ -58,8 +61,10 @@ const queueHint = computed(() =>
   background: var(--bg-main);
   border-radius: 8px;
   box-shadow: 0 4px 20px color-mix(in srgb, var(--bg-main) 15%, transparent);
-  max-width: 480px;
-  width: 90%;
+  display: flex;
+  flex-direction: column;
+  width: min(48rem, 100%);
+  max-height: min(42rem, calc(100vh - 2rem));
   overflow: hidden;
 }
 
@@ -82,7 +87,10 @@ const queueHint = computed(() =>
 }
 
 .dialog-content {
+  flex: 1;
+  min-height: 0;
   padding: 1rem;
+  overflow: hidden;
 }
 
 .queue-hint {

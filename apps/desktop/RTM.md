@@ -134,6 +134,14 @@
 | FR-39 | src/components/PipelineNodeCard.vue | TC-130: animation classes applied based on node status | typecheck |
 | NFR-9 | src/composables/useFlipAnimation.ts | TC-131: animation uses cubic-bezier(0.4,0,0.2,1), 350ms duration | typecheck |
 | NFR-10 | src/composables/useEdgeParticles.ts | TC-132: single rAF loop, imperative SVG updates | review |
+| FR-42 | src/stores/agent-capabilities.ts | TC-133: runtime discovery catalog state derives from ListAgents results rather than configStore.agentNames | typecheck |
+| FR-42 | src/components/AgentSelector.vue | TC-134: runtime selector renders from discovery catalog with explicit non-ready states | typecheck |
+| FR-42 | src/components/AgentProbePreview.vue | TC-135: configured-but-unavailable agents render degraded discovery state from backend catalog data | typecheck |
+| FR-43 | src/lib/acp-client-core.ts | TC-136: browser ACP runtime is treated as a legacy migration surface and not expanded for new execution features | review |
+| FR-43 | src/composables/useSessionStartup.ts | TC-137: new execution work uses backend-managed runtime entrypoints instead of expanding custom browser ACP startup | review |
+| FR-44 | src/components/PermissionDialog.vue | TC-138: dialog clamps to viewport width and height | typecheck |
+| FR-44 | src/components/PermissionDialog.vue | TC-139: dialog body scrolls independently while header and actions remain reachable | typecheck |
+| FR-44 | src/components/PermissionEntry.vue | TC-140: long content and raw payload blocks remain contained within modal scrolling behavior | typecheck |
 
 ## Dependency Map
 
@@ -160,6 +168,7 @@
 | T-67.16 | T-67.11, T-67.12, T-67.13 | L1 overlay needs glass, store, FLIP |
 | T-67.17 | T-67.16 | L2 session dive extends L1 overlay |
 | T-67.18 | T-67.12, T-67.10 | Keyboard nav needs store, animations need node card |
+| T-75.2 | T-75.1 | AcpExec-backed execution should consume the unified runtime discovery catalog |
 
 ## Cross-Reference: Spec to FR
 
@@ -194,3 +203,6 @@
 | T-67.17 | FR-37 |
 | T-67.18 | FR-34, FR-39 |
 | T-68.1 | FR-40, FR-41 |
+| T-75.1 | FR-42 |
+| T-75.2 | FR-43 |
+| T-75.3 | FR-44 |

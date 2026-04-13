@@ -39,7 +39,14 @@ interface MutableSuite extends MutableTask {
 const BASE_URL = 'http://127.0.0.1:8080';
 const MCP_URL = `${BASE_URL}/mcp`;
 const PROBE_TIMEOUT_MS = 3000;
-const RUN_E2E = process.env.npm_lifecycle_event === 'test:e2e';
+function readNpmLifecycleEvent(): string | undefined {
+  const processLike = (globalThis as typeof globalThis & {
+    process?: { env?: Record<string, string | undefined> };
+  }).process;
+  return processLike?.env?.npm_lifecycle_event;
+}
+
+const RUN_E2E = readNpmLifecycleEvent() === 'test:e2e';
 const PREFERRED_WORKFLOW_ID = 'convergent-thinking';
 
 let serverAvailable = false;

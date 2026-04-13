@@ -23,6 +23,12 @@ Agents running full test suites in parallel is a waste and creates race conditio
 
 When given a new feature area, research existing ecosystems and libraries FIRST. Never propose building infrastructure that an established project already provides. If the user names a specific ecosystem (e.g., "use Codex plugins"), that means become a consumer of it — do not reimplement its capabilities. Hand-rolling something that a mature library or platform already solves is a P0 escalation.
 
+## Mandatory LSP Usage
+
+For repository source navigation, LSP is mandatory for Rust, TypeScript, TSX, and Vue files. Do not use grep/glob to discover symbols or references in `.rs`, `.toml`, `.ts`, `.tsx`, or `.vue` files; use LSP operations such as `workspaceSymbol`, `goToDefinition`, `findReferences`, `incomingCalls`, `outgoingCalls`, `hover`, and `documentSymbol` instead.
+
+If LSP is unavailable, stop and report that limitation instead of falling back to grep/glob on source files.
+
 ## Visual Verification Required
 
 For UI changes, `vue-tsc --noEmit` passing is necessary but NOT sufficient. Vue `<style scoped>` does NOT apply to child component internals — every new Vue component MUST have its own `<style>` block with its own styles. UI work is not done until visually verified (Playwright screenshot, browser automation, or human confirmation). A feature that typechecks but renders at 0px is a failed delivery.

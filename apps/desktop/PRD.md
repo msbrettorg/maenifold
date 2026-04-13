@@ -87,6 +87,12 @@ Data flows through the pipeline along edges. The flow mechanism depends on the t
 - **FR-40**: MCP client SHALL detect session expiry (HTTP 404 on `Mcp-Session-Id`) and automatically re-establish the session by re-running the `initialize` → `notifications/initialized` handshake, then retrying the failed request. Reconnection SHALL be transparent to callers — pending tool calls wait for reconnection rather than failing immediately
 - **FR-41**: MCP client SHALL expose reactive connection state (`connected`, `reconnecting`, `error`) so the UI can display connection status. Pipeline polling SHALL pause during reconnection and resume automatically after session is re-established
 
+### Agent Runtime Surfaces (Founder Directive — April 2026)
+
+- **FR-42**: Runtime agent discovery surfaces SHALL render agent availability, capability metadata, and selection options from the backend-provided `ListAgents` catalog rather than raw persisted config. Persisted config MAY remain the authoring/write model and MAY be surfaced in settings or repair flows, but it SHALL NOT act as an independent runtime discovery read model
+- **FR-43**: Runtime execution in `pipeline-ui` SHALL migrate toward backend-managed execution primitives (`AcpExec` and/or Rust ACP driver surfaces) and SHALL NOT continue expanding browser-owned ACP runtime responsibilities. Any retained browser ACP runtime behavior is migration debt, not target-state architecture
+- **FR-44**: `PermissionDialog.vue` SHALL clamp to viewport dimensions and SHALL scroll internally when content exceeds available space. The dialog header and action controls SHALL remain visible while long code, raw payload, and location content scrolls within the dialog body
+
 ### Kinetic Lumina Design System (T-67)
 
 - **FR-28**: System SHALL implement the Obsidian Engine design system with a surface hierarchy of five tonal levels (`surface` #131313, `surface_container_low` #1c1b1b, `surface_container` #201f1f, `surface_container_high` #2a2a2a, `surface_container_highest` #353534). Structural boundaries SHALL be defined solely through background color shifts — no 1px solid borders for sectioning (the "No-Line Rule")

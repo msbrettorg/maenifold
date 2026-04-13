@@ -1,7 +1,7 @@
 import { joinSession } from "@github/copilot-sdk/extension";
 
-const SOURCE_EXTS = /\.(rs|toml)$/i;
-const SOURCE_GLOBS = /\*\.\{?(rs|toml)[,}]/i;
+const SOURCE_EXTS = /\.(rs|toml|ts|tsx|vue)$/i;
+const SOURCE_GLOBS = /\*\.\{?(rs|toml|ts|tsx|vue)[,}]/i;
 
 function targetsSourceCode(toolArgs) {
   const glob = toolArgs?.glob || "";
@@ -12,7 +12,7 @@ function targetsSourceCode(toolArgs) {
   if (SOURCE_GLOBS.test(glob)) return true;
   if (SOURCE_EXTS.test(glob)) return true;
   if (SOURCE_EXTS.test(path)) return true;
-  if (["rust", "rs", "toml"].includes(type)) return true;
+  if (["rust", "rs", "toml", "ts", "tsx", "typescript", "vue"].includes(type)) return true;
   if (SOURCE_GLOBS.test(pattern)) return true;
 
   return false;
@@ -54,7 +54,7 @@ const session = await joinSession({
     },
 
     onSessionStart: async () => {
-      await session.log("LSP enforcer loaded — grep/glob on Rust source code will be denied", {
+      await session.log("LSP enforcer loaded — grep/glob on Rust/TypeScript/Vue source code will be denied", {
         level: "info",
       });
     },

@@ -1,5 +1,12 @@
 {
   "lspServers": {
+    "rust-analyzer": {
+      "command": "rust-analyzer",
+      "args": [],
+      "fileExtensions": {
+        ".rs": "rust"
+      }
+    },
     "typescript": {
       "command": "typescript-language-server",
       "args": ["--stdio"],

@@ -48,7 +48,7 @@ const config = {
     asar: true,
     executableName: 'maenifold',
     extraResource: [resolveMaenifoldBinaryPath()],
-    icon: join(rootDir, 'src-tauri', 'icons', 'icon.icns'),
+    icon: join(rootDir, 'assets', 'icons', 'icon.icns'),
     name: 'maenifold',
     // Future CI/CD work: add macOS code signing via osxSign / notarization.
   },

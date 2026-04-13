@@ -110,7 +110,7 @@ pub enum AcpEvent {
 
 pub(crate) enum WorkerMsg {
     Execute {
-        runtime_key: &'static str,
+        runtime_key: String,
         binary: String,
         args: Vec<String>,
         env: Vec<(String, String)>,
@@ -128,7 +128,7 @@ pub(crate) enum WorkerMsg {
         resume_session_id: Option<String>,
     },
     Prewarm {
-        runtime_key: &'static str,
+        runtime_key: String,
         binary: String,
         args: Vec<String>,
         env: Vec<(String, String)>,
@@ -143,31 +143,31 @@ pub(crate) enum WorkerMsg {
         resume_session_id: Option<String>,
     },
     Cancel {
-        runtime_key: &'static str,
+        runtime_key: String,
         role_name: String,
         app_session_id: String,
     },
     Reset {
-        runtime_key: &'static str,
+        runtime_key: String,
         role_name: String,
         app_session_id: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
     Reconnect {
-        runtime_key: &'static str,
+        runtime_key: String,
         role_name: String,
         app_session_id: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
     SetMode {
-        runtime_key: &'static str,
+        runtime_key: String,
         role_name: String,
         app_session_id: String,
         mode_id: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
     SetConfigOption {
-        runtime_key: &'static str,
+        runtime_key: String,
         role_name: String,
         app_session_id: String,
         config_id: String,

@@ -79,11 +79,11 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 role_config_options,
                 resume_session_id,
             } => {
-                let key = pool_key(&app_session_id, runtime_key, &role_name);
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     handle_execute(
                         key,
-                        runtime_key,
+                        &runtime_key,
                         binary,
                         args,
                         env,
@@ -118,11 +118,11 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 result_tx,
                 resume_session_id,
             } => {
-                let key = pool_key(&app_session_id, runtime_key, &role_name);
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     handle_prewarm(
                         key,
-                        runtime_key,
+                        &runtime_key,
                         binary,
                         args,
                         env,
@@ -144,7 +144,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 role_name,
                 app_session_id,
             } => {
-                let key = pool_key(&app_session_id, runtime_key, &role_name);
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 let handle = CANCEL_HANDLES.with(|m| {
                     m.borrow()
                         .get(&key)
@@ -153,7 +153,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 if let Some((conn, session_id)) = handle {
                     acp_log(
                         "cancel.sending",
-                        json!({ "runtime": runtime_key, "role": role_name }),
+                        json!({ "runtime": &runtime_key, "role": role_name }),
                     );
                     tokio::task::spawn_local(async move {
                         let _ = conn
@@ -163,7 +163,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 } else {
                     acp_log(
                         "cancel.no_active_session",
-                        json!({ "runtime": runtime_key, "role": role_name }),
+                        json!({ "runtime": &runtime_key, "role": role_name }),
                     );
                 }
             }
@@ -175,7 +175,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 tokio::task::spawn_local(async move {
                     let result =
-                        reset_worker_session(runtime_key, &role_name, &app_session_id).await;
+                        reset_worker_session(&runtime_key, &role_name, &app_session_id).await;
                     let _ = result_tx.send(result);
                 });
             }
@@ -187,7 +187,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 tokio::task::spawn_local(async move {
                     let result =
-                        reconnect_worker_session(runtime_key, &role_name, &app_session_id).await;
+                        reconnect_worker_session(&runtime_key, &role_name, &app_session_id).await;
                     let _ = result_tx.send(result);
                 });
             }
@@ -199,7 +199,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 result_tx,
             } => {
                 use agent_client_protocol as acp;
-                let key = pool_key(&app_session_id, runtime_key, &role_name);
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     let result = CONN_MAP.with(|m| {
                         let map = m.borrow();
@@ -232,7 +232,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 result_tx,
             } => {
                 use agent_client_protocol as acp;
-                let key = pool_key(&app_session_id, runtime_key, &role_name);
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     let result = CONN_MAP.with(|m| {
                         let map = m.borrow();

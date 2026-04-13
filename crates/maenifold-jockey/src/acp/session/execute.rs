@@ -198,7 +198,7 @@ pub async fn execute_runtime(
                     Some(ref evt @ AcpEvent::ConfigUpdate { ref options }) => {
                         delta_count += 1;
                         remember_runtime_config_options(
-                            runtime_key,
+                            &runtime_key,
                             options.clone(),
                         );
                         let _ = event_tx.emit("acp/stream", AcpStreamPayload {
@@ -218,7 +218,7 @@ pub async fn execute_runtime(
                         }));
                         remember_runtime_available_commands(
                             &app_session_id_owned,
-                            runtime_key,
+                            &runtime_key,
                             &role_owned,
                             commands.clone(),
                         );
@@ -338,7 +338,7 @@ pub async fn execute_runtime(
             }
         }
         Err(e) => {
-            let friendly = friendly_error_message(runtime_key, &e);
+            let friendly = friendly_error_message(&runtime_key, &e);
             let code = error_code_from_raw(&e);
             AcpPromptResult {
                 ok: false,

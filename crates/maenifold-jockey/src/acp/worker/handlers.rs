@@ -75,7 +75,7 @@ pub(crate) async fn shutdown_worker_state() {
 }
 
 pub(crate) async fn reset_worker_session(
-    runtime_key: &'static str,
+    runtime_key: &str,
     role_name: &str,
     app_session_id: &str,
 ) -> Result<(), String> {
@@ -96,7 +96,7 @@ pub(crate) async fn reset_worker_session(
 }
 
 pub(crate) async fn reconnect_worker_session(
-    runtime_key: &'static str,
+    runtime_key: &str,
     role_name: &str,
     app_session_id: &str,
 ) -> Result<(), String> {
@@ -143,7 +143,7 @@ pub(crate) fn evict_if_cwd_changed(key: &str, resolved: &str, runtime_key: &str,
 /// Returns `true` if a cold start was performed.
 pub(crate) async fn ensure_connection(
     key: &str,
-    runtime_key: &'static str,
+    runtime_key: &str,
     binary: &str,
     args: &[String],
     env: &[(String, String)],
@@ -313,7 +313,7 @@ pub(crate) fn spawn_connection_health_watch(
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn handle_execute(
     key: String,
-    runtime_key: &'static str,
+    runtime_key: &str,
     binary: String,
     args: Vec<String>,
     env: Vec<(String, String)>,
@@ -540,7 +540,7 @@ pub(crate) async fn handle_execute(
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn handle_prewarm(
     key: String,
-    runtime_key: &'static str,
+    runtime_key: &str,
     binary: String,
     args: Vec<String>,
     env: Vec<(String, String)>,

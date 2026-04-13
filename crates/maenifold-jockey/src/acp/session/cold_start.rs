@@ -82,7 +82,7 @@ pub(super) fn extract_mode_ids(modes: &[Value]) -> Vec<String> {
 }
 
 pub(crate) async fn cold_start(
-    runtime_key: &'static str,
+    runtime_key: &str,
     _role_name: &str,
     _app_session_id: &str,
     binary: &str,

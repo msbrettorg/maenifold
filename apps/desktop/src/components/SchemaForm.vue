@@ -152,14 +152,15 @@ function emitFormValidation(): void {
 
 function emitRawValidation(data: Record<string, unknown>): boolean {
   const errors = getFormValidationErrors(formValidator.value, data);
-  const valid = errors?.length === 0;
 
   if (errors == null) {
-    rawJsonError.value = 'This payload cannot be schema-validated here, so submit stays disabled.';
-    emit('validation', { valid: false });
-    return false;
+    // No schema available — allow the change through without blocking.
+    rawJsonError.value = '';
+    emit('validation', { valid: true });
+    return true;
   }
 
+  const valid = errors.length === 0;
   rawJsonError.value = valid ? '' : formatValidationError(errors[0]);
   emit('validation', { valid });
   return valid;

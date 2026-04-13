@@ -68,16 +68,3 @@ async-trait = "0.1"
 sacp = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
 sacp-derive = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
 
-[package]
-name = "maenifold-rs-workspace"
-version = "0.1.0"
-edition = "2024"
-publish = false
-
-[lib]
-path = "src/lib.rs"
-
-[dev-dependencies]
-maenifold-core = { path = "crates/maenifold-core" }
-regex.workspace = true
-serde_json.workspace = true

@@ -84,16 +84,6 @@ fn list_agent_entry(name: &str, entry: &crate::acp_config::AgentEntry) -> Result
     Ok(Value::Object(object))
 }
 
-fn serialize_category(category: &Option<acp::SessionConfigOptionCategory>) -> Value {
-    match category {
-        Some(acp::SessionConfigOptionCategory::Model) => json!("model"),
-        Some(acp::SessionConfigOptionCategory::Mode) => json!("mode"),
-        Some(acp::SessionConfigOptionCategory::ThoughtLevel) => json!("thought_level"),
-        Some(acp::SessionConfigOptionCategory::Other(value)) => json!(value),
-        Some(_) | None => Value::Null,
-    }
-}
-
 fn serialize_agent_info(agent_info: &Option<acp::Implementation>) -> Value {
     match agent_info {
         Some(info) => json!({
@@ -147,12 +137,7 @@ fn build_probe_capabilities(
             })
         }).collect::<Vec<_>>(),
         "configOptions": info.config_options.iter().map(|opt| {
-            json!({
-                "id": opt.id.to_string(),
-                "name": opt.name,
-                "description": opt.description,
-                "category": serialize_category(&opt.category),
-            })
+            serde_json::to_value(opt).unwrap_or_default()
         }).collect::<Vec<_>>(),
     })
 }

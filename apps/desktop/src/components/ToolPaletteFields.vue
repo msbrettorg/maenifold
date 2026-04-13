@@ -168,7 +168,7 @@ const {
       <template v-else>
         <div class="tool-palette__required"><span>Required args</span><div class="tool-palette__required-tags"><span v-for="requiredName in requiredArgNames" :key="requiredName" class="tool-palette__required-tag">{{ requiredName }}</span><span v-if="requiredArgNames.length === 0" class="tool-palette__required-empty">No required args</span></div></div>
         <SchemaForm :schema="selectedToolSchema" :data="toolArgs" @change="onToolArgsChange" @validation="onToolArgsValidation" />
-        <div class="tool-palette__detail-footer"><button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="submitSelectedTool">Add Tool</button></div>
+        <div v-if="canSubmit" class="tool-palette__detail-footer"><button type="button" class="btn btn-primary" @click="submitSelectedTool">Add Tool</button></div>
       </template>
     </section>
 

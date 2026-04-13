@@ -1,7 +1,7 @@
 # maenifold — Constitution
 
 maenifold is the reasoning console. One product, one monorepo.
-`crates/` is the Rust backend. `apps/desktop/` is the Tauri + Vue frontend.
+`crates/` is the Rust backend. `apps/desktop/` is the Electron + Vue frontend.
 Colocation is for coordination, not for collapsing boundaries.
 
 ---
@@ -45,7 +45,7 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 - Local app settings (`maenifold.json`) — preferences and connection info only, not replicated domain truth.
 - ACP host filesystem/terminal capabilities inside agent sessions — required by the ACP protocol spec.
 
-**Monorepo is not an architecture waiver.** The Tauri app must not depend on maenifold domain crates or private backend APIs. A path dependency from the app to a backend domain crate is a constitutional violation unless the crate is protocol-only and PM-approved in writing. Calling something "settings," "cache," or "local state" does not exempt it if it contains replicated domain truth.
+**Monorepo is not an architecture waiver.** The Electron app must not depend on maenifold domain crates or private backend APIs. A path dependency from the app to a backend domain crate is a constitutional violation unless the crate is protocol-only and PM-approved in writing. Calling something "settings," "cache," or "local state" does not exempt it if it contains replicated domain truth.
 
 ---
 
@@ -77,9 +77,51 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 
 ### Build Commands
 
-- **Desktop app bundle:** `cd apps/desktop && npx tauri build` builds the desktop app. Treat the `.app` bundle as the deliverable; DMG bundling may fail.
+- **Desktop app bundle:** `cd apps/desktop && npm run package` builds the Electron app via Forge. Output: `out/maenifold-darwin-arm64/maenifold.app`.
 - **Desktop frontend typecheck:** `cd apps/desktop && npx vue-tsc --noEmit`
-- **Tauri Rust code:** `cargo build --release --manifest-path apps/desktop/src-tauri/Cargo.toml` — `apps/desktop/src-tauri` is excluded from the workspace root, so do **not** use `cargo build -p` for the Tauri app.
+- **Full rebuild + restart:** `./rebuild.sh` builds all 5 Rust crates release, restarts launchd services, rebuilds the desktop app, and verifies MCP ports.
+
+### Desktop App Testing (CDP / agent-browser)
+
+The desktop app is Electron. To test UI with `agent-browser`, you must launch the binary directly with `--remote-debugging-port`. The macOS `open -a` command does **not** reliably pass `--args` to Electron.
+
+```bash
+# Kill existing instance first
+pkill -f 'maenifold.app/Contents/MacOS/maenifold' || true
+sleep 1
+
+# Launch binary directly — NOT via `open`
+apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
+  --remote-debugging-port=9222 2>/tmp/maenifold-cdp.log &
+disown
+sleep 4
+
+# Verify CDP is listening
+curl -s http://localhost:9222/json/version
+
+# Connect agent-browser
+agent-browser connect 9222
+agent-browser snapshot -i
+agent-browser screenshot /tmp/test.png
+```
+
+**Key gotchas:**
+- `open -a "maenifold" --args --remote-debugging-port=9222` does **not** work — the flag is silently dropped by macOS for .app bundles.
+- CDP requires the `--remote-debugging-port` flag at process launch time. There is no way to enable it after the fact.
+- Vue Flow edges are SVG `<path>` elements. `agent-browser dblclick` with a ref won't hit them. Use `agent-browser eval` with JS to dispatch `dblclick` on edge elements:
+  ```bash
+  agent-browser eval '
+    const edge = document.querySelector(".vue-flow__edge path.vue-flow__edge-path");
+    if (edge) {
+      const r = edge.getBoundingClientRect();
+      edge.dispatchEvent(new MouseEvent("dblclick", {
+        bubbles: true, clientX: r.x + r.width/2, clientY: r.y + r.height/2, view: window
+      }));
+      "ok";
+    } else { "no edge"; }
+  '
+  ```
+- Node double-click works normally via snapshot refs: find the node button ref, then `agent-browser dblclick @eN`.
 
 ### Test Execution Policy
 

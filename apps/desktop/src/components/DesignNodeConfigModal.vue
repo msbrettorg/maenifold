@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted } from 'vue';
-import DesignNodeConfigPanel from './DesignNodeConfigPanel.vue';
+import { computed, onMounted, onUnmounted } from 'vue';
+import PipelineInspector from './PipelineInspector.vue';
+import { usePipelineStore } from '../stores/pipeline';
 
-defineProps<{
+const props = defineProps<{
   selectedNodeId: string | null;
   selectedEdge: { source: string; target: string } | null;
 }>();
@@ -10,6 +11,13 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
 }>();
+
+const store = usePipelineStore();
+
+const modalTitle = computed(() => {
+  if (props.selectedEdge) return store.designMode ? 'Edge Configuration' : 'Edge Details';
+  return store.designMode ? 'Node Configuration' : 'Node Inspector';
+});
 
 function handleKeyDown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
@@ -26,7 +34,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
     <div class="config-overlay" @click.self="emit('close')">
       <div class="config-panel">
         <header class="config-header">
-          <span class="config-title">Node Configuration</span>
+          <span class="config-title">{{ modalTitle }}</span>
           <button
             class="config-close"
             type="button"
@@ -38,7 +46,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
           </button>
         </header>
         <div class="config-body">
-          <DesignNodeConfigPanel
+          <PipelineInspector
             :selected-node-id="selectedNodeId"
             :selected-edge="selectedEdge"
           />

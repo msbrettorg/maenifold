@@ -31,7 +31,7 @@ const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
 const configModalNodeId = ref<string | null>(null);
 const configModalEdge = ref<SelectedEdge>(null);
-const isConfigModalOpen = computed(() => designMode.value && (configModalNodeId.value !== null || configModalEdge.value !== null));
+const isConfigModalOpen = computed(() => configModalNodeId.value !== null || configModalEdge.value !== null);
 const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = usePipelineLoading();
 const { isNarrowViewport, mobileSidebarOpen, toggleMobileSidebar } = usePipelineMobile();
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
@@ -98,6 +98,10 @@ function handleNewPipeline() {
 function handleNodeDoubleClick(nodeId: string) {
   configModalNodeId.value = nodeId;
   configModalEdge.value = null;
+}
+function handleEdgeDoubleClick(edge: { source: string; target: string }) {
+  configModalEdge.value = edge;
+  configModalNodeId.value = null;
 }
 function closeConfigModal() {
   configModalNodeId.value = null;
@@ -176,6 +180,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
             @update:local-definition="handleDefinitionUpdate"
             @node-selected="handleNodeSelected"
             @node-double-click="handleNodeDoubleClick"
+            @edge-double-click="handleEdgeDoubleClick"
             @edge-selected="handleEdgeSelected"
             @open-graft="handleOpenGraft"
             @open-promotion="handleOpenPromotion"

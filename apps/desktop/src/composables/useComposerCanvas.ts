@@ -36,6 +36,7 @@ type UseComposerCanvasOptions = {
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edge: SelectedEdge | null) => void;
   designNodeDoubleClick?: (nodeId: string) => void;
+  edgeDoubleClick?: (edge: SelectedEdge) => void;
 };
 
 type FlowEdgeData = {
@@ -54,6 +55,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const {
     onConnect,
     onEdgeClick,
+    onEdgeDoubleClick,
     onNodeClick,
     onNodeDoubleClick,
     onNodeDragStop,
@@ -304,6 +306,10 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   onNodeDoubleClick(({ node, event }) => {
     void handleNodeDoubleClick(node, event);
+  });
+
+  onEdgeDoubleClick(({ edge }) => {
+    options.edgeDoubleClick?.({ source: edge.source, target: edge.target });
   });
 
   function handleFlowKeyDown(event: KeyboardEvent): void {

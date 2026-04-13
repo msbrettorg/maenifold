@@ -44,6 +44,7 @@ const emit = defineEmits<{
   (e: 'update:localDefinition', value: PipelineDefinition): void;
   (e: 'nodeSelected', nodeId: string | null): void;
   (e: 'nodeDoubleClick', nodeId: string): void;
+  (e: 'edgeDoubleClick', value: { source: string; target: string }): void;
   (e: 'edgeSelected', value: { source: string; target: string } | null): void;
   (e: 'openGraft'): void;
   (e: 'openPromotion'): void;
@@ -77,6 +78,7 @@ const {
   selectNode: (nodeId) => emit('nodeSelected', nodeId),
   selectEdge: (edge) => emit('edgeSelected', edge),
   designNodeDoubleClick: (nodeId) => emit('nodeDoubleClick', nodeId),
+  edgeDoubleClick: (edge) => emit('edgeDoubleClick', edge),
 });
 
 const store = usePipelineStore();

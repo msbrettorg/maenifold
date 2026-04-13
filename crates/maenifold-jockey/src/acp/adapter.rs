@@ -109,9 +109,12 @@ fn resolve_adapter_for_name(
     root: &PathBuf,
 ) -> Result<(String, Vec<String>, Vec<(String, String)>), String> {
     let config = load_agents_config(root);
+    // Case-insensitive lookup: config keys are PascalCase, runtime is lowercased.
     let entry = config
         .agents
-        .get(runtime)
+        .iter()
+        .find(|(key, _)| key.eq_ignore_ascii_case(runtime))
+        .map(|(_, entry)| entry)
         .ok_or_else(|| format!("agent '{}' not found in maenifold.json", runtime))?;
     let (binary, args) = entry.command_parts();
     if binary.is_empty() {

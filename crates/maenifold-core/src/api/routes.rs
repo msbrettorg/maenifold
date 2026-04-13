@@ -690,7 +690,6 @@ pub fn api_routes(state: ApiState) -> Router {
         .route("/api/memory/search", get(memory_search))
         .route("/api/discovery/mcp-tools", get(discover_mcp_tools_handler))
         .route("/api/pipeline/stream", get(pipeline_stream_handler))
-        .merge(crate::acp_relay::acp_routes())
         .with_state(state)
 }
 

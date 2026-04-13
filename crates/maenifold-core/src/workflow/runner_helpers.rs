@@ -1,6 +1,5 @@
-use super::agent_session::AgentSession;
+use super::agent_session::{AgentResponse, AgentSession};
 use super::runner::WorkflowRunStatus;
-use crate::acp_native::AcpxResponse;
 use crate::error::{MaenifoldError, Result};
 use agent_client_protocol as acp;
 use regex::Regex;
@@ -112,12 +111,20 @@ pub(crate) async fn prompt_workflow_agent(
     content_blocks: Option<Vec<acp::ContentBlock>>,
 ) -> Result<String> {
     let full_prompt = workflow_prompt(prompt, step);
-    let response = if let Some(blocks) = content_blocks {
-        driver.prompt_with_context(&full_prompt, blocks).await
-    } else {
-        driver.prompt(&full_prompt).await
-    };
+    let full_prompt = content_blocks
+        .map(|blocks| prompt_with_embedded_context(&full_prompt, blocks))
+        .unwrap_or(full_prompt);
+    let response = driver.prompt(&full_prompt).await;
     normalize_workflow_prompt_response(response)
+}
+
+pub(crate) fn prompt_with_embedded_context(
+    prompt: &str,
+    content_blocks: Vec<acp::ContentBlock>,
+) -> String {
+    let serialized = serde_json::to_string_pretty(&content_blocks)
+        .unwrap_or_else(|_| "[context serialization failed]".to_string());
+    format!("{prompt}\n\n[context]\n{serialized}")
 }
 pub(crate) fn workflow_step_payload(
     session_id: &str,
@@ -138,14 +145,14 @@ pub(crate) fn workflow_step_payload(
 pub(crate) fn workflow_completion_text(response: &str, final_step: bool) -> Option<String> {
     final_step.then(|| response.to_string())
 }
-fn workflow_response_text(response: AcpxResponse) -> Result<String> {
+fn workflow_response_text(response: AgentResponse) -> Result<String> {
     if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
         return Err(MaenifoldError::Message(error));
     }
     Ok(response.text)
 }
 
-fn normalize_workflow_prompt_response(response: Result<AcpxResponse>) -> Result<String> {
+fn normalize_workflow_prompt_response(response: Result<AgentResponse>) -> Result<String> {
     response
         .and_then(workflow_response_text)
         .map(|text| tag_fallback(&text))
@@ -220,15 +227,15 @@ fn json_prefix_end(text: &str) -> Option<usize> {
 
 #[cfg(test)]
 mod tests {
+    use super::super::agent_session::AgentResponse;
     use super::normalize_workflow_prompt_response;
-    use crate::acp_native::AcpxResponse;
     use crate::error::MaenifoldError;
 
     #[test]
     fn normalize_workflow_prompt_response_keeps_success_text() {
-        let response = normalize_workflow_prompt_response(Ok(AcpxResponse {
+        let response = normalize_workflow_prompt_response(Ok(AgentResponse {
             text: "Completed [[step]]".to_string(),
-            ..AcpxResponse::default()
+            error: None,
         }))
         .expect("success response should remain ok");
 
@@ -237,9 +244,9 @@ mod tests {
 
     #[test]
     fn normalize_workflow_prompt_response_propagates_prompt_failure() {
-        let response = normalize_workflow_prompt_response(Ok(AcpxResponse {
+        let response = normalize_workflow_prompt_response(Ok(AgentResponse {
+            text: String::new(),
             error: Some("refusal".to_string()),
-            ..AcpxResponse::default()
         }));
 
         assert!(

@@ -2,11 +2,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use chrono::{Duration, Utc};
-use tokio::sync::Semaphore;
+use jockey::EventSender;
+use tokio::sync::{Semaphore, broadcast};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
 
-use crate::acp_native::{AgentPool, GLOBAL_AGENT_POOL};
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -51,8 +51,8 @@ pub async fn execute_pipeline(
     prompt: &str,
     cancel: CancellationToken,
 ) -> Result<ExecutionResult> {
-    let pool = Arc::clone(&GLOBAL_AGENT_POOL);
-    execute_pipeline_inner(context, session_id, prompt, cancel, pool).await
+    let (event_tx, _) = broadcast::channel(256);
+    execute_pipeline_inner(context, session_id, prompt, cancel, event_tx).await
 }
 
 #[allow(clippy::cognitive_complexity)]
@@ -62,7 +62,7 @@ async fn execute_pipeline_inner(
     session_id: &str,
     prompt: &str,
     cancel: CancellationToken,
-    pool: Arc<AgentPool>,
+    event_tx: EventSender,
 ) -> Result<ExecutionResult> {
     let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
     let execution_config = load_execution_config(&json_context, session_id)?;
@@ -94,7 +94,7 @@ async fn execute_pipeline_inner(
                 &nodes_by_id,
                 &prompt,
                 &execution_config.inputs,
-                pool.clone(),
+                event_tx.clone(),
                 semaphore.clone(),
                 &mut join_set,
                 dispatch,
@@ -223,11 +223,11 @@ fn extract_timeout(
     const DEFAULT_TOOL_NODE_TIMEOUT_SECS: u64 = 60;
 
     let seconds = match request {
-        super::executor_nodes::NodeExecutionRequest::Workflow { session_opts, .. }
-        | super::executor_nodes::NodeExecutionRequest::Prompt { session_opts, .. }
+        super::executor_nodes::NodeExecutionRequest::Workflow { session_config, .. }
+        | super::executor_nodes::NodeExecutionRequest::Prompt { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
-            session_opts, ..
-        } => session_opts.timeout_seconds,
+            session_config, ..
+        } => session_config.timeout_seconds,
         super::executor_nodes::NodeExecutionRequest::Tool {
             timeout_seconds, ..
         } => timeout_seconds.or(Some(DEFAULT_TOOL_NODE_TIMEOUT_SECS)),
@@ -240,12 +240,12 @@ fn extract_timeout(
 
 fn strip_node_timeout(request: &mut super::executor_nodes::NodeExecutionRequest) {
     match request {
-        super::executor_nodes::NodeExecutionRequest::Workflow { session_opts, .. }
-        | super::executor_nodes::NodeExecutionRequest::Prompt { session_opts, .. }
+        super::executor_nodes::NodeExecutionRequest::Workflow { session_config, .. }
+        | super::executor_nodes::NodeExecutionRequest::Prompt { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
-            session_opts, ..
+            session_config, ..
         } => {
-            session_opts.timeout_seconds = None;
+            session_config.timeout_seconds = None;
         }
         super::executor_nodes::NodeExecutionRequest::Tool { .. } => {}
     }
@@ -261,7 +261,7 @@ async fn schedule_dispatched_node(
     nodes_by_id: &HashMap<String, PipelineNode>,
     ambient_prompt: &str,
     inputs: &serde_json::Map<String, serde_json::Value>,
-    pool: Arc<AgentPool>,
+    event_tx: EventSender,
     semaphore: Arc<Semaphore>,
     join_set: &mut JoinSet<NodeJoinResult>,
     dispatch: &DispatchedNode,
@@ -301,8 +301,8 @@ async fn schedule_dispatched_node(
     )?;
     let ctx = ToolContext::new(output_context.config.clone(), output_context.output_format);
     let timeout = extract_timeout(&execution);
-    // Strip timeout_seconds from session opts so the outer wrapper owns node TTL.
-    // Inner ACP operations (session_new, load_session) use their default timeouts (3600s).
+    // Strip timeout_seconds from the session config so the outer wrapper owns node TTL.
+    // Inner agent-session setup keeps its default connection behavior.
     strip_node_timeout(&mut execution);
     join_set.spawn(async move {
         let _permit = permit;
@@ -310,16 +310,15 @@ async fn schedule_dispatched_node(
             Some(duration) => {
                 match tokio::time::timeout(
                     duration,
-                    execute_node_request(ctx, node_id.clone(), execution, agent, pool),
+                    execute_node_request(ctx, node_id.clone(), execution, agent, event_tx.clone()),
                 )
                 .await
                 {
                     Ok(result) => result,
                     Err(_elapsed) => {
-                        // NOTE: T-107.8 — The dropped future may leave a stale session_id in
-                        // HeadlessClient.sessions. This is bounded (max concurrent nodes) and
-                        // cleaned when the pool evicts the agent. No wire-protocol impact since
-                        // close_session is local-only (ACP has no session/close method).
+                        // NOTE: T-107.8 — The dropped future may leave stale in-memory session
+                        // tracking behind the agent session wrapper. This is bounded (max
+                        // concurrent nodes) and has no wire-protocol impact.
                         let reason = format!("node timed out after {}s", duration.as_secs());
                         eprintln!("[pipeline] node {node_id} {reason}");
                         (
@@ -329,7 +328,7 @@ async fn schedule_dispatched_node(
                     }
                 }
             }
-            None => execute_node_request(ctx, node_id, execution, agent, pool).await,
+            None => execute_node_request(ctx, node_id, execution, agent, event_tx).await,
         }
     });
     Ok(())
@@ -497,17 +496,13 @@ fn compute_retry_after(attempts: u32) -> String {
 mod tests {
     use std::path::PathBuf;
 
-    use crate::acp_native::SessionOpts;
-
     use super::super::executor_nodes::NodeExecutionRequest;
     use super::extract_timeout;
+    use crate::workflow::runner::AgentSessionConfig;
 
-    fn sample_session_opts(timeout_seconds: Option<u64>) -> SessionOpts {
-        SessionOpts {
-            session_id: None,
+    fn sample_session_config(timeout_seconds: Option<u64>) -> AgentSessionConfig {
+        AgentSessionConfig {
             cwd: PathBuf::from("."),
-            auto_grant_permissions: true,
-            acp_connection_timeout_seconds: None,
             model: None,
             mode: None,
             thought_level: None,
@@ -515,7 +510,7 @@ mod tests {
             allowed_tools: None,
             max_turns: None,
             timeout_seconds,
-            mcp_servers: vec![],
+            session_id: None,
         }
     }
 
@@ -557,7 +552,7 @@ mod tests {
             session_id: "pipeline-node".to_string(),
             prompt: "prompt".to_string(),
             tool_mode: "disabled".to_string(),
-            session_opts: sample_session_opts(Some(7)),
+            session_config: sample_session_config(Some(7)),
         };
 
         assert_eq!(

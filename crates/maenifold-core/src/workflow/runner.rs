@@ -1,10 +1,10 @@
-use std::sync::Arc;
+use std::path::PathBuf;
 
-use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use agent_client_protocol as acp;
+use jockey::EventSender;
 use serde_json::json;
 
 use super::agent_session::open_agent_session;
@@ -72,16 +72,16 @@ fn workflow_failure_result(
 struct RunContext<'a> {
     tool_context: &'a ToolContext,
     session_id: String,
-    pool: Arc<AgentPool>,
-    cwd: std::path::PathBuf,
+    event_tx: EventSender,
+    cwd: PathBuf,
     model: Option<String>,
     /// ACP session ID for resuming an existing agent session.
     acp_session_id: Option<String>,
 }
 
 impl RunContext<'_> {
-    fn default_session_opts(&self) -> SessionOpts {
-        workflow_driver_session_opts(
+    fn default_session_config(&self) -> AgentSessionConfig {
+        workflow_driver_session_config(
             self.cwd.clone(),
             self.model.clone(),
             self.acp_session_id.clone(),
@@ -89,42 +89,54 @@ impl RunContext<'_> {
     }
 }
 
-fn workflow_driver_session_opts(
-    cwd: std::path::PathBuf,
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub(crate) struct AgentSessionConfig {
+    pub cwd: PathBuf,
+    pub model: Option<String>,
+    pub session_id: Option<String>,
+    pub mode: Option<String>,
+    pub thought_level: Option<String>,
+    pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
+    pub allowed_tools: Option<Vec<String>>,
+    pub max_turns: Option<u32>,
+    pub timeout_seconds: Option<u64>,
+}
+
+fn workflow_driver_session_config(
+    cwd: PathBuf,
     model: Option<String>,
     acp_session_id: Option<String>,
-) -> SessionOpts {
-    sanitize_workflow_session_opts(SessionOpts {
-        session_id: acp_session_id,
+) -> AgentSessionConfig {
+    sanitize_workflow_session_config(AgentSessionConfig {
         cwd,
-        auto_grant_permissions: true,
-        acp_connection_timeout_seconds: None,
         model,
+        session_id: acp_session_id,
         mode: None,
         thought_level: None,
         config_options: None,
         allowed_tools: None,
         max_turns: None,
         timeout_seconds: None,
-        mcp_servers: vec![],
     })
 }
 
-pub(crate) fn sanitize_workflow_session_opts(mut opts: SessionOpts) -> SessionOpts {
-    let allowed_tools = opts.allowed_tools.take().unwrap_or_else(|| {
+pub(crate) fn sanitize_workflow_session_config(
+    mut config: AgentSessionConfig,
+) -> AgentSessionConfig {
+    let allowed_tools = config.allowed_tools.take().unwrap_or_else(|| {
         ToolRegistry::global()
             .canonical_names()
             .into_iter()
             .map(str::to_string)
             .collect()
     });
-    opts.allowed_tools = Some(
+    config.allowed_tools = Some(
         allowed_tools
             .into_iter()
             .filter(|tool| !is_reentrant_workflow_tool(tool))
             .collect(),
     );
-    opts
+    config
 }
 
 pub(crate) fn is_reentrant_workflow_tool(tool: &str) -> bool {
@@ -134,30 +146,30 @@ pub(crate) fn is_reentrant_workflow_tool(tool: &str) -> bool {
     )
 }
 
-/// Send a single prompt to an ACP agent using a specific pool.
+/// Send a single prompt to an agent using a specific event stream.
 #[allow(dead_code)]
 pub(crate) async fn run_prompt_with_pool(
-    pool: &AgentPool,
+    event_tx: &EventSender,
     agent: &str,
     prompt: &str,
-    opts: SessionOpts,
+    session_config: AgentSessionConfig,
 ) -> Result<String> {
-    run_prompt_with_pool_context(pool, agent, prompt, None, opts).await
+    run_prompt_with_pool_context(event_tx, agent, prompt, None, session_config).await
 }
 
-/// Send a single prompt with optional embedded context blocks using a specific pool.
+/// Send a single prompt with optional embedded context blocks using a specific event stream.
 pub(crate) async fn run_prompt_with_pool_context(
-    pool: &AgentPool,
+    event_tx: &EventSender,
     agent: &str,
     prompt: &str,
     context: Option<Vec<acp::ContentBlock>>,
-    opts: SessionOpts,
+    session_config: AgentSessionConfig,
 ) -> Result<String> {
-    let session = open_agent_session(pool, agent, "prompt", opts).await?;
-    let response_result = match context {
-        Some(blocks) => session.prompt_with_context(prompt, blocks).await,
-        None => session.prompt(prompt).await,
-    };
+    let session = open_agent_session(agent, &session_config.cwd, event_tx).await?;
+    let prompt = context
+        .map(|blocks| super::runner_helpers::prompt_with_embedded_context(prompt, blocks))
+        .unwrap_or_else(|| prompt.to_string());
+    let response_result = session.prompt(&prompt).await;
     let close_result = session.close().await;
     let prompt_result = match response_result {
         Ok(response) => {
@@ -184,12 +196,12 @@ pub(crate) async fn run_workflow_with_pool(
     existing_session_id: Option<String>,
     agent: &str,
     prompt: &str,
-    cwd: std::path::PathBuf,
+    cwd: PathBuf,
     timeout_seconds: Option<u64>,
     model: Option<String>,
     acp_session_id: Option<String>,
     content_blocks: Option<Vec<acp::ContentBlock>>,
-    pool: Arc<AgentPool>,
+    event_tx: EventSender,
     keep_session_alive: bool,
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
@@ -200,14 +212,14 @@ pub(crate) async fn run_workflow_with_pool(
     let run_ctx = RunContext {
         tool_context: context,
         session_id,
-        pool,
+        event_tx,
         cwd,
         model,
         acp_session_id,
     };
-    let mut driver_opts = run_ctx.default_session_opts();
-    driver_opts.timeout_seconds = timeout_seconds;
-    let driver = open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, driver_opts).await?;
+    let mut session_config = run_ctx.default_session_config();
+    session_config.timeout_seconds = timeout_seconds;
+    let driver = open_agent_session(agent, &session_config.cwd, &run_ctx.event_tx).await?;
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);
@@ -304,7 +316,7 @@ pub(crate) async fn run_workflow_with_pool(
     }
 }
 
-/// Like [`run_workflow_with_pool`] but accepts a fully constructed [`SessionOpts`] directly,
+/// Like [`run_workflow_with_pool`] but accepts a fully constructed agent session config,
 /// forwarding all session configuration (model, mode, thought_level, allowed_tools, etc.)
 /// instead of building a stripped-down one internally.
 #[allow(clippy::too_many_arguments)]
@@ -314,8 +326,8 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     existing_session_id: Option<String>,
     agent: &str,
     prompt: &str,
-    session_opts: SessionOpts,
-    pool: Arc<AgentPool>,
+    session_config: AgentSessionConfig,
+    event_tx: EventSender,
     keep_session_alive: bool,
 ) -> Result<WorkflowResult> {
     let (session_id, start_text) =
@@ -326,13 +338,12 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     let run_ctx = RunContext {
         tool_context: context,
         session_id,
-        pool,
-        cwd: session_opts.cwd.clone(),
-        model: session_opts.model.clone(),
-        acp_session_id: session_opts.session_id.clone(),
+        event_tx,
+        cwd: session_config.cwd.clone(),
+        model: session_config.model.clone(),
+        acp_session_id: session_config.session_id.clone(),
     };
-    let driver =
-        open_agent_session(&run_ctx.pool, agent, &run_ctx.session_id, session_opts).await?;
+    let driver = open_agent_session(agent, &session_config.cwd, &run_ctx.event_tx).await?;
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);
@@ -436,19 +447,16 @@ async fn maybe_run_step_thinking(
 #[cfg(test)]
 mod tests {
     use super::{
-        WorkflowRunStatus, append_close_error_context, is_reentrant_workflow_tool,
-        sanitize_workflow_session_opts, workflow_driver_session_opts, workflow_failure_result,
+        AgentSessionConfig, WorkflowRunStatus, append_close_error_context,
+        is_reentrant_workflow_tool, sanitize_workflow_session_config,
+        workflow_driver_session_config, workflow_failure_result,
     };
-    use crate::acp_native::SessionOpts;
     use crate::error::MaenifoldError;
     use std::path::PathBuf;
 
-    fn session_opts(allowed_tools: Option<Vec<&str>>) -> SessionOpts {
-        SessionOpts {
-            session_id: None,
+    fn session_config(allowed_tools: Option<Vec<&str>>) -> AgentSessionConfig {
+        AgentSessionConfig {
             cwd: PathBuf::from("."),
-            auto_grant_permissions: true,
-            acp_connection_timeout_seconds: None,
             model: None,
             mode: None,
             thought_level: None,
@@ -461,13 +469,13 @@ mod tests {
             }),
             max_turns: None,
             timeout_seconds: None,
-            mcp_servers: vec![],
+            session_id: None,
         }
     }
 
     #[test]
-    fn sanitize_workflow_session_opts_filters_reentrant_tools_from_explicit_allowlist() {
-        let sanitized = sanitize_workflow_session_opts(session_opts(Some(vec![
+    fn sanitize_workflow_session_config_filters_reentrant_tools_from_explicit_allowlist() {
+        let sanitized = sanitize_workflow_session_config(session_config(Some(vec![
             "ReadMemory",
             "workflow",
             "SequentialThinking",
@@ -480,8 +488,8 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_workflow_session_opts_defaults_to_registry_without_reentrant_tools() {
-        let sanitized = sanitize_workflow_session_opts(session_opts(None));
+    fn sanitize_workflow_session_config_defaults_to_registry_without_reentrant_tools() {
+        let sanitized = sanitize_workflow_session_config(session_config(None));
         let allowed_tools = sanitized
             .allowed_tools
             .expect("workflow sessions should always have an explicit allowlist");
@@ -508,9 +516,9 @@ mod tests {
     }
 
     #[test]
-    fn workflow_driver_session_opts_preserves_supplied_cwd() {
+    fn workflow_driver_session_config_preserves_supplied_cwd() {
         let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_opts(cwd.clone(), Some("model-x".to_string()), None);
+        let opts = workflow_driver_session_config(cwd.clone(), Some("model-x".to_string()), None);
 
         assert_eq!(opts.cwd, cwd);
         assert_eq!(opts.model.as_deref(), Some("model-x"));
@@ -518,9 +526,9 @@ mod tests {
     }
 
     #[test]
-    fn workflow_driver_session_opts_preserves_acp_session_id() {
+    fn workflow_driver_session_config_preserves_acp_session_id() {
         let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_opts(cwd, None, Some("sess-resume-42".to_string()));
+        let opts = workflow_driver_session_config(cwd, None, Some("sess-resume-42".to_string()));
 
         assert_eq!(opts.session_id.as_deref(), Some("sess-resume-42"));
     }

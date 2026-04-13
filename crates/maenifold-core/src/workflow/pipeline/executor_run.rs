@@ -1,16 +1,16 @@
 use std::error::Error as StdError;
 
+use jockey::EventSender;
 use serde_json::Value as JsonValue;
 
 use crate::acp_config::AgentsConfig;
-use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
 use super::super::agent_session::open_agent_session;
-use super::super::runner::{self, WorkflowRunStatus};
+use super::super::runner::{self, AgentSessionConfig, WorkflowRunStatus};
 use super::super::think_runner::decode_think_failure;
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
 use super::external_mcp::{invoke_external_tool, split_namespaced_tool_name};
@@ -306,15 +306,15 @@ fn decode_prompt_failure(response: &str) -> Option<String> {
 #[allow(clippy::too_many_arguments)]
 pub(super) async fn run_prompt_node(
     _context: &ToolContext,
-    pool: &AgentPool,
+    event_tx: &EventSender,
     agent: &str,
-    session_id: &str,
+    _session_id: &str,
     prompt: &str,
     _tool_mode: &str,
-    session_opts: SessionOpts,
+    session_config: AgentSessionConfig,
     keep_session_alive: bool,
 ) -> Result<PromptExecutionResult> {
-    let session = open_agent_session(pool, agent, session_id, session_opts).await?;
+    let session = open_agent_session(agent, &session_config.cwd, event_tx).await?;
     let response_result = session.prompt(prompt).await;
     let acp_session_id = session.remote_id().to_string();
     let prompt_result = match response_result {

@@ -15,6 +15,7 @@ base64.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"
+jockey = { package = "maenifold-jockey", path = "../maenifold-jockey" }
 libc.workspace = true
 machine-uid = "0.5"
 notify.workspace = true

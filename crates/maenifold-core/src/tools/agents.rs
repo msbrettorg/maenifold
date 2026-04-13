@@ -1,11 +1,11 @@
 use super::context::{ToolContext, render};
-use crate::acp_config::{AgentEntry, AgentsConfig};
-use crate::acp_native::{GLOBAL_AGENT_POOL, SessionInfo, SessionOpts};
+use crate::acp_config::{AgentEntry, AgentsConfig, McpServerEntry};
 use crate::error::{MaenifoldError, Result};
-use agent_client_protocol as acp;
 use futures_util::future::join_all;
 use serde_json::{Map, Value, json};
+use std::collections::BTreeSet;
 use std::future::Future;
+use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
@@ -42,6 +42,7 @@ fn list_agents_value(root: &std::path::Path, probe: bool) -> Result<Value> {
 
     let mut agents = Vec::with_capacity(names.len());
     let mut probe_entries = Vec::with_capacity(names.len());
+    let top_level_mcp_servers = config.mcp_servers.clone();
     for name in &names {
         let entry = config
             .agents
@@ -49,7 +50,11 @@ fn list_agents_value(root: &std::path::Path, probe: bool) -> Result<Value> {
             .expect("sorted key should resolve to an agent entry");
         let value = list_agent_entry(name, entry)?;
         if probe {
-            probe_entries.push((name.clone(), entry.clone()));
+            probe_entries.push(ProbeAgent::from_entry(
+                name.clone(),
+                entry.clone(),
+                &top_level_mcp_servers,
+            ));
         }
         agents.push(value);
     }
@@ -84,61 +89,38 @@ fn list_agent_entry(name: &str, entry: &crate::acp_config::AgentEntry) -> Result
     Ok(Value::Object(object))
 }
 
-fn serialize_agent_info(agent_info: &Option<acp::Implementation>) -> Value {
-    match agent_info {
-        Some(info) => json!({
-            "name": info.name,
-            "version": info.version,
-            "title": info.title,
-        }),
-        None => Value::Null,
+#[derive(Clone)]
+struct ProbeAgent {
+    name: String,
+    entry: AgentEntry,
+    mcp_servers: Vec<McpServerEntry>,
+}
+
+impl ProbeAgent {
+    fn from_entry(
+        name: String,
+        entry: AgentEntry,
+        top_level_mcp_servers: &[McpServerEntry],
+    ) -> Self {
+        let mut mcp_servers = top_level_mcp_servers.to_vec();
+        mcp_servers.extend(entry.mcp_servers.clone());
+        Self {
+            name,
+            entry,
+            mcp_servers,
+        }
     }
 }
 
-fn serialize_agent_capabilities(capabilities: &Option<acp::AgentCapabilities>) -> Value {
-    match capabilities {
-        Some(capabilities) => json!({
-            "promptCapabilities": {
-                "image": capabilities.prompt_capabilities.image,
-                "audio": capabilities.prompt_capabilities.audio,
-                "embeddedContext": capabilities.prompt_capabilities.embedded_context,
-            },
-            "sessionCapabilities": {
-                "list": capabilities.session_capabilities.list.is_some(),
-                "loadSession": capabilities.load_session,
-            },
-        }),
-        None => Value::Null,
-    }
-}
-
-fn build_probe_capabilities(
-    info: &SessionInfo,
-    agent_info: &Option<acp::Implementation>,
-    agent_capabilities: &Option<acp::AgentCapabilities>,
-) -> Value {
-    let has_config_options = !info.config_options.is_empty();
+fn build_probe_capabilities(modes: Vec<String>, config_options: Vec<Value>) -> Value {
+    let models = extract_model_ids(&config_options);
     json!({
-        "style": if has_config_options { "modern" } else { "legacy" },
-        "agentInfo": serialize_agent_info(agent_info),
-        "agentCapabilities": serialize_agent_capabilities(agent_capabilities),
-        "modes": info.modes.iter().map(|mode| {
-            json!({
-                "id": mode.id.to_string(),
-                "name": mode.name,
-                "description": mode.description,
-            })
-        }).collect::<Vec<_>>(),
-        "models": info.models.iter().map(|model| {
-            json!({
-                "modelId": model.model_id.to_string(),
-                "name": model.name,
-                "description": model.description,
-            })
-        }).collect::<Vec<_>>(),
-        "configOptions": info.config_options.iter().map(|opt| {
-            serde_json::to_value(opt).unwrap_or_default()
-        }).collect::<Vec<_>>(),
+        "style": "modern",
+        "agentInfo": Value::Null,
+        "agentCapabilities": Value::Null,
+        "modes": modes,
+        "models": models,
+        "configOptions": config_options,
     })
 }
 
@@ -211,32 +193,16 @@ where
     }
 }
 
-fn probe_agent_capabilities(
-    root: std::path::PathBuf,
-    name: String,
-    entry: AgentEntry,
-    per_agent_timeout: Duration,
-) -> Value {
-    match run_agent_future(async move {
-        Ok(collect_probe_result(probe_agent_once(root, name, entry), per_agent_timeout).await)
-    }) {
-        Ok(value) => value,
-        Err(error) => probe_error_value(error),
-    }
-}
-
 fn probe_agents_value(
     root: &std::path::Path,
-    agents: Vec<(String, AgentEntry)>,
+    agents: Vec<ProbeAgent>,
     per_agent_timeout: Duration,
 ) -> std::result::Result<Vec<Value>, String> {
     let root = root.to_path_buf();
     block_on_probe_future(async move {
-        join_all(agents.into_iter().map(|(name, entry)| {
+        join_all(agents.into_iter().map(|agent| {
             let root = root.clone();
-            task::spawn_blocking(move || {
-                probe_agent_capabilities(root, name, entry, per_agent_timeout)
-            })
+            task::spawn_blocking(move || probe_agent_capabilities(root, agent, per_agent_timeout))
         }))
         .await
         .into_iter()
@@ -248,46 +214,187 @@ fn probe_agents_value(
     })
 }
 
-/// Spawn an agent, initialize, create a session, and capture advertised
-/// capabilities (modes, models, configOptions).
 async fn probe_agent_once(
-    root: std::path::PathBuf,
-    name: String,
-    entry: AgentEntry,
+    root: PathBuf,
+    agent: ProbeAgent,
 ) -> std::result::Result<Value, String> {
-    let command = entry.command;
-    let env = entry.env;
-    let handle = GLOBAL_AGENT_POOL
-        .get_or_create(&name, &command, &root, env, true)
-        .await;
+    let runtime_kind = infer_runtime_kind(&agent.entry).ok_or_else(|| {
+        format!(
+            "unsupported agent runtime for '{}': {}",
+            agent.name, agent.entry.command
+        )
+    })?;
+    let (available, message) = jockey::acp::probe_runtime(runtime_kind)
+        .unwrap_or((false, format!("unsupported runtime kind: {runtime_kind}")));
+    if !available {
+        return Err(message);
+    }
 
-    let info = handle
-        .new_session(SessionOpts {
-            session_id: None,
-            cwd: root.clone(),
-            auto_grant_permissions: true,
-            acp_connection_timeout_seconds: None,
-            model: None,
-            mode: None,
-            thought_level: None,
-            config_options: None,
-            allowed_tools: None,
-            max_turns: None,
-            timeout_seconds: None,
-            mcp_servers: vec![],
+    let cwd = root.to_string_lossy().into_owned();
+    let mcp_servers = agent
+        .mcp_servers
+        .iter()
+        .map(McpServerEntry::to_acp)
+        .collect::<Vec<_>>();
+    let (config_options, discovered_modes) = jockey::acp::prewarm_role_for_config(
+        runtime_kind,
+        &agent.name,
+        &cwd,
+        None,
+    )
+    .await;
+    let modes = if discovered_modes.is_empty() {
+        extract_mode_ids(&config_options)
+    } else {
+        normalize_strings(discovered_modes)
+    };
+
+    Ok(build_probe_capabilities(modes, config_options))
+}
+
+fn probe_agent_capabilities(
+    root: PathBuf,
+    agent: ProbeAgent,
+    per_agent_timeout: Duration,
+) -> Value {
+    match run_agent_future(async move {
+        Ok(collect_probe_result(probe_agent_once(root, agent), per_agent_timeout).await)
+    }) {
+        Ok(value) => value,
+        Err(error) => probe_error_value(error),
+    }
+}
+
+fn infer_runtime_kind(entry: &AgentEntry) -> Option<&'static str> {
+    let (command, args) = entry.command_parts();
+    let binary = Path::new(command)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(command);
+    let mut haystacks = vec![entry.command.to_ascii_lowercase()];
+    haystacks.push(binary.to_ascii_lowercase());
+    haystacks.extend(args.into_iter().map(|arg| arg.to_ascii_lowercase()));
+
+    if haystacks
+        .iter()
+        .any(|value| value.contains("claude-agent-acp") || value.contains("claude-acp"))
+        || haystacks.iter().any(|value| {
+            value == "claude"
+                || value == "claude-code"
+                || value.ends_with("/claude")
+                || value.ends_with("\\claude")
         })
-        .await
-        .map_err(|e| e.to_string())?;
+    {
+        return Some("claude-code");
+    }
 
-    let session_id = info.session_id.clone();
-    let agent_info = handle.agent_info();
-    let agent_capabilities = handle.capabilities();
-    let _ = handle.close_session(&session_id).await;
-    Ok(build_probe_capabilities(
-        &info,
-        &agent_info,
-        &agent_capabilities,
-    ))
+    if haystacks.iter().any(|value| {
+        value == "gemini"
+            || value == "gemini-cli"
+            || value.contains("@google/gemini-cli")
+            || value.ends_with("/gemini")
+            || value.ends_with("\\gemini")
+    }) {
+        return Some("gemini-cli");
+    }
+
+    if haystacks
+        .iter()
+        .any(|value| value.contains("codex-acp") || value.contains("@zed-industries/codex-acp"))
+        || haystacks.iter().any(|value| {
+            value == "codex"
+                || value == "codex-cli"
+                || value.ends_with("/codex")
+                || value.ends_with("\\codex")
+        })
+    {
+        return Some("codex-cli");
+    }
+
+    None
+}
+
+fn extract_mode_ids(config_options: &[Value]) -> Vec<String> {
+    extract_option_values(config_options, |option| {
+        option
+            .get("category")
+            .and_then(Value::as_str)
+            .is_some_and(|category| category.eq_ignore_ascii_case("mode"))
+            || option
+                .get("id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| id.eq_ignore_ascii_case("mode"))
+    })
+}
+
+fn extract_model_ids(config_options: &[Value]) -> Vec<String> {
+    extract_option_values(config_options, |option| {
+        option
+            .get("category")
+            .and_then(Value::as_str)
+            .is_some_and(|category| category.eq_ignore_ascii_case("model"))
+            || option
+                .get("id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| id.eq_ignore_ascii_case("model"))
+    })
+}
+
+fn extract_option_values<F>(config_options: &[Value], matches_option: F) -> Vec<String>
+where
+    F: Fn(&Map<String, Value>) -> bool,
+{
+    let mut values = BTreeSet::new();
+    for option in config_options {
+        let Some(option) = option.as_object() else {
+            continue;
+        };
+        if !matches_option(option) {
+            continue;
+        }
+        if let Some(current_value) = option.get("currentValue").and_then(Value::as_str) {
+            values.insert(current_value.to_string());
+        }
+        if let Some(raw_current_value) = option.get("rawCurrentValue").and_then(Value::as_str) {
+            values.insert(raw_current_value.to_string());
+        }
+        if let Some(options) = option.get("options") {
+            collect_select_option_values(options, &mut values);
+        }
+    }
+    values.into_iter().collect()
+}
+
+fn collect_select_option_values(value: &Value, out: &mut BTreeSet<String>) {
+    let Some(items) = value.as_array() else {
+        return;
+    };
+
+    for item in items {
+        if let Some(value) = item.as_str() {
+            out.insert(value.to_string());
+            continue;
+        }
+
+        let Some(object) = item.as_object() else {
+            continue;
+        };
+        if let Some(value) = object.get("value").and_then(Value::as_str) {
+            out.insert(value.to_string());
+        }
+        if let Some(options) = object.get("options") {
+            collect_select_option_values(options, out);
+        }
+    }
+}
+
+fn normalize_strings(values: Vec<String>) -> Vec<String> {
+    values
+        .into_iter()
+        .filter(|value| !value.trim().is_empty())
+        .collect::<BTreeSet<_>>()
+        .into_iter()
+        .collect()
 }
 
 #[cfg(test)]
@@ -306,14 +413,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn probe_capabilities_ignore_unsupported_close_session_errors() {
-        let capabilities = build_probe_capabilities(&SessionInfo::default(), &None, &None);
+    fn probe_capabilities_return_modern_jockey_payload() {
+        let capabilities = build_probe_capabilities(vec![], vec![]);
 
-        assert_eq!(capabilities["style"], json!("legacy"));
-        assert!(
-            capabilities.get("closeSessionError").is_none(),
-            "unsupported close_session cleanup must not poison otherwise-valid probe results"
-        );
+        assert_eq!(capabilities["style"], json!("modern"));
+        assert_eq!(capabilities["configOptions"], json!([]));
+        assert_eq!(capabilities["modes"], json!([]));
+        assert_eq!(capabilities["models"], json!([]));
     }
 
     #[tokio::test]

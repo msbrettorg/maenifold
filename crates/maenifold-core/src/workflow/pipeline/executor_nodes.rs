@@ -1,13 +1,12 @@
 use std::collections::HashMap;
-use std::sync::Arc;
 
+use jockey::EventSender;
 use serde_json::Value as JsonValue;
 
-use crate::acp_native::{AgentPool, SessionOpts};
 use crate::error::Result;
 use crate::tools::ToolContext;
 
-use super::super::runner;
+use super::super::runner::{self, AgentSessionConfig};
 use super::executor_helpers::{
     DispatchedNode, assemble_prompt_from_parts, predecessor_context_content,
 };
@@ -26,20 +25,20 @@ pub(super) enum NodeExecutionRequest {
         workflow_id: String,
         existing_session_id: Option<String>,
         prompt: String,
-        session_opts: SessionOpts,
+        session_config: AgentSessionConfig,
     },
     Prompt {
         session_id: String,
         prompt: String,
         tool_mode: String,
-        session_opts: SessionOpts,
+        session_config: AgentSessionConfig,
     },
     SequentialThinking {
         node_session_id: String,
         topic: String,
         prompt_context: String,
         total_thoughts: u32,
-        session_opts: SessionOpts,
+        session_config: AgentSessionConfig,
     },
     Tool {
         tool_name: String,
@@ -81,7 +80,7 @@ pub(super) fn build_node_execution_request(
                 true,
                 &scope,
             )?,
-            session_opts: merged_session_opts(
+            session_config: merged_session_config(
                 context,
                 node.id(),
                 agent_config.as_ref(),
@@ -115,7 +114,7 @@ pub(super) fn build_node_execution_request(
                 &scope,
             )?,
             tool_mode: tool_mode.clone(),
-            session_opts: merged_session_opts(
+            session_config: merged_session_config(
                 context,
                 node.id(),
                 agent_config.as_ref(),
@@ -150,7 +149,7 @@ pub(super) fn build_node_execution_request(
                 &scope,
             )?,
             total_thoughts: *total_thoughts,
-            session_opts: merged_session_opts(
+            session_config: merged_session_config(
                 context,
                 node.id(),
                 agent_config.as_ref(),
@@ -224,7 +223,7 @@ fn node_session_id(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn merged_session_opts(
+fn merged_session_config(
     context: &ToolContext,
     _node_id: &str,
     agent_config: Option<&AgentConfig>,
@@ -233,14 +232,11 @@ fn merged_session_opts(
     allowed_tools: &Option<Vec<String>>,
     max_turns: Option<u32>,
     timeout_seconds: Option<u64>,
-) -> SessionOpts {
-    SessionOpts {
-        session_id: None,
+) -> AgentSessionConfig {
+    AgentSessionConfig {
         cwd: agent_config
             .and_then(|config| config.cwd.clone())
             .unwrap_or_else(|| context.config.maenifold_root.clone()),
-        auto_grant_permissions: true,
-        acp_connection_timeout_seconds: None,
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),
@@ -252,7 +248,7 @@ fn merged_session_opts(
         allowed_tools: allowed_tools.clone(),
         max_turns,
         timeout_seconds,
-        mcp_servers: vec![],
+        session_id: None,
     }
 }
 
@@ -261,14 +257,14 @@ pub(super) async fn execute_node_request(
     node_id: String,
     execution: NodeExecutionRequest,
     agent: Option<String>,
-    pool: Arc<AgentPool>,
+    event_tx: EventSender,
 ) -> (String, NodeTaskResult) {
     let result = match execution {
         NodeExecutionRequest::Workflow {
             workflow_id,
             existing_session_id,
             prompt,
-            session_opts,
+            session_config,
         } => match agent.as_deref() {
             Some(agent) => NodeTaskResult::Workflow(
                 runner::run_workflow_with_pool_session_opts(
@@ -277,8 +273,8 @@ pub(super) async fn execute_node_request(
                     existing_session_id,
                     agent,
                     &prompt,
-                    session_opts,
-                    pool.clone(),
+                    session_config,
+                    event_tx.clone(),
                     true,
                 )
                 .await,
@@ -291,17 +287,17 @@ pub(super) async fn execute_node_request(
             session_id,
             prompt,
             tool_mode,
-            session_opts,
+            session_config,
         } => match agent.as_deref() {
             Some(agent) => NodeTaskResult::Prompt(
                 run_prompt_node(
                     &context,
-                    pool.as_ref(),
+                    &event_tx,
                     agent,
                     &session_id,
                     &prompt,
                     &tool_mode,
-                    session_opts,
+                    session_config,
                     true,
                 )
                 .await,
@@ -313,7 +309,7 @@ pub(super) async fn execute_node_request(
             topic,
             prompt_context,
             total_thoughts,
-            session_opts,
+            session_config,
         } => match agent.as_deref() {
             Some(agent) => NodeTaskResult::SequentialThinking(
                 runner::run_think_with_pool(
@@ -324,10 +320,10 @@ pub(super) async fn execute_node_request(
                     runner::ThinkOptions {
                         total_thoughts,
                         parent_workflow_id: Some(node_session_id),
-                        model: None,
+                        model: session_config.model.clone(),
                     },
-                    session_opts,
-                    pool,
+                    session_config,
+                    event_tx,
                     None,
                     true,
                 )
@@ -451,8 +447,8 @@ mod tests {
         .expect("build request");
 
         match request {
-            NodeExecutionRequest::Prompt { session_opts, .. } => {
-                assert_eq!(session_opts.timeout_seconds, Some(30));
+            NodeExecutionRequest::Prompt { session_config, .. } => {
+                assert_eq!(session_config.timeout_seconds, Some(30));
             }
             NodeExecutionRequest::Workflow { .. }
             | NodeExecutionRequest::SequentialThinking { .. }
@@ -503,8 +499,8 @@ mod tests {
         .expect("build request");
 
         match request {
-            NodeExecutionRequest::Prompt { session_opts, .. } => {
-                assert_eq!(session_opts.timeout_seconds, None);
+            NodeExecutionRequest::Prompt { session_config, .. } => {
+                assert_eq!(session_config.timeout_seconds, None);
             }
             NodeExecutionRequest::Workflow { .. }
             | NodeExecutionRequest::SequentialThinking { .. }

@@ -1,20 +1,18 @@
-use std::sync::Arc;
-
 use agent_client_protocol as acp;
+use jockey::EventSender;
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::acp_native::{AcpxResponse, AgentPool, SessionOpts};
 use crate::error::{MaenifoldError, Result};
 use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::agent_session::{AgentSession, open_agent_session};
+use super::agent_session::{AgentResponse, AgentSession, open_agent_session};
 use super::runner::append_close_error_context;
-use super::runner::sanitize_workflow_session_opts;
-use super::runner_helpers::{Envelope, slug, tag_fallback};
+use super::runner::{AgentSessionConfig, sanitize_workflow_session_config};
+use super::runner_helpers::{Envelope, prompt_with_embedded_context, slug, tag_fallback};
 
 fn trace_enabled() -> bool {
     std::env::var("MAENIFOLD_TRACE")
@@ -140,18 +138,13 @@ pub(crate) async fn drive_think_session(
     topic: &str,
     prompt_context: &str,
     opts: &ThinkOptions,
-    session_opts: SessionOpts,
-    pool: &AgentPool,
+    session_config: AgentSessionConfig,
+    event_tx: &EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     keep_session_alive: bool,
 ) -> Result<ThinkResult> {
-    let driver = open_agent_session(
-        pool,
-        agent,
-        &format!("think-{session_id}"),
-        sanitize_workflow_session_opts(session_opts),
-    )
-    .await?;
+    let session_config = sanitize_workflow_session_config(session_config);
+    let driver = open_agent_session(agent, &session_config.cwd, event_tx).await?;
     let result = drive_think_session_with_driver(
         context,
         &driver,
@@ -202,11 +195,11 @@ pub(crate) async fn drive_think_session_with_driver(
             eprintln!("[think] thought {}/{}", thought_number, opts.total_thoughts);
         }
         let prompt = think_prompt(thought_number, opts.total_thoughts, topic, prompt_context);
-        let response = if let Some(blocks) = first_context.take() {
-            driver.prompt_with_context(&prompt, blocks).await
-        } else {
-            driver.prompt(&prompt).await
-        };
+        let prompt = first_context
+            .take()
+            .map(|blocks| prompt_with_embedded_context(&prompt, blocks))
+            .unwrap_or(prompt);
+        let response = driver.prompt(&prompt).await;
         let response_text = normalize_think_prompt_response(response)?;
         let done = is_completion_response(&response_text)
             || thought_number >= opts.total_thoughts.saturating_add(3);
@@ -242,8 +235,8 @@ pub(crate) async fn run_think_with_pool(
     topic: &str,
     prompt_context: &str,
     opts: ThinkOptions,
-    session_opts: SessionOpts,
-    pool: Arc<AgentPool>,
+    session_config: AgentSessionConfig,
+    event_tx: EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     keep_session_alive: bool,
 ) -> Result<ThinkResult> {
@@ -255,8 +248,8 @@ pub(crate) async fn run_think_with_pool(
         topic,
         prompt_context,
         &opts,
-        session_opts,
-        pool.as_ref(),
+        session_config,
+        &event_tx,
         content_blocks,
         keep_session_alive,
     )
@@ -304,7 +297,7 @@ fn think_progress_payload(
     })
 }
 
-fn think_response_text(response: AcpxResponse) -> Result<String> {
+fn think_response_text(response: AgentResponse) -> Result<String> {
     if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
         return Err(MaenifoldError::Message(error));
     }
@@ -321,7 +314,7 @@ fn encode_think_failure(error: &MaenifoldError) -> String {
     format!("{THINK_FAILURE_PREFIX}{error}")
 }
 
-fn normalize_think_prompt_response(response: Result<AcpxResponse>) -> Result<String> {
+fn normalize_think_prompt_response(response: Result<AgentResponse>) -> Result<String> {
     response
         .and_then(think_response_text)
         .map(|text| tag_fallback(&text))
@@ -359,11 +352,11 @@ fn serialize_payload<T: Serialize>(payload: T) -> Value {
 
 #[cfg(test)]
 mod tests {
+    use super::super::agent_session::AgentResponse;
     use super::{
         decode_think_failure, is_completion_response, normalize_think_prompt_response,
         think_failure_result, think_prompt,
     };
-    use crate::acp_native::AcpxResponse;
     use crate::error::MaenifoldError;
 
     #[test]
@@ -388,9 +381,9 @@ mod tests {
 
     #[test]
     fn normalize_think_prompt_response_keeps_success_text() {
-        let response = normalize_think_prompt_response(Ok(AcpxResponse {
+        let response = normalize_think_prompt_response(Ok(AgentResponse {
             text: "DONE final synthesis [[step]]".to_string(),
-            ..AcpxResponse::default()
+            error: None,
         }))
         .expect("success response should remain ok");
 
@@ -399,9 +392,9 @@ mod tests {
 
     #[test]
     fn normalize_think_prompt_response_propagates_prompt_failure() {
-        let response = normalize_think_prompt_response(Ok(AcpxResponse {
+        let response = normalize_think_prompt_response(Ok(AgentResponse {
+            text: String::new(),
             error: Some("max_turn_requests".to_string()),
-            ..AcpxResponse::default()
         }));
 
         assert!(

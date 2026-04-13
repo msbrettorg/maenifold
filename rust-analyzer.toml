@@ -1,0 +1,8 @@
+[cargo]
+buildScripts.enable = false
+
+[procMacro]
+enable = true
+
+[check]
+command = "clippy"

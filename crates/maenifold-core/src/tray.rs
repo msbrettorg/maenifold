@@ -9,7 +9,7 @@
 //!
 //! `--mcp` mode never enters this module — it remains fully headless.
 
-use crate::tray_menu::{build_tray_menu, endophasia_url, restart_daemon, toggle_login_item};
+use crate::tray_menu::{build_tray_menu, endophasia_url, toggle_login_item};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
@@ -105,6 +105,7 @@ struct TrayApp {
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
     login_item: Option<MenuItem>,
+    restart_on_exit: bool,
     exit_code: i32,
 }
 
@@ -179,7 +180,11 @@ impl TrayApp {
         }
 
         if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {
-            restart_daemon("com.ma-collective.maenifold");
+            self.restart_on_exit = true;
+            self.shutdown_token.cancel();
+            self.tray_icon.take();
+            event_loop.exit();
+            return;
         }
 
         if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
@@ -287,6 +292,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         login_id: None,
         restart_id: None,
         login_item: None,
+        restart_on_exit: false,
         exit_code: 0,
     };
 
@@ -301,6 +307,23 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         Some(handle) => handle.join().unwrap_or(1),
         None => 1,
     };
+
+    // Spawn replacement process AFTER the server thread has joined
+    // (and thus released the listening port).
+    if app.restart_on_exit {
+        match std::env::current_exe() {
+            Ok(exe) => {
+                let args: Vec<String> = std::env::args().skip(1).collect();
+                if let Err(err) = std::process::Command::new(exe).args(&args).spawn() {
+                    eprintln!("Warning: failed to spawn restart process: {err}");
+                }
+            }
+            Err(err) => {
+                eprintln!("Warning: failed to resolve executable path for restart: {err}");
+            }
+        }
+        return 0;
+    }
 
     if app.exit_code != 0 {
         app.exit_code

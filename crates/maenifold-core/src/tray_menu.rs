@@ -1,8 +1,18 @@
 use std::process::Command;
 
+#[cfg(target_os = "macos")]
+use libc;
+
 use tray_icon::menu::{Menu, MenuId, MenuItem, PredefinedMenuItem};
 
+const SERVICE_LABEL: &str = "com.ma-collective.maenifold";
 const ENDOPHASIA_MENU_TITLE: &str = "Endophasia";
+
+#[cfg(target_os = "macos")]
+fn get_uid() -> u32 {
+    // SAFETY: getuid() is always safe — no arguments, no failure mode.
+    unsafe { libc::getuid() }
+}
 
 pub(crate) struct TrayMenuState {
     pub menu: Menu,
@@ -61,9 +71,14 @@ pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
     #[cfg(target_os = "macos")]
     {
         let result = if is_login_enabled() {
+            bootout_launch_agent();
             remove_launch_agent()
         } else {
-            write_launch_agent(port)
+            let r = write_launch_agent(port);
+            if r.is_ok() {
+                bootstrap_launch_agent();
+            }
+            r
         };
 
         if let Err(err) = result {
@@ -80,42 +95,44 @@ pub(crate) fn toggle_login_item(port: u16, login_item: Option<&MenuItem>) {
     }
 }
 
-pub fn restart_daemon(service_label: &str) {
-    #[cfg(target_os = "macos")]
+#[cfg(target_os = "macos")]
+fn bootstrap_launch_agent() {
+    let uid = get_uid();
+    let path = launch_agent_path();
+    let domain = format!("gui/{uid}");
+    match Command::new("launchctl")
+        .args(["bootstrap", &domain, &path.display().to_string()])
+        .output()
     {
-        let output = match Command::new("id").arg("-u").output() {
-            Ok(output) if output.status.success() => output,
-            Ok(output) => {
-                eprintln!(
-                    "Warning: failed to resolve uid for restart (status {}): {}",
-                    output.status,
-                    String::from_utf8_lossy(&output.stderr).trim()
-                );
-                return;
+        Ok(output) if !output.status.success() => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // Exit code 37 = "service already loaded" — not an error
+            if !stderr.contains("already loaded") && output.status.code() != Some(37) {
+                eprintln!("Warning: launchctl bootstrap failed: {}", stderr.trim());
             }
-            Err(err) => {
-                eprintln!("Warning: failed to resolve uid for restart: {err}");
-                return;
-            }
-        };
-
-        let uid = String::from_utf8_lossy(&output.stdout).trim().to_owned();
-        if uid.is_empty() {
-            eprintln!("Warning: restart aborted because uid lookup returned empty output");
-            return;
         }
-
-        let target = format!("gui/{uid}/{service_label}");
-        if let Err(err) = Command::new("launchctl")
-            .args(["kickstart", "-k", &target])
-            .spawn()
-        {
-            eprintln!("Warning: failed to restart {service_label}: {err}");
-        }
+        Err(err) => eprintln!("Warning: failed to run launchctl bootstrap: {err}"),
+        _ => {}
     }
-    #[cfg(not(target_os = "macos"))]
+}
+
+#[cfg(target_os = "macos")]
+fn bootout_launch_agent() {
+    let uid = get_uid();
+    let target = format!("gui/{uid}/{SERVICE_LABEL}");
+    match Command::new("launchctl")
+        .args(["bootout", &target])
+        .output()
     {
-        let _ = service_label;
+        Ok(output) if !output.status.success() => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // Ignore "not loaded" / "no such process" — service may not be registered
+            if !stderr.contains("No such process") && !stderr.contains("not loaded") {
+                eprintln!("Warning: launchctl bootout failed: {}", stderr.trim());
+            }
+        }
+        Err(err) => eprintln!("Warning: failed to run launchctl bootout: {err}"),
+        _ => {}
     }
 }
 
@@ -123,7 +140,7 @@ fn launch_agent_path() -> std::path::PathBuf {
     std::env::var_os("HOME")
         .map(std::path::PathBuf::from)
         .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join("Library/LaunchAgents/com.ma-collective.maenifold.plist")
+        .join(format!("Library/LaunchAgents/{SERVICE_LABEL}.plist"))
 }
 
 fn is_login_enabled() -> bool {
@@ -152,7 +169,7 @@ fn write_launch_agent(port: u16) -> std::io::Result<()> {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.ma-collective.maenifold</string>
+    <string>{service_label}</string>
     <key>ProgramArguments</key>
     <array>
         <string>{exe_path}</string>
@@ -168,6 +185,7 @@ fn write_launch_agent(port: u16) -> std::io::Result<()> {
 </plist>
 "#,
         exe_path = xml_escape(&exe_path.display().to_string()),
+        service_label = SERVICE_LABEL,
         port = port,
     );
 

@@ -2,9 +2,18 @@ use std::path::Path;
 
 use tray_icon::menu::{Menu, MenuId, MenuItem};
 
+#[cfg(target_os = "macos")]
+use libc;
+
 use crate::tray::GateServerMode;
 
 const SERVICE_LABEL: &str = "com.ma-collective.gate";
+
+#[cfg(target_os = "macos")]
+fn get_uid() -> u32 {
+    // SAFETY: getuid() is always safe — no arguments, no failure mode.
+    unsafe { libc::getuid() }
+}
 
 pub(crate) struct TrayMenuState {
     pub menu: Menu,
@@ -77,9 +86,14 @@ pub(crate) fn toggle_login_item(port: u16, root: Option<&Path>, login_item: Opti
     #[cfg(target_os = "macos")]
     {
         let result = if is_login_enabled() {
+            bootout_launch_agent();
             remove_launch_agent()
         } else {
-            write_launch_agent(port, root)
+            let r = write_launch_agent(port, root);
+            if r.is_ok() {
+                bootstrap_launch_agent();
+            }
+            r
         };
 
         if let Err(err) = result {
@@ -121,6 +135,45 @@ fn launch_agent_path() -> std::path::PathBuf {
 
 fn is_login_enabled() -> bool {
     launch_agent_path().exists()
+}
+
+#[cfg(target_os = "macos")]
+fn bootstrap_launch_agent() {
+    let uid = get_uid();
+    let path = launch_agent_path();
+    let domain = format!("gui/{uid}");
+    match std::process::Command::new("launchctl")
+        .args(["bootstrap", &domain, &path.display().to_string()])
+        .output()
+    {
+        Ok(output) if !output.status.success() => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if !stderr.contains("already loaded") && output.status.code() != Some(37) {
+                eprintln!("Warning: launchctl bootstrap failed: {}", stderr.trim());
+            }
+        }
+        Err(err) => eprintln!("Warning: failed to run launchctl bootstrap: {err}"),
+        _ => {}
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn bootout_launch_agent() {
+    let uid = get_uid();
+    let target = format!("gui/{uid}/{SERVICE_LABEL}");
+    match std::process::Command::new("launchctl")
+        .args(["bootout", &target])
+        .output()
+    {
+        Ok(output) if !output.status.success() => {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if !stderr.contains("No such process") && !stderr.contains("not loaded") {
+                eprintln!("Warning: launchctl bootout failed: {}", stderr.trim());
+            }
+        }
+        Err(err) => eprintln!("Warning: failed to run launchctl bootout: {err}"),
+        _ => {}
+    }
 }
 
 fn login_menu_text(enabled: bool) -> &'static str {

@@ -198,6 +198,8 @@ fn probe_agents_value(
     agents: Vec<ProbeAgent>,
     per_agent_timeout: Duration,
 ) -> std::result::Result<Vec<Value>, String> {
+    // Ensure the Jockey adapter knows where to find maenifold.json.
+    jockey::acp::set_config_root(root.to_path_buf());
     let root = root.to_path_buf();
     block_on_probe_future(async move {
         join_all(agents.into_iter().map(|agent| {

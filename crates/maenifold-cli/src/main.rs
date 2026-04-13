@@ -5,6 +5,8 @@
 fn main() {
     let config = maenifold_core::Config::current();
     let _ = config.ensure_directories();
+    // Tell the Jockey adapter where to find maenifold.json for agent resolution.
+    jockey::acp::set_config_root(config.maenifold_root.clone());
     // T-92.2: hold guard in main scope so the non-blocking writer flushes on drop.
     let _guard = maenifold_core::logging::init_tracing(&config);
 

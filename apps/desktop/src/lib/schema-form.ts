@@ -112,7 +112,11 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function cloneRecord<T extends Record<string, unknown>>(value: T): T {
   if (typeof structuredClone === 'function') {
-    return structuredClone(value);
+    try {
+      return structuredClone(value);
+    } catch {
+      // Vue reactive proxies contain non-cloneable internal state.
+    }
   }
 
   return JSON.parse(JSON.stringify(value)) as T;

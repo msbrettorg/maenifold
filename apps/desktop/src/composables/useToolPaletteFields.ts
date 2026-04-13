@@ -2,9 +2,9 @@ import { computed, ref, watch } from 'vue';
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 import { useMcpToolDiscovery } from './useMcpToolDiscovery';
 import { usePipelineMcp } from './usePipelineMcp';
+import { useReadyAgentProbe } from './useReadyAgentProbe';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import {
-  buildAgentConfigDefaults,
   formatPipelineAgentOptionLabel,
   getAgentConfigOptionValue,
   getAgentModelValue,
@@ -25,6 +25,7 @@ import {
   scoredSearch,
   type ToolPaletteEntry,
 } from '../lib/tool-palette-catalog';
+import { writeLastUsedAgent } from '../lib/preferred-agent';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import type { ServerHealthStatus } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
@@ -140,6 +141,14 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
       : undefined,
   );
   const selectionValid = computed(() => selectedToolHealth.value !== 'auth_required' && schemaValid.value);
+  const selectedAgentProbeResult = computed(() =>
+    props.agentName ? getProbe(props.agentName) : undefined,
+  );
+  const readyAgentProbe = useReadyAgentProbe(
+    selectedAgentProbeResult,
+    computed(() => props.agentConfig),
+    (nextAgentConfig) => emit('update:agentConfig', nextAgentConfig),
+  );
 
   function optionId(name: string): string {
     return `tool-palette-option-${name.replace(/[^a-z0-9_-]+/gi, '-')}`;
@@ -151,14 +160,10 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
     return formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
   }
   function selectedAgentProbe(): AgentProbeResult | undefined {
-    return props.agentName ? getProbe(props.agentName) : undefined;
+    return selectedAgentProbeResult.value;
   }
   function readyProbe(): AgentProbeResult | undefined {
-    const probe = selectedAgentProbe();
-    if (probe?.state === 'ready' && Object.keys(props.agentConfig ?? {}).length === 0) {
-      emit('update:agentConfig', buildAgentConfigDefaults(probe) ?? {});
-    }
-    return probe?.state === 'ready' ? probe : undefined;
+    return readyAgentProbe.value;
   }
   function focusTool(name: string | null): void {
     activeOptionName.value = name;
@@ -237,8 +242,10 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
     emit('update:toolName', (event.target as HTMLInputElement).value);
   }
   function updateAgentName(event: Event): void {
-    emit('update:agentName', (event.target as HTMLSelectElement).value);
+    const nextAgent = (event.target as HTMLSelectElement).value;
+    emit('update:agentName', nextAgent);
     emit('update:agentConfig', {});
+    writeLastUsedAgent(nextAgent);
   }
   function updateAgentMode(modeId: string): void {
     emit('update:agentConfig', setAgentModeValue(props.agentConfig, modeId) ?? {});

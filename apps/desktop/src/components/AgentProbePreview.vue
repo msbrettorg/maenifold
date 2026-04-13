@@ -190,8 +190,8 @@ const statusMessage = computed(() => {
 
   if (!props.probe) {
     return warningMessage.value
-      ? `Using the configured ${props.agentName} entry until live capability discovery succeeds.`
-      : `Probe results for ${props.agentName} are not available yet.`;
+      ? `Live capability discovery is unavailable for ${props.agentName}. Use Refresh to retry loading dynamic options.`
+      : `Capability metadata for ${props.agentName} is not available yet.`;
   }
 
   if (props.probe.state === 'ready') {
@@ -201,7 +201,7 @@ const statusMessage = computed(() => {
   }
 
   if (props.probe.state === 'offline') {
-    return `Live capability discovery is unavailable for ${props.agentName}. You can still keep configuring this node with the configured agent entry and refresh again later for dynamic session options.`;
+    return `Live capability discovery is unavailable for ${props.agentName}. Cached options stay visible when present, and Refresh retries MCP discovery.`;
   }
 
   return 'Agent returned an unexpected capability payload. Retry or inspect the agent before relying on dynamic overrides.';

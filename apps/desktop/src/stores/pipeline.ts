@@ -22,6 +22,7 @@ import type {
 import { type PipelineTemplate } from '../lib/pipeline-templates';
 import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
 import { createNodeId } from '../lib/pipeline-node-factory';
+import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
 import { useConfigStore } from './config';
@@ -108,7 +109,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   let stopPolling: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
-  const primaryAgent = computed(() => resolveAgents(configStore.agentNames).primaryAgent.trim());
+  const primaryAgent = computed(() => resolvePreferredAgent(configStore.agentNames).trim());
   function withLocalMetadata(
     definition: PipelineDefinition,
     metadata?: {
@@ -248,7 +249,10 @@ export const usePipelineStore = defineStore('pipeline', () => {
     return appendNode(createNode(nodeOrType, fields));
   }
   async function applyTemplate(template: PipelineTemplate): Promise<boolean> {
-    const agents = resolveAgents(configStore.agentNames);
+    const agents = resolveAgents(
+      configStore.agentNames,
+      resolvePreferredAgent(configStore.agentNames),
+    );
     const agent = agents.primaryAgent.trim();
     if (agent.length === 0) {
       setError('apply_template', new Error('No agent is available for template-based creation. Configure an agent before creating a pipeline.'));

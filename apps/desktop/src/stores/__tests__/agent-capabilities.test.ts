@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { ref } from 'vue';
+import { persistAgentProbeCache } from '../../lib/agent-probe-cache';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
 import { useConfigStore } from '../config';
 import {
@@ -40,6 +41,7 @@ describe('useAgentCapabilitiesStore', () => {
     vi.restoreAllMocks();
     vi.useRealTimers();
     setActivePinia(createPinia());
+    window.localStorage.clear();
     connected.value = true;
     error.value = null;
     connect.mockClear();
@@ -73,6 +75,29 @@ describe('useAgentCapabilitiesStore', () => {
     expect(callTool).toHaveBeenCalledWith('ListAgents', { probe: true });
     expect(store.getProbe('architect')?.state).toBe('ready');
     expect(store.getProbe('architect')?.degradedMessage).toBeUndefined();
+  });
+
+  it('hydrates persisted ready probes on store creation', () => {
+    persistAgentProbeCache(new Map([
+      ['architect', normalizeAgentProbeResult({
+        configOptions: [
+          {
+            id: 'mode',
+            name: 'Mode',
+            category: 'mode',
+            currentValue: 'prompt',
+            options: [{ value: 'prompt', name: 'Prompt' }],
+          },
+        ],
+      })],
+    ]));
+
+    const store = useAgentCapabilitiesStore();
+
+    expect(store.getProbe('architect')?.state).toBe('ready');
+    expect(store.getProbe('architect')?.modeOptions).toEqual([
+      expect.objectContaining({ id: 'prompt', name: 'Prompt' }),
+    ]);
   });
 
   it('keeps the last ready probe when a forced refresh times out', async () => {

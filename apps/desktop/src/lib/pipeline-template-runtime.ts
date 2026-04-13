@@ -29,14 +29,20 @@ export interface ResolvedAgents {
  * Deterministic agent resolution:
  * - 0 agents → both empty (safe for gallery display; nodes need manual assignment)
  * - 1 agent  → primary === critic (same agent fills both roles)
- * - 2+ agents → primary = first configured, critic = first distinct from primary
+ * - 2+ agents → primary = preferred configured agent when present, otherwise first
+ *               configured; critic = first distinct from primary
  */
-export function resolveAgents(agentNames: readonly string[]): ResolvedAgents {
+export function resolveAgents(
+  agentNames: readonly string[],
+  primaryPreference?: string,
+): ResolvedAgents {
   if (agentNames.length === 0) {
     return { primaryAgent: '', criticAgent: '' };
   }
 
-  const primary = agentNames[0];
+  const preferred = primaryPreference?.trim();
+  const primary =
+    preferred && agentNames.includes(preferred) ? preferred : agentNames[0];
 
   if (agentNames.length === 1) {
     return { primaryAgent: primary, criticAgent: primary };

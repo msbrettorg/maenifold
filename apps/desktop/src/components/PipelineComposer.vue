@@ -29,6 +29,7 @@ import {
   type PipelineNodeInputByType,
 } from '../lib/pipeline-node-factory';
 import { getBareToolName } from '../lib/tool-categories';
+import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { NODE_PALETTE_MIN_WIDTH, useNodePaletteStore } from '../stores/node-palette';
 import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
@@ -147,7 +148,7 @@ type ContextMenuState =
 
 const contextMenu = ref<ContextMenuState | null>(null);
 
-const firstAgent = computed(() => configStore.agentNames[0] ?? '');
+const firstAgent = computed(() => resolvePreferredAgent(configStore.agentNames));
 const firstWorkflow = computed(() => store.workflows[0] ?? '');
 const toolGroups = computed(() =>
   serverResults.value

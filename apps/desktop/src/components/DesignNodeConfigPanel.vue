@@ -3,7 +3,6 @@ import { computed, onMounted } from 'vue';
 import type { AgentProbeConfigOption } from '../lib/agent-probe-types';
 import AgentProbePreview from './AgentProbePreview.vue';
 import {
-  buildAgentConfigDefaults,
   formatPipelineAgentOptionLabel,
   getAgentConfigOptionValue,
   getAgentModelValue,
@@ -17,10 +16,17 @@ import {
   setAgentModeValue,
   setAgentThoughtLevelValue,
 } from '../composables/pipeline-node-form-helpers';
+import { useReadyAgentProbe } from '../composables/useReadyAgentProbe';
+import { writeLastUsedAgent } from '../lib/preferred-agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfigStore } from '../stores/config';
-import type { PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
+import type {
+  PipelineEdge,
+  PipelineNode,
+  PipelineNodeAgentConfig,
+  PipelineNodeType,
+} from '../lib/pipeline-types';
 import { getNodeType, isPromptNode, isSequentialThinkingNode, isToolNode, isWorkflowNode } from '../lib/pipeline-types';
 import EdgeMappingEditor from './EdgeMappingEditor.vue';
 import ToolPaletteFields from './ToolPaletteFields.vue';
@@ -86,6 +92,36 @@ const inspectorMode = computed(() => {
   if (selectedDesignEdge.value) return 'design-edge';
   return !props.selectedNodeId && !props.selectedEdge ? 'design-overview' : 'fallback';
 });
+const selectedWorkflowProbe = computed(() =>
+  selectedWorkflowDesignNode.value?.acpClient
+    ? getProbe(selectedWorkflowDesignNode.value.acpClient)
+    : undefined,
+);
+const selectedPromptProbe = computed(() =>
+  selectedPromptDesignNode.value?.agent
+    ? getProbe(selectedPromptDesignNode.value.agent)
+    : undefined,
+);
+const selectedThinkingProbe = computed(() =>
+  selectedThinkingDesignNode.value?.agent
+    ? getProbe(selectedThinkingDesignNode.value.agent)
+    : undefined,
+);
+const readyWorkflowProbe = useReadyAgentProbe(
+  selectedWorkflowProbe,
+  computed(() => selectedWorkflowDesignNode.value?.agentConfig),
+  (nextAgentConfig) => updateWorkflowAgentConfig(nextAgentConfig),
+);
+const readyPromptProbe = useReadyAgentProbe(
+  selectedPromptProbe,
+  computed(() => selectedPromptDesignNode.value?.agentConfig),
+  (nextAgentConfig) => updatePromptAgentConfig(nextAgentConfig),
+);
+const readyThinkingProbe = useReadyAgentProbe(
+  selectedThinkingProbe,
+  computed(() => selectedThinkingDesignNode.value?.agentConfig),
+  (nextAgentConfig) => updateThinkingAgentConfig(nextAgentConfig),
+);
 
 onMounted(() => {
   if (store.workflows.length === 0) {
@@ -171,6 +207,9 @@ function updateNodeLabel(event: Event): void {
 function updateWorkflowField(event: Event, field: 'workflowId' | 'acpClient' | 'prompt'): void {
   const value = getFieldValue(event);
   const resolved = field === 'workflowId' ? value : (value || undefined);
+  if (field === 'acpClient' && value) {
+    writeLastUsedAgent(value);
+  }
   updateDesignNode((node) => {
     if (!isWorkflowNode(node)) return node;
     if (field !== 'acpClient') {
@@ -180,7 +219,7 @@ function updateWorkflowField(event: Event, field: 'workflowId' | 'acpClient' | '
     return { ...rest, [field]: resolved };
   });
 }
-function updateWorkflowAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+function updateWorkflowAgentConfig(nextAgentConfig: PipelineNodeAgentConfig | undefined): void {
   updateDesignNode((node) =>
     isWorkflowNode(node)
       ? (() => {
@@ -200,13 +239,14 @@ function updateThinkingField(event: Event, field: 'topic' | 'agent' | 'analysisT
 }
 function updatePromptAgent(event: Event): void {
   const agent = getFieldValue(event);
+  writeLastUsedAgent(agent);
   updateDesignNode((node) => {
     if (!isPromptNode(node)) return node;
     const { agentConfig: _agentConfig, ...rest } = node;
     return { ...rest, agent };
   });
 }
-function updatePromptAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+function updatePromptAgentConfig(nextAgentConfig: PipelineNodeAgentConfig | undefined): void {
   updateDesignNode((node) =>
     isPromptNode(node)
       ? (() => {
@@ -218,13 +258,14 @@ function updatePromptAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentCo
 }
 function updateThinkingAgent(event: Event): void {
   const agent = getFieldValue(event);
+  writeLastUsedAgent(agent);
   updateDesignNode((node) => {
     if (!isSequentialThinkingNode(node)) return node;
     const { agentConfig: _agentConfig, ...rest } = node;
     return { ...rest, agent };
   });
 }
-function updateThinkingAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+function updateThinkingAgentConfig(nextAgentConfig: PipelineNodeAgentConfig | undefined): void {
   updateDesignNode((node) =>
     isSequentialThinkingNode(node)
       ? (() => {
@@ -235,6 +276,7 @@ function updateThinkingAgentConfig(nextAgentConfig: ReturnType<typeof buildAgent
   );
 }
 function updateToolAgent(nextAgent: string): void {
+  writeLastUsedAgent(nextAgent);
   updateDesignNode((node) => {
     if (!isToolNode(node)) return node;
     const { agentConfig: _agentConfig, ...rest } = node;
@@ -245,7 +287,7 @@ function updateToolAgent(nextAgent: string): void {
     return { ...rest, agent: nextAgent };
   });
 }
-function updateToolAgentConfig(nextAgentConfig: ReturnType<typeof buildAgentConfigDefaults>): void {
+function updateToolAgentConfig(nextAgentConfig: PipelineNodeAgentConfig | undefined): void {
   updateDesignNode((node) =>
     isToolNode(node)
       ? (() => {
@@ -285,45 +327,6 @@ function updateTotalThoughts(event: Event): void {
   updateDesignNode((node) =>
     isSequentialThinkingNode(node) ? { ...node, totalThoughts } : node,
   );
-}
-function readyPromptProbe() {
-  const probe = selectedPromptDesignNode.value?.agent
-    ? getProbe(selectedPromptDesignNode.value.agent)
-    : undefined;
-  if (
-    probe?.state === 'ready'
-    && selectedPromptDesignNode.value
-    && !selectedPromptDesignNode.value.agentConfig
-  ) {
-    updatePromptAgentConfig(buildAgentConfigDefaults(probe));
-  }
-  return probe?.state === 'ready' ? probe : undefined;
-}
-function readyWorkflowProbe() {
-  const probe = selectedWorkflowDesignNode.value?.acpClient
-    ? getProbe(selectedWorkflowDesignNode.value.acpClient)
-    : undefined;
-  if (
-    probe?.state === 'ready'
-    && selectedWorkflowDesignNode.value
-    && !selectedWorkflowDesignNode.value.agentConfig
-  ) {
-    updateWorkflowAgentConfig(buildAgentConfigDefaults(probe));
-  }
-  return probe?.state === 'ready' ? probe : undefined;
-}
-function readyThinkingProbe() {
-  const probe = selectedThinkingDesignNode.value?.agent
-    ? getProbe(selectedThinkingDesignNode.value.agent)
-    : undefined;
-  if (
-    probe?.state === 'ready'
-    && selectedThinkingDesignNode.value
-    && !selectedThinkingDesignNode.value.agentConfig
-  ) {
-    updateThinkingAgentConfig(buildAgentConfigDefaults(probe));
-  }
-  return probe?.state === 'ready' ? probe : undefined;
 }
 function updatePromptMode(modeId: string): void {
   updatePromptAgentConfig(setAgentModeValue(selectedPromptDesignNode.value?.agentConfig, modeId));
@@ -425,30 +428,30 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           :probe="getProbe(selectedWorkflowDesignNode.acpClient)"
         />
         <div v-if="selectedWorkflowDesignNode.acpClient" class="agent-config-panel">
-          <template v-if="readyWorkflowProbe()">
-            <div v-if="readyWorkflowProbe()?.modeOptions.length" class="agent-mode-badges">
+          <template v-if="readyWorkflowProbe">
+            <div v-if="readyWorkflowProbe?.modeOptions.length" class="agent-mode-badges">
               <button
-                v-for="mode in readyWorkflowProbe()?.modeOptions"
+                v-for="mode in readyWorkflowProbe?.modeOptions"
                 :key="mode.id"
                 type="button"
                 class="mode-badge"
-                :class="{ selected: getAgentModeValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe()) === mode.id }"
+                :class="{ selected: getAgentModeValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe) === mode.id }"
                 @click="updateWorkflowMode(mode.id)"
               >
                 {{ mode.name }}
               </button>
             </div>
             <div class="agent-config-grid">
-              <label v-if="readyWorkflowProbe()?.modelOptions.length" class="field">
+              <label v-if="readyWorkflowProbe?.modelOptions.length" class="field">
                 <span>Model</span>
-                <select class="field-input" :value="getAgentModelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe())" @change="updateWorkflowModel">
-                  <option v-for="model in readyWorkflowProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                <select class="field-input" :value="getAgentModelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe)" @change="updateWorkflowModel">
+                  <option v-for="model in readyWorkflowProbe?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
                 </select>
               </label>
-              <label v-if="readyWorkflowProbe()?.thoughtLevelConfigOption" class="field">
-                <span>{{ readyWorkflowProbe()?.thoughtLevelConfigOption?.name }}</span>
-                <select class="field-input" :value="getAgentThoughtLevelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe())" @change="updateWorkflowThoughtLevel">
-                  <template v-for="entry in readyWorkflowProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+              <label v-if="readyWorkflowProbe?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyWorkflowProbe?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedWorkflowDesignNode.agentConfig, readyWorkflowProbe)" @change="updateWorkflowThoughtLevel">
+                  <template v-for="entry in readyWorkflowProbe?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
                     <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
                       <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
                     </optgroup>
@@ -456,7 +459,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
                   </template>
                 </select>
               </label>
-              <label v-for="option in getEditableAgentConfigOptions(readyWorkflowProbe())" :key="option.id" class="field">
+              <label v-for="option in getEditableAgentConfigOptions(readyWorkflowProbe)" :key="option.id" class="field">
                 <span>{{ option.name }}</span>
                 <select class="field-input" :value="getAgentConfigOptionValue(selectedWorkflowDesignNode.agentConfig, option)" @change="updateWorkflowConfigOption(option, $event)">
                   <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
@@ -483,30 +486,30 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           :loading="isProbeLoading(selectedPromptDesignNode.agent)"
         />
         <div v-if="selectedPromptDesignNode.agent" class="agent-config-panel">
-          <template v-if="readyPromptProbe()">
-            <div v-if="readyPromptProbe()?.modeOptions.length" class="agent-mode-badges">
+          <template v-if="readyPromptProbe">
+            <div v-if="readyPromptProbe?.modeOptions.length" class="agent-mode-badges">
               <button
-                v-for="mode in readyPromptProbe()?.modeOptions"
+                v-for="mode in readyPromptProbe?.modeOptions"
                 :key="mode.id"
                 type="button"
                 class="mode-badge"
-                :class="{ selected: getAgentModeValue(selectedPromptDesignNode.agentConfig, readyPromptProbe()) === mode.id }"
+                :class="{ selected: getAgentModeValue(selectedPromptDesignNode.agentConfig, readyPromptProbe) === mode.id }"
                 @click="updatePromptMode(mode.id)"
               >
                 {{ mode.name }}
               </button>
             </div>
             <div class="agent-config-grid">
-              <label v-if="readyPromptProbe()?.modelOptions.length" class="field">
+              <label v-if="readyPromptProbe?.modelOptions.length" class="field">
                 <span>Model</span>
-                <select class="field-input" :value="getAgentModelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe())" @change="updatePromptModel">
-                  <option v-for="model in readyPromptProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                <select class="field-input" :value="getAgentModelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe)" @change="updatePromptModel">
+                  <option v-for="model in readyPromptProbe?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
                 </select>
               </label>
-              <label v-if="readyPromptProbe()?.thoughtLevelConfigOption" class="field">
-                <span>{{ readyPromptProbe()?.thoughtLevelConfigOption?.name }}</span>
-                <select class="field-input" :value="getAgentThoughtLevelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe())" @change="updatePromptThoughtLevel">
-                  <template v-for="entry in readyPromptProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+              <label v-if="readyPromptProbe?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyPromptProbe?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedPromptDesignNode.agentConfig, readyPromptProbe)" @change="updatePromptThoughtLevel">
+                  <template v-for="entry in readyPromptProbe?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
                     <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
                       <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
                     </optgroup>
@@ -514,7 +517,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
                   </template>
                 </select>
               </label>
-              <label v-for="option in getEditableAgentConfigOptions(readyPromptProbe())" :key="option.id" class="field">
+              <label v-for="option in getEditableAgentConfigOptions(readyPromptProbe)" :key="option.id" class="field">
                 <span>{{ option.name }}</span>
                 <select class="field-input" :value="getAgentConfigOptionValue(selectedPromptDesignNode.agentConfig, option)" @change="updatePromptConfigOption(option, $event)">
                   <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
@@ -542,30 +545,30 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           :loading="isProbeLoading(selectedThinkingDesignNode.agent)"
         />
         <div v-if="selectedThinkingDesignNode.agent" class="agent-config-panel">
-          <template v-if="readyThinkingProbe()">
-            <div v-if="readyThinkingProbe()?.modeOptions.length" class="agent-mode-badges">
+          <template v-if="readyThinkingProbe">
+            <div v-if="readyThinkingProbe?.modeOptions.length" class="agent-mode-badges">
               <button
-                v-for="mode in readyThinkingProbe()?.modeOptions"
+                v-for="mode in readyThinkingProbe?.modeOptions"
                 :key="mode.id"
                 type="button"
                 class="mode-badge"
-                :class="{ selected: getAgentModeValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe()) === mode.id }"
+                :class="{ selected: getAgentModeValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe) === mode.id }"
                 @click="updateThinkingMode(mode.id)"
               >
                 {{ mode.name }}
               </button>
             </div>
             <div class="agent-config-grid">
-              <label v-if="readyThinkingProbe()?.modelOptions.length" class="field">
+              <label v-if="readyThinkingProbe?.modelOptions.length" class="field">
                 <span>Model</span>
-                <select class="field-input" :value="getAgentModelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe())" @change="updateThinkingModel">
-                  <option v-for="model in readyThinkingProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
+                <select class="field-input" :value="getAgentModelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe)" @change="updateThinkingModel">
+                  <option v-for="model in readyThinkingProbe?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
                 </select>
               </label>
-              <label v-if="readyThinkingProbe()?.thoughtLevelConfigOption" class="field">
-                <span>{{ readyThinkingProbe()?.thoughtLevelConfigOption?.name }}</span>
-                <select class="field-input" :value="getAgentThoughtLevelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe())" @change="updateThinkingThoughtLevel">
-                  <template v-for="entry in readyThinkingProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+              <label v-if="readyThinkingProbe?.thoughtLevelConfigOption" class="field">
+                <span>{{ readyThinkingProbe?.thoughtLevelConfigOption?.name }}</span>
+                <select class="field-input" :value="getAgentThoughtLevelValue(selectedThinkingDesignNode.agentConfig, readyThinkingProbe)" @change="updateThinkingThoughtLevel">
+                  <template v-for="entry in readyThinkingProbe?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
                     <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
                       <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
                     </optgroup>
@@ -573,7 +576,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
                   </template>
                 </select>
               </label>
-              <label v-for="option in getEditableAgentConfigOptions(readyThinkingProbe())" :key="option.id" class="field">
+              <label v-for="option in getEditableAgentConfigOptions(readyThinkingProbe)" :key="option.id" class="field">
                 <span>{{ option.name }}</span>
                 <select class="field-input" :value="getAgentConfigOptionValue(selectedThinkingDesignNode.agentConfig, option)" @change="updateThinkingConfigOption(option, $event)">
                   <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">

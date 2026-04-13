@@ -7,6 +7,10 @@ import {
   isOfflineProbeError,
   type AgentProbeResult,
 } from '../lib/agent-probe-types';
+import {
+  loadAgentProbeCache,
+  persistAgentProbeCache,
+} from '../lib/agent-probe-cache';
 import { useConfigStore } from './config';
 import { useToastStore } from './toast';
 
@@ -150,7 +154,7 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
   const configStore = useConfigStore();
   const mcp = usePipelineMcp();
   const toastStore = useToastStore();
-  const probeResults = ref<Map<string, AgentProbeResult>>(new Map());
+  const probeResults = ref<Map<string, AgentProbeResult>>(loadAgentProbeCache());
   const probeStatus = ref<ProbeStatus>('idle');
   const warningMessage = ref<string | null>(null);
   let currentRunId = 0;
@@ -373,6 +377,10 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
       clearRetry();
       void probeAll();
     }
+  });
+
+  watch(probeResults, (next) => {
+    persistAgentProbeCache(next);
   });
 
   return {

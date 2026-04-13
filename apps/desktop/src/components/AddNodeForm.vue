@@ -8,6 +8,7 @@ import {
   type ToolPaletteEntry,
 } from '../lib/tool-palette-catalog';
 import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
+import { resolvePreferredAgent } from '../lib/preferred-agent';
 import type { ServerHealthStatus } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 import { useNodePaletteStore } from '../stores/node-palette';
@@ -46,7 +47,7 @@ const searchQuery = computed({
   set: (value: string) => nodePaletteStore.setSearchQuery(value),
 });
 const isSearching = computed(() => searchQuery.value.trim().length > 0);
-const firstAgent = computed(() => configStore.agentNames[0] ?? '');
+const firstAgent = computed(() => resolvePreferredAgent(configStore.agentNames));
 const firstWorkflow = computed(() => props.workflows[0] ?? '');
 const catalogEntries = computed(() =>
   buildToolPaletteEntries(serverResults.value, hasStaleCacheByServer.value),

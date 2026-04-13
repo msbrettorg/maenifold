@@ -4,6 +4,10 @@ import { isAbsolutePath } from '../lib/acp-meta';
 import { PREFS_STORE_PATH } from '../lib/constants';
 import { initTelemetry } from '../lib/telemetry';
 import type { AgentsConfig, PermissionRequest, SavedSession, SessionState } from '../lib/types';
+import {
+  resolvePreferredAgent,
+  writeLastUsedAgent,
+} from '../lib/preferred-agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 
 export type ConfigStoreLike = {
@@ -140,6 +144,14 @@ export function useAppSession({
   watch(
     () => configStore.config,
     () => {
+      const preferredAgent = resolvePreferredAgent(configStore.agentNames);
+      if (!preferredAgent) {
+        selectedAgent.value = '';
+      } else if (!configStore.agentNames.includes(selectedAgent.value)) {
+        selectedAgent.value = preferredAgent;
+        writeLastUsedAgent(preferredAgent);
+      }
+
       if (agentProbeBootstrapped) {
         agentCapabilitiesStore.invalidateAll();
       }
@@ -152,6 +164,11 @@ export function useAppSession({
     await initTelemetry(telemetryEnabled);
     await configStore.loadConfig();
     await configStore.setupHotReload();
+    const preferredAgent = resolvePreferredAgent(configStore.agentNames);
+    if (preferredAgent) {
+      selectedAgent.value = preferredAgent;
+      writeLastUsedAgent(preferredAgent);
+    }
     agentProbeBootstrapped = true;
     void agentCapabilitiesStore.probeAll();
     await sessionStore.initStore();
@@ -164,6 +181,7 @@ export function useAppSession({
 
   async function handleAgentSelect(agentName: string) {
     selectedAgent.value = agentName;
+    writeLastUsedAgent(agentName);
   }
 
   async function handleSelectFolder() {
@@ -191,6 +209,7 @@ export function useAppSession({
 
   async function handleResumeSession(session: SavedSession) {
     selectedAgent.value = session.agentName;
+    writeLastUsedAgent(session.agentName);
     try {
       for (const [localId, liveSession] of sessionStore.sessions.entries()) {
         if (liveSession.session?.sessionId === session.sessionId) {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
 import AgentProbePreview from './AgentProbePreview.vue';
@@ -23,11 +24,20 @@ const selectedProbeLoading = computed(
   () => Boolean(selectedAgent.value) && !selectedProbe.value && capabilitiesStore.probeStatus === 'probing',
 );
 
-// Auto-select first agent when agents are available and none selected
 watch(agents, (newAgents) => {
-  if (newAgents.length > 0 && !selectedAgent.value) {
-    selectedAgent.value = newAgents[0];
-    emit('select', newAgents[0]);
+  if (newAgents.length === 0) {
+    selectedAgent.value = '';
+    return;
+  }
+
+  if (selectedAgent.value && newAgents.includes(selectedAgent.value)) {
+    return;
+  }
+
+  const nextAgent = resolvePreferredAgent(newAgents);
+  if (nextAgent) {
+    selectedAgent.value = nextAgent;
+    emit('select', nextAgent);
   }
 }, { immediate: true });
 

@@ -100,11 +100,33 @@ function getResourceBody(block: ContentBlock): string {
 
 <style scoped>
 .message-content-block + .message-content-block { margin-top: 0.75rem; }
-.message-content { line-height: 1.5; overflow-wrap: break-word; word-wrap: break-word; }
-.message-content :deep(p) { margin: 0.5rem 0; }
+.message-content {
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+}
+.message-content :deep(h1),
+.message-content :deep(h2),
+.message-content :deep(h3),
+.message-content :deep(h4) {
+  margin: 0.75rem 0 0.5rem;
+  font-weight: var(--weight-title);
+  line-height: 1.3;
+}
+.message-content :deep(h1) { font-size: var(--text-xl); }
+.message-content :deep(h2) { font-size: var(--text-lg); }
+.message-content :deep(h3) { font-size: var(--text-md); }
+.message-content :deep(h4) { font-size: var(--text-base); }
+.message-content :deep(p) {
+  margin: 0.5rem 0;
+  font-size: var(--text-sm);
+}
 .message-content :deep(ol),
 .message-content :deep(ul) { margin: 0.5rem 0; padding-left: 1.5rem; }
-.message-content :deep(li) { margin: 0.25rem 0; }
+.message-content :deep(li) {
+  margin: 0.25rem 0;
+  font-size: var(--text-sm);
+}
 .message-content :deep(pre) {
   padding: 0.75rem;
   border-radius: 4px;
@@ -112,14 +134,18 @@ function getResourceBody(block: ContentBlock): string {
   background: var(--bg-code);
   color: var(--text-code);
 }
-.message-content :deep(code) { font-family: var(--font-mono); font-size: var(--text-base); }
+.message-content :deep(code) {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.message-content :deep(pre code) { font-size: var(--text-xs); }
 .message-content :deep(table) {
   display: block;
   width: 100%;
   margin: 0.75rem 0;
   overflow-x: auto;
   border-collapse: collapse;
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
 }
 .message-content :deep(th),
 .message-content :deep(td) {
@@ -127,7 +153,12 @@ function getResourceBody(block: ContentBlock): string {
   border: 1px solid var(--border-default);
   text-align: left;
 }
-.message-content :deep(th) { background: var(--bg-surface); font-weight: 600; }
+.message-content :deep(th) {
+  background: var(--bg-surface);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-title);
+}
+.message-content :deep(td) { font-size: var(--text-sm); }
 .message-content :deep(tr:nth-child(even)) { background: var(--bg-main); }
 .message-content :deep(tr:hover) { background: var(--bg-surface); }
 .message-image {

@@ -48,7 +48,7 @@ const renderedThought = computed(() => marked.parse(props.thought, { async: fals
 }
 .thought-toggle:hover { background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel)); }
 .thought-icon { flex-shrink: 0; font-size: var(--text-base); }
-.thought-label { flex: 1; font-weight: 500; }
+.thought-label { flex: 1; font-size: var(--text-xs); font-weight: 500; }
 .thought-chevron { color: var(--text-muted); font-size: var(--text-xs); }
 .thought-content {
   padding: 0.75rem 1rem 0.75rem 1.25rem;

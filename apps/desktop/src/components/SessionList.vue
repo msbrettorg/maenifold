@@ -10,9 +10,8 @@ const emit = defineEmits<{
 
 const sessionStore = useSessionStore();
 
-// Only show sessions that can be resumed (agent supports loadSession)
 const sessions = computed(() => 
-  [...sessionStore.resumableSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
+  [...sessionStore.savedSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
 );
 
 const liveSessionsByRemoteId = computed(() => {
@@ -49,6 +48,14 @@ function handleResume(session: SavedSession) {
     sessionStore.setActiveSession(liveSession.localId);
     return;
   }
+
+  if (session.supportsLoadSession !== true) {
+    sessionStore.setError(
+      'This ACP service does not advertise session/load, so saved sessions cannot be reopened yet.'
+    );
+    return;
+  }
+
   emit('resume', session);
 }
 
@@ -62,6 +69,12 @@ function isCurrentConnectedSession(session: SavedSession): boolean {
 
 function isCurrentConnectingSession(session: SavedSession): boolean {
   return liveSessionsByRemoteId.value.get(session.sessionId)?.isConnecting ?? false;
+}
+
+function isResumeUnavailable(session: SavedSession): boolean {
+  return !isCurrentConnectedSession(session)
+    && !isCurrentConnectingSession(session)
+    && session.supportsLoadSession !== true;
 }
 
 function getDeleteTitle(session: SavedSession): string {
@@ -112,6 +125,7 @@ async function handleDelete(session: SavedSession, event: Event) {
         v-for="session in sessions" 
         :key="session.id"
         class="session-item"
+        :class="{ unavailable: isResumeUnavailable(session) }"
         @click="handleResume(session)"
       >
         <div class="session-info">
@@ -128,6 +142,12 @@ async function handleDelete(session: SavedSession, event: Event) {
               class="connection-badge connecting"
             >
               <span class="connection-dot">●</span> connecting
+            </span>
+            <span
+              v-else-if="isResumeUnavailable(session)"
+              class="connection-badge unavailable"
+            >
+              resume unavailable
             </span>
           </div>
           <span class="session-agent">
@@ -148,157 +168,4 @@ async function handleDelete(session: SavedSession, event: Event) {
   </div>
 </template>
 
-<style scoped>
-.session-list {
-  padding: 1rem;
-}
-
-h3 {
-  margin: 0 0 0.75rem 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
-}
-
-.empty-state .hint {
-  font-size: var(--text-sm);
-  margin-top: 0.5rem;
-}
-
-ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.session-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.5rem 0.625rem;
-  border: none;
-  border-radius: var(--radius-md);
-  margin-bottom: 0.25rem;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.session-item:hover {
-  background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
-}
-
-.session-info {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  gap: 0.25rem;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.session-title {
-  display: block;
-  max-width: 200px;
-  font-size: var(--text-sm);
-  font-weight: 500;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.session-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  min-width: 0;
-}
-
-.connection-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.0625rem 0.375rem;
-  border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.connection-badge.connected {
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main));
-  color: var(--color-status-completed);
-}
-
-.connection-badge.connected .connection-dot {
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-.connection-badge.connecting {
-  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--bg-main));
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text-primary));
-}
-
-.connection-badge.connecting .connection-dot {
-  animation: pulse-dot 1s ease-in-out infinite;
-}
-
-.connection-dot {
-  font-size: var(--text-xs);
-  line-height: 1;
-}
-
-.session-agent {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.session-badge {
-  display: inline-block;
-  margin-left: 0.375rem;
-  padding: 0.0625rem 0.375rem;
-  border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  text-transform: lowercase;
-}
-
-.session-date {
-  font-size: var(--text-xs);
-  color: var(--text-muted);
-}
-
-.delete-btn {
-  padding: 0.25rem 0.5rem;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  font-size: var(--text-xl);
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.delete-btn:hover {
-  background: var(--border-error);
-  color: var(--text-error);
-}
-
-@keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.4;
-  }
-}
-</style>
+<style scoped>@import '../assets/session-list.css';</style>

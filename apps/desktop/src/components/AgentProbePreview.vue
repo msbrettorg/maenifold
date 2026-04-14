@@ -260,7 +260,7 @@ function currentLabel(field: PreviewField): string {
     <div v-if="ready && previewFields.length" class="field-grid">
       <div v-for="field in previewFields" :key="field.key" class="field-card">
         <div class="field-heading">
-          <span>{{ field.label }}</span>
+          <span class="field-label">{{ field.label }}</span>
           <span class="option-count">{{ optionCount(field) }} options</span>
         </div>
 
@@ -282,7 +282,7 @@ function currentLabel(field: PreviewField): string {
           </template>
         </select>
 
-        <div class="field-current">{{ currentLabel(field) }}</div>
+        <div class="field-current" :title="currentLabel(field)">{{ currentLabel(field) }}</div>
         <p v-if="field.description" class="field-description">{{ field.description }}</p>
       </div>
     </div>
@@ -414,6 +414,11 @@ function currentLabel(field: PreviewField): string {
   font-weight: 600;
 }
 
+.probe-preview.compact .field-label,
+.probe-preview.compact .option-count {
+  font-size: var(--text-xs);
+}
+
 .preview-select {
   width: 100%;
   padding: 0.45rem 0.55rem;
@@ -425,9 +430,17 @@ function currentLabel(field: PreviewField): string {
 }
 
 .field-current {
+  min-width: 0;
   font-weight: 500;
   color: var(--text-primary);
   word-break: break-word;
+}
+
+.probe-preview.compact .field-current,
+.probe-preview.compact .default-summary {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .probe-preview.ready .status-pill {

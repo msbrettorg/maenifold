@@ -78,6 +78,24 @@
   border-top: 1px solid color-mix(in srgb, var(--border-default) 40%, transparent);
 }
 
+.section :deep(.agent-selector label),
+.section :deep(.probe-preview.compact .field-label),
+.section :deep(.probe-preview.compact .option-count) {
+  font-size: var(--text-xs);
+}
+
+.section :deep(.agent-selector select),
+.section :deep(.probe-preview.compact .preview-select),
+.section :deep(.probe-preview.compact .field-current),
+.section :deep(.probe-preview.compact .default-summary),
+.section :deep(.probe-preview.compact .status-message),
+.section :deep(.probe-preview.compact .field-description),
+.section :deep(.probe-preview.compact .warning-note),
+.section :deep(.probe-preview.compact .degraded-note),
+.section :deep(.probe-preview.compact .technical-detail) {
+  font-size: var(--text-sm);
+}
+
 .tab-section {
   display: flex;
   flex-direction: column;

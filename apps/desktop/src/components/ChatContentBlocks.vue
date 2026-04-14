@@ -136,16 +136,16 @@ function getResourceBody(block: ContentBlock): string {
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
-.message-content :deep(pre code) { font-size: var(--text-xs); }
+.message-content :deep(pre code) { font-size: var(--text-sm); }
 .message-content :deep(table) {
   display: block;
   width: 100%;
   margin: 0.75rem 0;
   overflow-x: auto;
   border-collapse: collapse;
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
 }
 .message-content :deep(th),
 .message-content :deep(td) {
@@ -155,7 +155,7 @@ function getResourceBody(block: ContentBlock): string {
 }
 .message-content :deep(th) {
   background: var(--bg-surface);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }
 .message-content :deep(td) { font-size: var(--text-sm); }

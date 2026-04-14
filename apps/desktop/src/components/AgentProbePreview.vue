@@ -414,6 +414,10 @@ function currentLabel(field: PreviewField): string {
   font-weight: 600;
 }
 
+.field-label {
+  font-size: var(--text-sm);
+}
+
 .probe-preview.compact .field-label,
 .probe-preview.compact .option-count {
   font-size: var(--text-xs);
@@ -426,6 +430,7 @@ function currentLabel(field: PreviewField): string {
   border-radius: 6px;
   background: color-mix(in srgb, var(--bg-input) 92%, transparent);
   color: var(--text-primary);
+  font-size: var(--text-sm);
   opacity: 0.75;
 }
 

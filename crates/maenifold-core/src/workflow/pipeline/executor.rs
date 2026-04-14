@@ -522,6 +522,7 @@ mod tests {
             tool_args: None,
             agent: None,
             allowed_tools: None,
+            cwd: PathBuf::from("."),
             timeout_seconds: None,
         };
 
@@ -538,6 +539,7 @@ mod tests {
             tool_args: None,
             agent: None,
             allowed_tools: None,
+            cwd: PathBuf::from("."),
             timeout_seconds: Some(12),
         };
 

@@ -460,6 +460,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: Some(30),
             agent_config: None,
         };
@@ -512,6 +513,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         };
@@ -564,6 +566,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: Some(15),
             agent_config: None,
         };
@@ -615,6 +618,7 @@ mod tests {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                cwd: None,
                 timeout: Some(1),
                 agent_config: None,
             }],
@@ -703,6 +707,7 @@ mod tests {
                 thought_level: None,
                 allowed_tools: None,
                 max_turns: None,
+                cwd: None,
                 timeout: None,
                 agent_config: None,
             }],
@@ -780,6 +785,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         };
@@ -815,6 +821,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         };
@@ -863,6 +870,7 @@ mod tests {
             display_label: None,
             workflow_id: "{{inputs.workflow}}".to_string(),
             prompt: Some("Hello {{inputs.name}}".to_string()),
+            cwd: None,
             timeout: None,
             acp_client: None,
             agent_config: None,
@@ -898,6 +906,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         };
@@ -951,6 +960,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         };
@@ -988,9 +998,16 @@ mod tests {
     async fn run_tool_node_preserves_local_tool_registry_path_for_non_namespaced_tools() {
         let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
 
-        let output = run_tool_node(&context, "GetConfig", None, None, None)
-            .await
-            .expect("local tool should execute through ToolRegistry");
+        let output = run_tool_node(
+            &context,
+            "GetConfig",
+            None,
+            None,
+            None,
+            std::path::Path::new("."),
+        )
+        .await
+        .expect("local tool should execute through ToolRegistry");
 
         assert!(output.response.contains("Maenifold Configuration"));
     }
@@ -1000,9 +1017,16 @@ mod tests {
     async fn run_tool_node_preserves_local_tool_registry_path_for_maenifold_namespace() {
         let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
 
-        let output = run_tool_node(&context, "maenifold.GetConfig", None, None, None)
-            .await
-            .expect("maenifold namespaced tool should execute through ToolRegistry");
+        let output = run_tool_node(
+            &context,
+            "maenifold.GetConfig",
+            None,
+            None,
+            None,
+            std::path::Path::new("."),
+        )
+        .await
+        .expect("maenifold namespaced tool should execute through ToolRegistry");
 
         assert!(output.response.contains("Maenifold Configuration"));
     }
@@ -1018,6 +1042,7 @@ mod tests {
             Some(&json!({ "value": 1 })),
             Some("test-agent"),
             Some(&["server.other".to_string()]),
+            std::path::Path::new("."),
         )
         .await
         .expect_err("external MCP tool not in explicit list should be rejected");
@@ -1041,6 +1066,7 @@ mod tests {
             Some(&json!({ "value": 1 })),
             None,
             None,
+            std::path::Path::new("."),
         )
         .await
         .expect_err("should fail at server resolution, not at tool permission");

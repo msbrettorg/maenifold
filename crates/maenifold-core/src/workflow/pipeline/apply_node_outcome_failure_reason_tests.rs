@@ -29,6 +29,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             workflow_id: "test-workflow-a".to_string(),
             acp_client: Some("agent-node".to_string()),
             prompt: None,
+            cwd: None,
             timeout: None,
             agent_config: None,
         }],

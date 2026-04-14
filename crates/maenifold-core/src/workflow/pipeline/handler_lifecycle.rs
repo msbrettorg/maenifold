@@ -235,6 +235,7 @@ mod tests {
             timeout: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             model: None,
             thought_level: None,
         }

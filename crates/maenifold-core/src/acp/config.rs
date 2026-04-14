@@ -516,6 +516,7 @@ mod settings_tests {
                 trace: true,
                 pipeline_driver: Some("inline".to_string()),
             },
+            env_passthrough: Vec::new(),
         }
     }
 

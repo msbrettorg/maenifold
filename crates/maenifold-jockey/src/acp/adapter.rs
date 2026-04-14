@@ -1,55 +1,66 @@
 use dashmap::DashMap;
-use serde::Deserialize;
 use serde_json::Value;
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-// Minimal config types to read maenifold.json without depending on maenifold-core.
-#[derive(Debug, Default, Deserialize)]
-struct AgentsConfig {
-    #[serde(default)]
-    agents: HashMap<String, AgentEntry>,
-    #[serde(default)]
-    settings: Option<MinimalSettings>,
-}
-
-#[derive(Debug, Default, Deserialize)]
-struct MinimalSettings {
-    #[serde(default, rename = "envPassthrough")]
-    env_passthrough: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct AgentEntry {
-    command: String,
-    #[serde(default)]
-    env: HashMap<String, String>,
-}
-
-impl AgentEntry {
-    fn command_parts(&self) -> (&str, Vec<&str>) {
-        let mut parts = self.command.split_whitespace();
-        let binary = parts.next().unwrap_or("");
-        let args: Vec<&str> = parts.collect();
-        (binary, args)
-    }
-}
-
-fn load_agents_config(root: &Path) -> AgentsConfig {
+fn load_agents_config(root: &Path) -> Value {
     let path = root.join("maenifold.json");
     std::fs::read_to_string(&path)
         .ok()
         .and_then(|contents| serde_json::from_str(&contents).ok())
-        .unwrap_or_default()
+        .unwrap_or_else(|| Value::Object(Default::default()))
+}
+
+fn find_agent_entry<'a>(config: &'a Value, runtime: &str) -> Result<&'a Value, String> {
+    config
+        .get("agents")
+        .and_then(Value::as_object)
+        .and_then(|agents| {
+            agents
+                .iter()
+                .find(|(key, _)| key.eq_ignore_ascii_case(runtime))
+                .map(|(_, entry)| entry)
+        })
+        .ok_or_else(|| format!("agent '{}' not found in maenifold.json", runtime))
+}
+
+fn command_parts(entry: &Value) -> (&str, Vec<&str>) {
+    let mut parts = entry
+        .get("command")
+        .and_then(Value::as_str)
+        .unwrap_or("")
+        .split_whitespace();
+    let binary = parts.next().unwrap_or("");
+    let args = parts.collect();
+    (binary, args)
+}
+
+fn entry_env(entry: &Value) -> Vec<(String, String)> {
+    entry
+        .get("env")
+        .and_then(Value::as_object)
+        .into_iter()
+        .flatten()
+        .filter_map(|(key, value)| value.as_str().map(|value| (key.clone(), value.to_string())))
+        .collect()
+}
+
+fn env_passthrough(config: &Value) -> impl Iterator<Item = &str> {
+    config
+        .get("settings")
+        .and_then(|settings| settings.get("envPassthrough"))
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
 }
 
 static ADAPTER_CACHE: std::sync::OnceLock<
     DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>,
 > = std::sync::OnceLock::new();
-fn adapter_cache()
--> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
+fn adapter_cache(
+) -> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
 {
     ADAPTER_CACHE.get_or_init(DashMap::new)
 }
@@ -118,28 +129,16 @@ fn resolve_adapter_for_name(
     root: &PathBuf,
 ) -> Result<(String, Vec<String>, Vec<(String, String)>), String> {
     let config = load_agents_config(root);
-    // Case-insensitive lookup: config keys are PascalCase, runtime is lowercased.
-    let entry = config
-        .agents
-        .iter()
-        .find(|(key, _)| key.eq_ignore_ascii_case(runtime))
-        .map(|(_, entry)| entry)
-        .ok_or_else(|| format!("agent '{}' not found in maenifold.json", runtime))?;
-    let (binary, args) = entry.command_parts();
+    let entry = find_agent_entry(&config, runtime)?;
+    let (binary, args) = command_parts(entry);
     if binary.is_empty() {
         return Err(format!("agent '{}' has an empty command", runtime));
     }
-    let mut env: Vec<(String, String)> = entry
-        .env
-        .iter()
-        .map(|(key, value)| (key.clone(), value.clone()))
-        .collect();
-    if let Some(settings) = &config.settings {
-        for var_name in &settings.env_passthrough {
-            if !env.iter().any(|(key, _)| key == var_name) {
-                if let Ok(value) = std::env::var(var_name) {
-                    env.push((var_name.clone(), value));
-                }
+    let mut env = entry_env(entry);
+    for var_name in env_passthrough(&config) {
+        if !env.iter().any(|(key, _)| key == var_name) {
+            if let Ok(value) = std::env::var(var_name) {
+                env.push((var_name.to_string(), value));
             }
         }
     }

@@ -145,6 +145,14 @@ Agents running full test suites in parallel creates race conditions. Violation i
 - **Pipeline layout contract:** canvas is the base layer; backdrop `9`; inspector `10`; flyout `11`; context menu `60`; dialogs `1000`.
 - **Pipeline layout tokens:** `--rail-width: 48px`; `--flyout-width: 320px`.
 
+### Gate Integrity — Hard Rule
+
+**No fast-forwarding gate stages.** Every gate stage (discovery, spec, swe, red-team, blue-team) requires a real agent dispatched to do real work. The PM may only `gate pass` a stage after receiving a genuine verdict from the responsible agent. Walking multiple stages in rapid succession with PM-authored notes is audit fraud — it corrupts the trail and makes the codebase untrustworthy.
+
+**If gate state is out of sync** (e.g., prior session did real work but gate wasn't walked), the PM must dispatch verification agents to rebuild the audit trail honestly. Never backfill stages with fabricated notes.
+
+**PM override:** The PM may only skip a gate stage with explicit, written authorization from the user (Brett). "Simple additive field" or "waived" are not valid reasons to skip red-team or blue-team. If the user grants a waiver, record it as: `stage waived per user authorization at <timestamp>`.
+
 ### Gate CLI Fallback
 
 - Prefer Gate MCP when healthy, but Gate MCP sessions can go stale. Fall back to CLI with `--root .`.

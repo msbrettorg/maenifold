@@ -1,90 +1,60 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
-import { existsSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 
-const DAEMON_HEALTH_URL = 'http://localhost:19760/api/config';
+// The desktop app connects to the maenifold + gate services running under
+// launchd. It does NOT spawn its own daemons — one process per service,
+// one tray icon total. If a service isn't running, we start it via launchctl.
+const MAENIFOLD_SERVICE = 'com.ma-collective.maenifold';
+const GATE_SERVICE = 'com.ma-collective.gate';
+const MAENIFOLD_HEALTH_URL = 'http://localhost:8080/api/config';
+const GATE_HEALTH_URL = 'http://localhost:8081/mcp';
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 
 let mainWindow: BrowserWindow | null = null;
-let daemonProcess: ChildProcessWithoutNullStreams | null = null;
 let isQuitting = false;
-let hasHandledBeforeQuit = false;
-let expectedDaemonExit = false;
-let startPromise: Promise<void> | null = null;
 
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function resolveDaemonBinary(): string {
-  const binaryName = process.platform === 'win32' ? 'maenifold.exe' : 'maenifold';
-  const candidates = [
-    join(process.resourcesPath, binaryName),
-    join(dirname(app.getPath('exe')), binaryName),
-    join(process.resourcesPath, 'bin', binaryName),
-  ];
-  return candidates.find((candidate) => existsSync(candidate)) ?? binaryName;
-}
-
-async function waitForDaemon(): Promise<void> {
-  for (let attempt = 0; attempt < 60; attempt += 1) {
-    if (!daemonProcess) throw new Error('maenifold exited before becoming healthy');
-    try {
-      const response = await fetch(DAEMON_HEALTH_URL);
-      if (response.status === 200) return;
-    } catch {
-      // Retry until the daemon is ready.
-    }
-    await wait(500);
+async function isServiceHealthy(url: string): Promise<boolean> {
+  try {
+    const response = await fetch(url);
+    return response.status >= 200 && response.status < 500;
+  } catch {
+    return false;
   }
-  throw new Error('Timed out waiting for maenifold daemon health check');
 }
 
-function attachDaemonLifecycle(child: ChildProcessWithoutNullStreams): void {
-  child.stderr.on('data', (chunk) => console.error(`[maenifold] ${chunk}`.trimEnd()));
-  child.on('exit', () => {
-    daemonProcess = null;
-    startPromise = null;
-    if (expectedDaemonExit) {
-      expectedDaemonExit = false;
-      return;
-    }
-    if (!isQuitting) void startDaemon();
-  });
+function startLaunchctlService(label: string): void {
+  try {
+    execSync(`launchctl start ${label}`, { timeout: 5_000 });
+  } catch {
+    console.error(`[maenifold] Failed to start ${label} via launchctl`);
+  }
 }
 
-async function stopDaemon(): Promise<void> {
-  if (!daemonProcess) return;
-  expectedDaemonExit = true;
-  const child = daemonProcess;
-  await new Promise<void>((resolve) => {
-    child.once('exit', () => resolve());
-    child.kill('SIGTERM');
-    setTimeout(() => {
-      if (child.exitCode === null) child.kill('SIGKILL');
-    }, 3_000);
-  });
-}
-
-async function startDaemon(): Promise<void> {
-  if (startPromise) return startPromise;
-  startPromise = (async () => {
-    if (daemonProcess) return;
-    daemonProcess = spawn(resolveDaemonBinary(), ['--http', '--port', '19760'], {
-      stdio: ['ignore', 'ignore', 'pipe'],
-    });
-    attachDaemonLifecycle(daemonProcess);
-    await waitForDaemon();
-  })().finally(() => {
-    startPromise = null;
-  });
-  return startPromise;
-}
-
-async function restartDaemon(): Promise<void> {
-  await stopDaemon();
-  await startDaemon();
+async function ensureServices(): Promise<void> {
+  // Check maenifold on 8080
+  if (!(await isServiceHealthy(MAENIFOLD_HEALTH_URL))) {
+    console.log('[maenifold] Service not responding on 8080, starting via launchctl...');
+    startLaunchctlService(MAENIFOLD_SERVICE);
+  }
+  // Check gate on 8081
+  if (!(await isServiceHealthy(GATE_HEALTH_URL))) {
+    console.log('[maenifold] Gate service not responding on 8081, starting via launchctl...');
+    startLaunchctlService(GATE_SERVICE);
+  }
+  // Wait for maenifold to be healthy
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    if (await isServiceHealthy(MAENIFOLD_HEALTH_URL)) return;
+    await wait(1_000);
+  }
+  console.error(
+    '[maenifold] Service not responding on port 8080 after 30s. ' +
+    'Check: launchctl print gui/$(id -u)/com.ma-collective.maenifold'
+  );
 }
 
 async function createWindow(): Promise<void> {
@@ -123,7 +93,6 @@ function registerIpcHandlers(): void {
   });
   ipcMain.handle('file:read-binary', async (_event, filePath: string) => readFile(filePath));
   ipcMain.handle('app:get-version', () => app.getVersion());
-  ipcMain.handle('daemon:restart', async () => restartDaemon());
 }
 
 if (!app.requestSingleInstanceLock()) {
@@ -135,12 +104,8 @@ if (!app.requestSingleInstanceLock()) {
     mainWindow.show();
     mainWindow.focus();
   });
-  app.on('before-quit', (event) => {
+  app.on('before-quit', () => {
     isQuitting = true;
-    if (!daemonProcess || hasHandledBeforeQuit) return;
-    hasHandledBeforeQuit = true;
-    event.preventDefault();
-    void stopDaemon().finally(() => app.quit());
   });
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
@@ -151,7 +116,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(async () => {
     registerIpcHandlers();
-    await startDaemon();
+    await ensureServices();
     await createWindow();
   });
 }

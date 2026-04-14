@@ -9,7 +9,7 @@ use std::time::Duration;
 use tokio::task::JoinSet;
 
 pub(crate) const MCP_PROTOCOL_VERSION: &str = "2025-03-26";
-pub(crate) const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(10);
+pub(crate) const DEFAULT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(60);
 
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -41,11 +41,14 @@ pub(crate) struct McpServerDiscoveryResult {
 
 pub(crate) async fn discover_all_mcp_tools(
     servers: &[McpServerEntry],
-    timeout_duration: Duration,
+    _timeout_duration: Duration,
 ) -> Vec<McpServerDiscoveryResult> {
     let mut tasks = JoinSet::new();
     for (index, server) in servers.iter().cloned().enumerate() {
-        tasks.spawn(async move { (index, discover_server(server, timeout_duration).await) });
+        tasks.spawn(async move {
+            let timeout_duration = server.discovery_timeout();
+            (index, discover_server(server, timeout_duration).await)
+        });
     }
 
     let mut results = vec![None; servers.len()];
@@ -155,6 +158,7 @@ async fn discover_server(
             name,
             command,
             args,
+            ..
         } => (
             name,
             "stdio".to_string(),

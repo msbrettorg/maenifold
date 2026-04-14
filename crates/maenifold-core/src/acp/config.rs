@@ -1,8 +1,10 @@
 use agent_client_protocol as acp;
+use crate::api::mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
@@ -15,6 +17,8 @@ pub enum McpServerEntry {
         command: String,
         #[serde(default)]
         args: Vec<String>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        timeout: Option<u64>,
     },
     #[serde(rename = "http")]
     Http { name: String, url: String },
@@ -33,12 +37,22 @@ impl McpServerEntry {
                 name,
                 command,
                 args,
+                ..
             } => acp::McpServer::Stdio(
                 acp::McpServerStdio::new(name.clone(), command.clone()).args(args.clone()),
             ),
             McpServerEntry::Http { name, url } => {
                 acp::McpServer::Http(acp::McpServerHttp::new(name.clone(), url.clone()))
             }
+        }
+    }
+
+    pub fn discovery_timeout(&self) -> Duration {
+        match self {
+            McpServerEntry::Stdio { timeout, .. } => timeout
+                .map(Duration::from_secs)
+                .unwrap_or(DEFAULT_DISCOVERY_TIMEOUT),
+            McpServerEntry::Http { .. } => DEFAULT_DISCOVERY_TIMEOUT,
         }
     }
 }

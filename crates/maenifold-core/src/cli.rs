@@ -2,6 +2,8 @@ mod handlers;
 mod parse;
 mod usage;
 
+use std::path::PathBuf;
+
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp;
@@ -54,18 +56,20 @@ pub enum CliCommand {
 
 /// T-29.2: RTM FR-35 — parsed CLI action for tray-aware dispatch in `main()`.
 ///
-/// [`CliAction::Headless`] covers `--mcp`, `tool`, `--help`, and error paths —
-/// all of which are fully handled by [`CliApp::run`] on the main thread with no
-/// native event loop.
+/// [`CliAction::Headless`] covers `tool`, `--help`, and error paths — all of
+/// which are fully handled by [`CliApp::run`] on the main thread with no native
+/// event loop.
 ///
 /// [`CliAction::Http`] signals that `main()` should
 /// delegate to [`crate::tray::run_with_tray`] instead for `--http` / `--app`.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CliAction {
-    /// --mcp, tool, --help, or invalid args → handled by [`CliApp::run`].
+    /// tool, --help, or invalid args → handled by [`CliApp::run`].
     Headless,
-    /// --http / --app mode with the resolved port.
-    Http(u16),
+    /// --mcp mode, optionally carrying a service root when shared by other CLIs.
+    Mcp { root: Option<PathBuf> },
+    /// --http / --app mode with the resolved port and optional service root.
+    Http { port: u16, root: Option<PathBuf> },
 }
 pub struct CliApp;
 impl CliApp {
@@ -83,7 +87,12 @@ impl CliApp {
             return CliAction::Headless;
         }
         if parsed.cli.http || parsed.cli.app {
-            CliAction::Http(parsed.cli.port)
+            CliAction::Http {
+                port: parsed.cli.port,
+                root: None,
+            }
+        } else if parsed.cli.mcp {
+            CliAction::Mcp { root: None }
         } else {
             CliAction::Headless
         }

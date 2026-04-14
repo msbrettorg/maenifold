@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use clap::{Args, CommandFactory, FromArgMatches, Parser, Subcommand, parser::ValueSource};
+pub use maenifold_core::CliAction;
 
 use crate::append_command::AppendCommand;
 use crate::error::GateError;
@@ -69,13 +70,6 @@ pub enum CommandRequest {
     Pass(OutcomeArgs),
     Fail(OutcomeArgs),
     Sync(SyncArgs),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum CliAction {
-    Headless,
-    Mcp { root: Option<PathBuf> },
-    Http { port: u16, root: Option<PathBuf> },
 }
 
 pub struct GateCliApp;

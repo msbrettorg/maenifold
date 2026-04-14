@@ -43,6 +43,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     toolAgentConfig,
     toolArgs,
     toolArgsValid,
+    cwd,
     getFormValues,
   } = usePipelineNodeFormFields();
   const canAdd = computed(() => canSubmitPipelineNodeForm(nodeType.value, getFormValues()));
@@ -152,6 +153,7 @@ export function useAddNodeForm({ submitNode }: UseAddNodeFormOptions) {
     toolArgs,
     toolArgsValid,
     canAdd,
+    cwd,
     handleSubmit,
   };
 }

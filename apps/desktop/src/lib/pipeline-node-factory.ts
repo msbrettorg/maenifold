@@ -12,6 +12,8 @@ import {
   normalizeNodeCwd,
 } from './pipeline-types';
 
+export { normalizeNodeCwd } from './pipeline-types';
+
 interface PipelineNodeExecutionFields {
   model?: string;
   thoughtLevel?: string;

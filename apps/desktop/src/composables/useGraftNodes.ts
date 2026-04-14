@@ -30,6 +30,7 @@ export function useGraftNodes({ existingNodeIds, busy, onSubmit }: UseGraftNodes
     toolName,
     toolArgs,
     toolArgsValid,
+    cwd,
     getFormValues,
   } = usePipelineNodeFormFields();
   const connectFrom = ref('');
@@ -117,6 +118,7 @@ export function useGraftNodes({ existingNodeIds, busy, onSubmit }: UseGraftNodes
     toolName,
     toolArgs,
     toolArgsValid,
+    cwd,
     connectFrom,
     connectTo,
     edgeType,

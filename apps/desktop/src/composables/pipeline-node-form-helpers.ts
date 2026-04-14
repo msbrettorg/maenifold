@@ -8,6 +8,7 @@ import type {
   PipelineNodeDraftByType,
   PipelineNodeType,
 } from '../lib/pipeline-types';
+import { normalizeNodeCwd } from '../lib/pipeline-node-factory';
 import type {
   SessionConfigSelectGroup,
   SessionConfigSelectOption,
@@ -32,6 +33,7 @@ export interface PipelineNodeFormValues {
   toolAgentConfig: PipelineNodeAgentConfig;
   toolArgs: Record<string, unknown>;
   toolArgsValid: boolean;
+  cwd?: string;
 }
 
 export const DEFAULT_PIPELINE_NODE_THOUGHTS = '5';
@@ -62,6 +64,7 @@ export interface PipelineNodeFormRefs {
   toolAgentConfig: Ref<PipelineNodeAgentConfig>;
   toolArgs: Ref<Record<string, unknown>>;
   toolArgsValid: Ref<boolean>;
+  cwd: Ref<string>;
   getFormValues: () => PipelineNodeFormValues;
 }
 
@@ -83,6 +86,7 @@ export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
   const toolAgentConfig = ref<PipelineNodeAgentConfig>({});
   const toolArgs = ref<Record<string, unknown>>({});
   const toolArgsValid = ref(true);
+  const cwd = ref('');
 
   return {
     workflowId,
@@ -102,6 +106,7 @@ export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
     toolAgentConfig,
     toolArgs,
     toolArgsValid,
+    cwd,
     getFormValues: () => ({
       workflowId: workflowId.value,
       workflowAgent: workflowAgent.value,
@@ -120,6 +125,7 @@ export function usePipelineNodeFormFields(): PipelineNodeFormRefs {
       toolAgentConfig: toolAgentConfig.value,
       toolArgs: toolArgs.value,
       toolArgsValid: toolArgsValid.value,
+      cwd: cwd.value,
     }),
   };
 }
@@ -451,6 +457,7 @@ export function buildPipelineNodeDraft(
       return {
         agent: trim(values.promptAgent),
         prompt: trim(values.promptTemplate),
+        cwd: normalizeNodeCwd(values.cwd),
         ...(normalizePipelineNodeAgentConfig(values.promptAgentConfig)
           ? { agentConfig: normalizePipelineNodeAgentConfig(values.promptAgentConfig) }
           : {}),
@@ -465,6 +472,7 @@ export function buildPipelineNodeDraft(
         ...(trim(values.thinkingAnalysisType)
           ? { analysisType: trim(values.thinkingAnalysisType) }
           : {}),
+        cwd: normalizeNodeCwd(values.cwd),
         ...(normalizePipelineNodeAgentConfig(values.thinkingAgentConfig)
           ? { agentConfig: normalizePipelineNodeAgentConfig(values.thinkingAgentConfig) }
           : {}),
@@ -478,6 +486,7 @@ export function buildPipelineNodeDraft(
       return {
         toolName: trim(values.toolName),
         ...(trim(values.toolAgent) ? { agent: trim(values.toolAgent) } : {}),
+        cwd: normalizeNodeCwd(values.cwd),
         ...(normalizePipelineNodeAgentConfig(values.toolAgentConfig)
           ? { agentConfig: normalizePipelineNodeAgentConfig(values.toolAgentConfig) }
           : {}),
@@ -496,6 +505,7 @@ export function buildWorkflowDraft(
     workflowId: trim(values.workflowId),
     ...(trim(values.workflowAgent) ? { acpClient: trim(values.workflowAgent) } : {}),
     ...(trim(values.workflowPrompt) ? { prompt: trim(values.workflowPrompt) } : {}),
+    cwd: normalizeNodeCwd(values.cwd),
     ...(normalizePipelineNodeAgentConfig(values.workflowAgentConfig)
       ? { agentConfig: normalizePipelineNodeAgentConfig(values.workflowAgentConfig) }
       : {}),

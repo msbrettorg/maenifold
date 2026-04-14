@@ -38,7 +38,7 @@ function sortOrder(column: SortColumn) {
 </script>
 
 <template>
-  <div class="gate-table-wrap panel">
+  <div class="gate-table-wrap">
     <table class="gate-table" role="table" aria-label="Gate task list">
       <thead>
         <tr>
@@ -96,6 +96,28 @@ function sortOrder(column: SortColumn) {
   min-height: 24rem;
   padding: 0;
   overflow: auto;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.gate-table-wrap::-webkit-scrollbar {
+  width: 8px;
+}
+
+.gate-table-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gate-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.gate-table-wrap::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
 
 .gate-table {

@@ -37,7 +37,7 @@ function renderMarkdown(content: string | null) {
 </script>
 
 <template>
-  <aside class="gate-detail panel" role="article" :aria-labelledby="detailTitleId">
+  <aside class="gate-detail" role="article" :aria-labelledby="detailTitleId">
     <div class="gate-detail__header">
       <div class="gate-detail__header-copy">
         <p class="gate-detail__eyebrow">Task detail</p>
@@ -91,6 +91,10 @@ function renderMarkdown(content: string | null) {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  padding: 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .gate-detail__header,

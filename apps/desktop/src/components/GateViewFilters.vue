@@ -47,7 +47,7 @@ function emitSelect(
 </script>
 
 <template>
-  <div class="gate-filters panel" role="search" aria-label="Task filters">
+  <div class="gate-filters" role="search" aria-label="Task filters">
     <Input
       :model-value="props.searchText"
       type="search"
@@ -83,6 +83,9 @@ function emitSelect(
   grid-template-columns: minmax(14rem, 1.5fr) repeat(3, minmax(10rem, 1fr)) auto;
   gap: 0.75rem;
   padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
 }
 
 .gate-toggle {

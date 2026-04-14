@@ -233,6 +233,25 @@ const progressValue = computed(() => {
   background: var(--muted);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.logs-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.logs-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.logs-content::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.logs-content::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
 
 .log-line {

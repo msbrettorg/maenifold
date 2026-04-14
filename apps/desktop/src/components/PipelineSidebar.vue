@@ -130,7 +130,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
         </button>
 
         <div class="pipeline-side">
-          <span :class="['pipeline-status', 'status-text', `status-text--${item.status}`]">
+          <span :class="['pipeline-status', `status-text--${item.status}`]">
             {{ formatStatus(item.status) }}
           </span>
           <Button class="delete-btn h-6 px-2 text-xs" variant="destructive" size="sm" type="button" title="Delete pipeline" aria-label="Delete pipeline" @click="handleDelete(item, $event)">×</Button>
@@ -276,6 +276,15 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   font-size: var(--text-xs);
   font-weight: var(--weight-display);
 }
+
+.status-text--pending { color: var(--color-status-pending); }
+.status-text--active { color: var(--color-status-active); }
+.status-text--completed { color: var(--color-status-completed); }
+.status-text--abandoned { color: var(--color-status-abandoned); }
+.status-text--stuck { color: var(--color-status-stuck); }
+.status-text--ready,
+.status-text--paused { color: var(--color-status-ready); }
+.status-text--cancelled { color: var(--color-status-abandoned); }
 
 .delete-btn {
   line-height: 1;

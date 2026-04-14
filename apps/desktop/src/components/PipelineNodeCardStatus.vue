@@ -41,6 +41,13 @@ defineProps<{
   flex-shrink: 0;
 }
 
+.status-dot--pending { background: var(--color-status-pending); }
+.status-dot--active { background: var(--color-status-active); }
+.status-dot--completed { background: var(--color-status-completed); }
+.status-dot--abandoned { background: var(--color-status-abandoned); }
+.status-dot--stuck { background: var(--color-status-stuck); }
+.status-dot--cancelled { background: #6b7280; }
+
 .node-title,
 .type-pill {
   overflow: hidden;

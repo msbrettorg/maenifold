@@ -20,7 +20,7 @@ function handleInput(event: Event): void {
 </script>
 
 <template>
-  <div class="schema-form-raw-editor panel" role="group" :aria-label="props.ariaLabel ?? props['aria-label']">
+  <div class="schema-form-raw-editor" role="group" :aria-label="props.ariaLabel ?? props['aria-label']">
     <div class="schema-form-raw-editor__header">
       <h3>{{ props.title }}</h3>
       <p>{{ props.message }}</p>
@@ -41,6 +41,10 @@ function handleInput(event: Event): void {
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--card);
 }
 
 .schema-form-raw-editor__header {

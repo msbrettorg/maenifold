@@ -52,7 +52,7 @@ function formatJsonValue(value?: Record<string, unknown>): string {
     <h2>{{ selectedViewNodeLabel || selectedViewNode.nodeId || 'Node Details' }}</h2>
     <section class="status-headline">
       <div class="status-headline__meta">
-        <strong :class="['status-text', `status-text--${selectedViewNode.status}`]">{{ formatStatusLabel(selectedViewNode.status) }}</strong>
+        <strong :class="`status-text--${selectedViewNode.status}`">{{ formatStatusLabel(selectedViewNode.status) }}</strong>
         <strong class="type-pill">{{ formatNodeType(selectedViewNode.type ?? 'workflow') }}</strong>
       </div>
       <p>{{ selectedNodeHeadline }}</p>
@@ -110,7 +110,7 @@ function formatJsonValue(value?: Record<string, unknown>): string {
 </template>
 
 <style scoped>
-.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
+.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
 .panel h2 { font-size: var(--text-xl); font-weight: var(--weight-title); }
 .summary-row,.action-row,.read-block,.output-block { display: flex; flex-direction: column; gap: 0.375rem; color: var(--muted-foreground); font-size: var(--text-sm); }
 .summary-row { flex-direction: row; align-items: center; justify-content: space-between; gap: 0.75rem; }
@@ -118,6 +118,14 @@ function formatJsonValue(value?: Record<string, unknown>): string {
 .status-headline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.875rem; border: 1px solid var(--border); border-radius: 10px; background: var(--background); }
 .status-headline__meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .status-headline p { margin: 0; color: var(--foreground); }
+.status-text--pending { color: var(--color-status-pending); }
+.status-text--active { color: var(--color-status-active); }
+.status-text--completed { color: var(--color-status-completed); }
+.status-text--abandoned { color: var(--color-status-abandoned); }
+.status-text--stuck { color: var(--color-status-stuck); }
+.status-text--ready,
+.status-text--paused { color: var(--color-status-ready); }
+.status-text--cancelled { color: var(--color-status-abandoned); }
 .type-pill { padding: 0.2rem 0.6rem; font-size: var(--text-sm); border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
 .read-block pre,.output-block { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--background); }
 .read-block pre,.output-block pre { margin: 0; white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--foreground); }

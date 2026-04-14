@@ -229,7 +229,17 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
 .agent-name { font-size: var(--text-sm); color: var(--ring); }
-.messages-container { flex: 1; overflow-y: auto; padding: 1rem; }
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.messages-container::-webkit-scrollbar { width: 8px; }
+.messages-container::-webkit-scrollbar-track { background: transparent; }
+.messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.messages-container::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 .messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
 .messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: 6px; }
 .messages-container :deep(pre.mermaid-error) { border: 1px solid color-mix(in srgb, var(--border-error) 45%, transparent); }

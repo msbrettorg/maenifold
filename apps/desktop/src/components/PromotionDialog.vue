@@ -221,7 +221,7 @@ function closeDialog(): void {
 
 <template>
   <div class="promotion-overlay" @click.self="closeDialog">
-    <div class="promotion-dialog panel" role="dialog" aria-modal="true" aria-labelledby="promotion-dialog-title">
+    <div class="promotion-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-dialog-title">
       <div class="dialog-header">
         <div>
           <h3 id="promotion-dialog-title">Promote to Memory</h3>

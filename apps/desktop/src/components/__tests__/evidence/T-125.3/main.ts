@@ -7,8 +7,6 @@ import '@fontsource/space-grotesk/700.css';
 import '@fontsource/jetbrains-mono/400.css';
 import '@fontsource/jetbrains-mono/500.css';
 
-import '../../../../assets/shared-components.css';
-
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import NodePaletteEvidenceApp from './NodePaletteEvidenceApp.vue';

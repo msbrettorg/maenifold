@@ -265,6 +265,12 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
 .meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, transparent); }
 .meta-pill-status { color: var(--primary-foreground); }
+.status-dot--pending { background: var(--color-status-pending); }
+.status-dot--active { background: var(--color-status-active); }
+.status-dot--completed { background: var(--color-status-completed); }
+.status-dot--abandoned { background: var(--color-status-abandoned); }
+.status-dot--stuck { background: var(--color-status-stuck); }
+.status-dot--cancelled { background: #6b7280; }
 .preview {
   margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--muted-foreground);
   white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 4%, transparent); border-radius: 6px;

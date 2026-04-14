@@ -210,7 +210,6 @@ function closeWorkflowPanel() {
   </div>
 </template>
 
-<style>@import './assets/shared-components.css';</style>
 <style scoped>
 .view-fade-enter-active,
 .view-fade-leave-active {
@@ -220,5 +219,27 @@ function closeWorkflowPanel() {
 .view-fade-enter-from,
 .view-fade-leave-to {
   opacity: 0;
+}
+
+.workflow-panel-body {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.workflow-panel-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.workflow-panel-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflow-panel-body::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+.workflow-panel-body::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
 }
 </style>

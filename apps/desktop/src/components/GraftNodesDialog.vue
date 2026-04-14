@@ -58,7 +58,7 @@ const {
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
-    <DialogContent class="graft-dialog panel gap-0 p-0 sm:max-w-[48rem]" :show-close-button="false">
+    <DialogContent class="graft-dialog gap-0 p-0 sm:max-w-[48rem]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div class="dialog-heading">
           <DialogTitle>Graft Nodes</DialogTitle>

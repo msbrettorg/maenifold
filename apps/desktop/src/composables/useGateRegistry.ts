@@ -20,6 +20,21 @@ function browserStorageAvailable() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
+const nativePathDialogClass =
+  'fixed inset-0 z-[1000] m-0 flex h-full w-full max-h-none max-w-none items-center justify-center border-0 bg-black/60 p-0 text-inherit';
+const nativePathDialogFormClass =
+  'grid min-w-80 max-w-md gap-3 rounded-lg border border-border bg-card p-6 text-foreground shadow-xl';
+const nativePathDialogTitleClass = 'm-0 mb-4 text-lg font-semibold text-foreground';
+const nativePathDialogInputClass =
+  'mb-4 w-full rounded-md border border-border bg-input px-3 py-2 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+const nativePathDialogActionsClass = 'flex justify-end gap-2';
+const nativePathDialogButtonClass =
+  'inline-flex items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors';
+const nativePathDialogCancelButtonClass =
+  `${nativePathDialogButtonClass} bg-muted text-foreground hover:bg-muted/80`;
+const nativePathDialogSubmitButtonClass =
+  `${nativePathDialogButtonClass} bg-primary text-primary-foreground hover:bg-primary/90`;
+
 async function readStoredValue<T>(key: string): Promise<T | null> {
   if (!browserStorageAvailable()) {
     return null;
@@ -56,35 +71,35 @@ async function promptForRoot(initialValue = ''): Promise<string> {
 
   return new Promise((resolve) => {
     const dialog = document.createElement('dialog');
-    dialog.className = 'native-path-dialog';
+    dialog.className = nativePathDialogClass;
     const form = document.createElement('form');
     form.method = 'dialog';
-    form.className = 'native-path-dialog__form';
+    form.className = nativePathDialogFormClass;
 
     const heading = document.createElement('h3');
     heading.textContent = 'Register Gate Root';
-    heading.className = 'native-path-dialog__title';
+    heading.className = nativePathDialogTitleClass;
 
     const input = document.createElement('input');
     input.type = 'text';
     input.value = initialValue;
     input.placeholder = '/absolute/path';
     input.autofocus = true;
-    input.className = 'native-path-dialog__input';
+    input.className = nativePathDialogInputClass;
 
     const actions = document.createElement('div');
-    actions.className = 'native-path-dialog__actions';
+    actions.className = nativePathDialogActionsClass;
 
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.textContent = 'Cancel';
-    cancel.className = 'native-path-dialog__button native-path-dialog__button--cancel';
+    cancel.className = nativePathDialogCancelButtonClass;
     cancel.addEventListener('click', () => dialog.close('cancel'));
 
     const submit = document.createElement('button');
     submit.type = 'submit';
     submit.textContent = 'Use Path';
-    submit.className = 'native-path-dialog__button native-path-dialog__button--submit';
+    submit.className = nativePathDialogSubmitButtonClass;
 
     actions.append(cancel, submit);
     form.append(heading, input, actions);

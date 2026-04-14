@@ -63,6 +63,16 @@ The UI must not read or write those domains by opening files, querying SQLite, i
 
 ---
 
+## File Size Limit — 300 LOC
+
+**No source file may exceed 300 lines of code.** This is a hard limit, not a guideline. Files over 300 LOC are how monoliths form — agents pile code into existing files instead of splitting, duplication hides in plain sight, and crate boundaries dissolve.
+
+When a file approaches 300 LOC, split it before adding more. When an agent touches a file already over 300 LOC, it must split it as part of the change. Use `cargo-modules structure` and `cargo-modules dependencies` to find the clean seams.
+
+Red-team audits MUST flag any file over 300 LOC as a finding. Exceptions require explicit PM authorization with a written reason.
+
+---
+
 ## Definition of Done
 
 **Backend:** `cargo build --release -p <crate>` succeeds. Debug builds are not delivery.

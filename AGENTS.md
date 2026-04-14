@@ -142,6 +142,10 @@ agent-browser screenshot /tmp/test.png
 
 Agents running full test suites in parallel creates race conditions. Violation is grounds for immediate agent termination.
 
+### Scope Discipline
+
+**The task is the task.** SWE agents do exactly what the spec says — nothing more. If an agent encounters an adjacent problem (oversized file, nearby dead code, naming inconsistency), it reports it in the output and moves on. It does NOT fix it. Scope creep from agents is how we get 10-minute tasks that take 47 tool calls, out-of-scope file splits, and wasted work that has to be reverted. The PM decides what to fix next, not the agent.
+
 ### ACP Invariants
 
 - **Version baselines:** TypeScript uses `@agentclientprotocol/sdk` `^0.18.2`. Rust uses `sacp` `11.0.0` (git rev pinned in `[patch.crates-io]`) and `rmcp` `1.4.0`.

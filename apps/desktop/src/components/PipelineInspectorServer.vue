@@ -214,8 +214,18 @@ function copyToClipboard(value: string): void {
 </template>
 
 <style scoped>
-.pipeline-inspector-server { width: 100%; height: 100%; min-height: 0; }
-.panel,.empty-state { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
-.empty-state { justify-content: center; min-height: 220px; }
+.pipeline-inspector-server {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0.75rem;
+}
+.panel,.empty-state { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; border-radius: 4px; background: var(--pipeline-inspector-surface); }
+.empty-state {
+  justify-content: center;
+  min-height: 220px;
+  border: 1px solid var(--pipeline-inspector-ghost-border);
+  background: var(--pipeline-inspector-well);
+}
 .empty-state p { color: var(--muted-foreground); }
 </style>

@@ -11,7 +11,7 @@ const emit = defineEmits<{
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
-  { id: 'mcp-servers', label: 'MCP Servers', description: 'Configure global MCP server connections.' },
+  { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
   { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ] as const;
@@ -118,10 +118,9 @@ onBeforeUnmount(() => {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  background: var(--background);
-  border-radius: 12px;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--background) 30%, transparent);
-  overflow: hidden;
+  background: #201f1f;
+  border-radius: 8px;
+  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
 }
 
 .settings-header {
@@ -130,7 +129,6 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .settings-header h2,
@@ -160,24 +158,25 @@ onBeforeUnmount(() => {
   grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
   min-height: 0;
   flex: 1;
+  overflow: hidden;
 }
 
 .settings-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.25rem;
   padding: 1rem;
-  border-right: 1px solid var(--border);
-  background: var(--card);
+  background: #1c1b1b;
+  overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  padding: 0.875rem 1rem;
-  border: 1px solid transparent;
-  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  border-left: 4px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: inherit;
   text-align: left;
@@ -185,12 +184,12 @@ onBeforeUnmount(() => {
 }
 
 .nav-item:hover {
-  background: var(--muted);
+  background: #2a2a2a;
 }
 
 .nav-item.active {
-  background: var(--background);
-  border-color: var(--border);
+  background: #2a2a2a;
+  border-left-color: #4d8eff;
 }
 
 .nav-label {
@@ -218,8 +217,7 @@ onBeforeUnmount(() => {
   }
 
   .settings-nav {
-    border-right: none;
-    border-bottom: 1px solid var(--border);
+    border-bottom: none;
   }
 }
 </style>

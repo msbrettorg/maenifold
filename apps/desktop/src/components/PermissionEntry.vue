@@ -181,7 +181,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 .raw-payload { margin-top: 0.75rem; }
 .content-block,
 .raw-payload { min-width: 0; }
-.content-label { margin-bottom: 0.25rem; color: var(--muted-foreground); font-size: var(--text-caption); font-weight: var(--weight-title); letter-spacing: 0.04em; text-transform: uppercase; }
+.content-label { margin-bottom: 0.25rem; color: var(--muted-foreground); font-size: var(--text-caption); font-weight: var(--weight-title); letter-spacing: 0.04em; }
 .content-preview,
 .raw-payload pre { margin: 0; padding: 0.75rem; font-family: var(--font-code); font-size: var(--text-caption); line-height: 1.4; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow: auto; }
 .raw-payload summary { cursor: pointer; font-weight: var(--weight-title); }

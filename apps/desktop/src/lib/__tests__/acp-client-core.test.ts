@@ -14,15 +14,38 @@ class MockWebSocket {
   readonly url: string;
   readonly sent: string[] = [];
   readyState = MockWebSocket.CONNECTING;
-  onopen: ((event: Event) => void) | null = null;
-  onmessage: ((event: MessageEvent) => void) | null = null;
-  onerror: ((event: Event) => void) | null = null;
-  onclose: ((event: CloseEvent) => void) | null = null;
   throwOnSend: Error | null = null;
+  private listeners: Record<string, Array<{ handler: Function; once: boolean }>> = {};
 
   constructor(url: string | URL) {
     this.url = String(url);
     MockWebSocket.instances.push(this);
+  }
+
+  addEventListener(
+    type: string,
+    handler: Function,
+    options?: { once?: boolean } | boolean,
+  ): void {
+    if (!this.listeners[type]) this.listeners[type] = [];
+    const once = typeof options === 'object' ? !!options.once : false;
+    this.listeners[type].push({ handler, once });
+  }
+
+  removeEventListener(type: string, handler: Function): void {
+    const list = this.listeners[type];
+    if (!list) return;
+    this.listeners[type] = list.filter((entry) => entry.handler !== handler);
+  }
+
+  private emit(type: string, event: unknown): void {
+    const list = this.listeners[type] ?? [];
+    const kept: typeof list = [];
+    for (const entry of list) {
+      entry.handler(event);
+      if (!entry.once) kept.push(entry);
+    }
+    this.listeners[type] = kept;
   }
 
   send(data: string): void {
@@ -34,21 +57,21 @@ class MockWebSocket {
 
   close(): void {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code: 1000, reason: '', wasClean: true } as CloseEvent);
+    this.emit('close', { code: 1000, reason: '', wasClean: true } as CloseEvent);
   }
 
   triggerOpen(): void {
     this.readyState = MockWebSocket.OPEN;
-    this.onopen?.({} as Event);
+    this.emit('open', {} as Event);
   }
 
   triggerMessage(data: string): void {
-    this.onmessage?.({ data } as MessageEvent);
+    this.emit('message', { data } as MessageEvent);
   }
 
   triggerClose(code = 1011, reason = 'Agent process exited'): void {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code, reason, wasClean: false } as CloseEvent);
+    this.emit('close', { code, reason, wasClean: false } as CloseEvent);
   }
 }
 
@@ -106,7 +129,7 @@ describe('AcpClientBridgeCore request hardening', () => {
     const socket = getLatestSocket();
 
     expect(socket?.url).toBe(
-      'ws://127.0.0.1:8080/api/acp/session?agent=agent-1&keepSessionAlive=true'
+      'ws://localhost:8080/api/acp/session?agent=agent-1&keepSessionAlive=true'
     );
 
     socket?.triggerOpen();

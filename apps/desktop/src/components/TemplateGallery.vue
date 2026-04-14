@@ -92,7 +92,7 @@ function handleIntentInput(value: string): void {
 
     <section class="gallery-card-section">
       <div class="gallery-card-section-header">
-        <span class="gallery-card-section-label">Or start from an intent card</span>
+        <span class="gallery-card-section-label">or choose a template</span>
       </div>
       <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
         Configure an agent before creating a pipeline.
@@ -141,7 +141,7 @@ function handleIntentInput(value: string): void {
   margin: 0;
   font-size: var(--text-lg);
   font-weight: var(--weight-title);
-  color: var(--foreground);
+  color: #e5e2e1;
 }
 
 .gallery-card-section {
@@ -159,11 +159,9 @@ function handleIntentInput(value: string): void {
 }
 
 .gallery-card-section-label {
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #707070;
 }
 
 .gallery-cards {
@@ -175,8 +173,9 @@ function handleIntentInput(value: string): void {
 }
 
 .gallery-agent-warning {
-  font-size: var(--text-tiny);
-  color: var(--color-status-stuck, #e57373);
+  margin: 0;
+  font-size: 0.75rem;
+  color: #ffb4ab;
   text-align: center;
 }
 </style>

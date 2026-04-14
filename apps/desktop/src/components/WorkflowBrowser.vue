@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import WorkflowBrowserFilters from './WorkflowBrowserFilters.vue'
 import WorkflowBrowserList from './WorkflowBrowserList.vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
@@ -13,6 +13,7 @@ const workflowMcp = usePipelineMcp()
 const store = useWorkflowLibraryStore()
 const { currentId, categoryFilter, error, filteredWorkflows, isDirty, searchQuery, summaries } = storeToRefs(store)
 const browserError = computed(() => error.value ?? pipelineStore.error ?? null)
+const stepCounts = ref<Record<string, number>>({})
 
 interface CategoryChip {
   label: string
@@ -23,7 +24,7 @@ const chips: CategoryChip[] = [
   { label: 'All', value: 'all' },
   { label: 'Reasoning', value: 'reasoning' },
   { label: 'Scientific', value: 'scientific' },
-  { label: 'Multi-Agent', value: 'multi-agent' },
+  { label: 'Multi-agent', value: 'multi-agent' },
   { label: 'DevOps', value: 'devops' },
   { label: 'Memory', value: 'memory' },
 ]
@@ -155,6 +156,36 @@ async function handleRetry() {
   if (!pipelineStore.connected) await pipelineStore.connect()
   await store.fetchSummaries()
 }
+
+async function loadVisibleStepCounts() {
+  if (!pipelineStore.connected) return
+  const pendingIds = filteredWorkflows.value
+    .map((workflow) => workflow.id)
+    .filter((id) => stepCounts.value[id] === undefined)
+
+  if (pendingIds.length === 0) return
+
+  const results = await Promise.allSettled(
+    pendingIds.map(async (id) => [id, (await workflowMcp.readWorkflowDefinition(id)).steps.length] as const),
+  )
+
+  const nextCounts = { ...stepCounts.value }
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      const [id, count] = result.value
+      nextCounts[id] = count
+    }
+  }
+  stepCounts.value = nextCounts
+}
+
+watch(
+  () => filteredWorkflows.value.map((workflow) => workflow.id).join('|'),
+  () => {
+    void loadVisibleStepCounts()
+  },
+  { immediate: true },
+)
 </script>
 
 <template>
@@ -167,7 +198,7 @@ async function handleRetry() {
       @change="handleImportSelection"
     />
     <div class="browser-header">
-      <span class="header-title">WORKFLOW BROWSER</span>
+      <span class="header-title">Workflows</span>
     </div>
 
     <WorkflowBrowserFilters
@@ -189,12 +220,13 @@ async function handleRetry() {
       :current-id="currentId"
       :filtered-workflows="filteredWorkflows"
       :is-dirty="isDirty"
+      :step-counts="stepCounts"
       @select="store.requestSelectWorkflow"
     />
 
     <div class="browser-toolbar">
       <button class="btn-new" type="button" @click="store.createNewWorkflow()">
-        + New Workflow
+        + New workflow
       </button>
       <button class="btn-import" type="button" title="Import workflow" @click="handleImportClick()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -211,12 +243,10 @@ async function handleRetry() {
 .sr-only-input {
   display: none;
 }
-.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--card); display: flex; flex-direction: column; overflow: hidden; }
-.browser-header { min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: center; flex-shrink: 0; }
-.header-title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; }
-.header-title::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--color-node-workflow); }
-.header-title::after { content: 'WORKFLOWS'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
-.browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border); flex-shrink: 0; }
+.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: #1c1b1b; display: flex; flex-direction: column; overflow: hidden; }
+.browser-header { min-height: 44px; padding: 0 var(--space-4); display: flex; align-items: center; flex-shrink: 0; }
+.header-title { font: var(--weight-display) var(--text-body)/1 var(--font-display); color: var(--foreground); }
+.browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
 .btn-new, .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
 .btn-new { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-node-workflow); background: transparent; color: var(--color-node-workflow); font: var(--weight-title) var(--text-caption)/1.2 var(--font-body); }
 .btn-new:hover { background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }

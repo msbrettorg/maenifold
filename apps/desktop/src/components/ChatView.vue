@@ -190,6 +190,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
         @toggle-thought="toggleThought"
         @toggle-tool-call="toggleToolCall"
         @cancel="handleCancel"
+        @prefill="setInputText"
       />
     </div>
 
@@ -218,17 +219,25 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </template>
 
 <style scoped>
-.chat-view { display: flex; flex-direction: column; height: 100%; }
-.chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border); }
+.chat-view { display: flex; flex-direction: column; height: 100%; background: #131313; }
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: #1c1b1b;
+}
 .chat-header h2 {
   margin: 0;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  font-size: var(--text-xl);
+  font-size: var(--text-md);
+  font-weight: var(--weight-display);
 }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
-.agent-name { font-size: var(--text-sm); color: var(--ring); }
+.agent-name { font-size: var(--text-sm); color: var(--muted-foreground); }
 .messages-container {
   flex: 1;
   overflow-y: auto;

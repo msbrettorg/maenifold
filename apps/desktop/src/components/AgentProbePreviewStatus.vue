@@ -1,7 +1,6 @@
 <script setup lang="ts">
 defineProps<{
   compact: boolean;
-  currentDefaults: string[];
   degradedMessage: string | null;
   ready: boolean;
   refreshDisabled: boolean;
@@ -22,8 +21,11 @@ defineEmits<{
   <div class="preview-status" :class="[statusTone, { compact }]">
     <div class="preview-header">
       <div class="status-copy">
-        <span class="status-pill">{{ statusLabel }}</span>
-        <span class="status-message">{{ statusMessage }}</span>
+        <span class="status-indicator">
+          <span class="status-bead" aria-hidden="true" />
+          <span class="status-label">{{ statusLabel }}</span>
+        </span>
+        <span v-if="statusMessage" class="status-message">{{ statusMessage }}</span>
       </div>
       <button type="button" class="refresh-btn" :disabled="refreshDisabled" @click="$emit('refresh')">
         {{ refreshing ? 'Refreshing…' : 'Refresh' }}
@@ -33,10 +35,6 @@ defineEmits<{
     <p v-if="warningMessage" class="warning-note" role="status" aria-live="polite">{{ warningMessage }}</p>
     <p v-if="degradedMessage" class="degraded-note">{{ degradedMessage }}</p>
     <p v-if="technicalDetail" class="technical-detail">{{ technicalDetail }}</p>
-
-    <div v-if="ready && currentDefaults.length" class="default-summary">
-      {{ currentDefaults.join(' · ') }}
-    </div>
   </div>
 </template>
 
@@ -61,21 +59,25 @@ defineEmits<{
   align-items: center;
 }
 
-.status-pill {
+.status-indicator {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 5.5rem;
-  padding: 0.15rem 0.5rem;
+  gap: 0.5rem;
+}
+
+.status-bead {
+  width: 6px;
+  height: 6px;
   border-radius: 999px;
+  background: #707070;
+}
+
+.status-label {
   font-size: var(--text-tiny);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--foreground);
 }
 
 .status-message,
-.default-summary,
 .warning-note,
 .degraded-note,
 .technical-detail {
@@ -87,7 +89,6 @@ defineEmits<{
   color: var(--muted-foreground);
 }
 
-.default-summary,
 .warning-note,
 .degraded-note {
   color: var(--foreground);
@@ -101,9 +102,8 @@ defineEmits<{
 
 .warning-note {
   padding: 0.55rem 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--bg-warning) 55%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-warning) 30%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--bg-warning) 20%, #201f1f);
 }
 
 .technical-detail {
@@ -111,14 +111,14 @@ defineEmits<{
 }
 
 .refresh-btn {
-  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--card) 82%, transparent);
+  border: none;
+  border-radius: 4px;
+  background: #201f1f;
   color: var(--muted-foreground);
   cursor: pointer;
   font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  padding: 0.25rem 0.65rem;
+  font-weight: 400;
+  padding: 0.35rem 0.65rem;
   white-space: nowrap;
 }
 
@@ -127,34 +127,24 @@ defineEmits<{
   opacity: 0.7;
 }
 
-.compact .default-summary {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.refresh-btn:hover:not(:disabled) {
+  background: #2a2a2a;
 }
 
-.ready .status-pill {
-  background: color-mix(in srgb, var(--ring) 45%, transparent);
-  color: var(--ring);
+.ready .status-bead {
+  background: #4edea3;
 }
 
-.pending .status-pill,
-.idle .status-pill {
-  background: color-mix(in srgb, var(--card) 82%, transparent);
-  color: var(--muted-foreground);
+.pending .status-bead,
+.idle .status-bead {
+  background: #707070;
 }
 
-.offline {
-  opacity: 0.85;
+.offline .status-bead {
+  background: #f59e0b;
 }
 
-.offline .status-pill {
-  background: color-mix(in srgb, var(--bg-warning) 65%, transparent);
-  color: var(--foreground);
-}
-
-.error .status-pill {
-  background: color-mix(in srgb, var(--destructive) 18%, transparent);
-  color: var(--destructive);
+.error .status-bead {
+  background: #ffb4ab;
 }
 </style>

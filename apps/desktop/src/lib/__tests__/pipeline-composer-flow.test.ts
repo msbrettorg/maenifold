@@ -157,11 +157,8 @@ describe('workflow agentConfig round-trip via flow (pipelineNodesToFlow → defi
     );
 
     expect(flowNode?.class).toBe('pipeline-node-shell pipeline-node-shell--completed');
-    expect(flowNode?.style).toMatchObject({
-      borderLeftWidth: '4px',
-      borderLeftStyle: 'solid',
-      borderLeftColor: '#22c55e',
-    });
+    // Border styles are now applied via CSS classes, not inline styles.
+    expect(flowNode?.style).toEqual({});
   });
 });
 

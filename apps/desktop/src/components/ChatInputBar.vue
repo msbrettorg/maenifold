@@ -119,50 +119,53 @@ function handleClose(): void {}
   display: flex;
   align-items: flex-end;
   gap: 0.5rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  background: #1c1b1b;
 }
 .composer { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
 .composer-control-wrapper { display: inline-flex; }
 .attachment-btn {
   padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--muted);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: #2a2a2a;
   color: var(--foreground);
   font-size: var(--text-sm);
   cursor: pointer;
 }
 .attachment-btn:disabled,
 .send-btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.embedded-context-hint { color: var(--muted-foreground); font-size: var(--text-sm); }
+.embedded-context-hint { color: #707070; font-size: var(--text-sm); }
 .embedded-context-hint[aria-disabled='true'] { opacity: 0.7; }
-.attachment-error { color: var(--destructive); font-size: var(--text-sm); }
+.attachment-error { color: #ffb4ab; font-size: var(--text-sm); }
 textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: #1c1b1b;
+  color: var(--foreground);
   resize: none;
   font: inherit;
   font-size: var(--text-base);
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
+textarea::placeholder { color: #707070; }
 textarea:focus {
   outline: none;
-  border-color: var(--ring);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
+  border-color: rgba(77, 142, 255, 0.4);
+  box-shadow: none;
 }
 .send-btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
-  background: var(--ring);
-  color: var(--primary-foreground);
+  border-radius: 4px;
+  background: #4d8eff;
+  color: #fff;
   font-size: var(--text-base);
   font-weight: var(--weight-display);
   cursor: pointer;
   transition: background 0.15s;
 }
-.send-btn:hover:not(:disabled) { background: var(--ring); }
+.send-btn:hover:not(:disabled) { background: #639bff; }
 </style>

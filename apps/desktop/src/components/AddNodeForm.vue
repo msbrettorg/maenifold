@@ -108,8 +108,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   align-content: start;
   height: 100%;
   padding: 1rem;
-  border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--background) 96%, transparent);
+  background: #1c1b1b;
   overflow-y: auto;
 }
 
@@ -140,8 +139,8 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
+  color: #707070;
+  font-size: 0.75rem;
 }
 
 .composer-toolbar :deep(.field-wide) {
@@ -160,7 +159,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   display: inline-flex;
   align-items: center;
   padding: 0.15rem 0.45rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 999px;
   font-size: var(--text-xs);
 }
@@ -169,9 +168,9 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   display: grid;
   gap: 0.65rem;
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
-  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 8px;
+  background: #1c1b1b;
 }
 
 .composer-toolbar :deep(.agent-config-grid) {

@@ -97,7 +97,6 @@ watch(
   flex: 1;
   font: var(--weight-title) var(--text-tiny)/1 var(--font-code);
   color: var(--color-status-active);
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 

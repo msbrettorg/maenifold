@@ -109,7 +109,6 @@ function formatRelativeTime(iso: string): string {
   white-space: nowrap;
   background: color-mix(in srgb, var(--muted) 72%, var(--background));
   color: var(--thinking-thought-text);
-  text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 

@@ -46,18 +46,17 @@ function selectTab(tab: string) {
   z-index: 20;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 2rem;
   height: 40px;
   padding: 0 1rem;
-  background: #201f1f;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #131313;
   box-sizing: border-box;
 }
 
 .app-tab-bar__wordmark {
-  color: #f4f4f4;
+  color: #e5e2e1;
   font-family: var(--font-display);
-  font-size: var(--text-body);
+  font-size: var(--text-body-sm);
   font-weight: var(--weight-title);
   letter-spacing: 0.08em;
   text-transform: lowercase;
@@ -68,29 +67,44 @@ function selectTab(tab: string) {
   display: flex;
   align-items: center;
   height: 100%;
-  gap: 0.25rem;
+  gap: 1rem;
 }
 
 .app-tab-bar__tab {
+  position: relative;
   display: inline-flex;
   align-items: center;
   height: 100%;
-  padding: 0 0.75rem;
+  padding: 0;
   border: 0;
-  border-bottom: 2px solid transparent;
   background: transparent;
-  color: #999;
+  color: #c2c6d6;
   cursor: pointer;
   font: inherit;
-  transition: color 150ms ease, border-color 150ms ease;
+  transition: color 150ms ease;
 }
 
 .app-tab-bar__tab:hover {
-  color: #c7c7c7;
+  color: #e5e2e1;
+}
+
+.app-tab-bar__tab::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: transparent;
+  transition: background-color 150ms ease;
 }
 
 .app-tab-bar__tab--active {
-  color: #4da6ff;
-  border-bottom-color: #4da6ff;
+  color: #e5e2e1;
+}
+
+.app-tab-bar__tab--active::after {
+  background: #4d8eff;
 }
 </style>

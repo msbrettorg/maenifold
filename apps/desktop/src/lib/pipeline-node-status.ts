@@ -60,12 +60,7 @@ export function getNodeShellClassName(
 }
 
 export function getNodeShellStyle(
-  status?: NodeStatus | PipelineStatus | 'running',
+  _status?: NodeStatus | PipelineStatus | 'running',
 ): Record<string, string> {
-  const appearance = normalizeNodeStatusAppearance(status);
-  return {
-    borderLeftWidth: '4px',
-    borderLeftStyle: appearance === 'cancelled' ? 'dashed' : 'solid',
-    borderLeftColor: getNodeStatusBorderColor(appearance),
-  };
+  return {};
 }

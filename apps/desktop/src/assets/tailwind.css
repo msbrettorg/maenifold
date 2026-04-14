@@ -214,7 +214,7 @@
   --popover: hsl(0 1.6% 12.4%);
   --popover-foreground: hsl(0 0% 87.8%);
   --primary: hsl(222 100% 83.9%);
-  --primary-foreground: hsl(0 0% 100%);
+  --primary-foreground: hsl(222 80% 13%);
   --secondary: hsl(60 1% 20.6%);
   --secondary-foreground: hsl(0 0% 87.8%);
   --muted: hsl(0 0% 16.5%);
@@ -222,10 +222,10 @@
   --accent: hsl(258 100% 86.9%);
   --accent-foreground: hsl(0 0% 87.8%);
   --destructive: hsl(1 83.2% 62.5%);
-  --border: hsl(0 0% 25.1%);
+  --border: rgba(66, 71, 83, 0.15);
   --input: hsl(60 1% 20.6%);
   --ring: hsl(210 100% 65.1%);
-  --radius: 0.5rem;
+  --radius: 0.25rem;
 }
 
 html.font-compact {

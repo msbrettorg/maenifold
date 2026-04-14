@@ -13,15 +13,6 @@ const emit = defineEmits<{
   (e: 'edit', server: McpServerEntry): void
   (e: 'delete', name: string): void
 }>()
-
-function getServerDetails(server: McpServerEntry): string {
-  return server.type === 'stdio' ? [server.command, ...(server.args ?? [])].join(' ') : server.url
-}
-
-function getServerMeta(server: McpServerEntry): string | null {
-  if (server.type !== 'stdio' || !server.args?.length) return null
-  return `${server.args.length} arg${server.args.length === 1 ? '' : 's'}`
-}
 </script>
 
 <template>
@@ -31,7 +22,7 @@ function getServerMeta(server: McpServerEntry): string | null {
         <h3>MCP servers</h3>
         <p>Manage the shared global MCP server entries available to every configured agent.</p>
       </div>
-      <button class="add-btn" :disabled="showAddForm || !!editingServer" @click="emit('add')">+ Add MCP Server</button>
+      <button class="add-btn" :disabled="showAddForm || !!editingServer" @click="emit('add')">+ Add MCP server</button>
     </div>
 
     <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
@@ -43,8 +34,6 @@ function getServerMeta(server: McpServerEntry): string | null {
             <div class="agent-name">{{ server.name }}</div>
             <span class="type-badge">{{ server.type }}</span>
           </div>
-          <code class="agent-command">{{ getServerDetails(server) }}</code>
-          <small v-if="getServerMeta(server)" class="server-meta">{{ getServerMeta(server) }}</small>
         </div>
         <div class="agent-actions">
           <button class="edit-btn" @click="emit('edit', server)">Edit</button>
@@ -64,8 +53,8 @@ function getServerMeta(server: McpServerEntry): string | null {
 .settings-section { gap: 1rem; }
 .section-header,.agent-item,.agent-actions,.agent-name-row { display: flex; gap: 0.75rem; }
 .section-header,.agent-item,.agent-actions { justify-content: space-between; }
-.section-header h3,.section-header p,.empty-state,.server-meta { margin: 0; }
-.section-header p,.empty-state,.server-meta { color: var(--muted-foreground); }
+.section-header h3,.section-header p,.empty-state { margin: 0; }
+.section-header p,.empty-state { color: var(--muted-foreground); }
 .add-btn,.edit-btn,.delete-btn { border-radius: 6px; cursor: pointer; }
 .add-btn,.edit-btn { border: 1px solid var(--border); background: transparent; color: inherit; }
 .add-btn { padding: 0.5rem 0.9rem; }
@@ -77,8 +66,6 @@ function getServerMeta(server: McpServerEntry): string | null {
 .agent-info { min-width: 0; }
 .agent-name-row { align-items: center; justify-content: flex-start; }
 .agent-name { font-weight: 600; }
-.agent-command { display: block; margin-top: 0.25rem; word-break: break-all; font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace; font-size: 0.75rem; }
-.server-meta { font-size: 0.75rem; }
 .type-badge { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border-radius: 999px; background: var(--muted); color: var(--muted-foreground); font-size: 0.75rem; text-transform: lowercase; }
 @media (max-width: 640px) {
   .section-header,.agent-item { flex-direction: column; align-items: stretch; }

@@ -1,10 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
+import { formatStageLabel, gateStageFamily, getTaskPathHint } from '../lib/gate-display';
 
-defineProps<{
+const props = defineProps<{
   task: GateTask;
   processLabel: string;
 }>();
+
+const fileLabel = computed(() => getTaskPathHint(props.task.path));
+const stateTone = computed(() => gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state));
 </script>
 
 <template>
@@ -12,20 +17,20 @@ defineProps<{
     <div>
       <dt>Process</dt>
       <dd>
-        <span class="gate-detail-meta__badge">{{ processLabel }}</span>
+        <span class="gate-detail-meta__badge gate-detail-meta__badge--process">{{ processLabel }}</span>
       </dd>
     </div>
     <div>
       <dt>State</dt>
       <dd>
-        <span :class="['gate-detail-meta__badge', 'gate-detail-meta__badge--state', `gate-detail-meta__badge--${task.state}`]">
-          {{ task.state }}
+        <span :class="['gate-detail-meta__badge', 'gate-detail-meta__badge--state', `gate-detail-meta__badge--${stateTone}`]">
+          {{ formatStageLabel(task.location === 'done' ? 'done' : task.state) }}
         </span>
       </dd>
     </div>
     <div>
       <dt>Location</dt>
-      <dd>{{ task.location }}</dd>
+      <dd>{{ formatStageLabel(task.location) }}</dd>
     </div>
     <div>
       <dt>Attempts</dt>
@@ -36,8 +41,8 @@ defineProps<{
       <dd>{{ task.canonicalTaskId || '—' }}</dd>
     </div>
     <div class="gate-detail-meta__path">
-      <dt>Path</dt>
-      <dd>{{ task.path }}</dd>
+      <dt>File</dt>
+      <dd :title="fileLabel">{{ fileLabel }}</dd>
     </div>
   </dl>
 </template>
@@ -59,8 +64,6 @@ defineProps<{
 .gate-detail-meta dt {
   color: var(--muted-foreground);
   font-size: var(--text-tiny);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .gate-detail-meta dd {
@@ -78,54 +81,22 @@ defineProps<{
   align-items: center;
   max-width: 100%;
   padding: 0.25rem 0.55rem;
-  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: #353534;
+  color: #f4f7ff;
   font-family: var(--font-code);
   font-size: var(--text-2xs);
   font-weight: var(--weight-title);
   line-height: 1.4;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
-.gate-detail-meta__badge--state {
-  color: var(--foreground);
-}
-
-.gate-detail-meta__badge--pending {
-  border-color: color-mix(in srgb, var(--color-status-pending) 35%, var(--border));
-  color: var(--color-status-pending);
-}
-
-.gate-detail-meta__badge--active {
-  border-color: color-mix(in srgb, var(--color-status-active) 35%, var(--border));
-  color: var(--color-status-active);
-}
-
-.gate-detail-meta__badge--completed,
-.gate-detail-meta__badge--done {
-  border-color: color-mix(in srgb, var(--color-status-completed) 35%, var(--border));
-  color: var(--color-status-completed);
-}
-
-.gate-detail-meta__badge--abandoned,
-.gate-detail-meta__badge--cancelled {
-  border-color: color-mix(in srgb, var(--color-status-abandoned) 35%, var(--border));
-  color: var(--color-status-abandoned);
-}
-
-.gate-detail-meta__badge--ready,
-.gate-detail-meta__badge--paused {
-  border-color: color-mix(in srgb, var(--color-status-ready) 35%, var(--border));
-  color: var(--color-status-ready);
-}
-
-.gate-detail-meta__badge--stuck {
-  border-color: color-mix(in srgb, var(--color-status-stuck) 35%, var(--border));
-  color: var(--color-status-stuck);
-}
+.gate-detail-meta__badge--process { background: #424753; }
+.gate-detail-meta__badge--pending { background: #707070; }
+.gate-detail-meta__badge--swe { background: #4d8eff; }
+.gate-detail-meta__badge--red-team { background: #f59e0b; }
+.gate-detail-meta__badge--blue-team,
+.gate-detail-meta__badge--done { background: #4edea3; }
+.gate-detail-meta__badge--failed { background: #ffb4ab; }
 
 .gate-detail-meta__path {
   grid-column: 1 / -1;

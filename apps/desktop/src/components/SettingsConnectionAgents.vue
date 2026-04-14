@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 import type { McpServerEntry } from '../lib/types';
-import AgentProbePreview from './AgentProbePreview.vue';
 import SettingsConnectionKeys from './SettingsConnectionKeys.vue';
 
 interface AgentRow {
@@ -23,7 +22,7 @@ interface McpServerFormRow {
   args: string;
 }
 
-defineProps<{
+const props = defineProps<{
   agents: AgentRow[];
   showAddForm: boolean;
   editingAgent: string | null;
@@ -45,8 +44,13 @@ defineProps<{
   onAddMcpServerRow: () => void;
   onRemoveMcpServerRow: (index: number) => void;
   getProbe: (agentName: string) => AgentProbeResult | undefined;
-  isProbeLoading: (agentName: string) => boolean;
 }>();
+
+function probeStateClass(name: string): string {
+  const probe = props.getProbe(name);
+  if (!probe) return 'pending';
+  return probe.state === 'ready' ? 'ready' : probe.state === 'offline' ? 'offline' : 'error';
+}
 
 function formatServerCount(count: number) {
   return `${count} MCP server${count === 1 ? '' : 's'}`;
@@ -64,11 +68,11 @@ function formatEnvCount(count: number) {
         <h4>Agents</h4>
         <p>Add, edit, and remove ACP agent definitions.</p>
       </div>
-      <button class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add Agent</button>
+      <button class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add agent</button>
     </div>
 
     <div v-if="showAddForm || editingAgent" class="agent-form">
-      <h5>{{ editingAgent ? 'Edit Agent' : 'Add New Agent' }}</h5>
+      <h5>{{ editingAgent ? 'Edit agent' : 'Add new agent' }}</h5>
 
       <div class="form-section">
         <label class="form-group">
@@ -102,16 +106,13 @@ function formatEnvCount(count: number) {
     <div class="agents-list">
       <article v-for="agent in agents" :key="agent.name" class="agent-item">
         <div class="agent-info">
-          <div class="agent-name">{{ agent.name }}</div>
-          <code class="agent-command">{{ agent.command }}</code>
+          <div class="agent-name-row">
+            <span class="status-bead" :class="probeStateClass(agent.name)" />
+            <span class="agent-name">{{ agent.name }}</span>
+          </div>
           <div class="agent-summary">
             {{ formatEnvCount(Object.keys(agent.env).length) }} · {{ formatServerCount(agent.mcpServers.length) }}
           </div>
-          <AgentProbePreview
-            :agent-name="agent.name"
-            :probe="getProbe(agent.name)"
-            :loading="isProbeLoading(agent.name)"
-          />
         </div>
         <div class="agent-actions">
           <button class="edit-btn" @click="onStartEdit(agent)">Edit</button>
@@ -185,7 +186,6 @@ function formatEnvCount(count: number) {
 }
 
 .form-group small,
-.agent-command,
 .agent-summary {
   font-size: 0.75rem;
 }
@@ -211,7 +211,7 @@ function formatEnvCount(count: number) {
 .save-btn {
   border: none;
   background: var(--ring);
-  color: white;
+  color: var(--foreground);
 }
 
 .delete-btn,
@@ -231,19 +231,32 @@ function formatEnvCount(count: number) {
 
 .agent-info {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.5rem;
   min-width: 0;
+}
+
+.agent-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .agent-name {
   font-weight: 600;
 }
 
-.agent-command {
-  display: block;
-  word-break: break-all;
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+.status-bead {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #707070;
+  flex-shrink: 0;
 }
+
+.status-bead.ready { background: #4edea3; }
+.status-bead.offline { background: #f59e0b; }
+.status-bead.error { background: #ffb4ab; }
 
 @media (max-width: 640px) {
   .section-header,

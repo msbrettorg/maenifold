@@ -53,10 +53,6 @@ function getProbe(agentName: string) {
   return capabilitiesStore.getProbe(agentName);
 }
 
-function isProbeLoading(agentName: string) {
-  return capabilitiesStore.probeStatus === 'probing' && !getProbe(agentName);
-}
-
 function toEnvRows(env: Record<string, string> = {}): EnvVarRow[] {
   return Object.entries(env).map(([key, value]) => ({ key, value }));
 }
@@ -214,7 +210,6 @@ async function refreshHealth() {
 
     <SettingsConnectionDaemon
       :agents="agents"
-      :config-path="configStore.configPath"
       :daemon-url="DAEMON_BASE_URL"
       :is-refreshing="capabilitiesStore.probeStatus === 'probing'"
       :get-probe="getProbe"
@@ -226,7 +221,6 @@ async function refreshHealth() {
       :editing-agent="editingAgent"
       :form="form"
       :get-probe="getProbe"
-      :is-probe-loading="isProbeLoading"
       :is-submitting="isSubmitting"
       :on-add-env-row="addEnvRow"
       :on-add-mcp-server-row="addMcpServerRow"

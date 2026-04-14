@@ -16,8 +16,8 @@ const sidebarSizing = getSidebarSizingTokens()
 const BROWSER_MIN = sidebarSizing.minWidth
 const BROWSER_DEFAULT = 380
 const BROWSER_MAX = sidebarSizing.maxWidth
-const INSPECTOR_MIN = 200
-const INSPECTOR_DEFAULT = 300
+const INSPECTOR_MIN = 320
+const INSPECTOR_DEFAULT = 320
 
 const pipelineStore = usePipelineStore()
 const store = useWorkflowLibraryStore()
@@ -29,6 +29,10 @@ const inspectorWidth = ref(INSPECTOR_DEFAULT)
 const draggingPanel = ref<'browser' | 'inspector' | null>(null)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
+const isInspectorVisible = computed(() => selectedStepId.value !== null)
+const inspectorShellWidth = computed(() =>
+  isInspectorVisible.value ? inspectorWidth.value + HANDLE_WIDTH : 0,
+)
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -45,7 +49,8 @@ function clamp(value: number, min: number, max: number) {
 }
 
 function getAvailableSideWidth() {
-  return (pageRef.value?.clientWidth ?? 0) - HANDLE_WIDTH * 2 - TIMELINE_MIN
+  const handleCount = isInspectorVisible.value ? 2 : 1
+  return (pageRef.value?.clientWidth ?? 0) - HANDLE_WIDTH * handleCount - TIMELINE_MIN
 }
 
 function constrainWidths(nextBrowser: number, nextInspector: number) {
@@ -54,6 +59,9 @@ function constrainWidths(nextBrowser: number, nextInspector: number) {
   const available = getAvailableSideWidth()
 
   if (available <= 0) return { browser, inspector }
+  if (!isInspectorVisible.value) {
+    return { browser: Math.min(browser, available), inspector }
+  }
   if (browser + inspector <= available) return { browser, inspector }
 
   let overflow = browser + inspector - available
@@ -106,7 +114,10 @@ function restoreWidths() {
 }
 
 function handleBrowserResize(delta: number) {
-  const maxBrowser = Math.max(BROWSER_MIN, Math.min(BROWSER_MAX, getAvailableSideWidth() - inspectorWidth.value))
+  const maxBrowser = Math.max(
+    BROWSER_MIN,
+    Math.min(BROWSER_MAX, getAvailableSideWidth() - (isInspectorVisible.value ? inspectorWidth.value : 0)),
+  )
   browserWidth.value = clamp(browserWidth.value + delta, BROWSER_MIN, maxBrowser)
 }
 
@@ -124,6 +135,13 @@ watch(displayedDefinition, (definition) => {
   if (!definition.steps.some((step: { id: string }) => step.id === selectedStepId.value)) {
     selectedStepId.value = null
   }
+})
+
+watch(isInspectorVisible, (visible) => {
+  if (!visible && draggingPanel.value === 'inspector') {
+    draggingPanel.value = null
+  }
+  applyWidths(browserWidth.value, inspectorWidth.value)
 })
 
 onMounted(async () => {
@@ -175,18 +193,22 @@ onBeforeUnmount(() => {
       @save="handleSave"
       @select-step="handleSelectStep"
     />
-    <PanelResizeHandle
-      side="right"
-      :dragging="draggingPanel === 'inspector'"
-      @drag-start="draggingPanel = 'inspector'"
-      @resize="handleInspectorResize"
-      @drag-end="draggingPanel = null; persistWidths()"
-    />
-    <WorkflowStepInspector
-      class="panel panel-inspector"
-      :selected-step-id="selectedStepId"
-      :style="{ width: `${inspectorWidth}px` }"
-    />
+    <div class="panel-inspector-shell" :style="{ width: `${inspectorShellWidth}px` }">
+      <template v-if="isInspectorVisible">
+        <PanelResizeHandle
+          side="right"
+          :dragging="draggingPanel === 'inspector'"
+          @drag-start="draggingPanel = 'inspector'"
+          @resize="handleInspectorResize"
+          @drag-end="draggingPanel = null; persistWidths()"
+        />
+        <WorkflowStepInspector
+          class="panel panel-inspector"
+          :selected-step-id="selectedStepId"
+          :style="{ width: `${inspectorWidth}px` }"
+        />
+      </template>
+    </div>
   </div>
 </template>
 
@@ -206,6 +228,14 @@ onBeforeUnmount(() => {
 .panel-inspector {
   flex: 0 0 auto;
   background: var(--card);
+}
+
+.panel-inspector-shell {
+  display: flex;
+  flex: 0 0 auto;
+  min-width: 0;
+  overflow: hidden;
+  transition: width var(--transition-fast);
 }
 
 .panel-browser {

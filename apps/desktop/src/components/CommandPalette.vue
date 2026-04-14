@@ -17,7 +17,6 @@ const emit = defineEmits<{
 const commandListId = 'command-palette-list';
 const selectedCommandName = ref('');
 
-// Filter commands based on input
 const filteredCommands = computed(() => {
   const filterText = props.filter.toLowerCase();
   if (!filterText) return props.commands;
@@ -37,6 +36,11 @@ function commandOptionId(commandName: string): string {
   return `command-palette-option-${commandName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}`;
 }
 
+function formatCommandName(commandName: string): string {
+  const normalized = commandName.replace(/[-_]+/g, ' ').trim().toLowerCase();
+  return normalized ? normalized.charAt(0).toUpperCase() + normalized.slice(1) : commandName;
+}
+
 function syncSelection() {
   const firstCommand = filteredCommands.value[0];
   if (!firstCommand) {
@@ -49,7 +53,6 @@ function syncSelection() {
   }
 }
 
-// Reset selection when filter or visibility changes
 watch([() => props.filter, () => props.visible, filteredCommands], syncSelection, { immediate: true });
 
 function moveSelection(offset: number) {
@@ -94,7 +97,6 @@ function handleKeyDown(event: KeyboardEvent) {
   }
 }
 
-// Expose keyboard handler for parent to call
 defineExpose({ handleKeyDown });
 
 function selectCommand(cmd: AvailableCommand) {
@@ -122,7 +124,7 @@ function handleSelectionChange(value: unknown) {
           type="text"
           role="combobox"
           aria-label="Command palette"
-                    aria-autocomplete="list"
+          aria-autocomplete="list"
           :aria-controls="commandListId"
           :aria-expanded="visible"
           :value="commandFilterValue"
@@ -145,7 +147,7 @@ function handleSelectionChange(value: unknown) {
           @select="selectCommand(cmd)"
         >
           <div class="command-row">
-            <span class="command-name">/{{ cmd.name }}</span>
+            <span class="command-name">{{ formatCommandName(cmd.name) }}</span>
             <span class="command-description">{{ cmd.description }}</span>
             <span v-if="cmd.input?.hint" class="command-hint">{{ cmd.input.hint }}</span>
           </div>
@@ -160,17 +162,16 @@ function handleSelectionChange(value: unknown) {
 </template>
 
 <style scoped>
-/* Light theme VS Code style */
 .command-palette {
   position: absolute;
   bottom: 100%;
   left: 0;
   width: 400px;
   margin-bottom: 6px;
-  background: var(--background);
-  border: 1px solid var(--border);
+  background: #201f1f;
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 8px;
-  box-shadow: 0 4px 24px color-mix(in srgb, var(--background) 10%, transparent);
+  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
   max-height: 320px;
   overflow: visible;
   z-index: 100;
@@ -179,21 +180,21 @@ function handleSelectionChange(value: unknown) {
 .command-root {
   padding: 0;
   border-radius: 8px;
-  background: var(--background);
+  background: transparent;
 }
 
 .command-input-row {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  border-bottom: 1px solid var(--border);
+  color: #707070;
 }
 
 .command-input {
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--foreground);
+  color: #e5e2e1;
   font: inherit;
   font-size: var(--text-body-sm);
 }
@@ -205,21 +206,24 @@ function handleSelectionChange(value: unknown) {
 .command-list {
   max-height: 320px;
   overflow-y: auto;
+  padding: 0 0.5rem 0.5rem;
 }
 
 .command-item {
-  border-radius: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--background);
+  margin-top: 0.25rem;
+  border-radius: 4px;
+  background: transparent;
+  transition: background-color 150ms ease;
 }
 
-.command-item:last-child {
-  border-bottom: none;
+.command-item[data-selected='true'],
+.command-item:hover {
+  background: #2a2a2a;
 }
 
 .command-empty {
   padding: 1rem;
-  color: var(--muted-foreground);
+  color: #707070;
   font-size: var(--text-body-sm);
   text-align: center;
 }
@@ -229,11 +233,11 @@ function handleSelectionChange(value: unknown) {
   left: calc(100% + 8px);
   top: 0;
   width: 220px;
-  background: var(--card);
-  color: var(--foreground);
-  border: 1px solid var(--border);
+  background: #201f1f;
+  color: #e5e2e1;
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 6px;
-  box-shadow: 0 4px 16px color-mix(in srgb, var(--background) 12%, transparent);
+  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
   padding: 8px 12px;
   font-size: var(--text-body-sm);
   white-space: normal;
@@ -241,32 +245,38 @@ function handleSelectionChange(value: unknown) {
   word-break: break-word;
 }
 
-/* Command row: command and description on same line */
 .command-row {
   display: flex;
   align-items: center;
   width: 100%;
-  gap: 0;
+  gap: 0.75rem;
 }
+
 .command-name {
-  font-weight: var(--weight-title);
-  color: var(--ring);
-  font-family: var(--font-code);
+  color: #e5e2e1;
   font-size: var(--text-body-sm);
-  min-width: 110px;
-  max-width: 140px;
+  min-width: 120px;
+  font-weight: var(--weight-title);
   flex-shrink: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-transform: none;
 }
+
 .command-description {
-  color: var(--muted-foreground);
+  color: #c2c6d6;
   font-size: var(--text-body-sm);
-  margin-left: 18px;
   flex: 1 1 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.command-hint {
+  color: #707070;
+  font-family: var(--font-code);
+  font-size: var(--text-caption);
+  white-space: nowrap;
 }
 </style>

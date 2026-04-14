@@ -54,7 +54,7 @@ describe('AgentProbePreview', () => {
     });
 
     expect(wrapper.text()).toContain('Pending');
-    expect(wrapper.text()).toContain('Using the configured architect entry until live capability discovery succeeds.');
+    expect(wrapper.text()).toContain('Live capability discovery is unavailable for architect. Use Refresh to retry loading dynamic options.');
     expect(wrapper.text()).toContain('Live agent capability probe timed out.');
   });
 
@@ -76,6 +76,6 @@ describe('AgentProbePreview', () => {
 
     expect(isOfflineProbeError('MCP client is not connected')).toBe(true);
     expect(wrapper.text()).toContain('Offline');
-    expect(wrapper.text()).toContain('You can still keep configuring this node with the configured agent entry');
+    expect(wrapper.text()).toContain('Live capability discovery is unavailable for architect. Cached options stay visible when present, and Refresh retries MCP discovery.');
   });
 });

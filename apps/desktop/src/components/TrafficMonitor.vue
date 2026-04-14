@@ -3,19 +3,23 @@ import { nextTick, onUnmounted, ref, watch } from 'vue';
 import TrafficEntry from './TrafficEntry.vue';
 import { useTrafficStore } from '../stores/traffic';
 
-const emit = defineEmits<{
-  close: [];
-  resize: [height: number];
-}>();
+const emit = defineEmits<{ close: []; resize: [height: number] }>();
 
 const trafficStore = useTrafficStore();
 const logContainer = ref<HTMLElement | null>(null);
 const autoScroll = ref(true);
 const isResizing = ref(false);
 const panelHeight = ref(220);
-
 const MIN_HEIGHT = 100;
 const MAX_HEIGHT_RATIO = 0.7;
+
+type FilterValue = typeof trafficStore.filter;
+const filterOptions: { value: FilterValue; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'requests', label: 'Requests' },
+  { value: 'responses', label: 'Responses' },
+  { value: 'notifications', label: 'Notifications' },
+];
 
 function startResize(event: MouseEvent) {
   isResizing.value = true;
@@ -28,10 +32,8 @@ function startResize(event: MouseEvent) {
 
 function doResize(event: MouseEvent) {
   if (!isResizing.value) return;
-
   const maxHeight = window.innerHeight * MAX_HEIGHT_RATIO;
-  const newHeight = window.innerHeight - event.clientY;
-  panelHeight.value = Math.min(maxHeight, Math.max(MIN_HEIGHT, newHeight));
+  panelHeight.value = Math.min(maxHeight, Math.max(MIN_HEIGHT, window.innerHeight - event.clientY));
   emit('resize', panelHeight.value);
 }
 
@@ -63,10 +65,10 @@ onUnmounted(stopResize);
 
 <template>
   <section class="traffic-monitor" :style="{ height: `${panelHeight}px` }">
-    <div class="resize-handle" title="Drag to resize" @mousedown="startResize"></div>
+    <div class="resize-handle" title="Drag to resize" @mousedown="startResize" />
 
     <div class="monitor-header">
-      <span class="title">📡 ACP Traffic</span>
+      <span class="title">ACP traffic</span>
 
       <div class="controls">
         <button
@@ -77,43 +79,41 @@ onUnmounted(stopResize);
         >
           {{ trafficStore.isPaused ? '▶' : '⏸' }}
         </button>
-
         <button class="control-btn" title="Clear" @click="trafficStore.clear()">🗑</button>
 
-        <div class="search-container">
-          <span class="search-icon">🔍</span>
-          <input
-            type="text"
-            class="search-input"
-            placeholder="Search..."
-            :value="trafficStore.searchQuery"
-            @input="trafficStore.setSearch(($event.target as HTMLInputElement).value)"
-          />
+        <div class="filter-pills">
           <button
-            v-if="trafficStore.searchQuery"
-            class="search-clear-btn"
-            title="Clear search"
-            @click="trafficStore.clearSearch()"
+            v-for="opt in filterOptions"
+            :key="opt.value"
+            :class="['filter-pill', { active: trafficStore.filter === opt.value }]"
+            @click="trafficStore.setFilter(opt.value)"
           >
-            ×
+            {{ opt.label }}
           </button>
         </div>
-
-        <span v-if="trafficStore.searchQuery" class="match-count">
-          {{ trafficStore.filteredEntries.length }} match{{ trafficStore.filteredEntries.length === 1 ? '' : 'es' }}
-        </span>
-
-        <select
-          class="filter-select"
-          :value="trafficStore.filter"
-          @change="trafficStore.setFilter(($event.target as HTMLSelectElement).value as typeof trafficStore.filter)"
-        >
-          <option value="all">All</option>
-          <option value="requests">Requests</option>
-          <option value="responses">Responses</option>
-          <option value="notifications">Notifications</option>
-        </select>
       </div>
+
+      <div class="search-container">
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Search…"
+          :value="trafficStore.searchQuery"
+          @input="trafficStore.setSearch(($event.target as HTMLInputElement).value)"
+        />
+        <button
+          v-if="trafficStore.searchQuery"
+          class="search-clear-btn"
+          title="Clear search"
+          @click="trafficStore.clearSearch()"
+        >
+          ×
+        </button>
+      </div>
+
+      <span v-if="trafficStore.searchQuery" class="match-count">
+        {{ trafficStore.filteredEntries.length }} match{{ trafficStore.filteredEntries.length === 1 ? '' : 'es' }}
+      </span>
 
       <button class="close-btn" title="Close" @click="emit('close')">×</button>
     </div>
@@ -129,7 +129,6 @@ onUnmounted(stopResize);
       <div v-if="trafficStore.filteredEntries.length === 0" class="empty-state">
         No traffic captured yet. Connect to an agent to see ACP messages.
       </div>
-
       <TrafficEntry
         v-for="entry in trafficStore.filteredEntries"
         :key="entry.id"
@@ -146,8 +145,7 @@ onUnmounted(stopResize);
   display: flex;
   flex-direction: column;
   position: relative;
-  background: var(--card);
-  border-top: 1px solid var(--border);
+  background: #1c1b1b;
   font-size: var(--text-caption);
 }
 
@@ -156,80 +154,80 @@ onUnmounted(stopResize);
   inset: 0 0 auto;
   height: 6px;
   cursor: ns-resize;
-  background: transparent;
   z-index: 10;
 }
 
 .resize-handle:hover,
-.resize-handle:active {
-  background: var(--ring);
-  opacity: 0.5;
-}
-
-.monitor-header,
-.controls {
-  display: flex;
-  align-items: center;
-}
+.resize-handle:active { background: var(--ring); opacity: 0.5; }
 
 .monitor-header {
+  display: flex;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--background);
-  border-bottom: 1px solid var(--border);
+  background: #131313;
 }
 
 .title {
-  margin-right: auto;
-  font-weight: var(--weight-title);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-sm);
+  color: #e5e2e1;
 }
 
 .controls {
+  display: flex;
+  align-items: center;
   gap: 0.25rem;
+  margin-left: auto;
 }
 
-.control-btn,
-.filter-select {
+.control-btn {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
+  background: transparent;
+  color: #e5e2e1;
   font-size: var(--text-tiny);
   cursor: pointer;
 }
 
-.control-btn {
-  background: transparent;
-}
-
 .control-btn:hover,
-.close-btn:hover {
-  background: var(--muted);
+.close-btn:hover { background: #2a2a2a; }
+.control-btn.active { background: var(--bg-warning); }
+
+.filter-pills {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: 0.5rem;
 }
 
-.control-btn.active,
-.paused-indicator {
-  background: var(--bg-warning);
+.filter-pill {
+  padding: 0.2rem 0.5rem;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: transparent;
+  color: #c2c6d6;
+  font-size: var(--text-tiny);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.filter-pill:hover { background: #2a2a2a; }
+
+.filter-pill.active {
+  background: #4d8eff;
+  border-color: #4d8eff;
+  color: #001a42;
 }
 
 .search-container {
-  position: relative;
   display: flex;
   align-items: center;
-  padding: 0 0.25rem;
-  background: var(--background);
-  border: 1px solid var(--border);
+  margin-left: 0.5rem;
+  background: #1c1b1b;
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
-}
-
-.search-icon,
-.match-count,
-.close-btn {
-  color: var(--muted-foreground);
-}
-
-.search-icon {
-  font-size: var(--text-tiny);
-  opacity: 0.6;
 }
 
 .search-input {
@@ -237,47 +235,38 @@ onUnmounted(stopResize);
   padding: 0.25rem 0.4rem;
   border: none;
   background: transparent;
-  color: var(--foreground);
+  color: #e5e2e1;
   font-size: var(--text-tiny);
   outline: none;
 }
 
-.search-input::placeholder {
-  color: var(--muted-foreground);
-}
-
-.search-clear-btn,
-.close-btn {
-  border: none;
-  background: transparent;
-  cursor: pointer;
-}
+.search-input::placeholder { color: #707070; }
 
 .search-clear-btn {
   padding: 0 0.25rem;
-  color: var(--muted-foreground);
+  border: none;
+  background: transparent;
+  color: #707070;
   font-size: var(--text-body-sm);
   line-height: 1;
+  cursor: pointer;
 }
 
-.search-clear-btn:hover,
-.close-btn:hover {
-  color: var(--foreground);
-}
+.search-clear-btn:hover { color: #e5e2e1; }
 
 .match-count {
+  color: #707070;
   font-size: var(--text-tiny);
   white-space: nowrap;
 }
 
-.filter-select {
-  background: var(--background);
-  color: var(--foreground);
-}
-
 .close-btn {
   padding: 0.25rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: #707070;
   font-size: var(--text-body-sm);
+  cursor: pointer;
 }
 
 .log-container {
@@ -289,7 +278,7 @@ onUnmounted(stopResize);
 .empty-state {
   padding: 2rem;
   text-align: center;
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .paused-indicator {
@@ -298,7 +287,8 @@ onUnmounted(stopResize);
   bottom: 0.5rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
+  background: var(--bg-warning);
   font-size: var(--text-tiny);
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
+  color: color-mix(in srgb, var(--color-status-stuck) 72%, #e5e2e1);
 }
 </style>

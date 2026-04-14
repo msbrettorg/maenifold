@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 
 interface AgentRow {
@@ -9,7 +9,6 @@ interface AgentRow {
 
 const props = defineProps<{
   daemonUrl: string;
-  configPath: string;
   agents: AgentRow[];
   isRefreshing: boolean;
   getProbe: (agentName: string) => AgentProbeResult | undefined;
@@ -37,6 +36,24 @@ const stats = computed(() =>
     { total: 0, ready: 0, offline: 0, error: 0, pending: 0 },
   ),
 );
+
+const displayAddress = computed(() => {
+  try {
+    return new URL(props.daemonUrl).host;
+  } catch {
+    return props.daemonUrl;
+  }
+});
+
+const copied = ref(false);
+
+async function copyAddress() {
+  try {
+    await navigator.clipboard.writeText(displayAddress.value);
+    copied.value = true;
+    setTimeout(() => { copied.value = false; }, 1500);
+  } catch { /* clipboard unavailable */ }
+}
 </script>
 
 <template>
@@ -52,16 +69,12 @@ const stats = computed(() =>
         </button>
       </div>
 
-      <dl class="info-list">
-        <div>
-          <dt>Base URL</dt>
-          <dd><code>{{ daemonUrl }}</code></dd>
-        </div>
-        <div>
-          <dt>Config file</dt>
-          <dd><code>{{ configPath }}</code></dd>
-        </div>
-      </dl>
+      <div class="daemon-address">
+        <code>{{ displayAddress }}</code>
+        <button class="copy-btn" type="button" @click="copyAddress">
+          {{ copied ? '✓' : 'Copy' }}
+        </button>
+      </div>
     </article>
 
     <article class="info-card">
@@ -73,7 +86,7 @@ const stats = computed(() =>
         <div class="stat-chip success"><strong>{{ stats.ready }}</strong><span>Ready</span></div>
         <div class="stat-chip warning"><strong>{{ stats.pending }}</strong><span>Pending</span></div>
         <div class="stat-chip muted"><strong>{{ stats.offline }}</strong><span>Offline</span></div>
-        <div class="stat-chip error"><strong>{{ stats.error }}</strong><span>Errors</span></div>
+        <div class="stat-chip" :class="stats.error > 0 ? 'error' : 'muted'"><strong>{{ stats.error }}</strong><span>Errors</span></div>
       </div>
     </article>
   </section>
@@ -81,7 +94,6 @@ const stats = computed(() =>
 
 <style scoped>
 .info-grid,
-.info-list,
 .stats-grid {
   display: grid;
   gap: 1rem;
@@ -105,28 +117,39 @@ const stats = computed(() =>
 }
 
 .info-card h4,
-.info-card p,
-.info-list dt,
-.info-list dd {
+.info-card p {
   margin: 0;
 }
 
 .info-card p,
-.info-list dt,
 .stat-chip span {
   color: var(--muted-foreground);
 }
 
-.info-list {
-  margin-top: 0.9rem;
+.daemon-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
 }
 
-.info-list code {
-  display: block;
-  margin-top: 0.25rem;
-  word-break: break-all;
+.daemon-address code {
   font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   font-size: 0.75rem;
+}
+
+.copy-btn {
+  padding: 0.2rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  font-size: 0.6875rem;
+}
+
+.copy-btn:hover {
+  background: #353534;
 }
 
 .stats-grid {
@@ -138,9 +161,8 @@ const stats = computed(() =>
   display: grid;
   gap: 0.2rem;
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--background);
+  border-radius: 4px;
+  background: #1c1b1b;
 }
 
 .stat-chip strong {
@@ -151,9 +173,12 @@ const stats = computed(() =>
   color: var(--ring);
 }
 
-.stat-chip.warning strong,
-.stat-chip.muted strong {
+.stat-chip.warning strong {
   color: var(--foreground);
+}
+
+.stat-chip.muted strong {
+  color: var(--muted-foreground);
 }
 
 .stat-chip.error strong {

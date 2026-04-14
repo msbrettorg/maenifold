@@ -12,7 +12,7 @@ defineProps<{
       {{ viewLevel === 'communities' ? 'Community clusters' : 'Anchor concept' }}
     </span>
     <span class="graph-legend__item">
-      <span class="graph-legend__swatch graph-legend__swatch--muted" />
+      <span class="graph-legend__swatch graph-legend__swatch--secondary" />
       {{ viewLevel === 'communities' ? 'Linked communities' : 'Related concepts' }}
     </span>
     <span class="graph-legend__copy">
@@ -26,34 +26,34 @@ defineProps<{
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
-  padding: 0.55rem 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
-  background: color-mix(in srgb, var(--card) 78%, var(--background));
-  color: var(--muted-foreground);
-  font-size: var(--text-tiny);
+  padding: 0.45rem 1rem;
+  background: #1c1b1b;
+  color: #707070;
+  font-size: 0.6875rem;
 }
 
 .graph-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.4rem;
 }
 
 .graph-legend__swatch {
-  width: 0.8rem;
-  height: 0.8rem;
+  width: 8px;
+  height: 8px;
   border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .graph-legend__swatch--primary {
   background: #4d8eff;
 }
 
-.graph-legend__swatch--muted {
-  background: color-mix(in srgb, #4d8eff 60%, #1f2937);
+.graph-legend__swatch--secondary {
+  background: #4edea3;
 }
 
 .graph-legend__copy {
-  color: var(--muted-foreground);
+  color: #707070;
 }
 </style>

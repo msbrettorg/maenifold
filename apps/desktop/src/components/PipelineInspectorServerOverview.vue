@@ -22,7 +22,7 @@ defineProps<{
 </template>
 
 <style scoped>
-.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; background: var(--pipeline-inspector-surface); border-radius: 4px; }
 .panel h2 { font-size: var(--text-xl); font-weight: var(--weight-title); }
 .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span { color: var(--muted-foreground); }

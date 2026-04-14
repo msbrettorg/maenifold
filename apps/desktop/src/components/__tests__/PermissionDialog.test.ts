@@ -4,6 +4,15 @@ import { describe, expect, it } from 'vitest';
 import PermissionDialog from '../PermissionDialog.vue';
 import type { PermissionRequest } from '../../lib/types';
 
+/** Inline stubs so Dialog content renders without Teleport/Portal. */
+const dialogStubs = {
+  Dialog: { template: '<div><slot /></div>', props: ['open'] },
+  DialogContent: { template: '<div v-bind="$attrs"><slot /></div>' },
+  DialogHeader: { template: '<div class="dialog-header"><slot /></div>' },
+  DialogTitle: { template: '<span><slot /></span>' },
+  DialogDescription: { template: '<span class="queue-hint"><slot /></span>' },
+};
+
 function createPermissionRequest(): PermissionRequest {
   return {
     sessionId: 'session-1',
@@ -41,6 +50,7 @@ describe('PermissionDialog', () => {
         request: createPermissionRequest(),
         totalPending: 3,
       },
+      global: { stubs: dialogStubs },
     });
 
     expect(wrapper.text()).toContain('Showing request 1 of 3');
@@ -62,8 +72,9 @@ describe('PermissionDialog', () => {
         request: createPermissionRequest(),
         totalPending: 1,
       },
+      global: { stubs: dialogStubs },
     });
 
-    expect(wrapper.find('.queue-hint').exists()).toBe(false);
+    expect(wrapper.text()).not.toContain('Showing request 1 of');
   });
 });

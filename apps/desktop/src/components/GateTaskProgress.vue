@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
+import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 
 const props = defineProps<{ task: GateTask }>();
 
@@ -36,11 +37,11 @@ function stageProgress(stage: string, task: GateTask): DotTone {
   return 'pending';
 }
 
-const dots = computed(() => {
+const segments = computed(() => {
   if (!props.task.stages.length) {
     return [{
-      label: props.task.state,
-      symbol: isFailedState(props.task.state) ? '✗' : props.task.state === 'pending' ? '○' : '●',
+      label: formatStageLabel(props.task.state),
+      family: gateStageFamily(props.task.state),
       tone: isFailedState(props.task.state)
         ? 'failed'
         : props.task.location === 'done'
@@ -48,66 +49,83 @@ const dots = computed(() => {
           : props.task.state === 'pending'
             ? 'pending'
             : 'active',
+      color: '#707070',
     }];
   }
 
   const items = props.task.stages.map((stage) => ({
-    label: stage.replace(/-/g, ' '),
-    symbol: stageProgress(stage, props.task) === 'active' ? '◉' : stageProgress(stage, props.task) === 'pending' ? '○' : '●',
+    label: formatStageLabel(stage),
+    family: gateStageFamily(stage),
     tone: stageProgress(stage, props.task),
   }));
 
   if (isFailedState(props.task.state)) {
-    items.push({ label: props.task.state.replace(/-/g, ' '), symbol: '✗', tone: 'failed' });
+    items.push({ label: formatStageLabel(props.task.state), family: 'failed', tone: 'failed' });
   }
 
   return items;
 });
+
+const progressLabel = computed(() => formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state));
 </script>
 
 <template>
   <div class="gate-progress">
-    <div class="gate-progress__dots" :aria-label="`${task.taskId} progress`">
+    <div class="gate-progress__bar" :aria-label="`${task.taskId} progress`">
       <span
-        v-for="dot in dots"
-        :key="`${task.taskId}-${dot.label}-${dot.symbol}`"
-        class="gate-progress__dot"
-        :class="`gate-progress__dot--${dot.tone}`"
-        :title="dot.label"
-      >
-        {{ dot.symbol }}
-      </span>
+        v-for="segment in segments"
+        :key="`${task.taskId}-${segment.label}-${segment.tone}`"
+        class="gate-progress__segment"
+        :class="[`gate-progress__segment--${segment.tone}`, `gate-progress__segment--${segment.family}`]"
+        :title="segment.label"
+      />
     </div>
-    <span class="gate-progress__state">{{ task.state }}</span>
+    <span class="gate-progress__state">{{ progressLabel }}</span>
   </div>
 </template>
 
 <style scoped>
-.gate-progress,
-.gate-progress__dots {
+.gate-progress {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+
+.gate-progress__bar {
+  display: flex;
+  width: 100%;
+  min-width: 5.5rem;
   gap: 0.2rem;
 }
 
-.gate-progress {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.gate-progress__dot,
 .gate-progress__state {
   font-family: var(--font-code);
 }
 
-.gate-progress__dot--completed { color: var(--color-status-completed); }
-.gate-progress__dot--active { color: var(--color-status-active); }
-.gate-progress__dot--failed { color: var(--color-status-abandoned); }
-.gate-progress__dot--pending { color: var(--muted-foreground); }
+.gate-progress__segment {
+  flex: 1;
+  min-width: 0.6rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: #353534;
+}
+
+.gate-progress__segment--completed.gate-progress__segment--pending { background: #707070; }
+.gate-progress__segment--completed.gate-progress__segment--swe { background: color-mix(in srgb, #4d8eff 72%, #353534); }
+.gate-progress__segment--completed.gate-progress__segment--red-team { background: color-mix(in srgb, #f59e0b 72%, #353534); }
+.gate-progress__segment--completed.gate-progress__segment--blue-team,
+.gate-progress__segment--completed.gate-progress__segment--done { background: color-mix(in srgb, #4edea3 72%, #353534); }
+.gate-progress__segment--active.gate-progress__segment--pending { background: #707070; }
+.gate-progress__segment--active.gate-progress__segment--swe { background: #4d8eff; }
+.gate-progress__segment--active.gate-progress__segment--red-team { background: #f59e0b; }
+.gate-progress__segment--active.gate-progress__segment--blue-team,
+.gate-progress__segment--active.gate-progress__segment--done { background: #4edea3; }
+.gate-progress__segment--pending { background: #353534; }
+.gate-progress__segment--failed { background: #ffb4ab; }
 
 .gate-progress__state {
   color: var(--muted-foreground);
   font-size: var(--text-tiny);
-  text-transform: lowercase;
 }
 </style>

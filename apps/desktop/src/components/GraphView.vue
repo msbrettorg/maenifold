@@ -185,7 +185,7 @@ onMounted(async () => {
       @reload="reloadCurrentView"
     />
     <GraphViewLegend :view-level="viewLevel" :active-community-anchor="activeCommunity?.anchor ?? null" />
-    <GraphViewCanvas :is-loading="isLoading" :error="error" @retry="reloadCurrentView">
+    <GraphViewCanvas :is-loading="isLoading" :error="error" :node-count="nodeCount" @retry="reloadCurrentView">
       <div ref="containerRef" class="graph-canvas" />
     </GraphViewCanvas>
   </section>
@@ -202,6 +202,6 @@ onMounted(async () => {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--background);
+  background: #0e0e0e;
 }
 </style>

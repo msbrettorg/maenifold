@@ -77,8 +77,7 @@ function statusIcon(status: string): string {
   flex-direction: column;
   border-radius: 4px;
   font-size: var(--text-sm);
-  background: var(--muted);
-  border-left: 2px solid var(--border);
+  background: #2a2a2a;
   overflow: hidden;
 }
 .tci-summary {
@@ -86,7 +85,7 @@ function statusIcon(status: string): string {
   align-items: center;
   gap: 0.5rem;
   width: 100%;
-  padding: 0.375rem 0.625rem;
+  padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
   color: inherit;
@@ -94,24 +93,7 @@ function statusIcon(status: string): string {
   text-align: left;
 }
 .tci-summary-expandable { cursor: pointer; }
-.tci-summary-expandable:hover { background: var(--muted); }
-.tool-pending { border-left-color: var(--color-status-stuck); }
-.tool-in_progress {
-  border-left-color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 8%, var(--muted));
-}
-.tool-completed {
-  border-left-color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 8%, var(--muted));
-}
-.tool-failed {
-  border-left-color: var(--color-status-abandoned);
-  background: color-mix(in srgb, var(--color-status-abandoned) 8%, var(--muted));
-}
-.tool-cancelled {
-  border-left-color: var(--color-status-pending);
-  background: color-mix(in srgb, var(--color-status-pending) 8%, var(--muted));
-}
+.tci-summary-expandable:hover { background: #353534; }
 .tci-icon { font-size: var(--text-sm); }
 .tci-name { font-weight: var(--weight-display); color: var(--foreground); }
 .tci-location {
@@ -122,11 +104,11 @@ function statusIcon(status: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tci-status { font-size: var(--text-xs); font-weight: var(--weight-title); }
+.tci-status { font-size: var(--text-xs); }
 .tci-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
-.status-pending { color: var(--color-status-stuck); }
-.status-in_progress { color: var(--color-status-active); }
-.status-completed { color: var(--color-status-completed); }
-.status-failed { color: var(--color-status-abandoned); }
-.status-cancelled { color: var(--color-status-pending); }
+.status-pending { color: #707070; }
+.status-in_progress { color: #F59E0B; }
+.status-completed { color: #4edea3; }
+.status-failed { color: #ffb4ab; }
+.status-cancelled { color: #707070; }
 </style>

@@ -70,12 +70,12 @@ const emit = defineEmits<{
       </article>
     </div>
 
-    <div class="dialog-actions dialog-actions--start">
-      <Button type="button" :disabled="busy" @click="emit('select-action', 'create')">
-        Create new
-      </Button>
+    <div class="dialog-actions">
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">
         Cancel
+      </Button>
+      <Button type="button" :disabled="busy" @click="emit('select-action', 'create')">
+        Create new
       </Button>
     </div>
   </section>

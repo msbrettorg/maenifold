@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { GateTaskHistoryEntry } from '../lib/gate';
+import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 
 const props = defineProps<{
   history: GateTaskHistoryEntry[];
@@ -21,7 +22,9 @@ function renderMarkdown(content: string | null) {
 function formatTimestamp(timestamp: string | null) {
   if (!timestamp) return 'Unknown time';
   const value = new Date(timestamp);
-  return Number.isNaN(value.getTime()) ? timestamp : value.toLocaleString();
+  return Number.isNaN(value.getTime())
+    ? timestamp
+    : value.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 </script>
 
@@ -39,11 +42,11 @@ function formatTimestamp(timestamp: string | null) {
         <li
           v-for="(entry, index) in history"
           :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`"
-          class="gate-detail-history__item"
+          :class="['gate-detail-history__item', `gate-detail-history__item--${gateStageFamily(entry.stage)}`]"
         >
           <div class="gate-detail-history__header">
             <div>
-              <p class="gate-detail-history__stage">{{ entry.stage }}</p>
+              <p class="gate-detail-history__stage">{{ formatStageLabel(entry.stage) }}</p>
               <h4>{{ entry.event }}</h4>
             </div>
             <time class="gate-detail-history__time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
@@ -78,9 +81,9 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail-history {
   padding: 0.875rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #201f1f;
 }
 
 .gate-detail-history__summary {
@@ -94,8 +97,6 @@ function formatTimestamp(timestamp: string | null) {
   font-size: var(--text-tiny);
   font-weight: var(--weight-display);
   line-height: 1.4;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
 }
 
 .gate-detail-history__count {
@@ -115,9 +116,9 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail-history__message {
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #201f1f;
   color: var(--muted-foreground);
 }
 
@@ -132,10 +133,21 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail-history__item {
+  position: relative;
   padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  border-radius: 0.25rem;
+  background: #2a2a2a;
+}
+
+.gate-detail-history__item::before {
+  content: '';
+  position: absolute;
+  top: 0.65rem;
+  bottom: 0.65rem;
+  left: 0;
+  width: 4px;
+  border-radius: 999px;
+  background: #353534;
 }
 
 .gate-detail-history__header,
@@ -150,8 +162,6 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail-history__meta dt {
   color: var(--muted-foreground);
   font-size: var(--text-tiny);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .gate-detail-history__stage {
@@ -223,4 +233,10 @@ function formatTimestamp(timestamp: string | null) {
   border: 1px solid var(--border);
   text-align: left;
 }
+
+.gate-detail-history__item--swe::before { background: #4d8eff; }
+.gate-detail-history__item--red-team::before { background: #f59e0b; }
+.gate-detail-history__item--blue-team::before,
+.gate-detail-history__item--done::before { background: #4edea3; }
+.gate-detail-history__item--failed::before { background: #ffb4ab; }
 </style>

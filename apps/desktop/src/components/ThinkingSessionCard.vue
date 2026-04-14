@@ -251,7 +251,6 @@ function onAfterLeave(element: Element): void {
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
   color: var(--thinking-card-badge);
 }
 .empty-state {

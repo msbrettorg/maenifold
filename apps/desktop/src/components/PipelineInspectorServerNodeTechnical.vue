@@ -109,11 +109,17 @@ function hasResponseSummary(value?: string | null): value is string {
 
 <style scoped>
 .expert-disclosure,.read-block { display: flex; flex-direction: column; gap: 0.375rem; color: var(--muted-foreground); font-size: var(--text-sm); }
-.expert-disclosure { padding: 0.875rem; border: 1px solid var(--border); border-radius: 10px; background: var(--background); }
+.expert-disclosure {
+  padding: 0.875rem; border: 1px solid var(--pipeline-inspector-ghost-border);
+  border-radius: 4px; background: var(--pipeline-inspector-well);
+}
 .expert-content { display: flex; flex-direction: column; gap: 0.875rem; margin-top: 0.75rem; }
 .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span,.expert-disclosure summary,.read-block span { color: var(--muted-foreground); }
-.read-block pre { margin: 0; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--background); white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--foreground); }
+.read-block pre {
+  margin: 0; border: 1px solid var(--pipeline-inspector-ghost-border); border-radius: 4px; padding: 0.75rem;
+  background: var(--pipeline-inspector-surface); white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--foreground);
+}
 .copy-row { display: flex; align-items: center; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
 .copy-button { padding: 0.25rem 0.5rem; }
 .mono,.copy-row strong { min-width: 0; word-break: break-word; overflow-wrap: break-word; font-family: var(--font-code); }

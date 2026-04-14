@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import GateTaskProgress from './GateTaskProgress.vue';
 import type { GateTask } from '../lib/gate';
+import { getTaskPathHint } from '../lib/gate-display';
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress';
 type SortDirection = 'asc' | 'desc';
@@ -22,7 +23,7 @@ function processValue(task: GateTask) {
 }
 
 function processLabel(task: GateTask) {
-  const pipeline = processValue(task).toUpperCase();
+  const pipeline = processValue(task);
   return task.location === 'done' ? `${pipeline} done` : pipeline;
 }
 
@@ -35,6 +36,14 @@ function sortOrder(column: SortColumn) {
   if (props.sortColumn !== column) return 'none';
   return props.sortDirection === 'asc' ? 'ascending' : 'descending';
 }
+
+function rowTitle(task: GateTask) {
+  return [
+    `${task.taskId} — ${task.title}`,
+    `File: ${getTaskPathHint(task.path)}`,
+    task.issue ? `Issue: ${task.issue}` : '',
+  ].filter(Boolean).join('\n');
+}
 </script>
 
 <template>
@@ -44,13 +53,13 @@ function sortOrder(column: SortColumn) {
         <tr>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('id')">
             <button type="button" class="gate-th-button" @click="emit('sort', 'id')">
-              <span>ID</span>
+              <span>Task ID</span>
               <span class="gate-sort-icon">{{ sortIndicator('id') }}</span>
             </button>
           </th>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('name')">
             <button type="button" class="gate-th-button" @click="emit('sort', 'name')">
-              <span>Name</span>
+              <span>Task</span>
               <span class="gate-sort-icon">{{ sortIndicator('name') }}</span>
             </button>
           </th>
@@ -73,15 +82,17 @@ function sortOrder(column: SortColumn) {
           v-for="task in props.tasks"
           :key="task.path"
           :class="{ 'gate-row--active': task.taskId === props.selectedTaskId, 'gate-row--issue': task.issue }"
+          :title="rowTitle(task)"
           @click="emit('select', task)"
         >
           <td class="gate-id">{{ task.taskId }}</td>
-          <td>
-            <div class="gate-title">{{ task.title }}</div>
-            <div class="gate-subtitle">{{ task.path }}</div>
-            <div v-if="task.issue" class="gate-issue">{{ task.issue }}</div>
+          <td class="gate-task">
+            <div class="gate-task__title">
+              <span class="gate-title">{{ task.title }}</span>
+              <span v-if="task.issue" class="gate-issue-dot" aria-hidden="true"></span>
+            </div>
           </td>
-          <td>{{ processLabel(task) }}</td>
+          <td><span class="gate-process">{{ processLabel(task) }}</span></td>
           <td><GateTaskProgress :task="task" /></td>
         </tr>
       </tbody>
@@ -94,13 +105,13 @@ function sortOrder(column: SortColumn) {
 .gate-table-wrap {
   flex: 1.4;
   min-height: 24rem;
-  padding: 0;
+  padding: 0.5rem;
   overflow: auto;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: #1c1b1b;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: rgba(66, 71, 83, 0.4) transparent;
 }
 
 .gate-table-wrap::-webkit-scrollbar {
@@ -122,27 +133,50 @@ function sortOrder(column: SortColumn) {
 
 .gate-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+  table-layout: fixed;
 }
 
 .gate-table th,
 .gate-table td {
   padding: 0.85rem 1rem;
   text-align: left;
-  vertical-align: top;
-  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
 }
 
 .gate-table th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--card);
+  background: #1c1b1b;
 }
 
-.gate-row--active,
 .gate-table tbody tr {
   cursor: pointer;
+}
+
+.gate-table tbody td {
+  background: #201f1f;
+  transition: background 160ms ease;
+}
+
+.gate-table tbody tr:hover td {
+  background: #2a2a2a;
+}
+
+.gate-table tbody td:first-child,
+.gate-table tbody td:last-child {
+  position: relative;
+}
+
+.gate-table tbody td:first-child {
+  border-radius: 0.25rem 0 0 0.25rem;
+  padding-left: 1.25rem;
+}
+
+.gate-table tbody td:last-child {
+  border-radius: 0 0.25rem 0.25rem 0;
 }
 
 .gate-th--sortable {
@@ -169,35 +203,60 @@ function sortOrder(column: SortColumn) {
 }
 
 .gate-sort-icon,
-.gate-subtitle,
 .gate-empty {
   color: var(--muted-foreground);
 }
 
 .gate-sort-icon,
 .gate-id,
-.gate-subtitle,
-.gate-issue {
+.gate-process {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
 
 .gate-row--active {
-  background: color-mix(in srgb, var(--ring) 12%, var(--card));
+  background: transparent;
 }
 
-.gate-row--issue .gate-title,
-.gate-issue {
-  color: var(--color-status-abandoned);
+.gate-row--active td {
+  background: #2a2a2a;
+}
+
+.gate-row--active td:first-child::before {
+  content: '';
+  position: absolute;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  left: 0;
+  width: 4px;
+  border-radius: 999px;
+  background: #4d8eff;
+}
+
+.gate-row--issue .gate-title {
+  color: var(--foreground);
 }
 
 .gate-title {
   font-weight: var(--weight-title);
 }
 
-.gate-issue {
-  margin-top: 0.35rem;
-  white-space: pre-wrap;
+.gate-task__title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.gate-process {
+  color: var(--muted-foreground);
+  text-transform: lowercase;
+}
+
+.gate-issue-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: #ffb4ab;
 }
 
 .gate-empty {

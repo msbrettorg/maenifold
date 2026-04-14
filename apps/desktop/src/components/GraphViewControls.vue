@@ -14,115 +14,121 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="graph-toolbar" role="toolbar" aria-label="Knowledge graph controls">
-    <div class="graph-breadcrumb">
+  <div class="graph-header" role="toolbar" aria-label="Knowledge graph controls">
+    <div class="header-left">
       <button
         v-if="viewLevel === 'concepts'"
-        class="breadcrumb-link"
+        class="back-btn"
+        title="Back to communities"
         @click="$emit('navigateBack')"
       >
-        ← Communities
+        ←
       </button>
-      <span v-if="viewLevel === 'concepts'" class="breadcrumb-sep">/</span>
-      <span class="breadcrumb-current">
-        {{ viewLevel === 'communities' ? 'Knowledge Graph' : activeCommunityAnchor }}
+      <span class="header-title">Knowledge graph</span>
+      <span v-if="viewLevel === 'concepts' && activeCommunityAnchor" class="header-context">
+        {{ activeCommunityAnchor }}
+      </span>
+      <span v-if="nodeCount > 0" class="header-stats">
+        {{ nodeCount }} nodes · {{ edgeCount }} edges
       </span>
     </div>
 
-    <div v-if="nodeCount > 0" class="graph-stats">
-      <span class="stat">{{ nodeCount }} nodes</span>
-      <span class="stat-sep">·</span>
-      <span class="stat">{{ edgeCount }} edges</span>
-    </div>
-
-    <div class="toolbar-actions">
-      <button class="graph-action-btn" title="Reset view" @click="$emit('reset')">↺</button>
-      <button class="graph-action-btn" title="Reload data" @click="$emit('reload')">⟳</button>
+    <div class="header-actions">
+      <button class="action-btn" title="Reset viewport" @click="$emit('reset')">↺ Reset</button>
+      <button class="action-btn" title="Reload graph data" @click="$emit('reload')">⟳ Reload</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.graph-toolbar {
+.graph-header {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--card);
+  background: #1c1b1b;
   flex-shrink: 0;
 }
 
-.graph-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  flex: 1;
-  font-size: var(--text-caption);
-  color: var(--muted-foreground);
-}
-
-.breadcrumb-link {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--ring);
-  cursor: pointer;
-  font-size: var(--text-caption);
-}
-
-.breadcrumb-link:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb-sep {
-  color: var(--muted-foreground);
-}
-
-.breadcrumb-current {
-  color: var(--foreground);
-  font-weight: var(--weight-display);
-  font-family: var(--font-display);
-  letter-spacing: 0.02em;
-}
-
-.graph-stats {
+.header-left {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: var(--text-tiny);
-  color: var(--muted-foreground);
-  font-variant-numeric: tabular-nums;
+  flex: 1;
+  min-width: 0;
 }
 
-.stat-sep {
-  opacity: 0.4;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.graph-action-btn {
+.back-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--muted);
-  color: var(--muted-foreground);
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #2a2a2a;
+  color: #adc6ff;
   cursor: pointer;
-  font-size: var(--text-body-sm);
+  font-size: var(--text-caption);
   line-height: 1;
   transition: var(--transition-fast);
 }
 
-.graph-action-btn:hover {
-  background: var(--muted);
-  color: var(--foreground);
-  border-color: var(--muted-foreground);
+.back-btn:hover {
+  background: #353534;
+  color: #e5e2e1;
+}
+
+.header-title {
+  color: #e5e2e1;
+  font-weight: 500;
+  font-family: var(--font-display);
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-stats {
+  font-size: 0.6875rem;
+  color: #707070;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.header-context {
+  font-size: 0.6875rem;
+  color: #c2c6d6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #2a2a2a;
+  color: #c2c6d6;
+  cursor: pointer;
+  font-size: 0.6875rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.action-btn:hover {
+  background: #353534;
+  color: #e5e2e1;
 }
 </style>

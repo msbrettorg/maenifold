@@ -62,50 +62,51 @@ function handleInput(event: Event): void {
 }
 
 .gallery-intent-label {
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #707070;
 }
 
 .gallery-intent-input {
   width: 100%;
   min-height: 4rem;
   padding: 1rem 1.25rem;
-  border: 1px solid color-mix(in srgb, var(--color-accent, #4d8eff) 35%, var(--border));
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--accent) 84%, var(--background));
-  color: var(--foreground);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #1c1b1b;
+  color: #e5e2e1;
   font-size: clamp(1.05rem, 1rem + 0.35vw, 1.35rem);
   line-height: 1.4;
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--color-accent, #4d8eff) 10%, transparent);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .gallery-intent-input::placeholder {
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .gallery-intent-input:focus {
   outline: none;
-  border-color: var(--color-accent, #4d8eff);
+  background: #2a2a2a;
+  border-color: rgba(77, 142, 255, 0.4);
   box-shadow:
-    0 0 0 3px color-mix(in srgb, var(--color-accent, #4d8eff) 18%, transparent),
-    0 18px 40px color-mix(in srgb, var(--color-accent, #4d8eff) 12%, transparent);
+    0 0 0 1px rgba(77, 142, 255, 0.4),
+    0 0 32px rgba(173, 198, 255, 0.08);
 }
 
 .gallery-intent-hint,
 .gallery-intent-error,
 .gallery-agent-warning {
   margin: 0;
-  font-size: var(--text-caption);
+  font-size: 0.75rem;
   text-align: center;
 }
 
 .gallery-intent-hint {
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .gallery-intent-error,
 .gallery-agent-warning {
-  color: var(--color-status-stuck, #e57373);
+  color: #ffb4ab;
 }
 </style>

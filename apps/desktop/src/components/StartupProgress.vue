@@ -90,7 +90,7 @@ const progressValue = computed(() => {
         class="details-btn"
         @click="emit('toggleDetails')"
       >
-        {{ showDetails ? 'Hide Details ▲' : 'Show Details ▼' }}
+        {{ showDetails ? 'Hide details ▲' : 'Show details ▼' }}
       </button>
       <button 
         class="cancel-btn"
@@ -121,9 +121,8 @@ const progressValue = computed(() => {
 <style scoped>
 .startup-progress {
   padding: 1rem;
-  background: var(--background);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: #201f1f;
+  border-radius: 4px;
   margin-top: 0.75rem;
 }
 
@@ -150,7 +149,7 @@ const progressValue = computed(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--muted);
+  background: #2a2a2a;
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
@@ -170,7 +169,7 @@ const progressValue = computed(() => {
   font-style: italic;
   margin-bottom: 0.75rem;
   padding: 0.5rem;
-  background: var(--bg-warning);
+  background: color-mix(in srgb, var(--bg-warning) 18%, #201f1f);
   border-radius: 4px;
 }
 
@@ -182,55 +181,52 @@ const progressValue = computed(() => {
 
 .details-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 4px;
-  background: transparent;
+  background: #2a2a2a;
   color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 
 .details-btn:hover {
-  background: var(--muted);
+  background: #353534;
 }
 
 .cancel-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border);
+  border: none;
   border-radius: 4px;
-  background: transparent;
+  background: #2a2a2a;
   color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 
 .cancel-btn:hover {
-  background: var(--muted);
-  border-color: var(--destructive);
+  background: color-mix(in srgb, var(--destructive) 18%, #2a2a2a);
   color: var(--destructive);
 }
 
 .logs-container {
   margin-top: 0.75rem;
-  border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .logs-header {
   padding: 0.375rem 0.5rem;
-  background: var(--muted);
+  background: #2a2a2a;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
   color: var(--muted-foreground);
-  border-bottom: 1px solid var(--border);
 }
 
 .logs-content {
   max-height: 150px;
   overflow-y: auto;
   padding: 0.5rem;
-  background: var(--muted);
+  background: #2a2a2a;
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   scrollbar-width: thin;

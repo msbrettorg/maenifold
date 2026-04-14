@@ -22,6 +22,19 @@ const vueFlowStubs = {
   MiniMap: true,
 };
 
+/** Inline stubs for radix-vue context menu components (they use Teleport). */
+const contextMenuStubs = {
+  ContextMenu: { template: '<div><slot /></div>', props: { open: Boolean } },
+  ContextMenuTrigger: { template: '<div><slot /></div>' },
+  ContextMenuContent: { template: '<div class="composer-context-menu" v-bind="$attrs"><slot /></div>' },
+  ContextMenuItem: { template: '<button v-bind="$attrs"><slot /></button>' },
+  ContextMenuSeparator: { template: '<hr />' },
+  ContextMenuLabel: { template: '<span><slot /></span>' },
+  ContextMenuSub: { template: '<div><slot /></div>' },
+  ContextMenuSubTrigger: { template: '<button><slot /></button>' },
+  ContextMenuSubContent: { template: '<div><slot /></div>' },
+};
+
 function createStore() {
   const pinia = createPinia();
   setActivePinia(pinia);
@@ -237,7 +250,7 @@ describe('pipeline smoke tests', () => {
       },
       global: {
         plugins: [pinia],
-        stubs: vueFlowStubs,
+        stubs: { ...vueFlowStubs, ...contextMenuStubs },
       },
     });
 
@@ -253,7 +266,7 @@ describe('pipeline smoke tests', () => {
     expect(wrapper.text()).toContain('Run a workflow…');
   });
 
-  it('PipelineComposer forces the palette closed on narrow viewports', async () => {
+  it('PipelineComposer converts palette to overlay on narrow viewports', async () => {
     const viewport = installMatchMedia(false);
     const { pinia, store } = createStore();
 
@@ -273,13 +286,18 @@ describe('pipeline smoke tests', () => {
 
     await findButton(wrapper, '+ Palette')!.trigger('click');
     expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
+    expect(wrapper.find('.composer-palette').exists()).toBe(true);
 
     viewport.setMatches(true);
     await flushPromises();
 
-    const paletteToggle = wrapper.get('button.composer-palette-toggle');
-    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(false);
-    expect(paletteToggle.attributes('aria-pressed')).toBe('false');
+    // Side panel hides; palette moves to overlay
+    expect(wrapper.find('.composer-palette').exists()).toBe(false);
+    expect(wrapper.find('.composer-palette-overlay').exists()).toBe(true);
+    expect(wrapper.find('input[placeholder="Workflow ID"]').exists()).toBe(true);
+
+    const paletteToggle = wrapper.get('button[aria-pressed]');
+    expect(paletteToggle.attributes('aria-pressed')).toBe('true');
   });
 
   it('PipelineRunner stays read-only and keeps only status/log output', async () => {

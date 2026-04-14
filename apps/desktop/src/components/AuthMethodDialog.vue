@@ -30,7 +30,7 @@ function handleSelect(methodId: string) {
     <DialogContent class="auth-dialog gap-0 p-0 sm:max-w-[420px]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div class="dialog-heading">
-          <DialogTitle>Authentication Required</DialogTitle>
+          <DialogTitle>Authentication required</DialogTitle>
           <DialogDescription class="description">
             <strong>{{ agentName }}</strong> requires authentication to continue.
             Select an authentication method.
@@ -84,7 +84,6 @@ function handleSelect(methodId: string) {
   align-items: flex-start;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .dialog-heading {
@@ -98,7 +97,7 @@ function handleSelect(methodId: string) {
   background: transparent;
   font-size: var(--text-title);
   cursor: pointer;
-  color: var(--muted-foreground);
+  color: #707070;
   padding: 0.25rem;
 }
 
@@ -125,17 +124,16 @@ function handleSelect(methodId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: #1c1b1b;
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .auth-method-btn:hover {
-  border-color: var(--ring);
-  background: var(--muted);
+  background: #2a2a2a;
 }
 
 .method-info {
@@ -150,13 +148,13 @@ function handleSelect(methodId: string) {
 }
 
 .method-desc {
-  font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  color: #707070;
 }
 
 .arrow {
   font-size: var(--text-title);
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .auth-method-btn:hover .arrow {
@@ -165,20 +163,19 @@ function handleSelect(methodId: string) {
 
 .dialog-footer {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
 }
 
 .cancel-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: transparent;
-  color: var(--muted-foreground);
+  color: #707070;
   cursor: pointer;
-  font-size: var(--text-body-sm);
+  font-size: 0.75rem;
 }
 
 .cancel-btn:hover {
-  background: var(--muted);
+  background: #2a2a2a;
 }
 </style>

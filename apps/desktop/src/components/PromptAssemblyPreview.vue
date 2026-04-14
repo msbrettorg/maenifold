@@ -142,7 +142,6 @@ const sections = computed<PreviewSection[]>(() => {
   font-size: var(--text-xs);
   font-weight: var(--weight-title);
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   color: var(--muted-foreground);
 }
 

@@ -23,8 +23,7 @@ defineProps<{
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px 6px;
-  background: color-mix(in srgb, var(--node-accent) 6%, transparent);
+   padding: 10px 12px 4px;
 }
 
 .header-main {
@@ -35,18 +34,18 @@ defineProps<{
 }
 
 .status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  flex-shrink: 0;
+   width: 6px;
+   height: 6px;
+   border-radius: 999px;
+   flex-shrink: 0;
 }
 
-.status-dot--pending { background: var(--color-status-pending); }
-.status-dot--active { background: var(--color-status-active); }
-.status-dot--completed { background: var(--color-status-completed); }
-.status-dot--abandoned { background: var(--color-status-abandoned); }
-.status-dot--stuck { background: var(--color-status-stuck); }
-.status-dot--cancelled { background: #6b7280; }
+.status-dot--pending,
+.status-dot--cancelled { background: #707070; }
+.status-dot--active,
+.status-dot--stuck { background: #f59e0b; }
+.status-dot--completed { background: #4edea3; }
+.status-dot--abandoned { background: #ffb4ab; }
 
 .node-title,
 .type-pill {
@@ -57,22 +56,19 @@ defineProps<{
 .node-title {
   color: var(--foreground);
   white-space: nowrap;
-  font-family: var(--font-code);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
+   font-family: var(--font-display);
+   font-size: var(--text-sm);
+   font-weight: var(--weight-title);
 }
 
 .type-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 18px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  flex-shrink: 0;
-  color: var(--node-accent);
-  background: color-mix(in srgb, var(--node-accent) 10%, transparent);
-  font-size: var(--text-xs);
-  line-height: 1.1;
-  white-space: nowrap;
+   display: inline-flex;
+   align-items: center;
+   gap: 0.25rem;
+   flex-shrink: 0;
+   color: var(--node-accent);
+   font-size: var(--text-xs);
+   line-height: 1.1;
+   white-space: nowrap;
 }
 </style>

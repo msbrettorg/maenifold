@@ -16,7 +16,6 @@ const selectedAgent = defineModel<string>('selected', { default: '' });
 
 const agents = computed(() => configStore.agentNames);
 const hasAgents = computed(() => configStore.hasAgents);
-const configPath = computed(() => configStore.configPath);
 const selectedProbe = computed(() =>
   selectedAgent.value ? capabilitiesStore.getProbe(selectedAgent.value) : undefined,
 );
@@ -64,7 +63,7 @@ function formatAgentOptionLabel(agentName: string): string {
 
 <template>
   <div class="agent-selector">
-    <label for="agent-select">Agent:</label>
+    <label for="agent-select">Agent</label>
      <select 
        id="agent-select" 
        role="listbox"
@@ -90,8 +89,7 @@ function formatAgentOptionLabel(agentName: string): string {
     />
     
     <div v-if="!hasAgents" class="config-hint">
-      <p>No agents found. Add agents to:</p>
-      <code>{{ configPath }}</code>
+      <p>No agents found. Add an agent in your config to get started.</p>
     </div>
   </div>
 </template>
@@ -105,18 +103,16 @@ function formatAgentOptionLabel(agentName: string): string {
 
 label {
   font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  color: var(--muted-foreground);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  font-weight: 400;
+  color: #707070;
 }
 
 select {
   padding: 0.5rem 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
-  border-radius: var(--radius-md);
+  border: none;
+  border-radius: 4px;
   font-size: var(--text-caption);
-  background: var(--input);
+  background: #201f1f;
   color: var(--foreground);
   font-family: var(--font-body);
 }
@@ -134,18 +130,9 @@ select:disabled {
 .config-hint {
   margin-top: 0.5rem;
   padding: 0.75rem;
-  background: var(--bg-warning);
+  background: #201f1f;
   border-radius: 4px;
   font-size: var(--text-caption);
-}
-
-.config-hint code {
-  display: block;
-  margin-top: 0.25rem;
-  padding: 0.25rem 0.5rem;
-  background: var(--muted);
-  border-radius: 2px;
-  font-family: var(--font-code);
-  word-break: break-all;
+  color: var(--muted-foreground);
 }
 </style>

@@ -5,10 +5,12 @@ import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   hideHeader?: boolean;
+  filterQuery?: string;
 }>(), {
   hideHeader: false,
+  filterQuery: '',
 });
 
 const emit = defineEmits<{
@@ -18,73 +20,47 @@ const emit = defineEmits<{
 const store = usePipelineStore();
 const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
 
-const STATUS_ICONS: Record<string, string> = {
-  active: '🔄',
-  paused: '⏸',
-  completed: '✅',
-  cancelled: '⏹',
-  stuck: '🚫',
-};
-
-const pipelineItems = computed(() => pipelines.value);
-
-onMounted(async () => {
-  if (connected.value) {
-    await store.refreshList();
-  }
+const pipelineItems = computed(() => {
+  const q = props.filterQuery.trim().toLowerCase();
+  if (!q) return pipelines.value;
+  return pipelines.value.filter((p) => p.pipelineId.toLowerCase().includes(q));
 });
 
-watch(connected, async (isConnected) => {
-  if (isConnected) {
-    await store.refreshList();
-  }
+onMounted(async () => {
+  if (connected.value) await store.refreshList();
+});
+
+watch(connected, async (c) => {
+  if (c) await store.refreshList();
 });
 
 async function handleRefresh() {
-  if (connected.value) {
-    await store.refreshList();
-  }
-}
-
-function getStatusIcon(status: PipelineStatus): string {
-  return STATUS_ICONS[status] ?? '⏳';
+  if (connected.value) await store.refreshList();
 }
 
 function formatStatus(status: PipelineStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function progressPct(item: PipelineListItem): number {
+  return item.nodeCount > 0 ? (item.completedCount / item.nodeCount) * 100 : 0;
+}
+
 async function handleSelect(pipelineId: string) {
-  if (currentPipelineId.value === pipelineId) {
-    return;
-  }
-
-  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) {
-    return;
-  }
-
+  if (currentPipelineId.value === pipelineId) return;
+  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) return;
   const loaded = await store.loadPipeline(pipelineId);
-  if (!loaded) {
-    return;
-  }
-
-  emit('pipeline-selected', pipelineId);
+  if (loaded) emit('pipeline-selected', pipelineId);
 }
 
 function handleNew() {
-  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) {
-    return;
-  }
+  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) return;
   store.newPipeline();
 }
 
 async function handleDelete(item: PipelineListItem, event: Event) {
   event.stopPropagation();
-
-  if (!confirm(`Delete pipeline "${item.pipelineId}"?`)) {
-    return;
-  }
-
+  if (!confirm(`Delete pipeline "${item.pipelineId}"?`)) return;
   await store.deletePipelineById(item.pipelineId);
 }
 </script>
@@ -117,14 +93,13 @@ async function handleDelete(item: PipelineListItem, event: Event) {
           :aria-current="currentPipelineId === item.pipelineId ? 'page' : undefined"
           @click="handleSelect(item.pipelineId)"
         >
-          <div class="pipeline-main">
-            <span class="status-icon" :aria-label="`${item.status} pipeline`">
-              {{ getStatusIcon(item.status) }}
-            </span>
+          <span :class="['status-bead', `bead--${item.status}`]" />
 
-            <div class="pipeline-meta">
-              <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
-              <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+          <div class="pipeline-meta">
+            <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
+            <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
             </div>
           </div>
         </button>
@@ -133,7 +108,15 @@ async function handleDelete(item: PipelineListItem, event: Event) {
           <span :class="['pipeline-status', `status-text--${item.status}`]">
             {{ formatStatus(item.status) }}
           </span>
-          <Button class="delete-btn h-6 px-2 text-xs" variant="destructive" size="sm" type="button" title="Delete pipeline" aria-label="Delete pipeline" @click="handleDelete(item, $event)">×</Button>
+          <Button
+            class="delete-btn h-6 px-2 text-xs"
+            variant="destructive"
+            size="sm"
+            type="button"
+            title="Delete pipeline"
+            aria-label="Delete pipeline"
+            @click="handleDelete(item, $event)"
+          >×</Button>
         </div>
       </li>
     </ul>
@@ -145,8 +128,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   width: 100%;
   min-width: 0;
   height: 100%;
-  border-right: 1px solid var(--border);
-  background: var(--card);
+  background: #1c1b1b;
   display: flex;
   flex-direction: column;
 }
@@ -156,13 +138,14 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-header h3 {
   margin: 0;
-  font-size: var(--text-xl);
-  color: var(--muted-foreground);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-title);
+  color: #e5e2e1;
 }
 
 .sidebar-actions {
@@ -176,7 +159,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   place-items: center;
   padding: 2rem 1rem;
   text-align: center;
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .pipeline-list {
@@ -195,20 +178,17 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   justify-content: space-between;
   gap: 0.75rem;
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-left: 3px solid transparent;
-  border-radius: 6px;
-  background: var(--background);
-  transition: background 0.15s ease, border-color 0.15s ease;
+  border-left: 4px solid transparent;
+  border-radius: 4px;
+  background: #201f1f;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-.pipeline-item:hover {
-  background: var(--muted);
-}
+.pipeline-item:hover { background: #2a2a2a; }
 
 .pipeline-item.active {
-  border-left-color: var(--ring);
-  background: var(--muted);
+  border-left-color: #4d8eff;
+  background: #2a2a2a;
 }
 
 .pipeline-select {
@@ -217,6 +197,8 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   padding: 0;
   border: 0;
   display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -230,33 +212,32 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   border-radius: 4px;
 }
 
-.pipeline-main {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  min-width: 0;
-  flex: 1;
+.status-bead {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.375rem;
 }
 
-.status-icon {
-  line-height: 1.2;
-}
-
-.pipeline-meta,
-.pipeline-side {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
+.bead--pending { background: #707070; }
+.bead--active { background: #F59E0B; }
+.bead--completed { background: #4edea3; }
+.bead--abandoned, .bead--stuck { background: #ffb4ab; }
+.bead--ready, .bead--paused { background: #4edea3; }
+.bead--cancelled { background: #707070; }
 
 .pipeline-meta {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
 }
 
 .pipeline-id {
   font-weight: var(--weight-display);
-  color: var(--foreground);
+  color: #e5e2e1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -264,12 +245,29 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .pipeline-progress {
   font-size: var(--text-xs);
-  color: var(--muted-foreground);
+  color: #707070;
+}
+
+.progress-bar {
+  height: 3px;
+  border-radius: 2px;
+  background: #131313;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: #4d8eff;
+  transition: width 0.3s ease;
 }
 
 .pipeline-side {
+  display: flex;
+  flex-direction: column;
   align-items: flex-end;
   gap: 0.375rem;
+  min-width: 0;
 }
 
 .pipeline-status {
@@ -282,20 +280,18 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 .status-text--completed { color: var(--color-status-completed); }
 .status-text--abandoned { color: var(--color-status-abandoned); }
 .status-text--stuck { color: var(--color-status-stuck); }
-.status-text--ready,
-.status-text--paused { color: var(--color-status-ready); }
+.status-text--ready, .status-text--paused { color: var(--color-status-ready); }
 .status-text--cancelled { color: var(--color-status-abandoned); }
 
 .delete-btn {
   line-height: 1;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s;
 }
 
 .pipeline-item:hover .delete-btn,
 .pipeline-item:focus-within .delete-btn {
   opacity: 1;
 }
-
 </style>

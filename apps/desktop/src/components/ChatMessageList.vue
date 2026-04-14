@@ -16,11 +16,35 @@ const emit = defineEmits<{
   cancel: [];
   'toggle-thought': [messageId: string];
   'toggle-tool-call': [toolCallId: string];
+  prefill: [text: string];
 }>();
+
+const starterChips = [
+  { icon: '🔍', label: 'Research a topic' },
+  { icon: '📝', label: 'Review code' },
+  { icon: '📋', label: 'Plan a sprint' },
+];
 </script>
 
 <template>
   <div role="log" aria-live="polite" aria-label="Chat messages">
+    <!-- Empty state with starter chips -->
+    <div v-if="messages.length === 0 && !isLoading" class="chat-empty">
+      <p class="chat-empty-hint">Start a conversation or try one of these:</p>
+      <div class="chat-empty-chips">
+        <button
+          v-for="chip in starterChips"
+          :key="chip.label"
+          type="button"
+          class="starter-chip"
+          @click="emit('prefill', chip.label)"
+        >
+          <span class="chip-icon" aria-hidden="true">{{ chip.icon }}</span>
+          <span>{{ chip.label }}</span>
+        </button>
+      </div>
+    </div>
+
     <PlanView v-if="currentPlan" :entries="currentPlan" />
 
     <ChatMessageItem
@@ -46,12 +70,47 @@ const emit = defineEmits<{
 </template>
 
 <style scoped>
+.chat-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+.chat-empty-hint {
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: var(--text-md);
+}
+.chat-empty-chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.starter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: #2a2a2a;
+  color: var(--foreground);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.starter-chip:hover { background: #353534; }
+.chip-icon { font-size: var(--text-sm); }
 .permission-status {
   margin-top: 1rem;
   padding: 0.75rem 1rem;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--bg-warning);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   color: var(--foreground);
 }
 .loading-indicator {
@@ -65,16 +124,17 @@ const emit = defineEmits<{
   width: 16px;
   height: 16px;
   border: 2px solid var(--border);
-  border-top-color: var(--ring);
+  border-top-color: #4d8eff;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 .cancel-btn {
   margin-left: auto;
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: transparent;
+  color: var(--foreground);
   font-size: var(--text-sm);
   cursor: pointer;
 }

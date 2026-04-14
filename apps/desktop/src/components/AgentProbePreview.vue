@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
 import type { ModelInfo, SessionConfigSelectOptions, SessionMode } from '../lib/types';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import AgentProbePreviewCapabilities from './AgentProbePreviewCapabilities.vue';
 import AgentProbePreviewStatus from './AgentProbePreviewStatus.vue';
@@ -117,41 +116,6 @@ const previewFields = computed<PreviewField[]>(() => {
   return fields;
 });
 
-const previewConfig = computed<PipelineNodeAgentConfig>(() => {
-  const probe = props.probe;
-  if (!probe || probe.state !== 'ready') {
-    return {};
-  }
-
-  const configOptions = Object.fromEntries(
-    probe.configOptionList
-      .filter((option) =>
-        option.id !== probe.modeConfigOption?.id
-        && option.id !== probe.modelConfigOption?.id
-        && option.id !== probe.thoughtLevelConfigOption?.id
-        && option.currentValue !== undefined,
-      )
-      .map((option) => [option.id, option.rawCurrentValue ?? option.currentValue]),
-  );
-
-  return {
-    ...(probe.modeConfigOption?.currentValue ? { mode: probe.modeConfigOption.currentValue } : {}),
-    ...(probe.modelConfigOption?.currentValue ? { model: probe.modelConfigOption.currentValue } : {}),
-    ...(probe.thoughtLevelConfigOption?.currentValue
-      ? { thoughtLevel: probe.thoughtLevelConfigOption.currentValue }
-      : {}),
-    ...(Object.keys(configOptions).length > 0 ? { configOptions } : {}),
-  };
-});
-
-const currentDefaults = computed(() =>
-  [
-    previewConfig.value.mode ? `mode: ${previewConfig.value.mode}` : null,
-    previewConfig.value.model ? `model: ${previewConfig.value.model}` : null,
-    previewConfig.value.thoughtLevel ? `thoughtLevel: ${previewConfig.value.thoughtLevel}` : null,
-  ].filter((entry): entry is string => entry !== null),
-);
-
 const statusTone = computed(() => {
   if (props.loading && !props.probe) return 'pending';
   if (!props.probe) return 'idle';
@@ -178,9 +142,7 @@ const statusMessage = computed(() => {
   }
 
   if (props.probe.state === 'ready') {
-    return previewFields.value.length > 0
-      ? `${previewFields.value.length} dynamic control${previewFields.value.length === 1 ? '' : 's'} advertised`
-      : 'No dynamic session controls advertised';
+    return '';
   }
 
   if (props.probe.state === 'offline') {
@@ -210,7 +172,6 @@ async function handleRefresh() {
   <section class="probe-preview" :class="{ compact }">
     <AgentProbePreviewStatus
       :compact="compact"
-      :current-defaults="currentDefaults"
       :degraded-message="degradedMessage"
       :ready="ready"
       :refresh-disabled="refreshDisabled"
@@ -234,13 +195,9 @@ async function handleRefresh() {
 .probe-preview {
   display: grid;
   gap: 0.65rem;
-  padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--background) 88%, transparent);
 }
 
 .probe-preview.compact {
-  padding: 0.65rem;
+  gap: 0.75rem;
 }
 </style>

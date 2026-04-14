@@ -105,17 +105,8 @@ const toolCategory = computed(() =>
 );
 const accentColor = computed(() => {
   if (nodeType.value === 'prompt') return 'var(--color-node-prompt)';
-  if (nodeType.value === 'sequentialThinking') return 'var(--color-node-thinking)';
-  if (nodeType.value === 'tool') {
-    switch (toolCategory.value) {
-      case 'Memory': return 'var(--color-node-tool)';
-      case 'Graph': return 'var(--color-node-tool)';
-      case 'Workflow': return 'var(--color-node-workflow)';
-      case 'System': return 'var(--color-node-tool)';
-      default: return 'var(--color-node-tool)';
-    }
-  }
-  return 'var(--color-node-workflow)';
+  if (nodeType.value === 'tool') return 'var(--color-node-tool)';
+  return 'var(--color-node-thinking)';
 });
 const typeLabel = computed(() =>
   isPromptNode(node.value)
@@ -173,12 +164,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span class="meta-pill">workflow: {{ node.workflowId }}</span>
           <span v-if="node.acpClient" class="meta-pill">{{ node.acpClient }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
-          <span
-            v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
-          >
-            {{ attempts }}
-          </span>
+          <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
         <div v-if="workflowPreview" class="preview">{{ workflowPreview }}</div>
       </template>
@@ -187,12 +173,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
-          <span
-            v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
-          >
-            {{ attempts }}
-          </span>
+          <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
         <div class="preview preview-code">{{ promptPreview }}</div>
       </template>
@@ -201,12 +182,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
         <div class="meta-row">
           <span class="meta-pill">{{ toolCategory }}: {{ node.toolName }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
-          <span
-            v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
-          >
-            {{ attempts }}
-          </span>
+          <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
       </template>
 
@@ -217,12 +193,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
           <span class="meta-pill">topic: {{ node.topic }}</span>
           <span v-if="typeof node.totalThoughts === 'number'" class="meta-pill">thoughts: {{ node.totalThoughts }}</span>
           <span v-if="node.analysisType" class="meta-pill">{{ node.analysisType }}</span>
-          <span
-            v-if="attempts"
-            :class="['meta-pill', 'meta-pill-status', `status-dot--${statusAppearance}`]"
-          >
-            {{ attempts }}
-          </span>
+          <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
       </template>
     </div>
@@ -233,70 +204,33 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 
 <style scoped>
 .pipeline-node {
-  position: relative; display: flex; min-width: 200px; max-width: 280px; max-height: 200px; overflow: hidden;
-  background: var(--accent);
-  border: 1px solid var(--node-status-border, #4b5563);
-  border-radius: 8px; overflow: visible;
-  transition: border-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
+  position: relative; display: flex; min-width: 200px; max-width: 280px; max-height: 200px;
+  overflow: visible; background: #201f1f; border: none; border-radius: 4px;
+  transition: background-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
   font-family: var(--font-body);
 }
 .pipeline-node:hover {
-  background: var(--muted);
+  background: #2a2a2a;
   transform: translateY(-1px);
 }
 .pipeline-node.is-active {
-  animation: node-pulse 2s ease-in-out infinite, pulse-border 2s ease-in-out infinite;
+  box-shadow: 0 0 20px color-mix(in srgb, var(--node-accent) 10%, transparent);
 }
-.node-status-pending { --node-status-border: #4b5563; }
-.node-status-active { --node-status-border: #3b82f6; }
-.node-status-completed { --node-status-border: #22c55e; }
-.node-status-abandoned { --node-status-border: #ef4444; }
-.node-status-stuck { --node-status-border: #f59e0b; }
-.node-status-cancelled { --node-status-border: #6b7280; border-style: dashed; }
-.accent-bar { width: 4px; flex-shrink: 0; background: var(--node-accent); border-radius: 8px 0 0 8px; }
+.accent-bar { width: 4px; flex-shrink: 0; background: var(--node-accent); border-radius: 4px 0 0 4px; }
 .node-content { flex: 1; min-width: 0; }
 .node-title,.type-pill,.node-subtitle,.meta-pill,.preview { overflow: hidden; text-overflow: ellipsis; }
 .type-pill,.meta-pill {
-  display: inline-flex; align-items: center; min-height: 18px; padding: 2px 6px; border-radius: 999px;
+  display: inline-flex; align-items: center; min-height: 18px; padding: 2px 6px; border-radius: 4px;
   font-size: var(--text-xs); line-height: 1.1; white-space: nowrap;
 }
 .node-subtitle,.meta-row,.preview { padding-inline: 12px; }
 .node-subtitle { margin: 8px 0 6px; font-size: var(--text-sm); color: var(--muted-foreground); white-space: nowrap; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
-.meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, transparent); }
-.meta-pill-status { color: var(--primary-foreground); }
-.status-dot--pending { background: var(--color-status-pending); }
-.status-dot--active { background: var(--color-status-active); }
-.status-dot--completed { background: var(--color-status-completed); }
-.status-dot--abandoned { background: var(--color-status-abandoned); }
-.status-dot--stuck { background: var(--color-status-stuck); }
-.status-dot--cancelled { background: #6b7280; }
+.meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, #2a2a2a); }
 .preview {
   margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--muted-foreground);
-  white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 4%, transparent); border-radius: 6px;
+  white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 6%, #2a2a2a); border-radius: 4px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .preview-code { font-family: var(--font-code); }
-:deep(.vue-flow__node.pipeline-node-shell--active) {
-  animation: pipeline-node-shell-pulse 2s ease-in-out infinite;
-}
-
-@keyframes node-pulse {
-  0%, 100% {
-    box-shadow: 0 0 20px color-mix(in srgb, var(--node-accent) 8%, transparent);
-  }
-  50% {
-    box-shadow: 0 0 20px color-mix(in srgb, var(--node-accent) 18%, transparent);
-  }
-}
-
-@keyframes pulse-border {
-  0%, 100% { border-color: #3b82f6; }
-  50% { border-color: #60a5fa; }
-}
-
-@keyframes pipeline-node-shell-pulse {
-  0%, 100% { border-left-color: #3b82f6; }
-  50% { border-left-color: #60a5fa; }
-}
 </style>

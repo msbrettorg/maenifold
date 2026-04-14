@@ -61,7 +61,7 @@ const {
     <DialogContent class="graft-dialog gap-0 p-0 sm:max-w-[48rem]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div class="dialog-heading">
-          <DialogTitle>Graft Nodes</DialogTitle>
+          <DialogTitle>Graft nodes</DialogTitle>
           <DialogDescription>Add one node to the running pipeline and connect it to existing nodes.</DialogDescription>
         </div>
         <DialogClose as-child>
@@ -72,10 +72,10 @@ const {
       <form class="dialog-form" @submit.prevent="handleSubmit">
         <div class="form-grid">
           <label>
-            <span>Node Type</span>
+            <span>Node type</span>
             <select
               v-model="nodeType"
-              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="workflow">Workflow</option>
               <option value="prompt">Prompt</option>
@@ -90,10 +90,10 @@ const {
           </label>
 
           <label>
-            <span>Run After</span>
+            <span>Run after</span>
             <select
               v-model="connectFrom"
-              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="">No upstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`from-${existingNodeId}`" :value="existingNodeId">
@@ -103,10 +103,10 @@ const {
           </label>
 
           <label>
-            <span>Continue To</span>
+            <span>Continue to</span>
             <select
               v-model="connectTo"
-              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="">No downstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`to-${existingNodeId}`" :value="existingNodeId">
@@ -116,10 +116,10 @@ const {
           </label>
 
           <label>
-            <span>Edge Type</span>
+            <span>Edge type</span>
             <select
               v-model="edgeType"
-              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="success">Success</option>
               <option value="always">Always</option>
@@ -242,8 +242,8 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
+  color: #707070;
+  font-size: 0.75rem;
 }
 
 .field-wide {
@@ -254,8 +254,8 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
+  color: #707070;
+  font-size: 0.75rem;
 }
 
 .graft-textarea {
@@ -266,11 +266,11 @@ label {
 .existing-nodes,
 .form-error {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: 0.75rem;
 }
 
 .existing-nodes {
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
 .form-error {

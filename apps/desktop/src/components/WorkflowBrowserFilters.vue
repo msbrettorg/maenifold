@@ -88,15 +88,15 @@ function updateSearchQuery(event: Event) {
 <style scoped>
 .search-wrapper { position: relative; padding: var(--space-4) var(--space-4) var(--space-3); }
 .search-icon { position: absolute; left: calc(var(--space-4) + var(--space-3)); top: calc(50% + var(--space-1) / 2); transform: translateY(-50%); color: var(--muted-foreground); pointer-events: none; }
-.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--input); border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--foreground); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
+.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: #1c1b1b; border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--foreground); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
 .search-input::placeholder { color: var(--muted-foreground); }
-.search-input:hover:not(:focus) { border-color: color-mix(in srgb, var(--border) 130%, transparent); }
-.search-input:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
+.search-input:hover:not(:focus) { background: #2a2a2a; }
+.search-input:focus { background: #2a2a2a; border-color: rgba(77, 142, 255, 0.4); box-shadow: none; }
 .chip-row { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
 .chip-row::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: var(--card); color: var(--muted-foreground); font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); }
+.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--muted-foreground); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }
 .chip:hover { background: var(--muted); color: var(--foreground); }
-.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 15%, var(--muted)); color: var(--color-node-workflow); border-color: color-mix(in srgb, var(--color-node-workflow) 40%, transparent); }
+.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--muted)); color: var(--color-node-workflow); }
 .import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); }
 .import-feedback--error { border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent); color: var(--color-status-abandoned); }
 .feedback-text { flex: 1 1 100%; font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); color: inherit; word-break: break-word; }

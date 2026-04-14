@@ -1,24 +1,17 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import TrafficJsonPayload from './TrafficJsonPayload.vue';
 import type { TrafficEntry as TrafficLogEntry } from '../stores/traffic';
 
-const props = defineProps<{
-  entry: TrafficLogEntry;
-}>();
+const props = defineProps<{ entry: TrafficLogEntry }>();
 
 const isExpanded = ref(false);
-
-const entryClass = computed(() => {
-  const classes = ['entry', props.entry.direction];
-  if (props.entry.error) classes.push('error');
-  return classes.join(' ');
-});
 
 const directionIcon = computed(() => (props.entry.direction === 'out' ? '→' : '←'));
 const entryAriaLabel = computed(() => `${props.entry.method} at ${formatTime(props.entry.timestamp)}`);
 const typeLabel = computed(() => {
-  if (props.entry.type === 'notification') return '(notification)';
-  if (props.entry.type === 'response') return '(response)';
+  if (props.entry.type === 'notification') return 'notification';
+  if (props.entry.type === 'response') return 'response';
   return '';
 });
 
@@ -27,50 +20,42 @@ function toggleExpand() {
 }
 
 function formatTime(timestamp: number) {
-  const date = new Date(timestamp);
-  return `${date.toLocaleTimeString('en-US', {
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  })}.${String(date.getMilliseconds()).padStart(3, '0')}`;
-}
-
-function formatJson(payload: unknown) {
-  try {
-    return JSON.stringify(payload, null, 2);
-  } catch {
-    return String(payload);
-  }
+  const d = new Date(timestamp);
+  return `${d.toLocaleTimeString('en-US', {
+    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit',
+  })}.${String(d.getMilliseconds()).padStart(3, '0')}`;
 }
 
 function copyPayload() {
-  navigator.clipboard.writeText(formatJson(props.entry.payload));
+  try {
+    navigator.clipboard.writeText(JSON.stringify(props.entry.payload, null, 2));
+  } catch { /* clipboard not available */ }
 }
 </script>
 
 <template>
-  <article :class="entryClass" role="article" :aria-label="entryAriaLabel">
+  <article
+    :class="['entry', entry.direction, { error: entry.error }]"
+    role="article"
+    :aria-label="entryAriaLabel"
+  >
     <div class="entry-header" @click="toggleExpand">
       <span class="expand-icon">{{ isExpanded ? '▾' : '▸' }}</span>
       <span class="timestamp">{{ formatTime(entry.timestamp) }}</span>
-      <span class="direction-icon">{{ directionIcon }}</span>
+      <span :class="['direction-icon', entry.direction]">{{ directionIcon }}</span>
       <span class="method">{{ entry.method }}</span>
-      <span class="type-label">{{ typeLabel }}</span>
+      <span v-if="typeLabel" class="type-label">{{ typeLabel }}</span>
       <span v-if="entry.requestId !== undefined" class="request-id">#{{ entry.requestId }}</span>
       <button class="copy-btn" title="Copy JSON" @click.stop="copyPayload">📋</button>
     </div>
 
-    <div v-if="isExpanded" class="entry-payload">
-      <pre>{{ formatJson(entry.payload) }}</pre>
-    </div>
+    <TrafficJsonPayload v-if="isExpanded" :payload="entry.payload" />
   </article>
 </template>
 
 <style scoped>
-.entry {
-  border-bottom: 1px solid var(--border);
-}
+.entry:nth-child(odd) { background: #1c1b1b; }
+.entry:nth-child(even) { background: #201f1f; }
 
 .entry-header {
   display: flex;
@@ -80,19 +65,17 @@ function copyPayload() {
   cursor: pointer;
 }
 
-.entry-header:hover {
-  background: var(--muted);
-}
+.entry-header:hover { background: #2a2a2a; }
 
 .expand-icon {
   width: 1em;
-  color: var(--muted-foreground);
+  color: #707070;
 }
 
-.timestamp,
-.type-label {
-  color: var(--muted-foreground);
+.timestamp {
+  color: #707070;
   font-size: var(--text-tiny);
+  font-family: var(--font-code);
 }
 
 .direction-icon {
@@ -100,28 +83,27 @@ function copyPayload() {
   font-weight: bold;
 }
 
-.entry.out .direction-icon {
-  color: var(--ring);
-}
-
-.entry.in .direction-icon {
-  color: var(--color-status-completed);
-}
+.direction-icon.out { color: #4d8eff; }
+.direction-icon.in { color: #707070; }
 
 .entry.error .direction-icon,
-.entry.error .method {
-  color: var(--destructive);
+.entry.error .method { color: #ffb4ab; }
+
+.type-label {
+  color: #707070;
+  font-size: var(--text-tiny);
 }
 
 .method {
-  color: var(--foreground);
-  font-weight: var(--weight-title);
+  color: #e5e2e1;
+  font-weight: 500;
 }
 
 .request-id {
   margin-left: auto;
-  color: var(--ring);
+  color: #4d8eff;
   font-size: var(--text-tiny);
+  font-family: var(--font-code);
 }
 
 .copy-btn {
@@ -134,21 +116,5 @@ function copyPayload() {
   transition: opacity 0.15s;
 }
 
-.entry-header:hover .copy-btn {
-  opacity: 1;
-}
-
-.entry-payload {
-  padding: 0.5rem 0.75rem 0.75rem 2rem;
-  background: var(--muted);
-  overflow-x: auto;
-}
-
-.entry-payload pre {
-  margin: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-tiny);
-  white-space: pre-wrap;
-  word-break: break-all;
-}
+.entry-header:hover .copy-btn { opacity: 1; }
 </style>

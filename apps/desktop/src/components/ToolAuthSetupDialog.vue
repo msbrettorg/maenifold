@@ -82,7 +82,8 @@ const emit = defineEmits<{
 }
 
 .dialog-body {
-  color: var(--muted-foreground);
+  color: #707070;
+  font-size: 0.75rem;
 }
 
 .dialog-icon {
@@ -92,11 +93,11 @@ const emit = defineEmits<{
 
 .dialog-error {
   color: var(--color-status-abandoned);
-  font-size: var(--text-caption);
+  font-size: 0.75rem;
 }
 
 .dialog-actions {
   flex-direction: row;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 </style>

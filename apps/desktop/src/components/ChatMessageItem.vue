@@ -84,9 +84,16 @@ function renderMarkdown(content: string): string {
 </template>
 
 <style scoped>
-.message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; }
-.message-user { margin-left: 2rem; background: color-mix(in srgb, var(--ring) 24%, var(--card)); }
-.message-assistant { margin-right: 2rem; background: var(--muted); }
+.message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 4px; }
+.message-user {
+  margin-left: auto;
+  max-width: 80%;
+  background: #2a2a2a;
+}
+.message-assistant {
+  background: #201f1f;
+}
+.message-tool-only { padding-top: 0.375rem; padding-bottom: 0.375rem; }
 .message-header { margin-bottom: 0.5rem; }
 .role { color: var(--muted-foreground); font-size: var(--text-sm); font-weight: var(--weight-title); }
 .message-content {
@@ -120,7 +127,7 @@ function renderMarkdown(content: string): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--muted);
+  background: #131313;
   color: var(--muted-foreground);
 }
 .message-content :deep(code) {
@@ -139,11 +146,11 @@ function renderMarkdown(content: string): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
   text-align: left;
 }
 .message-content :deep(th) {
-  background: var(--muted);
+  background: #2a2a2a;
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }

@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
+import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
+import { getWorkspaceLabel } from '../lib/gate-display';
 
 const selectFieldClass =
-  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
+  'w-full rounded-md border border-white/10 bg-[#201f1f] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[#4d8eff]/40 focus:bg-[#2a2a2a] focus:ring-2 focus:ring-[#4d8eff]/15';
 
 const props = defineProps<{
   hasGateRoot: boolean;
@@ -24,6 +26,15 @@ const emit = defineEmits<{
   remove: [];
 }>();
 
+const workspaceOptions = computed(() => props.gateRoots.map((root) => ({
+  value: root,
+  label: getWorkspaceLabel(root),
+})));
+
+const currentWorkspaceLabel = computed(() => (
+  props.selectedGateRoot ? getWorkspaceLabel(props.selectedGateRoot) : 'No workspace selected'
+));
+
 function handleRootChange(event: Event) {
   emit('change-root', (event.target as HTMLSelectElement).value);
 }
@@ -31,19 +42,26 @@ function handleRootChange(event: Event) {
 
 <template>
   <header class="gate-toolbar" role="toolbar" aria-label="Gate actions">
-    <div v-if="props.hasGateRoot" class="gate-stats">
-      <span class="gate-chip gate-chip--todo">{{ props.todoCount }} todo</span>
-      <span class="gate-chip gate-chip--done">{{ props.doneCount }} done</span>
-      <span class="gate-chip">{{ props.totalCount }} total</span>
-      <span v-if="props.shownCount !== props.totalCount" class="gate-chip gate-chip--filtered">{{ props.shownCount }} shown</span>
-      <span v-if="props.lastRefreshLabel" class="gate-refreshed">{{ props.lastRefreshLabel }}</span>
+    <div class="gate-toolbar__copy">
+      <div class="gate-toolbar__copy-block">
+        <p class="gate-toolbar__title">Gates</p>
+        <p class="gate-meta" :title="props.selectedGateRoot || undefined">
+          {{ props.hasGateRoot ? `Workspace ${currentWorkspaceLabel}` : 'Register a workspace to inspect gate tasks.' }}
+        </p>
+      </div>
+      <div v-if="props.hasGateRoot" class="gate-stats">
+        <span class="gate-chip gate-chip--todo">{{ props.todoCount }} todo</span>
+        <span class="gate-chip gate-chip--done">{{ props.doneCount }} done</span>
+        <span class="gate-chip gate-chip--total">{{ props.totalCount }} total</span>
+        <span v-if="props.shownCount !== props.totalCount" class="gate-chip gate-chip--filtered">{{ props.shownCount }} shown</span>
+        <span v-if="props.lastRefreshLabel" class="gate-refreshed">{{ props.lastRefreshLabel }}</span>
+      </div>
     </div>
-    <p v-else class="gate-meta">Register a root to inspect .gate/gate.db.</p>
 
     <div class="gate-toolbar__actions">
       <select :class="[selectFieldClass, 'gate-root-select']" :value="props.selectedGateRoot" :disabled="!props.isReady" @change="handleRootChange">
         <option value="">Select root…</option>
-        <option v-for="root in props.gateRoots" :key="root" :value="root">{{ root }}</option>
+        <option v-for="root in workspaceOptions" :key="root.value" :value="root.value">{{ root.label }}</option>
       </select>
       <Button variant="ghost" @click="emit('browse')">Browse…</Button>
       <Button variant="ghost" :disabled="!props.hasGateRoot" @click="emit('remove')">Remove</Button>
@@ -57,7 +75,9 @@ function handleRootChange(event: Event) {
 <style scoped>
 .gate-toolbar,
 .gate-toolbar__actions,
-.gate-stats {
+.gate-stats,
+.gate-toolbar__copy,
+.gate-toolbar__copy-block {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -67,49 +87,73 @@ function handleRootChange(event: Event) {
 .gate-toolbar {
   justify-content: space-between;
   gap: 1rem;
+  padding: 0.9rem 1rem;
+  background: #1c1b1b;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+}
+
+.gate-toolbar__copy,
+.gate-toolbar__copy-block {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.gate-toolbar__copy {
+  gap: 0.75rem;
+}
+
+.gate-toolbar__title {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--foreground);
 }
 
 .gate-chip {
-  padding: 0.25rem 0.6rem;
+  padding: 0.28rem 0.65rem;
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  color: var(--muted-foreground);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  color: #f4f7ff;
+  border-radius: 4px;
+  background: #353534;
 }
 
 .gate-chip--todo {
-  color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 12%, var(--muted));
+  background: #4d8eff;
 }
 
 .gate-chip--done {
-  color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--muted));
+  background: #4edea3;
+}
+
+.gate-chip--total {
+  background: #424753;
 }
 
 .gate-chip--filtered {
-  color: var(--ring);
-  background: color-mix(in srgb, var(--ring) 10%, var(--muted));
+  background: #f59e0b;
 }
 
-.gate-refreshed,
-.gate-meta {
+.gate-meta,
+.gate-refreshed {
   color: var(--muted-foreground);
 }
 
 .gate-refreshed {
+  font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
 
 .gate-root-select {
   min-width: 14rem;
-  max-width: 24rem;
+  max-width: 18rem;
 }
 
 @media (max-width: 1100px) {
   .gate-toolbar {
     flex-direction: column;
+    align-items: stretch;
   }
 }
 </style>

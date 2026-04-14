@@ -23,7 +23,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
       @click="emit('toggle', messageId)"
     >
       <span class="thought-icon">💭</span>
-      <span class="thought-label">{{ expanded ? 'Hide Thinking' : 'Show Thinking' }}</span>
+      <span class="thought-label">{{ expanded ? 'Hide thinking' : 'Show thinking' }}</span>
       <span class="thought-chevron">{{ expanded ? '▲' : '▼' }}</span>
     </button>
     <div v-if="expanded" :id="contentId" class="thought-content">
@@ -36,8 +36,8 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 .thought-section {
   margin-bottom: 0.75rem;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
 }
 .thought-toggle {
   display: flex;
@@ -46,21 +46,20 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: none;
-  background: var(--muted);
+  background: #2a2a2a;
   color: var(--muted-foreground);
   font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.thought-toggle:hover { background: color-mix(in srgb, var(--ring) 24%, var(--card)); }
+.thought-toggle:hover { background: #353534; }
 .thought-icon { flex-shrink: 0; font-size: var(--text-base); }
 .thought-label { flex: 1; font-size: var(--text-xs); font-weight: var(--weight-display); }
 .thought-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
 .thought-content {
   padding: 0.75rem 1rem 0.75rem 1.25rem;
-  border-top: 1px solid var(--border);
-  background: var(--background);
+  background: #201f1f;
   color: var(--muted-foreground);
   font-size: var(--text-base);
   font-style: italic;
@@ -71,7 +70,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 .thought-content :deep(code) {
   padding: 0.125rem 0.25rem;
   border-radius: 3px;
-  background: var(--muted);
+  background: #2a2a2a;
   font-size: var(--text-sm);
 }
 </style>

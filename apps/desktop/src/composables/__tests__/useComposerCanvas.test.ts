@@ -17,6 +17,7 @@ vi.mock('@vue-flow/core', () => ({
   useVueFlow: () => ({
     onConnect: vi.fn(),
     onEdgeClick: vi.fn(),
+    onEdgeDoubleClick: vi.fn(),
     onNodeClick: vi.fn(),
     onNodeDoubleClick: (callback: typeof flowHooks.nodeDoubleClick) => {
       flowHooks.nodeDoubleClick = callback;

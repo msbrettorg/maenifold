@@ -37,7 +37,7 @@ function updateType(event: Event) {
 
 <template>
   <div v-if="visible" class="agent-form" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
-    <h4>{{ editingServer ? 'Edit MCP Server' : 'Add New MCP Server' }}</h4>
+    <h4>{{ editingServer ? 'Edit MCP server' : 'Add new MCP server' }}</h4>
 
     <label class="form-group">
       <span>Name</span>
@@ -60,14 +60,14 @@ function updateType(event: Event) {
 
       <label class="form-group">
         <span>Arguments</span>
-        <textarea :value="formArgs" rows="4" placeholder="/path/to/workspace&#10;--read-only" @input="updateValue($event, 'formArgs')" />
+        <textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" @input="updateValue($event, 'formArgs')" />
         <small>Enter one argument per line.</small>
       </label>
     </template>
 
     <label v-else class="form-group">
       <span>URL</span>
-      <input :value="formUrl" type="url" placeholder="http://localhost:8080/mcp" @input="updateValue($event, 'formUrl')" />
+      <input :value="formUrl" type="url" placeholder="localhost:8080/mcp" @input="updateValue($event, 'formUrl')" />
     </label>
 
     <p v-if="formError" class="form-error">{{ formError }}</p>

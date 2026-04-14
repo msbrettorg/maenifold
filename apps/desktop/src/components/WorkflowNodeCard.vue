@@ -274,7 +274,6 @@ function formatAbsolute(iso: string): string {
 .timing-label {
   font-size: var(--text-tiny);
   color: var(--workflow-card-subtle);
-  text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 

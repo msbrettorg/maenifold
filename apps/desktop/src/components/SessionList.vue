@@ -112,8 +112,8 @@ async function handleDelete(session: SavedSession, event: Event) {
 </script>
 
 <template>
-  <div class="p-4">
-    <h3 class="mb-3 text-tiny font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+  <div>
+    <h3 class="mb-3 text-tiny font-normal text-[#707070]">
       Sessions
     </h3>
 
@@ -126,7 +126,7 @@ async function handleDelete(session: SavedSession, event: Event) {
         v-for="session in sessions"
         :key="session.id"
         role="listitem"
-        class="session-item flex items-center justify-between mb-1 py-2 px-[0.625rem] border-none rounded-md cursor-pointer"
+        class="session-item mb-1 flex cursor-pointer items-center justify-between rounded-[4px] border-none px-[0.625rem] py-2"
         :class="{ 'cursor-default': isResumeUnavailable(session) }"
         @click="handleResume(session)"
       >
@@ -140,22 +140,22 @@ async function handleDelete(session: SavedSession, event: Event) {
             </span>
             <span
               v-if="isCurrentConnectedSession(session)"
-              class="connection-badge connected inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
-            >
-              <span class="connection-dot text-tiny leading-none">●</span> connected
-            </span>
+               class="connection-state connected inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+             >
+               <span class="connection-dot" aria-hidden="true" />Connected
+             </span>
             <span
               v-else-if="isCurrentConnectingSession(session)"
-              class="connection-badge connecting inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
-            >
-              <span class="connection-dot text-tiny leading-none">●</span> connecting
-            </span>
+               class="connection-state connecting inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+             >
+               <span class="connection-dot" aria-hidden="true" />Connecting
+             </span>
             <span
               v-else-if="isResumeUnavailable(session)"
-              class="connection-badge unavailable inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
-            >
-              resume unavailable
-            </span>
+               class="connection-state unavailable inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+             >
+               <span class="connection-dot" aria-hidden="true" />Resume unavailable
+             </span>
           </div>
           <span class="text-tiny text-muted-foreground">
             {{ session.agentName }}
@@ -189,27 +189,37 @@ async function handleDelete(session: SavedSession, event: Event) {
   background: color-mix(in srgb, var(--muted) 60%, transparent);
 }
 
-.connection-badge.connected {
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
-  color: var(--color-status-completed);
+.connection-state {
+  color: var(--muted-foreground);
 }
 
-.connection-badge.connected .connection-dot {
+.connection-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: #707070;
+}
+
+.connection-state.connected {
+  color: #4edea3;
+}
+
+.connection-state.connected .connection-dot {
+  background: #4edea3;
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
-.connection-badge.connecting {
-  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
+.connection-state.connecting {
+  color: #f59e0b;
 }
 
-.connection-badge.connecting .connection-dot {
+.connection-state.connecting .connection-dot {
+  background: #f59e0b;
   animation: pulse-dot 1s ease-in-out infinite;
 }
 
-.connection-badge.unavailable {
-  background: color-mix(in srgb, var(--border) 60%, var(--background));
-  color: var(--muted-foreground);
+.connection-state.unavailable .connection-dot {
+  background: #707070;
 }
 
 .delete-btn:hover {

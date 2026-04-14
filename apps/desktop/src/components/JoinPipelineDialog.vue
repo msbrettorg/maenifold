@@ -80,7 +80,7 @@ function handleSubmit() {
     <DialogContent class="join-dialog gap-0 p-0 sm:max-w-[52rem]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div class="dialog-heading">
-          <DialogTitle>Join Pipeline</DialogTitle>
+          <DialogTitle>Join pipeline</DialogTitle>
           <DialogDescription>Merge another pipeline session into this one by mapping source nodes to target nodes.</DialogDescription>
         </div>
         <DialogClose as-child>
@@ -90,7 +90,7 @@ function handleSubmit() {
 
       <form class="dialog-form" @submit.prevent="handleSubmit">
         <label>
-          <span>Source Pipeline Session ID</span>
+          <span>Source pipeline session ID</span>
           <Input v-model="sourceSessionId" type="text" placeholder="session-abc123" />
         </label>
 
@@ -102,18 +102,18 @@ function handleSubmit() {
 
           <div v-for="(edge, index) in edgeRows" :key="`join-edge-${index}`" class="edge-row">
             <label>
-              <span>Source Node ID</span>
+              <span>Source node ID</span>
               <Input v-model="edge.source" type="text" placeholder="source-node-id" />
             </label>
             <label>
-              <span>Target Node ID</span>
+              <span>Target node ID</span>
               <Input v-model="edge.target" type="text" placeholder="target-node-id" />
             </label>
             <label>
-              <span>Edge Type</span>
+              <span>Edge type</span>
               <select
                 v-model="edge.type"
-                class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+                class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
               >
                 <option value="success">Success</option>
                 <option value="always">Always</option>
@@ -175,8 +175,8 @@ label {
 
 label {
   min-width: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
+  color: #707070;
+  font-size: 0.75rem;
 }
 
 .edge-list {
@@ -193,8 +193,8 @@ label {
 
 .edge-list-header h4 {
   margin: 0;
-  font-size: var(--text-sm);
-  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  color: #707070;
 }
 
 .edge-row {
@@ -210,7 +210,7 @@ label {
 
 .form-error {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: 0.75rem;
   color: var(--color-status-abandoned);
 }
 

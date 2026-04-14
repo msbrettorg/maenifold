@@ -13,6 +13,7 @@ import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
+import ChatWelcomeScreen from './components/ChatWelcomeScreen.vue';
 import ToastContainer from './components/ToastContainer.vue';
 
 const configStore = useConfigStore();
@@ -92,7 +93,7 @@ function closeWorkflowPanel() {
           <!-- Workflow Authoring Page -->
           <div v-else-if="showWorkflows" key="workflows" class="flex flex-1 flex-col overflow-hidden">
             <div
-              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
             >
               <span>Workflows</span>
               <button
@@ -110,7 +111,7 @@ function closeWorkflowPanel() {
 
           <div v-else-if="showPipelines" key="pipelines" class="flex flex-1 flex-col overflow-hidden">
             <div
-              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
             >
               <span>Pipelines</span>
               <button
@@ -126,7 +127,7 @@ function closeWorkflowPanel() {
 
           <div v-else-if="showGate" key="gate" class="flex flex-1 flex-col overflow-hidden">
             <div
-              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
             >
               <span>Gate</span>
               <button
@@ -142,7 +143,7 @@ function closeWorkflowPanel() {
 
           <div v-else-if="showGraph" key="graph" class="flex flex-1 flex-col overflow-hidden">
             <div
-              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
             >
               <span>Graph</span>
               <button
@@ -157,27 +158,18 @@ function closeWorkflowPanel() {
           </div>
             
           <!-- Welcome screen when not connected -->
-          <div
+          <ChatWelcomeScreen
             v-else
             key="welcome"
-            class="flex flex-1 flex-col items-center justify-center p-8 text-center text-[var(--muted-foreground)]"
-          >
-            <h2 class="mb-2 font-[var(--font-display)] tracking-[0.04em] text-[var(--foreground)]">
-              Welcome to maenifold
-            </h2>
-            <p>Select an agent and create a new session to get started.</p>
-            <p class="mt-2 text-[var(--text-caption)] italic text-[var(--muted-foreground)]">
-              The space between the notes is where the music lives.
-            </p>
-            <p v-if="!hasAgents" class="mt-4 text-[var(--text-caption)] text-[var(--muted-foreground)]">
-              Configure agents in your config file to begin.
-            </p>
-          </div>
+            :has-agents="hasAgents"
+            :can-create-session="!!selectedAgent && !isConnecting"
+            @new-session="handleNewSession"
+          />
         </Transition>
       </main>
       
       <!-- Traffic Monitor Panel -->
-      <div v-if="showTrafficMonitor" class="shrink-0 border-t-2 border-[var(--border)]">
+      <div v-if="showTrafficMonitor" class="shrink-0">
         <TrafficMonitor @close="showTrafficMonitor = false" />
       </div>
     </div>

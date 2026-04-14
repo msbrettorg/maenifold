@@ -204,7 +204,7 @@ onMounted(loadSettings);
           {{ isSubmitting ? 'Saving…' : 'Save' }}
         </button>
         <button class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
-          Reset to Defaults
+          Reset to defaults
         </button>
       </div>
     </template>
@@ -265,7 +265,7 @@ onMounted(loadSettings);
 .save-btn {
   border: none;
   background: var(--ring);
-  color: white;
+  color: var(--foreground);
 }
 
 .reset-btn {

@@ -23,7 +23,7 @@ defineEmits<{ close: [] }>();
 const processLabel = computed(() => {
   if (!props.task) return '';
   const pipeline = props.task.pipeline?.trim() || 'unbound';
-  return props.task.location === 'done' ? `${pipeline.toUpperCase()} done` : pipeline.toUpperCase();
+  return props.task.location === 'done' ? `${pipeline} done` : pipeline;
 });
 
 const detailTitleId = computed(() => (props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'));
@@ -92,9 +92,9 @@ function renderMarkdown(content: string | null) {
   min-height: 0;
   overflow: hidden;
   padding: 1rem;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  background: #1c1b1b;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
 }
 
 .gate-detail__header,
@@ -121,8 +121,6 @@ function renderMarkdown(content: string | null) {
 
 .gate-detail__eyebrow {
   font-size: var(--text-tiny);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .gate-detail__content {
@@ -146,16 +144,14 @@ function renderMarkdown(content: string | null) {
 
 .gate-detail__section-label {
   font-size: var(--text-tiny);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .gate-detail__issue,
 .gate-detail__message {
   padding: 0.75rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #201f1f;
 }
 
 .gate-detail__message--error,
@@ -170,9 +166,9 @@ function renderMarkdown(content: string | null) {
 
 .gate-detail__body {
   padding: 0.9rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #201f1f;
 }
 
 .gate-detail__markdown :deep(*) {

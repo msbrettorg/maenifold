@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { PREFS_STORE_PATH } from '../lib/constants';
 import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/local-storage';
@@ -23,6 +23,10 @@ function handleDensityChange(density: FontDensity) {
 const telemetryEnabled = ref(true);
 const lastCwd = ref('');
 const loading = ref(true);
+
+const displayCwd = computed(() =>
+  lastCwd.value ? lastCwd.value.split('/').filter(Boolean).pop() ?? lastCwd.value : 'No working directory saved.',
+);
 const saving = ref(false);
 const error = ref('');
 const status = ref('');
@@ -87,7 +91,7 @@ onMounted(async () => {
     <div class="section-header">
       <div>
         <h3>Preferences</h3>
-        <p>These values are persisted locally under <code>{{ PREFS_STORE_PATH }}</code>.</p>
+        <p>Persisted locally on this device.</p>
       </div>
       <span class="status-chip" :class="{ saving }">
         {{ saving ? 'Saving…' : 'Local only' }}
@@ -145,7 +149,7 @@ onMounted(async () => {
             Clear saved folder
           </button>
         </div>
-        <code class="saved-value">{{ lastCwd || 'No working directory saved.' }}</code>
+        <code class="saved-value">{{ displayCwd }}</code>
       </div>
     </template>
   </section>

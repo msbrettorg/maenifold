@@ -21,20 +21,20 @@ const emit = defineEmits<{
 const store = usePipelineStore();
 const { pipelines } = storeToRefs(store);
 const flyoutRef = ref<HTMLElement | null>(null);
+const searchQuery = ref('');
 
 function getFocusableElements() {
   return Array.from(
     flyoutRef.value?.querySelectorAll<HTMLElement>(
-      'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+      'button:not([disabled]), [href], input, [tabindex]:not([tabindex="-1"])'
     ) ?? []
-  ).filter((element) => !element.hasAttribute('disabled') && element.getClientRects().length > 0);
+  ).filter((el) => !el.hasAttribute('disabled') && el.getClientRects().length > 0);
 }
 
 function focusInitialElement() {
   nextTick(() => {
-    const firstPipelineItem = flyoutRef.value?.querySelector<HTMLElement>('[data-pipeline-item]');
-    const fallback = getFocusableElements()[0];
-    (firstPipelineItem ?? fallback)?.focus();
+    const first = flyoutRef.value?.querySelector<HTMLElement>('[data-pipeline-item]');
+    (first ?? getFocusableElements()[0])?.focus();
   });
 }
 
@@ -42,19 +42,13 @@ function focusSiblingPipelineItem(current: HTMLElement, direction: -1 | 1) {
   const items = Array.from(
     flyoutRef.value?.querySelectorAll<HTMLElement>('[data-pipeline-item]') ?? []
   );
-  const currentIndex = items.indexOf(current);
-  if (currentIndex === -1 || items.length === 0) return;
-
-  const nextIndex = (currentIndex + direction + items.length) % items.length;
-  items[nextIndex]?.focus();
+  const idx = items.indexOf(current);
+  if (idx === -1 || items.length === 0) return;
+  items[(idx + direction + items.length) % items.length]?.focus();
 }
 
 async function handleRefresh() {
   await store.refreshList();
-}
-
-function handleNewPipeline() {
-  emit('new-pipeline');
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -62,18 +56,14 @@ function handleKeydown(event: KeyboardEvent) {
   if (!target) return;
 
   if (event.key === 'Tab') {
-    const focusableElements = getFocusableElements();
-    if (focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey && target === firstElement) {
+    const els = getFocusableElements();
+    if (els.length === 0) return;
+    if (event.shiftKey && target === els[0]) {
       event.preventDefault();
-      lastElement.focus();
-    } else if (!event.shiftKey && target === lastElement) {
+      els[els.length - 1].focus();
+    } else if (!event.shiftKey && target === els[els.length - 1]) {
       event.preventDefault();
-      firstElement.focus();
+      els[0].focus();
     }
     return;
   }
@@ -97,15 +87,11 @@ function handleKeydown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
-  focusInitialElement();
-});
+onMounted(focusInitialElement);
 
 watch(
   () => [props.showLoadingState, props.showErrorState, pipelines.value.length],
-  () => {
-    focusInitialElement();
-  }
+  () => focusInitialElement(),
 );
 </script>
 
@@ -117,11 +103,11 @@ watch(
     aria-label="Pipelines"
     @keydown="handleKeydown"
   >
-    <header class="pipeline-flyout-header">
+    <header class="flyout-header">
       <h3>Pipelines</h3>
       <button
         type="button"
-        class="pipeline-flyout-refresh"
+        class="flyout-refresh"
         aria-label="Refresh pipelines"
         title="Refresh pipelines"
         @click="handleRefresh"
@@ -130,25 +116,39 @@ watch(
       </button>
     </header>
 
-    <div class="pipeline-flyout-body">
-      <div v-if="showLoadingState" class="pipeline-state pipeline-state--loading" aria-live="polite">
+    <div class="flyout-search">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="flyout-search-input"
+        placeholder="Search pipelines…"
+      />
+    </div>
+
+    <div class="flyout-body">
+      <div v-if="showLoadingState" class="flyout-state" aria-live="polite">
         <div class="skeleton-block skeleton-block--title" />
         <div class="skeleton-block skeleton-block--wide" />
         <div class="skeleton-block" />
       </div>
 
-      <div v-else-if="showErrorState" class="pipeline-state pipeline-state--error" role="alert">
-        <p class="pipeline-state-title">Failed to load</p>
-        <p class="pipeline-state-message">{{ connectionError }}</p>
+      <div v-else-if="showErrorState" class="flyout-state flyout-state--error" role="alert">
+        <p class="flyout-state-title">Failed to load</p>
+        <p class="flyout-state-msg">{{ connectionError }}</p>
         <Button type="button" @click="emit('retry')">Retry</Button>
       </div>
 
-      <div v-else-if="pipelines.length === 0" class="pipeline-state pipeline-state--empty">
-        <p class="pipeline-state-title">No pipelines yet</p>
-        <Button type="button" @click="handleNewPipeline">+ New Pipeline</Button>
+      <div v-else-if="pipelines.length === 0" class="flyout-state">
+        <p class="flyout-state-title">No pipelines yet</p>
+        <Button type="button" @click="emit('new-pipeline')">+ New pipeline</Button>
       </div>
 
-      <PipelineSidebar v-else hide-header @pipeline-selected="emit('close')" />
+      <PipelineSidebar
+        v-else
+        hide-header
+        :filter-query="searchQuery"
+        @pipeline-selected="emit('close')"
+      />
     </div>
   </aside>
 </template>
@@ -158,51 +158,76 @@ watch(
   height: 100%;
   display: flex;
   flex-direction: column;
+  background: #1c1b1b;
+  animation: slide-in 0.2s ease-out;
 }
 
-.pipeline-flyout-header {
+@keyframes slide-in {
+  from { transform: translateX(-100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.flyout-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
-.pipeline-flyout-header h3 {
+.flyout-header h3 {
   margin: 0;
-  font-size: var(--text-xl);
-  color: var(--muted-foreground);
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: var(--text-title);
+  color: #e5e2e1;
 }
 
-.pipeline-flyout-refresh {
+.flyout-refresh {
   width: 36px;
   height: 36px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--foreground);
+  color: #e5e2e1;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 0.15s;
 }
 
-.pipeline-flyout-refresh:hover,
-.pipeline-flyout-refresh:focus-visible {
-  background: var(--muted);
+.flyout-refresh:hover,
+.flyout-refresh:focus-visible { background: #2a2a2a; outline: none; }
+
+.flyout-search { padding: 0 1rem 0.75rem; }
+
+.flyout-search-input {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 4px;
+  background: #1c1b1b;
+  color: #e5e2e1;
+  font-size: var(--text-sm);
   outline: none;
 }
 
-.pipeline-flyout-body {
+.flyout-search-input::placeholder { color: #707070; }
+
+.flyout-search-input:focus {
+  background: #2a2a2a;
+  border-color: rgba(77, 142, 255, 0.4);
+}
+
+.flyout-body {
   min-height: 0;
   flex: 1;
   display: flex;
   overflow: hidden;
 }
 
-.pipeline-state {
+.flyout-state {
   flex: 1;
   display: grid;
   place-content: center;
@@ -211,30 +236,24 @@ watch(
   text-align: center;
 }
 
-.pipeline-state--error {
-  color: var(--foreground);
-}
+.flyout-state--error { color: #e5e2e1; }
 
-.pipeline-state-title {
+.flyout-state-title {
   margin: 0;
   font-size: var(--text-lg);
+  color: #e5e2e1;
 }
 
-.pipeline-state-message {
+.flyout-state-msg {
   margin: 0;
-  color: var(--muted-foreground);
+  color: #707070;
   font-size: var(--text-sm);
-}
-
-.pipeline-state--loading {
-  width: min(40rem, 100%);
-  margin: auto;
 }
 
 .skeleton-block {
   height: 0.875rem;
-  border-radius: 0.5rem;
-  background: var(--muted);
+  border-radius: 4px;
+  background: #2a2a2a;
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
@@ -255,12 +274,7 @@ watch(
 }
 
 @keyframes skeleton-pulse {
-  0%,
-  100% {
-    background: var(--muted);
-  }
-  50% {
-    background: var(--card);
-  }
+  0%, 100% { background: #2a2a2a; }
+  50% { background: #201f1f; }
 }
 </style>

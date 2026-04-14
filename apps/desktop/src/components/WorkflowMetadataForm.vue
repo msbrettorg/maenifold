@@ -54,23 +54,23 @@ const workflowCategory = computed({
 <template>
   <div v-if="workflow" class="workflow-form" role="form" aria-label="Workflow metadata">
     <div class="form-group">
-      <label class="field-label">WORKFLOW ID</label>
+      <label class="field-label">Workflow ID</label>
       <code class="field-display">{{ workflow.id }}</code>
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-name">NAME</label>
+      <label class="field-label" for="workflow-name">Name</label>
       <Input id="workflow-name" v-model="workflowName" type="text" />
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label class="field-label" for="workflow-emoji">EMOJI</label>
+        <label class="field-label" for="workflow-emoji">Emoji</label>
         <Input id="workflow-emoji" v-model="workflowEmoji" type="text" />
       </div>
 
       <div class="form-group">
-        <label class="field-label" for="workflow-category">CATEGORY</label>
+        <label class="field-label" for="workflow-category">Category</label>
         <select id="workflow-category" v-model="workflowCategory" :class="selectFieldClass">
           <option value="">Auto</option>
           <option v-for="option in CATEGORY_OPTIONS" :key="option" :value="option">
@@ -81,7 +81,7 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-description">DESCRIPTION</label>
+      <label class="field-label" for="workflow-description">Description</label>
       <Textarea
         id="workflow-description"
         v-model="workflowDescription"
@@ -90,7 +90,7 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-triggers">TRIGGERS</label>
+      <label class="field-label" for="workflow-triggers">Triggers</label>
       <Input
         id="workflow-triggers"
         v-model="workflowTriggers"
@@ -100,7 +100,7 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label">SEQUENTIAL THINKING</label>
+      <label class="field-label">Sequential thinking</label>
       <button
         class="toggle-card"
         :class="{ 'toggle-card--enabled': workflow.sequentialThinkingEnabled }"
@@ -115,7 +115,7 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label">MULTI-AGENT</label>
+      <label class="field-label">Multi-agent</label>
       <button
         class="toggle-card"
         :class="{ 'toggle-card--enabled': workflow.multiAgent }"
@@ -135,7 +135,7 @@ const workflowCategory = computed({
 .workflow-form { display: flex; flex-direction: column; gap: var(--space-5); }
 .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
-.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
 .field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--muted-foreground); padding: var(--space-2) 0; line-height: 1.5; }
 .toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--foreground); cursor: pointer; text-align: left; }
 .toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }

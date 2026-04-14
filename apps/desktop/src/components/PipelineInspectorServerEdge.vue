@@ -42,7 +42,7 @@ defineProps<{
 </template>
 
 <style scoped>
-.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; background: var(--pipeline-inspector-surface); border-radius: 4px; }
 .panel h2 { font-size: var(--text-xl); font-weight: var(--weight-title); }
 .summary-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
 .summary-row span,.read-block span { color: var(--muted-foreground); }
@@ -55,7 +55,10 @@ defineProps<{
 .status-text--paused { color: var(--color-status-ready); }
 .status-text--cancelled { color: var(--color-status-abandoned); }
 .read-block { display: flex; flex-direction: column; gap: 0.375rem; color: var(--muted-foreground); font-size: var(--text-sm); }
-.read-block pre { margin: 0; border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--background); white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--foreground); }
+.read-block pre {
+  margin: 0; border: 1px solid var(--pipeline-inspector-ghost-border); border-radius: 4px; padding: 0.75rem;
+  background: var(--pipeline-inspector-well); white-space: pre-wrap; word-break: break-word; overflow-wrap: break-word; font: inherit; color: var(--foreground);
+}
 .mapping-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .mapping-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 </style>

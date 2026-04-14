@@ -224,7 +224,7 @@ function closeDialog(): void {
     <div class="promotion-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-dialog-title">
       <div class="dialog-header">
         <div>
-          <h3 id="promotion-dialog-title">Promote to Memory</h3>
+          <h3 id="promotion-dialog-title">Promote to memory</h3>
           <p>Save this finished node output as a reusable note or add it to one you already have.</p>
         </div>
         <Button type="button" variant="ghost" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>

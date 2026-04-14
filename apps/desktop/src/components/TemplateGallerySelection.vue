@@ -43,7 +43,7 @@ defineEmits<{
         :disabled="!canCreate || !hasIntentAgent"
         @click="$emit('create')"
       >
-        Create Pipeline
+        Create pipeline
       </Button>
     </div>
   </div>
@@ -54,15 +54,17 @@ defineEmits<{
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  padding-top: 0.5rem;
+  padding: 1rem;
   width: min(100%, 720px);
-  border-top: 1px solid var(--border);
+  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-radius: 0.25rem;
+  background: #1c1b1b;
 }
 
 .gallery-field-label {
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-display);
-  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #707070;
 }
 
 .gallery-runtime-inputs {
@@ -80,8 +82,8 @@ defineEmits<{
 }
 
 .gallery-runtime-input-item {
-  color: var(--foreground);
-  font-size: var(--text-caption);
+  color: #e5e2e1;
+  font-size: 0.875rem;
 }
 
 .gallery-runtime-input-name {
@@ -89,13 +91,13 @@ defineEmits<{
 }
 
 .gallery-runtime-input-required {
-  color: var(--color-status-stuck, #e57373);
+  color: #ffb4ab;
 }
 
 .gallery-runtime-input-desc,
 .gallery-runtime-note {
-  color: var(--muted-foreground);
-  font-size: var(--text-tiny);
+  color: #c2c6d6;
+  font-size: 0.75rem;
 }
 
 .gallery-actions {

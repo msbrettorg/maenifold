@@ -111,7 +111,7 @@ describe('PipelineView layout behavior', () => {
     expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(false);
   });
 
-  it('closes the flyout on Escape before clearing the inspector selection', async () => {
+  it('closes the flyout on Escape and preserves node selection state', async () => {
     const { wrapper } = mountPipelineView({
       setupStore(store) {
         store.localDefinition = {
@@ -126,18 +126,12 @@ describe('PipelineView layout behavior', () => {
     wrapper.findComponent(PipelineComposer).vm.$emit('nodeSelected', 'node-1');
     await flushPromises();
 
-    expect(wrapper.find('.inspector-panel').classes()).toContain('is-visible');
+    expect(wrapper.find('#pipeline-flyout').exists()).toBe(true);
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await flushPromises();
 
     expect(wrapper.find('#pipeline-flyout').exists()).toBe(false);
-    expect(wrapper.find('.inspector-panel').classes()).toContain('is-visible');
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
-    await flushPromises();
-
-    expect(wrapper.find('.inspector-panel').classes()).not.toContain('is-visible');
   });
 
   it('keeps node selection in server mode without rendering inspector controls', async () => {

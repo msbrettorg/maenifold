@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { ServerHealthStatus } from '../lib/types';
@@ -33,9 +35,16 @@ const emit = defineEmits<{
   submitRequest: [];
 }>();
 
-function updateCwd(event: Event): void {
-  const trimmed = (event.target as HTMLInputElement).value.trim();
+const selectFieldClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+
+function updateCwd(value: string | number): void {
+  const trimmed = String(value).trim();
   emit('update:cwd', trimmed.length > 0 ? trimmed : undefined);
+}
+
+function forwardToolName(value: string | number): void {
+  emit('update:toolName', String(value));
 }
 
 function getCwdWarning(value: string): string | null {
@@ -106,7 +115,6 @@ const {
   updateAgentModel,
   updateAgentName,
   updateAgentThoughtLevel,
-  updateToolName,
   visibleTools,
 } = useToolPaletteFields(props, emit);
 </script>
@@ -115,7 +123,7 @@ const {
   <div class="tool-palette field-wide">
     <label>
       <span>Agent Override</span>
-      <select class="field-input" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
+      <select :class="selectFieldClass" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
         <option value="">Use tool default</option>
         <option v-for="name in configStore.agentNames" :key="name" :value="name">
           {{ formatAgentOptionLabel(name) }}
@@ -130,26 +138,31 @@ const {
           <button v-for="mode in readyProbe()?.modeOptions" :key="mode.id" type="button" class="mode-badge" :class="{ selected: getAgentModeValue(agentConfig, readyProbe()) === mode.id }" :data-testid="`tool-mode-badge-${mode.id}`" @click="updateAgentMode(mode.id)">{{ mode.name }}</button>
         </div>
         <div class="tool-agent-grid">
-          <label v-if="readyProbe()?.modelOptions.length"><span>Model</span><select class="field-input" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe())" @change="updateAgentModel"><option v-for="model in readyProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option></select></label>
-          <label v-if="readyProbe()?.thoughtLevelConfigOption"><span>{{ readyProbe()?.thoughtLevelConfigOption?.name }}</span><select class="field-input" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe())" @change="updateAgentThoughtLevel"><template v-for="entry in readyProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
-          <label v-for="option in getEditableAgentConfigOptions(readyProbe())" :key="option.id"><span>{{ option.name }}</span><select class="field-input" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)"><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
+          <label v-if="readyProbe()?.modelOptions.length"><span>Model</span><select :class="selectFieldClass" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe())" @change="updateAgentModel"><option v-for="model in readyProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option></select></label>
+          <label v-if="readyProbe()?.thoughtLevelConfigOption"><span>{{ readyProbe()?.thoughtLevelConfigOption?.name }}</span><select :class="selectFieldClass" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe())" @change="updateAgentThoughtLevel"><template v-for="entry in readyProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
+          <label v-for="option in getEditableAgentConfigOptions(readyProbe())" :key="option.id"><span>{{ option.name }}</span><select :class="selectFieldClass" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)"><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
         </div>
       </template>
     </div>
 
     <label>
       <span>Working directory</span>
-      <input class="field-input" :value="cwd" type="text" placeholder="/absolute/path" @input="updateCwd" />
+      <Input
+        :model-value="cwd"
+        type="text"
+        placeholder="/absolute/path"
+        @update:model-value="updateCwd"
+      />
       <small v-if="getCwdWarning(cwd)" class="tool-palette__hint tool-palette__hint--warning">
         {{ getCwdWarning(cwd) }}
       </small>
     </label>
 
-    <div class="tool-palette__header"><div><span>Tool Palette</span><p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p></div><button type="button" class="btn btn-ghost" :disabled="loading" @click="refreshCatalog">{{ loading ? 'Refreshing…' : 'Refresh' }}</button></div>
+    <div class="tool-palette__header"><div><span>Tool Palette</span><p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p></div><Button variant="ghost" :disabled="loading" @click="refreshCatalog">{{ loading ? 'Refreshing…' : 'Refresh' }}</Button></div>
     <p v-if="error && !hasCatalog" class="tool-palette__status tool-palette__status--error">{{ error }}</p>
-    <input v-model="searchQuery" class="field-input tool-palette__search" type="search" placeholder="Search tools by name or description…" aria-label="Search tools" />
+    <Input v-model="searchQuery" class="tool-palette__search" type="search" placeholder="Search tools by name or description…" aria-label="Search tools" />
 
-    <div class="tool-palette__status-row"><strong>{{ isSearching ? `${searchResults.length} results` : 'Browse by intent' }}</strong><button v-if="searchQuery" type="button" class="btn btn-ghost btn-xs" @click="clearSearch">Clear search</button></div>
+    <div class="tool-palette__status-row"><strong>{{ isSearching ? `${searchResults.length} results` : 'Browse by intent' }}</strong><Button v-if="searchQuery" variant="ghost" size="xs" @click="clearSearch">Clear search</Button></div>
 
     <section v-if="showQuickAdd" class="tool-palette__quick-add" aria-label="Quick Add">
       <div class="tool-palette__quick-add-header"><div><strong>Quick Add</strong><p>Reuse recent and pinned tools without leaving intent-based browse mode.</p></div></div>
@@ -186,12 +199,12 @@ const {
       </button>
     </div>
 
-    <label><span>Tool Name</span><input class="field-input" :value="toolName" type="text" placeholder="server.ToolName" @input="updateToolName" /></label>
+    <label><span>Tool Name</span><Input :model-value="toolName" type="text" placeholder="server.ToolName" @update:model-value="forwardToolName" /></label>
 
     <section v-if="toolName" class="tool-palette__detail">
-      <div class="tool-palette__detail-head"><div><strong>{{ selectedDiscoveryTool?.displayName ?? toolName.split('.').pop() }}</strong><p>{{ selectedToolDescription || 'No description.' }}</p></div><div class="tool-palette__detail-actions"><span v-if="selectedDiscoveryTool?.server" class="tool-palette__server">{{ selectedDiscoveryTool.server }}</span><span v-if="selectedToolHealth" class="tool-palette__tag" :class="`tool-palette__tag--${selectedToolHealth}`">{{ HEALTH_META[selectedToolHealth].label }}</span><button type="button" class="btn btn-ghost btn-xs" @click="nodePaletteStore.togglePinnedTool(toolName)">{{ nodePaletteStore.isToolPinned(toolName) ? 'Unpin' : 'Pin' }}</button><button type="button" class="btn btn-ghost btn-xs" @click="clearSelection">Clear</button></div></div>
+      <div class="tool-palette__detail-head"><div><strong>{{ selectedDiscoveryTool?.displayName ?? toolName.split('.').pop() }}</strong><p>{{ selectedToolDescription || 'No description.' }}</p></div><div class="tool-palette__detail-actions"><span v-if="selectedDiscoveryTool?.server" class="tool-palette__server">{{ selectedDiscoveryTool.server }}</span><span v-if="selectedToolHealth" class="tool-palette__tag" :class="`tool-palette__tag--${selectedToolHealth}`">{{ HEALTH_META[selectedToolHealth].label }}</span><Button variant="ghost" size="xs" @click="nodePaletteStore.togglePinnedTool(toolName)">{{ nodePaletteStore.isToolPinned(toolName) ? 'Unpin' : 'Pin' }}</Button><Button variant="ghost" size="xs" @click="clearSelection">Clear</Button></div></div>
       <p v-if="selectedDiscoveryTool?.error" class="tool-palette__status" :class="{ 'tool-palette__status--error': selectedToolHealth === 'unavailable' }">{{ selectedDiscoveryTool.error }}</p>
-      <div v-if="selectedToolHealth === 'auth_required' && selectedToolAuthAction" class="tool-palette__setup-callout"><p>Complete auth setup before adding this tool.</p><button type="button" class="btn btn-primary" @click="submitSelectedTool">{{ selectedToolAuthAction.label }}</button></div>
+      <div v-if="selectedToolHealth === 'auth_required' && selectedToolAuthAction" class="tool-palette__setup-callout"><p>Complete auth setup before adding this tool.</p><Button data-testid="tool-auth-setup-confirm" @click="submitSelectedTool">{{ selectedToolAuthAction.label }}</Button></div>
       <template v-else>
         <div class="tool-palette__required"><span>Required args</span><div class="tool-palette__required-tags"><span v-for="requiredName in requiredArgNames" :key="requiredName" class="tool-palette__required-tag">{{ requiredName }}</span><span v-if="requiredArgNames.length === 0" class="tool-palette__required-empty">No required args</span></div></div>
         <SchemaForm
@@ -201,7 +214,7 @@ const {
           @change="onToolArgsChange"
           @validation="onToolArgsValidation"
         />
-        <div v-if="canSubmit" class="tool-palette__detail-footer"><button type="button" class="btn btn-primary" @click="submitSelectedTool">Add Tool</button></div>
+        <div v-if="canSubmit" class="tool-palette__detail-footer"><Button data-testid="tool-palette-add-tool" @click="submitSelectedTool">Add Tool</Button></div>
       </template>
     </section>
 

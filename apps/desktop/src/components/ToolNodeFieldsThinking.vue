@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 interface ToolPaletteItem {
   server: string;
@@ -10,7 +12,7 @@ interface ToolPaletteItem {
   description?: string | null;
 }
 
-defineProps({
+const props = defineProps({
   toolName: { type: String, required: true },
   loading: { type: Boolean, required: true },
   error: { type: String as PropType<string | null>, default: null },
@@ -34,6 +36,10 @@ defineProps({
 });
 
 const emit = defineEmits<{ 'update:searchQuery': [value: string] }>();
+
+function forwardToolName(value: string | number) {
+  props.updateToolName({ target: { value: String(value) } } as unknown as Event);
+}
 </script>
 
 <template>
@@ -42,26 +48,26 @@ const emit = defineEmits<{ 'update:searchQuery': [value: string] }>();
       <span>Tool Palette</span>
       <p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p>
     </div>
-    <button type="button" class="btn btn-ghost" :disabled="loading" @click="refreshCatalog">
+    <Button variant="ghost" :disabled="loading" @click="refreshCatalog">
       {{ loading ? 'Refreshing…' : 'Refresh' }}
-    </button>
+    </Button>
   </div>
 
   <p v-if="error && !hasCatalog" class="tool-palette__status tool-palette__status--error">{{ error }}</p>
 
-  <input
-    class="field-input tool-palette__search"
-    :value="searchQuery"
+  <Input
+    class="tool-palette__search"
+    :model-value="searchQuery"
     type="search"
     placeholder="Search tools by name or description…"
     aria-label="Search tools"
-    @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value)"
+    @update:model-value="emit('update:searchQuery', String($event))"
     @keydown="handleSearchKeydown"
   />
 
   <div class="tool-palette__status-row">
     <strong>{{ isSearching ? `${searchResults.length} results` : 'Quick Add' }}</strong>
-    <button v-if="searchQuery" type="button" class="btn btn-ghost btn-xs" @click="clearSearch">Clear search</button>
+    <Button v-if="searchQuery" variant="ghost" size="xs" @click="clearSearch">Clear search</Button>
   </div>
 
   <div class="tool-palette__listbox" role="listbox" :aria-label="isSearching ? 'Tool search results' : 'Quick Add tools'" :aria-activedescendant="activeDescendantId" tabindex="0" @keydown="handlePaletteKeydown">
@@ -104,6 +110,11 @@ const emit = defineEmits<{ 'update:searchQuery': [value: string] }>();
 
   <label>
     <span>Tool Name</span>
-    <input class="field-input" :value="toolName" type="text" placeholder="server.ToolName" @input="updateToolName" />
+    <Input
+      :model-value="toolName"
+      type="text"
+      placeholder="server.ToolName"
+      @update:model-value="forwardToolName"
+    />
   </label>
 </template>

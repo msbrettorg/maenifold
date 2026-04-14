@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
+import { Button } from '@/components/ui/button';
 import SchemaForm from './SchemaForm.vue';
 
 defineProps({
@@ -29,10 +30,10 @@ defineProps({
       </div>
       <div class="tool-palette__detail-actions">
         <span v-if="selectedToolServer" class="tool-palette__server">{{ selectedToolServer }}</span>
-        <button type="button" class="btn btn-ghost btn-xs" @click="togglePin(toolName)">
+        <Button variant="ghost" size="xs" @click="togglePin(toolName)">
           {{ isToolPinned(toolName) ? 'Unpin' : 'Pin' }}
-        </button>
-        <button type="button" class="btn btn-ghost btn-xs" @click="clearSelection">Clear</button>
+        </Button>
+        <Button variant="ghost" size="xs" @click="clearSelection">Clear</Button>
       </div>
     </div>
 
@@ -53,7 +54,7 @@ defineProps({
     />
 
     <div class="tool-palette__detail-footer">
-      <button type="button" class="btn btn-primary" :disabled="!canSubmit" @click="submitSelectedTool">Add Tool</button>
+      <Button :disabled="!canSubmit" @click="submitSelectedTool">Add Tool</Button>
     </div>
   </section>
 </template>

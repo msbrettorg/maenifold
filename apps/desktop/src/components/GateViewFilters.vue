@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
+
+const selectFieldClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+
 const props = defineProps<{
   searchText: string;
   selectedProcess: string;
@@ -17,10 +22,6 @@ const emit = defineEmits<{
   'update:selectedProcess': [value: string];
   'update:selectedState': [value: string];
 }>();
-
-function emitSearchText(event: Event) {
-  emit('update:searchText', (event.target as HTMLInputElement).value);
-}
 
 function emitChecked(event: Event) {
   emit('update:issuesOnly', (event.target as HTMLInputElement).checked);
@@ -47,19 +48,24 @@ function emitSelect(
 
 <template>
   <div class="gate-filters panel" role="search" aria-label="Task filters">
-    <input :value="props.searchText" class="field-input" type="search" placeholder="Filter tasks" @input="emitSearchText" />
+    <Input
+      :model-value="props.searchText"
+      type="search"
+      placeholder="Filter tasks"
+      @update:model-value="emit('update:searchText', String($event))"
+    />
 
-    <select class="field-select" :value="props.selectedProcess" @change="(event) => emitSelect('update:selectedProcess', event)">
+    <select :class="selectFieldClass" :value="props.selectedProcess" @change="(event) => emitSelect('update:selectedProcess', event)">
       <option value="all">All processes</option>
       <option v-for="value in props.processOptions" :key="value" :value="value">{{ value }}</option>
     </select>
 
-    <select class="field-select" :value="props.selectedState" @change="(event) => emitSelect('update:selectedState', event)">
+    <select :class="selectFieldClass" :value="props.selectedState" @change="(event) => emitSelect('update:selectedState', event)">
       <option value="all">All states</option>
       <option v-for="value in props.stateOptions" :key="value" :value="value">{{ value }}</option>
     </select>
 
-    <select class="field-select" :value="props.selectedLocation" @change="(event) => emitSelect('update:selectedLocation', event)">
+    <select :class="selectFieldClass" :value="props.selectedLocation" @change="(event) => emitSelect('update:selectedLocation', event)">
       <option value="all">All locations</option>
       <option v-for="value in props.locationOptions" :key="value" :value="value">{{ value }}</option>
     </select>

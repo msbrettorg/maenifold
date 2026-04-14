@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import type {
   NormalizedMemoryDocument,
   NormalizedMemorySearchItem,
@@ -36,7 +37,7 @@ const emit = defineEmits<{
         <h4>Confirm promotion</h4>
         <p>Review the destination and the generated content before saving to memory.</p>
       </div>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('back')">Back</button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Back</Button>
     </div>
 
     <div class="confirm-summary">
@@ -72,17 +73,16 @@ const emit = defineEmits<{
     <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
 
     <div class="dialog-actions">
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('close')">Cancel</button>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('retry')">Retry</button>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('back')">Edit</button>
-      <button
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">Cancel</Button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('retry')">Retry</Button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Edit</Button>
+      <Button
         type="button"
-        class="btn btn-primary"
         :disabled="busy || (selectedAction === 'update' && !canSubmitUpdate)"
         @click="emit('submit')"
       >
         {{ submitLabel }}
-      </button>
+      </Button>
     </div>
   </section>
 </template>

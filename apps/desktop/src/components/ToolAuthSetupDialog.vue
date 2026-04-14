@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -41,11 +42,11 @@ const emit = defineEmits<{
 
       <DialogFooter class="dialog-actions">
         <DialogClose as-child>
-          <button type="button" class="btn btn-ghost" :disabled="busy">Cancel</button>
+          <Button variant="ghost" :disabled="busy">Cancel</Button>
         </DialogClose>
-        <button type="button" class="btn btn-primary" :disabled="busy" @click="emit('confirm')">
+        <Button data-testid="tool-auth-setup-confirm" :disabled="busy" @click="emit('confirm')">
           {{ busy ? 'Setting up…' : 'Set up' }}
-        </button>
+        </Button>
       </DialogFooter>
     </DialogContent>
   </Dialog>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
@@ -93,8 +94,8 @@ async function handleDelete(item: PipelineListItem, event: Event) {
     <div v-if="!hideHeader" class="sidebar-header">
       <h3>Pipelines</h3>
       <div class="sidebar-actions">
-        <button class="btn btn-ghost" type="button" title="Refresh" @click="handleRefresh">↻</button>
-        <button class="btn btn-ghost" type="button" @click="handleNew">+ New</button>
+        <Button variant="ghost" size="sm" type="button" title="Refresh" @click="handleRefresh">↻</Button>
+        <Button variant="ghost" size="sm" type="button" @click="handleNew">+ New</Button>
       </div>
     </div>
 
@@ -132,15 +133,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
           <span :class="['pipeline-status', 'status-text', `status-text--${item.status}`]">
             {{ formatStatus(item.status) }}
           </span>
-          <button
-            class="btn btn-outline-danger delete-btn"
-            type="button"
-            title="Delete pipeline"
-            aria-label="Delete pipeline"
-            @click="handleDelete(item, $event)"
-          >
-            ×
-          </button>
+          <Button class="delete-btn h-6 px-2 text-xs" variant="destructive" size="sm" type="button" title="Delete pipeline" aria-label="Delete pipeline" @click="handleDelete(item, $event)">×</Button>
         </div>
       </li>
     </ul>

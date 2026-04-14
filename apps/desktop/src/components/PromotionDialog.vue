@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
 import type { ViewNode } from '../lib/pipeline-types';
 import type { MemoryPromotionSource, NormalizedMemoryDocument, NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
 import { buildPromotionPreview, hasWikiLinkConnection, isStaleMemoryEditError, useMemoryPromotion } from '../composables/useMemoryPromotion';
@@ -226,14 +227,14 @@ function closeDialog(): void {
           <h3 id="promotion-dialog-title">Promote to Memory</h3>
           <p>Save this finished node output as a reusable note or add it to one you already have.</p>
         </div>
-        <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="closeDialog">Close</button>
+        <Button type="button" variant="ghost" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
       </div>
       <section v-if="promotion.writtenUri.value" class="dialog-section success-state" aria-live="polite">
         <h4>Saved</h4>
         <p>This output is now stored in memory.</p>
         <code class="mono">{{ promotion.writtenUri.value }}</code>
         <div class="dialog-actions">
-          <button type="button" class="btn btn-primary" @click="closeDialog">Done</button>
+          <Button type="button" @click="closeDialog">Done</Button>
         </div>
       </section>
       <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />

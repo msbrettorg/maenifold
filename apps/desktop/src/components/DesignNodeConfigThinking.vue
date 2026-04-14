@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { computed } from 'vue';
 import type { AgentProbeConfigOption } from '../lib/agent-probe-types';
 import AgentProbePreview from './AgentProbePreview.vue';
@@ -29,6 +31,8 @@ const props = defineProps<{ nodeId: string }>();
 const store = usePipelineStore();
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
+const nativeSelectClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 const selectedNode = computed(() => {
   const node = store.localDefinition.nodes.find((entry) => entry.id === props.nodeId);
@@ -43,8 +47,12 @@ const readyProbe = useReadyAgentProbe(
   (nextAgentConfig) => updateAgentConfig(nextAgentConfig),
 );
 
-function getFieldValue(event: Event): string {
-  return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
+function getFieldValue(value: string | number): string {
+  return String(value);
+}
+
+function getSelectValue(event: Event): string {
+  return (event.target as HTMLSelectElement).value;
 }
 
 function formatAgentOptionLabel(agentName: string): string {
@@ -77,12 +85,12 @@ function updateNode(update: (node: NonNullable<typeof selectedNode.value>) => Pi
   if (nextNode !== selectedNode.value) replaceNode(selectedNode.value.id, nextNode);
 }
 
-function updateField(event: Event, field: 'topic' | 'agent' | 'analysisType'): void {
-  updateNode((node) => ({ ...node, [field]: getFieldValue(event) }));
+function updateField(value: string | number, field: 'topic' | 'analysisType'): void {
+  updateNode((node) => ({ ...node, [field]: getFieldValue(value) }));
 }
 
 function updateAgent(event: Event): void {
-  const agent = getFieldValue(event);
+  const agent = getSelectValue(event);
   writeLastUsedAgent(agent);
   updateNode((node) => {
     const { agentConfig: _agentConfig, ...rest } = node;
@@ -97,8 +105,8 @@ function updateAgentConfig(nextAgentConfig: PipelineNodeAgentConfig | undefined)
   });
 }
 
-function updateTotalThoughts(event: Event): void {
-  const raw = getFieldValue(event);
+function updateTotalThoughts(value: string | number): void {
+  const raw = getFieldValue(value);
   const totalThoughts = raw === '' ? undefined : Number(raw);
   if (raw !== '' && !Number.isFinite(totalThoughts)) return;
   updateNode((node) => ({ ...node, totalThoughts }));
@@ -109,24 +117,24 @@ function updateMode(modeId: string): void {
 }
 
 function updateModel(event: Event): void {
-  updateAgentConfig(setAgentModelValue(selectedNode.value?.agentConfig, getFieldValue(event)));
+  updateAgentConfig(setAgentModelValue(selectedNode.value?.agentConfig, getSelectValue(event)));
 }
 
 function updateThoughtLevel(event: Event): void {
-  updateAgentConfig(setAgentThoughtLevelValue(selectedNode.value?.agentConfig, getFieldValue(event)));
+  updateAgentConfig(setAgentThoughtLevelValue(selectedNode.value?.agentConfig, getSelectValue(event)));
 }
 
 function updateConfigOption(option: AgentProbeConfigOption, event: Event): void {
-  updateAgentConfig(setAgentConfigOptionValue(selectedNode.value?.agentConfig, option, getFieldValue(event)));
+  updateAgentConfig(setAgentConfigOptionValue(selectedNode.value?.agentConfig, option, getSelectValue(event)));
 }
 </script>
 
 <template>
   <template v-if="selectedNode">
-    <label class="field"><span>Topic</span><textarea class="field-textarea" :value="selectedNode.topic" rows="5" @input="updateField($event, 'topic')" /></label>
+    <label class="field"><span>Topic</span><Textarea :model-value="selectedNode.topic" rows="5" @update:model-value="updateField($event, 'topic')" /></label>
     <label class="field">
       <span>Agent</span>
-      <select class="field-input" :value="selectedNode.agent" data-testid="inspector-thinking-agent-select" @change="updateAgent">
+      <select :class="nativeSelectClass" :value="selectedNode.agent" data-testid="inspector-thinking-agent-select" @change="updateAgent">
         <option value="" disabled>Select agent…</option>
         <option v-for="name in configStore.agentNames" :key="name" :value="name">{{ formatAgentOptionLabel(name) }}</option>
       </select>
@@ -141,13 +149,13 @@ function updateConfigOption(option: AgentProbeConfigOption, event: Event): void 
           <button v-for="mode in readyProbe.modeOptions" :key="mode.id" type="button" class="mode-badge" :class="{ selected: getAgentModeValue(selectedNode.agentConfig, readyProbe) === mode.id }" @click="updateMode(mode.id)">{{ mode.name }}</button>
         </div>
         <div class="agent-config-grid">
-          <label v-if="readyProbe.modelOptions.length" class="field"><span>Model</span><select class="field-input" :value="getAgentModelValue(selectedNode.agentConfig, readyProbe)" @change="updateModel"><option v-for="model in readyProbe.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option></select></label>
-          <label v-if="readyProbe.thoughtLevelConfigOption" class="field"><span>{{ readyProbe.thoughtLevelConfigOption.name }}</span><select class="field-input" :value="getAgentThoughtLevelValue(selectedNode.agentConfig, readyProbe)" @change="updateThoughtLevel"><template v-for="entry in readyProbe.thoughtLevelConfigOption.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
-          <label v-for="option in getEditableAgentConfigOptions(readyProbe)" :key="option.id" class="field"><span>{{ option.name }}</span><select class="field-input" :value="getAgentConfigOptionValue(selectedNode.agentConfig, option)" @change="updateConfigOption(option, $event)"><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
+          <label v-if="readyProbe.modelOptions.length" class="field"><span>Model</span><select :class="nativeSelectClass" :value="getAgentModelValue(selectedNode.agentConfig, readyProbe)" @change="updateModel"><option v-for="model in readyProbe.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option></select></label>
+          <label v-if="readyProbe.thoughtLevelConfigOption" class="field"><span>{{ readyProbe.thoughtLevelConfigOption.name }}</span><select :class="nativeSelectClass" :value="getAgentThoughtLevelValue(selectedNode.agentConfig, readyProbe)" @change="updateThoughtLevel"><template v-for="entry in readyProbe.thoughtLevelConfigOption.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
+          <label v-for="option in getEditableAgentConfigOptions(readyProbe)" :key="option.id" class="field"><span>{{ option.name }}</span><select :class="nativeSelectClass" :value="getAgentConfigOptionValue(selectedNode.agentConfig, option)" @change="updateConfigOption(option, $event)"><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
         </div>
       </template>
     </div>
-    <label class="field"><span>Total thoughts</span><input class="field-input" :value="selectedNode.totalThoughts ?? ''" type="number" min="1" @input="updateTotalThoughts" /></label>
-    <label class="field"><span>Analysis type</span><input class="field-input" :value="selectedNode.analysisType ?? ''" type="text" @input="updateField($event, 'analysisType')" /></label>
+    <label class="field"><span>Total thoughts</span><Input :model-value="selectedNode.totalThoughts ?? ''" type="number" min="1" @update:model-value="updateTotalThoughts" /></label>
+    <label class="field"><span>Analysis type</span><Input :model-value="selectedNode.analysisType ?? ''" type="text" @update:model-value="updateField($event, 'analysisType')" /></label>
   </template>
 </template>

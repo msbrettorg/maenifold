@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import type { PipelineTemplate } from '../lib/pipeline-templates';
 
 defineProps<{
@@ -37,14 +38,13 @@ defineEmits<{
     </div>
 
     <div class="gallery-actions">
-      <button
+      <Button
         type="button"
-        class="btn btn-primary"
         :disabled="!canCreate || !hasIntentAgent"
         @click="$emit('create')"
       >
         Create Pipeline
-      </button>
+      </Button>
     </div>
   </div>
 </template>

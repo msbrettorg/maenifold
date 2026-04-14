@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -9,6 +10,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
 import ToolPaletteFields from './ToolPaletteFields.vue';
@@ -62,7 +65,7 @@ const {
           <DialogDescription>Add one node to the running pipeline and connect it to existing nodes.</DialogDescription>
         </div>
         <DialogClose as-child>
-          <button type="button" class="btn btn-ghost">Close</button>
+          <Button type="button" variant="ghost">Close</Button>
         </DialogClose>
       </DialogHeader>
 
@@ -70,7 +73,10 @@ const {
         <div class="form-grid">
           <label>
             <span>Node Type</span>
-            <select v-model="nodeType" class="field-select">
+            <select
+              v-model="nodeType"
+              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            >
               <option value="workflow">Workflow</option>
               <option value="prompt">Prompt</option>
               <option value="sequentialThinking">Sequential Thinking</option>
@@ -80,12 +86,15 @@ const {
 
           <label>
             <span>Node ID</span>
-            <input v-model.trim="nodeId" class="field-input" type="text" placeholder="Optional custom ID" />
+            <Input v-model.trim="nodeId" type="text" placeholder="Optional custom ID" />
           </label>
 
           <label>
             <span>Run After</span>
-            <select v-model="connectFrom" class="field-select">
+            <select
+              v-model="connectFrom"
+              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            >
               <option value="">No upstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`from-${existingNodeId}`" :value="existingNodeId">
                 {{ existingNodeId }}
@@ -95,7 +104,10 @@ const {
 
           <label>
             <span>Continue To</span>
-            <select v-model="connectTo" class="field-select">
+            <select
+              v-model="connectTo"
+              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            >
               <option value="">No downstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`to-${existingNodeId}`" :value="existingNodeId">
                 {{ existingNodeId }}
@@ -105,7 +117,10 @@ const {
 
           <label>
             <span>Edge Type</span>
-            <select v-model="edgeType" class="field-select">
+            <select
+              v-model="edgeType"
+              class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+            >
               <option value="success">Success</option>
               <option value="always">Always</option>
             </select>
@@ -116,48 +131,48 @@ const {
           <template v-if="nodeType === 'workflow'">
             <label>
               <span>Workflow ID</span>
-              <input v-model.trim="workflowId" class="field-input" :list="workflowListId" type="text" placeholder="Workflow ID" />
+              <Input v-model.trim="workflowId" :list="workflowListId" type="text" placeholder="Workflow ID" />
             </label>
             <datalist :id="workflowListId">
               <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
             </datalist>
             <label>
               <span>Agent</span>
-              <input v-model.trim="workflowAgent" class="field-input" type="text" placeholder="Optional workflow agent" />
+              <Input v-model.trim="workflowAgent" type="text" placeholder="Optional workflow agent" />
             </label>
             <label class="field-wide">
               <span>Prompt</span>
-              <textarea v-model.trim="workflowPrompt" class="field-input graft-textarea" rows="3" placeholder="Optional workflow prompt" />
+              <Textarea v-model.trim="workflowPrompt" class="graft-textarea" rows="3" placeholder="Optional workflow prompt" />
             </label>
           </template>
 
           <template v-else-if="nodeType === 'prompt'">
             <label>
               <span>Agent</span>
-              <input v-model.trim="promptAgent" class="field-input" type="text" placeholder="Agent name" />
+              <Input v-model.trim="promptAgent" type="text" placeholder="Agent name" />
             </label>
             <label class="field-wide">
               <span>Prompt</span>
-              <textarea v-model.trim="promptTemplate" class="field-input graft-textarea" rows="4" placeholder="Required prompt template" />
+              <Textarea v-model.trim="promptTemplate" class="graft-textarea" rows="4" placeholder="Required prompt template" />
             </label>
           </template>
 
           <template v-else-if="nodeType === 'sequentialThinking'">
             <label>
               <span>Topic</span>
-              <input v-model.trim="thinkingTopic" class="field-input" type="text" placeholder="Topic" />
+              <Input v-model.trim="thinkingTopic" type="text" placeholder="Topic" />
             </label>
             <label>
               <span>Agent</span>
-              <input v-model.trim="thinkingAgent" class="field-input" type="text" placeholder="Agent name" />
+              <Input v-model.trim="thinkingAgent" type="text" placeholder="Agent name" />
             </label>
             <label>
               <span>Total thoughts</span>
-              <input v-model="thinkingTotalThoughts" class="field-input" type="number" min="1" inputmode="numeric" placeholder="5" />
+              <Input v-model="thinkingTotalThoughts" type="number" min="1" inputmode="numeric" placeholder="5" />
             </label>
             <label>
               <span>Analysis type</span>
-              <input v-model.trim="thinkingAnalysisType" class="field-input" type="text" placeholder="Optional analysis type" />
+              <Input v-model.trim="thinkingAnalysisType" type="text" placeholder="Optional analysis type" />
             </label>
           </template>
 
@@ -178,11 +193,11 @@ const {
 
         <DialogFooter class="dialog-actions">
           <DialogClose as-child>
-            <button type="button" class="btn btn-ghost" :disabled="busy">Cancel</button>
+            <Button type="button" variant="ghost" :disabled="busy">Cancel</Button>
           </DialogClose>
-          <button type="submit" class="btn btn-primary" :disabled="!canSubmit || busy">
+          <Button type="submit" :disabled="!canSubmit || busy">
             {{ busy ? 'Grafting…' : 'Graft Node' }}
-          </button>
+          </Button>
         </DialogFooter>
       </form>
     </DialogContent>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+
 defineProps<{
   busyAction: string | null;
   canPromote: boolean;
@@ -22,60 +24,58 @@ defineEmits<{
 <template>
   <footer class="zoom-footer">
     <div class="zoom-actions">
-      <button
-        :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'fork' }]"
+      <Button
+        variant="ghost"
         :disabled="busyAction !== null"
         type="button"
         @click="$emit('fork')"
       >
         {{ busyAction === 'fork' ? 'Forking...' : 'Fork from node' }}
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="['abandoned', 'stuck'].includes(viewNodeStatus)"
-        :class="['btn', 'btn-primary', { 'btn--busy': busyAction === 'restart' }]"
         :disabled="busyAction !== null"
         type="button"
         @click="$emit('restart')"
       >
         {{ busyAction === 'restart' ? 'Restarting...' : 'Restart node' }}
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="['completed', 'abandoned', 'stuck'].includes(viewNodeStatus)"
-        :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'rewind' }]"
+        variant="ghost"
         :disabled="busyAction !== null"
         type="button"
         @click="$emit('rewind')"
       >
         {{ busyAction === 'rewind' ? 'Rewinding...' : 'Rewind node' }}
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="viewNodeStatus === 'active'"
-        :class="['btn', 'btn-danger', { 'btn--busy': busyAction === 'abandon' }]"
+        variant="destructive"
         :disabled="busyAction !== null"
         type="button"
         @click="$emit('abandon')"
       >
         {{ busyAction === 'abandon' ? 'Abandoning...' : 'Abandon node' }}
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="hasResults"
-        class="btn btn-ghost"
+        variant="ghost"
         :disabled="busyAction !== null || graftSubmitting"
         type="button"
         @click="$emit('graft')"
       >
         Graft from node
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="canPromote"
-        :class="['btn', 'btn-primary', { 'btn--busy': promotionBusy }]"
         :disabled="promotionBusy || busyAction !== null"
         :title="promotionBusy ? 'Promotion in progress…' : 'Save this completed output to memory'"
         type="button"
         @click="$emit('promote')"
       >
         {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
-      </button>
+      </Button>
     </div>
 
     <div v-if="forkedSessionId" class="zoom-fork-result" role="status">

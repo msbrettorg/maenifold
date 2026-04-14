@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import type {
   NormalizedMemoryDocument,
   NormalizedMemorySearchItem,
@@ -53,28 +56,27 @@ const description = {
         <h4>{{ heading }}</h4>
         <p>{{ description }}</p>
       </div>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('back')">Back</button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Back</Button>
     </div>
 
     <div v-if="selectedAction === 'create'" class="form-grid">
       <label class="field-block">
         <span>Title</span>
-        <input class="field-input" type="text" placeholder="Note title" :value="title" @input="emit('update:title', ($event.target as HTMLInputElement).value.trim())" />
+        <Input type="text" placeholder="Note title" :value="title" @input="emit('update:title', ($event.target as HTMLInputElement).value.trim())" />
       </label>
       <label class="field-block">
         <span>Folder</span>
-        <input class="field-input" type="text" placeholder="Optional folder" :value="folder" @input="emit('update:folder', ($event.target as HTMLInputElement).value.trim())" />
+        <Input type="text" placeholder="Optional folder" :value="folder" @input="emit('update:folder', ($event.target as HTMLInputElement).value.trim())" />
       </label>
       <label class="field-block field-wide">
         <span>Tags</span>
-        <input class="field-input" type="text" placeholder="Optional tags, separated by commas" :value="tagsInput" @input="emit('update:tagsInput', ($event.target as HTMLInputElement).value.trim())" />
+        <Input type="text" placeholder="Optional tags, separated by commas" :value="tagsInput" @input="emit('update:tagsInput', ($event.target as HTMLInputElement).value.trim())" />
       </label>
     </div>
 
     <label class="field-block">
       <span>Connections</span>
-      <textarea
-        class="field-textarea"
+      <Textarea
         rows="3"
         placeholder="Add one or more topics, for example: semantic zoom, pipeline-ui"
         :value="wikiLinkInput"
@@ -102,9 +104,9 @@ const description = {
     <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
 
     <div class="dialog-actions">
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('close')">Cancel</button>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('retry')">Retry</button>
-      <button type="button" class="btn btn-primary" :disabled="busy" @click="emit('continue')">Continue</button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">Cancel</Button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('retry')">Retry</Button>
+      <Button type="button" :disabled="busy" @click="emit('continue')">Continue</Button>
     </div>
   </section>
 </template>

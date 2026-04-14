@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, provide, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
 import { themedStyles } from '../lib/jsonforms-theme';
 import {
   cloneRecord,
@@ -179,9 +180,9 @@ function formatValidationError(error: { instancePath?: string; message?: string 
   <section class="schema-form" role="form" :aria-label="props.ariaLabel">
     <div class="schema-form__surface">
       <div v-if="canToggleAdvancedRaw" class="schema-form__toolbar">
-        <button type="button" class="btn btn-ghost" @click="toggleAdvancedRaw">
+        <Button type="button" variant="ghost" @click="toggleAdvancedRaw">
           {{ showAdvancedRaw ? 'Back to Form' : 'Advanced JSON' }}
-        </button>
+        </Button>
       </div>
       <SchemaFormRawEditor
         v-if="showRawEditor"

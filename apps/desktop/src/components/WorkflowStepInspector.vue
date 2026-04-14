@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import type { ReasoningEffort, WorkflowStepDefinition, ToolHintPriority } from '../lib/workflow-asset-types'
 import WorkflowMetadataForm from './WorkflowMetadataForm.vue'
@@ -79,12 +81,12 @@ function priorityClass(priority: ToolHintPriority): string {
 
       <div class="form-group">
         <label class="field-label">STEP NAME</label>
-        <input v-model="stepName" class="field-input" type="text" />
+        <Input v-model="stepName" type="text" />
       </div>
 
       <div class="form-group">
         <label class="field-label">DESCRIPTION</label>
-        <textarea v-model="stepDescription" class="field-textarea" rows="4" />
+        <Textarea v-model="stepDescription" rows="4" />
       </div>
 
       <div class="form-group">
@@ -159,10 +161,6 @@ function priorityClass(priority: ToolHintPriority): string {
 .form-group + .form-group { margin-top: var(--space-5); }
 .step-id-label, .field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
 .step-id-value, .meta-mono { font-family: var(--font-code); font-size: var(--text-tiny); color: var(--muted-foreground); }
-.field-input, .field-textarea { width: 100%; background: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
-.field-textarea { min-height: 80px; resize: vertical; }
-.field-input:hover:not(:focus), .field-textarea:hover:not(:focus) { border-color: color-mix(in srgb, var(--border) 150%, transparent); }
-.field-input:focus, .field-textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
 .effort-segments { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--border); }
 .effort-segment { text-align: center; padding: var(--space-2) var(--space-1); background: var(--input); color: var(--muted-foreground); border: 0; font: var(--weight-title) var(--text-tiny)/1.4 var(--font-code); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; }
 .effort-segment + .effort-segment { border-left: 1px solid var(--border); }

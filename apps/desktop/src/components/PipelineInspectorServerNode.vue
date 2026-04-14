@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import InspectorNodeActions from './InspectorNodeActions.vue'
 import PipelineInspectorServerNodeTechnical from './PipelineInspectorServerNodeTechnical.vue'
 import type {
@@ -89,9 +90,9 @@ function formatJsonValue(value?: Record<string, unknown>): string {
     </div>
 
     <div v-if="selectedNodeCanReconnect && selectedNodeReconnectSessionId" class="action-row">
-      <button class="btn btn-primary" type="button" :disabled="openingAgents" @click="emit('open-agents')">
+      <Button type="button" :disabled="openingAgents" @click="emit('open-agents')">
         {{ openingAgents ? 'Opening…' : 'Open in Agents tab' }}
-      </button>
+      </Button>
     </div>
 
     <InspectorNodeActions :node="selectedViewNode" :node-id="selectedViewNode.nodeId" />

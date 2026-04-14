@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import type { NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
 
 type PromotionAction = 'create' | 'append' | 'update';
@@ -27,22 +29,22 @@ const emit = defineEmits<{
     <div class="search-row">
       <label class="field-block search-field">
         <span>Search existing notes</span>
-        <input
-          class="field-input"
+        <Input
           type="text"
           placeholder="Search by title or topic"
           :value="searchQuery"
           @input="emit('update:searchQuery', ($event.target as HTMLInputElement).value.trim())"
         />
       </label>
-      <button
+      <Button
         type="button"
-        class="btn btn-ghost search-button"
+        class="search-button"
+        variant="ghost"
         :disabled="searching || writing"
         @click="emit('search')"
       >
         {{ searching ? 'Searching…' : 'Search again' }}
-      </button>
+      </Button>
     </div>
 
     <p v-if="infoMessage" class="info-message">{{ infoMessage }}</p>
@@ -58,23 +60,23 @@ const emit = defineEmits<{
           <span class="result-score">Score {{ result.score.toFixed(2) }}</span>
         </div>
         <div class="result-card__actions">
-          <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('select-action', 'append', result)">
+          <Button type="button" variant="ghost" :disabled="busy" @click="emit('select-action', 'append', result)">
             Append to this
-          </button>
-          <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('select-action', 'update', result)">
+          </Button>
+          <Button type="button" variant="ghost" :disabled="busy" @click="emit('select-action', 'update', result)">
             Update this
-          </button>
+          </Button>
         </div>
       </article>
     </div>
 
     <div class="dialog-actions dialog-actions--start">
-      <button type="button" class="btn btn-primary" :disabled="busy" @click="emit('select-action', 'create')">
+      <Button type="button" :disabled="busy" @click="emit('select-action', 'create')">
         Create new
-      </button>
-      <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('close')">
+      </Button>
+      <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">
         Cancel
-      </button>
+      </Button>
     </div>
   </section>
 </template>

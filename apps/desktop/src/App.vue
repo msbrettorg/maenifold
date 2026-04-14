@@ -55,7 +55,7 @@ function closeWorkflowPanel() {
 </script>
 
 <template>
-  <div class="app-container">
+  <div class="relative box-border flex h-screen overflow-hidden pt-10">
     <AppTabBar v-model="activeTab" />
 
     <AppSidebar
@@ -80,8 +80,8 @@ function closeWorkflowPanel() {
     />
 
     <!-- Main Content Area -->
-    <div class="main-area">
-      <main class="main-content">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--background)]">
         <Transition name="view-fade" mode="out-in">
           <!-- Chat View when connected and not showing workflows -->
           <ChatView
@@ -90,46 +90,86 @@ function closeWorkflowPanel() {
           />
           
           <!-- Workflow Authoring Page -->
-          <div v-else-if="showWorkflows" key="workflows" class="workflow-panel">
-            <div class="workflow-panel-header">
+          <div v-else-if="showWorkflows" key="workflows" class="flex flex-1 flex-col overflow-hidden">
+            <div
+              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+            >
               <span>Workflows</span>
-              <button class="workflow-close-btn" @click="closeWorkflowPanel" title="Close">×</button>
+              <button
+                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                @click="closeWorkflowPanel"
+                title="Close"
+              >
+                ×
+              </button>
             </div>
-            <div class="workflow-panel-body">
+            <div class="workflow-panel-body flex flex-1 overflow-auto p-4">
               <WorkflowAuthoringPage />
             </div>
           </div>
 
-          <div v-else-if="showPipelines" key="pipelines" class="pipeline-panel">
-            <div class="pipeline-panel-header">
+          <div v-else-if="showPipelines" key="pipelines" class="flex flex-1 flex-col overflow-hidden">
+            <div
+              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+            >
               <span>Pipelines</span>
-              <button class="pipeline-close-btn" @click="showPipelines = false" title="Close">×</button>
+              <button
+                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                @click="showPipelines = false"
+                title="Close"
+              >
+                ×
+              </button>
             </div>
             <PipelineView />
           </div>
 
-          <div v-else-if="showGate" key="gate" class="gate-panel">
-            <div class="gate-panel-header">
+          <div v-else-if="showGate" key="gate" class="flex flex-1 flex-col overflow-hidden">
+            <div
+              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+            >
               <span>Gate</span>
-              <button class="gate-close-btn" @click="showGate = false" title="Close">×</button>
+              <button
+                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                @click="showGate = false"
+                title="Close"
+              >
+                ×
+              </button>
             </div>
             <GateView :cwd="selectedCwd" />
           </div>
 
-          <div v-else-if="showGraph" key="graph" class="graph-panel">
-            <div class="graph-panel-header">
+          <div v-else-if="showGraph" key="graph" class="flex flex-1 flex-col overflow-hidden">
+            <div
+              class="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
+            >
               <span>Graph</span>
-              <button class="graph-close-btn" @click="showGraph = false" title="Close">×</button>
+              <button
+                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
+                @click="showGraph = false"
+                title="Close"
+              >
+                ×
+              </button>
             </div>
             <GraphView />
           </div>
-           
+            
           <!-- Welcome screen when not connected -->
-          <div v-else key="welcome" class="welcome-screen">
-            <h2>Welcome to maenifold</h2>
+          <div
+            v-else
+            key="welcome"
+            class="flex flex-1 flex-col items-center justify-center p-8 text-center text-[var(--muted-foreground)]"
+          >
+            <h2 class="mb-2 font-[var(--font-display)] tracking-[0.04em] text-[var(--foreground)]">
+              Welcome to maenifold
+            </h2>
             <p>Select an agent and create a new session to get started.</p>
-            <p class="manifesto-quote">The space between the notes is where the music lives.</p>
-            <p v-if="!hasAgents" class="hint">
+            <p class="mt-2 text-[var(--text-caption)] italic text-[var(--muted-foreground)]">
+              The space between the notes is where the music lives.
+            </p>
+            <p v-if="!hasAgents" class="mt-4 text-[var(--text-caption)] text-[var(--muted-foreground)]">
               Configure agents in your config file to begin.
             </p>
           </div>
@@ -137,7 +177,7 @@ function closeWorkflowPanel() {
       </main>
       
       <!-- Traffic Monitor Panel -->
-      <div v-if="showTrafficMonitor" class="traffic-panel">
+      <div v-if="showTrafficMonitor" class="shrink-0 border-t-2 border-[var(--border)]">
         <TrafficMonitor @close="showTrafficMonitor = false" />
       </div>
     </div>
@@ -171,4 +211,14 @@ function closeWorkflowPanel() {
 </template>
 
 <style>@import './assets/shared-components.css';</style>
-<style scoped>@import './assets/app-layout.css'; @import './assets/app-panels.css';</style>
+<style scoped>
+.view-fade-enter-active,
+.view-fade-leave-active {
+  transition: opacity 200ms var(--easing-standard);
+}
+
+.view-fade-enter-from,
+.view-fade-leave-to {
+  opacity: 0;
+}
+</style>

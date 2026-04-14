@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import { ref } from 'vue';
@@ -196,6 +196,7 @@ async function createTestEnv(results: McpServerDiscoveryResult[] = healthyDiscov
 async function mountPalette(results: McpServerDiscoveryResult[] = healthyDiscoveryResults(), canSubmit = false) {
   const env = await createTestEnv(results);
   const wrapper = mount(ToolPaletteFields, {
+    attachTo: document.body,
     props: {
       active: true,
       toolName: '',
@@ -221,6 +222,10 @@ beforeEach(() => {
   mockDiscoveryFetch(healthyDiscoveryResults());
 });
 
+afterEach(() => {
+  document.body.innerHTML = '';
+});
+
 describe('ToolPaletteFields', () => {
   it('surfaces first-run auth-required servers even when discovery returns zero tools', async () => {
     const { wrapper } = await mountPalette(firstRunErrorDiscoveryResults());
@@ -242,7 +247,7 @@ describe('ToolPaletteFields', () => {
     await wrapper.get('input[type="search"]').setValue('msx');
     await flushPromises();
     await wrapper.get('[role="option"]').trigger('click');
-    await wrapper.get('.auth-setup-dialog .btn.btn-primary').trigger('click');
+    (document.body.querySelector('[data-testid="tool-auth-setup-confirm"]') as HTMLButtonElement).click();
     await flushPromises();
 
     expect(connect).toHaveBeenCalled();
@@ -335,6 +340,7 @@ describe('ToolPaletteFields', () => {
     await env.discoveryStore.refreshTools();
 
     const wrapper = mount(ToolPaletteFields, {
+      attachTo: document.body,
       props: {
         active: true,
         toolName: '',
@@ -354,7 +360,7 @@ describe('ToolPaletteFields', () => {
     await wrapper.get('[role="option"]').trigger('click');
 
     expect(wrapper.text()).toContain('Setup Required');
-    expect(wrapper.text()).toContain('Sign in to MSX');
+    expect(document.body.textContent).toContain('Sign in to MSX');
     expect(wrapper.emitted('update:toolName')).toBeUndefined();
   });
 
@@ -374,6 +380,7 @@ describe('ToolPaletteFields', () => {
     await env.discoveryStore.refreshTools();
 
     const wrapper = mount(ToolPaletteFields, {
+      attachTo: document.body,
       props: {
         active: true,
         toolName: '',

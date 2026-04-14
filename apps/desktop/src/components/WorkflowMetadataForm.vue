@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
+
+const selectFieldClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
 
 const CATEGORY_OPTIONS: WorkflowCategory[] = [
   'reasoning',
@@ -55,18 +60,18 @@ const workflowCategory = computed({
 
     <div class="form-group">
       <label class="field-label" for="workflow-name">NAME</label>
-      <input id="workflow-name" v-model="workflowName" class="field-input" type="text" />
+      <Input id="workflow-name" v-model="workflowName" type="text" />
     </div>
 
     <div class="form-row">
       <div class="form-group">
         <label class="field-label" for="workflow-emoji">EMOJI</label>
-        <input id="workflow-emoji" v-model="workflowEmoji" class="field-input" type="text" />
+        <Input id="workflow-emoji" v-model="workflowEmoji" type="text" />
       </div>
 
       <div class="form-group">
         <label class="field-label" for="workflow-category">CATEGORY</label>
-        <select id="workflow-category" v-model="workflowCategory" class="field-input">
+        <select id="workflow-category" v-model="workflowCategory" :class="selectFieldClass">
           <option value="">Auto</option>
           <option v-for="option in CATEGORY_OPTIONS" :key="option" :value="option">
             {{ option }}
@@ -77,20 +82,18 @@ const workflowCategory = computed({
 
     <div class="form-group">
       <label class="field-label" for="workflow-description">DESCRIPTION</label>
-      <textarea
+      <Textarea
         id="workflow-description"
         v-model="workflowDescription"
-        class="field-textarea"
         rows="4"
       />
     </div>
 
     <div class="form-group">
       <label class="field-label" for="workflow-triggers">TRIGGERS</label>
-      <input
+      <Input
         id="workflow-triggers"
         v-model="workflowTriggers"
-        class="field-input"
         placeholder="research, plan, investigate"
         type="text"
       />
@@ -134,10 +137,6 @@ const workflowCategory = computed({
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
 .field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
 .field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--muted-foreground); padding: var(--space-2) 0; line-height: 1.5; }
-.field-input, .field-textarea { width: 100%; background: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
-.field-input:hover:not(:focus), .field-textarea:hover:not(:focus) { border-color: color-mix(in srgb, var(--border) 150%, transparent); }
-.field-input:focus, .field-textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
-.field-textarea { min-height: 80px; resize: vertical; }
 .toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--foreground); cursor: pointer; text-align: left; }
 .toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
 .toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }

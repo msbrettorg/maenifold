@@ -112,52 +112,64 @@ async function handleDelete(session: SavedSession, event: Event) {
 </script>
 
 <template>
-  <div class="session-list">
-    <h3>Sessions</h3>
+  <div class="p-4">
+    <h3 class="mb-3 text-tiny font-semibold text-muted-foreground uppercase tracking-[0.06em]">
+      Sessions
+    </h3>
 
-    <ul role="list" aria-label="Sessions">
-      <li v-if="sessions.length === 0" class="empty-state" role="listitem">
+    <ul class="m-0 p-0 list-none" role="list" aria-label="Sessions">
+      <li v-if="sessions.length === 0" class="p-8 text-muted-foreground text-center" role="listitem">
         <p>No saved sessions yet.</p>
-        <p class="hint">Create a new session to get started.</p>
+        <p class="mt-2 text-caption">Create a new session to get started.</p>
       </li>
-      <li 
-        v-for="session in sessions" 
+      <li
+        v-for="session in sessions"
         :key="session.id"
         role="listitem"
-        class="session-item"
-        :class="{ unavailable: isResumeUnavailable(session) }"
+        class="session-item flex items-center justify-between mb-1 py-2 px-[0.625rem] border-none rounded-md cursor-pointer"
+        :class="{ 'cursor-default': isResumeUnavailable(session) }"
         @click="handleResume(session)"
       >
-        <div class="session-info">
-          <div class="session-title-row">
-            <span class="session-title" :title="session.title">{{ session.title }}</span>
+        <div class="flex flex-1 flex-col gap-1 min-w-0 overflow-hidden">
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span
+              class="block max-w-[200px] truncate text-caption font-medium text-foreground"
+              :title="session.title"
+            >
+              {{ session.title }}
+            </span>
             <span
               v-if="isCurrentConnectedSession(session)"
-              class="connection-badge connected"
+              class="connection-badge connected inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
             >
-              <span class="connection-dot">●</span> connected
+              <span class="connection-dot text-tiny leading-none">●</span> connected
             </span>
             <span
               v-else-if="isCurrentConnectingSession(session)"
-              class="connection-badge connecting"
+              class="connection-badge connecting inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
             >
-              <span class="connection-dot">●</span> connecting
+              <span class="connection-dot text-tiny leading-none">●</span> connecting
             </span>
             <span
               v-else-if="isResumeUnavailable(session)"
-              class="connection-badge unavailable"
+              class="connection-badge unavailable inline-flex items-center gap-1 py-px px-1.5 rounded-full text-tiny font-medium whitespace-nowrap"
             >
               resume unavailable
             </span>
           </div>
-          <span class="session-agent">
+          <span class="text-tiny text-muted-foreground">
             {{ session.agentName }}
-            <span v-if="isAgentSession(session)" class="session-badge">from agent</span>
+            <span
+              v-if="isAgentSession(session)"
+              class="inline-block ml-1.5 py-px px-1.5 rounded-full bg-muted text-muted-foreground text-tiny font-medium lowercase"
+            >
+              from agent
+            </span>
           </span>
-          <span class="session-date">{{ formatDate(session.lastUpdated) }}</span>
+          <span class="text-tiny text-muted-foreground">{{ formatDate(session.lastUpdated) }}</span>
         </div>
-        <button 
-          class="delete-btn"
+        <button
+          class="delete-btn py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer"
           @click="(e) => handleDelete(session, e)"
           :title="getDeleteTitle(session)"
         >
@@ -168,4 +180,51 @@ async function handleDelete(session: SavedSession, event: Event) {
   </div>
 </template>
 
-<style scoped>@import '../assets/session-list.css';</style>
+<style scoped>
+.session-item {
+  transition: background 0.15s;
+}
+
+.session-item:hover {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+
+.connection-badge.connected {
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
+  color: var(--color-status-completed);
+}
+
+.connection-badge.connected .connection-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+.connection-badge.connecting {
+  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
+  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
+}
+
+.connection-badge.connecting .connection-dot {
+  animation: pulse-dot 1s ease-in-out infinite;
+}
+
+.connection-badge.unavailable {
+  background: color-mix(in srgb, var(--border) 60%, var(--background));
+  color: var(--muted-foreground);
+}
+
+.delete-btn:hover {
+  background: color-mix(in srgb, var(--destructive) 18%, transparent);
+  color: var(--destructive);
+}
+
+@keyframes pulse-dot {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+</style>

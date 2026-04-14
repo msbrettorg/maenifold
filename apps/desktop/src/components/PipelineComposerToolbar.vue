@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 const props = defineProps<{
   designMode: boolean;
   hasSelection: boolean;
@@ -16,21 +17,21 @@ const emit = defineEmits<{
 
 <template>
   <div class="flow-toolbar" role="toolbar" aria-label="Pipeline actions">
-    <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'LR')">↔ Layout LR</button>
-    <button type="button" class="btn btn-ghost" @click="emit('autoLayout', 'TB')">↕ Layout TB</button>
-    <button v-if="designMode && hasSelection" type="button" class="btn btn-outline-danger" @click="emit('deleteSelected')">
+    <Button type="button" variant="ghost" @click="emit('autoLayout', 'LR')">↔ Layout LR</Button>
+    <Button type="button" variant="ghost" @click="emit('autoLayout', 'TB')">↕ Layout TB</Button>
+    <Button v-if="designMode && hasSelection" type="button" variant="destructive" @click="emit('deleteSelected')">
       Delete Selected
-    </button>
-    <button v-if="designMode" type="button" class="btn btn-ghost" @click="emit('fitView')">⊞ Fit View</button>
-    <button
+    </Button>
+    <Button v-if="designMode" type="button" variant="ghost" @click="emit('fitView')">⊞ Fit View</Button>
+    <Button
       v-if="showPaletteToggle"
       type="button"
-      class="btn btn-ghost"
+      variant="ghost"
       :aria-pressed="props.paletteOpen"
       @click="emit('togglePalette')"
     >
       {{ props.paletteOpen ? '✕ Palette' : '+ Palette' }}
-    </button>
+    </Button>
     <slot />
   </div>
 </template>

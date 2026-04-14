@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Textarea } from '@/components/ui/textarea';
+
 const props = defineProps<{
   ariaLabel?: string;
   'aria-label'?: string;
@@ -23,8 +25,8 @@ function handleInput(event: Event): void {
       <h3>{{ props.title }}</h3>
       <p>{{ props.message }}</p>
     </div>
-    <textarea
-      class="field-textarea schema-form-raw-editor__textarea"
+    <Textarea
+      class="schema-form-raw-editor__textarea"
       :value="props.value"
       rows="12"
       spellcheck="false"

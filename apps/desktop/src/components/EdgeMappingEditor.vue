@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
 import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
@@ -184,8 +186,7 @@ function removeManualRow(id: string): void {
           <strong>{{ param.name }}</strong>
           <small>{{ param.required ? 'Required' : 'Optional' }}</small>
         </span>
-        <input
-          class="field-input"
+        <Input
           :list="sourceOutputKeys.length > 0 ? sourcePathListId : undefined"
           :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
           :value="edge.mapping?.[param.name] ?? ''"
@@ -201,28 +202,28 @@ function removeManualRow(id: string): void {
       <p v-if="isToolTarget && !loadingSchemas" class="status">Tool schema unavailable — enter parameter names manually</p>
       <div v-if="manualRows.length > 0" class="manual-list">
         <div v-for="row in manualRows" :key="row.id" class="manual-row">
-          <input
+          <Input
             v-model="row.param"
-            class="field-input"
+            class="flex-1"
             placeholder="Target parameter"
             type="text"
             @blur="commitManualRows"
           />
-          <input
+          <Input
             v-model="row.path"
-            class="field-input"
+            class="flex-1"
             :list="sourceOutputKeys.length > 0 ? sourcePathListId : undefined"
             :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
             type="text"
             @blur="commitManualRows"
           />
-          <button type="button" class="btn btn-ghost" @click="removeManualRow(row.id)">Remove</button>
+          <Button type="button" variant="ghost" @click="removeManualRow(row.id)">Remove</Button>
         </div>
       </div>
       <p v-else class="empty-copy">
         {{ hasMappings ? `Mappings configured for target ${targetLabel}` : 'No field mappings — edge carries topology only' }}
       </p>
-      <button type="button" class="btn btn-ghost" @click="addManualRow">Add mapping</button>
+      <Button type="button" variant="ghost" @click="addManualRow">Add mapping</Button>
     </template>
 
     <datalist v-if="sourceOutputKeys.length > 0" :id="sourcePathListId">
@@ -239,6 +240,5 @@ function removeManualRow(id: string): void {
 .mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
 .manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
-.manual-row .field-input { flex: 1; }
 @media (max-width: 640px) { .manual-row { flex-direction: column; } }
 </style>

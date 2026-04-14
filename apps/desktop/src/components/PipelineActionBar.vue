@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { computed, ref, type Component } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
@@ -11,7 +12,8 @@ interface ActionConfig {
   key: ActionKey;
   label: string;
   icon: Component;
-  className: string;
+  variant: 'default' | 'destructive';
+  class?: string;
   run: () => Promise<unknown>;
 }
 
@@ -31,16 +33,16 @@ const rewindableNodeIds = computed(() =>
     .map((node) => node.nodeId) ?? [],
 );
 
-const actions = computed<ActionConfig[]>(() => {
+const actions = computed((): ActionConfig[] => {
   if (designMode.value) {
     return hasDraftNodes.value
-      ? [{
-          key: 'create',
-          label: 'Create',
-          icon: Play,
-          className: 'btn-primary',
-          run: () => store.createPipeline(),
-        }]
+        ? [{
+            key: 'create',
+            label: 'Create',
+            icon: Play,
+            variant: 'default',
+            run: () => store.createPipeline(),
+          }]
       : [];
   }
 
@@ -51,14 +53,14 @@ const actions = computed<ActionConfig[]>(() => {
           key: 'resume',
           label: 'Resume',
           icon: Play,
-          className: 'btn-primary',
+          variant: 'default',
           run: () => store.resumePipeline(),
         },
         {
           key: 'cancel',
           label: 'Cancel',
           icon: XCircle,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: () => store.cancelPipeline(),
         },
       ];
@@ -68,14 +70,14 @@ const actions = computed<ActionConfig[]>(() => {
           key: 'rewind',
           label: 'Rewind',
           icon: RotateCcw,
-          className: 'btn-primary',
+          variant: 'default',
           run: handleRewind,
         },
         {
           key: 'delete',
           label: 'Delete',
           icon: Trash2,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: handleDelete,
         },
       ];
@@ -85,14 +87,14 @@ const actions = computed<ActionConfig[]>(() => {
           key: 'rewind',
           label: 'Rewind',
           icon: RotateCcw,
-          className: 'btn-primary',
+          variant: 'default',
           run: handleRewind,
         },
         {
           key: 'delete',
           label: 'Delete',
           icon: Trash2,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: handleDelete,
         },
       ];
@@ -102,21 +104,21 @@ const actions = computed<ActionConfig[]>(() => {
           key: 'rewind',
           label: 'Rewind',
           icon: RotateCcw,
-          className: 'btn-primary',
+          variant: 'default',
           run: handleRewind,
         },
         {
           key: 'cancel',
           label: 'Cancel',
           icon: XCircle,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: () => store.cancelPipeline(),
         },
         {
           key: 'delete',
           label: 'Delete',
           icon: Trash2,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: handleDelete,
         },
       ];
@@ -127,41 +129,42 @@ const actions = computed<ActionConfig[]>(() => {
               key: 'pause',
               label: 'Pause',
               icon: Pause,
-              className: 'btn-pause',
+              variant: 'default',
+              class: 'bg-[var(--color-status-stuck)] text-[var(--text-on-accent)] hover:bg-[var(--color-status-active)]',
               run: () => store.pausePipeline(),
             },
             {
               key: 'cancel',
               label: 'Cancel',
               icon: XCircle,
-              className: 'btn-danger',
+              variant: 'destructive',
               run: () => store.cancelPipeline(),
             },
           ]
         : [
             ...(rewindableNodeIds.value.length > 0
-              ? [{
-                  key: 'rewind' as ActionKey,
-                  label: 'Rewind',
-                  icon: RotateCcw,
-                  className: 'btn-primary',
-                  run: handleRewind,
-                }]
-              : []),
+              ? ([{
+                   key: 'rewind' as ActionKey,
+                   label: 'Rewind',
+                   icon: RotateCcw,
+                   variant: 'default',
+                   run: handleRewind,
+                 }] as ActionConfig[])
+               : []),
             {
               key: 'run',
               label: 'Run',
               icon: Play,
-              className: 'btn-primary',
+              variant: 'default',
               run: () => store.runPipeline(),
-            },
+            } as ActionConfig,
             {
               key: 'delete',
               label: 'Delete',
               icon: Trash2,
-              className: 'btn-danger',
+              variant: 'destructive',
               run: handleDelete,
-            },
+            } as ActionConfig,
           ];
     case 'cancelled':
       return [
@@ -169,14 +172,14 @@ const actions = computed<ActionConfig[]>(() => {
           key: 'rewind',
           label: 'Rewind',
           icon: RotateCcw,
-          className: 'btn-primary',
+          variant: 'default',
           run: handleRewind,
         },
         {
           key: 'delete',
           label: 'Delete',
           icon: Trash2,
-          className: 'btn-danger',
+          variant: 'destructive',
           run: handleDelete,
         },
       ];
@@ -213,17 +216,18 @@ function handleRewind(): Promise<void | undefined> {
 
 <template>
   <div v-if="actions.length > 0" class="pipeline-action-bar" role="group" aria-label="Pipeline quick actions">
-    <button
+    <Button
       v-for="action in actions"
       :key="action.key"
       type="button"
-      :class="['btn', action.className, 'pipeline-action-bar__button']"
+      :variant="action.variant"
+      :class="['pipeline-action-bar__button', action.class]"
       :disabled="busyAction !== null"
       @click="runAction(action)"
     >
       <component :is="action.icon" :size="16" aria-hidden="true" />
       <span>{{ action.label }}</span>
-    </button>
+    </Button>
   </div>
 </template>
 

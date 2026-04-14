@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -9,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import type { EdgeType, PipelineEdge } from '../lib/pipeline-types';
 
 interface JoinEdgeRow {
@@ -82,41 +84,44 @@ function handleSubmit() {
           <DialogDescription>Merge another pipeline session into this one by mapping source nodes to target nodes.</DialogDescription>
         </div>
         <DialogClose as-child>
-          <button type="button" class="btn btn-ghost" :disabled="busy">Close</button>
+          <Button type="button" variant="ghost" :disabled="busy">Close</Button>
         </DialogClose>
       </DialogHeader>
 
       <form class="dialog-form" @submit.prevent="handleSubmit">
         <label>
           <span>Source Pipeline Session ID</span>
-          <input v-model="sourceSessionId" class="field-input" type="text" placeholder="session-abc123" />
+          <Input v-model="sourceSessionId" type="text" placeholder="session-abc123" />
         </label>
 
         <div class="edge-list">
           <div class="edge-list-header">
             <h4>Edge mappings</h4>
-            <button type="button" class="btn btn-ghost" :disabled="busy" @click="addEdgeRow">Add Edge</button>
+            <Button type="button" variant="ghost" :disabled="busy" @click="addEdgeRow">Add Edge</Button>
           </div>
 
           <div v-for="(edge, index) in edgeRows" :key="`join-edge-${index}`" class="edge-row">
             <label>
               <span>Source Node ID</span>
-              <input v-model="edge.source" class="field-input" type="text" placeholder="source-node-id" />
+              <Input v-model="edge.source" type="text" placeholder="source-node-id" />
             </label>
             <label>
               <span>Target Node ID</span>
-              <input v-model="edge.target" class="field-input" type="text" placeholder="target-node-id" />
+              <Input v-model="edge.target" type="text" placeholder="target-node-id" />
             </label>
             <label>
               <span>Edge Type</span>
-              <select v-model="edge.type" class="field-input">
+              <select
+                v-model="edge.type"
+                class="w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              >
                 <option value="success">Success</option>
                 <option value="always">Always</option>
               </select>
             </label>
-            <button type="button" class="btn btn-ghost edge-remove" :disabled="busy || edgeRows.length <= 1" @click="removeEdgeRow(index)">
+            <Button type="button" variant="ghost" class="edge-remove" :disabled="busy || edgeRows.length <= 1" @click="removeEdgeRow(index)">
               Remove
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -124,11 +129,11 @@ function handleSubmit() {
 
         <DialogFooter class="dialog-actions">
           <DialogClose as-child>
-            <button type="button" class="btn btn-ghost" :disabled="busy">Cancel</button>
+            <Button type="button" variant="ghost" :disabled="busy">Cancel</Button>
           </DialogClose>
-          <button type="submit" class="btn btn-primary" :disabled="!canSubmit">
+          <Button type="submit" :disabled="!canSubmit">
             {{ busy ? 'Joining…' : 'Join Pipeline' }}
-          </button>
+          </Button>
         </DialogFooter>
       </form>
     </DialogContent>

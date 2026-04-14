@@ -223,19 +223,18 @@ onBeforeUnmount(() => {
 .workflow-authoring-page--dragging {
   cursor: col-resize;
 }
-</style>
-<style>
-.workflow-panel-header {
-  display: none !important;
+
+:deep(.workflow-panel-header) {
+  display: none;
 }
 
-.workflow-panel-body {
+:deep(.workflow-panel-body) {
   flex: 1;
   overflow: hidden;
-  padding: 0 !important;
+  padding: 0;
 }
 
-.workflow-name {
+:deep(.workflow-name) {
   white-space: normal !important;
   overflow: visible !important;
   text-overflow: clip !important;

@@ -55,7 +55,7 @@ describe('InspectorNodeActions', () => {
 
     expect(wrapper.text()).toContain('Promote to Memory');
 
-    await wrapper.get('button.btn-primary').trigger('click');
+    await wrapper.get('[data-testid="primary-action"]').trigger('click');
     expect(wrapper.find('.promotion-dialog-stub').exists()).toBe(true);
   });
 

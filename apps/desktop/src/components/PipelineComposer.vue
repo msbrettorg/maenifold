@@ -4,6 +4,7 @@ import { BaseEdge, EdgeLabelRenderer, VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
+import { Button } from '@/components/ui/button';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 
 import '@vue-flow/core/dist/style.css';
@@ -131,13 +132,13 @@ function handleContextMenuOpenChange(open: boolean): void {
             </PipelineComposerToolbar>
 
             <Transition name="palette-overlay">
-              <section v-if="paletteAsOverlay" class="composer-palette-overlay">
-                <div class="composer-palette-overlay-header">
-                  <strong>Add Node</strong>
-                  <button type="button" class="btn btn-ghost btn-xs" @click="closePalette">✕ Close</button>
-                </div>
-                <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
-              </section>
+                <section v-if="paletteAsOverlay" class="composer-palette-overlay">
+                  <div class="composer-palette-overlay-header">
+                    <strong>Add Node</strong>
+                    <Button type="button" variant="ghost" size="sm" class="h-6 px-2 text-xs" @click="closePalette">✕ Close</Button>
+                  </div>
+                  <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
+                </section>
             </Transition>
             <button v-if="paletteAsOverlay" type="button" class="composer-palette-backdrop" aria-label="Close palette" @click="closePalette" />
 

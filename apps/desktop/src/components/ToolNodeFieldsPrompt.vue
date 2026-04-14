@@ -5,6 +5,9 @@ import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { SessionConfigSelectGroup, SessionConfigSelectOption } from '../lib/types';
 import AgentProbePreview from './AgentProbePreview.vue';
 
+const selectFieldClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
+
 defineProps({
   agentName: { type: String, default: '' },
   agentConfig: { type: Object as PropType<PipelineNodeAgentConfig>, default: () => ({}) },
@@ -30,7 +33,7 @@ defineProps({
 <template>
   <label>
     <span>Agent Override</span>
-    <select class="field-input" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
+    <select :class="selectFieldClass" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
       <option value="">Use tool default</option>
       <option v-for="name in agentNames" :key="name" :value="name">
         {{ formatAgentOptionLabel(name) }}
@@ -57,13 +60,13 @@ defineProps({
       <div class="tool-agent-grid">
         <label v-if="readyProbe.modelOptions.length">
           <span>Model</span>
-          <select class="field-input" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe)" @change="updateAgentModel">
+          <select :class="selectFieldClass" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe)" @change="updateAgentModel">
             <option v-for="model in readyProbe.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
           </select>
         </label>
         <label v-if="readyProbe.thoughtLevelConfigOption">
           <span>{{ readyProbe.thoughtLevelConfigOption.name }}</span>
-          <select class="field-input" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe)" @change="updateAgentThoughtLevel">
+          <select :class="selectFieldClass" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe)" @change="updateAgentThoughtLevel">
             <template v-for="entry in readyProbe.thoughtLevelConfigOption.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
               <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
                 <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
@@ -74,7 +77,7 @@ defineProps({
         </label>
         <label v-for="option in editableAgentConfigOptions" :key="option.id">
           <span>{{ option.name }}</span>
-          <select class="field-input" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)">
+          <select :class="selectFieldClass" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)">
             <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
               <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
                 <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>

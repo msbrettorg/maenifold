@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   useAddNodeFormFieldBindings,
   type AddNodeFormFieldsEmit,
@@ -6,6 +8,9 @@ import {
 } from '../composables/useAddNodeFormFieldBindings';
 import AgentProbePreview from './AgentProbePreview.vue';
 import ToolPaletteFields from './ToolPaletteFields.vue';
+
+const nativeSelectClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 const props = defineProps<AddNodeFormFieldsProps>();
 const emit = defineEmits<AddNodeFormFieldsEmit>();
@@ -41,13 +46,12 @@ const {
     <template v-if="nodeType === 'workflow'">
       <label>
         <span>Workflow ID</span>
-        <input
-          class="field-input"
-          :value="workflowId"
+        <Input
+          :model-value="workflowId"
           :list="workflowListId"
           type="text"
           placeholder="Workflow ID"
-          @input="emit('update:workflowId', ($event.target as HTMLInputElement).value.trim())"
+          @update:model-value="emit('update:workflowId', String($event).trim())"
         />
       </label>
       <datalist :id="workflowListId">
@@ -57,12 +61,11 @@ const {
 
     <label v-else-if="nodeType === 'sequentialThinking'">
       <span>Topic</span>
-      <input
-        class="field-input"
-        :value="thinkingTopic"
+      <Input
+        :model-value="thinkingTopic"
         type="text"
         placeholder="Topic"
-        @input="emit('update:thinkingTopic', ($event.target as HTMLInputElement).value.trim())"
+        @update:model-value="emit('update:thinkingTopic', String($event).trim())"
       />
     </label>
 
@@ -70,7 +73,7 @@ const {
       <label>
         <span>Agent</span>
         <select
-          class="field-input"
+          :class="nativeSelectClass"
           :data-testid="`${currentTestPrefix}-agent-select`"
           :value="currentAgentName"
           @change="updateCurrentAgentName"
@@ -119,7 +122,7 @@ const {
             <label v-if="currentReadyProbe.modelOptions.length">
               <span>Model</span>
               <select
-                class="field-input"
+                :class="nativeSelectClass"
                 :data-testid="`${currentTestPrefix}-model-select`"
                 :value="getAgentModelValue(currentAgentConfig, currentReadyProbe)"
                 @change="updateCurrentModel"
@@ -132,7 +135,7 @@ const {
             <label v-if="currentReadyProbe.thoughtLevelConfigOption">
               <span>{{ currentReadyProbe.thoughtLevelConfigOption.name }}</span>
               <select
-                class="field-input"
+                :class="nativeSelectClass"
                 :data-testid="`${currentTestPrefix}-thought-level-select`"
                 :value="getAgentThoughtLevelValue(currentAgentConfig, currentReadyProbe)"
                 @change="updateCurrentThoughtLevel"
@@ -153,7 +156,7 @@ const {
             <label v-for="option in currentEditableOptions" :key="option.id">
               <span>{{ option.name }}</span>
               <select
-                class="field-input"
+                :class="nativeSelectClass"
                 :data-testid="`${currentTestPrefix}-config-${option.id}`"
                 :value="getAgentConfigOptionValue(currentAgentConfig, option)"
                 @change="updateCurrentConfigOption(option, $event)"
@@ -178,47 +181,43 @@ const {
 
     <label v-if="nodeType === 'workflow'" class="field-wide">
       <span>Prompt</span>
-      <textarea
-        class="field-textarea"
+      <Textarea
+        :model-value="workflowPrompt"
         rows="3"
         placeholder="Optional workflow prompt"
-        :value="workflowPrompt"
-        @input="emit('update:workflowPrompt', ($event.target as HTMLTextAreaElement).value.trim())"
+        @update:model-value="emit('update:workflowPrompt', String($event).trim())"
       />
     </label>
 
     <label v-else-if="nodeType === 'prompt'" class="field-wide">
       <span>Prompt</span>
-      <textarea
-        class="field-textarea"
+      <Textarea
+        :model-value="promptTemplate"
         rows="3"
         placeholder="Required prompt template"
-        :value="promptTemplate"
-        @input="emit('update:promptTemplate', ($event.target as HTMLTextAreaElement).value.trim())"
+        @update:model-value="emit('update:promptTemplate', String($event).trim())"
       />
     </label>
 
     <template v-else-if="nodeType === 'sequentialThinking'">
       <label>
         <span>Total thoughts</span>
-        <input
-          class="field-input"
-          :value="thinkingTotalThoughts"
+        <Input
+          :model-value="thinkingTotalThoughts"
           type="number"
           min="1"
           inputmode="numeric"
           placeholder="5"
-          @input="emit('update:thinkingTotalThoughts', ($event.target as HTMLInputElement).value)"
+          @update:model-value="emit('update:thinkingTotalThoughts', String($event))"
         />
       </label>
       <label>
         <span>Analysis type</span>
-        <input
-          class="field-input"
-          :value="thinkingAnalysisType"
+        <Input
+          :model-value="thinkingAnalysisType"
           type="text"
           placeholder="Optional analysis type"
-          @input="emit('update:thinkingAnalysisType', ($event.target as HTMLInputElement).value.trim())"
+          @update:model-value="emit('update:thinkingAnalysisType', String($event).trim())"
         />
       </label>
     </template>

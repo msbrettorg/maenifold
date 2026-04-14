@@ -1,5 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import type { PipelineNodeType } from '../lib/pipeline-types';
+
+const nativeSelectClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 defineProps<{
   modelValue: PipelineNodeType;
@@ -21,7 +25,7 @@ function updateNodeType(event: Event): void {
     <label class="toolbar-type-field">
       <span>Node type</span>
       <select
-        class="field-input"
+        :class="nativeSelectClass"
         aria-label="Node type"
         :value="modelValue"
         @change="updateNodeType"
@@ -33,9 +37,7 @@ function updateNodeType(event: Event): void {
       </select>
     </label>
     <div class="toolbar-actions">
-      <button type="submit" class="btn btn-primary" :disabled="!canAdd">
-        {{ submitLabel }}
-      </button>
+      <Button type="submit" :disabled="!canAdd">{{ submitLabel }}</Button>
     </div>
   </div>
 </template>

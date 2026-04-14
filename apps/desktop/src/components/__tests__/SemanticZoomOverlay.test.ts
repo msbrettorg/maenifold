@@ -90,7 +90,10 @@ describe('SemanticZoomOverlay', () => {
       },
     });
 
-    await wrapper.get('button.btn-ghost').trigger('click');
+    await wrapper
+      .findAll('button')
+      .find((button) => button.text() === 'Fork from node')!
+      .trigger('click');
     await flushPromises();
 
     expect(promptSpy).toHaveBeenCalledWith('Optional name for the forked pipeline session:', '');

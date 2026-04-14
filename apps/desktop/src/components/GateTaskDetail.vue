@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { Button } from '@/components/ui/button';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
@@ -43,7 +44,7 @@ function renderMarkdown(content: string | null) {
         <h3 :id="detailTitleId">{{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}</h3>
         <GateTaskDetailMeta v-if="task" :task="task" :process-label="processLabel" />
       </div>
-      <button v-if="task" type="button" class="btn btn-ghost" @click="$emit('close')">Clear</button>
+      <Button v-if="task" variant="ghost" @click="$emit('close')">Clear</Button>
     </div>
 
     <template v-if="task">

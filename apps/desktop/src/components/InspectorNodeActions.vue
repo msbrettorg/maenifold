@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { usePipelineStore } from '../stores/pipeline';
 import type { ViewNode } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
@@ -94,63 +96,62 @@ function openPromotionDialog(): void {
 <template>
   <label v-if="node.status === 'active'" class="field">
     <span>Completion note</span>
-    <textarea v-model="conclusionText" class="field-textarea" rows="4" placeholder="Optional conclusion for this node" />
+    <Textarea v-model="conclusionText" rows="4" placeholder="Optional conclusion for this node" />
   </label>
   <div class="actions">
-    <button
+    <Button
       v-if="canPromote"
-      :class="['btn', 'btn-primary', { 'btn--busy': promotionBusy }]"
+      data-testid="primary-action"
       :disabled="promotionBusy"
       :title="promoteButtonTitle"
       type="button"
       @click="openPromotionDialog"
     >
       {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
-    </button>
-    <button
-      :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'fork' }]"
+    </Button>
+    <Button
+      variant="ghost"
       :disabled="busyAction !== null"
       type="button"
       @click="forkNode"
     >
       {{ busyAction === 'fork' ? 'Forking...' : 'Fork from here' }}
-    </button>
-    <button
+    </Button>
+    <Button
       v-if="['abandoned', 'stuck'].includes(node.status)"
-      :class="['btn', 'btn-primary', { 'btn--busy': busyAction === 'restart' }]"
       :disabled="busyAction !== null"
       type="button"
       @click="restartNode"
     >
       {{ busyAction === 'restart' ? 'Restart...' : 'Restart' }}
-    </button>
-    <button
+    </Button>
+    <Button
       v-if="['completed', 'abandoned', 'stuck'].includes(node.status)"
-      :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'rewind' }]"
+      variant="ghost"
       :disabled="busyAction !== null"
       type="button"
       @click="rewindNode"
     >
       {{ busyAction === 'rewind' ? 'Rewind...' : 'Rewind' }}
-    </button>
-    <button
+    </Button>
+    <Button
       v-if="node.status === 'active'"
-      :class="['btn', 'btn-ghost', { 'btn--busy': busyAction === 'complete' }]"
+      variant="ghost"
       :disabled="busyAction !== null"
       type="button"
       @click="completeNode"
     >
       {{ busyAction === 'complete' ? 'Complete...' : 'Complete' }}
-    </button>
-    <button
+    </Button>
+    <Button
       v-if="node.status === 'active'"
-      :class="['btn', 'btn-danger', { 'btn--busy': busyAction === 'abandon' }]"
+      variant="destructive"
       :disabled="busyAction !== null"
       type="button"
       @click="abandonNode"
     >
       {{ busyAction === 'abandon' ? 'Abandon...' : 'Abandon' }}
-    </button>
+    </Button>
   </div>
   <div v-if="forkedSessionId" class="fork-result" role="status">
     <span>Forked session</span>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
 import PromptAssemblyPreview from './PromptAssemblyPreview.vue'
 import ThinkingTraceView from './ThinkingTraceView.vue'
 import WorkflowStepProgress from './WorkflowStepProgress.vue'
@@ -48,7 +49,7 @@ function hasResponseSummary(value?: string | null): value is string {
         <span>Session ID</span>
         <div class="copy-row">
           <strong class="mono">{{ selectedViewNode.sessionId }}</strong>
-          <button class="btn btn-ghost copy-button" type="button" @click="emit('copy', selectedViewNode.sessionId)">Copy</button>
+          <Button class="copy-button" variant="ghost" type="button" @click="emit('copy', selectedViewNode.sessionId)">Copy</Button>
         </div>
       </div>
 
@@ -56,7 +57,7 @@ function hasResponseSummary(value?: string | null): value is string {
         <span>ACP session</span>
         <div class="copy-row">
           <strong class="mono">{{ selectedViewNode.acpSessionId }}</strong>
-          <button class="btn btn-ghost copy-button" type="button" @click="emit('copy', selectedViewNode.acpSessionId ?? '')">Copy</button>
+          <Button class="copy-button" variant="ghost" type="button" @click="emit('copy', selectedViewNode.acpSessionId ?? '')">Copy</Button>
         </div>
       </div>
 
@@ -64,7 +65,7 @@ function hasResponseSummary(value?: string | null): value is string {
         <span>Thinking session</span>
         <div class="copy-row">
           <strong class="mono">{{ selectedViewNode.thinkingSessionId }}</strong>
-          <button class="btn btn-ghost copy-button" type="button" @click="emit('copy', selectedViewNode.thinkingSessionId ?? '')">Copy</button>
+          <Button class="copy-button" variant="ghost" type="button" @click="emit('copy', selectedViewNode.thinkingSessionId ?? '')">Copy</Button>
         </div>
       </div>
 

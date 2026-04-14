@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+
+const selectFieldClass =
+  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
+
 const props = defineProps<{
   hasGateRoot: boolean;
   todoCount: number;
@@ -36,15 +41,15 @@ function handleRootChange(event: Event) {
     <p v-else class="gate-meta">Register a root to inspect .gate/gate.db.</p>
 
     <div class="gate-toolbar__actions">
-      <select class="field-select gate-root-select" :value="props.selectedGateRoot" :disabled="!props.isReady" @change="handleRootChange">
+      <select :class="[selectFieldClass, 'gate-root-select']" :value="props.selectedGateRoot" :disabled="!props.isReady" @change="handleRootChange">
         <option value="">Select root…</option>
         <option v-for="root in props.gateRoots" :key="root" :value="root">{{ root }}</option>
       </select>
-      <button type="button" class="btn btn-ghost" @click="emit('browse')">Browse…</button>
-      <button type="button" class="btn btn-ghost" :disabled="!props.hasGateRoot" @click="emit('remove')">Remove</button>
-      <button type="button" class="btn btn-ghost" :disabled="!props.hasGateRoot || props.isLoading" @click="emit('refresh')">
+      <Button variant="ghost" @click="emit('browse')">Browse…</Button>
+      <Button variant="ghost" :disabled="!props.hasGateRoot" @click="emit('remove')">Remove</Button>
+      <Button variant="ghost" :disabled="!props.hasGateRoot || props.isLoading" @click="emit('refresh')">
         {{ props.isLoading ? 'Refreshing…' : 'Refresh' }}
-      </button>
+      </Button>
     </div>
   </header>
 </template>

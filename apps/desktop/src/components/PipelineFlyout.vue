@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { RefreshCw } from 'lucide-vue-next';
@@ -139,12 +140,12 @@ watch(
       <div v-else-if="showErrorState" class="pipeline-state pipeline-state--error" role="alert">
         <p class="pipeline-state-title">Failed to load</p>
         <p class="pipeline-state-message">{{ connectionError }}</p>
-        <button type="button" class="btn btn-primary" @click="emit('retry')">Retry</button>
+        <Button type="button" @click="emit('retry')">Retry</Button>
       </div>
 
       <div v-else-if="pipelines.length === 0" class="pipeline-state pipeline-state--empty">
         <p class="pipeline-state-title">No pipelines yet</p>
-        <button type="button" class="btn btn-primary" @click="handleNewPipeline">+ New Pipeline</button>
+        <Button type="button" @click="handleNewPipeline">+ New Pipeline</Button>
       </div>
 
       <PipelineSidebar v-else hide-header @pipeline-selected="emit('close')" />

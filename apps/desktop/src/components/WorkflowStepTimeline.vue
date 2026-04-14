@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Button } from '@/components/ui/button'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import WorkflowDraftBar from './WorkflowDraftBar.vue'
 import WorkflowStepCard from './WorkflowStepCard.vue'
@@ -38,8 +39,8 @@ const saveButtonLabel = computed(() => {
   return origin.value === 'packaged' ? 'Save Copy' : 'Save'
 })
 const saveButtonClass = computed(() => ({
-  'btn--save-dirty': isDirty.value,
-  'btn--save-error': saveState.value === 'error',
+  'timeline-save-button--dirty': isDirty.value,
+  'timeline-save-button--error': saveState.value === 'error',
 }))
 const exportPromptVisible = ref(false)
 const lastExportVersion = ref<'draft' | 'saved'>('draft')
@@ -140,17 +141,17 @@ watch(exportState, (state) => {
         {{ displayedDefinition.name }}
       </h1>
       <div class="header-actions">
-        <button class="btn btn--ghost" :disabled="exportState === 'exporting'" type="button" @click="handleExportClick">
+        <Button variant="outline" :disabled="exportState === 'exporting'" @click="handleExportClick">
           {{ exportState === 'exporting' ? 'Exporting…' : 'Export' }}
-        </button>
-        <button
-          :class="['btn btn--save', saveButtonClass]"
+        </Button>
+        <Button
+          variant="outline"
+          :class="['timeline-save-button', saveButtonClass]"
           :disabled="saveState === 'saving' || (!isDirty && saveState !== 'error')"
-          type="button"
           @click="emit('save')"
         >
           {{ saveButtonLabel }}
-        </button>
+        </Button>
 
       </div>
     </header>
@@ -247,15 +248,11 @@ watch(exportState, (state) => {
 .export-feedback { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2); color: var(--muted-foreground); font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); }
 .feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .feedback-btn:hover { background: var(--card); }
-.btn { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 32px; padding: 0 var(--space-3); border-radius: var(--radius-sm); border: 1px solid transparent; font-family: var(--font-body); font-size: var(--text-caption); font-weight: var(--weight-display); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast); white-space: nowrap; }
-.btn--ghost { background: transparent; color: var(--foreground); border-color: var(--border); }
-.btn--ghost:hover { background: var(--card); }
-.btn--save { background: transparent; color: var(--muted-foreground); border-color: var(--border); opacity: 0.4; cursor: default; }
-.btn--save-dirty { color: var(--color-status-active); border-color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 10%, transparent); opacity: 1; cursor: pointer; }
-.btn--save-dirty:hover { background: color-mix(in srgb, var(--color-status-active) 18%, transparent); }
-.btn--save-error { color: var(--color-status-abandoned); border-color: var(--color-status-abandoned); background: color-mix(in srgb, var(--color-status-abandoned) 10%, transparent); opacity: 1; cursor: pointer; }
+.timeline-save-button { color: var(--muted-foreground); opacity: 0.4; cursor: default; }
+.timeline-save-button--dirty { color: var(--color-status-active); border-color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 10%, transparent); opacity: 1; cursor: pointer; }
+.timeline-save-button--dirty:hover { background: color-mix(in srgb, var(--color-status-active) 18%, transparent); }
+.timeline-save-button--error { color: var(--color-status-abandoned); border-color: var(--color-status-abandoned); background: color-mix(in srgb, var(--color-status-abandoned) 10%, transparent); opacity: 1; cursor: pointer; }
 .save-feedback { margin: 0; color: var(--color-status-abandoned); font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); }
-.btn:disabled { pointer-events: none; }
 .timeline-meta { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; font-family: var(--font-code); font-size: var(--text-tiny); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
 .meta-sep::before { content: ''; display: inline-block; width: 1px; height: 0.75em; background: var(--border); margin-right: var(--space-3); vertical-align: middle; }
 .step-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-3); }

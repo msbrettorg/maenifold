@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
 import { computed } from 'vue';
 import type { PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
 import {
@@ -70,8 +71,8 @@ function formatNodeType(type?: PipelineNodeType): string {
         : 'Workflow';
 }
 
-function getFieldValue(event: Event): string {
-  return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
+function getFieldValue(value: string | number): string {
+  return String(value);
 }
 
 function getCwdWarning(value: string | undefined): string | null {
@@ -80,9 +81,9 @@ function getCwdWarning(value: string | undefined): string | null {
     : null;
 }
 
-function updateMaxConcurrency(event: Event): void {
-  const value = Number((event.target as HTMLInputElement).value);
-  store.maxConcurrency = Number.isFinite(value) ? Math.min(32, Math.max(1, value)) : 1;
+function updateMaxConcurrency(value: string | number): void {
+  const nextValue = Number(value);
+  store.maxConcurrency = Number.isFinite(nextValue) ? Math.min(32, Math.max(1, nextValue)) : 1;
 }
 
 function replaceNode(previousId: string, nextNode: PipelineNode): void {
@@ -114,16 +115,16 @@ function updateEdgeType(type: PipelineEdge['type']): void {
   };
 }
 
-function updateNodeLabel(event: Event): void {
-  const label = getFieldValue(event).trim();
+function updateNodeLabel(value: string | number): void {
+  const label = getFieldValue(value).trim();
   updateDesignNode((node) => {
     const { displayLabel: _displayLabel, ...rest } = node;
     return label ? { ...rest, displayLabel: label } : rest;
   });
 }
 
-function updateNodeCwd(event: Event): void {
-  const cwd = normalizeNodeCwd(getFieldValue(event));
+function updateNodeCwd(value: string | number): void {
+  const cwd = normalizeNodeCwd(getFieldValue(value));
   updateDesignNode((node) => {
     const { cwd: _cwd, ...rest } = node;
     return cwd ? { ...rest, cwd } : rest;
@@ -137,7 +138,7 @@ function updateNodeCwd(event: Event): void {
       <h2>Pipeline Settings</h2>
       <label class="field">
         <span>Max concurrency</span>
-        <input class="field-input" :value="store.maxConcurrency" type="number" min="1" max="32" @input="updateMaxConcurrency" />
+        <Input :model-value="store.maxConcurrency" type="number" min="1" max="32" @update:model-value="updateMaxConcurrency" />
       </label>
       <div class="stats-grid">
         <div class="stat-card"><span class="stat-label">Nodes</span><strong>{{ store.localDefinition.nodes.length }}</strong></div>
@@ -147,8 +148,8 @@ function updateNodeCwd(event: Event): void {
 
     <section v-else-if="inspectorMode === 'design-node' && selectedDesignNode" class="panel">
       <h2>{{ selectedNodeLabel || selectedDesignNode.id || 'Node' }}</h2>
-      <label class="field"><span>Label</span><input class="field-input" :value="selectedNodeLabel" type="text" placeholder="Human-readable label" @input="updateNodeLabel" /></label>
-      <label class="field"><span>ID</span><input class="field-input field-input--readonly" :value="selectedDesignNode.id" type="text" readonly /></label>
+      <label class="field"><span>Label</span><Input :model-value="selectedNodeLabel" type="text" placeholder="Human-readable label" @update:model-value="updateNodeLabel" /></label>
+      <label class="field"><span>ID</span><Input class="opacity-60 cursor-default select-text bg-background" :model-value="selectedDesignNode.id" type="text" readonly /></label>
       <div class="summary-row"><span>Type</span><strong class="type-pill">{{ formatNodeType(getNodeType(selectedDesignNode)) }}</strong></div>
 
       <DesignNodeConfigWorkflow v-if="selectedWorkflowDesignNode" :node-id="selectedWorkflowDesignNode.id" :workflow-list-id="workflowListId" />
@@ -158,7 +159,7 @@ function updateNodeCwd(event: Event): void {
 
       <label v-if="!selectedToolDesignNode" class="field">
         <span>Working directory</span>
-        <input class="field-input" :value="selectedDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" />
+        <Input :model-value="selectedDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @update:model-value="updateNodeCwd" />
         <small v-if="getCwdWarning(selectedDesignNode.cwd)" class="field-hint field-hint--warning">
           {{ getCwdWarning(selectedDesignNode.cwd) }}
         </small>
@@ -206,5 +207,4 @@ function updateNodeCwd(event: Event): void {
 .radio-option { justify-content: flex-start; }
 .empty-state { justify-content: center; min-height: 220px; }
 .empty-state p { color: var(--muted-foreground); }
-.field-input--readonly { opacity: 0.6; cursor: default; user-select: text; background: var(--background); }
 </style>

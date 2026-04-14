@@ -42,42 +42,56 @@ const resize = useResizeHandle({
   <!-- Sidebar panel -->
   <aside
     v-if="visible"
-    class="sidebar"
+    class="sidebar flex shrink-0 flex-col border-r border-[var(--border)] bg-[var(--card)]"
     role="navigation"
     aria-label="Main navigation"
     :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }"
   >
-    <div class="sidebar-header">
-      <h1>maenifold</h1>
-      <div class="header-actions">
+    <div class="flex items-center justify-between border-b border-[var(--border)] p-4">
+      <h1 class="m-0 font-[var(--font-display)] text-[var(--text-title)] tracking-[0.06em]">maenifold</h1>
+      <div class="flex gap-1">
         <button
-          class="settings-btn"
-          :class="{ active: showTrafficMonitor }"
+          :class="[
+            'cursor-pointer border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]',
+            showTrafficMonitor && 'rounded bg-[var(--muted)] text-[var(--primary)]',
+          ]"
           @click="showTrafficMonitor = !showTrafficMonitor"
           title="ACP Traffic Monitor"
         >📡</button>
-        <button class="settings-btn" @click="emit('open-settings')" title="Settings">⚙</button>
-        <button class="toggle-btn" @click="visible = false">◀</button>
+        <button
+          class="cursor-pointer border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+          @click="emit('open-settings')"
+          title="Settings"
+        >⚙</button>
+        <button
+          class="cursor-pointer border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:text-[var(--foreground)]"
+          @click="visible = false"
+        >◀</button>
       </div>
     </div>
 
     <div class="sidebar-content">
       <!-- Agent Selection -->
-      <div class="section">
+      <div class="section px-4 py-3">
         <AgentSelector
           v-model:selected="selectedAgent"
           @select="(name: string) => emit('agent-select', name)"
         />
 
         <!-- Working Directory Picker -->
-        <div class="cwd-picker">
-          <label>Working Directory:</label>
-          <div class="cwd-row">
-            <span class="cwd-path" :title="selectedCwd || 'Current directory'">
+        <div class="mt-3">
+          <label
+            class="mb-1 block text-[var(--text-tiny)] font-[var(--weight-title)] tracking-[0.06em] text-[var(--muted-foreground)] uppercase"
+          >Working Directory:</label>
+          <div class="flex items-center gap-2">
+            <span
+              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded border border-[var(--border)] bg-[var(--background)] px-2 py-1.5 text-[var(--text-caption)] text-[var(--foreground)]"
+              :title="selectedCwd || 'Current directory'"
+            >
               {{ selectedCwd ? selectedCwd.split(/[\\/]/).pop() : '.' }}
             </span>
             <button
-              class="cwd-btn"
+              class="cursor-pointer rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-[var(--text-body-sm)] transition-colors hover:bg-[var(--muted)] disabled:cursor-not-allowed disabled:opacity-50"
               @click="emit('select-folder')"
               title="Select folder"
             >
@@ -88,7 +102,7 @@ const resize = useResizeHandle({
 
         <button
           v-if="hasAgents"
-          class="new-session-btn"
+          class="mt-3 w-full cursor-pointer rounded-md border border-[var(--primary)] bg-transparent px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--primary)] transition-colors hover:bg-[color-mix(in_srgb,var(--primary)_12%,transparent)] disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >
@@ -109,7 +123,7 @@ const resize = useResizeHandle({
       </div>
 
       <!-- Session List -->
-      <div class="section">
+      <div class="section px-4 py-3">
         <SessionList
           @resume="(session: SavedSession) => emit('resume-session', session)"
           @delete="(id: string) => emit('delete-session', id)"
@@ -122,18 +136,45 @@ const resize = useResizeHandle({
   <!-- Sidebar resize handle -->
   <div
     v-if="visible"
-    class="app-resize-handle"
+    class="relative z-10 -mx-[3px] w-[6px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--ring)] active:bg-[var(--ring)]"
     @mousedown="resize.startResize($event, 'right')"
   />
 
   <!-- Collapsed sidebar toggle -->
   <button
     v-if="!visible"
-    class="sidebar-toggle-collapsed"
+    class="fixed top-1/2 left-0 cursor-pointer rounded-r border border-l-0 border-[var(--border)] bg-[var(--card)] p-2 text-[var(--muted-foreground)] -translate-y-1/2 transition-colors hover:text-[var(--foreground)]"
     @click="visible = true"
   >
     ▶
   </button>
 </template>
 
-<style scoped>@import '../assets/app-sidebar.css';</style>
+<style scoped>
+.sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.section + .section {
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
+}
+
+.section :deep(.agent-selector label),
+.section :deep(.probe-preview.compact .field-label),
+.section :deep(.probe-preview.compact .option-count) {
+  font-size: var(--text-tiny);
+}
+
+.section :deep(.agent-selector select),
+.section :deep(.probe-preview.compact .preview-select),
+.section :deep(.probe-preview.compact .field-current),
+.section :deep(.probe-preview.compact .default-summary),
+.section :deep(.probe-preview.compact .status-message),
+.section :deep(.probe-preview.compact .field-description),
+.section :deep(.probe-preview.compact .warning-note),
+.section :deep(.probe-preview.compact .degraded-note),
+.section :deep(.probe-preview.compact .technical-detail) {
+  font-size: var(--text-caption);
+}
+</style>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { Button } from '@/components/ui/button';
 import DesignNodeConfigModal from './DesignNodeConfigModal.vue';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import JoinPipelineDialog from './JoinPipelineDialog.vue';
@@ -204,24 +205,23 @@ onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown)
       </section>
       <section v-if="!showFullScreenEmpty" class="runner-panel">
         <div class="runner-panel-header">
-          <button
+          <Button
             v-if="hasLoadedPipeline && runnerExpanded"
             type="button"
-            class="btn btn-primary"
             :disabled="graftSubmitting"
             @click="graftDialogOpen = true"
           >
             Graft Nodes
-          </button>
-          <button
+          </Button>
+          <Button
             v-if="hasLoadedPipeline && runnerExpanded"
             type="button"
-            class="btn btn-ghost"
+            variant="ghost"
             :disabled="joinSubmitting"
             @click="joinDialogOpen = true"
           >
             Join Pipeline
-          </button>
+          </Button>
           <button
             class="runner-expand-btn"
             type="button"

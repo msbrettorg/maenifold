@@ -1,4 +1,5 @@
-use serde_json::{Value, json};
+use maenifold_core::McpToolDefinition;
+use serde_json::json;
 
 pub const ROOT_PARAMETER_DESCRIPTION: &str = "Optional workspace root directory containing the gate project. Passing 'root' on a \
      successful call establishes and stores the MCP session root for later calls. If omitted, \
@@ -36,18 +37,11 @@ const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the au
      the project task tracker. Use gate instead of ad-hoc todo lists and SQL todo-table tracking. \
      Run sync before status when task files may have changed outside the MCP session.";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct McpToolDefinition {
-    pub name: &'static str,
-    pub description: &'static str,
-    pub input_schema: Value,
-}
-
 pub fn list() -> Vec<McpToolDefinition> {
     vec![
         McpToolDefinition {
-            name: "status",
-            description: STATUS_DESCRIPTION,
+            name: "status".to_string(),
+            description: STATUS_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -76,8 +70,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "append",
-            description: APPEND_DESCRIPTION,
+            name: "append".to_string(),
+            description: APPEND_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -111,8 +105,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "pass",
-            description: PASS_DESCRIPTION,
+            name: "pass".to_string(),
+            description: PASS_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -146,8 +140,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "fail",
-            description: FAIL_DESCRIPTION,
+            name: "fail".to_string(),
+            description: FAIL_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -181,8 +175,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "history",
-            description: HISTORY_DESCRIPTION,
+            name: "history".to_string(),
+            description: HISTORY_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -200,8 +194,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "task_body",
-            description: TASK_BODY_DESCRIPTION,
+            name: "task_body".to_string(),
+            description: TASK_BODY_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -219,8 +213,8 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
-            name: "sync",
-            description: SYNC_DESCRIPTION,
+            name: "sync".to_string(),
+            description: SYNC_DESCRIPTION.to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -251,7 +245,7 @@ mod tests {
     #[test]
     fn mcp_tool_list_exposes_exactly_six_gate_tools() {
         let tools = list();
-        let names: Vec<_> = tools.iter().map(|tool| tool.name).collect();
+        let names: Vec<_> = tools.iter().map(|tool| tool.name.as_str()).collect();
         assert_eq!(
             names,
             vec![

@@ -14,13 +14,14 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Map, Value};
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
-use self::schema::{McpToolDefinition, list};
+use self::schema::list;
 use crate::cli::{
     AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
 };
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
 use crate::status_filter::StatusFilter;
+use maenifold_core::McpToolDefinition;
 
 const GATE_SERVER_INSTRUCTIONS: &str = "Gate is the authoritative project task tracker. Task state lives in markdown files under \
      the workspace, while .gate/gate.db is only a read model produced by sync. Recommended \

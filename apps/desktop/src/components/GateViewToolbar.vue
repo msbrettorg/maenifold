@@ -25,7 +25,7 @@ function handleRootChange(event: Event) {
 </script>
 
 <template>
-  <header class="gate-toolbar">
+  <header class="gate-toolbar" role="toolbar" aria-label="Gate actions">
     <div v-if="props.hasGateRoot" class="gate-stats">
       <span class="gate-chip gate-chip--todo">{{ props.todoCount }} todo</span>
       <span class="gate-chip gate-chip--done">{{ props.doneCount }} done</span>
@@ -68,29 +68,29 @@ function handleRootChange(event: Event) {
   padding: 0.25rem 0.6rem;
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .gate-chip--todo {
   color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 12%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-active) 12%, var(--muted));
 }
 
 .gate-chip--done {
   color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--muted));
 }
 
 .gate-chip--filtered {
-  color: var(--border-focus);
-  background: color-mix(in srgb, var(--border-focus) 10%, var(--bg-surface));
+  color: var(--ring);
+  background: color-mix(in srgb, var(--ring) 10%, var(--muted));
 }
 
 .gate-refreshed,
 .gate-meta {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .gate-refreshed {

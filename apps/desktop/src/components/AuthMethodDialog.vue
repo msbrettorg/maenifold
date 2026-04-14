@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { AppAuthMethod } from '../lib/auth-methods';
 
 defineProps<{
@@ -17,23 +26,27 @@ function handleSelect(methodId: string) {
 </script>
 
 <template>
-  <div class="auth-overlay" @click.self="emit('cancel')">
-    <div class="auth-dialog">
-      <div class="dialog-header">
-        <h3>Authentication Required</h3>
-        <button class="close-btn" @click="emit('cancel')">✕</button>
-      </div>
-      
+  <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
+    <DialogContent class="auth-dialog gap-0 p-0 sm:max-w-[420px]" :show-close-button="false">
+      <DialogHeader class="dialog-header">
+        <div class="dialog-heading">
+          <DialogTitle>Authentication Required</DialogTitle>
+          <DialogDescription class="description">
+            <strong>{{ agentName }}</strong> requires authentication to continue.
+            Select an authentication method.
+          </DialogDescription>
+        </div>
+        <DialogClose as-child>
+          <button type="button" class="close-btn" aria-label="Close authentication dialog">✕</button>
+        </DialogClose>
+      </DialogHeader>
+
       <div class="dialog-content">
-        <p class="description">
-          <strong>{{ agentName }}</strong> requires authentication to continue.
-          Select an authentication method:
-        </p>
-        
         <div class="auth-methods">
           <button
             v-for="method in authMethods"
             :key="method.id"
+            type="button"
             class="auth-method-btn"
             @click="handleSelect(method.id)"
           >
@@ -47,54 +60,37 @@ function handleSelect(methodId: string) {
           </button>
         </div>
       </div>
-      
-      <div class="dialog-footer">
-        <button class="cancel-btn" @click="emit('cancel')">
-          Cancel
-        </button>
-      </div>
-    </div>
-  </div>
+
+      <DialogFooter class="dialog-footer">
+        <DialogClose as-child>
+          <button type="button" class="cancel-btn">
+            Cancel
+          </button>
+        </DialogClose>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.auth-overlay {
-  position: fixed;
-  inset: 0;
-  background: var(--bg-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .auth-overlay {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.4);
-  }
-}
-
 .auth-dialog {
-  background: var(--bg-main);
-  border-radius: 8px;
   width: 90%;
   max-width: 420px;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--bg-main) 30%, transparent);
 }
 
 .dialog-header {
   display: flex;
-  align-items: center;
+  flex-direction: row;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 
-.dialog-header h3 {
-  margin: 0;
-  font-size: var(--text-title);
+.dialog-heading {
+  display: grid;
+  gap: 0.5rem;
+  text-align: left;
 }
 
 .close-btn {
@@ -102,12 +98,12 @@ function handleSelect(methodId: string) {
   background: transparent;
   font-size: var(--text-title);
   cursor: pointer;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   padding: 0.25rem;
 }
 
 .close-btn:hover {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .dialog-content {
@@ -115,9 +111,7 @@ function handleSelect(methodId: string) {
 }
 
 .description {
-  margin: 0 0 1rem 0;
-  color: var(--text-secondary);
-  font-size: var(--text-body-sm);
+  margin: 0;
 }
 
 .auth-methods {
@@ -131,17 +125,17 @@ function handleSelect(methodId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg-panel);
+  background: var(--card);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .auth-method-btn:hover {
-  border-color: var(--border-focus);
-  background: var(--bg-surface);
+  border-color: var(--ring);
+  background: var(--muted);
 }
 
 .method-info {
@@ -152,41 +146,39 @@ function handleSelect(methodId: string) {
 
 .method-name {
   font-weight: var(--weight-display);
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .method-desc {
   font-size: var(--text-caption);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .arrow {
   font-size: var(--text-title);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .auth-method-btn:hover .arrow {
-  color: var(--border-focus);
+  color: var(--ring);
 }
 
 .dialog-footer {
   padding: 0.75rem 1.25rem;
-  border-top: 1px solid var(--border-default);
-  display: flex;
-  justify-content: flex-end;
+  border-top: 1px solid var(--border);
 }
 
 .cancel-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   cursor: pointer;
   font-size: var(--text-body-sm);
 }
 
 .cancel-btn:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 </style>

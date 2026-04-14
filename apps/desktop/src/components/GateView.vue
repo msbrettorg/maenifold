@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import GateTaskDetail from './GateTaskDetail.vue';
-import GateTaskTable from './GateTaskTable.vue';
+import GateViewContent from './GateViewContent.vue';
 import GateViewFilters from './GateViewFilters.vue';
+import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
@@ -33,13 +33,8 @@ const activeWatcherRoot = ref('');
 let detailRequestToken = 0;
 let snapshotRequestToken = 0;
 
-function resolveTaskBodyContent(taskBody: GateTaskBody | string) {
-  if (typeof taskBody === 'string') {
-    return parseGateTaskBodyContent(taskBody);
-  }
-
-  return parseGateTaskBodyContent(taskBody.markdown);
-}
+const resolveTaskBodyContent = (taskBody: GateTaskBody | string) =>
+  parseGateTaskBodyContent(typeof taskBody === 'string' ? taskBody : taskBody.markdown);
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress';
 type SortDirection = 'asc' | 'desc';
@@ -55,6 +50,7 @@ const activeTask = computed(() => snapshot.value?.tasks.find((task) => task.task
 const totalCount = computed(() => (snapshot.value?.tasks ?? []).length);
 const todoCount = computed(() => (snapshot.value?.tasks ?? []).filter((task) => task.location === 'todo').length);
 const doneCount = computed(() => (snapshot.value?.tasks ?? []).filter((task) => task.location === 'done').length);
+const showStatus = computed(() => Boolean(uiError.value || !hasGateRoot.value || (isLoading.value && !snapshot.value) || (snapshot.value && !snapshot.value.exists)));
 const visibleTasks = computed(() => {
   const search = searchText.value.trim().toLowerCase();
 
@@ -110,7 +106,6 @@ function toggleSort(column: SortColumn) {
     sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
     return;
   }
-
   sortColumn.value = column;
   sortDirection.value = 'asc';
 }
@@ -288,36 +283,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="gate-view">
+  <section class="gate-view" role="region" aria-label="Gate tasks">
     <GateViewToolbar :has-gate-root="hasGateRoot" :todo-count="todoCount" :done-count="doneCount" :total-count="totalCount" :shown-count="shownCount" :last-refresh-label="lastRefreshLabel" :selected-gate-root="registry.selectedGateRoot.value" :gate-roots="registry.gateRoots.value" :is-ready="registry.isReady.value" :is-loading="isLoading" @change-root="handleGateRootChange" @browse="registry.browseForRoot" @remove="handleRemoveCurrentGate" @refresh="() => refreshSnapshot()" />
-
     <GateViewFilters v-model:searchText="searchText" v-model:selectedProcess="selectedProcess" v-model:selectedState="selectedState" v-model:selectedLocation="selectedLocation" v-model:issuesOnly="issuesOnly" :process-options="processOptions" :state-options="stateOptions" :location-options="locationOptions" />
-
-    <p v-if="uiError" class="gate-state gate-state--error">{{ uiError }}</p>
-    <p v-else-if="!hasGateRoot" class="gate-state">No Gate root selected.</p>
-    <p v-else-if="isLoading && !snapshot" class="gate-state">Loading gate snapshot…</p>
-    <p v-else-if="snapshot && !snapshot.exists" class="gate-state">No .gate/gate.db found in {{ registry.selectedGateRoot.value }}.</p>
-
-    <div v-else class="gate-content">
-      <GateTaskTable :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" @sort="toggleSort" @select="handleTaskSelect" />
-      <GateTaskDetail
-        :task="activeTask"
-        :body="selectedTaskBody"
-        :history="selectedTaskHistory"
-        :body-loading="detailBodyLoading"
-        :history-loading="detailHistoryLoading"
-        :body-error="detailBodyError"
-        :history-error="detailHistoryError"
-        @close="clearSelection"
-      />
-    </div>
+    <GateViewStatus v-if="showStatus" :ui-error="uiError" :has-gate-root="hasGateRoot" :is-loading="isLoading" :snapshot="snapshot" :selected-gate-root="registry.selectedGateRoot.value" />
+    <GateViewContent v-else :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" :active-task="activeTask" :body="selectedTaskBody" :history="selectedTaskHistory" :body-loading="detailBodyLoading" :history-loading="detailHistoryLoading" :body-error="detailBodyError" :history-error="detailHistoryError" @sort="toggleSort" @select="handleTaskSelect" @close="clearSelection" />
   </section>
 </template>
 
 <style scoped>
 .gate-view { display: flex; flex: 1; flex-direction: column; gap: 0.75rem; padding: 1rem; overflow: auto; }
-.gate-state { padding: 0.9rem 1rem; color: var(--text-muted); border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-panel); }
-.gate-state--error { color: var(--color-status-abandoned); }
-.gate-content { display: flex; gap: 1rem; min-height: 0; }
-@media (max-width: 1100px) { .gate-content { flex-direction: column; } }
 </style>

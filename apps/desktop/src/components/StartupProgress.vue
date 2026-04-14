@@ -48,16 +48,35 @@ const formattedTime = computed(() => {
 });
 
 const isLongWait = computed(() => props.elapsedSeconds > 10);
+const progressValue = computed(() => {
+  switch (props.phase) {
+    case 'starting': return 10;
+    case 'downloading': return 25;
+    case 'installing': return 50;
+    case 'building': return 70;
+    case 'initializing': return 85;
+    case 'connecting': return 95;
+    default: return 0;
+  }
+});
 </script>
 
 <template>
-  <div class="startup-progress">
+  <section class="startup-progress">
     <div class="progress-header">
       <span class="agent-name">Connecting to {{ agentName }}...</span>
       <span class="elapsed-time">{{ formattedTime }}</span>
     </div>
     
-    <div class="progress-status">
+    <div
+      class="progress-status"
+      role="progressbar"
+      aria-label="Startup progress"
+      :aria-valuemin="0"
+      :aria-valuemax="100"
+      :aria-valuenow="progressValue"
+      :aria-valuetext="phaseText"
+    >
       <span class="phase-icon">{{ phaseIcon }}</span>
       <span class="phase-text">{{ phaseText }}</span>
     </div>
@@ -96,14 +115,14 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
         </div>
       </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
 .startup-progress {
   padding: 1rem;
-  background: var(--bg-main);
-  border: 1px solid var(--border-default);
+  background: var(--background);
+  border: 1px solid var(--border);
   border-radius: 8px;
   margin-top: 0.75rem;
 }
@@ -117,12 +136,12 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 
 .agent-name {
   font-weight: var(--weight-title);
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .elapsed-time {
   font-size: var(--text-caption);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-family: var(--font-code);
 }
 
@@ -131,7 +150,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: var(--bg-surface);
+  background: var(--muted);
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
@@ -141,13 +160,13 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 }
 
 .phase-text {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-body-sm);
 }
 
 .first-run-hint {
   font-size: var(--text-caption);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-style: italic;
   margin-bottom: 0.75rem;
   padding: 0.5rem;
@@ -163,68 +182,68 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 
 .details-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 
 .details-btn:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .cancel-btn {
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 
 .cancel-btn:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-error);
-  color: var(--border-error);
+  background: var(--muted);
+  border-color: var(--destructive);
+  color: var(--destructive);
 }
 
 .logs-container {
   margin-top: 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   overflow: hidden;
 }
 
 .logs-header {
   padding: 0.375rem 0.5rem;
-  background: var(--bg-surface);
+  background: var(--muted);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--text-secondary);
-  border-bottom: 1px solid var(--border-default);
+  color: var(--muted-foreground);
+  border-bottom: 1px solid var(--border);
 }
 
 .logs-content {
   max-height: 150px;
   overflow-y: auto;
   padding: 0.5rem;
-  background: var(--bg-code);
+  background: var(--muted);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
 
 .log-line {
-  color: var(--text-code);
+  color: var(--muted-foreground);
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.4;
 }
 
 .no-logs {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-style: italic;
 }
 </style>

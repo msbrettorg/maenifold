@@ -103,10 +103,10 @@ const dots = computed(() => {
 .gate-progress__dot--completed { color: var(--color-status-completed); }
 .gate-progress__dot--active { color: var(--color-status-active); }
 .gate-progress__dot--failed { color: var(--color-status-abandoned); }
-.gate-progress__dot--pending { color: var(--text-muted); }
+.gate-progress__dot--pending { color: var(--muted-foreground); }
 
 .gate-progress__state {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-tiny);
   text-transform: lowercase;
 }

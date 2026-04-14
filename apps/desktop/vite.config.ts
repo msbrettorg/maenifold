@@ -1,5 +1,7 @@
+import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
+import tailwindcss from "@tailwindcss/vite";
 import electron from "vite-plugin-electron/simple";
 
 // https://vite.dev/config/
@@ -10,6 +12,7 @@ export default defineConfig(() => {
 
   return {
     plugins: [
+      tailwindcss(),
       vue(),
       ...(isElectronBuild
         ? [
@@ -25,6 +28,11 @@ export default defineConfig(() => {
           ]
         : []),
     ],
+    resolve: {
+      alias: {
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
+      },
+    },
     server: {
       host: true,
     },

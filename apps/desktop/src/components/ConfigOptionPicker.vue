@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, useId } from 'vue';
 import type {
   SessionConfigOption,
   SessionConfigSelectGroup,
@@ -17,6 +17,7 @@ const emit = defineEmits<{
 
 const isOpen = ref(false);
 const pickerRef = ref<HTMLElement | null>(null);
+const listboxId = useId();
 
 function isGroup(
   option: SessionConfigSelectOption | SessionConfigSelectGroup
@@ -32,6 +33,12 @@ const flatOptions = computed(() =>
 
 const currentOption = computed(() =>
   flatOptions.value.find((entry) => entry.value === props.option.currentValue)
+);
+
+const optionPickerLabel = computed(() =>
+  props.option.description
+    ? `${props.option.name}: ${props.option.description}`
+    : `${props.option.name} options`
 );
 
 function toggleDropdown() {
@@ -68,7 +75,12 @@ onUnmounted(() => {
     :title="option.description || option.name"
   >
     <button
+      type="button"
       class="config-option-button"
+      :aria-controls="listboxId"
+      :aria-expanded="isOpen"
+      :aria-haspopup="'listbox'"
+      :aria-label="optionPickerLabel"
       @click.stop="toggleDropdown"
     >
       <span class="config-option-icon">
@@ -81,17 +93,26 @@ onUnmounted(() => {
     </button>
 
     <Transition name="dropdown">
-      <div v-if="isOpen" class="dropdown-menu" @click.stop>
+      <div
+        v-if="isOpen"
+        :id="listboxId"
+        class="dropdown-menu"
+        role="listbox"
+        :aria-label="optionPickerLabel"
+        @click.stop
+      >
         <template
           v-for="entry in option.options"
           :key="isGroup(entry) ? entry.group : entry.value"
         >
-          <div v-if="isGroup(entry)" class="dropdown-group">
+          <div v-if="isGroup(entry)" class="dropdown-group" role="group" :aria-label="entry.name">
             <div class="dropdown-group-header">{{ entry.name }}</div>
             <div
               v-for="groupOption in entry.options"
               :key="groupOption.value"
               :class="['dropdown-item', { selected: groupOption.value === option.currentValue }]"
+              role="option"
+              :aria-selected="groupOption.value === option.currentValue"
               @click="selectOption(groupOption.value)"
             >
               <span class="item-icon">
@@ -109,6 +130,8 @@ onUnmounted(() => {
           <div
             v-else
             :class="['dropdown-item', { selected: entry.value === option.currentValue }]"
+            role="option"
+            :aria-selected="entry.value === option.currentValue"
             @click="selectOption(entry.value)"
           >
             <span class="item-icon">
@@ -139,10 +162,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.625rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  background: var(--bg-main);
-  color: var(--text-primary);
+  background: var(--background);
+  color: var(--foreground);
   font-size: var(--text-caption);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -150,8 +173,8 @@ onUnmounted(() => {
 }
 
 .config-option-button:hover {
-  background: var(--bg-surface);
-  border-color: var(--border-focus);
+  background: var(--muted);
+  border-color: var(--ring);
 }
 
 .config-option-icon {
@@ -168,7 +191,7 @@ onUnmounted(() => {
 
 .dropdown-arrow {
   font-size: var(--text-tiny);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   margin-left: 0.25rem;
   flex-shrink: 0;
 }
@@ -181,16 +204,16 @@ onUnmounted(() => {
   max-width: 360px;
   max-height: 320px;
   overflow-y: auto;
-  background: var(--bg-main);
-  border: 1px solid var(--border-default);
+  background: var(--background);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--bg-main) 15%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--background) 15%, transparent);
   z-index: 100;
 }
 
 @media (prefers-color-scheme: dark) {
   .dropdown-menu {
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--bg-main) 40%, transparent);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--background) 40%, transparent);
   }
 }
 
@@ -198,14 +221,14 @@ onUnmounted(() => {
 .dropdown-item + .dropdown-item,
 .dropdown-group + .dropdown-item,
 .dropdown-item + .dropdown-group {
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--border);
 }
 
 .dropdown-group-header {
   padding: 0.5rem 0.75rem;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -220,11 +243,11 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .dropdown-item.selected {
-  background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel));
+  background: color-mix(in srgb, var(--ring) 24%, var(--card));
 }
 
 .item-icon {
@@ -241,20 +264,20 @@ onUnmounted(() => {
 .item-name {
   display: block;
   font-weight: var(--weight-display);
-  color: var(--text-primary);
+  color: var(--foreground);
   font-size: var(--text-caption);
 }
 
 .item-description {
   display: block;
   font-size: var(--text-tiny);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   margin-top: 0.125rem;
   line-height: 1.3;
 }
 
 .check-mark {
-  color: var(--border-focus);
+  color: var(--ring);
   font-weight: var(--weight-title);
   margin-left: auto;
   flex-shrink: 0;

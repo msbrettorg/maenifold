@@ -1,14 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { ToolCallInfo } from '../lib/types';
 import ChatToolCallDetails from './ChatToolCallDetails.vue';
 
-defineProps<{
+const emit = defineEmits<{ toggle: [] }>();
+const props = defineProps<{
   toolCall: ToolCallInfo;
   isExpanded: boolean;
 }>();
-
-const emit = defineEmits<{ toggle: [] }>();
-
+const detailsId = computed(() => `tool-call-details-${props.toolCall.toolCallId}`);
+const toolCallAriaLabel = computed(() => `${props.toolCall.title} tool call`);
 function hasDetails(tc: ToolCallInfo): boolean {
   return Boolean(tc.content?.length || tc.rawInput || tc.rawOutput);
 }
@@ -46,11 +47,13 @@ function statusIcon(status: string): string {
 </script>
 
 <template>
-  <div :class="['tci-item', `tool-${toolCall.status}`]">
+  <div :class="['tci-item', `tool-${toolCall.status}`]" role="article" :aria-label="toolCallAriaLabel">
     <button
       type="button"
       class="tci-summary"
       :class="{ 'tci-summary-expandable': hasDetails(toolCall) }"
+      :aria-expanded="hasDetails(toolCall) ? isExpanded : undefined"
+      :aria-controls="hasDetails(toolCall) ? detailsId : undefined"
       @click="hasDetails(toolCall) && emit('toggle')"
     >
       <span class="tci-icon">{{ toolIcon(toolCall.kind) }}</span>
@@ -59,7 +62,12 @@ function statusIcon(status: string): string {
       <span :class="['tci-status', `status-${toolCall.status}`]">{{ statusIcon(toolCall.status) }}</span>
       <span v-if="hasDetails(toolCall)" class="tci-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
     </button>
-    <ChatToolCallDetails v-if="hasDetails(toolCall) && isExpanded" :tool-call="toolCall" />
+    <ChatToolCallDetails
+      v-if="hasDetails(toolCall) && isExpanded"
+      :id="detailsId"
+      :tool-call="toolCall"
+      :expanded="isExpanded"
+    />
   </div>
 </template>
 
@@ -69,8 +77,8 @@ function statusIcon(status: string): string {
   flex-direction: column;
   border-radius: 4px;
   font-size: var(--text-sm);
-  background: var(--bg-surface);
-  border-left: 2px solid var(--border-default);
+  background: var(--muted);
+  border-left: 2px solid var(--border);
   overflow: hidden;
 }
 .tci-summary {
@@ -86,36 +94,36 @@ function statusIcon(status: string): string {
   text-align: left;
 }
 .tci-summary-expandable { cursor: pointer; }
-.tci-summary-expandable:hover { background: var(--bg-surface); }
+.tci-summary-expandable:hover { background: var(--muted); }
 .tool-pending { border-left-color: var(--color-status-stuck); }
 .tool-in_progress {
   border-left-color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 8%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-active) 8%, var(--muted));
 }
 .tool-completed {
   border-left-color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 8%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-completed) 8%, var(--muted));
 }
 .tool-failed {
   border-left-color: var(--color-status-abandoned);
-  background: color-mix(in srgb, var(--color-status-abandoned) 8%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-abandoned) 8%, var(--muted));
 }
 .tool-cancelled {
   border-left-color: var(--color-status-pending);
-  background: color-mix(in srgb, var(--color-status-pending) 8%, var(--bg-surface));
+  background: color-mix(in srgb, var(--color-status-pending) 8%, var(--muted));
 }
 .tci-icon { font-size: var(--text-sm); }
-.tci-name { font-weight: var(--weight-display); color: var(--text-primary); }
+.tci-name { font-weight: var(--weight-display); color: var(--foreground); }
 .tci-location {
   flex: 1;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .tci-status { font-size: var(--text-xs); font-weight: var(--weight-title); }
-.tci-chevron { color: var(--text-muted); font-size: var(--text-xs); }
+.tci-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
 .status-pending { color: var(--color-status-stuck); }
 .status-in_progress { color: var(--color-status-active); }
 .status-completed { color: var(--color-status-completed); }

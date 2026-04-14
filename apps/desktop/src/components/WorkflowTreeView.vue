@@ -20,7 +20,7 @@ function retry() {
 </script>
 
 <template>
-  <div class="workflow-tree-view">
+  <div class="workflow-tree-view" role="list" aria-label="Workflow steps">
     <WorkflowTreeLoadingState v-if="loading" />
     <WorkflowTreeErrorState v-else-if="error" :error="error" @retry="retry" />
     <div v-else-if="isRootLoaded && tree" class="tree-root-scroll">
@@ -32,7 +32,7 @@ function retry() {
 
 <style scoped>
 .workflow-tree-view {
-  background: var(--bg-code);
+  background: var(--muted);
   min-height: 200px;
   padding: 1.5rem;
   border-radius: 12px;
@@ -43,12 +43,12 @@ function retry() {
   overflow-y: visible;
   padding-bottom: 1rem;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--border-default) 72%, var(--bg-code)) transparent;
+  scrollbar-color: color-mix(in srgb, var(--border) 72%, var(--muted)) transparent;
 }
 .tree-root-scroll::-webkit-scrollbar { height: 6px; }
 .tree-root-scroll::-webkit-scrollbar-track { background: transparent; }
 .tree-root-scroll::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--border-default) 72%, var(--bg-code));
+  background: color-mix(in srgb, var(--border) 72%, var(--muted));
   border-radius: 3px;
 }
 :global(.tree-level) {
@@ -79,7 +79,7 @@ function retry() {
 }
 .tree-empty {
   text-align: center;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-caption);
   padding: 2rem 0;
 }

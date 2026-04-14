@@ -33,31 +33,33 @@ function formatRelativeTime(iso: string): string {
 </script>
 
 <template>
-  <li class="thought-item">
-    <div class="thought-pill">
-      {{ thought.number }}/{{ thought.totalThoughts }}
-    </div>
-
-    <div class="thought-entry">
-      <div class="thought-meta">
-        <span v-if="thought.agent" class="agent-badge">{{ thought.agent }}</span>
-        <time class="thought-timestamp" :datetime="thought.timestamp" :title="thought.timestamp">
-          {{ formatRelativeTime(thought.timestamp) }}
-        </time>
+  <li>
+    <article class="thought-item" role="article" :aria-label="`Thought ${thought.number} of ${thought.totalThoughts}`">
+      <div class="thought-pill">
+        {{ thought.number }}/{{ thought.totalThoughts }}
       </div>
 
-      <ThinkingMarkdownContent :content="thought.content" clamp />
-    </div>
+      <div class="thought-entry">
+        <div class="thought-meta">
+          <span v-if="thought.agent" class="agent-badge">{{ thought.agent }}</span>
+          <time class="thought-timestamp" :datetime="thought.timestamp" :title="thought.timestamp">
+            {{ formatRelativeTime(thought.timestamp) }}
+          </time>
+        </div>
+
+        <ThinkingMarkdownContent :content="thought.content" clamp />
+      </div>
+    </article>
   </li>
 </template>
 
 <style scoped>
 .thought-item {
-  --thinking-thought-badge: color-mix(in srgb, var(--text-on-accent) 76%, var(--color-node-prompt));
-  --thinking-thought-muted: color-mix(in srgb, var(--text-on-accent) 56%, var(--text-secondary));
-  --thinking-thought-border: color-mix(in srgb, var(--border-default) 28%, var(--bg-code));
-  --thinking-thought-shadow: color-mix(in srgb, var(--bg-code) 76%, var(--bg-main));
-  --thinking-thought-text: color-mix(in srgb, var(--text-on-accent) 72%, var(--color-node-prompt));
+  --thinking-thought-badge: color-mix(in srgb, var(--primary-foreground) 76%, var(--color-node-prompt));
+  --thinking-thought-muted: color-mix(in srgb, var(--primary-foreground) 56%, var(--muted-foreground));
+  --thinking-thought-border: color-mix(in srgb, var(--border) 28%, var(--muted));
+  --thinking-thought-shadow: color-mix(in srgb, var(--muted) 76%, var(--background));
+  --thinking-thought-text: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -71,7 +73,7 @@ function formatRelativeTime(iso: string): string {
   min-width: 2.5rem;
   padding: 0.26rem 0.45rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--bg-code));
+  background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--muted));
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
   color: var(--thinking-thought-badge);
   font-family: var(--font-code);
@@ -81,7 +83,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 .thought-entry {
-  background: color-mix(in srgb, var(--bg-code) 84%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 84%, var(--background));
   border: 1px solid var(--thinking-thought-border);
   border-radius: 8px;
   padding: 0.65rem 0.75rem;
@@ -105,7 +107,7 @@ function formatRelativeTime(iso: string): string {
   font-size: var(--text-tiny);
   line-height: 1.1;
   white-space: nowrap;
-  background: color-mix(in srgb, var(--bg-code) 72%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 72%, var(--background));
   color: var(--thinking-thought-text);
   text-transform: uppercase;
   letter-spacing: 0.04em;

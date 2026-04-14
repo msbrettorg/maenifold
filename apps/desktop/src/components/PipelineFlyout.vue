@@ -165,13 +165,13 @@ watch(
   justify-content: space-between;
   gap: 0.75rem;
   padding: 1rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .pipeline-flyout-header h3 {
   margin: 0;
   font-size: var(--text-xl);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .pipeline-flyout-refresh {
@@ -183,14 +183,14 @@ watch(
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--foreground);
   cursor: pointer;
   transition: background 0.15s ease;
 }
 
 .pipeline-flyout-refresh:hover,
 .pipeline-flyout-refresh:focus-visible {
-  background: var(--bg-surface);
+  background: var(--muted);
   outline: none;
 }
 
@@ -211,7 +211,7 @@ watch(
 }
 
 .pipeline-state--error {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .pipeline-state-title {
@@ -221,7 +221,7 @@ watch(
 
 .pipeline-state-message {
   margin: 0;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-sm);
 }
 
@@ -233,7 +233,7 @@ watch(
 .skeleton-block {
   height: 0.875rem;
   border-radius: 0.5rem;
-  background: var(--bg-surface);
+  background: var(--muted);
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
@@ -256,10 +256,10 @@ watch(
 @keyframes skeleton-pulse {
   0%,
   100% {
-    background: var(--bg-surface);
+    background: var(--muted);
   }
   50% {
-    background: var(--bg-panel);
+    background: var(--card);
   }
 }
 </style>

@@ -12,14 +12,24 @@ const store = usePipelineStore();
 </script>
 
 <template>
-  <DesignNodeConfigPanel
-    v-if="store.designMode"
-    :selected-node-id="selectedNodeId"
-    :selected-edge="selectedEdge"
-  />
-  <PipelineInspectorServer
-    v-else
-    :selected-node-id="selectedNodeId"
-    :selected-edge="selectedEdge"
-  />
+  <section class="pipeline-inspector" role="region" aria-label="Pipeline inspector">
+    <DesignNodeConfigPanel
+      v-if="store.designMode"
+      :selected-node-id="selectedNodeId"
+      :selected-edge="selectedEdge"
+    />
+    <PipelineInspectorServer
+      v-else
+      :selected-node-id="selectedNodeId"
+      :selected-edge="selectedEdge"
+    />
+  </section>
 </template>
+
+<style scoped>
+.pipeline-inspector {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+</style>

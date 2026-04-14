@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue';
+import GraphViewCanvas from './GraphViewCanvas.vue';
+import GraphViewControls from './GraphViewControls.vue';
+import GraphViewLegend from './GraphViewLegend.vue';
 import { useForceGraph } from '../composables/useForceGraph';
 import type {
   CommunityGraph,
@@ -48,6 +51,17 @@ const { start, stop, resetView } = useForceGraph(
 function navigateBack() {
   activeCommunity.value = null;
   viewLevel.value = 'communities';
+}
+
+async function reloadCurrentView() {
+  if (viewLevel.value === 'communities') {
+    await loadCommunities();
+    return;
+  }
+
+  if (activeCommunity.value) {
+    await loadConcepts(activeCommunity.value.id);
+  }
 }
 
 async function loadCommunities() {
@@ -160,57 +174,20 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="graph-container">
-    <!-- Toolbar -->
-    <div class="graph-toolbar">
-      <div class="graph-breadcrumb">
-        <button
-          v-if="viewLevel === 'concepts'"
-          class="breadcrumb-link"
-          @click="navigateBack"
-        >
-          ← Communities
-        </button>
-        <span v-if="viewLevel === 'concepts'" class="breadcrumb-sep">/</span>
-        <span class="breadcrumb-current">
-          {{ viewLevel === 'communities' ? 'Knowledge Graph' : activeCommunity?.anchor }}
-        </span>
-      </div>
-
-      <div v-if="nodeCount > 0" class="graph-stats">
-        <span class="stat">{{ nodeCount }} nodes</span>
-        <span class="stat-sep">·</span>
-        <span class="stat">{{ edgeCount }} edges</span>
-      </div>
-
-      <div class="toolbar-actions">
-        <button class="graph-action-btn" @click="resetView" title="Reset view">↺</button>
-        <button
-          class="graph-action-btn"
-          @click="viewLevel === 'communities' ? loadCommunities() : activeCommunity && loadConcepts(activeCommunity.id)"
-          title="Reload data"
-        >⟳</button>
-      </div>
-    </div>
-
-    <!-- Graph container -->
-    <div class="graph-canvas-wrap">
-      <!-- Empty state overlay -->
-      <div v-if="error && !isLoading" class="graph-empty-state">
-        <div class="empty-icon">◎</div>
-        <p class="empty-title">No graph connection</p>
-        <p class="empty-hint">Launch maenifold to explore the knowledge graph.</p>
-        <button class="empty-retry" @click="loadCommunities">Retry</button>
-      </div>
-
-      <!-- Loading state -->
-      <div v-else-if="isLoading" class="graph-loading">
-        <div class="loading-ring" />
-        <p class="loading-text">Loading graph…</p>
-      </div>
-
+  <section class="graph-container" role="application" aria-label="Knowledge graph">
+    <GraphViewControls
+      :view-level="viewLevel"
+      :active-community-anchor="activeCommunity?.anchor ?? null"
+      :node-count="nodeCount"
+      :edge-count="edgeCount"
+      @navigate-back="navigateBack"
+      @reset="resetView"
+      @reload="reloadCurrentView"
+    />
+    <GraphViewLegend :view-level="viewLevel" :active-community-anchor="activeCommunity?.anchor ?? null" />
+    <GraphViewCanvas :is-loading="isLoading" :error="error" @retry="reloadCurrentView">
       <div ref="containerRef" class="graph-canvas" />
-    </div>
+    </GraphViewCanvas>
   </section>
 </template>
 
@@ -221,183 +198,10 @@ onMounted(async () => {
   flex-direction: column;
   overflow: hidden;
 }
-
-.graph-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid var(--border-default);
-  background: var(--bg-panel);
-  flex-shrink: 0;
-}
-
-.graph-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: var(--text-caption);
-  color: var(--text-secondary);
-  flex: 1;
-}
-
-.breadcrumb-link {
-  background: none;
-  border: none;
-  color: var(--border-focus);
-  cursor: pointer;
-  padding: 0;
-  font-size: var(--text-caption);
-}
-
-.breadcrumb-link:hover {
-  text-decoration: underline;
-}
-
-.breadcrumb-sep {
-  color: var(--text-muted);
-}
-
-.breadcrumb-current {
-  color: var(--text-primary);
-  font-weight: var(--weight-display);
-  font-family: var(--font-display);
-  letter-spacing: 0.02em;
-}
-
-.graph-stats {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: var(--text-tiny);
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-sep {
-  opacity: 0.4;
-}
-
-.toolbar-actions {
-  display: flex;
-  gap: 0.25rem;
-}
-
-.graph-action-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-muted);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-size: var(--text-body-sm);
-  line-height: 1;
-  transition: var(--transition-fast);
-}
-
-.graph-action-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--text-muted);
-}
-
-.graph-canvas-wrap {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background:
-    radial-gradient(ellipse at 30% 50%, rgba(77, 142, 255, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 40%, rgba(78, 222, 163, 0.02) 0%, transparent 50%),
-    var(--bg-main);
-}
-
 .graph-canvas {
   width: 100%;
   height: 100%;
   position: relative;
-  background: var(--bg-main);
-}
-
-/* Empty state */
-.graph-empty-state {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-  background: radial-gradient(ellipse at center, rgba(77, 142, 255, 0.03) 0%, transparent 70%);
-}
-
-.empty-icon {
-  font-size: var(--text-display);
-  color: var(--text-muted);
-  opacity: 0.3;
-  margin-bottom: 1rem;
-}
-
-.empty-title {
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  color: var(--text-secondary);
-  margin-bottom: 0.25rem;
-}
-
-.empty-hint {
-  font-size: var(--text-caption);
-  color: var(--text-muted);
-  margin-bottom: 1.25rem;
-}
-
-.empty-retry {
-  padding: 0.4rem 1.2rem;
-  border: 1px solid var(--border-default);
-  background: var(--bg-surface);
-  color: var(--text-secondary);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  font-size: var(--text-caption);
-  transition: var(--transition-fast);
-}
-
-.empty-retry:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border-color: var(--border-focus);
-}
-
-/* Loading state */
-.graph-loading {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-.loading-ring {
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--border-default);
-  border-top-color: var(--border-focus);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin-bottom: 0.75rem;
-}
-
-.loading-text {
-  font-size: var(--text-caption);
-  color: var(--text-muted);
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
+  background: var(--background);
 }
 </style>

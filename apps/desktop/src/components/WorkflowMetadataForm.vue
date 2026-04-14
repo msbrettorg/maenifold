@@ -47,7 +47,7 @@ const workflowCategory = computed({
 </script>
 
 <template>
-  <div v-if="workflow" class="workflow-form">
+  <div v-if="workflow" class="workflow-form" role="form" aria-label="Workflow metadata">
     <div class="form-group">
       <label class="field-label">WORKFLOW ID</label>
       <code class="field-display">{{ workflow.id }}</code>
@@ -132,16 +132,16 @@ const workflowCategory = computed({
 .workflow-form { display: flex; flex-direction: column; gap: var(--space-5); }
 .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
-.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-.field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--text-secondary); padding: var(--space-2) 0; line-height: 1.5; }
-.field-input, .field-textarea { width: 100%; background: var(--bg-input); color: var(--text-primary); border: 1px solid var(--border-default); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
-.field-input:hover:not(:focus), .field-textarea:hover:not(:focus) { border-color: color-mix(in srgb, var(--border-default) 150%, transparent); }
-.field-input:focus, .field-textarea:focus { border-color: var(--border-focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-focus) 20%, transparent); }
+.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); text-transform: uppercase; letter-spacing: 0.05em; }
+.field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--muted-foreground); padding: var(--space-2) 0; line-height: 1.5; }
+.field-input, .field-textarea { width: 100%; background: var(--input); color: var(--foreground); border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast); }
+.field-input:hover:not(:focus), .field-textarea:hover:not(:focus) { border-color: color-mix(in srgb, var(--border) 150%, transparent); }
+.field-input:focus, .field-textarea:focus { border-color: var(--ring); box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring) 20%, transparent); }
 .field-textarea { min-height: 80px; resize: vertical; }
-.toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--surface-container); border-radius: var(--radius-md); border: 1px solid var(--border-default); color: var(--text-primary); cursor: pointer; text-align: left; }
-.toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border-default)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
+.toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--foreground); cursor: pointer; text-align: left; }
+.toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
 .toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }
-.toggle-indicator { width: 36px; height: 20px; border-radius: 999px; background: var(--bg-input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
+.toggle-indicator { width: 36px; height: 20px; border-radius: 999px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .toggle-indicator--enabled { background: var(--color-node-workflow); justify-content: flex-end; }
-.indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--text-primary); }
+.indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--foreground); }
 </style>

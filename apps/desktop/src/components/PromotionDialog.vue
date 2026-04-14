@@ -1,93 +1,66 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import type { ViewNode } from '../lib/pipeline-types';
-import type {
-  MemoryPromotionSource,
-  NormalizedMemoryDocument,
-  NormalizedMemorySearchItem,
-} from '../composables/useMemoryPromotion';
-import {
-  buildPromotionPreview,
-  hasWikiLinkConnection,
-  isStaleMemoryEditError,
-  useMemoryPromotion,
-} from '../composables/useMemoryPromotion';
+import type { MemoryPromotionSource, NormalizedMemoryDocument, NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
+import { buildPromotionPreview, hasWikiLinkConnection, isStaleMemoryEditError, useMemoryPromotion } from '../composables/useMemoryPromotion';
+import PromotionDialogConfirm from './PromotionDialogConfirm.vue';
+import PromotionDialogEditor from './PromotionDialogEditor.vue';
+import PromotionDialogPreview from './PromotionDialogPreview.vue';
 
 type PromotionAction = 'create' | 'append' | 'update';
+type PromotionStep = 'preview' | 'editor' | 'confirm';
 
-const props = defineProps<{
-  node: ViewNode;
-  pipelineId: string;
-}>();
-
-const emit = defineEmits<{
-  (event: 'close'): void;
-  (event: 'busy-change', busy: boolean): void;
-}>();
+const props = defineProps<{ node: ViewNode; pipelineId: string }>();
+const emit = defineEmits<{ (event: 'close'): void; (event: 'busy-change', busy: boolean): void }>();
 
 const promotion = useMemoryPromotion();
+const step = ref<PromotionStep>('preview');
 const searchQuery = ref(createDefaultTitle(props.node.nodeId));
-const title = ref(createDefaultTitle(props.node.nodeId));
-const folder = ref('');
-const tagsInput = ref('');
-const wikiLinkInput = ref('');
-const formError = ref('');
-const infoMessage = ref('');
+const title = ref(createDefaultTitle(props.node.nodeId)), folder = ref(''), tagsInput = ref(''), wikiLinkInput = ref('');
+const formError = ref(''), infoMessage = ref('');
 const searchResults = ref<NormalizedMemorySearchItem[]>([]);
 const selectedAction = ref<PromotionAction | null>(null);
 const selectedResult = ref<NormalizedMemorySearchItem | null>(null);
 const selectedMemory = ref<NormalizedMemoryDocument | null>(null);
 const loadingMemory = ref(false);
 
-const source = computed<MemoryPromotionSource>(() => ({
-  pipelineId: props.pipelineId,
-  nodeId: props.node.nodeId,
-  output: props.node.output ?? '',
-}));
+const source = computed<MemoryPromotionSource>(() => ({ pipelineId: props.pipelineId, nodeId: props.node.nodeId, output: props.node.output ?? '' }));
 const wikiLinkError = computed(() => hasWikiLinkConnection(wikiLinkInput.value) ? '' : 'Add at least one connection before saving.');
-const tags = computed(() =>
-  tagsInput.value
-    .split(/[\n,]/)
-    .map((tag) => tag.trim())
-    .filter(Boolean),
-);
+const tags = computed(() => tagsInput.value.split(/[\n,]/).map((tag) => tag.trim()).filter(Boolean));
 const canSubmitUpdate = computed(() => Boolean(selectedMemory.value?.checksum));
 const updateDisabledMessage = computed(() => {
-  if (!selectedMemory.value) {
-    return 'Open a note first.';
-  }
-
-  if (!selectedMemory.value.checksum) {
-    return 'This note could not be updated safely because no checksum was returned.';
-  }
-
+  if (!selectedMemory.value) return 'Open a note first.';
+  if (!selectedMemory.value.checksum) return 'This note could not be updated safely because no checksum was returned.';
   return '';
 });
 const nextPreview = computed(() => {
   if (!hasWikiLinkConnection(wikiLinkInput.value)) {
     return 'Add at least one connection to preview the saved content.';
   }
-
   return buildPromotionPreview(source.value, wikiLinkInput.value, '2026-01-01T00:00:00.000Z')
     .replace('2026-01-01T00:00:00.000Z', '<ISO timestamp>');
 });
-
-watch(
-  () => promotion.busy.value,
-  (busy) => emit('busy-change', busy),
-  { immediate: true },
-);
-
-onMounted(() => {
-  void runSearch();
+const submitLabel = computed(() => {
+  if (promotion.writing.value) {
+    return selectedAction.value === 'append'
+      ? 'Appending…'
+      : selectedAction.value === 'update'
+        ? 'Updating…'
+        : 'Writing…';
+  }
+  return selectedAction.value === 'append'
+    ? 'Append'
+    : selectedAction.value === 'update'
+      ? 'Update'
+      : 'Write';
 });
+
+watch(() => promotion.busy.value, (busy) => emit('busy-change', busy), { immediate: true });
+onMounted(() => { void runSearch(); });
 
 function createDefaultTitle(nodeId: string): string {
   const normalized = nodeId.replace(/[_-]+/g, ' ').trim();
-  if (!normalized) {
-    return nodeId;
-  }
-
+  if (!normalized) return nodeId;
   return normalized
     .split(/\s+/)
     .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
@@ -100,6 +73,7 @@ async function runSearch(): Promise<void> {
   selectedAction.value = null;
   selectedResult.value = null;
   selectedMemory.value = null;
+  step.value = 'preview';
   promotion.resetResultState();
 
   const normalizedQuery = searchQuery.value.trim();
@@ -130,12 +104,18 @@ async function selectAction(action: PromotionAction, result?: NormalizedMemorySe
   selectedMemory.value = null;
 
   if (!result || action === 'create') {
+    step.value = 'editor';
     return;
   }
 
   loadingMemory.value = true;
   try {
     selectedMemory.value = await promotion.readMemory(result.uri, action === 'update');
+    step.value = 'editor';
+  } catch {
+    if (!formError.value && promotion.error.value) {
+      formError.value = promotion.error.value;
+    }
   } finally {
     loadingMemory.value = false;
   }
@@ -146,31 +126,56 @@ async function retryCurrentAction(): Promise<void> {
     await selectAction('append', selectedResult.value);
     return;
   }
-
   if (selectedAction.value === 'update' && selectedResult.value) {
     await selectAction('update', selectedResult.value);
     return;
   }
-
   await runSearch();
 }
 
-async function handleSubmit(): Promise<void> {
+function validateCurrentAction(): boolean {
   formError.value = '';
-  promotion.resetResultState();
-
+  if (!selectedAction.value) {
+    formError.value = 'Choose how you want to save this note.';
+    return false;
+  }
   if (!hasWikiLinkConnection(wikiLinkInput.value)) {
     formError.value = wikiLinkError.value;
-    return;
+    return false;
   }
+  if (selectedAction.value === 'append' && !selectedResult.value) {
+    formError.value = 'Choose a note to append to.';
+    return false;
+  }
+  if (selectedAction.value === 'update') {
+    if (!selectedResult.value || !selectedMemory.value) {
+      formError.value = 'Choose a note to update.';
+      return false;
+    }
+    if (!canSubmitUpdate.value) {
+      formError.value = updateDisabledMessage.value;
+      return false;
+    }
+  }
+  if (selectedAction.value === 'create' && !title.value.trim()) {
+    formError.value = 'Title is required.';
+    return false;
+  }
+  return true;
+}
+
+function continueToConfirm(): void {
+  if (validateCurrentAction()) {
+    step.value = 'confirm';
+  }
+}
+
+async function handleSubmit(): Promise<void> {
+  promotion.resetResultState();
+  if (!validateCurrentAction()) return;
 
   try {
-    if (selectedAction.value === 'append') {
-      if (!selectedResult.value) {
-        formError.value = 'Choose a note to append to.';
-        return;
-      }
-
+    if (selectedAction.value === 'append' && selectedResult.value) {
       await promotion.appendMemory(source.value, {
         identifier: selectedResult.value.uri,
         wikiLinkInput: wikiLinkInput.value,
@@ -178,17 +183,7 @@ async function handleSubmit(): Promise<void> {
       return;
     }
 
-    if (selectedAction.value === 'update') {
-      if (!selectedResult.value || !selectedMemory.value) {
-        formError.value = 'Choose a note to update.';
-        return;
-      }
-
-      if (!canSubmitUpdate.value) {
-        formError.value = updateDisabledMessage.value;
-        return;
-      }
-
+    if (selectedAction.value === 'update' && selectedResult.value && selectedMemory.value) {
       try {
         await promotion.updateMemory(source.value, {
           identifier: selectedResult.value.uri,
@@ -198,20 +193,15 @@ async function handleSubmit(): Promise<void> {
       } catch (errorValue) {
         if (isStaleMemoryEditError(errorValue)) {
           selectedMemory.value = await promotion.readMemory(selectedResult.value.uri, true);
+          step.value = 'editor';
         }
         throw errorValue;
       }
       return;
     }
 
-    const normalizedTitle = title.value.trim();
-    if (!normalizedTitle) {
-      formError.value = 'Title is required.';
-      return;
-    }
-
     await promotion.writeMemory(source.value, {
-      title: normalizedTitle,
+      title: title.value.trim(),
       wikiLinkInput: wikiLinkInput.value,
       folder: folder.value,
       tags: tags.value,
@@ -226,22 +216,6 @@ async function handleSubmit(): Promise<void> {
 function closeDialog(): void {
   emit('close');
 }
-
-const submitLabel = computed(() => {
-  if (promotion.writing.value) {
-    return selectedAction.value === 'append'
-      ? 'Appending…'
-      : selectedAction.value === 'update'
-        ? 'Updating…'
-        : 'Writing…';
-  }
-
-  return selectedAction.value === 'append'
-    ? 'Append'
-    : selectedAction.value === 'update'
-      ? 'Update'
-      : 'Write';
-});
 </script>
 
 <template>
@@ -254,7 +228,6 @@ const submitLabel = computed(() => {
         </div>
         <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="closeDialog">Close</button>
       </div>
-
       <section v-if="promotion.writtenUri.value" class="dialog-section success-state" aria-live="polite">
         <h4>Saved</h4>
         <p>This output is now stored in memory.</p>
@@ -263,300 +236,11 @@ const submitLabel = computed(() => {
           <button type="button" class="btn btn-primary" @click="closeDialog">Done</button>
         </div>
       </section>
-
-      <template v-else>
-        <section class="dialog-section">
-          <div class="search-row">
-            <label class="field-block search-field">
-              <span>Search existing notes</span>
-              <input v-model.trim="searchQuery" class="field-input" type="text" placeholder="Search by title or topic" />
-            </label>
-            <button type="button" class="btn btn-ghost search-button" :disabled="promotion.searching.value || promotion.writing.value" @click="runSearch">
-              {{ promotion.searching.value ? 'Searching…' : 'Search again' }}
-            </button>
-          </div>
-          <p v-if="infoMessage" class="info-message">{{ infoMessage }}</p>
-          <p v-if="promotion.error.value && !formError" class="form-error" role="alert">{{ promotion.error.value }}</p>
-
-          <div v-if="searchResults.length > 0" class="result-list">
-            <article v-for="result in searchResults" :key="result.uri" class="result-card">
-              <div class="result-card__body">
-                <strong>{{ result.title }}</strong>
-                <code class="mono">{{ result.uri }}</code>
-                <p v-if="result.snippet">{{ result.snippet }}</p>
-                <span class="result-score">Score {{ result.score.toFixed(2) }}</span>
-              </div>
-              <div class="result-card__actions">
-                <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="selectAction('append', result)">Append to this</button>
-                <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="selectAction('update', result)">Update this</button>
-              </div>
-            </article>
-          </div>
-
-          <div class="dialog-actions dialog-actions--start">
-            <button type="button" class="btn btn-primary" :disabled="promotion.busy.value" @click="selectAction('create')">Create new</button>
-          </div>
-        </section>
-
-        <section v-if="selectedAction" class="dialog-section action-section">
-          <div class="section-header">
-            <div>
-              <h4>
-                {{
-                  selectedAction === 'append'
-                    ? 'Append to existing note'
-                    : selectedAction === 'update'
-                      ? 'Update existing note'
-                      : 'Create new note'
-                }}
-              </h4>
-              <p>
-                {{
-                  selectedAction === 'append'
-                    ? 'We will add a new promoted block to the selected note.'
-                    : selectedAction === 'update'
-                      ? 'We will ask the server to replace the note’s Promoted Content section when we can do it safely.'
-                      : 'We will create a new note with this promoted block.'
-                }}
-              </p>
-            </div>
-            <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="selectedAction = null">Back</button>
-          </div>
-
-          <div v-if="selectedAction === 'create'" class="form-grid">
-            <label class="field-block">
-              <span>Title</span>
-              <input v-model.trim="title" class="field-input" type="text" placeholder="Note title" />
-            </label>
-            <label class="field-block">
-              <span>Folder</span>
-              <input v-model.trim="folder" class="field-input" type="text" placeholder="Optional folder" />
-            </label>
-            <label class="field-block field-wide">
-              <span>Tags</span>
-              <input v-model.trim="tagsInput" class="field-input" type="text" placeholder="Optional tags, separated by commas" />
-            </label>
-          </div>
-
-          <label class="field-block">
-            <span>Connections</span>
-            <textarea
-              v-model="wikiLinkInput"
-              class="field-textarea"
-              rows="3"
-              placeholder="Add one or more topics, for example: semantic zoom, pipeline-ui"
-            />
-            <small class="field-help">Use plain topics or [[WikiLinks]]. We will format them for you.</small>
-          </label>
-          <p v-if="wikiLinkError" class="form-error" role="alert">{{ wikiLinkError }}</p>
-
-          <div v-if="selectedAction !== 'create'" class="memory-preview">
-            <span>Current note</span>
-            <pre v-if="selectedMemory">{{ selectedMemory.content }}</pre>
-            <pre v-else-if="loadingMemory">Loading note…</pre>
-            <pre v-else>Select a note to continue.</pre>
-          </div>
-
-          <p v-if="selectedAction === 'update' && updateDisabledMessage" class="info-message">{{ updateDisabledMessage }}</p>
-
-          <div class="memory-preview">
-            <span>What will be saved</span>
-            <pre>{{ nextPreview }}</pre>
-          </div>
-
-          <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
-
-          <div class="dialog-actions">
-            <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="closeDialog">Cancel</button>
-            <button type="button" class="btn btn-ghost" :disabled="promotion.busy.value" @click="retryCurrentAction">Retry</button>
-            <button
-              type="button"
-              class="btn btn-primary"
-              :disabled="promotion.writing.value || (selectedAction === 'update' && !canSubmitUpdate)"
-              @click="handleSubmit"
-            >
-              {{ submitLabel }}
-            </button>
-          </div>
-        </section>
-      </template>
+      <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />
+      <PromotionDialogEditor v-else-if="selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="title = $event" @update:folder="folder = $event" @update:tags-input="tagsInput = $event" @update:wiki-link-input="wikiLinkInput = $event" @back="step = 'preview'" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
+      <PromotionDialogConfirm v-else :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :title="title" :folder="folder" :tags="tags" :next-preview="nextPreview" :form-error="formError" :submit-label="submitLabel" :busy="promotion.busy.value" :can-submit-update="canSubmitUpdate" :update-disabled-message="updateDisabledMessage" @back="step = 'editor'" @submit="handleSubmit" @retry="retryCurrentAction" @close="closeDialog" />
     </div>
   </div>
 </template>
 
-<style scoped>
-.promotion-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: var(--bg-overlay);
-}
-
-.promotion-dialog {
-  width: min(64rem, 100%);
-  max-height: min(92vh, 60rem);
-  overflow: auto;
-  display: grid;
-  gap: 1rem;
-}
-
-.dialog-header,
-.section-header,
-.search-row,
-.dialog-actions,
-.result-card,
-.result-card__actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.dialog-header,
-.section-header,
-.result-card {
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.dialog-header h3,
-.dialog-header p,
-.section-header h4,
-.section-header p {
-  margin: 0;
-}
-
-.dialog-header p,
-.section-header p,
-.field-help,
-.result-score,
-.info-message {
-  color: var(--text-secondary);
-}
-
-.dialog-section {
-  display: grid;
-  gap: 1rem;
-}
-
-.search-row {
-  align-items: end;
-}
-
-.search-field {
-  flex: 1;
-}
-
-.search-button {
-  flex-shrink: 0;
-}
-
-.field-block {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
-.field-wide {
-  grid-column: 1 / -1;
-}
-
-.form-grid {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-}
-
-.result-list {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.result-card {
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 0.875rem;
-  background: var(--bg-main);
-}
-
-.result-card__body {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-}
-
-.result-card__body p {
-  margin: 0;
-  white-space: pre-wrap;
-  color: var(--text-secondary);
-}
-
-.result-card__actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
-.memory-preview {
-  display: grid;
-  gap: 0.375rem;
-}
-
-.memory-preview span {
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-}
-
-.memory-preview pre,
-.success-state code {
-  margin: 0;
-  padding: 0.75rem;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-main);
-  white-space: pre-wrap;
-  word-break: break-word;
-  font: inherit;
-}
-
-.dialog-actions {
-  justify-content: flex-end;
-  flex-wrap: wrap;
-}
-
-.dialog-actions--start {
-  justify-content: flex-start;
-}
-
-.form-error {
-  margin: 0;
-  color: var(--color-status-abandoned);
-  font-size: var(--text-sm);
-}
-
-.mono {
-  font-family: var(--font-mono);
-  word-break: break-all;
-}
-
-.success-state {
-  padding-top: 0.5rem;
-}
-
-@media (max-width: 720px) {
-  .search-row,
-  .dialog-header,
-  .section-header,
-  .result-card {
-    flex-direction: column;
-  }
-
-  .result-card__actions,
-  .dialog-actions {
-    justify-content: stretch;
-  }
-}
-</style>
+<style scoped src="./PromotionDialog.css"></style>

@@ -30,17 +30,42 @@ function sortIndicator(column: SortColumn) {
   if (props.sortColumn !== column) return '';
   return props.sortDirection === 'asc' ? ' ▲' : ' ▼';
 }
+
+function sortOrder(column: SortColumn) {
+  if (props.sortColumn !== column) return 'none';
+  return props.sortDirection === 'asc' ? 'ascending' : 'descending';
+}
 </script>
 
 <template>
   <div class="gate-table-wrap panel">
-    <table class="gate-table">
+    <table class="gate-table" role="table" aria-label="Gate task list">
       <thead>
         <tr>
-          <th class="gate-th--sortable" @click="emit('sort', 'id')">ID<span class="gate-sort-icon">{{ sortIndicator('id') }}</span></th>
-          <th class="gate-th--sortable" @click="emit('sort', 'name')">Name<span class="gate-sort-icon">{{ sortIndicator('name') }}</span></th>
-          <th class="gate-th--sortable" @click="emit('sort', 'process')">Process<span class="gate-sort-icon">{{ sortIndicator('process') }}</span></th>
-          <th class="gate-th--sortable" @click="emit('sort', 'progress')">Progress<span class="gate-sort-icon">{{ sortIndicator('progress') }}</span></th>
+          <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('id')">
+            <button type="button" class="gate-th-button" @click="emit('sort', 'id')">
+              <span>ID</span>
+              <span class="gate-sort-icon">{{ sortIndicator('id') }}</span>
+            </button>
+          </th>
+          <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('name')">
+            <button type="button" class="gate-th-button" @click="emit('sort', 'name')">
+              <span>Name</span>
+              <span class="gate-sort-icon">{{ sortIndicator('name') }}</span>
+            </button>
+          </th>
+          <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('process')">
+            <button type="button" class="gate-th-button" @click="emit('sort', 'process')">
+              <span>Process</span>
+              <span class="gate-sort-icon">{{ sortIndicator('process') }}</span>
+            </button>
+          </th>
+          <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('progress')">
+            <button type="button" class="gate-th-button" @click="emit('sort', 'progress')">
+              <span>Progress</span>
+              <span class="gate-sort-icon">{{ sortIndicator('progress') }}</span>
+            </button>
+          </th>
         </tr>
       </thead>
       <tbody>
@@ -83,34 +108,48 @@ function sortIndicator(column: SortColumn) {
   padding: 0.85rem 1rem;
   text-align: left;
   vertical-align: top;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 
 .gate-table th {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
-.gate-th--sortable,
 .gate-row--active,
 .gate-table tbody tr {
   cursor: pointer;
 }
 
 .gate-th--sortable {
-  user-select: none;
+  padding: 0;
 }
 
-.gate-th--sortable:hover {
-  color: var(--text-primary);
+.gate-th-button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  user-select: none;
+  cursor: pointer;
+}
+
+.gate-th-button:hover {
+  color: var(--foreground);
 }
 
 .gate-sort-icon,
 .gate-subtitle,
 .gate-empty {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .gate-sort-icon,
@@ -122,7 +161,7 @@ function sortIndicator(column: SortColumn) {
 }
 
 .gate-row--active {
-  background: color-mix(in srgb, var(--border-focus) 12%, var(--bg-panel));
+  background: color-mix(in srgb, var(--ring) 12%, var(--card));
 }
 
 .gate-row--issue .gate-title,

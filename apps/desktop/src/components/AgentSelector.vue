@@ -65,12 +65,14 @@ function formatAgentOptionLabel(agentName: string): string {
 <template>
   <div class="agent-selector">
     <label for="agent-select">Agent:</label>
-    <select 
-      id="agent-select" 
-      :value="selectedAgent"
-      @change="handleSelect"
-      :disabled="!hasAgents"
-    >
+     <select 
+       id="agent-select" 
+       role="listbox"
+       aria-label="Agent selector"
+       :value="selectedAgent"
+       @change="handleSelect"
+       :disabled="!hasAgents"
+     >
       <option value="" disabled>
         {{ hasAgents ? 'Select an agent...' : 'No agents configured' }}
       </option>
@@ -104,24 +106,24 @@ function formatAgentOptionLabel(agentName: string): string {
 label {
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 select {
   padding: 0.5rem 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   border-radius: var(--radius-md);
   font-size: var(--text-caption);
-  background: var(--bg-input);
-  color: var(--text-primary);
+  background: var(--input);
+  color: var(--foreground);
   font-family: var(--font-body);
 }
 
 option {
-  background: var(--bg-input);
-  color: var(--text-primary);
+  background: var(--input);
+  color: var(--foreground);
 }
 
 select:disabled {
@@ -141,7 +143,7 @@ select:disabled {
   display: block;
   margin-top: 0.25rem;
   padding: 0.25rem 0.5rem;
-  background: var(--bg-code);
+  background: var(--muted);
   border-radius: 2px;
   font-family: var(--font-code);
   word-break: break-all;

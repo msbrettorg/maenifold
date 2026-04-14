@@ -67,7 +67,7 @@ defineExpose({ focusPipelineToggle });
   align-items: center;
   gap: 6px;
   padding: 6px;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
 .rail-button {
@@ -79,7 +79,7 @@ defineExpose({ focusPipelineToggle });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: var(--foreground);
   background: transparent;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -98,16 +98,16 @@ defineExpose({ focusPipelineToggle });
 
 .rail-button:hover,
 .rail-button:focus-visible {
-  background: var(--bg-surface);
+  background: var(--muted);
   outline: none;
 }
 
 .rail-button.is-active {
-  background: color-mix(in srgb, var(--border-focus) 16%, var(--bg-panel));
+  background: color-mix(in srgb, var(--ring) 16%, var(--card));
 }
 
 .rail-button.is-active::before {
-  background: var(--border-focus);
+  background: var(--ring);
 }
 
 .rail-tooltip {
@@ -116,10 +116,10 @@ defineExpose({ focusPipelineToggle });
   top: 50%;
   max-width: 220px;
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 0.5rem;
-  background: color-mix(in srgb, var(--bg-main) 94%, transparent);
-  color: var(--text-primary);
+  background: color-mix(in srgb, var(--background) 94%, transparent);
+  color: var(--foreground);
   font-size: var(--text-xs);
   line-height: 1.4;
   white-space: nowrap;
@@ -130,7 +130,7 @@ defineExpose({ focusPipelineToggle });
   visibility: hidden;
   pointer-events: none;
   transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
-  box-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--text-primary) 12%, transparent);
+  box-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 .rail-button:hover .rail-tooltip,

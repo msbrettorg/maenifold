@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { PermissionRequest } from '../lib/types';
 import PermissionEntry from './PermissionEntry.vue';
 
@@ -14,53 +21,34 @@ const queueHint = computed(() =>
 </script>
 
 <template>
-  <div class="permission-overlay">
-    <div class="permission-dialog">
-      <div class="dialog-header">
-        <span class="icon">🔐</span>
-        <h3>Permission Required</h3>
-      </div>
+  <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
+    <DialogContent class="permission-dialog gap-0 p-0 sm:max-w-3xl" :show-close-button="false">
+      <DialogHeader class="dialog-header">
+        <div class="dialog-title-row">
+          <span class="icon" aria-hidden="true">🔐</span>
+          <DialogTitle>Permission Required</DialogTitle>
+        </div>
+        <DialogDescription class="queue-hint">
+          Review the pending permission request and choose how to respond.
+          <template v-if="queueHint"> {{ queueHint }}</template>
+        </DialogDescription>
+      </DialogHeader>
+
       <div class="dialog-content">
-        <p v-if="queueHint" class="queue-hint">{{ queueHint }}</p>
-        <PermissionEntry
-          :request="request"
-          @select="emit('select', $event)"
-          @cancel="emit('cancel')"
-        />
+        <div class="permission-list" role="list" aria-label="Pending permission requests">
+          <PermissionEntry
+            :request="request"
+            @select="emit('select', $event)"
+            @cancel="emit('cancel')"
+          />
+        </div>
       </div>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.permission-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: var(--bg-overlay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-  box-sizing: border-box;
-  overflow: hidden;
-  z-index: 1000;
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .permission-overlay {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    background: rgba(0, 0, 0, 0.4);
-  }
-}
-
 .permission-dialog {
-  background: var(--bg-main);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--bg-main) 15%, transparent);
   display: flex;
   flex-direction: column;
   width: min(48rem, 100%);
@@ -68,21 +56,22 @@ const queueHint = computed(() =>
   overflow: hidden;
 }
 
-.dialog-header {
+.dialog-title-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+
+.dialog-header {
+  display: grid;
+  gap: 0.5rem;
+  align-items: flex-start;
   padding: 1rem;
-  background: var(--bg-surface);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
 }
 
 .dialog-header .icon {
-  font-size: var(--text-title);
-}
-
-.dialog-header h3 {
-  margin: 0;
   font-size: var(--text-title);
 }
 
@@ -94,8 +83,12 @@ const queueHint = computed(() =>
 }
 
 .queue-hint {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: var(--text-caption);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
+}
+
+.permission-list {
+  min-height: 0;
 }
 </style>

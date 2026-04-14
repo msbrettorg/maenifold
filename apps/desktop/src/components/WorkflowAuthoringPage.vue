@@ -156,6 +156,8 @@ onBeforeUnmount(() => {
 <template>
   <div
     ref="pageRef"
+    role="main"
+    aria-label="Workflow editor"
     class="workflow-authoring-page"
     :class="{ 'workflow-authoring-page--dragging': draggingPanel !== null }"
   >
@@ -203,7 +205,7 @@ onBeforeUnmount(() => {
 .panel-browser,
 .panel-inspector {
   flex: 0 0 auto;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
 .panel-browser {
@@ -214,7 +216,7 @@ onBeforeUnmount(() => {
 
 .panel-timeline {
   flex: 1 1 auto;
-  background: var(--bg-main);
+  background: var(--background);
   min-width: 320px;
 }
 

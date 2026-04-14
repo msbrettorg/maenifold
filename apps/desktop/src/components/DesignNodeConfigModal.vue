@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue';
+import { computed } from 'vue';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import PipelineInspector from './PipelineInspector.vue';
 import { usePipelineStore } from '../stores/pipeline';
 
@@ -19,91 +27,81 @@ const modalTitle = computed(() => {
   return store.designMode ? 'Node Configuration' : 'Node Inspector';
 });
 
-function handleKeyDown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    emit('close');
-  }
-}
-
-onMounted(() => document.addEventListener('keydown', handleKeyDown));
-onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
+const modalDescription = computed(() =>
+  props.selectedEdge
+    ? 'Inspect or configure the selected pipeline edge.'
+    : 'Inspect or configure the selected pipeline node.',
+);
 </script>
 
 <template>
-  <Teleport to="body">
-    <div class="config-overlay" @click.self="emit('close')">
-      <div class="config-panel">
-        <header class="config-header">
-          <span class="config-title">{{ modalTitle }}</span>
+  <Dialog :open="true" @update:open="(open) => !open && emit('close')">
+    <DialogContent class="config-panel gap-0 p-0 sm:max-w-[560px]" :show-close-button="false">
+      <DialogHeader class="config-header">
+        <div class="config-heading">
+          <DialogTitle class="config-title">{{ modalTitle }}</DialogTitle>
+          <DialogDescription>{{ modalDescription }}</DialogDescription>
+        </div>
+        <DialogClose as-child>
           <button
             class="config-close"
             type="button"
             aria-label="Close configuration"
             title="Close (Esc)"
-            @click="emit('close')"
           >
             ×
           </button>
-        </header>
-        <div class="config-body">
-          <PipelineInspector
-            :selected-node-id="selectedNodeId"
-            :selected-edge="selectedEdge"
-          />
-        </div>
+        </DialogClose>
+      </DialogHeader>
+      <div class="config-body">
+        <PipelineInspector
+          :selected-node-id="selectedNodeId"
+          :selected-edge="selectedEdge"
+        />
       </div>
-    </div>
-  </Teleport>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.config-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: grid;
-  place-items: center;
-  background: var(--bg-overlay);
-}
-
-@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .config-overlay {
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-  }
-}
-
 .config-panel {
   width: min(560px, 90vw);
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: var(--surface-container, #201f1f);
+  background: var(--card, #201f1f);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+}
+
+.config-heading {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
 }
 
 .config-header {
   display: flex;
+  flex-direction: row;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--surface-container-highest, #353534);
+  background: var(--accent, #353534);
 }
 
 .config-title {
   font-family: var(--font-display);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .config-close {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-xl);
   cursor: pointer;
   padding: var(--space-1);
@@ -112,12 +110,12 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 }
 
 .config-close:hover {
-  color: var(--text-primary);
-  background: var(--bg-surface);
+  color: var(--foreground);
+  background: var(--muted);
 }
 
 .config-close:focus-visible {
-  outline: 2px solid var(--border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
 

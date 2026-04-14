@@ -1,7 +1,7 @@
 /* Scoped to AppSidebar.vue via <style scoped> @import. */
 .sidebar {
-  background: var(--bg-panel);
-  border-right: 1px solid var(--border-default);
+  background: var(--card);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -20,7 +20,7 @@
 
 .app-resize-handle:hover,
 .app-resize-handle:active {
-  background: var(--border-focus);
+  background: var(--ring);
 }
 
 .sidebar-header {
@@ -28,7 +28,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 
 .sidebar-header h1 {
@@ -50,17 +50,17 @@
   background: transparent;
   cursor: pointer;
   font-size: var(--text-caption);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .settings-btn:hover,
 .toggle-btn:hover {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .settings-btn.active {
-  color: var(--border-focus);
-  background: var(--bg-surface);
+  color: var(--primary);
+  background: var(--muted);
   border-radius: 4px;
 }
 
@@ -75,7 +75,7 @@
 }
 
 .section + .section {
-  border-top: 1px solid color-mix(in srgb, var(--border-default) 40%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border) 40%, transparent);
 }
 
 .section :deep(.agent-selector label),
@@ -116,13 +116,13 @@
 
 .new-session-btn {
   background: transparent;
-  color: var(--border-focus);
-  border: 1px solid var(--border-focus);
+  color: var(--primary);
+  border: 1px solid var(--primary);
 }
 
 .new-session-btn:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--border-focus) 12%, transparent);
-  border-color: var(--border-focus);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  border-color: var(--primary);
 }
 
 .new-session-btn:disabled {
@@ -137,7 +137,7 @@
 .cwd-picker label {
   display: block;
   font-size: var(--text-tiny);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: var(--weight-title);
@@ -154,11 +154,11 @@
   flex: 1;
   min-width: 0;
   padding: 0.375rem 0.5rem;
-  background: var(--bg-main);
-  border: 1px solid var(--border-default);
+  background: var(--background);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: var(--text-caption);
-  color: var(--text-primary);
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -166,7 +166,7 @@
 
 .cwd-btn {
   padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   background: transparent;
   cursor: pointer;
@@ -174,7 +174,7 @@
 }
 
 .cwd-btn:hover:not(:disabled) {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .cwd-btn:disabled {
@@ -183,12 +183,12 @@
 }
 
 .disconnect-btn {
-  background: var(--border-error);
-  color: white;
+  background: var(--destructive);
+  color: var(--primary-foreground);
 }
 
 .disconnect-btn:hover {
-  background: var(--border-error);
+  background: var(--destructive);
 }
 
 .sidebar-toggle-collapsed {
@@ -197,16 +197,16 @@
   top: 50%;
   transform: translateY(-50%);
   padding: 0.5rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-left: none;
   border-radius: 0 4px 4px 0;
-  background: var(--bg-panel);
-  color: var(--text-muted);
+  background: var(--card);
+  color: var(--muted-foreground);
   cursor: pointer;
 }
 
 .sidebar-toggle-collapsed:hover {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .workflows-btn {
@@ -219,18 +219,18 @@
   font-weight: var(--weight-display);
   cursor: pointer;
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   text-align: left;
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
 .workflows-btn:hover {
-  background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
-  color: var(--text-primary);
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  color: var(--foreground);
 }
 
 .workflows-btn.active {
-  background: color-mix(in srgb, var(--border-focus) 8%, transparent);
-  color: var(--border-focus);
-  border-left-color: var(--border-focus);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+  color: var(--primary);
+  border-left-color: var(--primary);
 }

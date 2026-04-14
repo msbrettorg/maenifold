@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { computed, toRef } from 'vue';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
 import ToolPaletteFields from './ToolPaletteFields.vue';
@@ -45,15 +54,17 @@ const {
 </script>
 
 <template>
-  <div class="graft-overlay" @click.self="emit('cancel')">
-    <div class="graft-dialog panel" role="dialog" aria-modal="true" aria-labelledby="graft-dialog-title">
-      <div class="dialog-header">
-        <div>
-          <h3 id="graft-dialog-title">Graft Nodes</h3>
-          <p>Add one node to the running pipeline and connect it to existing nodes.</p>
+  <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
+    <DialogContent class="graft-dialog panel gap-0 p-0 sm:max-w-[48rem]" :show-close-button="false">
+      <DialogHeader class="dialog-header">
+        <div class="dialog-heading">
+          <DialogTitle>Graft Nodes</DialogTitle>
+          <DialogDescription>Add one node to the running pipeline and connect it to existing nodes.</DialogDescription>
         </div>
-        <button type="button" class="btn btn-ghost" @click="emit('cancel')">Close</button>
-      </div>
+        <DialogClose as-child>
+          <button type="button" class="btn btn-ghost">Close</button>
+        </DialogClose>
+      </DialogHeader>
 
       <form class="dialog-form" @submit.prevent="handleSubmit">
         <div class="form-grid">
@@ -165,56 +176,45 @@ const {
         <p class="existing-nodes"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
         <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
 
-        <div class="dialog-actions">
-          <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('cancel')">Cancel</button>
+        <DialogFooter class="dialog-actions">
+          <DialogClose as-child>
+            <button type="button" class="btn btn-ghost" :disabled="busy">Cancel</button>
+          </DialogClose>
           <button type="submit" class="btn btn-primary" :disabled="!canSubmit || busy">
             {{ busy ? 'Grafting…' : 'Graft Node' }}
           </button>
-        </div>
+        </DialogFooter>
       </form>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.graft-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: var(--bg-overlay);
-}
-
 .graft-dialog {
   width: min(48rem, 100%);
   max-height: min(90vh, 52rem);
   overflow: auto;
 }
 
+.dialog-heading {
+  display: grid;
+  gap: 0.35rem;
+  text-align: left;
+}
+
 .dialog-header {
   display: flex;
+  flex-direction: row;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1rem;
-}
-
-.dialog-header h3,
-.dialog-header p {
-  margin: 0;
-}
-
-.dialog-header p {
-  margin-top: 0.35rem;
-  color: var(--text-secondary);
+  padding: 1.5rem 1.5rem 0;
 }
 
 .dialog-form {
   display: grid;
   gap: 1rem;
+  padding: 0 1.5rem 1.5rem;
 }
 
 .form-grid {
@@ -227,7 +227,7 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-sm);
 }
 
@@ -239,7 +239,7 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-sm);
 }
 
@@ -255,7 +255,7 @@ label {
 }
 
 .existing-nodes {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .form-error {
@@ -263,8 +263,6 @@ label {
 }
 
 .dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
+  padding-top: 0.5rem;
 }
 </style>

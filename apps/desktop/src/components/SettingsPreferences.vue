@@ -83,7 +83,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="settings-section">
+  <section class="settings-section" role="form" aria-label="Preferences">
     <div class="section-header">
       <div>
         <h3>Preferences</h3>
@@ -179,7 +179,7 @@ onMounted(async () => {
 .toggle-card p,
 .card-header p,
 .saved-value {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .card,
@@ -189,7 +189,7 @@ onMounted(async () => {
 
 .card {
   padding: 1rem;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
 .toggle-card {
@@ -203,23 +203,23 @@ onMounted(async () => {
 
 .status-chip {
   padding: 0.35rem 0.6rem;
-  background: var(--bg-panel);
-  color: var(--text-secondary);
-  font-size: var(--text-caption);
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
 }
 
 .status-chip.saving,
 .message.success {
-  color: var(--border-focus);
+  color: var(--ring);
 }
 
 .message.error {
-  color: var(--border-error);
+  color: var(--destructive);
 }
 
 .secondary-btn {
   padding: 0.5rem 0.85rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
   background: transparent;
   color: inherit;
@@ -235,15 +235,15 @@ onMounted(async () => {
   display: block;
   margin-top: 0.75rem;
   word-break: break-all;
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
+  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.75rem;
 }
 
 .density-control {
   display: flex;
   gap: 0;
   margin-top: 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
   overflow: hidden;
 }
@@ -255,11 +255,11 @@ onMounted(async () => {
   justify-content: center;
   padding: 0.45rem 0.5rem;
   cursor: pointer;
-  font-size: var(--text-caption);
-  color: var(--text-secondary);
+  font-size: 0.75rem;
+  color: var(--muted-foreground);
   background: transparent;
-  border-right: 1px solid var(--border-default);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  border-right: 1px solid var(--border);
+  transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .density-option:last-child {
@@ -273,12 +273,12 @@ onMounted(async () => {
 }
 
 .density-option.active {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .density-option:hover:not(.active) {
-  background: var(--surface-high);
+  background: var(--muted);
 }
 
 @media (max-width: 640px) {

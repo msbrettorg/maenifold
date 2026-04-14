@@ -12,8 +12,8 @@ html, body, #app {
 }
 
 body {
-  background: var(--bg-main);
-  color: var(--text-primary);
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-body);
 }
 
@@ -27,9 +27,9 @@ body {
   textarea,
   select
 ) {
-  background: var(--bg-input, #1e1e1e);
-  color: var(--text-primary, #e8e8e8);
-  border: 1px solid var(--border-default, #3a3a3a);
+  background: var(--input, #1e1e1e);
+  color: var(--foreground, #e8e8e8);
+  border: 1px solid var(--border, #3a3a3a);
   border-radius: var(--radius-sm, 4px);
   padding: 6px 10px;
   font-family: inherit;
@@ -42,32 +42,32 @@ body {
   select
 ):focus {
   outline: none;
-  border-color: var(--border-focus, #3b82f6);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-focus, #3b82f6) 15%, transparent);
+  border-color: var(--ring, #3b82f6);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ring, #3b82f6) 15%, transparent);
 }
 
 :where(
   input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
   textarea
 )::placeholder {
-  color: var(--text-muted, #6b7280);
+  color: var(--muted-foreground, #6b7280);
 }
 
 select,
 select option,
 select optgroup {
-  background: var(--bg-input, #1e1e1e);
-  color: var(--text-primary, #e8e8e8);
+  background: var(--input, #1e1e1e);
+  color: var(--foreground, #e8e8e8);
 }
 
 .native-path-dialog {
   width: min(420px, calc(100vw - 32px));
   margin: auto;
   padding: 0;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--bg-panel);
-  color: var(--text-primary);
+  background: var(--popover);
+  color: var(--popover-foreground);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
 }
 
@@ -112,15 +112,15 @@ select optgroup {
 }
 
 .native-path-dialog__button--cancel {
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .native-path-dialog__button--submit {
-  border: 1px solid var(--border-focus);
-  background: var(--border-focus);
-  color: var(--text-on-accent);
+  border: 1px solid var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
 }
 
 /* ── Button base ── */
@@ -150,11 +150,11 @@ select optgroup {
 
 /* ── Button variants ── */
 .btn-primary {
-  background-color: var(--border-focus);
-  color: var(--text-on-accent);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
 }
 .btn-primary:hover:not(:disabled):not(.btn--busy) {
-  background-color: var(--border-focus);
+  background-color: var(--primary);
 }
 
 .btn-success {
@@ -183,12 +183,12 @@ select optgroup {
 
 .btn-ghost {
   background-color: transparent;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   border: 1px solid transparent;
 }
 .btn-ghost:hover:not(:disabled):not(.btn--busy) {
-  background-color: var(--bg-surface);
-  color: var(--text-primary);
+  background-color: var(--muted);
+  color: var(--foreground);
 }
 
 .btn-outline-danger {
@@ -197,20 +197,20 @@ select optgroup {
   border: 1px solid var(--color-status-abandoned);
 }
 .btn-outline-danger:hover:not(:disabled):not(.btn--busy) {
-  background-color: var(--bg-error);
+  background-color: color-mix(in srgb, var(--destructive) 18%, transparent);
 }
 
 /* ── Form field bases ── */
 .field-input,
 .field-select,
 .field-textarea {
-  background-color: var(--bg-input);
-  border: 1px solid var(--border-default);
+  background-color: var(--input);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: var(--space-2) var(--space-3);
   font-size: var(--text-caption);
   font-family: var(--font-body);
-  color: var(--text-primary);
+  color: var(--foreground);
   transition: border-color var(--transition-fast), outline-color var(--transition-fast);
   width: 100%;
 }
@@ -218,9 +218,9 @@ select optgroup {
 .field-input:focus-visible,
 .field-select:focus-visible,
 .field-textarea:focus-visible {
-  outline: 2px solid var(--border-focus);
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
-  border-color: var(--border-focus);
+  border-color: var(--ring);
 }
 
 .field-textarea {
@@ -256,8 +256,8 @@ select optgroup {
 
 /* ── Panel ── */
 .panel {
-  background-color: var(--bg-panel);
-  border: 1px solid var(--border-default);
+  background-color: var(--card);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: var(--space-4);
 }
@@ -268,7 +268,7 @@ select optgroup {
 .logs-content,
 .workflow-panel-body {
   scrollbar-width: thin;
-  scrollbar-color: var(--border-default) transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 .sidebar-content::-webkit-scrollbar,
@@ -292,7 +292,7 @@ select optgroup {
 .gate-table-wrap::-webkit-scrollbar-thumb,
 .logs-content::-webkit-scrollbar-thumb,
 .workflow-panel-body::-webkit-scrollbar-thumb {
-  background: var(--border-default);
+  background: var(--border);
   border-radius: 4px;
 }
 
@@ -301,7 +301,7 @@ select optgroup {
 .gate-table-wrap::-webkit-scrollbar-thumb:hover,
 .logs-content::-webkit-scrollbar-thumb:hover,
 .workflow-panel-body::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--muted-foreground);
 }
 
 @media (prefers-reduced-motion: reduce) {

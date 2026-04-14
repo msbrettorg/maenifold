@@ -35,7 +35,8 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 </script>
 
 <template>
-  <div
+  <component
+    :is="clamp ? 'div' : 'section'"
     class="thinking-markdown-content"
     :class="{ 'thinking-markdown-content--clamped': clamp }"
     v-html="renderedContentWithDOMPurify"
@@ -44,10 +45,10 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 
 <style scoped>
 .thinking-markdown-content {
-  --thinking-markdown-text: color-mix(in srgb, var(--text-on-accent) 84%, var(--color-node-prompt));
-  --thinking-markdown-accent: color-mix(in srgb, var(--text-on-accent) 72%, var(--color-node-prompt));
-  --thinking-markdown-link: color-mix(in srgb, var(--text-on-accent) 68%, var(--color-status-active));
-  --thinking-markdown-border: color-mix(in srgb, var(--border-default) 32%, var(--bg-code));
+  --thinking-markdown-text: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-prompt));
+  --thinking-markdown-accent: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
+  --thinking-markdown-link: color-mix(in srgb, var(--primary-foreground) 68%, var(--color-status-active));
+  --thinking-markdown-border: color-mix(in srgb, var(--border) 32%, var(--muted));
   font-size: var(--text-caption);
   line-height: 1.5;
   color: var(--thinking-markdown-text);
@@ -69,6 +70,27 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   margin-top: 0.35rem;
 }
 
+.thinking-markdown-content :deep(h1),
+.thinking-markdown-content :deep(h2),
+.thinking-markdown-content :deep(h3),
+.thinking-markdown-content :deep(h4),
+.thinking-markdown-content :deep(h5),
+.thinking-markdown-content :deep(h6) {
+  margin: 0.6rem 0 0.35rem;
+  color: var(--thinking-markdown-accent);
+  font-weight: var(--weight-title);
+  line-height: 1.3;
+}
+
+.thinking-markdown-content :deep(h1:first-child),
+.thinking-markdown-content :deep(h2:first-child),
+.thinking-markdown-content :deep(h3:first-child),
+.thinking-markdown-content :deep(h4:first-child),
+.thinking-markdown-content :deep(h5:first-child),
+.thinking-markdown-content :deep(h6:first-child) {
+  margin-top: 0;
+}
+
 .thinking-markdown-content :deep(ul),
 .thinking-markdown-content :deep(ol) {
   margin: 0.2rem 0 0;
@@ -76,7 +98,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(code) {
-  background: color-mix(in srgb, var(--bg-code) 100%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 100%, var(--background));
   color: var(--thinking-markdown-accent);
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
@@ -85,7 +107,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(pre) {
-  background: color-mix(in srgb, var(--bg-code) 100%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 100%, var(--background));
   border-radius: 6px;
   padding: 0.55rem;
   overflow-x: auto;
@@ -113,12 +135,12 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(th) {
-  background: var(--bg-surface);
+  background: var(--muted);
   font-weight: var(--weight-title);
 }
 
 .thinking-markdown-content :deep(tr:nth-child(even)) {
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
 .thinking-markdown-content :deep(.wiki-pill) {
@@ -127,7 +149,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   padding: 0.08rem 0.42rem;
   margin: 0 0.08rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--border-focus) 18%, var(--bg-code));
+  background: color-mix(in srgb, var(--ring) 18%, var(--muted));
   color: var(--thinking-markdown-link);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);

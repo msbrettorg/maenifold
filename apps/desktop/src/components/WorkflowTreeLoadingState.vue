@@ -39,9 +39,9 @@ const skeletonItems = [1, 2, 3] as const;
 <style scoped>
 .tree-loading {
   width: 320px;
-  background: color-mix(in srgb, var(--bg-code) 88%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 88%, var(--background));
   border-radius: 8px;
-  border-left: 3px solid color-mix(in srgb, var(--border-default) 32%, var(--bg-code));
+  border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
   padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
@@ -52,9 +52,9 @@ const skeletonItems = [1, 2, 3] as const;
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--bg-code) 82%, var(--bg-main)) 25%,
-    color-mix(in srgb, var(--bg-code) 68%, var(--bg-main)) 50%,
-    color-mix(in srgb, var(--bg-code) 82%, var(--bg-main)) 75%
+    color-mix(in srgb, var(--muted) 82%, var(--background)) 25%,
+    color-mix(in srgb, var(--muted) 68%, var(--background)) 50%,
+    color-mix(in srgb, var(--muted) 82%, var(--background)) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
@@ -100,9 +100,9 @@ const skeletonItems = [1, 2, 3] as const;
   border-radius: 2px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--bg-code) 82%, var(--bg-main)) 25%,
-    color-mix(in srgb, var(--bg-code) 68%, var(--bg-main)) 50%,
-    color-mix(in srgb, var(--bg-code) 82%, var(--bg-main)) 75%
+    color-mix(in srgb, var(--muted) 82%, var(--background)) 25%,
+    color-mix(in srgb, var(--muted) 68%, var(--background)) 50%,
+    color-mix(in srgb, var(--muted) 82%, var(--background)) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
@@ -145,7 +145,7 @@ const skeletonItems = [1, 2, 3] as const;
   height: 100%;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--border-default) 72%, var(--bg-code)),
+    color-mix(in srgb, var(--border) 72%, var(--muted)),
     transparent
   );
 }
@@ -158,9 +158,9 @@ const skeletonItems = [1, 2, 3] as const;
 .skeleton-child {
   flex: 1;
   min-width: 80px;
-  background: color-mix(in srgb, var(--bg-code) 92%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 92%, var(--background));
   border-radius: 8px;
-  border-left: 3px solid color-mix(in srgb, var(--border-default) 32%, var(--bg-code));
+  border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
   padding: 0.6rem;
   display: flex;
   flex-direction: column;

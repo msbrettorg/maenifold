@@ -20,6 +20,21 @@ const emit = defineEmits<{
 
 const toolCalls = computed(() => props.message.toolCalls ?? []);
 const blocks = computed(() => props.message.blocks ?? []);
+const senderLabel = computed(() => {
+  switch (props.message.role) {
+    case 'user':
+      return 'You';
+    case 'assistant':
+      return 'Assistant';
+    default:
+      return 'System';
+  }
+});
+const formattedTimestamp = computed(() => {
+  const date = new Date(props.message.timestamp);
+  return Number.isNaN(date.getTime()) ? 'unknown time' : date.toLocaleTimeString();
+});
+const messageAriaLabel = computed(() => `${senderLabel.value} message at ${formattedTimestamp.value}`);
 const legacyContentWithDOMPurify = computed(() =>
   props.message.content && !blocks.value.some((block) => block.type === 'text')
     ? renderMarkdown(props.message.content)
@@ -39,9 +54,13 @@ function renderMarkdown(content: string): string {
 </script>
 
 <template>
-  <div :class="['message', `message-${message.role}`, { 'message-tool-only': isToolOnlyAssistantMessage }]">
+  <div
+    :class="['message', `message-${message.role}`, { 'message-tool-only': isToolOnlyAssistantMessage }]"
+    role="article"
+    :aria-label="messageAriaLabel"
+  >
     <div class="message-header">
-      <span class="role">{{ message.role === 'user' ? 'You' : 'Assistant' }}</span>
+      <span class="role">{{ senderLabel }}</span>
     </div>
 
     <ChatThoughtSection
@@ -66,10 +85,10 @@ function renderMarkdown(content: string): string {
 
 <style scoped>
 .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 8px; }
-.message-user { margin-left: 2rem; background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel)); }
-.message-assistant { margin-right: 2rem; background: var(--bg-surface); }
+.message-user { margin-left: 2rem; background: color-mix(in srgb, var(--ring) 24%, var(--card)); }
+.message-assistant { margin-right: 2rem; background: var(--muted); }
 .message-header { margin-bottom: 0.5rem; }
-.role { color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-title); }
+.role { color: var(--muted-foreground); font-size: var(--text-sm); font-weight: var(--weight-title); }
 .message-content {
   line-height: 1.5;
   overflow-wrap: break-word;
@@ -101,8 +120,8 @@ function renderMarkdown(content: string): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--bg-code);
-  color: var(--text-code);
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);
@@ -120,11 +139,11 @@ function renderMarkdown(content: string): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   text-align: left;
 }
 .message-content :deep(th) {
-  background: var(--bg-surface);
+  background: var(--muted);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }

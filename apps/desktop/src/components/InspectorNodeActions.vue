@@ -166,9 +166,9 @@ function openPromotionDialog(): void {
 </template>
 
 <style scoped>
-.field { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
+.field { display: flex; flex-direction: column; gap: 0.375rem; color: var(--muted-foreground); font-size: var(--text-sm); }
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
-.fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
+.fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
+.fork-result span { color: var(--muted-foreground); font-size: var(--text-sm); }
 .mono { font-family: var(--font-code); word-break: break-all; }
 </style>

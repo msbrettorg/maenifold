@@ -15,6 +15,7 @@ const entryClass = computed(() => {
 });
 
 const directionIcon = computed(() => (props.entry.direction === 'out' ? '→' : '←'));
+const entryAriaLabel = computed(() => `${props.entry.method} at ${formatTime(props.entry.timestamp)}`);
 const typeLabel = computed(() => {
   if (props.entry.type === 'notification') return '(notification)';
   if (props.entry.type === 'response') return '(response)';
@@ -49,7 +50,7 @@ function copyPayload() {
 </script>
 
 <template>
-  <div :class="entryClass">
+  <article :class="entryClass" role="article" :aria-label="entryAriaLabel">
     <div class="entry-header" @click="toggleExpand">
       <span class="expand-icon">{{ isExpanded ? '▾' : '▸' }}</span>
       <span class="timestamp">{{ formatTime(entry.timestamp) }}</span>
@@ -63,12 +64,12 @@ function copyPayload() {
     <div v-if="isExpanded" class="entry-payload">
       <pre>{{ formatJson(entry.payload) }}</pre>
     </div>
-  </div>
+  </article>
 </template>
 
 <style scoped>
 .entry {
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 
 .entry-header {
@@ -80,17 +81,17 @@ function copyPayload() {
 }
 
 .entry-header:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .expand-icon {
   width: 1em;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .timestamp,
 .type-label {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-tiny);
 }
 
@@ -100,7 +101,7 @@ function copyPayload() {
 }
 
 .entry.out .direction-icon {
-  color: var(--border-focus);
+  color: var(--ring);
 }
 
 .entry.in .direction-icon {
@@ -109,17 +110,17 @@ function copyPayload() {
 
 .entry.error .direction-icon,
 .entry.error .method {
-  color: var(--text-error);
+  color: var(--destructive);
 }
 
 .method {
-  color: var(--text-primary);
+  color: var(--foreground);
   font-weight: var(--weight-title);
 }
 
 .request-id {
   margin-left: auto;
-  color: var(--border-focus);
+  color: var(--ring);
   font-size: var(--text-tiny);
 }
 
@@ -139,13 +140,13 @@ function copyPayload() {
 
 .entry-payload {
   padding: 0.5rem 0.75rem 0.75rem 2rem;
-  background: var(--bg-code);
+  background: var(--muted);
   overflow-x: auto;
 }
 
 .entry-payload pre {
   margin: 0;
-  color: var(--text-code);
+  color: var(--muted-foreground);
   font-size: var(--text-tiny);
   white-space: pre-wrap;
   word-break: break-all;

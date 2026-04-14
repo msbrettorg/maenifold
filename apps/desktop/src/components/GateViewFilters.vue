@@ -46,7 +46,7 @@ function emitSelect(
 </script>
 
 <template>
-  <div class="gate-filters panel">
+  <div class="gate-filters panel" role="search" aria-label="Task filters">
     <input :value="props.searchText" class="field-input" type="search" placeholder="Filter tasks" @input="emitSearchText" />
 
     <select class="field-select" :value="props.selectedProcess" @change="(event) => emitSelect('update:selectedProcess', event)">
@@ -85,7 +85,7 @@ function emitSelect(
   gap: 0.5rem;
   white-space: nowrap;
   font-size: var(--text-caption);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 @media (max-width: 1100px) {

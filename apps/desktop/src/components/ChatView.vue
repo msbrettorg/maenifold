@@ -165,7 +165,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </script>
 
 <template>
-  <div class="chat-view">
+  <div class="chat-view" role="region" aria-label="Chat">
     <div class="chat-header">
       <h2>{{ currentSession?.title || 'Chat' }}</h2>
       <div class="header-right">
@@ -219,7 +219,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 
 <style scoped>
 .chat-view { display: flex; flex-direction: column; height: 100%; }
-.chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border-default); }
+.chat-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; border-bottom: 1px solid var(--border); }
 .chat-header h2 {
   margin: 0;
   overflow: hidden;
@@ -228,10 +228,10 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   font-size: var(--text-xl);
 }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
-.agent-name { font-size: var(--text-sm); color: var(--border-focus); }
+.agent-name { font-size: var(--text-sm); color: var(--ring); }
 .messages-container { flex: 1; overflow-y: auto; padding: 1rem; }
 .messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
 .messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: 6px; }
 .messages-container :deep(pre.mermaid-error) { border: 1px solid color-mix(in srgb, var(--border-error) 45%, transparent); }
-.messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--text-on-accent) 76%, var(--text-error)); font-size: var(--text-sm); }
+.messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--primary-foreground) 76%, var(--destructive)); font-size: var(--text-sm); }
 </style>

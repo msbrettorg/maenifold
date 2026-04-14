@@ -91,9 +91,9 @@ function toggleExpanded(): void {
 <style scoped>
 .plan-view {
   margin-bottom: 1rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: var(--bg-surface);
+  background: var(--muted);
   overflow: hidden;
 }
 
@@ -106,13 +106,13 @@ function toggleExpanded(): void {
   padding: 0.875rem 1rem;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--foreground);
   cursor: pointer;
   text-align: left;
 }
 
 .plan-toggle:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .plan-heading {
@@ -133,12 +133,12 @@ function toggleExpanded(): void {
 .plan-summary,
 .plan-chevron,
 .plan-entry-status-text {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-caption);
 }
 
 .plan-body {
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--border);
   padding: 0.75rem 1rem 1rem;
 }
 
@@ -165,7 +165,7 @@ function toggleExpanded(): void {
   height: 1.5rem;
   margin-top: 0.125rem;
   border-radius: 999px;
-  background: var(--bg-surface);
+  background: var(--muted);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-title);
   flex-shrink: 0;
@@ -205,23 +205,23 @@ function toggleExpanded(): void {
 }
 
 .priority-high {
-  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--bg-main));
-  color: var(--text-error);
+  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--background));
+  color: var(--destructive);
 }
 
 .priority-medium {
-  background: color-mix(in srgb, var(--color-status-stuck) 16%, var(--bg-main));
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text-primary));
+  background: color-mix(in srgb, var(--color-status-stuck) 16%, var(--background));
+  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
 }
 
 .priority-low {
-  background: color-mix(in srgb, var(--color-status-pending) 14%, var(--bg-main));
-  color: var(--text-secondary);
+  background: color-mix(in srgb, var(--color-status-pending) 14%, var(--background));
+  color: var(--muted-foreground);
 }
 
 .plan-entry-text {
   margin: 0;
-  color: var(--text-primary);
+  color: var(--foreground);
   line-height: 1.45;
   white-space: pre-wrap;
 }

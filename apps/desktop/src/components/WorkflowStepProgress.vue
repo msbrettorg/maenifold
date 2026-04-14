@@ -71,8 +71,8 @@ function statusClass(status: string): string {
 <style scoped>
 .steps-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .steps-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.steps-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--text-primary); }
-.steps-count { color: var(--text-secondary); font-size: var(--text-tiny); }
+.steps-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--foreground); }
+.steps-count { color: var(--muted-foreground); font-size: var(--text-tiny); }
 .steps-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .step { display: flex; gap: var(--space-3); min-height: 2.5rem; }
 .step-indicator { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 1.25rem; padding-top: 0.15rem; }
@@ -82,18 +82,18 @@ function statusClass(status: string): string {
 .step--failed .step-dot    { background: var(--color-status-stuck); }
 .step-dot__pulse { position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--color-status-active); animation: pulse-ring 1.4s ease-in-out infinite; }
 @keyframes pulse-ring { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.8); } }
-.step-line { flex: 1; width: 2px; min-height: 0.75rem; background: var(--border-default); }
-.step--completed .step-line { background: color-mix(in srgb, var(--color-status-completed) 40%, var(--border-default)); }
+.step-line { flex: 1; width: 2px; min-height: 0.75rem; background: var(--border); }
+.step--completed .step-line { background: color-mix(in srgb, var(--color-status-completed) 40%, var(--border)); }
 .step-content { flex: 1; display: flex; flex-direction: column; gap: var(--space-1); padding-bottom: var(--space-2); min-width: 0; }
 .step-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
-.step-name { font-size: var(--text-caption); color: var(--text-primary); }
-.step--pending .step-name { color: var(--text-secondary); }
+.step-name { font-size: var(--text-caption); color: var(--foreground); }
+.step--pending .step-name { color: var(--muted-foreground); }
 .step-badge { display: inline-flex; align-items: center; padding: 0.1rem 0.45rem; border-radius: 999px; border: 1px solid transparent; font-size: var(--text-tiny); font-weight: var(--weight-title); white-space: nowrap; }
-.step-badge.step--completed { color: var(--color-status-completed); background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main)); border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent); }
-.step-badge.step--active { color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 12%, var(--bg-main)); border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent); }
-.step-badge.step--failed { color: var(--color-status-stuck); background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--bg-main)); border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent); }
-.step-badge.step--pending { color: var(--color-status-pending); background: color-mix(in srgb, var(--color-status-pending) 12%, var(--bg-main)); border-color: color-mix(in srgb, var(--color-status-pending) 30%, transparent); }
-.step-output { font-size: var(--text-caption); color: var(--text-secondary); }
-.step-output summary { cursor: pointer; font-size: var(--text-tiny); color: var(--text-secondary); }
-.step-output pre { margin: var(--space-1) 0 0; padding: var(--space-2); background: var(--bg-main); border: 1px solid var(--border-default); border-radius: var(--radius-sm); white-space: pre-wrap; word-break: break-word; font-family: var(--font-code); font-size: var(--text-tiny); color: var(--text-primary); overflow-x: auto; }
+.step-badge.step--completed { color: var(--color-status-completed); background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent); }
+.step-badge.step--active { color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent); }
+.step-badge.step--failed { color: var(--color-status-stuck); background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent); }
+.step-badge.step--pending { color: var(--color-status-pending); background: color-mix(in srgb, var(--color-status-pending) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-pending) 30%, transparent); }
+.step-output { font-size: var(--text-caption); color: var(--muted-foreground); }
+.step-output summary { cursor: pointer; font-size: var(--text-tiny); color: var(--muted-foreground); }
+.step-output pre { margin: var(--space-1) 0 0; padding: var(--space-2); background: var(--background); border: 1px solid var(--border); border-radius: var(--radius-sm); white-space: pre-wrap; word-break: break-word; font-family: var(--font-code); font-size: var(--text-tiny); color: var(--foreground); overflow-x: auto; }
 </style>

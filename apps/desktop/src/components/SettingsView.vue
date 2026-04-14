@@ -102,14 +102,14 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg-overlay);
+  background: rgba(0, 0, 0, 0.6);
 }
 
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .settings-overlay {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
-    background: var(--bg-overlay);
+    background: rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -118,9 +118,9 @@ onBeforeUnmount(() => {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg-main);
+  background: var(--background);
   border-radius: 12px;
-  box-shadow: 0 4px 20px color-mix(in srgb, var(--bg-main) 30%, transparent);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--background) 30%, transparent);
   overflow: hidden;
 }
 
@@ -130,7 +130,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 1rem;
   padding: 1.25rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 
 .settings-header h2,
@@ -140,19 +140,19 @@ onBeforeUnmount(() => {
 
 .settings-header p {
   margin-top: 0.375rem;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .close-btn {
   border: none;
   background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-title);
+  color: var(--muted-foreground);
+  font-size: 1.125rem;
   cursor: pointer;
 }
 
 .close-btn:hover {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .settings-layout {
@@ -167,8 +167,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.5rem;
   padding: 1rem;
-  border-right: 1px solid var(--border-default);
-  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  background: var(--card);
 }
 
 .nav-item {
@@ -185,21 +185,21 @@ onBeforeUnmount(() => {
 }
 
 .nav-item:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .nav-item.active {
-  background: var(--bg-main);
-  border-color: var(--border-default);
+  background: var(--background);
+  border-color: var(--border);
 }
 
 .nav-label {
-  font-weight: var(--weight-title);
+  font-weight: 600;
 }
 
 .nav-description {
-  color: var(--text-secondary);
-  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
 }
 
 .settings-content {
@@ -219,7 +219,7 @@ onBeforeUnmount(() => {
 
   .settings-nav {
     border-right: none;
-    border-bottom: 1px solid var(--border-default);
+    border-bottom: 1px solid var(--border);
   }
 }
 </style>

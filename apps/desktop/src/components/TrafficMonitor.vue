@@ -62,7 +62,7 @@ onUnmounted(stopResize);
 </script>
 
 <template>
-  <div class="traffic-monitor" :style="{ height: `${panelHeight}px` }">
+  <section class="traffic-monitor" :style="{ height: `${panelHeight}px` }">
     <div class="resize-handle" title="Drag to resize" @mousedown="startResize"></div>
 
     <div class="monitor-header">
@@ -118,7 +118,14 @@ onUnmounted(stopResize);
       <button class="close-btn" title="Close" @click="emit('close')">×</button>
     </div>
 
-    <div ref="logContainer" class="log-container" @scroll="handleScroll">
+    <div
+      ref="logContainer"
+      class="log-container"
+      role="log"
+      aria-live="polite"
+      aria-label="Traffic monitor"
+      @scroll="handleScroll"
+    >
       <div v-if="trafficStore.filteredEntries.length === 0" class="empty-state">
         No traffic captured yet. Connect to an agent to see ACP messages.
       </div>
@@ -131,7 +138,7 @@ onUnmounted(stopResize);
     </div>
 
     <div v-if="trafficStore.isPaused" class="paused-indicator">⏸ Paused</div>
-  </div>
+  </section>
 </template>
 
 <style scoped>
@@ -139,8 +146,8 @@ onUnmounted(stopResize);
   display: flex;
   flex-direction: column;
   position: relative;
-  background: var(--bg-panel);
-  border-top: 1px solid var(--border-default);
+  background: var(--card);
+  border-top: 1px solid var(--border);
   font-size: var(--text-caption);
 }
 
@@ -155,7 +162,7 @@ onUnmounted(stopResize);
 
 .resize-handle:hover,
 .resize-handle:active {
-  background: var(--border-focus);
+  background: var(--ring);
   opacity: 0.5;
 }
 
@@ -168,8 +175,8 @@ onUnmounted(stopResize);
 .monitor-header {
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--bg-main);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--background);
+  border-bottom: 1px solid var(--border);
 }
 
 .title {
@@ -184,7 +191,7 @@ onUnmounted(stopResize);
 .control-btn,
 .filter-select {
   padding: 0.25rem 0.5rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 4px;
   font-size: var(--text-tiny);
   cursor: pointer;
@@ -196,7 +203,7 @@ onUnmounted(stopResize);
 
 .control-btn:hover,
 .close-btn:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .control-btn.active,
@@ -209,15 +216,15 @@ onUnmounted(stopResize);
   display: flex;
   align-items: center;
   padding: 0 0.25rem;
-  background: var(--bg-main);
-  border: 1px solid var(--border-default);
+  background: var(--background);
+  border: 1px solid var(--border);
   border-radius: 4px;
 }
 
 .search-icon,
 .match-count,
 .close-btn {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .search-icon {
@@ -230,13 +237,13 @@ onUnmounted(stopResize);
   padding: 0.25rem 0.4rem;
   border: none;
   background: transparent;
-  color: var(--text-primary);
+  color: var(--foreground);
   font-size: var(--text-tiny);
   outline: none;
 }
 
 .search-input::placeholder {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .search-clear-btn,
@@ -248,14 +255,14 @@ onUnmounted(stopResize);
 
 .search-clear-btn {
   padding: 0 0.25rem;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-body-sm);
   line-height: 1;
 }
 
 .search-clear-btn:hover,
 .close-btn:hover {
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 
 .match-count {
@@ -264,8 +271,8 @@ onUnmounted(stopResize);
 }
 
 .filter-select {
-  background: var(--bg-main);
-  color: var(--text-primary);
+  background: var(--background);
+  color: var(--foreground);
 }
 
 .close-btn {
@@ -282,7 +289,7 @@ onUnmounted(stopResize);
 .empty-state {
   padding: 2rem;
   text-align: center;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .paused-indicator {
@@ -292,6 +299,6 @@ onUnmounted(stopResize);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: var(--text-tiny);
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text-primary));
+  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
 }
 </style>

@@ -109,6 +109,7 @@ function formatAbsolute(iso: string): string {
 <template>
   <div
     class="workflow-node-card"
+    role="listitem"
     :style="{ borderLeftColor: borderColor }"
   >
     <!-- ── Header ── -->
@@ -159,19 +160,19 @@ function formatAbsolute(iso: string): string {
 <style scoped>
 /* ── Card shell ─────────────────────────────────────────────────────────────── */
 .workflow-node-card {
-  --workflow-card-text: color-mix(in srgb, var(--text-on-accent) 84%, var(--color-node-workflow));
-  --workflow-card-heading: color-mix(in srgb, var(--text-on-accent) 92%, var(--color-node-workflow));
-  --workflow-card-muted: color-mix(in srgb, var(--text-on-accent) 54%, var(--text-secondary));
-  --workflow-card-subtle: color-mix(in srgb, var(--text-on-accent) 40%, var(--text-secondary));
-  --workflow-card-divider: color-mix(in srgb, var(--border-default) 30%, var(--bg-code));
+  --workflow-card-text: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-workflow));
+  --workflow-card-heading: color-mix(in srgb, var(--primary-foreground) 92%, var(--color-node-workflow));
+  --workflow-card-muted: color-mix(in srgb, var(--primary-foreground) 54%, var(--muted-foreground));
+  --workflow-card-subtle: color-mix(in srgb, var(--primary-foreground) 40%, var(--muted-foreground));
+  --workflow-card-divider: color-mix(in srgb, var(--border) 30%, var(--muted));
   width: 320px;
-  background: color-mix(in srgb, var(--bg-code) 88%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 88%, var(--background));
   border-radius: 8px;
   border-left: 3px solid var(--color-status-active);
   padding: 0.875rem 1rem;
   color: var(--workflow-card-text);
   font-size: var(--text-caption);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--bg-main) 35%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--background) 35%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -227,7 +228,7 @@ function formatAbsolute(iso: string): string {
 /* ── Progress bar ───────────────────────────────────────────────────────────── */
 .progress-track {
   height: 4px;
-  background: color-mix(in srgb, var(--bg-code) 72%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 72%, var(--background));
   border-radius: 2px;
   overflow: hidden;
 }

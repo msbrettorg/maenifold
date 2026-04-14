@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, ref } from 'vue'
+import WorkflowBrowserFilters from './WorkflowBrowserFilters.vue'
+import WorkflowBrowserList from './WorkflowBrowserList.vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
 import { usePipelineMcp } from '../composables/usePipelineMcp'
 import { usePipelineStore } from '../stores/pipeline'
@@ -156,7 +158,7 @@ async function handleRetry() {
 </script>
 
 <template>
-  <aside class="workflow-browser">
+  <aside class="workflow-browser" role="region" aria-label="Workflow library">
     <input
       ref="importInputRef"
       class="sr-only-input"
@@ -168,93 +170,27 @@ async function handleRetry() {
       <span class="header-title">WORKFLOW BROWSER</span>
     </div>
 
-    <div class="search-wrapper">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
-      <input
-        v-model="searchQuery"
-        type="text"
-        class="search-input"
-        placeholder="Find workflow..."
-      />
-    </div>
+    <WorkflowBrowserFilters
+      :chips="chips"
+      :search-query="searchQuery"
+      :category-filter="categoryFilter"
+      :browser-error="browserError"
+      :import-error="importError"
+      :import-conflict="importConflict"
+      @update:search-query="searchQuery = $event"
+      @update:category-filter="categoryFilter = $event"
+      @retry="handleRetry"
+      @resolve-conflict="handleConflictResolution"
+      @clear-import-state="clearImportState"
+      @dismiss-import-error="importError = null"
+    />
 
-    <div class="chip-row">
-      <button
-        v-for="chip in chips"
-        :key="chip.value"
-        :class="['chip', { 'chip--active': categoryFilter === chip.value }]"
-        type="button"
-        @click="categoryFilter = chip.value"
-      >
-        {{ chip.label }}
-      </button>
-    </div>
-
-    <div v-if="browserError" class="import-feedback import-feedback--error" role="alert">
-      <span class="feedback-text">{{ browserError }}</span>
-      <button class="feedback-btn" type="button" @click="handleRetry">
-        Retry
-      </button>
-    </div>
-
-    <div
-      v-if="importConflict || importError"
-      class="import-feedback"
-      :class="{ 'import-feedback--error': importError }"
-      :role="importError ? 'alert' : 'status'"
-      aria-live="polite"
-    >
-      <template v-if="importConflict">
-        <span class="feedback-text">
-          Workflow ID <code>{{ importConflict.id }}</code> already exists ({{ importConflict.name }}).
-        </span>
-        <button class="feedback-btn" type="button" @click="handleConflictResolution('overwrite')">
-          Overwrite
-        </button>
-        <button class="feedback-btn" type="button" @click="handleConflictResolution('copy')">
-          Import as Copy
-        </button>
-        <button class="feedback-btn" type="button" @click="clearImportState()">
-          Cancel
-        </button>
-      </template>
-      <template v-else-if="importError">
-        <span class="feedback-text">{{ importError }}</span>
-        <button class="feedback-btn" type="button" @click="importError = null">
-          Dismiss
-        </button>
-      </template>
-    </div>
-
-    <ul class="workflow-list">
-      <li
-        v-for="wf in filteredWorkflows"
-        :key="wf.id"
-        :class="[
-          'workflow-item',
-          {
-            'workflow-item--dirty': wf.id === currentId && isDirty,
-            'workflow-item--selected': wf.id === currentId,
-          },
-        ]"
-        @click="store.requestSelectWorkflow(wf.id)"
-      >
-        <span class="workflow-emoji">{{ wf.emoji }}</span>
-        <div class="workflow-info">
-          <span class="workflow-name">{{ wf.name }}</span>
-          <div class="workflow-badges">
-            <span v-if="wf.multiAgent" class="badge-multi-agent">MULTI-AGENT</span>
-          </div>
-        </div>
-      </li>
-
-      <li v-if="filteredWorkflows.length === 0" class="empty-state">
-        No workflows found
-      </li>
-    </ul>
+    <WorkflowBrowserList
+      :current-id="currentId"
+      :filtered-workflows="filteredWorkflows"
+      :is-dirty="isDirty"
+      @select="store.requestSelectWorkflow"
+    />
 
     <div class="browser-toolbar">
       <button class="btn-new" type="button" @click="store.createNewWorkflow()">
@@ -275,44 +211,15 @@ async function handleRetry() {
 .sr-only-input {
   display: none;
 }
-.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--bg-panel); display: flex; flex-direction: column; overflow: hidden; }
-.browser-header { min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border-default); display: flex; align-items: center; flex-shrink: 0; }
+.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--card); display: flex; flex-direction: column; overflow: hidden; }
+.browser-header { min-height: 44px; padding: 0 var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: center; flex-shrink: 0; }
 .header-title { display: inline-flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; }
 .header-title::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--color-node-workflow); }
-.header-title::after { content: 'WORKFLOWS'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
-.search-wrapper { position: relative; padding: var(--space-4) var(--space-4) var(--space-3); }
-.search-icon { position: absolute; left: calc(var(--space-4) + var(--space-3)); top: calc(50% + var(--space-1) / 2); transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
-.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--bg-input); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
-.search-input::placeholder { color: var(--text-muted); }
-.search-input:hover:not(:focus) { border-color: color-mix(in srgb, var(--border-default) 130%, transparent); }
-.search-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--border-focus) 20%, transparent); }
-.chip-row { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
-.chip-row::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: var(--surface-container); color: var(--text-secondary); font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.05em; text-transform: uppercase; cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast); }
-.chip:hover { background: var(--bg-surface); color: var(--text-primary); }
-.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 15%, var(--bg-surface)); color: var(--color-node-workflow); border-color: color-mix(in srgb, var(--color-node-workflow) 40%, transparent); }
-.import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--surface-container); }
-.import-feedback--error { border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent); color: var(--color-status-abandoned); }
-.feedback-text { flex: 1 1 100%; font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); color: inherit; word-break: break-word; }
-.feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--border-default); border-radius: var(--radius-sm); background: transparent; color: var(--text-primary); font: var(--weight-display) var(--text-tiny)/1 var(--font-body); cursor: pointer; }
-.feedback-btn:hover { background: var(--bg-surface); }
-.workflow-list { flex: 1; list-style: none; margin: 0; padding: 0 var(--space-3) var(--space-4); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); scrollbar-width: thin; scrollbar-color: var(--surface-container) transparent; }
-.workflow-item { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-default); border-left: 4px solid transparent; border-radius: var(--radius-md); background: var(--surface-container); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast); }
-.workflow-item:hover { background: var(--bg-surface); }
-.workflow-item--selected { background: var(--bg-surface); border-left-color: var(--color-node-workflow); border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border-default)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 18%, transparent); }
-.workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: 50%; background: var(--color-status-active); margin-right: calc(var(--space-1) * -1); }
-.workflow-emoji { font-size: var(--text-body-sm); line-height: 1.25; flex-shrink: 0; }
-.workflow-info { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.workflow-name { font: var(--weight-title) var(--text-caption)/1.4 var(--font-body); color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.workflow-badges { display: flex; gap: var(--space-1); flex-wrap: wrap; }
-.badge-multi-agent { display: inline-flex; align-items: center; padding: 1px var(--space-1); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--bg-panel)); color: var(--color-node-workflow); font: var(--weight-title) var(--text-2xs)/1.5 var(--font-code); letter-spacing: 0.03em; text-transform: uppercase; }
-.empty-state { padding: var(--space-8) var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; color: transparent; font-size: 0; }
-.empty-state::before { content: '⌕'; font-size: var(--text-headline); line-height: 1; color: color-mix(in srgb, var(--text-muted) 70%, transparent); }
-.empty-state::after { content: 'Nothing found\A Try a different search'; white-space: pre-line; font-family: var(--font-body); font-size: var(--text-caption); line-height: 1.6; color: var(--text-muted); }
-.browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border-default); flex-shrink: 0; }
+.header-title::after { content: 'WORKFLOWS'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted-foreground); }
+.browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border); flex-shrink: 0; }
 .btn-new, .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
 .btn-new { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-node-workflow); background: transparent; color: var(--color-node-workflow); font: var(--weight-title) var(--text-caption)/1.2 var(--font-body); }
 .btn-new:hover { background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
-.btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--border-default); background: transparent; color: var(--text-secondary); }
-.btn-import:hover { background: var(--surface-container); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--border-default)); color: var(--text-primary); }
+.btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); }
+.btn-import:hover { background: var(--card); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--border)); color: var(--foreground); }
 </style>

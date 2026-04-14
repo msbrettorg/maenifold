@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
-import type {
-  ModelInfo,
-  SessionConfigSelectGroup,
-  SessionConfigSelectOption,
-  SessionConfigSelectOptions,
-  SessionMode,
-} from '../lib/types';
+import type { ModelInfo, SessionConfigSelectOptions, SessionMode } from '../lib/types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
-
-const EMPTY_VALUE = '__preview-empty__';
+import AgentProbePreviewCapabilities from './AgentProbePreviewCapabilities.vue';
+import AgentProbePreviewStatus from './AgentProbePreviewStatus.vue';
 
 interface PreviewField {
   key: string;
@@ -34,19 +28,10 @@ const props = withDefaults(
     compact: false,
   },
 );
+
 const capabilitiesStore = useAgentCapabilitiesStore();
 
-function isGroup(
-  option: SessionConfigSelectOption | SessionConfigSelectGroup,
-): option is SessionConfigSelectGroup {
-  return 'group' in option;
-}
-
-function flattenOptions(options: SessionConfigSelectOptions): SessionConfigSelectOption[] {
-  return options.flatMap((entry) => (isGroup(entry) ? entry.options : [entry]));
-}
-
-function toModeOptions(options: SessionMode[]): SessionConfigSelectOption[] {
+function toModeOptions(options: SessionMode[]) {
   return options.map((option) => ({
     value: option.id,
     name: option.name,
@@ -55,7 +40,7 @@ function toModeOptions(options: SessionMode[]): SessionConfigSelectOption[] {
   }));
 }
 
-function toModelOptions(options: ModelInfo[]): SessionConfigSelectOption[] {
+function toModelOptions(options: ModelInfo[]) {
   return options.map((option) => ({
     value: option.modelId,
     name: option.name,
@@ -80,7 +65,7 @@ function toPreviewField(
 
 const ready = computed(() => props.probe?.state === 'ready');
 const refreshing = computed(() => props.probe?.refreshing === true);
-const degradedMessage = computed(() => props.probe?.degradedMessage);
+const degradedMessage = computed(() => props.probe?.degradedMessage ?? null);
 const warningMessage = computed(() =>
   degradedMessage.value ? null : capabilitiesStore.warningMessage,
 );
@@ -124,11 +109,9 @@ const previewFields = computed<PreviewField[]>(() => {
   }
 
   for (const option of probe.configOptionList) {
-    if (consumedIds.has(option.id)) {
-      continue;
+    if (!consumedIds.has(option.id)) {
+      fields.push(toPreviewField(option, 'Available after session start'));
     }
-
-    fields.push(toPreviewField(option, 'Available after session start'));
   }
 
   return fields;
@@ -211,7 +194,6 @@ const technicalDetail = computed(() => {
   if (!props.probe || props.probe.state === 'ready') {
     return null;
   }
-
   return props.probe.error ?? null;
 });
 
@@ -222,70 +204,29 @@ const refreshDisabled = computed(
 async function handleRefresh() {
   await capabilitiesStore.refreshAll();
 }
-
-function optionCount(field: PreviewField): number {
-  return flattenOptions(field.options).length;
-}
-
-function currentLabel(field: PreviewField): string {
-  if (!field.currentValue) {
-    return field.emptyLabel;
-  }
-
-  const match = flattenOptions(field.options).find((option) => option.value === field.currentValue);
-  return match?.name ?? field.currentValue;
-}
 </script>
 
 <template>
-  <section class="probe-preview" :class="[statusTone, { compact }]">
-    <div class="preview-header">
-      <div class="status-copy">
-        <span class="status-pill">{{ statusLabel }}</span>
-        <span class="status-message">{{ statusMessage }}</span>
-      </div>
-      <button type="button" class="refresh-btn" :disabled="refreshDisabled" @click="handleRefresh">
-        {{ refreshing ? 'Refreshing…' : 'Refresh' }}
-      </button>
-    </div>
-
-    <p v-if="warningMessage" class="warning-note" role="status" aria-live="polite">{{ warningMessage }}</p>
-    <p v-if="degradedMessage" class="degraded-note">{{ degradedMessage }}</p>
-    <p v-if="technicalDetail" class="technical-detail">{{ technicalDetail }}</p>
-
-    <div v-if="ready && currentDefaults.length" class="default-summary">
-      {{ currentDefaults.join(' · ') }}
-    </div>
-
-    <div v-if="ready && previewFields.length" class="field-grid">
-      <div v-for="field in previewFields" :key="field.key" class="field-card">
-        <div class="field-heading">
-          <span class="field-label">{{ field.label }}</span>
-          <span class="option-count">{{ optionCount(field) }} options</span>
-        </div>
-
-        <select class="preview-select" :value="field.currentValue ?? EMPTY_VALUE" disabled>
-          <option v-if="!field.currentValue" :value="EMPTY_VALUE">{{ field.emptyLabel }}</option>
-          <template v-for="entry in field.options" :key="isGroup(entry) ? entry.group : entry.value">
-            <optgroup v-if="isGroup(entry)" :label="entry.name">
-              <option
-                v-for="groupOption in entry.options"
-                :key="groupOption.value"
-                :value="groupOption.value"
-              >
-                {{ groupOption.name }}
-              </option>
-            </optgroup>
-            <option v-else :value="entry.value">
-              {{ entry.name }}
-            </option>
-          </template>
-        </select>
-
-        <div class="field-current" :title="currentLabel(field)">{{ currentLabel(field) }}</div>
-        <p v-if="field.description" class="field-description">{{ field.description }}</p>
-      </div>
-    </div>
+  <section class="probe-preview" :class="{ compact }">
+    <AgentProbePreviewStatus
+      :compact="compact"
+      :current-defaults="currentDefaults"
+      :degraded-message="degradedMessage"
+      :ready="ready"
+      :refresh-disabled="refreshDisabled"
+      :refreshing="refreshing"
+      :status-label="statusLabel"
+      :status-message="statusMessage"
+      :status-tone="statusTone"
+      :technical-detail="technicalDetail"
+      :warning-message="warningMessage"
+      @refresh="handleRefresh"
+    />
+    <AgentProbePreviewCapabilities
+      v-if="ready && previewFields.length"
+      :compact="compact"
+      :fields="previewFields"
+    />
   </section>
 </template>
 
@@ -294,198 +235,12 @@ function currentLabel(field: PreviewField): string {
   display: grid;
   gap: 0.65rem;
   padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   border-radius: 10px;
-  background: color-mix(in srgb, var(--bg-main) 88%, transparent);
+  background: color-mix(in srgb, var(--background) 88%, transparent);
 }
 
 .probe-preview.compact {
   padding: 0.65rem;
-}
-
-.preview-header {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.65rem;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.status-copy {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  align-items: center;
-}
-
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 5.5rem;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  font-size: var(--text-tiny);
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.status-message,
-.default-summary,
-.field-current,
-.field-description,
-.option-count,
-.warning-note,
-.degraded-note,
-.technical-detail {
-  font-size: var(--text-caption);
-}
-
-.status-message,
-.field-description,
-.option-count,
-.technical-detail {
-  color: var(--text-secondary);
-}
-
-.default-summary {
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.warning-note,
-.degraded-note {
-  margin: 0;
-  color: var(--text-primary);
-}
-
-.warning-note {
-  padding: 0.55rem 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--bg-warning) 55%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-warning) 30%, transparent);
-}
-
-.technical-detail {
-  margin: 0;
-  word-break: break-word;
-}
-
-.refresh-btn {
-  border: 1px solid color-mix(in srgb, var(--border-default) 70%, transparent);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  padding: 0.25rem 0.65rem;
-  white-space: nowrap;
-}
-
-.refresh-btn:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.65rem;
-}
-
-.field-card {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 0.65rem;
-  border: 1px solid color-mix(in srgb, var(--border-default) 75%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--bg-panel) 72%, transparent);
-}
-
-.field-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-}
-
-.field-label {
-  font-size: var(--text-caption);
-}
-
-.probe-preview.compact .field-label,
-.probe-preview.compact .option-count {
-  font-size: var(--text-tiny);
-}
-
-.preview-select {
-  width: 100%;
-  padding: 0.45rem 0.55rem;
-  border: 1px solid color-mix(in srgb, var(--border-default) 70%, transparent);
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--bg-input) 92%, transparent);
-  color: var(--text-primary);
-  font-size: var(--text-caption);
-  opacity: 0.75;
-}
-
-.field-current {
-  min-width: 0;
-  font-weight: var(--weight-display);
-  color: var(--text-primary);
-  word-break: break-word;
-}
-
-.probe-preview.compact .field-current,
-.probe-preview.compact .default-summary {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.probe-preview.ready .status-pill {
-  background: color-mix(in srgb, var(--border-focus) 45%, transparent);
-  color: var(--border-focus);
-}
-
-.probe-preview.pending .status-pill,
-.probe-preview.idle .status-pill {
-  background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
-  color: var(--text-secondary);
-}
-
-.probe-preview.offline {
-  opacity: 0.85;
-}
-
-.probe-preview.offline .status-pill {
-  background: color-mix(in srgb, var(--bg-warning) 65%, transparent);
-  color: var(--text-primary);
-}
-
-.probe-preview.offline .degraded-note {
-  color: var(--text-primary);
-}
-
-.probe-preview.error .status-pill {
-  background: color-mix(in srgb, var(--border-error) 18%, transparent);
-  color: var(--border-error);
-}
-
-@media (max-width: 640px) {
-  .field-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .field-heading {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.25rem;
-  }
 }
 </style>

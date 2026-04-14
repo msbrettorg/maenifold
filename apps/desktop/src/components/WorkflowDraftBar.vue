@@ -83,8 +83,8 @@ watch(
   align-items: center;
   gap: var(--space-3);
   padding: 0 var(--space-4);
-  background: var(--surface-container);
-  border-top: 1px solid color-mix(in srgb, var(--color-status-active) 30%, var(--border-default));
+  background: var(--card);
+  border-top: 1px solid color-mix(in srgb, var(--color-status-active) 30%, var(--border));
   flex-shrink: 0;
 }
 
@@ -103,7 +103,7 @@ watch(
 
 .draft-bar-message {
   font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .draft-bar-message--error {
@@ -118,9 +118,9 @@ watch(
   min-height: 24px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   background: transparent;
-  color: var(--text-primary);
+  color: var(--foreground);
   font: var(--weight-display) var(--text-tiny)/1 var(--font-body);
   cursor: pointer;
 }
@@ -131,7 +131,7 @@ watch(
 }
 
 .draft-bar-btn--ghost:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .draft-bar-btn--accent {

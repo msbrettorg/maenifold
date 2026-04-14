@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { Handle, Position } from '@vue-flow/core';
+import PipelineNodeCardPorts from './PipelineNodeCardPorts.vue';
+import PipelineNodeCardStatus from './PipelineNodeCardStatus.vue';
 
 import type { NodeStatus, PipelineNode, PipelineStatus } from '../lib/pipeline-types';
 import { normalizeNodeStatusAppearance } from '../lib/pipeline-node-status';
@@ -158,13 +159,12 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
   >
     <div class="accent-bar" />
     <div class="node-content">
-      <div class="node-header">
-        <div class="header-main">
-          <span :class="['status-dot', `status-dot--${statusAppearance}`]" />
-          <span class="node-title">{{ displayLabel }}</span>
-        </div>
-        <span class="type-pill">{{ typeIcon }} {{ typeLabel }}</span>
-      </div>
+      <PipelineNodeCardStatus
+        :display-label="displayLabel"
+        :status-appearance="statusAppearance"
+        :type-icon="typeIcon"
+        :type-label="typeLabel"
+      />
 
       <div v-if="showSubtitle" class="node-subtitle">{{ titleText }}</div>
 
@@ -227,22 +227,21 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
       </template>
     </div>
 
-    <Handle type="target" :position="Position.Left" />
-    <Handle type="source" :position="Position.Right" />
+    <PipelineNodeCardPorts />
   </div>
 </template>
 
 <style scoped>
 .pipeline-node {
   position: relative; display: flex; min-width: 200px; max-width: 280px; max-height: 200px; overflow: hidden;
-  background: var(--surface-container-highest);
+  background: var(--accent);
   border: 1px solid var(--node-status-border, #4b5563);
   border-radius: 8px; overflow: visible;
   transition: border-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
   font-family: var(--font-body);
 }
 .pipeline-node:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
   transform: translateY(-1px);
 }
 .pipeline-node.is-active {
@@ -256,38 +255,22 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 .node-status-cancelled { --node-status-border: #6b7280; border-style: dashed; }
 .accent-bar { width: 4px; flex-shrink: 0; background: var(--node-accent); border-radius: 8px 0 0 8px; }
 .node-content { flex: 1; min-width: 0; }
-.node-header {
-  display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px 6px;
-  background: color-mix(in srgb, var(--node-accent) 6%, transparent);
-}
-.header-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .node-title,.type-pill,.node-subtitle,.meta-pill,.preview { overflow: hidden; text-overflow: ellipsis; }
-.status-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
-.node-title { font-size: var(--text-sm); font-weight: var(--weight-title); color: var(--text-primary); white-space: nowrap; font-family: var(--font-code); }
 .type-pill,.meta-pill {
   display: inline-flex; align-items: center; min-height: 18px; padding: 2px 6px; border-radius: 999px;
   font-size: var(--text-xs); line-height: 1.1; white-space: nowrap;
 }
-.type-pill {
-  flex-shrink: 0; color: var(--node-accent);
-  background: color-mix(in srgb, var(--node-accent) 10%, transparent);
-}
 .node-subtitle,.meta-row,.preview { padding-inline: 12px; }
-.node-subtitle { margin: 8px 0 6px; font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; }
+.node-subtitle { margin: 8px 0 6px; font-size: var(--text-sm); color: var(--muted-foreground); white-space: nowrap; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
-.meta-pill { max-width: 100%; color: var(--text-primary); background: color-mix(in srgb, var(--node-accent) 8%, transparent); }
-.meta-pill-status { color: var(--text-on-accent); }
+.meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, transparent); }
+.meta-pill-status { color: var(--primary-foreground); }
 .preview {
-  margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--text-secondary);
+  margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--muted-foreground);
   white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 4%, transparent); border-radius: 6px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .preview-code { font-family: var(--font-code); }
-.pipeline-node :deep(.vue-flow__handle) {
-  width: 12px; height: 12px; border: 2px solid var(--bg-main); background: var(--node-accent);
-}
-.pipeline-node :deep(.vue-flow__handle-left) { left: -5px; }
-.pipeline-node :deep(.vue-flow__handle-right) { right: -5px; }
 :deep(.vue-flow__node.pipeline-node-shell--active) {
   animation: pipeline-node-shell-pulse 2s ease-in-out infinite;
 }

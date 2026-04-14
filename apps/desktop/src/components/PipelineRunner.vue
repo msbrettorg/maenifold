@@ -105,17 +105,17 @@ function formatLogEntry(entry: LogEntry) {
   display: flex;
   flex-direction: column;
   min-height: 260px;
-  border-top: 1px solid var(--border-default);
-  background: var(--bg-main);
+  border-top: 1px solid var(--border);
+  background: var(--background);
 }
 .runner-panel--collapsed {
   min-height: 0;
 }
 .status-line {
   padding: 0.75rem 1rem;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-base);
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
 }
 .tab-panel {
   flex: 1;
@@ -124,7 +124,7 @@ function formatLogEntry(entry: LogEntry) {
   overflow: auto;
 }
 .log-panel {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 .log-lines {
   margin: 0;
@@ -132,9 +132,9 @@ function formatLogEntry(entry: LogEntry) {
   word-break: break-word;
   font-family: var(--font-code);
   font-size: var(--text-sm);
-  color: var(--text-primary);
+  color: var(--foreground);
 }
 .empty-state {
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 </style>

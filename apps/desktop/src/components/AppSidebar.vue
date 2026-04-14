@@ -40,7 +40,13 @@ const resize = useResizeHandle({
 
 <template>
   <!-- Sidebar panel -->
-  <aside v-if="visible" class="sidebar" :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }">
+  <aside
+    v-if="visible"
+    class="sidebar"
+    role="navigation"
+    aria-label="Main navigation"
+    :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }"
+  >
     <div class="sidebar-header">
       <h1>maenifold</h1>
       <div class="header-actions">

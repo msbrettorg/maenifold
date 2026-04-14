@@ -1,4 +1,4 @@
-/* Design tokens for pipeline-ui. */
+/* Design tokens for pipeline-ui. Legacy aliases remain only for unmigrated consumers. */
 
 :root {
   color-scheme: dark;
@@ -27,7 +27,7 @@
   /* Compatibility: existing components already use --text-code as a color token. */
   --text-code-size: 0.75rem;
 
-  /* The Obsidian Architect — colors */
+  /* Legacy color source tokens. Keep until remaining Vue/CSS consumers migrate. */
   --surface: #131313;
   --surface-container: #201f1f;
   --surface-high: #2a2a2a;
@@ -36,13 +36,14 @@
   --accent-workflow: #4d8eff;
   --accent-thinking: #d0bcff;
   --accent-tool: #4edea3;
+  --accent-destructive: #ef5350;
 
   /* Legacy font aliases */
   --font-headline: var(--font-display);
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);
 
-  /* Legacy accent aliases */
+  /* App-specific node accents */
   --color-node-prompt: var(--accent-prompt);
   --color-node-workflow: var(--accent-workflow);
   --color-node-thinking: var(--accent-thinking);
@@ -57,7 +58,7 @@
   --color-status-ready: #03a9f4;
   --color-status-error: #f2b8b5;
 
-  /* Legacy surface aliases */
+  /* Temporary legacy compatibility aliases */
   --bg-main: var(--surface);
   --bg-panel: var(--surface-container);
   --bg-surface: var(--surface-high);
@@ -70,7 +71,7 @@
   --surface-variant: var(--surface-highest);
   --outline-variant: #424754;
 
-  /* Text colors */
+  /* Temporary legacy text aliases */
   --text-primary: #e0e0e0;
   --text-secondary: #c2c6d6;
   --text-muted: #707070;
@@ -78,7 +79,7 @@
   --text-code: #abb2bf;
   --text-on-accent: #ffffff;
 
-  /* Border colors */
+  /* Temporary legacy border aliases */
   --border-default: #404040;
   --border-focus: #4da6ff;
   --border-error: #ef5350;
@@ -128,9 +129,60 @@
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
-  color: var(--text-primary, #e0e0e0);
+  color: var(--foreground, #e0e0e0);
   -webkit-font-smoothing: antialiased;
-  background-color: var(--surface);
+  background-color: var(--background);
+}
+
+/* ── shadcn/ui CSS variable schema (Obsidian Architect → HSL) ──
+ *
+ * Canonical mapping from legacy palette tokens to shadcn variables.
+ * Dark-first: :root carries dark values; .dark class mirrors them.
+ *
+ * Mapping key (legacy → shadcn):
+ *   --surface           → --background
+ *   --surface-container  → --card, --popover
+ *   --surface-high       → --muted
+ *   --surface-highest    → --secondary, --input
+ *   --accent-prompt      → --primary
+ *   --accent-thinking    → --accent
+ *   --accent-destructive → --destructive
+ *   --text-primary       → --foreground, --card-foreground, etc.
+ *   --text-secondary     → --muted-foreground
+ *   --border-default     → --border
+ *   --border-focus       → --ring
+ */
+
+:root,
+.dark {
+  --background: hsl(0 0% 7.5%);
+  --foreground: hsl(0 0% 87.8%);
+
+  --card: hsl(0 1.6% 12.4%);
+  --card-foreground: hsl(0 0% 87.8%);
+
+  --popover: hsl(0 1.6% 12.4%);
+  --popover-foreground: hsl(0 0% 87.8%);
+
+  --primary: hsl(222 100% 83.9%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  --secondary: hsl(60 1% 20.6%);
+  --secondary-foreground: hsl(0 0% 87.8%);
+
+  --muted: hsl(0 0% 16.5%);
+  --muted-foreground: hsl(228 19.6% 80%);
+
+  --accent: hsl(258 100% 86.9%);
+  --accent-foreground: hsl(0 0% 87.8%);
+
+  --destructive: hsl(1 83.2% 62.5%);
+
+  --border: hsl(0 0% 25.1%);
+  --input: hsl(60 1% 20.6%);
+  --ring: hsl(210 100% 65.1%);
+
+  --radius: 0.5rem;
 }
 
 html.font-compact {
@@ -148,21 +200,21 @@ html.font-comfortable {
 /* ── VueFlow dark theme (class-level overrides) ── */
 
 .vue-flow__edge-textbg {
-  fill: var(--bg-panel);
+  fill: var(--card);
 }
 
 .vue-flow__edge.selected .vue-flow__edge-path,
 .vue-flow__edge:focus .vue-flow__edge-path,
 .vue-flow__edge:focus-visible .vue-flow__edge-path {
-  stroke: var(--border-focus);
+  stroke: var(--ring);
 }
 
 .vue-flow__edge.updating .vue-flow__edge-path {
-  stroke: var(--text-muted);
+  stroke: var(--muted-foreground);
 }
 
 .vue-flow__handle {
-  border-color: var(--bg-main);
+  border-color: var(--background);
 }
 
 .vue-flow__nodesselection-rect,
@@ -176,22 +228,22 @@ html.font-comfortable {
 }
 
 .vue-flow__controls-button {
-  background: var(--bg-panel);
-  border-bottom: 1px solid var(--border-default);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
 }
 
 .vue-flow__controls-button svg {
-  fill: var(--text-secondary);
+  fill: var(--muted-foreground);
 }
 
 .vue-flow__controls-button:hover {
-  background: var(--bg-surface);
+  background: var(--muted);
 }
 
 .vue-flow__controls-button:hover svg {
-  fill: var(--text-primary);
+  fill: var(--foreground);
 }
 
 .vue-flow__minimap {
-  background-color: var(--bg-main);
+  background-color: var(--background);
 }

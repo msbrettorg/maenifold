@@ -168,7 +168,7 @@ function removeManualRow(id: string): void {
 </script>
 
 <template>
-  <section class="mapping-editor">
+  <section class="mapping-editor" role="form" aria-label="Edge mapping">
     <div class="header">
       <h3>Field Mapping</h3>
       <p v-if="isToolTarget">Map source output paths into tool input parameters.</p>
@@ -232,13 +232,13 @@ function removeManualRow(id: string): void {
 </template>
 
 <style scoped>
-.mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-default); }
+.mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
 .header { display: flex; flex-direction: column; gap: 0.25rem; }
 .header h3 { font-size: var(--text-base); font-weight: var(--weight-title); }
-.header p,.status,.empty-copy,.mapping-row small { color: var(--text-secondary); font-size: var(--text-sm); }
+.header p,.status,.empty-copy,.mapping-row small { color: var(--muted-foreground); font-size: var(--text-sm); }
 .mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
+.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
 .manual-row .field-input { flex: 1; }
 @media (max-width: 640px) { .manual-row { flex-direction: column; } }
 </style>

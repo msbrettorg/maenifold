@@ -67,10 +67,33 @@ function getResourceBody(block: ContentBlock): string {
   if (block.type !== 'resource') return '';
   return 'text' in block.resource ? block.resource.text : block.resource.blob;
 }
+
+function getBlockAriaLabel(block: ContentBlock): string {
+  switch (block.type) {
+    case 'text':
+      return 'Text content';
+    case 'image':
+      return 'Image content';
+    case 'audio':
+      return 'Audio content';
+    case 'resource_link':
+      return 'Resource link';
+    case 'resource':
+      return 'Resource content';
+    default:
+      return 'Content block';
+  }
+}
 </script>
 
 <template>
-  <div v-for="(block, index) in blocks" :key="`${block.type}-${index}`" class="message-content-block">
+  <div
+    v-for="(block, index) in blocks"
+    :key="`${block.type}-${index}`"
+    class="message-content-block"
+    role="region"
+    :aria-label="getBlockAriaLabel(block)"
+  >
     <div v-if="block.type === 'text'" class="message-content" v-html="renderMarkdown(block.text)" />
     <img v-else-if="block.type === 'image'" class="message-image" :src="getImageSrc(block)" :alt="block.uri ?? 'Message image'" />
     <audio v-else-if="block.type === 'audio'" class="message-audio" controls :src="getAudioSrc(block)" />
@@ -131,8 +154,8 @@ function getResourceBody(block: ContentBlock): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--bg-code);
-  color: var(--text-code);
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);
@@ -150,22 +173,22 @@ function getResourceBody(block: ContentBlock): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   text-align: left;
 }
 .message-content :deep(th) {
-  background: var(--bg-surface);
+  background: var(--muted);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }
 .message-content :deep(td) { font-size: var(--text-sm); }
-.message-content :deep(tr:nth-child(even)) { background: var(--bg-main); }
-.message-content :deep(tr:hover) { background: var(--bg-surface); }
+.message-content :deep(tr:nth-child(even)) { background: var(--background); }
+.message-content :deep(tr:hover) { background: var(--muted); }
 .message-image {
   display: block;
   max-width: min(100%, 32rem);
   max-height: 24rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 .message-audio { width: min(100%, 28rem); }
@@ -174,10 +197,10 @@ function getResourceBody(block: ContentBlock): string {
   align-items: flex-start;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--border-focus);
+  background: var(--muted);
+  color: var(--ring);
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: var(--weight-display);
@@ -188,7 +211,7 @@ function getResourceBody(block: ContentBlock): string {
 .resource-link-chip__meta {
   display: inline-flex;
   gap: 0.375rem;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-xs);
   font-weight: var(--weight-body);
   line-height: 1.1;
@@ -204,18 +227,18 @@ function getResourceBody(block: ContentBlock): string {
 .resource-link-uri {
   max-width: 18rem;
   overflow: hidden;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-overflow: ellipsis;
   font-weight: var(--weight-body);
 }
 .resource-block { display: flex; flex-direction: column; gap: 0.5rem; }
-.resource-label { color: var(--text-muted); font-size: var(--text-sm); word-break: break-all; }
+.resource-label { color: var(--muted-foreground); font-size: var(--text-sm); word-break: break-all; }
 .resource-content {
   margin: 0;
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--bg-code);
-  color: var(--text-code);
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 </style>

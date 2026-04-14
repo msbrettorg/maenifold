@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
@@ -7,7 +8,14 @@ type DiffLine = {
   text: string;
 };
 
-defineProps<{ toolCall: ToolCallInfo }>();
+defineProps<{
+  id?: string;
+  toolCall: ToolCallInfo;
+  expanded: boolean;
+}>();
+
+const rawInputExpanded = ref(false);
+const rawOutputExpanded = ref(false);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -90,7 +98,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 </script>
 
 <template>
-  <div class="tool-call-details">
+  <div :id="id" class="tool-call-details" role="region" :aria-expanded="expanded">
     <div v-if="toolCall.content?.length" class="tool-call-content-list">
       <div v-for="(block, blockIndex) in toolCall.content" :key="`${toolCall.toolCallId}-content-${blockIndex}`" class="tool-content-block">
         <ChatContentBlocks v-if="isContentToolCallContentBlock(block)" :blocks="[block.content]" />
@@ -116,12 +124,22 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
       </div>
     </div>
 
-    <details v-if="toolCall.rawInput" class="tool-call-payload">
+    <details
+      v-if="toolCall.rawInput"
+      class="tool-call-payload"
+      :aria-expanded="rawInputExpanded"
+      @toggle="rawInputExpanded = ($event.currentTarget as HTMLDetailsElement).open"
+    >
       <summary>Raw input</summary>
       <pre><code>{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
     </details>
 
-    <details v-if="toolCall.rawOutput" class="tool-call-payload">
+    <details
+      v-if="toolCall.rawOutput"
+      class="tool-call-payload"
+      :aria-expanded="rawOutputExpanded"
+      @toggle="rawOutputExpanded = ($event.currentTarget as HTMLDetailsElement).open"
+    >
       <summary>Raw output</summary>
       <pre><code>{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
     </details>
@@ -133,13 +151,13 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 .tool-call-content-list { display: flex; flex-direction: column; gap: 0.625rem; }
 .tool-content-block {
   padding: 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--text-secondary) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent);
   border-radius: 6px;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 .tool-content-label {
   margin-bottom: 0.375rem;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   font-size: var(--text-xs);
   font-weight: var(--weight-title);
 }
@@ -151,25 +169,25 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   padding: 0.75rem;
   overflow-x: auto;
   border-radius: 6px;
-  background: var(--bg-code);
-  color: var(--text-code);
+  background: var(--muted);
+  color: var(--muted-foreground);
 }
 .tool-content-unknown code,
 .tool-diff-pre code,
 .tool-terminal-output code,
 .tool-call-payload code { font-family: var(--font-mono); font-size: var(--text-sm); }
 .tool-diff-line { display: block; white-space: pre; }
-.diff-line-header { color: color-mix(in srgb, var(--text-on-accent) 72%, var(--color-status-active)); }
+.diff-line-header { color: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-status-active)); }
 .diff-line-context { color: inherit; }
-.diff-line-add { color: color-mix(in srgb, var(--text-on-accent) 68%, var(--color-status-completed)); }
-.diff-line-remove { color: color-mix(in srgb, var(--text-on-accent) 68%, var(--text-error)); }
+.diff-line-add { color: color-mix(in srgb, var(--primary-foreground) 68%, var(--color-status-completed)); }
+.diff-line-remove { color: color-mix(in srgb, var(--primary-foreground) 68%, var(--destructive)); }
 .tool-terminal-placeholder,
-.tool-terminal-meta { margin: 0; color: var(--text-secondary); }
+.tool-terminal-meta { margin: 0; color: var(--muted-foreground); }
 .tool-terminal-status { font-weight: var(--weight-display); }
 .tool-call-payload {
-  border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted-foreground) 35%, transparent);
   border-radius: 6px;
-  background: var(--bg-panel);
+  background: var(--card);
 }
 .tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: var(--weight-title); cursor: pointer; }
 .tool-call-payload pre { margin: 0 0.75rem 0.75rem; }

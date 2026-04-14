@@ -106,7 +106,7 @@ function handleClose(): void {}
 
       <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
 
-      <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" @keydown="handleKeyDown" />
+      <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
     </div>
 
     <button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="emit('send')">Send</button>
@@ -120,28 +120,28 @@ function handleClose(): void {}
   align-items: flex-end;
   gap: 0.5rem;
   padding: 1rem;
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--border);
 }
 .composer { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
 .composer-control-wrapper { display: inline-flex; }
 .attachment-btn {
   padding: 0.35rem 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
   font-size: var(--text-sm);
   cursor: pointer;
 }
 .attachment-btn:disabled,
 .send-btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.embedded-context-hint { color: var(--text-muted); font-size: var(--text-sm); }
+.embedded-context-hint { color: var(--muted-foreground); font-size: var(--text-sm); }
 .embedded-context-hint[aria-disabled='true'] { opacity: 0.7; }
-.attachment-error { color: var(--text-error); font-size: var(--text-sm); }
+.attachment-error { color: var(--destructive); font-size: var(--text-sm); }
 textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 6px;
   resize: none;
   font: inherit;
@@ -150,19 +150,19 @@ textarea {
 }
 textarea:focus {
   outline: none;
-  border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--border-focus) 20%, transparent);
+  border-color: var(--ring);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 20%, transparent);
 }
 .send-btn {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 6px;
-  background: var(--border-focus);
-  color: var(--text-on-accent);
+  background: var(--ring);
+  color: var(--primary-foreground);
   font-size: var(--text-base);
   font-weight: var(--weight-display);
   cursor: pointer;
   transition: background 0.15s;
 }
-.send-btn:hover:not(:disabled) { background: var(--border-focus); }
+.send-btn:hover:not(:disabled) { background: var(--ring); }
 </style>

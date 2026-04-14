@@ -8,6 +8,8 @@ defineProps<{
   expanded: boolean;
 }>();
 
+const stepTitleId = `step-title-${Math.random().toString(36).slice(2, 10)}`
+
 const emit = defineEmits<{
   toggle: [];
 }>();
@@ -57,6 +59,8 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 <template>
   <li
     class="step-row"
+    role="article"
+    :aria-labelledby="stepTitleId"
     :class="{ 'has-response': !!step.response, 'has-submachine': step.requiresSequentialThinking }"
   >
     <!-- Main step row -->
@@ -69,7 +73,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
       <span :class="['step-icon', stepStatusClass(step.status)]">
         {{ stepStatusIcon(step.status) }}
       </span>
-      <span class="step-name">{{ step.name }}</span>
+      <span :id="stepTitleId" class="step-name">{{ step.name }}</span>
       <span v-if="step.requiresSequentialThinking" class="submachine-badge" title="Sequential thinking">🧠</span>
       <span v-if="step.respondedAt" class="step-time">{{ relativeTime(step.respondedAt) }}</span>
       <span v-if="step.response" class="expand-chevron">{{ expanded ? '▲' : '▼' }}</span>
@@ -93,12 +97,12 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 <style scoped>
 /* ── Step row ───────────────────────────────────────────────────────────────── */
 .step-row {
-  --workflow-step-primary: color-mix(in srgb, var(--text-on-accent) 84%, var(--color-node-workflow));
-  --workflow-step-muted: color-mix(in srgb, var(--text-on-accent) 58%, var(--text-secondary));
-  --workflow-step-subtle: color-mix(in srgb, var(--text-on-accent) 40%, var(--text-secondary));
-  --workflow-step-link: color-mix(in srgb, var(--text-on-accent) 72%, var(--color-status-active));
-  --workflow-step-response: color-mix(in srgb, var(--text-on-accent) 74%, var(--color-node-workflow));
-  --workflow-step-border: color-mix(in srgb, var(--border-default) 32%, var(--bg-code));
+  --workflow-step-primary: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-workflow));
+  --workflow-step-muted: color-mix(in srgb, var(--primary-foreground) 58%, var(--muted-foreground));
+  --workflow-step-subtle: color-mix(in srgb, var(--primary-foreground) 40%, var(--muted-foreground));
+  --workflow-step-link: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-status-active));
+  --workflow-step-response: color-mix(in srgb, var(--primary-foreground) 74%, var(--color-node-workflow));
+  --workflow-step-border: color-mix(in srgb, var(--border) 32%, var(--muted));
   display: flex;
   flex-direction: column;
   border-radius: 4px;
@@ -119,7 +123,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-main.clickable:hover {
-  background: color-mix(in srgb, var(--bg-code) 80%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 80%, var(--background));
 }
 
 .step-num {
@@ -194,7 +198,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 .step-response {
   padding: 0.5rem 0.75rem;
   margin: 0.25rem 0 0.375rem 2.25rem;
-  background: color-mix(in srgb, var(--bg-code) 94%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 94%, var(--background));
   border-radius: 4px;
   font-size: var(--text-caption);
   color: var(--workflow-step-response);
@@ -217,14 +221,14 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 .step-response :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  background: color-mix(in srgb, var(--bg-code) 88%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 88%, var(--background));
   padding: 0.1em 0.3em;
   border-radius: 3px;
   color: var(--workflow-step-link);
 }
 
 .step-response :deep(pre) {
-  background: color-mix(in srgb, var(--bg-code) 98%, var(--bg-main));
+  background: color-mix(in srgb, var(--muted) 98%, var(--background));
   border-radius: 4px;
   padding: 0.5rem;
   overflow-x: auto;
@@ -252,12 +256,12 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-response :deep(th) {
-  background: var(--bg-surface);
+  background: var(--muted);
   font-weight: var(--weight-title);
 }
 
 .step-response :deep(tr:nth-child(even)) {
-  background: var(--bg-panel);
+  background: var(--card);
 }
 
 .step-response :deep(ul),
@@ -273,7 +277,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 /* ── WikiLink pills ────────────────────────────────────────────────────────── */
 .step-response :deep(.wiki-pill) {
   display: inline-block;
-  background: color-mix(in srgb, var(--border-focus) 18%, var(--bg-code));
+  background: color-mix(in srgb, var(--ring) 18%, var(--muted));
   color: var(--workflow-step-link);
   border-radius: 3px;
   padding: 0.05em 0.4em;

@@ -194,7 +194,13 @@ const {
       <div v-if="selectedToolHealth === 'auth_required' && selectedToolAuthAction" class="tool-palette__setup-callout"><p>Complete auth setup before adding this tool.</p><button type="button" class="btn btn-primary" @click="submitSelectedTool">{{ selectedToolAuthAction.label }}</button></div>
       <template v-else>
         <div class="tool-palette__required"><span>Required args</span><div class="tool-palette__required-tags"><span v-for="requiredName in requiredArgNames" :key="requiredName" class="tool-palette__required-tag">{{ requiredName }}</span><span v-if="requiredArgNames.length === 0" class="tool-palette__required-empty">No required args</span></div></div>
-        <SchemaForm :schema="selectedToolSchema" :data="toolArgs" @change="onToolArgsChange" @validation="onToolArgsValidation" />
+        <SchemaForm
+          :schema="selectedToolSchema"
+          :data="toolArgs"
+          :ariaLabel="`${selectedDiscoveryTool?.displayName ?? toolName.split('.').pop() ?? 'Tool'} arguments`"
+          @change="onToolArgsChange"
+          @validation="onToolArgsValidation"
+        />
         <div v-if="canSubmit" class="tool-palette__detail-footer"><button type="button" class="btn btn-primary" @click="submitSelectedTool">Add Tool</button></div>
       </template>
     </section>
@@ -207,35 +213,35 @@ const {
 .tool-palette,.tool-agent-panel,.tool-agent-grid,.tool-palette__detail,.tool-palette__setup-callout,.tool-palette__quick-add,.tool-palette__quick-add-list { display: grid; gap: 0.75rem; }
 .tool-palette__hint { margin: 0; font-size: var(--text-xs); }
 .tool-palette__hint--warning { color: var(--color-status-active); }
-.tool-agent-panel,.tool-palette__detail,.tool-palette__setup-callout { padding: 0.8rem; border: 1px solid var(--border-default); border-radius: 0.85rem; background: color-mix(in srgb, var(--bg-panel) 72%, transparent); }
+.tool-agent-panel,.tool-palette__detail,.tool-palette__setup-callout { padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.85rem; background: color-mix(in srgb, var(--card) 72%, transparent); }
 .tool-agent-grid { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .agent-mode-badges,.tool-palette__option-tags,.tool-palette__required-tags,.tool-palette__detail-actions,.tool-palette__option-title { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
 .tool-palette__category { display: grid; gap: 0.45rem; }
-.tool-palette__category + .tool-palette__category { padding-top: 0.55rem; border-top: 1px solid color-mix(in srgb, var(--border-default) 65%, transparent); }
+.tool-palette__category + .tool-palette__category { padding-top: 0.55rem; border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent); }
 .tool-palette__category-header,.tool-palette__quick-add-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; }
-.tool-palette__category-header p,.tool-palette__quick-add-header p { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
-.mode-badge,.tool-palette__tag,.tool-palette__required-tag,.tool-palette__server { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-default); border-radius: 999px; font-size: var(--text-xs); }
-.mode-badge { background: var(--bg-main); color: var(--text-secondary); cursor: pointer; }
-.mode-badge.selected,.tool-palette__option.is-selected { border-color: var(--border-focus); box-shadow: 0 0 0 1px var(--border-focus); }
+.tool-palette__category-header p,.tool-palette__quick-add-header p { color: var(--muted-foreground); font-size: var(--text-sm); margin: 0; }
+.mode-badge,.tool-palette__tag,.tool-palette__required-tag,.tool-palette__server { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; font-size: var(--text-xs); }
+.mode-badge { background: var(--background); color: var(--muted-foreground); cursor: pointer; }
+.mode-badge.selected,.tool-palette__option.is-selected { border-color: var(--ring); box-shadow: 0 0 0 1px var(--ring); }
 .tool-palette__header,.tool-palette__status-row,.tool-palette__detail-head,.tool-palette__detail-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; }
-.tool-palette__header p,.tool-palette__detail-head p,.tool-palette__status,.tool-palette__option-desc,.tool-palette__option-error,.tool-palette__required-empty,.tool-palette__setup-callout p { color: var(--text-secondary); font-size: var(--text-sm); margin: 0; }
+.tool-palette__header p,.tool-palette__detail-head p,.tool-palette__status,.tool-palette__option-desc,.tool-palette__option-error,.tool-palette__required-empty,.tool-palette__setup-callout p { color: var(--muted-foreground); font-size: var(--text-sm); margin: 0; }
 .tool-palette__status--error,.tool-palette__tag--unavailable { color: var(--color-status-abandoned); }
 .tool-palette__listbox { display: grid; gap: 0.45rem; max-height: min(18rem, 38vh); padding: 0.1rem; overflow-y: auto; border-radius: 0.8rem; outline: none; }
-.tool-palette__option { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border-default); border-radius: 0.75rem; background: var(--bg-main); color: var(--text-primary); text-align: left; cursor: pointer; }
-.tool-palette__option:hover { background: color-mix(in srgb, var(--text-primary) 4%, var(--bg-main)); }
-.tool-palette__option:focus-visible,.tool-palette__listbox:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.tool-palette__option { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--background); color: var(--foreground); text-align: left; cursor: pointer; }
+.tool-palette__option:hover { background: color-mix(in srgb, var(--foreground) 4%, var(--background)); }
+.tool-palette__option:focus-visible,.tool-palette__listbox:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
 .tool-palette__option--stale,.tool-palette__option--unavailable { opacity: 0.58; }
 .tool-palette__option--server-state { border-style: dashed; }
 .tool-palette__option-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
 .tool-palette__option-desc { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .tool-palette__option-error { color: var(--color-status-abandoned); }
-.tool-palette__server { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
-.tool-palette__tag { background: color-mix(in srgb, var(--text-primary) 6%, transparent); color: var(--text-secondary); }
-.tool-palette__tag--auth_required { color: var(--color-status-active); border-color: color-mix(in srgb, var(--color-status-active) 35%, var(--border-default)); }
+.tool-palette__server { background: color-mix(in srgb, var(--foreground) 8%, transparent); color: var(--muted-foreground); }
+.tool-palette__tag { background: color-mix(in srgb, var(--foreground) 6%, transparent); color: var(--muted-foreground); }
+.tool-palette__tag--auth_required { color: var(--color-status-active); border-color: color-mix(in srgb, var(--color-status-active) 35%, var(--border)); }
 .tool-palette__required { display: grid; gap: 0.45rem; }
-.tool-palette__required-tag { background: color-mix(in srgb, var(--bg-main) 84%, transparent); }
+.tool-palette__required-tag { background: color-mix(in srgb, var(--background) 84%, transparent); }
 .tool-health-badge { font-size: var(--text-sm); flex-shrink: 0; }
-.health-ready { color: var(--text-primary); }
+.health-ready { color: var(--foreground); }
 .health-auth_required { color: var(--color-status-active); }
 .health-stale { opacity: 0.5; }
 .health-unavailable { color: var(--color-status-abandoned); opacity: 0.5; }

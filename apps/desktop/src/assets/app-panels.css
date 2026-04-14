@@ -1,7 +1,7 @@
 /* Scoped to App.vue via <style scoped> @import. Do not add :root or body rules. */
 .traffic-panel {
   flex-shrink: 0;
-  border-top: 2px solid var(--border-default);
+  border-top: 2px solid var(--border);
 }
 
 .error-banner {
@@ -9,9 +9,9 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1rem;
-  background: var(--bg-error);
-  color: var(--text-error);
-  border-bottom: 1px solid var(--bg-error);
+  background: color-mix(in srgb, var(--destructive) 18%, var(--background));
+  color: var(--destructive);
+  border-bottom: 1px solid color-mix(in srgb, var(--destructive) 24%, transparent);
 }
 
 .error-icon {
@@ -27,7 +27,7 @@
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-error);
+  color: var(--destructive);
   font-size: var(--text-title);
   line-height: 1;
   cursor: pointer;
@@ -37,7 +37,7 @@
 
 .error-close:hover {
   opacity: 1;
-  background: color-mix(in srgb, var(--text-error) 12%, var(--bg-error));
+  background: color-mix(in srgb, var(--destructive) 12%, transparent);
 }
 
 .welcome-screen {
@@ -48,12 +48,12 @@
   justify-content: center;
   text-align: center;
   padding: 2rem;
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .welcome-screen h2 {
   margin-bottom: 0.5rem;
-  color: var(--text-primary);
+  color: var(--foreground);
   font-family: var(--font-display);
   letter-spacing: 0.04em;
 }
@@ -62,13 +62,13 @@
   margin-top: 0.5rem;
   font-size: var(--text-caption);
   font-style: italic;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .welcome-screen .hint {
   margin-top: 1rem;
   font-size: var(--text-caption);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .workflow-panel {
@@ -83,10 +83,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   flex-shrink: 0;
 }
 
@@ -94,7 +94,7 @@
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-title);
   line-height: 1;
   cursor: pointer;
@@ -102,8 +102,8 @@
 }
 
 .workflow-close-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .workflow-panel-body {
@@ -131,10 +131,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   flex-shrink: 0;
 }
 
@@ -142,7 +142,7 @@
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-title);
   line-height: 1;
   cursor: pointer;
@@ -150,8 +150,8 @@
 }
 
 .pipeline-close-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .gate-panel-header {
@@ -159,10 +159,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   flex-shrink: 0;
 }
 
@@ -170,7 +170,7 @@
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-title);
   line-height: 1;
   cursor: pointer;
@@ -178,8 +178,8 @@
 }
 
 .gate-close-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .graph-panel {
@@ -194,10 +194,10 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-default);
+  border-bottom: 1px solid var(--border);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
   flex-shrink: 0;
 }
 
@@ -205,7 +205,7 @@
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-title);
   line-height: 1;
   cursor: pointer;
@@ -213,8 +213,8 @@
 }
 
 .graph-close-btn:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
 }
 
 .view-fade-enter-active,

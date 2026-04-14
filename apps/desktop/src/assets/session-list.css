@@ -6,14 +6,14 @@ h3 {
   margin: 0 0 0.75rem 0;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
 .empty-state {
   padding: 2rem;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   text-align: center;
 }
 
@@ -41,7 +41,7 @@ ul {
 }
 
 .session-item:hover {
-  background: color-mix(in srgb, var(--bg-surface) 60%, transparent);
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
 }
 
 .session-item.unavailable {
@@ -63,6 +63,7 @@ ul {
   overflow: hidden;
   font-size: var(--text-caption);
   font-weight: var(--weight-display);
+  color: var(--foreground);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -86,7 +87,7 @@ ul {
 }
 
 .connection-badge.connected {
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main));
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
   color: var(--color-status-completed);
 }
 
@@ -95,8 +96,8 @@ ul {
 }
 
 .connection-badge.connecting {
-  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--bg-main));
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text-primary));
+  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
+  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground));
 }
 
 .connection-badge.connecting .connection-dot {
@@ -104,8 +105,8 @@ ul {
 }
 
 .connection-badge.unavailable {
-  background: color-mix(in srgb, var(--border-default) 60%, var(--bg-main));
-  color: var(--text-muted);
+  background: color-mix(in srgb, var(--border) 60%, var(--background));
+  color: var(--muted-foreground);
 }
 
 .connection-dot {
@@ -116,7 +117,7 @@ ul {
 .session-agent,
 .session-date {
   font-size: var(--text-tiny);
-  color: var(--text-muted);
+  color: var(--muted-foreground);
 }
 
 .session-badge {
@@ -124,8 +125,8 @@ ul {
   margin-left: 0.375rem;
   padding: 0.0625rem 0.375rem;
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--text-muted);
+  background: var(--muted);
+  color: var(--muted-foreground);
   font-size: var(--text-tiny);
   font-weight: var(--weight-display);
   text-transform: lowercase;
@@ -136,14 +137,14 @@ ul {
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted-foreground);
   font-size: var(--text-title);
   cursor: pointer;
 }
 
 .delete-btn:hover {
-  background: var(--border-error);
-  color: var(--text-error);
+  background: color-mix(in srgb, var(--destructive) 18%, transparent);
+  color: var(--destructive);
 }
 
 @keyframes pulse-dot {

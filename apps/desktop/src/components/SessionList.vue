@@ -114,16 +114,16 @@ async function handleDelete(session: SavedSession, event: Event) {
 <template>
   <div class="session-list">
     <h3>Sessions</h3>
-    
-    <div v-if="sessions.length === 0" class="empty-state">
-      <p>No saved sessions yet.</p>
-      <p class="hint">Create a new session to get started.</p>
-    </div>
-    
-    <ul v-else>
+
+    <ul role="list" aria-label="Sessions">
+      <li v-if="sessions.length === 0" class="empty-state" role="listitem">
+        <p>No saved sessions yet.</p>
+        <p class="hint">Create a new session to get started.</p>
+      </li>
       <li 
         v-for="session in sessions" 
         :key="session.id"
+        role="listitem"
         class="session-item"
         :class="{ unavailable: isResumeUnavailable(session) }"
         @click="handleResume(session)"

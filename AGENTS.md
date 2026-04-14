@@ -196,6 +196,11 @@ Available processes are defined in `/Users/brett/maenifold/assets/gates/`. Use t
 
 **PM override:** The PM may only skip a gate stage with explicit, written authorization from the user (Brett). "Simple additive field" or "waived" are not valid reasons to skip red-team or blue-team. If the user grants a waiver, record it as: `stage waived per user authorization at <timestamp>`.
 
+### Sub-PM Contention Rules (learned the hard way)
+
+- **Sub-PMs must not own red-team/blue-team stages.** A sub-PM given SWE dispatch + full gate walk authority (red-team, blue-team) for 10 serial tasks will run for 60+ minutes dispatching 30+ nested agents serially without escalating. Sub-PMs dispatch SWEs and gate-pass SWE stage only. PM handles red-team/blue-team dispatch and gate advancement for those stages. Sub-PM scope: dispatch SWE → verify build → gate pass SWE → report back. Nothing more.
+- **Sub-PMs must escalate after 15 minutes.** If a sub-PM has been running for more than 15 minutes without completing its task list, it must stop, report progress, and return control to the PM. Silent 60-minute runs are a process violation.
+
 ### Gate CLI Fallback
 
 - Prefer Gate MCP when healthy, but Gate MCP sessions can go stale. Fall back to CLI with `--root .`.

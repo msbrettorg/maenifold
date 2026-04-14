@@ -212,7 +212,7 @@ function handleRewind(): Promise<void | undefined> {
 </script>
 
 <template>
-  <div v-if="actions.length > 0" class="pipeline-action-bar" role="toolbar" aria-label="Pipeline actions">
+  <div v-if="actions.length > 0" class="pipeline-action-bar" role="group" aria-label="Pipeline quick actions">
     <button
       v-for="action in actions"
       :key="action.key"
@@ -235,12 +235,12 @@ function handleRewind(): Promise<void | undefined> {
   gap: 0.5rem;
   margin-left: 0.25rem;
   padding: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--border-default) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
   border-radius: 0.85rem;
-  background: color-mix(in srgb, var(--bg-main) 82%, transparent);
+  background: color-mix(in srgb, var(--background) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--text-primary) 12%, transparent);
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--foreground) 12%, transparent);
 }
 
 .pipeline-action-bar__button {

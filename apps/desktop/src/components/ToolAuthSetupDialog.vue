@@ -1,4 +1,13 @@
 <script setup lang="ts">
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import type { AuthSetupAction } from '../lib/palette-health';
 
 defineProps<{
@@ -15,51 +24,38 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="auth-setup-overlay" @click.self="emit('close')">
-    <div class="auth-setup-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-setup-title">
-      <div class="dialog-header">
-        <span class="dialog-icon">🔑</span>
-        <div>
-          <h3 id="auth-setup-title">{{ action.label }}</h3>
-          <p>{{ action.description }}</p>
+  <Dialog :open="true" @update:open="(open) => !open && emit('close')">
+    <DialogContent class="auth-setup-dialog sm:max-w-lg" :show-close-button="false">
+      <DialogHeader class="dialog-header">
+        <span class="dialog-icon" aria-hidden="true">🔑</span>
+        <div class="dialog-copy">
+          <DialogTitle>{{ action.label }}</DialogTitle>
+          <DialogDescription>{{ action.description }}</DialogDescription>
         </div>
-      </div>
+      </DialogHeader>
 
       <p class="dialog-body">
         {{ server }} needs setup before this tool can be used from the palette.
       </p>
       <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
 
-      <div class="dialog-actions">
-        <button type="button" class="btn btn-ghost" :disabled="busy" @click="emit('close')">Cancel</button>
+      <DialogFooter class="dialog-actions">
+        <DialogClose as-child>
+          <button type="button" class="btn btn-ghost" :disabled="busy">Cancel</button>
+        </DialogClose>
         <button type="button" class="btn btn-primary" :disabled="busy" @click="emit('confirm')">
           {{ busy ? 'Setting up…' : 'Set up' }}
         </button>
-      </div>
-    </div>
-  </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <style scoped>
-.auth-setup-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  background: var(--bg-overlay);
-}
-
 .auth-setup-dialog {
   width: min(28rem, 100%);
   display: grid;
   gap: 1rem;
-  padding: 1rem;
-  border: 1px solid var(--border-default);
-  border-radius: 0.9rem;
-  background: var(--bg-main);
 }
 
 .dialog-header,
@@ -69,23 +65,23 @@ const emit = defineEmits<{
 }
 
 .dialog-header {
+  flex-direction: row;
   align-items: flex-start;
 }
 
-.dialog-actions {
-  justify-content: flex-end;
+.dialog-copy {
+  display: grid;
+  gap: 0.25rem;
+  text-align: left;
 }
 
-.dialog-header h3,
-.dialog-header p,
 .dialog-body,
 .dialog-error {
   margin: 0;
 }
 
-.dialog-header p,
 .dialog-body {
-  color: var(--text-secondary);
+  color: var(--muted-foreground);
 }
 
 .dialog-icon {
@@ -96,5 +92,10 @@ const emit = defineEmits<{
 .dialog-error {
   color: var(--color-status-abandoned);
   font-size: var(--text-caption);
+}
+
+.dialog-actions {
+  flex-direction: row;
+  justify-content: flex-end;
 }
 </style>

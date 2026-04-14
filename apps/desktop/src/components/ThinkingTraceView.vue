@@ -75,13 +75,13 @@ function statusClass(status: string): string {
 <style scoped>
 .trace-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .trace-header, .trace-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.trace-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--text-primary); }
-.trace-count, .trace-revision { color: var(--text-secondary); font-size: var(--text-tiny); }
+.trace-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--foreground); }
+.trace-count, .trace-revision { color: var(--muted-foreground); font-size: var(--text-tiny); }
 .trace-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .trace-card {
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--muted);
   overflow: hidden;
 }
 .trace-summary {
@@ -91,7 +91,7 @@ function statusClass(status: string): string {
 }
 .trace-summary::-webkit-details-marker { display: none; }
 .trace-summary__copy { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.trace-number { font-family: var(--font-code); font-size: var(--text-caption); color: var(--text-primary); }
+.trace-number { font-family: var(--font-code); font-size: var(--text-caption); color: var(--foreground); }
 .trace-status {
   display: inline-flex;
   align-items: center;
@@ -111,35 +111,35 @@ function statusClass(status: string): string {
 }
 .trace-status--active {
   color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 12%, var(--bg-main));
+  background: color-mix(in srgb, var(--color-status-active) 12%, var(--background));
   border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent);
 }
 .trace-status--completed {
   color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--bg-main));
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
   border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent);
 }
 .trace-status--warning {
   color: var(--color-status-stuck);
-  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--bg-main));
+  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
   border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent);
 }
 .trace-status--revision {
-  color: var(--border-focus);
-  background: color-mix(in srgb, var(--border-focus) 12%, var(--bg-main));
-  border-color: color-mix(in srgb, var(--border-focus) 30%, transparent);
+  color: var(--ring);
+  background: color-mix(in srgb, var(--ring) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--ring) 30%, transparent);
 }
 .trace-status--pending {
   color: var(--color-status-pending);
-  background: color-mix(in srgb, var(--color-status-pending) 12%, var(--bg-main));
+  background: color-mix(in srgb, var(--color-status-pending) 12%, var(--background));
   border-color: color-mix(in srgb, var(--color-status-pending) 30%, transparent);
 }
 .trace-body {
   padding: 0 var(--space-3) var(--space-3);
-  border-top: 1px solid var(--border-default);
+  border-top: 1px solid var(--border);
 }
 .trace-content {
-  color: var(--text-primary);
+  color: var(--foreground);
   font-size: var(--text-caption);
   line-height: 1.6;
   overflow-wrap: anywhere;
@@ -149,14 +149,14 @@ function statusClass(status: string): string {
 .trace-content :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  background: var(--bg-main);
+  background: var(--background);
   border-radius: var(--radius-sm);
   padding: 0.1rem 0.3rem;
 }
 .trace-content :deep(pre) {
   margin: var(--space-2) 0 0;
   padding: var(--space-2);
-  background: var(--bg-main);
+  background: var(--background);
   border-radius: var(--radius-sm);
   overflow-x: auto;
 }

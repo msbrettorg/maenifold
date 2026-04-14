@@ -135,7 +135,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
       multiple
       @change="handleSelection($event, 'audio')"
     />
-    <div class="ab-toolbar">
+    <div class="ab-toolbar" role="toolbar" aria-label="Attachments">
       <span class="ab-wrap" :title="imageTooltip">
         <button type="button" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
           🖼️ Image
@@ -162,10 +162,10 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 .ab-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ab-wrap { display: inline-flex; }
 .ab-btn {
-  border: 1px solid var(--border-default);
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--bg-surface);
-  color: var(--text-primary);
+  background: var(--muted);
+  color: var(--foreground);
   padding: 0.35rem 0.75rem;
   font-size: var(--text-sm);
   cursor: pointer;
@@ -178,10 +178,10 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
   gap: 0.375rem;
   padding: 0.25rem 0.625rem;
   border-radius: 999px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-default);
+  background: var(--muted);
+  border: 1px solid var(--border);
   font-size: var(--text-sm);
 }
-.ab-remove { border: none; background: transparent; color: var(--text-muted); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }
+.ab-remove { border: none; background: transparent; color: var(--muted-foreground); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }
 .ab-remove:disabled { cursor: not-allowed; }
 </style>

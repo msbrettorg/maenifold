@@ -11,7 +11,7 @@ const emit = defineEmits<{ 'toggle-tool-call': [toolCallId: string] }>();
 </script>
 
 <template>
-  <div class="tool-calls-section">
+  <div class="tool-calls-section" role="region" aria-label="Tool calls">
     <ChatToolCallItem
       v-for="toolCall in toolCalls"
       :key="toolCall.toolCallId"

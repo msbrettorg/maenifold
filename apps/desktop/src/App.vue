@@ -170,5 +170,5 @@ function closeWorkflowPanel() {
   </div>
 </template>
 
-<style>@import './assets/design-tokens.css'; @import './assets/shared-components.css';</style>
+<style>@import './assets/shared-components.css';</style>
 <style scoped>@import './assets/app-layout.css'; @import './assets/app-panels.css';</style>

@@ -1,4 +1,3 @@
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @import "tailwindcss";
@@ -26,18 +25,47 @@
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
 
+  --weight-display: 500;
+  --weight-headline: 300;
+  --weight-title: 600;
+  --weight-body: 400;
+  --weight-body-sm: 400;
+  --weight-caption: 400;
+  --weight-code: 400;
+  --weight-tiny: 400;
+
+  --text-2xs: 0.625rem;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-lg: 0.9375rem;
+  --text-xl: 1.0625rem;
+  --text-2xl: 1.25rem;
+  --text-tiny: 0.6875rem;
   --text-body: 0.875rem;
   --text-body-sm: 0.8125rem;
   --text-caption: 0.75rem;
+  --text-headline: 1.5rem;
   --text-title: 1.125rem;
   --text-display: 3.5rem;
+  --text-code-size: 0.75rem;
 
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
   --spacing-1: 4px;
   --spacing-2: 8px;
   --spacing-3: 12px;
   --spacing-4: 16px;
   --spacing-5: 20px;
   --spacing-6: 24px;
+  --spacing-7: 28px;
   --spacing-8: 32px;
 
   --radius-sm: 4px;
@@ -87,32 +115,79 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-:root,
-.dark {
-  --background: var(--surface);
-  --foreground: var(--text-primary);
-  --card: var(--surface-container);
-  --card-foreground: var(--text-primary);
-  --popover: var(--surface-container);
-  --popover-foreground: var(--text-primary);
-  --primary: var(--accent-workflow);
-  --primary-foreground: var(--text-on-accent);
-  --secondary: var(--surface-high);
-  --secondary-foreground: var(--text-primary);
-  --muted: var(--surface-high);
-  --muted-foreground: var(--text-secondary);
-  --accent: var(--surface-highest);
-  --accent-foreground: var(--text-primary);
-  --destructive: var(--border-error);
-  --border: var(--border-default);
-  --input: var(--surface-highest);
-  --ring: var(--border-focus);
+:root {
+  color-scheme: dark;
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-code: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+
+  --surface: #131313;
+  --surface-container: #201f1f;
+  --surface-high: #2a2a2a;
+  --surface-highest: #353534;
+  --accent-prompt: #adc6ff;
+  --accent-workflow: #4d8eff;
+  --accent-thinking: #d0bcff;
+  --accent-tool: #4edea3;
+  --accent-destructive: #ef5350;
+
+  --font-headline: var(--font-display);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-code);
+
+  --color-node-prompt: var(--accent-prompt);
+  --color-node-workflow: var(--accent-workflow);
+  --color-node-thinking: var(--accent-thinking);
+  --color-node-tool: var(--accent-tool);
+
+  --color-status-pending: #9e9e9e;
+  --color-status-active: #f59e0b;
+  --color-status-completed: #10b981;
+  --color-status-abandoned: #f44336;
+  --color-status-stuck: #ff9800;
+  --color-status-ready: #03a9f4;
+  --color-status-error: #f2b8b5;
+
+  --bg-main: var(--surface);
+  --bg-panel: var(--surface-container);
+  --bg-surface: var(--surface-high);
+  --bg-input: #0e0e0e;
+  --bg-overlay: rgba(0, 0, 0, 0.6);
+  --bg-code: #1e1e1e;
+  --bg-error: #3d1515;
+  --bg-warning: #3d2e00;
+  --surface-container-highest: var(--surface-highest);
+  --surface-variant: var(--surface-highest);
+  --outline-variant: #424754;
+  --text-primary: #e0e0e0;
+  --text-secondary: #c2c6d6;
+  --text-muted: #707070;
+  --text-error: #ff6b6b;
+  --text-code: #abb2bf;
+  --text-on-accent: #ffffff;
+  --border-default: #404040;
+  --border-focus: #4da6ff;
+  --border-error: #ef5350;
+
+  --sidebar-width: 320px;
+  --sidebar-min-width: 200px;
+  --sidebar-max-width: 500px;
+
+  --easing-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  --vf-node-bg: var(--surface-highest);
+  --vf-node-text: var(--text-primary);
+  --vf-connection-path: var(--text-muted);
+  --vf-handle: var(--accent-workflow);
+
   --chart-1: var(--accent-workflow);
   --chart-2: var(--accent-prompt);
   --chart-3: var(--accent-thinking);
   --chart-4: var(--accent-tool);
   --chart-5: var(--text-secondary);
-  --radius: var(--radius-lg);
   --sidebar: var(--surface-container);
   --sidebar-foreground: var(--text-primary);
   --sidebar-primary: var(--accent-workflow);
@@ -121,6 +196,97 @@
   --sidebar-accent-foreground: var(--text-primary);
   --sidebar-border: var(--border-default);
   --sidebar-ring: var(--border-focus);
+
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.5;
+  color: var(--foreground, #e0e0e0);
+  background-color: var(--background);
+  -webkit-font-smoothing: antialiased;
+}
+
+:root,
+.dark {
+  --background: hsl(0 0% 7.5%);
+  --foreground: hsl(0 0% 87.8%);
+  --card: hsl(0 1.6% 12.4%);
+  --card-foreground: hsl(0 0% 87.8%);
+  --popover: hsl(0 1.6% 12.4%);
+  --popover-foreground: hsl(0 0% 87.8%);
+  --primary: hsl(222 100% 83.9%);
+  --primary-foreground: hsl(0 0% 100%);
+  --secondary: hsl(60 1% 20.6%);
+  --secondary-foreground: hsl(0 0% 87.8%);
+  --muted: hsl(0 0% 16.5%);
+  --muted-foreground: hsl(228 19.6% 80%);
+  --accent: hsl(258 100% 86.9%);
+  --accent-foreground: hsl(0 0% 87.8%);
+  --destructive: hsl(1 83.2% 62.5%);
+  --border: hsl(0 0% 25.1%);
+  --input: hsl(60 1% 20.6%);
+  --ring: hsl(210 100% 65.1%);
+  --radius: 0.5rem;
+}
+
+html.font-compact {
+  --text-base: 0.75rem;
+  --text-sm: 0.6875rem;
+  --text-xs: 0.625rem;
+}
+
+html.font-comfortable {
+  --text-base: 0.9375rem;
+  --text-sm: 0.8125rem;
+  --text-xs: 0.75rem;
+}
+
+.vue-flow__edge-textbg {
+  fill: var(--card);
+}
+
+.vue-flow__edge.selected .vue-flow__edge-path,
+.vue-flow__edge:focus .vue-flow__edge-path,
+.vue-flow__edge:focus-visible .vue-flow__edge-path {
+  stroke: var(--ring);
+}
+
+.vue-flow__edge.updating .vue-flow__edge-path {
+  stroke: var(--muted-foreground);
+}
+
+.vue-flow__handle {
+  border-color: var(--background);
+}
+
+.vue-flow__nodesselection-rect,
+.vue-flow__selection {
+  background: rgba(77, 166, 255, 0.08);
+  border: 1px dotted rgba(77, 166, 255, 0.6);
+}
+
+.vue-flow__controls {
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.vue-flow__controls-button {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+
+.vue-flow__controls-button svg {
+  fill: var(--muted-foreground);
+}
+
+.vue-flow__controls-button:hover {
+  background: var(--muted);
+}
+
+.vue-flow__controls-button:hover svg {
+  fill: var(--foreground);
+}
+
+.vue-flow__minimap {
+  background-color: var(--background);
 }
 
 @layer base {
@@ -128,7 +294,6 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
-    @apply font-sans;
+    @apply bg-background text-foreground font-sans;
   }
 }

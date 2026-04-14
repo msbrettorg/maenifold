@@ -217,7 +217,7 @@ const {
 .tool-palette__tag--auth_required { color: var(--color-status-active); border-color: color-mix(in srgb, var(--color-status-active) 35%, var(--border-default)); }
 .tool-palette__required { display: grid; gap: 0.45rem; }
 .tool-palette__required-tag { background: color-mix(in srgb, var(--bg-main) 84%, transparent); }
-.tool-health-badge { font-size: 0.75rem; flex-shrink: 0; }
+.tool-health-badge { font-size: var(--text-sm); flex-shrink: 0; }
 .health-ready { color: var(--text-primary); }
 .health-auth_required { color: var(--color-status-active); }
 .health-stale { opacity: 0.5; }

@@ -526,7 +526,7 @@ async function handleDelete(name: string) {
   height: 2rem;
   padding: 0;
   align-self: end;
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   line-height: 1;
 }
 

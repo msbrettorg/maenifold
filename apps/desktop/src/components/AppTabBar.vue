@@ -57,7 +57,7 @@ function selectTab(tab: string) {
 .app-tab-bar__wordmark {
   color: #f4f4f4;
   font-family: var(--font-headline, 'Space Grotesk', sans-serif);
-  font-size: 0.95rem;
+  font-size: var(--text-md);
   font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: lowercase;

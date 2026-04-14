@@ -351,7 +351,7 @@ function handleTool(toolName: string): void {
   color: rgba(255, 255, 255, 0.82);
   text-align: left;
   font: inherit;
-  font-size: 0.82rem;
+  font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
 }
@@ -362,7 +362,7 @@ function handleTool(toolName: string): void {
 
 .composer-context-menu__chevron {
   display: inline-block;
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   transition: transform 0.15s ease;
 }
 
@@ -383,7 +383,7 @@ function handleTool(toolName: string): void {
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.56);
-  font-size: 0.7rem;
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.3;
 }
@@ -395,7 +395,7 @@ function handleTool(toolName: string): void {
 .composer-context-menu__tool-group-title {
   padding: 0.2rem 0.8rem 0.35rem;
   color: rgba(255, 255, 255, 0.62);
-  font-size: 0.75rem;
+  font-size: var(--text-sm);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;

@@ -86,7 +86,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   background: transparent;
   color: inherit;
   cursor: pointer;
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
   line-height: 1;
   padding: 0;
 }

@@ -89,7 +89,7 @@ const emit = defineEmits<{
 }
 
 .dialog-icon {
-  font-size: 1.2rem;
+  font-size: var(--text-xl);
   line-height: 1;
 }
 

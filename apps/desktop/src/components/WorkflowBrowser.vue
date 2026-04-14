@@ -307,7 +307,7 @@ async function handleRetry() {
 .workflow-badges { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 .badge-multi-agent { display: inline-flex; align-items: center; padding: 1px var(--space-1); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--bg-panel)); color: var(--color-node-workflow); font: 600 10px/1.5 var(--font-mono); letter-spacing: 0.03em; text-transform: uppercase; }
 .empty-state { padding: var(--space-8) var(--space-4); display: flex; flex-direction: column; align-items: center; gap: var(--space-2); text-align: center; color: transparent; font-size: 0; }
-.empty-state::before { content: '⌕'; font-size: 24px; line-height: 1; color: color-mix(in srgb, var(--text-muted) 70%, transparent); }
+.empty-state::before { content: '⌕'; font-size: var(--text-2xl); line-height: 1; color: color-mix(in srgb, var(--text-muted) 70%, transparent); }
 .empty-state::after { content: 'Nothing found\A Try a different search'; white-space: pre-line; font-family: var(--font-sans); font-size: var(--text-sm); line-height: 1.6; color: var(--text-muted); }
 .browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); border-top: 1px solid var(--border-default); flex-shrink: 0; }
 .btn-new, .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }

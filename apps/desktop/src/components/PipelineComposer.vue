@@ -766,7 +766,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
   border-radius: 999px;
   background: var(--bg-main);
   color: var(--text-primary);
-  font-size: 0.78rem;
+  font-size: var(--text-sm);
   font-weight: 700;
   box-shadow: 0 1px 4px color-mix(in srgb, var(--bg-main) 15%, transparent);
   pointer-events: none;
@@ -797,7 +797,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
 }
 
 .composer-empty-state-arrow {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   line-height: 1;
   color: var(--text-muted);
 }

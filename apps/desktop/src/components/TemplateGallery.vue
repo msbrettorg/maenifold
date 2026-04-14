@@ -309,7 +309,7 @@ function handleIntentInput(): void {
 }
 
 .gallery-card-icon {
-  font-size: 1.5rem;
+  font-size: var(--text-2xl);
   line-height: 1;
 }
 

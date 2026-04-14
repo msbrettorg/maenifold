@@ -152,6 +152,25 @@ Agents running full test suites in parallel creates race conditions. Violation i
 - **P1** — Work in progress. Tasks currently being executed or blocked by a P0. **Dispatched to sub-PMs.**
 - **P2** — Discovered items. Tech debt, duplication, refactoring opportunities found during other work. Backlog until prioritized.
 
+### Gate Process Selection
+
+Available processes are defined in `/Users/brett/maenifold/assets/gates/`. Use the `pipeline:` frontmatter field to assign.
+
+| Process | Stages | Use When |
+|---------|--------|----------|
+| **lightweight** | pending → swe → blue-team → done | Mechanical refactoring, dedup, fixture fixes, policy updates. Build is the verification. |
+| **sdd** | pending → swe → red-team → blue-team → done | Standard feature work within a single crate. Needs adversarial review but not discovery/spec. |
+| **slc** | pending → discovery → spec → swe → red-team → blue-team → done | Cross-crate features, new capabilities, architectural changes. Full lifecycle with spec authorship. |
+| **tdd** | pending → blue-team → swe → red-team → done | Bug fixes where writing the test first prevents regression. |
+| **gsd** | pending → research → plan → execute → verify → done | Exploratory work with unknown scope. Research-first. |
+
+**Decision rules:**
+- No behavior change, no new code, build verifies it → **lightweight**
+- New code in one crate, behavior changes → **sdd**
+- New crate, cross-crate wiring, plugin epic, UI features → **slc**
+- Bug fix with known reproduction → **tdd**
+- Unknown scope, needs research → **gsd**
+
 ### ACP Invariants
 
 - **Version baselines:** TypeScript uses `@agentclientprotocol/sdk` `^0.18.2`. Rust uses `sacp` `11.0.0` (git rev pinned in `[patch.crates-io]`) and `rmcp` `1.4.0`.

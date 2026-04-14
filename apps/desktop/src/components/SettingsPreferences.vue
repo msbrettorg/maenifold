@@ -1,8 +1,24 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
+import { storeToRefs } from 'pinia';
 import { PREFS_STORE_PATH } from '../lib/constants';
 import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/local-storage';
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
+import { type FontDensity, usePreferencesStore } from '../stores/preferences';
+
+const prefsStore = usePreferencesStore();
+const { fontDensity } = storeToRefs(prefsStore);
+
+const densityOptions: { value: FontDensity; label: string }[] = [
+  { value: 'compact', label: 'Compact' },
+  { value: 'default', label: 'Default' },
+  { value: 'comfortable', label: 'Comfortable' },
+];
+
+function handleDensityChange(density: FontDensity) {
+  prefsStore.setFontDensity(density);
+  status.value = 'Preferences saved.';
+}
 
 const telemetryEnabled = ref(true);
 const lastCwd = ref('');
@@ -84,6 +100,33 @@ onMounted(async () => {
     <div v-if="loading" class="card">Loading saved preferences…</div>
 
     <template v-else>
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <strong>Text size</strong>
+            <p>Adjust the UI font scale across the entire application.</p>
+          </div>
+        </div>
+        <div class="density-control">
+          <label
+            v-for="opt in densityOptions"
+            :key="opt.value"
+            class="density-option"
+            :class="{ active: fontDensity === opt.value }"
+          >
+            <input
+              type="radio"
+              name="fontDensity"
+              :value="opt.value"
+              :checked="fontDensity === opt.value"
+              :disabled="saving"
+              @change="handleDensityChange(opt.value)"
+            />
+            {{ opt.label }}
+          </label>
+        </div>
+      </div>
+
       <label class="card toggle-card">
         <div>
           <strong>Telemetry</strong>
@@ -194,6 +237,48 @@ onMounted(async () => {
   word-break: break-all;
   font-family: var(--font-code);
   font-size: var(--text-caption);
+}
+
+.density-control {
+  display: flex;
+  gap: 0;
+  margin-top: 0.75rem;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.density-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+  background: transparent;
+  border-right: 1px solid var(--border-default);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.density-option:last-child {
+  border-right: none;
+}
+
+.density-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.density-option.active {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.density-option:hover:not(.active) {
+  background: var(--surface-high);
 }
 
 @media (max-width: 640px) {

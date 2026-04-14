@@ -11,6 +11,14 @@ use std::time::{SystemTime, UNIX_EPOCH};
 struct AgentsConfig {
     #[serde(default)]
     agents: HashMap<String, AgentEntry>,
+    #[serde(default)]
+    settings: Option<MinimalSettings>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct MinimalSettings {
+    #[serde(default, rename = "envPassthrough")]
+    env_passthrough: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -121,11 +129,20 @@ fn resolve_adapter_for_name(
     if binary.is_empty() {
         return Err(format!("agent '{}' has an empty command", runtime));
     }
-    let env = entry
+    let mut env: Vec<(String, String)> = entry
         .env
         .iter()
         .map(|(key, value)| (key.clone(), value.clone()))
         .collect();
+    if let Some(settings) = &config.settings {
+        for var_name in &settings.env_passthrough {
+            if !env.iter().any(|(key, _)| key == var_name) {
+                if let Ok(value) = std::env::var(var_name) {
+                    env.push((var_name.clone(), value));
+                }
+            }
+        }
+    }
     Ok((
         binary.to_string(),
         args.into_iter().map(ToString::to_string).collect(),

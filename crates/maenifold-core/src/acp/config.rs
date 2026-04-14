@@ -181,6 +181,8 @@ pub struct MaenifoldSettings {
     pub vector: VectorSettings,
     #[serde(default)]
     pub debug: DebugSettings,
+    #[serde(default, rename = "envPassthrough")]
+    pub env_passthrough: Vec<String>,
 }
 
 impl Default for MaenifoldSettings {
@@ -204,6 +206,7 @@ impl Default for MaenifoldSettings {
             community: CommunitySettings::default(),
             vector: VectorSettings::default(),
             debug: DebugSettings::default(),
+            env_passthrough: Vec::new(),
         }
     }
 }

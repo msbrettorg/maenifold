@@ -16,6 +16,8 @@ pub mod markdown;
 // T-12.0: RTM NFR-1 — preserve the crate::mcp facade while the implementation lives in src/mcp/.
 pub mod mcp;
 pub mod memory;
+#[cfg(test)]
+pub(crate) mod test_util;
 // T-12.6: RTM NFR-1 - preserve the public utility surface while moving helper modules under util/.
 pub mod util;
 pub use util::json;

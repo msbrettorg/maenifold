@@ -744,6 +744,7 @@ mod tests {
     use crate::{
         Config,
         db::{self, GraphDatabase},
+        test_util::ConfigResetGuard,
     };
     use axum::{
         body::{Body, to_bytes},
@@ -752,14 +753,6 @@ mod tests {
     use rusqlite::params;
     use tempfile::TempDir;
     use tower::ServiceExt;
-
-    struct ConfigResetGuard;
-
-    impl Drop for ConfigResetGuard {
-        fn drop(&mut self) {
-            Config::reset_overrides();
-        }
-    }
 
     fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
         let temp = TempDir::new().expect("temp dir");

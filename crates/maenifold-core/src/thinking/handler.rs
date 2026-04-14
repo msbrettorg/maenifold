@@ -151,6 +151,7 @@ mod tests {
     use crate::config::Config;
     use crate::markdown::{Frontmatter, read_markdown, write_markdown};
     use crate::sessions::frontmatter_string;
+    use crate::test_util::ConfigResetGuard;
     use crate::thinking::sequential_session_uri;
     use crate::tools::ToolContext;
     use crate::util::json::OutputFormat;
@@ -158,14 +159,6 @@ mod tests {
     use serde_yaml::Value as YamlValue;
     use std::collections::BTreeMap;
     use tempfile::TempDir;
-
-    struct ConfigResetGuard;
-
-    impl Drop for ConfigResetGuard {
-        fn drop(&mut self) {
-            Config::reset_overrides();
-        }
-    }
 
     fn test_context() -> (TempDir, ToolContext, ConfigResetGuard) {
         let tmp = TempDir::new().expect("temp dir");

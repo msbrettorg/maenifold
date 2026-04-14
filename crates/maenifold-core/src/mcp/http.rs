@@ -118,6 +118,7 @@ impl super::MaenifoldMcpServer {
 mod tests {
     use super::{router, service};
     use crate::api::routes::ApiState;
+    use crate::test_util::ConfigResetGuard;
     use crate::{Config, GraphDatabase};
     use axum::{
         body::{Body, to_bytes},
@@ -125,14 +126,6 @@ mod tests {
     };
     use tempfile::TempDir;
     use tower::ServiceExt;
-
-    struct ConfigResetGuard;
-
-    impl Drop for ConfigResetGuard {
-        fn drop(&mut self) {
-            Config::reset_overrides();
-        }
-    }
 
     fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
         let temp = TempDir::new().expect("temp dir");

@@ -1,17 +1,10 @@
 use crate::config::Config;
+use crate::test_util::ConfigResetGuard;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use serde_json::json;
 use std::fs;
 use tempfile::TempDir;
-
-pub(super) struct ConfigResetGuard;
-
-impl Drop for ConfigResetGuard {
-    fn drop(&mut self) {
-        Config::reset_overrides();
-    }
-}
 
 pub(super) fn pipeline_test_context(
     output_format: OutputFormat,

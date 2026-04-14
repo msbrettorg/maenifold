@@ -1076,4 +1076,81 @@ mod tests {
             "with no allowlist restriction, the error should be about missing server config, not permissions: {error}"
         );
     }
+
+    // --- resolve_node_cwd unit tests ---
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_none_returns_maenifold_root() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let result = resolve_node_cwd(&context, None).expect("should resolve");
+        assert_eq!(
+            result,
+            context.config.maenifold_root.canonicalize().unwrap()
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_absolute_valid_dir() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let sub = context.config.maenifold_root.join("abs_dir");
+        fs::create_dir_all(&sub).expect("create sub dir");
+        let result = resolve_node_cwd(&context, Some(sub.as_path())).expect("should resolve");
+        assert_eq!(result, sub.canonicalize().unwrap());
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_relative_valid_dir() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let sub = context.config.maenifold_root.join("rel_child");
+        fs::create_dir_all(&sub).expect("create sub dir");
+        let result =
+            resolve_node_cwd(&context, Some(Path::new("rel_child"))).expect("should resolve");
+        assert_eq!(result, sub.canonicalize().unwrap());
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_nonexistent_path_errors() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let err = resolve_node_cwd(&context, Some(Path::new("no_such_dir")))
+            .expect_err("should fail for nonexistent path");
+        assert!(
+            err.to_string().contains("could not be resolved"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_file_not_dir_errors() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let file_path = context.config.maenifold_root.join("a_file.txt");
+        fs::write(&file_path, "not a directory").expect("write file");
+        let err = resolve_node_cwd(&context, Some(file_path.as_path()))
+            .expect_err("should fail for file path");
+        assert!(
+            err.to_string().contains("is not a directory"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn resolve_node_cwd_relative_traversal_resolves() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let sibling = context
+            .config
+            .maenifold_root
+            .parent()
+            .expect("root parent")
+            .join("sibling-project");
+        fs::create_dir_all(&sibling).expect("create sibling dir");
+        let result =
+            resolve_node_cwd(&context, Some(Path::new("../sibling-project"))).expect("should resolve");
+        let expected = sibling.canonicalize().unwrap();
+        assert_eq!(result, expected);
+    }
 }

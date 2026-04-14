@@ -6,7 +6,7 @@ use std::{
 use jockey::EventSender;
 use serde_json::Value as JsonValue;
 
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 
 use super::super::runner::{self, AgentSessionConfig};
@@ -68,6 +68,7 @@ pub(super) fn build_node_execution_request(
         PipelineNode::Workflow {
             workflow_id,
             prompt,
+            cwd,
             timeout,
             agent_config,
             ..
@@ -88,13 +89,13 @@ pub(super) fn build_node_execution_request(
                 context,
                 node.id(),
                 agent_config.as_ref(),
-                None,
+                cwd.as_deref(),
                 &None,
                 &None,
                 &None,
                 None,
                 *timeout,
-            ),
+            )?,
         },
         PipelineNode::Prompt {
             prompt,
@@ -130,7 +131,7 @@ pub(super) fn build_node_execution_request(
                 allowed_tools,
                 *max_turns,
                 *timeout,
-            ),
+            )?,
         },
         PipelineNode::SequentialThinking {
             topic,
@@ -167,7 +168,7 @@ pub(super) fn build_node_execution_request(
                 allowed_tools,
                 *max_turns,
                 *timeout,
-            ),
+            )?,
         },
         PipelineNode::Tool {
             tool_name,
@@ -187,7 +188,7 @@ pub(super) fn build_node_execution_request(
             )?,
             agent: agent.clone(),
             allowed_tools: allowed_tools.clone(),
-            cwd: resolve_node_cwd(context, node.cwd()),
+            cwd: resolve_node_cwd(context, node.cwd())?,
             timeout_seconds: *timeout,
         },
     })
@@ -243,9 +244,9 @@ fn merged_session_config(
     allowed_tools: &Option<Vec<String>>,
     max_turns: Option<u32>,
     timeout_seconds: Option<u64>,
-) -> AgentSessionConfig {
-    AgentSessionConfig {
-        cwd: resolve_node_cwd(context, node_cwd),
+) -> Result<AgentSessionConfig> {
+    Ok(AgentSessionConfig {
+        cwd: resolve_node_cwd(context, node_cwd)?,
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),
@@ -258,12 +259,28 @@ fn merged_session_config(
         max_turns,
         timeout_seconds,
         session_id: None,
-    }
+    })
 }
 
-fn resolve_node_cwd(context: &ToolContext, cwd: Option<&Path>) -> PathBuf {
-    cwd.map(Path::to_path_buf)
-        .unwrap_or_else(|| context.config.maenifold_root.clone())
+fn resolve_node_cwd(context: &ToolContext, cwd: Option<&Path>) -> Result<PathBuf> {
+    let resolved = match cwd {
+        Some(path) if path.is_absolute() => path.to_path_buf(),
+        Some(path) => context.config.maenifold_root.join(path),
+        None => context.config.maenifold_root.clone(),
+    };
+    let canonical = resolved.canonicalize().map_err(|error| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline node cwd '{}' could not be resolved: {error}",
+            resolved.display()
+        ))
+    })?;
+    if !canonical.is_dir() {
+        return Err(MaenifoldError::Message(format!(
+            "ERROR: Pipeline node cwd '{}' is not a directory",
+            canonical.display()
+        )));
+    }
+    Ok(canonical)
 }
 
 pub(super) async fn execute_node_request(

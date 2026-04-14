@@ -29,24 +29,6 @@ fn trace_enabled() -> bool {
 /// Callers who don't have a strong preference reference this constant explicitly.
 pub const DEFAULT_TOTAL_THOUGHTS: u32 = 5;
 
-/// WikiLink tagging instructions injected as context for all ACP think/workflow sessions.
-/// Sourced from the concept-as-protocol ontology. Agents see this before their task prompt.
-pub(crate) const WIKILINK_CONTEXT: &str = r#"Tag important concepts as [[WikiLinks]] using these rules:
-- Double brackets: [[WikiLink]] never [WikiLink]
-- Normalized to lowercase-with-hyphens internally
-- PRIMARY concept only: [[MCP]] not [[MCP-server]]
-- GENERAL terms: [[authentication]] not [[auth-system]]
-- NO file paths, code elements, or trivial words
-- TAG substance: [[machine-learning]], [[GraphRAG]], [[vector-embeddings]]
-- REUSE existing concepts before inventing near-duplicates
-- HYPHENATE multiword: [[null-reference-exception]] not [[Null Reference Exception]]
-Anti-patterns (avoid):
-- Underscores: [[my_concept]] → use [[my-concept]]
-- Slashes: [[foo/bar]] → use [[foo-bar]]
-- Double hyphens: [[foo--bar]] → use [[foo-bar]]
-WikiLinks become knowledge graph nodes. Bad tagging = graph corruption.
-Only tag concepts worth a wiki page. Never tag meta-terms like [[code]], [[bug]], [[fix]]."#;
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ThinkResult {
     pub session_id: String,

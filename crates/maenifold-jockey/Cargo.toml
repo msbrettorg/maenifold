@@ -24,3 +24,6 @@ tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process"
 tokio-util = { version = "0.7", features = ["compat"] }
 uuid = { version = "1", features = ["v4", "serde"] }
 which = "7"
+
+[lints]
+workspace = true

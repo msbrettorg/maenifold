@@ -62,6 +62,7 @@ pub enum PipelineNode {
         workflow_id: String,
         acp_client: Option<String>,
         prompt: Option<String>,
+        cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
     },
@@ -167,10 +168,10 @@ impl PipelineNode {
 
     pub fn cwd(&self) -> Option<&Path> {
         match self {
-            Self::Prompt { cwd, .. }
+            Self::Workflow { cwd, .. }
+            | Self::Prompt { cwd, .. }
             | Self::SequentialThinking { cwd, .. }
             | Self::Tool { cwd, .. } => cwd.as_deref(),
-            Self::Workflow { .. } => None,
         }
     }
 

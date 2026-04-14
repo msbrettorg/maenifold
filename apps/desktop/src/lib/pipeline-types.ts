@@ -258,6 +258,28 @@ export interface PipelineListItem {
   completedCount: number;
 }
 
+const REASONABLE_CWD_PREFIX = /^(\/|~\/|\.{1,2}(?:\/|$)|[A-Za-z]:[\\/])/;
+
+export function cwdHasReasonablePathPrefix(value: string): boolean {
+  return REASONABLE_CWD_PREFIX.test(value);
+}
+
+export function normalizeNodeCwd(
+  value: unknown,
+  fieldName = "cwd",
+): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string`);
+  }
+
+  const trimmedValue = value.trim();
+  return trimmedValue.length > 0 ? trimmedValue : undefined;
+}
+
 export interface LogEntry {
   nodeId: string;
   from: string;

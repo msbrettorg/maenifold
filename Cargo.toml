@@ -65,6 +65,9 @@ urlencoding = "2.1.3"
 libc = "0.2"
 async-trait = "0.1"
 
+[workspace.lints.rust]
+warnings = "deny"
+
 [patch.crates-io]
 sacp = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
 sacp-derive = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }

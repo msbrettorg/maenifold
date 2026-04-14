@@ -1,11 +1,11 @@
 use super::context::{ToolContext, render};
-use crate::acp_config::{AgentEntry, AgentsConfig, McpServerEntry};
+use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
 use futures_util::future::join_all;
 use serde_json::{Map, Value, json};
 use std::collections::BTreeSet;
 use std::future::Future;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::LazyLock;
 use std::time::Duration;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
@@ -42,7 +42,6 @@ fn list_agents_value(root: &std::path::Path, probe: bool) -> Result<Value> {
 
     let mut agents = Vec::with_capacity(names.len());
     let mut probe_entries = Vec::with_capacity(names.len());
-    let top_level_mcp_servers = config.mcp_servers.clone();
     for name in &names {
         let entry = config
             .agents
@@ -50,11 +49,7 @@ fn list_agents_value(root: &std::path::Path, probe: bool) -> Result<Value> {
             .expect("sorted key should resolve to an agent entry");
         let value = list_agent_entry(name, entry)?;
         if probe {
-            probe_entries.push(ProbeAgent::from_entry(
-                name.clone(),
-                entry.clone(),
-                &top_level_mcp_servers,
-            ));
+            probe_entries.push(ProbeAgent::from_entry(name.clone()));
         }
         agents.push(value);
     }
@@ -92,23 +87,11 @@ fn list_agent_entry(name: &str, entry: &crate::acp_config::AgentEntry) -> Result
 #[derive(Clone)]
 struct ProbeAgent {
     name: String,
-    entry: AgentEntry,
-    mcp_servers: Vec<McpServerEntry>,
 }
 
 impl ProbeAgent {
-    fn from_entry(
-        name: String,
-        entry: AgentEntry,
-        top_level_mcp_servers: &[McpServerEntry],
-    ) -> Self {
-        let mut mcp_servers = top_level_mcp_servers.to_vec();
-        mcp_servers.extend(entry.mcp_servers.clone());
-        Self {
-            name,
-            entry,
-            mcp_servers,
-        }
+    fn from_entry(name: String) -> Self {
+        Self { name }
     }
 }
 
@@ -220,11 +203,6 @@ async fn probe_agent_once(root: PathBuf, agent: ProbeAgent) -> std::result::Resu
     // The agent name is the runtime key — our adapter resolves from AgentsConfig
     let runtime_kind = &agent.name;
     let cwd = root.to_string_lossy().into_owned();
-    let mcp_servers = agent
-        .mcp_servers
-        .iter()
-        .map(McpServerEntry::to_acp)
-        .collect::<Vec<_>>();
     let (config_options, discovered_modes) =
         jockey::acp::prewarm_role_for_config(runtime_kind, &agent.name, &cwd, None).await;
     let modes = if discovered_modes.is_empty() {
@@ -247,55 +225,6 @@ fn probe_agent_capabilities(
         Ok(value) => value,
         Err(error) => probe_error_value(error),
     }
-}
-
-fn infer_runtime_kind(entry: &AgentEntry) -> Option<&'static str> {
-    let (command, args) = entry.command_parts();
-    let binary = Path::new(command)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(command);
-    let mut haystacks = vec![entry.command.to_ascii_lowercase()];
-    haystacks.push(binary.to_ascii_lowercase());
-    haystacks.extend(args.into_iter().map(|arg| arg.to_ascii_lowercase()));
-
-    if haystacks
-        .iter()
-        .any(|value| value.contains("claude-agent-acp") || value.contains("claude-acp"))
-        || haystacks.iter().any(|value| {
-            value == "claude"
-                || value == "claude-code"
-                || value.ends_with("/claude")
-                || value.ends_with("\\claude")
-        })
-    {
-        return Some("claude-code");
-    }
-
-    if haystacks.iter().any(|value| {
-        value == "gemini"
-            || value == "gemini-cli"
-            || value.contains("@google/gemini-cli")
-            || value.ends_with("/gemini")
-            || value.ends_with("\\gemini")
-    }) {
-        return Some("gemini-cli");
-    }
-
-    if haystacks
-        .iter()
-        .any(|value| value.contains("codex-acp") || value.contains("@zed-industries/codex-acp"))
-        || haystacks.iter().any(|value| {
-            value == "codex"
-                || value == "codex-cli"
-                || value.ends_with("/codex")
-                || value.ends_with("\\codex")
-        })
-    {
-        return Some("codex-cli");
-    }
-
-    None
 }
 
 fn extract_mode_ids(config_options: &[Value]) -> Vec<String> {

@@ -81,6 +81,7 @@ pub(super) fn fork_pipeline(
                     workflow_id,
                     acp_client,
                     prompt,
+                    cwd,
                     timeout,
                     agent_config,
                     ..
@@ -90,6 +91,7 @@ pub(super) fn fork_pipeline(
                     workflow_id: workflow_id.clone(),
                     acp_client: acp_client.clone(),
                     prompt: prompt.clone(),
+                    cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
                 },

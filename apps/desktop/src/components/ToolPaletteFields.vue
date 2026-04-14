@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { ServerHealthStatus } from '../lib/types';
 import AgentProbePreview from './AgentProbePreview.vue';
@@ -26,14 +27,25 @@ const emit = defineEmits<{
   'update:toolName': [value: string];
   'update:agentName': [value: string];
   'update:agentConfig': [value: PipelineNodeAgentConfig];
-  'update:cwd': [value: string];
+  'update:cwd': [value: string | undefined];
   'update:toolArgs': [value: Record<string, unknown>];
   validation: [state: { valid: boolean }];
   submitRequest: [];
 }>();
 
 function updateCwd(event: Event): void {
-  emit('update:cwd', (event.target as HTMLInputElement).value);
+  const trimmed = (event.target as HTMLInputElement).value.trim();
+  emit('update:cwd', trimmed.length > 0 ? trimmed : undefined);
+}
+
+function getCwdWarning(value: string): string | null {
+  if (!value) {
+    return null;
+  }
+
+  return cwdHasReasonablePathPrefix(value)
+    ? null
+    : 'Path should usually start with /, ~/, ./, ../, or a drive letter.';
 }
 
 const HEALTH_META: Record<ServerHealthStatus, { icon: string; label: string }> = {
@@ -128,6 +140,9 @@ const {
     <label>
       <span>Working directory</span>
       <input class="field-input" :value="cwd" type="text" placeholder="/absolute/path" @input="updateCwd" />
+      <small v-if="getCwdWarning(cwd)" class="tool-palette__hint tool-palette__hint--warning">
+        {{ getCwdWarning(cwd) }}
+      </small>
     </label>
 
     <div class="tool-palette__header"><div><span>Tool Palette</span><p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p></div><button type="button" class="btn btn-ghost" :disabled="loading" @click="refreshCatalog">{{ loading ? 'Refreshing…' : 'Refresh' }}</button></div>
@@ -190,6 +205,8 @@ const {
 
 <style scoped>
 .tool-palette,.tool-agent-panel,.tool-agent-grid,.tool-palette__detail,.tool-palette__setup-callout,.tool-palette__quick-add,.tool-palette__quick-add-list { display: grid; gap: 0.75rem; }
+.tool-palette__hint { margin: 0; font-size: var(--text-xs); }
+.tool-palette__hint--warning { color: var(--color-status-active); }
 .tool-agent-panel,.tool-palette__detail,.tool-palette__setup-callout { padding: 0.8rem; border: 1px solid var(--border-default); border-radius: 0.85rem; background: color-mix(in srgb, var(--bg-panel) 72%, transparent); }
 .tool-agent-grid { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .agent-mode-badges,.tool-palette__option-tags,.tool-palette__required-tags,.tool-palette__detail-actions,.tool-palette__option-title { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }

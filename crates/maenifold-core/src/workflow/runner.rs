@@ -73,20 +73,7 @@ struct RunContext<'a> {
     tool_context: &'a ToolContext,
     session_id: String,
     event_tx: EventSender,
-    cwd: PathBuf,
     model: Option<String>,
-    /// ACP session ID for resuming an existing agent session.
-    acp_session_id: Option<String>,
-}
-
-impl RunContext<'_> {
-    fn default_session_config(&self) -> AgentSessionConfig {
-        workflow_driver_session_config(
-            self.cwd.clone(),
-            self.model.clone(),
-            self.acp_session_id.clone(),
-        )
-    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -100,24 +87,6 @@ pub(crate) struct AgentSessionConfig {
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
     pub timeout_seconds: Option<u64>,
-}
-
-fn workflow_driver_session_config(
-    cwd: PathBuf,
-    model: Option<String>,
-    acp_session_id: Option<String>,
-) -> AgentSessionConfig {
-    sanitize_workflow_session_config(AgentSessionConfig {
-        cwd,
-        model,
-        session_id: acp_session_id,
-        mode: None,
-        thought_level: None,
-        config_options: None,
-        allowed_tools: None,
-        max_turns: None,
-        timeout_seconds: None,
-    })
 }
 
 pub(crate) fn sanitize_workflow_session_config(
@@ -189,133 +158,6 @@ pub(crate) async fn run_prompt_with_pool_context(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) async fn run_workflow_with_pool(
-    context: &ToolContext,
-    workflow_id: &str,
-    existing_session_id: Option<String>,
-    agent: &str,
-    prompt: &str,
-    cwd: PathBuf,
-    timeout_seconds: Option<u64>,
-    model: Option<String>,
-    acp_session_id: Option<String>,
-    content_blocks: Option<Vec<acp::ContentBlock>>,
-    event_tx: EventSender,
-    keep_session_alive: bool,
-) -> Result<WorkflowResult> {
-    let (session_id, start_text) =
-        init_workflow_session(context, workflow_id, existing_session_id)?;
-    if trace_enabled() {
-        eprintln!("[workflow] init session");
-    }
-    let run_ctx = RunContext {
-        tool_context: context,
-        session_id,
-        event_tx,
-        cwd,
-        model,
-        acp_session_id,
-    };
-    let mut session_config = run_ctx.default_session_config();
-    session_config.timeout_seconds = timeout_seconds;
-    let driver = open_agent_session(agent, &session_config.cwd, &run_ctx.event_tx).await?;
-    let mut step = workflow_text(&start_text);
-    let total_steps = workflow_total_steps(context, workflow_id, &step)?;
-    let mut step_index = current_step_index(context, &run_ctx.session_id, &step);
-    let mut steps_completed = 0u32;
-    let mut conclusion = None;
-    let mut first_context = content_blocks;
-
-    let result: Result<WorkflowResult> = async {
-        loop {
-            if trace_enabled() {
-                eprintln!(
-                    "[workflow] loop: step_index={} total={} step_preview={:?}",
-                    step_index,
-                    total_steps,
-                    &step[..step.len().min(120)]
-                );
-            }
-            if let Some(status) = terminal_workflow_status(&step) {
-                if trace_enabled() {
-                    eprintln!("[workflow] terminal status detected: {:?}", status);
-                }
-                break Ok(WorkflowResult {
-                    session_id: run_ctx.session_id.clone(),
-                    acp_session_id: Some(driver.remote_id().to_string()),
-                    conclusion,
-                    steps_completed,
-                    status,
-                });
-            }
-            if step.starts_with("ERROR:") {
-                if trace_enabled() {
-                    eprintln!("[workflow] ERROR in step: {}", &step[..step.len().min(200)]);
-                }
-                break Err(MaenifoldError::Message(step));
-            }
-
-            if trace_enabled() {
-                eprintln!("[workflow] step {}/{}", step_index, total_steps);
-            }
-            maybe_run_step_thinking(&run_ctx, &driver, &step).await?;
-            let final_step = step_index >= total_steps;
-            if trace_enabled() {
-                eprintln!("[workflow] prompting agent (final_step={})", final_step);
-            }
-            let response =
-                prompt_workflow_agent(&driver, prompt, &step, first_context.take()).await?;
-            if let Some(value) = workflow_completion_text(&response, final_step) {
-                if trace_enabled() {
-                    eprintln!("[workflow] conclusion extracted: {} chars", value.len());
-                }
-                conclusion = Some(value);
-            } else if trace_enabled() {
-                eprintln!(
-                    "[workflow] no conclusion extracted (final_step={})",
-                    final_step
-                );
-            }
-
-            let payload = workflow_step_payload(&run_ctx.session_id, &response, final_step);
-            let handler_result = super::handler::workflow(context, &payload)?;
-            if trace_enabled() {
-                eprintln!(
-                    "[workflow] handler returned: {:?}",
-                    &handler_result[..handler_result.len().min(200)]
-                );
-            }
-            step = workflow_text(&handler_result);
-            steps_completed += 1;
-            step_index = step_index.saturating_add(1);
-        }
-    }
-    .await;
-    let acp_session_id = driver.remote_id().to_string();
-    let failure_result = |error: &MaenifoldError| {
-        workflow_failure_result(run_ctx.session_id.clone(), acp_session_id.clone(), error)
-    };
-    if keep_session_alive {
-        driver.keep_alive();
-        match result {
-            Ok(value) => Ok(value),
-            Err(error) => Ok(failure_result(&error)),
-        }
-    } else {
-        let close_result = driver.close().await;
-        match (result, close_result) {
-            (Ok(value), Ok(())) => Ok(value),
-            (Ok(_), Err(error)) => Err(error),
-            (Err(error), Err(close_error)) => {
-                let error = append_close_error_context(error, close_error);
-                Ok(failure_result(&error))
-            }
-            (Err(error), Ok(())) => Ok(failure_result(&error)),
-        }
-    }
-}
-
 /// Like [`run_workflow_with_pool`] but accepts a fully constructed agent session config,
 /// forwarding all session configuration (model, mode, thought_level, allowed_tools, etc.)
 /// instead of building a stripped-down one internally.
@@ -339,9 +181,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         tool_context: context,
         session_id,
         event_tx,
-        cwd: session_config.cwd.clone(),
         model: session_config.model.clone(),
-        acp_session_id: session_config.session_id.clone(),
     };
     let driver = open_agent_session(agent, &session_config.cwd, &run_ctx.event_tx).await?;
     let mut step = workflow_text(&start_text);
@@ -448,8 +288,7 @@ async fn maybe_run_step_thinking(
 mod tests {
     use super::{
         AgentSessionConfig, WorkflowRunStatus, append_close_error_context,
-        is_reentrant_workflow_tool, sanitize_workflow_session_config,
-        workflow_driver_session_config, workflow_failure_result,
+        is_reentrant_workflow_tool, sanitize_workflow_session_config, workflow_failure_result,
     };
     use crate::error::MaenifoldError;
     use std::path::PathBuf;
@@ -513,24 +352,6 @@ mod tests {
             combined.to_string(),
             "primary failure\nAdditionally, closing the workflow agent session failed: close failure"
         );
-    }
-
-    #[test]
-    fn workflow_driver_session_config_preserves_supplied_cwd() {
-        let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_config(cwd.clone(), Some("model-x".to_string()), None);
-
-        assert_eq!(opts.cwd, cwd);
-        assert_eq!(opts.model.as_deref(), Some("model-x"));
-        assert_eq!(opts.session_id, None);
-    }
-
-    #[test]
-    fn workflow_driver_session_config_preserves_acp_session_id() {
-        let cwd = PathBuf::from("/tmp/workflow-cwd");
-        let opts = workflow_driver_session_config(cwd, None, Some("sess-resume-42".to_string()));
-
-        assert_eq!(opts.session_id.as_deref(), Some("sess-resume-42"));
     }
 
     #[test]

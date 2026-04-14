@@ -7,6 +7,10 @@ import type {
   ToolNode,
   WorkflowNode,
 } from './pipeline-types';
+import {
+  cwdHasReasonablePathPrefix,
+  normalizeNodeCwd,
+} from './pipeline-types';
 
 interface PipelineNodeExecutionFields {
   model?: string;
@@ -157,15 +161,25 @@ function cloneAgentConfig(
   };
 }
 
+function normalizeExecutionCwd(value: unknown): string | undefined {
+  const cwd = normalizeNodeCwd(value);
+
+  if (cwd && !cwdHasReasonablePathPrefix(cwd)) {
+    console.warn(
+      `[pipeline-node-factory] cwd "${cwd}" does not start with a typical path prefix`,
+    );
+  }
+
+  return cwd;
+}
+
 function buildExecutionFields(
   fields: PipelineNodeExecutionFields,
 ): PipelineNodeExecutionFields {
   const allowedTools = cloneStringArray(fields.allowedTools, 'allowedTools');
   const maxTurns = cloneOptionalNumber(fields.maxTurns, 'maxTurns');
   const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
-  const cwd = typeof fields.cwd === 'string' && fields.cwd.length > 0
-    ? fields.cwd
-    : undefined;
+  const cwd = normalizeExecutionCwd(fields.cwd);
   const agentConfig = cloneAgentConfig(fields.agentConfig);
 
   return {
@@ -186,9 +200,7 @@ function buildExecutionFields(
 function buildWorkflowExecutionFields(
   fields: WorkflowNodeExecutionSelection,
 ): WorkflowNodeExecutionSelection {
-  const cwd = typeof fields.cwd === 'string' && fields.cwd.length > 0
-    ? fields.cwd
-    : undefined;
+  const cwd = normalizeExecutionCwd(fields.cwd);
   const agentConfig = cloneAgentConfig(fields.agentConfig);
 
   return {

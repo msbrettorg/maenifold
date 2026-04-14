@@ -27,7 +27,15 @@ import type {
   PipelineNodeAgentConfig,
   PipelineNodeType,
 } from '../lib/pipeline-types';
-import { getNodeType, isPromptNode, isSequentialThinkingNode, isToolNode, isWorkflowNode } from '../lib/pipeline-types';
+import {
+  cwdHasReasonablePathPrefix,
+  getNodeType,
+  isPromptNode,
+  isSequentialThinkingNode,
+  isToolNode,
+  isWorkflowNode,
+  normalizeNodeCwd,
+} from '../lib/pipeline-types';
 import EdgeMappingEditor from './EdgeMappingEditor.vue';
 import ToolPaletteFields from './ToolPaletteFields.vue';
 
@@ -164,9 +172,14 @@ function getFieldValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
 }
 
-function normalizeOptionalField(value: string): string | undefined {
-  const trimmed = value.trim();
-  return trimmed ? trimmed : undefined;
+function getCwdWarning(value: string | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  return cwdHasReasonablePathPrefix(value)
+    ? null
+    : 'Path should usually start with /, ~/, ./, ../, or a drive letter.';
 }
 
 function updateMaxConcurrency(event: Event): void {
@@ -213,8 +226,8 @@ function updateNodeCwd(event: Event): void {
   updateNodeCwdValue(getFieldValue(event));
 }
 
-function updateNodeCwdValue(value: string): void {
-  const cwd = normalizeOptionalField(value);
+function updateNodeCwdValue(value: string | undefined): void {
+  const cwd = normalizeNodeCwd(value);
   updateDesignNode((node) => {
     const { cwd: _cwd, ...rest } = node;
     return cwd ? { ...rest, cwd } : rest;
@@ -491,7 +504,13 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           </template>
         </div>
         <label class="field"><span>Prompt</span><textarea class="field-textarea" :value="selectedWorkflowDesignNode.prompt ?? ''" rows="5" placeholder="Optional per-node prompt" @input="updateWorkflowField($event, 'prompt')" /></label>
-        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedWorkflowDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
+        <label class="field">
+          <span>Working directory</span>
+          <input class="field-input" :value="selectedWorkflowDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" />
+          <small v-if="getCwdWarning(selectedWorkflowDesignNode.cwd)" class="field-hint field-hint--warning">
+            {{ getCwdWarning(selectedWorkflowDesignNode.cwd) }}
+          </small>
+        </label>
       </template>
 
       <template v-else-if="selectedPromptDesignNode">
@@ -550,7 +569,13 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           </template>
         </div>
         <label class="field"><span>Prompt template</span><textarea class="field-textarea" :value="selectedPromptDesignNode.prompt" rows="6" @input="updatePromptField($event, 'prompt')" /></label>
-        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedPromptDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
+        <label class="field">
+          <span>Working directory</span>
+          <input class="field-input" :value="selectedPromptDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" />
+          <small v-if="getCwdWarning(selectedPromptDesignNode.cwd)" class="field-hint field-hint--warning">
+            {{ getCwdWarning(selectedPromptDesignNode.cwd) }}
+          </small>
+        </label>
       </template>
 
       <template v-else-if="selectedThinkingDesignNode">
@@ -611,7 +636,13 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
         </div>
         <label class="field"><span>Total thoughts</span><input class="field-input" :value="selectedThinkingDesignNode.totalThoughts ?? ''" type="number" min="1" @input="updateTotalThoughts" /></label>
         <label class="field"><span>Analysis type</span><input class="field-input" :value="selectedThinkingDesignNode.analysisType ?? ''" type="text" @input="updateThinkingField($event, 'analysisType')" /></label>
-        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedThinkingDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
+        <label class="field">
+          <span>Working directory</span>
+          <input class="field-input" :value="selectedThinkingDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" />
+          <small v-if="getCwdWarning(selectedThinkingDesignNode.cwd)" class="field-hint field-hint--warning">
+            {{ getCwdWarning(selectedThinkingDesignNode.cwd) }}
+          </small>
+        </label>
       </template>
 
       <template v-else-if="selectedToolDesignNode">
@@ -655,6 +686,8 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 .panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
 .panel h2 { font-size: var(--text-xl); font-weight: 600; }
 .field,.field-group { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
+.field-hint { margin: 0; font-size: var(--text-xs); }
+.field-hint--warning { color: var(--color-status-active); }
 .agent-capabilities { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .agent-capability { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border-default); border-radius: 999px; color: var(--text-secondary); background: var(--bg-main); font-size: var(--text-xs); }
 .agent-config-panel { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 0.75rem; background: color-mix(in srgb, var(--bg-main) 92%, transparent); }

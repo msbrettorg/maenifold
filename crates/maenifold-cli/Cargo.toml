@@ -22,3 +22,6 @@ predicates.workspace = true
 rusqlite.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true
+
+[lints]
+workspace = true

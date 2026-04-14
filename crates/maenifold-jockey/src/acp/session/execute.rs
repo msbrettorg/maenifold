@@ -43,7 +43,7 @@ pub async fn execute_runtime(
     mcp_servers: Vec<acp::McpServer>,
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
-    state: Option<(&crate::types::AppState, &str)>,
+    _state: Option<(&crate::types::AppState, &str)>,
     app_session_id: &str,
 ) -> AcpPromptResult {
     let normalized = runtime_kind.trim().to_ascii_lowercase();

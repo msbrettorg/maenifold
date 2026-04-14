@@ -33,14 +33,9 @@ pub(super) fn merge_mcp_servers(base: &mut Vec<acp::McpServer>, extras: Vec<acp:
 
 pub(super) fn load_role_mcp_servers(
     state: &crate::types::AppState,
-    role_name: &str,
+    _role_name: &str,
 ) -> Vec<acp::McpServer> {
     let mut servers = crate::db::global_mcp::load_all_global_mcp_as_acp(state);
-    let role_servers = crate::db::role::load_role(state, role_name)
-        .ok()
-        .flatten()
-        .map(|r| crate::db::global_mcp::parse_mcp_server_list_json_compat(&r.mcp_servers_json))
-        .unwrap_or_default();
-    merge_mcp_servers(&mut servers, role_servers);
+    merge_mcp_servers(&mut servers, Vec::new());
     servers
 }

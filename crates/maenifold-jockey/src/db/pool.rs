@@ -26,6 +26,7 @@ pub(crate) struct DbPool {
 }
 
 impl DbPool {
+    #[allow(dead_code)]
     pub(crate) fn new(
         path: PathBuf,
         max_size: usize,

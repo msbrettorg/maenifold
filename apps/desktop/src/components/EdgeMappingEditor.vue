@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
+import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
 import { getNodeType, isToolNode, type PipelineEdge, type PipelineNode } from '../lib/pipeline-types';
 
 interface MappingRow {
@@ -27,6 +28,7 @@ const props = defineProps<{
 }>();
 
 const store = usePipelineStore();
+const discoveryStore = useMcpToolDiscoveryStore();
 const loadingSchemas = ref(false);
 const attemptedToolLoad = ref(false);
 const manualRows = ref<MappingRow[]>([]);
@@ -36,7 +38,9 @@ const targetToolName = computed(() =>
   props.targetNode !== null && isToolNode(props.targetNode) ? props.targetNode.toolName : null,
 );
 const targetTool = computed(() =>
-  resolveToolDefinition(store.tools, targetToolName.value) ?? null,
+  resolveToolDefinition(discoveryStore.allTools, targetToolName.value)
+  ?? resolveToolDefinition(store.tools, targetToolName.value)
+  ?? null,
 );
 const sourceOutput = computed(() => store.currentView?.nodes.find((node) => node.nodeId === props.edge.source)?.output);
 const sourceOutputKeys = computed(() => {
@@ -93,13 +97,16 @@ watch(
 );
 
 watch(
-  () => [isToolTarget.value, store.tools.length] as const,
-  async ([toolTarget, toolCount]) => {
-    if (!toolTarget || toolCount > 0 || attemptedToolLoad.value) return;
+  () => [isToolTarget.value, discoveryStore.allTools.length, store.tools.length] as const,
+  async ([toolTarget, discoveryCount, pipelineCount]) => {
+    if (!toolTarget || discoveryCount > 0 || pipelineCount > 0 || attemptedToolLoad.value) return;
     attemptedToolLoad.value = true;
     loadingSchemas.value = true;
     try {
-      await store.refreshTools();
+      await discoveryStore.refreshTools();
+      if (discoveryStore.allTools.length === 0) {
+        await store.refreshTools();
+      }
     } finally {
       loadingSchemas.value = false;
     }

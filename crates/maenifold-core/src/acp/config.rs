@@ -19,6 +19,8 @@ pub enum McpServerEntry {
         args: Vec<String>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         timeout: Option<u64>,
+        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+        env: HashMap<String, String>,
     },
     #[serde(rename = "http")]
     Http { name: String, url: String },
@@ -37,9 +39,16 @@ impl McpServerEntry {
                 name,
                 command,
                 args,
+                env,
                 ..
             } => acp::McpServer::Stdio(
-                acp::McpServerStdio::new(name.clone(), command.clone()).args(args.clone()),
+                acp::McpServerStdio::new(name.clone(), command.clone())
+                    .args(args.clone())
+                    .env(
+                        env.iter()
+                            .map(|(name, value)| acp::EnvVariable::new(name.clone(), value.clone()))
+                            .collect(),
+                    ),
             ),
             McpServerEntry::Http { name, url } => {
                 acp::McpServer::Http(acp::McpServerHttp::new(name.clone(), url.clone()))

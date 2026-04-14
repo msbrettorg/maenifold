@@ -158,11 +158,12 @@ async fn discover_server(
             name,
             command,
             args,
+            env,
             ..
         } => (
             name,
             "stdio".to_string(),
-            stdio::discover_stdio_tools(&command, &args, timeout_duration).await,
+            stdio::discover_stdio_tools(&command, &args, &env, timeout_duration).await,
         ),
     };
 

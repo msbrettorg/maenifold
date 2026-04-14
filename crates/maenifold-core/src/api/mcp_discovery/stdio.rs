@@ -1,5 +1,6 @@
 use super::MCP_PROTOCOL_VERSION;
 use serde_json::{Value, json};
+use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
@@ -193,6 +194,7 @@ async fn shutdown_child(
 pub(super) async fn discover_stdio_tools(
     command: &str,
     args: &[String],
+    env: &HashMap<String, String>,
     timeout_duration: Duration,
 ) -> Result<Vec<Value>, String> {
     let mut cmd = Command::new(command);
@@ -200,6 +202,9 @@ pub(super) async fn discover_stdio_tools(
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
+    if !env.is_empty() {
+        cmd.envs(env);
+    }
 
     #[cfg(unix)]
     configure_new_process_group(&mut cmd);

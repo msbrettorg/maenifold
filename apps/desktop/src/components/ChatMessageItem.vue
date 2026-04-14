@@ -69,7 +69,7 @@ function renderMarkdown(content: string): string {
 .message-user { margin-left: 2rem; background: color-mix(in srgb, var(--border-focus) 24%, var(--bg-panel)); }
 .message-assistant { margin-right: 2rem; background: var(--bg-surface); }
 .message-header { margin-bottom: 0.5rem; }
-.role { color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; }
+.role { color: var(--text-secondary); font-size: var(--text-sm); font-weight: var(--weight-title); }
 .message-content {
   line-height: 1.5;
   overflow-wrap: break-word;

@@ -236,7 +236,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-secondary);
   flex: 1;
 }
@@ -247,7 +247,7 @@ onMounted(async () => {
   color: var(--border-focus);
   cursor: pointer;
   padding: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .breadcrumb-link:hover {
@@ -260,8 +260,8 @@ onMounted(async () => {
 
 .breadcrumb-current {
   color: var(--text-primary);
-  font-weight: 500;
-  font-family: var(--font-headline);
+  font-weight: var(--weight-display);
+  font-family: var(--font-display);
   letter-spacing: 0.02em;
 }
 
@@ -269,7 +269,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -294,7 +294,7 @@ onMounted(async () => {
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   line-height: 1;
   transition: var(--transition-fast);
 }
@@ -335,21 +335,21 @@ onMounted(async () => {
 }
 
 .empty-icon {
-  font-size: 3rem;
+  font-size: var(--text-display);
   color: var(--text-muted);
   opacity: 0.3;
   margin-bottom: 1rem;
 }
 
 .empty-title {
-  font-family: var(--font-headline);
+  font-family: var(--font-display);
   font-size: var(--text-lg);
   color: var(--text-secondary);
   margin-bottom: 0.25rem;
 }
 
 .empty-hint {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
   margin-bottom: 1.25rem;
 }
@@ -361,7 +361,7 @@ onMounted(async () => {
   color: var(--text-secondary);
   border-radius: var(--radius-md);
   cursor: pointer;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   transition: var(--transition-fast);
 }
 
@@ -393,7 +393,7 @@ onMounted(async () => {
 }
 
 .loading-text {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
 }
 

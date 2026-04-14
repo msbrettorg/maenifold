@@ -36,7 +36,7 @@ function retry() {
   min-height: 200px;
   padding: 1.5rem;
   border-radius: 12px;
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
 }
 .tree-root-scroll {
   overflow-x: auto;
@@ -80,7 +80,7 @@ function retry() {
 .tree-empty {
   text-align: center;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   padding: 2rem 0;
 }
 </style>

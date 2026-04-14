@@ -90,19 +90,19 @@ watch(
 
 .draft-bar-icon {
   color: var(--color-status-active);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .draft-bar-label {
   flex: 1;
-  font: 600 var(--text-xs)/1 var(--font-mono);
+  font: var(--weight-title) var(--text-tiny)/1 var(--font-code);
   color: var(--color-status-active);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .draft-bar-message {
-  font: 500 var(--text-xs)/1.4 var(--font-sans);
+  font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body);
   color: var(--text-secondary);
 }
 
@@ -121,7 +121,7 @@ watch(
   border: 1px solid var(--border-default);
   background: transparent;
   color: var(--text-primary);
-  font: 500 var(--text-xs)/1 var(--font-sans);
+  font: var(--weight-display) var(--text-tiny)/1 var(--font-body);
   cursor: pointer;
 }
 

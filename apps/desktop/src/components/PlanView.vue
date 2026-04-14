@@ -127,14 +127,14 @@ function toggleExpanded(): void {
 }
 
 .plan-title {
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .plan-summary,
 .plan-chevron,
 .plan-entry-status-text {
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .plan-body {
@@ -166,8 +166,8 @@ function toggleExpanded(): void {
   margin-top: 0.125rem;
   border-radius: 999px;
   background: var(--bg-surface);
-  font-size: var(--text-base);
-  font-weight: 700;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-title);
   flex-shrink: 0;
 }
 
@@ -199,8 +199,8 @@ function toggleExpanded(): void {
   align-items: center;
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   text-transform: capitalize;
 }
 

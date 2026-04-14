@@ -74,8 +74,8 @@ function formatRelativeTime(iso: string): string {
   background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--bg-code));
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
   color: var(--thinking-thought-badge);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   text-align: center;
   box-shadow: 0 0 0 4px var(--thinking-thought-shadow);
 }
@@ -102,7 +102,7 @@ function formatRelativeTime(iso: string): string {
   gap: 0.3rem;
   border-radius: 999px;
   padding: 0.2rem 0.5rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   line-height: 1.1;
   white-space: nowrap;
   background: color-mix(in srgb, var(--bg-code) 72%, var(--bg-main));
@@ -112,7 +112,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 .thought-timestamp {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--thinking-thought-muted);
   white-space: nowrap;
 }

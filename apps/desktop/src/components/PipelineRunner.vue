@@ -130,7 +130,7 @@ function formatLogEntry(entry: LogEntry) {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   font-size: var(--text-sm);
   color: var(--text-primary);
 }

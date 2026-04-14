@@ -684,7 +684,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
 <style scoped>
 .inspector { height: 100%; background: var(--bg-panel); color: var(--text-primary); border-left: 1px solid var(--border-default); overflow-y: auto; }
 .panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
-.panel h2 { font-size: var(--text-xl); font-weight: 600; }
+.panel h2 { font-size: var(--text-xl); font-weight: var(--weight-title); }
 .field,.field-group { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .field-hint { margin: 0; font-size: var(--text-xs); }
 .field-hint--warning { color: var(--color-status-active); }

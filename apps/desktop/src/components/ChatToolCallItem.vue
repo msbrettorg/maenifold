@@ -105,7 +105,7 @@ function statusIcon(status: string): string {
   background: color-mix(in srgb, var(--color-status-pending) 8%, var(--bg-surface));
 }
 .tci-icon { font-size: var(--text-sm); }
-.tci-name { font-weight: 500; color: var(--text-primary); }
+.tci-name { font-weight: var(--weight-display); color: var(--text-primary); }
 .tci-location {
   flex: 1;
   color: var(--text-muted);
@@ -114,7 +114,7 @@ function statusIcon(status: string): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tci-status { font-size: var(--text-xs); font-weight: 600; }
+.tci-status { font-size: var(--text-xs); font-weight: var(--weight-title); }
 .tci-chevron { color: var(--text-muted); font-size: var(--text-xs); }
 .status-pending { color: var(--color-status-stuck); }
 .status-in_progress { color: var(--color-status-active); }

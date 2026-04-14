@@ -117,8 +117,8 @@ function sortIndicator(column: SortColumn) {
 .gate-id,
 .gate-subtitle,
 .gate-issue {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
 }
 
 .gate-row--active {
@@ -131,7 +131,7 @@ function sortIndicator(column: SortColumn) {
 }
 
 .gate-title {
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .gate-issue {

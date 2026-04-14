@@ -250,14 +250,14 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 }
 
 .schema-form__fallback-header h3 {
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-title);
 }
 
 .schema-form__fallback-header p,
 .schema-form__fallback-error {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .schema-form__fallback-error {
@@ -266,7 +266,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 
 .schema-form__fallback-textarea {
   min-height: 16rem;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 .schema-form :deep(.schema-form__vertical-layout),
@@ -303,13 +303,13 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 .schema-form :deep(.schema-form__static-label),
 .schema-form :deep(.schema-form__dialog-title) {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
 }
 
 .schema-form :deep(.schema-form__description) {
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .schema-form :deep(input:not([type='checkbox']):not([type='radio'])),
@@ -319,7 +319,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
   padding: var(--space-2) var(--space-3);
   width: 100%;
 }
@@ -368,7 +368,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 
 .schema-form :deep(.schema-form__error) {
   color: var(--text-error);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .schema-form :deep(.schema-form__asterisk),
@@ -394,7 +394,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
 
 .schema-form :deep(.schema-form__empty) {
   color: var(--text-muted);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .schema-form :deep(.schema-form__categorization) {
@@ -419,7 +419,7 @@ function formatValidationError(error: { instancePath?: string; message?: string;
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .schema-form :deep(.schema-form__stepper-line) {

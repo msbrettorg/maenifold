@@ -123,15 +123,15 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-num {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   color: var(--workflow-step-subtle);
   min-width: 1.5rem;
   text-align: right;
 }
 
 .step-icon {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   flex-shrink: 0;
 }
 
@@ -144,24 +144,24 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--workflow-step-primary);
 }
 
 .submachine-badge {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   flex-shrink: 0;
 }
 
 .step-time {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--workflow-step-muted);
   white-space: nowrap;
   flex-shrink: 0;
 }
 
 .expand-chevron {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--workflow-step-muted);
   flex-shrink: 0;
 }
@@ -177,13 +177,13 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 
 .connector-line {
   color: var(--color-status-active);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   line-height: 1;
 }
 
 .connector-label {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   color: color-mix(in srgb, var(--workflow-step-link) 56%, var(--workflow-step-muted));
   white-space: nowrap;
   overflow: hidden;
@@ -196,7 +196,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   margin: 0.25rem 0 0.375rem 2.25rem;
   background: color-mix(in srgb, var(--bg-code) 94%, var(--bg-main));
   border-radius: 4px;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--workflow-step-response);
   line-height: 1.55;
   overflow-x: auto;
@@ -215,8 +215,8 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-response :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   background: color-mix(in srgb, var(--bg-code) 88%, var(--bg-main));
   padding: 0.1em 0.3em;
   border-radius: 3px;
@@ -239,7 +239,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   border-collapse: collapse;
   width: 100%;
   margin: 0.75rem 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   overflow-x: auto;
   display: block;
 }
@@ -253,7 +253,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 
 .step-response :deep(th) {
   background: var(--bg-surface);
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .step-response :deep(tr:nth-child(even)) {
@@ -277,8 +277,8 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   color: var(--workflow-step-link);
   border-radius: 3px;
   padding: 0.05em 0.4em;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-display);
   white-space: nowrap;
 }
 </style>

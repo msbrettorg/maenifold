@@ -76,7 +76,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
 
 .toast-message {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   line-height: 1.45;
   word-break: break-word;
 }

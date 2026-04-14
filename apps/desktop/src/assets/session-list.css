@@ -4,8 +4,8 @@
 
 h3 {
   margin: 0 0 0.75rem 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -19,7 +19,7 @@ h3 {
 
 .empty-state .hint {
   margin-top: 0.5rem;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 ul {
@@ -61,8 +61,8 @@ ul {
   display: block;
   max-width: 200px;
   overflow: hidden;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-display);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -80,8 +80,8 @@ ul {
   gap: 0.25rem;
   padding: 0.0625rem 0.375rem;
   border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-display);
   white-space: nowrap;
 }
 
@@ -109,13 +109,13 @@ ul {
 }
 
 .connection-dot {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   line-height: 1;
 }
 
 .session-agent,
 .session-date {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--text-muted);
 }
 
@@ -126,8 +126,8 @@ ul {
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--text-muted);
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-display);
   text-transform: lowercase;
 }
 
@@ -137,7 +137,7 @@ ul {
   border-radius: 4px;
   background: transparent;
   color: var(--text-muted);
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   cursor: pointer;
 }
 

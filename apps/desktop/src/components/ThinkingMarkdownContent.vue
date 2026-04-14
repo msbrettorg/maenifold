@@ -48,7 +48,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   --thinking-markdown-accent: color-mix(in srgb, var(--text-on-accent) 72%, var(--color-node-prompt));
   --thinking-markdown-link: color-mix(in srgb, var(--text-on-accent) 68%, var(--color-status-active));
   --thinking-markdown-border: color-mix(in srgb, var(--border-default) 32%, var(--bg-code));
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   line-height: 1.5;
   color: var(--thinking-markdown-text);
   overflow: hidden;
@@ -80,8 +80,8 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   color: var(--thinking-markdown-accent);
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
-  font-size: var(--text-xs);
-  font-family: var(--font-mono);
+  font-size: var(--text-tiny);
+  font-family: var(--font-code);
 }
 
 .thinking-markdown-content :deep(pre) {
@@ -100,7 +100,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   border-collapse: collapse;
   width: 100%;
   margin: 0.75rem 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   overflow-x: auto;
   display: block;
 }
@@ -114,7 +114,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 
 .thinking-markdown-content :deep(th) {
   background: var(--bg-surface);
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .thinking-markdown-content :deep(tr:nth-child(even)) {
@@ -129,8 +129,8 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   border-radius: 999px;
   background: color-mix(in srgb, var(--border-focus) 18%, var(--bg-code));
   color: var(--thinking-markdown-link);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   white-space: nowrap;
 }
 </style>

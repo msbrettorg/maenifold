@@ -156,7 +156,7 @@ function handleKeydown(event: KeyboardEvent) {
   background: transparent;
   color: var(--text-muted);
   cursor: pointer;
-  font: 600 10px/1 var(--font-mono);
+  font: var(--weight-title) var(--text-2xs)/1 var(--font-code);
 }
 
 .card-move-btn:hover:not(:disabled) {
@@ -178,7 +178,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 .card-name {
   min-width: 0;
-  font: 600 var(--text-sm)/1.4 var(--font-sans);
+  font: var(--weight-title) var(--text-caption)/1.4 var(--font-body);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -187,13 +187,13 @@ function handleKeydown(event: KeyboardEvent) {
 
 .thinking-icon {
   flex-shrink: 0;
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   color: var(--color-node-thinking);
 }
 
 .card-desc {
   margin: 0;
-  font: 400 var(--text-sm)/1.5 var(--font-sans);
+  font: var(--weight-body) var(--text-caption)/1.5 var(--font-body);
   color: var(--text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -228,7 +228,7 @@ function handleKeydown(event: KeyboardEvent) {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  font: 400 var(--text-sm)/1.4 var(--font-sans);
+  font: var(--weight-body) var(--text-caption)/1.4 var(--font-body);
   color: var(--text-secondary);
 }
 
@@ -248,7 +248,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 .confirm-warning {
   color: var(--color-status-abandoned);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .card-confirm-btn {

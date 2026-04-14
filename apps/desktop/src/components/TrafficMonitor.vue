@@ -141,7 +141,7 @@ onUnmounted(stopResize);
   position: relative;
   background: var(--bg-panel);
   border-top: 1px solid var(--border-default);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .resize-handle {
@@ -174,7 +174,7 @@ onUnmounted(stopResize);
 
 .title {
   margin-right: auto;
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .controls {
@@ -186,7 +186,7 @@ onUnmounted(stopResize);
   padding: 0.25rem 0.5rem;
   border: 1px solid var(--border-default);
   border-radius: 4px;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   cursor: pointer;
 }
 
@@ -221,7 +221,7 @@ onUnmounted(stopResize);
 }
 
 .search-icon {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   opacity: 0.6;
 }
 
@@ -231,7 +231,7 @@ onUnmounted(stopResize);
   border: none;
   background: transparent;
   color: var(--text-primary);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   outline: none;
 }
 
@@ -249,7 +249,7 @@ onUnmounted(stopResize);
 .search-clear-btn {
   padding: 0 0.25rem;
   color: var(--text-muted);
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   line-height: 1;
 }
 
@@ -259,7 +259,7 @@ onUnmounted(stopResize);
 }
 
 .match-count {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   white-space: nowrap;
 }
 
@@ -270,13 +270,13 @@ onUnmounted(stopResize);
 
 .close-btn {
   padding: 0.25rem 0.5rem;
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
 }
 
 .log-container {
   flex: 1;
   overflow-y: auto;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 .empty-state {
@@ -291,7 +291,7 @@ onUnmounted(stopResize);
   bottom: 0.5rem;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text-primary));
 }
 </style>

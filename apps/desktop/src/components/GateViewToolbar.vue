@@ -66,8 +66,8 @@ function handleRootChange(event: Event) {
 
 .gate-chip {
   padding: 0.25rem 0.6rem;
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   color: var(--text-secondary);
   border-radius: var(--radius-md);
   background: var(--bg-surface);
@@ -94,7 +94,7 @@ function handleRootChange(event: Event) {
 }
 
 .gate-refreshed {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .gate-root-select {

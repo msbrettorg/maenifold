@@ -158,7 +158,7 @@ function selectCommand(cmd: AvailableCommand) {
   border-radius: 6px;
   box-shadow: 0 4px 16px color-mix(in srgb, var(--bg-main) 12%, transparent);
   padding: 8px 12px;
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   white-space: normal;
   z-index: 200;
   word-break: break-word;
@@ -175,10 +175,10 @@ function selectCommand(cmd: AvailableCommand) {
   gap: 0;
 }
 .command-name {
-  font-weight: 600;
+  font-weight: var(--weight-title);
   color: var(--border-focus);
-  font-family: var(--font-mono);
-  font-size: var(--text-base);
+  font-family: var(--font-code);
+  font-size: var(--text-body-sm);
   min-width: 110px;
   max-width: 140px;
   flex-shrink: 0;
@@ -188,7 +188,7 @@ function selectCommand(cmd: AvailableCommand) {
 }
 .command-description {
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   margin-left: 18px;
   flex: 1 1 auto;
   white-space: nowrap;

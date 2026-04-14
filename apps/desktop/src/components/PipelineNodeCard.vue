@@ -239,7 +239,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
   border: 1px solid var(--node-status-border, #4b5563);
   border-radius: 8px; overflow: visible;
   transition: border-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
 }
 .pipeline-node:hover {
   background: var(--bg-surface);
@@ -263,7 +263,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
 .header-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .node-title,.type-pill,.node-subtitle,.meta-pill,.preview { overflow: hidden; text-overflow: ellipsis; }
 .status-dot { width: 8px; height: 8px; border-radius: 999px; flex-shrink: 0; }
-.node-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); white-space: nowrap; font-family: var(--font-mono); }
+.node-title { font-size: var(--text-sm); font-weight: var(--weight-title); color: var(--text-primary); white-space: nowrap; font-family: var(--font-code); }
 .type-pill,.meta-pill {
   display: inline-flex; align-items: center; min-height: 18px; padding: 2px 6px; border-radius: 999px;
   font-size: var(--text-xs); line-height: 1.1; white-space: nowrap;
@@ -282,7 +282,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
   white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 4%, transparent); border-radius: 6px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
-.preview-code { font-family: var(--font-mono); }
+.preview-code { font-family: var(--font-code); }
 .pipeline-node :deep(.vue-flow__handle) {
   width: 12px; height: 12px; border: 2px solid var(--bg-main); background: var(--node-accent);
 }

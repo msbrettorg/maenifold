@@ -262,7 +262,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 }
 
 .pipeline-id {
-  font-weight: 500;
+  font-weight: var(--weight-display);
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -281,7 +281,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .pipeline-status {
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: var(--weight-display);
 }
 
 .delete-btn {

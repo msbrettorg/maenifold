@@ -180,7 +180,7 @@ function getResourceBody(block: ContentBlock): string {
   color: var(--border-focus);
   text-decoration: none;
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: var(--weight-display);
 }
 .resource-link-chip:hover { text-decoration: underline; }
 .resource-link-chip__content { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
@@ -190,7 +190,7 @@ function getResourceBody(block: ContentBlock): string {
   gap: 0.375rem;
   color: var(--text-muted);
   font-size: var(--text-xs);
-  font-weight: 400;
+  font-weight: var(--weight-body);
   line-height: 1.1;
 }
 .resource-link-chip__description {
@@ -206,7 +206,7 @@ function getResourceBody(block: ContentBlock): string {
   overflow: hidden;
   color: var(--text-muted);
   text-overflow: ellipsis;
-  font-weight: 400;
+  font-weight: var(--weight-body);
 }
 .resource-block { display: flex; flex-direction: column; gap: 0.5rem; }
 .resource-label { color: var(--text-muted); font-size: var(--text-sm); word-break: break-all; }

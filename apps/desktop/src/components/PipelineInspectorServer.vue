@@ -483,7 +483,7 @@ function copyToClipboard(value: string): void {
 
 <style scoped>
 .panel { padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem; }
-.panel h2 { font-size: var(--text-xl); font-weight: 600; }
+.panel h2 { font-size: var(--text-xl); font-weight: var(--weight-title); }
 .field,.read-block,.output-block,.expert-disclosure { display: flex; flex-direction: column; gap: 0.375rem; color: var(--text-secondary); font-size: var(--text-sm); }
 .read-block pre,.output-block { border: 1px solid var(--border-default); border-radius: 8px; padding: 0.75rem; background: var(--bg-main); }
 .read-block span { padding: 0 0.25rem; color: var(--text-primary); }
@@ -494,7 +494,7 @@ function copyToClipboard(value: string): void {
 .mapping-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .mapping-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .summary-row strong,.copy-row strong,.operator-callout span,.operator-callout code { min-width: 0; word-break: break-word; overflow-wrap: break-word; }
-.mono { font-family: var(--font-mono); word-break: break-word; overflow-wrap: break-word; }
+.mono { font-family: var(--font-code); word-break: break-word; overflow-wrap: break-word; }
 .status-headline { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.875rem; border: 1px solid var(--border-default); border-radius: 10px; background: var(--bg-main); }
 .status-headline__meta { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 .status-headline p { margin: 0; color: var(--text-primary); }

@@ -147,7 +147,7 @@ onBeforeUnmount(() => {
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   cursor: pointer;
 }
 
@@ -194,12 +194,12 @@ onBeforeUnmount(() => {
 }
 
 .nav-label {
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .nav-description {
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .settings-content {

@@ -94,13 +94,13 @@ function handleSelect(methodId: string) {
 
 .dialog-header h3 {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
 }
 
 .close-btn {
   border: none;
   background: transparent;
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   cursor: pointer;
   color: var(--text-secondary);
   padding: 0.25rem;
@@ -117,7 +117,7 @@ function handleSelect(methodId: string) {
 .description {
   margin: 0 0 1rem 0;
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
 }
 
 .auth-methods {
@@ -151,17 +151,17 @@ function handleSelect(methodId: string) {
 }
 
 .method-name {
-  font-weight: 500;
+  font-weight: var(--weight-display);
   color: var(--text-primary);
 }
 
 .method-desc {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
 }
 
 .arrow {
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   color: var(--text-muted);
 }
 
@@ -183,7 +183,7 @@ function handleSelect(methodId: string) {
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
 }
 
 .cancel-btn:hover {

@@ -97,7 +97,7 @@ const dots = computed(() => {
 
 .gate-progress__dot,
 .gate-progress__state {
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 .gate-progress__dot--completed { color: var(--color-status-completed); }
@@ -107,7 +107,7 @@ const dots = computed(() => {
 
 .gate-progress__state {
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   text-transform: lowercase;
 }
 </style>

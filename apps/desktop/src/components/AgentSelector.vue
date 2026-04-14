@@ -102,8 +102,8 @@ function formatAgentOptionLabel(agentName: string): string {
 }
 
 label {
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -113,10 +113,10 @@ select {
   padding: 0.5rem 0.625rem;
   border: 1px solid color-mix(in srgb, var(--border-default) 60%, transparent);
   border-radius: var(--radius-md);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   background: var(--bg-input);
   color: var(--text-primary);
-  font-family: var(--font-sans);
+  font-family: var(--font-body);
 }
 
 option {
@@ -134,7 +134,7 @@ select:disabled {
   padding: 0.75rem;
   background: var(--bg-warning);
   border-radius: 4px;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .config-hint code {
@@ -143,7 +143,7 @@ select:disabled {
   padding: 0.25rem 0.5rem;
   background: var(--bg-code);
   border-radius: 2px;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
   word-break: break-all;
 }
 </style>

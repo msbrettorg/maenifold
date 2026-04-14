@@ -117,7 +117,7 @@ const sections = computed<PreviewSection[]>(() => {
   background: transparent;
   color: var(--text-primary);
   font: inherit;
-  font-weight: 600;
+  font-weight: var(--weight-title);
   cursor: pointer;
 }
 
@@ -140,7 +140,7 @@ const sections = computed<PreviewSection[]>(() => {
 
 .assembly-preview__label {
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: var(--weight-title);
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--text-secondary);

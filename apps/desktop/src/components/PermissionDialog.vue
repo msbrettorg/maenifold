@@ -78,12 +78,12 @@ const queueHint = computed(() =>
 }
 
 .dialog-header .icon {
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
 }
 
 .dialog-header h3 {
   margin: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
 }
 
 .dialog-content {
@@ -95,7 +95,7 @@ const queueHint = computed(() =>
 
 .queue-hint {
   margin: 0 0 1rem;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-secondary);
 }
 </style>

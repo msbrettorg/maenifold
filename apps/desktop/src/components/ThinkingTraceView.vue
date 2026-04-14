@@ -75,8 +75,8 @@ function statusClass(status: string): string {
 <style scoped>
 .trace-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .trace-header, .trace-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.trace-header h3 { margin: 0; font-size: var(--text-base); color: var(--text-primary); }
-.trace-count, .trace-revision { color: var(--text-secondary); font-size: var(--text-xs); }
+.trace-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--text-primary); }
+.trace-count, .trace-revision { color: var(--text-secondary); font-size: var(--text-tiny); }
 .trace-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .trace-card {
   border: 1px solid var(--border-default);
@@ -91,7 +91,7 @@ function statusClass(status: string): string {
 }
 .trace-summary::-webkit-details-marker { display: none; }
 .trace-summary__copy { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.trace-number { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-primary); }
+.trace-number { font-family: var(--font-code); font-size: var(--text-caption); color: var(--text-primary); }
 .trace-status {
   display: inline-flex;
   align-items: center;
@@ -99,8 +99,8 @@ function statusClass(status: string): string {
   padding: 0.2rem 0.55rem;
   border-radius: 999px;
   border: 1px solid transparent;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   white-space: nowrap;
 }
 .trace-status__dot {
@@ -140,15 +140,15 @@ function statusClass(status: string): string {
 }
 .trace-content {
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 .trace-content :deep(*) { margin-top: 0; }
 .trace-content :deep(p:last-child) { margin-bottom: 0; }
 .trace-content :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   background: var(--bg-main);
   border-radius: var(--radius-sm);
   padding: 0.1rem 0.3rem;

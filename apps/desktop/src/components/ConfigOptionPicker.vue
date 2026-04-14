@@ -143,7 +143,7 @@ onUnmounted(() => {
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   cursor: pointer;
   transition: all 0.15s ease;
   max-width: 200px;
@@ -155,19 +155,19 @@ onUnmounted(() => {
 }
 
 .config-option-icon {
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   flex-shrink: 0;
 }
 
 .config-option-name {
-  font-weight: 500;
+  font-weight: var(--weight-display);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .dropdown-arrow {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--text-muted);
   margin-left: 0.25rem;
   flex-shrink: 0;
@@ -203,8 +203,8 @@ onUnmounted(() => {
 
 .dropdown-group-header {
   padding: 0.5rem 0.75rem;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -228,7 +228,7 @@ onUnmounted(() => {
 }
 
 .item-icon {
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   flex-shrink: 0;
   margin-top: 0.125rem;
 }
@@ -240,14 +240,14 @@ onUnmounted(() => {
 
 .item-name {
   display: block;
-  font-weight: 500;
+  font-weight: var(--weight-display);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .item-description {
   display: block;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--text-muted);
   margin-top: 0.125rem;
   line-height: 1.3;
@@ -255,7 +255,7 @@ onUnmounted(() => {
 
 .check-mark {
   color: var(--border-focus);
-  font-weight: bold;
+  font-weight: var(--weight-title);
   margin-left: auto;
   flex-shrink: 0;
 }

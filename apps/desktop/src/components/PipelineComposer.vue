@@ -767,7 +767,7 @@ defineExpose({ deleteSelected, fitView, handleFlowKeyDown });
   background: var(--bg-main);
   color: var(--text-primary);
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: var(--weight-title);
   box-shadow: 0 1px 4px color-mix(in srgb, var(--bg-main) 15%, transparent);
   pointer-events: none;
 }

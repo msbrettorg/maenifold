@@ -234,7 +234,7 @@ function removeManualRow(id: string): void {
 <style scoped>
 .mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border-default); }
 .header { display: flex; flex-direction: column; gap: 0.25rem; }
-.header h3 { font-size: var(--text-base); font-weight: 600; }
+.header h3 { font-size: var(--text-base); font-weight: var(--weight-title); }
 .header p,.status,.empty-copy,.mapping-row small { color: var(--text-secondary); font-size: var(--text-sm); }
 .mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }

@@ -352,7 +352,7 @@ function handleTool(toolName: string): void {
   text-align: left;
   font: inherit;
   font-size: var(--text-base);
-  font-weight: 600;
+  font-weight: var(--weight-title);
   cursor: pointer;
 }
 
@@ -384,7 +384,7 @@ function handleTool(toolName: string): void {
   background: rgba(255, 255, 255, 0.1);
   color: rgba(255, 255, 255, 0.56);
   font-size: var(--text-xs);
-  font-weight: 500;
+  font-weight: var(--weight-display);
   line-height: 1.3;
 }
 
@@ -396,7 +396,7 @@ function handleTool(toolName: string): void {
   padding: 0.2rem 0.8rem 0.35rem;
   color: rgba(255, 255, 255, 0.62);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-title);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }

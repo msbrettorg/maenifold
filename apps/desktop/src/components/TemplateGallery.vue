@@ -191,7 +191,7 @@ function handleIntentInput(): void {
 .gallery-title {
   margin: 0;
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-title);
   color: var(--text-primary);
 }
 
@@ -210,8 +210,8 @@ function handleIntentInput(): void {
 }
 
 .gallery-intent-label {
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
   color: var(--text-secondary);
 }
 
@@ -242,14 +242,14 @@ function handleIntentInput(): void {
 
 .gallery-intent-hint {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
   text-align: center;
 }
 
 .gallery-intent-error {
   margin: 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--color-status-stuck, #e57373);
   text-align: center;
 }
@@ -269,8 +269,8 @@ function handleIntentInput(): void {
 }
 
 .gallery-card-section-label {
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
@@ -309,18 +309,18 @@ function handleIntentInput(): void {
 }
 
 .gallery-card-icon {
-  font-size: var(--text-2xl);
+  font-size: var(--text-headline);
   line-height: 1;
 }
 
 .gallery-card-label {
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
   color: var(--text-primary);
 }
 
 .gallery-card-desc {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--text-muted);
   line-height: 1.3;
 }
@@ -330,8 +330,8 @@ function handleIntentInput(): void {
   display: inline-flex;
   padding: 1px 6px;
   border-radius: 999px;
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-display);
   color: var(--color-accent, #4d8eff);
   background: color-mix(in srgb, var(--color-accent, #4d8eff) 10%, transparent);
 }
@@ -352,8 +352,8 @@ function handleIntentInput(): void {
 }
 
 .gallery-field-label {
-  font-size: var(--text-xs);
-  font-weight: 500;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-display);
   color: var(--text-secondary);
 }
 
@@ -373,11 +373,11 @@ function handleIntentInput(): void {
 
 .gallery-runtime-input-item {
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .gallery-runtime-input-name {
-  font-weight: 500;
+  font-weight: var(--weight-display);
 }
 
 .gallery-runtime-input-required {
@@ -387,7 +387,7 @@ function handleIntentInput(): void {
 .gallery-runtime-input-desc,
 .gallery-runtime-note {
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .gallery-field-input {
@@ -396,7 +396,7 @@ function handleIntentInput(): void {
   border-radius: 6px;
   background: var(--bg-main);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .gallery-field-input:focus {
@@ -412,7 +412,7 @@ function handleIntentInput(): void {
 }
 
 .gallery-agent-warning {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--color-status-stuck, #e57373);
   text-align: center;
 }

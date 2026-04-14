@@ -325,7 +325,7 @@ function currentLabel(field: PreviewField): string {
   min-width: 5.5rem;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -339,7 +339,7 @@ function currentLabel(field: PreviewField): string {
 .warning-note,
 .degraded-note,
 .technical-detail {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .status-message,
@@ -378,8 +378,8 @@ function currentLabel(field: PreviewField): string {
   background: color-mix(in srgb, var(--bg-panel) 82%, transparent);
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   padding: 0.25rem 0.65rem;
   white-space: nowrap;
 }
@@ -410,17 +410,17 @@ function currentLabel(field: PreviewField): string {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
 }
 
 .field-label {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .probe-preview.compact .field-label,
 .probe-preview.compact .option-count {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .preview-select {
@@ -430,13 +430,13 @@ function currentLabel(field: PreviewField): string {
   border-radius: 6px;
   background: color-mix(in srgb, var(--bg-input) 92%, transparent);
   color: var(--text-primary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   opacity: 0.75;
 }
 
 .field-current {
   min-width: 0;
-  font-weight: 500;
+  font-weight: var(--weight-display);
   color: var(--text-primary);
   word-break: break-word;
 }

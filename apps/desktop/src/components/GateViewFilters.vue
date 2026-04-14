@@ -84,7 +84,7 @@ function emitSelect(
   align-items: center;
   gap: 0.5rem;
   white-space: nowrap;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-secondary);
 }
 

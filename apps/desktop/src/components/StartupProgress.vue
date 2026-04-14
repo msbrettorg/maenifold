@@ -116,14 +116,14 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 }
 
 .agent-name {
-  font-weight: 600;
+  font-weight: var(--weight-title);
   color: var(--text-primary);
 }
 
 .elapsed-time {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 .progress-status {
@@ -137,16 +137,16 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 }
 
 .phase-icon {
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
 }
 
 .phase-text {
   color: var(--text-secondary);
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
 }
 
 .first-run-hint {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--text-muted);
   font-style: italic;
   margin-bottom: 0.75rem;
@@ -167,7 +167,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   cursor: pointer;
 }
 
@@ -181,7 +181,7 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
   border-radius: 4px;
   background: transparent;
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   cursor: pointer;
 }
 
@@ -201,8 +201,8 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
 .logs-header {
   padding: 0.375rem 0.5rem;
   background: var(--bg-surface);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border-default);
 }
@@ -212,8 +212,8 @@ const isLongWait = computed(() => props.elapsedSeconds > 10);
   overflow-y: auto;
   padding: 0.5rem;
   background: var(--bg-code);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
 }
 
 .log-line {

@@ -141,7 +141,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   margin-bottom: 0.375rem;
   color: var(--text-secondary);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 .tool-content-unknown,
 .tool-diff-pre,
@@ -165,12 +165,12 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 .diff-line-remove { color: color-mix(in srgb, var(--text-on-accent) 68%, var(--text-error)); }
 .tool-terminal-placeholder,
 .tool-terminal-meta { margin: 0; color: var(--text-secondary); }
-.tool-terminal-status { font-weight: 500; }
+.tool-terminal-status { font-weight: var(--weight-display); }
 .tool-call-payload {
   border: 1px solid color-mix(in srgb, var(--text-secondary) 35%, transparent);
   border-radius: 6px;
   background: var(--bg-panel);
 }
-.tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: 600; cursor: pointer; }
+.tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: var(--weight-title); cursor: pointer; }
 .tool-call-payload pre { margin: 0 0.75rem 0.75rem; }
 </style>

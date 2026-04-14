@@ -94,9 +94,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 }
 
 .config-title {
-  font-family: var(--font-headline, var(--font-sans));
+  font-family: var(--font-display);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-title);
   color: var(--text-primary);
 }
 

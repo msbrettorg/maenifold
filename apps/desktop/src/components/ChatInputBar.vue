@@ -160,7 +160,7 @@ textarea:focus {
   background: var(--border-focus);
   color: var(--text-on-accent);
   font-size: var(--text-base);
-  font-weight: 500;
+  font-weight: var(--weight-display);
   cursor: pointer;
   transition: background 0.15s;
 }

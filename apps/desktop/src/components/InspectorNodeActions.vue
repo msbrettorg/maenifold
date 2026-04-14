@@ -170,5 +170,5 @@ function openPromotionDialog(): void {
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .fork-result { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.75rem; border: 1px solid var(--border-default); border-radius: 8px; background: var(--bg-main); }
 .fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
-.mono { font-family: var(--font-mono); word-break: break-all; }
+.mono { font-family: var(--font-code); word-break: break-all; }
 </style>

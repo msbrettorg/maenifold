@@ -89,12 +89,12 @@ const emit = defineEmits<{
 }
 
 .dialog-icon {
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   line-height: 1;
 }
 
 .dialog-error {
   color: var(--color-status-abandoned);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 </style>

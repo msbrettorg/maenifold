@@ -472,7 +472,7 @@ async function handleDelete(name: string) {
   border-radius: 999px;
   background: var(--bg-panel);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   white-space: nowrap;
 }
 
@@ -483,7 +483,7 @@ async function handleDelete(name: string) {
 .form-group span {
   display: block;
   margin-bottom: 0.25rem;
-  font-weight: 500;
+  font-weight: var(--weight-display);
 }
 
 .form-group input,
@@ -501,7 +501,7 @@ async function handleDelete(name: string) {
 .config-path,
 .agent-summary,
 .summary-count {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .form-error,
@@ -542,14 +542,14 @@ async function handleDelete(name: string) {
 
 .agent-name {
   margin-bottom: 0.25rem;
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .agent-command,
 .config-path {
   display: block;
   word-break: break-all;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 
 .agent-summary {
@@ -580,7 +580,7 @@ async function handleDelete(name: string) {
 }
 
 .empty-detail {
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 @media (max-width: 640px) {

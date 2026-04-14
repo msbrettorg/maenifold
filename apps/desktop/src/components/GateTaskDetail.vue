@@ -183,7 +183,7 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail__eyebrow {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -196,7 +196,10 @@ function formatTimestamp(timestamp: string | null) {
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font: 600 10px/1.4 var(--font-mono);
+  font-family: var(--font-code);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-title);
+  line-height: 1.4;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -258,7 +261,7 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail__section-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -274,7 +277,7 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail__meta dt {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -283,8 +286,8 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail__path dd {
   margin-top: 0.25rem;
   word-break: break-word;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-family: var(--font-code);
+  font-size: var(--text-caption);
 }
 
 .gate-detail__meta--header dd {
@@ -330,7 +333,10 @@ function formatTimestamp(timestamp: string | null) {
   gap: 0.75rem;
   cursor: pointer;
   color: var(--text-secondary);
-  font: 500 var(--text-xs)/1.4 var(--font-mono);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-display);
+  line-height: 1.4;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -378,7 +384,7 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail__history-time,
 .gate-detail__history-meta dt {
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -398,8 +404,8 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail__history-meta dd {
   margin-top: 0.25rem;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-family: var(--font-code);
+  font-size: var(--text-caption);
 }
 
 .gate-detail__markdown {
@@ -432,8 +438,8 @@ function formatTimestamp(timestamp: string | null) {
   border: 1px solid color-mix(in srgb, var(--border-default) 80%, transparent);
   background: color-mix(in srgb, var(--bg-main) 75%, var(--bg-surface));
   color: var(--text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
 }
 
 .gate-detail__markdown :deep(pre) {

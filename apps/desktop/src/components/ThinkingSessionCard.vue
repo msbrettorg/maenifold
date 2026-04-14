@@ -157,13 +157,13 @@ function onAfterLeave(element: Element): void {
   min-width: 0;
 }
 .header-title {
-  font-size: var(--text-base);
-  font-weight: 600;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-title);
   color: var(--thinking-card-heading);
 }
 .session-id {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   color: var(--thinking-card-muted);
   white-space: nowrap;
   overflow: hidden;
@@ -184,7 +184,7 @@ function onAfterLeave(element: Element): void {
   gap: 0.3rem;
   border-radius: 999px;
   padding: 0.2rem 0.5rem;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   line-height: 1.1;
   white-space: nowrap;
 }
@@ -194,7 +194,7 @@ function onAfterLeave(element: Element): void {
 }
 .status-badge {
   border: 1px solid transparent;
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 .status-active {
   background: color-mix(in srgb, var(--color-status-active) 14%, var(--bg-code));
@@ -213,7 +213,7 @@ function onAfterLeave(element: Element): void {
 }
 .expand-indicator {
   color: var(--thinking-card-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   padding-top: 0.35rem;
 }
 .card-body { padding: 0 0.95rem 0.95rem; }
@@ -248,15 +248,15 @@ function onAfterLeave(element: Element): void {
 }
 .conclusion-label {
   margin-bottom: 0.45rem;
-  font-size: var(--text-xs);
-  font-weight: 700;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--thinking-card-badge);
 }
 .empty-state {
   padding: 0.75rem 0;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   color: var(--thinking-card-muted);
 }
 </style>

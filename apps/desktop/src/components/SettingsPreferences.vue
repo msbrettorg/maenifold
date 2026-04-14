@@ -162,7 +162,7 @@ onMounted(async () => {
   padding: 0.35rem 0.6rem;
   background: var(--bg-panel);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 
 .status-chip.saving,
@@ -192,8 +192,8 @@ onMounted(async () => {
   display: block;
   margin-top: 0.75rem;
   word-break: break-all;
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
+  font-family: var(--font-code);
+  font-size: var(--text-caption);
 }
 
 @media (max-width: 640px) {

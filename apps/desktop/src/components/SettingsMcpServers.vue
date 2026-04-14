@@ -258,7 +258,7 @@ function getServerMeta(server: McpServerEntry): string | null {
 .add-btn,.save-btn,.cancel-btn { padding: 0.5rem 0.9rem; }
 .agent-form,.agent-item { padding: 1rem; border-radius: 8px; background: var(--bg-panel); }
 .form-group { display: block; margin-bottom: 0.75rem; }
-.form-group span { display: block; margin-bottom: 0.25rem; font-weight: 500; }
+.form-group span { display: block; margin-bottom: 0.25rem; font-weight: var(--weight-display); }
 .form-group input,.form-group select,.form-group textarea {
   width: 100%;
   padding: 0.5rem;
@@ -268,14 +268,14 @@ function getServerMeta(server: McpServerEntry): string | null {
   color: var(--text-primary);
 }
 .form-group textarea { resize: vertical; }
-.form-group small,.agent-command,.server-meta { font-size: var(--text-sm); }
+.form-group small,.agent-command,.server-meta { font-size: var(--text-caption); }
 .form-error,.delete-btn { color: var(--border-error); }
 .feedback {
   margin: 0;
   padding: 0.75rem 1rem;
   border: 1px solid var(--border-default);
   border-radius: 8px;
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
 }
 .feedback.success {
   border-color: color-mix(in srgb, var(--color-status-completed) 45%, transparent);
@@ -292,12 +292,12 @@ function getServerMeta(server: McpServerEntry): string | null {
 .agent-item { align-items: center; }
 .agent-info { min-width: 0; }
 .agent-name-row { align-items: center; justify-content: flex-start; }
-.agent-name { font-weight: 600; }
+.agent-name { font-weight: var(--weight-title); }
 .agent-command {
   display: block;
   margin-top: 0.25rem;
   word-break: break-all;
-  font-family: var(--font-mono);
+  font-family: var(--font-code);
 }
 .type-badge {
   display: inline-flex;
@@ -306,7 +306,7 @@ function getServerMeta(server: McpServerEntry): string | null {
   border-radius: 999px;
   background: var(--bg-surface);
   color: var(--text-secondary);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   text-transform: lowercase;
 }
 

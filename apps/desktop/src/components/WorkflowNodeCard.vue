@@ -170,7 +170,7 @@ function formatAbsolute(iso: string): string {
   border-left: 3px solid var(--color-status-active);
   padding: 0.875rem 1rem;
   color: var(--workflow-card-text);
-  font-size: var(--text-sm);
+  font-size: var(--text-caption);
   box-shadow: 0 2px 8px color-mix(in srgb, var(--bg-main) 35%, transparent);
   display: flex;
   flex-direction: column;
@@ -193,7 +193,7 @@ function formatAbsolute(iso: string): string {
 }
 
 .workflow-emoji {
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   flex-shrink: 0;
 }
 
@@ -204,8 +204,8 @@ function formatAbsolute(iso: string): string {
 }
 
 .workflow-name {
-  font-weight: 600;
-  font-size: var(--text-sm);
+  font-weight: var(--weight-title);
+  font-size: var(--text-caption);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -213,14 +213,14 @@ function formatAbsolute(iso: string): string {
 }
 
 .session-id {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
   color: var(--workflow-card-muted);
   white-space: nowrap;
 }
 
 .status-badge {
-  font-size: var(--text-base);
+  font-size: var(--text-body-sm);
   flex-shrink: 0;
 }
 
@@ -240,7 +240,7 @@ function formatAbsolute(iso: string): string {
 }
 
 .progress-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--workflow-card-muted);
   text-align: right;
   margin-top: -0.25rem;
@@ -271,14 +271,14 @@ function formatAbsolute(iso: string): string {
 }
 
 .timing-label {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--workflow-card-subtle);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
 .timing-value {
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   color: var(--workflow-card-muted);
 }
 </style>

@@ -91,7 +91,7 @@ function copyPayload() {
 .timestamp,
 .type-label {
   color: var(--text-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .direction-icon {
@@ -114,13 +114,13 @@ function copyPayload() {
 
 .method {
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: var(--weight-title);
 }
 
 .request-id {
   margin-left: auto;
   color: var(--border-focus);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
 }
 
 .copy-btn {
@@ -128,7 +128,7 @@ function copyPayload() {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -146,7 +146,7 @@ function copyPayload() {
 .entry-payload pre {
   margin: 0;
   color: var(--text-code);
-  font-size: var(--text-xs);
+  font-size: var(--text-tiny);
   white-space: pre-wrap;
   word-break: break-all;
 }

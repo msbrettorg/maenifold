@@ -38,7 +38,7 @@ defineEmits<{
 
 .error-icon {
   flex-shrink: 0;
-  font-size: var(--text-xl);
+  font-size: var(--text-title);
   line-height: 1.3;
 }
 
@@ -50,15 +50,15 @@ defineEmits<{
 .error-title {
   margin: 0 0 0.25rem;
   color: var(--tree-error-text);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
 }
 
 .error-detail {
   margin: 0;
   color: var(--tree-error-detail);
-  font-size: var(--text-sm);
-  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  font-family: var(--font-code);
   overflow-wrap: anywhere;
 }
 
@@ -71,8 +71,8 @@ defineEmits<{
   padding: 0.375rem 0.75rem;
   color: var(--tree-error-text);
   cursor: pointer;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
   white-space: nowrap;
   transition: background 0.15s ease;
 }

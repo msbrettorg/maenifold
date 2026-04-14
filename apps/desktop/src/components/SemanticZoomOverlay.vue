@@ -331,9 +331,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   background: var(--surface-container-highest, #353534);
 }
 .zoom-header-left { display: flex; align-items: center; gap: var(--space-2); }
-.zoom-node-id { font-family: var(--font-mono); font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); }
+.zoom-node-id { font-family: var(--font-code); font-size: var(--text-caption); font-weight: var(--weight-title); color: var(--text-primary); }
 .zoom-type-pill {
-  font-size: var(--text-xs); padding: 2px 8px; border-radius: 999px;
+  font-size: var(--text-tiny); padding: 2px 8px; border-radius: 999px;
   color: var(--text-primary);
   background: color-mix(in srgb, var(--color-node-workflow) 15%, transparent);
 }
@@ -341,7 +341,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 .zoom-type--sequentialThinking { background: color-mix(in srgb, var(--color-node-thinking) 15%, transparent); }
 .zoom-type--tool { background: color-mix(in srgb, var(--color-node-tool) 15%, transparent); }
 .zoom-status {
-  font-size: var(--text-xs); padding: 2px 6px; border-radius: 999px;
+  font-size: var(--text-tiny); padding: 2px 6px; border-radius: 999px;
   color: var(--text-secondary);
   background: color-mix(in srgb, var(--color-status-pending) 15%, transparent);
 }
@@ -351,7 +351,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 .zoom-status--ready { background: color-mix(in srgb, var(--color-status-ready) 15%, transparent); color: var(--color-status-ready); }
 .zoom-close {
   background: none; border: none; color: var(--text-muted);
-  font-size: var(--text-xl); cursor: pointer; padding: var(--space-1);
+  font-size: var(--text-title); cursor: pointer; padding: var(--space-1);
   line-height: 1; border-radius: var(--radius-sm);
 }
 .zoom-close:hover { color: var(--text-primary); background: var(--bg-surface); }
@@ -378,17 +378,17 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   border-radius: 8px;
   background: var(--bg-main);
 }
-.zoom-fork-result span { color: var(--text-secondary); font-size: var(--text-sm); }
+.zoom-fork-result span { color: var(--text-secondary); font-size: var(--text-caption); }
 .zoom-section-title {
-  font-family: var(--font-headline, var(--font-sans));
-  font-size: var(--text-sm); font-weight: 600; color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: var(--text-caption); font-weight: var(--weight-title); color: var(--text-primary);
   cursor: pointer; padding: var(--space-2) 0; list-style: none;
 }
 .zoom-section-title::before { content: '▸ '; }
 .zoom-section[open] > .zoom-section-title::before { content: '▾ '; }
 .zoom-pre {
   margin: var(--space-2) 0 0; padding: var(--space-3);
-  font-family: var(--font-mono); font-size: var(--text-xs); line-height: 1.5;
+  font-family: var(--font-code); font-size: var(--text-tiny); line-height: 1.5;
   color: var(--text-secondary); background: var(--bg-main);
   border-radius: var(--radius-md); white-space: pre-wrap; word-break: break-word;
   max-height: 300px; overflow-y: auto;
@@ -405,8 +405,8 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   gap: var(--space-2);
   margin-top: var(--space-2);
 }
-.zoom-mono { font-family: var(--font-mono); word-break: break-all; }
-.item-label { font-family: var(--font-mono); font-size: var(--text-xs); font-weight: 600; color: var(--text-primary); }
-.item-status { font-size: var(--text-xs); color: var(--text-muted); }
-.zoom-empty { padding: var(--space-8); text-align: center; color: var(--text-muted); font-size: var(--text-sm); }
+.zoom-mono { font-family: var(--font-code); word-break: break-all; }
+.item-label { font-family: var(--font-code); font-size: var(--text-tiny); font-weight: var(--weight-title); color: var(--text-primary); }
+.item-status { font-size: var(--text-tiny); color: var(--text-muted); }
+.zoom-empty { padding: var(--space-8); text-align: center; color: var(--text-muted); font-size: var(--text-caption); }
 </style>

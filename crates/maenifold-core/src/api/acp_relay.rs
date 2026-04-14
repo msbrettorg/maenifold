@@ -209,6 +209,11 @@ async fn handle_incoming(
             handle_session_new(relay, session, params, id.clone().unwrap())
                 .map(|result| rpc_ok(id.unwrap(), result)),
         ),
+        "session/load" if id.is_some() => Some(
+            handle_session_load(relay, session, params, id.clone().unwrap())
+                .await
+                .map(|result| rpc_ok(id.unwrap(), result)),
+        ),
         "session/prompt" if id.is_some() => match handle_prompt(
             relay,
             session,
@@ -275,6 +280,13 @@ async fn handle_initialize(
         let (config_options, modes, session_id) = rx
             .await
             .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+        if session_id.is_empty() {
+            return Err(rpc_error(
+                request_id,
+                -32603,
+                "Agent initialization failed — check agent configuration and binary path",
+            ));
+        }
         *session = Some(RelaySession {
             app_session_id,
             session_id,
@@ -287,7 +299,7 @@ async fn handle_initialize(
     Ok(json!({
         "protocolVersion": 1,
         "agentCapabilities": {
-            "loadSession": false,
+            "loadSession": true,
             "promptCapabilities": { "image": false, "audio": false, "embeddedContext": true },
             "sessionCapabilities": {},
             "_meta": { "maenifold/extensions": { "supportedAgentMethods": ["session/set_config_option"] } }
@@ -319,6 +331,87 @@ fn handle_session_new(
             &relay.agent_name,
         ),
         "modes": build_modes(&active.modes),
+    }))
+}
+
+async fn handle_session_load(
+    relay: &RelayConfig,
+    session: &mut Option<RelaySession>,
+    params: Value,
+    request_id: Value,
+) -> Result<Value, Value> {
+    let active = session.as_ref().ok_or_else(|| {
+        rpc_error(
+            request_id.clone(),
+            -32600,
+            "initialize must be called before session/load",
+        )
+    })?;
+    let requested_session_id = params
+        .get("sessionId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| rpc_error(request_id.clone(), -32602, "missing sessionId"))?
+        .to_string();
+    let app_session_id = active.app_session_id.clone();
+    let cwd = active.cwd.clone();
+
+    // Reset the current connection so the pool key is free for re-prewarm
+    let (reset_tx, reset_rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Reset {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            role_name: relay.agent_name.clone(),
+            app_session_id: app_session_id.clone(),
+            result_tx: reset_tx,
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+    let _ = reset_rx.await;
+
+    // Re-prewarm with the requested session to resume
+    let (tx, rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Prewarm {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            binary: relay.adapter.binary.clone(),
+            args: relay.adapter.args.clone(),
+            env: relay.adapter.env.clone(),
+            role_name: relay.agent_name.clone(),
+            app_session_id: app_session_id.clone(),
+            cwd: cwd.clone(),
+            auto_approve: true,
+            mcp_servers: vec![],
+            role_mode: None,
+            role_config_options: vec![],
+            result_tx: Some(tx),
+            resume_session_id: Some(requested_session_id),
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+    let (config_options, modes, session_id) = rx
+        .await
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+    if session_id.is_empty() {
+        return Err(rpc_error(
+            request_id,
+            -32603,
+            "session/load failed — agent did not return a session",
+        ));
+    }
+    *session = Some(RelaySession {
+        app_session_id: app_session_id.clone(),
+        session_id: session_id.clone(),
+        cwd,
+        config_options: config_options.clone(),
+        modes: modes.clone(),
+    });
+    Ok(json!({
+        "sessionId": session_id,
+        "configOptions": config_options,
+        "availableCommands": jockey::acp::list_available_commands(
+            &app_session_id,
+            &relay.adapter.runtime_key,
+            &relay.agent_name,
+        ),
+        "modes": build_modes(&modes),
     }))
 }
 
@@ -356,7 +449,7 @@ fn handle_prompt(
     }
     let (prompt, context) =
         prompt_parts(&request).map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
-    let (event_tx, event_rx) = mpsc::channel(64);
+    let (event_tx, event_rx) = mpsc::channel(512);
     let (tx, rx) = oneshot::channel();
     jockey::acp::worker_tx()
         .send(jockey::acp::WorkerMsg::Execute {

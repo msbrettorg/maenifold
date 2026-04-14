@@ -9,7 +9,7 @@
 //!
 //! `--mcp` mode never enters this module — it remains fully headless.
 
-use crate::tray_menu::{build_tray_menu, endophasia_url, toggle_login_item};
+use crate::tray_menu::{CoreTrayMenuState, build_tray_menu, endophasia_url, toggle_login_item};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
@@ -93,31 +93,42 @@ fn resolve_open_url(
 // ── TrayApp (winit ApplicationHandler) ────────────────────────────────
 
 /// State for the winit `ApplicationHandler` that drives the tray icon.
-struct TrayApp {
-    mode: ServerMode,
-    shutdown_token: CancellationToken,
-    server_handle: Option<std::thread::JoinHandle<i32>>,
-    // Tray state — initialised in `new_events` when `cause == StartCause::Init`.
-    tray_icon: Option<tray_icon::TrayIcon>,
-    quit_id: Option<MenuId>,
+pub struct TrayApp<Mode, State> {
+    pub mode: Mode,
+    pub shutdown_token: CancellationToken,
+    pub server_handle: Option<std::thread::JoinHandle<i32>>,
+    pub tray_icon: Option<tray_icon::TrayIcon>,
+    pub quit_id: Option<MenuId>,
+    pub exit_code: i32,
+    pub state: State,
+}
+
+#[derive(Default)]
+struct CoreTrayState {
     endophasia_id: Option<MenuId>,
     help_id: Option<MenuId>,
     login_id: Option<MenuId>,
     restart_id: Option<MenuId>,
     login_item: Option<MenuItem>,
     restart_on_exit: bool,
-    exit_code: i32,
 }
 
-impl TrayApp {
+impl TrayApp<ServerMode, CoreTrayState> {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
         let menu_state = build_tray_menu();
+        let CoreTrayMenuState {
+            endophasia_id,
+            help_id,
+            login_id,
+            restart_id,
+            login_item,
+        } = menu_state.state;
         self.quit_id = Some(menu_state.quit_id);
-        self.endophasia_id = Some(menu_state.endophasia_id);
-        self.help_id = Some(menu_state.help_id);
-        self.login_id = Some(menu_state.login_id);
-        self.restart_id = menu_state.restart_id;
-        self.login_item = Some(menu_state.login_item);
+        self.state.endophasia_id = Some(endophasia_id);
+        self.state.help_id = Some(help_id);
+        self.state.login_id = Some(login_id);
+        self.state.restart_id = restart_id;
+        self.state.login_item = Some(login_item);
 
         let icon = build_icon();
         match TrayIconBuilder::new()
@@ -160,12 +171,13 @@ impl TrayApp {
 
         if let Some(url) = resolve_open_url(
             &event.id,
-            self.endophasia_id.as_ref(),
-            self.help_id.as_ref(),
+            self.state.endophasia_id.as_ref(),
+            self.state.help_id.as_ref(),
             self.mode,
         ) {
             if let Err(err) = open_url(&url) {
                 let label = if self
+                    .state
                     .endophasia_id
                     .as_ref()
                     .is_some_and(|id| event.id == *id)
@@ -179,21 +191,31 @@ impl TrayApp {
             return;
         }
 
-        if self.restart_id.as_ref().is_some_and(|id| event.id == *id) {
-            self.restart_on_exit = true;
+        if self
+            .state
+            .restart_id
+            .as_ref()
+            .is_some_and(|id| event.id == *id)
+        {
+            self.state.restart_on_exit = true;
             self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
             return;
         }
 
-        if self.login_id.as_ref().is_some_and(|id| event.id == *id) {
-            toggle_login_item(self.mode.port(), self.login_item.as_ref());
+        if self
+            .state
+            .login_id
+            .as_ref()
+            .is_some_and(|id| event.id == *id)
+        {
+            toggle_login_item(self.mode.port(), self.state.login_item.as_ref());
         }
     }
 }
 
-impl ApplicationHandler for TrayApp {
+impl ApplicationHandler for TrayApp<ServerMode, CoreTrayState> {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         if matches!(cause, StartCause::Init) {
             self.initialize_tray(event_loop);
@@ -287,13 +309,8 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         server_handle: Some(server_handle),
         tray_icon: None,
         quit_id: None,
-        endophasia_id: None,
-        help_id: None,
-        login_id: None,
-        restart_id: None,
-        login_item: None,
-        restart_on_exit: false,
         exit_code: 0,
+        state: CoreTrayState::default(),
     };
 
     if let Err(err) = event_loop.run_app(&mut app) {
@@ -310,7 +327,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
 
     // Spawn replacement process AFTER the server thread has joined
     // (and thus released the listening port).
-    if app.restart_on_exit {
+    if app.state.restart_on_exit {
         match std::env::current_exe() {
             Ok(exe) => {
                 let args: Vec<String> = std::env::args().skip(1).collect();

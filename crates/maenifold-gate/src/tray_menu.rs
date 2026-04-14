@@ -1,5 +1,6 @@
 use std::path::Path;
 
+use maenifold_core::tray_menu::TrayMenuState;
 use tray_icon::menu::{Menu, MenuId, MenuItem};
 
 #[cfg(target_os = "macos")]
@@ -15,16 +16,17 @@ fn get_uid() -> u32 {
     unsafe { libc::getuid() }
 }
 
-pub(crate) struct TrayMenuState {
-    pub menu: Menu,
-    pub quit_id: MenuId,
+pub(crate) struct GateTrayMenuState {
     pub open_ui_id: Option<MenuId>,
     pub open_item: Option<MenuItem>,
     pub login_id: Option<MenuId>,
     pub login_item: Option<MenuItem>,
 }
 
-pub(crate) fn build_tray_menu(mode: GateServerMode, has_root: bool) -> TrayMenuState {
+pub(crate) fn build_tray_menu(
+    mode: GateServerMode,
+    has_root: bool,
+) -> TrayMenuState<GateTrayMenuState> {
     let menu = Menu::new();
     let open_item = MenuItem::new("Open Gate UI", open_ui_enabled(has_root), None);
     let _ = menu.append(&open_item);
@@ -56,10 +58,12 @@ pub(crate) fn build_tray_menu(mode: GateServerMode, has_root: bool) -> TrayMenuS
     TrayMenuState {
         menu,
         quit_id: quit_item.id().clone(),
-        open_ui_id,
-        open_item: Some(open_item),
-        login_id,
-        login_item,
+        state: GateTrayMenuState {
+            open_ui_id,
+            open_item: Some(open_item),
+            login_id,
+            login_item,
+        },
     }
 }
 

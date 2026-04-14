@@ -3,8 +3,9 @@ use std::sync::{Arc, RwLock};
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+use maenifold_core::tray::TrayApp;
 use tokio_util::sync::CancellationToken;
-use tray_icon::menu::MenuEvent;
+use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
 use winit::event::StartCause;
@@ -15,7 +16,9 @@ use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
 
 use crate::file_watcher::GateFileWatcher;
 use crate::mcp::GateMcpServer;
-use crate::tray_menu::{build_tray_menu, open_ui, set_open_ui_enabled, toggle_login_item};
+use crate::tray_menu::{
+    GateTrayMenuState, build_tray_menu, open_ui, set_open_ui_enabled, toggle_login_item,
+};
 
 const ROOT_STATE_POLL_MS: u64 = 100;
 
@@ -34,20 +37,18 @@ impl GateServerMode {
     }
 }
 
-struct TrayApp {
-    mode: GateServerMode,
+struct GateTrayState {
     root: Arc<RwLock<Option<PathBuf>>>,
-    shutdown_token: CancellationToken,
+    open_ui_id: Option<MenuId>,
+    open_item: Option<MenuItem>,
+    login_id: Option<MenuId>,
+    login_item: Option<MenuItem>,
+}
+
+struct GateTrayApp {
+    tray: TrayApp<GateServerMode, GateTrayState>,
     _file_watcher: Option<GateFileWatcher>,
-    server_handle: Option<std::thread::JoinHandle<i32>>,
     root_monitor: Option<JoinHandle<()>>,
-    tray_icon: Option<tray_icon::TrayIcon>,
-    quit_id: Option<tray_icon::menu::MenuId>,
-    open_ui_id: Option<tray_icon::menu::MenuId>,
-    open_item: Option<tray_icon::menu::MenuItem>,
-    login_id: Option<tray_icon::menu::MenuId>,
-    login_item: Option<tray_icon::menu::MenuItem>,
-    exit_code: i32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -55,29 +56,35 @@ enum TrayUserEvent {
     RootAvailabilityChanged(bool),
 }
 
-impl TrayApp {
+impl GateTrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
-        let has_root = self.root.read().unwrap().is_some();
-        let menu_state = build_tray_menu(self.mode, has_root);
-        self.quit_id = Some(menu_state.quit_id);
-        self.open_ui_id = menu_state.open_ui_id;
-        self.open_item = menu_state.open_item;
-        self.login_id = menu_state.login_id;
-        self.login_item = menu_state.login_item;
+        let has_root = self.tray.state.root.read().unwrap().is_some();
+        let menu_state = build_tray_menu(self.tray.mode, has_root);
+        let GateTrayMenuState {
+            open_ui_id,
+            open_item,
+            login_id,
+            login_item,
+        } = menu_state.state;
+        self.tray.quit_id = Some(menu_state.quit_id);
+        self.tray.state.open_ui_id = open_ui_id;
+        self.tray.state.open_item = open_item;
+        self.tray.state.login_id = login_id;
+        self.tray.state.login_item = login_item;
 
         match TrayIconBuilder::new()
             .with_menu(Box::new(menu_state.menu))
-            .with_tooltip(tooltip_for_mode(self.mode))
+            .with_tooltip(tooltip_for_mode(self.tray.mode))
             .with_icon(build_icon())
             .build()
         {
             Ok(tray_icon) => {
-                self.tray_icon = Some(tray_icon);
+                self.tray.tray_icon = Some(tray_icon);
             }
             Err(err) => {
                 eprintln!("Warning: failed to create gate tray icon: {err}");
-                self.shutdown_token.cancel();
-                self.exit_code = 1;
+                self.tray.shutdown_token.cancel();
+                self.tray.exit_code = 1;
                 event_loop.exit();
                 return;
             }
@@ -96,33 +103,44 @@ impl TrayApp {
         event_loop: &ActiveEventLoop,
         event: tray_icon::menu::MenuEvent,
     ) {
-        if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
-            self.shutdown_token.cancel();
-            self.tray_icon.take();
+        if self.tray.quit_id.as_ref().is_some_and(|id| event.id == *id) {
+            self.tray.shutdown_token.cancel();
+            self.tray.tray_icon.take();
             event_loop.exit();
             return;
         }
 
-        if self.open_ui_id.as_ref().is_some_and(|id| event.id == *id) {
-            let root = self.root.read().unwrap().clone();
+        if self
+            .tray
+            .state
+            .open_ui_id
+            .as_ref()
+            .is_some_and(|id| event.id == *id)
+        {
+            let root = self.tray.state.root.read().unwrap().clone();
             open_ui(root.as_deref());
             return;
         }
 
-        if self.login_id.as_ref().is_some_and(|id| event.id == *id)
-            && let Some(port) = self.mode.port()
+        if self
+            .tray
+            .state
+            .login_id
+            .as_ref()
+            .is_some_and(|id| event.id == *id)
+            && let Some(port) = self.tray.mode.port()
         {
-            let root = self.root.read().unwrap().clone();
-            toggle_login_item(port, root.as_deref(), self.login_item.as_ref());
+            let root = self.tray.state.root.read().unwrap().clone();
+            toggle_login_item(port, root.as_deref(), self.tray.state.login_item.as_ref());
         }
     }
 
     fn handle_root_availability_changed(&mut self, has_root: bool) {
-        set_open_ui_enabled(self.open_item.as_ref(), has_root);
+        set_open_ui_enabled(self.tray.state.open_item.as_ref(), has_root);
     }
 }
 
-impl ApplicationHandler<TrayUserEvent> for TrayApp {
+impl ApplicationHandler<TrayUserEvent> for GateTrayApp {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         if matches!(cause, StartCause::Init) {
             self.initialize_tray(event_loop);
@@ -133,12 +151,13 @@ impl ApplicationHandler<TrayUserEvent> for TrayApp {
         }
 
         if self
+            .tray
             .server_handle
             .as_ref()
             .is_some_and(|handle| handle.is_finished())
         {
-            self.shutdown_token.cancel();
-            self.tray_icon.take();
+            self.tray.shutdown_token.cancel();
+            self.tray.tray_icon.take();
             event_loop.exit();
         }
     }
@@ -217,30 +236,34 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
             shutdown_token.clone(),
             event_loop.create_proxy(),
         );
-        let mut app = TrayApp {
-            mode,
-            root,
-            shutdown_token,
+        let mut app = GateTrayApp {
+            tray: TrayApp {
+                mode,
+                shutdown_token,
+                server_handle: Some(server_handle),
+                tray_icon: None,
+                quit_id: None,
+                exit_code: 0,
+                state: GateTrayState {
+                    root,
+                    open_ui_id: None,
+                    open_item: None,
+                    login_id: None,
+                    login_item: None,
+                },
+            },
             _file_watcher: Some(file_watcher),
-            server_handle: Some(server_handle),
             root_monitor: Some(root_monitor),
-            tray_icon: None,
-            quit_id: None,
-            open_ui_id: None,
-            open_item: None,
-            login_id: None,
-            login_item: None,
-            exit_code: 0,
         };
 
         if let Err(err) = event_loop.run_app(&mut app) {
             eprintln!("Error running gate tray event loop: {err}");
-            app.shutdown_token.cancel();
-            app.exit_code = 1;
+            app.tray.shutdown_token.cancel();
+            app.tray.exit_code = 1;
         }
-        app.shutdown_token.cancel();
+        app.tray.shutdown_token.cancel();
 
-        let server_exit_code = match app.server_handle.take() {
+        let server_exit_code = match app.tray.server_handle.take() {
             Some(handle) => handle.join().unwrap_or(1),
             None => 1,
         };
@@ -248,8 +271,8 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
             let _ = handle.join();
         }
 
-        if app.exit_code != 0 {
-            app.exit_code
+        if app.tray.exit_code != 0 {
+            app.tray.exit_code
         } else {
             server_exit_code
         }

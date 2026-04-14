@@ -14,9 +14,13 @@ fn get_uid() -> u32 {
     unsafe { libc::getuid() }
 }
 
-pub(crate) struct TrayMenuState {
+pub struct TrayMenuState<State> {
     pub menu: Menu,
     pub quit_id: MenuId,
+    pub state: State,
+}
+
+pub(crate) struct CoreTrayMenuState {
     pub endophasia_id: MenuId,
     pub help_id: MenuId,
     pub login_id: MenuId,
@@ -24,7 +28,7 @@ pub(crate) struct TrayMenuState {
     pub login_item: MenuItem,
 }
 
-pub(crate) fn build_tray_menu() -> TrayMenuState {
+pub(crate) fn build_tray_menu() -> TrayMenuState<CoreTrayMenuState> {
     let menu = Menu::new();
     let login_enabled = is_login_enabled();
     let endophasia_item = MenuItem::new(ENDOPHASIA_MENU_TITLE, true, None);
@@ -55,11 +59,13 @@ pub(crate) fn build_tray_menu() -> TrayMenuState {
     TrayMenuState {
         menu,
         quit_id: quit_item.id().clone(),
-        endophasia_id: endophasia_item.id().clone(),
-        help_id: help_item.id().clone(),
-        login_id: login_item.id().clone(),
-        restart_id: restart_item.map(|item| item.id().clone()),
-        login_item,
+        state: CoreTrayMenuState {
+            endophasia_id: endophasia_item.id().clone(),
+            help_id: help_item.id().clone(),
+            login_id: login_item.id().clone(),
+            restart_id: restart_item.map(|item| item.id().clone()),
+            login_item,
+        },
     }
 }
 

@@ -3422,6 +3422,7 @@ dependencies = [
  "egui_extras",
  "indexmap",
  "libc",
+ "maenifold-core",
  "notify",
  "objc2-core-foundation",
  "predicates",

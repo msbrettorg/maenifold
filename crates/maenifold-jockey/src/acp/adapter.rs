@@ -58,7 +58,7 @@ pub fn set_config_root(path: PathBuf) {
     }
 }
 
-pub(super) fn config_root() -> PathBuf {
+pub fn config_root() -> PathBuf {
     CONFIG_ROOT
         .read()
         .ok()
@@ -67,14 +67,15 @@ pub(super) fn config_root() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
 }
 
-pub(super) struct StdioAdapterSpec {
-    pub(super) runtime_key: String,
-    pub(super) binary: String,
-    pub(super) args: Vec<String>,
-    pub(super) env: Vec<(String, String)>,
+#[derive(Clone)]
+pub struct StdioAdapterSpec {
+    pub runtime_key: String,
+    pub binary: String,
+    pub args: Vec<String>,
+    pub env: Vec<(String, String)>,
 }
 
-pub(super) fn build_stdio_adapter(runtime: &str) -> Result<Option<StdioAdapterSpec>, String> {
+pub fn build_stdio_adapter(runtime: &str) -> Result<Option<StdioAdapterSpec>, String> {
     build_stdio_adapter_with_root(runtime, &config_root())
 }
 
@@ -176,7 +177,7 @@ pub(super) fn friendly_error_message(runtime: &str, raw: &str) -> String {
     format!("[{runtime}] {raw}")
 }
 
-pub(super) fn resolve_cwd(cwd: &str) -> String {
+pub fn resolve_cwd(cwd: &str) -> String {
     let p = std::path::Path::new(cwd);
     let abs = if p.is_absolute() {
         p.to_path_buf()

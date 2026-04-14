@@ -4,7 +4,10 @@ mod runtime_state;
 mod session;
 mod worker;
 
-pub use adapter::{clear_adapter_cache, probe_runtime, set_config_root};
+pub use adapter::{
+    StdioAdapterSpec, build_stdio_adapter, clear_adapter_cache, config_root, probe_runtime,
+    resolve_cwd, set_config_root,
+};
 pub use runtime_state::{
     list_available_commands, list_discovered_config_options, list_discovered_models,
     list_discovered_modes,
@@ -16,5 +19,5 @@ pub use session::{
 };
 pub use worker::{
     respond_to_permission, set_death_event_sender, set_prewarm_event_sender, shutdown,
-    AcpPromptResult, ConnectionDeathEvent, PrewarmEvent,
+    worker_tx, AcpEvent, AcpPromptResult, ConnectionDeathEvent, PrewarmEvent, WorkerMsg,
 };

@@ -3,6 +3,7 @@ use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use axum::Router;
+use axum::routing::get;
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
@@ -11,10 +12,15 @@ use std::sync::Arc;
 pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, NeverSessionManager>;
 
 pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
+    let relay_state = state.clone();
     Router::new()
         .nest_service("/mcp", service)
         .merge(api_routes(state.clone()))
         .merge(endophasia_routes(state))
+        .route(
+            "/api/acp/session",
+            get(crate::api::acp_relay::ws_handler).with_state(relay_state),
+        )
 }
 
 // Stateless MCP service — no session affinity, no keepalive timeout, no

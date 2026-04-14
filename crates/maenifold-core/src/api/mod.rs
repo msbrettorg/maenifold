@@ -1,3 +1,4 @@
+pub mod acp_relay;
 pub(crate) mod config_manager;
 pub(crate) mod config_watch;
 pub(crate) mod endophasia_communities;

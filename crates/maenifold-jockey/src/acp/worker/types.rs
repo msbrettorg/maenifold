@@ -108,7 +108,7 @@ pub enum AcpEvent {
 
 // ── Worker message channel ────────────────────────────────────────────────────
 
-pub(crate) enum WorkerMsg {
+pub enum WorkerMsg {
     Execute {
         runtime_key: String,
         binary: String,

@@ -7,15 +7,13 @@ mod types;
 pub use crate::runtime_kind::RuntimeKind;
 pub use notify::{set_death_event_sender, set_prewarm_event_sender};
 pub use permission::respond_to_permission;
-pub use types::{AcpEvent, AcpPromptResult, ConnectionDeathEvent, PrewarmEvent};
+pub use types::{AcpEvent, AcpPromptResult, ConnectionDeathEvent, PrewarmEvent, WorkerMsg};
 
 pub(crate) use permission::permission_requests;
 pub(crate) use pool::{
     pool_key, register_child_pid, DeltaSlot, LiveConnection, CANCEL_HANDLES, CONN_MAP,
     DELTA_CHANNEL_CAPACITY,
 };
-pub(crate) use types::WorkerMsg;
-
 use handlers::{
     handle_execute, handle_prewarm, reconnect_worker_session, reset_worker_session,
     shutdown_worker_state,
@@ -29,7 +27,7 @@ use agent_client_protocol::Agent as _;
 
 static WORKER_TX: OnceLock<mpsc::UnboundedSender<WorkerMsg>> = OnceLock::new();
 
-pub(crate) fn worker_tx() -> &'static mpsc::UnboundedSender<WorkerMsg> {
+pub fn worker_tx() -> &'static mpsc::UnboundedSender<WorkerMsg> {
     WORKER_TX.get_or_init(|| {
         let (tx, rx) = mpsc::unbounded_channel::<WorkerMsg>();
         std::thread::spawn(move || {

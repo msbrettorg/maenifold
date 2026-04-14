@@ -24,6 +24,8 @@ pub(super) struct PipelineNodeWire {
     #[serde(skip_serializing_if = "Option::is_none")]
     prompt: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    cwd: Option<std::path::PathBuf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     agent: Option<String>,
     #[serde(
         default,
@@ -114,6 +116,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
             },
@@ -128,6 +131,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
             },
@@ -141,6 +145,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 thought_level: wire.thought_level,
                 allowed_tools: wire.allowed_tools,
                 max_turns: wire.max_turns,
+                cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
             },
@@ -172,6 +177,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id: Some(workflow_id),
                 acp_client,
                 prompt,
+                cwd: None,
                 agent: None,
                 agent_config,
                 tool_mode: default_prompt_tool_mode(),
@@ -196,6 +202,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                cwd,
                 timeout,
                 agent_config,
             } => Self {
@@ -205,6 +212,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id: None,
                 acp_client: None,
                 prompt: Some(prompt),
+                cwd,
                 agent: Some(agent),
                 agent_config,
                 tool_mode,
@@ -230,6 +238,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                cwd,
                 timeout,
                 agent_config,
             } => Self {
@@ -239,6 +248,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id: None,
                 acp_client: None,
                 prompt: None,
+                cwd,
                 agent: Some(agent),
                 agent_config,
                 tool_mode: default_prompt_tool_mode(),
@@ -263,6 +273,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 thought_level,
                 allowed_tools,
                 max_turns,
+                cwd,
                 timeout,
                 agent_config,
             } => Self {
@@ -272,6 +283,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 workflow_id: None,
                 acp_client: None,
                 prompt: None,
+                cwd,
                 agent,
                 agent_config,
                 tool_mode: default_prompt_tool_mode(),
@@ -340,6 +352,7 @@ mod tests {
             thought_level: None,
             allowed_tools: None,
             max_turns: None,
+            cwd: None,
             timeout: Some(21),
             agent_config: None,
         };
@@ -369,6 +382,31 @@ mod tests {
 
         let value = serde_json::to_value(node).expect("serialize prompt node");
         assert_eq!(value["displayLabel"], json!("Prompt label"));
+    }
+
+    #[test]
+    fn prompt_node_round_trips_cwd() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "id": "prompt",
+            "type": "prompt",
+            "prompt": "Say hi",
+            "agent": "agent",
+            "cwd": "/tmp/workspace"
+        }))
+        .expect("deserialize prompt node");
+
+        match &node {
+            PipelineNode::Prompt { cwd, .. } => {
+                assert_eq!(
+                    cwd.as_deref().and_then(|path| path.to_str()),
+                    Some("/tmp/workspace")
+                );
+            }
+            other => panic!("expected prompt node, got {other:?}"),
+        }
+
+        let value = serde_json::to_value(node).expect("serialize prompt node");
+        assert_eq!(value["cwd"], json!("/tmp/workspace"));
     }
 
     #[test]

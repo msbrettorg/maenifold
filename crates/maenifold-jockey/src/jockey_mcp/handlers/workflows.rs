@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use crate::db::workflow::{
     create_workflow_internal, delete_workflow_internal, list_workflows_internal, load_workflow,
@@ -26,7 +26,10 @@ pub(crate) fn update_workflow(state: &AppState, params: Value) -> Result<Value, 
         .get("id")
         .and_then(|v| v.as_str())
         .ok_or("id is required")?;
-    let name = params.get("name").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let name = params
+        .get("name")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
     let steps: Option<Vec<String>> = params.get("steps").and_then(|v| v.as_array()).map(|arr| {
         arr.iter()
             .filter_map(|s| s.as_str().map(|x| x.to_string()))
@@ -54,10 +57,17 @@ pub(crate) fn create_workflow(state: &AppState, params: Value) -> Result<Value, 
     let steps: Vec<String> = params
         .get("steps")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|s| s.as_str().map(|x| x.to_string())).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|s| s.as_str().map(|x| x.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
     let wf = create_workflow_internal(state, name, steps)?;
-    Ok(json!(format!("Workflow '{}' created (id: {})", wf.name, wf.id)))
+    Ok(json!(format!(
+        "Workflow '{}' created (id: {})",
+        wf.name, wf.id
+    )))
 }
 
 pub(crate) fn delete_workflow(state: &AppState, params: Value) -> Result<Value, String> {

@@ -1,7 +1,7 @@
 use crate::db::with_db;
 use crate::types::*;
 use crate::{acp, now_ms};
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 
 pub(crate) fn shared_key(scope: &str, key: &str) -> String {
     format!("{scope}:{key}")

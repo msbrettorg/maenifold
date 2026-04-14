@@ -43,13 +43,8 @@ pub(crate) async fn open_agent_session(
     let cwd_str = cwd.to_string_lossy().to_string();
     let runtime_kind = resolve_runtime_kind(agent_name, &cwd_str)?;
     let auto_approve = true;
-    let (_config_options, _modes) = jockey::acp::prewarm_role_for_config(
-        &runtime_kind,
-        agent_name,
-        &cwd_str,
-        None,
-    )
-    .await;
+    let (_config_options, _modes) =
+        jockey::acp::prewarm_role_for_config(&runtime_kind, agent_name, &cwd_str, None).await;
 
     let session_id = uuid::Uuid::new_v4().to_string();
 

@@ -165,6 +165,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -181,6 +182,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.analysisType ? { analysisType: node.analysisType } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -196,6 +198,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         workflowId: node.workflowId,
         ...(client ? { acpClient: client } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -211,6 +214,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -240,6 +244,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -256,6 +261,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.analysisType ? { analysisType: node.analysisType } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
@@ -270,6 +276,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };
     }
@@ -284,6 +291,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
+        ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
         ...(agentConfig ? { agentConfig } : {}),
       };

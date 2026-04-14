@@ -1,10 +1,10 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
 
-use crate::types::AppState;
 use super::handlers::{context, roles, sessions, skills, workflows};
+use crate::types::AppState;
 
 const MAX_BODY_SIZE: usize = 1024 * 1024;
 const REQUEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -204,7 +204,11 @@ fn handle_mcp_request(state: &AppState, body: &str) -> String {
             "result": { "tools": tool_definitions() }
         }),
         "tools/call" => {
-            let name = req.params.get("name").and_then(|v| v.as_str()).unwrap_or("");
+            let name = req
+                .params
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let arguments = req.params.get("arguments").cloned().unwrap_or(json!({}));
             match dispatch(state, name, arguments) {
                 Ok(result) => {

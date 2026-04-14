@@ -102,6 +102,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    cwd,
                     timeout,
                     agent_config,
                     ..
@@ -115,6 +116,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
                 },
@@ -128,6 +130,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    cwd,
                     timeout,
                     agent_config,
                     ..
@@ -142,6 +145,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
                 },
@@ -154,6 +158,7 @@ pub(super) fn fork_pipeline(
                     thought_level,
                     allowed_tools,
                     max_turns,
+                    cwd,
                     timeout,
                     agent_config,
                     ..
@@ -167,6 +172,7 @@ pub(super) fn fork_pipeline(
                     thought_level: thought_level.clone(),
                     allowed_tools: allowed_tools.clone(),
                     max_turns: *max_turns,
+                    cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
                 },

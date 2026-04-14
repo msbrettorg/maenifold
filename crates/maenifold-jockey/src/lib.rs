@@ -1,13 +1,9 @@
 pub mod acp;
 mod assistant;
-pub mod chat;
-pub mod commands;
 pub mod db;
 pub mod emitter;
 pub mod error;
-pub mod fs_context;
 pub mod jockey_mcp;
-pub mod parser;
 pub mod runtime_kind;
 pub mod types;
 
@@ -18,11 +14,11 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-pub use assistant::refresh_assistant_catalog;
 use crate::db::context::shared_key;
-use crate::db::{init_db, seed_default_dynamic_catalog};
 use crate::db::pool::DbPool;
+use crate::db::{init_db, seed_default_dynamic_catalog};
 pub use crate::types::*;
+pub use assistant::refresh_assistant_catalog;
 
 pub(crate) fn now_ms() -> i64 {
     SystemTime::now()
@@ -174,8 +170,7 @@ pub async fn start(data_dir: PathBuf) -> Result<JockeyRuntime, String> {
     });
 
     // Wire ACP prewarm events
-    let (prewarm_tx, mut prewarm_rx) =
-        tokio::sync::mpsc::unbounded_channel::<acp::PrewarmEvent>();
+    let (prewarm_tx, mut prewarm_rx) = tokio::sync::mpsc::unbounded_channel::<acp::PrewarmEvent>();
     acp::set_prewarm_event_sender(prewarm_tx);
     let prewarm_event_tx = event_tx.clone();
     tokio::spawn(async move {

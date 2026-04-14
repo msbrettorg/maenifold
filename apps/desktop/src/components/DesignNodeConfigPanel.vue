@@ -164,6 +164,11 @@ function getFieldValue(event: Event): string {
   return (event.target as HTMLInputElement | HTMLTextAreaElement).value;
 }
 
+function normalizeOptionalField(value: string): string | undefined {
+  const trimmed = value.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function updateMaxConcurrency(event: Event): void {
   const value = Number((event.target as HTMLInputElement).value);
   store.maxConcurrency = Number.isFinite(value) ? Math.min(32, Math.max(1, value)) : 1;
@@ -201,6 +206,18 @@ function updateNodeLabel(event: Event): void {
   updateDesignNode((node) => {
     const { displayLabel: _displayLabel, ...rest } = node;
     return label ? { ...rest, displayLabel: label } : rest;
+  });
+}
+
+function updateNodeCwd(event: Event): void {
+  updateNodeCwdValue(getFieldValue(event));
+}
+
+function updateNodeCwdValue(value: string): void {
+  const cwd = normalizeOptionalField(value);
+  updateDesignNode((node) => {
+    const { cwd: _cwd, ...rest } = node;
+    return cwd ? { ...rest, cwd } : rest;
   });
 }
 
@@ -474,6 +491,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           </template>
         </div>
         <label class="field"><span>Prompt</span><textarea class="field-textarea" :value="selectedWorkflowDesignNode.prompt ?? ''" rows="5" placeholder="Optional per-node prompt" @input="updateWorkflowField($event, 'prompt')" /></label>
+        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedWorkflowDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
       </template>
 
       <template v-else-if="selectedPromptDesignNode">
@@ -532,6 +550,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           </template>
         </div>
         <label class="field"><span>Prompt template</span><textarea class="field-textarea" :value="selectedPromptDesignNode.prompt" rows="6" @input="updatePromptField($event, 'prompt')" /></label>
+        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedPromptDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
       </template>
 
       <template v-else-if="selectedThinkingDesignNode">
@@ -592,6 +611,7 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
         </div>
         <label class="field"><span>Total thoughts</span><input class="field-input" :value="selectedThinkingDesignNode.totalThoughts ?? ''" type="number" min="1" @input="updateTotalThoughts" /></label>
         <label class="field"><span>Analysis type</span><input class="field-input" :value="selectedThinkingDesignNode.analysisType ?? ''" type="text" @input="updateThinkingField($event, 'analysisType')" /></label>
+        <label class="field"><span>Working directory</span><input class="field-input" :value="selectedThinkingDesignNode.cwd ?? ''" type="text" placeholder="/absolute/path" @input="updateNodeCwd" /></label>
       </template>
 
       <template v-else-if="selectedToolDesignNode">
@@ -600,9 +620,11 @@ function updateThinkingConfigOption(option: AgentProbeConfigOption, event: Event
           :tool-name="selectedToolDesignNode.toolName"
           :agent-name="selectedToolDesignNode.agent ?? ''"
           :agent-config="selectedToolDesignNode.agentConfig ?? {}"
+          :cwd="selectedToolDesignNode.cwd ?? ''"
           :tool-args="selectedToolArgsData"
           @update:agent-name="updateToolAgent"
           @update:agent-config="updateToolAgentConfig"
+          @update:cwd="updateNodeCwdValue"
           @update:tool-name="updateToolNameValue"
           @update:tool-args="updateToolArgs"
         />

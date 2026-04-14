@@ -1,10 +1,10 @@
+use super::with_db;
 use crate::error::AppError;
 use crate::now_ms;
 use crate::types::*;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 use serde::Deserialize;
 use uuid::Uuid;
-use super::with_db;
 
 fn validate_role_name(role_name: &str) -> Result<(), String> {
     if role_name.is_empty() {
@@ -158,10 +158,7 @@ pub(crate) struct RoleInput {
     pub(crate) auto_approve: Option<bool>,
 }
 
-pub(crate) async fn upsert_role_cmd(
-    state: &AppState,
-    input: RoleInput,
-) -> Result<Role, String> {
+pub(crate) async fn upsert_role_cmd(state: &AppState, input: RoleInput) -> Result<Role, String> {
     let role = upsert_role(
         state,
         input.role_name,
@@ -291,7 +288,9 @@ pub(crate) fn load_role(state: &AppState, role_name: &str) -> Result<Option<Role
         ).optional().map_err(|e| AppError::db(e.to_string()).to_string())
     })?;
     if let Some(ref role) = result {
-        state.role_cache.insert(role_name.to_string(), std::sync::Arc::new(role.clone()));
+        state
+            .role_cache
+            .insert(role_name.to_string(), std::sync::Arc::new(role.clone()));
     }
     Ok(result)
 }
@@ -336,7 +335,8 @@ pub(crate) fn update_role_config_option_defs_if_changed(
         )
         .map_err(|e| AppError::db(e.to_string()).to_string())?;
         Ok(true)
-    }).map(|changed| {
+    })
+    .map(|changed| {
         if changed {
             state.role_cache.remove(role_name);
         }

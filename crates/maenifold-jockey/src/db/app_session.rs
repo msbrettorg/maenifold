@@ -1,7 +1,7 @@
+use super::with_db;
 use crate::types::*;
 use crate::{default_chat_cwd, now_ms};
-use super::with_db;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 use uuid::Uuid;
 
 fn validate_session_title(raw: &str) -> Result<String, String> {
@@ -135,9 +135,7 @@ pub(crate) fn list_app_sessions(state: &AppState) -> Result<Vec<AppSession>, Str
     })
 }
 
-pub(crate) fn list_closed_app_sessions(
-    state: &AppState,
-) -> Result<Vec<AppSession>, String> {
+pub(crate) fn list_closed_app_sessions(state: &AppState) -> Result<Vec<AppSession>, String> {
     with_db(state, |conn| {
         query_sessions(
             conn,
@@ -279,10 +277,7 @@ pub(crate) fn delete_app_session(state: &AppState, id: String) -> Result<(), Str
     })
 }
 
-pub(crate) fn reopen_app_session(
-    state: &AppState,
-    id: String,
-) -> Result<AppSession, String> {
+pub(crate) fn reopen_app_session(state: &AppState, id: String) -> Result<AppSession, String> {
     let now = now_ms();
     with_db(state, |conn| {
         let title: String = conn

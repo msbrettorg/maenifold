@@ -1,4 +1,5 @@
 use crate::api::routes::{ApiError, ApiResult, ApiState};
+use agent_client_protocol as acp;
 use axum::{
     extract::{
         Query, State,
@@ -7,7 +8,6 @@ use axum::{
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
-use agent_client_protocol as acp;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -169,8 +169,12 @@ async fn handle_incoming(
         Message::Close(_) => return false,
         _ => return true,
     };
-    let Ok(payload) = serde_json::from_str::<Value>(&text) else { return true; };
-    let Some(object) = payload.as_object() else { return true; };
+    let Ok(payload) = serde_json::from_str::<Value>(&text) else {
+        return true;
+    };
+    let Some(object) = payload.as_object() else {
+        return true;
+    };
 
     if let Some(id) = object.get("id").and_then(Value::as_u64) {
         if object.get("method").is_none() {
@@ -178,7 +182,9 @@ async fn handle_incoming(
                 let outcome = object
                     .get("result")
                     .cloned()
-                    .and_then(|value| serde_json::from_value::<acp::RequestPermissionResponse>(value).ok())
+                    .and_then(|value| {
+                        serde_json::from_value::<acp::RequestPermissionResponse>(value).ok()
+                    })
                     .map(|response| response.outcome)
                     .unwrap_or(acp::RequestPermissionOutcome::Cancelled);
                 jockey::acp::respond_to_permission(&request_id, outcome);
@@ -187,7 +193,9 @@ async fn handle_incoming(
         }
     }
 
-    let Some(method) = object.get("method").and_then(Value::as_str) else { return true; };
+    let Some(method) = object.get("method").and_then(Value::as_str) else {
+        return true;
+    };
     let id = object.get("id").cloned();
     let params = object.get("params").cloned().unwrap_or_else(|| json!({}));
 
@@ -199,7 +207,7 @@ async fn handle_incoming(
         ),
         "session/new" if id.is_some() => Some(
             handle_session_new(relay, session, params, id.clone().unwrap())
-                .map(|result| rpc_ok(id.unwrap(), result))
+                .map(|result| rpc_ok(id.unwrap(), result)),
         ),
         "session/prompt" if id.is_some() => match handle_prompt(
             relay,
@@ -222,7 +230,11 @@ async fn handle_incoming(
             handle_cancel(relay, session, pending_prompt, permission_ids, params);
             None
         }
-        _ if id.is_some() => Some(Err(rpc_error(id.unwrap(), -32601, format!("Method not found: {method}")))),
+        _ if id.is_some() => Some(Err(rpc_error(
+            id.unwrap(),
+            -32601,
+            format!("Method not found: {method}"),
+        ))),
         _ => None,
     };
 
@@ -292,7 +304,11 @@ fn handle_session_new(
     request_id: Value,
 ) -> Result<Value, Value> {
     let Some(active) = session.as_ref() else {
-        return Err(rpc_error(request_id, -32600, "initialize must be called before session/new"));
+        return Err(rpc_error(
+            request_id,
+            -32600,
+            "initialize must be called before session/new",
+        ));
     };
     Ok(json!({
         "sessionId": active.session_id,
@@ -316,15 +332,27 @@ fn handle_prompt(
     request_id: Value,
 ) -> Result<(), Value> {
     if pending_prompt.is_some() {
-        return Err(rpc_error(request_id, -32000, "session/prompt already in progress"));
+        return Err(rpc_error(
+            request_id,
+            -32000,
+            "session/prompt already in progress",
+        ));
     }
     let Some(active) = session.as_ref() else {
-        return Err(rpc_error(request_id, -32600, "initialize must be called before session/prompt"));
+        return Err(rpc_error(
+            request_id,
+            -32600,
+            "initialize must be called before session/prompt",
+        ));
     };
-    let request: acp::PromptRequest =
-        serde_json::from_value(params).map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
+    let request: acp::PromptRequest = serde_json::from_value(params)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
     if request.session_id.to_string() != active.session_id {
-        return Err(rpc_error(request_id, -32602, "sessionId does not match active session"));
+        return Err(rpc_error(
+            request_id,
+            -32602,
+            "sessionId does not match active session",
+        ));
     }
     let (prompt, context) =
         prompt_parts(&request).map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
@@ -350,7 +378,10 @@ fn handle_prompt(
             resume_session_id: None,
         })
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
-    *pending_prompt = Some(PendingPrompt { request_id: request_id.clone(), cancelled: false });
+    *pending_prompt = Some(PendingPrompt {
+        request_id: request_id.clone(),
+        cancelled: false,
+    });
     *delta_rx = Some(event_rx);
     *result_rx = Some(rx);
     Ok(())
@@ -403,8 +434,12 @@ fn handle_cancel(
     permission_ids: &mut HashMap<u64, String>,
     params: Value,
 ) {
-    let Some(active) = session.as_ref() else { return; };
-    let Ok(request) = serde_json::from_value::<acp::CancelNotification>(params) else { return; };
+    let Some(active) = session.as_ref() else {
+        return;
+    };
+    let Ok(request) = serde_json::from_value::<acp::CancelNotification>(params) else {
+        return;
+    };
     if request.session_id.to_string() != active.session_id {
         return;
     }
@@ -423,7 +458,14 @@ fn apply_event_state(session: &mut RelaySession, event: &jockey::acp::AcpEvent) 
     match event {
         jockey::acp::AcpEvent::ConfigUpdate { options } => session.config_options = options.clone(),
         jockey::acp::AcpEvent::AvailableModes { modes, .. } => {
-            session.modes = modes.iter().filter_map(|mode| mode.get("id").and_then(Value::as_str).map(ToString::to_string)).collect();
+            session.modes = modes
+                .iter()
+                .filter_map(|mode| {
+                    mode.get("id")
+                        .and_then(Value::as_str)
+                        .map(ToString::to_string)
+                })
+                .collect();
         }
         _ => {}
     }
@@ -473,10 +515,17 @@ fn prompt_parts(request: &acp::PromptRequest) -> Result<(String, Vec<(String, St
         match block {
             acp::ContentBlock::Text(text) => prompt.push(text.text.clone()),
             acp::ContentBlock::ResourceLink(_) | acp::ContentBlock::Resource(_) => {
-                context.push((format!("attachment-{}", index + 1), serde_json::to_string(block).map_err(|error| error.to_string())?));
+                context.push((
+                    format!("attachment-{}", index + 1),
+                    serde_json::to_string(block).map_err(|error| error.to_string())?,
+                ));
             }
-            acp::ContentBlock::Image(_) => return Err("image prompt blocks are not supported by the relay".to_string()),
-            acp::ContentBlock::Audio(_) => return Err("audio prompt blocks are not supported by the relay".to_string()),
+            acp::ContentBlock::Image(_) => {
+                return Err("image prompt blocks are not supported by the relay".to_string());
+            }
+            acp::ContentBlock::Audio(_) => {
+                return Err("audio prompt blocks are not supported by the relay".to_string());
+            }
             _ => return Err("unsupported prompt block type".to_string()),
         }
     }
@@ -488,8 +537,14 @@ fn prompt_parts(request: &acp::PromptRequest) -> Result<(String, Vec<(String, St
 }
 
 fn parse_set_config_request(params: Value) -> Result<(String, String, String), String> {
-    let session_id = params.get("sessionId").and_then(Value::as_str).ok_or("missing sessionId")?;
-    let config_id = params.get("configId").and_then(Value::as_str).ok_or("missing configId")?;
+    let session_id = params
+        .get("sessionId")
+        .and_then(Value::as_str)
+        .ok_or("missing sessionId")?;
+    let config_id = params
+        .get("configId")
+        .and_then(Value::as_str)
+        .ok_or("missing configId")?;
     let value = match params.get("value") {
         Some(Value::String(value)) => value.clone(),
         Some(Value::Bool(value)) => value.to_string(),
@@ -545,5 +600,8 @@ async fn send_json(
     sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
     payload: Value,
 ) -> bool {
-    sender.send(Message::Text(payload.to_string().into())).await.is_ok()
+    sender
+        .send(Message::Text(payload.to_string().into()))
+        .await
+        .is_ok()
 }

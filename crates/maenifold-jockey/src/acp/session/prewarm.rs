@@ -3,7 +3,7 @@ use tokio::sync::oneshot;
 
 use super::super::adapter::build_stdio_adapter;
 use super::super::worker::RuntimeKind;
-use super::super::worker::{worker_tx, WorkerMsg};
+use super::super::worker::{WorkerMsg, worker_tx};
 use super::mcp::load_role_mcp_servers;
 use crate::db::app_session_role::{load_app_session_role_cli_id, save_app_session_role_cli_id};
 use crate::db::role::update_role_config_option_defs_if_changed;

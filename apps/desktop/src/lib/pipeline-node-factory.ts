@@ -13,6 +13,7 @@ interface PipelineNodeExecutionFields {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }
@@ -20,6 +21,7 @@ interface PipelineNodeExecutionFields {
 interface WorkflowNodeExecutionSelection {
   model?: string;
   thoughtLevel?: string;
+  cwd?: string;
   agentConfig?: PipelineNodeAgentConfig;
 }
 
@@ -161,6 +163,9 @@ function buildExecutionFields(
   const allowedTools = cloneStringArray(fields.allowedTools, 'allowedTools');
   const maxTurns = cloneOptionalNumber(fields.maxTurns, 'maxTurns');
   const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
+  const cwd = typeof fields.cwd === 'string' && fields.cwd.length > 0
+    ? fields.cwd
+    : undefined;
   const agentConfig = cloneAgentConfig(fields.agentConfig);
 
   return {
@@ -172,6 +177,7 @@ function buildExecutionFields(
       : {}),
     ...(allowedTools ? { allowedTools } : {}),
     ...(maxTurns !== undefined ? { maxTurns } : {}),
+    ...(cwd ? { cwd } : {}),
     ...(timeout !== undefined ? { timeout } : {}),
     ...(agentConfig ? { agentConfig } : {}),
   };
@@ -180,6 +186,9 @@ function buildExecutionFields(
 function buildWorkflowExecutionFields(
   fields: WorkflowNodeExecutionSelection,
 ): WorkflowNodeExecutionSelection {
+  const cwd = typeof fields.cwd === 'string' && fields.cwd.length > 0
+    ? fields.cwd
+    : undefined;
   const agentConfig = cloneAgentConfig(fields.agentConfig);
 
   return {
@@ -189,6 +198,7 @@ function buildWorkflowExecutionFields(
     ...(typeof fields.thoughtLevel === 'string' && fields.thoughtLevel.length > 0
       ? { thoughtLevel: fields.thoughtLevel }
       : {}),
+    ...(cwd ? { cwd } : {}),
     ...(agentConfig ? { agentConfig } : {}),
   };
 }

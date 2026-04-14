@@ -7,8 +7,8 @@ static PERMISSION_REQUESTS: OnceLock<
     DashMap<String, oneshot::Sender<acp::RequestPermissionOutcome>>,
 > = OnceLock::new();
 
-pub(crate) fn permission_requests(
-) -> &'static DashMap<String, oneshot::Sender<acp::RequestPermissionOutcome>> {
+pub(crate) fn permission_requests()
+-> &'static DashMap<String, oneshot::Sender<acp::RequestPermissionOutcome>> {
     PERMISSION_REQUESTS.get_or_init(DashMap::new)
 }
 

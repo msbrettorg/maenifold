@@ -11,12 +11,14 @@ const props = withDefaults(defineProps<{
   toolName: string;
   agentName?: string;
   agentConfig?: PipelineNodeAgentConfig;
+  cwd?: string;
   toolArgs: Record<string, unknown>;
   canSubmit?: boolean;
 }>(), {
   active: false,
   agentName: '',
   agentConfig: () => ({}),
+  cwd: '',
   canSubmit: false,
 });
 
@@ -24,10 +26,15 @@ const emit = defineEmits<{
   'update:toolName': [value: string];
   'update:agentName': [value: string];
   'update:agentConfig': [value: PipelineNodeAgentConfig];
+  'update:cwd': [value: string];
   'update:toolArgs': [value: Record<string, unknown>];
   validation: [state: { valid: boolean }];
   submitRequest: [];
 }>();
+
+function updateCwd(event: Event): void {
+  emit('update:cwd', (event.target as HTMLInputElement).value);
+}
 
 const HEALTH_META: Record<ServerHealthStatus, { icon: string; label: string }> = {
   ready: { icon: '✓', label: 'Ready' },
@@ -117,6 +124,11 @@ const {
         </div>
       </template>
     </div>
+
+    <label>
+      <span>Working directory</span>
+      <input class="field-input" :value="cwd" type="text" placeholder="/absolute/path" @input="updateCwd" />
+    </label>
 
     <div class="tool-palette__header"><div><span>Tool Palette</span><p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p></div><button type="button" class="btn btn-ghost" :disabled="loading" @click="refreshCatalog">{{ loading ? 'Refreshing…' : 'Refresh' }}</button></div>
     <p v-if="error && !hasCatalog" class="tool-palette__status tool-palette__status--error">{{ error }}</p>

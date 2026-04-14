@@ -1,15 +1,15 @@
+use crate::emitter::Emitter;
 use agent_client_protocol::{self as acp};
 use serde::Serialize;
 use serde_json::json;
 use std::time::Instant;
-use crate::emitter::Emitter;
 use tokio::sync::{mpsc, oneshot};
 
 use super::super::adapter::{acp_log, build_stdio_adapter, clip, friendly_error_message};
 use super::super::runtime_state::{
     remember_runtime_available_commands, remember_runtime_config_options,
 };
-use super::super::worker::{worker_tx, AcpEvent, AcpPromptResult, WorkerMsg};
+use super::super::worker::{AcpEvent, AcpPromptResult, WorkerMsg, worker_tx};
 // use crate::db::app_session_role::{load_app_session_role_cli_id, save_app_session_role_cli_id};
 // TODO: wire session ID persistence through Jockey DB
 // use crate::types::AppState;
@@ -61,7 +61,7 @@ pub async fn execute_runtime(
                 error_code: Some("UNSUPPORTED_RUNTIME".to_string()),
                 deltas: vec![],
                 meta: json!({ "mode": "unsupported-runtime", "runtime": normalized }),
-            }
+            };
         }
         Err(e) => {
             return AcpPromptResult {
@@ -70,7 +70,7 @@ pub async fn execute_runtime(
                 error_code: Some("ADAPTER_UNAVAILABLE".to_string()),
                 deltas: vec![],
                 meta: json!({ "mode": "adapter-unavailable", "runtime": normalized, "error": e }),
-            }
+            };
         }
     };
 

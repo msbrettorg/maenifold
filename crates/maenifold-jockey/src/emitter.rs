@@ -19,7 +19,9 @@ impl Emitter for tokio::sync::broadcast::Sender<JockeyEvent> {
             "command/applied" => JockeyEvent::CommandApplied(value),
             "workflow/state_changed" => JockeyEvent::WorkflowStateChanged(value),
             "session/update" => JockeyEvent::SessionUpdate(value),
-            other => JockeyEvent::AcpStream(serde_json::json!({ "event": other, "payload": value })),
+            other => {
+                JockeyEvent::AcpStream(serde_json::json!({ "event": other, "payload": value }))
+            }
         };
         let _ = self.send(jockey_event);
         Ok(())

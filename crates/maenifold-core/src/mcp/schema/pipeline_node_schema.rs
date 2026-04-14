@@ -44,11 +44,11 @@ fn agent_config_schema() -> serde_json::Value {
         "description": "Agent configuration for pipeline node execution",
         "type": "object",
         "additionalProperties": false,
-        "properties": {
-            "model": {
-                "type": "string",
-                "description": "Model override for the agent session"
-            },
+            "properties": {
+                "model": {
+                    "type": "string",
+                    "description": "Model override for the agent session"
+                },
             "mode": {
                 "type": "string",
                 "description": "Session mode override for the agent session"
@@ -99,6 +99,10 @@ fn node_schema_value() -> serde_json::Value {
                     "prompt": {
                         "type": "string",
                         "description": "Optional prompt for workflow nodes"
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Optional working directory for this node"
                     },
                     "timeout": {
                         "type": "integer",
@@ -156,6 +160,10 @@ fn node_schema_value() -> serde_json::Value {
                         "format": "uint32",
                         "minimum": 0,
                         "description": "Maximum turns for prompt nodes"
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Optional working directory for this node"
                     },
                     "timeout": {
                         "type": "integer",
@@ -221,6 +229,10 @@ fn node_schema_value() -> serde_json::Value {
                         "minimum": 0,
                         "description": "Maximum turns for sequential thinking nodes"
                     },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Optional working directory for this node"
+                    },
                     "timeout": {
                         "type": "integer",
                         "format": "uint32",
@@ -279,6 +291,10 @@ fn node_schema_value() -> serde_json::Value {
                         "format": "uint32",
                         "minimum": 0,
                         "description": "Maximum turns for tool nodes"
+                    },
+                    "cwd": {
+                        "type": "string",
+                        "description": "Optional working directory for this node"
                     },
                     "timeout": {
                         "type": "integer",

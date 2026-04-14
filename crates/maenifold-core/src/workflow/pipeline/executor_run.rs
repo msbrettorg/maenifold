@@ -2,6 +2,7 @@ use std::error::Error as StdError;
 
 use jockey::EventSender;
 use serde_json::Value as JsonValue;
+use std::path::Path;
 
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
@@ -370,6 +371,7 @@ pub(super) async fn run_tool_node(
     tool_args: Option<&JsonValue>,
     agent: Option<&str>,
     allowed_tools: Option<&[String]>,
+    cwd: &Path,
 ) -> Result<ToolExecutionResult> {
     let arguments = tool_args
         .cloned()
@@ -380,7 +382,7 @@ pub(super) async fn run_tool_node(
             if server_name == "maenifold" {
                 invoke_local_tool(remote_tool_name, &arguments)?
             } else {
-                let agents_config = AgentsConfig::load(&context.config.maenifold_root);
+                let agents_config = AgentsConfig::load(cwd);
                 invoke_external_tool(
                     context,
                     &agents_config,
@@ -389,6 +391,7 @@ pub(super) async fn run_tool_node(
                     tool_args,
                     agent,
                     allowed_tools,
+                    cwd,
                 )
                 .await?
             }

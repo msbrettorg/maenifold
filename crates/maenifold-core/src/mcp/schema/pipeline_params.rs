@@ -156,9 +156,6 @@ pub enum PipelineEdgeType {
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineAgentConfigSchema {
-    /// Optional working directory for the agent session
-    #[serde(default)]
-    pub cwd: Option<String>,
     /// Model override for the agent session
     #[serde(default)]
     pub model: Option<String>,
@@ -199,6 +196,9 @@ pub struct PipelineWorkflowNodeSchema {
     /// Optional prompt for workflow nodes
     #[serde(default)]
     pub prompt: Option<String>,
+    /// Optional working directory for this node
+    #[serde(default)]
+    pub cwd: Option<String>,
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
@@ -238,6 +238,9 @@ pub struct PipelinePromptNodeSchema {
     /// Maximum turns for prompt nodes
     #[serde(default)]
     pub max_turns: Option<u32>,
+    /// Optional working directory for this node
+    #[serde(default)]
+    pub cwd: Option<String>,
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
@@ -281,6 +284,9 @@ pub struct PipelineSequentialThinkingNodeSchema {
     /// Maximum turns for sequential thinking nodes
     #[serde(default)]
     pub max_turns: Option<u32>,
+    /// Optional working directory for this node
+    #[serde(default)]
+    pub cwd: Option<String>,
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
@@ -323,6 +329,9 @@ pub struct PipelineToolNodeSchema {
     /// Maximum turns for tool nodes
     #[serde(default)]
     pub max_turns: Option<u32>,
+    /// Optional working directory for this node
+    #[serde(default)]
+    pub cwd: Option<String>,
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,

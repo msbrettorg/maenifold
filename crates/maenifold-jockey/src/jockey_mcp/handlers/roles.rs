@@ -1,6 +1,8 @@
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
-use crate::db::global_mcp::{delete_global_mcp_server, list_global_mcp_servers, upsert_global_mcp_server};
+use crate::db::global_mcp::{
+    delete_global_mcp_server, list_global_mcp_servers, upsert_global_mcp_server,
+};
 use crate::db::role::{delete_role_internal, list_all_roles, load_role, upsert_role};
 use crate::types::AppState;
 
@@ -29,8 +31,8 @@ pub(crate) fn get_role(state: &AppState, params: Value) -> Result<Value, String>
         .get("roleName")
         .and_then(|v| v.as_str())
         .ok_or("roleName is required")?;
-    let role = load_role(state, role_name)?
-        .ok_or_else(|| format!("role not found: {role_name}"))?;
+    let role =
+        load_role(state, role_name)?.ok_or_else(|| format!("role not found: {role_name}"))?;
     Ok(json!({
         "roleName": role.role_name,
         "runtimeKind": role.runtime_kind,
@@ -60,12 +62,27 @@ pub(crate) fn upsert_role_handler(state: &AppState, params: Value) -> Result<Val
         .and_then(|v| v.as_str())
         .unwrap_or("")
         .to_string();
-    let model = params.get("model").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let mode = params.get("mode").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let model = params
+        .get("model")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let mode = params
+        .get("mode")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
     let auto_approve = params.get("autoApprove").and_then(|v| v.as_bool());
-    let mcp_servers_json = params.get("mcpServersJson").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let config_options_json = params.get("configOptionsJson").and_then(|v| v.as_str()).map(|s| s.to_string());
-    let config_option_defs_json = params.get("configOptionDefsJson").and_then(|v| v.as_str()).map(|s| s.to_string());
+    let mcp_servers_json = params
+        .get("mcpServersJson")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let config_options_json = params
+        .get("configOptionsJson")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
+    let config_option_defs_json = params
+        .get("configOptionDefsJson")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string());
 
     upsert_role(
         state,
@@ -79,7 +96,9 @@ pub(crate) fn upsert_role_handler(state: &AppState, params: Value) -> Result<Val
         config_option_defs_json,
         auto_approve,
     )?;
-    Ok(json!(format!("Role '{role_name}' saved (runtime: {runtime_kind})")))
+    Ok(json!(format!(
+        "Role '{role_name}' saved (runtime: {runtime_kind})"
+    )))
 }
 
 pub(crate) fn delete_role_handler(state: &AppState, params: Value) -> Result<Value, String> {
@@ -141,11 +160,18 @@ pub(crate) fn add_mcp_to_role(state: &AppState, params: Value) -> Result<Value, 
     let server = params.get("server").ok_or("server object is required")?;
     let new_name = server.get("name").and_then(|v| v.as_str()).unwrap_or("");
 
-    let role = load_role(state, role_name)?.ok_or_else(|| format!("role not found: {role_name}"))?;
-    let mut servers: Vec<Value> = serde_json::from_str(&role.mcp_servers_json).map_err(|e| e.to_string())?;
+    let role =
+        load_role(state, role_name)?.ok_or_else(|| format!("role not found: {role_name}"))?;
+    let mut servers: Vec<Value> =
+        serde_json::from_str(&role.mcp_servers_json).map_err(|e| e.to_string())?;
 
-    if servers.iter().any(|s| s.get("name").and_then(|v| v.as_str()) == Some(new_name)) {
-        return Err(format!("MCP server '{new_name}' already exists on role '{role_name}'"));
+    if servers
+        .iter()
+        .any(|s| s.get("name").and_then(|v| v.as_str()) == Some(new_name))
+    {
+        return Err(format!(
+            "MCP server '{new_name}' already exists on role '{role_name}'"
+        ));
     }
 
     servers.push(server.clone());
@@ -180,12 +206,16 @@ pub(crate) fn remove_mcp_from_role(state: &AppState, params: Value) -> Result<Va
         .and_then(|v| v.as_str())
         .ok_or("serverName is required")?;
 
-    let role = load_role(state, role_name)?.ok_or_else(|| format!("role not found: {role_name}"))?;
-    let mut servers: Vec<Value> = serde_json::from_str(&role.mcp_servers_json).map_err(|e| e.to_string())?;
+    let role =
+        load_role(state, role_name)?.ok_or_else(|| format!("role not found: {role_name}"))?;
+    let mut servers: Vec<Value> =
+        serde_json::from_str(&role.mcp_servers_json).map_err(|e| e.to_string())?;
     let before = servers.len();
     servers.retain(|s| s.get("name").and_then(|v| v.as_str()) != Some(server_name));
     if servers.len() == before {
-        return Err(format!("MCP server '{server_name}' not found on role '{role_name}'"));
+        return Err(format!(
+            "MCP server '{server_name}' not found on role '{role_name}'"
+        ));
     }
 
     let updated = serde_json::to_string(&servers).map_err(|e| e.to_string())?;

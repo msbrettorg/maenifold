@@ -1,6 +1,6 @@
 use crate::error::Result;
 use crate::tools::ToolContext;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 
 use super::view::node_state_for;
@@ -152,6 +152,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             thought_level,
             allowed_tools,
             max_turns,
+            cwd,
             timeout,
             agent_config,
             ..
@@ -163,6 +164,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "thoughtLevel": thought_level,
             "allowedTools": allowed_tools,
             "maxTurns": max_turns,
+            "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
         }),
@@ -175,6 +177,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             thought_level,
             allowed_tools,
             max_turns,
+            cwd,
             timeout,
             agent_config,
             ..
@@ -187,6 +190,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "thoughtLevel": thought_level,
             "allowedTools": allowed_tools,
             "maxTurns": max_turns,
+            "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
         }),
@@ -198,6 +202,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             thought_level,
             allowed_tools,
             max_turns,
+            cwd,
             timeout,
             agent_config,
             ..
@@ -209,6 +214,7 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "thoughtLevel": thought_level,
             "allowedTools": allowed_tools,
             "maxTurns": max_turns,
+            "cwd": cwd,
             "timeout": timeout,
             "agentConfig": agent_config,
         }),
@@ -231,7 +237,7 @@ mod tests {
 
     use super::*;
     use crate::workflow::pipeline::test_support::pipeline_test_context;
-    use crate::workflow::pipeline::{PipelineEdge, ToolProvenance, types::EdgeType};
+    use crate::workflow::pipeline::{types::EdgeType, PipelineEdge, ToolProvenance};
 
     #[test]
     fn pipeline_nodes_json_keeps_local_session_id_and_surfaces_provenance_links() {

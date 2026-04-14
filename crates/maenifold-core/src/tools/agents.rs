@@ -216,10 +216,7 @@ fn probe_agents_value(
     })
 }
 
-async fn probe_agent_once(
-    root: PathBuf,
-    agent: ProbeAgent,
-) -> std::result::Result<Value, String> {
+async fn probe_agent_once(root: PathBuf, agent: ProbeAgent) -> std::result::Result<Value, String> {
     // The agent name is the runtime key — our adapter resolves from AgentsConfig
     let runtime_kind = &agent.name;
     let cwd = root.to_string_lossy().into_owned();
@@ -228,13 +225,8 @@ async fn probe_agent_once(
         .iter()
         .map(McpServerEntry::to_acp)
         .collect::<Vec<_>>();
-    let (config_options, discovered_modes) = jockey::acp::prewarm_role_for_config(
-        runtime_kind,
-        &agent.name,
-        &cwd,
-        None,
-    )
-    .await;
+    let (config_options, discovered_modes) =
+        jockey::acp::prewarm_role_for_config(runtime_kind, &agent.name, &cwd, None).await;
     let modes = if discovered_modes.is_empty() {
         extract_mode_ids(&config_options)
     } else {

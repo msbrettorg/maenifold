@@ -76,8 +76,7 @@ fn exec_with_jockey(
 
     run_acp_future(
         async move {
-            let (event_tx, _event_rx) =
-                tokio::sync::broadcast::channel::<jockey::JockeyEvent>(32);
+            let (event_tx, _event_rx) = tokio::sync::broadcast::channel::<jockey::JockeyEvent>(32);
             let result = jockey::acp::execute_runtime(
                 &runtime_kind,
                 &agent_name,
@@ -134,9 +133,7 @@ struct ResolvedAgent {
 fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     let config = AgentsConfig::load(root);
     let entry = config.agents.get(agent).ok_or_else(|| {
-        MaenifoldError::AgentSetup(format!(
-            "agent '{agent}' not configured in maenifold.json"
-        ))
+        MaenifoldError::AgentSetup(format!("agent '{agent}' not configured in maenifold.json"))
     })?;
 
     let runtime_kind = infer_runtime_kind(entry)?;
@@ -294,16 +291,15 @@ fn payload_config_options(payload: &Value) -> Result<Vec<(String, String)>> {
     Ok(options)
 }
 
-fn push_option_if_present(
-    options: &mut Vec<(String, String)>,
-    key: &str,
-    value: Option<String>,
-) {
+fn push_option_if_present(options: &mut Vec<(String, String)>, key: &str, value: Option<String>) {
     let Some(value) = value else {
         return;
     };
 
-    if let Some(existing) = options.iter_mut().find(|(existing_key, _)| existing_key == key) {
+    if let Some(existing) = options
+        .iter_mut()
+        .find(|(existing_key, _)| existing_key == key)
+    {
         existing.1 = value;
     } else {
         options.push((key.to_string(), value));
@@ -418,10 +414,7 @@ pub(crate) fn optional_context_pairs(payload: &Value) -> Result<Vec<(String, Str
         .collect()
 }
 
-fn context_block_into_pair(
-    index: usize,
-    block: AcpExecContextBlock,
-) -> Result<(String, String)> {
+fn context_block_into_pair(index: usize, block: AcpExecContextBlock) -> Result<(String, String)> {
     Ok(match block {
         AcpExecContextBlock::Text(AcpExecTextContext { text }) => {
             (format!("context_text_{index}"), text)

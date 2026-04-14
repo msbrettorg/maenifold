@@ -1,6 +1,6 @@
 use crate::db::with_db;
 use crate::types::AppState;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 use serde_json::{Map, Value};
 
 #[derive(Clone, Default)]

@@ -2,7 +2,7 @@ use petgraph::stable_graph::StableGraph;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use super::types_wire::PipelineNodeWire;
 
@@ -20,8 +20,6 @@ pub struct PipelineDefinition {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentConfig {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub cwd: Option<PathBuf>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -77,6 +75,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
     },
@@ -91,6 +90,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
     },
@@ -104,6 +104,7 @@ pub enum PipelineNode {
         thought_level: Option<String>,
         allowed_tools: Option<Vec<String>>,
         max_turns: Option<u32>,
+        cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
     },
@@ -161,6 +162,15 @@ impl PipelineNode {
             Self::Workflow { prompt, .. } => prompt.as_deref(),
             Self::Prompt { prompt, .. } => Some(prompt),
             Self::SequentialThinking { .. } | Self::Tool { .. } => None,
+        }
+    }
+
+    pub fn cwd(&self) -> Option<&Path> {
+        match self {
+            Self::Prompt { cwd, .. }
+            | Self::SequentialThinking { cwd, .. }
+            | Self::Tool { cwd, .. } => cwd.as_deref(),
+            Self::Workflow { .. } => None,
         }
     }
 

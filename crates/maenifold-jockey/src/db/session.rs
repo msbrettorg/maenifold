@@ -1,10 +1,10 @@
-use crate::emitter::Emitter;
+use super::{parse_payload, with_db};
 use crate::db::context::{list_shared_context_internal, set_shared_context_internal};
 use crate::db::role::{load_role, load_role_runtime_kind};
 use crate::db::workflow::load_workflow;
+use crate::emitter::Emitter;
 use crate::types::*;
 use crate::{acp, default_chat_cwd, now_ms};
-use super::{with_db, parse_payload};
 use rusqlite::params;
 use serde_json::json;
 use uuid::Uuid;
@@ -208,8 +208,8 @@ pub(crate) async fn run_workflow(
             load_role_runtime_kind(state, role_name).unwrap_or_else(|_| "mock".to_string());
 
         if let Some(next_role) = workflow.steps.get(step_idx + 1) {
-            let next_runtime = load_role_runtime_kind(state, next_role)
-                .unwrap_or_else(|_| "mock".to_string());
+            let next_runtime =
+                load_role_runtime_kind(state, next_role).unwrap_or_else(|_| "mock".to_string());
             let next_role = next_role.clone();
             let next_cwd = workspace_path.clone();
             tokio::spawn(async move {
@@ -224,7 +224,8 @@ pub(crate) async fn run_workflow(
             message: format!("{role_name} started"),
             created_at: now_ms(),
         };
-        event_tx.emit("workflow/state_changed", started.clone())
+        event_tx
+            .emit("workflow/state_changed", started.clone())
             .map_err(|e| e.to_string())?;
         // StepStarted is written individually so it's visible before ACP runs
         record_session_event(
@@ -286,7 +287,8 @@ pub(crate) async fn run_workflow(
                 done: false,
                 created_at: now_ms(),
             };
-            event_tx.emit("session/update", update)
+            event_tx
+                .emit("session/update", update)
                 .map_err(|e| e.to_string())?;
         }
 
@@ -332,7 +334,8 @@ pub(crate) async fn run_workflow(
             done: true,
             created_at: now_ms(),
         };
-        event_tx.emit("session/update", done_update)
+        event_tx
+            .emit("session/update", done_update)
             .map_err(|e| e.to_string())?;
     }
 
@@ -345,7 +348,8 @@ pub(crate) async fn run_workflow(
         message: "workflow completed".to_string(),
         created_at: now_ms(),
     };
-    event_tx.emit("workflow/state_changed", completed.clone())
+    event_tx
+        .emit("workflow/state_changed", completed.clone())
         .map_err(|e| e.to_string())?;
     record_session_event(
         state,
@@ -412,7 +416,8 @@ pub(crate) async fn start_workflow(
         message: "workflow started".to_string(),
         created_at: now_ms(),
     };
-    event_tx.emit("workflow/state_changed", workflow_notice)
+    event_tx
+        .emit("workflow/state_changed", workflow_notice)
         .map_err(|e| e.to_string())?;
 
     let event_tx_clone = event_tx.clone();

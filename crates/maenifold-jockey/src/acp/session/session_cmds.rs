@@ -1,6 +1,6 @@
 use tokio::sync::oneshot;
 
-use super::super::worker::{worker_tx, WorkerMsg};
+use super::super::worker::{WorkerMsg, worker_tx};
 
 fn normalize_runtime_key(runtime_kind: &str) -> String {
     runtime_kind.trim().to_ascii_lowercase()
@@ -32,8 +32,13 @@ pub async fn reset_session(
     role_name: &str,
     app_session_id: Option<&str>,
 ) -> Result<(), String> {
-    let runtime_key =
-        { let k = normalize_runtime_key(runtime_kind); if k.is_empty() { return Err("empty runtime".to_string()); }; k };
+    let runtime_key = {
+        let k = normalize_runtime_key(runtime_kind);
+        if k.is_empty() {
+            return Err("empty runtime".to_string());
+        };
+        k
+    };
     let resolved_session_id =
         resolve_session_id(app_session_id).ok_or_else(|| "app session id required".to_string())?;
     let (tx, rx) = oneshot::channel();
@@ -51,8 +56,13 @@ pub async fn reconnect_session(
     role_name: &str,
     app_session_id: Option<&str>,
 ) -> Result<(), String> {
-    let runtime_key =
-        { let k = normalize_runtime_key(runtime_kind); if k.is_empty() { return Err("empty runtime".to_string()); }; k };
+    let runtime_key = {
+        let k = normalize_runtime_key(runtime_kind);
+        if k.is_empty() {
+            return Err("empty runtime".to_string());
+        };
+        k
+    };
     let resolved_session_id =
         resolve_session_id(app_session_id).ok_or_else(|| "app session id required".to_string())?;
     let (tx, rx) = oneshot::channel();
@@ -71,8 +81,13 @@ pub async fn set_mode(
     mode_id: &str,
     app_session_id: Option<&str>,
 ) -> Result<(), String> {
-    let runtime_key =
-        { let k = normalize_runtime_key(runtime_kind); if k.is_empty() { return Err("empty runtime".to_string()); }; k };
+    let runtime_key = {
+        let k = normalize_runtime_key(runtime_kind);
+        if k.is_empty() {
+            return Err("empty runtime".to_string());
+        };
+        k
+    };
     let resolved_session_id =
         resolve_session_id(app_session_id).ok_or_else(|| "app session id required".to_string())?;
     let (tx, rx) = oneshot::channel();
@@ -93,8 +108,13 @@ pub async fn set_config_option(
     value: &str,
     app_session_id: Option<&str>,
 ) -> Result<(), String> {
-    let runtime_key =
-        { let k = normalize_runtime_key(runtime_kind); if k.is_empty() { return Err("empty runtime".to_string()); }; k };
+    let runtime_key = {
+        let k = normalize_runtime_key(runtime_kind);
+        if k.is_empty() {
+            return Err("empty runtime".to_string());
+        };
+        k
+    };
     let resolved_session_id =
         resolve_session_id(app_session_id).ok_or_else(|| "app session id required".to_string())?;
     let (tx, rx) = oneshot::channel();

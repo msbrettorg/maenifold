@@ -1,9 +1,9 @@
 use agent_client_protocol::{self as acp};
 use dashmap::DashMap;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::OnceLock;
 
-use super::worker::{permission_requests, AcpEvent, DeltaSlot};
+use super::worker::{AcpEvent, DeltaSlot, permission_requests};
 
 const RAW_PAYLOAD_LIMIT: usize = 64 * 1024;
 

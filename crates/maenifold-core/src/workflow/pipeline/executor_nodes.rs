@@ -1,4 +1,7 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
 use jockey::EventSender;
 use serde_json::Value as JsonValue;
@@ -45,6 +48,7 @@ pub(super) enum NodeExecutionRequest {
         tool_args: Option<JsonValue>,
         agent: Option<String>,
         allowed_tools: Option<Vec<String>>,
+        cwd: PathBuf,
         timeout_seconds: Option<u64>,
     },
 }
@@ -84,6 +88,7 @@ pub(super) fn build_node_execution_request(
                 context,
                 node.id(),
                 agent_config.as_ref(),
+                None,
                 &None,
                 &None,
                 &None,
@@ -99,6 +104,7 @@ pub(super) fn build_node_execution_request(
             thought_level,
             allowed_tools,
             max_turns,
+            cwd,
             timeout,
             ..
         } => NodeExecutionRequest::Prompt {
@@ -118,6 +124,7 @@ pub(super) fn build_node_execution_request(
                 context,
                 node.id(),
                 agent_config.as_ref(),
+                cwd.as_deref(),
                 model,
                 thought_level,
                 allowed_tools,
@@ -133,6 +140,7 @@ pub(super) fn build_node_execution_request(
             thought_level,
             allowed_tools,
             max_turns,
+            cwd,
             timeout,
             ..
         } => NodeExecutionRequest::SequentialThinking {
@@ -153,6 +161,7 @@ pub(super) fn build_node_execution_request(
                 context,
                 node.id(),
                 agent_config.as_ref(),
+                cwd.as_deref(),
                 model,
                 thought_level,
                 allowed_tools,
@@ -178,6 +187,7 @@ pub(super) fn build_node_execution_request(
             )?,
             agent: agent.clone(),
             allowed_tools: allowed_tools.clone(),
+            cwd: resolve_node_cwd(context, node.cwd()),
             timeout_seconds: *timeout,
         },
     })
@@ -227,6 +237,7 @@ fn merged_session_config(
     context: &ToolContext,
     _node_id: &str,
     agent_config: Option<&AgentConfig>,
+    node_cwd: Option<&Path>,
     model: &Option<String>,
     thought_level: &Option<String>,
     allowed_tools: &Option<Vec<String>>,
@@ -234,9 +245,7 @@ fn merged_session_config(
     timeout_seconds: Option<u64>,
 ) -> AgentSessionConfig {
     AgentSessionConfig {
-        cwd: agent_config
-            .and_then(|config| config.cwd.clone())
-            .unwrap_or_else(|| context.config.maenifold_root.clone()),
+        cwd: resolve_node_cwd(context, node_cwd),
         model: model
             .clone()
             .or_else(|| agent_config.and_then(|config| config.model.clone())),
@@ -250,6 +259,11 @@ fn merged_session_config(
         timeout_seconds,
         session_id: None,
     }
+}
+
+fn resolve_node_cwd(context: &ToolContext, cwd: Option<&Path>) -> PathBuf {
+    cwd.map(Path::to_path_buf)
+        .unwrap_or_else(|| context.config.maenifold_root.clone())
 }
 
 pub(super) async fn execute_node_request(
@@ -339,6 +353,7 @@ pub(super) async fn execute_node_request(
             tool_args,
             agent,
             allowed_tools,
+            cwd,
             ..
         } => NodeTaskResult::Tool(
             run_tool_node(
@@ -347,6 +362,7 @@ pub(super) async fn execute_node_request(
                 tool_args.as_ref(),
                 agent.as_deref(),
                 allowed_tools.as_deref(),
+                &cwd,
             )
             .await,
         ),

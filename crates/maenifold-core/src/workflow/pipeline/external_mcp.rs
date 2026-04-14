@@ -34,6 +34,7 @@ pub(super) async fn invoke_external_tool(
     tool_args: Option<&JsonValue>,
     agent_name: Option<&str>,
     allowed_tools: Option<&[String]>,
+    cwd: &Path,
 ) -> Result<String> {
     let namespaced_tool_name = format!("{server_name}.{remote_tool_name}");
     require_tool_allowed(&namespaced_tool_name, allowed_tools)?;
@@ -49,6 +50,7 @@ pub(super) async fn invoke_external_tool(
                 command,
                 args,
                 arguments,
+                cwd,
             )
             .await
         }
@@ -59,16 +61,17 @@ pub(super) async fn invoke_external_tool(
 }
 
 async fn invoke_via_stdio(
-    context: &ToolContext,
+    _context: &ToolContext,
     server_name: &str,
     remote_tool_name: &str,
     command: &str,
     args: &[String],
     arguments: Option<JsonMap<String, JsonValue>>,
+    cwd: &Path,
 ) -> Result<String> {
     let mut child = Command::new(command);
     child.args(args);
-    child.current_dir(&context.config.maenifold_root);
+    child.current_dir(cwd);
     if let Some(path) = build_child_path_env(env::var_os("PATH"), env::var_os("HOME"), command) {
         child.env("PATH", path);
     }

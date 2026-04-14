@@ -1,8 +1,8 @@
+use super::with_db;
 use crate::error::AppError;
 use crate::now_ms;
 use crate::types::*;
-use super::with_db;
-use rusqlite::{params, OptionalExtension};
+use rusqlite::{OptionalExtension, params};
 use uuid::Uuid;
 
 fn skill_from_row(row: &rusqlite::Row) -> rusqlite::Result<AppSkill> {

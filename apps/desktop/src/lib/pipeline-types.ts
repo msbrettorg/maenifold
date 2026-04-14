@@ -42,6 +42,7 @@ export interface WorkflowNode extends PipelineNodeBase {
   workflowId: string;
   acpClient?: string;
   prompt?: string;
+  cwd?: string;
   model?: string;
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
@@ -57,6 +58,7 @@ export interface PromptNode extends PipelineNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }
@@ -71,6 +73,7 @@ export interface SequentialThinkingNode extends PipelineNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }
@@ -84,6 +87,7 @@ export interface ToolNode extends PipelineNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }
@@ -167,6 +171,7 @@ export interface WorkflowViewNode extends ViewNodeBase {
   workflowId: string;
   acpClient?: string;
   prompt?: string;
+  cwd?: string;
   model?: string;
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
@@ -184,6 +189,7 @@ export interface PromptViewNode extends ViewNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
   assembled_prompt?: string | null;
@@ -199,6 +205,7 @@ export interface SequentialThinkingViewNode extends ViewNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
   assembled_prompt?: string | null;
@@ -219,6 +226,7 @@ export interface ToolViewNode extends ViewNodeBase {
   thoughtLevel?: string;
   allowedTools?: string[];
   maxTurns?: number;
+  cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }

@@ -1,13 +1,13 @@
 use agent_client_protocol as acp;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::{OnceLock, RwLock};
 
+use super::with_db;
 use crate::now_ms;
 use crate::types::AppState;
-use super::with_db;
 
 static GLOBAL_MCP_CACHE: OnceLock<RwLock<HashMap<usize, Vec<GlobalMcpEntry>>>> = OnceLock::new();
 static GLOBAL_MCP_ACP_CACHE: OnceLock<RwLock<HashMap<usize, Vec<acp::McpServer>>>> =
@@ -233,9 +233,7 @@ mod tests {
     }
 }
 
-pub(crate) fn list_global_mcp_servers_cmd(
-    state: &AppState,
-) -> Result<Vec<GlobalMcpEntry>, String> {
+pub(crate) fn list_global_mcp_servers_cmd(state: &AppState) -> Result<Vec<GlobalMcpEntry>, String> {
     list_global_mcp_servers(state)
 }
 
@@ -247,10 +245,7 @@ pub(crate) fn upsert_global_mcp_server_cmd(
     upsert_global_mcp_server(state, &name, &config_json, false)
 }
 
-pub(crate) fn delete_global_mcp_server_cmd(
-    state: &AppState,
-    name: String,
-) -> Result<(), String> {
+pub(crate) fn delete_global_mcp_server_cmd(state: &AppState, name: String) -> Result<(), String> {
     delete_global_mcp_server(state, &name)
 }
 

@@ -1,5 +1,5 @@
 use agent_client_protocol::{self as acp, Agent as _};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -12,7 +12,7 @@ use super::super::client::JockeyUiClient;
 use super::super::runtime_state::{
     remember_runtime_config_options, remember_runtime_models, remember_runtime_modes,
 };
-use super::super::worker::{register_child_pid, DeltaSlot, LiveConnection};
+use super::super::worker::{DeltaSlot, LiveConnection, register_child_pid};
 
 pub(super) const INIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 pub(super) const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);

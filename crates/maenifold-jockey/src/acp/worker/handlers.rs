@@ -1,5 +1,5 @@
 use agent_client_protocol::{self as acp, Agent as _};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
@@ -12,7 +12,7 @@ use super::super::runtime_state::{
 use super::super::session::cold_start;
 use super::notify::{notify_connection_death, notify_prewarm};
 use super::pool::{
-    child_pids, pool_key, CANCEL_HANDLES, CONN_MAP, DELTA_CHANNEL_CAPACITY, PROMPT_LOCKS,
+    CANCEL_HANDLES, CONN_MAP, DELTA_CHANNEL_CAPACITY, PROMPT_LOCKS, child_pids, pool_key,
 };
 use super::types::{AcpEvent, ConnectionDeathEvent, PrewarmStatus};
 

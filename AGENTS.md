@@ -148,8 +148,8 @@ Agents running full test suites in parallel creates race conditions. Violation i
 
 ### Severity Policy
 
-- **P0** — Compile errors. Anything that breaks `cargo build --release` or `cargo test --no-run`. Always top of queue.
-- **P1** — Work in progress. Tasks currently being executed or blocked by a P0.
+- **P0** — Compile errors. Anything that breaks `cargo build --release` or `cargo test --no-run`. Always top of queue. **PM handles personally.**
+- **P1** — Work in progress. Tasks currently being executed or blocked by a P0. **Dispatched to sub-PMs.**
 - **P2** — Discovered items. Tech debt, duplication, refactoring opportunities found during other work. Backlog until prioritized.
 
 ### ACP Invariants

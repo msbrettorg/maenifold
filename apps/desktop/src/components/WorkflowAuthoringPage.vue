@@ -258,10 +258,6 @@ onBeforeUnmount(() => {
   display: none;
 }
 
-:deep(.browser-header) {
-  display: none;
-}
-
 :deep(.workflow-panel-body) {
   flex: 1;
   overflow: hidden;

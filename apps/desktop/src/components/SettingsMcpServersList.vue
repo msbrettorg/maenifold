@@ -55,11 +55,11 @@ const emit = defineEmits<{
 .section-header,.agent-item,.agent-actions { justify-content: space-between; }
 .section-header h3,.section-header p,.empty-state { margin: 0; }
 .section-header p,.empty-state { color: var(--muted-foreground); }
-.add-btn,.edit-btn,.delete-btn { border-radius: 6px; cursor: pointer; }
+.add-btn,.edit-btn,.delete-btn { border-radius: var(--radius); cursor: pointer; }
 .add-btn,.edit-btn { border: 1px solid var(--border); background: transparent; color: inherit; }
 .add-btn { padding: 0.5rem 0.9rem; }
-.agent-item { padding: 1rem; border-radius: 8px; background: var(--card); align-items: center; }
-.feedback { margin: 0; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.75rem; }
+.agent-item { padding: 1rem; border-radius: var(--radius); background: var(--card); align-items: center; }
+.feedback { margin: 0; padding: 0.75rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); font-size: 0.75rem; }
 .feedback.success { border-color: color-mix(in srgb, var(--color-status-completed) 45%, transparent); background: color-mix(in srgb, var(--color-status-completed) 14%, var(--card)); color: var(--foreground); }
 .feedback.error { border-color: color-mix(in srgb, var(--destructive) 45%, transparent); background: color-mix(in srgb, var(--destructive) 12%, var(--card)); color: var(--destructive); }
 .delete-btn { border: 1px solid var(--destructive); background: transparent; color: var(--destructive); padding: 0.25rem 0.6rem; }

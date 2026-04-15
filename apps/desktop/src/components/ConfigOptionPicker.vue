@@ -163,7 +163,7 @@ onUnmounted(() => {
   gap: 0.375rem;
   padding: 0.375rem 0.625rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--background);
   color: var(--foreground);
   font-size: var(--text-caption);
@@ -206,7 +206,7 @@ onUnmounted(() => {
   overflow-y: auto;
   background: var(--background);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   box-shadow: 0 4px 12px color-mix(in srgb, var(--background) 15%, transparent);
   z-index: 100;
 }

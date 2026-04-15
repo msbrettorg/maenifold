@@ -226,7 +226,7 @@ const {
 .tool-palette,.tool-agent-panel,.tool-agent-grid,.tool-palette__detail,.tool-palette__setup-callout,.tool-palette__quick-add,.tool-palette__quick-add-list { display: grid; gap: 0.75rem; }
 .tool-palette__hint { margin: 0; font-size: var(--text-xs); }
 .tool-palette__hint--warning { color: var(--color-status-active); }
-.tool-agent-panel,.tool-palette__detail,.tool-palette__setup-callout { padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.85rem; background: color-mix(in srgb, var(--card) 72%, transparent); }
+.tool-agent-panel,.tool-palette__detail,.tool-palette__setup-callout { padding: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--card) 72%, transparent); }
 .tool-agent-grid { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 .agent-mode-badges,.tool-palette__option-tags,.tool-palette__required-tags,.tool-palette__detail-actions,.tool-palette__option-title { display: flex; flex-wrap: wrap; gap: 0.35rem; align-items: center; }
 .tool-palette__category { display: grid; gap: 0.45rem; }
@@ -239,7 +239,7 @@ const {
 .tool-palette__header,.tool-palette__status-row,.tool-palette__detail-head,.tool-palette__detail-footer { display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; }
 .tool-palette__header p,.tool-palette__detail-head p,.tool-palette__status,.tool-palette__option-desc,.tool-palette__option-error,.tool-palette__required-empty,.tool-palette__setup-callout p { color: var(--muted-foreground); font-size: var(--text-sm); margin: 0; }
 .tool-palette__status--error,.tool-palette__tag--unavailable { color: var(--color-status-abandoned); }
-.tool-palette__listbox { display: grid; gap: 0.45rem; max-height: min(18rem, 38vh); padding: 0.1rem; overflow-y: auto; border-radius: 0.8rem; outline: none; }
+.tool-palette__listbox { display: grid; gap: 0.45rem; max-height: min(18rem, 38vh); padding: 0.1rem; overflow-y: auto; border-radius: var(--radius); outline: none; }
 .tool-palette__option { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--background); color: var(--foreground); text-align: left; cursor: pointer; }
 .tool-palette__option:hover { background: color-mix(in srgb, var(--foreground) 4%, var(--background)); }
 .tool-palette__option:focus-visible,.tool-palette__listbox:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }

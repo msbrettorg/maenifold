@@ -152,7 +152,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 .tool-content-block {
   padding: 0.625rem;
   border: 1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 .tool-content-label {
@@ -168,7 +168,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   margin: 0;
   padding: 0.75rem;
   overflow-x: auto;
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--muted);
   color: var(--muted-foreground);
 }
@@ -186,7 +186,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 .tool-terminal-status { font-weight: var(--weight-display); }
 .tool-call-payload {
   border: 1px solid color-mix(in srgb, var(--muted-foreground) 35%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 .tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: var(--weight-title); cursor: pointer; }

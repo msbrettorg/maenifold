@@ -125,7 +125,7 @@ defineProps<{
 
 .settings-card {
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 
@@ -168,7 +168,7 @@ defineProps<{
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--background);
   color: var(--foreground);
 }
@@ -184,14 +184,14 @@ defineProps<{
   min-height: 42px;
   padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--background);
 }
 
 .optional-field {
   padding: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--background);
 }
 </style>

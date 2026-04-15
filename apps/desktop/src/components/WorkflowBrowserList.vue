@@ -69,7 +69,7 @@ function stepLabel(count?: number): string | null {
 .workflow-item { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2); border-left: 4px solid transparent; border-radius: var(--radius-sm); background: #201f1f; cursor: pointer; transition: background var(--transition-fast); }
 .workflow-item:hover { background: #2a2a2a; }
 .workflow-item--selected { background: #2a2a2a; border-left-color: var(--color-node-workflow); }
-.workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: 50%; background: var(--color-status-active); margin-right: calc(var(--space-1) * -1); }
+.workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: var(--radius); background: var(--color-status-active); margin-right: calc(var(--space-1) * -1); }
 .workflow-emoji { font-size: var(--text-body-sm); line-height: 1.4; flex-shrink: 0; }
 .workflow-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .workflow-name { font: var(--weight-title) var(--text-caption)/1.4 var(--font-body); color: var(--foreground); white-space: normal; overflow: visible; text-overflow: clip; word-break: break-word; }

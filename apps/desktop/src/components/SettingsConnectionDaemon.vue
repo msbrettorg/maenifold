@@ -121,6 +121,11 @@ async function copyAddress() {
   margin: 0;
 }
 
+.info-card h4 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
 .info-card p,
 .stat-chip span {
   color: var(--muted-foreground);

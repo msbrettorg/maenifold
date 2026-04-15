@@ -202,7 +202,7 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail-history__markdown :deep(code) {
   padding: 0.1rem 0.3rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
   border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
   background: color-mix(in srgb, var(--background) 75%, var(--muted));
   color: var(--foreground);

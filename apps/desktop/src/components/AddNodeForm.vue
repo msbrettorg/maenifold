@@ -169,7 +169,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   gap: 0.65rem;
   padding: 0.75rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: #1c1b1b;
 }
 

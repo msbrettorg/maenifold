@@ -117,7 +117,7 @@ function formatEnvCount(count: number) {
 .form-section {
   padding: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--background);
 }
 
@@ -146,6 +146,11 @@ function formatEnvCount(count: number) {
 .details-section h5,
 .details-section p {
   margin: 0;
+}
+
+.details-section h5 {
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .details-section p,
@@ -178,7 +183,7 @@ function formatEnvCount(count: number) {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--background);
   color: var(--foreground);
 }
@@ -194,7 +199,7 @@ function formatEnvCount(count: number) {
 .server-editor {
   padding: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 
@@ -209,7 +214,7 @@ function formatEnvCount(count: number) {
 .add-inline-btn,
 .remove-btn {
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: transparent;
   color: inherit;
   cursor: pointer;

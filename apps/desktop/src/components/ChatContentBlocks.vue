@@ -189,7 +189,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
   max-width: min(100%, 32rem);
   max-height: 24rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
 }
 .message-audio { width: min(100%, 28rem); }
 .resource-link-chip {

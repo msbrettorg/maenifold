@@ -106,7 +106,7 @@ function statusClass(status: string): string {
 .trace-status__dot {
   width: 0.45rem;
   height: 0.45rem;
-  border-radius: 50%;
+  border-radius: var(--radius);
   background: currentColor;
 }
 .trace-status--active {

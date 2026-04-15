@@ -142,5 +142,5 @@ const workflowCategory = computed({
 .toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }
 .toggle-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .toggle-indicator--enabled { background: var(--color-node-workflow); justify-content: flex-end; }
-.indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--foreground); }
+.indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--foreground); }
 </style>

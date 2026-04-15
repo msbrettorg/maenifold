@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
+import { Button } from './ui/button'
 import WorkflowBrowserFilters from './WorkflowBrowserFilters.vue'
 import WorkflowBrowserList from './WorkflowBrowserList.vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
@@ -197,10 +198,6 @@ watch(
       accept=".json,application/json"
       @change="handleImportSelection"
     />
-    <div class="browser-header">
-      <span class="header-title">Workflows</span>
-    </div>
-
     <WorkflowBrowserFilters
       :chips="chips"
       :search-query="searchQuery"
@@ -225,9 +222,9 @@ watch(
     />
 
     <div class="browser-toolbar">
-      <button class="btn-new" type="button" @click="store.createNewWorkflow()">
+      <Button class="browser-primary-action" type="button" @click="store.createNewWorkflow()">
         + New workflow
-      </button>
+      </Button>
       <button class="btn-import" type="button" title="Import workflow" @click="handleImportClick()">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -244,12 +241,9 @@ watch(
   display: none;
 }
 .workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: #1c1b1b; display: flex; flex-direction: column; overflow: hidden; }
-.browser-header { min-height: 44px; padding: 0 var(--space-4); display: flex; align-items: center; flex-shrink: 0; }
-.header-title { font: var(--weight-display) var(--text-body)/1 var(--font-display); color: var(--foreground); }
 .browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
-.btn-new, .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
-.btn-new { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid transparent; background: linear-gradient(135deg, var(--color-node-workflow), color-mix(in srgb, var(--color-node-workflow) 80%, #000)); color: #fff; font: var(--weight-title) var(--text-caption)/1.2 var(--font-body); }
-.btn-new:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--color-node-workflow) 90%, #fff), var(--color-node-workflow)); box-shadow: 0 0 8px color-mix(in srgb, var(--color-node-workflow) 30%, transparent); }
+.browser-primary-action { flex: 1; }
+.btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
 .btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); }
 .btn-import:hover { background: var(--card); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--border)); color: var(--foreground); }
 </style>

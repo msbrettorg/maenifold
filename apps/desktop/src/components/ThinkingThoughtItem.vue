@@ -85,7 +85,7 @@ function formatRelativeTime(iso: string): string {
 .thought-entry {
   background: color-mix(in srgb, var(--muted) 84%, var(--background));
   border: 1px solid var(--thinking-thought-border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
   min-width: 0;
 }

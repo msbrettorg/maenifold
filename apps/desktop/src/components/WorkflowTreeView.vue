@@ -35,7 +35,7 @@ function retry() {
   background: var(--muted);
   min-height: 200px;
   padding: 1.5rem;
-  border-radius: 12px;
+  border-radius: var(--radius);
   font-family: var(--font-body);
 }
 .tree-root-scroll {

@@ -110,7 +110,7 @@ defineEmits<{ retry: [] }>();
   margin-bottom: 0.75rem;
   border: 2px solid rgba(66, 71, 83, 0.15);
   border-top-color: #4d8eff;
-  border-radius: 50%;
+  border-radius: var(--radius);
   animation: spin 0.8s linear infinite;
 }
 

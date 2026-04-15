@@ -115,7 +115,7 @@ function onAfterLeave(element: Element): void {
   --thinking-card-badge: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
   width: 280px;
   background: color-mix(in srgb, var(--muted) 92%, var(--background));
-  border-radius: 10px;
+  border-radius: var(--radius);
   border-left: 3px solid var(--color-node-prompt);
   color: var(--thinking-card-text);
   box-shadow: 0 6px 18px color-mix(in srgb, var(--background) 28%, transparent);
@@ -243,7 +243,7 @@ function onAfterLeave(element: Element): void {
   margin-top: 0.95rem;
   padding: 0.75rem;
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 18%, transparent);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--color-node-prompt) 6%, var(--muted));
 }
 .conclusion-label {

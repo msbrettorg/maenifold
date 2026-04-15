@@ -31,7 +31,7 @@ defineEmits<{
   max-width: 480px;
   background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--muted));
   border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 25%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius);
   padding: 1rem 1.25rem;
   color: var(--tree-error-text);
 }
@@ -67,7 +67,7 @@ defineEmits<{
   align-self: center;
   background: color-mix(in srgb, var(--color-status-abandoned) 18%, var(--muted));
   border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 30%, transparent);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.375rem 0.75rem;
   color: var(--tree-error-text);
   cursor: pointer;

@@ -179,6 +179,11 @@ onMounted(async () => {
   margin: 0;
 }
 
+.section-header h3 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
 .section-header p,
 .toggle-card p,
 .card-header p,
@@ -188,7 +193,7 @@ onMounted(async () => {
 
 .card,
 .status-chip {
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 .card {
@@ -224,7 +229,7 @@ onMounted(async () => {
 .secondary-btn {
   padding: 0.5rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -248,7 +253,7 @@ onMounted(async () => {
   gap: 0;
   margin-top: 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 

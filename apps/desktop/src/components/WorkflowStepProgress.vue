@@ -76,11 +76,11 @@ function statusClass(status: string): string {
 .steps-timeline { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
 .step { display: flex; gap: var(--space-3); min-height: 2.5rem; }
 .step-indicator { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; width: 1.25rem; padding-top: 0.15rem; }
-.step-dot { position: relative; width: 0.625rem; height: 0.625rem; border-radius: 50%; flex-shrink: 0; background: var(--color-status-pending); }
+.step-dot { position: relative; width: 0.625rem; height: 0.625rem; border-radius: var(--radius); flex-shrink: 0; background: var(--color-status-pending); }
 .step--completed .step-dot { background: var(--color-status-completed); }
 .step--active .step-dot    { background: var(--color-status-active); }
 .step--failed .step-dot    { background: var(--color-status-stuck); }
-.step-dot__pulse { position: absolute; inset: -3px; border-radius: 50%; border: 2px solid var(--color-status-active); animation: pulse-ring 1.4s ease-in-out infinite; }
+.step-dot__pulse { position: absolute; inset: -3px; border-radius: var(--radius); border: 2px solid var(--color-status-active); animation: pulse-ring 1.4s ease-in-out infinite; }
 @keyframes pulse-ring { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.8); } }
 .step-line { flex: 1; width: 2px; min-height: 0.75rem; background: var(--border); }
 .step--completed .step-line { background: color-mix(in srgb, var(--color-status-completed) 40%, var(--border)); }

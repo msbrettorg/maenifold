@@ -231,13 +231,13 @@ onMounted(loadSettings);
 
 .settings-card {
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 
 .feedback {
   padding: 0.75rem 0.9rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
 }
 
 .feedback.success {
@@ -258,7 +258,7 @@ onMounted(loadSettings);
 .save-btn,
 .reset-btn {
   padding: 0.55rem 1rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 

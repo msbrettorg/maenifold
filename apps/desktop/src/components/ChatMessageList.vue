@@ -125,7 +125,7 @@ const starterChips = [
   height: 16px;
   border: 2px solid var(--border);
   border-top-color: #4d8eff;
-  border-radius: 50%;
+  border-radius: var(--radius);
   animation: spin 1s linear infinite;
 }
 .cancel-btn {

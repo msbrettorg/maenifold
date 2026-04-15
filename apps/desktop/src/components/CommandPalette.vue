@@ -170,7 +170,7 @@ function handleSelectionChange(value: unknown) {
   margin-bottom: 6px;
   background: #201f1f;
   border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 8px;
+  border-radius: var(--radius);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
   max-height: 320px;
   overflow: visible;
@@ -179,7 +179,7 @@ function handleSelectionChange(value: unknown) {
 
 .command-root {
   padding: 0;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: transparent;
 }
 
@@ -236,7 +236,7 @@ function handleSelectionChange(value: unknown) {
   background: #201f1f;
   color: #e5e2e1;
   border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 6px;
+  border-radius: var(--radius);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
   padding: 8px 12px;
   font-size: var(--text-body-sm);

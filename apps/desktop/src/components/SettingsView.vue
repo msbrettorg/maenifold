@@ -136,6 +136,11 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
+.settings-header h2 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
 .settings-header p {
   margin-top: 0.375rem;
   color: var(--muted-foreground);

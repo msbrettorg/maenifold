@@ -52,6 +52,10 @@ const toolHintEntries = computed(() => {
   return Object.entries(hints).map(([name, hint]) => ({ name, ...hint }))
 })
 
+function formatReasoningLevel(level: ReasoningEffort): string {
+  return level.charAt(0).toUpperCase() + level.slice(1)
+}
+
 function priorityClass(priority: ToolHintPriority): string {
   switch (priority) {
     case 'mandatory':
@@ -97,7 +101,7 @@ function priorityClass(priority: ToolHintPriority): string {
             type="button"
             @click="selectedEffort = level"
           >
-            {{ level.toUpperCase() }}
+            {{ formatReasoningLevel(level) }}
           </button>
         </div>
       </div>
@@ -149,7 +153,7 @@ function priorityClass(priority: ToolHintPriority): string {
 <style scoped>
 .step-inspector { height: 100%; background: var(--card); overflow-y: auto; display: flex; flex-direction: column; padding-bottom: var(--space-4); }
 .panel-header { min-height: 44px; margin: 0 0 var(--space-4); padding: 0 var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; flex-shrink: 0; }
-.panel-header::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--color-node-workflow); }
+.panel-header::before { content: ''; width: 6px; height: 6px; border-radius: var(--radius); background: var(--color-node-workflow); }
 .panel-header::after { content: 'Step inspector'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; color: var(--muted-foreground); }
 .step-inspector:has(.workflow-meta) .panel-header::after { content: 'Workflow'; }
 .step-id-row, .workflow-meta, .form-group { margin: 0 var(--space-4); }
@@ -170,7 +174,7 @@ function priorityClass(priority: ToolHintPriority): string {
 .thinking-subtitle { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
 .thinking-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .thinking-indicator.on { background: var(--color-node-workflow); justify-content: flex-end; }
-.indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--foreground); }
+.indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--foreground); }
 .tool-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .tool-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--foreground); font: var(--weight-code) var(--text-tiny)/1.4 var(--font-code); }
 .priority-badge { padding: 1px 4px; border-radius: 3px; font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.03em; }

@@ -250,7 +250,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 .messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
 .messages-container::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 .messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
-.messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: 6px; }
+.messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: var(--radius); }
 .messages-container :deep(pre.mermaid-error) { border: 1px solid color-mix(in srgb, var(--border-error) 45%, transparent); }
 .messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--primary-foreground) 76%, var(--destructive)); font-size: var(--text-sm); }
 </style>

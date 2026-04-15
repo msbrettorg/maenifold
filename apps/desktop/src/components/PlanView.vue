@@ -92,7 +92,7 @@ function toggleExpanded(): void {
 .plan-view {
   margin-bottom: 1rem;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--muted);
   overflow: hidden;
 }

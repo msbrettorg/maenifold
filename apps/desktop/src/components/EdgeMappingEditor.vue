@@ -239,6 +239,6 @@ function removeManualRow(id: string): void {
 .header p,.status,.empty-copy,.mapping-row small { color: var(--muted-foreground); font-size: var(--text-sm); }
 .mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--background); }
+.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); }
 @media (max-width: 640px) { .manual-row { flex-direction: column; } }
 </style>

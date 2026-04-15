@@ -167,7 +167,7 @@ function formatAbsolute(iso: string): string {
   --workflow-card-divider: color-mix(in srgb, var(--border) 30%, var(--muted));
   width: 320px;
   background: color-mix(in srgb, var(--muted) 88%, var(--background));
-  border-radius: 8px;
+  border-radius: var(--radius);
   border-left: 3px solid var(--color-status-active);
   padding: 0.875rem 1rem;
   color: var(--workflow-card-text);

@@ -89,7 +89,6 @@ function handleRootChange(event: Event) {
   gap: 1rem;
   padding: 0.9rem 1rem;
   background: #1c1b1b;
-  border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
 }
 

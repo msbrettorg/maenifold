@@ -40,7 +40,7 @@ const skeletonItems = [1, 2, 3] as const;
 .tree-loading {
   width: 320px;
   background: color-mix(in srgb, var(--muted) 88%, var(--background));
-  border-radius: 8px;
+  border-radius: var(--radius);
   border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
   padding: 0.875rem 1rem;
   display: flex;
@@ -74,7 +74,7 @@ const skeletonItems = [1, 2, 3] as const;
 .loading-badge {
   width: 28px;
   height: 28px;
-  border-radius: 6px;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
@@ -123,7 +123,7 @@ const skeletonItems = [1, 2, 3] as const;
 .loading-step-icon {
   width: 12px;
   height: 12px;
-  border-radius: 50%;
+  border-radius: var(--radius);
   flex-shrink: 0;
 }
 
@@ -159,7 +159,7 @@ const skeletonItems = [1, 2, 3] as const;
   flex: 1;
   min-width: 80px;
   background: color-mix(in srgb, var(--muted) 92%, var(--background));
-  border-radius: 8px;
+  border-radius: var(--radius);
   border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
   padding: 0.6rem;
   display: flex;
@@ -170,7 +170,7 @@ const skeletonItems = [1, 2, 3] as const;
 .skeleton-child-icon {
   width: 24px;
   height: 24px;
-  border-radius: 50%;
+  border-radius: var(--radius);
 }
 
 .skeleton-child-label {

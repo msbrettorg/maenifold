@@ -44,7 +44,7 @@ const emit = defineEmits<{
 :deep(.tool-agent-grid),
 :deep(.tool-palette__detail) { display: grid; gap: 0.75rem; }
 :deep(.tool-agent-panel),
-:deep(.tool-palette__detail) { padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.85rem; background: color-mix(in srgb, var(--card) 72%, transparent); }
+:deep(.tool-palette__detail) { padding: 0.8rem; border: 1px solid var(--border); border-radius: var(--radius); background: color-mix(in srgb, var(--card) 72%, transparent); }
 :deep(.tool-agent-grid) { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
 :deep(.agent-mode-badges),
 :deep(.tool-palette__option-tags),
@@ -68,7 +68,7 @@ const emit = defineEmits<{
 :deep(.tool-palette__required-empty) { color: var(--muted-foreground); font-size: var(--text-sm); }
 :deep(.tool-palette__status--error),
 :deep(.tool-palette__tag--warning) { color: var(--color-status-abandoned); }
-:deep(.tool-palette__listbox) { display: grid; gap: 0.45rem; max-height: min(18rem, 38vh); padding: 0.1rem; overflow-y: auto; border-radius: 0.8rem; outline: none; }
+:deep(.tool-palette__listbox) { display: grid; gap: 0.45rem; max-height: min(18rem, 38vh); padding: 0.1rem; overflow-y: auto; border-radius: var(--radius); outline: none; }
 :deep(.tool-palette__option) { display: grid; gap: 0.35rem; padding: 0.7rem 0.8rem; border: 1px solid var(--border); border-radius: 0.75rem; background: var(--background); color: var(--foreground); text-align: left; cursor: pointer; }
 :deep(.tool-palette__option:hover) { background: color-mix(in srgb, var(--foreground) 4%, var(--background)); }
 :deep(.tool-palette__option:focus-visible),

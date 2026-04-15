@@ -101,7 +101,7 @@ const sections = computed<PreviewSection[]>(() => {
 <style scoped>
 .assembly-preview {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: var(--card, var(--background));
 }
 
@@ -113,7 +113,7 @@ const sections = computed<PreviewSection[]>(() => {
   gap: 0.75rem;
   padding: 0.75rem 0.875rem;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius);
   background: transparent;
   color: var(--foreground);
   font: inherit;
@@ -150,7 +150,7 @@ const sections = computed<PreviewSection[]>(() => {
   max-height: 12rem;
   overflow: auto;
   padding: 0.75rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   border: 1px solid var(--border);
   background: var(--background);
   color: var(--foreground);
@@ -172,7 +172,7 @@ const sections = computed<PreviewSection[]>(() => {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   background: var(--background);
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.1rem 0.3rem;
 }
 
@@ -180,7 +180,7 @@ const sections = computed<PreviewSection[]>(() => {
   margin: 0.75rem 0 0;
   padding: 0.75rem;
   background: var(--background);
-  border-radius: 8px;
+  border-radius: var(--radius);
   overflow-x: auto;
 }
 

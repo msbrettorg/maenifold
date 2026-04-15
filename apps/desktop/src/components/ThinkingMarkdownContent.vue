@@ -108,7 +108,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 
 .thinking-markdown-content :deep(pre) {
   background: color-mix(in srgb, var(--muted) 100%, var(--background));
-  border-radius: 6px;
+  border-radius: var(--radius);
   padding: 0.55rem;
   overflow-x: auto;
 }

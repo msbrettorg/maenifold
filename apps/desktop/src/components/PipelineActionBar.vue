@@ -240,7 +240,7 @@ function handleRewind(): Promise<void | undefined> {
   margin-left: 0.25rem;
   padding: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
-  border-radius: 0.85rem;
+  border-radius: var(--radius);
   background: color-mix(in srgb, var(--background) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);

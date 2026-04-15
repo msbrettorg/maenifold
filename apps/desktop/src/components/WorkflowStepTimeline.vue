@@ -264,10 +264,10 @@ watch(exportState, (state) => {
 .step-entry { display: flex; gap: var(--space-3); align-items: stretch; }
 .add-entry { align-items: center; }
 .step-rail { display: flex; flex-direction: column; align-items: center; width: 40px; flex-shrink: 0; }
-.step-number { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--border); background: var(--card); font-family: var(--font-code); font-size: var(--text-caption); font-weight: var(--weight-title); color: var(--muted-foreground); flex-shrink: 0; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast); }
+.step-number { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--card); font-family: var(--font-code); font-size: var(--text-caption); font-weight: var(--weight-title); color: var(--muted-foreground); flex-shrink: 0; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast); }
 .step-number--selected { border-color: var(--color-node-workflow); color: var(--color-node-workflow); background: color-mix(in srgb, var(--color-node-workflow) 10%, var(--card)); }
 .step-connector { flex: 1; width: 1px; min-height: var(--space-3); border-left: 2px dashed var(--border); }
-.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted-foreground); flex-shrink: 0; transition: background var(--transition-fast); }
+.step-dot { width: 8px; height: 8px; border-radius: var(--radius); background: var(--muted-foreground); flex-shrink: 0; transition: background var(--transition-fast); }
 .add-step-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--space-2); width: 100%; padding: var(--space-3); background: transparent; border: 1px dashed var(--border); border-radius: var(--radius-sm); color: var(--muted-foreground); font-family: var(--font-code); font-size: var(--text-tiny); letter-spacing: 0.05em; cursor: pointer; transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast); }
 .add-step-btn:hover { border-color: var(--color-node-workflow); color: var(--color-node-workflow); background: color-mix(in srgb, var(--color-node-workflow) 6%, transparent); }
 .add-entry:hover .step-dot { background: var(--color-node-workflow); }

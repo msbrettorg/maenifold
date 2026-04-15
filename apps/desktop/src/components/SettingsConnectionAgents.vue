@@ -148,6 +148,12 @@ function formatEnvCount(count: number) {
   margin: 0;
 }
 
+.section-header h4,
+.agent-form h5 {
+  font-family: var(--font-display);
+  font-weight: 500;
+}
+
 .section-header p,
 .empty-state,
 .agent-summary {
@@ -157,7 +163,7 @@ function formatEnvCount(count: number) {
 .agent-form,
 .agent-item {
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--card);
 }
 
@@ -166,7 +172,7 @@ function formatEnvCount(count: number) {
   gap: 0.75rem;
   padding: 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius);
   background: var(--background);
 }
 
@@ -180,7 +186,7 @@ function formatEnvCount(count: number) {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   background: var(--background);
   color: var(--foreground);
 }
@@ -196,7 +202,7 @@ function formatEnvCount(count: number) {
 .edit-btn,
 .delete-btn {
   padding: 0.5rem 0.9rem;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 

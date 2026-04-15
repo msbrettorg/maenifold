@@ -215,7 +215,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 .status-bead {
   width: 6px;
   height: 6px;
-  border-radius: 50%;
+  border-radius: var(--radius);
   flex-shrink: 0;
   margin-top: 0.375rem;
 }

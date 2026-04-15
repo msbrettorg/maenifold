@@ -24,7 +24,6 @@ defineEmits<{
       >
         ←
       </button>
-      <span class="header-title">Knowledge graph</span>
       <span v-if="viewLevel === 'concepts' && activeCommunityAnchor" class="header-context">
         {{ activeCommunityAnchor }}
       </span>
@@ -78,17 +77,6 @@ defineEmits<{
 .back-btn:hover {
   background: #353534;
   color: #e5e2e1;
-}
-
-.header-title {
-  color: #e5e2e1;
-  font-weight: 500;
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  letter-spacing: 0.02em;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .header-stats {

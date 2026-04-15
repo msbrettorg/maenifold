@@ -11,6 +11,7 @@ use futures_util::{SinkExt, StreamExt};
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 use tokio::sync::{mpsc, oneshot};
 
 #[derive(Deserialize)]
@@ -29,6 +30,8 @@ struct RelaySession {
     app_session_id: String,
     session_id: String,
     cwd: String,
+    mcp_servers: Vec<acp::McpServer>,
+    client_capabilities: acp::ClientCapabilities,
     config_options: Vec<Value>,
     modes: Vec<String>,
 }
@@ -36,6 +39,23 @@ struct RelaySession {
 struct PendingPrompt {
     request_id: Value,
     cancelled: bool,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionSetupParams {
+    cwd: Option<PathBuf>,
+    #[serde(default)]
+    mcp_servers: Vec<acp::McpServer>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct SessionLoadParams {
+    session_id: String,
+    cwd: Option<PathBuf>,
+    #[serde(default)]
+    mcp_servers: Vec<acp::McpServer>,
 }
 
 pub async fn ws_handler(
@@ -201,12 +221,13 @@ async fn handle_incoming(
 
     let response = match method {
         "initialize" if id.is_some() => Some(
-            handle_initialize(relay, session, id.clone().unwrap())
+            handle_initialize(relay, session, params, id.clone().unwrap())
                 .await
                 .map(|result| rpc_ok(id.unwrap(), result)),
         ),
         "session/new" if id.is_some() => Some(
             handle_session_new(relay, session, params, id.clone().unwrap())
+                .await
                 .map(|result| rpc_ok(id.unwrap(), result)),
         ),
         "session/load" if id.is_some() => Some(
@@ -255,31 +276,24 @@ async fn handle_incoming(
 async fn handle_initialize(
     relay: &RelayConfig,
     session: &mut Option<RelaySession>,
+    params: Value,
     request_id: Value,
 ) -> Result<Value, Value> {
+    let request: acp::InitializeRequest = serde_json::from_value(params)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
     if session.is_none() {
         let app_session_id = format!("acp-relay:{}", uuid::Uuid::new_v4());
-        let (tx, rx) = oneshot::channel();
-        jockey::acp::worker_tx()
-            .send(jockey::acp::WorkerMsg::Prewarm {
-                runtime_key: relay.adapter.runtime_key.clone(),
-                binary: relay.adapter.binary.clone(),
-                args: relay.adapter.args.clone(),
-                env: relay.adapter.env.clone(),
-                role_name: relay.agent_name.clone(),
-                app_session_id: app_session_id.clone(),
-                cwd: relay.default_cwd.clone(),
-                auto_approve: true,
-                mcp_servers: vec![],
-                role_mode: None,
-                role_config_options: vec![],
-                result_tx: Some(tx),
-                resume_session_id: None,
-            })
-            .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
-        let (config_options, modes, session_id) = rx
-            .await
-            .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+        let client_capabilities = request.client_capabilities.clone();
+        let (config_options, modes, session_id) = prewarm_session(
+            relay,
+            &app_session_id,
+            relay.default_cwd.clone(),
+            vec![],
+            client_capabilities.clone(),
+            None,
+            request_id.clone(),
+        )
+        .await?;
         if session_id.is_empty() {
             return Err(rpc_error(
                 request_id,
@@ -291,9 +305,13 @@ async fn handle_initialize(
             app_session_id,
             session_id,
             cwd: relay.default_cwd.clone(),
+            mcp_servers: vec![],
+            client_capabilities,
             config_options,
             modes,
         });
+    } else if let Some(active) = session.as_mut() {
+        active.client_capabilities = request.client_capabilities;
     }
 
     Ok(json!({
@@ -309,10 +327,10 @@ async fn handle_initialize(
     }))
 }
 
-fn handle_session_new(
+async fn handle_session_new(
     relay: &RelayConfig,
-    session: &Option<RelaySession>,
-    _params: Value,
+    session: &mut Option<RelaySession>,
+    params: Value,
     request_id: Value,
 ) -> Result<Value, Value> {
     let Some(active) = session.as_ref() else {
@@ -322,15 +340,48 @@ fn handle_session_new(
             "initialize must be called before session/new",
         ));
     };
+    let app_session_id = active.app_session_id.clone();
+    let client_capabilities = active.client_capabilities.clone();
+    let request: SessionSetupParams = serde_json::from_value(params)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
+    let cwd = resolve_session_cwd(request.cwd, &relay.default_cwd)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
+    reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
+    let mcp_servers = request.mcp_servers;
+    let (config_options, modes, session_id) = prewarm_session(
+        relay,
+        &app_session_id,
+        cwd.clone(),
+        mcp_servers.clone(),
+        client_capabilities,
+        None,
+        request_id.clone(),
+    )
+    .await?;
+    if session_id.is_empty() {
+        return Err(rpc_error(
+            request_id,
+            -32603,
+            "session/new failed — agent did not return a session",
+        ));
+    }
+    let active = session
+        .as_mut()
+        .ok_or_else(|| rpc_error(request_id.clone(), -32600, "relay session disappeared"))?;
+    active.session_id = session_id.clone();
+    active.cwd = cwd;
+    active.mcp_servers = mcp_servers;
+    active.config_options = config_options.clone();
+    active.modes = modes.clone();
     Ok(json!({
-        "sessionId": active.session_id,
-        "configOptions": active.config_options,
+        "sessionId": session_id,
+        "configOptions": config_options,
         "availableCommands": jockey::acp::list_available_commands(
-            &active.app_session_id,
+            &app_session_id,
             &relay.adapter.runtime_key,
             &relay.agent_name,
         ),
-        "modes": build_modes(&active.modes),
+        "modes": build_modes(&modes),
     }))
 }
 
@@ -347,48 +398,36 @@ async fn handle_session_load(
             "initialize must be called before session/load",
         )
     })?;
-    let requested_session_id = params
-        .get("sessionId")
-        .and_then(Value::as_str)
-        .ok_or_else(|| rpc_error(request_id.clone(), -32602, "missing sessionId"))?
-        .to_string();
+    let request: SessionLoadParams = serde_json::from_value(params)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
+    let requested_session_id = request.session_id;
     let app_session_id = active.app_session_id.clone();
-    let cwd = active.cwd.clone();
+    let client_capabilities = active.client_capabilities.clone();
+    let previous_cwd = active.cwd.clone();
+    let cwd = request
+        .cwd
+        .map(|cwd| {
+            resolve_session_cwd(Some(cwd), &relay.default_cwd)
+                .map_err(|error| rpc_error(request_id.clone(), -32602, error))
+        })
+        .transpose()?
+        .unwrap_or(previous_cwd);
+    let mcp_servers = request.mcp_servers;
 
     // Reset the current connection so the pool key is free for re-prewarm
-    let (reset_tx, reset_rx) = oneshot::channel();
-    jockey::acp::worker_tx()
-        .send(jockey::acp::WorkerMsg::Reset {
-            runtime_key: relay.adapter.runtime_key.clone(),
-            role_name: relay.agent_name.clone(),
-            app_session_id: app_session_id.clone(),
-            result_tx: reset_tx,
-        })
-        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
-    let _ = reset_rx.await;
+    reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
 
     // Re-prewarm with the requested session to resume
-    let (tx, rx) = oneshot::channel();
-    jockey::acp::worker_tx()
-        .send(jockey::acp::WorkerMsg::Prewarm {
-            runtime_key: relay.adapter.runtime_key.clone(),
-            binary: relay.adapter.binary.clone(),
-            args: relay.adapter.args.clone(),
-            env: relay.adapter.env.clone(),
-            role_name: relay.agent_name.clone(),
-            app_session_id: app_session_id.clone(),
-            cwd: cwd.clone(),
-            auto_approve: true,
-            mcp_servers: vec![],
-            role_mode: None,
-            role_config_options: vec![],
-            result_tx: Some(tx),
-            resume_session_id: Some(requested_session_id),
-        })
-        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
-    let (config_options, modes, session_id) = rx
-        .await
-        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+    let (config_options, modes, session_id) = prewarm_session(
+        relay,
+        &app_session_id,
+        cwd.clone(),
+        mcp_servers.clone(),
+        client_capabilities.clone(),
+        Some(requested_session_id),
+        request_id.clone(),
+    )
+    .await?;
     if session_id.is_empty() {
         return Err(rpc_error(
             request_id,
@@ -400,6 +439,8 @@ async fn handle_session_load(
         app_session_id: app_session_id.clone(),
         session_id: session_id.clone(),
         cwd,
+        mcp_servers,
+        client_capabilities,
         config_options: config_options.clone(),
         modes: modes.clone(),
     });
@@ -465,7 +506,8 @@ fn handle_prompt(
             delta_tx: event_tx,
             result_tx: tx,
             auto_approve: true,
-            mcp_servers: vec![],
+            mcp_servers: active.mcp_servers.clone(),
+            client_capabilities: active.client_capabilities.clone(),
             role_mode: None,
             role_config_options: vec![],
             resume_session_id: None,
@@ -656,6 +698,73 @@ fn update_config_options(options: &mut [Value], config_id: &str, value: &str) {
             _ => Value::String(value.to_string()),
         };
     }
+}
+
+fn resolve_session_cwd(cwd: Option<PathBuf>, default_cwd: &str) -> Result<String, String> {
+    match cwd {
+        Some(cwd) if !cwd.is_absolute() => Err("cwd must be an absolute path".to_string()),
+        Some(cwd) => Ok(cwd.to_string_lossy().into_owned()),
+        None => {
+            let default_path = Path::new(default_cwd);
+            if default_path.is_absolute() {
+                Ok(default_cwd.to_string())
+            } else {
+                Err("relay default cwd must be an absolute path".to_string())
+            }
+        }
+    }
+}
+
+async fn reset_session_connection(
+    relay: &RelayConfig,
+    app_session_id: &str,
+    request_id: Value,
+) -> Result<(), Value> {
+    let (reset_tx, reset_rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Reset {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            role_name: relay.agent_name.clone(),
+            app_session_id: app_session_id.to_string(),
+            result_tx: reset_tx,
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+    reset_rx
+        .await
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?
+        .map_err(|error| rpc_error(request_id, -32000, error))
+}
+
+async fn prewarm_session(
+    relay: &RelayConfig,
+    app_session_id: &str,
+    cwd: String,
+    mcp_servers: Vec<acp::McpServer>,
+    client_capabilities: acp::ClientCapabilities,
+    resume_session_id: Option<String>,
+    request_id: Value,
+) -> Result<(Vec<Value>, Vec<String>, String), Value> {
+    let (tx, rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Prewarm {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            binary: relay.adapter.binary.clone(),
+            args: relay.adapter.args.clone(),
+            env: relay.adapter.env.clone(),
+            client_capabilities,
+            role_name: relay.agent_name.clone(),
+            app_session_id: app_session_id.to_string(),
+            cwd,
+            auto_approve: true,
+            mcp_servers,
+            role_mode: None,
+            role_config_options: vec![],
+            result_tx: Some(tx),
+            resume_session_id,
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+    rx.await
+        .map_err(|_| rpc_error(request_id, -32000, "ACP worker disconnected"))
 }
 
 fn build_modes(modes: &[String]) -> Option<Value> {

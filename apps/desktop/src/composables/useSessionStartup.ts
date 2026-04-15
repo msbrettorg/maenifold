@@ -124,7 +124,11 @@ export function useSessionStartup({
     clearSessionAbort(localId);
   }
 
-  async function createSession(agentName: string, cwd: string): Promise<void> {
+  async function createSession(
+    agentName: string,
+    cwd: string,
+    configOptions: Record<string, string> = {},
+  ): Promise<void> {
     const { localId, sessionState } = createSessionSlot(agentName, cwd, {
       startupPhase: 'starting',
     });
@@ -150,13 +154,16 @@ export function useSessionStartup({
         console.log('Agent initialized:', initialized.initResponse);
       }
 
+      const startupConfigOptions = Object.keys(configOptions).length > 0
+        ? { configOptions }
+        : {};
       const sessionResponse = await runWithAuthenticationRetry(
         localId,
         bridge,
         sessionState,
         agentName,
         initialized.availableAuthMethods,
-        () => bridge.newSession({ cwd, mcpServers: [] }),
+        () => bridge.newSession({ cwd, mcpServers: [], ...startupConfigOptions }),
         'Authentication cancelled by user'
       );
 

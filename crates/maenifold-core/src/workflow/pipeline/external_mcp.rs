@@ -364,6 +364,8 @@ mod tests {
             name: "gate".to_string(),
             command: "/usr/bin/gate".to_string(),
             args: vec![],
+            timeout: None,
+            env: HashMap::new(),
         };
         let config =
             config_with_global_and_agents(vec![global.clone()], [("agent-a", vec![agent_local])]);
@@ -380,6 +382,8 @@ mod tests {
             name: "weather".to_string(),
             command: "/usr/bin/weather".to_string(),
             args: vec![],
+            timeout: None,
+            env: HashMap::new(),
         };
         let config =
             config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);

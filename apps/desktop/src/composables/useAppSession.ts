@@ -9,6 +9,7 @@ import {
   writeLastUsedAgent,
 } from '../lib/preferred-agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
+import { useAgentSessionOverridesStore } from '../stores/agent-session-overrides';
 
 export type ConfigStoreLike = {
   error: string | null; hasAgents: boolean; loadConfig(): Promise<void>;
@@ -22,7 +23,7 @@ export type SessionStoreLike = {
   pendingPermission: PermissionRequest | null; pendingPermissionCount: number;
   pendingAuthMethods: AppAuthMethod[]; pendingAuthAgentName: string;
   sessions: Map<string, SessionState>; initStore(): Promise<void>;
-  createSession(agentName: string, cwd: string): Promise<void>;
+  createSession(agentName: string, cwd: string, configOptions?: Record<string, string>): Promise<void>;
   resumeSession(session: SavedSession): Promise<void>;
   deleteSession(sessionId: string): Promise<void>; cancelConnection(): Promise<void>;
   resolvePermission(optionId: string): void; cancelPermission(): void;
@@ -141,6 +142,7 @@ export function useAppSession({
   const selectedAgent = ref('');
   const selectedCwd = ref('');
   const agentCapabilitiesStore = useAgentCapabilitiesStore();
+  const sessionOverridesStore = useAgentSessionOverridesStore();
   let agentProbeBootstrapped = false;
 
   const prefsStore = createPrefsStore();
@@ -216,7 +218,12 @@ export function useAppSession({
     if (!isAbsolutePath(cwd)) return sessionStore.setError('Working directory must be an absolute path');
 
     try {
-      await sessionStore.createSession(selectedAgent.value, cwd);
+      await sessionStore.createSession(
+        selectedAgent.value,
+        cwd,
+        sessionOverridesStore.getSelectedOverrides(selectedAgent.value),
+      );
+      sessionOverridesStore.clearSelectedOverrides(selectedAgent.value);
     } catch (e) {
       console.error('Failed to create session:', e);
     }

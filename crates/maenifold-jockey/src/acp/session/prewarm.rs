@@ -3,6 +3,7 @@ use tokio::sync::oneshot;
 
 use super::super::adapter::build_stdio_adapter;
 use super::super::worker::{WorkerMsg, worker_tx};
+use super::cold_start::default_client_capabilities;
 use super::mcp::load_role_mcp_servers;
 use crate::types::AppState;
 
@@ -33,6 +34,7 @@ async fn send_prewarm(
         binary: adapter.binary,
         args: adapter.args,
         env: adapter.env,
+        client_capabilities: default_client_capabilities(),
         role_name: opts.role_name.to_string(),
         app_session_id: resolved_session_id,
         cwd: opts.cwd.to_string(),

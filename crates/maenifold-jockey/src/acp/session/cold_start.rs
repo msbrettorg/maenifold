@@ -18,6 +18,16 @@ pub(super) const INIT_TIMEOUT: std::time::Duration = std::time::Duration::from_s
 pub(super) const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 pub(super) static LIVE_CONNECTION_SEQ: AtomicU64 = AtomicU64::new(1);
 
+pub(crate) fn default_client_capabilities() -> acp::ClientCapabilities {
+    acp::ClientCapabilities::new()
+        .fs(
+            acp::FileSystemCapabilities::new()
+                .read_text_file(true)
+                .write_text_file(true),
+        )
+        .terminal(true)
+}
+
 pub(super) fn collect_models_from_select_options(
     options: &acp::SessionConfigSelectOptions,
     out: &mut HashSet<String>,
@@ -88,6 +98,7 @@ pub(crate) async fn cold_start(
     binary: &str,
     args: &[String],
     env_pairs: &[(String, String)],
+    client_capabilities: acp::ClientCapabilities,
     abs_cwd: &str,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
@@ -163,13 +174,7 @@ pub(crate) async fn cold_start(
         conn.initialize(
             acp::InitializeRequest::new(acp::ProtocolVersion::V1)
                 .client_info(acp::Implementation::new("jockey", "0.1.0").title("Jockey"))
-                .client_capabilities(
-                    acp::ClientCapabilities::new()
-                        .fs(acp::FileSystemCapabilities::new()
-                            .read_text_file(true)
-                            .write_text_file(true))
-                        .terminal(true),
-                ),
+                .client_capabilities(client_capabilities),
         ),
     )
     .await

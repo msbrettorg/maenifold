@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
 import type { ModelInfo, SessionConfigSelectOptions, SessionMode } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
+import { useAgentSessionOverridesStore } from '../stores/agent-session-overrides';
 import AgentProbePreviewCapabilities from './AgentProbePreviewCapabilities.vue';
 import AgentProbePreviewStatus from './AgentProbePreviewStatus.vue';
 
@@ -29,6 +30,7 @@ const props = withDefaults(
 );
 
 const capabilitiesStore = useAgentCapabilitiesStore();
+const sessionOverridesStore = useAgentSessionOverridesStore();
 
 function toModeOptions(options: SessionMode[]) {
   return options.map((option) => ({
@@ -62,6 +64,10 @@ function toPreviewField(
   };
 }
 
+function getFieldValue(key: string, currentValue?: string) {
+  return sessionOverridesStore.getSelectedOverride(props.agentName, key) ?? currentValue;
+}
+
 const ready = computed(() => props.probe?.state === 'ready');
 const refreshing = computed(() => props.probe?.refreshing === true);
 const degradedMessage = computed(() => props.probe?.degradedMessage ?? null);
@@ -80,11 +86,15 @@ const previewFields = computed<PreviewField[]>(() => {
 
   if (probe.modeConfigOption) {
     consumedIds.add(probe.modeConfigOption.id);
-    fields.push(toPreviewField(probe.modeConfigOption, 'Available after session start'));
+    fields.push({
+      ...toPreviewField(probe.modeConfigOption, 'Available after session start'),
+      currentValue: getFieldValue(probe.modeConfigOption.id, probe.modeConfigOption.currentValue),
+    });
   } else if (probe.modeOptions.length > 0) {
     fields.push({
       key: 'mode',
       label: 'Mode',
+      currentValue: getFieldValue('mode'),
       options: toModeOptions(probe.modeOptions),
       emptyLabel: 'Available after session start',
     });
@@ -92,11 +102,15 @@ const previewFields = computed<PreviewField[]>(() => {
 
   if (probe.modelConfigOption) {
     consumedIds.add(probe.modelConfigOption.id);
-    fields.push(toPreviewField(probe.modelConfigOption, 'Available after session start'));
+    fields.push({
+      ...toPreviewField(probe.modelConfigOption, 'Available after session start'),
+      currentValue: getFieldValue(probe.modelConfigOption.id, probe.modelConfigOption.currentValue),
+    });
   } else if (probe.modelOptions.length > 0) {
     fields.push({
       key: 'model',
       label: 'Model',
+      currentValue: getFieldValue('model'),
       options: toModelOptions(probe.modelOptions),
       emptyLabel: 'Available after session start',
     });
@@ -104,12 +118,21 @@ const previewFields = computed<PreviewField[]>(() => {
 
   if (probe.thoughtLevelConfigOption) {
     consumedIds.add(probe.thoughtLevelConfigOption.id);
-    fields.push(toPreviewField(probe.thoughtLevelConfigOption, 'Available after session start'));
+    fields.push({
+      ...toPreviewField(probe.thoughtLevelConfigOption, 'Available after session start'),
+      currentValue: getFieldValue(
+        probe.thoughtLevelConfigOption.id,
+        probe.thoughtLevelConfigOption.currentValue,
+      ),
+    });
   }
 
   for (const option of probe.configOptionList) {
     if (!consumedIds.has(option.id)) {
-      fields.push(toPreviewField(option, 'Available after session start'));
+      fields.push({
+        ...toPreviewField(option, 'Available after session start'),
+        currentValue: getFieldValue(option.id, option.currentValue),
+      });
     }
   }
 
@@ -166,6 +189,10 @@ const refreshDisabled = computed(
 async function handleRefresh() {
   await capabilitiesStore.refreshAll();
 }
+
+function handleUpdateField(key: string, value: string) {
+  sessionOverridesStore.setSelectedOverride(props.agentName, key, value);
+}
 </script>
 
 <template>
@@ -187,6 +214,7 @@ async function handleRefresh() {
       v-if="ready && previewFields.length"
       :compact="compact"
       :fields="previewFields"
+      @update-field="handleUpdateField"
     />
   </section>
 </template>

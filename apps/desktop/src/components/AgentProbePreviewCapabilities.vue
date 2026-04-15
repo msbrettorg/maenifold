@@ -16,6 +16,7 @@ const props = defineProps<{
   compact: boolean;
   fields: PreviewField[];
 }>();
+const emit = defineEmits<{ 'update-field': [key: string, value: string] }>();
 
 function isGroup(
   option: SessionConfigSelectOption | SessionConfigSelectGroup,
@@ -29,8 +30,13 @@ function isGroup(
   <div class="field-grid" :class="{ compact: props.compact }">
     <div v-for="field in fields" :key="field.key" class="field-card">
       <label class="field-label" :for="`preview-${field.key}`">{{ field.label }}</label>
-      <select :id="`preview-${field.key}`" class="preview-select" :value="field.currentValue ?? EMPTY_VALUE" disabled>
-        <option v-if="!field.currentValue" :value="EMPTY_VALUE">{{ field.emptyLabel }}</option>
+      <select
+        :id="`preview-${field.key}`"
+        class="preview-select"
+        :value="field.currentValue ?? EMPTY_VALUE"
+        @change="(e: Event) => emit('update-field', field.key, (e.target as HTMLSelectElement).value)"
+      >
+        <option v-if="!field.currentValue" :value="EMPTY_VALUE" disabled>{{ field.emptyLabel }}</option>
         <template v-for="entry in field.options" :key="isGroup(entry) ? entry.group : entry.value">
           <optgroup v-if="isGroup(entry)" :label="entry.name">
             <option
@@ -78,6 +84,5 @@ function isGroup(
   background: #201f1f;
   color: var(--foreground);
   font-size: var(--text-caption);
-  opacity: 0.75;
 }
 </style>

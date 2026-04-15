@@ -10,6 +10,7 @@ use super::super::runtime_state::{
     remember_runtime_available_commands, remember_runtime_config_options,
 };
 use super::super::worker::{AcpEvent, AcpPromptResult, WorkerMsg, worker_tx};
+use super::cold_start::default_client_capabilities;
 // use crate::db::app_session_role::{load_app_session_role_cli_id, save_app_session_role_cli_id};
 // TODO: wire session ID persistence through Jockey DB
 // use crate::types::AppState;
@@ -108,6 +109,7 @@ pub async fn execute_runtime(
         binary: adapter.binary.clone(),
         args: adapter.args.clone(),
         env: adapter.env.clone(),
+        client_capabilities: default_client_capabilities(),
         role_name: role_name.to_string(),
         app_session_id: app_session_scope,
         prompt: prompt.to_string(),

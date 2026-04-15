@@ -10,6 +10,21 @@ echo "═══ Release build: all crates ═══"
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli -p maenifold-gate
 
 echo ""
+echo "═══ Install binaries ═══"
+for bin in maenifold maenifold-pipeline-driver gate; do
+  src="$ROOT/target/release/$bin"
+  dest="/usr/local/bin/$bin"
+  if [ -f "$src" ]; then
+    if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
+      echo "  ✓ $bin symlink already correct"
+    else
+      sudo ln -sf "$src" "$dest"
+      echo "  ✓ $bin → $dest"
+    fi
+  fi
+done
+
+echo ""
 echo "═══ Restart launchd services ═══"
 for svc in com.ma-collective.maenifold com.ma-collective.gate; do
   if launchctl list "$svc" &>/dev/null; then

@@ -147,10 +147,10 @@ maenifold-rs/
 Build the CLI from source:
 
 ```bash
-cargo build --release -p maenifold-cli
+cargo build --release -p maenifold-cli -p maenifold-pipeline-driver -p maenifold-gate
 ```
 
-The binary lands at `./target/release/maenifold`. Add it to your PATH or invoke it directly.
+Three binaries land in `./target/release/`: `maenifold` (CLI + MCP server), `maenifold-pipeline-driver` (headless pipeline executor), and `gate` (task management). All three must be on your PATH for full functionality. The easiest way is `./rebuild.sh`, which builds, symlinks, restarts services, and packages the desktop app.
 
 Minimal MCP client config:
 
@@ -245,6 +245,8 @@ Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/m
 ## Troubleshooting
 
 - **`maenifold` not found after build:** The binary is at `./target/release/maenifold`. Either add it to your PATH or use the full path in MCP configs.
+- **Pipeline `run` fails with "driver binary not found":** The pipeline executor spawns a separate `maenifold-pipeline-driver` process and expects it next to the `maenifold` binary. Run `./rebuild.sh` to symlink all binaries, or manually: `sudo ln -sf $(pwd)/target/release/maenifold-pipeline-driver /usr/local/bin/maenifold-pipeline-driver`.
+- **Pipeline tool nodes abandon immediately:** External MCP tool nodes (e.g. `azure-mcp-server.kusto`) resolve their server config from `maenifold.json`. Ensure the server is listed in the top-level `mcpServers` array and that the pipeline driver binary is installed (see above).
 - **SearchMemories returns empty results:** Expected on a fresh install with no memory files. Write a memory first with `WriteMemory`.
 - **Tauri build fails on Linux:** Install the system dependencies listed in the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) — this typically includes `libwebkit2gtk-4.1-dev` and friends.
 - **MCP client can't spawn the server:** Ensure the `command` in your MCP config points to an absolute path or a binary on your PATH.

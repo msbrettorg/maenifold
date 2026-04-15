@@ -101,7 +101,7 @@ const starterExamples = [
   border: none;
   border-radius: 4px;
   background: #4d8eff;
-  color: #fff;
+  color: var(--primary-foreground);
   font-size: var(--text-md);
   font-weight: var(--weight-display);
   cursor: pointer;

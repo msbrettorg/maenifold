@@ -139,8 +139,9 @@ function handleIntentInput(value: string): void {
 
 .gallery-title {
   margin: 0;
+  font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: var(--weight-title);
+  font-weight: var(--weight-display);
   color: #e5e2e1;
 }
 

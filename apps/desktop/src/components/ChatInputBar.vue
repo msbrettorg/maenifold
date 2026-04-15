@@ -161,7 +161,7 @@ textarea:focus {
   border: none;
   border-radius: 4px;
   background: #4d8eff;
-  color: #fff;
+  color: var(--primary-foreground);
   font-size: var(--text-base);
   font-weight: var(--weight-display);
   cursor: pointer;

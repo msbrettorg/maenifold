@@ -106,7 +106,7 @@ const resize = useResizeHandle({
 
         <button
           v-if="hasAgents"
-          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[#4d8eff] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-white transition-colors hover:bg-[#639bff] disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[#4d8eff] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-colors hover:bg-[#639bff] disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >

@@ -92,7 +92,7 @@ function updateType(event: Event) {
 .form-error { color: var(--destructive); }
 .form-actions { display: flex; justify-content: space-between; gap: 0.75rem; }
 .save-btn,.cancel-btn { padding: 0.5rem 0.9rem; border-radius: var(--radius); cursor: pointer; }
-.save-btn { border: none; background: var(--ring); color: white; }
+.save-btn { border: none; background: var(--ring); color: var(--primary-foreground); }
 .cancel-btn { border: 1px solid var(--border); background: transparent; color: inherit; }
 @media (max-width: 640px) {
   .form-actions { flex-direction: column; align-items: stretch; }

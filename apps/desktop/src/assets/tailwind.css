@@ -167,7 +167,7 @@
   --text-error: #ff6b6b;
   --text-code: #abb2bf;
   --text-on-accent: #ffffff;
-  --border-default: #404040;
+  --border-default: var(--border);
   --border-focus: #4da6ff;
   --border-error: #ef5350;
 

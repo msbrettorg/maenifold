@@ -57,7 +57,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div
-    ref="handle"
+    ref="handleRef"
     class="panel-resize-handle"
     :class="{ 'panel-resize-handle--dragging': props.dragging }"
     :data-side="props.side"

@@ -59,8 +59,8 @@ fn env_passthrough(config: &Value) -> impl Iterator<Item = &str> {
 static ADAPTER_CACHE: std::sync::OnceLock<
     DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>,
 > = std::sync::OnceLock::new();
-fn adapter_cache(
-) -> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
+fn adapter_cache()
+-> &'static DashMap<(String, PathBuf), Result<(String, Vec<String>, Vec<(String, String)>), String>>
 {
     ADAPTER_CACHE.get_or_init(DashMap::new)
 }

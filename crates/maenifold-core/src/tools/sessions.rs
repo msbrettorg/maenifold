@@ -107,26 +107,19 @@ fn list_sessions_value(root: &Path) -> Result<ListedAgentSessions> {
     let root = root.to_path_buf();
 
     run_sessions_future(async move {
-        let results = join_all(
-            agent_names.into_iter().map(|agent_name| {
-                let root = root.clone();
-                async move {
-                    let timeout_agent_name = agent_name.clone();
-                    match timeout(
-                        SESSION_LIST_TIMEOUT,
-                        list_agent_sessions(root, agent_name),
-                    )
-                    .await
-                    {
-                        Ok(result) => result,
-                        Err(_) => Err(AgentSessionError {
-                            agent_name: timeout_agent_name,
-                            error: "Timed out after 10s".to_string(),
-                        }),
-                    }
+        let results = join_all(agent_names.into_iter().map(|agent_name| {
+            let root = root.clone();
+            async move {
+                let timeout_agent_name = agent_name.clone();
+                match timeout(SESSION_LIST_TIMEOUT, list_agent_sessions(root, agent_name)).await {
+                    Ok(result) => result,
+                    Err(_) => Err(AgentSessionError {
+                        agent_name: timeout_agent_name,
+                        error: "Timed out after 10s".to_string(),
+                    }),
                 }
-            }),
-        )
+            }
+        }))
         .await;
 
         let mut sessions = Vec::new();
@@ -171,9 +164,7 @@ where
 }
 
 fn sessions_runtime() -> std::result::Result<&'static Runtime, String> {
-    SESSIONS_RUNTIME
-        .as_ref()
-        .map_err(|message| message.clone())
+    SESSIONS_RUNTIME.as_ref().map_err(|message| message.clone())
 }
 
 async fn list_agent_sessions(
@@ -185,10 +176,7 @@ async fn list_agent_sessions(
     local
         .run_until(async move { list_agent_sessions_local(root, agent_name_for_query).await })
         .await
-        .map_err(|error| AgentSessionError {
-            agent_name,
-            error,
-        })
+        .map_err(|error| AgentSessionError { agent_name, error })
 }
 
 async fn list_agent_sessions_local(
@@ -259,12 +247,7 @@ async fn query_sessions(
         .map_err(|error| format!("initialize failed for agent '{agent_name}': {error}"))?;
 
     let supports_load_session = init.agent_capabilities.load_session;
-    if init
-        .agent_capabilities
-        .session_capabilities
-        .list
-        .is_none()
-    {
+    if init.agent_capabilities.session_capabilities.list.is_none() {
         return Ok(SessionQueryResult {
             sessions: Vec::new(),
         });
@@ -286,9 +269,11 @@ async fn query_sessions(
             .list_sessions(request)
             .await
             .map_err(|error| format!("session/list failed for agent '{agent_name}': {error}"))?;
-        sessions.extend(response.sessions.into_iter().map(|session| {
-            listed_session_from_agent(agent_name, supports_load_session, session)
-        }));
+        sessions.extend(
+            response.sessions.into_iter().map(|session| {
+                listed_session_from_agent(agent_name, supports_load_session, session)
+            }),
+        );
         if sessions.len() >= MAX_SESSIONS {
             sessions.truncate(MAX_SESSIONS);
             break;
@@ -299,9 +284,7 @@ async fn query_sessions(
         }
     }
 
-    Ok(SessionQueryResult {
-        sessions,
-    })
+    Ok(SessionQueryResult { sessions })
 }
 
 fn listed_session_from_agent(

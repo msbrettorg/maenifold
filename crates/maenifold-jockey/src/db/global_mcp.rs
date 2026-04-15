@@ -103,7 +103,9 @@ fn inject_name_if_missing(config_json: &str, name: &str) -> String {
 fn normalize_mcp_server_json(mut value: Value) -> Value {
     if let Some(object) = value.as_object_mut() {
         if object.contains_key("command") {
-            object.entry("args".to_string()).or_insert_with(|| json!([]));
+            object
+                .entry("args".to_string())
+                .or_insert_with(|| json!([]));
             object.entry("env".to_string()).or_insert_with(|| json!([]));
         }
         if object.contains_key("url") {
@@ -137,9 +139,9 @@ pub(crate) fn parse_mcp_server_list_json_compat(raw: &str) -> Vec<acp::McpServer
                         serde_json::from_value::<acp::McpServer>(value.clone())
                             .ok()
                             .or_else(|| {
-                                serde_json::from_value::<acp::McpServer>(
-                                    normalize_mcp_server_json(value),
-                                )
+                                serde_json::from_value::<acp::McpServer>(normalize_mcp_server_json(
+                                    value,
+                                ))
                                 .ok()
                             })
                     })

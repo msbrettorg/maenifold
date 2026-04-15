@@ -336,7 +336,11 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
                 let args: Vec<String> = std::env::args().skip(1).collect();
                 match std::process::Command::new(exe).args(&args).spawn() {
                     Ok(child) => {
-                        info!(pid = child.id(), ?args, "spawned maenifold tray restart process");
+                        info!(
+                            pid = child.id(),
+                            ?args,
+                            "spawned maenifold tray restart process"
+                        );
                     }
                     Err(err) => {
                         warn!(error = %err, ?args, "failed to spawn restart process");

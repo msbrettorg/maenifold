@@ -804,7 +804,9 @@ async fn prewarm_session(
         .map_err(|_| rpc_error(request_id, -32000, "ACP worker disconnected"))
 }
 
-fn role_config_options(config_options: HashMap<String, Value>) -> Result<Vec<(String, String)>, String> {
+fn role_config_options(
+    config_options: HashMap<String, Value>,
+) -> Result<Vec<(String, String)>, String> {
     config_options
         .into_iter()
         .map(|(key, value)| {

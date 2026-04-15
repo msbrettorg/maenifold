@@ -20,11 +20,9 @@ pub(super) static LIVE_CONNECTION_SEQ: AtomicU64 = AtomicU64::new(1);
 
 pub(crate) fn default_client_capabilities() -> acp::ClientCapabilities {
     acp::ClientCapabilities::new()
-        .fs(
-            acp::FileSystemCapabilities::new()
-                .read_text_file(true)
-                .write_text_file(true),
-        )
+        .fs(acp::FileSystemCapabilities::new()
+            .read_text_file(true)
+            .write_text_file(true))
         .terminal(true)
 }
 

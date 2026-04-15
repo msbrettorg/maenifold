@@ -133,8 +133,7 @@ async fn kill_process_group(child: &mut Child) -> bool {
     if pgid != leader_pid {
         warn!(
             pid = leader_pid,
-            pgid,
-            "MCP stdio child is not a process-group leader; skipping killpg"
+            pgid, "MCP stdio child is not a process-group leader; skipping killpg"
         );
         return false;
     }
@@ -223,12 +222,10 @@ pub(super) async fn discover_stdio_tools(
     #[cfg(unix)]
     configure_new_process_group(&mut cmd);
 
-    let mut child = cmd
-        .spawn()
-        .map_err(|error| {
-            error!(command, args = ?args, error = %error, "failed to spawn MCP stdio server");
-            format!("failed to spawn '{command} {}': {error}", args.join(" "))
-        })?;
+    let mut child = cmd.spawn().map_err(|error| {
+        error!(command, args = ?args, error = %error, "failed to spawn MCP stdio server");
+        format!("failed to spawn '{command} {}': {error}", args.join(" "))
+    })?;
     info!(command, args = ?args, pid = ?child.id(), "spawned MCP stdio server");
     let mut stdin = child
         .stdin

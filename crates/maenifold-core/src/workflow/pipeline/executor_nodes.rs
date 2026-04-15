@@ -1148,8 +1148,8 @@ mod tests {
             .expect("root parent")
             .join("sibling-project");
         fs::create_dir_all(&sibling).expect("create sibling dir");
-        let result =
-            resolve_node_cwd(&context, Some(Path::new("../sibling-project"))).expect("should resolve");
+        let result = resolve_node_cwd(&context, Some(Path::new("../sibling-project")))
+            .expect("should resolve");
         let expected = sibling.canonicalize().unwrap();
         assert_eq!(result, expected);
     }

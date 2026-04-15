@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use tracing::warn;
+
 use crate::markdown::read_markdown;
 use crate::sessions::pipeline_session_uri;
 use crate::tools::ToolContext;
@@ -10,7 +12,10 @@ use super::session_io::{
 };
 use super::{NodeState, NodeStatus};
 
-pub fn abandon_active_nodes(context: &ToolContext, session_id: &str) -> crate::error::Result<usize> {
+pub fn abandon_active_nodes(
+    context: &ToolContext,
+    session_id: &str,
+) -> crate::error::Result<usize> {
     let active_nodes = load_pipeline_node_states(context, session_id)?
         .into_iter()
         .filter(|(_, state)| matches!(state.status, NodeStatus::Active))
@@ -18,6 +23,11 @@ pub fn abandon_active_nodes(context: &ToolContext, session_id: &str) -> crate::e
         .collect::<Vec<_>>();
 
     for node_id in &active_nodes {
+        warn!(
+            session_id = %session_id,
+            node_id = %node_id,
+            "abandoning orphaned active node from previous driver"
+        );
         super::update::update_pipeline_node_status(
             context,
             session_id,
@@ -27,7 +37,7 @@ pub fn abandon_active_nodes(context: &ToolContext, session_id: &str) -> crate::e
             None,
             None,
             None,
-            None,
+            Some("orphaned active node abandoned by driver crash recovery"),
         )?;
     }
 

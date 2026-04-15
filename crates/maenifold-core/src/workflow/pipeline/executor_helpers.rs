@@ -11,7 +11,8 @@ use crate::tools::ToolContext;
 use crate::workflow::runner_helpers::EnvelopeError;
 
 use super::session_io::{
-    derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value, read_pipeline_session,
+    derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
+    read_pipeline_session,
 };
 use super::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode,

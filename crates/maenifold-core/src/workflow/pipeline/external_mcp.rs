@@ -11,6 +11,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use tokio::process::Command;
+use tracing::{error, info};
 
 use crate::{
     acp_config::{AgentsConfig, McpServerEntry},
@@ -77,23 +78,51 @@ async fn invoke_via_stdio(
     }
 
     let transport = TokioChildProcess::new(child).map_err(|error| {
+        error!(
+            server_name,
+            error = %error,
+            "failed to spawn external MCP server"
+        );
         MaenifoldError::Message(format!(
             "Failed to spawn external MCP server '{server_name}': {error}"
         ))
     })?;
     let mut client = ().serve(transport).await.map_err(|error| {
+        error!(
+            server_name,
+            error = %error,
+            "failed to connect to external MCP server"
+        );
         MaenifoldError::Message(format!(
             "Failed to connect to external MCP server '{server_name}': {error}"
         ))
     })?;
 
     let request = build_call_request(remote_tool_name, arguments);
+    info!(server_name, remote_tool_name, "calling external MCP tool");
     let call_result = client.call_tool(request).await.map_err(|error| {
+        error!(
+            server_name,
+            remote_tool_name,
+            error = %error,
+            "external MCP tool call failed"
+        );
         MaenifoldError::Message(format!(
             "Failed to invoke external MCP tool '{server_name}.{remote_tool_name}': {error}"
         ))
     });
+    if call_result.is_ok() {
+        info!(
+            server_name,
+            remote_tool_name, "external MCP tool call succeeded"
+        );
+    }
     let close_result = client.close().await.map_err(|error| {
+        error!(
+            server_name,
+            error = %error,
+            "failed to close external MCP server"
+        );
         MaenifoldError::Message(format!(
             "Failed to close external MCP server '{server_name}': {error}"
         ))
@@ -133,11 +162,24 @@ async fn invoke_via_http(
     })?;
 
     let request = build_call_request(remote_tool_name, arguments);
+    info!(
+        server_name,
+        remote_tool_name,
+        url,
+        "calling external MCP tool via HTTP"
+    );
     let call_result = client.call_tool(request).await.map_err(|error| {
         MaenifoldError::Message(format!(
             "Failed to invoke external MCP tool '{server_name}.{remote_tool_name}': {error}"
         ))
     });
+    if call_result.is_ok() {
+        info!(
+            server_name,
+            remote_tool_name,
+            "external MCP HTTP tool call succeeded"
+        );
+    }
     let close_result = client.close().await.map_err(|error| {
         MaenifoldError::Message(format!(
             "Failed to close external MCP server '{server_name}': {error}"

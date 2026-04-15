@@ -1,6 +1,6 @@
 use crate::error::Result;
 use crate::tools::ToolContext;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 
 use super::view::node_state_for;
@@ -237,7 +237,7 @@ mod tests {
 
     use super::*;
     use crate::workflow::pipeline::test_support::pipeline_test_context;
-    use crate::workflow::pipeline::{types::EdgeType, PipelineEdge, ToolProvenance};
+    use crate::workflow::pipeline::{PipelineEdge, ToolProvenance, types::EdgeType};
 
     #[test]
     fn pipeline_nodes_json_keeps_local_session_id_and_surfaces_provenance_links() {

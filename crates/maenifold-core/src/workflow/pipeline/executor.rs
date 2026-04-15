@@ -6,6 +6,7 @@ use jockey::EventSender;
 use tokio::sync::{Semaphore, broadcast};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, warn};
 
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
@@ -120,7 +121,8 @@ async fn execute_pipeline_inner(
             }
         }
 
-        let Some((node_id, result)) = join_next_result(&cancel, &mut join_set).await? else {
+        let Some((node_id, result)) = join_next_result(session_id, &cancel, &mut join_set).await?
+        else {
             break;
         };
         apply_node_outcome(
@@ -156,7 +158,7 @@ fn log_incomplete_execution(context: &ToolContext, session_id: &str) -> Result<(
         })
         .collect::<Vec<_>>();
     if !non_terminal.is_empty() {
-        tracing::error!(
+        error!(
             session_id = %session_id,
             non_terminal = ?non_terminal,
             "[pipeline] executor exited before all nodes reached terminal states"
@@ -252,6 +254,35 @@ fn strip_node_timeout(request: &mut super::executor_nodes::NodeExecutionRequest)
     }
 }
 
+#[derive(Clone, Copy)]
+enum TimeoutResultKind {
+    Workflow,
+    Prompt,
+    SequentialThinking,
+    Tool,
+}
+
+fn timeout_result_kind(request: &super::executor_nodes::NodeExecutionRequest) -> TimeoutResultKind {
+    match request {
+        super::executor_nodes::NodeExecutionRequest::Workflow { .. } => TimeoutResultKind::Workflow,
+        super::executor_nodes::NodeExecutionRequest::Prompt { .. } => TimeoutResultKind::Prompt,
+        super::executor_nodes::NodeExecutionRequest::SequentialThinking { .. } => {
+            TimeoutResultKind::SequentialThinking
+        }
+        super::executor_nodes::NodeExecutionRequest::Tool { .. } => TimeoutResultKind::Tool,
+    }
+}
+
+fn timeout_result_for_kind(kind: TimeoutResultKind, reason: String) -> NodeTaskResult {
+    let error = MaenifoldError::Message(reason);
+    match kind {
+        TimeoutResultKind::Workflow => NodeTaskResult::Workflow(Err(error)),
+        TimeoutResultKind::Prompt => NodeTaskResult::Prompt(Err(error)),
+        TimeoutResultKind::SequentialThinking => NodeTaskResult::SequentialThinking(Err(error)),
+        TimeoutResultKind::Tool => NodeTaskResult::Tool(Err(error)),
+    }
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn schedule_dispatched_node(
     json_context: &ToolContext,
@@ -302,6 +333,7 @@ async fn schedule_dispatched_node(
     )?;
     let ctx = ToolContext::new(output_context.config.clone(), output_context.output_format);
     let timeout = extract_timeout(&execution);
+    let timeout_result_kind = timeout_result_kind(&execution);
     // Strip timeout_seconds from the session config so the outer wrapper owns node TTL.
     // Inner agent-session setup keeps its default connection behavior.
     strip_node_timeout(&mut execution);
@@ -321,11 +353,9 @@ async fn schedule_dispatched_node(
                         // tracking behind the agent session wrapper. This is bounded (max
                         // concurrent nodes) and has no wire-protocol impact.
                         let reason = format!("node timed out after {}s", duration.as_secs());
-                        eprintln!("[pipeline] node {node_id} {reason}");
-                        (
-                            node_id,
-                            NodeTaskResult::Prompt(Err(MaenifoldError::Message(reason))),
-                        )
+                        warn!(node_id = %node_id, reason = %reason, "pipeline node timed out");
+                        let result = timeout_result_for_kind(timeout_result_kind, reason);
+                        (node_id, result)
                     }
                 }
             }
@@ -336,12 +366,16 @@ async fn schedule_dispatched_node(
 }
 
 async fn join_next_result(
+    session_id: &str,
     cancel: &CancellationToken,
     join_set: &mut JoinSet<NodeJoinResult>,
 ) -> Result<Option<NodeJoinResult>> {
     let Some(joined) = (tokio::select! {
         biased;
-        _ = cancel.cancelled() => None,
+        _ = cancel.cancelled() => {
+            warn!(session_id, "pipeline execution cancelled");
+            None
+        },
         joined = join_set.join_next(), if !join_set.is_empty() => joined,
     }) else {
         return Ok(None);

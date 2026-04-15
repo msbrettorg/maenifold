@@ -7,12 +7,13 @@ use maenifold_core::workflow::pipeline::{
 use maenifold_core::{Config, MaenifoldError, Result, logging};
 use std::io::{Seek, SeekFrom, Write};
 use tokio_util::sync::CancellationToken;
+use tracing::error;
 
 #[tokio::main]
 async fn main() {
     let config = Config::current();
     if let Err(error) = config.ensure_directories() {
-        eprintln!("ERROR: {error}");
+        eprintln!("failed to ensure pipeline driver directories: {error}");
         std::process::exit(1);
     }
     let guard = logging::init_tracing(&config);
@@ -20,7 +21,7 @@ async fn main() {
     let code = match run(config).await {
         Ok(()) => 0,
         Err(error) => {
-            eprintln!("ERROR: {error}");
+            error!(error = %error, "pipeline driver execution failed");
             1
         }
     };

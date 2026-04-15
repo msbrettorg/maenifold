@@ -3,6 +3,7 @@ use std::error::Error as StdError;
 use jockey::EventSender;
 use serde_json::Value as JsonValue;
 use std::path::Path;
+use tracing::{error, info};
 
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
@@ -265,13 +266,30 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
             acp_session_id: None,
             thinking_session_id: None,
         },
-        Err(error) => NodeOutcome::Abandoned {
-            reason: log_node_execution_error(node_id, &error),
-            phase: FailurePhase::PostPrompt,
-            acp_session_id: None,
-            thinking_session_id: None,
-        },
+        Err(error) => {
+            let reason = log_node_execution_error(node_id, &error);
+            let phase = if is_retryable_external_mcp_failure(&reason) {
+                FailurePhase::PreExecution
+            } else {
+                FailurePhase::PostPrompt
+            };
+
+            NodeOutcome::Abandoned {
+                reason,
+                phase,
+                acp_session_id: None,
+                thinking_session_id: None,
+            }
+        }
     }
+}
+
+fn is_retryable_external_mcp_failure(message: &str) -> bool {
+    message.contains("external MCP")
+        || message.contains("Failed to spawn")
+        || message.contains("Failed to connect")
+        || message.contains("Failed to invoke external MCP tool")
+        || message.contains("Failed to build HTTP client for MCP server")
 }
 
 fn log_node_execution_error(node_id: &str, error: &dyn StdError) -> String {
@@ -373,14 +391,15 @@ pub(super) async fn run_tool_node(
     allowed_tools: Option<&[String]>,
     cwd: &Path,
 ) -> Result<ToolExecutionResult> {
+    info!(tool_name, "executing pipeline tool node");
     let arguments = tool_args
         .cloned()
         .unwrap_or_else(|| JsonValue::Object(Default::default()));
 
-    let response =
+    let response = async {
         if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
             if server_name == "maenifold" {
-                invoke_local_tool(remote_tool_name, &arguments)?
+                Ok(invoke_local_tool(remote_tool_name, &arguments)?)
             } else {
                 let agents_config = AgentsConfig::load(cwd);
                 invoke_external_tool(
@@ -393,21 +412,31 @@ pub(super) async fn run_tool_node(
                     allowed_tools,
                     cwd,
                 )
-                .await?
+                .await
             }
         } else {
-            invoke_local_tool(tool_name, &arguments)?
-        };
+            Ok(invoke_local_tool(tool_name, &arguments)?)
+        }
+    }
+    .await;
 
-    let response_summary = truncate_chars(&response, MAX_CONCLUSION_CHARS);
-    Ok(ToolExecutionResult {
-        response,
-        provenance: ToolProvenance {
-            tool_name: tool_name.to_string(),
-            resolved_args: Some(arguments),
-            response_summary,
-        },
-    })
+    match response {
+        Ok(response) => {
+            let response_summary = truncate_chars(&response, MAX_CONCLUSION_CHARS);
+            Ok(ToolExecutionResult {
+                response,
+                provenance: ToolProvenance {
+                    tool_name: tool_name.to_string(),
+                    resolved_args: Some(arguments),
+                    response_summary,
+                },
+            })
+        }
+        Err(e) => {
+            error!(tool_name, error = %e, "pipeline tool node failed");
+            Err(e)
+        }
+    }
 }
 
 fn invoke_local_tool(tool_name: &str, arguments: &JsonValue) -> Result<String> {

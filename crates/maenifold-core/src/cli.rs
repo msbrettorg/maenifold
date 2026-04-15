@@ -203,6 +203,7 @@ impl CliApp {
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn start_mcp_watchers(config: &Config) -> Result<(), MaenifoldError> {
     handlers::start_mcp_watchers(config)
 }

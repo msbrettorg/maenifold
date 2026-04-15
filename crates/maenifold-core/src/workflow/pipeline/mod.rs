@@ -1,5 +1,4 @@
 pub(super) mod circuit_breaker;
-mod executor_cleanup;
 mod dispatch;
 mod dispatch_non_workflow;
 mod dispatch_prompt;
@@ -8,6 +7,7 @@ mod dispatch_tool;
 mod dispatch_workflow;
 mod engine;
 pub(super) mod executor;
+mod executor_cleanup;
 mod executor_helpers;
 mod executor_mapping;
 mod executor_nodes;
@@ -55,8 +55,8 @@ pub use engine::{
     compute_blocked_cascade, compute_pipeline_status, compute_pipeline_status_with_definition,
     compute_ready_set, compute_terminal_node_ids, has_remaining_work,
 };
-pub use executor_cleanup::{abandon_active_nodes, finalize_failed_pipeline_execution};
 pub use executor::{ExecutionResult, execute_pipeline};
+pub use executor_cleanup::{abandon_active_nodes, finalize_failed_pipeline_execution};
 pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;

@@ -188,6 +188,33 @@ Available processes are defined in `/Users/brett/maenifold/assets/gates/`. Use t
 - **Pipeline layout contract:** canvas is the base layer; backdrop `9`; inspector `10`; flyout `11`; context menu `60`; dialogs `1000`.
 - **Pipeline layout tokens:** `--rail-width: 48px`; `--flyout-width: 320px`.
 
+### Obsidian Engine Design System — Mandatory
+
+**Every UI change MUST conform to `apps/desktop/DESIGN.md`.** This is the authoritative visual spec. Read it before touching any Vue component.
+
+**North star:** 21 Stitch reference screens in project `projects/1858563870757498867`. These are the pixel-level targets for every view, dialog, panel, and overlay. If you're unsure what something should look like, check the Stitch screen.
+
+**Memory reference:** `memory://pipeline-ui/obsidian-engine-design-system-stitch-reference`
+
+**Stack:** shadcn-vue (copy-paste components at `src/components/ui/`) + Tailwind CSS v4 (single `tailwind.css`, CSS-first config) + Reka UI headless primitives.
+
+**Critical rules (violations are gate failures):**
+
+1. **No-Line Rule:** NO `1px solid` borders for sectioning. Use tonal surface shifts (#131313 → #1c1b1b → #201f1f → #2a2a2a → #353534). Ghost borders ONLY when accessibility requires: `border: 1px solid rgba(66, 71, 83, 0.15)`.
+2. **Sentence case always.** NEVER ALL CAPS for labels, headers, or section titles. No `text-transform: uppercase`.
+3. **No debug info.** No raw protocol URLs, file paths, option counts, or ACP jargon in default UI state. Hide behind tooltips or expandable sections.
+4. **No redundant display.** Never show the same value twice (e.g., dropdown + static label below).
+5. **Status beads (6px).** Use small colored dots, not pill badges or banners. Emerald=ready/done, Amber=active, Red=error, Gray=pending.
+6. **4px radius.** `--radius: 0.25rem`. Tight, not bubbly. No `rounded-full` on structural elements.
+7. **No drop shadows.** Use ambient glow: `box-shadow: 0 0 32px rgba(173, 198, 255, 0.08)` for floating elements.
+8. **Typography:** Space Grotesk 500 for headlines, Inter 400 for body (0.875rem), JetBrains Mono for code/IDs. Primary text: `#e5e2e1` (never `#ffffff`). Muted: `#707070`.
+9. **Primary buttons:** Gradient `#adc6ff → #4d8eff`, dark text `#001a42`. Not flat color with white text.
+
+**Where to start:**
+- Read `apps/desktop/DESIGN.md` — the implementable spec (surface hierarchy, colors, typography, component patterns, do's/don'ts)
+- Check Stitch project for the specific screen you're modifying
+- Read `apps/desktop/src/assets/tailwind.css` — the single CSS source of truth (all tokens defined here)
+
 ### Gate Integrity — Hard Rule
 
 **No fast-forwarding gate stages.** Every gate stage (discovery, spec, swe, red-team, blue-team) requires a real agent dispatched to do real work. The PM may only `gate pass` a stage after receiving a genuine verdict from the responsible agent. Walking multiple stages in rapid succession with PM-authored notes is audit fraud — it corrupts the trail and makes the codebase untrustworthy.

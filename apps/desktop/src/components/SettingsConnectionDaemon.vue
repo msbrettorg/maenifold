@@ -105,7 +105,7 @@ async function copyAddress() {
 
 .info-card {
   padding: 1rem;
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--card);
 }
 
@@ -188,7 +188,7 @@ async function copyAddress() {
 .refresh-btn {
   padding: 0.5rem 0.9rem;
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   cursor: pointer;

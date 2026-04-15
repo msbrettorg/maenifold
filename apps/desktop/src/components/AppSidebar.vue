@@ -110,7 +110,7 @@ const resize = useResizeHandle({
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >
-          New Session
+          New session
         </button>
 
         <!-- Startup Progress -->

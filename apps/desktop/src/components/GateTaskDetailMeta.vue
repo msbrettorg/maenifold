@@ -81,7 +81,7 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
   align-items: center;
   max-width: 100%;
   padding: 0.25rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #353534;
   color: #f4f7ff;
   font-family: var(--font-code);

@@ -164,7 +164,7 @@ function toggleExpanded(): void {
   width: 1.5rem;
   height: 1.5rem;
   margin-top: 0.125rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--muted);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-title);
@@ -198,7 +198,7 @@ function toggleExpanded(): void {
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
   text-transform: capitalize;

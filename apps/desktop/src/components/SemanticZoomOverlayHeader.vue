@@ -47,7 +47,7 @@ defineEmits<{
 
 .zoom-type-pill,
 .zoom-status {
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: var(--text-tiny);
 }
 

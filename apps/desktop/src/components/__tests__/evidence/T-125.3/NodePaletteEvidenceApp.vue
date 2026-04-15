@@ -318,7 +318,7 @@ code {
   min-width: 1.75rem;
   min-height: 1.75rem;
   padding: 0 0.55rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--color-accent-primary) 18%, transparent);
   color: var(--color-accent-primary);
   font-weight: 700;

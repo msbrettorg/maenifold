@@ -48,7 +48,7 @@ defineEmits<{
 
 .schema-form-renderer::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
 }
 
 .schema-form-renderer :deep(.schema-form__vertical-layout),
@@ -198,7 +198,7 @@ defineEmits<{
   justify-content: center;
   min-width: 1.5rem;
   min-height: 1.5rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--muted);
   color: var(--muted-foreground);
   font-size: var(--text-tiny);

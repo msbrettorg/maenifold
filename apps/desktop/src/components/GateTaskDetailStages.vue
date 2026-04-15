@@ -76,7 +76,7 @@ function stageState(index: number) {
 .gate-detail-stages__track {
   width: 4px;
   align-self: stretch;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #353534;
 }
 
@@ -86,7 +86,7 @@ function stageState(index: number) {
   justify-content: center;
   width: 1.4rem;
   height: 1.4rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #353534;
   font-size: var(--text-tiny);
 }
@@ -101,7 +101,7 @@ function stageState(index: number) {
   display: inline-flex;
   align-self: flex-start;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 4px;
   color: #f4f7ff;
   font-family: var(--font-code);
   font-size: var(--text-tiny);

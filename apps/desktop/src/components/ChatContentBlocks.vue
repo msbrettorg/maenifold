@@ -198,7 +198,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--muted);
   color: var(--ring);
   text-decoration: none;

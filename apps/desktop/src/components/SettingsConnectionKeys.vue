@@ -162,7 +162,7 @@ function formatEnvCount(count: number) {
 
 .summary-count {
   padding: 0.15rem 0.5rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--card);
   white-space: nowrap;
 }

@@ -65,16 +65,16 @@ function stepLabel(count?: number): string | null {
 </template>
 
 <style scoped>
-.workflow-list { flex: 1; list-style: none; margin: 0; padding: 0 var(--space-2) var(--space-4); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-2); scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
-.workflow-item { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3); border-left: 4px solid transparent; border-radius: var(--radius-sm); background: #201f1f; cursor: pointer; transition: background var(--transition-fast); }
+.workflow-list { flex: 1; list-style: none; margin: 0; padding: 0 var(--space-2) var(--space-4); overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-1); scrollbar-width: thin; scrollbar-color: var(--card) transparent; }
+.workflow-item { display: flex; align-items: flex-start; gap: var(--space-2); padding: var(--space-2); border-left: 4px solid transparent; border-radius: var(--radius-sm); background: #201f1f; cursor: pointer; transition: background var(--transition-fast); }
 .workflow-item:hover { background: #2a2a2a; }
 .workflow-item--selected { background: #2a2a2a; border-left-color: var(--color-node-workflow); }
 .workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: 50%; background: var(--color-status-active); margin-right: calc(var(--space-1) * -1); }
 .workflow-emoji { font-size: var(--text-body-sm); line-height: 1.4; flex-shrink: 0; }
-.workflow-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.workflow-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .workflow-name { font: var(--weight-title) var(--text-caption)/1.4 var(--font-body); color: var(--foreground); white-space: normal; overflow: visible; text-overflow: clip; word-break: break-word; }
-.workflow-meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-.meta-category { display: inline-flex; align-items: center; min-height: 20px; padding: 0 var(--space-2); border-radius: var(--radius-sm); background: rgba(66, 71, 83, 0.15); font: var(--weight-body) var(--text-tiny)/1.4 var(--font-body); color: var(--muted-foreground); }
+.workflow-meta { display: flex; align-items: center; gap: var(--space-1); flex-wrap: wrap; }
+.meta-category { display: inline-flex; align-items: center; min-height: 18px; padding: 0 var(--space-1); border-radius: var(--radius-sm); background: rgba(66, 71, 83, 0.15); font: var(--weight-body) var(--text-xs)/1.4 var(--font-body); color: var(--muted-foreground); }
 .meta-steps { font: var(--weight-body) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); }
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: var(--space-2); padding: var(--space-8) var(--space-4); text-align: center; }
 .empty-icon { font-size: var(--text-headline); line-height: 1; color: color-mix(in srgb, var(--muted-foreground) 50%, transparent); }

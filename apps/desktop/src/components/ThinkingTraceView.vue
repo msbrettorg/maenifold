@@ -97,7 +97,7 @@ function statusClass(status: string): string {
   align-items: center;
   gap: 0.35rem;
   padding: 0.2rem 0.55rem;
-  border-radius: 999px;
+  border-radius: 4px;
   border: 1px solid transparent;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);

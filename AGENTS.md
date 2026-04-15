@@ -132,6 +132,7 @@ agent-browser screenshot /tmp/test.png
   '
   ```
 - Node double-click works normally via snapshot refs: find the node button ref, then `agent-browser dblclick @eN`.
+- **ONE agent per CDP session.** The Electron app has ONE window and ONE CDP debug port. Multiple agents connecting to the same port fight over navigation — Agent A clicks "Pipelines" while Agent B clicks "Gates" and both screenshot the wrong view. Visual audits must be **serial** (one agent finishes before the next starts) or use separate app instances on separate ports (9222, 9223, 9224). This is the CDP equivalent of the cargo build lock contention rule.
 
 ### Test Execution Policy
 
@@ -227,6 +228,16 @@ Available processes are defined in `/Users/brett/maenifold/assets/gates/`. Use t
 
 - **Sub-PMs must not own red-team/blue-team stages.** A sub-PM given SWE dispatch + full gate walk authority (red-team, blue-team) for 10 serial tasks will run for 60+ minutes dispatching 30+ nested agents serially without escalating. Sub-PMs dispatch SWEs and gate-pass SWE stage only. PM handles red-team/blue-team dispatch and gate advancement for those stages. Sub-PM scope: dispatch SWE → verify build → gate pass SWE → report back. Nothing more.
 - **Sub-PMs must escalate after 15 minutes.** If a sub-PM has been running for more than 15 minutes without completing its task list, it must stop, report progress, and return control to the PM. Silent 60-minute runs are a process violation.
+
+### Gate File Authority — THE LAW
+
+**Gate is sacrosanct. The process is followed exactly as designed. No exceptions. No shortcuts. No excuses.**
+
+1. **Never move files between `todo/` and `done/` manually.** Gate owns the file lifecycle. Gate moves files when ALL pipeline stages complete. `mv` between gate folders is forbidden.
+2. **Every stage requires a real dispatched agent.** SWE stage → real SWE agent. Red-team stage → real red-team agent. Blue-team stage → real blue-team agent. The PM NEVER writes verdict notes for a stage that belongs to another role.
+3. **Never skip or fast-forward a stage.** Each `gate pass` must reference genuine output from the responsible agent for that stage.
+4. **If ANY stage is skipped, faked, or fast-forwarded — the entire sprint is discarded.** All work gets reverted regardless of correctness or how small the transgression. This is not negotiable.
+5. **The PM calls `gate pass` or `gate fail` with the agent's verdict — nothing else.** The PM does not author blue-team notes. The PM does not author red-team notes.
 
 ### Gate CLI Fallback
 

@@ -68,7 +68,7 @@ defineEmits<{
 .status-bead {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #707070;
 }
 

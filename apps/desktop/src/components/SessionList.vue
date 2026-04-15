@@ -161,7 +161,7 @@ async function handleDelete(session: SavedSession, event: Event) {
             {{ session.agentName }}
             <span
               v-if="isAgentSession(session)"
-              class="inline-block ml-1.5 py-px px-1.5 rounded-full bg-muted text-muted-foreground text-tiny font-medium lowercase"
+              class="inline-block ml-1.5 py-px px-1.5 rounded bg-muted text-muted-foreground text-tiny font-medium lowercase"
             >
               from agent
             </span>
@@ -196,7 +196,7 @@ async function handleDelete(session: SavedSession, event: Event) {
 .connection-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #707070;
 }
 

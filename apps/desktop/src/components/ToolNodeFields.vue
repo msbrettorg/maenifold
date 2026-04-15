@@ -53,7 +53,7 @@ const emit = defineEmits<{
 :deep(.mode-badge),
 :deep(.tool-palette__tag),
 :deep(.tool-palette__required-tag),
-:deep(.tool-palette__server) { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; font-size: var(--text-xs); }
+:deep(.tool-palette__server) { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 4px; font-size: var(--text-xs); }
 :deep(.mode-badge) { background: var(--background); color: var(--muted-foreground); cursor: pointer; }
 :deep(.mode-badge.selected),
 :deep(.tool-palette__option.is-selected) { border-color: var(--ring); box-shadow: 0 0 0 1px var(--ring); }

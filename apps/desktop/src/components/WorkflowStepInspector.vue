@@ -168,7 +168,7 @@ function priorityClass(priority: ToolHintPriority): string {
 .thinking-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .thinking-title, .meta-value { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); color: var(--foreground); }
 .thinking-subtitle { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
-.thinking-indicator { width: 36px; height: 20px; border-radius: 999px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
+.thinking-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .thinking-indicator.on { background: var(--color-node-workflow); justify-content: flex-end; }
 .indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--foreground); }
 .tool-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }

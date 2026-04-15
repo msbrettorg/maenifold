@@ -90,7 +90,7 @@ defineEmits<{
   margin-top: auto;
   display: inline-flex;
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
   color: #e5e2e1;

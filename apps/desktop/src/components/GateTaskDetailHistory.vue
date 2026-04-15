@@ -105,7 +105,7 @@ function formatTimestamp(timestamp: string | null) {
   justify-content: center;
   min-width: 1.5rem;
   padding: 0.15rem 0.4rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--card) 78%, var(--muted));
   color: var(--foreground);
 }
@@ -146,7 +146,7 @@ function formatTimestamp(timestamp: string | null) {
   bottom: 0.65rem;
   left: 0;
   width: 4px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #353534;
 }
 

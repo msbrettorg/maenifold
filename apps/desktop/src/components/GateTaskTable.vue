@@ -107,7 +107,7 @@ function rowTitle(task: GateTask) {
   min-height: 24rem;
   padding: 0.5rem;
   overflow: auto;
-  background: #1c1b1b;
+  background: #131313;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
   scrollbar-width: thin;
@@ -134,7 +134,7 @@ function rowTitle(task: GateTask) {
 .gate-table {
   width: 100%;
   border-collapse: separate;
-  border-spacing: 0 0.5rem;
+  border-spacing: 0 2px;
   table-layout: fixed;
 }
 
@@ -156,7 +156,12 @@ function rowTitle(task: GateTask) {
   cursor: pointer;
 }
 
-.gate-table tbody td {
+.gate-table tbody tr:nth-child(odd) td {
+  background: #1c1b1b;
+  transition: background 160ms ease;
+}
+
+.gate-table tbody tr:nth-child(even) td {
   background: #201f1f;
   transition: background 160ms ease;
 }
@@ -229,7 +234,7 @@ function rowTitle(task: GateTask) {
   bottom: 0.45rem;
   left: 0;
   width: 4px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #4d8eff;
 }
 
@@ -238,7 +243,7 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-title {
-  font-weight: var(--weight-title);
+  font-weight: 400;
 }
 
 .gate-task__title {
@@ -255,7 +260,7 @@ function rowTitle(task: GateTask) {
 .gate-issue-dot {
   width: 0.4rem;
   height: 0.4rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #ffb4ab;
 }
 

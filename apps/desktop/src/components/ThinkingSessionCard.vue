@@ -144,7 +144,7 @@ function onAfterLeave(element: Element): void {
 .header-icon {
   width: 1.75rem;
   height: 1.75rem;
-  border-radius: 999px;
+  border-radius: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -182,7 +182,7 @@ function onAfterLeave(element: Element): void {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: 999px;
+  border-radius: 4px;
   padding: 0.2rem 0.5rem;
   font-size: var(--text-tiny);
   line-height: 1.1;

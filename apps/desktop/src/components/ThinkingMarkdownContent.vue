@@ -148,7 +148,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   align-items: center;
   padding: 0.08rem 0.42rem;
   margin: 0 0.08rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--ring) 18%, var(--muted));
   color: var(--thinking-markdown-link);
   font-size: var(--text-tiny);

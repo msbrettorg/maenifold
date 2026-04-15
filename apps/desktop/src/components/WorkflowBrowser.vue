@@ -248,8 +248,8 @@ watch(
 .header-title { font: var(--weight-display) var(--text-body)/1 var(--font-display); color: var(--foreground); }
 .browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
 .btn-new, .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
-.btn-new { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-node-workflow); background: transparent; color: var(--color-node-workflow); font: var(--weight-title) var(--text-caption)/1.2 var(--font-body); }
-.btn-new:hover { background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
+.btn-new { flex: 1; padding: var(--space-2) var(--space-3); border: 1px solid transparent; background: linear-gradient(135deg, var(--color-node-workflow), color-mix(in srgb, var(--color-node-workflow) 80%, #000)); color: #fff; font: var(--weight-title) var(--text-caption)/1.2 var(--font-body); }
+.btn-new:hover { background: linear-gradient(135deg, color-mix(in srgb, var(--color-node-workflow) 90%, #fff), var(--color-node-workflow)); box-shadow: 0 0 8px color-mix(in srgb, var(--color-node-workflow) 30%, transparent); }
 .btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); }
 .btn-import:hover { background: var(--card); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--border)); color: var(--foreground); }
 </style>

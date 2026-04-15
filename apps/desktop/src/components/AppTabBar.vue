@@ -95,7 +95,7 @@ function selectTab(tab: string) {
   bottom: 0;
   left: 0;
   height: 2px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: transparent;
   transition: background-color 150ms ease;
 }

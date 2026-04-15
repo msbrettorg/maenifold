@@ -50,9 +50,6 @@ const {
   handleAuthMethodCancel,
 } = useAppShell({ configStore, sessionStore });
 
-function closeWorkflowPanel() {
-  showWorkflows.value = false
-}
 </script>
 
 <template>
@@ -92,68 +89,20 @@ function closeWorkflowPanel() {
           
           <!-- Workflow Authoring Page -->
           <div v-else-if="showWorkflows" key="workflows" class="flex flex-1 flex-col overflow-hidden">
-            <div
-              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
-            >
-              <span>Workflows</span>
-              <button
-                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                @click="closeWorkflowPanel"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
             <div class="workflow-panel-body flex flex-1 overflow-auto p-4">
               <WorkflowAuthoringPage />
             </div>
           </div>
 
           <div v-else-if="showPipelines" key="pipelines" class="flex flex-1 flex-col overflow-hidden">
-            <div
-              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
-            >
-              <span>Pipelines</span>
-              <button
-                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                @click="showPipelines = false"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
             <PipelineView />
           </div>
 
           <div v-else-if="showGate" key="gate" class="flex flex-1 flex-col overflow-hidden">
-            <div
-              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
-            >
-              <span>Gate</span>
-              <button
-                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                @click="showGate = false"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
             <GateView :cwd="selectedCwd" />
           </div>
 
           <div v-else-if="showGraph" key="graph" class="flex flex-1 flex-col overflow-hidden">
-            <div
-              class="flex shrink-0 items-center justify-between px-4 py-3 text-[var(--text-body-sm)] font-[var(--weight-display)] text-[var(--muted-foreground)]"
-            >
-              <span>Graph</span>
-              <button
-                class="rounded px-2 py-1 text-[var(--text-title)] leading-none text-[var(--muted-foreground)] transition-colors hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
-                @click="showGraph = false"
-                title="Close"
-              >
-                ×
-              </button>
-            </div>
             <GraphView />
           </div>
             

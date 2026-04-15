@@ -107,7 +107,7 @@ const progressLabel = computed(() => formatStageLabel(props.task.location === 'd
   flex: 1;
   min-width: 0.6rem;
   height: 0.45rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: #353534;
 }
 

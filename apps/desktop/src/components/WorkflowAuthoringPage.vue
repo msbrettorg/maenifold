@@ -14,10 +14,10 @@ const HANDLE_WIDTH = 12
 const TIMELINE_MIN = 320
 const sidebarSizing = getSidebarSizingTokens()
 const BROWSER_MIN = sidebarSizing.minWidth
-const BROWSER_DEFAULT = 380
+const BROWSER_DEFAULT = 320
 const BROWSER_MAX = sidebarSizing.maxWidth
 const INSPECTOR_MIN = 320
-const INSPECTOR_DEFAULT = 320
+const INSPECTOR_DEFAULT = 360
 
 const pipelineStore = usePipelineStore()
 const store = useWorkflowLibraryStore()
@@ -29,10 +29,8 @@ const inspectorWidth = ref(INSPECTOR_DEFAULT)
 const draggingPanel = ref<'browser' | 'inspector' | null>(null)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
+const isWorkflowSelected = computed(() => currentId.value !== null)
 const isInspectorVisible = computed(() => selectedStepId.value !== null)
-const inspectorShellWidth = computed(() =>
-  isInspectorVisible.value ? inspectorWidth.value + HANDLE_WIDTH : 0,
-)
 
 let resizeObserver: ResizeObserver | null = null
 
@@ -179,21 +177,25 @@ onBeforeUnmount(() => {
     class="workflow-authoring-page"
     :class="{ 'workflow-authoring-page--dragging': draggingPanel !== null }"
   >
-    <WorkflowBrowser class="panel panel-browser" :style="{ width: `${browserWidth}px` }" />
-    <PanelResizeHandle
-      side="left"
-      :dragging="draggingPanel === 'browser'"
-      @drag-start="draggingPanel = 'browser'"
-      @resize="handleBrowserResize"
-      @drag-end="draggingPanel = null; persistWidths()"
+    <WorkflowBrowser
+      class="panel panel-browser"
+      :class="{ 'panel-browser--full': !isWorkflowSelected }"
+      :style="isWorkflowSelected ? { width: `${browserWidth}px` } : undefined"
     />
-    <WorkflowStepTimeline
-      class="panel panel-timeline"
-      :selected-step-id="selectedStepId"
-      @save="handleSave"
-      @select-step="handleSelectStep"
-    />
-    <div class="panel-inspector-shell" :style="{ width: `${inspectorShellWidth}px` }">
+    <template v-if="isWorkflowSelected">
+      <PanelResizeHandle
+        side="left"
+        :dragging="draggingPanel === 'browser'"
+        @drag-start="draggingPanel = 'browser'"
+        @resize="handleBrowserResize"
+        @drag-end="draggingPanel = null; persistWidths()"
+      />
+      <WorkflowStepTimeline
+        class="panel panel-timeline"
+        :selected-step-id="selectedStepId"
+        @save="handleSave"
+        @select-step="handleSelectStep"
+      />
       <template v-if="isInspectorVisible">
         <PanelResizeHandle
           side="right"
@@ -208,7 +210,7 @@ onBeforeUnmount(() => {
           :style="{ width: `${inspectorWidth}px` }"
         />
       </template>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -227,15 +229,13 @@ onBeforeUnmount(() => {
 .panel-browser,
 .panel-inspector {
   flex: 0 0 auto;
-  background: var(--card);
+  background: #1c1b1b;
 }
 
-.panel-inspector-shell {
-  display: flex;
-  flex: 0 0 auto;
-  min-width: 0;
-  overflow: hidden;
-  transition: width var(--transition-fast);
+.panel-browser--full {
+  flex: 1 1 auto;
+  width: auto !important;
+  max-width: none;
 }
 
 .panel-browser {
@@ -246,7 +246,7 @@ onBeforeUnmount(() => {
 
 .panel-timeline {
   flex: 1 1 auto;
-  background: var(--background);
+  background: #131313;
   min-width: 320px;
 }
 
@@ -255,6 +255,10 @@ onBeforeUnmount(() => {
 }
 
 :deep(.workflow-panel-header) {
+  display: none;
+}
+
+:deep(.browser-header) {
   display: none;
 }
 

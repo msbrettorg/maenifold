@@ -88,7 +88,7 @@ function statusClass(status: string): string {
 .step-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
 .step-name { font-size: var(--text-caption); color: var(--foreground); }
 .step--pending .step-name { color: var(--muted-foreground); }
-.step-badge { display: inline-flex; align-items: center; padding: 0.1rem 0.45rem; border-radius: 999px; border: 1px solid transparent; font-size: var(--text-tiny); font-weight: var(--weight-title); white-space: nowrap; }
+.step-badge { display: inline-flex; align-items: center; padding: 0.1rem 0.45rem; border-radius: 4px; border: 1px solid transparent; font-size: var(--text-tiny); font-weight: var(--weight-title); white-space: nowrap; }
 .step-badge.step--completed { color: var(--color-status-completed); background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent); }
 .step-badge.step--active { color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent); }
 .step-badge.step--failed { color: var(--color-status-stuck); background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background)); border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent); }

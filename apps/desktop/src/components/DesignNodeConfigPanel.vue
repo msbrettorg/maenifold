@@ -189,11 +189,11 @@ function updateNodeCwd(value: string | number): void {
 .panel :deep(.field-hint) { margin: 0; font-size: var(--text-xs); }
 .panel :deep(.field-hint--warning) { color: var(--color-status-active); }
 .panel :deep(.agent-capabilities) { display: flex; flex-wrap: wrap; gap: 0.35rem; }
-.panel :deep(.agent-capability) { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); background: var(--background); font-size: var(--text-xs); }
+.panel :deep(.agent-capability) { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 4px; color: var(--muted-foreground); background: var(--background); font-size: var(--text-xs); }
 .panel :deep(.agent-config-panel) { display: grid; gap: 0.65rem; padding: 0.75rem; border: 1px solid var(--border); border-radius: 0.75rem; background: color-mix(in srgb, var(--background) 92%, transparent); }
 .panel :deep(.agent-config-grid),.panel :deep(.agent-mode-badges) { display: flex; flex-wrap: wrap; gap: 0.65rem; }
 .panel :deep(.agent-config-grid) { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
-.panel :deep(.mode-badge),.status-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; font-size: var(--text-xs); }
+.panel :deep(.mode-badge),.status-pill { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 4px; font-size: var(--text-xs); }
 .panel :deep(.mode-badge) { background: var(--background); color: var(--muted-foreground); cursor: pointer; }
 .panel :deep(.mode-badge.selected) { border-color: var(--ring); color: var(--foreground); background: color-mix(in srgb, var(--ring) 45%, transparent); }
 .field-group { border: 1px solid var(--border); border-radius: 8px; padding: 0.75rem; background: var(--background); }

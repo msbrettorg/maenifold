@@ -95,5 +95,5 @@ function handleTool(toolName: string) {
 <style scoped>
 .composer-context-menu__submenu-panel { min-width: 240px; max-height: min(420px, 70vh); overflow: auto; }
 .composer-context-menu__server-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.composer-context-menu__tool-count { flex-shrink: 0; padding: 0.1rem 0.45rem; border-radius: 9999px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.56); font-size: var(--text-xs); font-weight: var(--weight-display); line-height: 1.3; }
+.composer-context-menu__tool-count { flex-shrink: 0; padding: 0.1rem 0.45rem; border-radius: 4px; background: rgba(255, 255, 255, 0.1); color: rgba(255, 255, 255, 0.56); font-size: var(--text-xs); font-weight: var(--weight-display); line-height: 1.3; }
 </style>

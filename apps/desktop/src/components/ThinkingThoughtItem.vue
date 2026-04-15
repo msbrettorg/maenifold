@@ -72,7 +72,7 @@ function formatRelativeTime(iso: string): string {
   z-index: 1;
   min-width: 2.5rem;
   padding: 0.26rem 0.45rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--muted));
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
   color: var(--thinking-thought-badge);
@@ -102,7 +102,7 @@ function formatRelativeTime(iso: string): string {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: 999px;
+  border-radius: 4px;
   padding: 0.2rem 0.5rem;
   font-size: var(--text-tiny);
   line-height: 1.1;

@@ -239,7 +239,7 @@ function handleContextMenuOpenChange(open: boolean): void {
 .palette-overlay-enter-from, .palette-overlay-leave-to { visibility: hidden; transform: translateX(-100%); }
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; }
-.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 999px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
+.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
 .edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
 .edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }
 .composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--muted-foreground); font-size: var(--text-sm); text-align: center; pointer-events: none; }

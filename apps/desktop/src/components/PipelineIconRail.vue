@@ -92,7 +92,7 @@ defineExpose({ focusPipelineToggle });
   top: 7px;
   bottom: 7px;
   width: 2px;
-  border-radius: 999px;
+  border-radius: 4px;
   background: transparent;
 }
 

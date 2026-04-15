@@ -41,7 +41,7 @@ defineProps<{
 .graph-legend__swatch {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: 4px;
   flex-shrink: 0;
 }
 

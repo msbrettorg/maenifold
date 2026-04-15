@@ -163,7 +163,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 .ab-wrap { display: inline-flex; }
 .ab-btn {
   border: 1px solid var(--border);
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--muted);
   color: var(--foreground);
   padding: 0.35rem 0.75rem;
@@ -177,7 +177,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
   align-items: center;
   gap: 0.375rem;
   padding: 0.25rem 0.625rem;
-  border-radius: 999px;
+  border-radius: 4px;
   background: var(--muted);
   border: 1px solid var(--border);
   font-size: var(--text-sm);

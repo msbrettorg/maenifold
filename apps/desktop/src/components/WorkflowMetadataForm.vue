@@ -140,7 +140,7 @@ const workflowCategory = computed({
 .toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--foreground); cursor: pointer; text-align: left; }
 .toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
 .toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }
-.toggle-indicator { width: 36px; height: 20px; border-radius: 999px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
+.toggle-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .toggle-indicator--enabled { background: var(--color-node-workflow); justify-content: flex-end; }
 .indicator-dot { width: 16px; height: 16px; border-radius: 50%; background: var(--foreground); }
 </style>

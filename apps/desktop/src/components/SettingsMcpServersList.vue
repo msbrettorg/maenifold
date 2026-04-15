@@ -66,7 +66,7 @@ const emit = defineEmits<{
 .agent-info { min-width: 0; }
 .agent-name-row { align-items: center; justify-content: flex-start; }
 .agent-name { font-weight: 600; }
-.type-badge { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border-radius: 999px; background: var(--muted); color: var(--muted-foreground); font-size: 0.75rem; text-transform: lowercase; }
+.type-badge { display: inline-flex; align-items: center; padding: 0.15rem 0.45rem; border-radius: 4px; background: var(--muted); color: var(--muted-foreground); font-size: 0.75rem; text-transform: lowercase; }
 @media (max-width: 640px) {
   .section-header,.agent-item { flex-direction: column; align-items: stretch; }
   .agent-actions { justify-content: flex-start; }

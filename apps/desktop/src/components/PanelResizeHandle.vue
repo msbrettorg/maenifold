@@ -84,23 +84,16 @@ onBeforeUnmount(() => {
   cursor: col-resize;
   position: relative;
   touch-action: none;
-  background: rgb(64 64 64 / 18%);
-  transition: background-color var(--transition-fast);
+  background: transparent;
 }
 
 .panel-resize-handle:hover,
 .panel-resize-handle:focus-visible,
 .panel-resize-handle--dragging {
-  background: rgb(64 64 64 / 42%);
+  background: transparent;
 }
 
 .panel-resize-handle__grip {
-  position: absolute;
-  inset: 50% auto auto 50%;
-  width: 2px;
-  height: 28px;
-  transform: translate(-50%, -50%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--text-muted) 72%, transparent);
+  display: none;
 }
 </style>

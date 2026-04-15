@@ -5,6 +5,7 @@ use std::time::Duration;
 
 use maenifold_core::tray::TrayApp;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info, warn};
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
@@ -82,7 +83,7 @@ impl GateTrayApp {
                 self.tray.tray_icon = Some(tray_icon);
             }
             Err(err) => {
-                eprintln!("Warning: failed to create gate tray icon: {err}");
+                warn!(error = %err, "failed to create gate tray icon");
                 self.tray.shutdown_token.cancel();
                 self.tray.exit_code = 1;
                 event_loop.exit();
@@ -104,6 +105,7 @@ impl GateTrayApp {
         event: tray_icon::menu::MenuEvent,
     ) {
         if self.tray.quit_id.as_ref().is_some_and(|id| event.id == *id) {
+            info!("gate tray quit requested");
             self.tray.shutdown_token.cancel();
             self.tray.tray_icon.take();
             event_loop.exit();
@@ -195,7 +197,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
         let file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
             Ok(watcher) => watcher,
             Err(err) => {
-                eprintln!("Error starting gate file watcher: {err}");
+                error!(error = %err, "failed to start gate file watcher");
                 return 1;
             }
         };
@@ -207,7 +209,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
                 let rt = match tokio::runtime::Runtime::new() {
                     Ok(rt) => rt,
                     Err(err) => {
-                        eprintln!("Error creating async runtime: {err}");
+                        error!(error = %err, "failed to create async runtime");
                         return 1;
                     }
                 };
@@ -221,7 +223,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
                 match result {
                     Ok(()) => 0,
                     Err(err) => {
-                        eprintln!("Server error: {err}");
+                        error!(error = %err, "gate tray server exited with error");
                         1
                     }
                 }
@@ -257,7 +259,7 @@ pub fn run_with_tray(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32
         };
 
         if let Err(err) = event_loop.run_app(&mut app) {
-            eprintln!("Error running gate tray event loop: {err}");
+            error!(error = %err, "failed to run gate tray event loop");
             app.tray.shutdown_token.cancel();
             app.tray.exit_code = 1;
         }
@@ -286,14 +288,14 @@ fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
     let _file_watcher = match GateFileWatcher::start(root.clone(), &shutdown_token) {
         Ok(watcher) => watcher,
         Err(err) => {
-            eprintln!("Error starting gate file watcher: {err}");
+            error!(error = %err, "failed to start gate file watcher");
             return 1;
         }
     };
     let rt = match tokio::runtime::Runtime::new() {
         Ok(rt) => rt,
         Err(err) => {
-            eprintln!("Error creating async runtime: {err}");
+            error!(error = %err, "failed to create async runtime");
             return 1;
         }
     };
@@ -304,7 +306,7 @@ fn run_headless(mode: GateServerMode, initial_root: Option<PathBuf>) -> i32 {
     match result {
         Ok(()) => 0,
         Err(err) => {
-            eprintln!("Server error: {err}");
+            error!(error = %err, "gate headless server exited with error");
             1
         }
     }

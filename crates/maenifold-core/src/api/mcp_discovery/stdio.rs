@@ -7,6 +7,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStdin, ChildStdout, Command};
 use tokio::sync::Mutex;
 use tokio::time::timeout;
+use tracing::{error, info, warn};
 
 const PROCESS_SHUTDOWN_TIMEOUT: Duration = Duration::from_secs(2);
 const STDERR_JOIN_TIMEOUT: Duration = Duration::from_secs(1);
@@ -130,15 +131,17 @@ async fn kill_process_group(child: &mut Child) -> bool {
 
     let pgid = unsafe { libc::getpgid(leader_pid) };
     if pgid != leader_pid {
-        eprintln!(
-            "maenifold: MCP stdio child {leader_pid} is not a pg leader (pgid={pgid}); skipping killpg"
+        warn!(
+            pid = leader_pid,
+            pgid,
+            "MCP stdio child is not a process-group leader; skipping killpg"
         );
         return false;
     }
 
     if let Err(error) = signal_process_group(leader_pid, libc::SIGTERM) {
         if error.raw_os_error() != Some(libc::ESRCH) {
-            eprintln!("maenifold: Failed to SIGTERM MCP stdio process group {leader_pid}: {error}");
+            error!(pid = leader_pid, error = %error, "failed to SIGTERM MCP stdio process group");
             return false;
         }
         return true;
@@ -150,7 +153,7 @@ async fn kill_process_group(child: &mut Child) -> bool {
 
     if let Err(error) = signal_process_group(leader_pid, libc::SIGKILL) {
         if error.raw_os_error() != Some(libc::ESRCH) {
-            eprintln!("maenifold: Failed to SIGKILL MCP stdio process group {leader_pid}: {error}");
+            error!(pid = leader_pid, error = %error, "failed to SIGKILL MCP stdio process group");
             return false;
         }
     }
@@ -168,20 +171,25 @@ async fn shutdown_child(
     stderr_task: tokio::task::JoinHandle<Result<(), String>>,
     stderr_text: Arc<Mutex<String>>,
 ) -> Result<String, String> {
-    if child
+    let child_pid = child.id();
+    let mut exit_status = child
         .try_wait()
-        .map_err(|error| format!("failed to inspect child process: {error}"))?
-        .is_none()
-    {
+        .map_err(|error| format!("failed to inspect child process: {error}"))?;
+    if exit_status.is_none() {
         if !kill_process_group(child).await {
             if let Err(error) = child.start_kill() {
-                eprintln!("maenifold: Failed to kill MCP stdio child: {error}");
+                error!(pid = ?child_pid, error = %error, "failed to kill MCP stdio child");
             }
         }
-        timeout(PROCESS_SHUTDOWN_TIMEOUT, child.wait())
-            .await
-            .map_err(|_| "timed out waiting for child process to exit".to_string())?
-            .map_err(|error| format!("failed to wait for child process: {error}"))?;
+        exit_status = Some(
+            timeout(PROCESS_SHUTDOWN_TIMEOUT, child.wait())
+                .await
+                .map_err(|_| "timed out waiting for child process to exit".to_string())?
+                .map_err(|error| format!("failed to wait for child process: {error}"))?,
+        );
+    }
+    if let Some(status) = exit_status {
+        info!(pid = ?child_pid, status = %status, "MCP stdio server exited");
     }
     match timeout(STDERR_JOIN_TIMEOUT, stderr_task).await {
         Ok(Ok(Ok(()))) | Err(_) => {}
@@ -197,6 +205,12 @@ pub(super) async fn discover_stdio_tools(
     env: &HashMap<String, String>,
     timeout_duration: Duration,
 ) -> Result<Vec<Value>, String> {
+    info!(
+        command,
+        args = ?args,
+        timeout_seconds = timeout_duration.as_secs_f64(),
+        "attempting MCP stdio server spawn"
+    );
     let mut cmd = Command::new(command);
     cmd.args(args)
         .stdin(std::process::Stdio::piped())
@@ -211,7 +225,11 @@ pub(super) async fn discover_stdio_tools(
 
     let mut child = cmd
         .spawn()
-        .map_err(|error| format!("failed to spawn '{command} {}': {error}", args.join(" ")))?;
+        .map_err(|error| {
+            error!(command, args = ?args, error = %error, "failed to spawn MCP stdio server");
+            format!("failed to spawn '{command} {}': {error}", args.join(" "))
+        })?;
+    info!(command, args = ?args, pid = ?child.id(), "spawned MCP stdio server");
     let mut stdin = child
         .stdin
         .take()

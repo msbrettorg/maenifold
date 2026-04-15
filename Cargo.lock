@@ -3438,6 +3438,7 @@ dependencies = [
  "tokio-util",
  "tower",
  "tower-http",
+ "tracing",
  "tray-icon",
  "walkdir",
  "winit",

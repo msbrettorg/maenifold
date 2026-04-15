@@ -1,5 +1,5 @@
-use agent_client_protocol as acp;
 use crate::api::mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT;
+use agent_client_protocol as acp;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs;
@@ -7,6 +7,7 @@ use std::path::Path;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use tracing::{info, warn};
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase", tag = "type")]
@@ -354,9 +355,10 @@ impl AgentsConfig {
         let parsed: AgentsConfig = match serde_json::from_str(&contents) {
             Ok(config) => config,
             Err(error) => {
-                eprintln!(
-                    "Warning: failed to parse agents config '{}': {error}",
-                    config_path.display()
+                warn!(
+                    path = %config_path.display(),
+                    error = %error,
+                    "failed to parse agents config"
                 );
                 return Self::default();
             }
@@ -379,12 +381,16 @@ impl AgentsConfig {
 
 fn read_config_contents(config_path: &Path) -> Option<String> {
     match fs::read_to_string(config_path) {
-        Ok(contents) => Some(contents),
+        Ok(contents) => {
+            info!(path = %config_path.display(), "loaded agents config file");
+            Some(contents)
+        }
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
         Err(error) => {
-            eprintln!(
-                "Warning: failed to read agents config '{}': {error}",
-                config_path.display()
+            warn!(
+                path = %config_path.display(),
+                error = %error,
+                "failed to read agents config"
             );
             None
         }
@@ -394,14 +400,15 @@ fn read_config_contents(config_path: &Path) -> Option<String> {
 fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     let (command_path, _) = entry.command_parts();
     if command_path.is_empty() {
-        eprintln!("Warning: excluding agent '{name}': command must not be empty");
+        warn!(agent = name, "excluding agent: command must not be empty");
         return false;
     }
     let command_path = Path::new(command_path);
     if !command_path.is_absolute() {
-        eprintln!(
-            "Warning: excluding agent '{name}': command path must be absolute ('{}')",
-            entry.command
+        warn!(
+            agent = name,
+            command = %entry.command,
+            "excluding agent: command path must be absolute"
         );
         return false;
     }
@@ -409,16 +416,19 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     match fs::metadata(command_path) {
         Ok(_) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            eprintln!(
-                "Warning: excluding agent '{name}': command does not exist ('{}')",
-                entry.command
+            warn!(
+                agent = name,
+                command = %entry.command,
+                "excluding agent: command does not exist"
             );
             return false;
         }
         Err(error) => {
-            eprintln!(
-                "Warning: excluding agent '{name}': failed to inspect command '{}': {error}",
-                entry.command
+            warn!(
+                agent = name,
+                command = %entry.command,
+                error = %error,
+                "excluding agent: failed to inspect command"
             );
             return false;
         }
@@ -427,9 +437,10 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     let c_path = match CString::new(command_path.as_os_str().as_encoded_bytes()) {
         Ok(path) => path,
         Err(_) => {
-            eprintln!(
-                "Warning: excluding agent '{name}': command path contains interior NUL ('{}')",
-                entry.command
+            warn!(
+                agent = name,
+                command = %entry.command,
+                "excluding agent: command path contains interior NUL"
             );
             return false;
         }
@@ -439,9 +450,10 @@ fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     // the call, and libc::access is a read-only POSIX syscall with no memory side-effects.
     let accessible = unsafe { libc::access(c_path.as_ptr(), libc::X_OK) };
     if accessible != 0 {
-        eprintln!(
-            "Warning: excluding agent '{name}': command is not executable by the current user ('{}')",
-            entry.command
+        warn!(
+            agent = name,
+            command = %entry.command,
+            "excluding agent: command is not executable by the current user"
         );
         return false;
     }

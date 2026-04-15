@@ -8,6 +8,7 @@ use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
 use std::sync::Arc;
+use tracing::info;
 
 pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, NeverSessionManager>;
 
@@ -93,22 +94,27 @@ impl super::MaenifoldMcpServer {
         let bind_addr = tcp_listener.local_addr().map_err(|e| {
             MaenifoldError::Message(format!("HTTP listener address lookup failed: {e}"))
         })?;
+        let endpoint = format!("http://{bind_addr}/mcp");
 
-        eprintln!("maenifold MCP HTTP server listening on http://{bind_addr}/mcp");
+        info!(endpoint = %endpoint, "maenifold MCP HTTP server bound");
 
         let graceful_shutdown_token = shutdown_token.clone();
+        let shutdown_endpoint = endpoint.clone();
         axum::serve(tcp_listener, router)
             .with_graceful_shutdown(async move {
                 tokio::select! {
                     _ = tokio::signal::ctrl_c() => {}
                     _ = graceful_shutdown_token.cancelled() => {}
                 }
+                info!(endpoint = %shutdown_endpoint, "maenifold MCP HTTP server shutting down");
                 // Bounded drain: give open connections 3 seconds to close,
                 // then force-stop so block_on returns and shutdown_timeout is reachable.
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
             })
             .await
             .map_err(|e| MaenifoldError::Message(format!("HTTP server error: {e}")))?;
+
+        info!(endpoint = %endpoint, "maenifold MCP HTTP server shutdown complete");
 
         Ok(())
     }

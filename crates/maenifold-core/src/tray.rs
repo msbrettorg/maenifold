@@ -12,6 +12,7 @@
 use crate::tray_menu::{CoreTrayMenuState, build_tray_menu, endophasia_url, toggle_login_item};
 use std::time::Duration;
 use tokio_util::sync::CancellationToken;
+use tracing::{error, info, warn};
 use tray_icon::menu::{MenuEvent, MenuId, MenuItem};
 use tray_icon::{Icon, TrayIconBuilder};
 use winit::application::ApplicationHandler;
@@ -141,7 +142,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
                 self.tray_icon = Some(tray_icon);
             }
             Err(err) => {
-                eprintln!("Warning: failed to create tray icon: {err}");
+                warn!(error = %err, "failed to create tray icon");
                 self.shutdown_token.cancel();
                 self.exit_code = 1;
                 event_loop.exit();
@@ -163,6 +164,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
         event: tray_icon::menu::MenuEvent,
     ) {
         if self.quit_id.as_ref().is_some_and(|id| event.id == *id) {
+            info!("maenifold tray quit requested");
             self.shutdown_token.cancel();
             self.tray_icon.take();
             event_loop.exit();
@@ -186,7 +188,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
                 } else {
                     "help"
                 };
-                eprintln!("Error opening {label} URL: {err}");
+                error!(label, error = %err, "failed to open tray URL");
             }
             return;
         }
@@ -197,6 +199,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
             .as_ref()
             .is_some_and(|id| event.id == *id)
         {
+            info!("maenifold tray restart initiated");
             self.state.restart_on_exit = true;
             self.shutdown_token.cancel();
             self.tray_icon.take();
@@ -257,11 +260,11 @@ impl ApplicationHandler for TrayApp<ServerMode, CoreTrayState> {
 pub fn run_with_tray(mode: ServerMode) -> i32 {
     let config = crate::config::Config::current();
     if let Err(err) = crate::mcp::initialize_runtime(&config) {
-        eprintln!("Error initializing storage: {err}");
+        error!(error = %err, "failed to initialize storage");
         return 1;
     }
     if let Err(err) = crate::cli::start_mcp_watchers(&config) {
-        eprintln!("Error starting MCP watchers: {err}");
+        error!(error = %err, "failed to start MCP watchers");
         return 1;
     }
 
@@ -276,7 +279,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
             let rt = match tokio::runtime::Runtime::new() {
                 Ok(rt) => rt,
                 Err(err) => {
-                    eprintln!("Error creating async runtime: {err}");
+                    error!(error = %err, "failed to create async runtime");
                     return 1i32;
                 }
             };
@@ -291,7 +294,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
             match result {
                 Ok(()) => 0,
                 Err(err) => {
-                    eprintln!("Server error: {err}");
+                    error!(error = %err, "maenifold tray server exited with error");
                     1
                 }
             }
@@ -314,7 +317,7 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     };
 
     if let Err(err) = event_loop.run_app(&mut app) {
-        eprintln!("Error running tray event loop: {err}");
+        error!(error = %err, "failed to run tray event loop");
         app.shutdown_token.cancel();
         app.exit_code = 1;
     }
@@ -331,12 +334,17 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
         match std::env::current_exe() {
             Ok(exe) => {
                 let args: Vec<String> = std::env::args().skip(1).collect();
-                if let Err(err) = std::process::Command::new(exe).args(&args).spawn() {
-                    eprintln!("Warning: failed to spawn restart process: {err}");
+                match std::process::Command::new(exe).args(&args).spawn() {
+                    Ok(child) => {
+                        info!(pid = child.id(), ?args, "spawned maenifold tray restart process");
+                    }
+                    Err(err) => {
+                        warn!(error = %err, ?args, "failed to spawn restart process");
+                    }
                 }
             }
             Err(err) => {
-                eprintln!("Warning: failed to resolve executable path for restart: {err}");
+                warn!(error = %err, "failed to resolve executable path for restart");
             }
         }
         return 0;

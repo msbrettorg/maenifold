@@ -3,6 +3,7 @@ use std::sync::Arc;
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::local::LocalSessionManager,
 };
+use tracing::info;
 
 use super::{GateMcpHandler, TransportKind};
 use crate::error::GateError;
@@ -44,19 +45,24 @@ impl super::GateMcpServer {
         let bind_addr = tcp_listener
             .local_addr()
             .map_err(|e| GateError::Cli(format!("HTTP listener address lookup failed: {e}")))?;
+        let endpoint = format!("http://{bind_addr}/mcp");
         let router = axum::Router::new()
             .nest_service("/mcp", service(ct.child_token(), known_roots))
             .layer(super::localhost_cors());
 
-        eprintln!("gate MCP HTTP server listening on http://{bind_addr}/mcp");
+        info!(endpoint = %endpoint, "gate MCP HTTP server bound");
 
+        let shutdown_endpoint = endpoint.clone();
         axum::serve(tcp_listener, router)
             .with_graceful_shutdown(async move {
                 let _ = tokio::signal::ctrl_c().await;
+                info!(endpoint = %shutdown_endpoint, "gate MCP HTTP server shutting down");
                 ct.cancel();
             })
             .await
             .map_err(|e| GateError::Cli(format!("HTTP server error: {e}")))?;
+
+        info!(endpoint = %endpoint, "gate MCP HTTP server shutdown complete");
 
         Ok(())
     }

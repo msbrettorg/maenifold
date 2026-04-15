@@ -47,6 +47,8 @@ struct SessionSetupParams {
     cwd: Option<PathBuf>,
     #[serde(default)]
     mcp_servers: Vec<acp::McpServer>,
+    #[serde(default)]
+    config_options: HashMap<String, Value>,
 }
 
 #[derive(Deserialize)]
@@ -291,6 +293,7 @@ async fn handle_initialize(
             vec![],
             client_capabilities.clone(),
             None,
+            HashMap::new(),
             request_id.clone(),
         )
         .await?;
@@ -348,6 +351,7 @@ async fn handle_session_new(
         .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
     let mcp_servers = request.mcp_servers;
+    let session_config_options = request.config_options;
     let (config_options, modes, session_id) = prewarm_session(
         relay,
         &app_session_id,
@@ -355,6 +359,7 @@ async fn handle_session_new(
         mcp_servers.clone(),
         client_capabilities,
         None,
+        session_config_options,
         request_id.clone(),
     )
     .await?;
@@ -425,6 +430,9 @@ async fn handle_session_load(
         mcp_servers.clone(),
         client_capabilities.clone(),
         Some(requested_session_id),
+        // Config options are not forwarded on session/load — the agent restores
+        // its own session state (including any config) from the persisted session.
+        HashMap::new(),
         request_id.clone(),
     )
     .await?;
@@ -742,8 +750,11 @@ async fn prewarm_session(
     mcp_servers: Vec<acp::McpServer>,
     client_capabilities: acp::ClientCapabilities,
     resume_session_id: Option<String>,
+    config_options: HashMap<String, Value>,
     request_id: Value,
 ) -> Result<(Vec<Value>, Vec<String>, String), Value> {
+    let role_config_options = role_config_options(config_options)
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     let (tx, rx) = oneshot::channel();
     jockey::acp::worker_tx()
         .send(jockey::acp::WorkerMsg::Prewarm {
@@ -758,13 +769,40 @@ async fn prewarm_session(
             auto_approve: true,
             mcp_servers,
             role_mode: None,
-            role_config_options: vec![],
+            role_config_options,
             result_tx: Some(tx),
             resume_session_id,
         })
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
     rx.await
         .map_err(|_| rpc_error(request_id, -32000, "ACP worker disconnected"))
+}
+
+fn role_config_options(config_options: HashMap<String, Value>) -> Result<Vec<(String, String)>, String> {
+    config_options
+        .into_iter()
+        .map(|(key, value)| {
+            let s = config_value_to_string(&key, value)?;
+            Ok((key, s))
+        })
+        .collect()
+}
+
+fn config_value_to_string(key: &str, value: Value) -> Result<String, String> {
+    match value {
+        Value::String(value) => Ok(value),
+        Value::Bool(value) => Ok(value.to_string()),
+        Value::Number(value) => Ok(value.to_string()),
+        Value::Null => Err(format!("configOptions.{key} must not be null")),
+        other => Err(format!(
+            "configOptions.{key} must be a scalar (string, bool, or number), got {}",
+            match &other {
+                Value::Array(_) => "array",
+                Value::Object(_) => "object",
+                _ => "unknown",
+            }
+        )),
+    }
 }
 
 fn build_modes(modes: &[String]) -> Option<Value> {

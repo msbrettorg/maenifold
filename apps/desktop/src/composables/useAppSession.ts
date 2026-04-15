@@ -176,6 +176,14 @@ export function useAppSession({
     { deep: true },
   );
 
+  // Clear session overrides from the previously-selected agent whenever the
+  // active agent changes (manual pick, config reload, or session resume).
+  watch(selectedAgent, (newAgent, oldAgent) => {
+    if (oldAgent && oldAgent !== newAgent) {
+      sessionOverridesStore.clearSelectedOverrides(oldAgent);
+    }
+  });
+
   onMounted(async () => {
     const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? true;
     await initTelemetry(telemetryEnabled);
@@ -230,16 +238,18 @@ export function useAppSession({
   }
 
   async function handleResumeSession(session: SavedSession) {
-    selectedAgent.value = session.agentName;
-    writeLastUsedAgent(session.agentName);
     try {
       for (const [localId, liveSession] of sessionStore.sessions.entries()) {
         if (liveSession.session?.sessionId === session.sessionId) {
           sessionStore.setActiveSession(localId);
+          selectedAgent.value = session.agentName;
+          writeLastUsedAgent(session.agentName);
           return;
         }
       }
       await sessionStore.resumeSession(session);
+      selectedAgent.value = session.agentName;
+      writeLastUsedAgent(session.agentName);
     } catch (e) {
       console.error('Failed to resume session:', e);
     }

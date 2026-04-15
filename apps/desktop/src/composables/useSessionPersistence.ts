@@ -19,7 +19,13 @@ function loadSavedSessions(): SavedSession[] {
 
   try {
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed as SavedSession[] : [];
+    const sessions = Array.isArray(parsed) ? parsed as SavedSession[] : [];
+    for (const session of sessions) {
+      if (session.supportsLoadSession === undefined) {
+        session.supportsLoadSession = true;
+      }
+    }
+    return sessions;
   } catch {
     return [];
   }

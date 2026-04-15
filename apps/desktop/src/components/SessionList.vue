@@ -49,13 +49,6 @@ function handleResume(session: SavedSession) {
     return;
   }
 
-  if (session.supportsLoadSession !== true) {
-    sessionStore.setError(
-      'This ACP service does not advertise session/load, so saved sessions cannot be reopened yet.'
-    );
-    return;
-  }
-
   emit('resume', session);
 }
 

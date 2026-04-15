@@ -101,7 +101,7 @@ function formatJsonValue(value?: Record<string, unknown>): string {
 
     <div v-if="selectedNodeCanReconnect && selectedNodeReconnectSessionId" class="action-row">
       <Button type="button" :disabled="openingAgents" @click="emit('open-agents')">
-        {{ openingAgents ? 'Opening…' : 'Open in Agents tab' }}
+        {{ openingAgents ? 'Reconnecting…' : 'Reconnect' }}
       </Button>
     </div>
 

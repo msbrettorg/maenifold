@@ -34,6 +34,7 @@ struct RelaySession {
     client_capabilities: acp::ClientCapabilities,
     config_options: Vec<Value>,
     modes: Vec<String>,
+    current_mode_id: Option<String>,
 }
 
 struct PendingPrompt {
@@ -92,6 +93,8 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
     let mut pending_prompt: Option<PendingPrompt> = None;
     let mut delta_rx: Option<mpsc::Receiver<jockey::acp::AcpEvent>> = None;
     let mut result_rx: Option<oneshot::Receiver<Result<(String, String), String>>> = None;
+    // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
+    // The code is retained for future multi-user support but is currently unreachable.
     let mut permission_ids: HashMap<u64, String> = HashMap::new();
     let mut next_permission_id = 1_u64;
 
@@ -198,6 +201,8 @@ async fn handle_incoming(
         return true;
     };
 
+    // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
+    // The code is retained for future multi-user support but is currently unreachable.
     if let Some(id) = object.get("id").and_then(Value::as_u64) {
         if object.get("method").is_none() {
             if let Some(request_id) = permission_ids.remove(&id) {
@@ -312,6 +317,7 @@ async fn handle_initialize(
             client_capabilities,
             config_options,
             modes,
+            current_mode_id: None,
         });
     } else if let Some(active) = session.as_mut() {
         active.client_capabilities = request.client_capabilities;
@@ -378,6 +384,8 @@ async fn handle_session_new(
     active.mcp_servers = mcp_servers;
     active.config_options = config_options.clone();
     active.modes = modes.clone();
+    active.current_mode_id = None;
+    let modes = build_modes(&active.modes, &active.current_mode_id);
     Ok(json!({
         "sessionId": session_id,
         "configOptions": config_options,
@@ -386,7 +394,7 @@ async fn handle_session_new(
             &relay.adapter.runtime_key,
             &relay.agent_name,
         ),
-        "modes": build_modes(&modes),
+        "modes": modes,
     }))
 }
 
@@ -451,7 +459,11 @@ async fn handle_session_load(
         client_capabilities,
         config_options: config_options.clone(),
         modes: modes.clone(),
+        current_mode_id: None,
     });
+    let modes = session
+        .as_ref()
+        .and_then(|active| build_modes(&active.modes, &active.current_mode_id));
     Ok(json!({
         "sessionId": session_id,
         "configOptions": config_options,
@@ -460,7 +472,7 @@ async fn handle_session_load(
             &relay.adapter.runtime_key,
             &relay.agent_name,
         ),
-        "modes": build_modes(&modes),
+        "modes": modes,
     }))
 }
 
@@ -513,6 +525,10 @@ fn handle_prompt(
             cwd: active.cwd.clone(),
             delta_tx: event_tx,
             result_tx: tx,
+            // Design decision: auto_approve is always true for the single-user desktop app.
+            // The user is the operator — click-through permissions on every fs/write would
+            // make pipelines unusable. When multi-user support is needed, this should be
+            // configurable via relay settings.
             auto_approve: true,
             mcp_servers: active.mcp_servers.clone(),
             client_capabilities: active.client_capabilities.clone(),
@@ -600,7 +616,7 @@ fn handle_cancel(
 fn apply_event_state(session: &mut RelaySession, event: &jockey::acp::AcpEvent) {
     match event {
         jockey::acp::AcpEvent::ConfigUpdate { options } => session.config_options = options.clone(),
-        jockey::acp::AcpEvent::AvailableModes { modes, .. } => {
+        jockey::acp::AcpEvent::AvailableModes { modes, current } => {
             session.modes = modes
                 .iter()
                 .filter_map(|mode| {
@@ -609,6 +625,10 @@ fn apply_event_state(session: &mut RelaySession, event: &jockey::acp::AcpEvent) 
                         .map(ToString::to_string)
                 })
                 .collect();
+            session.current_mode_id = current.clone();
+        }
+        jockey::acp::AcpEvent::ModeUpdate { mode_id } => {
+            session.current_mode_id = Some(mode_id.clone());
         }
         _ => {}
     }
@@ -631,6 +651,8 @@ async fn forward_event(
         jockey::acp::AcpEvent::ConfigUpdate { options } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "config_option_update", "configOptions": options}}))),
         jockey::acp::AcpEvent::SessionInfo { title } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "session_info_update", "title": title}}))),
         jockey::acp::AcpEvent::AvailableCommands { commands } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "available_commands_update", "availableCommands": commands}}))),
+        // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
+        // The code is retained for future multi-user support but is currently unreachable.
         jockey::acp::AcpEvent::PermissionRequest { request_id, title, description, options } => {
             let permission_id = *next_permission_id;
             *next_permission_id += 1;
@@ -766,6 +788,10 @@ async fn prewarm_session(
             role_name: relay.agent_name.clone(),
             app_session_id: app_session_id.to_string(),
             cwd,
+            // Design decision: auto_approve is always true for the single-user desktop app.
+            // The user is the operator — click-through permissions on every fs/write would
+            // make pipelines unusable. When multi-user support is needed, this should be
+            // configurable via relay settings.
             auto_approve: true,
             mcp_servers,
             role_mode: None,
@@ -805,8 +831,11 @@ fn config_value_to_string(key: &str, value: Value) -> Result<String, String> {
     }
 }
 
-fn build_modes(modes: &[String]) -> Option<Value> {
-    modes.first().map(|current| {
+fn build_modes(modes: &[String], current_mode_id: &Option<String>) -> Option<Value> {
+    let current = current_mode_id
+        .as_deref()
+        .or_else(|| modes.first().map(|mode| mode.as_str()));
+    current.map(|current| {
         json!({
             "currentModeId": current,
             "availableModes": modes.iter().map(|mode| json!({"id": mode, "name": mode})).collect::<Vec<_>>(),
@@ -814,6 +843,8 @@ fn build_modes(modes: &[String]) -> Option<Value> {
     })
 }
 
+// NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
+// The code is retained for future multi-user support but is currently unreachable.
 fn cancel_permissions(permission_ids: HashMap<u64, String>) {
     for request_id in permission_ids.into_values() {
         jockey::acp::respond_to_permission(&request_id, acp::RequestPermissionOutcome::Cancelled);

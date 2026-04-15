@@ -134,8 +134,14 @@ function handleWindowKeyDown(event: KeyboardEvent) {
   }
 }
 
-onMounted(() => window.addEventListener('keydown', handleWindowKeyDown));
-onBeforeUnmount(() => window.removeEventListener('keydown', handleWindowKeyDown));
+onMounted(() => {
+  window.addEventListener('keydown', handleWindowKeyDown);
+  store.resumePollingForActiveView();
+});
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handleWindowKeyDown);
+  store.stopPolling();
+});
 </script>
 
 <template>

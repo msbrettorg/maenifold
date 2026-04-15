@@ -49,6 +49,16 @@ function formatJsonValue(value?: Record<string, unknown>): string {
 
 <template>
   <section class="panel" role="region" aria-label="Pipeline node details">
+    <section
+      v-if="selectedViewNode.status === 'abandoned' && selectedViewNode.failureReason?.trim()"
+      class="failure-reason"
+      role="alert"
+      aria-live="polite"
+    >
+      <strong>Failure reason</strong>
+      <p>{{ selectedViewNode.failureReason }}</p>
+    </section>
+
     <h2>{{ selectedViewNodeLabel || selectedViewNode.nodeId || 'Node Details' }}</h2>
     <section class="status-headline">
       <div class="status-headline__meta">
@@ -140,6 +150,27 @@ function formatJsonValue(value?: Record<string, unknown>): string {
 .operator-callout {
   display: flex; flex-direction: column; gap: 0.35rem; padding: 0.75rem;
   border: 1px solid var(--pipeline-inspector-ghost-border); border-radius: 4px; background: var(--pipeline-inspector-well);
+}
+.failure-reason {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.875rem;
+  border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 55%, transparent);
+  border-radius: 4px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--color-status-abandoned) 10%, var(--pipeline-inspector-well)),
+    color-mix(in srgb, var(--color-status-active) 10%, var(--pipeline-inspector-well))
+  );
+}
+.failure-reason strong { color: var(--color-status-abandoned); }
+.failure-reason p {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  color: var(--foreground);
 }
 .operator-callout strong { color: var(--foreground); }
 .mono,.summary-row strong,.operator-callout span,.operator-callout code { min-width: 0; word-break: break-word; overflow-wrap: break-word; }

@@ -31,6 +31,7 @@ type NodeCardData = {
   analysisType?: string;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
+  failureReason?: string | null;
 };
 
 const props = defineProps<{ id: string; data: NodeCardData; selected?: boolean }>();
@@ -136,6 +137,11 @@ const attempts = computed(() => props.data.attempts && props.data.attempts > 1 ?
 const modelBadge = computed(() => props.data.model?.trim() ?? '');
 const promptPreview = computed(() => isPromptNode(node.value) ? shorten(node.value.prompt, 120) : '');
 const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.prompt ? shorten(node.value.prompt, 120) : '');
+const failureSummary = computed(() => {
+  const failureReason = props.data.failureReason?.trim();
+  if (!failureReason) return null;
+  return shorten(failureReason, 100);
+});
 </script>
 
 <template>
@@ -152,6 +158,7 @@ const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.
     <div class="node-content">
       <PipelineNodeCardStatus
         :display-label="displayLabel"
+        :failure-summary="failureSummary"
         :status-appearance="statusAppearance"
         :type-icon="typeIcon"
         :type-label="typeLabel"

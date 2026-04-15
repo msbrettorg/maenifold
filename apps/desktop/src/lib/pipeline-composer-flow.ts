@@ -38,6 +38,7 @@ export type FlowNodeData = {
   toolProvenance?: ToolProvenance | null;
   status?: ViewNode['status'];
   attempts?: number;
+  failureReason?: string | null;
 };
 
 function getNodeModel(node: PipelineNode): string | undefined {
@@ -92,6 +93,7 @@ function toFlowNodeData(
     thinkingSessionId: viewNode?.thinkingSessionId,
     status: viewNode?.status,
     attempts: viewNode?.attempts,
+    failureReason: viewNode?.failureReason,
   };
 
   if (isWorkflowNode(node)) {

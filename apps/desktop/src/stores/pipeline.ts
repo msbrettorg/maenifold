@@ -37,7 +37,8 @@ import {
 import { hydrateEventLogFromView } from '../composables/pipeline-view-diff';
 
 const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [] });
-const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'cancelled', 'stuck']);
+const ACTIVE_POLLING_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['active']);
+const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'abandoned', 'cancelled', 'stuck']);
 
 interface ToolDefinition {
   name: string;
@@ -106,7 +107,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
   const runInputDrafts = ref<Record<string, PipelineInputs>>({});
-  let stopPolling: (() => void) | null = null;
+  let stopPollingHandle: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
   const primaryAgent = computed(() => resolvePreferredAgent(configStore.agentNames).trim());
@@ -152,7 +153,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     localDefinition.value = view
       ? withLocalMetadata(toLocalDefinition(view), metadata)
       : EMPTY_DEFINITION();
-    if (view && !view.running && TERMINAL_PIPELINE_STATUSES.has(view.status)) stopCurrentPolling();
+    syncPollingState(view);
   }
   function appendNode(node: PipelineNode): PipelineNode {
     localDefinition.value = {
@@ -189,9 +190,6 @@ export const usePipelineStore = defineStore('pipeline', () => {
     setView(view);
     designMode.value = false;
     eventLog.value = hydrateEventLogFromView(view);
-    if (!TERMINAL_PIPELINE_STATUSES.has(view.status)) {
-      startViewPolling();
-    }
 
     return true;
   }
@@ -223,7 +221,6 @@ export const usePipelineStore = defineStore('pipeline', () => {
           stopCurrentPolling();
           currentPipelineId.value = pipelineId;
           setView(normalizeView(await mcp.viewPipeline(pipelineId)));
-          startViewPolling();
           designMode.value = false;
           eventLog.value = [];
         });
@@ -350,7 +347,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   function startViewPolling() {
     stopCurrentPolling();
     if (!currentPipelineId.value) return;
-    stopPolling = mcp.startPolling(currentPipelineId.value, (view) => {
+    stopPollingHandle = mcp.startPolling(currentPipelineId.value, (view) => {
       const nextView = normalizeView(view);
       if (currentView.value) {
         const entries = mcp.diffViews(currentView.value, nextView);
@@ -362,9 +359,29 @@ export const usePipelineStore = defineStore('pipeline', () => {
     }, 3000);
   }
   function stopCurrentPolling() {
-    if (!stopPolling) return;
-    stopPolling();
-    stopPolling = null;
+    if (!stopPollingHandle) return;
+    stopPollingHandle();
+    stopPollingHandle = null;
+  }
+  function syncPollingState(view: PipelineView | null) {
+    if (!view) {
+      stopCurrentPolling();
+      return;
+    }
+
+    if (ACTIVE_POLLING_PIPELINE_STATUSES.has(view.status)) {
+      if (!stopPollingHandle && currentPipelineId.value === view.pipelineId) {
+        startViewPolling();
+      }
+      return;
+    }
+
+    if (TERMINAL_PIPELINE_STATUSES.has(view.status) || stopPollingHandle) {
+      stopCurrentPolling();
+    }
+  }
+  function resumePollingForActiveView() {
+    syncPollingState(currentView.value);
   }
   const {
     runPipeline,
@@ -450,6 +467,8 @@ export const usePipelineStore = defineStore('pipeline', () => {
     readWorkflowDefinition,
     refreshTools,
     refreshView,
+    resumePollingForActiveView,
     startViewPolling,
+    stopPolling: stopCurrentPolling,
   };
 });

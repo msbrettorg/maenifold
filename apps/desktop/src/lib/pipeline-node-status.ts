@@ -37,18 +37,18 @@ export function getNodeStatusBorderColor(
 ): string {
   switch (appearance) {
     case 'active':
-      return '#3b82f6';
+      return 'var(--color-status-active)';
     case 'completed':
-      return '#22c55e';
+      return 'var(--color-status-completed)';
     case 'abandoned':
-      return '#ef4444';
+      return 'var(--color-status-abandoned)';
     case 'stuck':
-      return '#f59e0b';
+      return 'var(--color-status-active)';
     case 'cancelled':
-      return '#6b7280';
+      return 'var(--color-status-pending)';
     case 'pending':
     default:
-      return '#4b5563';
+      return 'var(--color-status-pending)';
   }
 }
 

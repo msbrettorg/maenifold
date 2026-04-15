@@ -140,6 +140,7 @@ interface ViewNodeBase {
   status: NodeStatus;
   attempts: number;
   output?: string;
+  failureReason?: string | null;
 }
 
 export interface NodeProvenanceDetail {

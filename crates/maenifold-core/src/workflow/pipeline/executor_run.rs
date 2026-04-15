@@ -333,7 +333,7 @@ pub(super) async fn run_prompt_node(
     session_config: AgentSessionConfig,
     keep_session_alive: bool,
 ) -> Result<PromptExecutionResult> {
-    let session = open_agent_session(agent, &session_config.cwd, event_tx).await?;
+    let session = open_agent_session(agent, &session_config, event_tx).await?;
     let response_result = session.prompt(prompt).await;
     let acp_session_id = session.remote_id().to_string();
     let prompt_result = match response_result {

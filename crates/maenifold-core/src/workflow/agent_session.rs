@@ -1,7 +1,11 @@
 use jockey::acp::AcpPromptResult;
+use serde_json::{Map, Value};
+use tracing::info;
 
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
+
+use super::runner::AgentSessionConfig;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AgentResponse {
@@ -31,28 +35,47 @@ pub(crate) struct AgentSession {
     runtime_kind: String,
     session_id: String,
     cwd: String,
+    model: Option<String>,
+    thought_level: Option<String>,
+    role_mode: Option<String>,
+    config_options: Vec<(String, String)>,
     auto_approve: bool,
     event_tx: jockey::EventSender,
 }
 
 pub(crate) async fn open_agent_session(
     agent_name: &str,
-    cwd: &std::path::Path,
+    session_config: &AgentSessionConfig,
     event_tx: &jockey::EventSender,
 ) -> Result<AgentSession> {
-    let cwd_str = cwd.to_string_lossy().to_string();
+    let cwd_str = session_config.cwd.to_string_lossy().to_string();
     let runtime_kind = resolve_runtime_kind(agent_name, &cwd_str)?;
     let auto_approve = true;
     let (_config_options, _modes) =
         jockey::acp::prewarm_role_for_config(&runtime_kind, agent_name, &cwd_str, None).await;
-
+    let config_options = build_role_config_options(
+        session_config.config_options.as_ref(),
+        session_config.model.as_deref(),
+        session_config.thought_level.as_deref(),
+    )?;
     let session_id = uuid::Uuid::new_v4().to_string();
+    info!(
+        agent_name,
+        cwd = %cwd_str,
+        model = ?session_config.model,
+        thought_level = ?session_config.thought_level,
+        "opening pipeline agent session"
+    );
 
     Ok(AgentSession {
         agent_name: agent_name.to_string(),
         runtime_kind,
         session_id,
         cwd: cwd_str,
+        model: session_config.model.clone(),
+        thought_level: session_config.thought_level.clone(),
+        role_mode: session_config.mode.clone(),
+        config_options,
         auto_approve,
         event_tx: event_tx.clone(),
     })
@@ -66,6 +89,15 @@ impl AgentSession {
     pub(crate) fn keep_alive(&self) {}
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AgentResponse> {
+        info!(
+            agent = %self.agent_name,
+            session_id = %self.session_id,
+            prompt_len = prompt.len(),
+            config_options_count = self.config_options.len(),
+            model = ?self.model,
+            thought_level = ?self.thought_level,
+            "sending prompt to ACP agent"
+        );
         let result = jockey::acp::execute_runtime(
             &self.runtime_kind,
             &self.agent_name,
@@ -75,17 +107,28 @@ impl AgentSession {
             &self.event_tx,
             self.auto_approve,
             vec![],
-            None,
-            vec![],
+            self.role_mode.clone(),
+            self.config_options.clone(),
             None,
             &self.session_id,
         )
         .await;
+        info!(
+            agent = %self.agent_name,
+            ok = result.ok,
+            output_len = result.output.len(),
+            "ACP agent responded"
+        );
 
         Ok(result.into())
     }
 
     pub(crate) async fn close(self) -> Result<()> {
+        info!(
+            agent = %self.agent_name,
+            session_id = %self.session_id,
+            "closing pipeline agent session"
+        );
         jockey::acp::reset_session(
             &self.runtime_kind,
             &self.agent_name,
@@ -105,4 +148,66 @@ fn resolve_runtime_kind(agent_name: &str, cwd: &str) -> Result<String> {
         ))
     })?;
     Ok(agent_name.to_string())
+}
+
+fn build_role_config_options(
+    config_options: Option<&Map<String, Value>>,
+    model: Option<&str>,
+    thought_level: Option<&str>,
+) -> Result<Vec<(String, String)>> {
+    let mut options = Vec::new();
+
+    if let Some(map) = config_options {
+        for (key, value) in map {
+            options.push((key.clone(), config_value_to_string(key, value)?));
+        }
+    }
+
+    push_option_if_present(&mut options, "model", model);
+    push_thought_level_options(&mut options, thought_level);
+
+    Ok(options)
+}
+
+fn push_option_if_present(options: &mut Vec<(String, String)>, key: &str, value: Option<&str>) {
+    let Some(value) = value else {
+        return;
+    };
+
+    if let Some(existing) = options
+        .iter_mut()
+        .find(|(existing_key, _)| existing_key == key)
+    {
+        existing.1 = value.to_string();
+    } else {
+        options.push((key.to_string(), value.to_string()));
+    }
+}
+
+fn push_thought_level_options(options: &mut Vec<(String, String)>, thought_level: Option<&str>) {
+    let Some(thought_level) = thought_level else {
+        return;
+    };
+
+    push_option_if_present(options, "thought_level", Some(thought_level));
+    push_option_if_present(options, "thoughtLevel", Some(thought_level));
+}
+
+fn config_value_to_string(key: &str, value: &Value) -> Result<String> {
+    match value {
+        Value::String(value) => Ok(value.clone()),
+        Value::Bool(value) => Ok(value.to_string()),
+        Value::Number(value) => Ok(value.to_string()),
+        Value::Null => Err(MaenifoldError::InvalidArgument(format!(
+            "configOptions.{key} must not be null"
+        ))),
+        other => Err(MaenifoldError::InvalidArgument(format!(
+            "configOptions.{key} must be a scalar (string, bool, or number), got {}",
+            match other {
+                Value::Array(_) => "array",
+                Value::Object(_) => "object",
+                _ => "unknown",
+            }
+        ))),
+    }
 }

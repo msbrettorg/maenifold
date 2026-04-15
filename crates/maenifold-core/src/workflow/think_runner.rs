@@ -126,7 +126,7 @@ pub(crate) async fn drive_think_session(
     keep_session_alive: bool,
 ) -> Result<ThinkResult> {
     let session_config = sanitize_workflow_session_config(session_config);
-    let driver = open_agent_session(agent, &session_config.cwd, event_tx).await?;
+    let driver = open_agent_session(agent, &session_config, event_tx).await?;
     let result = drive_think_session_with_driver(
         context,
         &driver,

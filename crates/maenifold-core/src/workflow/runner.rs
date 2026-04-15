@@ -134,7 +134,7 @@ pub(crate) async fn run_prompt_with_pool_context(
     context: Option<Vec<acp::ContentBlock>>,
     session_config: AgentSessionConfig,
 ) -> Result<String> {
-    let session = open_agent_session(agent, &session_config.cwd, event_tx).await?;
+    let session = open_agent_session(agent, &session_config, event_tx).await?;
     let prompt = context
         .map(|blocks| super::runner_helpers::prompt_with_embedded_context(prompt, blocks))
         .unwrap_or_else(|| prompt.to_string());
@@ -183,7 +183,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         event_tx,
         model: session_config.model.clone(),
     };
-    let driver = open_agent_session(agent, &session_config.cwd, &run_ctx.event_tx).await?;
+    let driver = open_agent_session(agent, &session_config, &run_ctx.event_tx).await?;
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);

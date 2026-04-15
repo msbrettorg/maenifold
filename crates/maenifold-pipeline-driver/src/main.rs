@@ -33,6 +33,7 @@ async fn main() {
 async fn run(config: Config) -> Result<()> {
     let (session_id, prompt) = parse_args()?;
     let context = ToolContext::new(config, OutputFormat::Json);
+    jockey::acp::set_config_root(context.config.maenifold_root.clone());
     let cancel = CancellationToken::new();
 
     // T-93.4: Acquire OS-level exclusive advisory lock on <session>.lock before executing.

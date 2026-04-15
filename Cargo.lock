@@ -3470,6 +3470,7 @@ dependencies = [
  "fd-lock",
  "libc",
  "maenifold-core",
+ "maenifold-jockey",
  "tokio",
  "tokio-util",
  "tracing",

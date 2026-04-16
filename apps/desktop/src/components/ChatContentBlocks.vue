@@ -5,7 +5,19 @@ import type { ContentBlock } from '../lib/types';
 defineProps<{ blocks: ContentBlock[] }>();
 
 function renderMarkdown(content: string): string {
-  return marked.parse(content, { async: false }) as string;
+  const html = marked.parse(content, { async: false }) as string;
+  // Guard: if markdown consumed the input into empty HTML structures
+  // (e.g. "\n\n4." → <ol><li></li></ol>), fall back to escaped plaintext.
+  const visibleText = html.replace(/<[^>]*>/g, '').trim();
+  if (visibleText.length === 0 && content.trim().length > 0) {
+    const escaped = content
+      .trim()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return `<p>${escaped}</p>`;
+  }
+  return html;
 }
 
 function getImageSrc(block: ContentBlock): string {

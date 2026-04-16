@@ -49,7 +49,19 @@ const isToolOnlyAssistantMessage = computed(() =>
 
 function renderMarkdown(content: string): string {
   const parsed = marked.parse(content, { async: false });
-  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
+  const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
+  // Guard: if markdown consumed the input into empty HTML structures
+  // (e.g. "\n\n4." → <ol><li></li></ol>), fall back to escaped plaintext.
+  const visibleText = html.replace(/<[^>]*>/g, '').trim();
+  if (visibleText.length === 0 && content.trim().length > 0) {
+    const escaped = content
+      .trim()
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+    return `<p>${escaped}</p>`;
+  }
+  return html;
 }
 </script>
 

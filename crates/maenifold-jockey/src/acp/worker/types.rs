@@ -47,6 +47,9 @@ pub struct AcpPromptResult {
     rename_all_fields = "camelCase"
 )]
 pub enum AcpEvent {
+    UserTextDelta {
+        text: String,
+    },
     TextDelta {
         text: String,
     },
@@ -141,6 +144,7 @@ pub enum WorkerMsg {
         mcp_servers: Vec<acp::McpServer>,
         role_mode: Option<String>,
         role_config_options: Vec<(String, String)>,
+        delta_tx: Option<mpsc::Sender<AcpEvent>>,
         result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
         resume_session_id: Option<String>,
     },

@@ -111,6 +111,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                     &mut delta_rx,
                     &mut result_rx,
                     &mut permission_ids,
+                    &mut next_permission_id,
                 ).await {
                     break;
                 }
@@ -188,6 +189,7 @@ async fn handle_incoming(
     delta_rx: &mut Option<mpsc::Receiver<jockey::acp::AcpEvent>>,
     result_rx: &mut Option<oneshot::Receiver<Result<(String, String), String>>>,
     permission_ids: &mut HashMap<u64, String>,
+    next_permission_id: &mut u64,
 ) -> bool {
     let text = match message {
         Message::Text(text) => text,
@@ -238,7 +240,15 @@ async fn handle_incoming(
                 .map(|result| rpc_ok(id.unwrap(), result)),
         ),
         "session/load" if id.is_some() => Some(
-            handle_session_load(relay, session, params, id.clone().unwrap())
+            handle_session_load(
+                relay,
+                sender,
+                session,
+                permission_ids,
+                next_permission_id,
+                params,
+                id.clone().unwrap(),
+            )
                 .await
                 .map(|result| rpc_ok(id.unwrap(), result)),
         ),
@@ -400,7 +410,10 @@ async fn handle_session_new(
 
 async fn handle_session_load(
     relay: &RelayConfig,
+    sender: &mut futures_util::stream::SplitSink<WebSocket, Message>,
     session: &mut Option<RelaySession>,
+    permission_ids: &mut HashMap<u64, String>,
+    next_permission_id: &mut u64,
     params: Value,
     request_id: Value,
 ) -> Result<Value, Value> {
@@ -430,20 +443,60 @@ async fn handle_session_load(
     // Reset the current connection so the pool key is free for re-prewarm
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
 
-    // Re-prewarm with the requested session to resume
-    let (config_options, modes, session_id) = prewarm_session(
-        relay,
-        &app_session_id,
-        cwd.clone(),
-        mcp_servers.clone(),
-        client_capabilities.clone(),
-        Some(requested_session_id),
-        // Config options are not forwarded on session/load — the agent restores
-        // its own session state (including any config) from the persisted session.
-        HashMap::new(),
-        request_id.clone(),
-    )
-    .await?;
+    let (event_tx, mut event_rx) = mpsc::channel(512);
+    let (tx, mut rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Prewarm {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            binary: relay.adapter.binary.clone(),
+            args: relay.adapter.args.clone(),
+            env: relay.adapter.env.clone(),
+            client_capabilities: client_capabilities.clone(),
+            role_name: relay.agent_name.clone(),
+            app_session_id: app_session_id.clone(),
+            cwd: cwd.clone(),
+            auto_approve: true,
+            mcp_servers: mcp_servers.clone(),
+            role_mode: None,
+            role_config_options: vec![],
+            delta_tx: Some(event_tx),
+            result_tx: Some(tx),
+            resume_session_id: Some(requested_session_id.clone()),
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+
+    let (config_options, modes, session_id) = loop {
+        tokio::select! {
+            event = event_rx.recv() => {
+                let Some(event) = event else { continue; };
+                if !forward_event(
+                    sender,
+                    &requested_session_id,
+                    &event,
+                    permission_ids,
+                    next_permission_id,
+                ).await {
+                    return Err(rpc_error(request_id.clone(), -32000, "websocket closed during session/load replay"));
+                }
+            }
+            result = &mut rx => {
+                let result = result
+                    .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+                while let Ok(event) = event_rx.try_recv() {
+                    if !forward_event(
+                        sender,
+                        &requested_session_id,
+                        &event,
+                        permission_ids,
+                        next_permission_id,
+                    ).await {
+                        return Err(rpc_error(request_id.clone(), -32000, "websocket closed during session/load replay"));
+                    }
+                }
+                break result;
+            }
+        }
+    };
     if session_id.is_empty() {
         return Err(rpc_error(
             request_id,
@@ -643,6 +696,7 @@ async fn forward_event(
 ) -> bool {
     let payload = match event {
         jockey::acp::AcpEvent::TextDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": text}}}))),
+        jockey::acp::AcpEvent::UserTextDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "user_message_chunk", "content": {"type": "text", "text": text}}}))),
         jockey::acp::AcpEvent::ThoughtDelta { text } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "agent_thought_chunk", "content": {"type": "text", "text": text}}}))),
         jockey::acp::AcpEvent::ToolCall { tool_call_id, title, tool_kind, status, content, locations, raw_input, raw_output } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call", "toolCallId": tool_call_id, "title": title, "kind": tool_kind, "status": status, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}))),
         jockey::acp::AcpEvent::ToolCallUpdate { tool_call_id, tool_kind, status, title, content, locations, raw_input, raw_output } => Some(rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "tool_call_update", "toolCallId": tool_call_id, "kind": tool_kind, "status": status, "title": title, "content": content, "locations": locations, "rawInput": raw_input, "rawOutput": raw_output}}))),
@@ -796,6 +850,7 @@ async fn prewarm_session(
             mcp_servers,
             role_mode: None,
             role_config_options,
+            delta_tx: None,
             result_tx: Some(tx),
             resume_session_id,
         })

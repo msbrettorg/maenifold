@@ -5,6 +5,7 @@ use std::rc::Rc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
+use tokio::sync::mpsc;
 use tokio_util::compat::{TokioAsyncReadCompatExt, TokioAsyncWriteCompatExt};
 
 use super::super::adapter::{acp_log, clip};
@@ -12,7 +13,7 @@ use super::super::client::JockeyUiClient;
 use super::super::runtime_state::{
     remember_runtime_config_options, remember_runtime_models, remember_runtime_modes,
 };
-use super::super::worker::{DeltaSlot, LiveConnection, register_child_pid};
+use super::super::worker::{AcpEvent, DeltaSlot, LiveConnection, register_child_pid};
 
 pub(super) const INIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 pub(super) const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
@@ -100,9 +101,10 @@ pub(crate) async fn cold_start(
     abs_cwd: &str,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
+    initial_delta_tx: Option<mpsc::Sender<AcpEvent>>,
     resume_session_id: Option<String>,
 ) -> Result<LiveConnection, String> {
-    let delta_slot: DeltaSlot = Arc::new(Mutex::new(None));
+    let delta_slot: DeltaSlot = Arc::new(Mutex::new(initial_delta_tx));
     acp_log("spawn.start", json!({ "binary": binary, "cwd": abs_cwd }));
 
     let mut cmd = tokio::process::Command::new(binary);

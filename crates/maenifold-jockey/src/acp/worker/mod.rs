@@ -115,6 +115,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 mcp_servers,
                 role_mode,
                 role_config_options,
+                delta_tx,
                 result_tx,
                 resume_session_id,
             } => {
@@ -134,6 +135,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                         mcp_servers,
                         role_mode,
                         role_config_options,
+                        delta_tx,
                         result_tx,
                         resume_session_id,
                     )

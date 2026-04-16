@@ -42,6 +42,7 @@ async fn send_prewarm(
         mcp_servers: opts.mcp_servers,
         role_mode: None,
         role_config_options: vec![],
+        delta_tx: None,
         result_tx: Some(tx),
         resume_session_id: opts.resume_session_id,
     });

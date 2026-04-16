@@ -117,6 +117,17 @@ impl acp::Client for JockeyUiClient {
 
     async fn session_notification(&self, args: acp::SessionNotification) -> acp::Result<()> {
         let event = match args.update {
+            acp::SessionUpdate::UserMessageChunk(chunk) => {
+                let text = match chunk.content {
+                    acp::ContentBlock::Text(tc) => tc.text,
+                    acp::ContentBlock::ResourceLink(rl) => rl.uri,
+                    _ => return Ok(()),
+                };
+                if text.is_empty() {
+                    return Ok(());
+                }
+                AcpEvent::UserTextDelta { text }
+            }
             acp::SessionUpdate::AgentMessageChunk(chunk) => {
                 let text = match chunk.content {
                     acp::ContentBlock::Text(tc) => tc.text,

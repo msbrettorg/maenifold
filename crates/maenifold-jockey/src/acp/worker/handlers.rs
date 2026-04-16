@@ -174,6 +174,7 @@ pub(crate) async fn ensure_connection(
         resolved,
         auto_approve,
         mcp_servers,
+        None,
         resume_session_id,
     )
     .await?;
@@ -556,6 +557,7 @@ pub(crate) async fn handle_prewarm(
     mcp_servers: Vec<acp::McpServer>,
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
+    delta_tx: Option<mpsc::Sender<AcpEvent>>,
     result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
     resume_session_id: Option<String>,
 ) {
@@ -577,6 +579,40 @@ pub(crate) async fn handle_prewarm(
         return;
     }
 
+    fn remember_prewarm_event(
+        runtime_key: &str,
+        role_name: &str,
+        app_session_id: &str,
+        event: &AcpEvent,
+    ) {
+        match event {
+            AcpEvent::AvailableCommands { commands } => {
+                acp_log(
+                    "commands.discovered",
+                    json!({
+                        "runtime": runtime_key,
+                        "role": role_name,
+                        "count": commands.len(),
+                        "names": commands.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(|s| s.to_string())).collect::<Vec<_>>()
+                    }),
+                );
+                remember_runtime_available_commands(app_session_id, runtime_key, role_name, commands.clone());
+            }
+            AcpEvent::AvailableModes { modes, .. } => {
+                remember_runtime_modes(
+                    runtime_key,
+                    modes
+                        .iter()
+                        .filter_map(|m| {
+                            m.get("id").and_then(|v| v.as_str()).map(|s| s.to_string())
+                        })
+                        .collect(),
+                );
+            }
+            _ => {}
+        }
+    }
+
     let resolved = resolve_cwd(&cwd);
     acp_log(
         "prewarm.start",
@@ -589,6 +625,29 @@ pub(crate) async fn handle_prewarm(
         PrewarmStatus::Started,
     );
 
+    let forwarded_delta_tx = if let Some(external_delta_tx) = delta_tx.clone() {
+        let (forward_tx, mut forward_rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
+        let runtime_key_owned = runtime_key.to_string();
+        let role_name_owned = role_name.clone();
+        let app_session_id_owned = app_session_id.clone();
+        tokio::task::spawn_local(async move {
+            while let Some(event) = forward_rx.recv().await {
+                remember_prewarm_event(
+                    &runtime_key_owned,
+                    &role_name_owned,
+                    &app_session_id_owned,
+                    &event,
+                );
+                if external_delta_tx.send(event).await.is_err() {
+                    break;
+                }
+            }
+        });
+        Some(forward_tx)
+    } else {
+        None
+    };
+
     match cold_start(
         runtime_key,
         &role_name,
@@ -600,6 +659,7 @@ pub(crate) async fn handle_prewarm(
         &resolved,
         auto_approve,
         mcp_servers,
+        forwarded_delta_tx.clone(),
         resume_session_id,
     )
     .await
@@ -621,70 +681,60 @@ pub(crate) async fn handle_prewarm(
             let instance_id = conn.instance_id;
             let health_rx_clone = conn.health_rx.clone();
 
-            let dummy_tx = {
-                let (tx, _rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
-                tx
-            };
-
             CONN_MAP.with(|m| m.borrow_mut().insert(key.clone(), conn));
 
-            apply_cold_start_config(
-                &key,
-                &session_id,
-                &dummy_tx,
-                &role_mode,
-                &role_config_options,
-                runtime_key,
-            )
-            .await;
+            if let Some(forward_tx) = forwarded_delta_tx.as_ref() {
+                apply_cold_start_config(
+                    &key,
+                    &session_id,
+                    forward_tx,
+                    &role_mode,
+                    &role_config_options,
+                    runtime_key,
+                )
+                .await;
+                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+            } else {
+                let dummy_tx = {
+                    let (tx, _rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
+                    tx
+                };
 
-            // Install a temporary drain channel so notifications sent after session/new
-            // (e.g. AvailableCommandsUpdate via setTimeout) are captured rather than dropped.
-            let (drain_tx, mut drain_rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
-            let delta_slot = CONN_MAP.with(|m| m.borrow().get(&key).map(|c| c.delta_slot.clone()));
-            if let Some(ds) = delta_slot {
-                if let Ok(mut sg) = ds.lock() {
-                    *sg = Some(drain_tx);
+                apply_cold_start_config(
+                    &key,
+                    &session_id,
+                    &dummy_tx,
+                    &role_mode,
+                    &role_config_options,
+                    runtime_key,
+                )
+                .await;
+
+                // Install a temporary drain channel so notifications sent after session/new
+                // (e.g. AvailableCommandsUpdate via setTimeout) are captured rather than dropped.
+                let (drain_tx, mut drain_rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
+                let delta_slot = CONN_MAP.with(|m| m.borrow().get(&key).map(|c| c.delta_slot.clone()));
+                if let Some(ds) = delta_slot {
+                    if let Ok(mut sg) = ds.lock() {
+                        *sg = Some(drain_tx);
+                    }
                 }
-            }
 
-            // Drain for up to 300 ms to collect any immediate notifications.
-            let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(300);
-            loop {
-                match tokio::time::timeout_at(deadline, drain_rx.recv()).await {
-                    Ok(Some(AcpEvent::AvailableCommands { commands })) => {
-                        acp_log(
-                            "commands.discovered",
-                            json!({
-                                "runtime": runtime_key,
-                                "role": role_name,
-                                "count": commands.len(),
-                                "names": commands.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(|s| s.to_string())).collect::<Vec<_>>()
-                            }),
-                        );
-                        remember_runtime_available_commands(
-                            &app_session_id,
+                // Drain for up to 300 ms to collect any immediate notifications.
+                let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(300);
+                loop {
+                    match tokio::time::timeout_at(deadline, drain_rx.recv()).await {
+                        Ok(Some(event)) => remember_prewarm_event(
                             runtime_key,
                             &role_name,
-                            commands,
-                        );
+                            &app_session_id,
+                            &event,
+                        ),
+                        _ => break,
                     }
-                    Ok(Some(AcpEvent::AvailableModes { modes, .. })) => {
-                        remember_runtime_modes(
-                            runtime_key,
-                            modes
-                                .iter()
-                                .filter_map(|m| {
-                                    m.get("id").and_then(|v| v.as_str()).map(|s| s.to_string())
-                                })
-                                .collect(),
-                        );
-                    }
-                    Ok(Some(_)) => {}
-                    _ => break,
                 }
+                drop(drain_rx);
             }
-            drop(drain_rx);
 
             // Clear the drain channel from the delta_slot
             let delta_slot = CONN_MAP.with(|m| {

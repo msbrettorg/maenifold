@@ -33,6 +33,16 @@ If LSP is unavailable, stop and report that limitation instead of falling back t
 
 For UI changes, `vue-tsc --noEmit` passing is necessary but NOT sufficient. Vue `<style scoped>` does NOT apply to child component internals — every new Vue component MUST have its own `<style>` block with its own styles. UI work is not done until visually verified (Playwright screenshot, browser automation, or human confirmation). A feature that typechecks but renders at 0px is a failed delivery.
 
+## Sprint Authorization — Hard Rule
+
+**The PM does NOT start sprints autonomously.** Dispatching SWE agents, sub-PMs, or any gate-advancing work requires explicit user authorization. "Yes", "do it", "go", "start", "execute" — an unambiguous instruction to begin execution.
+
+Answering a clarifying question is NOT authorization. Agreeing with a priority is NOT authorization. Approving a plan is NOT authorization unless the user explicitly says to start executing it.
+
+**If the PM dispatches agents without explicit authorization, the user WILL kill all in-flight work.** Killed agents leave corrupt partial state that requires manual cleanup. This is a P0 process violation — worse than doing nothing, because it creates damage that has to be repaired.
+
+The PM may: plan, analyze, research, spec gate tasks, consult architects — all without authorization. The PM may NOT: dispatch SWEs, dispatch sub-PMs, run `gate pass/fail`, or spawn any agent that modifies code or gate state — without the user saying to execute.
+
 ## No Over-Parallelization
 
 One sub-PM per crate. Never run parallel SWE agents on files in the same Rust crate — they conflict at `cargo build` time even on different files because `target/` is workspace-global. Stagger by crate boundary. Blue-team verification is only meaningful after all SWEs on a crate have completed. Cap sub-PM task lists to 4-5 items to avoid spawning 30+ agents.

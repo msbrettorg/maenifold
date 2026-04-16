@@ -43,9 +43,15 @@ Answering a clarifying question is NOT authorization. Agreeing with a priority i
 
 The PM may: plan, analyze, research, spec gate tasks, consult architects — all without authorization. The PM may NOT: dispatch SWEs, dispatch sub-PMs, run `gate pass/fail`, or spawn any agent that modifies code or gate state — without the user saying to execute.
 
+## One Task Per Sub-PM — Hard Rule
+
+**One sub-PM, one gate task.** Never assign multiple tasks to a single sub-PM. A sub-PM given 3 serial tasks will run for hours, spawning nested agents that can't be individually monitored or killed. When the sub-PM gets stuck on task 1, tasks 2 and 3 are blocked behind it with no visibility. When the user kills the stuck sub-PM, ALL tasks are left in corrupt partial state.
+
+Dispatch one sub-PM per task. They run in parallel if on different crates, serial if on the same crate. The PM holds the queue — not the sub-PM.
+
 ## No Over-Parallelization
 
-One sub-PM per crate. Never run parallel SWE agents on files in the same Rust crate — they conflict at `cargo build` time even on different files because `target/` is workspace-global. Stagger by crate boundary. Blue-team verification is only meaningful after all SWEs on a crate have completed. Cap sub-PM task lists to 4-5 items to avoid spawning 30+ agents.
+Never run parallel SWE agents on files in the same Rust crate — they conflict at `cargo build` time even on different files because `target/` is workspace-global. Stagger by crate boundary. Blue-team verification is only meaningful after all SWEs on a crate have completed.
 
 ## Full-Stack Spec Verification
 

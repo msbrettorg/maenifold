@@ -241,8 +241,11 @@ function handleContextMenuOpenChange(open: boolean): void {
 .composer-palette, .composer-canvas { position: relative; min-width: 0; }
 .composer-palette-resize { position: absolute; top: 0; bottom: 0; width: 10px; margin-left: -5px; cursor: col-resize; z-index: 6; }
 .composer-palette-sheet-body { min-height: 0; padding: 0 0 1rem; }
-.pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; }
-.pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; }
+.pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--foreground); border: none; }
+.pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--muted); }
+.pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
 .edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
 .edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
 .edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }

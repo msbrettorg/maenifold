@@ -221,8 +221,8 @@
   --secondary-foreground: hsl(0 0% 87.8%);
   --muted: hsl(0 0% 16.5%);
   --muted-foreground: hsl(228 19.6% 80%);
-  --accent: hsl(220 100% 82%);
-  --accent-foreground: hsl(222 80% 13%);
+  --accent: hsl(220 60% 35%);
+  --accent-foreground: hsl(220 100% 90%);
   --destructive: hsl(1 83.2% 62.5%);
   --border: rgba(66, 71, 83, 0.15);
   --input: hsl(60 1% 20.6%);

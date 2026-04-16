@@ -4,10 +4,13 @@ import { Button } from '@/components/ui/button';
 defineProps<{
   busyAction: string | null;
   canPromote: boolean;
+  canReconnect: boolean;
   forkedSessionId: string | null;
   graftSubmitting: boolean;
   hasResults: boolean;
   promotionBusy: boolean;
+  reconnectBusy: boolean;
+  reconnectSessionId: string | null;
   viewNodeStatus: string;
 }>();
 
@@ -16,6 +19,7 @@ defineEmits<{
   fork: [];
   graft: [];
   promote: [];
+  reconnect: [];
   restart: [];
   rewind: [];
 }>();
@@ -76,6 +80,15 @@ defineEmits<{
       >
         {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
       </Button>
+      <button
+        v-if="canReconnect && reconnectSessionId"
+        class="zoom-reconnect-btn"
+        :disabled="reconnectBusy || busyAction !== null"
+        type="button"
+        @click="$emit('reconnect')"
+      >
+        {{ reconnectBusy ? 'Reconnecting…' : 'Reconnect' }}
+      </button>
     </div>
 
     <div v-if="forkedSessionId" class="zoom-fork-result" role="status">
@@ -119,5 +132,26 @@ defineEmits<{
 .zoom-mono {
   font-family: var(--font-code);
   word-break: break-all;
+}
+
+.zoom-reconnect-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #adc6ff, #4d8eff);
+  color: #001a42;
+  font-weight: 600;
+  font-size: var(--text-caption);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.zoom-reconnect-btn:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.zoom-reconnect-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>

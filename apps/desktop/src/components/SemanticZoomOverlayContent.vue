@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
+import ThinkingTraceView from './ThinkingTraceView.vue';
+import PromptAssemblyPreview from './PromptAssemblyPreview.vue';
+import WorkflowStepProgress from './WorkflowStepProgress.vue';
 
 interface ThinkingTraceEntry {
   thought_number: number;
@@ -22,32 +25,11 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
 
 <template>
   <div class="zoom-content">
-    <details v-if="props.assembledPrompt" class="zoom-section">
-      <summary class="zoom-section-title">Assembled Prompt</summary>
-      <pre class="zoom-pre">{{ props.assembledPrompt }}</pre>
-    </details>
+    <PromptAssemblyPreview v-if="props.assembledPrompt" :assembled-prompt="props.assembledPrompt" />
 
-    <details v-if="props.thinkingTrace && props.thinkingTrace.length > 0" class="zoom-section" open>
-      <summary class="zoom-section-title">Thinking Trace ({{ props.thinkingTrace.length }} thoughts)</summary>
-      <ol class="zoom-list">
-        <li v-for="thought in props.thinkingTrace" :key="thought.thought_number" class="zoom-list-item">
-          <span class="item-label">#{{ thought.thought_number }}</span>
-          <span :class="['item-status', `zoom-status--${thought.status}`]">{{ thought.status }}</span>
-          <pre class="zoom-pre">{{ thought.text }}</pre>
-        </li>
-      </ol>
-    </details>
+    <ThinkingTraceView v-if="props.thinkingTrace && props.thinkingTrace.length > 0" :trace="props.thinkingTrace" />
 
-    <details v-if="props.workflowSteps && props.workflowSteps.length > 0" class="zoom-section" open>
-      <summary class="zoom-section-title">Workflow Steps ({{ props.workflowSteps.length }})</summary>
-      <ol class="zoom-list">
-        <li v-for="step in props.workflowSteps" :key="step.step_name" class="zoom-list-item">
-          <span class="item-label">{{ step.step_name }}</span>
-          <span :class="['item-status', `zoom-status--${step.status}`]">{{ step.status }}</span>
-          <pre v-if="step.output" class="zoom-pre">{{ step.output }}</pre>
-        </li>
-      </ol>
-    </details>
+    <WorkflowStepProgress v-if="props.workflowSteps && props.workflowSteps.length > 0" :steps="props.workflowSteps" />
 
     <details v-if="props.nodeOutput" class="zoom-section" open>
       <summary class="zoom-section-title">Output</summary>

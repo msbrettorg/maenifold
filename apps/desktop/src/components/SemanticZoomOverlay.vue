@@ -3,6 +3,8 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
+import { useSessionStore } from '../stores/session';
+import { useAppShellStore } from '../stores/app-shell';
 import type { PipelineEdge, PipelineNode, ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
@@ -14,6 +16,8 @@ import SemanticZoomOverlayHeader from './SemanticZoomOverlayHeader.vue';
 
 const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
+const sessionStore = useSessionStore();
+const appShellStore = useAppShellStore();
 const { currentView, workflows } = storeToRefs(pipeline);
 const conclusionText = ref('');
 const forkedSessionId = ref<string | null>(null);
@@ -57,6 +61,53 @@ const toolProvenance = computed(() => {
   if (!node || node.type !== 'tool') return null;
   return node.toolProvenance ?? null;
 });
+
+const reconnectSessionId = computed<string | null>(() => {
+  const sid = viewNode.value?.provenance?.detail.sessionId;
+  if (!sid) return null;
+  const trimmed = sid.trim();
+  return trimmed.length > 0 ? trimmed : null;
+});
+
+const canReconnect = computed(() =>
+  viewNode.value?.status === 'completed'
+  && viewNode.value.provenance?.detail.canReconnect === true
+  && !!reconnectSessionId.value,
+);
+
+const reconnectBusy = ref(false);
+
+async function handleReconnect(): Promise<void> {
+  const sid = reconnectSessionId.value;
+  if (!sid || reconnectBusy.value) return;
+
+  reconnectBusy.value = true;
+  try {
+    const result = await sessionStore.focusOrResumeRemoteSession(sid);
+    if (result.status === 'activated' || result.status === 'resumed') {
+      appShellStore.openAgents();
+    }
+  } finally {
+    reconnectBusy.value = false;
+  }
+}
+
+const failureReason = computed<string | null>(() => {
+  const reason = viewNode.value?.failureReason?.trim();
+  return reason && reason.length > 0 ? reason : null;
+});
+
+const agentSummary = computed<string | null>(() => {
+  const node = viewNode.value;
+  if (!node) return null;
+  const agent = node.provenance?.agent;
+  if (!agent) return null;
+  const model = 'model' in node && typeof node.model === 'string' && node.model.length > 0
+    ? node.model
+    : node.agentConfig?.model;
+  return model ? `${agent} · ${model}` : agent;
+});
+
 const { busyAction, runBusyAction, restartNode, rewindNode, abandonNode } = useInspectorActions({
   store: pipeline,
   selectedNodeId,
@@ -155,6 +206,7 @@ function handleKeyDown(event: KeyboardEvent) {
 
 watch(() => viewNode.value?.nodeId, () => {
   forkedSessionId.value = null;
+  reconnectBusy.value = false;
   showGraftDialog.value = false;
   showPromotionDialog.value = false;
   promotionBusy.value = false;
@@ -175,6 +227,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
           @close="zoom.back()"
         />
 
+        <div v-if="agentSummary" class="zoom-agent-summary">
+          {{ agentSummary }}
+        </div>
+
+        <div
+          v-if="viewNode.status === 'abandoned' && failureReason"
+          class="zoom-failure-alert"
+          role="alert"
+        >
+          <strong>Failure reason</strong>
+          <pre class="zoom-failure-pre">{{ failureReason }}</pre>
+        </div>
+
         <div class="zoom-body">
           <SemanticZoomOverlayContent
             :assembled-prompt="assembledPrompt"
@@ -188,15 +253,19 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
         <SemanticZoomOverlayControls
           :busy-action="busyAction"
           :can-promote="canPromote"
+          :can-reconnect="canReconnect"
           :forked-session-id="forkedSessionId"
           :graft-submitting="graftSubmitting"
           :has-results="hasResults"
           :promotion-busy="promotionBusy"
+          :reconnect-busy="reconnectBusy"
+          :reconnect-session-id="reconnectSessionId"
           :view-node-status="viewNode.status"
           @abandon="abandonNode"
           @fork="forkNode"
           @graft="openGraftDialog"
           @promote="openPromotionDialog"
+          @reconnect="handleReconnect"
           @restart="restartNode"
           @rewind="rewindNode"
         />
@@ -247,5 +316,43 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   flex: 1;
   overflow-y: auto;
   padding: var(--space-4);
+}
+
+.zoom-agent-summary {
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  color: var(--muted-foreground);
+  background: var(--accent, #353534);
+  border-bottom: 1px solid var(--border);
+}
+
+.zoom-failure-alert {
+  margin: var(--space-3) var(--space-4) 0;
+  padding: var(--space-3);
+  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 40%, transparent);
+  background: color-mix(in srgb, var(--color-status-abandoned) 8%, var(--card, #201f1f));
+  color: var(--color-status-abandoned);
+}
+
+.zoom-failure-alert strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-title);
+  margin-bottom: var(--space-1);
+}
+
+.zoom-failure-pre {
+  margin: 0;
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: inherit;
+  max-height: 160px;
+  overflow-y: auto;
 }
 </style>

@@ -1,30 +1,22 @@
 import { computed, markRaw, nextTick, ref, watch } from 'vue';
-import { getSmoothStepPath, useVueFlow } from '@vue-flow/core';
-import type { Connection, Edge, EdgeProps, Node } from '@vue-flow/core';
+import { useVueFlow } from '@vue-flow/core';
+import type { Connection, Edge, Node } from '@vue-flow/core';
 
 import PipelineNodeCard from '../components/PipelineNodeCard.vue';
 import { useComposerSync } from './useComposerSync';
 import { useLayout } from './useLayout';
 import {
   definitionFromFlow,
-  type FlowNodeData,
   loadPositions,
   pipelineEdgesToFlow,
   pipelineNodesToFlow,
   savePositions,
   toPipelineNodeFromViewNode,
 } from '../lib/pipeline-composer-flow';
-import { createNode, createNodeId } from '../lib/pipeline-node-factory';
-import type { PipelineDefinition, PipelineNode, PipelineView } from '../lib/pipeline-types';
-import {
-  isPromptNode,
-  isSequentialThinkingNode,
-  isToolNode,
-  isWorkflowNode,
-} from '../lib/pipeline-types';
+import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
+import { edgeIndicator, edgePath, edgeTooltip } from '../lib/pipeline-composer-edge-utils';
+import { createComposerNodeActions } from '../lib/pipeline-composer-node-actions';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
-import { useSessionStore } from '../stores/session';
-import { useAppShellStore } from '../stores/app-shell';
 
 type SelectedEdge = { source: string; target: string };
 
@@ -37,11 +29,6 @@ type UseComposerCanvasOptions = {
   selectEdge: (edge: SelectedEdge | null) => void;
   designNodeDoubleClick?: (nodeId: string) => void;
   edgeDoubleClick?: (edge: SelectedEdge) => void;
-};
-
-type FlowEdgeData = {
-  edgeType: 'success' | 'always';
-  mapping?: Record<string, string>;
 };
 
 type Point = { x: number; y: number };
@@ -100,32 +87,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const showEmptyState = computed(
     () => options.designMode() && nodes.value.length === 0,
   );
-
-  function edgeMappings(data?: FlowEdgeData): Array<[string, string]> {
-    return Object.entries(data?.mapping ?? {}).filter(
-      (entry): entry is [string, string] =>
-        typeof entry[0] === 'string' && typeof entry[1] === 'string',
-    );
-  }
-
-  function edgeTooltip(data?: FlowEdgeData): string {
-    const mappings = edgeMappings(data);
-    return mappings.length > 0
-      ? mappings.map(([targetField, sourceField]) => `${sourceField} → ${targetField}`).join('\n')
-      : 'No mapping configured';
-  }
-
-  function edgeIndicator(edge: EdgeProps<FlowEdgeData>): 'mapped' | 'warning' | null {
-    if (edgeMappings(edge.data).length > 0) return 'mapped';
-    return (edge.targetNode.data as FlowNodeData | undefined)?.type === 'tool'
-      ? 'warning'
-      : null;
-  }
-
-  function edgePath(edge: EdgeProps<FlowEdgeData>): { d: string; x: number; y: number } {
-    const [d, x, y] = getSmoothStepPath({ ...edge, offset: 20, borderRadius: 12 });
-    return { d, x, y };
-  }
 
   function syncCanvas(definition: PipelineDefinition, view?: PipelineView | null): void {
     const cached = loadPositions(view?.pipelineId);
@@ -262,8 +223,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   });
 
   const zoomStore = useSemanticZoomStore();
-  const sessionStore = useSessionStore();
-  const appShellStore = useAppShellStore();
 
   function enterInspect(nodeId: string, event: MouseEvent | TouchEvent): void {
     const target = event.target;
@@ -278,30 +237,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
       options.designNodeDoubleClick?.(node.id);
       return;
     }
-
-    const viewNode = options.view()?.nodes.find((candidate) => candidate.nodeId === node.id);
-    const canReconnect = viewNode?.provenance?.detail.canReconnect
-      ?? (viewNode?.type !== 'tool' && !!viewNode?.acpSessionId);
-    const acpSessionId = viewNode?.provenance?.detail.sessionId
-      ?? (viewNode?.type !== 'tool' ? viewNode?.acpSessionId : undefined);
-
-    if (!viewNode || !canReconnect || !acpSessionId) {
-      enterInspect(node.id, event);
-      return;
-    }
-
-    try {
-      const result = await sessionStore.focusOrResumeRemoteSession(acpSessionId);
-      if (result.status === 'activated' || result.status === 'resumed') {
-        appShellStore.openAgents();
-      }
-    } catch (error) {
-      sessionStore.setError(
-        error instanceof Error
-          ? `Failed to reconnect ACP session: ${error.message}`
-          : 'Failed to reconnect ACP session.',
-      );
-    }
+    enterInspect(node.id, event);
   }
 
   onNodeDoubleClick(({ node, event }) => {
@@ -346,84 +282,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     nextTick(() => fitView());
   }
 
-  function cloneExecutionFields(
-    node: Extract<PipelineNode, { type: 'prompt' | 'sequentialThinking' | 'tool' }>,
-  ) {
-    return {
-      ...(node.model ? { model: node.model } : {}),
-      ...(node.thoughtLevel ? { thoughtLevel: node.thoughtLevel } : {}),
-      ...(node.allowedTools ? { allowedTools: [...node.allowedTools] } : {}),
-      ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
-      ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
-      ...(node.agentConfig
-        ? {
-            agentConfig: {
-              ...node.agentConfig,
-              ...(node.agentConfig.configOptions
-                ? { configOptions: { ...node.agentConfig.configOptions } }
-                : {}),
-            },
-          }
-        : {}),
-    };
-  }
-
-  function cloneNodeWithNewId(node: PipelineNode): PipelineNode {
-    const type = node.type ?? 'workflow';
-    const id = createNodeId(type);
-
-    if (isWorkflowNode(node)) {
-      return createNode('workflow', {
-        id,
-        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
-        workflowId: node.workflowId,
-        agent: node.acpClient ?? '',
-        ...(node.prompt ? { prompt: node.prompt } : {}),
-      });
-    }
-
-    if (isPromptNode(node)) {
-      return createNode('prompt', {
-        id,
-        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
-        prompt: node.prompt,
-        agent: node.agent,
-        ...(node.toolMode ? { toolMode: node.toolMode } : {}),
-        ...cloneExecutionFields(node),
-      });
-    }
-
-    if (isSequentialThinkingNode(node)) {
-      return createNode('sequentialThinking', {
-        id,
-        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
-        topic: node.topic,
-        agent: node.agent,
-        ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
-        ...(node.analysisType ? { analysisType: node.analysisType } : {}),
-        ...cloneExecutionFields(node),
-      });
-    }
-
-    if (isToolNode(node)) {
-      return createNode('tool', {
-        id,
-        ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
-        toolName: node.toolName,
-        ...(node.agent ? { agent: node.agent } : {}),
-        ...(node.toolArgs ? { toolArgs: { ...node.toolArgs } } : {}),
-        ...cloneExecutionFields(node),
-      });
-    }
-
-    const unreachable: never = node;
-    throw new Error(`Unsupported node type: ${JSON.stringify(unreachable)}`);
-  }
-
-  function findDefinitionNode(nodeId: string): PipelineNode | undefined {
-    return options.localDefinition()?.nodes.find((node) => node.id === nodeId);
-  }
-
   function toFlowPosition(clientX: number, clientY: number, rootElement: HTMLElement): Point {
     const rootRect = rootElement.getBoundingClientRect();
     const viewportElement = rootElement.querySelector<HTMLElement>('.vue-flow__viewport');
@@ -439,75 +297,26 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     };
   }
 
-  function createNodeAt(node: PipelineNode, position: Point): void {
-    if (!options.designMode()) return;
-
-    const currentNodes = getNodes.value as Node[];
-    const nextNodes = [
-      ...currentNodes,
-      {
-        id: node.id,
-        type: 'pipelineNode',
-        position,
-        data: { ...pipelineNodesToFlow([node])[0]!.data },
-      } satisfies Node,
-    ];
-    syncLocalGraph(nextNodes, getEdges.value);
-    options.selectNode(node.id);
-    options.selectEdge(null);
-  }
-
-  function deleteNode(nodeId: string): void {
-    if (!options.designMode()) return;
-
-    const nextNodes = getNodes.value.filter((node) => node.id !== nodeId);
-    const nextEdges = getEdges.value.filter(
-      (edge) => edge.source !== nodeId && edge.target !== nodeId,
-    );
-    syncLocalGraph(nextNodes, nextEdges);
-    options.selectNode(null);
-    options.selectEdge(null);
-  }
-
-  function disconnectNodeEdges(nodeId: string): void {
-    if (!options.designMode()) return;
-
-    const nextEdges = getEdges.value.filter(
-      (edge) => edge.source !== nodeId && edge.target !== nodeId,
-    );
-    syncLocalGraph(getNodes.value, nextEdges);
-    options.selectNode(nodeId);
-    options.selectEdge(null);
-  }
-
-  function duplicateNode(nodeId: string, offset = 50): void {
-    if (!options.designMode()) return;
-
-    const sourceNode = findDefinitionNode(nodeId);
-    const sourceFlowNode = getNodes.value.find((node) => node.id === nodeId);
-    if (!sourceNode || !sourceFlowNode) return;
-
-    createNodeAt(cloneNodeWithNewId(sourceNode), {
-      x: sourceFlowNode.position.x + offset,
-      y: sourceFlowNode.position.y + offset,
-    });
-  }
-
-  function editNode(nodeId: string): void {
-    options.selectNode(nodeId);
-    options.selectEdge(null);
-  }
+  const nodeActions = createComposerNodeActions({
+    designMode: options.designMode,
+    localDefinition: options.localDefinition,
+    selectNode: options.selectNode,
+    selectEdge: options.selectEdge,
+    getNodes: () => getNodes.value,
+    getEdges: () => getEdges.value,
+    syncLocalGraph,
+  });
 
   return {
-    createNodeAt,
-    deleteNode,
+    createNodeAt: nodeActions.createNodeAt,
+    deleteNode: nodeActions.deleteNode,
     defaultEdgeOptions,
     deleteSelected,
-    disconnectNodeEdges,
+    disconnectNodeEdges: nodeActions.disconnectNodeEdges,
     edgeIndicator,
     edgePath,
     edgeTooltip,
-    editNode,
+    editNode: nodeActions.editNode,
     edges,
     fitView,
     handleAutoLayout,
@@ -517,7 +326,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     nodes,
     showEmptyState,
     toFlowPosition,
-    duplicateNode,
+    duplicateNode: nodeActions.duplicateNode,
     zoomStore,
   };
 }

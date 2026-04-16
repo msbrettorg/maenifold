@@ -8,7 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import PipelineInspector from './PipelineInspector.vue';
+import DesignNodeConfigPanel from './DesignNodeConfigPanel.vue';
 import { usePipelineStore } from '../stores/pipeline';
 
 const props = defineProps<{
@@ -54,7 +54,7 @@ const modalDescription = computed(() =>
         </DialogClose>
       </DialogHeader>
       <div class="config-body">
-        <PipelineInspector
+        <DesignNodeConfigPanel
           :selected-node-id="selectedNodeId"
           :selected-edge="selectedEdge"
         />

@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 
 defineProps<{
   busyAction: string | null;
+  canConnectLive: boolean;
   canPromote: boolean;
   canReconnect: boolean;
   forkedSessionId: string | null;
@@ -88,6 +89,15 @@ defineEmits<{
         @click="$emit('reconnect')"
       >
         {{ reconnectBusy ? 'Reconnecting…' : 'Reconnect' }}
+      </button>
+      <button
+        v-if="canConnectLive"
+        class="zoom-reconnect-btn"
+        :disabled="reconnectBusy || busyAction !== null"
+        type="button"
+        @click="$emit('reconnect')"
+      >
+        {{ reconnectBusy ? 'Connecting…' : 'Connect to live session' }}
       </button>
     </div>
 

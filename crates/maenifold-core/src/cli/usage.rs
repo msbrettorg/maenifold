@@ -31,7 +31,7 @@ pub(super) fn usage() -> String {
         "  System: MemoryStatus, ListMemories, GetConfig, GetHelp",
         "  Sync:   StartWatcher, StopWatcher",
         "  Repair: RepairConcepts, AnalyzeConceptCorruption",
-        "  MCP:    ListAssets, ReadMcpResource, ListAgents, AcpExec",
+        "  MCP:    ListAssets, ReadMcpResource, AcpExec",
         "  Bench:  RunFullBenchmark",
     ]
     .join("\n")

@@ -1,5 +1,14 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { nextTick, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { RefreshCw } from 'lucide-vue-next';
@@ -96,139 +105,100 @@ watch(
 </script>
 
 <template>
-  <aside
-    id="pipeline-flyout"
-    ref="flyoutRef"
-    class="pipeline-flyout"
-    aria-label="Pipelines"
-    @keydown="handleKeydown"
-  >
-    <header class="flyout-header">
-      <h3>Pipelines</h3>
-      <button
-        type="button"
-        class="flyout-refresh"
-        aria-label="Refresh pipelines"
-        title="Refresh pipelines"
-        @click="handleRefresh"
-      >
-        <RefreshCw :size="18" />
-      </button>
-    </header>
+  <Sheet :open="true" @update:open="(open) => !open && emit('close')">
+    <SheetContent
+      id="pipeline-flyout"
+      side="left"
+      :show-close-button="false"
+      class="pipeline-flyout border-0 p-0 text-[#e5e2e1]"
+    >
+      <div ref="flyoutRef" class="flyout-shell" @keydown="handleKeydown">
+        <SheetHeader class="gap-1 px-4 py-4 text-left">
+          <div class="flyout-header-row">
+            <div class="min-w-0">
+              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Pipelines</SheetTitle>
+              <SheetDescription class="text-[var(--text-body-sm)] text-[#707070]">Browse, load, and create pipeline sessions.</SheetDescription>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              class="rounded-[4px]"
+              aria-label="Refresh pipelines"
+              @click="handleRefresh"
+            >
+              <RefreshCw :size="18" />
+            </Button>
+          </div>
+        </SheetHeader>
 
-    <div class="flyout-search">
-      <input
-        v-model="searchQuery"
-        type="text"
-        class="flyout-search-input"
-        placeholder="Search pipelines…"
-      />
-    </div>
+        <div class="flyout-search">
+          <Input
+            v-model="searchQuery"
+            type="text"
+            class="border-0 bg-[#1c1b1b] text-[#e5e2e1]"
+            placeholder="Search pipelines…"
+          />
+        </div>
 
-    <div class="flyout-body">
-      <div v-if="showLoadingState" class="flyout-state" aria-live="polite">
-        <div class="skeleton-block skeleton-block--title" />
-        <div class="skeleton-block skeleton-block--wide" />
-        <div class="skeleton-block" />
+        <ScrollArea class="flyout-body">
+          <div v-if="showLoadingState" class="flyout-state" aria-live="polite">
+            <div class="skeleton-block skeleton-block--title" />
+            <div class="skeleton-block skeleton-block--wide" />
+            <div class="skeleton-block" />
+          </div>
+
+          <div v-else-if="showErrorState" class="flyout-state flyout-state--error" role="alert">
+            <p class="flyout-state-title">Failed to load</p>
+            <p class="flyout-state-msg">{{ connectionError }}</p>
+            <Button type="button" class="rounded-[4px]" @click="emit('retry')">Retry</Button>
+          </div>
+
+          <div v-else-if="pipelines.length === 0" class="flyout-state">
+            <p class="flyout-state-title">No pipelines yet</p>
+            <Button type="button" class="rounded-[4px]" @click="emit('new-pipeline')">New pipeline</Button>
+          </div>
+
+          <PipelineSidebar
+            v-else
+            hide-header
+            :filter-query="searchQuery"
+            @pipeline-selected="emit('close')"
+          />
+        </ScrollArea>
       </div>
-
-      <div v-else-if="showErrorState" class="flyout-state flyout-state--error" role="alert">
-        <p class="flyout-state-title">Failed to load</p>
-        <p class="flyout-state-msg">{{ connectionError }}</p>
-        <Button type="button" @click="emit('retry')">Retry</Button>
-      </div>
-
-      <div v-else-if="pipelines.length === 0" class="flyout-state">
-        <p class="flyout-state-title">No pipelines yet</p>
-        <Button type="button" @click="emit('new-pipeline')">+ New pipeline</Button>
-      </div>
-
-      <PipelineSidebar
-        v-else
-        hide-header
-        :filter-query="searchQuery"
-        @pipeline-selected="emit('close')"
-      />
-    </div>
-  </aside>
+    </SheetContent>
+  </Sheet>
 </template>
 
 <style scoped>
 .pipeline-flyout {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
+  width: min(320px, 88vw);
   background: #1c1b1b;
-  animation: slide-in 0.2s ease-out;
+  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
 }
 
-@keyframes slide-in {
-  from { transform: translateX(-100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
-}
-
-.flyout-header {
+.flyout-shell {
   display: flex;
-  align-items: center;
+  height: 100%;
+  flex-direction: column;
+}
+
+.flyout-header-row {
+  display: flex;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 1rem;
 }
-
-.flyout-header h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--text-title);
-  color: #e5e2e1;
-}
-
-.flyout-refresh {
-  width: 36px;
-  height: 36px;
-  border: 0;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: #e5e2e1;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.flyout-refresh:hover,
-.flyout-refresh:focus-visible { background: #2a2a2a; outline: none; }
 
 .flyout-search { padding: 0 1rem 0.75rem; }
 
-.flyout-search-input {
-  width: 100%;
-  padding: 0.4rem 0.6rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 4px;
-  background: #1c1b1b;
-  color: #e5e2e1;
-  font-size: var(--text-sm);
-  outline: none;
-}
-
-.flyout-search-input::placeholder { color: #707070; }
-
-.flyout-search-input:focus {
-  background: #2a2a2a;
-  border-color: rgba(77, 142, 255, 0.4);
-}
-
 .flyout-body {
-  min-height: 0;
-  flex: 1;
-  display: flex;
-  overflow: hidden;
+  height: calc(100vh - 7rem);
 }
 
 .flyout-state {
-  flex: 1;
+  min-height: calc(100vh - 12rem);
   display: grid;
   place-content: center;
   gap: 0.75rem;

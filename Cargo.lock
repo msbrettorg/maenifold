@@ -3467,10 +3467,12 @@ dependencies = [
 name = "maenifold-pipeline-driver"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "fd-lock",
  "libc",
  "maenifold-core",
  "maenifold-jockey",
+ "serde_yaml",
  "tokio",
  "tokio-util",
  "tracing",

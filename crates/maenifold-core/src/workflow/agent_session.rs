@@ -1,6 +1,6 @@
 use jockey::acp::AcpPromptResult;
 use serde_json::{Map, Value};
-use tracing::info;
+use tracing::{info, warn};
 
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
@@ -53,7 +53,7 @@ pub(crate) async fn open_agent_session(
 ) -> Result<AgentSession> {
     let cwd_str = session_config.cwd.to_string_lossy().to_string();
     let runtime_kind = resolve_runtime_kind(agent_name, &cwd_str)?;
-    let auto_approve = true;
+    let auto_approve = session_config.auto_approve;
     let (_config_options, _modes) =
         jockey::acp::prewarm_role_for_config(&runtime_kind, agent_name, &cwd_str, None).await;
     let config_options = build_role_config_options(
@@ -67,8 +67,18 @@ pub(crate) async fn open_agent_session(
         cwd = %cwd_str,
         model = ?session_config.model,
         thought_level = ?session_config.thought_level,
+        auto_approve,
+        config_options_count = config_options.len(),
+        %session_id,
         "opening pipeline agent session"
     );
+    if !config_options.is_empty() {
+        info!(
+            %session_id,
+            config_options = ?config_options,
+            "agent session config options to apply"
+        );
+    }
 
     Ok(AgentSession {
         agent_name: agent_name.to_string(),
@@ -125,10 +135,19 @@ impl AgentSession {
         .await;
         info!(
             agent = %self.agent_name,
+            session_id = %self.session_id,
             ok = result.ok,
             output_len = result.output.len(),
             "ACP agent responded"
         );
+        if !result.ok {
+            warn!(
+                agent = %self.agent_name,
+                session_id = %self.session_id,
+                output_preview = %result.output.chars().take(200).collect::<String>(),
+                "ACP agent prompt failed"
+            );
+        }
 
         // Capture the real ACP session ID from the worker's response metadata.
         if let Some(sid) = result.meta.get("sessionId").and_then(|v| v.as_str()) {

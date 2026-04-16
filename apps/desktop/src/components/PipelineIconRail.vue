@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-vue-next';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const props = defineProps<{
   activePipelineLabel: string;
@@ -31,31 +32,45 @@ defineExpose({ focusPipelineToggle });
 </script>
 
 <template>
-  <nav v-if="!isNarrowViewport" class="pipeline-icon-rail" aria-label="Pipeline navigation">
-    <button
-      ref="pipelineButtonRef"
-      type="button"
-      class="rail-button"
-      :class="{ 'is-active': isPipelineActive }"
-      :aria-expanded="flyoutOpen"
-      aria-controls="pipeline-flyout"
-      :aria-label="flyoutOpen ? 'Close pipelines flyout' : 'Open pipelines flyout'"
-      @click="emit('toggle-flyout')"
-    >
-      <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
-      <span class="rail-tooltip">{{ pipelineTooltip }}</span>
-    </button>
+  <TooltipProvider v-if="!isNarrowViewport" :delay-duration="150">
+    <nav class="pipeline-icon-rail" aria-label="Pipeline navigation">
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <button
+            ref="pipelineButtonRef"
+            type="button"
+            class="rail-button"
+            :class="{ 'is-active': isPipelineActive }"
+            :aria-expanded="flyoutOpen"
+            aria-controls="pipeline-flyout"
+            :aria-label="flyoutOpen ? 'Close pipelines flyout' : 'Open pipelines flyout'"
+            @click="emit('toggle-flyout')"
+          >
+            <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[#353534] text-[#e5e2e1]">
+          {{ pipelineTooltip }}
+        </TooltipContent>
+      </Tooltip>
 
-    <button
-      type="button"
-      class="rail-button"
-      aria-label="Create new pipeline"
-      title="Create new pipeline"
-      @click="emit('new-pipeline')"
-    >
-      <Plus :size="18" />
-    </button>
-  </nav>
+      <Tooltip>
+        <TooltipTrigger as-child>
+          <button
+            type="button"
+            class="rail-button"
+            aria-label="Create new pipeline"
+            @click="emit('new-pipeline')"
+          >
+            <Plus :size="18" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="right" class="rounded-[4px] bg-[#353534] text-[#e5e2e1]">
+          Create new pipeline
+        </TooltipContent>
+      </Tooltip>
+    </nav>
+  </TooltipProvider>
 </template>
 
 <style scoped>
@@ -108,36 +123,5 @@ defineExpose({ focusPipelineToggle });
 
 .rail-button.is-active::before {
   background: var(--ring);
-}
-
-.rail-tooltip {
-  position: absolute;
-  left: calc(100% + 10px);
-  top: 50%;
-  max-width: 220px;
-  padding: 0.375rem 0.5rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--background) 94%, transparent);
-  color: var(--foreground);
-  font-size: var(--text-xs);
-  line-height: 1.4;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  transform: translate(4px, -50%);
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0s linear 0.15s;
-  box-shadow: 0 0.5rem 1rem color-mix(in srgb, var(--foreground) 12%, transparent);
-}
-
-.rail-button:hover .rail-tooltip,
-.rail-button:focus-visible .rail-tooltip {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(0, -50%);
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 </style>

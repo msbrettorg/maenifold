@@ -30,6 +30,7 @@ const emit = defineEmits<{
       <label class="field-block search-field">
         <span>Search existing notes</span>
         <Input
+          class="border-0"
           type="text"
           placeholder="Search by title or topic"
           :value="searchQuery"

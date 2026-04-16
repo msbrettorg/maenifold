@@ -369,7 +369,12 @@ export const usePipelineStore = defineStore('pipeline', () => {
       return;
     }
 
-    if (ACTIVE_POLLING_PIPELINE_STATUSES.has(view.status)) {
+    const hasActiveNodes = Array.isArray(view.active) && view.active.length > 0;
+    const hasRunningNodes =
+      view.running === true ||
+      view.nodes.some((node) => node.status === 'active');
+
+    if (ACTIVE_POLLING_PIPELINE_STATUSES.has(view.status) || hasActiveNodes || hasRunningNodes) {
       if (!stopPollingHandle && currentPipelineId.value === view.pipelineId) {
         startViewPolling();
       }

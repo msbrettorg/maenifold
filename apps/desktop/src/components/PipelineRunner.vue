@@ -1,17 +1,18 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePipelineStore } from '../stores/pipeline';
 import type { LogEntry } from '../lib/pipeline-types';
 import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
-import { buildNodeOutputPreview } from '../composables/pipeline-view-diff';
+import { buildNodeOutputPreview, buildAbandonedNodePreview } from '../composables/pipeline-view-diff';
 
 const props = defineProps<{ collapsed?: boolean }>();
 
 const store = usePipelineStore();
 const { currentView, designMode, eventLog, localDefinition } = storeToRefs(store);
 
-const logContainer = ref<HTMLElement | null>(null);
+const logAnchor = ref<HTMLElement | null>(null);
 
 const localNodesById = computed(() => new Map(localDefinition.value.nodes.map((node) => [node.id, node])));
 const viewNodesById = computed(() => new Map((currentView.value?.nodes ?? []).map((node) => [node.nodeId, node])));
@@ -41,9 +42,7 @@ const formattedLog = computed(() => eventLog.value.map((entry) => formatLogEntry
 watch(() => eventLog.value.length, async (length, previousLength) => {
   if (length === previousLength) return;
   await nextTick();
-  if (logContainer.value) {
-    logContainer.value.scrollTop = logContainer.value.scrollHeight;
-  }
+  logAnchor.value?.scrollIntoView({ block: 'end' });
 });
 
 function iconFor(status: string): string {
@@ -65,7 +64,11 @@ function formatLogEntry(entry: LogEntry) {
     second: '2-digit',
     hour12: false,
   });
-  const preview = entry.preview ?? buildNodeOutputPreview(viewNodesById.value.get(entry.nodeId));
+  const viewNodeForEntry = viewNodesById.value.get(entry.nodeId);
+  const preview = entry.preview
+    ?? (entry.to === 'abandoned' || entry.to === 'stuck'
+      ? buildAbandonedNodePreview(viewNodeForEntry)
+      : buildNodeOutputPreview(viewNodeForEntry));
   if (entry.from === 'loaded') {
     const base = `[${timestamp}] ↺ ${displayNodeId(entry.nodeId)} loaded as ${entry.to}`;
     if (entry.to === 'completed' && preview) {
@@ -80,10 +83,10 @@ function formatLogEntry(entry: LogEntry) {
     return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${preview}`;
   }
   if (entry.to === 'abandoned' && preview) {
-    return `[${timestamp}] ❌ ${displayNodeId(entry.nodeId)} abandoned — details: ${preview}`;
+    return `[${timestamp}] ⚠ ${displayNodeId(entry.nodeId)} abandoned: ${preview}`;
   }
   if (entry.to === 'stuck' && preview) {
-    return `[${timestamp}] 🚫 ${displayNodeId(entry.nodeId)} stuck — details: ${preview}`;
+    return `[${timestamp}] ⚠ ${displayNodeId(entry.nodeId)} stuck: ${preview}`;
   }
   return `[${timestamp}] ${iconFor(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
 }
@@ -93,10 +96,18 @@ function formatLogEntry(entry: LogEntry) {
   <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
     <div class="status-line">{{ statusLine }}</div>
 
-    <div v-show="!props.collapsed" ref="logContainer" class="tab-panel log-panel" aria-live="polite" aria-label="Event log">
-      <p v-if="formattedLog.length === 0" class="empty-state">No events yet.</p>
-      <pre v-else class="log-lines"><code>{{ formattedLog.join('\n') }}</code></pre>
-    </div>
+    <ScrollArea
+      v-show="!props.collapsed"
+      class="tab-panel log-panel"
+      aria-live="polite"
+      aria-label="Event log"
+    >
+      <div class="log-panel-inner">
+        <p v-if="formattedLog.length === 0" class="empty-state">No events yet.</p>
+        <pre v-else class="log-lines"><code>{{ formattedLog.join('\n') }}</code></pre>
+        <div ref="logAnchor" />
+      </div>
+    </ScrollArea>
   </section>
 </template>
 
@@ -105,26 +116,27 @@ function formatLogEntry(entry: LogEntry) {
   display: flex;
   flex-direction: column;
   min-height: 260px;
-  border-top: 1px solid var(--border);
-  background: var(--background);
+  background: #1c1b1b;
 }
 .runner-panel--collapsed {
   min-height: 0;
 }
 .status-line {
   padding: 0.75rem 1rem;
-  color: var(--muted-foreground);
+  color: #707070;
   font-size: var(--text-base);
-  border-bottom: 1px solid var(--border);
+  background: #201f1f;
 }
 .tab-panel {
   flex: 1;
   min-height: 0;
-  padding: 1rem;
-  overflow: auto;
 }
 .log-panel {
-  background: var(--muted);
+  background: #201f1f;
+}
+.log-panel-inner {
+  min-height: 100%;
+  padding: 1rem;
 }
 .log-lines {
   margin: 0;
@@ -132,9 +144,9 @@ function formatLogEntry(entry: LogEntry) {
   word-break: break-word;
   font-family: var(--font-code);
   font-size: var(--text-sm);
-  color: var(--foreground);
+  color: #e5e2e1;
 }
 .empty-state {
-  color: var(--muted-foreground);
+  color: #707070;
 }
 </style>

@@ -116,15 +116,6 @@ pub struct ReadMcpResourceParams {
 
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct ListAgentsParams {
-    /// Connect to each agent and report discovered capabilities (modes,
-    /// models, configOptions).  Slower — spawns agent processes.
-    #[serde(default)]
-    pub probe: bool,
-}
-
-#[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ListSessionsParams {
     /// Return help documentation instead of executing
     #[serde(default)]

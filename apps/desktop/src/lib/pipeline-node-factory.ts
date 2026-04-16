@@ -28,6 +28,7 @@ interface WorkflowNodeExecutionSelection {
   model?: string;
   thoughtLevel?: string;
   cwd?: string;
+  timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
 }
 
@@ -203,6 +204,7 @@ function buildWorkflowExecutionFields(
   fields: WorkflowNodeExecutionSelection,
 ): WorkflowNodeExecutionSelection {
   const cwd = normalizeExecutionCwd(fields.cwd);
+  const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
   const agentConfig = cloneAgentConfig(fields.agentConfig);
 
   return {
@@ -213,6 +215,7 @@ function buildWorkflowExecutionFields(
       ? { thoughtLevel: fields.thoughtLevel }
       : {}),
     ...(cwd ? { cwd } : {}),
+    ...(timeout !== undefined ? { timeout } : {}),
     ...(agentConfig ? { agentConfig } : {}),
   };
 }

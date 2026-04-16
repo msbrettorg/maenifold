@@ -32,16 +32,7 @@ function cloneExecutionFields(
     ...(node.allowedTools ? { allowedTools: [...node.allowedTools] } : {}),
     ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
     ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
-    ...(node.agentConfig
-      ? {
-          agentConfig: {
-            ...node.agentConfig,
-            ...(node.agentConfig.configOptions
-              ? { configOptions: { ...node.agentConfig.configOptions } }
-              : {}),
-          },
-        }
-      : {}),
+    ...(node.agentConfig ? { agentConfig: structuredClone(node.agentConfig) } : {}),
   };
 }
 
@@ -54,8 +45,13 @@ function cloneNodeWithNewId(node: PipelineNode): PipelineNode {
       id,
       ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
       workflowId: node.workflowId,
-      agent: node.acpClient ?? '',
+      ...(node.acpClient ? { acpClient: node.acpClient } : {}),
       ...(node.prompt ? { prompt: node.prompt } : {}),
+      ...(node.cwd ? { cwd: node.cwd } : {}),
+      ...(node.model ? { model: node.model } : {}),
+      ...(node.thoughtLevel ? { thoughtLevel: node.thoughtLevel } : {}),
+      ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
+      ...(node.agentConfig ? { agentConfig: structuredClone(node.agentConfig) } : {}),
     });
   }
 

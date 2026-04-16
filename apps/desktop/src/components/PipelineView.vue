@@ -115,19 +115,9 @@ function handleOpenPromotion() {
   const node = currentView.value?.nodes.find((n) => n.status === 'completed' && n.output);
   if (node) promotionNode.value = node;
 }
-function handleFlyoutBackdropClick(event: MouseEvent) {
-  event.preventDefault();
-  event.stopPropagation();
-  closePipelineFlyout();
-}
-function handleFlyoutBackdropContextMenu(event: MouseEvent) {
-  event.preventDefault();
-  event.stopPropagation();
-  closePipelineFlyout();
-}
-function handleWindowKeyDown(event: KeyboardEvent) {
-  if (event.key !== 'Escape') return;
-  if (isPipelineFlyoutOpen.value) {
+ function handleWindowKeyDown(event: KeyboardEvent) {
+   if (event.key !== 'Escape') return;
+   if (isPipelineFlyoutOpen.value) {
     event.preventDefault();
     closePipelineFlyout({ restoreFocus: true });
     return;
@@ -197,18 +187,18 @@ onBeforeUnmount(() => {
             </template>
           </PipelineComposer>
         </template>
-        <Transition name="pipeline-flyout">
-          <PipelineFlyout
-            v-if="isPipelineFlyoutOpen"
-            :connection-error="connectionError"
-            :show-error-state="showErrorState"
-            :show-loading-state="showLoadingState"
-            @close="handlePipelineSelected"
-            @new-pipeline="handleNewPipeline"
-            @retry="handleRetryLoad"
-          />
-        </Transition>
-      </section>
+          <Transition name="pipeline-flyout">
+            <PipelineFlyout
+              v-if="isPipelineFlyoutOpen"
+              :connection-error="connectionError"
+              :show-error-state="showErrorState"
+              :show-loading-state="showLoadingState"
+              @close="handlePipelineSelected"
+              @new-pipeline="handleNewPipeline"
+              @retry="handleRetryLoad"
+            />
+          </Transition>
+        </section>
       <section v-if="!showFullScreenEmpty" class="runner-panel">
         <div class="runner-panel-header">
           <Button
@@ -217,7 +207,7 @@ onBeforeUnmount(() => {
             :disabled="graftSubmitting"
             @click="graftDialogOpen = true"
           >
-            Graft Nodes
+            Graft nodes
           </Button>
           <Button
             v-if="hasLoadedPipeline && runnerExpanded"
@@ -226,7 +216,7 @@ onBeforeUnmount(() => {
             :disabled="joinSubmitting"
             @click="joinDialogOpen = true"
           >
-            Join Pipeline
+            Join pipeline
           </Button>
           <button
             class="runner-expand-btn"
@@ -241,15 +231,6 @@ onBeforeUnmount(() => {
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />
       </section>
-      <button
-        v-if="isPipelineFlyoutOpen"
-        type="button"
-        class="flyout-backdrop"
-        tabindex="-1"
-        aria-label="Close pipelines flyout"
-        @click="handleFlyoutBackdropClick"
-        @contextmenu="handleFlyoutBackdropContextMenu"
-      />
       <button v-if="isNarrowViewport && mobileSidebarOpen" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
     </div>
     <GraftNodesDialog

@@ -1,5 +1,5 @@
 use super::params::{
-    AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAgentsParams, ListAssetsParams,
+    AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAssetsParams,
     ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
     UpdateAssetsParams,
 };
@@ -40,10 +40,6 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "ReadMcpResource" => derived_tool_definition::<ReadMcpResourceParams>(
             registry_name,
             "Reads MCP resource content by URI.",
-        ),
-        "ListAgents" => derived_tool_definition::<ListAgentsParams>(
-            registry_name,
-            "Lists configured ACP agents and their serialized configuration fields.",
         ),
         "ListSessions" => derived_tool_definition::<ListSessionsParams>(
             registry_name,

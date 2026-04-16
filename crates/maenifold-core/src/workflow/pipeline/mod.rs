@@ -56,7 +56,9 @@ pub use engine::{
     compute_ready_set, compute_terminal_node_ids, has_remaining_work,
 };
 pub use executor::{ExecutionResult, execute_pipeline};
-pub use executor_cleanup::{abandon_active_nodes, finalize_failed_pipeline_execution};
+pub use executor_cleanup::{
+    cancel_active_nodes, finalize_failed_pipeline_execution, recover_crashed_nodes,
+};
 pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;

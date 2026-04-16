@@ -150,13 +150,61 @@ export const useSessionStore = defineStore('session', () => {
     return localId && session ? { localId, session } : null;
   }
 
-  async function focusOrResumeRemoteSession(remoteSessionId: string, agentName?: string): Promise<{
+  interface FocusOrResumeRemoteSessionOptions {
+    suppressErrors?: boolean;
+  }
+
+  function reportReconnectError(
+    message: string,
+    options: FocusOrResumeRemoteSessionOptions,
+  ): void {
+    if (!options.suppressErrors) {
+      setError(message);
+    }
+  }
+
+  function discardReconnectAttempt(
+    previousSessionIds: Set<string>,
+    previousActiveSessionId: string | null,
+  ): void {
+    let didMutate = false;
+    for (const localId of [...sessions.value.keys()]) {
+      if (previousSessionIds.has(localId)) {
+        continue;
+      }
+
+      sessions.value.delete(localId);
+      bridges.delete(localId);
+      didMutate = true;
+    }
+
+    if (didMutate) {
+      sessions.value = new Map(sessions.value);
+    }
+
+    if (previousActiveSessionId && sessions.value.has(previousActiveSessionId)) {
+      activeSessionId.value = previousActiveSessionId;
+      return;
+    }
+
+    if (activeSessionId.value && sessions.value.has(activeSessionId.value)) {
+      return;
+    }
+
+    activeSessionId.value = [...sessions.value.keys()][0] ?? null;
+  }
+
+  async function focusOrResumeRemoteSession(
+    remoteSessionId: string,
+    agentName?: string,
+    options: FocusOrResumeRemoteSessionOptions = {},
+  ): Promise<{
     status: 'activated' | 'resumed' | 'missing' | 'error';
     localSessionId?: string;
   }> {
     const trimmedSessionId = remoteSessionId.trim();
     if (!trimmedSessionId) {
-      setError('Unable to reconnect: missing ACP session identifier.');
+      reportReconnectError('Unable to reconnect: missing ACP session identifier.', options);
       return { status: 'missing' };
     }
 
@@ -183,6 +231,8 @@ export const useSessionStore = defineStore('session', () => {
           cwd: '/',
           supportsLoadSession: true,
         };
+        const previousSessionIds = new Set(sessions.value.keys());
+        const previousActiveSessionId = activeSessionId.value;
         try {
           await resumeSession(syntheticSession);
           return {
@@ -190,21 +240,28 @@ export const useSessionStore = defineStore('session', () => {
             localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
           };
         } catch (error) {
-          setError(
+          if (options.suppressErrors) {
+            discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
+          }
+          reportReconnectError(
             error instanceof Error
               ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
               : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+            options,
           );
           return { status: 'error' };
         }
       }
 
-      setError(
+      reportReconnectError(
         `ACP session ${trimmedSessionId} is unavailable. The originating agent session may have expired.`,
+        options,
       );
       return { status: 'missing' };
     }
 
+    const previousSessionIds = new Set(sessions.value.keys());
+    const previousActiveSessionId = activeSessionId.value;
     try {
       await resumeSession(savedSession);
       return {
@@ -212,10 +269,14 @@ export const useSessionStore = defineStore('session', () => {
         localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
       };
     } catch (error) {
-      setError(
+      if (options.suppressErrors) {
+        discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
+      }
+      reportReconnectError(
         error instanceof Error
           ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
           : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+        options,
       );
       return { status: 'error' };
     }

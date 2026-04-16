@@ -88,16 +88,39 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     () => options.designMode() && nodes.value.length === 0,
   );
 
-  function syncCanvas(definition: PipelineDefinition, view?: PipelineView | null): void {
+  /** Apply ELK edge routing points to flow edges after auto-layout. */
+  function applyElkEdgePaths(
+    edgeList: Edge[],
+    edgePaths: Map<string, Array<{ x: number; y: number }>>,
+  ): Edge[] {
+    return edgeList.map((edge) => {
+      const points = edgePaths.get(edge.id);
+      if (!points || points.length < 2) return edge;
+      return { ...edge, data: { ...edge.data, elkPoints: points } };
+    });
+  }
+
+  /** Strip ELK edge routing points so edges revert to smoothstep calculation. */
+  function clearElkEdgePaths(edgeList: Edge[]): Edge[] {
+    return edgeList.map((edge) => {
+      if (!edge.data?.elkPoints) return edge;
+      const { elkPoints: _, ...rest } = edge.data;
+      return { ...edge, data: rest };
+    });
+  }
+
+  async function syncCanvas(definition: PipelineDefinition, view?: PipelineView | null): Promise<void> {
     const cached = loadPositions(view?.pipelineId);
     const hasCachedPositions =
       definition.nodes.length > 0 && definition.nodes.every((node) => cached[node.id]);
 
     let nextNodes: Node[] = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
-    const nextEdges: Edge[] = pipelineEdgesToFlow(definition.edges);
+    let nextEdges: Edge[] = pipelineEdgesToFlow(definition.edges);
 
     if (!hasCachedPositions && nextNodes.length > 0) {
-      nextNodes = layout(nextNodes, nextEdges, 'LR');
+      const result = await layout(nextNodes, nextEdges, 'TB');
+      nextNodes = result.nodes;
+      nextEdges = applyElkEdgePaths(nextEdges, result.edgePaths);
     }
 
     nodes.value = nextNodes;
@@ -129,11 +152,11 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   watch(
     options.localDefinition,
-    (definition, previousDefinition) => {
+    async (definition, previousDefinition) => {
       if (!definition || !options.designMode()) return;
       if (shouldSyncCanvasImmediately(definition, previousDefinition)) {
         clearPendingDefinitionSync();
-        syncCanvas(definition, options.view());
+        await syncCanvas(definition, options.view());
         nextTick(() => fitView());
         return;
       }
@@ -164,9 +187,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   watch(
     options.view,
-    (view) => {
+    async (view) => {
       if (!view || options.designMode()) return;
-      syncCanvas(
+      await syncCanvas(
         {
           nodes: view.nodes.map(toPipelineNodeFromViewNode),
           edges: view.edges,
@@ -183,6 +206,14 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   );
 
   onNodeDragStop(() => {
+    // ELK edge paths become stale after manual node repositioning — clear them
+    // so edges fall back to the smoothstep path calculation.
+    const currentEdges = getEdges.value;
+    if (currentEdges.some((e) => e.data?.elkPoints)) {
+      const clearedEdges = clearElkEdgePaths(currentEdges);
+      edges.value = clearedEdges;
+      setEdges(clearedEdges);
+    }
     savePositions(getNodes.value, options.view()?.pipelineId);
     emitDefinitionUpdate();
   });
@@ -272,13 +303,16 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     syncLocalGraph(nextNodes, nextEdges);
   }
 
-  function handleAutoLayout(direction: 'LR' | 'TB'): void {
+  async function handleAutoLayout(direction: 'LR' | 'TB'): Promise<void> {
     const currentNodes: Node[] = getNodes.value;
     const currentEdges: Edge[] = getEdges.value;
-    const nextNodes: Node[] = layout(currentNodes, currentEdges, direction);
-    nodes.value = nextNodes;
-    setNodes(nextNodes);
-    persistPositions(nextNodes);
+    const result = await layout(currentNodes, currentEdges, direction);
+    const nextEdges = applyElkEdgePaths(currentEdges, result.edgePaths);
+    nodes.value = result.nodes;
+    edges.value = nextEdges;
+    setNodes(result.nodes);
+    setEdges(nextEdges);
+    persistPositions(result.nodes);
     nextTick(() => fitView());
   }
 

@@ -164,9 +164,7 @@ async fn invoke_via_http(
     let request = build_call_request(remote_tool_name, arguments);
     info!(
         server_name,
-        remote_tool_name,
-        url,
-        "calling external MCP tool via HTTP"
+        remote_tool_name, url, "calling external MCP tool via HTTP"
     );
     let call_result = client.call_tool(request).await.map_err(|error| {
         MaenifoldError::Message(format!(
@@ -176,8 +174,7 @@ async fn invoke_via_http(
     if call_result.is_ok() {
         info!(
             server_name,
-            remote_tool_name,
-            "external MCP HTTP tool call succeeded"
+            remote_tool_name, "external MCP HTTP tool call succeeded"
         );
     }
     let close_result = client.close().await.map_err(|error| {

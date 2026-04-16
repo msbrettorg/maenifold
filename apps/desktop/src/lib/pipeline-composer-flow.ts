@@ -32,6 +32,7 @@ export type FlowNodeData = {
   agent?: string;
   topic?: string;
   totalThoughts?: number;
+  thinkingTraceLength?: number;
   analysisType?: string;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
@@ -123,6 +124,9 @@ function toFlowNodeData(
       agent: node.agent,
       ...(typeof node.totalThoughts === 'number'
         ? { totalThoughts: node.totalThoughts }
+        : {}),
+      ...(viewNode?.type === 'sequentialThinking'
+        ? { thinkingTraceLength: viewNode.thinking_trace?.length ?? 0 }
         : {}),
       ...(node.analysisType ? { analysisType: node.analysisType } : {}),
     };

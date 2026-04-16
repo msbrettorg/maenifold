@@ -4,7 +4,7 @@ import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
 
 const DEBOUNCED_DEFINITION_SYNC_MS = 150;
 
-type SyncCanvasFn = (definition: PipelineDefinition, view?: PipelineView | null) => void;
+type SyncCanvasFn = (definition: PipelineDefinition, view?: PipelineView | null) => void | Promise<void>;
 
 /**
  * Manages debounced canvas sync for PipelineComposer.

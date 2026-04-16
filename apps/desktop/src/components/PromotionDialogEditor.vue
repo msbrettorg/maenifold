@@ -62,21 +62,22 @@ const description = {
     <div v-if="selectedAction === 'create'" class="form-grid">
       <label class="field-block">
         <span>Title</span>
-        <Input type="text" placeholder="Note title" :value="title" @input="emit('update:title', ($event.target as HTMLInputElement).value.trim())" />
+        <Input class="border-0" type="text" placeholder="Note title" :value="title" @input="emit('update:title', ($event.target as HTMLInputElement).value.trim())" />
       </label>
       <label class="field-block">
         <span>Folder</span>
-        <Input type="text" placeholder="Optional folder" :value="folder" @input="emit('update:folder', ($event.target as HTMLInputElement).value.trim())" />
+        <Input class="border-0" type="text" placeholder="Optional folder" :value="folder" @input="emit('update:folder', ($event.target as HTMLInputElement).value.trim())" />
       </label>
       <label class="field-block field-wide">
         <span>Tags</span>
-        <Input type="text" placeholder="Optional tags, separated by commas" :value="tagsInput" @input="emit('update:tagsInput', ($event.target as HTMLInputElement).value.trim())" />
+        <Input class="border-0" type="text" placeholder="Optional tags, separated by commas" :value="tagsInput" @input="emit('update:tagsInput', ($event.target as HTMLInputElement).value.trim())" />
       </label>
     </div>
 
     <label class="field-block">
       <span>Connections</span>
       <Textarea
+        class="border-0"
         rows="3"
         placeholder="Add one or more topics, for example: semantic zoom, pipeline-ui"
         :value="wikiLinkInput"

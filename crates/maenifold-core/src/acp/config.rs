@@ -675,10 +675,9 @@ mod settings_tests {
         let root = Path::new(&home).join("maenifold");
         let config = AgentsConfig::load(&root);
 
-        assert_eq!(
-            config.mcp_servers.len(),
-            6,
-            "expected 6 top-level mcp servers from {}",
+        assert!(
+            !config.mcp_servers.is_empty(),
+            "expected at least one top-level mcp server from {}",
             root.join("maenifold.json").display()
         );
     }

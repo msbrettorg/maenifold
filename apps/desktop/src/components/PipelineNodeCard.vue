@@ -28,6 +28,7 @@ type NodeCardData = {
   agent?: string;
   topic?: string;
   totalThoughts?: number;
+  thinkingTraceLength?: number;
   analysisType?: string;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
@@ -135,6 +136,15 @@ const isActive = computed(() => statusAppearance.value === 'active');
 const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
 const attempts = computed(() => props.data.attempts && props.data.attempts > 1 ? `×${props.data.attempts}` : '');
 const modelBadge = computed(() => props.data.model?.trim() ?? '');
+const thinkingTraceLength = computed(() =>
+  typeof props.data.thinkingTraceLength === 'number' ? props.data.thinkingTraceLength : 0,
+);
+const thoughtProgress = computed(() => {
+  if (!isSequentialThinkingNode(node.value) || typeof node.value.totalThoughts !== 'number') {
+    return null;
+  }
+  return `Thought ${thinkingTraceLength.value} of ${node.value.totalThoughts}`;
+});
 const promptPreview = computed(() => isPromptNode(node.value) ? shorten(node.value.prompt, 120) : '');
 const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.prompt ? shorten(node.value.prompt, 120) : '');
 const failureSummary = computed(() => {
@@ -179,6 +189,10 @@ const failureSummary = computed(() => {
       <template v-else-if="isPromptNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
+          <span v-if="isActive" class="meta-pill working-pill">
+            <span class="working-spinner" aria-hidden="true" />
+            Working...
+          </span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
@@ -198,7 +212,7 @@ const failureSummary = computed(() => {
           <span class="meta-pill">{{ node.agent }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span class="meta-pill">topic: {{ node.topic }}</span>
-          <span v-if="typeof node.totalThoughts === 'number'" class="meta-pill">thoughts: {{ node.totalThoughts }}</span>
+          <span v-if="thoughtProgress" class="meta-pill">{{ thoughtProgress }}</span>
           <span v-if="node.analysisType" class="meta-pill">{{ node.analysisType }}</span>
           <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
@@ -234,10 +248,25 @@ const failureSummary = computed(() => {
 .node-subtitle { margin: 8px 0 6px; font-size: var(--text-sm); color: var(--muted-foreground); white-space: nowrap; }
 .meta-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
 .meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, #2a2a2a); }
+.working-pill { gap: 0.375rem; }
+.working-spinner {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--node-accent) 32%, transparent);
+  border-top-color: var(--node-accent);
+  animation: working-spinner 0.8s linear infinite;
+}
 .preview {
   margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--muted-foreground);
   white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 6%, #2a2a2a); border-radius: 4px;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
 }
 .preview-code { font-family: var(--font-code); }
+
+@keyframes working-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>

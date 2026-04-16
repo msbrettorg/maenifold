@@ -66,13 +66,18 @@ describe('useAgentCapabilitiesStore', () => {
     store.probeResults = new Map([
       ['architect', normalizeAgentProbeResult({ configOptions: [] }, { probedAt: Date.now() })],
     ]);
-    callTool.mockResolvedValue([
-      { name: 'architect', capabilities: { configOptions: [] } },
-    ]);
+    callTool.mockResolvedValue({
+      agents: {
+        architect: { command: 'architect', capabilities: { configOptions: [] } },
+      },
+      mcpServers: [],
+      paths: {},
+      settings: {},
+    });
 
     await store.refreshAll();
 
-    expect(callTool).toHaveBeenCalledWith('ListAgents', { probe: true });
+    expect(callTool).toHaveBeenCalledWith('GetConfig', {});
     expect(store.getProbe('architect')?.state).toBe('ready');
     expect(store.getProbe('architect')?.degradedMessage).toBeUndefined();
   });
@@ -158,9 +163,16 @@ describe('useAgentCapabilitiesStore', () => {
 
   it('does not surface legacy style from probe results', async () => {
     const store = useAgentCapabilitiesStore();
-    callTool.mockResolvedValue([
-      { name: 'architect', capabilities: { style: 'legacy' } },
-    ]);
+    callTool.mockResolvedValue({
+      agents: {
+        architect: {
+          command: 'architect',
+        },
+      },
+      mcpServers: [],
+      paths: {},
+      settings: {},
+    });
 
     await store.probeAll({ force: true });
 

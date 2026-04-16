@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import DesignNodeConfigPanel from './DesignNodeConfigPanel.vue';
 import { usePipelineStore } from '../stores/pipeline';
 
@@ -23,8 +24,8 @@ const emit = defineEmits<{
 const store = usePipelineStore();
 
 const modalTitle = computed(() => {
-  if (props.selectedEdge) return store.designMode ? 'Edge Configuration' : 'Edge Details';
-  return store.designMode ? 'Node Configuration' : 'Node Inspector';
+  if (props.selectedEdge) return store.designMode ? 'Edge configuration' : 'Edge details';
+  return store.designMode ? 'Node configuration' : 'Node inspector';
 });
 
 const modalDescription = computed(() =>
@@ -35,45 +36,49 @@ const modalDescription = computed(() =>
 </script>
 
 <template>
-  <Dialog :open="true" @update:open="(open) => !open && emit('close')">
-    <DialogContent class="config-panel gap-0 p-0 sm:max-w-[560px]" :show-close-button="false">
-      <DialogHeader class="config-header">
+  <Sheet :open="true" @update:open="(open) => !open && emit('close')">
+    <SheetContent
+      side="right"
+      class="config-panel gap-0 p-0 text-[#e5e2e1] sm:max-w-[360px]"
+      :show-close-button="false"
+    >
+      <SheetHeader class="config-header">
         <div class="config-heading">
-          <DialogTitle class="config-title">{{ modalTitle }}</DialogTitle>
-          <DialogDescription>{{ modalDescription }}</DialogDescription>
+          <SheetTitle class="config-title">{{ modalTitle }}</SheetTitle>
+          <SheetDescription class="text-[var(--text-body-sm)] text-[#707070]">{{ modalDescription }}</SheetDescription>
         </div>
-        <DialogClose as-child>
-          <button
-            class="config-close"
-            type="button"
-            aria-label="Close configuration"
-            title="Close (Esc)"
-          >
-            ×
-          </button>
-        </DialogClose>
-      </DialogHeader>
-      <div class="config-body">
+        <Button
+          class="config-close rounded-[4px]"
+          variant="ghost"
+          size="sm"
+          type="button"
+          aria-label="Close configuration"
+          @click="emit('close')"
+        >
+          Close
+        </Button>
+      </SheetHeader>
+      <ScrollArea class="config-body">
         <DesignNodeConfigPanel
           :selected-node-id="selectedNodeId"
           :selected-edge="selectedEdge"
         />
-      </div>
-    </DialogContent>
-  </Dialog>
+      </ScrollArea>
+    </SheetContent>
+  </Sheet>
 </template>
 
 <style scoped>
 .config-panel {
-  width: min(560px, 90vw);
-  max-height: 80vh;
+  width: min(360px, 92vw);
+  max-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--card, #201f1f);
-  border-radius: var(--radius-xl);
+  background: #1c1b1b;
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+  border: 0;
+  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
 }
 
 .config-heading {
@@ -88,44 +93,23 @@ const modalDescription = computed(() =>
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--accent, #353534);
+  background: #1c1b1b;
 }
 
 .config-title {
   font-family: var(--font-display);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
-  color: var(--foreground);
-}
-
-.config-close {
-  background: none;
-  border: none;
-  color: var(--muted-foreground);
-  font-size: var(--text-xl);
-  cursor: pointer;
-  padding: var(--space-1);
-  line-height: 1;
-  border-radius: var(--radius-sm);
-}
-
-.config-close:hover {
-  color: var(--foreground);
-  background: var(--muted);
-}
-
-.config-close:focus-visible {
-  outline: 2px solid var(--ring);
-  outline-offset: 2px;
+  font-size: var(--text-title);
+  font-weight: 500;
+  color: #e5e2e1;
 }
 
 .config-body {
-  flex: 1;
-  overflow-y: auto;
+  height: calc(100vh - 5rem);
 }
 
 .config-body :deep(.inspector) {
   border-left: none;
   height: auto;
+  min-height: 100%;
 }
 </style>

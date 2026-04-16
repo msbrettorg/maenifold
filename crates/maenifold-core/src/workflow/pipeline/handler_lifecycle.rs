@@ -83,7 +83,7 @@ fn run_pipeline(
 ) -> Result<String> {
     if lease::session_lock_is_held(session_id, &context.config) {
         return Err(MaenifoldError::Message(format!(
-            "Pipeline {session_id} is already running"
+            "Pipeline {session_id} is already running. Use cancel to stop it, or wait for completion."
         )));
     }
 

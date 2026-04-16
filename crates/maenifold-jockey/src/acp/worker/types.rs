@@ -107,6 +107,7 @@ pub enum AcpEvent {
     PermissionExpired {
         request_id: String,
     },
+    ReplayComplete,
 }
 
 // ── Worker message channel ────────────────────────────────────────────────────
@@ -143,7 +144,7 @@ pub enum WorkerMsg {
         auto_approve: bool,
         mcp_servers: Vec<acp::McpServer>,
         role_mode: Option<String>,
-        role_config_options: Vec<(String, String)>,
+        role_config_options: Vec<Value>,
         delta_tx: Option<mpsc::Sender<AcpEvent>>,
         result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
         resume_session_id: Option<String>,

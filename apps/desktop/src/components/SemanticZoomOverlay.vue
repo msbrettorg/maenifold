@@ -71,7 +71,14 @@ const reconnectSessionId = computed<string | null>(() => {
 
 const canReconnect = computed(() =>
   viewNode.value?.status === 'completed'
+  && nodeType.value !== 'tool'
   && viewNode.value.provenance?.detail.canReconnect === true
+  && !!reconnectSessionId.value,
+);
+
+const canConnectLive = computed(() =>
+  viewNode.value?.status === 'active'
+  && nodeType.value !== 'tool'
   && !!reconnectSessionId.value,
 );
 
@@ -86,19 +93,37 @@ async function handleReconnect(): Promise<void> {
     const result = await sessionStore.focusOrResumeRemoteSession(
       sid,
       viewNode.value?.provenance?.agent ?? undefined,
+      { suppressErrors: true },
     );
     if (result.status === 'activated' || result.status === 'resumed') {
       appShellStore.openAgents();
+      zoom.back();
     }
+  } catch {
+    // Unexpected failure — stay on the stored output in inspector mode.
   } finally {
     reconnectBusy.value = false;
   }
 }
 
+// Auto-connect to the live ACP session when the overlay opens for an active
+// agent node.  Tool nodes are excluded — they have no interactive session.
+watch(
+  [() => zoom.isInspecting, canConnectLive],
+  ([inspecting, canConnect]) => {
+    if (inspecting && canConnect) {
+      void handleReconnect();
+    }
+  },
+  { flush: 'post' },
+);
+
 const failureReason = computed<string | null>(() => {
   const reason = viewNode.value?.failureReason?.trim();
   return reason && reason.length > 0 ? reason : null;
 });
+const isFailureExpanded = ref(false);
+const isFailureLong = computed(() => (failureReason.value?.length ?? 0) > 200);
 
 const agentSummary = computed<string | null>(() => {
   const node = viewNode.value;
@@ -213,6 +238,7 @@ watch(() => viewNode.value?.nodeId, () => {
   showGraftDialog.value = false;
   showPromotionDialog.value = false;
   promotionBusy.value = false;
+  isFailureExpanded.value = false;
 });
 
 onMounted(() => document.addEventListener('keydown', handleKeyDown));
@@ -235,12 +261,22 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
         </div>
 
         <div
-          v-if="viewNode.status === 'abandoned' && failureReason"
+          v-if="failureReason"
           class="zoom-failure-alert"
           role="alert"
         >
           <strong>Failure reason</strong>
-          <pre class="zoom-failure-pre">{{ failureReason }}</pre>
+          <pre
+            class="zoom-failure-pre"
+            :class="{ 'zoom-failure-pre--collapsed': isFailureLong && !isFailureExpanded }"
+          >{{ failureReason }}</pre>
+          <button
+            v-if="isFailureLong"
+            class="zoom-failure-toggle"
+            @click="isFailureExpanded = !isFailureExpanded"
+          >
+            {{ isFailureExpanded ? 'Show less' : 'Show more' }}
+          </button>
         </div>
 
         <div class="zoom-body">
@@ -255,6 +291,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 
         <SemanticZoomOverlayControls
           :busy-action="busyAction"
+          :can-connect-live="canConnectLive"
           :can-promote="canPromote"
           :can-reconnect="canReconnect"
           :forked-session-id="forkedSessionId"
@@ -334,8 +371,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   margin: var(--space-3) var(--space-4) 0;
   padding: var(--space-3);
   border-radius: 4px;
-  border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 40%, transparent);
-  background: color-mix(in srgb, var(--color-status-abandoned) 8%, var(--card, #201f1f));
+  background: color-mix(in srgb, var(--color-status-abandoned) 10%, var(--card, #201f1f));
   color: var(--color-status-abandoned);
 }
 
@@ -357,5 +393,28 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   color: inherit;
   max-height: 160px;
   overflow-y: auto;
+}
+
+.zoom-failure-pre--collapsed {
+  max-height: 3em;
+  overflow: hidden;
+}
+
+.zoom-failure-toggle {
+  display: inline;
+  margin-top: var(--space-1);
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-status-abandoned);
+  font-family: var(--font-body);
+  font-size: var(--text-tiny);
+  cursor: pointer;
+  opacity: 0.8;
+}
+
+.zoom-failure-toggle:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 </style>

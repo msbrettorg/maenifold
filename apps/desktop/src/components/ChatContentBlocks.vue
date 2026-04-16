@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { ContentBlock } from '../lib/types';
 
 defineProps<{ blocks: ContentBlock[] }>();
 
 function renderMarkdown(content: string): string {
-  const html = marked.parse(content, { async: false }) as string;
+  const parsed = marked.parse(content, { async: false });
+  const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
   // Guard: if markdown consumed the input into empty HTML structures
   // (e.g. "\n\n4." → <ol><li></li></ol>), fall back to escaped plaintext.
   const visibleText = html.replace(/<[^>]*>/g, '').trim();

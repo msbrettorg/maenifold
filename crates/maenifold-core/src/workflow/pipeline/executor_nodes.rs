@@ -259,6 +259,7 @@ fn merged_session_config(
         max_turns,
         timeout_seconds,
         session_id: None,
+        auto_approve: true, // Pipeline nodes run headless; auto-grant permissions.
     })
 }
 
@@ -1009,7 +1010,7 @@ mod tests {
         .await
         .expect("local tool should execute through ToolRegistry");
 
-        assert!(output.response.contains("Maenifold Configuration"));
+        assert!(output.response.contains("memoryPath"));
     }
 
     #[tokio::test]
@@ -1028,7 +1029,7 @@ mod tests {
         .await
         .expect("maenifold namespaced tool should execute through ToolRegistry");
 
-        assert!(output.response.contains("Maenifold Configuration"));
+        assert!(output.response.contains("memoryPath"));
     }
 
     #[tokio::test]

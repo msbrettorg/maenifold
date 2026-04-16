@@ -13,7 +13,7 @@ use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
 use super::dispatch::dispatch_pipeline;
-use super::executor_cleanup::abandon_active_nodes;
+use super::executor_cleanup::cancel_active_nodes;
 use super::executor_helpers::{
     DispatchedNode, derive_execution_status, load_execution_config, load_pipeline_node_states,
     parse_dispatch_result,
@@ -108,7 +108,7 @@ async fn execute_pipeline_inner(
             let node_states_check = load_pipeline_node_states(&json_context, session_id)?;
             match earliest_retry_after(&node_states_check) {
                 Some(sleep_duration) => {
-                    eprintln!(
+                    warn!(
                         "[pipeline] all nodes idle, sleeping {sleep_duration:?} until next retry"
                     );
                     tokio::select! {
@@ -138,7 +138,7 @@ async fn execute_pipeline_inner(
     if cancelled {
         join_set.abort_all();
         drop(join_set);
-        counts.abandoned += abandon_active_nodes(&json_context, session_id)?;
+        counts.abandoned += cancel_active_nodes(&json_context, session_id)?;
     }
     log_incomplete_execution(&json_context, session_id)?;
 
@@ -224,13 +224,20 @@ fn extract_timeout(
     request: &super::executor_nodes::NodeExecutionRequest,
 ) -> Option<std::time::Duration> {
     const DEFAULT_TOOL_NODE_TIMEOUT_SECS: u64 = 60;
+    /// T-170.8: Default timeout for agent nodes (prompt, sequentialThinking, workflow).
+    /// Without this, agent nodes with no explicit timeout hang indefinitely if the
+    /// model/thoughtLevel override fails to reach the agent or a permission request
+    /// deadlocks.  Five minutes is generous for any single agent turn.
+    const DEFAULT_AGENT_NODE_TIMEOUT_SECS: u64 = 300;
 
     let seconds = match request {
         super::executor_nodes::NodeExecutionRequest::Workflow { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::Prompt { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
             session_config, ..
-        } => session_config.timeout_seconds,
+        } => session_config
+            .timeout_seconds
+            .or(Some(DEFAULT_AGENT_NODE_TIMEOUT_SECS)),
         super::executor_nodes::NodeExecutionRequest::Tool {
             timeout_seconds, ..
         } => timeout_seconds.or(Some(DEFAULT_TOOL_NODE_TIMEOUT_SECS)),
@@ -546,6 +553,7 @@ mod tests {
             max_turns: None,
             timeout_seconds,
             session_id: None,
+            auto_approve: true,
         }
     }
 
@@ -595,6 +603,23 @@ mod tests {
         assert_eq!(
             extract_timeout(&request),
             Some(std::time::Duration::from_secs(7))
+        );
+    }
+
+    /// T-170.8: Agent nodes without an explicit timeout now default to 300s
+    /// instead of running forever.
+    #[test]
+    fn agent_nodes_default_to_five_minute_timeout() {
+        let request = NodeExecutionRequest::Prompt {
+            session_id: "pipeline-node".to_string(),
+            prompt: "prompt".to_string(),
+            tool_mode: "disabled".to_string(),
+            session_config: sample_session_config(None),
+        };
+
+        assert_eq!(
+            extract_timeout(&request),
+            Some(std::time::Duration::from_secs(300))
         );
     }
 }

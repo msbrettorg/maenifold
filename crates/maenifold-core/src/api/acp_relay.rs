@@ -1,3 +1,4 @@
+use crate::acp_config::AgentsConfig;
 use crate::api::routes::{ApiError, ApiResult, ApiState};
 use agent_client_protocol as acp;
 use axum::{
@@ -8,11 +9,59 @@ use axum::{
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 use tokio::sync::{mpsc, oneshot};
+
+// ── Structured config option types (ACP protocol § SessionConfigOption) ──────
+//
+// The relay stores config options as `Vec<Value>` to faithfully preserve the
+// full ACP `SessionConfigOption` structure (including grouped select options
+// and `_meta`).  These types provide typed access for category-aware operations
+// without requiring full deserialization.
+//
+// For typed access to select options and groups, use the ACP schema types
+// directly: `acp::SessionConfigSelectOption`, `acp::SessionConfigSelectGroup`.
+
+/// Semantic category for a session configuration option.
+///
+/// Mirrors `SessionConfigOptionCategory` from the ACP protocol.  Clients use
+/// this for UX decisions — e.g. which icon to show, where to place the
+/// selector — without string-matching on config IDs.
+///
+/// Custom categories prefixed with `_` are free for use (e.g. `_pipeline_mode`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub(crate) enum ConfigCategory {
+    /// Model selector (e.g. GPT-4o, Claude Sonnet).
+    Model,
+    /// Session mode selector (e.g. agent, edit, ask).
+    Mode,
+    /// Thought/reasoning level selector (e.g. low, medium, high).
+    ThoughtLevel,
+    /// Unknown or custom category (including `_`-prefixed extensions).
+    #[serde(untagged)]
+    Other(String),
+}
+
+/// Extract the semantic [`ConfigCategory`] from a config option JSON value.
+///
+/// Returns `None` when the option has no `category` field or the value cannot
+/// be parsed (which is fine — the protocol says category is optional and
+/// clients MUST handle missing/unknown categories gracefully).
+pub(crate) fn config_option_category(option: &Value) -> Option<ConfigCategory> {
+    option
+        .get("category")
+        .and_then(|v| serde_json::from_value::<ConfigCategory>(v.clone()).ok())
+}
+
+/// Extract the config option type discriminator (`"select"`, `"boolean"`, etc.)
+/// from a config option JSON value.
+fn config_option_type(option: &Value) -> Option<&str> {
+    option.get("type").and_then(Value::as_str)
+}
 
 #[derive(Deserialize)]
 pub struct RelayQuery {
@@ -24,6 +73,8 @@ struct RelayConfig {
     agent_name: String,
     adapter: jockey::acp::StdioAdapterSpec,
     default_cwd: String,
+    /// MCP servers from maenifold.json (global + per-agent), pre-converted to ACP schema.
+    configured_mcp_servers: Vec<acp::McpServer>,
 }
 
 struct RelaySession {
@@ -75,6 +126,7 @@ pub async fn ws_handler(
         .ok_or_else(|| ApiError::bad_request(format!("agent '{agent_name}' is not configured")))?;
     let root = jockey::acp::config_root();
     let default_cwd = jockey::acp::resolve_cwd(root.to_string_lossy().as_ref());
+    let configured_mcp_servers = load_configured_mcp_servers(&root, &agent_name);
     Ok(ws.on_upgrade(move |socket| {
         relay_socket(
             socket,
@@ -82,6 +134,7 @@ pub async fn ws_handler(
                 agent_name,
                 adapter,
                 default_cwd,
+                configured_mcp_servers,
             },
         )
     }))
@@ -249,8 +302,8 @@ async fn handle_incoming(
                 params,
                 id.clone().unwrap(),
             )
-                .await
-                .map(|result| rpc_ok(id.unwrap(), result)),
+            .await
+            .map(|result| rpc_ok(id.unwrap(), result)),
         ),
         "session/prompt" if id.is_some() => match handle_prompt(
             relay,
@@ -301,11 +354,12 @@ async fn handle_initialize(
     if session.is_none() {
         let app_session_id = format!("acp-relay:{}", uuid::Uuid::new_v4());
         let client_capabilities = request.client_capabilities.clone();
+        let mcp_servers = relay.configured_mcp_servers.clone();
         let (config_options, modes, session_id) = prewarm_session(
             relay,
             &app_session_id,
             relay.default_cwd.clone(),
-            vec![],
+            mcp_servers.clone(),
             client_capabilities.clone(),
             None,
             HashMap::new(),
@@ -323,7 +377,7 @@ async fn handle_initialize(
             app_session_id,
             session_id,
             cwd: relay.default_cwd.clone(),
-            mcp_servers: vec![],
+            mcp_servers,
             client_capabilities,
             config_options,
             modes,
@@ -366,7 +420,7 @@ async fn handle_session_new(
     let cwd = resolve_session_cwd(request.cwd, &relay.default_cwd)
         .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
-    let mcp_servers = request.mcp_servers;
+    let mcp_servers = merge_mcp_servers(&relay.configured_mcp_servers, request.mcp_servers);
     let session_config_options = request.config_options;
     let (config_options, modes, session_id) = prewarm_session(
         relay,
@@ -438,7 +492,7 @@ async fn handle_session_load(
         })
         .transpose()?
         .unwrap_or(previous_cwd);
-    let mcp_servers = request.mcp_servers;
+    let mcp_servers = merge_mcp_servers(&relay.configured_mcp_servers, request.mcp_servers);
 
     // Reset the current connection so the pool key is free for re-prewarm
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
@@ -465,35 +519,40 @@ async fn handle_session_load(
         })
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
 
+    let mut replay_complete = false;
+    let mut replay_result = None;
     let (config_options, modes, session_id) = loop {
         tokio::select! {
             event = event_rx.recv() => {
-                let Some(event) = event else { continue; };
-                if !forward_event(
-                    sender,
-                    &requested_session_id,
-                    &event,
-                    permission_ids,
-                    next_permission_id,
-                ).await {
+                let Some(event) = event else {
+                    return Err(rpc_error(request_id.clone(), -32000, "ACP replay channel closed before completion"));
+                };
+                if matches!(event, jockey::acp::AcpEvent::ReplayComplete) {
+                    replay_complete = true;
+                    if let Some(result) = replay_result.take() {
+                        break result;
+                    }
+                    continue;
+                }
+                if !replay_complete
+                    && !forward_event(
+                        sender,
+                        &requested_session_id,
+                        &event,
+                        permission_ids,
+                        next_permission_id,
+                    ).await
+                {
                     return Err(rpc_error(request_id.clone(), -32000, "websocket closed during session/load replay"));
                 }
             }
             result = &mut rx => {
                 let result = result
                     .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
-                while let Ok(event) = event_rx.try_recv() {
-                    if !forward_event(
-                        sender,
-                        &requested_session_id,
-                        &event,
-                        permission_ids,
-                        next_permission_id,
-                    ).await {
-                        return Err(rpc_error(request_id.clone(), -32000, "websocket closed during session/load replay"));
-                    }
+                if replay_complete {
+                    break result;
                 }
-                break result;
+                replay_result = Some(result);
             }
         }
     };
@@ -635,8 +694,11 @@ async fn handle_set_config_option(
     rx.await
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?
         .map_err(|error| rpc_error(request_id.clone(), -32000, error))?;
-    update_config_options(&mut active.config_options, &request.1, &request.2);
-    Ok(json!({ "configOptions": active.config_options }))
+    let category = update_config_options(&mut active.config_options, &request.1, &request.2);
+    Ok(json!({
+        "configOptions": active.config_options,
+        "updatedCategory": category,
+    }))
 }
 
 fn handle_cancel(
@@ -718,6 +780,7 @@ async fn forward_event(
             })))
         }
         jockey::acp::AcpEvent::PermissionExpired { .. } => None,
+        jockey::acp::AcpEvent::ReplayComplete => None,
         jockey::acp::AcpEvent::StatusUpdate { text } => Some(rpc_notification("_relay/stderr", json!({"data": text}))),
         jockey::acp::AcpEvent::AvailableModes { current, .. } => current.as_ref().map(|mode| rpc_notification("session/update", json!({"sessionId": session_id, "update": {"sessionUpdate": "current_mode_update", "currentModeId": mode}}))),
     };
@@ -772,16 +835,20 @@ fn parse_set_config_request(params: Value) -> Result<(String, String, String), S
     Ok((session_id.to_string(), config_id.to_string(), value))
 }
 
-fn update_config_options(options: &mut [Value], config_id: &str, value: &str) {
+fn update_config_options(
+    options: &mut [Value],
+    config_id: &str,
+    value: &str,
+) -> Option<ConfigCategory> {
+    let mut matched_category = None;
     for option in options {
         if option.get("id").and_then(Value::as_str) != Some(config_id) {
             continue;
         }
-        option["currentValue"] = match option.get("valueType").and_then(Value::as_str) {
-            Some("boolean") => Value::Bool(value.eq_ignore_ascii_case("true")),
-            _ => Value::String(value.to_string()),
-        };
+        matched_category = config_option_category(option);
+        patch_config_option_current_value(option, value);
     }
+    matched_category
 }
 
 fn resolve_session_cwd(cwd: Option<PathBuf>, default_cwd: &str) -> Result<String, String> {
@@ -859,23 +926,16 @@ async fn prewarm_session(
         .map_err(|_| rpc_error(request_id, -32000, "ACP worker disconnected"))
 }
 
-fn role_config_options(
-    config_options: HashMap<String, Value>,
-) -> Result<Vec<(String, String)>, String> {
+fn role_config_options(config_options: HashMap<String, Value>) -> Result<Vec<Value>, String> {
     config_options
         .into_iter()
-        .map(|(key, value)| {
-            let s = config_value_to_string(&key, value)?;
-            Ok((key, s))
-        })
+        .map(|(key, value)| normalize_role_config_option(&key, value))
         .collect()
 }
 
-fn config_value_to_string(key: &str, value: Value) -> Result<String, String> {
+fn config_value_to_json(key: &str, value: Value) -> Result<Value, String> {
     match value {
-        Value::String(value) => Ok(value),
-        Value::Bool(value) => Ok(value.to_string()),
-        Value::Number(value) => Ok(value.to_string()),
+        Value::String(_) | Value::Bool(_) | Value::Number(_) => Ok(value),
         Value::Null => Err(format!("configOptions.{key} must not be null")),
         other => Err(format!(
             "configOptions.{key} must be a scalar (string, bool, or number), got {}",
@@ -885,6 +945,69 @@ fn config_value_to_string(key: &str, value: Value) -> Result<String, String> {
                 _ => "unknown",
             }
         )),
+    }
+}
+
+fn normalize_role_config_option(key: &str, value: Value) -> Result<Value, String> {
+    match value {
+        Value::Object(mut option) => {
+            if let Some(id) = option.get("id").and_then(Value::as_str) {
+                if id != key {
+                    return Err(format!(
+                        "configOptions.{key}.id must match the config option key"
+                    ));
+                }
+            } else {
+                option.insert("id".to_string(), Value::String(key.to_string()));
+            }
+
+            option
+                .entry("name".to_string())
+                .or_insert_with(|| Value::String(key.to_string()));
+
+            if !option.contains_key("currentValue") {
+                return Err(format!(
+                    "configOptions.{key} objects must include currentValue"
+                ));
+            }
+
+            Ok(Value::Object(option))
+        }
+        other => {
+            let current_value = config_value_to_json(key, other)?;
+            let option_name = current_value
+                .as_str()
+                .map(ToString::to_string)
+                .unwrap_or_else(|| current_value.to_string());
+            let mut option = serde_json::Map::from_iter([
+                ("id".to_string(), Value::String(key.to_string())),
+                ("name".to_string(), Value::String(key.to_string())),
+                ("currentValue".to_string(), current_value.clone()),
+            ]);
+            if current_value.is_boolean() {
+                option.insert("type".to_string(), Value::String("boolean".to_string()));
+            } else {
+                option.insert("type".to_string(), Value::String("select".to_string()));
+                option.insert(
+                    "options".to_string(),
+                    Value::Array(vec![json!({
+                        "value": current_value,
+                        "name": option_name,
+                    })]),
+                );
+            }
+            Ok(Value::Object(option))
+        }
+    }
+}
+
+fn patch_config_option_current_value(option: &mut Value, value: &str) {
+    let next_value = match config_option_type(option) {
+        Some("boolean") => Value::Bool(value.eq_ignore_ascii_case("true")),
+        _ => Value::String(value.to_string()),
+    };
+    if let Some(object) = option.as_object_mut() {
+        object.insert("currentValue".to_string(), next_value);
     }
 }
 
@@ -905,6 +1028,60 @@ fn build_modes(modes: &[String], current_mode_id: &Option<String>) -> Option<Val
 fn cancel_permissions(permission_ids: HashMap<u64, String>) {
     for request_id in permission_ids.into_values() {
         jockey::acp::respond_to_permission(&request_id, acp::RequestPermissionOutcome::Cancelled);
+    }
+}
+
+/// Load configured MCP servers (global + per-agent) from maenifold.json,
+/// deduplicated by name (case-insensitive), and converted to ACP schema.
+fn load_configured_mcp_servers(root: &Path, agent_name: &str) -> Vec<acp::McpServer> {
+    let config = AgentsConfig::load(root);
+    let agent_servers = config
+        .agents
+        .get(agent_name)
+        .map(|entry| entry.mcp_servers.as_slice())
+        .unwrap_or(&[]);
+
+    let mut seen = HashSet::new();
+    let mut servers = Vec::new();
+    for entry in config.mcp_servers.iter().chain(agent_servers.iter()) {
+        let name = entry.name().to_ascii_lowercase();
+        if seen.insert(name) {
+            servers.push(entry.to_acp());
+        }
+    }
+    servers
+}
+
+/// Merge configured MCP servers with client-provided ones.
+/// Configured servers take precedence — client-provided servers are only
+/// added when no configured server with the same name exists.
+fn merge_mcp_servers(
+    configured: &[acp::McpServer],
+    client_provided: Vec<acp::McpServer>,
+) -> Vec<acp::McpServer> {
+    let mut servers = configured.to_vec();
+    let existing: HashSet<String> = servers
+        .iter()
+        .filter_map(mcp_server_name)
+        .map(|name| name.to_ascii_lowercase())
+        .collect();
+    for server in client_provided {
+        let dominated = mcp_server_name(&server)
+            .map(|name| existing.contains(&name.to_ascii_lowercase()))
+            .unwrap_or(false);
+        if !dominated {
+            servers.push(server);
+        }
+    }
+    servers
+}
+
+fn mcp_server_name(server: &acp::McpServer) -> Option<&str> {
+    match server {
+        acp::McpServer::Http(s) => Some(s.name.as_str()),
+        acp::McpServer::Sse(s) => Some(s.name.as_str()),
+        acp::McpServer::Stdio(s) => Some(s.name.as_str()),
+        _ => None,
     }
 }
 

@@ -72,92 +72,17 @@
   position: relative;
   z-index: 12;
   background: #1c1b1b;
-  border-right: 1px solid rgba(66, 71, 83, 0.15);
 }
 .sidebar-panel {
   grid-area: rail;
   background: #1c1b1b;
-  border-right: 1px solid rgba(66, 71, 83, 0.15);
 }
 .composer-panel {
   grid-area: composer;
   position: relative;
 }
-.pipeline-flyout {
-  position: absolute;
-  top: 0;
-  left: 0;
-  bottom: 0;
-  width: var(--flyout-width);
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  z-index: 16;
-  background: #1c1b1b;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
-}
-.pipeline-flyout-enter-active,
-.pipeline-flyout-leave-active {
-  transition:
-    transform 0.2s ease-out,
-    visibility 0s linear 0.2s;
-}
-.pipeline-flyout-enter-to,
-.pipeline-flyout-leave-from {
-  visibility: visible;
-  transform: translateX(0);
-}
-.pipeline-flyout-enter-from,
-.pipeline-flyout-leave-to {
-  visibility: hidden;
-  transform: translateX(-100%);
-}
-.flyout-backdrop {
-  position: absolute;
-  inset: 0;
-  z-index: 9;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-.inspector-overlay {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 16;
-}
-.inspector-panel {
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 320px;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  pointer-events: auto;
-  z-index: 16;
-  border-left: 1px solid rgba(66, 71, 83, 0.15);
-  background: #1c1b1b;
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
-  visibility: hidden;
-  transform: translateX(100%);
-  transition:
-    transform 0.2s ease-out,
-    visibility 0s linear 0.2s;
-}
-.inspector-panel.is-visible {
-  visibility: visible;
-  transform: translateX(0);
-  transition: transform 0.2s ease-out;
-}
 .runner-panel {
   grid-area: runner;
-  border-top: 1px solid rgba(66, 71, 83, 0.15);
   position: relative;
   max-height: 36px;
   transition: max-height 0.25s ease;
@@ -203,7 +128,6 @@
     transform: translateX(-100%);
     transition: transform 0.2s ease;
     box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
-    border-right: 1px solid rgba(66, 71, 83, 0.15);
   }
   .pipeline-grid.mobile-sidebar-open .sidebar-panel { transform: translateX(0); }
   .composer-panel { position: relative; }
@@ -222,10 +146,9 @@
     min-height: 2.75rem;
     min-width: 2.75rem;
     padding: 0.5rem 0.875rem;
-    border: 1px solid rgba(66, 71, 83, 0.15);
     border-radius: 0.25rem;
-    background: #1c1b1b;
-    color: var(--foreground);
+    background: #201f1f;
+    color: #e5e2e1;
     font: inherit;
     font-size: var(--text-sm);
     cursor: pointer;
@@ -235,38 +158,21 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
-  .inspector-panel {
-    left: 0;
-    right: 0;
-    top: auto;
-    bottom: 0;
-    width: auto;
-    height: min(52vh, 24rem);
-    transform: translateY(100%);
-    transition: transform 0.2s ease-out;
-    border-top: 1px solid rgba(66, 71, 83, 0.15);
-    border-left: none;
-    box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
-  }
-  .inspector-panel.is-visible { transform: translateY(0); }
-  .inspector-overlay { z-index: 10; }
   .mobile-inspector-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 0.5rem;
     padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid rgba(66, 71, 83, 0.15);
     background: #1c1b1b;
     font-size: var(--text-sm);
   }
   .mobile-inspector-close {
     min-height: 2.5rem;
     padding: 0.25rem 0.75rem;
-    border: 1px solid rgba(66, 71, 83, 0.15);
     border-radius: 0.25rem;
-    background: transparent;
-    color: var(--foreground);
+    background: #2a2a2a;
+    color: #e5e2e1;
     font: inherit;
     cursor: pointer;
   }

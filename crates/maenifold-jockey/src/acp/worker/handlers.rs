@@ -186,6 +186,20 @@ pub(crate) async fn ensure_connection(
     Ok(true)
 }
 
+/// Keys whose failure to set should be treated as fatal for prompt execution.
+/// If a pipeline node explicitly requests a model or thought level and the
+/// agent rejects it, we must not silently fall back to the agent's default.
+const CRITICAL_CONFIG_KEYS: &[&str] = &["model", "thoughtLevel", "thought_level"];
+
+fn is_critical_config_key(key: &str) -> bool {
+    CRITICAL_CONFIG_KEYS.iter().any(|&k| k == key)
+}
+
+/// Apply session mode and config options after a cold-start (or warm re-use).
+///
+/// Returns `Err` if a *critical* config option (`model`, `thoughtLevel`,
+/// `thought_level`) fails to apply.  Non-critical option failures are logged
+/// but tolerated so the prompt can still proceed.
 pub(crate) async fn apply_cold_start_config(
     key: &str,
     session_id: &acp::SessionId,
@@ -193,7 +207,7 @@ pub(crate) async fn apply_cold_start_config(
     role_mode: &Option<String>,
     role_config_options: &[(String, String)],
     runtime_key: &str,
-) {
+) -> Result<(), String> {
     // Borrow conn fields we need
     let (available_modes, current_mode) = CONN_MAP.with(|m| {
         m.borrow()
@@ -210,7 +224,9 @@ pub(crate) async fn apply_cold_start_config(
     }
 
     let conn_rc = CONN_MAP.with(|m| m.borrow().get(key).map(|c| c.conn.clone()));
-    let Some(conn_rc) = conn_rc else { return };
+    let Some(conn_rc) = conn_rc else {
+        return Ok(());
+    };
 
     if let Some(mode) = role_mode {
         if let Err(e) = conn_rc
@@ -234,7 +250,17 @@ pub(crate) async fn apply_cold_start_config(
         .collect();
 
     for (k, value) in role_config_options {
-        if !supported_keys.is_empty() && !supported_keys.contains(k.as_str()) {
+        if !supported_keys.is_empty() && !supported_keys.contains(k) {
+            if is_critical_config_key(k) {
+                let msg = format!(
+                    "Agent does not support config option '{k}' — cannot guarantee requested model/thoughtLevel"
+                );
+                acp_log(
+                    "config.set_option.critical_unsupported",
+                    json!({ "key": k, "runtime": runtime_key, "reason": "critical key not supported by runtime" }),
+                );
+                return Err(msg);
+            }
             acp_log(
                 "config.set_option.skipped",
                 json!({ "key": k, "runtime": runtime_key, "reason": "not supported by runtime" }),
@@ -249,12 +275,52 @@ pub(crate) async fn apply_cold_start_config(
             ))
             .await
         {
+            if is_critical_config_key(k) {
+                let msg = format!("Failed to set {k} '{value}' on agent session: {e}");
+                acp_log(
+                    "config.set_option.critical_error",
+                    json!({ "key": k, "value": value, "error": e.to_string() }),
+                );
+                return Err(msg);
+            }
             acp_log(
                 "config.set_option.error",
                 json!({ "key": k, "error": e.to_string() }),
             );
         }
     }
+    Ok(())
+}
+
+fn structured_config_option_pairs(
+    role_config_options: &[Value],
+    runtime_key: &str,
+) -> Vec<(String, String)> {
+    role_config_options
+        .iter()
+        .filter_map(|option| {
+            let Some(key) = option.get("id").and_then(Value::as_str) else {
+                acp_log(
+                    "config.set_option.skipped",
+                    json!({ "runtime": runtime_key, "reason": "missing id", "option": option }),
+                );
+                return None;
+            };
+            let Some(value) = option.get("currentValue").and_then(|current| match current {
+                Value::String(value) => Some(value.clone()),
+                Value::Bool(value) => Some(value.to_string()),
+                Value::Number(value) => Some(value.to_string()),
+                _ => None,
+            }) else {
+                acp_log(
+                    "config.set_option.skipped",
+                    json!({ "key": key, "runtime": runtime_key, "reason": "missing scalar currentValue" }),
+                );
+                return None;
+            };
+            Some((key.to_string(), value))
+        })
+        .collect()
 }
 
 pub(crate) fn build_prompt_blocks(
@@ -397,7 +463,7 @@ pub(crate) async fn handle_execute(
 
     if is_cold {
         let health_rx_clone = CONN_MAP.with(|m| m.borrow().get(&key).map(|c| c.health_rx.clone()));
-        apply_cold_start_config(
+        if let Err(e) = apply_cold_start_config(
             &key,
             &session_id,
             &delta_tx,
@@ -405,7 +471,11 @@ pub(crate) async fn handle_execute(
             &role_config_options,
             runtime_key,
         )
-        .await;
+        .await
+        {
+            let _ = result_tx.send(Err(e));
+            return;
+        }
 
         let death = ConnectionDeathEvent {
             runtime_key: runtime_key.to_string(),
@@ -416,17 +486,22 @@ pub(crate) async fn handle_execute(
             spawn_connection_health_watch(key.clone(), instance_id, death, hrx);
         }
     } else {
-        let (available_modes, current_mode) = CONN_MAP.with(|m| {
-            m.borrow()
-                .get(&key)
-                .map(|c| (c.available_modes.clone(), c.current_mode.clone()))
-                .unwrap_or_default()
-        });
-        if !available_modes.is_empty() {
-            let _ = delta_tx.try_send(AcpEvent::AvailableModes {
-                modes: available_modes,
-                current: current_mode,
-            });
+        // T-170.8: Re-apply config options on warm connections so that
+        // model/thoughtLevel overrides from each pipeline node reach the agent.
+        // Previously only modes were re-emitted here, silently dropping
+        // per-node model and thoughtLevel overrides.
+        if let Err(e) = apply_cold_start_config(
+            &key,
+            &session_id,
+            &delta_tx,
+            &role_mode,
+            &role_config_options,
+            runtime_key,
+        )
+        .await
+        {
+            let _ = result_tx.send(Err(e));
+            return;
         }
     }
 
@@ -556,7 +631,7 @@ pub(crate) async fn handle_prewarm(
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
     role_mode: Option<String>,
-    role_config_options: Vec<(String, String)>,
+    role_config_options: Vec<Value>,
     delta_tx: Option<mpsc::Sender<AcpEvent>>,
     result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
     resume_session_id: Option<String>,
@@ -596,16 +671,19 @@ pub(crate) async fn handle_prewarm(
                         "names": commands.iter().filter_map(|c| c.get("name").and_then(|n| n.as_str()).map(|s| s.to_string())).collect::<Vec<_>>()
                     }),
                 );
-                remember_runtime_available_commands(app_session_id, runtime_key, role_name, commands.clone());
+                remember_runtime_available_commands(
+                    app_session_id,
+                    runtime_key,
+                    role_name,
+                    commands.clone(),
+                );
             }
             AcpEvent::AvailableModes { modes, .. } => {
                 remember_runtime_modes(
                     runtime_key,
                     modes
                         .iter()
-                        .filter_map(|m| {
-                            m.get("id").and_then(|v| v.as_str()).map(|s| s.to_string())
-                        })
+                        .filter_map(|m| m.get("id").and_then(|v| v.as_str()).map(|s| s.to_string()))
                         .collect(),
                 );
             }
@@ -648,6 +726,10 @@ pub(crate) async fn handle_prewarm(
         None
     };
 
+    let flat_role_config_options =
+        structured_config_option_pairs(&role_config_options, runtime_key);
+    let is_resume_replay = resume_session_id.is_some();
+
     match cold_start(
         runtime_key,
         &role_name,
@@ -684,59 +766,51 @@ pub(crate) async fn handle_prewarm(
             CONN_MAP.with(|m| m.borrow_mut().insert(key.clone(), conn));
 
             if let Some(forward_tx) = forwarded_delta_tx.as_ref() {
-                apply_cold_start_config(
+                if is_resume_replay {
+                    let _ = forward_tx.send(AcpEvent::ReplayComplete).await;
+                }
+                // Prewarm path: log critical config errors but don't block.
+                // The actual prompt handler will re-apply and catch failures.
+                if let Err(e) = apply_cold_start_config(
                     &key,
                     &session_id,
                     forward_tx,
                     &role_mode,
-                    &role_config_options,
+                    &flat_role_config_options,
                     runtime_key,
                 )
-                .await;
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+                .await
+                {
+                    acp_log(
+                        "prewarm.config_error",
+                        json!({ "runtime": runtime_key, "error": e }),
+                    );
+                }
             } else {
                 let dummy_tx = {
                     let (tx, _rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
                     tx
                 };
 
-                apply_cold_start_config(
+                // Prewarm path: log critical config errors but don't block.
+                if let Err(e) = apply_cold_start_config(
                     &key,
                     &session_id,
                     &dummy_tx,
                     &role_mode,
-                    &role_config_options,
+                    &flat_role_config_options,
                     runtime_key,
                 )
-                .await;
-
-                // Install a temporary drain channel so notifications sent after session/new
-                // (e.g. AvailableCommandsUpdate via setTimeout) are captured rather than dropped.
-                let (drain_tx, mut drain_rx) = mpsc::channel::<AcpEvent>(DELTA_CHANNEL_CAPACITY);
-                let delta_slot = CONN_MAP.with(|m| m.borrow().get(&key).map(|c| c.delta_slot.clone()));
-                if let Some(ds) = delta_slot {
-                    if let Ok(mut sg) = ds.lock() {
-                        *sg = Some(drain_tx);
-                    }
+                .await
+                {
+                    acp_log(
+                        "prewarm.config_error",
+                        json!({ "runtime": runtime_key, "error": e }),
+                    );
                 }
-
-                // Drain for up to 300 ms to collect any immediate notifications.
-                let deadline = tokio::time::Instant::now() + std::time::Duration::from_millis(300);
-                loop {
-                    match tokio::time::timeout_at(deadline, drain_rx.recv()).await {
-                        Ok(Some(event)) => remember_prewarm_event(
-                            runtime_key,
-                            &role_name,
-                            &app_session_id,
-                            &event,
-                        ),
-                        _ => break,
-                    }
-                }
-                drop(drain_rx);
             }
 
-            // Clear the drain channel from the delta_slot
+            // Clear any temporary delta forwarding slot once prewarm setup is complete.
             let delta_slot = CONN_MAP.with(|m| {
                 m.borrow()
                     .get(&key)

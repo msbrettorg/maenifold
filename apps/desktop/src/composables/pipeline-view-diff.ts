@@ -13,6 +13,23 @@ export function buildNodeOutputPreview(
     : normalizedOutput;
 }
 
+/**
+ * Build a preview for abandoned/stuck nodes, preferring failureReason
+ * over generic output since it carries the actionable error detail.
+ */
+export function buildAbandonedNodePreview(
+  node: { output?: string; failureReason?: string | null } | null | undefined,
+): string {
+  const reason = node?.failureReason?.trim();
+  if (reason) {
+    const normalized = reason.replace(/\s+/g, ' ');
+    return normalized.length > OUTPUT_PREVIEW_LENGTH
+      ? `${normalized.slice(0, OUTPUT_PREVIEW_LENGTH)}...`
+      : normalized;
+  }
+  return buildNodeOutputPreview(node);
+}
+
 export function hydrateEventLogFromView(
   view: PipelineView | null | undefined,
 ): LogEntry[] {
@@ -33,7 +50,7 @@ export function hydrateEventLogFromView(
         ...(preview ? { preview } : {}),
       });
     } else if (node.status === 'abandoned' || node.status === 'stuck') {
-      const preview = buildNodeOutputPreview(node);
+      const preview = buildAbandonedNodePreview(node);
       entries.push({
         nodeId: node.nodeId,
         from: 'loaded',
@@ -75,7 +92,7 @@ export function diffPipelineViews(
     if (prevStatus != null && prevStatus !== node.status) {
       const preview =
         (node.status === 'abandoned' || node.status === 'stuck')
-          ? buildNodeOutputPreview(node)
+          ? buildAbandonedNodePreview(node)
           : '';
       entries.push({
         nodeId: node.nodeId,

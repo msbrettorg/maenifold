@@ -1,5 +1,4 @@
 mod acp_exec;
-mod agents;
 mod catalog;
 mod context;
 mod diagnostics;
@@ -9,7 +8,6 @@ mod response;
 mod sessions;
 
 pub use acp_exec::acp_exec;
-pub use agents::list_agents;
 pub use catalog::{list_assets, read_mcp_resource};
 pub use context::{ToolContext, not_yet_implemented, render};
 pub use diagnostics::{get_config, memory_status};

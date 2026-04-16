@@ -87,6 +87,10 @@ pub(crate) struct AgentSessionConfig {
     pub allowed_tools: Option<Vec<String>>,
     pub max_turns: Option<u32>,
     pub timeout_seconds: Option<u64>,
+    /// Whether permission requests should be auto-granted.
+    /// Defaults to `false` (safe for interactive sessions).
+    /// Pipeline/headless execution paths should set this to `true`.
+    pub auto_approve: bool,
 }
 
 pub(crate) fn sanitize_workflow_session_config(
@@ -309,6 +313,7 @@ mod tests {
             max_turns: None,
             timeout_seconds: None,
             session_id: None,
+            auto_approve: true,
         }
     }
 

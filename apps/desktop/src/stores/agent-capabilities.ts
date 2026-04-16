@@ -31,7 +31,7 @@ const RETRY_DELAY_MS = 3_000;
 export const AGENT_PROBE_CACHE_TTL_MS = 5 * 60_000;
 export const AGENT_PROBE_SOFT_TIMEOUT_MS = 60_000;
 const AGENT_PROBE_TIMEOUT_MESSAGE =
-  `ListAgents probe timed out after ${AGENT_PROBE_SOFT_TIMEOUT_MS / 1_000}s`;
+  `GetConfig probe timed out after ${AGENT_PROBE_SOFT_TIMEOUT_MS / 1_000}s`;
 const AGENT_PROBE_FALLBACK_WARNING =
   'Live agent capability probe timed out. Showing configured agents and any cached capabilities until refresh succeeds.';
 
@@ -129,14 +129,14 @@ function cachedFailureMessage(probedAt: number, error: string): string {
   return `Live probe is unavailable right now. Showing cached capabilities from ${age} ago.`;
 }
 
-async function listAgentsWithSoftTimeout(
+async function getConfigWithSoftTimeout(
   callTool: ReturnType<typeof usePipelineMcp>['callTool'],
 ): Promise<unknown> {
   let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
 
   try {
     return await Promise.race([
-      callTool<unknown>('ListAgents', { probe: true }),
+      callTool<unknown>('GetConfig', {}),
       new Promise<never>((_, reject) => {
         timeoutHandle = setTimeout(() => {
           reject(new Error(AGENT_PROBE_TIMEOUT_MESSAGE));
@@ -303,14 +303,14 @@ export const useAgentCapabilitiesStore = defineStore('agent-capabilities', () =>
     const next = new Map<string, AgentProbeResult>();
 
     try {
-      const result = await listAgentsWithSoftTimeout(mcp.callTool);
+      const result = await getConfigWithSoftTimeout(mcp.callTool);
       const records = extractAgentRecords(result);
 
       for (const agentName of agentNames) {
         const match = records.find((record) => matchesAgent(record, agentName));
         if (!match) {
           hasErrors = true;
-          next.set(agentName, toProbeResult(undefined, `Agent '${agentName}' not found in ListAgents response`));
+          next.set(agentName, toProbeResult(undefined, `Agent '${agentName}' not found in GetConfig response`));
           continue;
         }
 

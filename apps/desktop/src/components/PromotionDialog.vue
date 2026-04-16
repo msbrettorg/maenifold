@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ViewNode } from '../lib/pipeline-types';
 import type { MemoryPromotionSource, NormalizedMemoryDocument, NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
 import { buildPromotionPreview, hasWikiLinkConnection, isStaleMemoryEditError, useMemoryPromotion } from '../composables/useMemoryPromotion';
@@ -220,28 +228,201 @@ function closeDialog(): void {
 </script>
 
 <template>
-  <div class="promotion-overlay" @click.self="closeDialog">
-    <div class="promotion-dialog" role="dialog" aria-modal="true" aria-labelledby="promotion-dialog-title">
-      <div class="dialog-header">
+  <Dialog :open="true" @update:open="(open) => !open && closeDialog()">
+    <DialogContent class="promotion-dialog gap-0 p-0 sm:max-w-[64rem]" :show-close-button="false">
+      <DialogHeader class="dialog-header">
         <div>
-          <h3 id="promotion-dialog-title">Promote to memory</h3>
-          <p>Save this finished node output as a reusable note or add it to one you already have.</p>
+          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Promote to memory</DialogTitle>
+          <DialogDescription class="text-[var(--text-body-sm)] text-[#707070]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
         </div>
-        <Button type="button" variant="ghost" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
-      </div>
-      <section v-if="promotion.writtenUri.value" class="dialog-section success-state" aria-live="polite">
-        <h4>Saved</h4>
-        <p>This output is now stored in memory.</p>
-        <code class="mono">{{ promotion.writtenUri.value }}</code>
-        <div class="dialog-actions">
-          <Button type="button" @click="closeDialog">Done</Button>
-        </div>
-      </section>
-      <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />
-      <PromotionDialogEditor v-else-if="selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="title = $event" @update:folder="folder = $event" @update:tags-input="tagsInput = $event" @update:wiki-link-input="wikiLinkInput = $event" @back="step = 'preview'" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
-      <PromotionDialogConfirm v-else :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :title="title" :folder="folder" :tags="tags" :next-preview="nextPreview" :form-error="formError" :submit-label="submitLabel" :busy="promotion.busy.value" :can-submit-update="canSubmitUpdate" :update-disabled-message="updateDisabledMessage" @back="step = 'editor'" @submit="handleSubmit" @retry="retryCurrentAction" @close="closeDialog" />
-    </div>
-  </div>
+        <Button type="button" variant="ghost" class="rounded-[4px]" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
+      </DialogHeader>
+      <ScrollArea class="promotion-body">
+        <section v-if="promotion.writtenUri.value" class="dialog-section success-state" aria-live="polite">
+          <h4>Saved</h4>
+          <p>This output is now stored in memory.</p>
+          <code class="mono">{{ promotion.writtenUri.value }}</code>
+          <div class="dialog-actions">
+            <Button type="button" class="rounded-[4px]" @click="closeDialog">Done</Button>
+          </div>
+        </section>
+        <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />
+        <PromotionDialogEditor v-else-if="selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="title = $event" @update:folder="folder = $event" @update:tags-input="tagsInput = $event" @update:wiki-link-input="wikiLinkInput = $event" @back="step = 'preview'" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
+        <PromotionDialogConfirm v-else :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :title="title" :folder="folder" :tags="tags" :next-preview="nextPreview" :form-error="formError" :submit-label="submitLabel" :busy="promotion.busy.value" :can-submit-update="canSubmitUpdate" :update-disabled-message="updateDisabledMessage" @back="step = 'editor'" @submit="handleSubmit" @retry="retryCurrentAction" @close="closeDialog" />
+      </ScrollArea>
+    </DialogContent>
+  </Dialog>
 </template>
 
-<style scoped src="./PromotionDialog.css"></style>
+<style scoped>
+.promotion-dialog {
+  width: min(64rem, 100%);
+  max-height: min(92vh, 60rem);
+  background: #201f1f;
+}
+
+.promotion-body {
+  max-height: min(calc(92vh - 6rem), 54rem);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.dialog-section,
+.form-grid,
+.result-list,
+.memory-preview,
+.confirm-summary {
+  display: grid;
+  gap: 1rem;
+}
+
+.dialog-section {
+  padding: 0 1rem 1rem;
+}
+
+.search-row,
+.section-header,
+.dialog-actions,
+.result-card,
+.result-card__actions,
+.summary-row {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.search-row {
+  align-items: end;
+}
+
+:deep(.field-block) {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  color: #707070;
+  font-size: 0.75rem;
+}
+
+:deep(.search-field) {
+  flex: 1;
+}
+
+:deep(.search-button) {
+  flex-shrink: 0;
+}
+
+:deep(.field-wide) {
+  grid-column: 1 / -1;
+}
+
+:deep(.form-grid) {
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}
+
+:deep(.result-card),
+:deep(.summary-row) {
+  justify-content: space-between;
+  align-items: flex-start;
+  border-radius: 4px;
+  padding: 0.875rem;
+  background: #1c1b1b;
+}
+
+:deep(.result-card__body) {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+:deep(.result-card__body p),
+:deep(.summary-row p) {
+  margin: 0;
+  white-space: pre-wrap;
+  color: #707070;
+}
+
+:deep(.result-card__actions) {
+  flex-wrap: wrap;
+}
+
+:deep(.dialog-actions) {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+:deep(.dialog-actions > :first-child:not(:only-child)) {
+  margin-right: auto;
+}
+
+:deep(.memory-preview span),
+:deep(.summary-row span),
+:deep(.summary-row strong) {
+  color: #e5e2e1;
+  font-size: 0.75rem;
+}
+
+:deep(.memory-preview pre),
+.success-state code {
+  margin: 0;
+  padding: 0.75rem;
+  border-radius: 4px;
+  background: #1c1b1b;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font: inherit;
+}
+
+:deep(.dialog-actions--start) {
+  justify-content: flex-start;
+}
+
+:deep(.form-error) {
+  margin: 0;
+  color: var(--color-status-abandoned);
+  font-size: 0.75rem;
+}
+
+:deep(.section-header h4) {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 16px;
+  color: #e5e2e1;
+}
+
+:deep(.section-header p),
+:deep(.field-help),
+:deep(.result-score),
+:deep(.info-message) {
+  color: #707070;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  word-break: break-all;
+}
+
+.success-state {
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .dialog-header,
+  :deep(.search-row),
+  :deep(.section-header),
+  :deep(.result-card),
+  :deep(.summary-row) {
+    flex-direction: column;
+  }
+
+  :deep(.result-card__actions),
+  :deep(.dialog-actions) {
+    justify-content: stretch;
+  }
+}
+</style>

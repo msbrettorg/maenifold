@@ -6,6 +6,8 @@ import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
 import { Button } from '@/components/ui/button';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
@@ -131,20 +133,28 @@ function handleContextMenuOpenChange(open: boolean): void {
               <slot name="toolbar-actions" />
             </PipelineComposerToolbar>
 
-            <Transition name="palette-overlay">
-                <section v-if="paletteAsOverlay" class="composer-palette-overlay">
-                  <div class="composer-palette-overlay-header">
-                    <strong>Add Node</strong>
-                    <Button type="button" variant="ghost" size="sm" class="h-6 px-2 text-xs" @click="closePalette">✕ Close</Button>
-                  </div>
-                  <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
-                </section>
-            </Transition>
-            <button v-if="paletteAsOverlay" type="button" class="composer-palette-backdrop" aria-label="Close palette" @click="closePalette" />
+             <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
+               <SheetContent
+                 v-if="paletteAsOverlay"
+                 side="left"
+                 :show-close-button="false"
+                 class="w-[min(360px,88vw)] border-0 bg-[#1c1b1b] p-0 text-[#e5e2e1] shadow-[0_0_32px_rgba(173,198,255,0.08)] sm:max-w-[360px]"
+               >
+                 <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
+                   <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Add node</SheetTitle>
+                   <Button type="button" variant="ghost" size="sm" class="h-8 rounded-[4px] px-2 text-xs" @click="closePalette">Close</Button>
+                 </SheetHeader>
+                 <ScrollArea class="h-[calc(100vh-4.5rem)]">
+                   <div class="composer-palette-sheet-body">
+                     <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
+                   </div>
+                 </ScrollArea>
+               </SheetContent>
+             </Sheet>
 
-            <VueFlow
-              v-model:nodes="nodes"
-              v-model:edges="edges"
+             <VueFlow
+               v-model:nodes="nodes"
+               v-model:edges="edges"
               :node-types="nodeTypes"
               :default-edge-options="defaultEdgeOptions"
               :default-viewport="{ zoom: 1, x: 0, y: 0 }"
@@ -230,13 +240,7 @@ function handleContextMenuOpenChange(open: boolean): void {
 .composer-layout { display: grid; }
 .composer-palette, .composer-canvas { position: relative; min-width: 0; }
 .composer-palette-resize { position: absolute; top: 0; bottom: 0; width: 10px; margin-left: -5px; cursor: col-resize; z-index: 6; }
-.composer-palette-overlay { position: absolute; top: 0; left: 0; bottom: 0; width: min(360px, 88vw); z-index: 20; display: flex; flex-direction: column; border-right: 1px solid color-mix(in srgb, var(--border) 80%, transparent); background: color-mix(in srgb, var(--background) 94%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0.75rem 0 1.75rem color-mix(in srgb, var(--foreground) 12%, transparent); overflow: hidden; }
-.composer-palette-overlay-header { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.composer-palette-overlay :deep(.catalog-shell) { flex: 1; min-height: 0; overflow-y: auto; }
-.composer-palette-backdrop { position: absolute; inset: 0; z-index: 18; border: 0; background: color-mix(in srgb, var(--background) 40%, transparent); cursor: pointer; }
-.palette-overlay-enter-active, .palette-overlay-leave-active { transition: transform 0.2s ease-out, visibility 0s linear 0.2s; }
-.palette-overlay-enter-to, .palette-overlay-leave-from { visibility: visible; transform: translateX(0); }
-.palette-overlay-enter-from, .palette-overlay-leave-to { visibility: hidden; transform: translateX(-100%); }
+.composer-palette-sheet-body { min-height: 0; padding: 0 0 1rem; }
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; }
 .edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }

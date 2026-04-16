@@ -4,6 +4,7 @@ import { reactive } from 'vue';
 
 import { createEmptySessionState } from '../../lib/types';
 import { createMockBridge } from '../../test/setup';
+import { useToastStore } from '../toast';
 
 const mockBridge = createMockBridge('resume-agent');
 mockBridge.initialize.mockResolvedValue({
@@ -169,5 +170,64 @@ describe('useSessionStore reconnect flow', () => {
 
     expect(result).toEqual({ status: 'missing' });
     expect(store.error).toContain('ACP session acp-remote-missing is unavailable');
+  });
+
+  it('keeps reconnect failures silent when reconnect UI suppresses errors', async () => {
+    const store = useSessionStore();
+    const toastStore = useToastStore();
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-missing', undefined, {
+      suppressErrors: true,
+    });
+
+    expect(result).toEqual({ status: 'missing' });
+    expect(store.error).toBeNull();
+    expect(store.activeSessionId).toBeNull();
+    expect(store.sessions.size).toBe(0);
+    expect(toastStore.toasts).toEqual([]);
+  });
+
+  it('restores the previous session when a silent reconnect resume fails', async () => {
+    mockBridge.loadSession.mockRejectedValueOnce(new Error('stale session'));
+
+    const store = useSessionStore();
+    const toastStore = useToastStore();
+    const existingSession = reactive(createEmptySessionState('local-existing', 'architect', '/repo'));
+    existingSession.session = {
+      id: 'saved-existing',
+      agentName: 'architect',
+      sessionId: 'acp-remote-existing',
+      title: 'Existing session',
+      lastUpdated: Date.now(),
+      cwd: '/repo',
+      supportsLoadSession: true,
+    };
+    existingSession.isConnected = true;
+
+    store.sessions.set('local-existing', existingSession);
+    store.sessions = new Map(store.sessions);
+    store.activeSessionId = 'local-existing';
+    store.savedSessions = [
+      {
+        id: 'saved-remote',
+        agentName: 'architect',
+        sessionId: 'acp-remote-resume',
+        title: 'Resumable session',
+        lastUpdated: Date.now(),
+        cwd: '/repo',
+        supportsLoadSession: true,
+      },
+    ];
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-resume', undefined, {
+      suppressErrors: true,
+    });
+
+    expect(result).toEqual({ status: 'error' });
+    expect(store.activeSessionId).toBe('local-existing');
+    expect(store.sessions.size).toBe(1);
+    expect([...store.sessions.keys()]).toEqual(['local-existing']);
+    expect(store.error).toBeNull();
+    expect(toastStore.toasts).toEqual([]);
   });
 });

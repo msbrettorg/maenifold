@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
@@ -79,47 +80,49 @@ async function handleDelete(item: PipelineListItem, event: Event) {
       <p>No pipelines yet</p>
     </div>
 
-    <ul v-else class="pipeline-list">
-      <li
-        v-for="item in pipelineItems"
-        :key="item.pipelineId"
-        :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
-      >
-        <button
-          type="button"
-          class="pipeline-select"
-          :data-pipeline-id="item.pipelineId"
-          data-pipeline-item
-          :aria-current="currentPipelineId === item.pipelineId ? 'page' : undefined"
-          @click="handleSelect(item.pipelineId)"
+    <ScrollArea v-else class="pipeline-list-scroll">
+      <ul class="pipeline-list">
+        <li
+          v-for="item in pipelineItems"
+          :key="item.pipelineId"
+          :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
         >
-          <span :class="['status-bead', `bead--${item.status}`]" />
-
-          <div class="pipeline-meta">
-            <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
-            <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
-            </div>
-          </div>
-        </button>
-
-        <div class="pipeline-side">
-          <span :class="['pipeline-status', `status-text--${item.status}`]">
-            {{ formatStatus(item.status) }}
-          </span>
-          <Button
-            class="delete-btn h-6 px-2 text-xs"
-            variant="destructive"
-            size="sm"
+          <button
             type="button"
-            title="Delete pipeline"
-            aria-label="Delete pipeline"
-            @click="handleDelete(item, $event)"
-          >×</Button>
-        </div>
-      </li>
-    </ul>
+            class="pipeline-select"
+            :data-pipeline-id="item.pipelineId"
+            data-pipeline-item
+            :aria-current="currentPipelineId === item.pipelineId ? 'page' : undefined"
+            @click="handleSelect(item.pipelineId)"
+          >
+            <span :class="['status-bead', `bead--${item.status}`]" />
+
+            <div class="pipeline-meta">
+              <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
+              <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+              <div class="progress-bar">
+                <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
+              </div>
+            </div>
+          </button>
+
+          <div class="pipeline-side">
+            <span :class="['pipeline-status', `status-text--${item.status}`]">
+              {{ formatStatus(item.status) }}
+            </span>
+            <Button
+              class="delete-btn h-6 rounded-[4px] px-2 text-xs"
+              variant="destructive"
+              size="sm"
+              type="button"
+              title="Delete pipeline"
+              aria-label="Delete pipeline"
+              @click="handleDelete(item, $event)"
+            >×</Button>
+          </div>
+        </li>
+      </ul>
+    </ScrollArea>
   </aside>
 </template>
 
@@ -162,6 +165,11 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   color: #707070;
 }
 
+.pipeline-list-scroll {
+  flex: 1;
+  min-height: 0;
+}
+
 .pipeline-list {
   list-style: none;
   margin: 0;
@@ -169,7 +177,6 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  overflow-y: auto;
 }
 
 .pipeline-item {

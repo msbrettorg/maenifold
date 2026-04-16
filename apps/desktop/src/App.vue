@@ -1,20 +1,26 @@
 <script setup lang="ts">
+import { defineAsyncComponent } from 'vue';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
 import { useAppShell } from './composables/useAppShell';
-import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
-import ChatView from './components/ChatView.vue';
-import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
-import PipelineView from './components/PipelineView.vue';
-import GateView from './components/GateView.vue';
-import GraphView from './components/GraphView.vue';
 import PermissionDialog from './components/PermissionDialog.vue';
-import SettingsView from './components/SettingsView.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
-import TrafficMonitor from './components/TrafficMonitor.vue';
-import ChatWelcomeScreen from './components/ChatWelcomeScreen.vue';
 import ToastContainer from './components/ToastContainer.vue';
+
+const AppSidebar = defineAsyncComponent(() => import('./components/AppSidebar.vue'));
+const ChatView = defineAsyncComponent(() => import('./components/ChatView.vue'));
+const WorkflowAuthoringPage = defineAsyncComponent(
+  () => import('./components/WorkflowAuthoringPage.vue'),
+);
+const PipelineView = defineAsyncComponent(() => import('./components/PipelineView.vue'));
+const GateView = defineAsyncComponent(() => import('./components/GateView.vue'));
+const GraphView = defineAsyncComponent(() => import('./components/GraphView.vue'));
+const SettingsView = defineAsyncComponent(() => import('./components/SettingsView.vue'));
+const TrafficMonitor = defineAsyncComponent(() => import('./components/TrafficMonitor.vue'));
+const ChatWelcomeScreen = defineAsyncComponent(
+  () => import('./components/ChatWelcomeScreen.vue'),
+);
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();

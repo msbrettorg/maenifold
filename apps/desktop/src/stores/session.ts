@@ -180,7 +180,7 @@ export const useSessionStore = defineStore('session', () => {
           sessionId: trimmedSessionId,
           title: 'Pipeline session',
           lastUpdated: Date.now(),
-          cwd: '',
+          cwd: '/',
           supportsLoadSession: true,
         };
         try {

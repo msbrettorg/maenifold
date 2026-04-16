@@ -21,7 +21,7 @@ function loadSavedSessions(): SavedSession[] {
     const parsed = JSON.parse(raw);
     const sessions = Array.isArray(parsed) ? parsed as SavedSession[] : [];
     for (const session of sessions) {
-      if (session.supportsLoadSession === undefined) {
+      if (session.supportsLoadSession !== true) {
         session.supportsLoadSession = true;
       }
     }

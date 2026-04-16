@@ -158,7 +158,7 @@ describe('useComposerCanvas double-click behavior', () => {
     document.body.innerHTML = '';
   });
 
-  it('reconnects active agent nodes by ACP session and switches to the Agents tab', async () => {
+  it('reconnects non-tool nodes by ACP session and switches to the Agents tab', async () => {
     const appShellStore = useAppShellStore();
     const sessionStore = useSessionStore();
     const zoomStore = useSemanticZoomStore();
@@ -205,50 +205,7 @@ describe('useComposerCanvas double-click behavior', () => {
     expect(appShellStore.activeTab).toBe('pipelines');
   });
 
-  it('inspects completed agent nodes instead of auto-reconnecting stale ACP sessions', async () => {
-    const sessionStore = useSessionStore();
-    const zoomStore = useSemanticZoomStore();
-
-    const reconnectSpy = vi.spyOn(sessionStore, 'focusOrResumeRemoteSession');
-    const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
-
-    mountComposerCanvas({
-      view: createView({
-        nodes: [
-          {
-            nodeId: 'prompt-1',
-            sessionId: 'workflow-prompt-local',
-            acpSessionId: 'acp-remote-1',
-              provenance: {
-                agent: 'architect',
-                inspectable: true,
-                detail: {
-                  sessionId: 'acp-remote-1',
-                  canReconnect: true,
-                },
-              },
-            status: 'completed',
-            attempts: 1,
-            type: 'prompt',
-            prompt: 'Show stored output',
-            agent: 'architect',
-            output: 'Done',
-          },
-        ],
-      }),
-    });
-    const { target } = createEventTarget();
-
-    await flowHooks.nodeDoubleClick?.({
-      node: { id: 'prompt-1' },
-      event: createMouseEvent(target),
-    });
-
-    expect(reconnectSpy).not.toHaveBeenCalled();
-    expect(inspectSpy).toHaveBeenCalledWith('prompt-1', expect.any(DOMRect));
-  });
-
-  it('inspects abandoned agent nodes instead of attempting reconnect', async () => {
+  it('honors provenance canReconnect even when a non-tool ACP session id exists', async () => {
     const sessionStore = useSessionStore();
     const zoomStore = useSemanticZoomStore();
 
@@ -267,15 +224,14 @@ describe('useComposerCanvas double-click behavior', () => {
               inspectable: true,
               detail: {
                 sessionId: 'acp-remote-1',
-                canReconnect: true,
+                canReconnect: false,
               },
             },
-            status: 'abandoned',
+            status: 'active',
             attempts: 1,
             type: 'prompt',
-            prompt: 'This failed',
+            prompt: 'Inspect me instead',
             agent: 'architect',
-            failureReason: 'boom',
           },
         ],
       }),

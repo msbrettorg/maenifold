@@ -61,7 +61,7 @@ const selectedNodeHeadline = computed(() => {
   return `${formatStatusLabel(selectedViewNode.value.status)} — ${deriveSummaryText(selectedViewNode.value)}`;
 });
 const selectedNodeReconnectSessionId = computed(() => getReconnectSessionId(selectedViewNode.value));
-const selectedNodeCanReconnect = computed(() => canReconnectToCompletedAgentSession(selectedViewNode.value));
+const selectedNodeCanReconnect = computed(() => canReconnectToAgentSession(selectedViewNode.value));
 const selectedNodeAgentSummary = computed(() => {
   if (!selectedViewNode.value) return null;
 
@@ -73,12 +73,7 @@ const selectedNodeAgentSummary = computed(() => {
 });
 const selectedToolResolvedArgs = computed<Record<string, unknown> | null>(() => selectedToolViewNode.value?.toolProvenance?.resolvedArgs ?? selectedToolViewNode.value?.toolArgs ?? null);
 const showToolDirectExecutionExplanation = computed(() => !!selectedToolViewNode.value && !selectedNodeReconnectSessionId.value);
-const showExpiredSessionExplanation = computed(() =>
-  !!selectedViewNode.value
-  && selectedViewNode.value.status === 'completed'
-  && !selectedNodeCanReconnect.value
-  && !!selectedNodeReconnectSessionId.value,
-);
+const showExpiredSessionExplanation = computed(() => !!selectedViewNode.value && !selectedNodeCanReconnect.value && !!selectedNodeReconnectSessionId.value);
 const shouldShowExpertDetails = computed(() => {
   const node = selectedViewNode.value;
   if (!node) return false;
@@ -159,13 +154,9 @@ function normalizeSessionId(value?: string | null): string | null {
   return trimmedValue.length > 0 ? trimmedValue : null;
 }
 
-function isAgentNode(node: ViewNode | null): boolean {
-  return !!node && node.type !== 'tool';
-}
-
-function canReconnectToCompletedAgentSession(node: ViewNode | null): boolean {
-  if (!node || node.status !== 'completed' || !isAgentNode(node)) return false;
-  return !!getReconnectSessionId(node);
+function canReconnectToAgentSession(node: ViewNode | null): boolean {
+  if (!node) return false;
+  return node.provenance?.detail.canReconnect ?? (node.type !== 'tool' && !!normalizeSessionId(node.acpSessionId));
 }
 
 function getReconnectSessionId(node: ViewNode | null): string | null {

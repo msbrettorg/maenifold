@@ -2,7 +2,7 @@
 // while preserving the full external API contract unchanged.
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
-import type { SessionState } from '../lib/types';
+import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createSessionGetters } from './session-getters';
@@ -150,7 +150,7 @@ export const useSessionStore = defineStore('session', () => {
     return localId && session ? { localId, session } : null;
   }
 
-  async function focusOrResumeRemoteSession(remoteSessionId: string): Promise<{
+  async function focusOrResumeRemoteSession(remoteSessionId: string, agentName?: string): Promise<{
     status: 'activated' | 'resumed' | 'missing' | 'error';
     localSessionId?: string;
   }> {
@@ -172,6 +172,33 @@ export const useSessionStore = defineStore('session', () => {
     );
 
     if (!savedSession) {
+      // Pipeline sessions aren't in savedSessions — try direct load if we know the agent
+      if (agentName) {
+        const syntheticSession: SavedSession = {
+          id: `pipeline-${trimmedSessionId}`,
+          agentName,
+          sessionId: trimmedSessionId,
+          title: 'Pipeline session',
+          lastUpdated: Date.now(),
+          cwd: '',
+          supportsLoadSession: true,
+        };
+        try {
+          await resumeSession(syntheticSession);
+          return {
+            status: 'resumed',
+            localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
+          };
+        } catch (error) {
+          setError(
+            error instanceof Error
+              ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
+              : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+          );
+          return { status: 'error' };
+        }
+      }
+
       setError(
         `ACP session ${trimmedSessionId} is unavailable. The originating agent session may have expired.`,
       );

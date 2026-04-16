@@ -83,7 +83,10 @@ async function handleReconnect(): Promise<void> {
 
   reconnectBusy.value = true;
   try {
-    const result = await sessionStore.focusOrResumeRemoteSession(sid);
+    const result = await sessionStore.focusOrResumeRemoteSession(
+      sid,
+      viewNode.value?.provenance?.agent ?? undefined,
+    );
     if (result.status === 'activated' || result.status === 'resumed') {
       appShellStore.openAgents();
     }

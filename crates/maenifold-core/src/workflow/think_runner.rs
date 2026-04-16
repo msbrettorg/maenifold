@@ -137,7 +137,7 @@ pub(crate) async fn drive_think_session(
         content_blocks,
     )
     .await;
-    let acp_session_id = driver.remote_id().to_string();
+    let acp_session_id = driver.remote_id();
     let failure_result =
         |error: &MaenifoldError| think_failure_result(session_id, acp_session_id.clone(), error);
     if keep_session_alive {
@@ -201,7 +201,7 @@ pub(crate) async fn drive_think_session_with_driver(
             }
             return Ok(ThinkResult {
                 session_id: session_id.to_string(),
-                acp_session_id: Some(driver.remote_id().to_string()),
+                acp_session_id: Some(driver.remote_id()),
                 conclusion: Some(response_text),
                 thoughts_completed: thought_number,
             });

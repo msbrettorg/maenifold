@@ -198,7 +198,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
                 }
                 break Ok(WorkflowResult {
                     session_id: run_ctx.session_id.clone(),
-                    acp_session_id: Some(driver.remote_id().to_string()),
+                    acp_session_id: Some(driver.remote_id()),
                     conclusion,
                     steps_completed,
                     status,
@@ -225,7 +225,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         }
     }
     .await;
-    let acp_session_id = driver.remote_id().to_string();
+    let acp_session_id = driver.remote_id();
     let failure_result = |error: &MaenifoldError| {
         workflow_failure_result(run_ctx.session_id.clone(), acp_session_id.clone(), error)
     };

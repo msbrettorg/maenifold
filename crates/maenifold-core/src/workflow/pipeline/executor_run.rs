@@ -335,7 +335,7 @@ pub(super) async fn run_prompt_node(
 ) -> Result<PromptExecutionResult> {
     let session = open_agent_session(agent, &session_config, event_tx).await?;
     let response_result = session.prompt(prompt).await;
-    let acp_session_id = session.remote_id().to_string();
+    let acp_session_id = session.remote_id();
     let prompt_result = match response_result {
         Ok(response) => {
             if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {

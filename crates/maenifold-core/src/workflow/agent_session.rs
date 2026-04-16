@@ -33,7 +33,10 @@ impl From<AcpPromptResult> for AgentResponse {
 pub(crate) struct AgentSession {
     agent_name: String,
     runtime_kind: String,
+    /// Internal pool key (app_session_id) used for CONN_MAP routing.
     session_id: String,
+    /// Real ACP session ID returned by the agent process after the first prompt.
+    real_acp_session_id: std::sync::Mutex<Option<String>>,
     cwd: String,
     model: Option<String>,
     thought_level: Option<String>,
@@ -71,6 +74,7 @@ pub(crate) async fn open_agent_session(
         agent_name: agent_name.to_string(),
         runtime_kind,
         session_id,
+        real_acp_session_id: std::sync::Mutex::new(None),
         cwd: cwd_str,
         model: session_config.model.clone(),
         thought_level: session_config.thought_level.clone(),
@@ -82,8 +86,14 @@ pub(crate) async fn open_agent_session(
 }
 
 impl AgentSession {
-    pub(crate) fn remote_id(&self) -> &str {
-        &self.session_id
+    /// Returns the real ACP session ID if captured from a prompt response,
+    /// otherwise falls back to the internal pool key.
+    pub(crate) fn remote_id(&self) -> String {
+        self.real_acp_session_id
+            .lock()
+            .ok()
+            .and_then(|guard| guard.clone())
+            .unwrap_or_else(|| self.session_id.clone())
     }
 
     pub(crate) fn keep_alive(&self) {}
@@ -119,6 +129,13 @@ impl AgentSession {
             output_len = result.output.len(),
             "ACP agent responded"
         );
+
+        // Capture the real ACP session ID from the worker's response metadata.
+        if let Some(sid) = result.meta.get("sessionId").and_then(|v| v.as_str()) {
+            if let Ok(mut guard) = self.real_acp_session_id.lock() {
+                *guard = Some(sid.to_string());
+            }
+        }
 
         Ok(result.into())
     }

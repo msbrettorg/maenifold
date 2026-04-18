@@ -53,7 +53,8 @@ describe('PermissionDialog', () => {
       global: { stubs: dialogStubs },
     });
 
-    expect(wrapper.text()).toContain('Showing request 1 of 3');
+    expect(wrapper.text()).toContain('Permission 1 of 3 — Run bash command');
+    expect(wrapper.text()).toContain('3 pending');
     expect(wrapper.find('.permission-dialog').exists()).toBe(true);
     expect(wrapper.find('.dialog-content').exists()).toBe(true);
     expect(wrapper.find('.entry-details').exists()).toBe(true);
@@ -75,6 +76,6 @@ describe('PermissionDialog', () => {
       global: { stubs: dialogStubs },
     });
 
-    expect(wrapper.text()).not.toContain('Showing request 1 of');
+    expect(wrapper.text()).not.toContain('Permission 1 of');
   });
 });

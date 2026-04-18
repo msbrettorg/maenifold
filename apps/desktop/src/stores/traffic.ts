@@ -4,6 +4,7 @@ import { ref, computed } from 'vue';
 
 export type TrafficDirection = 'in' | 'out';
 export type TrafficType = 'request' | 'response' | 'notification';
+export type TrafficDirectionFilter = 'all' | 'outbound' | 'inbound';
 
 export interface TrafficEntry {
   id: string;
@@ -22,7 +23,8 @@ export const useTrafficStore = defineStore('traffic', () => {
   const entries = ref<TrafficEntry[]>([]);
   const isPaused = ref(false);
   const filter = ref<'all' | 'requests' | 'responses' | 'notifications'>('all');
-  const searchQuery = ref('');
+  const directionFilter = ref<TrafficDirectionFilter>('all');
+  const methodFilter = ref('');
 
   const filteredEntries = computed(() => {
     let result = entries.value;
@@ -39,16 +41,23 @@ export const useTrafficStore = defineStore('traffic', () => {
         result = result.filter(e => e.type === 'notification');
         break;
     }
-    
-    // Apply search filter
-    const query = searchQuery.value.trim().toLowerCase();
-    if (query) {
-      result = result.filter(e => 
-        e.method.toLowerCase().includes(query) ||
-        JSON.stringify(e.payload).toLowerCase().includes(query)
-      );
+
+    // Apply direction filter
+    switch (directionFilter.value) {
+      case 'outbound':
+        result = result.filter((entry) => entry.direction === 'out');
+        break;
+      case 'inbound':
+        result = result.filter((entry) => entry.direction === 'in');
+        break;
     }
-    
+
+    // Apply method / notification filter
+    const query = methodFilter.value.trim().toLowerCase();
+    if (query) {
+      result = result.filter((entry) => entry.method.toLowerCase().includes(query));
+    }
+
     return result;
   });
 
@@ -81,12 +90,16 @@ export const useTrafficStore = defineStore('traffic', () => {
     filter.value = newFilter;
   }
 
-  function setSearch(query: string) {
-    searchQuery.value = query;
+  function setDirectionFilter(next: TrafficDirectionFilter) {
+    directionFilter.value = next;
   }
 
-  function clearSearch() {
-    searchQuery.value = '';
+  function setMethodFilter(query: string) {
+    methodFilter.value = query;
+  }
+
+  function clearMethodFilter() {
+    methodFilter.value = '';
   }
 
   return {
@@ -94,12 +107,14 @@ export const useTrafficStore = defineStore('traffic', () => {
     filteredEntries,
     isPaused,
     filter,
-    searchQuery,
+    directionFilter,
+    methodFilter,
     addEntry,
     clear,
     togglePause,
     setFilter,
-    setSearch,
-    clearSearch,
+    setDirectionFilter,
+    setMethodFilter,
+    clearMethodFilter,
   };
 });

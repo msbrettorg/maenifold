@@ -13,9 +13,17 @@ import PermissionEntry from './PermissionEntry.vue';
 const props = defineProps<{ request: PermissionRequest; totalPending?: number }>();
 const emit = defineEmits<{ select: [optionId: string]; cancel: [] }>();
 
+const pendingCount = computed(() => props.totalPending ?? 0);
+const hasQueue = computed(() => pendingCount.value > 1);
+const toolName = computed(() => props.request.toolCall.title || props.request.toolCall.kind || 'Tool call');
+const titleText = computed(() =>
+  hasQueue.value ? `Permission 1 of ${pendingCount.value} — ${toolName.value}` : 'Permission required'
+);
+const pendingChip = computed(() => (hasQueue.value ? `${pendingCount.value} pending` : null));
+
 const queueHint = computed(() =>
-  (props.totalPending ?? 0) > 1
-    ? `Showing request 1 of ${props.totalPending}. The remaining requests will appear after you respond.`
+  hasQueue.value
+    ? `The remaining requests will appear after you respond.`
     : null
 );
 </script>
@@ -26,7 +34,8 @@ const queueHint = computed(() =>
       <DialogHeader class="dialog-header">
         <div class="dialog-title-row">
           <span class="icon" aria-hidden="true">🔐</span>
-          <DialogTitle>Permission Required</DialogTitle>
+          <DialogTitle>{{ titleText }}</DialogTitle>
+          <span v-if="pendingChip" class="pending-chip">{{ pendingChip }}</span>
         </div>
         <DialogDescription class="queue-hint">
           Review the pending permission request and choose how to respond.
@@ -68,7 +77,6 @@ const queueHint = computed(() =>
   align-items: flex-start;
   padding: 1rem;
   background: var(--muted);
-  border-bottom: 1px solid var(--border);
 }
 
 .dialog-header .icon {
@@ -86,6 +94,15 @@ const queueHint = computed(() =>
   margin: 0;
   font-size: var(--text-caption);
   color: var(--muted-foreground);
+}
+
+.pending-chip {
+  margin-left: auto;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  background: #2a2a2a;
+  color: #c2c6d6;
+  font-size: var(--text-tiny);
 }
 
 .permission-list {

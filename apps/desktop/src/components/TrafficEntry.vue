@@ -56,12 +56,31 @@ function copyPayload() {
 <style scoped>
 .entry:nth-child(odd) { background: #1c1b1b; }
 .entry:nth-child(even) { background: #201f1f; }
+.entry {
+  position: relative;
+}
+.entry::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: #707070;
+}
+.entry.out::before {
+  background: #4d8eff;
+}
+.entry.in::before {
+  background: #d0bcff;
+}
+.entry.error::before {
+  background: #ffb4ab;
+}
 
 .entry-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.375rem 0.75rem;
+  padding: 0.375rem 0.75rem 0.375rem 1rem;
   cursor: pointer;
 }
 

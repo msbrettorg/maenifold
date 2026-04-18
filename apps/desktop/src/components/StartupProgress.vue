@@ -26,6 +26,15 @@ const phaseIcon = computed(() => {
   }
 });
 
+type StartupStatus = 'spawning' | 'initializing' | 'ready' | 'error';
+
+const status = computed<StartupStatus>(() => {
+  if (props.phase === 'agent_closed') return 'error';
+  if (props.phase === 'ready') return 'ready';
+  if (props.phase === 'initializing') return 'initializing';
+  return 'spawning';
+});
+
 const phaseText = computed(() => {
   switch (props.phase) {
     case 'starting': return 'Starting process...';
@@ -65,7 +74,10 @@ const progressValue = computed(() => {
   <section class="startup-progress">
     <div class="progress-header">
       <span class="agent-name">Connecting to {{ agentName }}...</span>
-      <span class="elapsed-time">{{ formattedTime }}</span>
+      <div class="progress-meta">
+        <span class="phase-pill" :class="`phase-pill--${status}`">{{ status }}</span>
+        <span class="elapsed-time">{{ formattedTime }}</span>
+      </div>
     </div>
     
     <div
@@ -125,25 +137,33 @@ const progressValue = computed(() => {
   border-radius: 4px;
   margin-top: 0.75rem;
 }
-
 .progress-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
-
-.agent-name {
-  font-weight: var(--weight-title);
-  color: var(--foreground);
+.agent-name { font-weight: var(--weight-title); color: var(--foreground); }
+.progress-meta { display: inline-flex; align-items: center; gap: 0.5rem; }
+.phase-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-size: var(--text-tiny);
+  text-transform: lowercase;
+  color: #001a42;
+  background: var(--accent-prompt);
 }
-
+.phase-pill--initializing { background: var(--amber); }
+.phase-pill--ready { background: var(--sage); }
+.phase-pill--error { background: var(--terracotta); }
 .elapsed-time {
   font-size: var(--text-caption);
   color: var(--muted-foreground);
   font-family: var(--font-code);
 }
-
 .progress-status {
   display: flex;
   align-items: center;
@@ -153,16 +173,8 @@ const progressValue = computed(() => {
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
-
-.phase-icon {
-  font-size: var(--text-title);
-}
-
-.phase-text {
-  color: var(--muted-foreground);
-  font-size: var(--text-body-sm);
-}
-
+.phase-icon { font-size: var(--text-title); }
+.phase-text { color: var(--muted-foreground); font-size: var(--text-body-sm); }
 .first-run-hint {
   font-size: var(--text-caption);
   color: var(--muted-foreground);
@@ -172,13 +184,7 @@ const progressValue = computed(() => {
   background: color-mix(in srgb, var(--bg-warning) 18%, #201f1f);
   border-radius: 4px;
 }
-
-.progress-actions {
-  display: flex;
-  gap: 0.5rem;
-  justify-content: space-between;
-}
-
+.progress-actions { display: flex; gap: 0.5rem; justify-content: space-between; }
 .details-btn {
   padding: 0.375rem 0.75rem;
   border: none;
@@ -188,11 +194,7 @@ const progressValue = computed(() => {
   font-size: var(--text-caption);
   cursor: pointer;
 }
-
-.details-btn:hover {
-  background: #353534;
-}
-
+.details-btn:hover { background: #353534; }
 .cancel-btn {
   padding: 0.375rem 0.75rem;
   border: none;
@@ -202,18 +204,15 @@ const progressValue = computed(() => {
   font-size: var(--text-caption);
   cursor: pointer;
 }
-
 .cancel-btn:hover {
   background: color-mix(in srgb, var(--destructive) 18%, #2a2a2a);
   color: var(--destructive);
 }
-
 .logs-container {
   margin-top: 0.75rem;
   border-radius: 4px;
   overflow: hidden;
 }
-
 .logs-header {
   padding: 0.375rem 0.5rem;
   background: #2a2a2a;
@@ -221,7 +220,6 @@ const progressValue = computed(() => {
   font-weight: var(--weight-title);
   color: var(--muted-foreground);
 }
-
 .logs-content {
   max-height: 150px;
   overflow-y: auto;
@@ -232,33 +230,18 @@ const progressValue = computed(() => {
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
-
-.logs-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.logs-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
+.logs-content::-webkit-scrollbar { width: 8px; }
+.logs-content::-webkit-scrollbar-track { background: transparent; }
 .logs-content::-webkit-scrollbar-thumb {
   background: var(--border);
   border-radius: 4px;
 }
-
-.logs-content::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
-}
-
+.logs-content::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
 .log-line {
   color: var(--muted-foreground);
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.4;
 }
-
-.no-logs {
-  color: var(--muted-foreground);
-  font-style: italic;
-}
+.no-logs { color: var(--muted-foreground); font-style: italic; }
 </style>

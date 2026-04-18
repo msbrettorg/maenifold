@@ -110,8 +110,12 @@ const {
           <ChatWelcomeScreen
             v-else
             key="welcome"
+            v-model:selected-agent="selectedAgent"
             :has-agents="hasAgents"
             :can-create-session="!!selectedAgent && !isConnecting"
+            :selected-cwd="selectedCwd"
+            @agent-select="handleAgentSelect"
+            @select-folder="handleSelectFolder"
             @new-session="handleNewSession"
           />
         </Transition>

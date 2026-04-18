@@ -1,11 +1,18 @@
 <script setup lang="ts">
+import AgentSelector from './AgentSelector.vue';
+
+const selectedAgent = defineModel<string>('selectedAgent', { required: true });
+
 defineProps<{
   hasAgents: boolean;
   canCreateSession: boolean;
+  selectedCwd: string;
 }>();
 
 const emit = defineEmits<{
   'new-session': [];
+  'agent-select': [agentName: string];
+  'select-folder': [];
 }>();
 
 const starterExamples = [
@@ -18,10 +25,30 @@ const starterExamples = [
 <template>
   <div class="welcome">
     <div class="welcome-inner">
-      <h2 class="welcome-title">maenifold</h2>
+      <h2 class="welcome-title">Start an agent session</h2>
       <p class="welcome-hint">
-        Select an agent and working directory in the sidebar, then start a session.
+        Choose your agent and working directory, then launch a new session.
       </p>
+
+      <div class="welcome-config">
+        <AgentSelector
+          v-model:selected="selectedAgent"
+          @select="emit('agent-select', $event)"
+        />
+
+        <div class="cwd-picker">
+          <label class="cwd-label">Working directory</label>
+          <div class="cwd-row">
+            <span
+              class="cwd-value"
+              :title="selectedCwd || 'Current directory'"
+            >
+              {{ selectedCwd ? selectedCwd.split(/[\\/]/).pop() : '.' }}
+            </span>
+            <button class="cwd-btn" type="button" title="Select folder" @click="emit('select-folder')">📁</button>
+          </div>
+        </div>
+      </div>
 
       <div class="starter-examples" aria-label="Example tasks">
         <div v-for="example in starterExamples" :key="example.label" class="example-chip">
@@ -57,31 +84,70 @@ const starterExamples = [
 .welcome-inner {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  max-width: 28rem;
-  text-align: center;
+  gap: 1.25rem;
+  width: min(34rem, 100%);
 }
 .welcome-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: var(--text-2xl);
+  font-size: var(--text-title);
   font-weight: var(--weight-display);
-  color: var(--foreground);
-  letter-spacing: 0.04em;
+  color: #e5e2e1;
 }
 .welcome-hint {
   margin: 0;
-  color: var(--muted-foreground);
-  font-size: var(--text-md);
+  color: #c2c6d6;
+  font-size: var(--text-body-sm);
   line-height: 1.5;
+}
+.welcome-config {
+  display: grid;
+  gap: 0.875rem;
+  padding: 1rem;
+  border-radius: 4px;
+  background: #1c1b1b;
+}
+.cwd-picker {
+  display: grid;
+  gap: 0.375rem;
+}
+.cwd-label {
+  font-size: var(--text-tiny);
+  color: #707070;
+}
+.cwd-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.cwd-value {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 4px;
+  padding: 0.5rem 0.625rem;
+  background: #201f1f;
+  color: #e5e2e1;
+  font-size: var(--text-caption);
+}
+.cwd-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 0.5rem 0.625rem;
+  background: #201f1f;
+  color: #e5e2e1;
+  cursor: pointer;
+}
+.cwd-btn:hover {
+  background: #2a2a2a;
 }
 .starter-examples {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
-  margin-top: 0.25rem;
 }
 .example-chip {
   display: inline-flex;
@@ -90,24 +156,24 @@ const starterExamples = [
   padding: 0.5rem 0.875rem;
   border-radius: 4px;
   background: #2a2a2a;
-  border: 1px solid rgba(66, 71, 83, 0.15);
   color: var(--muted-foreground);
   font-size: var(--text-sm);
 }
 .chip-icon { font-size: var(--text-sm); }
 .cta-btn {
-  margin-top: 0.5rem;
+  margin-top: 0.25rem;
+  align-self: flex-start;
   padding: 0.625rem 2rem;
   border: none;
   border-radius: 4px;
-  background: #4d8eff;
-  color: var(--primary-foreground);
-  font-size: var(--text-md);
+  background: linear-gradient(135deg, #adc6ff 0%, #4d8eff 100%);
+  color: #001a42;
+  font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: opacity 0.15s;
 }
-.cta-btn:hover:not(:disabled) { background: #639bff; }
+.cta-btn:hover:not(:disabled) { opacity: 0.92; }
 .cta-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .no-agents {
   margin: 0;

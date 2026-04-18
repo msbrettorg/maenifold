@@ -96,6 +96,11 @@ async function promptForAbsolutePath(title: string, initialValue = ''): Promise<
     submit.textContent = 'Use Path';
     submit.className = nativePathDialogSubmitButtonClass;
 
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      dialog.close('submit');
+    });
+
     actions.append(cancel, submit);
     form.append(heading, input, actions);
     dialog.append(form);
@@ -107,12 +112,32 @@ async function promptForAbsolutePath(title: string, initialValue = ''): Promise<
       resolve(value);
     }, { once: true });
 
-    dialog.showModal();
+    try {
+      dialog.showModal();
+    } catch {
+      dialog.remove();
+      resolve((window.prompt(title, initialValue) ?? '').trim());
+    }
   });
+}
+
+function shouldBypassFileSystemAccess(windowRef: Window): boolean {
+  const inIframe = (() => {
+    try {
+      return windowRef !== windowRef.top;
+    } catch {
+      return true;
+    }
+  })();
+
+  return inIframe || windowRef.crossOriginIsolated === false;
 }
 
 async function pickWithFileSystemAccess(currentPath: string): Promise<DirectoryPickResult> {
   const browserWindow = window as DirectoryPickerWindow;
+  if (shouldBypassFileSystemAccess(browserWindow)) {
+    return { status: 'unavailable' };
+  }
   if (typeof browserWindow.showDirectoryPicker !== 'function') {
     return { status: 'unavailable' };
   }

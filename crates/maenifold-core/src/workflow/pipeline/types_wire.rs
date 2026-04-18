@@ -69,7 +69,11 @@ pub(super) struct PipelineNodeWire {
     max_turns: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     timeout: Option<u64>,
-    #[serde(default, rename = "retryMaxAttempts", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "retryMaxAttempts",
+        skip_serializing_if = "Option::is_none"
+    )]
     retry_max_attempts: Option<u32>,
     #[serde(
         default,
@@ -83,7 +87,11 @@ pub(super) struct PipelineNodeWire {
         skip_serializing_if = "Option::is_none"
     )]
     retry_backoff_max_ms: Option<u64>,
-    #[serde(default, rename = "retryJitter", skip_serializing_if = "Option::is_none")]
+    #[serde(
+        default,
+        rename = "retryJitter",
+        skip_serializing_if = "Option::is_none"
+    )]
     retry_jitter: Option<bool>,
 }
 
@@ -345,7 +353,10 @@ impl From<PipelineNode> for PipelineNodeWire {
     }
 }
 
-fn parse_retry_policy(wire: &PipelineNodeWire, node_id: &str) -> Result<Option<RetryPolicy>, String> {
+fn parse_retry_policy(
+    wire: &PipelineNodeWire,
+    node_id: &str,
+) -> Result<Option<RetryPolicy>, String> {
     let has_retry_field = wire.retry_max_attempts.is_some()
         || wire.retry_backoff_min_ms.is_some()
         || wire.retry_backoff_max_ms.is_some()
@@ -415,8 +426,7 @@ mod tests {
         .expect("deserialize tool node");
 
         match node {
-            PipelineNode::Tool { timeout, .. }
- => assert_eq!(timeout, Some(21)),
+            PipelineNode::Tool { timeout, .. } => assert_eq!(timeout, Some(21)),
             other => panic!("expected tool node, got {other:?}"),
         }
     }
@@ -456,8 +466,7 @@ mod tests {
         .expect("deserialize prompt node");
 
         match &node {
-            PipelineNode::Prompt { display_label, .. }
- => {
+            PipelineNode::Prompt { display_label, .. } => {
                 assert_eq!(display_label.as_deref(), Some("Prompt label"));
             }
             other => panic!("expected prompt node, got {other:?}"),
@@ -479,8 +488,7 @@ mod tests {
         .expect("deserialize prompt node");
 
         match &node {
-            PipelineNode::Prompt { cwd, .. }
- => {
+            PipelineNode::Prompt { cwd, .. } => {
                 assert_eq!(
                     cwd.as_deref().and_then(|path| path.to_str()),
                     Some("/tmp/workspace")
@@ -538,8 +546,7 @@ mod tests {
         let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
 
         match node {
-            PipelineNode::Workflow { agent_config, .. }
- => assert!(agent_config.is_none()),
+            PipelineNode::Workflow { agent_config, .. } => assert!(agent_config.is_none()),
             other => panic!("expected workflow node, got {other:?}"),
         }
     }
@@ -557,8 +564,7 @@ mod tests {
         let node = PipelineNode::try_from(wire).expect("convert workflow wire to domain node");
 
         match node {
-            PipelineNode::Workflow { acp_client, .. }
- => assert!(acp_client.is_none()),
+            PipelineNode::Workflow { acp_client, .. } => assert!(acp_client.is_none()),
             other => panic!("expected workflow node, got {other:?}"),
         }
     }

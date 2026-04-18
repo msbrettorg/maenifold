@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use tracing::warn;
+use tracing::{debug, warn};
 
 use crate::markdown::read_markdown;
 use crate::sessions::pipeline_session_uri;
@@ -10,7 +10,71 @@ use super::executor_helpers::load_pipeline_node_states;
 use super::session_io::{
     frontmatter_value, persist_pipeline_state_with_status, update_workflow_node_frontmatter,
 };
-use super::{NodeState, NodeStatus};
+use super::{NodeState, NodeStatus, PipelineDefinition};
+
+pub(super) async fn terminate_node_sessions(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) {
+    for (node_id, agent, session_id) in cancellable_node_session_targets(definition, node_states) {
+        match jockey::acp::reset_session(&agent, &agent, Some(&session_id)).await {
+            Ok(()) => {
+                debug!(
+                    node_id = %node_id,
+                    session_id = %session_id,
+                    agent = %agent,
+                    "terminated ACP session after pipeline cancellation"
+                );
+            }
+            Err(error) => {
+                debug!(
+                    node_id = %node_id,
+                    session_id = %session_id,
+                    agent = %agent,
+                    error = %error,
+                    "ACP session already exited or could not be terminated"
+                );
+            }
+        }
+    }
+}
+
+pub(super) fn cancellable_node_session_targets(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) -> Vec<(String, String, String)> {
+    let nodes_by_id = definition
+        .nodes
+        .iter()
+        .cloned()
+        .map(|node| (node.id().to_string(), node))
+        .collect::<HashMap<_, _>>();
+    node_states
+        .iter()
+        .filter_map(|(node_id, state)| {
+            let node = nodes_by_id.get(node_id)?;
+            let agent = node.acp_client()?.trim();
+            if agent.is_empty() {
+                return None;
+            }
+
+            let session_id = match state.status {
+                NodeStatus::Active => state.session_id.as_str(),
+                _ => state.acp_session_id.as_deref()?,
+            }
+            .trim();
+            if session_id.is_empty() {
+                return None;
+            }
+
+            Some((
+                node_id.to_string(),
+                agent.to_string(),
+                session_id.to_string(),
+            ))
+        })
+        .collect()
+}
 
 pub fn cancel_active_nodes(context: &ToolContext, session_id: &str) -> crate::error::Result<usize> {
     let active_nodes = load_pipeline_node_states(context, session_id)?

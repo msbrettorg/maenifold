@@ -67,8 +67,7 @@ pub(super) fn pipeline_nodes_json(
                     "assembled_prompt".to_string(),
                     assembled_prompt.map(Value::String).unwrap_or(Value::Null),
                 );
-                let workflow_steps = if matches!(node, PipelineNode::Workflow { .. }
-)
+                let workflow_steps = if matches!(node, PipelineNode::Workflow { .. })
                     && matches!(state.status, NodeStatus::Active | NodeStatus::Completed)
                 {
                     parse_workflow_steps(context, &state.session_id)
@@ -79,8 +78,7 @@ pub(super) fn pipeline_nodes_json(
                     "workflow_steps".to_string(),
                     workflow_steps.map(Value::Array).unwrap_or(Value::Null),
                 );
-                let thinking_trace = if matches!(node, PipelineNode::SequentialThinking { .. }
-)
+                let thinking_trace = if matches!(node, PipelineNode::SequentialThinking { .. })
                     && matches!(state.status, NodeStatus::Active | NodeStatus::Completed)
                 {
                     state
@@ -119,20 +117,15 @@ fn pipeline_node_provenance_json(node: &PipelineNode, state: &NodeState) -> Valu
 
 fn node_agent_name(node: &PipelineNode) -> Option<&str> {
     match node {
-        PipelineNode::Workflow { acp_client, .. }
- => acp_client.as_deref(),
-        PipelineNode::Prompt { agent, .. }
- => Some(agent.as_str()),
-        PipelineNode::SequentialThinking { agent, .. }
- => Some(agent.as_str()),
-        PipelineNode::Tool { agent, .. }
- => agent.as_deref(),
+        PipelineNode::Workflow { acp_client, .. } => acp_client.as_deref(),
+        PipelineNode::Prompt { agent, .. } => Some(agent.as_str()),
+        PipelineNode::SequentialThinking { agent, .. } => Some(agent.as_str()),
+        PipelineNode::Tool { agent, .. } => agent.as_deref(),
     }
 }
 
 fn node_can_reconnect(node: &PipelineNode, state: &NodeState) -> bool {
-    !matches!(node, PipelineNode::Tool { .. }
-) && state.acp_session_id.is_some()
+    !matches!(node, PipelineNode::Tool { .. }) && state.acp_session_id.is_some()
 }
 
 fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {

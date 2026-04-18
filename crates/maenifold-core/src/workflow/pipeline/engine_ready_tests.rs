@@ -1,4 +1,6 @@
-use super::engine_ready::{compute_ready_set, is_edge_satisfied};
+use super::engine_ready::{
+    compute_ready_set, compute_unreachable_conditional_set, is_edge_satisfied,
+};
 use super::types::{EdgeType, PipelineEdge, PipelineNode};
 use super::{NodeState, NodeStatus, PipelineDefinition};
 use std::collections::HashMap;
@@ -99,7 +101,10 @@ fn conditional_edge_not_satisfied_when_output_not_json() {
 #[test]
 fn conditional_edge_supports_number_and_bool_equality() {
     let mut states = HashMap::new();
-    states.insert("up".to_string(), completed_state(r#"{"score":42,"ok":true}"#));
+    states.insert(
+        "up".to_string(),
+        completed_state(r#"{"score":42,"ok":true}"#),
+    );
     let num_edge = EdgeType::Conditional {
         path: "score".into(),
         equals: serde_json::json!(42),
@@ -132,7 +137,11 @@ fn conditional_only_target_with_unmet_predicate_is_not_ready() {
         inputs: None,
     };
     let ready = compute_ready_set(&definition, &states);
-    assert!(ready.is_empty(), "expected no ready nodes, got: {:?}", ready);
+    assert!(
+        ready.is_empty(),
+        "expected no ready nodes, got: {:?}",
+        ready
+    );
 }
 
 #[test]
@@ -193,4 +202,68 @@ fn always_edge_can_satisfy_target_when_conditional_is_false() {
 
     let ready = compute_ready_set(&definition, &states);
     assert_eq!(ready, vec!["down".to_string()]);
+}
+
+#[test]
+fn conditional_only_target_with_unmet_predicate_is_unreachable() {
+    let mut states = HashMap::new();
+    states.insert("up".to_string(), completed_state(r#"{"verdict":"PASS"}"#));
+    states.insert("down".to_string(), pending_state());
+    let definition = PipelineDefinition {
+        nodes: vec![make_thinking_node("up"), make_thinking_node("down")],
+        edges: vec![PipelineEdge {
+            source: "up".into(),
+            target: "down".into(),
+            edge_type: EdgeType::Conditional {
+                path: "verdict".into(),
+                equals: serde_json::Value::String("FAIL".into()),
+            },
+            mapping: None,
+        }],
+        template_id: None,
+        inputs: None,
+    };
+
+    let unreachable = compute_unreachable_conditional_set(&definition, &states);
+    assert_eq!(unreachable, vec!["down".to_string()]);
+}
+
+#[test]
+fn conditional_target_with_always_fallback_is_not_unreachable() {
+    let mut states = HashMap::new();
+    states.insert("cond".to_string(), completed_state(r#"{"verdict":"PASS"}"#));
+    states.insert("always".to_string(), completed_state(r#"{"ok":true}"#));
+    states.insert("down".to_string(), pending_state());
+    let definition = PipelineDefinition {
+        nodes: vec![
+            make_thinking_node("cond"),
+            make_thinking_node("always"),
+            make_thinking_node("down"),
+        ],
+        edges: vec![
+            PipelineEdge {
+                source: "cond".into(),
+                target: "down".into(),
+                edge_type: EdgeType::Conditional {
+                    path: "verdict".into(),
+                    equals: serde_json::Value::String("FAIL".into()),
+                },
+                mapping: None,
+            },
+            PipelineEdge {
+                source: "always".into(),
+                target: "down".into(),
+                edge_type: EdgeType::Always,
+                mapping: None,
+            },
+        ],
+        template_id: None,
+        inputs: None,
+    };
+
+    let unreachable = compute_unreachable_conditional_set(&definition, &states);
+    assert!(
+        unreachable.is_empty(),
+        "expected no unreachable nodes, got: {unreachable:?}"
+    );
 }

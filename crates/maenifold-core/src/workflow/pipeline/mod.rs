@@ -14,14 +14,14 @@ pub(super) mod executor;
 mod executor_cleanup;
 mod executor_helpers;
 mod executor_nodes;
-#[cfg(test)]
-mod executor_timeout_tests;
+mod executor_orchestration;
+mod executor_retry;
 #[cfg(test)]
 mod executor_retry_tests;
-mod mapping_apply;
-mod mapping_predecessor;
-mod mapping_resolve;
 mod executor_run;
+mod executor_timeout;
+#[cfg(test)]
+mod executor_timeout_tests;
 mod external_mcp;
 #[cfg(test)]
 mod failure_reason_scope_tests;
@@ -32,6 +32,9 @@ mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
 mod lease;
+mod mapping_apply;
+mod mapping_predecessor;
+mod mapping_resolve;
 #[cfg(test)]
 mod orphan_cascade_tests;
 mod session_io;
@@ -74,8 +77,8 @@ pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode, RetryPolicy,
-    PredecessorOutput, ToolProvenance,
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    PredecessorOutput, RetryPolicy, ToolProvenance,
 };
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;

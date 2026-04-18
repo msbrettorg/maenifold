@@ -31,8 +31,7 @@ pub(super) fn assembled_prompt_for_view(
     if !matches!(state.status, NodeStatus::Active | NodeStatus::Completed) {
         return Ok(None);
     }
-    if matches!(node, PipelineNode::Tool { .. }
-) {
+    if matches!(node, PipelineNode::Tool { .. }) {
         return Ok(None);
     }
 

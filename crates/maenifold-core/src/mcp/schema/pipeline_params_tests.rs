@@ -4,7 +4,9 @@ use serde_json::json;
 
 use super::pipeline_params::{PipelineEdgeSchema, PipelineEdgeType, PipelineParams};
 use super::support::schema_value_no_null_options;
-use crate::workflow::pipeline::{EdgeType, NodeState, NodeStatus, PipelineDefinition, compute_ready_set};
+use crate::workflow::pipeline::{
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, compute_ready_set,
+};
 
 #[test]
 fn pipeline_edge_schema_accepts_conditional_edge() {
@@ -49,21 +51,24 @@ fn pipeline_edge_schema_rejects_conditional_without_equals() {
     }))
     .expect_err("missing equals must fail");
 
-    assert!(err.to_string().contains("equals"), "unexpected error: {err}");
+    assert!(
+        err.to_string().contains("equals"),
+        "unexpected error: {err}"
+    );
 }
 
 #[test]
-fn pipeline_edge_schema_rejects_conditional_fields_on_success_edge() {
-    let err = serde_json::from_value::<PipelineEdgeSchema>(json!({
+fn pipeline_edge_schema_ignores_conditional_fields_on_success_edge() {
+    let edge = serde_json::from_value::<PipelineEdgeSchema>(json!({
         "source": "upstream",
         "target": "downstream",
         "type": "success",
         "path": "verdict",
         "equals": "FAIL"
     }))
-    .expect_err("success edge must not accept conditional-only fields");
+    .expect("success edge should deserialize when conditional-only fields are present");
 
-    assert!(err.to_string().contains("path"), "unexpected error: {err}");
+    assert!(matches!(edge.edge_type, PipelineEdgeType::Success));
 }
 
 #[test]

@@ -64,6 +64,7 @@ pub(super) enum NodeOutcome {
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
         retry_attempts: u32,
+        is_outer_timeout: bool,
     },
 }
 
@@ -123,6 +124,7 @@ fn classify_workflow_result(
                     acp_session_id: workflow.acp_session_id.clone(),
                     thinking_session_id: None,
                     retry_attempts: 0,
+                    is_outer_timeout: false,
                 }
             }
             WorkflowRunStatus::Cancelled => {
@@ -134,6 +136,7 @@ fn classify_workflow_result(
                     acp_session_id: workflow.acp_session_id,
                     thinking_session_id: None,
                     retry_attempts: 0,
+                    is_outer_timeout: false,
                 }
             }
         },
@@ -144,6 +147,7 @@ fn classify_workflow_result(
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
@@ -155,6 +159,7 @@ fn classify_workflow_result(
                 acp_session_id,
                 thinking_session_id: None,
                 retry_attempts: 0,
+                is_outer_timeout: false,
             }
         }
     }
@@ -176,6 +181,7 @@ fn classify_prompt_result(
                     acp_session_id: result.acp_session_id,
                     thinking_session_id: None,
                     retry_attempts: 0,
+                    is_outer_timeout: false,
                 }
             } else if !result.response.trim().is_empty() {
                 NodeOutcome::Completed {
@@ -193,6 +199,7 @@ fn classify_prompt_result(
                     acp_session_id: result.acp_session_id,
                     thinking_session_id: None,
                     retry_attempts: 0,
+                    is_outer_timeout: false,
                 }
             }
         }
@@ -203,6 +210,7 @@ fn classify_prompt_result(
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
@@ -214,6 +222,7 @@ fn classify_prompt_result(
                 acp_session_id,
                 thinking_session_id: None,
                 retry_attempts: 0,
+                is_outer_timeout: false,
             }
         }
     }
@@ -245,6 +254,7 @@ fn classify_think_result(
                             acp_session_id: acp_session_id.clone(),
                             thinking_session_id: Some(session_id.clone()),
                             retry_attempts: 0,
+                            is_outer_timeout: false,
                         }
                     } else {
                         NodeOutcome::Completed {
@@ -263,6 +273,7 @@ fn classify_think_result(
                     acp_session_id,
                     thinking_session_id: Some(session_id),
                     retry_attempts: 0,
+                    is_outer_timeout: false,
                 })
         }
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
@@ -272,6 +283,7 @@ fn classify_think_result(
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
@@ -283,6 +295,7 @@ fn classify_think_result(
                 acp_session_id,
                 thinking_session_id,
                 retry_attempts: 0,
+                is_outer_timeout: false,
             }
         }
     }
@@ -304,6 +317,7 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
@@ -312,6 +326,7 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
@@ -324,6 +339,7 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
                 acp_session_id: None,
                 thinking_session_id: None,
                 retry_attempts: 0,
+                is_outer_timeout: false,
             }
         }
     }
@@ -343,9 +359,9 @@ fn classify_retryable_error(
     };
     let message_lower = message.to_ascii_lowercase();
 
-    if message_lower.contains("timeout after")
-        || message_lower.contains("timed out")
-        || rendered_lower.contains("elapsed")
+    if message_lower.contains("timed out")
+        || rendered_lower.contains("deadline has elapsed")
+        || rendered_lower.contains("deadline elapsed")
     {
         return (FailurePhase::PreExecution, Some("timeout"));
     }

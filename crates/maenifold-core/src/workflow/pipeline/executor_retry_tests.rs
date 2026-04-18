@@ -1,5 +1,5 @@
-use super::executor::{execute_with_retry_policy, with_retry_attempts};
 use super::executor_nodes::NodeOutcome;
+use super::executor_retry::{RetryExecutionError, execute_with_retry_policy, with_retry_attempts};
 use super::executor_run::FailurePhase;
 use super::types::RetryPolicy;
 
@@ -17,7 +17,7 @@ async fn transient_failure_recovers_within_retry_budget() {
         attempts += 1;
         async move {
             if attempts < 3 {
-                Err(super::executor::RetryExecutionError {
+                Err(RetryExecutionError {
                     kind: "timeout",
                     reason: "timeout after 1s".to_string(),
                 })
@@ -60,7 +60,7 @@ async fn persistent_transient_failure_exhausts_budget_and_abandons() {
     };
 
     let (outcome, retry_attempts) = execute_with_retry_policy("node-2", policy, || async {
-        Err(super::executor::RetryExecutionError {
+        Err(RetryExecutionError {
             kind: "timeout",
             reason: "timeout after 5s".to_string(),
         })

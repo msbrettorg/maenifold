@@ -193,6 +193,7 @@ fn pre_exec_failure_transitions_to_retrying() {
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         &mut counts,
     )
@@ -245,6 +246,7 @@ fn post_exec_failure_stays_abandoned() {
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         &mut counts,
     )
@@ -298,6 +300,7 @@ fn max_attempts_exceeded_becomes_stuck() {
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         &mut counts,
     )
@@ -350,6 +353,7 @@ fn retrying_node_state_has_retry_metadata() {
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         &mut counts,
     )

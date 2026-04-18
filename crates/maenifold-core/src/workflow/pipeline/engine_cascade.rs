@@ -186,4 +186,42 @@ mod tests {
             "expected no cascade with Always fallback, got: {cascaded:?}"
         );
     }
+
+    #[test]
+    fn cascade_propagates_from_skipped_conditional_node_to_descendants() {
+        let definition = PipelineDefinition {
+            nodes: vec![
+                make_thinking_node("branch"),
+                make_thinking_node("child"),
+                make_thinking_node("grandchild"),
+            ],
+            edges: vec![
+                PipelineEdge {
+                    source: "branch".into(),
+                    target: "child".into(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                },
+                PipelineEdge {
+                    source: "child".into(),
+                    target: "grandchild".into(),
+                    edge_type: EdgeType::Success,
+                    mapping: None,
+                },
+            ],
+            template_id: None,
+            inputs: None,
+        };
+        let node_states = HashMap::from([
+            ("branch".to_string(), node_state(NodeStatus::Abandoned)),
+            ("child".to_string(), node_state(NodeStatus::Pending)),
+            ("grandchild".to_string(), node_state(NodeStatus::Pending)),
+        ]);
+
+        let cascaded = compute_blocked_cascade(&definition, &node_states);
+        assert_eq!(
+            cascaded,
+            vec!["child".to_string(), "grandchild".to_string()]
+        );
+    }
 }

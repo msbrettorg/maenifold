@@ -136,7 +136,7 @@ pub enum PipelineNodeStatusUpdate {
     Abandoned,
 }
 #[derive(Debug, Deserialize, JsonSchema)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[serde(rename_all = "camelCase")]
 pub struct PipelineEdgeSchema {
     /// Upstream node identifier
     pub source: String,

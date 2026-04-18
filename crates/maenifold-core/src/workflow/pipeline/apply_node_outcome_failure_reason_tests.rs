@@ -67,6 +67,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             acp_session_id: None,
             thinking_session_id: None,
             retry_attempts: 0,
+            is_outer_timeout: false,
         },
         &mut counts,
     )

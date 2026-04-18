@@ -37,6 +37,38 @@ pub fn compute_ready_set(
         .collect()
 }
 
+pub fn compute_unreachable_conditional_set(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) -> Vec<String> {
+    let graph = definition.build_graph();
+    let node_indices = graph
+        .node_indices()
+        .map(|node_index| (graph[node_index].clone(), node_index))
+        .collect::<HashMap<_, _>>();
+
+    definition
+        .nodes
+        .iter()
+        .filter(|node| {
+            matches!(
+                node_states.get(node.id()),
+                Some(NodeState {
+                    status: NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Retrying,
+                    ..
+                })
+            )
+        })
+        .filter(|node| {
+            let Some(&node_index) = node_indices.get(node.id()) else {
+                return false;
+            };
+            is_conditional_only_unreachable(&graph, node_index, node_states)
+        })
+        .map(|node| node.id().to_string())
+        .collect()
+}
+
 pub fn has_remaining_work(node_states: &HashMap<String, NodeState>) -> bool {
     node_states.values().any(|state| {
         matches!(
@@ -58,13 +90,11 @@ fn is_node_blocked(
             graph
                 .edges_connecting(source_index, node_index)
                 .any(|edge| {
-                    matches!(
-                        edge.weight(),
-                        EdgeType::Success
-                    ) && matches!(
-                        node_states.get(source_id).map(|state| &state.status),
-                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
-                    )
+                    matches!(edge.weight(), EdgeType::Success)
+                        && matches!(
+                            node_states.get(source_id).map(|state| &state.status),
+                            Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                        )
                 })
         })
 }
@@ -113,6 +143,48 @@ fn incoming_edges_satisfy_ready_rule(
     } else {
         true
     }
+}
+
+fn is_conditional_only_unreachable(
+    graph: &petgraph::stable_graph::StableGraph<String, EdgeType>,
+    node_index: NodeIndex,
+    node_states: &HashMap<String, NodeState>,
+) -> bool {
+    let mut has_incoming = false;
+    let mut has_conditional = false;
+    let mut has_non_conditional = false;
+    let mut all_sources_terminal = true;
+    let mut any_conditional_matched = false;
+
+    for source_index in graph.neighbors_directed(node_index, Incoming) {
+        let source_id = graph[source_index].as_str();
+        for edge in graph.edges_connecting(source_index, node_index) {
+            has_incoming = true;
+            match edge.weight() {
+                EdgeType::Conditional { .. } => {
+                    has_conditional = true;
+                    if !matches!(
+                        node_states.get(source_id).map(|state| &state.status),
+                        Some(NodeStatus::Completed | NodeStatus::Abandoned | NodeStatus::Stuck)
+                    ) {
+                        all_sources_terminal = false;
+                    }
+                    if is_edge_satisfied(edge.weight(), source_id, node_states) {
+                        any_conditional_matched = true;
+                    }
+                }
+                EdgeType::Success | EdgeType::Always => {
+                    has_non_conditional = true;
+                }
+            }
+        }
+    }
+
+    has_incoming
+        && has_conditional
+        && !has_non_conditional
+        && all_sources_terminal
+        && !any_conditional_matched
 }
 
 pub(super) fn is_edge_satisfied(

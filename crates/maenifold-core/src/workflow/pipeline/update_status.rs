@@ -4,6 +4,7 @@ use crate::util::json::{OutputFormat, success};
 use serde_yaml::Value as YamlValue;
 
 use super::compute_blocked_cascade;
+use super::engine_ready::compute_unreachable_conditional_set;
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
     update_workflow_node_frontmatter,
@@ -84,6 +85,54 @@ pub(super) fn update_pipeline_node_status(
                 state.failure_reason = None;
             }
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
+
+            let unreachable_node_ids =
+                compute_unreachable_conditional_set(&definition, &node_states);
+            for unreachable_node_id in &unreachable_node_ids {
+                let unreachable_state =
+                    node_states.get_mut(unreachable_node_id).ok_or_else(|| {
+                        MaenifoldError::Message(format!(
+                            "ERROR: Pipeline session missing node state for '{unreachable_node_id}'"
+                        ))
+                    })?;
+                unreachable_state.status = NodeStatus::Abandoned;
+                unreachable_state.acp_session_id = None;
+                unreachable_state.thinking_session_id = None;
+                unreachable_state.tool_provenance = None;
+                unreachable_state.output = None;
+                unreachable_state.failure_reason =
+                    Some("conditional predicate not satisfied".to_string());
+            }
+
+            let cascaded_node_ids = compute_blocked_cascade(&definition, &node_states);
+            for cascaded_node_id in &cascaded_node_ids {
+                let cascaded_state = node_states.get_mut(cascaded_node_id).ok_or_else(|| {
+                    MaenifoldError::Message(format!(
+                        "ERROR: Pipeline session missing node state for '{cascaded_node_id}'"
+                    ))
+                })?;
+                cascaded_state.status = NodeStatus::Abandoned;
+                cascaded_state.acp_session_id = None;
+                cascaded_state.thinking_session_id = None;
+                cascaded_state.tool_provenance = None;
+                cascaded_state.output = None;
+                cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
+            }
+
+            let mut skipped_node_ids = unreachable_node_ids;
+            skipped_node_ids.extend(cascaded_node_ids);
+            for skipped_node_id in &skipped_node_ids {
+                let skipped_session_id = node_states
+                    .get(skipped_node_id)
+                    .ok_or_else(|| {
+                        MaenifoldError::Message(format!(
+                            "ERROR: Pipeline session missing node state for '{skipped_node_id}'"
+                        ))
+                    })?
+                    .session_id
+                    .clone();
+                update_workflow_node_frontmatter(context, &skipped_session_id, "abandoned", None)?;
+            }
         }
         "abandoned" | "stuck" => {
             let transitioned_status = if status == "stuck" {

@@ -12,6 +12,8 @@ pub(super) mod executor;
 mod executor_cleanup;
 mod executor_helpers;
 mod executor_nodes;
+#[cfg(test)]
+mod executor_timeout_tests;
 mod mapping_apply;
 mod mapping_predecessor;
 mod mapping_resolve;

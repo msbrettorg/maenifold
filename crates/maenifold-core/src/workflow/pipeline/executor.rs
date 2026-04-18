@@ -225,8 +225,8 @@ fn earliest_retry_after(node_states: &HashMap<String, NodeState>) -> Option<std:
 /// T-174.4: Returns `None` when the caller did not supply `timeout_seconds`. There
 /// is **no silent default fallback** — unbounded execution is the deliberate,
 /// caller-acknowledged choice when `timeout_seconds` is absent. Reintroducing
-/// `DEFAULT_TOOL_NODE_TIMEOUT_SECS` / `DEFAULT_AGENT_NODE_TIMEOUT_SECS` here is a
-/// P0 constitutional violation ("Mechanism, Not Policy").
+/// silent fallback timeout constants here is a P0 constitutional violation
+/// ("Mechanism, Not Policy").
 ///
 /// A caller-supplied `Some(0)` is treated as "no timeout" rather than an instant
 /// elapse, since wrapping in `tokio::time::timeout(Duration::ZERO, _)` would
@@ -647,7 +647,3 @@ mod apply_node_outcome_failure_reason_tests;
 #[cfg(test)]
 #[path = "retry_tests.rs"]
 mod retry_tests;
-
-#[cfg(test)]
-#[path = "executor_timeout_tests.rs"]
-mod executor_timeout_tests;

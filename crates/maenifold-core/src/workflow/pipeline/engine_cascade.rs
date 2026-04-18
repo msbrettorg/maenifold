@@ -28,7 +28,10 @@ pub fn compute_blocked_cascade(
 
     while let Some(source_index) = blocked_queue.pop_front() {
         for edge in graph.edges_directed(source_index, Outgoing) {
-            if !matches!(edge.weight(), EdgeType::Success) {
+            if !matches!(
+                edge.weight(),
+                EdgeType::Success | EdgeType::Conditional { .. }
+            ) {
                 continue;
             }
 
@@ -67,7 +70,10 @@ fn is_cascade_eligible(
     for source_index in graph.neighbors_directed(node_index, Incoming) {
         let source_id = graph[source_index].as_str();
         for edge in graph.edges_connecting(source_index, node_index) {
-            if !matches!(edge.weight(), EdgeType::Success) {
+            if !matches!(
+                edge.weight(),
+                EdgeType::Success | EdgeType::Conditional { .. }
+            ) {
                 continue;
             }
 

@@ -7,6 +7,7 @@ use crate::markdown::read_markdown;
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 
+use super::mapping_resolve::conditional_predicate_satisfied;
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 pub(super) fn assemble_node_prompt(
@@ -57,8 +58,19 @@ pub(super) fn predecessor_context_content(
     let mut sections = Vec::new();
 
     for edge in definition.edges.iter().filter(|edge| {
-        edge.target == downstream_node_id
-            && matches!(edge.edge_type, EdgeType::Success | EdgeType::Always)
+        if edge.target != downstream_node_id {
+            return false;
+        }
+        match &edge.edge_type {
+            EdgeType::Success | EdgeType::Always => true,
+            EdgeType::Conditional { path, equals } => node_states
+                .get(&edge.source)
+                .map(|state| {
+                    state.status == NodeStatus::Completed
+                        && conditional_predicate_satisfied(state.output.as_deref(), path, equals)
+                })
+                .unwrap_or(false),
+        }
     }) {
         let Some(upstream_state) = node_states.get(&edge.source) else {
             continue;

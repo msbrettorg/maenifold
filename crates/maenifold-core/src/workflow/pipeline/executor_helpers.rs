@@ -10,6 +10,7 @@ use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::workflow::runner_helpers::EnvelopeError;
 
+use super::mapping_resolve::conditional_predicate_satisfied;
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, optional_frontmatter_value,
     read_pipeline_session,
@@ -200,8 +201,19 @@ pub(super) fn predecessor_context_content(
     let mut sections = Vec::new();
 
     for edge in definition.edges.iter().filter(|edge| {
-        edge.target == downstream_node_id
-            && matches!(edge.edge_type, EdgeType::Success | EdgeType::Always)
+        if edge.target != downstream_node_id {
+            return false;
+        }
+        match &edge.edge_type {
+            EdgeType::Success | EdgeType::Always => true,
+            EdgeType::Conditional { path, equals } => node_states
+                .get(&edge.source)
+                .map(|state| {
+                    state.status == NodeStatus::Completed
+                        && conditional_predicate_satisfied(state.output.as_deref(), path, equals)
+                })
+                .unwrap_or(false),
+        }
     }) {
         let Some(upstream_state) = node_states.get(&edge.source) else {
             continue;

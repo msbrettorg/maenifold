@@ -18,7 +18,10 @@ pub(super) fn inject_predecessor_context(
         .iter()
         .filter(|edge| {
             edge.source == completed_node_id
-                && matches!(edge.edge_type, EdgeType::Success | EdgeType::Always)
+                && matches!(
+                    edge.edge_type,
+                    EdgeType::Success | EdgeType::Always | EdgeType::Conditional { .. }
+                )
         })
         .map(|edge| edge.target.as_str())
         .collect();

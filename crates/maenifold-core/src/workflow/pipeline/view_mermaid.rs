@@ -15,11 +15,21 @@ pub(super) fn render_pipeline_mermaid(
         lines.push(render_pipeline_mermaid_node(node, &state.status)?);
     }
     for edge in &definition.edges {
-        let arrow = match edge.edge_type {
-            EdgeType::Always => "-.->",
-            EdgeType::Success => "-->",
+        let line = match &edge.edge_type {
+            EdgeType::Always => format!("  {} -.-> {}", edge.source, edge.target),
+            EdgeType::Success => format!("  {} --> {}", edge.source, edge.target),
+            EdgeType::Conditional { path, equals } => {
+                let value_text = match equals {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                format!(
+                    "  {} -->|?{}={}| {}",
+                    edge.source, path, value_text, edge.target
+                )
+            }
         };
-        lines.push(format!("  {} {} {}", edge.source, arrow, edge.target));
+        lines.push(line);
     }
 
     Ok(lines.join("\n"))
@@ -29,6 +39,7 @@ pub(super) fn edge_type_name(edge_type: &EdgeType) -> &'static str {
     match edge_type {
         EdgeType::Success => "success",
         EdgeType::Always => "always",
+        EdgeType::Conditional { .. } => "conditional",
     }
 }
 

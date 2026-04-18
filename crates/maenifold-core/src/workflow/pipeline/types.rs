@@ -199,17 +199,34 @@ impl PipelineNode {
 pub struct PipelineEdge {
     pub source: String,
     pub target: String,
-    #[serde(rename = "type", default)]
+    #[serde(default, flatten)]
     pub edge_type: EdgeType,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub mapping: Option<HashMap<String, String>>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "lowercase")]
+/// Edge predicate determining whether a downstream node may run.
+///
+/// `Success` requires the upstream node to have completed; `Always` accepts
+/// any terminal upstream status (completed, abandoned, or stuck);
+/// `Conditional` requires the upstream to have completed AND the upstream's
+/// JSON output to have a value at `path` equal to `equals`.
+///
+/// Wire format is internally tagged on the `type` field of `PipelineEdge`:
+/// `{"type":"success"}`, `{"type":"always"}`,
+/// `{"type":"conditional","path":"verdict","equals":"FAIL"}`.
+///
+/// Note: `Eq` is intentionally NOT derived because `serde_json::Value`
+/// contains floating point numbers and is not `Eq`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum EdgeType {
     Success,
     Always,
+    Conditional {
+        path: String,
+        equals: serde_json::Value,
+    },
 }
 
 impl Default for EdgeType {

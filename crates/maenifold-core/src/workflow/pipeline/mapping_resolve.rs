@@ -95,6 +95,31 @@ fn parse_dot_path(path: &str) -> Option<Vec<String>> {
     Some(segments)
 }
 
+/// Test whether a `Conditional` edge predicate is satisfied for the upstream
+/// node's output.
+///
+/// Returns `true` iff the upstream output text parses as JSON, the dot-path
+/// resolves to a value, and that value equals `equals` (JSON value equality).
+/// A missing path or non-JSON output is treated as a non-match (NOT an
+/// error) so pipeline definitions remain resilient to optional output fields.
+pub(super) fn conditional_predicate_satisfied(
+    upstream_output: Option<&str>,
+    path: &str,
+    equals: &JsonValue,
+) -> bool {
+    let Some(output) = upstream_output else {
+        return false;
+    };
+    let trimmed = output.trim();
+    if trimmed.is_empty() {
+        return false;
+    }
+    let Ok(parsed) = serde_json::from_str::<JsonValue>(trimmed) else {
+        return false;
+    };
+    matches!(resolve_dot_path(&parsed, path), Ok(value) if &value == equals)
+}
+
 pub(super) fn pipeline_inputs_scope(inputs: &serde_json::Map<String, JsonValue>) -> JsonValue {
     JsonValue::Object(serde_json::Map::from_iter([(
         "inputs".to_string(),

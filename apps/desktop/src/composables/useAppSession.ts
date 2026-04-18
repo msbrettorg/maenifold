@@ -140,10 +140,15 @@ export function useAppSession({
   }
 
   async function handleSelectFolder() {
-    const folder = (await pickAbsoluteDirectory(selectedCwd.value)).trim();
-    if (!folder) {
+    const selectionResult = await pickAbsoluteDirectory(selectedCwd.value);
+    if (selectionResult.status === 'cancelled') return;
+    if (selectionResult.status === 'error') {
+      sessionStore.setError(selectionResult.message || 'Failed to select working directory');
       return;
     }
+    if (selectionResult.status !== 'picked') return;
+
+    const folder = selectionResult.path.trim();
     if (!isAbsolutePath(folder)) {
       sessionStore.setError('Working directory must be an absolute path');
       return;

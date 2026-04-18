@@ -10,6 +10,12 @@ type DirectoryPickerWindow = Window & {
   electronAPI?: ElectronDirectoryApi;
 };
 
+export type DirectoryPickResult =
+  | { status: 'picked'; path: string }
+  | { status: 'cancelled' }
+  | { status: 'unavailable' }
+  | { status: 'error'; message: string };
+
 const nativePathDialogClass =
   'fixed inset-0 z-[1000] m-0 flex h-full w-full max-h-none max-w-none items-center justify-center border-0 bg-black/60 p-0 text-inherit';
 const nativePathDialogFormClass =
@@ -105,56 +111,85 @@ async function promptForAbsolutePath(title: string, initialValue = ''): Promise<
   });
 }
 
-async function pickWithFileSystemAccess(currentPath: string): Promise<string> {
+async function pickWithFileSystemAccess(currentPath: string): Promise<DirectoryPickResult> {
   const browserWindow = window as DirectoryPickerWindow;
   if (typeof browserWindow.showDirectoryPicker !== 'function') {
-    return '';
+    return { status: 'unavailable' };
   }
 
   try {
     const handle = await browserWindow.showDirectoryPicker();
     const suggestedPath = suggestAbsolutePathFromCurrent(currentPath, handle.name);
-    return promptForAbsolutePath('Confirm working directory path', suggestedPath);
-  } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
-      return '';
+    const confirmedPath = (await promptForAbsolutePath('Confirm working directory path', suggestedPath)).trim();
+    if (!confirmedPath) {
+      return { status: 'cancelled' };
     }
 
-    return '';
+    return { status: 'picked', path: confirmedPath };
+  } catch (error) {
+    if (
+      (error instanceof DOMException && error.name === 'AbortError')
+      || (typeof error === 'object' && error !== null && 'name' in error && error.name === 'AbortError')
+    ) {
+      return { status: 'cancelled' };
+    }
+
+    const message = error instanceof Error ? error.message : 'Directory picker failed';
+    return { status: 'error', message };
   }
 }
 
-async function pickWithElectronBridge(): Promise<string> {
+async function pickWithElectronBridge(): Promise<DirectoryPickResult> {
   const api = (window as DirectoryPickerWindow).electronAPI;
   if (!api) {
-    return '';
+    return { status: 'unavailable' };
   }
 
-  if (typeof api.showOpenDialog === 'function') {
-    return (await api.showOpenDialog() ?? '').trim();
-  }
+  try {
+    if (typeof api.showOpenDialog === 'function') {
+      const selectedPath = (await api.showOpenDialog() ?? '').trim();
+      if (!selectedPath) {
+        return { status: 'cancelled' };
+      }
 
-  if (typeof api.openDirectory === 'function') {
-    return (await api.openDirectory() ?? '').trim();
-  }
+      return { status: 'picked', path: selectedPath };
+    }
 
-  return '';
+    if (typeof api.openDirectory === 'function') {
+      const selectedPath = (await api.openDirectory() ?? '').trim();
+      if (!selectedPath) {
+        return { status: 'cancelled' };
+      }
+
+      return { status: 'picked', path: selectedPath };
+    }
+
+    return { status: 'unavailable' };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Electron directory picker failed';
+    return { status: 'error', message };
+  }
 }
 
-export async function pickAbsoluteDirectory(currentPath = ''): Promise<string> {
+export async function pickAbsoluteDirectory(currentPath = ''): Promise<DirectoryPickResult> {
   if (typeof window === 'undefined') {
-    return '';
+    return { status: 'unavailable' };
   }
 
-  const fileSystemAccessPath = await pickWithFileSystemAccess(currentPath);
-  if (fileSystemAccessPath) {
-    return fileSystemAccessPath.trim();
+  const fileSystemAccessResult = await pickWithFileSystemAccess(currentPath);
+  if (fileSystemAccessResult.status !== 'unavailable') {
+    return fileSystemAccessResult;
   }
 
-  const electronBridgePath = await pickWithElectronBridge();
-  if (electronBridgePath) {
-    return electronBridgePath.trim();
+  const electronBridgeResult = await pickWithElectronBridge();
+  if (electronBridgeResult.status !== 'unavailable') {
+    return electronBridgeResult;
   }
 
-  return promptForAbsolutePath('Enter Working Directory', currentPath);
+  const enteredPath = (await promptForAbsolutePath('Enter Working Directory', currentPath)).trim();
+  if (!enteredPath) {
+    return { status: 'cancelled' };
+  }
+
+  return { status: 'picked', path: enteredPath };
 }

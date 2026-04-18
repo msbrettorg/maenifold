@@ -172,18 +172,18 @@ function priorityClass(priority: ToolHintPriority): string {
 .panel-header::after { content: 'Step inspector'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; color: var(--muted-foreground); }
 .step-inspector:has(.workflow-meta) .panel-header::after { content: 'Workflow'; }
 .step-id-row, .workflow-meta, .form-group { margin: 0 var(--space-4); }
-.step-id-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5); padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); border-radius: var(--radius-md); background: var(--card); flex-wrap: wrap; }
+.step-id-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5); padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); background: color-mix(in srgb, var(--card) 82%, var(--background)); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--border) 65%, transparent); flex-wrap: wrap; }
 .workflow-meta { display: flex; flex-direction: column; gap: var(--space-5); }
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
 .form-group + .form-group { margin-top: var(--space-5); }
 .step-id-label, .field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
 .step-id-value, .meta-mono { font-family: var(--font-code); font-size: var(--text-tiny); color: var(--muted-foreground); }
-.effort-segments { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: var(--radius-md); overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); }
+.effort-segments { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: var(--radius-md); overflow: hidden; background: color-mix(in srgb, var(--input) 75%, var(--card)); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--border) 65%, transparent); }
 .effort-segment { text-align: center; padding: var(--space-2) var(--space-1); background: var(--input); color: var(--muted-foreground); border: 0; font: var(--weight-title) var(--text-tiny)/1.4 var(--font-code); letter-spacing: 0.05em; cursor: pointer; }
-.effort-segment + .effort-segment { box-shadow: inset 1px 0 0 color-mix(in srgb, var(--border) 75%, transparent); }
+.effort-segment + .effort-segment { box-shadow: inset 0.75px 0 0 color-mix(in srgb, var(--border) 75%, transparent); }
 .effort-segment.active { background: color-mix(in srgb, var(--color-node-workflow) 16%, var(--input)); color: var(--color-node-workflow); }
-.thinking-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); cursor: pointer; }
-.thinking-card.enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
+.thinking-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: color-mix(in srgb, var(--card) 86%, var(--background)); border-radius: var(--radius-md); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--border) 65%, transparent); cursor: pointer; transition: background-color var(--transition-fast), box-shadow var(--transition-fast); }
+.thinking-card.enabled { background: color-mix(in srgb, var(--color-node-workflow) 10%, var(--card)); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--color-node-workflow) 45%, var(--border)), 0 0 0 2px color-mix(in srgb, var(--color-node-workflow) 12%, transparent); }
 .thinking-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .thinking-title, .meta-value { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); color: var(--foreground); }
 .thinking-subtitle { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
@@ -191,8 +191,8 @@ function priorityClass(priority: ToolHintPriority): string {
 .thinking-indicator.on { background: var(--color-node-workflow); justify-content: flex-end; }
 .indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--foreground); }
 .tool-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
-.tool-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--card); color: var(--foreground); font: var(--weight-code) var(--text-tiny)/1.4 var(--font-code); }
-.priority-badge { padding: 1px 4px; border-radius: 3px; font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.03em; }
+.tool-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--card) 80%, var(--background)); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--border) 75%, transparent); color: var(--foreground); font: var(--weight-code) var(--text-tiny)/1.4 var(--font-code); }
+.priority-badge { padding: 2px 4px; border-radius: 3px; font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.03em; }
 .priority-mandatory { background: color-mix(in srgb, var(--color-status-abandoned) 25%, transparent); color: var(--color-status-abandoned); }
 .priority-recommended { background: color-mix(in srgb, var(--color-node-workflow) 20%, transparent); color: var(--color-node-workflow); }
 .priority-optional { background: color-mix(in srgb, var(--muted-foreground) 20%, transparent); color: var(--muted-foreground); }

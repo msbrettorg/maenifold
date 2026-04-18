@@ -30,6 +30,15 @@ pub struct AgentConfig {
     pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RetryPolicy {
+    pub max_attempts: u32,
+    pub backoff_min_ms: u64,
+    pub backoff_max_ms: u64,
+    pub jitter: bool,
+}
+
 impl PipelineDefinition {
     pub(crate) fn build_graph(&self) -> StableGraph<String, EdgeType> {
         let mut graph = StableGraph::with_capacity(self.nodes.len(), self.edges.len());
@@ -65,6 +74,7 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        retry_policy: Option<RetryPolicy>,
     },
     Prompt {
         id: String,
@@ -79,6 +89,7 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        retry_policy: Option<RetryPolicy>,
     },
     SequentialThinking {
         id: String,
@@ -94,6 +105,7 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        retry_policy: Option<RetryPolicy>,
     },
     Tool {
         id: String,
@@ -108,6 +120,7 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        retry_policy: Option<RetryPolicy>,
     },
 }
 
@@ -181,6 +194,15 @@ impl PipelineNode {
             Self::Prompt { .. } => "prompt",
             Self::SequentialThinking { .. } => "sequentialThinking",
             Self::Tool { .. } => "tool",
+        }
+    }
+
+    pub fn retry_policy(&self) -> Option<&RetryPolicy> {
+        match self {
+            Self::Workflow { retry_policy, .. }
+            | Self::Prompt { retry_policy, .. }
+            | Self::SequentialThinking { retry_policy, .. }
+            | Self::Tool { retry_policy, .. } => retry_policy.as_ref(),
         }
     }
 

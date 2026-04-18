@@ -14,6 +14,8 @@ mod executor_helpers;
 mod executor_nodes;
 #[cfg(test)]
 mod executor_timeout_tests;
+#[cfg(test)]
+mod executor_retry_tests;
 mod mapping_apply;
 mod mapping_predecessor;
 mod mapping_resolve;
@@ -70,7 +72,7 @@ pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode, RetryPolicy,
     PredecessorOutput, ToolProvenance,
 };
 pub use validation::validate_pipeline;

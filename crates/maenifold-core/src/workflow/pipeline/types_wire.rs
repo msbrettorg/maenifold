@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::{AgentConfig, PipelineNode};
+use super::types::{AgentConfig, PipelineNode, RetryPolicy};
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -69,6 +69,22 @@ pub(super) struct PipelineNodeWire {
     max_turns: Option<u32>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     timeout: Option<u64>,
+    #[serde(default, rename = "retryMaxAttempts", skip_serializing_if = "Option::is_none")]
+    retry_max_attempts: Option<u32>,
+    #[serde(
+        default,
+        rename = "retryBackoffMinMs",
+        skip_serializing_if = "Option::is_none"
+    )]
+    retry_backoff_min_ms: Option<u64>,
+    #[serde(
+        default,
+        rename = "retryBackoffMaxMs",
+        skip_serializing_if = "Option::is_none"
+    )]
+    retry_backoff_max_ms: Option<u64>,
+    #[serde(default, rename = "retryJitter", skip_serializing_if = "Option::is_none")]
+    retry_jitter: Option<bool>,
 }
 
 impl TryFrom<PipelineNodeWire> for PipelineNode {
@@ -77,6 +93,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
     #[allow(clippy::too_many_lines)]
     fn try_from(wire: PipelineNodeWire) -> Result<Self, Self::Error> {
         let node_id = wire.id.clone();
+        let retry_policy = parse_retry_policy(&wire, &node_id)?;
 
         let required = |value: Option<String>, name: &str| -> Result<String, String> {
             value.ok_or_else(|| format!("Node '{node_id}': missing '{name}' field"))
@@ -106,6 +123,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                retry_policy,
             },
             "prompt" => Self::Prompt {
                 id: wire.id,
@@ -120,6 +138,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                retry_policy,
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
@@ -135,6 +154,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                retry_policy,
             },
             "tool" => Self::Tool {
                 id: wire.id,
@@ -149,6 +169,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                retry_policy,
             },
             other => {
                 return Err(format!(
@@ -172,6 +193,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                retry_policy,
             } => Self {
                 kind: Some("workflow".to_string()),
                 id,
@@ -193,6 +215,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools: None,
                 max_turns: None,
                 timeout,
+                retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
+                retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
+                retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
+                retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
             },
             PipelineNode::Prompt {
                 id,
@@ -207,6 +233,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                retry_policy,
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
@@ -228,6 +255,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
+                retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
+                retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
+                retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
             },
             PipelineNode::SequentialThinking {
                 id,
@@ -243,6 +274,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                retry_policy,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
@@ -264,6 +296,10 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
+                retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
+                retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
+                retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
             },
             PipelineNode::Tool {
                 id,
@@ -278,6 +314,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                retry_policy,
             } => Self {
                 kind: Some("tool".to_string()),
                 id,
@@ -299,9 +336,50 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
+                retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
+                retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
+                retry_jitter: retry_policy.as_ref().map(|policy| policy.jitter),
             },
         }
     }
+}
+
+fn parse_retry_policy(wire: &PipelineNodeWire, node_id: &str) -> Result<Option<RetryPolicy>, String> {
+    let has_retry_field = wire.retry_max_attempts.is_some()
+        || wire.retry_backoff_min_ms.is_some()
+        || wire.retry_backoff_max_ms.is_some()
+        || wire.retry_jitter.is_some();
+
+    if !has_retry_field {
+        return Ok(None);
+    }
+
+    let max_attempts = wire.retry_max_attempts.ok_or_else(|| {
+        format!("Node '{node_id}': retryMaxAttempts is required when retry fields are present")
+    })?;
+    let backoff_min_ms = wire.retry_backoff_min_ms.ok_or_else(|| {
+        format!("Node '{node_id}': retryBackoffMinMs is required when retry fields are present")
+    })?;
+    let backoff_max_ms = wire.retry_backoff_max_ms.ok_or_else(|| {
+        format!("Node '{node_id}': retryBackoffMaxMs is required when retry fields are present")
+    })?;
+    let jitter = wire.retry_jitter.ok_or_else(|| {
+        format!("Node '{node_id}': retryJitter is required when retry fields are present")
+    })?;
+
+    if backoff_min_ms > backoff_max_ms {
+        return Err(format!(
+            "Node '{node_id}': retryBackoffMinMs ({backoff_min_ms}) must be <= retryBackoffMaxMs ({backoff_max_ms})"
+        ));
+    }
+
+    Ok(Some(RetryPolicy {
+        max_attempts,
+        backoff_min_ms,
+        backoff_max_ms,
+        jitter,
+    }))
 }
 
 fn default_prompt_tool_mode() -> String {

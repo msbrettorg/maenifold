@@ -181,6 +181,7 @@ pub struct PipelineAgentConfigSchema {
     #[serde(default)]
     pub config_options: Option<Map<String, Value>>,
 }
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PipelineNodeSchema {
@@ -214,6 +215,18 @@ pub struct PipelineWorkflowNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
+    /// Optional maximum transient retry attempts. 0 means no retry.
+    #[serde(default)]
+    pub retry_max_attempts: Option<u32>,
+    /// Optional minimum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_min_ms: Option<u64>,
+    /// Optional maximum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_max_ms: Option<u64>,
+    /// Optional jitter flag for retry delays.
+    #[serde(default)]
+    pub retry_jitter: Option<bool>,
 }
 #[derive(Deserialize, JsonSchema)]
 pub enum PipelineWorkflowNodeType {
@@ -256,6 +269,18 @@ pub struct PipelinePromptNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
+    /// Optional maximum transient retry attempts. 0 means no retry.
+    #[serde(default)]
+    pub retry_max_attempts: Option<u32>,
+    /// Optional minimum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_min_ms: Option<u64>,
+    /// Optional maximum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_max_ms: Option<u64>,
+    /// Optional jitter flag for retry delays.
+    #[serde(default)]
+    pub retry_jitter: Option<bool>,
     #[serde(default)]
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }
@@ -302,6 +327,18 @@ pub struct PipelineSequentialThinkingNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
+    /// Optional maximum transient retry attempts. 0 means no retry.
+    #[serde(default)]
+    pub retry_max_attempts: Option<u32>,
+    /// Optional minimum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_min_ms: Option<u64>,
+    /// Optional maximum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_max_ms: Option<u64>,
+    /// Optional jitter flag for retry delays.
+    #[serde(default)]
+    pub retry_jitter: Option<bool>,
     #[serde(default)]
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }
@@ -347,6 +384,18 @@ pub struct PipelineToolNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
+    /// Optional maximum transient retry attempts. 0 means no retry.
+    #[serde(default)]
+    pub retry_max_attempts: Option<u32>,
+    /// Optional minimum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_min_ms: Option<u64>,
+    /// Optional maximum backoff delay in milliseconds.
+    #[serde(default)]
+    pub retry_backoff_max_ms: Option<u64>,
+    /// Optional jitter flag for retry delays.
+    #[serde(default)]
+    pub retry_jitter: Option<bool>,
     #[serde(default)]
     pub agent_config: Option<PipelineAgentConfigSchema>,
 }

@@ -11,6 +11,7 @@ app = []
 [dependencies]
 anyhow.workspace = true
 axum = { workspace = true, features = ["ws"] }
+backon.workspace = true
 base64.workspace = true
 chrono.workspace = true
 clap = { version = "4", features = ["derive"] }

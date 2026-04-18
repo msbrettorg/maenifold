@@ -23,7 +23,7 @@ use super::{NodeState, PipelineDefinition, PipelineNode};
 pub(super) use super::executor_run::FailurePhase;
 pub(super) use super::executor_run::{NodeOutcome, NodeTaskResult, classify_node_result};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(super) enum NodeExecutionRequest {
     Workflow {
         workflow_id: String,

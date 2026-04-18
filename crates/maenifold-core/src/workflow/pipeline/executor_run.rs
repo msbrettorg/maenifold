@@ -55,12 +55,15 @@ pub(super) enum NodeOutcome {
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
         tool_provenance: Option<ToolProvenance>,
+        retry_attempts: u32,
     },
     Abandoned {
         reason: String,
         phase: FailurePhase,
+        transient_error_kind: Option<&'static str>,
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
+        retry_attempts: u32,
     },
 }
 
@@ -109,14 +112,17 @@ fn classify_workflow_result(
                 acp_session_id: workflow.acp_session_id,
                 thinking_session_id: None,
                 tool_provenance: None,
+                retry_attempts: 0,
             },
             WorkflowRunStatus::Failed(ref msg) => {
                 eprintln!("[pipeline] node {node_id} workflow failed: {msg}");
                 NodeOutcome::Abandoned {
                     reason: msg.clone(),
                     phase: FailurePhase::PostPrompt,
+                    transient_error_kind: None,
                     acp_session_id: workflow.acp_session_id.clone(),
                     thinking_session_id: None,
+                    retry_attempts: 0,
                 }
             }
             WorkflowRunStatus::Cancelled => {
@@ -124,23 +130,33 @@ fn classify_workflow_result(
                 NodeOutcome::Abandoned {
                     reason: "workflow cancelled".to_string(),
                     phase: FailurePhase::PostPrompt,
+                    transient_error_kind: None,
                     acp_session_id: workflow.acp_session_id,
                     thinking_session_id: None,
+                    retry_attempts: 0,
                 }
             }
         },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: Some("agent-setup"),
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
-        Err(error) => NodeOutcome::Abandoned {
-            reason: log_node_execution_error(node_id, &error),
-            phase: FailurePhase::PostPrompt,
-            acp_session_id,
-            thinking_session_id: None,
-        },
+        Err(error) => {
+            let reason = log_node_execution_error(node_id, &error);
+            let (phase, transient_error_kind) = classify_retryable_error(&error, &reason);
+            NodeOutcome::Abandoned {
+                reason,
+                phase,
+                transient_error_kind,
+                acp_session_id,
+                thinking_session_id: None,
+                retry_attempts: 0,
+            }
+        }
     }
 }
 
@@ -156,8 +172,10 @@ fn classify_prompt_result(
                 NodeOutcome::Abandoned {
                     reason,
                     phase: FailurePhase::PostPrompt,
+                    transient_error_kind: None,
                     acp_session_id: result.acp_session_id,
                     thinking_session_id: None,
+                    retry_attempts: 0,
                 }
             } else if !result.response.trim().is_empty() {
                 NodeOutcome::Completed {
@@ -165,28 +183,39 @@ fn classify_prompt_result(
                     acp_session_id: result.acp_session_id,
                     thinking_session_id: None,
                     tool_provenance: None,
+                    retry_attempts: 0,
                 }
             } else {
                 NodeOutcome::Abandoned {
                     reason: "empty response".to_string(),
                     phase: FailurePhase::PostPrompt,
+                    transient_error_kind: None,
                     acp_session_id: result.acp_session_id,
                     thinking_session_id: None,
+                    retry_attempts: 0,
                 }
             }
         }
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: Some("agent-setup"),
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
-        Err(error) => NodeOutcome::Abandoned {
-            reason: log_node_execution_error(node_id, &error),
-            phase: FailurePhase::PostPrompt,
-            acp_session_id,
-            thinking_session_id: None,
-        },
+        Err(error) => {
+            let reason = log_node_execution_error(node_id, &error);
+            let (phase, transient_error_kind) = classify_retryable_error(&error, &reason);
+            NodeOutcome::Abandoned {
+                reason,
+                phase,
+                transient_error_kind,
+                acp_session_id,
+                thinking_session_id: None,
+                retry_attempts: 0,
+            }
+        }
     }
 }
 
@@ -212,8 +241,10 @@ fn classify_think_result(
                         NodeOutcome::Abandoned {
                             reason,
                             phase: FailurePhase::PostPrompt,
+                            transient_error_kind: None,
                             acp_session_id: acp_session_id.clone(),
                             thinking_session_id: Some(session_id.clone()),
+                            retry_attempts: 0,
                         }
                     } else {
                         NodeOutcome::Completed {
@@ -221,28 +252,39 @@ fn classify_think_result(
                             acp_session_id: acp_session_id.clone(),
                             thinking_session_id: Some(session_id.clone()),
                             tool_provenance: None,
+                            retry_attempts: 0,
                         }
                     }
                 })
                 .unwrap_or(NodeOutcome::Abandoned {
                     reason: "missing conclusion".to_string(),
                     phase: FailurePhase::PostPrompt,
+                    transient_error_kind: None,
                     acp_session_id,
                     thinking_session_id: Some(session_id),
+                    retry_attempts: 0,
                 })
         }
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: Some("agent-setup"),
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
-        Err(error) => NodeOutcome::Abandoned {
-            reason: log_node_execution_error(node_id, &error),
-            phase: FailurePhase::PostPrompt,
-            acp_session_id,
-            thinking_session_id,
-        },
+        Err(error) => {
+            let reason = log_node_execution_error(node_id, &error);
+            let (phase, transient_error_kind) = classify_retryable_error(&error, &reason);
+            NodeOutcome::Abandoned {
+                reason,
+                phase,
+                transient_error_kind,
+                acp_session_id,
+                thinking_session_id,
+                retry_attempts: 0,
+            }
+        }
     }
 }
 
@@ -253,43 +295,105 @@ fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> N
             acp_session_id: None,
             thinking_session_id: None,
             tool_provenance: Some(result.provenance),
+            retry_attempts: 0,
         },
         Ok(_) => NodeOutcome::Abandoned {
             reason: "empty response".to_string(),
             phase: FailurePhase::PostPrompt,
+            transient_error_kind: None,
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         Err(MaenifoldError::AgentSetup(message)) => NodeOutcome::Abandoned {
             reason: log_node_execution_error_str(node_id, &message),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: Some("agent-setup"),
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
-            let phase = if is_retryable_external_mcp_failure(&reason) {
-                FailurePhase::PreExecution
-            } else {
-                FailurePhase::PostPrompt
-            };
+            let (phase, transient_error_kind) = classify_retryable_error(&error, &reason);
 
             NodeOutcome::Abandoned {
                 reason,
                 phase,
+                transient_error_kind,
                 acp_session_id: None,
                 thinking_session_id: None,
+                retry_attempts: 0,
             }
         }
     }
 }
 
-fn is_retryable_external_mcp_failure(message: &str) -> bool {
-    message.contains("external MCP")
+fn classify_retryable_error(
+    error: &MaenifoldError,
+    rendered: &str,
+) -> (FailurePhase, Option<&'static str>) {
+    use std::io::ErrorKind;
+
+    let rendered_lower = rendered.to_ascii_lowercase();
+    let message = match error {
+        MaenifoldError::Message(message) => message.as_str(),
+        MaenifoldError::AgentSetup(message) => message.as_str(),
+        _ => rendered,
+    };
+    let message_lower = message.to_ascii_lowercase();
+
+    if message_lower.contains("timeout after")
+        || message_lower.contains("timed out")
+        || rendered_lower.contains("elapsed")
+    {
+        return (FailurePhase::PreExecution, Some("timeout"));
+    }
+
+    if message_lower.contains("cancelled") || message_lower.contains("canceled") {
+        return (FailurePhase::PostPrompt, None);
+    }
+
+    if let MaenifoldError::Io(io_error) = error {
+        let kind = match io_error.kind() {
+            ErrorKind::Interrupted => Some("io-interrupted"),
+            ErrorKind::TimedOut => Some("io-timeout"),
+            ErrorKind::ConnectionReset => Some("io-connection-reset"),
+            ErrorKind::BrokenPipe => Some("io-broken-pipe"),
+            _ => None,
+        };
+        if let Some(kind) = kind {
+            return (FailurePhase::PreExecution, Some(kind));
+        }
+    }
+
+    if is_retryable_mcp_error_code(message) {
+        return (FailurePhase::PreExecution, Some("mcp-retryable-code"));
+    }
+
+    if message.contains("external MCP")
         || message.contains("Failed to spawn")
         || message.contains("Failed to connect")
         || message.contains("Failed to invoke external MCP tool")
         || message.contains("Failed to build HTTP client for MCP server")
+    {
+        return (FailurePhase::PreExecution, Some("external-mcp"));
+    }
+
+    (FailurePhase::PostPrompt, None)
+}
+
+fn is_retryable_mcp_error_code(message: &str) -> bool {
+    const RETRYABLE_CODES: [&str; 6] = [
+        "code=-32001",
+        "code = -32001",
+        "code=-32002",
+        "code = -32002",
+        "code=-32004",
+        "code = -32004",
+    ];
+
+    RETRYABLE_CODES.iter().any(|code| message.contains(code)) || message.contains("code=429")
 }
 
 fn log_node_execution_error(node_id: &str, error: &dyn StdError) -> String {

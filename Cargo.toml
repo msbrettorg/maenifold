@@ -18,6 +18,7 @@ authors = ["MSBrett"]
 repository = "https://github.com/msbrettorg/maenifold"
 
 [workspace.dependencies]
+backon = "1.6"
 # Evaluated but deferred: unstable_session_fork (needs pipeline integration), unstable_message_id (needs prompt correlation)
 agent-client-protocol = { version = "0.10", features = ["unstable_session_close", "unstable_session_model", "unstable_session_usage"] }
 agent-client-protocol-schema = { version = "0.11.4", features = ["unstable_session_close", "unstable_session_model", "unstable_session_usage"] }
@@ -71,4 +72,3 @@ warnings = "deny"
 [patch.crates-io]
 sacp = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
 sacp-derive = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
-

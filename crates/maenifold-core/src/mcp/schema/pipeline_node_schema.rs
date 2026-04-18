@@ -109,6 +109,28 @@ fn node_schema_value() -> serde_json::Value {
                         "format": "uint32",
                         "minimum": 0,
                         "description": "Optional timeout in seconds"
+                    },
+                    "retryMaxAttempts": {
+                        "type": "integer",
+                        "format": "uint32",
+                        "minimum": 0,
+                        "description": "Optional maximum transient retry attempts; 0 means no retry"
+                    },
+                    "retryBackoffMinMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional minimum retry backoff in milliseconds"
+                    },
+                    "retryBackoffMaxMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional maximum retry backoff in milliseconds"
+                    },
+                    "retryJitter": {
+                        "type": "boolean",
+                        "description": "Optional jitter toggle for retry backoff"
                     }
                 }
             },
@@ -170,6 +192,28 @@ fn node_schema_value() -> serde_json::Value {
                         "format": "uint32",
                         "minimum": 0,
                         "description": "Optional timeout in seconds"
+                    },
+                    "retryMaxAttempts": {
+                        "type": "integer",
+                        "format": "uint32",
+                        "minimum": 0,
+                        "description": "Optional maximum transient retry attempts; 0 means no retry"
+                    },
+                    "retryBackoffMinMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional minimum retry backoff in milliseconds"
+                    },
+                    "retryBackoffMaxMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional maximum retry backoff in milliseconds"
+                    },
+                    "retryJitter": {
+                        "type": "boolean",
+                        "description": "Optional jitter toggle for retry backoff"
                     },
                     "agentConfig": agent_config_schema()
                 }
@@ -239,6 +283,28 @@ fn node_schema_value() -> serde_json::Value {
                         "minimum": 0,
                         "description": "Optional timeout in seconds"
                     },
+                    "retryMaxAttempts": {
+                        "type": "integer",
+                        "format": "uint32",
+                        "minimum": 0,
+                        "description": "Optional maximum transient retry attempts; 0 means no retry"
+                    },
+                    "retryBackoffMinMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional minimum retry backoff in milliseconds"
+                    },
+                    "retryBackoffMaxMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional maximum retry backoff in milliseconds"
+                    },
+                    "retryJitter": {
+                        "type": "boolean",
+                        "description": "Optional jitter toggle for retry backoff"
+                    },
                     "agentConfig": agent_config_schema()
                 }
             },
@@ -301,6 +367,28 @@ fn node_schema_value() -> serde_json::Value {
                         "format": "uint32",
                         "minimum": 0,
                         "description": "Optional timeout in seconds"
+                    },
+                    "retryMaxAttempts": {
+                        "type": "integer",
+                        "format": "uint32",
+                        "minimum": 0,
+                        "description": "Optional maximum transient retry attempts; 0 means no retry"
+                    },
+                    "retryBackoffMinMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional minimum retry backoff in milliseconds"
+                    },
+                    "retryBackoffMaxMs": {
+                        "type": "integer",
+                        "format": "uint64",
+                        "minimum": 0,
+                        "description": "Optional maximum retry backoff in milliseconds"
+                    },
+                    "retryJitter": {
+                        "type": "boolean",
+                        "description": "Optional jitter toggle for retry backoff"
                     },
                     "agentConfig": agent_config_schema()
                 }

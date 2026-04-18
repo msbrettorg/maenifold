@@ -84,6 +84,7 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    retry_policy,
                     ..
                 } => super::super::PipelineNode::Workflow {
                     id: node_id_map[node.id()].clone(),
@@ -94,6 +95,7 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::Prompt {
                     display_label,
@@ -107,6 +109,7 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    retry_policy,
                     ..
                 } => super::super::PipelineNode::Prompt {
                     id: node_id_map[node.id()].clone(),
@@ -121,6 +124,7 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
                     display_label,
@@ -135,6 +139,7 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    retry_policy,
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
                     id: node_id_map[node.id()].clone(),
@@ -150,6 +155,7 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::Tool {
                     display_label,
@@ -163,6 +169,7 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    retry_policy,
                     ..
                 } => super::super::PipelineNode::Tool {
                     id: node_id_map[node.id()].clone(),
@@ -177,6 +184,7 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    retry_policy: retry_policy.clone(),
                 },
             })
             .collect(),

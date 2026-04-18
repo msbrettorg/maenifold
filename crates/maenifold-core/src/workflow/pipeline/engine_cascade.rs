@@ -66,28 +66,33 @@ fn is_cascade_eligible(
         return false;
     }
 
-    let mut has_incoming_success = false;
+    let mut has_incoming_requirement = false;
     for source_index in graph.neighbors_directed(node_index, Incoming) {
         let source_id = graph[source_index].as_str();
         for edge in graph.edges_connecting(source_index, node_index) {
-            if !matches!(
-                edge.weight(),
-                EdgeType::Success | EdgeType::Conditional { .. }
-            ) {
-                continue;
-            }
-
-            has_incoming_success = true;
-            if !matches!(
-                effective_node_status(source_id, node_states, cascaded),
-                Some(NodeStatus::Abandoned | NodeStatus::Stuck)
-            ) {
-                return false;
+            match edge.weight() {
+                EdgeType::Always => {
+                    if !matches!(
+                        effective_node_status(source_id, node_states, cascaded),
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                    ) {
+                        return false;
+                    }
+                }
+                EdgeType::Success | EdgeType::Conditional { .. } => {
+                    has_incoming_requirement = true;
+                    if !matches!(
+                        effective_node_status(source_id, node_states, cascaded),
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                    ) {
+                        return false;
+                    }
+                }
             }
         }
     }
 
-    has_incoming_success
+    has_incoming_requirement
 }
 
 fn effective_node_status<'a>(
@@ -99,5 +104,85 @@ fn effective_node_status<'a>(
         Some(NodeStatus::Abandoned)
     } else {
         node_states.get(node_id).map(|state| state.status.clone())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::workflow::pipeline::types::{PipelineEdge, PipelineNode};
+
+    fn make_thinking_node(id: &str) -> PipelineNode {
+        PipelineNode::SequentialThinking {
+            id: id.into(),
+            agent: "agent".into(),
+            topic: "t".into(),
+            total_thoughts: 1,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            cwd: None,
+            display_label: None,
+            timeout: None,
+            agent_config: None,
+            model: None,
+            analysis_type: None,
+        }
+    }
+
+    fn node_state(status: NodeStatus) -> NodeState {
+        NodeState {
+            session_id: "s".into(),
+            status,
+            attempts: 1,
+            acp_session_id: None,
+            thinking_session_id: None,
+            tool_provenance: None,
+            output: None,
+            failure_reason: None,
+            retry_after: None,
+            retry_count: None,
+        }
+    }
+
+    #[test]
+    fn cascade_skips_target_with_non_abandoned_always_fallback() {
+        let definition = PipelineDefinition {
+            nodes: vec![
+                make_thinking_node("cond"),
+                make_thinking_node("always"),
+                make_thinking_node("target"),
+            ],
+            edges: vec![
+                PipelineEdge {
+                    source: "cond".into(),
+                    target: "target".into(),
+                    edge_type: EdgeType::Conditional {
+                        path: "verdict".into(),
+                        equals: serde_json::Value::String("FAIL".into()),
+                    },
+                    mapping: None,
+                },
+                PipelineEdge {
+                    source: "always".into(),
+                    target: "target".into(),
+                    edge_type: EdgeType::Always,
+                    mapping: None,
+                },
+            ],
+            template_id: None,
+            inputs: None,
+        };
+        let node_states = HashMap::from([
+            ("cond".to_string(), node_state(NodeStatus::Abandoned)),
+            ("always".to_string(), node_state(NodeStatus::Pending)),
+            ("target".to_string(), node_state(NodeStatus::Pending)),
+        ]);
+
+        let cascaded = compute_blocked_cascade(&definition, &node_states);
+        assert!(
+            cascaded.is_empty(),
+            "expected no cascade with Always fallback, got: {cascaded:?}"
+        );
     }
 }

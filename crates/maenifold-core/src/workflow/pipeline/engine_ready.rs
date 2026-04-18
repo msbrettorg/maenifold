@@ -31,14 +31,7 @@ pub fn compute_ready_set(
             };
 
             !is_node_blocked(&graph, node_index, node_states)
-                && graph
-                    .neighbors_directed(node_index, Incoming)
-                    .all(|source_index| {
-                        let source_id = graph[source_index].as_str();
-                        graph
-                            .edges_connecting(source_index, node_index)
-                            .all(|edge| is_edge_satisfied(edge.weight(), source_id, node_states))
-                    })
+                && incoming_edges_satisfy_ready_rule(&graph, node_index, node_states)
         })
         .map(|node| node.id().to_string())
         .collect()
@@ -67,13 +60,59 @@ fn is_node_blocked(
                 .any(|edge| {
                     matches!(
                         edge.weight(),
-                        EdgeType::Success | EdgeType::Conditional { .. }
+                        EdgeType::Success
                     ) && matches!(
                         node_states.get(source_id).map(|state| &state.status),
                         Some(NodeStatus::Abandoned | NodeStatus::Stuck)
                     )
                 })
         })
+}
+
+fn incoming_edges_satisfy_ready_rule(
+    graph: &petgraph::stable_graph::StableGraph<String, EdgeType>,
+    node_index: NodeIndex,
+    node_states: &HashMap<String, NodeState>,
+) -> bool {
+    let mut has_incoming = false;
+    let mut has_satisfied_edge = false;
+    let mut has_non_success_edge = false;
+    let mut has_satisfying_non_success_edge = false;
+
+    for source_index in graph.neighbors_directed(node_index, Incoming) {
+        let source_id = graph[source_index].as_str();
+        for edge in graph.edges_connecting(source_index, node_index) {
+            has_incoming = true;
+            let satisfied = is_edge_satisfied(edge.weight(), source_id, node_states);
+            match edge.weight() {
+                EdgeType::Success => {
+                    if !satisfied {
+                        return false;
+                    }
+                    has_satisfied_edge = true;
+                }
+                EdgeType::Always | EdgeType::Conditional { .. } => {
+                    has_non_success_edge = true;
+                    if satisfied {
+                        has_satisfied_edge = true;
+                        has_satisfying_non_success_edge = true;
+                    }
+                }
+            }
+        }
+    }
+
+    if !has_incoming {
+        return true;
+    }
+    if !has_satisfied_edge {
+        return false;
+    }
+    if has_non_success_edge {
+        has_satisfying_non_success_edge
+    } else {
+        true
+    }
 }
 
 fn is_edge_satisfied(
@@ -259,6 +298,43 @@ mod tests {
             template_id: None,
             inputs: None,
         };
+        let ready = compute_ready_set(&definition, &states);
+        assert_eq!(ready, vec!["down".to_string()]);
+    }
+
+    #[test]
+    fn always_edge_can_satisfy_target_when_conditional_is_false() {
+        let mut states = HashMap::new();
+        states.insert("cond".to_string(), completed_state(r#"{"verdict":"PASS"}"#));
+        states.insert("always".to_string(), completed_state(r#"{"ok":true}"#));
+        states.insert("down".to_string(), pending_state());
+        let definition = PipelineDefinition {
+            nodes: vec![
+                make_thinking_node("cond"),
+                make_thinking_node("always"),
+                make_thinking_node("down"),
+            ],
+            edges: vec![
+                PipelineEdge {
+                    source: "cond".into(),
+                    target: "down".into(),
+                    edge_type: EdgeType::Conditional {
+                        path: "verdict".into(),
+                        equals: serde_json::Value::String("FAIL".into()),
+                    },
+                    mapping: None,
+                },
+                PipelineEdge {
+                    source: "always".into(),
+                    target: "down".into(),
+                    edge_type: EdgeType::Always,
+                    mapping: None,
+                },
+            ],
+            template_id: None,
+            inputs: None,
+        };
+
         let ready = compute_ready_set(&definition, &states);
         assert_eq!(ready, vec!["down".to_string()]);
     }

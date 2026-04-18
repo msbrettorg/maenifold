@@ -43,9 +43,19 @@ export function useLayout() {
       layoutOptions: {
         'elk.algorithm': 'layered',
         'elk.direction': ELK_DIRECTION[direction] ?? 'DOWN',
-        'elk.layered.spacing.nodeNodeBetweenLayers': '200',
-        'elk.spacing.nodeNode': '80',
-        'elk.layered.spacing.edgeNodeBetweenLayers': '40',
+        'elk.layered.spacing.nodeNodeBetweenLayers': '220',
+        'elk.spacing.nodeNode': '96',
+        // Pull edges away from neighbouring nodes so fan-outs from a single
+        // source don't collapse onto the node's own border.
+        'elk.spacing.edgeNode': '48',
+        // Force parallel edges to occupy distinct lanes instead of stacking on
+        // the same horizontal bus.
+        'elk.spacing.edgeEdge': '32',
+        'elk.layered.spacing.edgeNodeBetweenLayers': '64',
+        'elk.layered.spacing.edgeEdgeBetweenLayers': '32',
+        // Run interactive crossing minimisation so ELK preserves a deterministic
+        // sibling ordering that maps back to source-handle index.
+        'elk.layered.crossingMinimization.semiInteractive': 'true',
         'elk.edgeRouting': 'ORTHOGONAL',
       },
       children: elkNodes,

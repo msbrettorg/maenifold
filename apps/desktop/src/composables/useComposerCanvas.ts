@@ -100,6 +100,30 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     });
   }
 
+  /**
+   * Annotate every edge with its position among siblings sharing the same source
+   * node. The smoothstep fallback uses these to spread fan-outs into distinct
+   * lanes so ≥4 outgoing edges from one source no longer overlap on a single
+   * horizontal/vertical bus.
+   */
+  function annotateEdgeSiblings(edgeList: Edge[]): Edge[] {
+    const groups = new Map<string, string[]>();
+    for (const edge of edgeList) {
+      const ids = groups.get(edge.source) ?? [];
+      ids.push(edge.id);
+      groups.set(edge.source, ids);
+    }
+    return edgeList.map((edge) => {
+      const sibs = groups.get(edge.source) ?? [edge.id];
+      const siblingTotal = sibs.length;
+      const siblingIndex = sibs.indexOf(edge.id);
+      return {
+        ...edge,
+        data: { ...edge.data, siblingIndex, siblingTotal },
+      };
+    });
+  }
+
   /** Strip ELK edge routing points so edges revert to smoothstep calculation. */
   function clearElkEdgePaths(edgeList: Edge[]): Edge[] {
     return edgeList.map((edge) => {
@@ -123,6 +147,8 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
       nextEdges = applyElkEdgePaths(nextEdges, result.edgePaths);
     }
 
+    nextEdges = annotateEdgeSiblings(nextEdges);
+
     nodes.value = nextNodes;
     edges.value = nextEdges;
     setNodes(nextNodes);
@@ -139,10 +165,11 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   function syncLocalGraph(nextNodes: Node[], nextEdges: Edge[]): void {
+    const annotatedEdges = annotateEdgeSiblings(nextEdges);
     nodes.value = nextNodes;
-    edges.value = nextEdges;
+    edges.value = annotatedEdges;
     setNodes(nextNodes);
-    setEdges(nextEdges);
+    setEdges(annotatedEdges);
     persistPositions(nextNodes);
     emitDefinitionUpdate();
   }
@@ -222,7 +249,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     if (!options.designMode() || !connection.source || !connection.target) return;
 
     const currentEdges = edges.value as Edge[];
-    const nextEdges: Edge[] = [
+    const nextEdges: Edge[] = annotateEdgeSiblings([
       ...currentEdges,
       {
         id: `${connection.source}->${connection.target}`,
@@ -232,7 +259,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         label: 'success',
         data: { edgeType: 'success' },
       },
-    ];
+    ]);
     edges.value = nextEdges;
     setEdges(nextEdges);
     emitDefinitionUpdate();
@@ -307,7 +334,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const currentNodes: Node[] = getNodes.value;
     const currentEdges: Edge[] = getEdges.value;
     const result = await layout(currentNodes, currentEdges, direction);
-    const nextEdges = applyElkEdgePaths(currentEdges, result.edgePaths);
+    const nextEdges = annotateEdgeSiblings(applyElkEdgePaths(currentEdges, result.edgePaths));
     nodes.value = result.nodes;
     edges.value = nextEdges;
     setNodes(result.nodes);

@@ -1,4 +1,4 @@
-import { getSmoothStepPath, type EdgeProps } from '@vue-flow/core';
+import { getSmoothStepPath, Position, type EdgeProps } from '@vue-flow/core';
 
 import type { FlowNodeData } from './pipeline-composer-flow';
 
@@ -7,6 +7,10 @@ export type FlowEdgeData = {
   mapping?: Record<string, string>;
   /** Absolute bend points from ELK layout. Present only after auto-layout; cleared on manual drag. */
   elkPoints?: Array<{ x: number; y: number }>;
+  /** 0-based position of this edge among its source's outgoing edges. */
+  siblingIndex?: number;
+  /** Total number of outgoing edges sharing this edge's source node. */
+  siblingTotal?: number;
 };
 
 function edgeMappings(data?: FlowEdgeData): Array<[string, string]> {
@@ -106,6 +110,22 @@ function elkPointsMidpoint(points: Array<{ x: number; y: number }>): { x: number
   return { x: points[points.length - 1].x, y: points[points.length - 1].y };
 }
 
+/** Pixel spacing between sibling fan-out lanes for the smoothstep fallback. */
+const SIBLING_LANE_SPACING = 28;
+
+/**
+ * Compute a per-edge offset that shifts the smoothstep "bus" segment so
+ * sibling edges sharing a source node don't collapse onto a single
+ * horizontal/vertical lane. Returns 0 when the edge has no recorded siblings
+ * or is the only outgoing edge from its source.
+ */
+function siblingLaneOffset(data?: FlowEdgeData): number {
+  const total = data?.siblingTotal ?? 0;
+  const index = data?.siblingIndex ?? 0;
+  if (total <= 1) return 0;
+  return (index - (total - 1) / 2) * SIBLING_LANE_SPACING;
+}
+
 export function edgePath(edge: EdgeProps<FlowEdgeData>): { d: string; x: number; y: number } {
   const points = edge.data?.elkPoints;
   if (points && points.length >= 2) {
@@ -113,6 +133,24 @@ export function edgePath(edge: EdgeProps<FlowEdgeData>): { d: string; x: number;
     const mid = elkPointsMidpoint(points);
     return { d, x: mid.x, y: mid.y };
   }
-  const [d, x, y] = getSmoothStepPath({ ...edge, offset: 20, borderRadius: 12 });
+
+  const lane = siblingLaneOffset(edge.data);
+  const verticalFlow =
+    edge.sourcePosition === Position.Top || edge.sourcePosition === Position.Bottom;
+  const centerX = verticalFlow ? undefined : (edge.sourceX + edge.targetX) / 2 + lane;
+  const centerY = verticalFlow ? (edge.sourceY + edge.targetY) / 2 + lane : undefined;
+
+  const [d, x, y] = getSmoothStepPath({
+    sourceX: edge.sourceX,
+    sourceY: edge.sourceY,
+    sourcePosition: edge.sourcePosition,
+    targetX: edge.targetX,
+    targetY: edge.targetY,
+    targetPosition: edge.targetPosition,
+    offset: 20,
+    borderRadius: 12,
+    centerX,
+    centerY,
+  });
   return { d, x, y };
 }

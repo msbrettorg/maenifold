@@ -54,8 +54,8 @@ function copyPayload() {
 </template>
 
 <style scoped>
-.entry:nth-child(odd) { background: #1c1b1b; }
-.entry:nth-child(even) { background: #201f1f; }
+.entry:nth-child(odd) { background: var(--surface); }
+.entry:nth-child(even) { background: var(--surface-container); }
 .entry {
   position: relative;
 }
@@ -64,16 +64,16 @@ function copyPayload() {
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: #707070;
+  background: var(--text-dim);
 }
 .entry.out::before {
-  background: #4d8eff;
+  background: var(--blue);
 }
 .entry.in::before {
-  background: #d0bcff;
+  background: var(--plum);
 }
 .entry.error::before {
-  background: #ffb4ab;
+  background: var(--terracotta);
 }
 
 .entry-header {
@@ -84,15 +84,15 @@ function copyPayload() {
   cursor: pointer;
 }
 
-.entry-header:hover { background: #2a2a2a; }
+.entry-header:hover { background: var(--surface-high); }
 
 .expand-icon {
   width: 1em;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .timestamp {
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-tiny);
   font-family: var(--font-code);
 }
@@ -102,25 +102,25 @@ function copyPayload() {
   font-weight: bold;
 }
 
-.direction-icon.out { color: #4d8eff; }
-.direction-icon.in { color: #707070; }
+.direction-icon.out { color: var(--blue); }
+.direction-icon.in { color: var(--text-dim); }
 
 .entry.error .direction-icon,
-.entry.error .method { color: #ffb4ab; }
+.entry.error .method { color: var(--terracotta); }
 
 .type-label {
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-tiny);
 }
 
 .method {
-  color: #e5e2e1;
+  color: var(--text);
   font-weight: 500;
 }
 
 .request-id {
   margin-left: auto;
-  color: #4d8eff;
+  color: var(--blue);
   font-size: var(--text-tiny);
   font-family: var(--font-code);
 }

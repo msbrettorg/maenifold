@@ -92,11 +92,11 @@ const starterExamples = [
   font-family: var(--font-display);
   font-size: var(--text-title);
   font-weight: var(--weight-display);
-  color: #e5e2e1;
+  color: var(--text);
 }
 .welcome-hint {
   margin: 0;
-  color: #c2c6d6;
+  color: var(--text-dim);
   font-size: var(--text-body-sm);
   line-height: 1.5;
 }
@@ -105,7 +105,7 @@ const starterExamples = [
   gap: 0.875rem;
   padding: 1rem;
   border-radius: 4px;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 .cwd-picker {
   display: grid;
@@ -113,7 +113,7 @@ const starterExamples = [
 }
 .cwd-label {
   font-size: var(--text-tiny);
-  color: #707070;
+  color: var(--text-dim);
 }
 .cwd-row {
   display: flex;
@@ -128,20 +128,20 @@ const starterExamples = [
   white-space: nowrap;
   border-radius: 4px;
   padding: 0.5rem 0.625rem;
-  background: #201f1f;
-  color: #e5e2e1;
+  background: var(--surface-container);
+  color: var(--text);
   font-size: var(--text-caption);
 }
 .cwd-btn {
   border: none;
   border-radius: 4px;
   padding: 0.5rem 0.625rem;
-  background: #201f1f;
-  color: #e5e2e1;
+  background: var(--surface-container);
+  color: var(--text);
   cursor: pointer;
 }
 .cwd-btn:hover {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 .starter-examples {
   display: flex;
@@ -155,7 +155,7 @@ const starterExamples = [
   gap: 0.375rem;
   padding: 0.5rem 0.875rem;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   font-size: var(--text-sm);
 }
@@ -166,8 +166,12 @@ const starterExamples = [
   padding: 0.625rem 2rem;
   border: none;
   border-radius: 4px;
-  background: linear-gradient(135deg, #adc6ff 0%, #4d8eff 100%);
-  color: #001a42;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--blue) 65%, var(--background)) 0%,
+    var(--blue) 100%
+  );
+  color: var(--text);
   font-size: var(--text-body-sm);
   font-weight: var(--weight-display);
   cursor: pointer;
@@ -177,7 +181,7 @@ const starterExamples = [
 .cta-btn:disabled { cursor: not-allowed; opacity: 0.5; }
 .no-agents {
   margin: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-caption);
 }
 </style>

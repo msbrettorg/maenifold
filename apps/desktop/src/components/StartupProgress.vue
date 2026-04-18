@@ -22,6 +22,9 @@ const phaseIcon = computed(() => {
     case 'building': return '🔨';
     case 'initializing': return '⚙️';
     case 'connecting': return '🔗';
+    case 'ready': return '✅';
+    case 'agent_closed':
+    case 'error': return '❌';
     default: return '⏳';
   }
 });
@@ -29,7 +32,7 @@ const phaseIcon = computed(() => {
 type StartupStatus = 'spawning' | 'initializing' | 'ready' | 'error';
 
 const status = computed<StartupStatus>(() => {
-  if (props.phase === 'agent_closed') return 'error';
+  if (props.phase === 'agent_closed' || props.phase === 'error') return 'error';
   if (props.phase === 'ready') return 'ready';
   if (props.phase === 'initializing') return 'initializing';
   return 'spawning';
@@ -43,6 +46,9 @@ const phaseText = computed(() => {
     case 'building': return 'Building...';
     case 'initializing': return 'Initializing agent...';
     case 'connecting': return 'Connecting to agent...';
+    case 'ready': return 'Agent ready.';
+    case 'agent_closed':
+    case 'error': return 'Startup failed. Agent closed unexpectedly.';
     default: return 'Please wait...';
   }
 });
@@ -133,7 +139,7 @@ const progressValue = computed(() => {
 <style scoped>
 .startup-progress {
   padding: 1rem;
-  background: #201f1f;
+  background: var(--surface-container);
   border-radius: 4px;
   margin-top: 0.75rem;
 }
@@ -153,7 +159,7 @@ const progressValue = computed(() => {
   border-radius: 999px;
   font-size: var(--text-tiny);
   text-transform: lowercase;
-  color: #001a42;
+  color: var(--text);
   background: var(--accent-prompt);
 }
 .phase-pill--initializing { background: var(--amber); }
@@ -169,7 +175,7 @@ const progressValue = computed(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem;
-  background: #2a2a2a;
+  background: var(--surface-high);
   border-radius: 4px;
   margin-bottom: 0.75rem;
 }
@@ -181,7 +187,7 @@ const progressValue = computed(() => {
   font-style: italic;
   margin-bottom: 0.75rem;
   padding: 0.5rem;
-  background: color-mix(in srgb, var(--bg-warning) 18%, #201f1f);
+  background: color-mix(in srgb, var(--bg-warning) 18%, var(--surface-container));
   border-radius: 4px;
 }
 .progress-actions { display: flex; gap: 0.5rem; justify-content: space-between; }
@@ -189,23 +195,23 @@ const progressValue = computed(() => {
   padding: 0.375rem 0.75rem;
   border: none;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
-.details-btn:hover { background: #353534; }
+.details-btn:hover { background: var(--surface-highest); }
 .cancel-btn {
   padding: 0.375rem 0.75rem;
   border: none;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 .cancel-btn:hover {
-  background: color-mix(in srgb, var(--destructive) 18%, #2a2a2a);
+  background: color-mix(in srgb, var(--destructive) 18%, var(--surface-high));
   color: var(--destructive);
 }
 .logs-container {
@@ -215,7 +221,7 @@ const progressValue = computed(() => {
 }
 .logs-header {
   padding: 0.375rem 0.5rem;
-  background: #2a2a2a;
+  background: var(--surface-high);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
   color: var(--muted-foreground);
@@ -224,7 +230,7 @@ const progressValue = computed(() => {
   max-height: 150px;
   overflow-y: auto;
   padding: 0.5rem;
-  background: #2a2a2a;
+  background: var(--surface-high);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   scrollbar-width: thin;

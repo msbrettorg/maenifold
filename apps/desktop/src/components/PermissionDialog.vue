@@ -100,8 +100,8 @@ const queueHint = computed(() =>
   margin-left: auto;
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
-  background: #2a2a2a;
-  color: #c2c6d6;
+  background: var(--surface-high);
+  color: var(--text-dim);
   font-size: var(--text-tiny);
 }
 

@@ -220,27 +220,29 @@ fn earliest_retry_after(node_states: &HashMap<String, NodeState>) -> Option<std:
         .min()
 }
 
+/// Resolve the per-node timeout strictly from caller-supplied configuration.
+///
+/// T-174.4: Returns `None` when the caller did not supply `timeout_seconds`. There
+/// is **no silent default fallback** — unbounded execution is the deliberate,
+/// caller-acknowledged choice when `timeout_seconds` is absent. Reintroducing
+/// `DEFAULT_TOOL_NODE_TIMEOUT_SECS` / `DEFAULT_AGENT_NODE_TIMEOUT_SECS` here is a
+/// P0 constitutional violation ("Mechanism, Not Policy").
+///
+/// A caller-supplied `Some(0)` is treated as "no timeout" rather than an instant
+/// elapse, since wrapping in `tokio::time::timeout(Duration::ZERO, _)` would
+/// always immediately abandon the node and serves no caller intent.
 fn extract_timeout(
     request: &super::executor_nodes::NodeExecutionRequest,
 ) -> Option<std::time::Duration> {
-    const DEFAULT_TOOL_NODE_TIMEOUT_SECS: u64 = 60;
-    /// T-170.8: Default timeout for agent nodes (prompt, sequentialThinking, workflow).
-    /// Without this, agent nodes with no explicit timeout hang indefinitely if the
-    /// model/thoughtLevel override fails to reach the agent or a permission request
-    /// deadlocks.  Five minutes is generous for any single agent turn.
-    const DEFAULT_AGENT_NODE_TIMEOUT_SECS: u64 = 300;
-
     let seconds = match request {
         super::executor_nodes::NodeExecutionRequest::Workflow { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::Prompt { session_config, .. }
         | super::executor_nodes::NodeExecutionRequest::SequentialThinking {
             session_config, ..
-        } => session_config
-            .timeout_seconds
-            .or(Some(DEFAULT_AGENT_NODE_TIMEOUT_SECS)),
+        } => session_config.timeout_seconds,
         super::executor_nodes::NodeExecutionRequest::Tool {
             timeout_seconds, ..
-        } => timeout_seconds.or(Some(DEFAULT_TOOL_NODE_TIMEOUT_SECS)),
+        } => *timeout_seconds,
     };
 
     seconds
@@ -359,7 +361,7 @@ async fn schedule_dispatched_node(
                         // NOTE: T-107.8 — The dropped future may leave stale in-memory session
                         // tracking behind the agent session wrapper. This is bounded (max
                         // concurrent nodes) and has no wire-protocol impact.
-                        let reason = format!("node timed out after {}s", duration.as_secs());
+                        let reason = format!("timeout after {}s", duration.as_secs());
                         warn!(node_id = %node_id, reason = %reason, "pipeline node timed out");
                         let result = timeout_result_for_kind(timeout_result_kind, reason);
                         (node_id, result)
@@ -557,8 +559,10 @@ mod tests {
         }
     }
 
+    /// T-174.4: Tool nodes WITHOUT a caller-supplied `timeout_seconds` must run
+    /// unbounded. There is no silent default fallback.
     #[test]
-    fn tool_nodes_default_to_sixty_second_timeout() {
+    fn tool_nodes_without_timeout_run_unbounded() {
         let request = NodeExecutionRequest::Tool {
             tool_name: "GetConfig".to_string(),
             tool_args: None,
@@ -568,10 +572,7 @@ mod tests {
             timeout_seconds: None,
         };
 
-        assert_eq!(
-            extract_timeout(&request),
-            Some(std::time::Duration::from_secs(60))
-        );
+        assert_eq!(extract_timeout(&request), None);
     }
 
     #[test]
@@ -606,10 +607,11 @@ mod tests {
         );
     }
 
-    /// T-170.8: Agent nodes without an explicit timeout now default to 300s
-    /// instead of running forever.
+    /// T-174.4: Agent nodes (Prompt / SequentialThinking / Workflow) WITHOUT a
+    /// caller-supplied `timeout_seconds` must run unbounded. The previous T-170.8
+    /// silent 300s default has been deleted.
     #[test]
-    fn agent_nodes_default_to_five_minute_timeout() {
+    fn agent_nodes_without_timeout_run_unbounded() {
         let request = NodeExecutionRequest::Prompt {
             session_id: "pipeline-node".to_string(),
             prompt: "prompt".to_string(),
@@ -617,10 +619,24 @@ mod tests {
             session_config: sample_session_config(None),
         };
 
-        assert_eq!(
-            extract_timeout(&request),
-            Some(std::time::Duration::from_secs(300))
-        );
+        assert_eq!(extract_timeout(&request), None);
+    }
+
+    /// T-174.4: A caller-supplied `Some(0)` is treated as "no timeout" rather than
+    /// instant elapse, since wrapping in `tokio::time::timeout(Duration::ZERO, _)`
+    /// would always immediately abandon the node and serves no caller intent.
+    #[test]
+    fn explicit_zero_timeout_is_treated_as_unbounded() {
+        let request = NodeExecutionRequest::Tool {
+            tool_name: "GetConfig".to_string(),
+            tool_args: None,
+            agent: None,
+            allowed_tools: None,
+            cwd: PathBuf::from("."),
+            timeout_seconds: Some(0),
+        };
+
+        assert_eq!(extract_timeout(&request), None);
     }
 }
 
@@ -631,3 +647,7 @@ mod apply_node_outcome_failure_reason_tests;
 #[cfg(test)]
 #[path = "retry_tests.rs"]
 mod retry_tests;
+
+#[cfg(test)]
+#[path = "executor_timeout_tests.rs"]
+mod executor_timeout_tests;

@@ -67,12 +67,15 @@ function toggleAllExpanded() {
 
 function handleSelectStep(stepId: string) {
   // Selecting a step also expands it so the inspector context matches the timeline.
-  if (!expandedStepIds.value.has(stepId)) {
-    const next = new Set(expandedStepIds.value)
-    next.add(stepId)
-    expandedStepIds.value = next
-  }
+  expandStep(stepId)
   emit('select-step', stepId)
+}
+
+function expandStep(stepId: string) {
+  if (expandedStepIds.value.has(stepId)) return
+  const next = new Set(expandedStepIds.value)
+  next.add(stepId)
+  expandedStepIds.value = next
 }
 
 watch(displayedDefinition, (def) => {
@@ -124,9 +127,13 @@ function handleDiscard() {
 function handleAddStep() {
   const stepId = store.addStep()
   if (stepId) {
-    emit('select-step', stepId)
+    handleSelectStep(stepId)
   }
 }
+
+watch(() => props.selectedStepId, (stepId) => {
+  if (stepId) expandStep(stepId)
+}, { immediate: true })
 
 function getReferenceWarning(stepId: string) {
   if (!displayedDefinition.value) return null
@@ -318,7 +325,7 @@ watch(exportState, (state) => {
 .empty-title { color: var(--foreground); font-family: var(--font-display); font-size: var(--text-body); }
 .empty-text { color: var(--muted-foreground); font-family: var(--font-body); font-size: var(--text-caption); line-height: 1.6; }
 .timeline { display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-4); background: var(--background); min-height: 100%; overflow-y: auto; }
-.timeline-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-3); border-bottom: 1px solid var(--border); }
+.timeline-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); padding-bottom: var(--space-3); background: color-mix(in srgb, var(--card) 28%, var(--background)); border-radius: var(--radius-sm); }
 .timeline-title { margin: 0; font-family: var(--font-display); font-size: var(--text-lg); font-weight: var(--weight-title); color: var(--foreground); display: flex; align-items: center; gap: var(--space-2); min-width: 0; line-height: 1.2; }
 .title-emoji { flex-shrink: 0; font-size: var(--text-title); }
 .header-actions { display: flex; align-items: center; gap: var(--space-2); flex-shrink: 0; }

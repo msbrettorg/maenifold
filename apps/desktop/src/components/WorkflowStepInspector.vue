@@ -167,22 +167,22 @@ function priorityClass(priority: ToolHintPriority): string {
 
 <style scoped>
 .step-inspector { height: 100%; background: var(--card); overflow-y: auto; display: flex; flex-direction: column; padding-bottom: var(--space-4); }
-.panel-header { min-height: 44px; margin: 0 0 var(--space-4); padding: 0 var(--space-4); border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; flex-shrink: 0; }
+.panel-header { min-height: 44px; margin: 0 0 var(--space-4); padding: 0 var(--space-4); background: color-mix(in srgb, var(--card) 30%, var(--background)); display: flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; flex-shrink: 0; }
 .panel-header::before { content: ''; width: 6px; height: 6px; border-radius: var(--radius); background: var(--color-node-workflow); }
 .panel-header::after { content: 'Step inspector'; font: var(--weight-title) var(--text-tiny)/1 var(--font-code); letter-spacing: 0.06em; color: var(--muted-foreground); }
 .step-inspector:has(.workflow-meta) .panel-header::after { content: 'Workflow'; }
 .step-id-row, .workflow-meta, .form-group { margin: 0 var(--space-4); }
-.step-id-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5); padding: var(--space-2) var(--space-3); border: 1px solid rgba(66, 71, 83, 0.15); border-radius: var(--radius-md); background: var(--card); flex-wrap: wrap; }
+.step-id-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-5); padding: var(--space-2) var(--space-3); border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); border-radius: var(--radius-md); background: var(--card); flex-wrap: wrap; }
 .workflow-meta { display: flex; flex-direction: column; gap: var(--space-5); }
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
 .form-group + .form-group { margin-top: var(--space-5); }
 .step-id-label, .field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
 .step-id-value, .meta-mono { font-family: var(--font-code); font-size: var(--text-tiny); color: var(--muted-foreground); }
-.effort-segments { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: var(--radius-md); overflow: hidden; border: 1px solid rgba(66, 71, 83, 0.15); }
+.effort-segments { display: grid; grid-template-columns: repeat(3, 1fr); border-radius: var(--radius-md); overflow: hidden; border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); }
 .effort-segment { text-align: center; padding: var(--space-2) var(--space-1); background: var(--input); color: var(--muted-foreground); border: 0; font: var(--weight-title) var(--text-tiny)/1.4 var(--font-code); letter-spacing: 0.05em; cursor: pointer; }
-.effort-segment + .effort-segment { border-left: 1px solid var(--border); }
+.effort-segment + .effort-segment { box-shadow: inset 1px 0 0 color-mix(in srgb, var(--border) 75%, transparent); }
 .effort-segment.active { background: color-mix(in srgb, var(--color-node-workflow) 16%, var(--input)); color: var(--color-node-workflow); }
-.thinking-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid rgba(66, 71, 83, 0.15); cursor: pointer; }
+.thinking-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid color-mix(in srgb, var(--border) 65%, transparent); cursor: pointer; }
 .thinking-card.enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
 .thinking-text { display: flex; flex-direction: column; gap: 2px; text-align: left; }
 .thinking-title, .meta-value { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); color: var(--foreground); }

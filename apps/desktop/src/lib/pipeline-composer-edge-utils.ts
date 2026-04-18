@@ -50,9 +50,18 @@ function conditionalLabel(condition: FlowEdgeCondition): string {
   return truncate(raw);
 }
 
+function conditionalLabelFull(condition: FlowEdgeCondition): string {
+  return `?{${condition.path}}=${JSON.stringify(condition.equals)}`;
+}
+
 export function edgeLabel(data?: FlowEdgeData): string | null {
   if (data?.edgeType !== 'conditional' || !data.condition?.path) return null;
   return conditionalLabel(data.condition);
+}
+
+export function edgeLabelTitle(data?: FlowEdgeData): string | null {
+  if (data?.edgeType !== 'conditional' || !data.condition?.path) return null;
+  return conditionalLabelFull(data.condition);
 }
 
 export function edgePathStyle(

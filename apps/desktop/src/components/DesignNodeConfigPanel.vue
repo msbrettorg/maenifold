@@ -192,6 +192,10 @@ function updateDesignNode(update: (node: PipelineNode) => PipelineNode): void {
 
 function updateEdgeType(type: PipelineEdge['type']): void {
   if (!props.selectedEdge) return;
+  conditionalPath.value = '';
+  conditionalEqualsLiteral.value = '""';
+  conditionalEqualsType.value = 'string';
+  conditionalEqualsError.value = null;
   store.localDefinition = {
     ...store.localDefinition,
     nodes: [...store.localDefinition.nodes],
@@ -206,7 +210,7 @@ function updateEdgeType(type: PipelineEdge['type']): void {
             return {
               ...edge,
               type,
-              condition: edge.condition ?? { path: '', equals: '' },
+              condition: { path: '', equals: '' },
             };
           })()
         : edge,
@@ -256,6 +260,7 @@ function updateConditionalEqualsLiteral(value: string | number): void {
   const parsed = parseEqualsLiteral(conditionalEqualsLiteral.value, conditionalEqualsType.value);
   if (!parsed.ok) {
     conditionalEqualsError.value = parsed.error;
+    updateConditionalEdge((condition) => ({ ...condition, equals: '' }));
     return;
   }
   conditionalEqualsError.value = null;
@@ -487,7 +492,9 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
   height: 100%;
   background: var(--card);
   color: var(--foreground);
-  border-left: 1px solid rgba(66, 71, 83, 0.15);
+  border-left-width: 1px;
+  border-left-style: solid;
+  border-left-color: var(--border);
   overflow-y: auto;
 }
 
@@ -522,7 +529,9 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
 }
 
 .field-group {
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border);
   border-radius: 4px;
   padding: 0.75rem;
   background: color-mix(in srgb, var(--background) 88%, transparent);

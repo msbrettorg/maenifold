@@ -63,7 +63,7 @@ function serializeEdge(edge: PipelineEdge): PipelineEdge {
     target: edge.target,
     ...(edge.type ? { type: edge.type } : {}),
     ...(edge.type === 'conditional' && edge.condition
-      ? { condition: { path: edge.condition.path.trim(), equals: edge.condition.equals } }
+      ? { path: edge.condition.path.trim(), equals: edge.condition.equals }
       : {}),
     ...(edge.mapping && Object.keys(edge.mapping).length > 0
       ? { mapping: { ...edge.mapping } }

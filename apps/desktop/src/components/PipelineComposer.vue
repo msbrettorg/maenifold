@@ -38,7 +38,7 @@ const emit = defineEmits<{
 const store = usePipelineStore();
 const {
   createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, edgeIndicator, edgeLabel, edgePath,
-  edgePathStyle, edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
+  edgeLabelTitle, edgePathStyle, edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
 } = useComposerCanvas({
   designMode: () => props.designMode,
   localDefinition: () => props.localDefinition,
@@ -205,7 +205,7 @@ function handleContextMenuOpenChange(open: boolean): void {
                   <div
                     class="edge-condition-label"
                     :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
-                    :title="edgeLabel(edgeProps.data) ?? undefined"
+                    :title="edgeLabelTitle(edgeProps.data) ?? undefined"
                   >
                     {{ edgeLabel(edgeProps.data) }}
                   </div>

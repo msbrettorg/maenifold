@@ -14,7 +14,7 @@ import {
   toPipelineNodeFromViewNode,
 } from '../lib/pipeline-composer-flow';
 import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
-import { edgeIndicator, edgeLabel, edgePath, edgePathStyle, edgeTooltip } from '../lib/pipeline-composer-edge-utils';
+import { edgeIndicator, edgeLabel, edgeLabelTitle, edgePath, edgePathStyle, edgeTooltip } from '../lib/pipeline-composer-edge-utils';
 import { createComposerNodeActions } from '../lib/pipeline-composer-node-actions';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 
@@ -376,6 +376,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     disconnectNodeEdges: nodeActions.disconnectNodeEdges,
     edgeIndicator,
     edgeLabel,
+    edgeLabelTitle,
     edgePath,
     edgePathStyle,
     edgeTooltip,

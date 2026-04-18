@@ -120,6 +120,15 @@ export interface PipelineEdge {
   source: string;
   target: string;
   type?: EdgeType;
+  /**
+   * Backend wire format for conditional edges.
+   * Flat fields are expected by pipeline MCP APIs.
+   */
+  path?: string;
+  equals?: EdgeConditionEquals;
+  /**
+   * Local UI convenience shape used by the canvas/editor.
+   */
   condition?: EdgeCondition;
   mapping?: Record<string, string>;
 }

@@ -22,6 +22,52 @@ function makeFlowNodes(nodes: PipelineNode[]) {
   return pipelineNodesToFlow(nodes);
 }
 
+describe('conditional edge wire format', () => {
+  it('emits flat path/equals from flow definition for conditional edges', () => {
+    const definition = definitionFromFlow(
+      [],
+      [{
+        id: 'a->b',
+        source: 'a',
+        target: 'b',
+        data: {
+          edgeType: 'conditional',
+          condition: { path: 'result.status', equals: 'ok' },
+        },
+      }],
+    );
+
+    expect(definition.edges).toEqual([{
+      source: 'a',
+      target: 'b',
+      type: 'conditional',
+      path: 'result.status',
+      equals: 'ok',
+    }]);
+  });
+
+  it('does not emit path/equals for non-conditional edges', () => {
+    const definition = definitionFromFlow(
+      [],
+      [{
+        id: 'a->b',
+        source: 'a',
+        target: 'b',
+        data: {
+          edgeType: 'success',
+          condition: { path: 'result.status', equals: 'ok' },
+        },
+      }],
+    );
+
+    expect(definition.edges).toEqual([{
+      source: 'a',
+      target: 'b',
+      type: 'success',
+    }]);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // pipelineNodesToFlow + definitionFromFlow round-trip
 // ---------------------------------------------------------------------------

@@ -85,19 +85,8 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
 
     let mut edge_pairs = HashSet::with_capacity(definition.edges.len());
     for edge in &definition.edges {
-        if !node_ids.contains(edge.source.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown source node '{}'",
-                edge.source
-            )));
-        }
-
-        if !node_ids.contains(edge.target.as_str()) {
-            return Err(MaenifoldError::InvalidArgument(format!(
-                "Pipeline edge references unknown target node '{}'",
-                edge.target
-            )));
-        }
+        validate_edge_nodes_exist(edge, &node_ids)?;
+        validate_conditional_edge(edge)?;
 
         if !edge_pairs.insert((edge.source.as_str(), edge.target.as_str())) {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -114,4 +103,133 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn validate_edge_nodes_exist(edge: &super::PipelineEdge, node_ids: &HashSet<&str>) -> Result<()> {
+    if !node_ids.contains(edge.source.as_str()) {
+        let reason = match edge.edge_type {
+            super::EdgeType::Conditional { .. } => "Conditional edge",
+            _ => "Pipeline edge",
+        };
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "{reason} '{} -> {}' references unknown source node '{}'",
+            edge.source, edge.target, edge.source
+        )));
+    }
+
+    if !node_ids.contains(edge.target.as_str()) {
+        let reason = match edge.edge_type {
+            super::EdgeType::Conditional { .. } => "Conditional edge",
+            _ => "Pipeline edge",
+        };
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "{reason} '{} -> {}' references unknown target node '{}'",
+            edge.source, edge.target, edge.target
+        )));
+    }
+
+    Ok(())
+}
+
+fn validate_conditional_edge(edge: &super::PipelineEdge) -> Result<()> {
+    if let super::EdgeType::Conditional { path, .. } = &edge.edge_type
+        && path.trim().is_empty()
+    {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Conditional edge '{} -> {}' field 'path' must not be empty",
+            edge.source, edge.target
+        )));
+    }
+
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::workflow::pipeline::{EdgeType, PipelineDefinition, PipelineEdge, PipelineNode};
+
+    fn make_node(id: &str) -> PipelineNode {
+        PipelineNode::SequentialThinking {
+            id: id.to_string(),
+            display_label: None,
+            topic: "topic".to_string(),
+            total_thoughts: 1,
+            analysis_type: None,
+            agent: "agent".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            cwd: None,
+            timeout: None,
+            agent_config: None,
+        }
+    }
+
+    fn base_definition() -> PipelineDefinition {
+        PipelineDefinition {
+            nodes: vec![make_node("source"), make_node("target")],
+            edges: vec![],
+            inputs: None,
+            template_id: None,
+        }
+    }
+
+    #[test]
+    fn validate_pipeline_accepts_conditional_edge_with_non_empty_path() {
+        let mut definition = base_definition();
+        definition.edges.push(PipelineEdge {
+            source: "source".to_string(),
+            target: "target".to_string(),
+            edge_type: EdgeType::Conditional {
+                path: "result.verdict".to_string(),
+                equals: serde_json::json!("PASS"),
+            },
+            mapping: None,
+        });
+
+        let result = validate_pipeline(&definition);
+        assert!(result.is_ok(), "expected conditional edge to validate");
+    }
+
+    #[test]
+    fn validate_pipeline_rejects_conditional_edge_with_empty_path() {
+        let mut definition = base_definition();
+        definition.edges.push(PipelineEdge {
+            source: "source".to_string(),
+            target: "target".to_string(),
+            edge_type: EdgeType::Conditional {
+                path: "   ".to_string(),
+                equals: serde_json::json!("PASS"),
+            },
+            mapping: None,
+        });
+
+        let error = validate_pipeline(&definition).expect_err("expected validation error");
+        assert_eq!(
+            error.to_string(),
+            "Invalid argument: Conditional edge 'source -> target' field 'path' must not be empty"
+        );
+    }
+
+    #[test]
+    fn validate_pipeline_rejects_conditional_edge_with_unknown_source_node() {
+        let mut definition = base_definition();
+        definition.edges.push(PipelineEdge {
+            source: "missing".to_string(),
+            target: "target".to_string(),
+            edge_type: EdgeType::Conditional {
+                path: "verdict".to_string(),
+                equals: serde_json::json!("PASS"),
+            },
+            mapping: None,
+        });
+
+        let error = validate_pipeline(&definition).expect_err("expected validation error");
+        assert_eq!(
+            error.to_string(),
+            "Invalid argument: Conditional edge 'missing -> target' references unknown source node 'missing'"
+        );
+    }
 }

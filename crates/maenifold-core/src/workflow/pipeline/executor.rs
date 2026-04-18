@@ -25,7 +25,8 @@ use super::executor_nodes::{
     execute_node_request,
 };
 use super::session_io::{
-    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
+    NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,
+    persist_pipeline_state, read_pipeline_session, write_workflow_node_session_with_status,
 };
 use super::update::update_pipeline_node_status;
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode, RetryPolicy};
@@ -548,11 +549,25 @@ fn apply_node_outcome(
         }
         NodeOutcome::Abandoned {
             reason,
+            phase,
+            transient_error_kind,
             retry_attempts,
             acp_session_id,
             thinking_session_id,
             ..
         } => {
+            if phase.is_retryable() {
+                return persist_retryable_failure(
+                    context,
+                    session_id,
+                    node_id,
+                    &reason,
+                    transient_error_kind,
+                    retry_attempts,
+                    acp_session_id.as_deref(),
+                    thinking_session_id.as_deref(),
+                );
+            }
             increment_node_attempts(context, session_id, node_id, retry_attempts)?;
             update_pipeline_node_status(
                 context,
@@ -569,6 +584,105 @@ fn apply_node_outcome(
         }
     }
     Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+fn persist_retryable_failure(
+    context: &ToolContext,
+    session_id: &str,
+    node_id: &str,
+    reason: &str,
+    transient_error_kind: Option<&'static str>,
+    retry_attempts: u32,
+    acp_session_id: Option<&str>,
+    thinking_session_id: Option<&str>,
+) -> Result<()> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let mut node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let max_attempts = frontmatter
+        .get("maxAttempts")
+        .and_then(serde_yaml::Value::as_u64)
+        .unwrap_or(3) as u32;
+    let retry_count = retry_attempts.max(1);
+    let node = definition
+        .nodes
+        .iter()
+        .find(|node| node.id() == node_id)
+        .ok_or_else(|| {
+            MaenifoldError::Message(format!(
+                "ERROR: Pipeline definition missing node '{node_id}'"
+            ))
+        })?;
+    let state = node_states.get_mut(node_id).ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Pipeline session missing node state for '{node_id}'"
+        ))
+    })?;
+    if state.status != NodeStatus::Active {
+        return Err(MaenifoldError::Message(format!(
+            "ERROR: Node '{node_id}' must be active to transition to retrying/stuck; current status is {:?}",
+            state.status
+        )));
+    }
+
+    state.retry_count = Some(retry_count);
+    state.retry_after = None;
+    if retry_attempts > 0 {
+        state.attempts = state.attempts.saturating_add(retry_attempts);
+    }
+
+    if state.attempts >= max_attempts {
+        persist_pipeline_state(
+            &mut frontmatter,
+            &node_states,
+            &uri,
+            &pipeline_content,
+            context,
+        )?;
+        let failure_reason = transient_error_kind
+            .map(|kind| format!("{reason} ({kind})"))
+            .unwrap_or_else(|| reason.to_string());
+        update_pipeline_node_status(
+            context,
+            session_id,
+            node_id,
+            "stuck",
+            None,
+            acp_session_id,
+            thinking_session_id,
+            None,
+            Some(&failure_reason),
+        )?;
+        return Ok(());
+    }
+
+    let next_session_id = allocate_node_session_id(context, node_id)?;
+    state.session_id = next_session_id.clone();
+    state.status = NodeStatus::Retrying;
+    state.attempts = state.attempts.saturating_add(1);
+    state.acp_session_id = None;
+    state.thinking_session_id = None;
+    state.tool_provenance = None;
+    state.output = None;
+    state.failure_reason = None;
+    state.retry_after = Some((Utc::now() + Duration::seconds(1)).to_rfc3339());
+
+    persist_pipeline_state(
+        &mut frontmatter,
+        &node_states,
+        &uri,
+        &pipeline_content,
+        context,
+    )?;
+
+    let node_file = NodeFile {
+        session_id: next_session_id,
+        node_id: node_id.to_string(),
+        workflow_id: node.effective_workflow_id(),
+    };
+    write_workflow_node_session_with_status(context, session_id, &node_file, "retrying")
 }
 
 #[derive(Debug)]

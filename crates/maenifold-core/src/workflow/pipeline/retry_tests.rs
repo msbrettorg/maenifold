@@ -5,7 +5,8 @@ use serial_test::serial;
 use crate::markdown::write_markdown;
 use crate::util::json::OutputFormat;
 
-use super::super::engine::{compute_pipeline_status, compute_ready_set, has_remaining_work};
+use super::super::engine_ready::{compute_ready_set, has_remaining_work};
+use super::super::engine_status::compute_pipeline_status;
 use super::super::executor_nodes::{FailurePhase, NodeOutcome};
 use super::super::session_read::{frontmatter_value, read_pipeline_session};
 use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};

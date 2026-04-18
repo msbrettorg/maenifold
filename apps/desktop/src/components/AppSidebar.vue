@@ -42,7 +42,7 @@ const resize = useResizeHandle({
   <!-- Sidebar panel -->
   <aside
     v-if="visible"
-    class="sidebar flex shrink-0 flex-col bg-[#1c1b1b] text-[var(--foreground)]"
+    class="sidebar flex shrink-0 flex-col bg-[var(--surface)] text-[var(--text)]"
     role="navigation"
     aria-label="Main navigation"
     :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }"
@@ -52,21 +52,21 @@ const resize = useResizeHandle({
       <div class="flex gap-1">
         <button
           :class="[
-            'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:bg-[#2a2a2a] hover:text-[var(--foreground)]',
-            showTrafficMonitor && 'bg-[#2a2a2a] text-[#adc6ff]',
+            'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]',
+            showTrafficMonitor && 'bg-[var(--surface-high)] text-[var(--blue)]',
           ]"
           @click="showTrafficMonitor = !showTrafficMonitor"
           title="ACP Traffic Monitor"
           aria-label="Toggle ACP traffic monitor"
         >📡</button>
         <button
-          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:bg-[#2a2a2a] hover:text-[var(--foreground)]"
+          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
           @click="emit('open-settings')"
           title="Settings"
           aria-label="Open settings"
         >⚙</button>
         <button
-          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--muted-foreground)] transition-colors hover:bg-[#2a2a2a] hover:text-[var(--foreground)]"
+          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
           @click="visible = false"
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
@@ -85,17 +85,17 @@ const resize = useResizeHandle({
         <!-- Working Directory Picker -->
         <div class="mt-3">
           <label
-            class="mb-1.5 block text-[var(--text-tiny)] font-normal tracking-normal text-[#707070]"
+            class="mb-1.5 block text-[var(--text-tiny)] font-normal tracking-normal text-[var(--text-dim)]"
           >Working directory</label>
           <div class="flex items-center gap-2">
             <span
-              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[4px] bg-[#201f1f] px-2.5 py-2 text-[var(--text-caption)] text-[var(--foreground)]"
+              class="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap rounded-[4px] bg-[var(--surface-container)] px-2.5 py-2 text-[var(--text-caption)] text-[var(--text)]"
               :title="selectedCwd || 'Current directory'"
             >
               {{ selectedCwd ? selectedCwd.split(/[\\/]/).pop() : '.' }}
             </span>
             <button
-              class="cursor-pointer rounded-[4px] border-none bg-[#201f1f] px-2.5 py-2 text-[var(--text-body-sm)] transition-colors hover:bg-[#2a2a2a] disabled:cursor-not-allowed disabled:opacity-50"
+              class="cursor-pointer rounded-[4px] border-none bg-[var(--surface-container)] px-2.5 py-2 text-[var(--text-body-sm)] transition-colors hover:bg-[var(--surface-high)] disabled:cursor-not-allowed disabled:opacity-50"
               @click="emit('select-folder')"
               title="Select folder"
             >
@@ -106,7 +106,7 @@ const resize = useResizeHandle({
 
         <button
           v-if="hasAgents"
-          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[#4d8eff] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-colors hover:bg-[#639bff] disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[var(--blue)] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >
@@ -147,7 +147,7 @@ const resize = useResizeHandle({
   <!-- Collapsed sidebar toggle -->
   <button
     v-if="!visible"
-    class="fixed top-1/2 left-0 cursor-pointer rounded-r border border-l-0 border-[var(--border)] bg-[var(--card)] p-2 text-[var(--muted-foreground)] -translate-y-1/2 transition-colors hover:text-[var(--foreground)]"
+    class="fixed top-1/2 left-0 cursor-pointer rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-dim)] -translate-y-1/2 transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
     @click="visible = true"
     title="Expand sidebar"
     aria-label="Expand sidebar"

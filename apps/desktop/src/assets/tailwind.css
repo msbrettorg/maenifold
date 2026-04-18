@@ -121,16 +121,27 @@
 
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-body: "Inter", system-ui, -apple-system, sans-serif;
-  --font-code: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  --font-code: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
 
-  --surface: #131313;
+  --background: #131313;
+  --surface: #1c1b1b;
   --surface-container: #201f1f;
   --surface-high: #2a2a2a;
   --surface-highest: #353534;
+  --text: #e5e2e1;
+  --text-dim: #707070;
+  --border: rgba(66, 71, 83, 0.15);
+  --sage: #4edea3;
+  --blue: #4d8eff;
+  --amber: #f59e0b;
+  --terracotta: #ffb4ab;
+  --plum: #d0bcff;
+
   --accent-prompt: #adc6ff;
-  --accent-workflow: #4d8eff;
-  --accent-thinking: #d0bcff;
-  --accent-tool: #4edea3;
+  --accent-workflow: var(--blue);
+  --accent-thinking: var(--plum);
+  --accent-tool: var(--sage);
   --accent-destructive: #ef5350;
 
   --font-headline: var(--font-display);
@@ -161,9 +172,9 @@
   --surface-container-highest: var(--surface-highest);
   --surface-variant: var(--surface-highest);
   --outline-variant: #424754;
-  --text-primary: #e0e0e0;
+  --text-primary: var(--text);
   --text-secondary: #c2c6d6;
-  --text-muted: #707070;
+  --text-muted: var(--text-dim);
   --text-error: #ff6b6b;
   --text-code: #abb2bf;
   --text-on-accent: #ffffff;
@@ -201,32 +212,30 @@
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.5;
-  color: var(--foreground, #e0e0e0);
+  color: var(--foreground, var(--text));
   background-color: var(--background);
   -webkit-font-smoothing: antialiased;
 }
 
 :root,
 .dark {
-  --background: hsl(0 0% 7.5%);
-  --foreground: hsl(0 0% 87.8%);
-  --card: hsl(0 1.6% 12.4%);
-  --card-foreground: hsl(0 0% 87.8%);
-  --popover: hsl(0 1.6% 12.4%);
-  --popover-foreground: hsl(0 0% 87.8%);
-  --primary: hsl(222 100% 83.9%);
-  --primary-foreground: hsl(222 80% 13%);
-  --primary-container: #4d8eff;
-  --secondary: hsl(60 1% 20.6%);
-  --secondary-foreground: hsl(0 0% 87.8%);
-  --muted: hsl(0 0% 16.5%);
-  --muted-foreground: hsl(228 19.6% 80%);
-  --accent: hsl(220 60% 35%);
-  --accent-foreground: hsl(220 100% 90%);
-  --destructive: hsl(1 83.2% 62.5%);
-  --border: rgba(66, 71, 83, 0.15);
-  --input: hsl(60 1% 20.6%);
-  --ring: hsl(210 100% 65.1%);
+  --foreground: var(--text);
+  --card: var(--surface-container);
+  --card-foreground: var(--text);
+  --popover: var(--surface-container);
+  --popover-foreground: var(--text);
+  --primary: var(--accent-prompt);
+  --primary-foreground: #001a42;
+  --primary-container: var(--blue);
+  --secondary: var(--surface-high);
+  --secondary-foreground: var(--text);
+  --muted: var(--surface-high);
+  --muted-foreground: var(--text-secondary);
+  --accent: var(--blue);
+  --accent-foreground: var(--text);
+  --destructive: var(--terracotta);
+  --input: var(--surface-high);
+  --ring: var(--blue);
   --radius: 0.25rem;
 }
 

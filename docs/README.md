@@ -163,7 +163,24 @@ We chose [[REST]] over [[GraphQL]] for our [[public API]] due to
 
 Every `[[WikiLink]]` becomes a node. Every mention strengthens edges. Patterns emerge without planning.
 
-Concepts can be excluded from the graph via `.wikilink-filter.json` — a simple blocklist checked at write time that prevents hub or ephemeral concepts from polluting the graph structure.
+Concepts can be excluded from the graph via `.wikilink-filter.json` — a blocklist in the memory root checked at write time that prevents hub or ephemeral concepts from polluting the graph structure.
+
+#### `.wikilink-filter.json` Format
+
+The file is a JSON object mapping concept keys to human-readable reasons:
+
+```json
+{
+  "software-tool": "God node with 7,438 edges — routes to nothing",
+  "workflowstep*": "Code symbol prefix — catches WorkflowStepTimeline, WorkflowStepCard, etc."
+}
+```
+
+**Exact match**: Keys without a trailing `*` are normalized via `normalize_concept` (lowercase, spaces/underscores/slashes → hyphens, deduplicated). `"AgentPool"` normalizes to `agentpool` and blocks `[[AgentPool]]`.
+
+**Prefix match**: Keys ending with `*` use lowercase-only normalization (no hyphen splitting). `"workflowstep*"` matches any concept starting with `workflowstep` — catching `workflowsteptimeline`, `workflowstepinspector`, `workflowstepcard` in one entry. Because CamelCase normalizes to concatenated lowercase (not hyphenated), `"workflowstep*"` won't collide with `[[workflow-step]]`.
+
+The filter is mtime-cached — edits take effect on the next write operation without restarting the server. Symlinked filter files are rejected (policy must be rooted in memory).
 
 ### Memory Lifecycle
 

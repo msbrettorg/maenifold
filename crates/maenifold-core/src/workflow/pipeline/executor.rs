@@ -6,7 +6,7 @@ use jockey::EventSender;
 use tokio::sync::{Semaphore, broadcast};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, warn};
+use tracing::{debug, error, warn};
 
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
@@ -35,6 +35,9 @@ pub(super) use super::mapping_predecessor::{assemble_node_prompt, predecessor_co
 #[cfg(test)]
 #[path = "circuit_breaker_tests.rs"]
 mod circuit_breaker_tests;
+#[cfg(test)]
+#[path = "executor_cancellation_tests.rs"]
+mod executor_cancellation_tests;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionResult {
@@ -138,6 +141,14 @@ async fn execute_pipeline_inner(
     if cancelled {
         join_set.abort_all();
         drop(join_set);
+        if let Ok(node_states) = load_pipeline_node_states(&json_context, session_id) {
+            terminate_active_node_sessions(&execution_config.definition, &node_states).await;
+        } else {
+            warn!(
+                session_id = %session_id,
+                "failed to load node states while terminating cancelled ACP sessions"
+            );
+        }
         counts.abandoned += cancel_active_nodes(&json_context, session_id)?;
     }
     log_incomplete_execution(&json_context, session_id)?;
@@ -198,6 +209,53 @@ fn build_node_index(definition: &PipelineDefinition) -> HashMap<String, Pipeline
         .iter()
         .cloned()
         .map(|node| (node.id().to_string(), node))
+        .collect()
+}
+
+async fn terminate_active_node_sessions(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) {
+    for (node_id, agent, session_id) in active_node_session_targets(definition, node_states) {
+        match jockey::acp::reset_session(&agent, &agent, Some(&session_id)).await {
+            Ok(()) => {
+                debug!(
+                    node_id = %node_id,
+                    session_id = %session_id,
+                    agent = %agent,
+                    "terminated active ACP session after pipeline cancellation"
+                );
+            }
+            Err(error) => {
+                debug!(
+                    node_id = %node_id,
+                    session_id = %session_id,
+                    agent = %agent,
+                    error = %error,
+                    "active ACP session already exited or could not be terminated"
+                );
+            }
+        }
+    }
+}
+
+fn active_node_session_targets(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) -> Vec<(String, String, String)> {
+    let nodes_by_id = build_node_index(definition);
+    node_states
+        .iter()
+        .filter(|(_, state)| matches!(state.status, NodeStatus::Active))
+        .filter_map(|(node_id, state)| {
+            let node = nodes_by_id.get(node_id)?;
+            let agent = node.acp_client()?.trim();
+            (!agent.is_empty()).then_some((
+                node_id.to_string(),
+                agent.to_string(),
+                state.session_id.to_string(),
+            ))
+        })
         .collect()
 }
 

@@ -1,6 +1,7 @@
 use jockey::acp::AcpPromptResult;
 use serde_json::{Map, Value};
-use tracing::{info, warn};
+use std::sync::atomic::{AtomicBool, Ordering};
+use tracing::{debug, info, warn};
 
 use crate::acp_config::AgentsConfig;
 use crate::error::{MaenifoldError, Result};
@@ -44,6 +45,7 @@ pub(crate) struct AgentSession {
     config_options: Vec<(String, String)>,
     auto_approve: bool,
     event_tx: jockey::EventSender,
+    cleanup_on_drop: AtomicBool,
 }
 
 pub(crate) async fn open_agent_session(
@@ -61,7 +63,13 @@ pub(crate) async fn open_agent_session(
         session_config.model.as_deref(),
         session_config.thought_level.as_deref(),
     )?;
-    let session_id = uuid::Uuid::new_v4().to_string();
+    let session_id = session_config
+        .session_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
     info!(
         agent_name,
         cwd = %cwd_str,
@@ -92,6 +100,7 @@ pub(crate) async fn open_agent_session(
         config_options,
         auto_approve,
         event_tx: event_tx.clone(),
+        cleanup_on_drop: AtomicBool::new(true),
     })
 }
 
@@ -106,7 +115,9 @@ impl AgentSession {
             .unwrap_or_else(|| self.session_id.clone())
     }
 
-    pub(crate) fn keep_alive(&self) {}
+    pub(crate) fn keep_alive(&self) {
+        self.cleanup_on_drop.store(false, Ordering::Release);
+    }
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AgentResponse> {
         info!(
@@ -160,6 +171,7 @@ impl AgentSession {
     }
 
     pub(crate) async fn close(self) -> Result<()> {
+        self.cleanup_on_drop.store(false, Ordering::Release);
         info!(
             agent = %self.agent_name,
             session_id = %self.session_id,
@@ -173,6 +185,39 @@ impl AgentSession {
         .await
         .map_err(MaenifoldError::Message)?;
         Ok(())
+    }
+}
+
+impl Drop for AgentSession {
+    fn drop(&mut self) {
+        if !self.cleanup_on_drop.load(Ordering::Acquire) {
+            return;
+        }
+
+        let runtime_kind = self.runtime_kind.clone();
+        let agent_name = self.agent_name.clone();
+        let session_id = self.session_id.clone();
+        let Ok(handle) = tokio::runtime::Handle::try_current() else {
+            warn!(
+                agent = %agent_name,
+                session_id = %session_id,
+                "dropping agent session without runtime; skipping async reset"
+            );
+            return;
+        };
+
+        handle.spawn(async move {
+            if let Err(error) =
+                jockey::acp::reset_session(&runtime_kind, &agent_name, Some(&session_id)).await
+            {
+                debug!(
+                    agent = %agent_name,
+                    session_id = %session_id,
+                    error = %error,
+                    "agent session reset during drop failed"
+                );
+            }
+        });
     }
 }
 

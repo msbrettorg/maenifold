@@ -73,31 +73,35 @@ pub(super) fn build_node_execution_request(
             timeout,
             agent_config,
             ..
-        } => NodeExecutionRequest::Workflow {
-            workflow_id: workflow_id.clone(),
-            existing_session_id: Some(node_session_id(node_states, node.id(), dispatch)),
-            prompt: resolve_execution_prompt(
-                context,
-                definition,
-                node_states,
-                node.id(),
-                ambient_prompt,
-                prompt.as_deref(),
-                true,
-                &scope,
-            )?,
-            session_config: merged_session_config(
-                context,
-                node.id(),
-                agent_config.as_ref(),
-                cwd.as_deref(),
-                &None,
-                &None,
-                &None,
-                None,
-                *timeout,
-            )?,
-        },
+        } => {
+            let session_id = node_session_id(node_states, node.id(), dispatch);
+            NodeExecutionRequest::Workflow {
+                workflow_id: workflow_id.clone(),
+                existing_session_id: Some(session_id.clone()),
+                prompt: resolve_execution_prompt(
+                    context,
+                    definition,
+                    node_states,
+                    node.id(),
+                    ambient_prompt,
+                    prompt.as_deref(),
+                    true,
+                    &scope,
+                )?,
+                session_config: merged_session_config(
+                    context,
+                    node.id(),
+                    &session_id,
+                    agent_config.as_ref(),
+                    cwd.as_deref(),
+                    &None,
+                    &None,
+                    &None,
+                    None,
+                    *timeout,
+                )?,
+            }
+        }
         PipelineNode::Prompt {
             prompt,
             tool_mode,
@@ -109,31 +113,35 @@ pub(super) fn build_node_execution_request(
             cwd,
             timeout,
             ..
-        } => NodeExecutionRequest::Prompt {
-            session_id: node_session_id(node_states, node.id(), dispatch),
-            prompt: resolve_execution_prompt(
-                context,
-                definition,
-                node_states,
-                node.id(),
-                ambient_prompt,
-                Some(prompt.as_str()),
-                false,
-                &scope,
-            )?,
-            tool_mode: tool_mode.clone(),
-            session_config: merged_session_config(
-                context,
-                node.id(),
-                agent_config.as_ref(),
-                cwd.as_deref(),
-                model,
-                thought_level,
-                allowed_tools,
-                *max_turns,
-                *timeout,
-            )?,
-        },
+        } => {
+            let session_id = node_session_id(node_states, node.id(), dispatch);
+            NodeExecutionRequest::Prompt {
+                session_id: session_id.clone(),
+                prompt: resolve_execution_prompt(
+                    context,
+                    definition,
+                    node_states,
+                    node.id(),
+                    ambient_prompt,
+                    Some(prompt.as_str()),
+                    false,
+                    &scope,
+                )?,
+                tool_mode: tool_mode.clone(),
+                session_config: merged_session_config(
+                    context,
+                    node.id(),
+                    &session_id,
+                    agent_config.as_ref(),
+                    cwd.as_deref(),
+                    model,
+                    thought_level,
+                    allowed_tools,
+                    *max_turns,
+                    *timeout,
+                )?,
+            }
+        }
         PipelineNode::SequentialThinking {
             topic,
             total_thoughts,
@@ -145,32 +153,36 @@ pub(super) fn build_node_execution_request(
             cwd,
             timeout,
             ..
-        } => NodeExecutionRequest::SequentialThinking {
-            node_session_id: node_session_id(node_states, node.id(), dispatch),
-            topic: interpolate_string(topic.trim(), &scope)?,
-            prompt_context: resolve_execution_prompt(
-                context,
-                definition,
-                node_states,
-                node.id(),
-                ambient_prompt,
-                Some(topic.as_str()),
-                false,
-                &scope,
-            )?,
-            total_thoughts: *total_thoughts,
-            session_config: merged_session_config(
-                context,
-                node.id(),
-                agent_config.as_ref(),
-                cwd.as_deref(),
-                model,
-                thought_level,
-                allowed_tools,
-                *max_turns,
-                *timeout,
-            )?,
-        },
+        } => {
+            let session_id = node_session_id(node_states, node.id(), dispatch);
+            NodeExecutionRequest::SequentialThinking {
+                node_session_id: session_id.clone(),
+                topic: interpolate_string(topic.trim(), &scope)?,
+                prompt_context: resolve_execution_prompt(
+                    context,
+                    definition,
+                    node_states,
+                    node.id(),
+                    ambient_prompt,
+                    Some(topic.as_str()),
+                    false,
+                    &scope,
+                )?,
+                total_thoughts: *total_thoughts,
+                session_config: merged_session_config(
+                    context,
+                    node.id(),
+                    &session_id,
+                    agent_config.as_ref(),
+                    cwd.as_deref(),
+                    model,
+                    thought_level,
+                    allowed_tools,
+                    *max_turns,
+                    *timeout,
+                )?,
+            }
+        }
         PipelineNode::Tool {
             tool_name,
             tool_args,
@@ -238,6 +250,7 @@ fn node_session_id(
 fn merged_session_config(
     context: &ToolContext,
     _node_id: &str,
+    session_id: &str,
     agent_config: Option<&AgentConfig>,
     node_cwd: Option<&Path>,
     model: &Option<String>,
@@ -259,7 +272,7 @@ fn merged_session_config(
         allowed_tools: allowed_tools.clone(),
         max_turns,
         timeout_seconds,
-        session_id: None,
+        session_id: Some(session_id.to_string()),
         auto_approve: true, // Pipeline nodes run headless; auto-grant permissions.
     })
 }
@@ -539,6 +552,62 @@ mod tests {
             NodeExecutionRequest::Prompt { session_config, .. } => {
                 assert_eq!(session_config.timeout_seconds, None);
             }
+            NodeExecutionRequest::Workflow { .. }
+            | NodeExecutionRequest::SequentialThinking { .. }
+            | NodeExecutionRequest::Tool { .. } => {
+                panic!("expected prompt node execution request")
+            }
+        }
+    }
+
+    #[test]
+    #[serial]
+    fn build_node_execution_request_propagates_node_session_id_into_session_config() {
+        let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+        let definition = PipelineDefinition {
+            nodes: vec![],
+            edges: vec![],
+            inputs: None,
+            template_id: None,
+        };
+        let node_states = HashMap::new();
+        let node = PipelineNode::Prompt {
+            id: "prompt".to_string(),
+            display_label: None,
+            prompt: "Prompt".to_string(),
+            agent: "agent-prompt".to_string(),
+            tool_mode: "auto".to_string(),
+            model: None,
+            thought_level: None,
+            allowed_tools: None,
+            max_turns: None,
+            cwd: None,
+            timeout: None,
+            agent_config: None,
+        };
+        let dispatch = DispatchedNode {
+            node_id: node.id().to_string(),
+            session_id: Some("workflow-1700000000000-prompt".to_string()),
+        };
+
+        let request = build_node_execution_request(
+            &context,
+            &definition,
+            &node_states,
+            &node,
+            &dispatch,
+            "",
+            &serde_json::Map::new(),
+        )
+        .expect("build request");
+
+        match request {
+            NodeExecutionRequest::Prompt {
+                session_config, ..
+            } => assert_eq!(
+                session_config.session_id.as_deref(),
+                Some("workflow-1700000000000-prompt")
+            ),
             NodeExecutionRequest::Workflow { .. }
             | NodeExecutionRequest::SequentialThinking { .. }
             | NodeExecutionRequest::Tool { .. } => {

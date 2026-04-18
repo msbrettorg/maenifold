@@ -1,195 +1,191 @@
-# DESIGN.md — Obsidian Engine
+# DESIGN.md — [[Fluent 2]] Dark for [[maenifold-desktop]]
 
-> Reference: Stitch project `projects/1858563870757498867` (21 screens)
-> Source: `memory://pipeline-ui/the-kinetic-lumina-pipeline-ui-design-system-vision`
+## 1) Identity
 
-## North Star
+`maenifold-desktop` is a [[Fluent 2]] dark application and a visual sibling of [[agency-cowork]], not a separate “Obsidian Engine” aesthetic experiment.  
+This document is normative for Sprint 176 (`T-176.0` through `T-176.15`): downstream screens should mirror the shipped [[agency-cowork]] dark language.
 
-**"The Kinetic Monolith"** — a high-performance console carved from dark, translucent materials. Not a web page. Not a dashboard. A precision instrument.
-
----
-
-## 1. Surface Hierarchy (No-Line Rule)
-
-Hard 1px borders are **prohibited** for sectioning. Boundaries are defined through background color shifts only.
-
-| Token | Hex | Tailwind | Role |
-|-------|-----|----------|------|
-| `surface` | `#131313` | `bg-background` | Canvas / base layer |
-| `surface-container-lowest` | `#0e0e0e` | — | Recessed canvas (graph, deep wells) |
-| `surface-container-low` | `#1c1b1b` | — | Sidebars, panels, sectioning |
-| `surface-container` | `#201f1f` | `bg-card` | Cards, dialogs, interactive containers |
-| `surface-container-high` | `#2a2a2a` | `bg-muted` | Hover states, active items |
-| `surface-container-highest` | `#353534` | — | Floating: tooltips, context menus |
-
-### Ghost Border
-
-When accessibility requires containment: `1px` stroke of `outline-variant` (`#424753`) at **15% opacity**. Felt, not seen.
-
-```css
-border: 1px solid rgba(66, 71, 83, 0.15);
-```
-
-### Ambient Glow (modals/floating)
-
-No drop shadows. Use blue-tinted ambient glow:
-```css
-box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
-```
+Principles:
+- Calm dark layering (not flat black, not glass fantasy).
+- Semantic color reserved for meaning, not decoration.
+- Real [[Fluent 2]] borders, radii, and shadows.
+- Emoji-forward home tiles for fast category recognition.
+- Prefer [[shadcn-vue]] primitives over bespoke CSS.
 
 ---
 
-## 2. Color Accents
+## 2) Tokens
 
-| Name | Hex | Use |
-|------|-----|-----|
-| Workflow Blue | `#4d8eff` | Primary actions, CTA buttons, active indicators |
-| Prompt Blue | `#adc6ff` | User inputs, text triggers, secondary highlights |
-| Thinking Purple | `#d0bcff` | Processing states, AI thinking indicators |
-| Tool Emerald | `#4edea3` | Success, health, completed states |
-| Amber | `#F59E0B` | Active/in-progress, warnings |
-| Error Red | `#ffb4ab` | Errors, destructive actions |
+Canonical source: `/Users/brett/src/agency-cowork/ui/src/App.jsx` token constant `T` (lines 10–45).
 
-### Status Beads
-
-6px circles, not banners:
-- Ready: `#4edea3` (emerald)
-- Active: `#F59E0B` (amber)
-- Error: `#ffb4ab` (red)
-- Pending: `#707070` (muted)
-
----
-
-## 3. Typography
-
-| Use | Family | Weight | Size | Token |
-|-----|--------|--------|------|-------|
-| Headlines | Space Grotesk | 500 | 1.125rem–1.5rem | `font-display` |
-| App title | Space Grotesk | 500 | 0.875rem | — |
-| Body | Inter | 400 | 0.875rem | `font-body` / `text-body` |
-| Labels | Inter | 400 | 0.6875rem | `text-tiny` |
-| Code/IDs | JetBrains Mono | 400 | 0.75rem | `font-code` |
-
-### Text Colors
-
-| Role | Hex | Token |
-|------|-----|-------|
-| Primary text | `#e5e2e1` | `text-foreground` |
-| Secondary text | `#c2c6d6` | `text-muted-foreground` |
-| Muted/labels | `#707070` | — |
-
-### Rules
-
-- **Sentence case always.** Never ALL CAPS for labels or headers.
-- No 100% white (`#ffffff`). Use `#e5e2e1` for maximum contrast.
-- No Title Case for labels. Sentence case only.
+| Token | Value | Usage | Source |
+|---|---|---|---|
+| `bgApp` | `#1C1C1C` | App canvas/root background | `App.jsx:12` |
+| `bgSidebar` | `#282828` | Navigation/sidebar surfaces | `App.jsx:13` |
+| `bgSurface` | `#333333` | Standard controls/cards/inputs | `App.jsx:14` |
+| `bgSurfaceHover` | `#3A3A3A` | Hover state over interactive surfaces | `App.jsx:15` |
+| `bgElevated` | `#2D2D2D` | Elevated tiles/pills/cards | `App.jsx:16` |
+| `bgOverlay` | `rgba(0,0,0,0.5)` | Scrim/modal overlay | `App.jsx:17` |
+| `borderSubtle` | `#383838` | Standard 1px separators and field borders | `App.jsx:19` |
+| `borderCard` | `rgba(255,255,255,0.08)` | Card/tile border on dark surfaces | `App.jsx:20` |
+| `textPrimary` | `#FFFFFF` | Primary readable text | `App.jsx:22` |
+| `textSecondary` | `#A0AAB2` | Secondary/supporting text | `App.jsx:23` |
+| `textTertiary` | `#6B7280` | Captions/meta/subtle labels | `App.jsx:24` |
+| `textDisabled` | `#4B5563` | Disabled text/icon state | `App.jsx:25` |
+| `brand` | `#0078D4` | Primary actions/focus/accent | `App.jsx:27` |
+| `brandHover` | `#106EBE` | Hover/active brand state | `App.jsx:28` |
+| `brandLight` | `rgba(0,120,212,0.15)` | Brand-tinted selected backgrounds | `App.jsx:29` |
+| `success` | `#0E9C57` | Success/healthy/completed states | `App.jsx:31` |
+| `warning` | `#E8910A` | Warning/attention/in-progress states | `App.jsx:32` |
+| `danger` | `#D13438` | Error/destructive/failure states | `App.jsx:33` |
+| `thinking` | `#B4891C` | Thinking/processing state | `App.jsx:34` |
+| `shadow8` | `0 4px 8px rgba(0,0,0,0.24), 0 0 2px rgba(0,0,0,0.12)` | Subtle elevation | `App.jsx:36` |
+| `shadow16` | `0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12)` | Popovers/raised cards | `App.jsx:37` |
+| `shadow64` | `0 32px 64px rgba(0,0,0,0.32), 0 0 8px rgba(0,0,0,0.16)` | Modal-level elevation | `App.jsx:38` |
+| `r4` | `4px` | Tight control radius | `App.jsx:40` |
+| `r8` | `8px` | Default component radius | `App.jsx:41` |
+| `r12` | `12px` | Pills/chips/large soft controls | `App.jsx:42` |
+| `font` | `'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif` | UI typography stack | `App.jsx:44` |
 
 ---
 
-## 4. Components
+## 3) Typography
 
-### Buttons
+### Font Stack (canonical)
 
-| Variant | Background | Border | Text |
-|---------|-----------|--------|------|
-| Primary | Gradient `#adc6ff` → `#4d8eff` | none | `#001a42` (dark) |
-| Secondary/Ghost | `#2a2a2a` | Ghost border | `#e5e2e1` |
-| Tertiary | transparent | Ghost border | `#adc6ff` |
-| Destructive | transparent | Ghost border | `#ffb4ab` |
+`'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif` (`App.jsx:44`)
 
-Radius: `0.25rem` (4px). Tight, not bubbly.
+### Type Ramp
 
-### Inputs
+| Role | Size / Line Height | Weight | Notes |
+|---|---|---|---|
+| Display | 32/40 | 600 | Large hero titles |
+| H1 | 26/34 | 600 | Home heading (`App.jsx:4737`) |
+| H2 | 20/28 | 600 | Panel/section headers |
+| H3 | 16/24 | 600 | Card headers |
+| H4 | 14/20 | 600 | Compact headings |
+| Body | 13–14/20–22 | 400 | Primary body/input text (`App.jsx:5079`) |
+| Caption | 11–12/16 | 400–500 | Metadata, tags, helper labels |
+| Code | 12/18 | 400 | Monospace where required by content context |
 
-- Base: `#1c1b1b` background, no border
-- Focus: shift to `#2a2a2a` + blue ghost border at 40% opacity
-- Placeholder: `#707070`
-
-### Cards & Lists
-
-- No divider lines between items. Use `0.5rem`–`1rem` gap.
-- Hover: shift from `#201f1f` → `#2a2a2a`
-- Selected: `#2a2a2a` + blue left accent bar (4px)
-
-### Pipeline Nodes
-
-- Body: `#201f1f`, no border
-- 4px left accent bar colored by type (blue/purple/emerald/amber)
-- Active node: ambient glow at 10% opacity, 20px blur
-- Status dot: 6px bead in header
-
-### Dialogs/Modals
-
-- Background: `#201f1f`, 8px radius
-- Ambient blue glow shadow
-- Backdrop: `#000000` at 60% opacity
-- Footer: primary action right-aligned, ghost cancel left
+Use `textPrimary`/`textSecondary`/`textTertiary` for hierarchy; do not introduce alternate headline font families.
 
 ---
 
-## 5. Layout Patterns
+## 4) Surfaces & Elevation
 
-### Sidebar (Agents view)
-- Width: 280px, background: `#1c1b1b`
-- One cohesive surface — no nested bordered boxes
-- Compact config rows: label + dropdown, no redundant value echo
-- Primary CTA (New Session) at bottom, filled blue
+Layering order:
+1. `bgApp` (`#1C1C1C`) — app base.
+2. `bgSidebar` (`#282828`) — nav rail/sidebar.
+3. `bgSurface` (`#333333`) — standard interaction plane.
+4. `bgElevated` (`#2D2D2D`) — raised interactive tiles/chips/cards.
 
-### Pipeline Canvas
-- Rail: 48px, `#1c1b1b`
-- Canvas: `#0e0e0e` (deepest surface)
-- Inspector: 320px slide-in from right, `#1c1b1b`
+Hover state: `bgSurfaceHover` (`#3A3A3A`) for elevated interactive affordances.
 
-### Gates Master-Detail
-- Table: 60% width, row hover `#2a2a2a`, selected has blue accent bar
-- Detail: 40% width, `#1c1b1b`, stage timeline vertical
+Elevation uses **real drop shadows**:
+- `shadow8` for subtle lift.
+- `shadow16` for popups/menus.
+- `shadow64` for modal emphasis.
 
-### Top Nav
-- Text tabs, active has subtle blue underline (2px)
-- No heavy tab bars or boxed navigation
+Explicitly disallowed: ambient-glow-only depth model.
 
 ---
 
-## 6. Do's and Don'ts
+## 5) Borders
 
-### Do
-- Use tonal shifts for all boundaries
-- Use 4px left accent bars for type/status signaling
-- Embrace the dark — let `#131313` breathe
-- Use `0.25rem` (4px) radius everywhere
-- Show status with 6px beads, not banners
-- Use JetBrains Mono for all IDs, paths, timestamps
+Obsidian’s “borders prohibited” rule is **reversed**.
 
-### Don't
-- Use 1px solid borders for sectioning
-- Use drop shadows (use ambient glow instead)
-- Use ALL CAPS for labels
-- Use 100% white text
-- Show raw protocol URLs, file paths, or option counts
-- Show the same value twice (dropdown + label below it)
-- Use large bubbly border-radius
+[[Fluent 2]] dark uses borders as first-class structure:
+- `borderSubtle` (`#383838`) for fields, separators, pane boundaries.
+- `borderCard` (`rgba(255,255,255,0.08)`) for cards/tiles on dark surfaces.
+
+Guideline:
+- Use `1px` borders by default.
+- Use `1.5px` only when emphasizing selected/interactive tiles (as seen in category tiles).
 
 ---
 
-## 7. Stitch Reference Screens
+## 6) Radii
 
-Project: `projects/1858563870757498867`
+Canonical radii:
+- `4px` (`r4`) for small controls, compact buttons, tags.
+- `8px` (`r8`) for default cards, inputs, dropdowns, standard buttons.
+- `12px` (`r12`) for pills/chips and larger soft containers.
 
-| Screen | What it shows |
-|--------|---------------|
-| Agents Landing | Sidebar + empty state with starter chips |
-| Active Chat | Messages, tool calls, chat input |
-| Pipelines | Template cards with accent bars, prompt input |
-| Pipeline Canvas | DAG nodes with inspector panel |
-| Pipeline Flyout | Session list overlay on canvas |
-| Gates | Master-detail task board |
-| Gate Detail | Selected task + audit timeline |
-| Workflows | 3-column browser with step timeline |
-| Graph | Constellation view + side panel |
-| Settings (×4) | Connection, Agents, MCP servers, Preferences |
-| Command Palette | ⌘K overlay |
-| Add Node Dialog | Type selector + form |
-| Graft/Join Dialogs | Pipeline manipulation modals |
-| Promotion Dialog | Memory write with search |
-| Auth Dialog | Server sign-in confirmation |
-| Traffic Monitor | Protocol traffic panel |
+No large bubbly rounding beyond `12px` unless a true pill/circle control requires it.
+
+---
+
+## 7) Color Roles
+
+| Role | Token | Meaning |
+|---|---|---|
+| Brand | `brand` / `brandHover` / `brandLight` | Primary action, selected state, focus accent |
+| Success | `success` | Completed/healthy/safe |
+| Warning | `warning` | Caution/in progress/attention |
+| Danger | `danger` | Error, destructive action, blocked/failure |
+| Thinking | `thinking` | Agent thinking/processing state |
+
+Semantic colors should encode state or intent; they are not decorative neon accents.
+
+---
+
+## 8) Motion
+
+Match shipped [[agency-cowork]] behavior:
+- Default micro-interactions: ~`0.15s` transitions (color/bg/border/transform).
+- Secondary toggles and fades: `0.2s`.
+- Structural panel width transitions: `0.25s` cubic-bezier (`0.4, 0, 0.2, 1`) where needed.
+- Hover affordances may include subtle scale lift (e.g., send/tiles) but no parallax.
+
+Motion should feel responsive and controlled, not theatrical.
+
+---
+
+## 9) Tile Pattern (Homepage)
+
+Canonical pattern is [[agency-cowork]] home category tiles (`App.jsx:4746–4765`):
+- Grid layout of category tiles.
+- Tile anatomy: **emoji icon + title + subtitle**.
+- Background: `bgElevated`.
+- Border: `1.5px solid borderCard` (or category tint on hover).
+- Hover: `bgSurfaceHover` + subtle highlight/shimmer, preserving readability.
+
+Emoji icons are intentional and canonical for top-level category recognition.
+
+---
+
+## 10) Component Conventions
+
+- Prefer [[shadcn-vue]] components and tokens as the implementation baseline.
+- Keep styling token-driven via this document’s [[Fluent 2]] values.
+- Avoid net-new bespoke component CSS unless absolutely required.
+- Sprint 176 direction: retire legacy bespoke CSS footprint (5,959 LOC referenced in planning) and converge on tokenized primitives.
+
+---
+
+## 11) What Changed from Obsidian Engine
+
+| Obsidian Engine (old) | [[Fluent 2]] dark (new) |
+|---|---|
+| `surface #131313` monoculture | Layered `bgApp/bgSidebar/bgSurface/bgElevated` |
+| “No borders for sectioning” | Borders are allowed and expected (`borderSubtle`, `borderCard`) |
+| Ambient glow as primary depth | Real shadow tokens (`shadow8`, `shadow16`, `shadow64`) |
+| Space Grotesk + Inter + JetBrains-heavy identity | Segoe UI Variable system stack |
+| Single 4px radius doctrine | 4px / 8px / 12px radius scale |
+| Stylized futuristic visual mythology | Product-consistent sibling style with [[agency-cowork]] |
+
+This is a deliberate product alignment pivot, not a partial theme tweak.
+
+---
+
+## 12) Source / Provenance
+
+- Primary canonical tokens: `/Users/brett/src/agency-cowork/ui/src/App.jsx` lines `10–45`.
+- Supporting implementation references:
+  - Home tile pattern: `App.jsx:4746–4765`
+  - Focus ring pattern: `App.jsx:6310–6336`, `App.jsx:6876`
+  - Motion examples: multiple `transition: ... 0.15s` usages (e.g., `App.jsx:5066`, `App.jsx:5118`)
+- Commit for token source file: `0deb7c868caa5ea576a6967ee04f32fc5b71a653`
+- Commit date: `Thu Apr 16 00:25:16 2026 +0100`
+- Last updated: 2026-04-18

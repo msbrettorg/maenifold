@@ -32,6 +32,68 @@ const {
   storeToRefs(store)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
+
+const expandedStepIds = ref<Set<string>>(new Set())
+
+const allExpanded = computed(() => {
+  const def = displayedDefinition.value
+  if (!def || def.steps.length === 0) return false
+  return def.steps.every((step: { id: string }) => expandedStepIds.value.has(step.id))
+})
+
+function isExpanded(stepId: string): boolean {
+  return expandedStepIds.value.has(stepId)
+}
+
+function toggleExpanded(stepId: string) {
+  const next = new Set(expandedStepIds.value)
+  if (next.has(stepId)) {
+    next.delete(stepId)
+  } else {
+    next.add(stepId)
+  }
+  expandedStepIds.value = next
+}
+
+function toggleAllExpanded() {
+  const def = displayedDefinition.value
+  if (!def) return
+  if (allExpanded.value) {
+    expandedStepIds.value = new Set()
+  } else {
+    expandedStepIds.value = new Set(def.steps.map((step: { id: string }) => step.id))
+  }
+}
+
+function handleSelectStep(stepId: string) {
+  // Selecting a step also expands it so the inspector context matches the timeline.
+  if (!expandedStepIds.value.has(stepId)) {
+    const next = new Set(expandedStepIds.value)
+    next.add(stepId)
+    expandedStepIds.value = next
+  }
+  emit('select-step', stepId)
+}
+
+watch(displayedDefinition, (def) => {
+  if (!def) {
+    expandedStepIds.value = new Set()
+    return
+  }
+  // Drop ids that no longer exist after edits.
+  const stepIds = new Set(def.steps.map((step: { id: string }) => step.id))
+  let changed = false
+  const next = new Set<string>()
+  for (const id of expandedStepIds.value) {
+    if (stepIds.has(id)) {
+      next.add(id)
+    } else {
+      changed = true
+    }
+  }
+  if (changed) expandedStepIds.value = next
+})
+
 const saveButtonLabel = computed(() => {
   if (saveState.value === 'saving') return 'Saving…'
   if (saveState.value === 'error') return 'Retry'
@@ -144,6 +206,14 @@ watch(exportState, (state) => {
         {{ displayedDefinition.name }}
       </h1>
       <div class="header-actions">
+        <Button
+          variant="outline"
+          class="timeline-fold-button"
+          :disabled="!displayedDefinition || displayedDefinition.steps.length === 0"
+          @click="toggleAllExpanded"
+        >
+          {{ allExpanded ? 'Collapse all' : 'Expand all' }}
+        </Button>
         <Button variant="outline" :disabled="exportState === 'exporting'" @click="handleExportClick">
           {{ exportState === 'exporting' ? 'Exporting…' : 'Export' }}
         </Button>
@@ -204,13 +274,15 @@ watch(exportState, (state) => {
           :can-remove="displayedDefinition.steps.length > 1"
           :can-move-down="index < displayedDefinition.steps.length - 1"
           :can-move-up="index > 0"
+          :expanded="isExpanded(step.id)"
           :reference-warning="getReferenceWarning(step.id)"
           :selected="props.selectedStepId === step.id"
           :step="step"
           @move-down="handleMoveStepDown"
           @move-up="handleMoveStepUp"
           @remove="handleRemoveStep"
-          @select="emit('select-step', $event)"
+          @select="handleSelectStep"
+          @toggle-expanded="toggleExpanded"
         />
       </li>
     </ol>
@@ -254,6 +326,8 @@ watch(exportState, (state) => {
 .feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: inherit; font: inherit; cursor: pointer; }
 .feedback-btn:hover { background: var(--card); }
 .timeline-save-button { color: var(--muted-foreground); opacity: 0.4; cursor: default; }
+.timeline-fold-button { color: var(--muted-foreground); }
+.timeline-fold-button:not(:disabled):hover { color: var(--color-node-workflow); border-color: color-mix(in srgb, var(--color-node-workflow) 40%, var(--border)); }
 .timeline-save-button--dirty { color: var(--color-status-active); border-color: var(--color-status-active); background: color-mix(in srgb, var(--color-status-active) 10%, transparent); opacity: 1; cursor: pointer; }
 .timeline-save-button--dirty:hover { background: color-mix(in srgb, var(--color-status-active) 18%, transparent); }
 .timeline-save-button--error { color: var(--color-status-abandoned); border-color: var(--color-status-abandoned); background: color-mix(in srgb, var(--color-status-abandoned) 10%, transparent); opacity: 1; cursor: pointer; }

@@ -6,6 +6,7 @@ const props = defineProps<{
   canRemove: boolean
   canMoveDown: boolean
   canMoveUp: boolean
+  expanded: boolean
   referenceWarning: string | null
   selected: boolean
   step: WorkflowStepDefinition
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   'move-up': [stepId: string]
   remove: [stepId: string]
   select: [stepId: string]
+  'toggle-expanded': [stepId: string]
 }>()
 
 const confirmingRemove = ref(false)
@@ -66,6 +68,15 @@ function handleKeydown(event: KeyboardEvent) {
     </div>
     <template v-else>
       <div class="card-top">
+        <button
+          type="button"
+          class="card-disclosure"
+          :aria-label="expanded ? `Collapse ${step.name}` : `Expand ${step.name}`"
+          :aria-expanded="expanded"
+          @click.stop="emit('toggle-expanded', step.id)"
+        >
+          <span class="disclosure-caret" :class="{ 'disclosure-caret--open': expanded }">▸</span>
+        </button>
         <span class="card-name">{{ step.name }}</span>
         <div class="card-actions">
           <button
@@ -102,7 +113,7 @@ function handleKeydown(event: KeyboardEvent) {
           </button>
         </div>
       </div>
-      <p class="card-desc">{{ step.description }}</p>
+      <p v-if="step.description" class="card-desc" :class="{ 'card-desc--expanded': expanded }">{{ step.description }}</p>
     </template>
   </div>
 </template>
@@ -137,8 +148,42 @@ function handleKeydown(event: KeyboardEvent) {
 .step-card--selected {
   background: var(--muted);
   border-left-color: var(--color-node-workflow);
-  border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 20%, transparent);
+  border-left-width: 4px;
+  border-color: color-mix(in srgb, var(--color-node-workflow) 36%, var(--border));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 28%, transparent),
+              0 0 18px color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
+}
+
+.card-disclosure {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.card-disclosure:hover {
+  background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent);
+  color: var(--color-node-workflow);
+}
+
+.disclosure-caret {
+  display: inline-block;
+  font-size: 0.6875rem;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+}
+
+.disclosure-caret--open {
+  transform: rotate(90deg);
 }
 
 .card-actions {
@@ -199,6 +244,13 @@ function handleKeydown(event: KeyboardEvent) {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.card-desc--expanded {
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  white-space: pre-wrap;
 }
 
 .card-remove-btn {

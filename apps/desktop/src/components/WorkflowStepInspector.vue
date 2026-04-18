@@ -75,76 +75,91 @@ function priorityClass(priority: ToolHintPriority): string {
     <div v-if="!displayedDefinition" class="inspector-empty" aria-hidden="true" />
 
     <template v-else-if="selectedStep">
-      <h2 class="panel-header">Step Properties</h2>
-      <div class="step-id-row">
-        <span class="step-id-label">ID:</span>
-        <code class="step-id-value">{{ selectedStep.id }}</code>
-      </div>
+      <h2 class="panel-header">Step properties</h2>
 
-      <div class="form-group">
-        <label class="field-label">Step name</label>
-        <Input v-model="stepName" type="text" />
-      </div>
+      <section class="inspector-section" aria-labelledby="inspector-section-prompt">
+        <h3 id="inspector-section-prompt" class="section-label">Prompt</h3>
+        <div class="form-group">
+          <label class="field-label">Step name</label>
+          <Input v-model="stepName" type="text" />
+        </div>
+        <div class="form-group">
+          <label class="field-label">Description</label>
+          <Textarea v-model="stepDescription" rows="4" />
+        </div>
+      </section>
 
-      <div class="form-group">
-        <label class="field-label">Description</label>
-        <Textarea v-model="stepDescription" rows="4" />
-      </div>
+      <section class="inspector-section" aria-labelledby="inspector-section-tools">
+        <h3 id="inspector-section-tools" class="section-label">Tools &amp; permissions</h3>
+        <div v-if="toolHintEntries.length > 0" class="form-group">
+          <div class="tool-chips">
+            <span
+              v-for="entry in toolHintEntries"
+              :key="entry.name"
+              class="tool-chip"
+              :title="entry.reason"
+            >
+              {{ entry.name }}
+              <span class="priority-badge" :class="priorityClass(entry.priority)">
+                {{ entry.priority }}
+              </span>
+            </span>
+          </div>
+        </div>
+        <p v-else class="section-empty">No tool hints declared for this step.</p>
+      </section>
 
-      <div class="form-group">
-        <label class="field-label">Reasoning effort</label>
-        <div class="effort-segments" role="group" aria-label="Reasoning effort">
+      <section class="inspector-section" aria-labelledby="inspector-section-thinking">
+        <h3 id="inspector-section-thinking" class="section-label">Sequential thinking</h3>
+        <div class="form-group">
           <button
-            v-for="level in reasoningLevels"
-            :key="level"
-            :class="['effort-segment', { active: selectedEffort === level }]"
+            class="thinking-card"
+            :class="{ enabled: selectedStep.requiresSequentialThinking }"
             type="button"
-            @click="selectedEffort = level"
+            @click="store.setStepRequiresSequentialThinking(selectedStep.id, !selectedStep.requiresSequentialThinking)"
           >
-            {{ formatReasoningLevel(level) }}
+            <div class="thinking-text">
+              <span class="thinking-title">Sequential thinking</span>
+              <span class="thinking-subtitle">Enable chain-of-thought</span>
+            </div>
+            <span class="thinking-indicator" :class="{ on: selectedStep.requiresSequentialThinking }">
+              <span class="indicator-dot" />
+            </span>
           </button>
         </div>
-      </div>
-
-      <div class="form-group">
-        <button
-          class="thinking-card"
-          :class="{ enabled: selectedStep.requiresSequentialThinking }"
-          type="button"
-          @click="store.setStepRequiresSequentialThinking(selectedStep.id, !selectedStep.requiresSequentialThinking)"
-        >
-          <div class="thinking-text">
-            <span class="thinking-title">Sequential Thinking</span>
-            <span class="thinking-subtitle">Enable chain-of-thought</span>
+        <div class="form-group">
+          <label class="field-label">Reasoning effort</label>
+          <div class="effort-segments" role="group" aria-label="Reasoning effort">
+            <button
+              v-for="level in reasoningLevels"
+              :key="level"
+              :class="['effort-segment', { active: selectedEffort === level }]"
+              type="button"
+              @click="selectedEffort = level"
+            >
+              {{ formatReasoningLevel(level) }}
+            </button>
           </div>
-          <span class="thinking-indicator" :class="{ on: selectedStep.requiresSequentialThinking }">
-            <span class="indicator-dot" />
-          </span>
-        </button>
-      </div>
-
-      <div v-if="toolHintEntries.length > 0" class="form-group">
-        <label class="field-label">Tool hints</label>
-        <div class="tool-chips">
-          <span
-            v-for="entry in toolHintEntries"
-            :key="entry.name"
-            class="tool-chip"
-            :title="entry.reason"
-          >
-            {{ entry.name }}
-            <span class="priority-badge" :class="priorityClass(entry.priority)">
-              {{ entry.priority }}
-            </span>
-          </span>
         </div>
-      </div>
+      </section>
+
+      <section class="inspector-section inspector-section--last" aria-labelledby="inspector-section-meta">
+        <h3 id="inspector-section-meta" class="section-label">Meta</h3>
+        <div class="form-group">
+          <label class="field-label">Step ID</label>
+          <code class="step-id-value">{{ selectedStep.id }}</code>
+        </div>
+      </section>
     </template>
 
     <template v-else>
       <h2 class="panel-header">Workflow</h2>
       <div class="workflow-meta">
         <WorkflowMetadataForm />
+      </div>
+      <div class="inspector-empty-state" role="status">
+        <span class="empty-title">Select a step</span>
+        <span class="empty-text">Pick a step from the timeline to edit its prompt, tools, and reasoning settings.</span>
       </div>
     </template>
   </aside>

@@ -46,10 +46,14 @@ pub(super) fn edge_type_name(edge_type: &EdgeType) -> &'static str {
 fn render_pipeline_mermaid_node(node: &PipelineNode, status: &NodeStatus) -> Result<String> {
     let label = mermaid_node_label(node, status)?;
     let wrapped_label = match node {
-        PipelineNode::Workflow { .. } => format!(r#"[\"{label}\"]"#),
-        PipelineNode::Prompt { .. } => format!(r#"(\"{label}\")"#),
-        PipelineNode::SequentialThinking { .. } => format!(r#"{{{{\"{label}\"}}}}"#),
-        PipelineNode::Tool { .. } => format!(">{label}]"),
+        PipelineNode::Workflow { .. }
+ => format!(r#"[\"{label}\"]"#),
+        PipelineNode::Prompt { .. }
+ => format!(r#"(\"{label}\")"#),
+        PipelineNode::SequentialThinking { .. }
+ => format!(r#"{{{{\"{label}\"}}}}"#),
+        PipelineNode::Tool { .. }
+ => format!(">{label}]"),
     };
 
     Ok(format!("  {}{}", node.id(), wrapped_label))
@@ -61,7 +65,8 @@ fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> Result<String
     }
 
     let node_label = match node {
-        PipelineNode::Workflow { .. } => {
+        PipelineNode::Workflow { .. }
+ => {
             let workflow_id = node.workflow_id().ok_or_else(|| {
                 MaenifoldError::Message(format!(
                     "ERROR: Workflow pipeline node '{}' is missing a workflow id",
@@ -70,14 +75,17 @@ fn mermaid_node_label(node: &PipelineNode, status: &NodeStatus) -> Result<String
             })?;
             format!("wf: {workflow_id}")
         }
-        PipelineNode::Prompt { .. } => {
+        PipelineNode::Prompt { .. }
+ => {
             format!(
                 "prompt: {}",
                 truncated_prompt_label(node.prompt().unwrap_or_default())
             )
         }
-        PipelineNode::SequentialThinking { topic, .. } => format!("think: {topic}"),
-        PipelineNode::Tool { tool_name, .. } => format!("tool: {tool_name}"),
+        PipelineNode::SequentialThinking { topic, .. }
+ => format!("think: {topic}"),
+        PipelineNode::Tool { tool_name, .. }
+ => format!("tool: {tool_name}"),
     };
 
     Ok(format!("{} {}", status_emoji(status), node_label))

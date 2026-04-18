@@ -167,7 +167,8 @@ fn dispatch_node(
         .ok_or_else(|| missing_node_state(node_id))?;
 
     match node {
-        PipelineNode::Workflow { .. } => {
+        PipelineNode::Workflow { .. }
+ => {
             let response = build_workflow_dispatch_response(node, &node_session_id)?;
             let activated = activate_workflow_node_session(
                 context,
@@ -177,19 +178,22 @@ fn dispatch_node(
             state.status = NodeStatus::Active;
             Ok(activated.then_some(response))
         }
-        PipelineNode::Prompt { .. } => {
+        PipelineNode::Prompt { .. }
+ => {
             let response = build_prompt_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
             Ok(activated.then_some(response))
         }
-        PipelineNode::SequentialThinking { .. } => {
+        PipelineNode::SequentialThinking { .. }
+ => {
             let response = build_thinking_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
             Ok(activated.then_some(response))
         }
-        PipelineNode::Tool { .. } => {
+        PipelineNode::Tool { .. }
+ => {
             let response = build_tool_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;

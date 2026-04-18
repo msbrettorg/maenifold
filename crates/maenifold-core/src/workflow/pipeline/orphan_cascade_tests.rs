@@ -21,6 +21,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         cwd: None,
         timeout: None,
         agent_config: None,
+        retry_policy: None,
     }
 }
 

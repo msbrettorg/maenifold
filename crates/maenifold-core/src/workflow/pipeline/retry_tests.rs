@@ -23,6 +23,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         cwd: None,
         timeout: None,
         agent_config: None,
+        retry_policy: None,
     }
 }
 
@@ -188,8 +189,10 @@ fn pre_exec_failure_transitions_to_retrying() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: None,
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         &mut counts,
     )
@@ -238,8 +241,10 @@ fn post_exec_failure_stays_abandoned() {
         NodeOutcome::Abandoned {
             reason: "prompt failed".to_string(),
             phase: FailurePhase::PostPrompt,
+            transient_error_kind: None,
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         &mut counts,
     )
@@ -289,8 +294,10 @@ fn max_attempts_exceeded_becomes_stuck() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: None,
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         &mut counts,
     )
@@ -339,8 +346,10 @@ fn retrying_node_state_has_retry_metadata() {
         NodeOutcome::Abandoned {
             reason: "transport failed before prompt".to_string(),
             phase: FailurePhase::PreExecution,
+            transient_error_kind: None,
             acp_session_id: None,
             thinking_session_id: None,
+            retry_attempts: 0,
         },
         &mut counts,
     )

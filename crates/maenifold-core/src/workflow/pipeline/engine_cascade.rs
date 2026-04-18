@@ -127,6 +127,7 @@ mod tests {
             agent_config: None,
             model: None,
             analysis_type: None,
+            retry_policy: None,
         }
     }
 

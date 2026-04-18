@@ -147,15 +147,20 @@ pub(super) fn assemble_node_prompt(
         predecessor_context_content(context, definition, node_states, node.id())?;
     let ambient_prompt = ambient_prompt.trim();
     let node_instruction = match node {
-        PipelineNode::Workflow { prompt, .. } => prompt.as_deref(),
-        PipelineNode::Prompt { prompt, .. } => Some(prompt.as_str()),
-        PipelineNode::SequentialThinking { topic, .. } => Some(topic.as_str()),
-        PipelineNode::Tool { .. } => None,
+        PipelineNode::Workflow { prompt, .. }
+ => prompt.as_deref(),
+        PipelineNode::Prompt { prompt, .. }
+ => Some(prompt.as_str()),
+        PipelineNode::SequentialThinking { topic, .. }
+ => Some(topic.as_str()),
+        PipelineNode::Tool { .. }
+ => None,
     }
     .map(str::trim)
     .filter(|value| !value.is_empty());
     let workflow_fallback =
-        matches!(node, PipelineNode::Workflow { .. }) && node_instruction.is_none();
+        matches!(node, PipelineNode::Workflow { .. }
+) && node_instruction.is_none();
     Ok(assemble_prompt_from_parts(
         predecessor_context.as_deref(),
         ambient_prompt,

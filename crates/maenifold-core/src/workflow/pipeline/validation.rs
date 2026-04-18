@@ -58,7 +58,8 @@ fn validate_node_semantics(node: &PipelineNode) -> Result<()> {
 
             Ok(())
         }
-        PipelineNode::Tool { id, tool_name, .. } => {
+        PipelineNode::Tool { id, tool_name, .. }
+ => {
             validate_non_empty_node_field(id, "toolName", tool_name)
         }
     }
@@ -164,6 +165,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         }
     }
 
@@ -209,7 +211,7 @@ mod tests {
         let error = validate_pipeline(&definition).expect_err("expected validation error");
         assert_eq!(
             error.to_string(),
-            "Invalid argument: Conditional edge 'source -> target' field 'path' must not be empty"
+            "Conditional edge 'source -> target' field 'path' must not be empty"
         );
     }
 
@@ -229,7 +231,7 @@ mod tests {
         let error = validate_pipeline(&definition).expect_err("expected validation error");
         assert_eq!(
             error.to_string(),
-            "Invalid argument: Conditional edge 'missing -> target' references unknown source node 'missing'"
+            "Conditional edge 'missing -> target' references unknown source node 'missing'"
         );
     }
 }

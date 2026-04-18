@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode, active_node_session_targets};
+use super::{
+    NodeState, NodeStatus, PipelineDefinition, PipelineNode, cancellable_node_session_targets,
+};
 
 fn node_state(status: NodeStatus, session_id: &str) -> NodeState {
     NodeState {
@@ -34,6 +36,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                retry_policy: None,
             },
             PipelineNode::Tool {
                 id: "tool-without-agent".to_string(),
@@ -48,6 +51,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                retry_policy: None,
             },
             PipelineNode::SequentialThinking {
                 id: "think-ready".to_string(),
@@ -63,6 +67,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                retry_policy: None,
             },
         ],
         edges: vec![],
@@ -85,7 +90,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
         ),
     ]);
 
-    let targets = active_node_session_targets(&definition, &node_states);
+    let targets = cancellable_node_session_targets(&definition, &node_states);
     assert_eq!(
         targets,
         vec![(

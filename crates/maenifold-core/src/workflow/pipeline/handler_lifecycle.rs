@@ -238,6 +238,7 @@ mod tests {
             cwd: None,
             model: None,
             thought_level: None,
+            retry_policy: None,
         }
     }
 

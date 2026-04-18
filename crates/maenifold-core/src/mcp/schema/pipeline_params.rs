@@ -135,7 +135,7 @@ pub enum PipelineNodeStatusUpdate {
     Completed,
     Abandoned,
 }
-#[derive(Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineEdgeSchema {
     /// Upstream node identifier
@@ -147,7 +147,7 @@ pub struct PipelineEdgeSchema {
     #[schemars(default)]
     pub edge_type: PipelineEdgeType,
 }
-#[derive(Deserialize, JsonSchema)]
+#[derive(Debug, Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PipelineEdgeType {
     Success,

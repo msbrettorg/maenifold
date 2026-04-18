@@ -318,6 +318,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         }
     }
 
@@ -335,6 +336,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         }
     }
 

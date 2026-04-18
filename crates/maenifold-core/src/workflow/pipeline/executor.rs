@@ -381,7 +381,8 @@ async fn schedule_dispatched_node(
     let node_id = dispatch.node_id.clone();
     let agent = match node.acp_client() {
         Some(client) => Some(client.to_string()),
-        None if matches!(node, PipelineNode::Tool { .. }) => None,
+        None if matches!(node, PipelineNode::Tool { .. }
+) => None,
         None => {
             drop(permit);
             let field = node.required_execution_target_field().unwrap_or("agent");
@@ -418,7 +419,7 @@ async fn schedule_dispatched_node(
             let output_config = output_config.clone();
             async move {
                 let context = ToolContext::new(output_config, output_format);
-                let (_, result) = match timeout {
+                let (timed_out, (_, result)) = match timeout {
                     Some(duration) => {
                         match tokio::time::timeout(
                             duration,
@@ -432,18 +433,25 @@ async fn schedule_dispatched_node(
                         )
                         .await
                         {
-                            Ok(result) => result,
+                            Ok(result) => (false, result),
                             Err(_elapsed) => {
                                 // NOTE: T-107.8 — The dropped future may leave stale in-memory session
                                 // tracking behind the agent session wrapper. This is bounded (max
                                 // concurrent nodes) and has no wire-protocol impact.
                                 let reason = format!("timeout after {}s", duration.as_secs());
                                 warn!(node_id = %node_id, reason = %reason, "pipeline node timed out");
-                                (node_id.clone(), timeout_result_for_kind(timeout_kind, reason))
+                                (
+                                    true,
+                                    (node_id.clone(), timeout_result_for_kind(timeout_kind, reason)),
+                                )
                             }
                         }
                     }
-                    None => execute_node_request(context, node_id.clone(), execution, agent, event_tx).await,
+                    None => (
+                        false,
+                        execute_node_request(context, node_id.clone(), execution, agent, event_tx)
+                            .await,
+                    ),
                 };
 
                 let outcome = classify_node_result(&node_id, result);
@@ -453,7 +461,7 @@ async fn schedule_dispatched_node(
                         phase,
                         transient_error_kind,
                         ..
-                    } if phase.is_retryable() => Err(RetryExecutionError {
+                    } if !timed_out && phase.is_retryable() => Err(RetryExecutionError {
                         kind: transient_error_kind.unwrap_or("transient"),
                         reason,
                     }),

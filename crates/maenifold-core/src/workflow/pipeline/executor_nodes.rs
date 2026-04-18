@@ -478,6 +478,7 @@ mod tests {
             cwd: None,
             timeout: Some(30),
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: node.id().to_string(),
@@ -531,6 +532,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: node.id().to_string(),
@@ -584,6 +586,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: node.id().to_string(),
@@ -640,6 +643,7 @@ mod tests {
             cwd: None,
             timeout: Some(15),
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: node.id().to_string(),
@@ -692,6 +696,7 @@ mod tests {
                 cwd: None,
                 timeout: Some(1),
                 agent_config: None,
+                retry_policy: None,
             }],
             edges: vec![],
             inputs: None,
@@ -781,6 +786,7 @@ mod tests {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                retry_policy: None,
             }],
             edges: vec![super::super::types::PipelineEdge {
                 source: "source".to_string(),
@@ -859,6 +865,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: prompt_node.id().to_string(),
@@ -895,6 +902,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let tool_dispatch = DispatchedNode {
             node_id: tool_node.id().to_string(),
@@ -945,6 +953,7 @@ mod tests {
             timeout: None,
             acp_client: None,
             agent_config: None,
+            retry_policy: None,
         };
         let workflow_dispatch = DispatchedNode {
             node_id: workflow_node.id().to_string(),
@@ -980,6 +989,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let tool_dispatch = DispatchedNode {
             node_id: tool_node.id().to_string(),
@@ -1034,6 +1044,7 @@ mod tests {
             cwd: None,
             timeout: None,
             agent_config: None,
+            retry_policy: None,
         };
         let dispatch = DispatchedNode {
             node_id: node.id().to_string(),

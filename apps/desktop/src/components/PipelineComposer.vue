@@ -92,21 +92,26 @@ const {
   emitOpenPromotion: () => emit('openPromotion'),
 });
 
-const NODE_TYPE_COLORS: Record<string, string> = { workflow: '#4d8eff', prompt: '#adc6ff', sequentialThinking: '#d0bcff', tool: '#4edea3' };
+const NODE_TYPE_COLORS: Record<string, string> = {
+  workflow: 'var(--blue)',
+  prompt: 'color-mix(in srgb, var(--blue) 55%, var(--text) 45%)',
+  sequentialThinking: 'var(--plum)',
+  tool: 'var(--sage)',
+};
 const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
 const contextMenuEnabled = computed(() => contextMenu.value !== null);
 const STATUS_COLORS: Record<string, string> = {
-  active: '#4d8eff',
-  completed: '#4edea3',
-  stuck: '#d07a61',
-  abandoned: '#707070',
+  active: 'var(--blue)',
+  completed: 'var(--sage)',
+  stuck: 'var(--terracotta)',
+  abandoned: 'var(--text-dim)',
 };
 const pipelineStatusBadge = computed(() => {
   const status = props.view?.status;
   if (!status) {
     return null;
   }
-  const color = STATUS_COLORS[status] ?? '#707070';
+  const color = STATUS_COLORS[status] ?? 'var(--text-dim)';
   return { label: status, color };
 });
 
@@ -156,10 +161,10 @@ function handleContextMenuOpenChange(open: boolean): void {
                   v-if="paletteAsOverlay"
                  side="left"
                  :show-close-button="false"
-                 class="w-[min(360px,88vw)] border-0 bg-[#1c1b1b] p-0 text-[#e5e2e1] shadow-[0_0_32px_rgba(173,198,255,0.08)] sm:max-w-[360px]"
+                  class="composer-palette-sheet w-[min(360px,88vw)] border-0 p-0 sm:max-w-[360px]"
                >
-                 <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
-                   <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Add node</SheetTitle>
+                  <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
+                    <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--text)]">Add node</SheetTitle>
                    <Button type="button" variant="ghost" size="sm" class="h-8 rounded-[4px] px-2 text-xs" @click="closePalette">Close</Button>
                  </SheetHeader>
                  <ScrollArea class="h-[calc(100vh-4.5rem)]">
@@ -188,9 +193,9 @@ function handleContextMenuOpenChange(open: boolean): void {
               :fit-view-on-init="designMode"
               class="pipeline-flow"
             >
-              <Background color="#2a2a2a" />
+               <Background :color="'var(--surface-high)'" />
               <Controls :show-interactive="designMode" />
-              <MiniMap :node-color="miniMapNodeColor" mask-color="rgba(0,0,0,0.25)" />
+               <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--background) 75%, transparent)'" />
               <template #edge-smoothstep="edgeProps">
                 <g>
                   <BaseEdge :id="edgeProps.id" :path="edgePath(edgeProps).d" :style="edgeProps.style" :marker-start="edgeProps.markerStart" :marker-end="edgeProps.markerEnd" :interaction-width="edgeProps.interactionWidth" />
@@ -259,10 +264,15 @@ function handleContextMenuOpenChange(open: boolean): void {
 .composer-palette, .composer-canvas { position: relative; min-width: 0; }
 .composer-palette-resize { position: absolute; top: 0; bottom: 0; width: 10px; margin-left: -5px; cursor: col-resize; z-index: 6; }
 .composer-palette-sheet-body { min-height: 0; padding: 0 0 1rem; }
-.pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.composer-palette-sheet {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--blue) 8%, transparent);
+}
+.pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--foreground); border: none; }
 .pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--muted); }
-.pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
+.pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
 .composer-status-badge {
   position: absolute;
@@ -274,8 +284,8 @@ function handleContextMenuOpenChange(open: boolean): void {
   gap: 0.5rem;
   padding: 0.35rem 0.6rem;
   border-radius: 4px;
-  background: #201f1f;
-  color: #e5e2e1;
+  background: var(--surface-container);
+  color: var(--text);
   font-size: var(--text-xs);
   text-transform: lowercase;
 }
@@ -285,7 +295,7 @@ function handleContextMenuOpenChange(open: boolean): void {
   border-radius: 999px;
   flex-shrink: 0;
 }
-.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
+.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; background: color-mix(in srgb, var(--background) 92%, var(--surface-high) 8%); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
 .edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
 .edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }
 .composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--muted-foreground); font-size: var(--text-sm); text-align: center; pointer-events: none; }

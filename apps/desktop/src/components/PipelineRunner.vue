@@ -125,23 +125,23 @@ function formatLogEntry(entry: LogEntry) {
   display: flex;
   flex-direction: column;
   min-height: 260px;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 .runner-panel--collapsed {
   min-height: 0;
 }
 .status-line {
   padding: 0.75rem 1rem;
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-base);
-  background: #201f1f;
+  background: var(--surface-container);
 }
 .tab-panel {
   flex: 1;
   min-height: 0;
 }
 .log-panel {
-  background: #201f1f;
+  background: var(--surface-container);
 }
 .log-panel-inner {
   min-height: 100%;
@@ -153,9 +153,9 @@ function formatLogEntry(entry: LogEntry) {
   word-break: break-word;
   font-family: var(--font-code);
   font-size: var(--text-sm);
-  color: #e5e2e1;
+  color: var(--text);
 }
 .empty-state {
-  color: #707070;
+  color: var(--text-dim);
 }
 </style>

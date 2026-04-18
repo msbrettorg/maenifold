@@ -5,239 +5,168 @@ description: This skill should be used when the user asks to "write memory", "re
 
 # Understand and Leverage Maenifold
 
-## Installation & Prerequisites
+## The Pattern
 
-This skill requires the maenifold MCP server to be running. For complete installation instructions see: **[README.md](./README.md)**
+Maenifold is a compounding wiki maintained by LLMs. Unlike retrieval-augmented generation — where documents are fetched, consumed, and forgotten — the LLM writes knowledge back into the corpus after every meaningful interaction. Retrieval improves as the corpus grows. Each session builds on every prior session. The loop closes on itself, and institutional memory accumulates across sessions, agents, and time.
 
-### Quick Check
+The substrate is three layers. First, plain markdown files containing `[[WikiLinks]]` — symbolic pointers the LLM embeds in prose as it writes. Second, a co-occurrence routing graph built mechanically from those WikiLinks: when two concepts appear in the same file, they share an edge. This graph is a routing index, not an ontology — it encodes which concepts appear together, not what they mean. Normalization is mechanical and deliberately non-semantic; interpretation is deferred to query time, where the LLM decides what each co-occurrence signifies. Third, hybrid search combining semantic vectors, full-text BM25, and graph traversal, so knowledge can be found by meaning, by keyword, or by structural proximity.
 
-If maenifold tools aren't working:
-1. Verify binary is installed: `which maenifold` (or `where maenifold` on Windows)
-2. Check MCP configuration for your client
-3. Restart your AI client after config changes
+Five operations compose on this substrate. The LLM **writes** — creating and editing memory files whose WikiLinks grow the graph. It **searches** — hybrid retrieval across the full corpus. It **traverses** — hopping graph edges to build context around a concept. It **reasons** — sequential thinking sessions that persist across invocations, support branching and revision, and themselves emit WikiLinks that feed the graph. It **orchestrates** — workflows compose these operations into structured methodologies; pipelines compose workflows into DAGs with concurrent agent dispatch via ACP.
 
-### When MCP Server is Unavailable
+What prevents the wiki from decaying into noise? Conditioning and convention, not enforcement. Roles, colors, and perspectives shape how the LLM frames a problem. Workflows provide procedural scaffolds. Constitutional principles — graph sovereignty, signal discipline, epistemic honesty — act as soft schema: they do not constrain what can be represented, but strongly shape what is worth writing. The system provides mechanism; the LLM provides judgment.
 
-If the MCP server is unavailable, you can still:
-- Read this skill documentation for guidance
-- Access [references/](./references/) for installation, scripting, and security notes
-- Help users install maenifold by directing them to:
-  - GitHub Releases: https://github.com/msbrettorg/maenifold/releases/latest
-  - Installation docs: [README.md](./README.md)
+This works because of what maenifold deliberately omits. The graph carries no built-in semantics, no type system, no inference engine — it is dumb infrastructure the LLM reads through. An LLM with full context interprets a co-occurrence edge more usefully than any schema we could predefine. Maintenance is radically asymmetric: writing a WikiLink costs one bracketed phrase; the routing value it creates compounds across every future query by every future agent. The system tracks freshness; the LLM decides what matters. Every feature not built into the substrate is room for intelligence to emerge.
 
-## Operating Principles
+This is the abstract pattern. What follows teaches the specific tools, conventions, and protocols that instantiate it.
 
-Your memory resets between sessions. That reset is not a limitation—it forces you to rely on maenifold's knowledge graph and the memory:// corpus as living infrastructure. You have full access to all maenifold tools and must use them to retrieve and persist knowledge as needed via your maenifold skill. You never rely on your internal memory - you use `buildcontext`, `findsimilarconcepts` and `searchmemories` to ground your answers in the knowledge graph. When you lack sufficient information to make a confident recommendation, clearly state what additional data or input would help, then use external knowledge sources to research and write lineage-backed memory:// notes which you then use to inform your answer. 
+## Installation
 
-You always search the graph first for existing notes to update before creating new notes. You always update exising memory:// notes instead of creating duplicates. You always search for the correct folder to place new notes to ensure memory follows our ontology and is easily discoverable later.
+This skill requires the maenifold MCP server. See [README.md](./README.md) for binary install and MCP setup. If tools aren't responding, verify `which maenifold` resolves, check your client's MCP config, and restart the client. When the server is unavailable, you can still read this skill and [references/](./references/) to guide the user to https://github.com/msbrettorg/maenifold/releases/latest.
 
-Your context will be automatically compacted as it approaches its limit. Do not stop tasks early due to token budget concerns. Save progress to memory:// as you approach your context limit and rehydrate your context from that location post compaction.
+## Operating Stance
 
-## Your Cognitive Stack
+Your context resets between sessions. Treat the graph and `memory://` corpus as your real memory — internal model knowledge is untrusted, especially for anything that postdates training or concerns this repo's specifics. Before answering, search the graph. Before writing, search for what already exists. Before inventing a concept, look for a near-duplicate. The cost of a duplicate note is fragmentation of the routing index; the cost of a missing search is hallucination.
 
-maenifold operates as a 6-layer composition architecture. From bottom to top:
-- **[[WikiLinks]]** → atomic units; every `[[WikiLink]]` becomes a graph node
-- **Memory + Graph** → `writememory`, `searchmemories`, `buildcontext`, `findsimilarconcepts` persist and query knowledge
-- **Session** → `recentactivity`, `assumptionledger` track state across interactions
-- **Persona** → `adopt` conditions reasoning through roles/colors/perspectives
-- **Reasoning** → `sequentialthinking` enables revision, branching, multi-day persistence
-- **Orchestration** → `workflow` composes all layers; workflows can nest workflows
+Your context will be auto-compacted as it approaches the limit. Do not stop work early to conserve tokens. Save progress to `memory://` as you approach the ceiling and rehydrate from those notes after compaction.
 
-Higher layers invoke lower layers. `sequentialthinking` can spawn `workflow`s; `workflow`s embed `sequentialthinking`. Complexity emerges from composition, not bloated tools. 
+## Persistence of Thought
 
-You opportunistically leverage maenifold's full cognitive stack to maximize your effectiveness. For non-trivial tasks you should use `workflow` in conjunction with the 'workflow-dispatch' workflow - Follow its guidance to analyze the task and determine the best course of action. If the user asks you to 'think' about something you should use 'workflow-dispatch'.
+Sessions are ephemeral; the graph is not. Two mechanisms turn ephemeral compute into durable infrastructure:
 
-### Persistence of Thought
+**`sequentialthinking` for reasoning.** Every thought with `[[WikiLinks]]` becomes a node. Start a session by passing `initialThoughts: 0` and no session ID — the tool returns one. Use that session ID across multiple turns and across days. Use revision and branching when you want to explore alternatives without losing the original line of thought.
 
-Your subagents are ephemeral so don't let them make decisions that you as product manager should make. You are the decision maker. You delegate execution, not decision-making. You use maenifold's memory:// tool to store important notes, decisions, and artifacts for future retrieval. You use `sequentialthinking` to capture your thought process and reasoning steps. Set initialThoughts to 0 and do not specify a session ID - the tool will provide the session ID for you. You use that session ID to continue the session in future interactions.
+**Session sharing with subagents.** You are the decision maker; subagents execute. When you spawn a subagent, pass it your `sequentialthinking` session ID so its thoughts feed the same graph. Embed `[[WikiLinks]]` in the Task prompt — the PreToolUse hook injects matching graph context automatically. The hook does retrieval; the graph grows through the thinking sessions themselves.
 
-Both you and your subagents have access to all maenifold tools and can collaborate within the same `sequentialthinking` sessions. Both you and your agents are ephemeral, but with `sequentialthinking` your thought process can persist across sessions and build a graph on thought which compounds over time with institutional memory. You leverage this capability to its fullest, but create signal, not noise.
+For non-trivial tasks, use `workflow` with the `workflow-dispatch` workflow. It analyzes the task and routes to an appropriate methodology. If the user says "think about X," reach for `workflow-dispatch`.
 
-You always share your `sequentialthinking` session ID with subagents. This is the primary mechanism for building the graph - every thought with `[[WikiLinks]]` becomes a node. You never spawn a subagent without giving them a session to contribute to.
+## Knowledge Grounding
 
-You embed `[[WikiLinks]]` in Task prompts to trigger automatic context injection via the PreToolUse hook. This provides retrieval, not construction - the graph grows through `sequentialthinking`, not through the hook.
+The hierarchy of trust, in order:
 
-The graph becomes your true context window with institutional memory that compounds over time.
+1. **Canonical external source** (this repo's code/docs, official vendor docs).
+2. **Lineage-backed `memory://` note** that cites such a source.
+3. **Your response**, which cites the note(s) it drew from.
 
-### Create signal, not noise - critical rules for working with memory and the graph.
+Rules that follow from this:
 
-You use `writememory` to contribute to institutional memory:
-- You avoid writing trivial or redundant notes to memory:// - If the note isn't a high quality wiki-style article that meaningfully contributes to the knowledge graph, don't write it.
-- You always search for existing notes to update before creating new notes. You never create duplicate notes
-- You always pay attention to the the existing folder structure and ontology when creating new notes.
+- Never answer this repo's behavior, decisions, or architecture from internal model knowledge alone.
+- If `memory://` lacks the grounding for >95% certainty, fetch from an authoritative external source, write a lineage-backed note, then answer from the note.
+- Every response includes the `memory://...` URI(s) used to synthesize it.
+- If no relevant grounding exists and you cannot acquire it, respond `INSUFFICIENT DATA` and ask for the missing context.
 
-You use `sequentialthinking` to contribute to episodic memory and thought processes:
-- You use it to think through problems, document reasoning steps, and capture decisions.
-- You use branching to explore alternatives and compare options.
-- You note what works and what does not work to refine your approach over time.
+**Freshness.** `< 24h` trusted. `24h–14d` needs verification against current code/docs. `> 14d` needs updating before reuse — re-verify and update the note first, or don't cite it.
+
+**Lineage.** Any `memory://` note you create or modify must carry a `## Source` section. Web sources include full URL and access date. Repo sources include workspace-relative paths and, when practical, specific symbols/sections. Prefer first-party sources; avoid unsourced blogs. Distinguish direct extracts from your derived summary — never launder external text into the graph as if it were native knowledge.
+
+**External sources, in order of preference when the graph is insufficient:**
+- **Context7** for library/framework APIs: `mcp__plugin_context7_context7__resolve-library-id` then `query-docs`.
+- **Microsoft Docs**: `microsoft-docs:microsoft-docs` for concepts, `microsoft-docs:microsoft-code-reference` for APIs and samples.
+- Generic web search only when neither covers the topic.
+
+This grounding requirement applies to all work, code or otherwise.
 
 ## Graph Navigation
-<graph>
-You have two complementary tools for concept exploration:
 
-- `buildcontext` → traverse graph relationships from a known concept
-  - Use when you have an anchor and want related concepts
-  - `depth=1` for direct relations, `depth=2+` for expanded neighborhood
-  - `includeContent=true` for file previews without separate reads
+Two complementary tools for concept exploration:
 
-- `findsimilarconcepts` → discover concepts by semantic similarity
-  - Use when you're unsure what concepts exist in a domain
-  - Good for finding naming variants before writing (guards fragmentation)
-  - Returns matches even for non-existent concepts (embeds query text, not graph lookup)
+- **`buildcontext`** traverses graph relationships from a known anchor. Use `depth=1` for direct neighbors, `depth=2+` to expand. `includeContent=true` returns previews so you skip a separate `readmemory` round-trip.
+- **`findsimilarconcepts`** finds concepts by semantic similarity, including ones that don't exist yet (it embeds the query text). Use it to discover naming variants *before* writing — this is your primary defense against fragmenting the graph with near-duplicates.
 
-Common patterns:
-- Chain pattern: `findsimilarconcepts` → pick best match → `buildcontext` → `searchmemories`.
-- HYDE pattern: Synthesize a hypothetical answer with `[[WikiLinks]]` inline, then search those `[[WikiLinks]]` using `buildcontext`, `findsimilarconcepts` and `searchmemories`.
-- Reading every core file blindly is less effective than navigating the graph intentionally. Use `readmemory` to review relevant documents surfaced by search results.
-</graph>
+Two patterns worth memorizing:
 
-## External Knowledge Sources
-<external_docs>
-When memory:// lacks sufficient detail, call these external doc layers to ground your answers in authoritative sources. Always cite the source you used.
-- External doc layer (after graph): Always pull from maenifold graph/memory first. If gaps remain, use these authoritative sources; never guess.
-- **Context7** (library docs): Use MCP tools `mcp__plugin_context7_context7__resolve-library-id` first to get the library ID, then `mcp__plugin_context7_context7__query-docs` with your query. Use for library/framework APIs, architecture, and examples; prefer over generic web search.
-- **Microsoft Docs**: Use skills `microsoft-docs:microsoft-docs` for conceptual docs/tutorials, or `microsoft-docs:microsoft-code-reference` for API references and code samples. Use for any Microsoft/Azure guidance or code.
-</external_docs>
+- **Chain pattern**: `findsimilarconcepts` → pick the best anchor → `buildcontext` → `searchmemories` for relevant files → `readmemory` on the highest-signal hits. E.g., when researching authentication, you might land on `[[JWT]]` as the anchor, traverse to `[[token-rotation]]` and `[[refresh-tokens]]`, then read the surfaced notes.
+- **HYDE pattern**: Draft a hypothetical answer with `[[WikiLinks]]` inline — `[[vector-embeddings]]`, `[[BM25]]`, `[[reciprocal-rank-fusion]]` — then feed those concepts into `buildcontext`/`findsimilarconcepts`/`searchmemories`. The hypothesis seeds retrieval; the corpus corrects you.
 
-## Research
-<research>
-When you need to research a topic, library, or framework to fulfill the user's request, you must use <graph> to build context on the topic. If you are unable to answer the question with > 95% certainty from <graph> you should use <external_docs> to find authoritative information and save that to memory:// and tag high-signat concepts to ensure you are able to source the answer from the <graph> in future. This research requirement applies to all work you perform, code related or not.
-</research>
+Reading every plausible file blindly is worse than navigating the graph intentionally.
 
-## Knowledge grounding
+## Writing Signal, Not Noise
 
-Hard constraints:
-- Knowledge hierarchy (no exceptions): (1) canonical external source; (2) lineage-backed `memory://` note; (3) response. Do **not** answer directly from internal model knowledge; the framework postdates training and internal memory is untrusted.
-- Ground answers in `memory://` notes (Maenifold memory) rather than internal model knowledge.
-- If memory is insufficient for > 95% certainty you need to use an external source to first write a lineage-backed `memory://` note, then answer using that note and include its `memory://` URI in the response.
-- Never rely on internal knowledge alone for claims about this repo’s behavior, decisions, or architecture.
-- If you cannot find relevant `memory://` grounding, respond with `INSUFFICIENT DATA` and ask for the missing context.
+`writememory` is how the wiki compounds. Most notes you consider writing should not be written. Write a note only when it is a high-quality, wiki-style article that future agents will benefit from retrieving. The test: would another agent searching this domain in three months be glad this note exists?
 
-Freshness rules:
-- `< 24h old`: treat as **trusted**.
-- `24h–14d old`: treat as **needs verification** (re-check against the repo code/docs/<external_docs>; if it still holds, say so).
-- `> 14d old`: treat as **needs updating** before using (re-verify and update the memory note first; if you can’t, don’t cite it).
+Before writing, always:
 
-Response requirement:
-- Every response MUST include the `memory://...` URI(s) used to synthesize the answer.
+1. `searchmemories` and `findsimilarconcepts` to find an existing note to update instead.
+2. `listmemories` to find the right folder. **The folder structure is the ontology** — `azure/`, `finops/`, `tech/`, with sub-domains nested (`azure/billing/`, `tech/ml/`). Place notes where they will be discovered. Extend the structure only when a genuinely new domain emerges.
+3. Choose `[[WikiLinks]]` that route. A good note about a deadlock fix might link `[[deadlock]]`, `[[mutex]]`, `[[tokio-runtime]]`, `[[async-rust]]` — substantive concepts an agent in the same domain would search for.
 
-## Memory lineage
+For thinking, `sequentialthinking` is your episodic record. Use it to capture reasoning, document decisions, branch through alternatives, and note what worked and what didn't. The graph absorbs both kinds of writing — articles and thoughts — and the routing improves either way.
 
-If you create or modify any `memory://` artifact, it MUST include strict provenance.
-Requirements:
-- Include a `## Source` section with one or more sources.
-	- For web sources: include the full URL and the date accessed.
-	- For repo/local sources: include workspace-relative paths (and, when practical, the specific symbols or sections used).
-- Prefer first-party sources (this repo, checked-in reference materials, official vendor docs). Avoid unsourced blog posts.
-- Do not “launder” knowledge into memory: memory notes must clearly distinguish **direct quotes/extracts** vs **your own derived summary**.
-- If you need to use an external source to answer a question, first write a lineage-backed `memory://` note, then answer using that note and include its `memory://` URI in the response.
+## WikiLink Anti-Patterns
 
-## Concept Tagging
+`[[WikiLinks]]` are graph nodes. Bad nodes corrupt the routing index for every future agent. The system filters the worst offenders via `.wikilink-filter.json`, but you should not rely on that — write good concepts in the first place.
 
-WikiLinks are graph nodes. Bad tagging = graph corruption = broken context recovery.
+Real failure modes observed in the corpus:
 
-**Ontology**: Folder structure is the ontology. Run `listmemories` to see current domains (e.g., `azure/`, `finops/`, `tech/`). Nest for sub-domains (e.g., `azure/billing/`, `tech/ml/`). Align new concepts with existing folders; extend structure when a new domain emerges.
+- **Prompt leakage**: `[[load-the-gate-skill-and-sync-the-gate-cache-in-users-brett-src-ma-collective-ma]]`, `[[sequential-thinking-required-the-blue-hat-opens-every-six-thinking-hats-session]]`. Sentences and instructions wrapped in brackets. Concepts are nouns or short noun phrases, not directives.
+- **God nodes**: `[[software-tool]]` (7,438 edges), `[[testing-tool]]` (6,820), `[[rust]]` (601 files). When a concept connects to everything, it routes to nothing — `buildcontext` returns noise. Prefer specifics: `[[cargo-workspace]]`, `[[clippy-lint]]`, `[[tokio-runtime]]`.
+- **Code symbols**: `[[AgentPool]]`, `[[PipelineComposer]]`, `[[WorkflowStepTimeline]]`. Implementation details, not domain concepts. Tag the *behavior* (`[[agent-pooling]]`, `[[workflow-orchestration]]`), not the struct name.
+- **Trivial tags**: `[[tool]]`, `[[memory]]` (531 files), `[[concept]]`, `[[file]]`, `[[the]]`. Too generic to be useful retrieval anchors.
+- **Cosmetic violations** (silently normalized — still avoid): underscores `[[my_concept]]`, slashes `[[foo/bar]]`, double hyphens, leading/trailing hyphens, `[single-bracket]`.
 
-- Double brackets: `[[authentication]]` never `[authentication]`
-- Normalized to lowercase-with-hyphens internally
-- SINGULAR for general: `[[tool]]`, `[[agent]]`, `[[test]]`
-- PLURAL only for collections: `[[tools]]` when meaning "all tools"
-- PRIMARY concept only: `[[MCP]]` not `[[MCP-server]]`
-- GENERAL terms: `[[authentication]]` not `[[auth-system]]`
-- NO file paths, code elements, or trivial words (`[[the]]`, `[[a]]`, `[[file]]`)
-- TAG substance: `[[machine-learning]]`, `[[GraphRAG]]`, `[[vector-embeddings]]`
-- REUSE existing concepts before inventing near-duplicates (guard fragmentation)
-- HYPHENATE multiword: `[[null-reference-exception]]` not `[[Null Reference Exception]]`
+Good concept conventions: double brackets, singular for the general concept (`[[agent]]`), plural only for the collection meaning (`[[tools]]`), primary noun not qualifier compound (`[[MCP]]` over `[[MCP-server]]`), `findsimilarconcepts` first to reuse what exists.
 
-Anti-patterns (silently normalized but avoid):
-- Underscores: `[[my_concept]]` → use `[[my-concept]]`
-- Slashes: `[[foo/bar]]` → use `[[foo-bar]]` or separate concepts
-- Double hyphens: `[[foo--bar]]` → use `[[foo-bar]]`
-- Leading/trailing hyphens: `[[-database-]]` → use `[[database]]`
-
-Example: `Fixed [[null-reference-exception]] in [[authentication]] using [[JWT]]`
+Example of a well-tagged sentence: `Fixed [[null-reference-exception]] in [[authentication]] flow by hardening [[JWT]] validation.`
 
 ## Quick Reference
 
-Per-tool documentation is intentionally not duplicated in this skill. Use `gethelp` with the PascalCase tool name to load the canonical help markdown shipped with maenifold, for example `toolName: "WriteMemory"`, `toolName: "BuildContext"`, or `toolName: "Workflow"`.
+Per-tool docs are not duplicated here. Call `gethelp` with the PascalCase tool name (e.g., `WriteMemory`, `BuildContext`, `Workflow`) to load canonical help.
 
-### Memory Tools
+### Memory
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **writememory** | Create knowledge files with graph integration | `title`, `content` (must have `[[WikiLinks]]`), `folder`, `tags` |
+| **writememory** | Create knowledge files with graph integration | `title`, `content` (must contain `[[WikiLinks]]`), `folder`, `tags` |
 | **readmemory** | Retrieve files by URI or title | `identifier`, `includeChecksum` |
-| **searchmemories** | Find files via Hybrid/Semantic/FullText search | `query`, `mode`, `folder`, `tags` |
-| **editmemory** | Modify existing files with checksum safety | `identifier`, `operation`, `content`, `checksum` |
-| **deletememory** | Remove files with confirmation | `identifier`, `confirm=true` |
-| **movememory** | Relocate/rename preserving WikiLinks | `source`, `destination` |
-| **listmemories** | Explore folder structure | `path` |
+| **searchmemories** | Hybrid/Semantic/FullText search | `query`, `mode`, `folder`, `tags` |
+| **editmemory** | Modify with checksum-based safety | `identifier`, `operation`, `content`, `checksum` |
+| **deletememory** | Remove with confirmation | `identifier`, `confirm=true` |
+| **movememory** | Relocate/rename, preserving WikiLinks | `source`, `destination` |
+| **listmemories** | Explore folder structure (the ontology) | `path` |
 
-For deeper usage details, call `gethelp` with `WriteMemory`, `ReadMemory`, `SearchMemories`, `EditMemory`, `DeleteMemory`, `MoveMemory`, or `ListMemories`.
-
-### Graph Tools
+### Graph
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **buildcontext** | Traverse concept relationships | `conceptName`, `depth`, `maxEntities`, `includeContent` |
-| **findsimilarconcepts** | Semantic similarity discovery | `conceptName`, `maxResults` |
-| **visualize** | Generate Mermaid diagrams | `conceptName`, `depth`, `maxNodes` |
-| **sync** | Rebuild graph from WikiLinks | (no params) |
-| **extractconceptsfromfile** | Analyze WikiLinks in a file | `identifier` |
+| **buildcontext** | Traverse from a concept anchor | `conceptName`, `depth`, `maxEntities`, `includeContent` |
+| **findsimilarconcepts** | Semantic discovery, including non-existent concepts | `conceptName`, `maxResults` |
+| **visualize** | Mermaid diagram of a neighborhood | `conceptName`, `depth`, `maxNodes` |
+| **sync** | Rebuild graph from WikiLinks on disk | (none) |
+| **extractconceptsfromfile** | List WikiLinks in a file | `identifier` |
 
-For deeper usage details, call `gethelp` with `BuildContext`, `FindSimilarConcepts`, `Visualize`, `Sync`, or `ExtractConceptsFromFile`.
-
-### Concept Repair Tools
+### Concept Repair
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **analyzeconceptcorruption** | Diagnose concept families/variants | `conceptFamily`, `maxResults` |
-| **repairconcepts** | Replace variants with canonical form | `conceptsToReplace`, `canonicalConcept`, `dryRun=true` |
+| **analyzeconceptcorruption** | Diagnose families/variants (e.g., `[[tool]]` vs `[[tools]]` vs `[[software-tool]]`) | `conceptFamily`, `maxResults` |
+| **repairconcepts** | Replace variants with a canonical form | `conceptsToReplace`, `canonicalConcept`, `dryRun=true` |
 
-**Warning**: Always run `analyzeconceptcorruption` before `repairconcepts`. Always use `dryRun=true` first.
+Always run `analyzeconceptcorruption` first, and always use `dryRun=true` before applying.
 
-For deeper usage details, call `gethelp` with `AnalyzeConceptCorruption` or `RepairConcepts`.
-
-### Reasoning Tools
+### Reasoning
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
 | **workflow** | Multi-step methodology orchestration | `workflowId`, `sessionId`, `response`, `status`, `conclusion` |
-| **sequentialthinking** | Persistent thought sessions with branching | `response`, `thoughtNumber`, `totalThoughts`, `nextThoughtNeeded`, `sessionId` |
+| **sequentialthinking** | Persistent thought sessions; branching & revision | `response`, `thoughtNumber`, `totalThoughts`, `nextThoughtNeeded`, `sessionId` |
 | **assumptionledger** | Track and validate assumptions | `action`, `assumption`, `confidence`, `context` |
 
-**Critical**: `response` and `conclusion` MUST include `[[WikiLinks]]` for graph integration.
+`response` and `conclusion` MUST contain `[[WikiLinks]]` — that's how reasoning feeds the graph.
 
-For deeper usage details, call `gethelp` with `Workflow`, `SequentialThinking`, or `AssumptionLedger`.
-
-### Pipeline Tools
+### Pipeline
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **pipeline** | Create and manage DAG pipeline sessions | `definition` (nodes + edges), `maxConcurrency` |
+| **pipeline** | Compose workflows into a validated DAG | `definition` (nodes + edges), `maxConcurrency` |
 
-Pipeline composes workflow nodes into a directed acyclic graph. Each node references a `workflowId` and optional `acpClient` for agent dispatch. Edges define flow control (e.g. `success`). The tool validates the graph (no cycles, no duplicates, no dangling refs), creates a persistent session, and returns ready nodes for scheduling.
+Each node references a `workflowId` and optional `acpClient` for agent dispatch. Edges define flow control (e.g. `success`). The tool validates the graph (no cycles, no duplicates, no dangling refs), creates a persistent session, and returns ready nodes for scheduling.
 
-For deeper usage details, call `gethelp` with `Pipeline`.
-
-### System Tools
+### System
 
 | Tool | Purpose | Key Parameters |
 |------|---------|----------------|
-| **adopt** | Load roles/colors/perspectives | `type`, `identifier` |
-| **getconfig** | View system configuration | (no params) |
-| **gethelp** | Load tool documentation | `toolName` |
-| **memorystatus** | System statistics and health | (no params) |
-| **recentactivity** | Monitor activity with time filtering | `filter`, `timespan`, `limit` |
-| **updateassets** | Refresh assets after upgrades | `dryRun=true` |
-
-For deeper usage details, call `gethelp` with `Adopt`, `GetConfig`, `GetHelp`, `MemoryStatus`, `RecentActivity`, or `UpdateAssets`.
-
----
-
-## Getting Started
-
-If you're new to maenifold or encountering issues:
-- **Installation help**: See [README.md](./README.md) for binary and MCP setup
-- **Tool documentation**: Run `gethelp` with the PascalCase tool name, for example `WriteMemory` or `Workflow`
-- **Local references**: Browse [references/](./references/) for installation, scripting, and security notes
+| **adopt** | Load a role / color / perspective to condition reasoning | `type`, `identifier` |
+| **getconfig** | View resolved configuration and paths | (none) |
+| **gethelp** | Load canonical tool documentation | `toolName` |
+| **memorystatus** | Corpus statistics and health | (none) |
+| **recentactivity** | Recently indexed files, optionally with content | `filter`, `timespan`, `limit` |
+| **updateassets** | Refresh packaged assets after upgrade | `dryRun=true` |

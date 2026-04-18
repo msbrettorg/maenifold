@@ -47,6 +47,11 @@ const showFullScreenEmpty = computed(() =>
   && !currentView.value
   && (localDefinition.value?.nodes?.length ?? 0) === 0
 );
+const showBrowseExistingEntry = computed(() =>
+  !designMode.value
+  && !currentView.value
+);
+const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrowseExistingEntry.value);
 
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; }, { immediate: true });
 watch(() => String(currentView.value?.status ?? ''), (status) => {
@@ -100,6 +105,11 @@ function handleNodeDoubleClick(nodeId: string) {
   configModalNodeId.value = nodeId;
   configModalEdge.value = null;
 }
+function handleRunnerToggleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    event.stopPropagation();
+  }
+}
 function handleEdgeDoubleClick(edge: { source: string; target: string }) {
   configModalEdge.value = edge;
   configModalNodeId.value = null;
@@ -144,7 +154,7 @@ onBeforeUnmount(() => {
     <div
       class="pipeline-grid"
       :class="{
-        'grid-empty': showFullScreenEmpty,
+        'grid-empty': showTemplateGallery,
         'runner-expanded': runnerExpanded,
         'mobile-sidebar-open': mobileSidebarOpen,
       }"
@@ -168,7 +178,18 @@ onBeforeUnmount(() => {
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
           </button>
         </div>
-        <TemplateGallery v-if="showFullScreenEmpty" />
+        <div v-if="showTemplateGallery" class="pipeline-entry-surface">
+          <Button
+            v-if="showBrowseExistingEntry"
+            type="button"
+            variant="ghost"
+            class="browse-existing-btn"
+            @click="handleTogglePipelineFlyout"
+          >
+            Browse existing pipelines
+          </Button>
+          <TemplateGallery />
+        </div>
         <template v-else>
           <PipelineComposer
             :design-mode="designMode"
@@ -199,7 +220,7 @@ onBeforeUnmount(() => {
             />
           </Transition>
         </section>
-      <section v-if="!showFullScreenEmpty" class="runner-panel">
+      <section v-if="!showTemplateGallery" class="runner-panel">
         <div class="runner-panel-header">
           <Button
             v-if="hasLoadedPipeline && runnerExpanded"
@@ -221,12 +242,14 @@ onBeforeUnmount(() => {
           <button
             class="runner-expand-btn"
             type="button"
-            aria-label="Toggle runner panel"
+            aria-label="Toggle runner"
             :aria-expanded="runnerExpanded"
-            :title="runnerExpanded ? 'Collapse panel' : 'Expand panel'"
+            :title="runnerExpanded ? 'Hide runner' : 'Show runner'"
             @click="runnerExpanded = !runnerExpanded"
+            @keydown="handleRunnerToggleKeydown"
           >
-            {{ runnerExpanded ? '▼' : '▲' }}
+            <span>Runner</span>
+            <span aria-hidden="true">{{ runnerExpanded ? '▼' : '▲' }}</span>
           </button>
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />

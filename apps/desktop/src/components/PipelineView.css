@@ -81,6 +81,19 @@
   grid-area: composer;
   position: relative;
 }
+.pipeline-entry-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem 1rem 0.75rem;
+}
+.browse-existing-btn {
+  align-self: flex-start;
+  height: 2rem;
+  border-radius: 0.25rem;
+}
 .runner-panel {
   grid-area: runner;
   position: relative;
@@ -97,6 +110,23 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
+}
+.runner-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: #2a2a2a;
+  color: #e5e2e1;
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.runner-expand-btn:hover {
+  background: #353534;
 }
 .mobile-panel-controls,
 .mobile-inspector-header,

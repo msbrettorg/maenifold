@@ -34,7 +34,16 @@ const statusLine = computed(() => {
   const activeList = currentView.value.active.length > 0
     ? currentView.value.active.map(displayNodeId).join(', ')
     : 'none';
-  return `● ${currentView.value.status} — ${currentView.value.completed.length}/${currentView.value.nodes.length} completed — Active: ${activeList}`;
+  return `${currentView.value.status} — ${currentView.value.completed.length}/${currentView.value.nodes.length} completed — Active: ${activeList}`;
+});
+
+const collapsedSummaryLine = computed(() => {
+  if (designMode.value) {
+    return `Design mode — ${localDefinition.value.nodes.length} nodes, ${localDefinition.value.edges.length} edges`;
+  }
+  if (!currentView.value) return 'No pipeline loaded';
+  const activeNodeId = currentView.value.active[0] ?? 'none';
+  return `${currentView.value.status} — ${currentView.value.completed.length}/${currentView.value.nodes.length} completed — Active: ${activeNodeId}`;
 });
 
 const formattedLog = computed(() => eventLog.value.map((entry) => formatLogEntry(entry)));
@@ -94,7 +103,7 @@ function formatLogEntry(entry: LogEntry) {
 
 <template>
   <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
-    <div class="status-line">{{ statusLine }}</div>
+    <div class="status-line">{{ props.collapsed ? collapsedSummaryLine : statusLine }}</div>
 
     <ScrollArea
       v-show="!props.collapsed"

@@ -95,6 +95,20 @@ const {
 const NODE_TYPE_COLORS: Record<string, string> = { workflow: '#4d8eff', prompt: '#adc6ff', sequentialThinking: '#d0bcff', tool: '#4edea3' };
 const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
 const contextMenuEnabled = computed(() => contextMenu.value !== null);
+const STATUS_COLORS: Record<string, string> = {
+  active: '#4d8eff',
+  completed: '#4edea3',
+  stuck: '#d07a61',
+  abandoned: '#707070',
+};
+const pipelineStatusBadge = computed(() => {
+  const status = props.view?.status;
+  if (!status) {
+    return null;
+  }
+  const color = STATUS_COLORS[status] ?? '#707070';
+  return { label: status, color };
+});
 
 function submitNode<T extends PipelineNodeType>(type: T, fields: PipelineNodeDraftByType[T]): void {
   const node = store.addNode(createNode(type, { id: createNodeId(type), ...fields } as PipelineNodeInputByType[T]));
@@ -132,10 +146,14 @@ function handleContextMenuOpenChange(open: boolean): void {
             >
               <slot name="toolbar-actions" />
             </PipelineComposerToolbar>
+            <div v-if="pipelineStatusBadge" class="composer-status-badge" :aria-label="`Pipeline status: ${pipelineStatusBadge.label}`">
+              <span class="composer-status-dot" :style="{ backgroundColor: pipelineStatusBadge.color }" aria-hidden="true" />
+              <span>{{ pipelineStatusBadge.label }}</span>
+            </div>
 
-             <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
-               <SheetContent
-                 v-if="paletteAsOverlay"
+              <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
+                <SheetContent
+                  v-if="paletteAsOverlay"
                  side="left"
                  :show-close-button="false"
                  class="w-[min(360px,88vw)] border-0 bg-[#1c1b1b] p-0 text-[#e5e2e1] shadow-[0_0_32px_rgba(173,198,255,0.08)] sm:max-w-[360px]"
@@ -246,6 +264,27 @@ function handleContextMenuOpenChange(open: boolean): void {
 .pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--muted); }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--card); border-radius: var(--radius); border: 1px solid var(--border); }
 .pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
+.composer-status-badge {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 7;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  background: #201f1f;
+  color: #e5e2e1;
+  font-size: var(--text-xs);
+  text-transform: lowercase;
+}
+.composer-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
 .edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border: 1px solid var(--border); border-radius: 4px; background: var(--background); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
 .edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
 .edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }

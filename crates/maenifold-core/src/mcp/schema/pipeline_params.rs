@@ -1,5 +1,5 @@
 #![allow(dead_code)] // Schema-only types — fields are read by schemars, not by application code
-use super::params::{default_edge_type, default_eight_u32};
+use super::params::default_eight_u32;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::{Map, Value};
@@ -143,15 +143,27 @@ pub struct PipelineEdgeSchema {
     /// Downstream node identifier
     pub target: String,
     /// Edge type controlling downstream activation
-    #[serde(rename = "type", default = "default_edge_type")]
-    #[schemars(default = "default_edge_type")]
+    #[serde(default, flatten)]
+    #[schemars(default)]
     pub edge_type: PipelineEdgeType,
 }
 #[derive(Deserialize, JsonSchema)]
-#[serde(rename_all = "lowercase")]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum PipelineEdgeType {
     Success,
     Always,
+    Conditional {
+        /// JSON path within upstream output to inspect
+        path: String,
+        /// Expected JSON value at `path`
+        equals: Value,
+    },
+}
+
+impl Default for PipelineEdgeType {
+    fn default() -> Self {
+        Self::Success
+    }
 }
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

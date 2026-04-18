@@ -8,6 +8,8 @@ mod params;
 mod pipeline_node_schema;
 mod pipeline_params;
 mod pipeline_tools;
+#[cfg(test)]
+mod pipeline_params_tests;
 mod support;
 mod system_params;
 mod system_tools;

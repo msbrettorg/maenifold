@@ -5,12 +5,16 @@ mod dispatch_prompt;
 mod dispatch_thinking;
 mod dispatch_tool;
 mod dispatch_workflow;
-mod engine;
+mod engine_cascade;
+mod engine_ready;
+mod engine_status;
 pub(super) mod executor;
 mod executor_cleanup;
 mod executor_helpers;
-mod executor_mapping;
 mod executor_nodes;
+mod mapping_apply;
+mod mapping_predecessor;
+mod mapping_resolve;
 mod executor_run;
 mod external_mcp;
 #[cfg(test)]
@@ -51,9 +55,10 @@ mod view_mermaid;
 mod view_nodes;
 mod workflow_id;
 
-pub use engine::{
-    compute_blocked_cascade, compute_pipeline_status, compute_pipeline_status_with_definition,
-    compute_ready_set, compute_terminal_node_ids, has_remaining_work,
+pub use engine_cascade::compute_blocked_cascade;
+pub use engine_ready::{compute_ready_set, has_remaining_work};
+pub use engine_status::{
+    compute_pipeline_status, compute_pipeline_status_with_definition, compute_terminal_node_ids,
 };
 pub use executor::{ExecutionResult, execute_pipeline};
 pub use executor_cleanup::{

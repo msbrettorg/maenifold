@@ -30,7 +30,7 @@ use super::session_io::{
 use super::update::update_pipeline_node_status;
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
-pub(super) use super::executor_mapping::{assemble_node_prompt, predecessor_context_content};
+pub(super) use super::mapping_predecessor::{assemble_node_prompt, predecessor_context_content};
 
 #[cfg(test)]
 #[path = "circuit_breaker_tests.rs"]

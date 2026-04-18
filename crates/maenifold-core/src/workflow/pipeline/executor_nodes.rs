@@ -13,7 +13,8 @@ use super::super::runner::{self, AgentSessionConfig};
 use super::executor_helpers::{
     DispatchedNode, assemble_prompt_from_parts, predecessor_context_content,
 };
-use super::executor_mapping::{interpolate_string, mapped_tool_args, pipeline_inputs_scope};
+use super::mapping_apply::mapped_tool_args;
+use super::mapping_resolve::{interpolate_string, pipeline_inputs_scope};
 use super::executor_run::{run_prompt_node, run_tool_node};
 use super::types::AgentConfig;
 use super::{NodeState, PipelineDefinition, PipelineNode};

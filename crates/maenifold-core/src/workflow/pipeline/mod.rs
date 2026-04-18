@@ -14,6 +14,12 @@ pub(super) mod executor;
 mod executor_cleanup;
 mod executor_helpers;
 mod executor_nodes;
+mod executor_nodes_cwd;
+mod executor_nodes_dispatch;
+mod executor_nodes_prompt;
+mod executor_nodes_thinking;
+mod executor_nodes_tool;
+mod executor_nodes_workflow;
 mod executor_orchestration;
 mod executor_retry;
 #[cfg(test)]
@@ -22,6 +28,8 @@ mod executor_run;
 mod executor_timeout;
 #[cfg(test)]
 mod executor_timeout_tests;
+#[cfg(test)]
+mod integration_tests;
 mod external_mcp;
 #[cfg(test)]
 mod failure_reason_scope_tests;

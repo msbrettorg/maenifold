@@ -81,6 +81,13 @@ pub(super) fn derive_pipeline_node_states(
                 state.status = status;
             }
         }
+        if let Some(retry_count) = frontmatter
+            .get("retryCount")
+            .and_then(YamlValue::as_u64)
+            .and_then(|value| u32::try_from(value).ok())
+        {
+            state.retry_count = Some(retry_count);
+        }
     }
 
     Ok(derived)

@@ -48,6 +48,7 @@ pub(super) fn spawn_dispatched_node_task(
     timeout: Option<std::time::Duration>,
     timeout_kind: TimeoutResultKind,
     node_retry_policy: Option<RetryPolicy>,
+    initial_retry_attempts: u32,
 ) {
     join_set.spawn(async move {
         let _permit = permit;
@@ -127,10 +128,11 @@ pub(super) fn spawn_dispatched_node_task(
 
         let (outcome, retry_attempts) = match node_retry_policy {
             Some(retry_policy) if retry_policy.max_attempts > 0 => {
-                execute_with_retry_policy(&node_id, retry_policy, run_once).await
+                execute_with_retry_policy(&node_id, retry_policy, initial_retry_attempts, run_once)
+                    .await
             }
             _ => match run_once().await {
-                Ok(outcome) => (outcome, 0),
+                Ok(outcome) => (outcome, initial_retry_attempts),
                 Err(error) => (
                     NodeOutcome::Abandoned {
                         reason: error.reason,
@@ -141,7 +143,7 @@ pub(super) fn spawn_dispatched_node_task(
                         retry_attempts: 0,
                         is_outer_timeout: false,
                     },
-                    0,
+                    initial_retry_attempts,
                 ),
             },
         };

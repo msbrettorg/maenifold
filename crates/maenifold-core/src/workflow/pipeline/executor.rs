@@ -21,7 +21,8 @@ use super::executor_orchestration::{
     spawn_dispatched_node_task,
 };
 use super::executor_retry::{
-    earliest_retry_after, increment_node_attempts, persist_retryable_failure,
+    earliest_retry_after, extract_retry_count_from_state, increment_node_attempts,
+    persist_retryable_failure,
 };
 use super::executor_timeout::{
     extract_timeout, strip_node_timeout, timeout_result_kind,
@@ -197,6 +198,7 @@ async fn schedule_dispatched_node(
         inputs,
     )?;
     let node_retry_policy = node.retry_policy().cloned();
+    let initial_retry_attempts = extract_retry_count_from_state(node_states.get(&node_id));
     let output_config = output_context.config.clone();
     let output_format = output_context.output_format;
     let timeout = extract_timeout(&execution);
@@ -214,6 +216,7 @@ async fn schedule_dispatched_node(
         timeout,
         timeout_kind,
         node_retry_policy,
+        initial_retry_attempts,
     );
     Ok(())
 }

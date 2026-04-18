@@ -1,10 +1,20 @@
+//! ## Known Limitations
+//!
+//! - **Retry budget is per-process-lifetime, not per-pipeline-lifetime.**
+//!   If the pipeline driver crashes mid-retry and restarts, the retry counter
+//!   resets. This means a node can exceed its declared `max_retries` across
+//!   restarts. A durability fix is planned but not yet implemented.
+
 use std::time::Duration as StdDuration;
 
 use backon::{ExponentialBuilder, Retryable};
 use chrono::{Duration, Utc};
+use serde_yaml::Value as YamlValue;
 use tracing::info;
 
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::{read_markdown, write_markdown};
+use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 
 use super::executor_nodes::NodeOutcome;
@@ -53,17 +63,40 @@ impl std::error::Error for RetryExecutionError {}
 pub(super) async fn execute_with_retry_policy<F, Fut>(
     node_id: &str,
     retry_policy: RetryPolicy,
-    operation: F,
+    initial_retry_attempts: u32,
+    mut operation: F,
 ) -> (NodeOutcome, u32)
 where
     F: FnMut() -> Fut,
     Fut: std::future::Future<Output = std::result::Result<NodeOutcome, RetryExecutionError>>,
 {
-    let mut retry_attempts: u32 = 0;
+    let mut retry_attempts = initial_retry_attempts;
+    let remaining_attempts = retry_policy.max_attempts.saturating_sub(initial_retry_attempts);
+    if remaining_attempts == 0 {
+        return match operation().await {
+            Ok(outcome) => (outcome, retry_attempts),
+            Err(error) => (
+                NodeOutcome::Abandoned {
+                    reason: format!(
+                        "abandoned after {} transient retries: {}",
+                        retry_attempts, error.reason
+                    ),
+                    phase: super::executor_run::FailurePhase::PostPrompt,
+                    transient_error_kind: None,
+                    acp_session_id: None,
+                    thinking_session_id: None,
+                    retry_attempts: 0,
+                    is_outer_timeout: false,
+                },
+                retry_attempts,
+            ),
+        };
+    }
+
     let mut builder = ExponentialBuilder::default()
         .with_min_delay(StdDuration::from_millis(retry_policy.backoff_min_ms))
         .with_max_delay(StdDuration::from_millis(retry_policy.backoff_max_ms))
-        .with_max_times(retry_policy.max_attempts as usize);
+        .with_max_times(remaining_attempts as usize);
     if retry_policy.jitter {
         builder = builder.with_jitter();
     }
@@ -158,7 +191,8 @@ pub(super) fn persist_retryable_failure(
         .get("maxAttempts")
         .and_then(serde_yaml::Value::as_u64)
         .unwrap_or(3) as u32;
-    let retry_count = retry_attempts.max(1);
+    let prior_retry_count = extract_retry_count_from_state(node_states.get(node_id));
+    let retry_count = retry_attempts.max(prior_retry_count).max(1);
     let node = definition
         .nodes
         .iter()
@@ -187,6 +221,7 @@ pub(super) fn persist_retryable_failure(
     }
 
     if state.attempts >= max_attempts {
+        persist_workflow_retry_count(context, &state.session_id, retry_count)?;
         persist_pipeline_state(
             &mut frontmatter,
             &node_states,
@@ -235,7 +270,12 @@ pub(super) fn persist_retryable_failure(
         node_id: node_id.to_string(),
         workflow_id: node.effective_workflow_id(),
     };
-    write_workflow_node_session_with_status(context, session_id, &node_file, "retrying")
+    write_workflow_node_session_with_status(context, session_id, &node_file, "retrying")?;
+    let persisted_retry_count = node_states
+        .get(node_id)
+        .and_then(|state| state.retry_count)
+        .unwrap_or(retry_count);
+    persist_workflow_retry_count(context, &node_file.session_id, persisted_retry_count)
 }
 
 pub(super) fn increment_node_attempts(
@@ -259,6 +299,7 @@ pub(super) fn increment_node_attempts(
     state.attempts = state.attempts.saturating_add(retry_attempts);
     state.retry_count = Some(retry_attempts);
     state.retry_after = None;
+    persist_workflow_retry_count(context, &state.session_id, retry_attempts)?;
     persist_pipeline_state(
         &mut frontmatter,
         &node_states,
@@ -266,4 +307,27 @@ pub(super) fn increment_node_attempts(
         &pipeline_content,
         context,
     )
+}
+
+pub(super) fn extract_retry_count_from_state(state: Option<&NodeState>) -> u32 {
+    state.and_then(|state| state.retry_count).unwrap_or(0)
+}
+
+fn persist_workflow_retry_count(
+    context: &ToolContext,
+    workflow_session_id: &str,
+    retry_count: u32,
+) -> Result<()> {
+    let workflow_uri = workflow_session_uri(workflow_session_id);
+    let (frontmatter, content, _) = read_markdown(&workflow_uri, &context.config)?;
+    let mut frontmatter = frontmatter.ok_or_else(|| {
+        MaenifoldError::Message(format!(
+            "ERROR: Workflow session {workflow_session_id} has invalid format"
+        ))
+    })?;
+    frontmatter.insert(
+        "retryCount".to_string(),
+        YamlValue::Number(serde_yaml::Number::from(retry_count)),
+    );
+    write_markdown(&workflow_uri, Some(&frontmatter), &content, &context.config)
 }

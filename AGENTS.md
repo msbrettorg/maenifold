@@ -13,6 +13,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 3. The PM never authors notes for another role's stage. The PM relays real agent verdicts — nothing else.
 4. "Probably fine" is not a trust level. Unverified = untrusted.
 5. Agent self-reports are unreliable. Every claim must be independently verified against the actual artifact (file, build output, screenshot).
+6. **Agents NEVER touch git.** No `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only is fine (`git log`, `git diff`, `git status`). PM owns the working tree and commits. An agent that runs a destructive git command discards every parallel agent's working-tree changes — this has happened in real sprints (T-174.4 lost its executor.rs edits when a peer ran `git checkout bf682ecc`).
 
 ---
 

@@ -41,16 +41,18 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts.
 
-1. **Never `mv` between `todo/` and `done/`.** Gate owns file lifecycle.
-2. **Every stage requires a real dispatched agent.** SWE→SWE agent. Red-team→red-team agent. Blue-team→blue-team agent.
-3. **Never skip or fast-forward.** Each `gate pass` references genuine output from the responsible agent.
-4. **1 violation = sprint discarded.** All work reverted regardless of correctness.
-5. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
-6. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → gate pass SWE → report back. PM handles red-team/blue-team.
-7. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
-8. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
-9. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
-10. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
+1. **NEVER move files between `todo/` and `done/`.** Only `gate pass` on the terminal stage moves a file. `mv`, `cp`, `git mv`, IDE drag-drop — all forbidden. If you find yourself reaching for a file operation on a task file, stop: the answer is `gate pass` or `gate fail`. Period.
+2. **`todo/` and `done/` are tracked in git.** Markdown task files are the authoritative spec; `.gate/gate.db` is a derived read-model rebuilt by `gate sync`. Spec history belongs in version control.
+3. **Recovery from gate state loss:** `git restore done/ todo/ && gate sync --root . --rebuild`. Back up `.gate/gate.db` first if it still exists.
+4. **Every stage requires a real dispatched agent.** SWE→SWE agent. Red-team→red-team agent. Blue-team→blue-team agent.
+5. **Never skip or fast-forward.** Each `gate pass` references genuine output from the responsible agent.
+6. **1 violation = sprint discarded.** All work reverted regardless of correctness.
+7. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
+8. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → gate pass SWE → report back. PM handles red-team/blue-team.
+9. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
+10. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
+11. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
+12. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
 
 ### Gate Processes
 
@@ -124,8 +126,9 @@ Build passing is necessary but not sufficient.
 
 ### Parallelization
 
-- Never parallel SWE agents on files in the same Rust crate — `target/` is workspace-global.
-- Blue-team verification only after all SWEs on a crate complete.
+- **Per-agent build isolation.** Every dispatched SWE MUST run `cargo` with `CARGO_TARGET_DIR=target/agents/<task-id>` (set by the dispatching PM in the task prompt). Workspace-global `target/` is reserved for blue-team and the human. This is the rule that makes parallel SWEs across different crates actually work — without it, cargo's workspace lock silently serializes builds.
+- **Same file is still forbidden.** Different crates → fully parallel. Same file → edit conflict, not a build conflict; still forbidden.
+- Blue-team verification runs against the workspace-global `target/` after the SWE wave completes.
 - One agent per CDP session. Visual audits are serial.
 
 ### Formatting

@@ -171,20 +171,28 @@ impl AgentSession {
     }
 
     pub(crate) async fn close(self) -> Result<()> {
-        self.cleanup_on_drop.store(false, Ordering::Release);
         info!(
             agent = %self.agent_name,
             session_id = %self.session_id,
             "closing pipeline agent session"
         );
-        jockey::acp::reset_session(
+        let reset_result = jockey::acp::reset_session(
             &self.runtime_kind,
             &self.agent_name,
             Some(self.session_id.as_str()),
         )
-        .await
-        .map_err(MaenifoldError::Message)?;
-        Ok(())
+        .await;
+        match reset_result {
+            Ok(()) => {
+                self.cleanup_on_drop.store(false, Ordering::Release);
+                Ok(())
+            }
+            Err(error) => {
+                // Re-arm drop cleanup as fallback if explicit close fails.
+                self.cleanup_on_drop.store(true, Ordering::Release);
+                Err(MaenifoldError::Message(error))
+            }
+        }
     }
 }
 

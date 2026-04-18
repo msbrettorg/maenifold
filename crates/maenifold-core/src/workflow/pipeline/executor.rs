@@ -136,7 +136,7 @@ async fn execute_pipeline_inner(
         join_set.abort_all();
         drop(join_set);
         if let Ok(node_states) = load_pipeline_node_states(&json_context, session_id) {
-            terminate_active_node_sessions(&execution_config.definition, &node_states).await;
+            terminate_node_sessions(&execution_config.definition, &node_states).await;
         } else {
             warn!(
                 session_id = %session_id,
@@ -206,18 +206,18 @@ fn build_node_index(definition: &PipelineDefinition) -> HashMap<String, Pipeline
         .collect()
 }
 
-async fn terminate_active_node_sessions(
+async fn terminate_node_sessions(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
 ) {
-    for (node_id, agent, session_id) in active_node_session_targets(definition, node_states) {
+    for (node_id, agent, session_id) in cancellable_node_session_targets(definition, node_states) {
         match jockey::acp::reset_session(&agent, &agent, Some(&session_id)).await {
             Ok(()) => {
                 debug!(
                     node_id = %node_id,
                     session_id = %session_id,
                     agent = %agent,
-                    "terminated active ACP session after pipeline cancellation"
+                    "terminated ACP session after pipeline cancellation"
                 );
             }
             Err(error) => {
@@ -226,29 +226,37 @@ async fn terminate_active_node_sessions(
                     session_id = %session_id,
                     agent = %agent,
                     error = %error,
-                    "active ACP session already exited or could not be terminated"
+                    "ACP session already exited or could not be terminated"
                 );
             }
         }
     }
 }
 
-fn active_node_session_targets(
+fn cancellable_node_session_targets(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
 ) -> Vec<(String, String, String)> {
     let nodes_by_id = build_node_index(definition);
     node_states
         .iter()
-        .filter(|(_, state)| matches!(state.status, NodeStatus::Active))
         .filter_map(|(node_id, state)| {
             let node = nodes_by_id.get(node_id)?;
             let agent = node.acp_client()?.trim();
-            (!agent.is_empty()).then_some((
-                node_id.to_string(),
-                agent.to_string(),
-                state.session_id.to_string(),
-            ))
+            if agent.is_empty() {
+                return None;
+            }
+
+            let session_id = match state.status {
+                NodeStatus::Active => state.session_id.as_str(),
+                _ => state.acp_session_id.as_deref()?,
+            }
+            .trim();
+            if session_id.is_empty() {
+                return None;
+            }
+
+            Some((node_id.to_string(), agent.to_string(), session_id.to_string()))
         })
         .collect()
 }

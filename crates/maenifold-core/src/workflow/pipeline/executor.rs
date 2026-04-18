@@ -556,7 +556,8 @@ fn apply_node_outcome(
             thinking_session_id,
             ..
         } => {
-            if phase.is_retryable() {
+            let is_outer_timeout = reason.starts_with("timeout after ");
+            if phase.is_retryable() && !is_outer_timeout {
                 return persist_retryable_failure(
                     context,
                     session_id,

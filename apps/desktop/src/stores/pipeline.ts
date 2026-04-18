@@ -47,10 +47,24 @@ interface ToolDefinition {
 }
 
 function serializeEdge(edge: PipelineEdge): PipelineEdge {
+  if (edge.type === 'conditional') {
+    const path = edge.condition?.path?.trim() ?? '';
+    if (path.length === 0) {
+      throw new Error(`Conditional edge ${edge.source} → ${edge.target} requires a non-empty path.`);
+    }
+    const equals = edge.condition?.equals;
+    if (!['string', 'number', 'boolean'].includes(typeof equals)) {
+      throw new Error(`Conditional edge ${edge.source} → ${edge.target} requires a string, number, or boolean equals value.`);
+    }
+  }
+
   return {
     source: edge.source,
     target: edge.target,
     ...(edge.type ? { type: edge.type } : {}),
+    ...(edge.type === 'conditional' && edge.condition
+      ? { condition: { path: edge.condition.path.trim(), equals: edge.condition.equals } }
+      : {}),
     ...(edge.mapping && Object.keys(edge.mapping).length > 0
       ? { mapping: { ...edge.mapping } }
       : {}),

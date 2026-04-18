@@ -37,8 +37,8 @@ const emit = defineEmits<{
 
 const store = usePipelineStore();
 const {
-  createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, edgeIndicator, edgePath,
-  edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
+  createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, edgeIndicator, edgeLabel, edgePath,
+  edgePathStyle, edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
 } = useComposerCanvas({
   designMode: () => props.designMode,
   localDefinition: () => props.localDefinition,
@@ -198,9 +198,18 @@ function handleContextMenuOpenChange(open: boolean): void {
                <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--background) 75%, transparent)'" />
               <template #edge-smoothstep="edgeProps">
                 <g>
-                  <BaseEdge :id="edgeProps.id" :path="edgePath(edgeProps).d" :style="edgeProps.style" :marker-start="edgeProps.markerStart" :marker-end="edgeProps.markerEnd" :interaction-width="edgeProps.interactionWidth" />
+                  <BaseEdge :id="edgeProps.id" :path="edgePath(edgeProps).d" :style="edgePathStyle(edgeProps)" :marker-start="edgeProps.markerStart" :marker-end="edgeProps.markerEnd" :interaction-width="edgeProps.interactionWidth" />
                   <title>{{ edgeTooltip(edgeProps.data) }}</title>
                 </g>
+                <EdgeLabelRenderer v-if="edgeLabel(edgeProps.data)">
+                  <div
+                    class="edge-condition-label"
+                    :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
+                    :title="edgeLabel(edgeProps.data) ?? undefined"
+                  >
+                    {{ edgeLabel(edgeProps.data) }}
+                  </div>
+                </EdgeLabelRenderer>
                 <EdgeLabelRenderer v-if="edgeIndicator(edgeProps)">
                   <div
                     :class="['edge-indicator', `edge-indicator--${edgeIndicator(edgeProps)}`]"
@@ -298,6 +307,20 @@ function handleContextMenuOpenChange(open: boolean): void {
 .edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; background: color-mix(in srgb, var(--background) 92%, var(--surface-high) 8%); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
 .edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
 .edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }
+.edge-condition-label {
+  position: absolute;
+  padding: 0.15rem 0.35rem;
+  border-radius: 4px;
+  background: var(--surface-high);
+  color: var(--text);
+  font-size: var(--text-xs);
+  line-height: 1.2;
+  pointer-events: none;
+  max-width: 18ch;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--muted-foreground); font-size: var(--text-sm); text-align: center; pointer-events: none; }
 .composer-empty-state-arrow { font-size: var(--text-2xl); line-height: 1; color: var(--muted-foreground); }
 </style>

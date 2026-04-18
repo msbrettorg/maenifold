@@ -1,9 +1,16 @@
 import { getSmoothStepPath, Position, type EdgeProps } from '@vue-flow/core';
 
 import type { FlowNodeData } from './pipeline-composer-flow';
+import type { EdgeConditionEquals } from './pipeline-types';
+
+type FlowEdgeCondition = {
+  path: string;
+  equals: EdgeConditionEquals;
+};
 
 export type FlowEdgeData = {
-  edgeType: 'success' | 'always';
+  edgeType: 'success' | 'always' | 'conditional';
+  condition?: FlowEdgeCondition;
   mapping?: Record<string, string>;
   /** Absolute bend points from ELK layout. Present only after auto-layout; cleared on manual drag. */
   elkPoints?: Array<{ x: number; y: number }>;
@@ -32,6 +39,33 @@ export function edgeIndicator(edge: EdgeProps<FlowEdgeData>): 'mapped' | 'warnin
   return (edge.targetNode.data as FlowNodeData | undefined)?.type === 'tool'
     ? 'warning'
     : null;
+}
+
+function truncate(text: string, max = 20): string {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
+}
+
+function conditionalLabel(condition: FlowEdgeCondition): string {
+  const raw = `?{${condition.path}}=${JSON.stringify(condition.equals)}`;
+  return truncate(raw);
+}
+
+export function edgeLabel(data?: FlowEdgeData): string | null {
+  if (data?.edgeType !== 'conditional' || !data.condition?.path) return null;
+  return conditionalLabel(data.condition);
+}
+
+export function edgePathStyle(
+  edge: EdgeProps<FlowEdgeData>,
+): Record<string, string | number> | undefined {
+  const edgeType = edge.data?.edgeType ?? 'success';
+  if (edgeType === 'always') {
+    return { ...(edge.style ?? {}), strokeDasharray: '8 6' };
+  }
+  if (edgeType === 'conditional') {
+    return { ...(edge.style ?? {}), strokeDasharray: '2 6' };
+  }
+  return edge.style as Record<string, string | number> | undefined;
 }
 
 /**

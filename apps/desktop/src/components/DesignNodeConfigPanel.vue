@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import { computed, ref, watch } from 'vue';
-import type { PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
+import type { EdgeConditionEquals, PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
 import {
   cwdHasReasonablePathPrefix,
   getNodeType,
@@ -27,6 +27,10 @@ const configStore = useConfigStore();
 
 const nodeFormValue = ref<Record<string, unknown>>({});
 const nodeFormError = ref<string | null>(null);
+const conditionalPath = ref('');
+const conditionalEqualsLiteral = ref('""');
+const conditionalEqualsType = ref<'string' | 'number' | 'boolean'>('string');
+const conditionalEqualsError = ref<string | null>(null);
 
 const selectedDesignNode = computed(() =>
   props.selectedNodeId
@@ -68,12 +72,45 @@ const selectedNodeSchema = computed(() =>
       })
     : null,
 );
+const selectedEdgeType = computed(() => selectedDesignEdge.value?.type ?? 'success');
+const isConditionalEdge = computed(() => selectedEdgeType.value === 'conditional');
+const conditionalPathError = computed(() =>
+  isConditionalEdge.value && conditionalPath.value.trim().length === 0
+    ? 'Path is required for conditional edges.'
+    : null,
+);
 
 watch(
   selectedDesignNode,
   (node) => {
     nodeFormValue.value = node ? getPipelineNodeSchemaFormValue(node) : {};
     nodeFormError.value = null;
+  },
+  { immediate: true },
+);
+
+watch(
+  selectedDesignEdge,
+  (edge) => {
+    if (!edge || (edge.type ?? 'success') !== 'conditional') {
+      conditionalPath.value = '';
+      conditionalEqualsLiteral.value = '""';
+      conditionalEqualsType.value = 'string';
+      conditionalEqualsError.value = null;
+      return;
+    }
+
+    const condition = edge.condition;
+    const equalsValue = condition?.equals ?? '';
+    conditionalPath.value = condition?.path ?? '';
+    conditionalEqualsLiteral.value = JSON.stringify(equalsValue);
+    conditionalEqualsType.value =
+      typeof equalsValue === 'number'
+        ? 'number'
+        : typeof equalsValue === 'boolean'
+          ? 'boolean'
+          : 'string';
+    conditionalEqualsError.value = null;
   },
   { immediate: true },
 );
@@ -161,10 +198,81 @@ function updateEdgeType(type: PipelineEdge['type']): void {
     edges: store.localDefinition.edges.map((edge) =>
       edge.source === props.selectedEdge?.source &&
       edge.target === props.selectedEdge?.target
-        ? { ...edge, type }
+        ? (() => {
+            if (type !== 'conditional') {
+              const { condition: _condition, ...rest } = edge;
+              return { ...rest, type };
+            }
+            return {
+              ...edge,
+              type,
+              condition: edge.condition ?? { path: '', equals: '' },
+            };
+          })()
         : edge,
     ),
   };
+}
+
+function parseEqualsLiteral(
+  raw: string,
+  expectedType: 'string' | 'number' | 'boolean',
+): { ok: true; value: EdgeConditionEquals } | { ok: false; error: string } {
+  try {
+    const value = JSON.parse(raw) as unknown;
+    if (expectedType === 'string' && typeof value === 'string') return { ok: true, value };
+    if (expectedType === 'number' && typeof value === 'number' && Number.isFinite(value)) return { ok: true, value };
+    if (expectedType === 'boolean' && typeof value === 'boolean') return { ok: true, value };
+    return { ok: false, error: `Value must be a ${expectedType} JSON literal.` };
+  } catch {
+    return { ok: false, error: 'Invalid JSON literal.' };
+  }
+}
+
+function updateConditionalEdge(
+  update: (condition: { path: string; equals: EdgeConditionEquals }) => { path: string; equals: EdgeConditionEquals },
+): void {
+  if (!props.selectedEdge || selectedEdgeType.value !== 'conditional') return;
+  store.localDefinition = {
+    ...store.localDefinition,
+    nodes: [...store.localDefinition.nodes],
+    edges: store.localDefinition.edges.map((edge) => {
+      if (edge.source !== props.selectedEdge?.source || edge.target !== props.selectedEdge?.target) {
+        return edge;
+      }
+      const base = edge.condition ?? { path: '', equals: '' as EdgeConditionEquals };
+      return { ...edge, type: 'conditional', condition: update(base) };
+    }),
+  };
+}
+
+function updateConditionalPath(value: string | number): void {
+  conditionalPath.value = getFieldValue(value);
+  updateConditionalEdge((condition) => ({ ...condition, path: conditionalPath.value.trim() }));
+}
+
+function updateConditionalEqualsLiteral(value: string | number): void {
+  conditionalEqualsLiteral.value = getFieldValue(value);
+  const parsed = parseEqualsLiteral(conditionalEqualsLiteral.value, conditionalEqualsType.value);
+  if (!parsed.ok) {
+    conditionalEqualsError.value = parsed.error;
+    return;
+  }
+  conditionalEqualsError.value = null;
+  updateConditionalEdge((condition) => ({ ...condition, equals: parsed.value }));
+}
+
+function updateConditionalEqualsType(value: string | number): void {
+  const nextType = getFieldValue(value);
+  if (nextType !== 'string' && nextType !== 'number' && nextType !== 'boolean') return;
+  conditionalEqualsType.value = nextType;
+  updateConditionalEqualsLiteral(conditionalEqualsLiteral.value);
+}
+
+function conditionalEqualsPlaceholder(): string {
+  if (conditionalEqualsType.value === 'string') return '"ok"';
+  if (conditionalEqualsType.value === 'number') return '1';
+  return 'true';
 }
 
 function updateNodeLabel(value: string | number): void {
@@ -316,7 +424,50 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           >
           <span>Always</span>
         </label>
+        <label class="radio-option">
+          <input
+            :checked="selectedDesignEdge.type === 'conditional'"
+            type="radio"
+            name="edge-type"
+            @change="updateEdgeType('conditional')"
+          >
+          <span>Conditional</span>
+        </label>
       </fieldset>
+      <div v-if="isConditionalEdge" class="field-group">
+        <label class="field">
+          <span>Path</span>
+          <Input
+            :model-value="conditionalPath"
+            type="text"
+            placeholder="result.status"
+            @update:model-value="updateConditionalPath"
+          />
+          <small v-if="conditionalPathError" class="field-hint field-hint--warning">{{ conditionalPathError }}</small>
+        </label>
+        <label class="field">
+          <span>Equals type</span>
+          <select
+            :value="conditionalEqualsType"
+            class="w-full rounded-[4px] bg-[var(--surface-high)] px-3 py-2 text-[var(--text-sm)] text-[var(--text)] outline-none ring-0"
+            @change="updateConditionalEqualsType(($event.target as HTMLSelectElement).value)"
+          >
+            <option value="string">String</option>
+            <option value="number">Number</option>
+            <option value="boolean">Boolean</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Equals (JSON literal)</span>
+          <Input
+            :model-value="conditionalEqualsLiteral"
+            type="text"
+            :placeholder="conditionalEqualsPlaceholder()"
+            @update:model-value="updateConditionalEqualsLiteral"
+          />
+          <small v-if="conditionalEqualsError" class="field-hint field-hint--warning">{{ conditionalEqualsError }}</small>
+        </label>
+      </div>
       <EdgeMappingEditor
         :edge="selectedDesignEdge"
         :source-node="selectedEdgeSourceNode"

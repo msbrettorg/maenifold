@@ -1,6 +1,7 @@
 import type { Edge, Node } from '@vue-flow/core';
 
 import type {
+  EdgeCondition,
   PipelineDefinition,
   PipelineEdge,
   PipelineNode,
@@ -287,15 +288,21 @@ export function pipelineNodesToFlow(
 }
 
 export function pipelineEdgesToFlow(pipelineEdges: PipelineEdge[]): Edge[] {
+  const edgeLabel = (edge: PipelineEdge): string =>
+    edge.type === 'conditional' && edge.condition
+      ? `?{${edge.condition.path}}=${JSON.stringify(edge.condition.equals)}`
+      : edge.type ?? 'success';
+
   return pipelineEdges.map((edge) => ({
     id: `${edge.source}->${edge.target}`,
     source: edge.source,
     target: edge.target,
     type: 'smoothstep',
     animated: edge.type === 'always',
-    label: edge.type ?? 'success',
+    label: edgeLabel(edge),
     data: {
       edgeType: edge.type ?? 'success',
+      ...(edge.condition ? { condition: { ...edge.condition } } : {}),
       ...(edge.mapping ? { mapping: { ...edge.mapping } } : {}),
     },
   }));
@@ -310,7 +317,19 @@ export function definitionFromFlow(
     edges: flowEdges.map((edge) => ({
       source: edge.source,
       target: edge.target,
-      type: (edge.data?.edgeType as 'success' | 'always') ?? 'success',
+      type: (edge.data?.edgeType as 'success' | 'always' | 'conditional') ?? 'success',
+      ...(() => {
+        const condition = edge.data?.condition as Partial<EdgeCondition> | undefined;
+        const path = typeof condition?.path === 'string' ? condition.path : '';
+        const equals = condition?.equals;
+        if (
+          path.length > 0 &&
+          (typeof equals === 'string' || typeof equals === 'number' || typeof equals === 'boolean')
+        ) {
+          return { condition: { path, equals } };
+        }
+        return {};
+      })(),
       ...(() => {
         if (!edge.data?.mapping || typeof edge.data.mapping !== 'object' || Array.isArray(edge.data.mapping)) {
           return {};

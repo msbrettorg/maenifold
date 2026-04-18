@@ -6,7 +6,14 @@ export type PipelineNodeType =
   | "sequentialThinking"
   | "tool";
 
-export type EdgeType = "success" | "always";
+export type EdgeType = "success" | "always" | "conditional";
+
+export type EdgeConditionEquals = string | number | boolean;
+
+export interface EdgeCondition {
+  path: string;
+  equals: EdgeConditionEquals;
+}
 
 export type NodeStatus =
   | "pending"
@@ -113,6 +120,7 @@ export interface PipelineEdge {
   source: string;
   target: string;
   type?: EdgeType;
+  condition?: EdgeCondition;
   mapping?: Record<string, string>;
 }
 

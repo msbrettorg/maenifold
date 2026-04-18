@@ -120,9 +120,22 @@ const SIBLING_LANE_SPACING = 28;
  * or is the only outgoing edge from its source.
  */
 function siblingLaneOffset(data?: FlowEdgeData): number {
-  const total = data?.siblingTotal ?? 0;
-  const index = data?.siblingIndex ?? 0;
+  const rawTotal = data?.siblingTotal;
+  const rawIndex = data?.siblingIndex;
+
+  if (
+    typeof rawTotal !== 'number' ||
+    !Number.isFinite(rawTotal) ||
+    typeof rawIndex !== 'number' ||
+    !Number.isFinite(rawIndex)
+  ) {
+    return 0;
+  }
+
+  const total = Math.floor(rawTotal);
   if (total <= 1) return 0;
+
+  const index = Math.min(Math.max(Math.floor(rawIndex), 0), total - 1);
   return (index - (total - 1) / 2) * SIBLING_LANE_SPACING;
 }
 

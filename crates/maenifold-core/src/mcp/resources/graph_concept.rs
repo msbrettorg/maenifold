@@ -37,10 +37,15 @@ pub(super) fn read_concept_context(connection: &Connection, uri: &str) -> Result
             ))
         })?
         .into_owned();
+    if decoded_name.trim().is_empty() {
+        return Err(MaenifoldError::InvalidResourceUri(format!(
+            "{uri}. concept name is required"
+        )));
+    }
     let canonical_name = crate::markdown::normalize_concept(decoded_name.trim());
     if canonical_name.is_empty() {
         return Err(MaenifoldError::InvalidResourceUri(format!(
-            "{uri}. Missing concept name segment"
+            "{uri}. concept name is required"
         )));
     }
 

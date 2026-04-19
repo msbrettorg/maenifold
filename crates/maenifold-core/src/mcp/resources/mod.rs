@@ -107,11 +107,15 @@ fn resource_exists(uri: &str) -> bool {
 }
 
 fn uri_matches_template(uri: &str, uri_template: &str) -> bool {
-    let base = uri_template
-        .split_once('{')
-        .map(|(prefix, _)| prefix)
-        .unwrap_or(uri_template);
-    !base.is_empty() && uri.starts_with(base)
+    if let Some((base, _)) = uri_template.split_once('{') {
+        return !base.is_empty()
+            && uri
+                .strip_prefix(base)
+                .map(|remainder| !remainder.is_empty())
+                .unwrap_or(false);
+    }
+
+    uri == uri_template
 }
 
 pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {

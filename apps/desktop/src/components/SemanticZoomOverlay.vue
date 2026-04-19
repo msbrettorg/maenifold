@@ -345,7 +345,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  background: var(--card, #201f1f);
+  background: var(--card, var(--surface-container));
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--border);
@@ -363,7 +363,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   font-family: var(--font-display);
   font-size: var(--text-caption);
   color: var(--muted-foreground);
-  background: var(--accent, #353534);
+  background: var(--accent, var(--surface-highest));
   border-bottom: 1px solid var(--border);
 }
 
@@ -371,7 +371,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   margin: var(--space-3) var(--space-4) 0;
   padding: var(--space-3);
   border-radius: 4px;
-  background: color-mix(in srgb, var(--color-status-abandoned) 10%, var(--card, #201f1f));
+  background: color-mix(in srgb, var(--color-status-abandoned) 10%, var(--card, var(--surface-container)));
   color: var(--color-status-abandoned);
 }
 

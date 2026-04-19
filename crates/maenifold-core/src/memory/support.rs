@@ -79,7 +79,7 @@ pub(crate) fn render_learn_help(context: &ToolContext, help: &str) -> String {
 pub(crate) fn memory_tool_help(tool_name: &str) -> &'static str {
     match tool_name {
         "WriteMemory" => {
-            "WriteMemory creates a new memory note and indexes it into the knowledge graph.\n\nParameters:\n- title (string, required): title for the memory file\n- content (string, required): markdown body that must include at least one [[WikiLink]]\n- folder (string, optional): relative folder under the memory root\n- tags (string[], optional): tags stored in frontmatter\n- learn (bool, optional): when true, returns this help text instead of writing a file\n\nUsage examples:\n- {\"title\":\"Azure Savings Plans\",\"content\":\"Learning about [[Azure Savings Plans]] and [[Commitment Discounts]]\"}\n- {\"title\":\"Team Notes\",\"content\":\"# Team Notes\\n\\nCaptured [[Decisions]]\",\"folder\":\"projects/cloud\",\"tags\":[\"finops\",\"research\"]}"
+            "WriteMemory creates a new memory note and indexes it into the knowledge graph.\n\nParameters:\n- title (string, required): title for the memory file\n- content (string, required): markdown body that must include at least one [[WikiLink]]\n- folder (string, optional): relative folder under the memory root\n- tags (string[], optional): tags stored in frontmatter\n- gateTaskId (string, optional): gate task identifier used for lineage\n- pipelineSessionId (string, optional): pipeline session identifier used for lineage\n- thinkingSessionId (string, optional): sequential thinking session identifier used for lineage\n- learn (bool, optional): when true, returns this help text instead of writing a file\n\nUsage examples:\n- {\"title\":\"Azure Savings Plans\",\"content\":\"Learning about [[Azure Savings Plans]] and [[Commitment Discounts]]\"}\n- {\"title\":\"Team Notes\",\"content\":\"# Team Notes\\n\\nCaptured [[Decisions]]\",\"folder\":\"projects/cloud\",\"tags\":[\"finops\",\"research\"]}"
         }
         "ReadMemory" => {
             "ReadMemory loads a memory note by URI or exact title and optionally returns its checksum.\n\nParameters:\n- identifier (string, required): memory URI or exact title\n- includeChecksum (bool, optional, default true): include checksum for safe edits\n- learn (bool, optional): when true, returns this help text instead of reading a file\n\nUsage examples:\n- {\"identifier\":\"memory://projects/cloud/azure-savings-plans\"}\n- {\"identifier\":\"Azure Savings Plans\",\"includeChecksum\":false}"
@@ -239,16 +239,44 @@ pub(crate) fn index_file_content(
     title: &str,
     content: &str,
     checksum: &str,
+    lineage_gate_task_id: Option<&str>,
+    lineage_pipeline_run_id: Option<&str>,
+    lineage_thinking_session_id: Option<&str>,
+    lineage_memory_note_id: Option<&str>,
     context: &ToolContext,
 ) -> Result<()> {
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
     let now = chrono::Utc::now().format("%Y-%m-%dT%H:%M:%SZ").to_string();
     connection.execute(
-        "INSERT INTO file_content (file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed) \
-         VALUES (?1, ?2, ?3, '', ?4, 'saved', ?5, ?6, ?4, ?4) \
-         ON CONFLICT(file_path) DO UPDATE SET title=excluded.title, content=excluded.content, last_indexed=excluded.last_indexed, status=excluded.status, file_md5=excluded.file_md5, file_size=excluded.file_size",
-        params![uri, title, content, now, checksum, content.len() as i64],
+        "INSERT INTO file_content (
+             file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed,
+             lineage_gate_task_id, lineage_pipeline_run_id, lineage_thinking_session_id, lineage_memory_note_id
+         ) \
+         VALUES (?1, ?2, ?3, '', ?4, 'saved', ?5, ?6, ?4, ?4, ?7, ?8, ?9, ?10) \
+         ON CONFLICT(file_path) DO UPDATE SET
+             title=excluded.title,
+             content=excluded.content,
+             last_indexed=excluded.last_indexed,
+             status=excluded.status,
+             file_md5=excluded.file_md5,
+             file_size=excluded.file_size,
+             lineage_gate_task_id=COALESCE(excluded.lineage_gate_task_id, file_content.lineage_gate_task_id),
+             lineage_pipeline_run_id=COALESCE(excluded.lineage_pipeline_run_id, file_content.lineage_pipeline_run_id),
+             lineage_thinking_session_id=COALESCE(excluded.lineage_thinking_session_id, file_content.lineage_thinking_session_id),
+             lineage_memory_note_id=COALESCE(excluded.lineage_memory_note_id, file_content.lineage_memory_note_id)",
+        params![
+            uri,
+            title,
+            content,
+            now,
+            checksum,
+            content.len() as i64,
+            lineage_gate_task_id,
+            lineage_pipeline_run_id,
+            lineage_thinking_session_id,
+            lineage_memory_note_id
+        ],
     )?;
     Ok(())
 }

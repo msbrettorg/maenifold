@@ -11,7 +11,8 @@ use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::super::agent_session::open_agent_session;
+use super::super::agent_session::{AgentSession, open_agent_session};
+use super::super::adoption::require_adopted_role;
 use super::super::runner::{self, AgentSessionConfig, WorkflowRunStatus};
 use super::super::think_runner::decode_think_failure;
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};
@@ -450,10 +451,15 @@ pub(super) async fn run_prompt_node(
     _session_id: &str,
     prompt: &str,
     _tool_mode: &str,
+    adopt_instructions: &[String],
+    adopt_role: Option<&str>,
+    requires_role: Option<&str>,
     session_config: AgentSessionConfig,
     keep_session_alive: bool,
 ) -> Result<PromptExecutionResult> {
+    require_adopted_role("prompt invocation", requires_role, adopt_role)?;
     let session = open_agent_session(agent, &session_config, event_tx).await?;
+    apply_adopt_instructions(&session, adopt_instructions).await?;
     let response_result = session.prompt(prompt).await;
     let acp_session_id = session.remote_id();
     let prompt_result = match response_result {
@@ -501,6 +507,19 @@ pub(super) async fn run_prompt_node(
             }
         }
     }
+}
+
+pub(super) async fn apply_adopt_instructions(
+    session: &AgentSession,
+    adopt_instructions: &[String],
+) -> Result<()> {
+    for instruction in adopt_instructions {
+        let response = session.prompt(instruction).await?;
+        if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+            return Err(MaenifoldError::Message(error));
+        }
+    }
+    Ok(())
 }
 
 pub(super) async fn run_tool_node(

@@ -1,9 +1,11 @@
 import type {
+  BuildContextResult,
   MemoryFile,
   MemorySearchMode,
   RecentActivityFilter,
   RecentResult,
   SearchResult,
+  SimilarConceptResult,
 } from '../lib/workflow-types';
 import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
@@ -19,6 +21,16 @@ interface RecentActivityOptions {
   filter?: RecentActivityFilter;
   limit?: number;
   timespan?: string;
+  includeContent?: boolean;
+}
+
+interface ListMemoriesOptions {
+  path?: string;
+}
+
+interface BuildContextOptions {
+  depth?: number;
+  maxEntities?: number;
   includeContent?: boolean;
 }
 
@@ -49,6 +61,17 @@ function extractUri(value: unknown): string | null {
     const candidate = toNonEmptyString(value[key]);
     if (candidate) {
       return candidate;
+    }
+  }
+
+  return null;
+}
+
+function extractLineageValue(record: Record<string, unknown>, ...keys: string[]): string | null {
+  for (const key of keys) {
+    const value = toNonEmptyString(record[key]);
+    if (value) {
+      return value;
     }
   }
 
@@ -90,12 +113,31 @@ function normalizeReadMemoryResponse(value: unknown): MemoryFile {
     throw new Error('Memory read did not include the expected content.');
   }
 
+  const metadata = isRecord(data.metadata)
+    ? data.metadata
+    : isRecord(data.frontmatter)
+      ? data.frontmatter
+      : null;
+
+  const metadataRecord = metadata ?? {};
+
   return {
     uri,
     title: toNonEmptyString(data.title) ?? uri,
     content,
     created: typeof data.created === 'string' ? data.created : null,
     modified: typeof data.modified === 'string' ? data.modified : null,
+    lineageGateTaskId: extractLineageValue(data, 'lineageGateTaskId', 'lineage_gate_task_id')
+      ?? extractLineageValue(metadataRecord, 'lineageGateTaskId', 'lineage_gate_task_id'),
+    lineagePipelineRunId: extractLineageValue(data, 'lineagePipelineRunId', 'lineage_pipeline_run_id')
+      ?? extractLineageValue(metadataRecord, 'lineagePipelineRunId', 'lineage_pipeline_run_id'),
+    lineageThinkingSessionId: extractLineageValue(data, 'lineageThinkingSessionId', 'lineage_thinking_session_id')
+      ?? extractLineageValue(metadataRecord, 'lineageThinkingSessionId', 'lineage_thinking_session_id'),
+    lineageMemoryNoteId: extractLineageValue(data, 'lineageMemoryNoteId', 'lineage_memory_note_id')
+      ?? extractLineageValue(metadataRecord, 'lineageMemoryNoteId', 'lineage_memory_note_id'),
+    parentWorkflowId: extractLineageValue(data, 'parentWorkflowId', 'parent_workflow_id')
+      ?? extractLineageValue(metadataRecord, 'parentWorkflowId', 'parent_workflow_id'),
+    ...(metadata ? { metadata } : {}),
   };
 }
 
@@ -181,6 +223,139 @@ function normalizeRecentResponse(value: unknown): RecentResult {
   };
 }
 
+function normalizeBuildContextResponse(value: unknown): BuildContextResult {
+  const data = unwrapToolData<unknown>(value);
+  const record = isRecord(data) ? data : {};
+  const directRelations = Array.isArray(record.DirectRelations)
+    ? record.DirectRelations
+    : Array.isArray(record.directRelations)
+      ? record.directRelations
+      : [];
+  const expandedRelations = Array.isArray(record.ExpandedRelations)
+    ? record.ExpandedRelations
+    : Array.isArray(record.expandedRelations)
+      ? record.expandedRelations
+      : [];
+
+  const normalizeRelation = (entry: unknown) => {
+    if (!isRecord(entry)) {
+      return null;
+    }
+
+    const name = toNonEmptyString(entry.Name) ?? toNonEmptyString(entry.name);
+    if (!name) {
+      return null;
+    }
+
+    const files = Array.isArray(entry.Files)
+      ? entry.Files
+      : Array.isArray(entry.files)
+        ? entry.files
+        : [];
+
+    return {
+      name,
+      coOccurrenceCount:
+        typeof entry.CoOccurrenceCount === 'number'
+          ? entry.CoOccurrenceCount
+          : typeof entry.coOccurrenceCount === 'number'
+            ? entry.coOccurrenceCount
+            : 0,
+      files: files.flatMap((file) => (typeof file === 'string' ? [file] : [])),
+      weightedScore:
+        typeof entry.WeightedScore === 'number'
+          ? entry.WeightedScore
+          : typeof entry.weightedScore === 'number'
+            ? entry.weightedScore
+            : null,
+      communityId:
+        typeof entry.CommunityId === 'number'
+          ? entry.CommunityId
+          : typeof entry.communityId === 'number'
+            ? entry.communityId
+            : null,
+    };
+  };
+
+  const conceptName = toNonEmptyString(record.ConceptName) ?? toNonEmptyString(record.conceptName) ?? '';
+  if (!conceptName) {
+    throw new Error('BuildContext did not include a concept name.');
+  }
+
+  return {
+    conceptName,
+    depth:
+      typeof record.Depth === 'number'
+        ? record.Depth
+        : typeof record.depth === 'number'
+          ? record.depth
+          : 0,
+    communityId:
+      typeof record.CommunityId === 'number'
+        ? record.CommunityId
+        : typeof record.communityId === 'number'
+          ? record.communityId
+          : null,
+    directRelations: directRelations.flatMap((entry) => {
+      const relation = normalizeRelation(entry);
+      return relation ? [relation] : [];
+    }),
+    expandedRelations: expandedRelations.flatMap((entry) => {
+      const relation = normalizeRelation(entry);
+      return relation ? [relation] : [];
+    }),
+  };
+}
+
+function normalizeSimilarConceptsResponse(value: unknown): SimilarConceptResult {
+  const data = unwrapToolData<unknown>(value);
+  const record = isRecord(data) ? data : {};
+  const conceptName = toNonEmptyString(record.conceptName) ?? toNonEmptyString(record.ConceptName) ?? '';
+  if (!conceptName) {
+    throw new Error('FindSimilarConcepts did not include a concept name.');
+  }
+
+  const collection = Array.isArray(record.results)
+    ? record.results
+    : Array.isArray(record.Results)
+      ? record.Results
+      : [];
+
+  return {
+    conceptName,
+    totalCount:
+      typeof record.totalCount === 'number'
+        ? record.totalCount
+        : typeof record.TotalCount === 'number'
+          ? record.TotalCount
+          : collection.length,
+    results: collection.flatMap((entry) => {
+      if (!isRecord(entry)) {
+        return [];
+      }
+      const name = toNonEmptyString(entry.name) ?? toNonEmptyString(entry.Name);
+      if (!name) {
+        return [];
+      }
+      return [{
+        name,
+        similarity:
+          typeof entry.similarity === 'number'
+            ? entry.similarity
+            : typeof entry.Similarity === 'number'
+              ? entry.Similarity
+              : 0,
+        weightedSimilarity:
+          typeof entry.weightedSimilarity === 'number'
+            ? entry.weightedSimilarity
+            : typeof entry.WeightedSimilarity === 'number'
+              ? entry.WeightedSimilarity
+              : null,
+      }];
+    }),
+  };
+}
+
 export function useMemoryApi() {
   const mcp = getSharedMcpClient();
 
@@ -257,9 +432,55 @@ export function useMemoryApi() {
     );
   }
 
+  async function listMemories(opts: ListMemoriesOptions = {}): Promise<string> {
+    await ensureConnected();
+
+    const payload: Record<string, unknown> = {};
+    if (opts.path) {
+      payload.path = opts.path;
+    }
+
+    return unwrapToolData<string>(await mcp.callTool('ListMemories', payload));
+  }
+
+  async function buildContext(
+    conceptName: string,
+    opts: BuildContextOptions = {},
+  ): Promise<BuildContextResult> {
+    await ensureConnected();
+
+    const payload: Record<string, unknown> = { conceptName };
+    if (opts.depth !== undefined) {
+      payload.depth = opts.depth;
+    }
+    if (opts.maxEntities !== undefined) {
+      payload.maxEntities = opts.maxEntities;
+    }
+    if (opts.includeContent !== undefined) {
+      payload.includeContent = opts.includeContent;
+    }
+
+    return normalizeBuildContextResponse(
+      await mcp.callTool('BuildContext', payload),
+    );
+  }
+
+  async function findSimilarConcepts(
+    conceptName: string,
+    maxResults = 10,
+  ): Promise<SimilarConceptResult> {
+    await ensureConnected();
+    return normalizeSimilarConceptsResponse(
+      await mcp.callTool('FindSimilarConcepts', { conceptName, maxResults }),
+    );
+  }
+
   return {
     readMemory,
     searchMemories,
     recentActivity,
+    listMemories,
+    buildContext,
+    findSimilarConcepts,
   };
 }

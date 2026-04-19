@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Brain } from 'lucide-vue-next';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { WorkflowStep } from '../lib/workflow-types';
@@ -74,7 +75,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
         {{ stepStatusIcon(step.status) }}
       </span>
       <span :id="stepTitleId" class="step-name">{{ step.name }}</span>
-      <span v-if="step.requiresSequentialThinking" class="submachine-badge" title="Sequential thinking">🧠</span>
+      <span v-if="step.requiresSequentialThinking" class="submachine-badge" title="Sequential thinking"><Brain class="inline size-3.5" :stroke-width="1.5" /></span>
       <span v-if="step.respondedAt" class="step-time">{{ relativeTime(step.respondedAt) }}</span>
       <span v-if="step.response" class="expand-chevron">{{ expanded ? '▲' : '▼' }}</span>
     </div>

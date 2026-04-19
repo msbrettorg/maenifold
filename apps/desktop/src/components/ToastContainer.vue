@@ -6,10 +6,10 @@ const toastStore = useToastStore();
 const { toasts } = storeToRefs(toastStore);
 
 const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
-  info: '#4ea1ff',
-  warning: '#d9a441',
-  error: '#e05a5a',
-  success: '#4fb36c',
+  info: 'var(--blue)',
+  warning: 'var(--amber)',
+  error: 'var(--terracotta)',
+  success: 'var(--sage)',
 };
 </script>
 
@@ -68,8 +68,8 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   padding: 0.8rem 0.9rem;
   border-left: 3px solid var(--toast-accent);
   border-radius: 0.75rem;
-  background: #1e1e1e;
-  color: #f5f5f5;
+  background: var(--background);
+  color: var(--foreground);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }

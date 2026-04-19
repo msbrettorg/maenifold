@@ -1,0 +1,14 @@
+{
+  "star": {
+    "totalUsageMs": 9803090
+  },
+  "monitor": {
+    "replyPrefix": "Agency Cowork: ",
+    "autopilotMode": true,
+    "autoApprovePermissions": true,
+    "yoloMode": true
+  },
+  "memory": {
+    "location": "local"
+  }
+}

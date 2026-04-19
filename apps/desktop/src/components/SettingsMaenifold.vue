@@ -168,46 +168,48 @@ onMounted(loadSettings);
 
 <template>
   <section class="settings-section" role="form" aria-label="Maenifold settings">
-    <div class="section-header">
-      <div>
-        <h3>Maenifold settings</h3>
-        <p>Configure runtime behavior, persistence, graph tuning, and debug controls.</p>
+    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
+      <div class="section-header">
+        <div>
+          <h3>Maenifold settings</h3>
+          <p>Configure runtime behavior, persistence, graph tuning, and debug controls.</p>
+        </div>
       </div>
+
+      <div v-if="isLoading" class="settings-card muted">Loading maenifold settings…</div>
+
+      <template v-else>
+        <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
+
+        <SettingsMaenifoldMemory
+          :form="form"
+          :on-update-optional-number="updateOptionalNumber"
+          :on-update-sync-role="updateSyncRole"
+          :on-use-default-toggle="handleUseDefaultToggle"
+        />
+
+        <SettingsMaenifoldGraph
+          :form="form"
+          :on-community-default-toggle="handleCommunityDefaultToggle"
+          :on-update-community-recompute="updateCommunityRecompute"
+        />
+
+        <SettingsMaenifoldWorkflows
+          :form="form"
+          :on-pipeline-driver-default-toggle="handlePipelineDriverDefaultToggle"
+          :on-update-pipeline-driver="updatePipelineDriver"
+        />
+
+        <div class="form-actions">
+          <button class="save-btn" type="button" :disabled="isSubmitting" @click="handleSave">
+            {{ isSubmitting ? 'Saving…' : 'Save' }}
+          </button>
+          <button class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
+            Reset to defaults
+          </button>
+        </div>
+      </template>
     </div>
-
-    <div v-if="isLoading" class="settings-card muted">Loading maenifold settings…</div>
-
-    <template v-else>
-      <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
-
-      <SettingsMaenifoldMemory
-        :form="form"
-        :on-update-optional-number="updateOptionalNumber"
-        :on-update-sync-role="updateSyncRole"
-        :on-use-default-toggle="handleUseDefaultToggle"
-      />
-
-      <SettingsMaenifoldGraph
-        :form="form"
-        :on-community-default-toggle="handleCommunityDefaultToggle"
-        :on-update-community-recompute="updateCommunityRecompute"
-      />
-
-      <SettingsMaenifoldWorkflows
-        :form="form"
-        :on-pipeline-driver-default-toggle="handlePipelineDriverDefaultToggle"
-        :on-update-pipeline-driver="updatePipelineDriver"
-      />
-
-      <div class="form-actions">
-        <button class="save-btn" type="button" :disabled="isSubmitting" @click="handleSave">
-          {{ isSubmitting ? 'Saving…' : 'Save' }}
-        </button>
-        <button class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
-          Reset to defaults
-        </button>
-      </div>
-    </template>
   </section>
 </template>
 
@@ -216,6 +218,15 @@ onMounted(loadSettings);
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.section-header {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
 .section-header h3,

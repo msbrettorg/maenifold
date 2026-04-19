@@ -19,6 +19,15 @@ pub struct WriteMemoryParams {
     /// Optional tags for categorizing this file
     #[serde(default)]
     pub tags: Option<Vec<String>>,
+    /// Optional Gate task identifier for lineage tracking
+    #[serde(default)]
+    pub gate_task_id: Option<String>,
+    /// Optional pipeline session identifier for lineage tracking
+    #[serde(default)]
+    pub pipeline_session_id: Option<String>,
+    /// Optional sequential thinking session identifier for lineage tracking
+    #[serde(default)]
+    pub thinking_session_id: Option<String>,
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,

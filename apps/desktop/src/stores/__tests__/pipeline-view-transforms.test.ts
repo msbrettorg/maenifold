@@ -27,6 +27,8 @@ describe('pipeline view transforms', () => {
           type: 'prompt',
           prompt: 'Investigate',
           agent: 'architect',
+          adopt: { role: 'architect' },
+          requiresRole: 'architect',
           model: 'legacy-prompt-model',
           thoughtLevel: 'medium',
           agentConfig: { mode: 'workflow', model: 'fresh-prompt-model' },
@@ -39,6 +41,8 @@ describe('pipeline view transforms', () => {
           type: 'sequentialThinking',
           topic: 'Investigate',
           agent: 'architect',
+          adopt: { color: 'blue' },
+          requiresRole: 'reviewer',
           model: 'legacy-thinking-model',
           thoughtLevel: 'low',
           agentConfig: { mode: 'prompt', thoughtLevel: 'high' },
@@ -68,6 +72,8 @@ describe('pipeline view transforms', () => {
         model: 'fresh-prompt-model',
         thoughtLevel: 'medium',
       },
+      adopt: { role: 'architect' },
+      requiresRole: 'architect',
     });
     expect('model' in promptNode!).toBe(false);
     expect('thoughtLevel' in promptNode!).toBe(false);
@@ -80,6 +86,8 @@ describe('pipeline view transforms', () => {
         model: 'legacy-thinking-model',
         thoughtLevel: 'high',
       },
+      adopt: { color: 'blue' },
+      requiresRole: 'reviewer',
     });
     expect('model' in thinkingNode!).toBe(false);
     expect('thoughtLevel' in thinkingNode!).toBe(false);
@@ -105,6 +113,8 @@ describe('pipeline view transforms', () => {
           type: 'prompt',
           prompt: 'Investigate',
           agent: 'architect',
+          adopt: { perspective: 'critical-analyst' },
+          requiresRole: 'architect',
           model: 'stale-prompt-model',
           thoughtLevel: 'medium',
           agentConfig: { mode: 'workflow', model: 'fresh-prompt-model' },
@@ -114,6 +124,8 @@ describe('pipeline view transforms', () => {
           type: 'sequentialThinking',
           topic: 'Investigate',
           agent: 'architect',
+          adopt: { role: 'architect', color: 'blue' },
+          requiresRole: 'reviewer',
           model: 'stale-thinking-model',
           thoughtLevel: 'low',
           agentConfig: { mode: 'prompt', thoughtLevel: 'high' },
@@ -141,6 +153,8 @@ describe('pipeline view transforms', () => {
         model: 'fresh-prompt-model',
         thoughtLevel: 'medium',
       },
+      adopt: { perspective: 'critical-analyst' },
+      requiresRole: 'architect',
     });
     expect('model' in promptNode!).toBe(false);
     expect('thoughtLevel' in promptNode!).toBe(false);
@@ -153,6 +167,8 @@ describe('pipeline view transforms', () => {
         model: 'stale-thinking-model',
         thoughtLevel: 'high',
       },
+      adopt: { role: 'architect', color: 'blue' },
+      requiresRole: 'reviewer',
     });
     expect('model' in thinkingNode!).toBe(false);
     expect('thoughtLevel' in thinkingNode!).toBe(false);

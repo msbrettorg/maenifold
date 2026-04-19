@@ -108,7 +108,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   align-content: start;
   height: 100%;
   padding: 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
   overflow-y: auto;
 }
 
@@ -139,7 +139,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: 0.75rem;
 }
 
@@ -170,7 +170,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   padding: 0.75rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: var(--radius);
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 .composer-toolbar :deep(.agent-config-grid) {

@@ -4,6 +4,10 @@ use super::support::{
     yaml_value_to_string,
 };
 use crate::error::{MaenifoldError, Result};
+use crate::lineage::{
+    gate_task_lineage_id, memory_note_lineage_id, pipeline_run_lineage_id,
+    thinking_session_lineage_id,
+};
 use crate::markdown::{
     Frontmatter, file_exists, find_file_as_uri, read_markdown, slugify, write_markdown,
 };
@@ -69,6 +73,9 @@ pub fn write_memory(context: &ToolContext, payload: &Value) -> Result<String> {
     }
     let folder = payload.get("folder").and_then(Value::as_str);
     let tags = payload.get("tags").and_then(Value::as_array).cloned();
+    let gate_task_id = payload.get("gateTaskId").and_then(Value::as_str);
+    let pipeline_session_id = payload.get("pipelineSessionId").and_then(Value::as_str);
+    let thinking_session_id = payload.get("thinkingSessionId").and_then(Value::as_str);
 
     let title = sanitize_user_input(title);
     let concepts = crate::markdown::extract_wikilinks(content);
@@ -130,6 +137,32 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
             .collect();
         frontmatter.insert("tags".to_string(), YamlValue::Sequence(tags));
     }
+    let lineage_gate_task_id = gate_task_id.map(gate_task_lineage_id);
+    let lineage_pipeline_run_id = pipeline_session_id.map(pipeline_run_lineage_id);
+    let lineage_thinking_session_id = thinking_session_id.map(thinking_session_lineage_id);
+    let lineage_memory_note_id = memory_note_lineage_id(&uri);
+    if let Some(value) = lineage_gate_task_id.as_ref() {
+        frontmatter.insert(
+            "lineage_gate_task_id".to_string(),
+            YamlValue::String(value.clone()),
+        );
+    }
+    if let Some(value) = lineage_pipeline_run_id.as_ref() {
+        frontmatter.insert(
+            "lineage_pipeline_run_id".to_string(),
+            YamlValue::String(value.clone()),
+        );
+    }
+    if let Some(value) = lineage_thinking_session_id.as_ref() {
+        frontmatter.insert(
+            "lineage_thinking_session_id".to_string(),
+            YamlValue::String(value.clone()),
+        );
+    }
+    frontmatter.insert(
+        "lineage_memory_note_id".to_string(),
+        YamlValue::String(lineage_memory_note_id.clone()),
+    );
 
     let full_content = if content.trim_start().starts_with("# ") {
         content.to_string()
@@ -149,7 +182,17 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
 
     write_markdown(&uri, Some(&frontmatter), &full_content, &context.config)?;
     let (_, _, checksum) = read_markdown(&uri, &context.config)?;
-    index_file_content(&uri, &title, &full_content, &checksum, context)?;
+    index_file_content(
+        &uri,
+        &title,
+        &full_content,
+        &checksum,
+        lineage_gate_task_id.as_deref(),
+        lineage_pipeline_run_id.as_deref(),
+        lineage_thinking_session_id.as_deref(),
+        Some(lineage_memory_note_id.as_str()),
+        context,
+    )?;
 
     Ok(match context.output_format {
         OutputFormat::Json => success(json!({

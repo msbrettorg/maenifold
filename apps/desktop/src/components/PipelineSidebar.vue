@@ -131,7 +131,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   width: 100%;
   min-width: 0;
   height: 100%;
-  background: #1c1b1b;
+  background: var(--surface);
   display: flex;
   flex-direction: column;
 }
@@ -148,7 +148,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--text-title);
-  color: #e5e2e1;
+  color: var(--foreground);
 }
 
 .sidebar-actions {
@@ -162,7 +162,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   place-items: center;
   padding: 2rem 1rem;
   text-align: center;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .pipeline-list-scroll {
@@ -187,15 +187,15 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   padding: 0.75rem;
   border-left: 4px solid transparent;
   border-radius: 4px;
-  background: #201f1f;
+  background: var(--surface-container);
   transition: background 0.15s, border-color 0.15s;
 }
 
-.pipeline-item:hover { background: #2a2a2a; }
+.pipeline-item:hover { background: var(--surface-high); }
 
 .pipeline-item.active {
-  border-left-color: #4d8eff;
-  background: #2a2a2a;
+  border-left-color: var(--blue);
+  background: var(--surface-high);
 }
 
 .pipeline-select {
@@ -227,12 +227,12 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   margin-top: 0.375rem;
 }
 
-.bead--pending { background: #707070; }
-.bead--active { background: #F59E0B; }
-.bead--completed { background: #4edea3; }
-.bead--abandoned, .bead--stuck { background: #ffb4ab; }
-.bead--ready, .bead--paused { background: #4edea3; }
-.bead--cancelled { background: #707070; }
+.bead--pending { background: var(--text-dim); }
+.bead--active { background: var(--amber); }
+.bead--completed { background: var(--sage); }
+.bead--abandoned, .bead--stuck { background: var(--terracotta); }
+.bead--ready, .bead--paused { background: var(--sage); }
+.bead--cancelled { background: var(--text-dim); }
 
 .pipeline-meta {
   flex: 1;
@@ -244,7 +244,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .pipeline-id {
   font-weight: var(--weight-display);
-  color: #e5e2e1;
+  color: var(--foreground);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -252,20 +252,20 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .pipeline-progress {
   font-size: var(--text-xs);
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .progress-bar {
   height: 3px;
   border-radius: 2px;
-  background: #131313;
+  background: var(--background);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   border-radius: 2px;
-  background: #4d8eff;
+  background: var(--blue);
   transition: width 0.3s ease;
 }
 

@@ -75,7 +75,7 @@ const {
             <span>Node type</span>
             <select
               v-model="nodeType"
-              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="workflow">Workflow</option>
               <option value="prompt">Prompt</option>
@@ -93,7 +93,7 @@ const {
             <span>Run after</span>
             <select
               v-model="connectFrom"
-              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="">No upstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`from-${existingNodeId}`" :value="existingNodeId">
@@ -106,7 +106,7 @@ const {
             <span>Continue to</span>
             <select
               v-model="connectTo"
-              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="">No downstream edge</option>
               <option v-for="existingNodeId in existingNodeIds" :key="`to-${existingNodeId}`" :value="existingNodeId">
@@ -119,7 +119,7 @@ const {
             <span>Edge type</span>
             <select
               v-model="edgeType"
-              class="w-full bg-[#1c1b1b] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
+              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
             >
               <option value="success">Success</option>
               <option value="always">Always</option>
@@ -242,7 +242,7 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: 0.75rem;
 }
 
@@ -254,7 +254,7 @@ label {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: 0.75rem;
 }
 
@@ -270,7 +270,7 @@ label {
 }
 
 .existing-nodes {
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .form-error {

@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import { Check, KeyRound, AlertTriangle, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { ServerHealthStatus } from '../lib/types';
+import type { Component } from 'vue';
 import AgentProbePreview from './AgentProbePreview.vue';
 import SchemaForm from './SchemaForm.vue';
 import ToolAuthSetupDialog from './ToolAuthSetupDialog.vue';
@@ -57,11 +59,11 @@ function getCwdWarning(value: string): string | null {
     : 'Path should usually start with /, ~/, ./, ../, or a drive letter.';
 }
 
-const HEALTH_META: Record<ServerHealthStatus, { icon: string; label: string }> = {
-  ready: { icon: '✓', label: 'Ready' },
-  auth_required: { icon: '🔑', label: 'Setup Required' },
-  stale: { icon: '⚠️', label: 'Stale' },
-  unavailable: { icon: '✗', label: 'Unavailable' },
+const HEALTH_META: Record<ServerHealthStatus, { icon: Component; label: string }> = {
+  ready: { icon: Check, label: 'Ready' },
+  auth_required: { icon: KeyRound, label: 'Setup Required' },
+  stale: { icon: AlertTriangle, label: 'Stale' },
+  unavailable: { icon: X, label: 'Unavailable' },
 };
 
 const {
@@ -168,7 +170,7 @@ const {
       <div class="tool-palette__quick-add-header"><div><strong>Quick Add</strong><p>Reuse recent and pinned tools without leaving intent-based browse mode.</p></div></div>
       <div class="tool-palette__quick-add-list">
         <button v-for="tool in quickAddTools" :id="`${optionId(tool.namespacedName)}-quick-add`" :key="`quick-add-${tool.key}`" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" @click="handleToolSelect(tool)">
-          <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label">{{ HEALTH_META[tool.health].icon }}</span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
+          <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
           <span class="tool-palette__option-desc">{{ tool.description || 'No description.' }}</span>
           <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
           <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>
@@ -184,7 +186,7 @@ const {
         <div v-for="entry in categorizedTools" :key="entry.category.id" class="tool-palette__category" role="group" :aria-label="entry.category.label">
           <div class="tool-palette__category-header"><div><strong>{{ entry.category.label }}</strong><p>{{ entry.category.description }}</p></div><span class="tool-palette__tag">{{ entry.tools.length }}</span></div>
           <button v-for="tool in entry.tools" :id="optionId(tool.namespacedName)" :key="tool.key" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
-            <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label">{{ HEALTH_META[tool.health].icon }}</span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
+            <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
             <span class="tool-palette__option-desc">{{ tool.description || 'No description.' }}</span>
             <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
             <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>
@@ -192,7 +194,7 @@ const {
         </div>
       </template>
       <button v-else v-for="tool in visibleTools" :id="optionId(tool.namespacedName)" :key="tool.key" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
-        <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label">{{ HEALTH_META[tool.health].icon }}</span><strong><template v-for="(part, index) in highlightText(tool.displayName, searchQuery)" :key="`${tool.namespacedName}-name-${index}`"><mark v-if="part.match">{{ part.text }}</mark><span v-else>{{ part.text }}</span></template></strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
+        <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong><template v-for="(part, index) in highlightText(tool.displayName, searchQuery)" :key="`${tool.namespacedName}-name-${index}`"><mark v-if="part.match">{{ part.text }}</mark><span v-else>{{ part.text }}</span></template></strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
         <span class="tool-palette__option-desc"><template v-for="(part, index) in highlightText(tool.description || 'No description.', searchQuery)" :key="`${tool.namespacedName}-desc-${index}`"><mark v-if="part.match">{{ part.text }}</mark><span v-else>{{ part.text }}</span></template></span>
         <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
         <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>

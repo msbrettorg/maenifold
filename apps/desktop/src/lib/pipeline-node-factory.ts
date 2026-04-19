@@ -1,4 +1,5 @@
 import type {
+  PipelineNodeAdopt,
   PipelineNodeAgentConfig,
   PipelineNode,
   PipelineNodeType,
@@ -38,6 +39,8 @@ export interface WorkflowNodeInput extends WorkflowNodeExecutionSelection {
   workflowId: string;
   acpClient?: string;
   agent?: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   prompt?: string;
 }
 
@@ -46,6 +49,8 @@ export interface PromptNodeInput extends PipelineNodeExecutionFields {
   displayLabel?: string;
   prompt: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   toolMode?: string;
 }
 
@@ -54,6 +59,8 @@ export interface SequentialThinkingNodeInput extends PipelineNodeExecutionFields
   displayLabel?: string;
   topic: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   totalThoughts?: number;
   analysisType?: string;
 }
@@ -176,6 +183,37 @@ function normalizeExecutionCwd(value: unknown): string | undefined {
   return cwd;
 }
 
+function normalizeOptionalText(value: unknown, fieldName: string): string | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (typeof value !== 'string') {
+    throw new Error(`${fieldName} must be a string`);
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function buildNodeAdopt(value: PipelineNodeAdopt | undefined): PipelineNodeAdopt | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    throw new Error('adopt must be a JSON object');
+  }
+
+  const adopt: PipelineNodeAdopt = {
+    ...(normalizeOptionalText(value.role, 'adopt.role') ? { role: normalizeOptionalText(value.role, 'adopt.role') } : {}),
+    ...(normalizeOptionalText(value.color, 'adopt.color') ? { color: normalizeOptionalText(value.color, 'adopt.color') } : {}),
+    ...(normalizeOptionalText(value.perspective, 'adopt.perspective') ? { perspective: normalizeOptionalText(value.perspective, 'adopt.perspective') } : {}),
+  };
+
+  return Object.keys(adopt).length > 0 ? adopt : undefined;
+}
+
 function buildExecutionFields(
   fields: PipelineNodeExecutionFields,
 ): PipelineNodeExecutionFields {
@@ -279,6 +317,10 @@ export function createNode(
         ...((workflowFields.acpClient ?? '').length > 0
           ? { acpClient: workflowFields.acpClient }
           : {}),
+        ...(buildNodeAdopt(workflowFields.adopt) ? { adopt: buildNodeAdopt(workflowFields.adopt) } : {}),
+        ...(normalizeOptionalText(workflowFields.requiresRole, 'requiresRole')
+          ? { requiresRole: normalizeOptionalText(workflowFields.requiresRole, 'requiresRole') }
+          : {}),
         ...(typeof workflowFields.prompt === 'string' &&
         workflowFields.prompt.length > 0
           ? { prompt: workflowFields.prompt }
@@ -308,6 +350,10 @@ export function createNode(
         ...buildDisplayLabel(promptFields.displayLabel),
         prompt: promptFields.prompt,
         agent: promptFields.agent,
+        ...(buildNodeAdopt(promptFields.adopt) ? { adopt: buildNodeAdopt(promptFields.adopt) } : {}),
+        ...(normalizeOptionalText(promptFields.requiresRole, 'requiresRole')
+          ? { requiresRole: normalizeOptionalText(promptFields.requiresRole, 'requiresRole') }
+          : {}),
         ...(typeof promptFields.toolMode === 'string' && promptFields.toolMode.length > 0
           ? { toolMode: promptFields.toolMode }
           : {}),
@@ -336,6 +382,12 @@ export function createNode(
         ...buildDisplayLabel(sequentialThinkingFields.displayLabel),
         topic: sequentialThinkingFields.topic,
         agent: sequentialThinkingFields.agent,
+        ...(buildNodeAdopt(sequentialThinkingFields.adopt)
+          ? { adopt: buildNodeAdopt(sequentialThinkingFields.adopt) }
+          : {}),
+        ...(normalizeOptionalText(sequentialThinkingFields.requiresRole, 'requiresRole')
+          ? { requiresRole: normalizeOptionalText(sequentialThinkingFields.requiresRole, 'requiresRole') }
+          : {}),
         totalThoughts:
           typeof sequentialThinkingFields.totalThoughts === 'number' &&
           Number.isFinite(sequentialThinkingFields.totalThoughts)

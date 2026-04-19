@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { Image as ImageIcon, Headphones } from 'lucide-vue-next';
 import type { ContentBlock } from '../lib/types';
 
 export type PendingAttachment = {
@@ -138,18 +139,18 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
     <div class="ab-toolbar" role="toolbar" aria-label="Attachments">
       <span class="ab-wrap" :title="imageTooltip">
         <button type="button" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
-          🖼️ Image
+          <ImageIcon class="inline size-4" :stroke-width="1.5" /> Image
         </button>
       </span>
       <span class="ab-wrap" :title="audioTooltip">
         <button type="button" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="triggerPicker('audio')">
-          🎧 Audio
+          <Headphones class="inline size-4" :stroke-width="1.5" /> Audio
         </button>
       </span>
     </div>
     <div v-if="pendingAttachments.length" class="ab-pending">
       <div v-for="att in pendingAttachments" :key="att.id" class="ab-chip">
-        <span>{{ att.kind === 'image' ? '🖼️' : '🎧' }} {{ att.label }}</span>
+        <span><component :is="att.kind === 'image' ? ImageIcon : Headphones" class="inline size-4" :stroke-width="1.5" /> {{ att.label }}</span>
         <button type="button" class="ab-remove" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</button>
       </div>
     </div>

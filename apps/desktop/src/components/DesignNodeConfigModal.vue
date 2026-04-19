@@ -39,13 +39,13 @@ const modalDescription = computed(() =>
   <Sheet :open="true" @update:open="(open) => !open && emit('close')">
     <SheetContent
       side="right"
-      class="config-panel gap-0 p-0 text-[#e5e2e1] sm:max-w-[360px]"
+      class="config-panel gap-0 p-0 text-[var(--foreground)] sm:max-w-[360px]"
       :show-close-button="false"
     >
       <SheetHeader class="config-header">
         <div class="config-heading">
           <SheetTitle class="config-title">{{ modalTitle }}</SheetTitle>
-          <SheetDescription class="text-[var(--text-body-sm)] text-[#707070]">{{ modalDescription }}</SheetDescription>
+          <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">{{ modalDescription }}</SheetDescription>
         </div>
         <Button
           class="config-close rounded-[4px]"
@@ -74,7 +74,7 @@ const modalDescription = computed(() =>
   max-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #1c1b1b;
+  background: var(--surface);
   border-radius: 0;
   overflow: hidden;
   border: 0;
@@ -93,14 +93,14 @@ const modalDescription = computed(() =>
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 .config-title {
   font-family: var(--font-display);
   font-size: var(--text-title);
   font-weight: 500;
-  color: #e5e2e1;
+  color: var(--foreground);
 }
 
 .config-body {

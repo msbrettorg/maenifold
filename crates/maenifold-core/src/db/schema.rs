@@ -36,7 +36,11 @@ impl GraphDatabase {
                 file_md5 TEXT,
                 file_size INTEGER,
                 created TEXT,
-                last_accessed TEXT
+                last_accessed TEXT,
+                lineage_gate_task_id TEXT,
+                lineage_pipeline_run_id TEXT,
+                lineage_thinking_session_id TEXT,
+                lineage_memory_note_id TEXT
             );
             CREATE VIRTUAL TABLE IF NOT EXISTS file_search USING fts5(
                 title,
@@ -140,6 +144,10 @@ impl GraphDatabase {
             "ALTER TABLE file_content ADD COLUMN file_size INTEGER",
             "ALTER TABLE file_content ADD COLUMN last_accessed TEXT",
             "ALTER TABLE file_content ADD COLUMN created TEXT",
+            "ALTER TABLE file_content ADD COLUMN lineage_gate_task_id TEXT",
+            "ALTER TABLE file_content ADD COLUMN lineage_pipeline_run_id TEXT",
+            "ALTER TABLE file_content ADD COLUMN lineage_thinking_session_id TEXT",
+            "ALTER TABLE file_content ADD COLUMN lineage_memory_note_id TEXT",
             "ALTER TABLE concept_graph ADD COLUMN source_files TEXT",
             "ALTER TABLE concepts ADD COLUMN first_seen TEXT",
             "ALTER TABLE concepts ADD COLUMN occurrence_count INTEGER DEFAULT 0",

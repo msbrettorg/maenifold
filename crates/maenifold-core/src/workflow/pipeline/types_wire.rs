@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::{AgentConfig, PipelineNode, RetryPolicy};
+use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy};
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -33,6 +33,14 @@ pub(super) struct PipelineNodeWire {
         skip_serializing_if = "Option::is_none"
     )]
     agent_config: Option<AgentConfig>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    adopt: Option<NodeAdopt>,
+    #[serde(
+        default,
+        rename = "requiresRole",
+        skip_serializing_if = "Option::is_none"
+    )]
+    requires_role: Option<String>,
     #[serde(
         default = "default_prompt_tool_mode",
         skip_serializing_if = "is_default_prompt_tool_mode"
@@ -131,6 +139,8 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                adopt: wire.adopt,
+                requires_role: wire.requires_role,
                 retry_policy,
             },
             "prompt" => Self::Prompt {
@@ -146,6 +156,8 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                adopt: wire.adopt,
+                requires_role: wire.requires_role,
                 retry_policy,
             },
             "sequentialThinking" => Self::SequentialThinking {
@@ -162,6 +174,8 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 cwd: wire.cwd,
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
+                adopt: wire.adopt,
+                requires_role: wire.requires_role,
                 retry_policy,
             },
             "tool" => Self::Tool {
@@ -201,6 +215,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                adopt,
+                requires_role,
                 retry_policy,
             } => Self {
                 kind: Some("workflow".to_string()),
@@ -223,6 +239,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools: None,
                 max_turns: None,
                 timeout,
+                adopt,
+                requires_role,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
@@ -241,6 +259,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                adopt,
+                requires_role,
                 retry_policy,
             } => Self {
                 kind: Some("prompt".to_string()),
@@ -263,6 +283,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                adopt,
+                requires_role,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
@@ -282,6 +304,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 cwd,
                 timeout,
                 agent_config,
+                adopt,
+                requires_role,
                 retry_policy,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
@@ -304,6 +328,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                adopt,
+                requires_role,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
@@ -344,6 +370,8 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                adopt: None,
+                requires_role: None,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
                 retry_backoff_min_ms: retry_policy.as_ref().map(|policy| policy.backoff_min_ms),
                 retry_backoff_max_ms: retry_policy.as_ref().map(|policy| policy.backoff_max_ms),
@@ -567,5 +595,43 @@ mod tests {
             PipelineNode::Workflow { acp_client, .. } => assert!(acp_client.is_none()),
             other => panic!("expected workflow node, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn prompt_node_round_trips_adopt_and_requires_role() {
+        let node: PipelineNode = serde_json::from_value(json!({
+            "id": "prompt",
+            "type": "prompt",
+            "prompt": "Say hi",
+            "agent": "agent",
+            "adopt": {
+                "role": "architect",
+                "color": "blue",
+                "perspective": "systems"
+            },
+            "requiresRole": "architect"
+        }))
+        .expect("deserialize prompt node");
+
+        match &node {
+            PipelineNode::Prompt {
+                adopt,
+                requires_role,
+                ..
+            } => {
+                let adopt = adopt.as_ref().expect("adopt");
+                assert_eq!(adopt.role.as_deref(), Some("architect"));
+                assert_eq!(adopt.color.as_deref(), Some("blue"));
+                assert_eq!(adopt.perspective.as_deref(), Some("systems"));
+                assert_eq!(requires_role.as_deref(), Some("architect"));
+            }
+            other => panic!("expected prompt node, got {other:?}"),
+        }
+
+        let value = serde_json::to_value(node).expect("serialize prompt node");
+        assert_eq!(value["adopt"]["role"], json!("architect"));
+        assert_eq!(value["adopt"]["color"], json!("blue"));
+        assert_eq!(value["adopt"]["perspective"], json!("systems"));
+        assert_eq!(value["requiresRole"], json!("architect"));
     }
 }

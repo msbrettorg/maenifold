@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import type { Component } from 'vue';
+import { RefreshCw, AlertTriangle, Brain, CheckCircle } from 'lucide-vue-next';
 import type { ThinkingSession } from '../lib/workflow-types';
 import ThinkingMarkdownContent from './ThinkingMarkdownContent.vue';
 import ThinkingThoughtItem from './ThinkingThoughtItem.vue';
@@ -13,10 +15,10 @@ const thoughtCountLabel = computed(() => `${props.node.thoughts.length} thought$
 const shortSessionId = computed(() => props.node.sessionId.length <= 18
   ? props.node.sessionId
   : `${props.node.sessionId.slice(0, 8)}…${props.node.sessionId.slice(-6)}`);
-const statusMetaMap = {
-  active: { label: 'Active', icon: '🔄', className: 'status-active' },
-  completed: { label: 'Completed', icon: '✅', className: 'status-completed' },
-  abandoned: { label: 'Abandoned', icon: '⚠️', className: 'status-abandoned' },
+const statusMetaMap: Record<ThinkingSession['status'], { label: string; icon: Component; className: string }> = {
+  active: { label: 'Active', icon: RefreshCw, className: 'status-active' },
+  completed: { label: 'Completed', icon: CheckCircle, className: 'status-completed' },
+  abandoned: { label: 'Abandoned', icon: AlertTriangle, className: 'status-abandoned' },
 } as const;
 const statusMeta = computed(() => statusMetaMap[props.node.status]);
 
@@ -76,7 +78,7 @@ function onAfterLeave(element: Element): void {
   <div class="thinking-session-card">
     <button type="button" class="card-header" :aria-expanded="isExpanded" @click="toggleExpanded">
       <div class="header-left">
-        <span class="header-icon" aria-hidden="true">🧠</span>
+        <span class="header-icon" aria-hidden="true"><Brain class="size-4" :stroke-width="1.5" /></span>
         <div class="header-copy">
           <span class="header-title">Thinking session</span>
           <span class="session-id" :title="node.sessionId">{{ shortSessionId }}</span>
@@ -86,7 +88,7 @@ function onAfterLeave(element: Element): void {
       <div class="header-right">
         <span class="thought-count-badge">{{ thoughtCountLabel }}</span>
         <span class="status-badge" :class="statusMeta.className" :title="node.status">
-          <span aria-hidden="true">{{ statusMeta.icon }}</span>
+          <span aria-hidden="true"><component :is="statusMeta.icon" class="size-4" :stroke-width="1.5" /></span>
           {{ statusMeta.label }}
         </span>
         <span class="expand-indicator" aria-hidden="true">{{ isExpanded ? '▲' : '▼' }}</span>

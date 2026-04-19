@@ -29,7 +29,7 @@ defineEmits<{
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4);
-  background: var(--accent, #353534);
+  background: var(--accent, var(--surface-highest));
 }
 
 .zoom-header-left {

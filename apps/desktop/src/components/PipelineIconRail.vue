@@ -49,7 +49,7 @@ defineExpose({ focusPipelineToggle });
             <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[#353534] text-[#e5e2e1]">
+        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[var(--surface-highest)] text-[var(--foreground)]">
           {{ pipelineTooltip }}
         </TooltipContent>
       </Tooltip>
@@ -65,7 +65,7 @@ defineExpose({ focusPipelineToggle });
             <Plus :size="18" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="rounded-[4px] bg-[#353534] text-[#e5e2e1]">
+        <TooltipContent side="right" class="rounded-[4px] bg-[var(--surface-highest)] text-[var(--foreground)]">
           Create new pipeline
         </TooltipContent>
       </Tooltip>

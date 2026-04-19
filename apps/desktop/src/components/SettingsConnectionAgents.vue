@@ -63,63 +63,74 @@ function formatEnvCount(count: number) {
 
 <template>
   <section class="settings-section">
-    <div class="section-header">
-      <div>
-        <h4>Agents</h4>
-        <p>Add, edit, and remove ACP agent definitions.</p>
-      </div>
-      <button class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add agent</button>
-    </div>
-
-    <div v-if="showAddForm || editingAgent" class="agent-form">
-      <h5>{{ editingAgent ? 'Edit agent' : 'Add new agent' }}</h5>
-
-      <div class="form-section">
-        <label class="form-group">
-          <span>Name</span>
-          <input v-model="form.name" type="text" placeholder="My Agent" :disabled="editingAgent !== null" />
-        </label>
-        <label class="form-group">
-          <span>Command</span>
-          <input v-model="form.command" type="text" placeholder="npx @github/copilot-language-server@latest --acp" />
-          <small>Full shell command including arguments.</small>
-        </label>
-      </div>
-
-      <SettingsConnectionKeys
-        :form="form"
-        :on-add-env-row="onAddEnvRow"
-        :on-add-mcp-server-row="onAddMcpServerRow"
-        :on-remove-env-row="onRemoveEnvRow"
-        :on-remove-mcp-server-row="onRemoveMcpServerRow"
-      />
-
-      <p v-if="form.error" class="form-error">{{ form.error }}</p>
-      <div class="form-actions">
-        <button class="save-btn" :disabled="isSubmitting" @click="onSubmit">
-          {{ isSubmitting ? 'Saving...' : 'Save' }}
-        </button>
-        <button class="cancel-btn" @click="onResetForm">Cancel</button>
-      </div>
-    </div>
-
-    <div class="agents-list">
-      <article v-for="agent in agents" :key="agent.name" class="agent-item">
-        <div class="agent-info">
-          <div class="agent-name-row">
-            <span class="status-bead" :class="probeStateClass(agent.name)" />
-            <span class="agent-name">{{ agent.name }}</span>
-          </div>
-          <div class="agent-summary">
-            {{ formatEnvCount(Object.keys(agent.env).length) }} · {{ formatServerCount(agent.mcpServers.length) }}
-          </div>
+    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
+      <div class="section-header">
+        <div>
+          <h4 class="text-sm font-medium text-text-secondary">Agents</h4>
+          <p>Add, edit, and remove ACP agent definitions.</p>
         </div>
-        <div class="agent-actions">
-          <button class="edit-btn" @click="onStartEdit(agent)">Edit</button>
-          <button class="delete-btn" @click="onDelete(agent.name)">Delete</button>
+        <button class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add agent</button>
+      </div>
+
+      <div v-if="showAddForm || editingAgent" class="agent-form">
+        <h5>{{ editingAgent ? 'Edit agent' : 'Add new agent' }}</h5>
+
+        <div class="form-section">
+          <label class="form-group">
+            <span>Name</span>
+            <input v-model="form.name" type="text" placeholder="My Agent" :disabled="editingAgent !== null" />
+          </label>
+          <label class="form-group">
+            <span>Command</span>
+            <input v-model="form.command" type="text" placeholder="npx @github/copilot-language-server@latest --acp" />
+            <small>Full shell command including arguments.</small>
+          </label>
         </div>
-      </article>
-      <p v-if="agents.length === 0" class="empty-state">No agents configured yet. Add one to get started.</p>
+
+        <SettingsConnectionKeys
+          :form="form"
+          :on-add-env-row="onAddEnvRow"
+          :on-add-mcp-server-row="onAddMcpServerRow"
+          :on-remove-env-row="onRemoveEnvRow"
+          :on-remove-mcp-server-row="onRemoveMcpServerRow"
+        />
+
+        <p v-if="form.error" class="form-error">{{ form.error }}</p>
+        <div class="form-actions">
+          <button class="save-btn" :disabled="isSubmitting" @click="onSubmit">
+            {{ isSubmitting ? 'Saving...' : 'Save' }}
+          </button>
+          <button class="cancel-btn" @click="onResetForm">Cancel</button>
+        </div>
+      </div>
+
+      <div class="agents-list">
+        <article
+          v-for="agent in agents"
+          :key="agent.name"
+          class="agent-item hover:bg-bg-surface-hover rounded-[var(--radius-6)] transition-colors px-2 -mx-2"
+        >
+          <div class="agent-info">
+            <div class="agent-name-row">
+              <span class="status-bead" :class="probeStateClass(agent.name)" />
+              <span class="agent-name">{{ agent.name }}</span>
+            </div>
+            <div class="agent-summary">
+              {{ formatEnvCount(Object.keys(agent.env).length) }} · {{ formatServerCount(agent.mcpServers.length) }}
+            </div>
+          </div>
+          <div class="agent-actions">
+            <button
+              class="edit-btn border border-border-subtle text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+              @click="onStartEdit(agent)"
+            >
+              Edit
+            </button>
+            <button class="delete-btn" @click="onDelete(agent.name)">Delete</button>
+          </div>
+        </article>
+        <p v-if="agents.length === 0" class="empty-state">No agents configured yet. Add one to get started.</p>
+      </div>
     </div>
   </section>
 </template>
@@ -130,6 +141,15 @@ function formatEnvCount(count: number) {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.section-header {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
 .section-header,
@@ -146,12 +166,6 @@ function formatEnvCount(count: number) {
 .agent-form h5,
 .empty-state {
   margin: 0;
-}
-
-.section-header h4,
-.agent-form h5 {
-  font-family: var(--font-display);
-  font-weight: 500;
 }
 
 .section-header p,
@@ -207,7 +221,6 @@ function formatEnvCount(count: number) {
 }
 
 .add-btn,
-.edit-btn,
 .cancel-btn {
   border: 1px solid var(--border);
   background: transparent;
@@ -256,13 +269,13 @@ function formatEnvCount(count: number) {
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: #707070;
+  background: var(--text-dim);
   flex-shrink: 0;
 }
 
-.status-bead.ready { background: #4edea3; }
-.status-bead.offline { background: #f59e0b; }
-.status-bead.error { background: #ffb4ab; }
+.status-bead.ready { background: var(--sage); }
+.status-bead.offline { background: var(--amber); }
+.status-bead.error { background: var(--terracotta); }
 
 @media (max-width: 640px) {
   .section-header,

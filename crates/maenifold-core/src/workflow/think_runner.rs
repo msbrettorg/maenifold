@@ -10,6 +10,7 @@ use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
 use super::agent_session::{AgentResponse, AgentSession, open_agent_session};
+use super::adoption::require_adopted_role;
 use super::runner::append_close_error_context;
 use super::runner::{AgentSessionConfig, sanitize_workflow_session_config};
 use super::runner_helpers::{Envelope, prompt_with_embedded_context, slug, tag_fallback};
@@ -120,13 +121,23 @@ pub(crate) async fn drive_think_session(
     topic: &str,
     prompt_context: &str,
     opts: &ThinkOptions,
+    adopt_instructions: &[String],
+    adopt_role: Option<&str>,
+    requires_role: Option<&str>,
     session_config: AgentSessionConfig,
     event_tx: &EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     keep_session_alive: bool,
 ) -> Result<ThinkResult> {
+    require_adopted_role("sequential thinking invocation", requires_role, adopt_role)?;
     let session_config = sanitize_workflow_session_config(session_config);
     let driver = open_agent_session(agent, &session_config, event_tx).await?;
+    for instruction in adopt_instructions {
+        let response = driver.prompt(instruction).await?;
+        if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+            return Err(MaenifoldError::Message(error));
+        }
+    }
     let result = drive_think_session_with_driver(
         context,
         &driver,
@@ -217,6 +228,9 @@ pub(crate) async fn run_think_with_pool(
     topic: &str,
     prompt_context: &str,
     opts: ThinkOptions,
+    adopt_instructions: &[String],
+    adopt_role: Option<&str>,
+    requires_role: Option<&str>,
     session_config: AgentSessionConfig,
     event_tx: EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
@@ -230,6 +244,9 @@ pub(crate) async fn run_think_with_pool(
         topic,
         prompt_context,
         &opts,
+        adopt_instructions,
+        adopt_role,
+        requires_role,
         session_config,
         &event_tx,
         content_blocks,

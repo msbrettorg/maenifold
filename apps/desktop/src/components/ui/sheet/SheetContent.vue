@@ -56,7 +56,7 @@ const forwarded = useForwardPropsEmits(
       <slot />
       <SheetClose
         v-if="props.showCloseButton ?? true"
-        class="absolute right-4 top-4 rounded-[4px] text-[#707070] opacity-100 transition-colors hover:bg-[#2a2a2a] hover:text-[#e5e2e1] focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none"
+        class="absolute right-4 top-4 rounded-[4px] text-[var(--text-dim)] opacity-100 transition-colors hover:bg-[#2a2a2a] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none"
       >
         <span class="sr-only">Close</span>
       </SheetClose>

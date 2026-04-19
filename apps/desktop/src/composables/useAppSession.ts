@@ -21,6 +21,7 @@ export type ConfigStoreLike = {
 
 export type SessionStoreLike = {
   isConnected: boolean; isConnecting: boolean; error: string | null;
+  activeSessionId: string | null;
   pendingPermission: PermissionRequest | null; pendingPermissionCount: number;
   pendingAuthMethods: AppAuthMethod[]; pendingAuthAgentName: string;
   sessions: Map<string, SessionState>; initStore(): Promise<void>;

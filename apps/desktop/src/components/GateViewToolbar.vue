@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getWorkspaceLabel } from '../lib/gate-display';
 
 const selectFieldClass =
-  'w-full rounded-md border border-white/10 bg-[#201f1f] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[#4d8eff]/40 focus:bg-[#2a2a2a] focus:ring-2 focus:ring-[#4d8eff]/15';
+  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--blue)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--blue)]/15';
 
 const props = defineProps<{
   hasGateRoot: boolean;
@@ -88,7 +88,7 @@ function handleRootChange(event: Event) {
   justify-content: space-between;
   gap: 1rem;
   padding: 0.9rem 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
   border-radius: 0.25rem;
 }
 
@@ -113,25 +113,25 @@ function handleRootChange(event: Event) {
   padding: 0.28rem 0.65rem;
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  color: #f4f7ff;
+  color: var(--foreground);
   border-radius: 4px;
-  background: #353534;
+  background: var(--surface-highest);
 }
 
 .gate-chip--todo {
-  background: #4d8eff;
+  background: var(--blue);
 }
 
 .gate-chip--done {
-  background: #4edea3;
+  background: var(--sage);
 }
 
 .gate-chip--total {
-  background: #424753;
+  background: var(--outline-variant);
 }
 
 .gate-chip--filtered {
-  background: #f59e0b;
+  background: var(--amber);
 }
 
 .gate-meta,

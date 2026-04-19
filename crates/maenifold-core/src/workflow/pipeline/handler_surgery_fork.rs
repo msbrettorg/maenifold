@@ -84,6 +84,8 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    adopt,
+                    requires_role,
                     retry_policy,
                     ..
                 } => super::super::PipelineNode::Workflow {
@@ -95,6 +97,8 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    adopt: adopt.clone(),
+                    requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::Prompt {
@@ -109,6 +113,8 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    adopt,
+                    requires_role,
                     retry_policy,
                     ..
                 } => super::super::PipelineNode::Prompt {
@@ -124,6 +130,8 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    adopt: adopt.clone(),
+                    requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
@@ -139,6 +147,8 @@ pub(super) fn fork_pipeline(
                     cwd,
                     timeout,
                     agent_config,
+                    adopt,
+                    requires_role,
                     retry_policy,
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
@@ -155,6 +165,8 @@ pub(super) fn fork_pipeline(
                     cwd: cwd.clone(),
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
+                    adopt: adopt.clone(),
+                    requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
                 },
                 super::super::PipelineNode::Tool {

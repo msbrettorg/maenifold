@@ -58,13 +58,13 @@ defineEmits<{
   width: min(100%, 720px);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 .gallery-field-label {
   font-size: 0.75rem;
   font-weight: 400;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .gallery-runtime-inputs {
@@ -82,7 +82,7 @@ defineEmits<{
 }
 
 .gallery-runtime-input-item {
-  color: #e5e2e1;
+  color: var(--foreground);
   font-size: 0.875rem;
 }
 
@@ -91,12 +91,12 @@ defineEmits<{
 }
 
 .gallery-runtime-input-required {
-  color: #ffb4ab;
+  color: var(--terracotta);
 }
 
 .gallery-runtime-input-desc,
 .gallery-runtime-note {
-  color: #c2c6d6;
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 

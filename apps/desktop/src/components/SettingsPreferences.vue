@@ -88,70 +88,72 @@ onMounted(async () => {
 
 <template>
   <section class="settings-section" role="form" aria-label="Preferences">
-    <div class="section-header">
-      <div>
-        <h3>Preferences</h3>
-        <p>Persisted locally on this device.</p>
-      </div>
-      <span class="status-chip" :class="{ saving }">
-        {{ saving ? 'Saving…' : 'Local only' }}
-      </span>
-    </div>
-
-    <p v-if="error" class="message error">{{ error }}</p>
-    <p v-else-if="status" class="message success">{{ status }}</p>
-
-    <div v-if="loading" class="card">Loading saved preferences…</div>
-
-    <template v-else>
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <strong>Text size</strong>
-            <p>Adjust the UI font scale across the entire application.</p>
-          </div>
-        </div>
-        <div class="density-control">
-          <label
-            v-for="opt in densityOptions"
-            :key="opt.value"
-            class="density-option"
-            :class="{ active: fontDensity === opt.value }"
-          >
-            <input
-              type="radio"
-              name="fontDensity"
-              :value="opt.value"
-              :checked="fontDensity === opt.value"
-              :disabled="saving"
-              @change="handleDensityChange(opt.value)"
-            />
-            {{ opt.label }}
-          </label>
-        </div>
-      </div>
-
-      <label class="card toggle-card">
+    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
+      <div class="section-header">
         <div>
-          <strong>Telemetry</strong>
-          <p>Allow the app to initialize Application Insights telemetry on launch.</p>
+          <h3>Preferences</h3>
+          <p>Persisted locally on this device.</p>
         </div>
-        <input v-model="telemetryEnabled" type="checkbox" :disabled="saving" @change="handleTelemetryToggle" />
-      </label>
-
-      <div class="card">
-        <div class="card-header">
-          <div>
-            <strong>Last working directory</strong>
-            <p>The app restores this folder on the next launch when available.</p>
-          </div>
-          <button class="secondary-btn" :disabled="saving || !lastCwd" @click="clearLastCwd">
-            Clear saved folder
-          </button>
-        </div>
-        <code class="saved-value">{{ displayCwd }}</code>
+        <span class="status-chip" :class="{ saving }">
+          {{ saving ? 'Saving…' : 'Local only' }}
+        </span>
       </div>
-    </template>
+
+      <p v-if="error" class="message error">{{ error }}</p>
+      <p v-else-if="status" class="message success">{{ status }}</p>
+
+      <div v-if="loading" class="card">Loading saved preferences…</div>
+
+      <template v-else>
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <strong>Text size</strong>
+              <p>Adjust the UI font scale across the entire application.</p>
+            </div>
+          </div>
+          <div class="density-control">
+            <label
+              v-for="opt in densityOptions"
+              :key="opt.value"
+              class="density-option"
+              :class="{ active: fontDensity === opt.value }"
+            >
+              <input
+                type="radio"
+                name="fontDensity"
+                :value="opt.value"
+                :checked="fontDensity === opt.value"
+                :disabled="saving"
+                @change="handleDensityChange(opt.value)"
+              />
+              {{ opt.label }}
+            </label>
+          </div>
+        </div>
+
+        <label class="card toggle-card">
+          <div>
+            <strong>Telemetry</strong>
+            <p>Allow the app to initialize Application Insights telemetry on launch.</p>
+          </div>
+          <input v-model="telemetryEnabled" type="checkbox" :disabled="saving" @change="handleTelemetryToggle" />
+        </label>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <strong>Last working directory</strong>
+              <p>The app restores this folder on the next launch when available.</p>
+            </div>
+            <button class="secondary-btn" :disabled="saving || !lastCwd" @click="clearLastCwd">
+              Clear saved folder
+            </button>
+          </div>
+          <code class="saved-value">{{ displayCwd }}</code>
+        </div>
+      </template>
+    </div>
   </section>
 </template>
 
@@ -160,6 +162,15 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.section-header {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
 }
 
 .section-header,

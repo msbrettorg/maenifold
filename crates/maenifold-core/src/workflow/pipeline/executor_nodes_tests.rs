@@ -40,6 +40,8 @@ fn timeout_seconds_is_extracted_from_prompt_node() {
         cwd: None,
         timeout: Some(30),
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let dispatch = DispatchedNode {
@@ -94,6 +96,8 @@ fn timeout_seconds_is_none_when_not_configured() {
         cwd: None,
         timeout: None,
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let dispatch = DispatchedNode {
@@ -148,6 +152,8 @@ fn build_node_execution_request_propagates_node_session_id_into_session_config()
         cwd: None,
         timeout: None,
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let dispatch = DispatchedNode {
@@ -355,6 +361,8 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         cwd: None,
         timeout: None,
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let dispatch = DispatchedNode {
@@ -443,6 +451,8 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         timeout: None,
         acp_client: None,
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let workflow_dispatch = DispatchedNode {
@@ -534,6 +544,8 @@ fn build_node_execution_request_interpolates_sequential_thinking_topic() {
         cwd: None,
         timeout: None,
         agent_config: None,
+        adopt: None,
+        requires_role: None,
         retry_policy: None,
     };
     let dispatch = DispatchedNode {

@@ -28,8 +28,6 @@ mod executor_run;
 mod executor_timeout;
 #[cfg(test)]
 mod executor_timeout_tests;
-#[cfg(test)]
-mod integration_tests;
 mod external_mcp;
 #[cfg(test)]
 mod failure_reason_scope_tests;
@@ -39,6 +37,8 @@ mod handler_lifecycle;
 mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
+#[cfg(test)]
+mod integration_tests;
 mod lease;
 mod mapping_apply;
 mod mapping_predecessor;
@@ -85,7 +85,7 @@ pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
-    EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
+    EdgeType, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
     PredecessorOutput, RetryPolicy, ToolProvenance,
 };
 pub use validation::validate_pipeline;

@@ -45,3 +45,41 @@ jobs:
       # T-10.8: RTM FR-14 (RTM-080)
       - name: Test
         run: MAENIFOLD_FULL_SUITE=1 cargo test
+
+  desktop-design-guardrails:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/desktop
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: apps/desktop/package.json
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build desktop UI
+        run: pnpm build
+
+      - name: Type-check desktop UI
+        run: npx vue-tsc --noEmit
+
+      - name: Design lint guardrails
+        run: pnpm lint:design
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      - name: Visual baseline diff
+        run: pnpm test:visual

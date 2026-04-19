@@ -81,7 +81,13 @@ function rowTitle(task: GateTask) {
         <tr
           v-for="task in props.tasks"
           :key="task.path"
-          :class="{ 'gate-row--active': task.taskId === props.selectedTaskId, 'gate-row--issue': task.issue }"
+          :class="[
+            'hover:bg-bg-surface-hover transition-colors cursor-pointer',
+            {
+              'bg-brand/10 border-l-2 border-brand [&>td]:bg-brand/10 [&>td:first-child]:border-l-2 [&>td:first-child]:border-brand': task.taskId === props.selectedTaskId,
+              'gate-row--issue': task.issue,
+            },
+          ]"
           :title="rowTitle(task)"
           @click="emit('select', task)"
         >
@@ -107,7 +113,7 @@ function rowTitle(task: GateTask) {
   min-height: 24rem;
   padding: 0.5rem;
   overflow: auto;
-  background: #131313;
+  background: var(--background);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
   scrollbar-width: thin;
@@ -149,25 +155,17 @@ function rowTitle(task: GateTask) {
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #1c1b1b;
-}
-
-.gate-table tbody tr {
-  cursor: pointer;
+  background: var(--surface);
 }
 
 .gate-table tbody tr:nth-child(odd) td {
-  background: #1c1b1b;
+  background: var(--surface);
   transition: background 160ms ease;
 }
 
 .gate-table tbody tr:nth-child(even) td {
-  background: #201f1f;
+  background: var(--surface-container);
   transition: background 160ms ease;
-}
-
-.gate-table tbody tr:hover td {
-  background: #2a2a2a;
 }
 
 .gate-table tbody td:first-child,
@@ -219,25 +217,6 @@ function rowTitle(task: GateTask) {
   font-size: var(--text-tiny);
 }
 
-.gate-row--active {
-  background: transparent;
-}
-
-.gate-row--active td {
-  background: #2a2a2a;
-}
-
-.gate-row--active td:first-child::before {
-  content: '';
-  position: absolute;
-  top: 0.45rem;
-  bottom: 0.45rem;
-  left: 0;
-  width: 4px;
-  border-radius: 4px;
-  background: #4d8eff;
-}
-
 .gate-row--issue .gate-title {
   color: var(--foreground);
 }
@@ -261,7 +240,7 @@ function rowTitle(task: GateTask) {
   width: 0.4rem;
   height: 0.4rem;
   border-radius: 4px;
-  background: #ffb4ab;
+  background: var(--terracotta);
 }
 
 .gate-empty {

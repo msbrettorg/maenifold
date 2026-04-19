@@ -104,7 +104,7 @@ function formatAgentOptionLabel(agentName: string): string {
 label {
   font-size: var(--text-tiny);
   font-weight: 400;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 select {
@@ -112,7 +112,7 @@ select {
   border: none;
   border-radius: 4px;
   font-size: var(--text-caption);
-  background: #201f1f;
+  background: var(--surface-container);
   color: var(--foreground);
   font-family: var(--font-body);
 }
@@ -130,7 +130,7 @@ select:disabled {
 .config-hint {
   margin-top: 0.5rem;
   padding: 0.75rem;
-  background: #201f1f;
+  background: var(--surface-container);
   border-radius: 4px;
   font-size: var(--text-caption);
   color: var(--muted-foreground);

@@ -115,7 +115,7 @@ defineEmits<{
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4) var(--space-4);
   border-top: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent, #353534) 55%, var(--card, #201f1f));
+  background: color-mix(in srgb, var(--accent, var(--surface-highest)) 55%, var(--card, var(--surface-container)));
 }
 
 .zoom-actions {
@@ -148,8 +148,8 @@ defineEmits<{
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  background: linear-gradient(135deg, #adc6ff, #4d8eff);
-  color: #001a42;
+  background: var(--blue);
+  color: var(--primary-foreground);
   font-weight: 600;
   font-size: var(--text-caption);
   cursor: pointer;

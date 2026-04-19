@@ -147,14 +147,14 @@ async function copyAddress() {
   padding: 0.2rem 0.5rem;
   border: none;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   cursor: pointer;
   font-size: 0.6875rem;
 }
 
 .copy-btn:hover {
-  background: #353534;
+  background: var(--surface-highest);
 }
 
 .stats-grid {
@@ -167,7 +167,7 @@ async function copyAddress() {
   gap: 0.2rem;
   padding: 0.75rem;
   border-radius: 4px;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 .stat-chip strong {

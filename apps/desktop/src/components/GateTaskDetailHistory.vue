@@ -83,7 +83,7 @@ function formatTimestamp(timestamp: string | null) {
   padding: 0.875rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
 }
 
 .gate-detail-history__summary {
@@ -118,7 +118,7 @@ function formatTimestamp(timestamp: string | null) {
   padding: 0.75rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
   color: var(--muted-foreground);
 }
 
@@ -136,7 +136,7 @@ function formatTimestamp(timestamp: string | null) {
   position: relative;
   padding: 0.9rem;
   border-radius: 0.25rem;
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .gate-detail-history__item::before {
@@ -147,7 +147,7 @@ function formatTimestamp(timestamp: string | null) {
   left: 0;
   width: 4px;
   border-radius: 4px;
-  background: #353534;
+  background: var(--surface-highest);
 }
 
 .gate-detail-history__header,
@@ -234,9 +234,9 @@ function formatTimestamp(timestamp: string | null) {
   text-align: left;
 }
 
-.gate-detail-history__item--swe::before { background: #4d8eff; }
-.gate-detail-history__item--red-team::before { background: #f59e0b; }
+.gate-detail-history__item--swe::before { background: var(--blue); }
+.gate-detail-history__item--red-team::before { background: var(--amber); }
 .gate-detail-history__item--blue-team::before,
-.gate-detail-history__item--done::before { background: #4edea3; }
-.gate-detail-history__item--failed::before { background: #ffb4ab; }
+.gate-detail-history__item--done::before { background: var(--sage); }
+.gate-detail-history__item--failed::before { background: var(--terracotta); }
 </style>

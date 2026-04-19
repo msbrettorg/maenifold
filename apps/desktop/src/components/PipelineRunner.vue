@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
+import type { Component } from 'vue';
+import { Play, CheckCircle, XCircle, AlertTriangle, Pause, Clock } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePipelineStore } from '../stores/pipeline';
@@ -54,15 +56,29 @@ watch(() => eventLog.value.length, async (length, previousLength) => {
   logAnchor.value?.scrollIntoView({ block: 'end' });
 });
 
-function iconFor(status: string): string {
+function iconFor(status: string): Component {
   switch (status) {
-    case 'active': return '▶';
-    case 'completed': return '✅';
-    case 'abandoned': return '❌';
-    case 'stuck': return '🚫';
-    case 'ready': return '🟡';
-    case 'pending': return '⏳';
-    default: return '•';
+    case 'active': return Play;
+    case 'completed': return CheckCircle;
+    case 'failed':
+    case 'cancelled': return XCircle;
+    case 'abandoned':
+    case 'stuck': return AlertTriangle;
+    case 'paused': return Pause;
+    default: return Clock;
+  }
+}
+
+function statusLabel(status: string): string {
+  switch (status) {
+    case 'active': return 'active';
+    case 'completed': return 'completed';
+    case 'failed': return 'failed';
+    case 'cancelled': return 'cancelled';
+    case 'abandoned': return 'abandoned';
+    case 'stuck': return 'stuck';
+    case 'paused': return 'paused';
+    default: return status;
   }
 }
 
@@ -79,7 +95,7 @@ function formatLogEntry(entry: LogEntry) {
       ? buildAbandonedNodePreview(viewNodeForEntry)
       : buildNodeOutputPreview(viewNodeForEntry));
   if (entry.from === 'loaded') {
-    const base = `[${timestamp}] ↺ ${displayNodeId(entry.nodeId)} loaded as ${entry.to}`;
+    const base = `[${timestamp}] ${displayNodeId(entry.nodeId)} loaded as ${entry.to}`;
     if (entry.to === 'completed' && preview) {
       return `${base} — output: ${preview}`;
     }
@@ -89,21 +105,28 @@ function formatLogEntry(entry: LogEntry) {
     return base;
   }
   if (entry.to === 'completed' && preview) {
-    return `[${timestamp}] ✅ ${displayNodeId(entry.nodeId)} completed — output: ${preview}`;
+    return `[${timestamp}] ${displayNodeId(entry.nodeId)} completed — output: ${preview}`;
   }
   if (entry.to === 'abandoned' && preview) {
-    return `[${timestamp}] ⚠ ${displayNodeId(entry.nodeId)} abandoned: ${preview}`;
+    return `[${timestamp}] ${displayNodeId(entry.nodeId)} abandoned: ${preview}`;
   }
   if (entry.to === 'stuck' && preview) {
-    return `[${timestamp}] ⚠ ${displayNodeId(entry.nodeId)} stuck: ${preview}`;
+    return `[${timestamp}] ${displayNodeId(entry.nodeId)} stuck: ${preview}`;
   }
-  return `[${timestamp}] ${iconFor(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
+  return `[${timestamp}] ${statusLabel(entry.to)} ${displayNodeId(entry.nodeId)}: ${entry.from} → ${entry.to}`;
 }
 </script>
 
 <template>
   <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
-    <div class="status-line">{{ props.collapsed ? collapsedSummaryLine : statusLine }}</div>
+    <div class="status-line">
+      <component
+        :is="iconFor(currentView?.status ?? 'pending')"
+        class="size-3.5"
+        :stroke-width="1.5"
+      />
+      <span>{{ props.collapsed ? collapsedSummaryLine : statusLine }}</span>
+    </div>
 
     <ScrollArea
       v-show="!props.collapsed"

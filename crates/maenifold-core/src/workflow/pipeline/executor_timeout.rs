@@ -130,6 +130,8 @@ mod tests {
             session_id: "pipeline-node".to_string(),
             prompt: "prompt".to_string(),
             tool_mode: "disabled".to_string(),
+            adopt_instructions: vec![],
+            requires_role: None,
             session_config: sample_session_config(Some(7)),
         };
 
@@ -148,6 +150,8 @@ mod tests {
             session_id: "pipeline-node".to_string(),
             prompt: "prompt".to_string(),
             tool_mode: "disabled".to_string(),
+            adopt_instructions: vec![],
+            requires_role: None,
             session_config: sample_session_config(None),
         };
 

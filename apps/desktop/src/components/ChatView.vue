@@ -219,14 +219,14 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </template>
 
 <style scoped>
-.chat-view { display: flex; flex-direction: column; height: 100%; background: #131313; }
+.chat-view { display: flex; flex-direction: column; height: 100%; background: var(--background); }
 .chat-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
   padding: 0.75rem 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 .chat-header h2 {
   margin: 0;

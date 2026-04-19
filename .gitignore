@@ -12,3 +12,7 @@ gate.db
 .gate/
 target-*/
 target/agents/
+memory
+
+# Obsidian vault config (user-local)
+.obsidian/

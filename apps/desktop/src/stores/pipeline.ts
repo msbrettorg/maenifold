@@ -46,6 +46,10 @@ interface ToolDefinition {
   inputSchema?: unknown;
 }
 
+interface AssetSummaryOption {
+  id: string;
+}
+
 function serializeEdge(edge: PipelineEdge): PipelineEdge {
   if (edge.type === 'conditional') {
     const path = edge.condition?.path?.trim() ?? '';
@@ -120,6 +124,9 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const eventLog = ref<LogEntry[]>([]);
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
+  const roleAssets = ref<AssetSummaryOption[]>([]);
+  const colorAssets = ref<AssetSummaryOption[]>([]);
+  const perspectiveAssets = ref<AssetSummaryOption[]>([]);
   const runInputDrafts = ref<Record<string, PipelineInputs>>({});
   let stopPollingHandle: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
@@ -342,6 +349,28 @@ export const usePipelineStore = defineStore('pipeline', () => {
       try { tools.value = await mcp.listTools(); } catch { /* non-critical */ }
     });
   }
+  async function refreshAdoptAssets() {
+    await withLoading(async () => {
+      try {
+        const [roles, colors, perspectives] = await Promise.all([
+          mcp.listAssets('role'),
+          mcp.listAssets('color'),
+          mcp.listAssets('perspective'),
+        ]);
+        roleAssets.value = roles
+          .map((asset) => ({ id: asset.id }))
+          .filter((asset) => asset.id.trim().length > 0);
+        colorAssets.value = colors
+          .map((asset) => ({ id: asset.id }))
+          .filter((asset) => asset.id.trim().length > 0);
+        perspectiveAssets.value = perspectives
+          .map((asset) => ({ id: asset.id }))
+          .filter((asset) => asset.id.trim().length > 0);
+      } catch {
+        // Non-critical for pipeline editing.
+      }
+    });
+  }
   async function refreshView(options?: { resetEventLog?: boolean }) {
     if (!currentPipelineId.value) return;
     await withLoading(async () => {
@@ -447,6 +476,9 @@ export const usePipelineStore = defineStore('pipeline', () => {
     eventLog,
     workflows,
     tools,
+    roleAssets,
+    colorAssets,
+    perspectiveAssets,
     isRunning,
     pipelineStatus,
     connected: mcp.connected,
@@ -485,6 +517,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     listWorkflowSummaries,
     readWorkflowDefinition,
     refreshTools,
+    refreshAdoptAssets,
     refreshView,
     resumePollingForActiveView,
     startViewPolling,

@@ -5,16 +5,19 @@ import { useAppShell } from './composables/useAppShell';
 import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
 import ChatView from './components/ChatView.vue';
+import HomeDashboard from './components/HomeDashboard.vue';
+import KnowledgeExplorer from './components/KnowledgeExplorer.vue';
 import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
-import GraphView from './components/GraphView.vue';
 import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
+import EmptyState from './components/EmptyState.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import ChatWelcomeScreen from './components/ChatWelcomeScreen.vue';
 import ToastContainer from './components/ToastContainer.vue';
+import type { AppShellTab } from './stores/app-shell';
+import { MessageSquare } from 'lucide-vue-next';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
@@ -23,16 +26,12 @@ const {
   selectedAgent,
   selectedCwd,
   showSidebar,
-  showSettings,
   showTrafficMonitor,
-    showStartupDetails,
-    showWorkflows,
-    showPipelines,
-    showGate,
-    showGraph,
-    activeTab,
-    isConnected,
-    isConnecting,
+  showStartupDetails,
+  showHome,
+  activeTab,
+  isConnected,
+  isConnecting,
   hasAgents,
   pendingPermission,
   pendingPermissionCount,
@@ -50,85 +49,115 @@ const {
   handleAuthMethodCancel,
 } = useAppShell({ configStore, sessionStore });
 
+function handleOpenTab(tab: AppShellTab): void {
+  activeTab.value = tab;
+}
+
+async function handlePromptSubmit(prompt: string): Promise<void> {
+  const trimmedPrompt = prompt.trim();
+  if (!trimmedPrompt) {
+    return;
+  }
+
+  if (!sessionStore.isConnected && !sessionStore.isConnecting) {
+    await handleNewSession();
+  }
+
+  if (sessionStore.isConnected) {
+    await sessionStore.sendPrompt(trimmedPrompt);
+  }
+}
 </script>
 
 <template>
-  <div class="relative box-border flex h-screen overflow-hidden pt-10">
+  <div class="relative box-border flex h-screen flex-col overflow-hidden">
     <AppTabBar v-model="activeTab" />
 
-    <AppSidebar
-      v-if="activeTab === 'agents'"
-      v-model:visible="showSidebar"
-      v-model:selected-agent="selectedAgent"
-      v-model:show-traffic-monitor="showTrafficMonitor"
-      v-model:show-startup-details="showStartupDetails"
-      :selected-cwd="selectedCwd"
-      :has-agents="hasAgents"
-      :is-connecting="isConnecting"
-      :startup-phase="sessionStore.startupPhase"
-      :startup-logs="sessionStore.startupLogs"
-      :startup-elapsed="sessionStore.startupElapsed"
-      @open-settings="showSettings = true"
-      @agent-select="handleAgentSelect"
-      @select-folder="handleSelectFolder"
-      @new-session="handleNewSession"
-      @resume-session="handleResumeSession"
-      @delete-session="handleDeleteSession"
-      @cancel-connection="handleCancelConnection"
-    />
+    <div class="flex min-h-0 flex-1 overflow-hidden">
+      <AppSidebar
+        v-if="activeTab === 'agents'"
+        v-model:visible="showSidebar"
+        v-model:selected-agent="selectedAgent"
+        v-model:show-traffic-monitor="showTrafficMonitor"
+        v-model:show-startup-details="showStartupDetails"
+        :selected-cwd="selectedCwd"
+        :has-agents="hasAgents"
+        :is-connecting="isConnecting"
+        :startup-phase="sessionStore.startupPhase"
+        :startup-logs="sessionStore.startupLogs"
+        :startup-elapsed="sessionStore.startupElapsed"
+        @agent-select="handleAgentSelect"
+        @select-folder="handleSelectFolder"
+        @new-session="handleNewSession"
+        @resume-session="handleResumeSession"
+        @delete-session="handleDeleteSession"
+        @cancel-connection="handleCancelConnection"
+      />
 
-    <!-- Main Content Area -->
-    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-[var(--background)]">
-        <Transition name="view-fade" mode="out-in">
-          <!-- Chat View when connected and not showing workflows -->
-          <ChatView
-            v-if="isConnected && !showWorkflows && !showPipelines && !showGate && !showGraph"
-            :key="sessionStore.activeSessionId ?? 'active-session'"
-          />
-          
-          <!-- Workflow Authoring Page -->
-          <div v-else-if="showWorkflows" key="workflows" class="flex flex-1 flex-col overflow-hidden">
-            <div class="workflow-panel-body flex flex-1 overflow-auto p-4">
-              <WorkflowAuthoringPage />
-            </div>
-          </div>
+      <!-- Main Content Area -->
+      <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
+        <HomeDashboard
+          v-if="showHome"
+          key="home"
+          v-model:selected-agent="selectedAgent"
+          :has-agents="hasAgents"
+          :selected-cwd="selectedCwd"
+          :is-connected="isConnected"
+          :is-connecting="isConnecting"
+          :recent-sessions="sessionStore.savedSessions"
+          @agent-select="handleAgentSelect"
+          @select-folder="handleSelectFolder"
+          @new-session="handleNewSession"
+          @prompt-submit="handlePromptSubmit"
+          @open-tab="handleOpenTab"
+          @resume-session="handleResumeSession"
+        />
 
-          <div v-else-if="showPipelines" key="pipelines" class="flex flex-1 flex-col overflow-hidden">
-            <PipelineView />
-          </div>
+        <ChatView
+          v-else-if="activeTab === 'agents' && isConnected"
+          :key="sessionStore.activeSessionId ?? 'active-session'"
+        />
 
-          <div v-else-if="showGate" key="gate" class="flex flex-1 flex-col overflow-hidden">
-            <GateView :cwd="selectedCwd" />
+        <div v-else-if="activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
+          <div class="flex flex-1 overflow-auto p-4">
+            <WorkflowAuthoringPage />
           </div>
+        </div>
 
-          <div v-else-if="showGraph" key="graph" class="flex flex-1 flex-col overflow-hidden">
-            <GraphView />
-          </div>
-            
-          <!-- Welcome screen when not connected -->
-          <ChatWelcomeScreen
-            v-else
-            key="welcome"
-            v-model:selected-agent="selectedAgent"
-            :has-agents="hasAgents"
-            :can-create-session="!!selectedAgent && !isConnecting"
-            :selected-cwd="selectedCwd"
-            @agent-select="handleAgentSelect"
-            @select-folder="handleSelectFolder"
-            @new-session="handleNewSession"
-          />
-        </Transition>
-      </main>
-      
-      <!-- Traffic Monitor Panel -->
-      <div v-if="showTrafficMonitor" class="shrink-0">
-        <TrafficMonitor @close="showTrafficMonitor = false" />
+        <div v-else-if="activeTab === 'pipelines'" class="flex flex-1 flex-col overflow-hidden">
+          <PipelineView />
+        </div>
+
+        <div v-else-if="activeTab === 'gate'" class="flex flex-1 flex-col overflow-hidden">
+          <GateView :cwd="selectedCwd" />
+        </div>
+
+        <div v-else-if="activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
+          <KnowledgeExplorer />
+        </div>
+
+        <div v-else-if="activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">
+          <SettingsView />
+        </div>
+
+        <EmptyState
+          v-else-if="activeTab === 'agents'"
+          :icon="MessageSquare"
+          title="No active session"
+          description="Select an agent and start a new session"
+        />
+        </main>
+
+        <!-- Traffic Monitor Panel -->
+        <div v-if="showTrafficMonitor" class="shrink-0">
+          <TrafficMonitor @close="showTrafficMonitor = false" />
+        </div>
       </div>
     </div>
-    
+
     <!-- Permission Dialog -->
-    <PermissionDialog 
+    <PermissionDialog
       v-if="pendingPermission"
       :request="pendingPermission"
       :total-pending="pendingPermissionCount"
@@ -137,7 +166,7 @@ const {
     />
 
     <!-- Auth Method Dialog -->
-    <AuthMethodDialog 
+    <AuthMethodDialog
       v-if="pendingAuthMethods.length > 0"
       :auth-methods="pendingAuthMethods"
       :agent-name="pendingAuthAgentName"
@@ -145,46 +174,6 @@ const {
       @cancel="handleAuthMethodCancel"
     />
 
-    <!-- Settings -->
-    <SettingsView 
-      v-if="showSettings"
-      @close="showSettings = false"
-    />
-
     <ToastContainer />
   </div>
 </template>
-
-<style scoped>
-.view-fade-enter-active,
-.view-fade-leave-active {
-  transition: opacity 200ms var(--easing-standard);
-}
-
-.view-fade-enter-from,
-.view-fade-leave-to {
-  opacity: 0;
-}
-
-.workflow-panel-body {
-  scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
-}
-
-.workflow-panel-body::-webkit-scrollbar {
-  width: 8px;
-}
-
-.workflow-panel-body::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.workflow-panel-body::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 4px;
-}
-
-.workflow-panel-body::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
-}
-</style>

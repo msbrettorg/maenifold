@@ -36,6 +36,8 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                adopt: None,
+                requires_role: None,
                 retry_policy: None,
             },
             PipelineNode::Tool {
@@ -67,6 +69,8 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 cwd: None,
                 timeout: None,
                 agent_config: None,
+                adopt: None,
+                requires_role: None,
                 retry_policy: None,
             },
         ],

@@ -1,18 +1,28 @@
 <script setup lang="ts">
+import { FlaskConical, Brain, PenTool, Globe, Briefcase } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import type { PipelineTemplate } from '../lib/pipeline-templates';
 
 const ACCENT_BY_TEMPLATE_ID: Record<string, string> = {
-  'research-and-verify': '#4d8eff',
-  'think-and-critique': '#d0bcff',
-  'draft-and-refine': '#F59E0B',
-  'explore-and-synthesize': '#4edea3',
-  'deal-preparation': '#F59E0B',
+  'research-and-verify': 'var(--blue)',
+  'think-and-critique': 'var(--plum)',
+  'draft-and-refine': 'var(--amber)',
+  'explore-and-synthesize': 'var(--sage)',
+  'deal-preparation': 'var(--amber)',
 };
 
 const props = defineProps<{
   selected: boolean;
   template: PipelineTemplate;
 }>();
+
+const iconMap: Record<string, Component> = {
+  'flask-conical': FlaskConical,
+  'brain': Brain,
+  'pen-tool': PenTool,
+  'globe': Globe,
+  'briefcase': Briefcase,
+};
 
 defineEmits<{
   select: [];
@@ -22,11 +32,11 @@ defineEmits<{
 <template>
   <button
     type="button"
-    :class="['gallery-card', { 'gallery-card--selected': props.selected }]"
-    :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? '#4d8eff' }"
+    :class="['gallery-card shadow-[var(--shadow-8)] border-[1.5px] border-border-card', { 'gallery-card--selected': props.selected }]"
+    :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? 'var(--blue)' }"
     @click="$emit('select')"
   >
-    <span class="gallery-card-icon">{{ props.template.icon }}</span>
+    <component :is="iconMap[props.template.icon] ?? FlaskConical" class="gallery-card-icon size-5 text-text-secondary" :stroke-width="1.5" />
     <span class="gallery-card-label">{{ props.template.label }}</span>
     <span class="gallery-card-desc">{{ props.template.description }}</span>
     <span v-if="props.template.category === 'enterprise'" class="gallery-card-badge">Enterprise</span>
@@ -42,9 +52,8 @@ defineEmits<{
   position: relative;
   min-height: 9rem;
   padding: 0.875rem 0.875rem 0.875rem 1rem;
-  border: 0;
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
   cursor: pointer;
   text-align: left;
   transition: background 0.15s ease, transform 0.15s ease;
@@ -62,27 +71,22 @@ defineEmits<{
 }
 
 .gallery-card:hover {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .gallery-card--selected {
-  background: #2a2a2a;
-}
-
-.gallery-card-icon {
-  font-size: var(--text-headline);
-  line-height: 1;
+  background: var(--surface-high);
 }
 
 .gallery-card-label {
   font-size: 0.875rem;
   font-weight: var(--weight-title);
-  color: #e5e2e1;
+  color: var(--foreground);
 }
 
 .gallery-card-desc {
   font-size: 0.8125rem;
-  color: #c2c6d6;
+  color: var(--text-secondary);
   line-height: 1.3;
 }
 
@@ -93,7 +97,7 @@ defineEmits<{
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #e5e2e1;
+  color: var(--foreground);
   background: color-mix(in srgb, var(--template-accent) 18%, transparent);
 }
 </style>

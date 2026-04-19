@@ -1,7 +1,23 @@
 <script setup lang="ts">
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { computed, ref, watch } from 'vue';
-import type { EdgeConditionEquals, PipelineEdge, PipelineNode, PipelineNodeType } from '../lib/pipeline-types';
+import type {
+  EdgeConditionEquals,
+  PipelineEdge,
+  PipelineNode,
+  PipelineNodeType,
+  PromptNode,
+  SequentialThinkingNode,
+  WorkflowNode,
+} from '../lib/pipeline-types';
 import {
   cwdHasReasonablePathPrefix,
   getNodeType,
@@ -31,6 +47,7 @@ const conditionalPath = ref('');
 const conditionalEqualsLiteral = ref('""');
 const conditionalEqualsType = ref<'string' | 'number' | 'boolean'>('string');
 const conditionalEqualsError = ref<string | null>(null);
+const NONE_OPTION = '__none__';
 
 const selectedDesignNode = computed(() =>
   props.selectedNodeId
@@ -74,6 +91,17 @@ const selectedNodeSchema = computed(() =>
 );
 const selectedEdgeType = computed(() => selectedDesignEdge.value?.type ?? 'success');
 const isConditionalEdge = computed(() => selectedEdgeType.value === 'conditional');
+const supportsAdoptConfig = computed(() =>
+  selectedDesignNode.value
+    ? getNodeType(selectedDesignNode.value) !== 'tool'
+    : false,
+);
+const selectedAdoptableNode = computed(() =>
+  selectedDesignNode.value ? getAdoptableNode(selectedDesignNode.value) : null,
+);
+const roleAssetOptions = computed(() => store.roleAssets);
+const colorAssetOptions = computed(() => store.colorAssets);
+const perspectiveAssetOptions = computed(() => store.perspectiveAssets);
 const conditionalPathError = computed(() =>
   isConditionalEdge.value && conditionalPath.value.trim().length === 0
     ? 'Path is required for conditional edges.'
@@ -136,6 +164,16 @@ watch(
   async (node) => {
     if (node && getNodeType(node) === 'workflow' && store.workflows.length === 0) {
       await store.refreshWorkflows();
+    }
+
+    if (
+      node
+      && getNodeType(node) !== 'tool'
+      && roleAssetOptions.value.length === 0
+      && colorAssetOptions.value.length === 0
+      && perspectiveAssetOptions.value.length === 0
+    ) {
+      await store.refreshAdoptAssets();
     }
   },
   { immediate: true },
@@ -296,6 +334,57 @@ function updateNodeCwd(value: string | number): void {
   });
 }
 
+function normalizeOptionalSelectValue(value: unknown): string | undefined {
+  const nextValue = String(value ?? '').trim();
+  if (nextValue.length === 0 || nextValue === NONE_OPTION) {
+    return undefined;
+  }
+  return nextValue;
+}
+
+function getAdoptableNode(node: PipelineNode): WorkflowNode | PromptNode | SequentialThinkingNode | null {
+  const nodeType = getNodeType(node);
+  return nodeType === 'tool'
+    ? null
+    : node as WorkflowNode | PromptNode | SequentialThinkingNode;
+}
+
+function updateNodeAdoptField(field: 'role' | 'color' | 'perspective', value: unknown): void {
+  const selectedValue = normalizeOptionalSelectValue(value);
+  updateDesignNode((node) => {
+    const adoptableNode = getAdoptableNode(node);
+    if (!adoptableNode) {
+      return node;
+    }
+
+    const nextAdopt = { ...(adoptableNode.adopt ?? {}) };
+    if (selectedValue) {
+      nextAdopt[field] = selectedValue;
+    } else {
+      delete nextAdopt[field];
+    }
+
+    const { adopt: _adopt, ...rest } = adoptableNode;
+    return Object.keys(nextAdopt).length > 0
+      ? { ...rest, adopt: nextAdopt }
+      : rest;
+  });
+}
+
+function updateNodeRequiresRole(value: unknown): void {
+  const selectedValue = normalizeOptionalSelectValue(value);
+  updateDesignNode((node) => {
+    const adoptableNode = getAdoptableNode(node);
+    if (!adoptableNode) {
+      return node;
+    }
+    const { requiresRole: _requiresRole, ...rest } = adoptableNode;
+    return selectedValue
+      ? { ...rest, requiresRole: selectedValue }
+      : rest;
+  });
+}
+
 function updateNodeFormValue(nextValue: Record<string, unknown>): void {
   if (!selectedDesignNode.value) {
     return;
@@ -318,10 +407,10 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
 </script>
 
 <template>
-  <aside class="inspector" aria-label="Node configuration">
-    <section v-if="inspectorMode === 'design-overview'" class="panel">
+  <aside class="pipeline-inspector" aria-label="Node configuration">
+    <section v-if="inspectorMode === 'design-overview'" class="pipeline-inspector__panel">
       <h2>Pipeline settings</h2>
-      <label class="field">
+      <label class="pipeline-inspector__field">
         <span>Max concurrency</span>
         <Input
           :model-value="store.maxConcurrency"
@@ -331,13 +420,13 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           @update:model-value="updateMaxConcurrency"
         />
       </label>
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Nodes</span>
+      <div class="pipeline-inspector__stats-grid">
+        <div class="pipeline-inspector__stat-card">
+          <span class="pipeline-inspector__stat-label">Nodes</span>
           <strong>{{ store.localDefinition.nodes.length }}</strong>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Edges</span>
+        <div class="pipeline-inspector__stat-card">
+          <span class="pipeline-inspector__stat-label">Edges</span>
           <strong>{{ store.localDefinition.edges.length }}</strong>
         </div>
       </div>
@@ -345,10 +434,10 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
 
     <section
       v-else-if="inspectorMode === 'design-node' && selectedDesignNode"
-      class="panel"
+      class="pipeline-inspector__panel"
     >
       <h2>{{ selectedNodeLabel || selectedDesignNode.id || 'Node' }}</h2>
-      <label class="field">
+      <label class="pipeline-inspector__field">
         <span>Label</span>
         <Input
           :model-value="selectedNodeLabel"
@@ -357,7 +446,7 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           @update:model-value="updateNodeLabel"
         />
       </label>
-      <label class="field">
+      <label class="pipeline-inspector__field">
         <span>ID</span>
         <Input
           class="opacity-60 cursor-default select-text bg-background"
@@ -366,9 +455,9 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           readonly
         />
       </label>
-      <div class="summary-row">
+      <div class="pipeline-inspector__summary-row">
         <span>Type</span>
-        <strong class="type-pill">{{ formatNodeType(getNodeType(selectedDesignNode)) }}</strong>
+        <strong class="pipeline-inspector__type-pill">{{ formatNodeType(getNodeType(selectedDesignNode)) }}</strong>
       </div>
 
       <SchemaForm
@@ -379,11 +468,109 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
         @update:model-value="updateNodeFormValue"
       />
 
-      <p v-if="nodeFormError" class="field-hint field-hint--warning">
+      <p v-if="nodeFormError" class="pipeline-inspector__field-hint pipeline-inspector__field-hint--warning">
         {{ nodeFormError }}
       </p>
 
-      <label class="field">
+      <Card
+        v-if="supportsAdoptConfig"
+        class="border-border bg-[var(--surface-container)]"
+      >
+        <CardHeader class="space-y-1.5">
+          <CardTitle class="font-display text-[var(--text-sm)] text-[var(--foreground)]">Adopt configuration</CardTitle>
+          <CardDescription class="text-[var(--text-xs)] text-[var(--muted-foreground)]">
+            Apply role, color, and perspective before node dispatch.
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="grid gap-3">
+          <label class="pipeline-inspector__field">
+            <span>Role</span>
+            <Select
+              :model-value="selectedAdoptableNode?.adopt?.role ?? NONE_OPTION"
+              @update:model-value="updateNodeAdoptField('role', $event)"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NONE_OPTION">None</SelectItem>
+                <SelectItem
+                  v-for="option in roleAssetOptions"
+                  :key="`role-${option.id}`"
+                  :value="option.id"
+                >
+                  {{ option.id }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+          <label class="pipeline-inspector__field">
+            <span>Color</span>
+            <Select
+              :model-value="selectedAdoptableNode?.adopt?.color ?? NONE_OPTION"
+              @update:model-value="updateNodeAdoptField('color', $event)"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select color" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NONE_OPTION">None</SelectItem>
+                <SelectItem
+                  v-for="option in colorAssetOptions"
+                  :key="`color-${option.id}`"
+                  :value="option.id"
+                >
+                  {{ option.id }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+          <label class="pipeline-inspector__field">
+            <span>Perspective</span>
+            <Select
+              :model-value="selectedAdoptableNode?.adopt?.perspective ?? NONE_OPTION"
+              @update:model-value="updateNodeAdoptField('perspective', $event)"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select perspective" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NONE_OPTION">None</SelectItem>
+                <SelectItem
+                  v-for="option in perspectiveAssetOptions"
+                  :key="`perspective-${option.id}`"
+                  :value="option.id"
+                >
+                  {{ option.id }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+          <label class="pipeline-inspector__field">
+            <span>Requires role</span>
+            <Select
+              :model-value="selectedAdoptableNode?.requiresRole ?? NONE_OPTION"
+              @update:model-value="updateNodeRequiresRole($event)"
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select required role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NONE_OPTION">None</SelectItem>
+                <SelectItem
+                  v-for="option in roleAssetOptions"
+                  :key="`requires-role-${option.id}`"
+                  :value="option.id"
+                >
+                  {{ option.id }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+        </CardContent>
+      </Card>
+
+      <label class="pipeline-inspector__field">
         <span>Working directory</span>
         <Input
           :model-value="selectedDesignNode.cwd ?? ''"
@@ -393,7 +580,7 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
         />
         <small
           v-if="getCwdWarning(selectedDesignNode.cwd)"
-          class="field-hint field-hint--warning"
+          class="pipeline-inspector__field-hint pipeline-inspector__field-hint--warning"
         >
           {{ getCwdWarning(selectedDesignNode.cwd) }}
         </small>
@@ -402,16 +589,16 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
 
     <section
       v-else-if="inspectorMode === 'design-edge' && selectedDesignEdge"
-      class="panel"
+      class="pipeline-inspector__panel"
     >
       <h2>Edge</h2>
-      <div class="summary-row">
+      <div class="pipeline-inspector__summary-row">
         <span>Path</span>
         <strong>{{ selectedDesignEdge.source }} → {{ selectedDesignEdge.target }}</strong>
       </div>
-      <fieldset class="field-group">
+      <fieldset class="pipeline-inspector__field-group">
         <legend>Edge type</legend>
-        <label class="radio-option">
+        <label class="pipeline-inspector__radio-option">
           <input
             :checked="(selectedDesignEdge.type ?? 'success') === 'success'"
             type="radio"
@@ -420,7 +607,7 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           >
           <span>Success</span>
         </label>
-        <label class="radio-option">
+        <label class="pipeline-inspector__radio-option">
           <input
             :checked="selectedDesignEdge.type === 'always'"
             type="radio"
@@ -429,7 +616,7 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           >
           <span>Always</span>
         </label>
-        <label class="radio-option">
+        <label class="pipeline-inspector__radio-option">
           <input
             :checked="selectedDesignEdge.type === 'conditional'"
             type="radio"
@@ -439,8 +626,8 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
           <span>Conditional</span>
         </label>
       </fieldset>
-      <div v-if="isConditionalEdge" class="field-group">
-        <label class="field">
+      <div v-if="isConditionalEdge" class="pipeline-inspector__field-group">
+        <label class="pipeline-inspector__field">
           <span>Path</span>
           <Input
             :model-value="conditionalPath"
@@ -448,9 +635,12 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
             placeholder="result.status"
             @update:model-value="updateConditionalPath"
           />
-          <small v-if="conditionalPathError" class="field-hint field-hint--warning">{{ conditionalPathError }}</small>
+          <small
+            v-if="conditionalPathError"
+            class="pipeline-inspector__field-hint pipeline-inspector__field-hint--warning"
+          >{{ conditionalPathError }}</small>
         </label>
-        <label class="field">
+        <label class="pipeline-inspector__field">
           <span>Equals type</span>
           <select
             :value="conditionalEqualsType"
@@ -462,7 +652,7 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
             <option value="boolean">Boolean</option>
           </select>
         </label>
-        <label class="field">
+        <label class="pipeline-inspector__field">
           <span>Equals (JSON literal)</span>
           <Input
             :model-value="conditionalEqualsLiteral"
@@ -470,7 +660,10 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
             :placeholder="conditionalEqualsPlaceholder()"
             @update:model-value="updateConditionalEqualsLiteral"
           />
-          <small v-if="conditionalEqualsError" class="field-hint field-hint--warning">{{ conditionalEqualsError }}</small>
+          <small
+            v-if="conditionalEqualsError"
+            class="pipeline-inspector__field-hint pipeline-inspector__field-hint--warning"
+          >{{ conditionalEqualsError }}</small>
         </label>
       </div>
       <EdgeMappingEditor
@@ -480,116 +673,9 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
       />
     </section>
 
-    <section v-else class="panel empty-state">
+    <section v-else class="pipeline-inspector__panel pipeline-inspector__empty-state">
       <h2>Inspector</h2>
       <p>Select a node or edge to inspect</p>
     </section>
   </aside>
 </template>
-
-<style scoped>
-.inspector {
-  height: 100%;
-  background: var(--card);
-  color: var(--foreground);
-  border-left-width: 1px;
-  border-left-style: solid;
-  border-left-color: var(--border);
-  overflow-y: auto;
-}
-
-.panel {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.875rem;
-}
-
-.panel h2 {
-  font-size: var(--text-xl);
-  font-weight: var(--weight-title);
-}
-
-.field,
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-  color: var(--muted-foreground);
-  font-size: var(--text-sm);
-}
-
-.field-hint {
-  margin: 0;
-  font-size: var(--text-xs);
-}
-
-.field-hint--warning {
-  color: var(--color-status-active);
-}
-
-.field-group {
-  border-width: 1px;
-  border-style: solid;
-  border-color: var(--border);
-  border-radius: 4px;
-  padding: 0.75rem;
-  background: color-mix(in srgb, var(--background) 88%, transparent);
-}
-
-.field-group legend {
-  padding: 0 0.25rem;
-  color: var(--foreground);
-}
-
-.summary-row,
-.radio-option,
-.stat-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.summary-row span,
-.stat-label {
-  color: var(--muted-foreground);
-}
-
-.summary-row strong {
-  min-width: 0;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-}
-
-.stat-card,
-.type-pill {
-  padding: 0.875rem;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--card) 92%, transparent);
-}
-
-.type-pill {
-  padding: 0.2rem 0.6rem;
-  font-size: var(--text-sm);
-}
-
-.radio-option {
-  justify-content: flex-start;
-}
-
-.empty-state {
-  justify-content: center;
-  min-height: 220px;
-}
-
-.empty-state p {
-  color: var(--muted-foreground);
-}
-</style>

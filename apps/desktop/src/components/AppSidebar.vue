@@ -5,6 +5,7 @@ import StartupProgress from './StartupProgress.vue';
 import { useResizeHandle } from '../composables/useResizeHandle';
 import { getSidebarSizingTokens } from '../lib/sidebarSizing';
 import type { SavedSession } from '../lib/types';
+import { Radio, PanelLeftClose, PanelLeftOpen, FolderOpen } from 'lucide-vue-next';
 
 const visible = defineModel<boolean>('visible', { required: true });
 const selectedAgent = defineModel<string>('selectedAgent', { required: true });
@@ -21,7 +22,6 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  'open-settings': [];
   'agent-select': [agentName: string];
   'select-folder': [];
   'new-session': [];
@@ -43,12 +43,12 @@ const resize = useResizeHandle({
   <aside
     v-if="visible"
     class="sidebar flex shrink-0 flex-col bg-[var(--surface)] text-[var(--text)]"
-    role="navigation"
-    aria-label="Main navigation"
+    role="complementary"
+    aria-label="Agents panel"
     :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }"
   >
-    <div class="flex items-center justify-between px-4 pt-4 pb-3">
-      <h1 class="m-0 font-[var(--font-display)] text-[var(--text-title)] tracking-[0.06em]">maenifold</h1>
+    <div class="flex items-center justify-between px-4 pt-3 pb-2">
+      <h2 class="m-0 text-xs font-medium uppercase tracking-[0.08em] text-text-secondary">Agents</h2>
       <div class="flex gap-1">
         <button
           :class="[
@@ -58,19 +58,13 @@ const resize = useResizeHandle({
           @click="showTrafficMonitor = !showTrafficMonitor"
           title="ACP Traffic Monitor"
           aria-label="Toggle ACP traffic monitor"
-        >📡</button>
-        <button
-          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
-          @click="emit('open-settings')"
-          title="Settings"
-          aria-label="Open settings"
-        >⚙</button>
+        ><Radio class="size-4" /></button>
         <button
           class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
           @click="visible = false"
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
-        >◀</button>
+        ><PanelLeftClose class="size-4" /></button>
       </div>
     </div>
 
@@ -99,7 +93,7 @@ const resize = useResizeHandle({
               @click="emit('select-folder')"
               title="Select folder"
             >
-              📁
+              <FolderOpen class="size-4" />
             </button>
           </div>
         </div>
@@ -152,7 +146,7 @@ const resize = useResizeHandle({
     title="Expand sidebar"
     aria-label="Expand sidebar"
   >
-    ▶
+    <PanelLeftOpen class="size-4" />
   </button>
 </template>
 

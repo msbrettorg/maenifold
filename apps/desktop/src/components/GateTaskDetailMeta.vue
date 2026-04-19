@@ -82,21 +82,21 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
   max-width: 100%;
   padding: 0.25rem 0.55rem;
   border-radius: 4px;
-  background: #353534;
-  color: #f4f7ff;
+  background: var(--surface-highest);
+  color: var(--foreground);
   font-family: var(--font-code);
   font-size: var(--text-2xs);
   font-weight: var(--weight-title);
   line-height: 1.4;
 }
 
-.gate-detail-meta__badge--process { background: #424753; }
-.gate-detail-meta__badge--pending { background: #707070; }
-.gate-detail-meta__badge--swe { background: #4d8eff; }
-.gate-detail-meta__badge--red-team { background: #f59e0b; }
+.gate-detail-meta__badge--process { background: var(--outline-variant); }
+.gate-detail-meta__badge--pending { background: var(--text-dim); }
+.gate-detail-meta__badge--swe { background: var(--blue); }
+.gate-detail-meta__badge--red-team { background: var(--amber); }
 .gate-detail-meta__badge--blue-team,
-.gate-detail-meta__badge--done { background: #4edea3; }
-.gate-detail-meta__badge--failed { background: #ffb4ab; }
+.gate-detail-meta__badge--done { background: var(--sage); }
+.gate-detail-meta__badge--failed { background: var(--terracotta); }
 
 .gate-detail-meta__path {
   grid-column: 1 / -1;

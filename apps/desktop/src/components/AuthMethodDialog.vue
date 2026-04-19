@@ -97,7 +97,7 @@ function handleSelect(methodId: string) {
   background: transparent;
   font-size: var(--text-title);
   cursor: pointer;
-  color: #707070;
+  color: var(--text-dim);
   padding: 0.25rem;
 }
 
@@ -126,14 +126,14 @@ function handleSelect(methodId: string) {
   padding: 0.875rem 1rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
-  background: #1c1b1b;
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .auth-method-btn:hover {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .method-info {
@@ -149,12 +149,12 @@ function handleSelect(methodId: string) {
 
 .method-desc {
   font-size: 0.75rem;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .arrow {
   font-size: var(--text-title);
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .auth-method-btn:hover .arrow {
@@ -170,12 +170,12 @@ function handleSelect(methodId: string) {
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: transparent;
-  color: #707070;
+  color: var(--text-dim);
   cursor: pointer;
   font-size: 0.75rem;
 }
 
 .cancel-btn:hover {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 </style>

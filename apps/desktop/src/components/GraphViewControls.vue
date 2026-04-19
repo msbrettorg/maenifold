@@ -45,7 +45,7 @@ defineEmits<{
   align-items: center;
   gap: 0.75rem;
   padding: 0.5rem 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
   flex-shrink: 0;
 }
 
@@ -66,8 +66,8 @@ defineEmits<{
   padding: 0;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #2a2a2a;
-  color: #adc6ff;
+  background: var(--surface-high);
+  color: var(--accent-prompt);
   cursor: pointer;
   font-size: var(--text-caption);
   line-height: 1;
@@ -75,20 +75,20 @@ defineEmits<{
 }
 
 .back-btn:hover {
-  background: #353534;
-  color: #e5e2e1;
+  background: var(--surface-highest);
+  color: var(--foreground);
 }
 
 .header-stats {
   font-size: 0.6875rem;
-  color: #707070;
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .header-context {
   font-size: 0.6875rem;
-  color: #c2c6d6;
+  color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -106,8 +106,8 @@ defineEmits<{
   padding: 0.25rem 0.5rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #2a2a2a;
-  color: #c2c6d6;
+  background: var(--surface-high);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.6875rem;
   line-height: 1;
@@ -116,7 +116,7 @@ defineEmits<{
 }
 
 .action-btn:hover {
-  background: #353534;
-  color: #e5e2e1;
+  background: var(--surface-highest);
+  color: var(--foreground);
 }
 </style>

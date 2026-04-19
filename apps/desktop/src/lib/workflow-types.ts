@@ -47,6 +47,12 @@ export interface MemoryFile {
   content: string;
   created: string | null;
   modified: string | null;
+  lineageGateTaskId?: string | null;
+  lineagePipelineRunId?: string | null;
+  lineageThinkingSessionId?: string | null;
+  lineageMemoryNoteId?: string | null;
+  parentWorkflowId?: string | null;
+  metadata?: Record<string, unknown>;
 }
 
 export interface MemorySearchItem {
@@ -72,6 +78,34 @@ export interface RecentActivityItem {
 
 export interface RecentResult {
   items: RecentActivityItem[];
+}
+
+export interface BuildContextRelation {
+  name: string;
+  coOccurrenceCount: number;
+  files: string[];
+  weightedScore: number | null;
+  communityId: number | null;
+}
+
+export interface BuildContextResult {
+  conceptName: string;
+  depth: number;
+  communityId: number | null;
+  directRelations: BuildContextRelation[];
+  expandedRelations: BuildContextRelation[];
+}
+
+export interface SimilarConceptItem {
+  name: string;
+  similarity: number;
+  weightedSimilarity: number | null;
+}
+
+export interface SimilarConceptResult {
+  conceptName: string;
+  totalCount: number;
+  results: SimilarConceptItem[];
 }
 
 export interface WorkflowTreeWorkflowNode {

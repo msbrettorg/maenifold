@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { Ruler } from 'lucide-vue-next';
 import type { PlanEntry } from '../lib/types';
 
 const props = defineProps<{
@@ -48,7 +49,7 @@ function toggleExpanded(): void {
       @click="toggleExpanded"
     >
       <div class="plan-heading">
-        <span class="plan-icon">📐</span>
+        <span class="plan-icon"><Ruler class="size-4" :stroke-width="1.5" /></span>
         <span class="plan-title">Agent Plan</span>
         <span class="plan-summary">
           {{ completedCount }}/{{ entryCount }} completed

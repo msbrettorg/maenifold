@@ -8,6 +8,7 @@ use jockey::EventSender;
 use serde_json::json;
 
 use super::agent_session::open_agent_session;
+use super::adoption::require_adopted_role;
 use super::runner_helpers::{
     prompt_workflow_agent, step_think_config, terminal_workflow_status, workflow_completion_text,
     workflow_step_payload, workflow_text,
@@ -172,10 +173,14 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     existing_session_id: Option<String>,
     agent: &str,
     prompt: &str,
+    adopt_instructions: &[String],
+    adopt_role: Option<&str>,
+    requires_role: Option<&str>,
     session_config: AgentSessionConfig,
     event_tx: EventSender,
     keep_session_alive: bool,
 ) -> Result<WorkflowResult> {
+    require_adopted_role("workflow invocation", requires_role, adopt_role)?;
     let (session_id, start_text) =
         init_workflow_session(context, workflow_id, existing_session_id)?;
     if trace_enabled() {
@@ -188,6 +193,12 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         model: session_config.model.clone(),
     };
     let driver = open_agent_session(agent, &session_config, &run_ctx.event_tx).await?;
+    for instruction in adopt_instructions {
+        let response = driver.prompt(instruction).await?;
+        if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
+            return Err(MaenifoldError::Message(error));
+        }
+    }
     let mut step = workflow_text(&start_text);
     let total_steps = workflow_total_steps(context, workflow_id, &step)?;
     let mut step_index = current_step_index(context, &run_ctx.session_id, &step);

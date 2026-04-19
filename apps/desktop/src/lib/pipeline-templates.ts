@@ -48,7 +48,7 @@ export interface PipelineTemplate {
   label: string;
   /** One-line description of what this pipeline does. */
   description: string;
-  /** Emoji icon for the gallery card. */
+  /** Icon key for lucide-vue-next. */
   icon: string;
   category: TemplateCategory;
   /** When non-empty, ALL listed tools must be discovered for the template to appear. */
@@ -71,7 +71,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     id: 'research-and-verify',
     label: 'Research & Verify',
     description: 'Investigate a topic using the scientific method, then peer-review the findings.',
-    icon: '🔬',
+    icon: 'flask-conical',
     category: 'universal',
     capabilities: [],
     definition: {
@@ -100,7 +100,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     id: 'think-and-critique',
     label: 'Think & Critique',
     description: 'Deeply reason through a problem, then critically evaluate the reasoning.',
-    icon: '🧠',
+    icon: 'brain',
     category: 'universal',
     capabilities: [],
     definition: {
@@ -129,7 +129,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     id: 'draft-and-refine',
     label: 'Draft & Refine',
     description: 'Draft a response, stress-test it via falsification, then revise.',
-    icon: '✍️',
+    icon: 'pen-tool',
     category: 'universal',
     capabilities: [],
     definition: {
@@ -161,7 +161,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     id: 'explore-and-synthesize',
     label: 'Explore & Synthesize',
     description: 'Run agentic research, then synthesize findings through critical analysis.',
-    icon: '🌐',
+    icon: 'globe',
     category: 'universal',
     capabilities: [],
     definition: {
@@ -192,7 +192,7 @@ export const PIPELINE_TEMPLATES: readonly PipelineTemplate[] = [
     id: 'deal-preparation',
     label: 'Deal Preparation',
     description: 'Fetch account data from MSX, query WorkIQ, then analyze for deal readiness.',
-    icon: '💼',
+    icon: 'briefcase',
     category: 'enterprise',
     capabilities: [
       { toolName: 'msx-mcp-get_account_overview' },

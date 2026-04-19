@@ -1,5 +1,9 @@
 use super::sync_state::current_iso_timestamp;
 use crate::error::Result;
+use crate::lineage::{
+    gate_task_lineage_id, memory_note_lineage_id, pipeline_run_lineage_id,
+    thinking_session_lineage_id,
+};
 use crate::markdown::{Frontmatter, WikiLinkFilter, extract_wikilinks};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -163,12 +167,61 @@ pub(crate) fn upsert_processed_file(
         .and_then(|frontmatter| frontmatter.get("created"))
         .and_then(|value| value.as_str())
         .map(str::to_string);
+    let lineage_gate_task_id = frontmatter_lineage_gate_task_id(frontmatter);
+    let lineage_pipeline_run_id = frontmatter_lineage_pipeline_run_id(frontmatter);
+    let lineage_thinking_session_id = frontmatter_lineage_thinking_session_id(frontmatter);
+    let lineage_memory_note_id = frontmatter
+        .as_ref()
+        .and_then(|fm| fm.get("lineage_memory_note_id"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("memory_note_id"))
+                .and_then(|value| value.as_str())
+                .map(memory_note_lineage_id)
+        })
+        .unwrap_or_else(|| memory_note_lineage_id(uri));
 
     connection.execute(
-        "INSERT INTO file_content (file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed) \
-         VALUES (?1, ?2, ?3, '', ?4, ?5, ?6, ?7, COALESCE(?8, ?4), COALESCE((SELECT last_accessed FROM file_content WHERE file_path = ?1), COALESCE(?8, ?4))) \
-         ON CONFLICT(file_path) DO UPDATE SET title=excluded.title, content=excluded.content, summary=excluded.summary, last_indexed=excluded.last_indexed, status=excluded.status, file_md5=excluded.file_md5, file_size=excluded.file_size, created=COALESCE(file_content.created, excluded.created), last_accessed=COALESCE(file_content.last_accessed, excluded.last_accessed)",
-        params![uri, title, content, indexed_at, status, checksum, file_size, created],
+        "INSERT INTO file_content (
+             file_path, title, content, summary, last_indexed, status, file_md5, file_size, created, last_accessed,
+             lineage_gate_task_id, lineage_pipeline_run_id, lineage_thinking_session_id, lineage_memory_note_id
+         ) \
+         VALUES (
+             ?1, ?2, ?3, '', ?4, ?5, ?6, ?7, COALESCE(?8, ?4),
+             COALESCE((SELECT last_accessed FROM file_content WHERE file_path = ?1), COALESCE(?8, ?4)),
+             ?9, ?10, ?11, ?12
+         ) \
+         ON CONFLICT(file_path) DO UPDATE SET
+             title=excluded.title,
+             content=excluded.content,
+             summary=excluded.summary,
+             last_indexed=excluded.last_indexed,
+             status=excluded.status,
+             file_md5=excluded.file_md5,
+             file_size=excluded.file_size,
+             created=COALESCE(file_content.created, excluded.created),
+             last_accessed=COALESCE(file_content.last_accessed, excluded.last_accessed),
+             lineage_gate_task_id=COALESCE(excluded.lineage_gate_task_id, file_content.lineage_gate_task_id),
+             lineage_pipeline_run_id=COALESCE(excluded.lineage_pipeline_run_id, file_content.lineage_pipeline_run_id),
+             lineage_thinking_session_id=COALESCE(excluded.lineage_thinking_session_id, file_content.lineage_thinking_session_id),
+             lineage_memory_note_id=COALESCE(excluded.lineage_memory_note_id, file_content.lineage_memory_note_id)",
+        params![
+            uri,
+            title,
+            content,
+            indexed_at,
+            status,
+            checksum,
+            file_size,
+            created,
+            lineage_gate_task_id,
+            lineage_pipeline_run_id,
+            lineage_thinking_session_id,
+            lineage_memory_note_id
+        ],
     )?;
 
     connection.execute(
@@ -203,4 +256,56 @@ pub(crate) fn upsert_processed_file(
     }
 
     Ok(filtered_count)
+}
+
+fn frontmatter_lineage_gate_task_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
+    frontmatter
+        .as_ref()
+        .and_then(|fm| fm.get("lineage_gate_task_id"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("gate_task_id"))
+                .and_then(|value| value.as_str())
+                .map(gate_task_lineage_id)
+        })
+}
+
+fn frontmatter_lineage_pipeline_run_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
+    frontmatter
+        .as_ref()
+        .and_then(|fm| fm.get("lineage_pipeline_run_id"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("pipeline_run_id"))
+                .and_then(|value| value.as_str())
+                .map(pipeline_run_lineage_id)
+        })
+        .or_else(|| {
+            frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("pipeline_session_id"))
+                .and_then(|value| value.as_str())
+                .map(pipeline_run_lineage_id)
+        })
+}
+
+fn frontmatter_lineage_thinking_session_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
+    frontmatter
+        .as_ref()
+        .and_then(|fm| fm.get("lineage_thinking_session_id"))
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+        .or_else(|| {
+            frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("thinking_session_id"))
+                .and_then(|value| value.as_str())
+                .map(thinking_session_lineage_id)
+        })
 }

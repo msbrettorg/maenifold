@@ -232,8 +232,8 @@ function closeDialog(): void {
     <DialogContent class="promotion-dialog gap-0 p-0 sm:max-w-[64rem]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div>
-          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Promote to memory</DialogTitle>
-          <DialogDescription class="text-[var(--text-body-sm)] text-[#707070]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
+          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[var(--foreground)]">Promote to memory</DialogTitle>
+          <DialogDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
         </div>
         <Button type="button" variant="ghost" class="rounded-[4px]" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
       </DialogHeader>
@@ -258,7 +258,7 @@ function closeDialog(): void {
 .promotion-dialog {
   width: min(64rem, 100%);
   max-height: min(92vh, 60rem);
-  background: #201f1f;
+  background: var(--surface-container);
 }
 
 .promotion-body {
@@ -304,7 +304,7 @@ function closeDialog(): void {
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: 0.75rem;
 }
 
@@ -330,7 +330,7 @@ function closeDialog(): void {
   align-items: flex-start;
   border-radius: 4px;
   padding: 0.875rem;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 :deep(.result-card__body) {
@@ -343,7 +343,7 @@ function closeDialog(): void {
 :deep(.summary-row p) {
   margin: 0;
   white-space: pre-wrap;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 :deep(.result-card__actions) {
@@ -362,7 +362,7 @@ function closeDialog(): void {
 :deep(.memory-preview span),
 :deep(.summary-row span),
 :deep(.summary-row strong) {
-  color: #e5e2e1;
+  color: var(--foreground);
   font-size: 0.75rem;
 }
 
@@ -371,7 +371,7 @@ function closeDialog(): void {
   margin: 0;
   padding: 0.75rem;
   border-radius: 4px;
-  background: #1c1b1b;
+  background: var(--surface);
   white-space: pre-wrap;
   word-break: break-word;
   font: inherit;
@@ -392,14 +392,14 @@ function closeDialog(): void {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 16px;
-  color: #e5e2e1;
+  color: var(--foreground);
 }
 
 :deep(.section-header p),
 :deep(.field-help),
 :deep(.result-score),
 :deep(.info-message) {
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .mono {

@@ -5,7 +5,7 @@ use jockey::EventSender;
 use tokio::sync::{Semaphore, broadcast};
 use tokio::task::JoinSet;
 use tokio_util::sync::CancellationToken;
-use tracing::warn;
+use tracing::{info, warn};
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -188,6 +188,18 @@ async fn schedule_dispatched_node(
             )));
         }
     };
+    if agent.is_some() {
+        let (adopt_role, adopt_color, adopt_perspective) = node_adoption_labels(node);
+        info!(
+            node_id = %node_id,
+            node_type = %node.node_type_name(),
+            agent = ?agent,
+            adopt_role = %adopt_role,
+            adopt_color = %adopt_color,
+            adopt_perspective = %adopt_perspective,
+            "dispatching pipeline agent invocation"
+        );
+    }
     let mut execution = build_node_execution_request(
         json_context,
         definition,
@@ -219,6 +231,28 @@ async fn schedule_dispatched_node(
         initial_retry_attempts,
     );
     Ok(())
+}
+
+fn node_adoption_labels(node: &PipelineNode) -> (&str, &str, &str) {
+    let role = node
+        .adopt()
+        .and_then(|adopt| adopt.role.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("none");
+    let color = node
+        .adopt()
+        .and_then(|adopt| adopt.color.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("none");
+    let perspective = node
+        .adopt()
+        .and_then(|adopt| adopt.perspective.as_deref())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("none");
+    (role, color, perspective)
 }
 fn apply_node_outcome(
     context: &ToolContext,

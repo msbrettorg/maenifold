@@ -92,7 +92,7 @@ function renderMarkdown(content: string | null) {
   min-height: 0;
   overflow: hidden;
   padding: 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
 }
@@ -151,7 +151,7 @@ function renderMarkdown(content: string | null) {
   padding: 0.75rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
 }
 
 .gate-detail__message--error,
@@ -168,7 +168,7 @@ function renderMarkdown(content: string | null) {
   padding: 0.9rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
 }
 
 .gate-detail__markdown :deep(*) {

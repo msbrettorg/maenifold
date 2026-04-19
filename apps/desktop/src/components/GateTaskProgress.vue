@@ -49,7 +49,7 @@ const segments = computed(() => {
           : props.task.state === 'pending'
             ? 'pending'
             : 'active',
-      color: '#707070',
+      color: 'var(--text-dim)',
     }];
   }
 
@@ -108,21 +108,21 @@ const progressLabel = computed(() => formatStageLabel(props.task.location === 'd
   min-width: 0.6rem;
   height: 0.45rem;
   border-radius: 4px;
-  background: #353534;
+  background: var(--surface-highest);
 }
 
-.gate-progress__segment--completed.gate-progress__segment--pending { background: #707070; }
-.gate-progress__segment--completed.gate-progress__segment--swe { background: color-mix(in srgb, #4d8eff 72%, #353534); }
-.gate-progress__segment--completed.gate-progress__segment--red-team { background: color-mix(in srgb, #f59e0b 72%, #353534); }
+.gate-progress__segment--completed.gate-progress__segment--pending { background: var(--text-dim); }
+.gate-progress__segment--completed.gate-progress__segment--swe { background: color-mix(in srgb, var(--blue) 72%, var(--surface-highest)); }
+.gate-progress__segment--completed.gate-progress__segment--red-team { background: color-mix(in srgb, var(--amber) 72%, var(--surface-highest)); }
 .gate-progress__segment--completed.gate-progress__segment--blue-team,
-.gate-progress__segment--completed.gate-progress__segment--done { background: color-mix(in srgb, #4edea3 72%, #353534); }
-.gate-progress__segment--active.gate-progress__segment--pending { background: #707070; }
-.gate-progress__segment--active.gate-progress__segment--swe { background: #4d8eff; }
-.gate-progress__segment--active.gate-progress__segment--red-team { background: #f59e0b; }
+.gate-progress__segment--completed.gate-progress__segment--done { background: color-mix(in srgb, var(--sage) 72%, var(--surface-highest)); }
+.gate-progress__segment--active.gate-progress__segment--pending { background: var(--text-dim); }
+.gate-progress__segment--active.gate-progress__segment--swe { background: var(--blue); }
+.gate-progress__segment--active.gate-progress__segment--red-team { background: var(--amber); }
 .gate-progress__segment--active.gate-progress__segment--blue-team,
-.gate-progress__segment--active.gate-progress__segment--done { background: #4edea3; }
-.gate-progress__segment--pending { background: #353534; }
-.gate-progress__segment--failed { background: #ffb4ab; }
+.gate-progress__segment--active.gate-progress__segment--done { background: var(--sage); }
+.gate-progress__segment--pending { background: var(--surface-highest); }
+.gate-progress__segment--failed { background: var(--terracotta); }
 
 .gate-progress__state {
   color: var(--muted-foreground);

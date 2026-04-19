@@ -168,7 +168,7 @@ function handleSelectionChange(value: unknown) {
   left: 0;
   width: 400px;
   margin-bottom: 6px;
-  background: #201f1f;
+  background: var(--surface-container);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: var(--radius);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
@@ -187,14 +187,14 @@ function handleSelectionChange(value: unknown) {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  color: #707070;
+  color: var(--text-dim);
 }
 
 .command-input {
   width: 100%;
   border: none;
   background: transparent;
-  color: #e5e2e1;
+  color: var(--foreground);
   font: inherit;
   font-size: var(--text-body-sm);
 }
@@ -218,12 +218,12 @@ function handleSelectionChange(value: unknown) {
 
 .command-item[data-selected='true'],
 .command-item:hover {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .command-empty {
   padding: 1rem;
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-body-sm);
   text-align: center;
 }
@@ -233,8 +233,8 @@ function handleSelectionChange(value: unknown) {
   left: calc(100% + 8px);
   top: 0;
   width: 220px;
-  background: #201f1f;
-  color: #e5e2e1;
+  background: var(--surface-container);
+  color: var(--foreground);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: var(--radius);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
@@ -253,7 +253,7 @@ function handleSelectionChange(value: unknown) {
 }
 
 .command-name {
-  color: #e5e2e1;
+  color: var(--foreground);
   font-size: var(--text-body-sm);
   min-width: 120px;
   font-weight: var(--weight-title);
@@ -265,7 +265,7 @@ function handleSelectionChange(value: unknown) {
 }
 
 .command-description {
-  color: #c2c6d6;
+  color: var(--text-secondary);
   font-size: var(--text-body-sm);
   flex: 1 1 auto;
   white-space: nowrap;
@@ -274,7 +274,7 @@ function handleSelectionChange(value: unknown) {
 }
 
 .command-hint {
-  color: #707070;
+  color: var(--text-dim);
   font-family: var(--font-code);
   font-size: var(--text-caption);
   white-space: nowrap;

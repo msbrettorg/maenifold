@@ -240,7 +240,7 @@ watch(
 .sr-only-input {
   display: none;
 }
-.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: #1c1b1b; display: flex; flex-direction: column; overflow: hidden; }
+.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
 .browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
 .browser-primary-action { flex: 1; }
 .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }

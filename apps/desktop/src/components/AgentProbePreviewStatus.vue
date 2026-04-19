@@ -69,7 +69,7 @@ defineEmits<{
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: #707070;
+  background: var(--text-dim);
 }
 
 .status-label {
@@ -103,7 +103,7 @@ defineEmits<{
 .warning-note {
   padding: 0.55rem 0.65rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--bg-warning) 20%, #201f1f);
+  background: color-mix(in srgb, var(--bg-warning) 20%, var(--surface-container));
 }
 
 .technical-detail {
@@ -113,7 +113,7 @@ defineEmits<{
 .refresh-btn {
   border: none;
   border-radius: 4px;
-  background: #201f1f;
+  background: var(--surface-container);
   color: var(--muted-foreground);
   cursor: pointer;
   font-size: var(--text-tiny);
@@ -128,23 +128,23 @@ defineEmits<{
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .ready .status-bead {
-  background: #4edea3;
+  background: var(--sage);
 }
 
 .pending .status-bead,
 .idle .status-bead {
-  background: #707070;
+  background: var(--text-dim);
 }
 
 .offline .status-bead {
-  background: #f59e0b;
+  background: var(--amber);
 }
 
 .error .status-bead {
-  background: #ffb4ab;
+  background: var(--terracotta);
 }
 </style>

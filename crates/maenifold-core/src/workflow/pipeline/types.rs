@@ -30,6 +30,17 @@ pub struct AgentConfig {
     pub config_options: Option<serde_json::Map<String, serde_json::Value>>,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NodeAdopt {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub role: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub color: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub perspective: Option<String>,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RetryPolicy {
@@ -74,6 +85,8 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        adopt: Option<NodeAdopt>,
+        requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
     },
     Prompt {
@@ -89,6 +102,8 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        adopt: Option<NodeAdopt>,
+        requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
     },
     SequentialThinking {
@@ -105,6 +120,8 @@ pub enum PipelineNode {
         cwd: Option<PathBuf>,
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
+        adopt: Option<NodeAdopt>,
+        requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
     },
     Tool {
@@ -203,6 +220,24 @@ impl PipelineNode {
             | Self::Prompt { retry_policy, .. }
             | Self::SequentialThinking { retry_policy, .. }
             | Self::Tool { retry_policy, .. } => retry_policy.as_ref(),
+        }
+    }
+
+    pub fn adopt(&self) -> Option<&NodeAdopt> {
+        match self {
+            Self::Workflow { adopt, .. }
+            | Self::Prompt { adopt, .. }
+            | Self::SequentialThinking { adopt, .. } => adopt.as_ref(),
+            Self::Tool { .. } => None,
+        }
+    }
+
+    pub fn requires_role(&self) -> Option<&str> {
+        match self {
+            Self::Workflow { requires_role, .. }
+            | Self::Prompt { requires_role, .. }
+            | Self::SequentialThinking { requires_role, .. } => requires_role.as_deref(),
+            Self::Tool { .. } => None,
         }
     }
 

@@ -12,6 +12,7 @@ pub(crate) mod endophasia;
 pub mod error;
 pub mod graph;
 pub mod logging;
+pub mod lineage;
 pub mod markdown;
 // T-12.0: RTM NFR-1 — preserve the crate::mcp facade while the implementation lives in src/mcp/.
 pub mod mcp;

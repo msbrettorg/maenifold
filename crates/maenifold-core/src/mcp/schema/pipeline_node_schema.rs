@@ -66,6 +66,28 @@ fn agent_config_schema() -> serde_json::Value {
     })
 }
 
+fn node_adopt_schema() -> serde_json::Value {
+    json!({
+        "description": "Per-node adoption configuration applied before prompt dispatch",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+            "role": {
+                "type": "string",
+                "description": "Optional role asset identifier to adopt"
+            },
+            "color": {
+                "type": "string",
+                "description": "Optional color asset identifier to adopt"
+            },
+            "perspective": {
+                "type": "string",
+                "description": "Optional perspective asset identifier to adopt"
+            }
+        }
+    })
+}
+
 fn node_schema_value() -> serde_json::Value {
     json!({
         "oneOf": [
@@ -95,6 +117,11 @@ fn node_schema_value() -> serde_json::Value {
                     "acpClient": {
                         "type": "string",
                         "description": "Optional ACP client"
+                    },
+                    "adopt": node_adopt_schema(),
+                    "requiresRole": {
+                        "type": "string",
+                        "description": "Optional required role identifier for adopt validation"
                     },
                     "prompt": {
                         "type": "string",
@@ -159,6 +186,11 @@ fn node_schema_value() -> serde_json::Value {
                     "agent": {
                         "type": "string",
                         "description": "ACP agent for prompt nodes"
+                    },
+                    "adopt": node_adopt_schema(),
+                    "requiresRole": {
+                        "type": "string",
+                        "description": "Optional required role identifier for adopt validation"
                     },
                     "toolMode": {
                         "type": "string",
@@ -253,6 +285,11 @@ fn node_schema_value() -> serde_json::Value {
                     "agent": {
                         "type": "string",
                         "description": "ACP agent for sequential thinking nodes"
+                    },
+                    "adopt": node_adopt_schema(),
+                    "requiresRole": {
+                        "type": "string",
+                        "description": "Optional required role identifier for adopt validation"
                     },
                     "model": {
                         "type": "string",

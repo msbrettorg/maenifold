@@ -1,10 +1,10 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export type AppShellTab = 'agents' | 'pipelines' | 'gates' | 'workflows' | 'graph';
+export type AppShellTab = 'home' | 'agents' | 'pipelines' | 'gate' | 'knowledge' | 'workflows' | 'settings';
 
 export const useAppShellStore = defineStore('appShell', () => {
-  const activeTab = ref<AppShellTab>('agents');
+  const activeTab = ref<AppShellTab>('home');
 
   const showWorkflows = computed({
     get: () => activeTab.value === 'workflows',
@@ -23,29 +23,29 @@ export const useAppShellStore = defineStore('appShell', () => {
       if (value) {
         activeTab.value = 'pipelines';
       } else if (activeTab.value === 'pipelines') {
-        activeTab.value = 'agents';
+        activeTab.value = 'home';
       }
     },
   });
 
   const showGate = computed({
-    get: () => activeTab.value === 'gates',
+    get: () => activeTab.value === 'gate',
     set: (value: boolean) => {
       if (value) {
-        activeTab.value = 'gates';
-      } else if (activeTab.value === 'gates') {
-        activeTab.value = 'agents';
+        activeTab.value = 'gate';
+      } else if (activeTab.value === 'gate') {
+        activeTab.value = 'home';
       }
     },
   });
 
-  const showGraph = computed({
-    get: () => activeTab.value === 'graph',
+  const showKnowledge = computed({
+    get: () => activeTab.value === 'knowledge',
     set: (value: boolean) => {
       if (value) {
-        activeTab.value = 'graph';
-      } else if (activeTab.value === 'graph') {
-        activeTab.value = 'agents';
+        activeTab.value = 'knowledge';
+      } else if (activeTab.value === 'knowledge') {
+        activeTab.value = 'home';
       }
     },
   });
@@ -63,7 +63,7 @@ export const useAppShellStore = defineStore('appShell', () => {
     showWorkflows,
     showPipelines,
     showGate,
-    showGraph,
+    showKnowledge,
     setActiveTab,
     openAgents,
   };

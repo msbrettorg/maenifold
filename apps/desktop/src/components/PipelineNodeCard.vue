@@ -1,9 +1,16 @@
 <script setup lang="ts">
+import { Brain, MessageSquare, Settings, Wrench, Palette, Lock } from 'lucide-vue-next';
 import { computed } from 'vue';
+import type { Component } from 'vue';
 import PipelineNodeCardPorts from './PipelineNodeCardPorts.vue';
 import PipelineNodeCardStatus from './PipelineNodeCardStatus.vue';
 
-import type { NodeStatus, PipelineNode, PipelineStatus } from '../lib/pipeline-types';
+import type {
+  NodeStatus,
+  PipelineNode,
+  PipelineNodeAdopt,
+  PipelineStatus,
+} from '../lib/pipeline-types';
 import { normalizeNodeStatusAppearance } from '../lib/pipeline-node-status';
 import {
   getNodeType,
@@ -21,6 +28,8 @@ type NodeCardData = {
   model?: string;
   workflowId?: string;
   acpClient?: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   status?: NodeStatus | PipelineStatus | 'running';
   attempts?: number;
   type?: PipelineNode['type'];
@@ -57,6 +66,8 @@ function inferNode(data: NodeCardData): PipelineNode {
       type: 'workflow',
       workflowId: data.workflowId ?? data.nodeId,
       ...(data.acpClient ? { acpClient: data.acpClient } : {}),
+      ...(data.adopt ? { adopt: data.adopt } : {}),
+      ...(data.requiresRole ? { requiresRole: data.requiresRole } : {}),
       ...(data.prompt ? { prompt: data.prompt } : {}),
     };
   }
@@ -67,6 +78,8 @@ function inferNode(data: NodeCardData): PipelineNode {
       type: 'prompt',
       agent: data.agent ?? data.acpClient ?? 'agent',
       prompt: (data.prompt ?? preview) || data.displayLabel || data.nodeId,
+      ...(data.adopt ? { adopt: data.adopt } : {}),
+      ...(data.requiresRole ? { requiresRole: data.requiresRole } : {}),
     };
   }
 
@@ -76,6 +89,8 @@ function inferNode(data: NodeCardData): PipelineNode {
       type: 'sequentialThinking',
       topic: (data.topic ?? topic) || data.displayLabel || data.nodeId,
       agent: data.agent ?? data.acpClient ?? 'agent',
+      ...(data.adopt ? { adopt: data.adopt } : {}),
+      ...(data.requiresRole ? { requiresRole: data.requiresRole } : {}),
       ...(typeof data.totalThoughts === 'number' ? { totalThoughts: data.totalThoughts } : {}),
       ...(data.analysisType ? { analysisType: data.analysisType } : {}),
     };
@@ -119,11 +134,11 @@ const typeLabel = computed(() =>
         ? (toolCategory.value?.toLowerCase() ?? 'tool')
       : 'workflow',
 );
-const typeIcon = computed(() => {
-  if (isToolNode(node.value)) return getToolCategory(node.value.toolName)?.icon ?? '🔧';
-  if (isPromptNode(node.value)) return '💬';
-  if (isSequentialThinkingNode(node.value)) return '🧠';
-  return '⚙️';
+const nodeIcon = computed((): Component => {
+  if (isToolNode(node.value)) return Wrench;
+  if (isPromptNode(node.value)) return MessageSquare;
+  if (isSequentialThinkingNode(node.value)) return Brain;
+  return Settings;
 });
 const displayLabel = computed(() => props.data.displayLabel || props.data.nodeId);
 const titleText = computed(() => shorten(nodeLabel(node.value), 44));
@@ -147,6 +162,23 @@ const thoughtProgress = computed(() => {
 });
 const promptPreview = computed(() => isPromptNode(node.value) ? shorten(node.value.prompt, 120) : '');
 const workflowPreview = computed(() => isWorkflowNode(node.value) && node.value.prompt ? shorten(node.value.prompt, 120) : '');
+const adoptSummary = computed(() => {
+  if (isToolNode(node.value) || !node.value.adopt) {
+    return [];
+  }
+
+  const summary: string[] = [];
+  if (node.value.adopt.role) summary.push(`role: ${node.value.adopt.role}`);
+  if (node.value.adopt.color) summary.push(`color: ${node.value.adopt.color}`);
+  if (node.value.adopt.perspective) summary.push(`perspective: ${node.value.adopt.perspective}`);
+  return summary;
+});
+const requiresRoleBadge = computed(() => {
+  if (isToolNode(node.value)) {
+    return '';
+  }
+  return node.value.requiresRole?.trim() ?? '';
+});
 const failureSummary = computed(() => {
   const failureReason = props.data.failureReason?.trim();
   if (!failureReason) return null;
@@ -170,7 +202,7 @@ const failureSummary = computed(() => {
         :display-label="displayLabel"
         :failure-summary="failureSummary"
         :status-appearance="statusAppearance"
-        :type-icon="typeIcon"
+        :type-icon="nodeIcon"
         :type-label="typeLabel"
       />
 
@@ -180,6 +212,8 @@ const failureSummary = computed(() => {
         <div class="meta-row">
           <span class="meta-pill">workflow: {{ node.workflowId }}</span>
           <span v-if="node.acpClient" class="meta-pill">{{ node.acpClient }}</span>
+          <span v-for="adoptValue in adoptSummary" :key="`workflow-adopt-${adoptValue}`" class="meta-pill"><Palette class="inline size-3" :stroke-width="1.5" /> {{ adoptValue }}</span>
+          <span v-if="requiresRoleBadge" class="meta-pill"><Lock class="inline size-3" :stroke-width="1.5" /> requires: {{ requiresRoleBadge }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span v-if="attempts" class="meta-pill">{{ attempts }}</span>
         </div>
@@ -189,6 +223,8 @@ const failureSummary = computed(() => {
       <template v-else-if="isPromptNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
+          <span v-for="adoptValue in adoptSummary" :key="`prompt-adopt-${adoptValue}`" class="meta-pill"><Palette class="inline size-3" :stroke-width="1.5" /> {{ adoptValue }}</span>
+          <span v-if="requiresRoleBadge" class="meta-pill"><Lock class="inline size-3" :stroke-width="1.5" /> requires: {{ requiresRoleBadge }}</span>
           <span v-if="isActive" class="meta-pill working-pill">
             <span class="working-spinner" aria-hidden="true" />
             Working...
@@ -210,6 +246,8 @@ const failureSummary = computed(() => {
       <template v-else-if="isSequentialThinkingNode(node)">
         <div class="meta-row">
           <span class="meta-pill">{{ node.agent }}</span>
+          <span v-for="adoptValue in adoptSummary" :key="`thinking-adopt-${adoptValue}`" class="meta-pill"><Palette class="inline size-3" :stroke-width="1.5" /> {{ adoptValue }}</span>
+          <span v-if="requiresRoleBadge" class="meta-pill"><Lock class="inline size-3" :stroke-width="1.5" /> requires: {{ requiresRoleBadge }}</span>
           <span v-if="modelBadge" class="meta-pill">model: {{ modelBadge }}</span>
           <span class="meta-pill">topic: {{ node.topic }}</span>
           <span v-if="thoughtProgress" class="meta-pill">{{ thoughtProgress }}</span>
@@ -222,51 +260,3 @@ const failureSummary = computed(() => {
     <PipelineNodeCardPorts />
   </div>
 </template>
-
-<style scoped>
-.pipeline-node {
-  position: relative; display: flex; min-width: 200px; max-width: 280px; max-height: 200px;
-  overflow: visible; background: #201f1f; border: none; border-radius: 4px;
-  transition: background-color .2s var(--easing-standard), box-shadow .2s var(--easing-standard), transform .2s var(--easing-standard);
-  font-family: var(--font-body);
-}
-.pipeline-node:hover {
-  background: #2a2a2a;
-  transform: translateY(-1px);
-}
-.pipeline-node.is-active {
-  box-shadow: 0 0 20px color-mix(in srgb, var(--node-accent) 10%, transparent);
-}
-.accent-bar { width: 4px; flex-shrink: 0; background: var(--node-accent); border-radius: 4px 0 0 4px; }
-.node-content { flex: 1; min-width: 0; }
-.node-title,.type-pill,.node-subtitle,.meta-pill,.preview { overflow: hidden; text-overflow: ellipsis; }
-.type-pill,.meta-pill {
-  display: inline-flex; align-items: center; min-height: 18px; padding: 2px 6px; border-radius: 4px;
-  font-size: var(--text-xs); line-height: 1.1; white-space: nowrap;
-}
-.node-subtitle,.meta-row,.preview { padding-inline: 12px; }
-.node-subtitle { margin: 8px 0 6px; font-size: var(--text-sm); color: var(--muted-foreground); white-space: nowrap; }
-.meta-row { display: flex; flex-wrap: wrap; gap: 6px; padding-bottom: 8px; }
-.meta-pill { max-width: 100%; color: var(--foreground); background: color-mix(in srgb, var(--node-accent) 8%, #2a2a2a); }
-.working-pill { gap: 0.375rem; }
-.working-spinner {
-  width: 0.625rem;
-  height: 0.625rem;
-  border-radius: 999px;
-  border: 1.5px solid color-mix(in srgb, var(--node-accent) 32%, transparent);
-  border-top-color: var(--node-accent);
-  animation: working-spinner 0.8s linear infinite;
-}
-.preview {
-  margin: 0 12px 10px; padding: 8px 10px; font-size: var(--text-xs); line-height: 1.4; color: var(--muted-foreground);
-  white-space: normal; word-break: break-word; background: color-mix(in srgb, var(--node-accent) 6%, #2a2a2a); border-radius: 4px;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-}
-.preview-code { font-family: var(--font-code); }
-
-@keyframes working-spinner {
-  to {
-    transform: rotate(360deg);
-  }
-}
-</style>

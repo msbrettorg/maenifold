@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Search, FileText, ClipboardList } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import PlanView from './PlanView.vue';
 import ChatMessageItem from './ChatMessageItem.vue';
 import type { ChatMessage, PlanEntry } from '../lib/types';
@@ -19,10 +21,10 @@ const emit = defineEmits<{
   prefill: [text: string];
 }>();
 
-const starterChips = [
-  { icon: '🔍', label: 'Research a topic' },
-  { icon: '📝', label: 'Review code' },
-  { icon: '📋', label: 'Plan a sprint' },
+const starterChips: { icon: Component; label: string }[] = [
+  { icon: Search, label: 'Research a topic' },
+  { icon: FileText, label: 'Review code' },
+  { icon: ClipboardList, label: 'Plan a sprint' },
 ];
 </script>
 
@@ -39,7 +41,7 @@ const starterChips = [
           class="starter-chip"
           @click="emit('prefill', chip.label)"
         >
-          <span class="chip-icon" aria-hidden="true">{{ chip.icon }}</span>
+          <span class="chip-icon" aria-hidden="true"><component :is="chip.icon" class="size-4" :stroke-width="1.5" /></span>
           <span>{{ chip.label }}</span>
         </button>
       </div>
@@ -96,14 +98,14 @@ const starterChips = [
   padding: 0.5rem 0.875rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--foreground);
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
   transition: background 0.15s;
 }
-.starter-chip:hover { background: #353534; }
+.starter-chip:hover { background: var(--surface-highest); }
 .chip-icon { font-size: var(--text-sm); }
 .permission-status {
   margin-top: 1rem;
@@ -124,7 +126,7 @@ const starterChips = [
   width: 16px;
   height: 16px;
   border: 2px solid var(--border);
-  border-top-color: #4d8eff;
+  border-top-color: var(--blue);
   border-radius: var(--radius);
   animation: spin 1s linear infinite;
 }

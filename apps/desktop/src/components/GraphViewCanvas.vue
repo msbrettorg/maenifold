@@ -39,14 +39,14 @@ defineEmits<{ retry: [] }>();
   background:
     radial-gradient(ellipse at 30% 50%, rgba(77, 142, 255, 0.03) 0%, transparent 60%),
     radial-gradient(ellipse at 70% 40%, rgba(78, 222, 163, 0.02) 0%, transparent 50%),
-    #0e0e0e;
+    var(--background);
 }
 
 :slotted(.graph-canvas) {
   position: relative;
   width: 100%;
   height: 100%;
-  background: #0e0e0e;
+  background: var(--background);
 }
 
 .graph-empty-state,
@@ -92,7 +92,7 @@ defineEmits<{ retry: [] }>();
   padding: 0.4rem 1.2rem;
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   cursor: pointer;
   font-size: var(--text-caption);
@@ -100,8 +100,8 @@ defineEmits<{ retry: [] }>();
 }
 
 .empty-retry:hover {
-  background: #353534;
-  color: #e5e2e1;
+  background: var(--surface-highest);
+  color: var(--foreground);
 }
 
 .loading-ring {
@@ -109,7 +109,7 @@ defineEmits<{ retry: [] }>();
   height: 32px;
   margin-bottom: 0.75rem;
   border: 2px solid rgba(66, 71, 83, 0.15);
-  border-top-color: #4d8eff;
+  border-top-color: var(--blue);
   border-radius: var(--radius);
   animation: spin 0.8s linear infinite;
 }
@@ -117,7 +117,7 @@ defineEmits<{ retry: [] }>();
 .loading-detail {
   margin-top: 0.25rem;
   font-size: 0.6875rem;
-  color: #707070;
+  color: var(--text-dim);
   font-variant-numeric: tabular-nums;
 }
 
@@ -130,7 +130,7 @@ defineEmits<{ retry: [] }>();
   padding: 0.5rem 1rem;
   text-align: center;
   font-size: 0.6875rem;
-  color: #707070;
+  color: var(--text-dim);
   pointer-events: none;
 }
 

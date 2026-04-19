@@ -100,10 +100,10 @@ function renderMarkdown(content: string): string {
 .message-user {
   margin-left: auto;
   max-width: 80%;
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 .message-assistant {
-  background: #201f1f;
+  background: var(--surface-container);
 }
 .message-tool-only { padding-top: 0.375rem; padding-bottom: 0.375rem; }
 .message-header { margin-bottom: 0.5rem; }
@@ -139,7 +139,7 @@ function renderMarkdown(content: string): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: #131313;
+  background: var(--background);
   color: var(--muted-foreground);
 }
 .message-content :deep(code) {
@@ -162,7 +162,7 @@ function renderMarkdown(content: string): string {
   text-align: left;
 }
 .message-content :deep(th) {
-  background: #2a2a2a;
+  background: var(--surface-high);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }

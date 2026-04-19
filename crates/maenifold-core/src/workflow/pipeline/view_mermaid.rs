@@ -134,6 +134,8 @@ mod tests {
                     cwd: None,
                     timeout: None,
                     agent_config: None,
+                    adopt: None,
+                    requires_role: None,
                     retry_policy: None,
                 },
                 PipelineNode::Workflow {
@@ -145,6 +147,8 @@ mod tests {
                     cwd: None,
                     timeout: None,
                     agent_config: None,
+                    adopt: None,
+                    requires_role: None,
                     retry_policy: None,
                 },
             ],

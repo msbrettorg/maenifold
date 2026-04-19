@@ -29,6 +29,9 @@ pub struct PipelineParams {
     /// Optional runtime inputs visible to pipeline execution. Run-time values override persisted inputs.
     #[serde(default)]
     pub inputs: Option<Map<String, Value>>,
+    /// Optional gate task identifier used to attach lineage context
+    #[serde(default)]
+    pub gate_task_id: Option<String>,
     /// Cancel a running pipeline and stop future execution
     #[serde(default)]
     pub cancel: bool,
@@ -182,6 +185,20 @@ pub struct PipelineAgentConfigSchema {
     pub config_options: Option<Map<String, Value>>,
 }
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PipelineNodeAdoptSchema {
+    /// Optional role asset identifier to adopt before dispatching.
+    #[serde(default)]
+    pub role: Option<String>,
+    /// Optional color asset identifier to adopt before dispatching.
+    #[serde(default)]
+    pub color: Option<String>,
+    /// Optional perspective asset identifier to adopt before dispatching.
+    #[serde(default)]
+    pub perspective: Option<String>,
+}
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum PipelineNodeSchema {
@@ -206,6 +223,12 @@ pub struct PipelineWorkflowNodeSchema {
     /// Optional ACP client
     #[serde(default)]
     pub acp_client: Option<String>,
+    /// Optional per-node adopt configuration
+    #[serde(default)]
+    pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Optional required role identifier for adopt validation
+    #[serde(default)]
+    pub requires_role: Option<String>,
     /// Optional prompt for workflow nodes
     #[serde(default)]
     pub prompt: Option<String>,
@@ -248,6 +271,12 @@ pub struct PipelinePromptNodeSchema {
     pub prompt: String,
     /// ACP agent for prompt nodes
     pub agent: String,
+    /// Optional per-node adopt configuration
+    #[serde(default)]
+    pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Optional required role identifier for adopt validation
+    #[serde(default)]
+    pub requires_role: Option<String>,
     /// Tool mode for prompt nodes
     #[serde(default)]
     pub tool_mode: Option<String>,
@@ -309,6 +338,12 @@ pub struct PipelineSequentialThinkingNodeSchema {
     pub analysis_type: Option<String>,
     /// ACP agent for sequential thinking nodes
     pub agent: String,
+    /// Optional per-node adopt configuration
+    #[serde(default)]
+    pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Optional required role identifier for adopt validation
+    #[serde(default)]
+    pub requires_role: Option<String>,
     /// Model override for sequential thinking nodes
     #[serde(default)]
     pub model: Option<String>,

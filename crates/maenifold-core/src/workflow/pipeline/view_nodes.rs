@@ -111,8 +111,26 @@ fn pipeline_node_provenance_json(node: &PipelineNode, state: &NodeState) -> Valu
             "sessionId": state.acp_session_id.as_deref(),
             "thinkingSessionId": state.thinking_session_id.as_deref(),
             "canReconnect": can_reconnect,
+            "adoption": node_adoption_state_json(node),
         }
     })
+}
+
+fn node_adoption_state_json(node: &PipelineNode) -> Value {
+    let adopt = node.adopt();
+    json!({
+        "role": normalize_adoption_value(adopt.and_then(|config| config.role.as_deref())),
+        "color": normalize_adoption_value(adopt.and_then(|config| config.color.as_deref())),
+        "perspective": normalize_adoption_value(adopt.and_then(|config| config.perspective.as_deref())),
+    })
+}
+
+fn normalize_adoption_value(value: Option<&str>) -> String {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .unwrap_or_else(|| "none".to_string())
 }
 
 fn node_agent_name(node: &PipelineNode) -> Option<&str> {
@@ -258,6 +276,8 @@ mod tests {
                     cwd: None,
                     timeout: None,
                     agent_config: None,
+                    adopt: None,
+                    requires_role: None,
                     retry_policy: None,
                 },
                 PipelineNode::Tool {
@@ -344,6 +364,9 @@ mod tests {
             "thinking-remote"
         );
         assert_eq!(think["provenance"]["detail"]["canReconnect"], true);
+        assert_eq!(think["provenance"]["detail"]["adoption"]["role"], "none");
+        assert_eq!(think["provenance"]["detail"]["adoption"]["color"], "none");
+        assert_eq!(think["provenance"]["detail"]["adoption"]["perspective"], "none");
 
         let tool = nodes
             .iter()
@@ -361,5 +384,8 @@ mod tests {
             Value::Null
         );
         assert_eq!(tool["provenance"]["detail"]["canReconnect"], false);
+        assert_eq!(tool["provenance"]["detail"]["adoption"]["role"], "none");
+        assert_eq!(tool["provenance"]["detail"]["adoption"]["color"], "none");
+        assert_eq!(tool["provenance"]["detail"]["adoption"]["perspective"], "none");
     }
 }

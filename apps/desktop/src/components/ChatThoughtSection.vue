@@ -46,20 +46,20 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: none;
-  background: #2a2a2a;
+  background: var(--surface-high);
   color: var(--muted-foreground);
   font-size: var(--text-sm);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.thought-toggle:hover { background: #353534; }
+.thought-toggle:hover { background: var(--surface-highest); }
 .thought-icon { flex-shrink: 0; font-size: var(--text-base); }
 .thought-label { flex: 1; font-size: var(--text-xs); font-weight: var(--weight-display); }
 .thought-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
 .thought-content {
   padding: 0.75rem 1rem 0.75rem 1.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
   color: var(--muted-foreground);
   font-size: var(--text-base);
   font-style: italic;
@@ -70,7 +70,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 .thought-content :deep(code) {
   padding: 0.125rem 0.25rem;
   border-radius: 3px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   font-size: var(--text-sm);
 }
 </style>

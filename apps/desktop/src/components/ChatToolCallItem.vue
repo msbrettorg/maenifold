@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { Component } from 'vue';
+import { Pencil, Trash2, Package, Search, Play, Globe, Wrench, Settings } from 'lucide-vue-next';
 import type { ToolCallInfo } from '../lib/types';
 import ChatToolCallDetails from './ChatToolCallDetails.vue';
 
@@ -20,28 +22,22 @@ function locationLabel(tc: ToolCallInfo): string | null {
   return loc.line != null ? `${loc.path}:${loc.line}` : loc.path;
 }
 
-function toolIcon(kind: string): string {
+function toolIcon(kind: string): Component {
   switch (kind) {
-    case 'read': return '📖';
-    case 'edit': return '✏️';
-    case 'delete': return '🗑️';
-    case 'move': return '📦';
-    case 'search': return '🔍';
-    case 'execute': return '▶️';
-    case 'think': return '💭';
-    case 'fetch': return '🌐';
-    default: return '🔧';
+    case 'edit': return Pencil;
+    case 'delete': return Trash2;
+    case 'move': return Package;
+    case 'search': return Search;
+    case 'execute': return Play;
+    case 'fetch': return Globe;
+    default: return Wrench;
   }
 }
 
-function statusIcon(status: string): string {
+function statusIcon(status: string): Component {
   switch (status) {
-    case 'pending': return '⏳';
-    case 'in_progress': return '⚙️';
-    case 'completed': return '✓';
-    case 'failed': return '✗';
-    case 'cancelled': return '⊘';
-    default: return '';
+    case 'in_progress': return Settings;
+    default: return Wrench;
   }
 }
 </script>
@@ -56,10 +52,10 @@ function statusIcon(status: string): string {
       :aria-controls="hasDetails(toolCall) ? detailsId : undefined"
       @click="hasDetails(toolCall) && emit('toggle')"
     >
-      <span class="tci-icon">{{ toolIcon(toolCall.kind) }}</span>
+      <span class="tci-icon"><component :is="toolIcon(toolCall.kind)" class="size-4" :stroke-width="1.5" /></span>
       <span class="tci-name">{{ toolCall.title }}</span>
       <span v-if="locationLabel(toolCall)" class="tci-location">{{ locationLabel(toolCall) }}</span>
-      <span :class="['tci-status', `status-${toolCall.status}`]">{{ statusIcon(toolCall.status) }}</span>
+      <span :class="['tci-status', `status-${toolCall.status}`]"><component :is="statusIcon(toolCall.status)" class="size-4" :stroke-width="1.5" /></span>
       <span v-if="hasDetails(toolCall)" class="tci-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
     </button>
     <ChatToolCallDetails
@@ -77,7 +73,7 @@ function statusIcon(status: string): string {
   flex-direction: column;
   border-radius: 4px;
   font-size: var(--text-sm);
-  background: #2a2a2a;
+  background: var(--surface-high);
   overflow: hidden;
 }
 .tci-summary {
@@ -93,7 +89,7 @@ function statusIcon(status: string): string {
   text-align: left;
 }
 .tci-summary-expandable { cursor: pointer; }
-.tci-summary-expandable:hover { background: #353534; }
+.tci-summary-expandable:hover { background: var(--surface-highest); }
 .tci-icon { font-size: var(--text-sm); }
 .tci-name { font-weight: var(--weight-display); color: var(--foreground); }
 .tci-location {
@@ -106,9 +102,9 @@ function statusIcon(status: string): string {
 }
 .tci-status { font-size: var(--text-xs); }
 .tci-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
-.status-pending { color: #707070; }
-.status-in_progress { color: #F59E0B; }
-.status-completed { color: #4edea3; }
-.status-failed { color: #ffb4ab; }
-.status-cancelled { color: #707070; }
+.status-pending { color: var(--text-dim); }
+.status-in_progress { color: var(--amber); }
+.status-completed { color: var(--sage); }
+.status-failed { color: var(--terracotta); }
+.status-cancelled { color: var(--text-dim); }
 </style>

@@ -27,8 +27,8 @@ defineProps<{
   flex-wrap: wrap;
   gap: 0.75rem;
   padding: 0.45rem 1rem;
-  background: #1c1b1b;
-  color: #707070;
+  background: var(--surface);
+  color: var(--text-dim);
   font-size: 0.6875rem;
 }
 
@@ -46,14 +46,14 @@ defineProps<{
 }
 
 .graph-legend__swatch--primary {
-  background: #4d8eff;
+  background: var(--blue);
 }
 
 .graph-legend__swatch--secondary {
-  background: #4edea3;
+  background: var(--sage);
 }
 
 .graph-legend__copy {
-  color: #707070;
+  color: var(--text-dim);
 }
 </style>

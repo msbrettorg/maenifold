@@ -106,7 +106,7 @@ async function handleDelete(session: SavedSession, event: Event) {
 
 <template>
   <div>
-    <h3 class="mb-3 text-tiny font-normal text-[#707070]">
+    <h3 class="mb-3 text-tiny font-normal text-[var(--text-dim)]">
       Sessions
     </h3>
 
@@ -190,29 +190,29 @@ async function handleDelete(session: SavedSession, event: Event) {
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: #707070;
+  background: var(--text-dim);
 }
 
 .connection-state.connected {
-  color: #4edea3;
+  color: var(--sage);
 }
 
 .connection-state.connected .connection-dot {
-  background: #4edea3;
+  background: var(--sage);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
 .connection-state.connecting {
-  color: #f59e0b;
+  color: var(--amber);
 }
 
 .connection-state.connecting .connection-dot {
-  background: #f59e0b;
+  background: var(--amber);
   animation: pulse-dot 1s ease-in-out infinite;
 }
 
 .connection-state.unavailable .connection-dot {
-  background: #707070;
+  background: var(--text-dim);
 }
 
 .delete-btn:hover {

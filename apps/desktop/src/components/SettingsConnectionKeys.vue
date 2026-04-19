@@ -35,7 +35,7 @@ function formatEnvCount(count: number) {
   <details class="form-section details-section" open>
     <summary>
       <div>
-        <h5>Environment variables</h5>
+        <h5 class="text-sm font-medium text-text-secondary">Environment variables</h5>
         <p>Optional key/value pairs passed to this agent process.</p>
       </div>
       <span class="summary-count">{{ formatEnvCount(form.env.length) }}</span>
@@ -55,7 +55,7 @@ function formatEnvCount(count: number) {
   <details class="form-section details-section" open>
     <summary>
       <div>
-        <h5>Per-agent MCP servers</h5>
+        <h5 class="text-sm font-medium text-text-secondary">Per-agent MCP servers</h5>
         <p>Optional MCP servers available only to this agent.</p>
       </div>
       <span class="summary-count">{{ formatServerCount(form.mcpServers.length) }}</span>
@@ -146,11 +146,6 @@ function formatEnvCount(count: number) {
 .details-section h5,
 .details-section p {
   margin: 0;
-}
-
-.details-section h5 {
-  font-family: var(--font-display);
-  font-weight: 500;
 }
 
 .details-section p,

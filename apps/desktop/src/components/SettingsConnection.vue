@@ -201,38 +201,40 @@ async function refreshHealth() {
 
 <template>
   <section class="settings-section">
-    <div class="section-header">
-      <div>
-        <h3>Connection settings</h3>
-        <p>Manage the configured ACP agents available in the application.</p>
+    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
+      <div class="section-header">
+        <div>
+          <h3 class="text-base font-semibold text-text-primary">Connection settings</h3>
+          <p class="text-sm text-text-secondary">Manage the configured ACP agents available in the application.</p>
+        </div>
       </div>
+
+      <SettingsConnectionDaemon
+        :agents="agents"
+        :daemon-url="DAEMON_BASE_URL"
+        :is-refreshing="capabilitiesStore.probeStatus === 'probing'"
+        :get-probe="getProbe"
+        :on-refresh="refreshHealth"
+      />
+
+      <SettingsConnectionAgents
+        :agents="agents"
+        :editing-agent="editingAgent"
+        :form="form"
+        :get-probe="getProbe"
+        :is-submitting="isSubmitting"
+        :on-add-env-row="addEnvRow"
+        :on-add-mcp-server-row="addMcpServerRow"
+        :on-delete="handleDelete"
+        :on-remove-env-row="removeEnvRow"
+        :on-remove-mcp-server-row="removeMcpServerRow"
+        :on-reset-form="resetForm"
+        :on-start-add="startAdd"
+        :on-start-edit="startEdit"
+        :on-submit="handleSubmit"
+        :show-add-form="showAddForm"
+      />
     </div>
-
-    <SettingsConnectionDaemon
-      :agents="agents"
-      :daemon-url="DAEMON_BASE_URL"
-      :is-refreshing="capabilitiesStore.probeStatus === 'probing'"
-      :get-probe="getProbe"
-      :on-refresh="refreshHealth"
-    />
-
-    <SettingsConnectionAgents
-      :agents="agents"
-      :editing-agent="editingAgent"
-      :form="form"
-      :get-probe="getProbe"
-      :is-submitting="isSubmitting"
-      :on-add-env-row="addEnvRow"
-      :on-add-mcp-server-row="addMcpServerRow"
-      :on-delete="handleDelete"
-      :on-remove-env-row="removeEnvRow"
-      :on-remove-mcp-server-row="removeMcpServerRow"
-      :on-reset-form="resetForm"
-      :on-start-add="startAdd"
-      :on-start-edit="startEdit"
-      :on-submit="handleSubmit"
-      :show-add-form="showAddForm"
-    />
   </section>
 </template>
 
@@ -243,12 +245,17 @@ async function refreshHealth() {
   gap: 1rem;
 }
 
+.section-header {
+  margin-bottom: 0.75rem;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+
 .section-header h3,
 .section-header p {
   margin: 0;
-}
-
-.section-header p {
-  color: var(--muted-foreground);
 }
 </style>

@@ -4,14 +4,19 @@ import GateViewContent from './GateViewContent.vue';
 import GateViewFilters from './GateViewFilters.vue';
 import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
+import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
+import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
+import { useProvenanceStore } from '../stores/provenance';
 import type { GateSnapshot, GateTask, GateTaskBody, GateTaskHistoryEntry } from '../lib/gate';
 import { parseGateTaskBodyContent } from '../lib/gate-task-body';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
 const gate = useGateMcp();
+const provenance = useProvenanceStore();
+const { navigateTo } = useProvenanceNavigation();
 
 const snapshot = ref<GateSnapshot | null>(null);
 const isLoading = ref(false);
@@ -85,6 +90,47 @@ const visibleTasks = computed(() => {
     });
 });
 const shownCount = computed(() => visibleTasks.value.length);
+function firstNonEmptyId(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const trimmed = value.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+  return null;
+}
+
+const currentGateLineageId = computed(() =>
+  firstNonEmptyId(
+    activeTask.value?.lineageGateTaskId,
+    activeTask.value?.lineage_gate_task_id,
+    activeTask.value?.canonicalTaskId,
+    activeTask.value?.taskId,
+  ));
+const activeTaskLineageLinks = computed(() =>
+  provenance.buildLineageLinks({
+    gate: currentGateLineageId.value,
+    pipeline: firstNonEmptyId(
+      activeTask.value?.lineagePipelineRunId,
+      activeTask.value?.lineage_pipeline_run_id,
+    ),
+    thinking: firstNonEmptyId(
+      activeTask.value?.lineageThinkingSessionId,
+      activeTask.value?.lineage_thinking_session_id,
+    ),
+    knowledge: firstNonEmptyId(
+      activeTask.value?.lineageMemoryNoteId,
+      activeTask.value?.lineage_memory_note_id,
+    ),
+  }, {
+    gate: activeTask.value?.taskId,
+  }));
+const provenanceLinks = computed(() =>
+  activeTaskLineageLinks.value
+    .filter((link) => link.kind !== 'gate' && link.id !== currentGateLineageId.value));
 
 function uniqueValues(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
@@ -260,6 +306,14 @@ async function handleGateRootChange(root: string) {
   await registry.selectRoot(root);
 }
 
+function findTaskByLineageId(tasks: GateTask[], lineageId: string): GateTask | null {
+  return tasks.find((task) =>
+    task.lineageGateTaskId === lineageId
+    || task.lineage_gate_task_id === lineageId
+    || task.canonicalTaskId === lineageId
+    || task.taskId === lineageId) ?? null;
+}
+
 async function handleRemoveCurrentGate() {
   const removed = await registry.removeSelectedRoot();
   if (!removed) return;
@@ -275,6 +329,17 @@ watch(() => registry.selectedGateRoot.value, async (root) => {
 watch(processOptions, (options) => { if (selectedProcess.value !== 'all' && !options.includes(selectedProcess.value)) selectedProcess.value = 'all'; });
 watch(stateOptions, (options) => { if (selectedState.value !== 'all' && !options.includes(selectedState.value)) selectedState.value = 'all'; });
 watch(locationOptions, (options) => { if (selectedLocation.value !== 'all' && !options.includes(selectedLocation.value)) selectedLocation.value = 'all'; });
+watch([() => provenance.pendingGateTaskId, snapshot], async ([pendingTaskId]) => {
+  if (!pendingTaskId) {
+    return;
+  }
+
+  const task = findTaskByLineageId(snapshot.value?.tasks ?? [], pendingTaskId);
+  if (task) {
+    await handleTaskSelect(task);
+    provenance.clearQueuedGateTaskSelection();
+  }
+});
 
 onBeforeUnmount(() => {
   stopWatcher();
@@ -283,14 +348,17 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="gate-view" role="region" aria-label="Gate tasks">
+  <section class="flex flex-1 flex-col gap-3 overflow-auto p-4" role="region" aria-label="Gate tasks">
+    <ProvenanceBreadcrumbs
+      current-kind="gate"
+      :current-id="currentGateLineageId"
+      :current-label="activeTask?.taskId ?? undefined"
+      :links="provenanceLinks"
+      @navigate="navigateTo"
+    />
     <GateViewToolbar :has-gate-root="hasGateRoot" :todo-count="todoCount" :done-count="doneCount" :total-count="totalCount" :shown-count="shownCount" :last-refresh-label="lastRefreshLabel" :selected-gate-root="registry.selectedGateRoot.value" :gate-roots="registry.gateRoots.value" :is-ready="registry.isReady.value" :is-loading="isLoading" @change-root="handleGateRootChange" @browse="registry.browseForRoot" @remove="handleRemoveCurrentGate" @refresh="() => refreshSnapshot()" />
     <GateViewFilters v-model:searchText="searchText" v-model:selectedProcess="selectedProcess" v-model:selectedState="selectedState" v-model:selectedLocation="selectedLocation" v-model:issuesOnly="issuesOnly" :process-options="processOptions" :state-options="stateOptions" :location-options="locationOptions" />
     <GateViewStatus v-if="showStatus" :ui-error="uiError" :has-gate-root="hasGateRoot" :is-loading="isLoading" :snapshot="snapshot" :selected-gate-root="registry.selectedGateRoot.value" />
     <GateViewContent v-else :tasks="visibleTasks" :selected-task-id="selectedTaskId" :sort-column="sortColumn" :sort-direction="sortDirection" :active-task="activeTask" :body="selectedTaskBody" :history="selectedTaskHistory" :body-loading="detailBodyLoading" :history-loading="detailHistoryLoading" :body-error="detailBodyError" :history-error="detailHistoryError" @sort="toggleSort" @select="handleTaskSelect" @close="clearSelection" />
   </section>
 </template>
-
-<style scoped>
-.gate-view { display: flex; flex: 1; flex-direction: column; gap: 0.75rem; padding: 1rem; overflow: auto; }
-</style>

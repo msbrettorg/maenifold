@@ -73,7 +73,7 @@ const tokens = computed(() => {
 .json-payload {
   margin: 0;
   padding: 0.5rem 0.75rem 0.75rem 2rem;
-  background: #0e0e0e;
+  background: var(--background);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   line-height: 1.5;
@@ -82,10 +82,10 @@ const tokens = computed(() => {
   overflow-x: auto;
 }
 
-.t-key { color: #adc6ff; }
-.t-str { color: #4edea3; }
-.t-num { color: #F59E0B; }
-.t-bool { color: #d0bcff; }
-.t-nil { color: #707070; font-style: italic; }
-.t-p { color: #707070; }
+.t-key { color: var(--accent-prompt); }
+.t-str { color: var(--sage); }
+.t-num { color: var(--amber); }
+.t-bool { color: var(--plum); }
+.t-nil { color: var(--text-dim); font-style: italic; }
+.t-p { color: var(--text-dim); }
 </style>

@@ -110,14 +110,14 @@ watch(
       id="pipeline-flyout"
       side="left"
       :show-close-button="false"
-      class="pipeline-flyout border-0 p-0 text-[#e5e2e1]"
+      class="pipeline-flyout border-0 p-0 text-[var(--foreground)]"
     >
       <div ref="flyoutRef" class="flyout-shell" @keydown="handleKeydown">
         <SheetHeader class="gap-1 px-4 py-4 text-left">
           <div class="flyout-header-row">
             <div class="min-w-0">
-              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[#e5e2e1]">Pipelines</SheetTitle>
-              <SheetDescription class="text-[var(--text-body-sm)] text-[#707070]">Browse, load, and create pipeline sessions.</SheetDescription>
+              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--foreground)]">Pipelines</SheetTitle>
+              <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Browse, load, and create pipeline sessions.</SheetDescription>
             </div>
             <Button
               type="button"
@@ -136,7 +136,7 @@ watch(
           <Input
             v-model="searchQuery"
             type="text"
-            class="border-0 bg-[#1c1b1b] text-[#e5e2e1]"
+            class="border-0 bg-[var(--surface)] text-[var(--foreground)]"
             placeholder="Search pipelines…"
           />
         </div>
@@ -174,7 +174,7 @@ watch(
 <style scoped>
 .pipeline-flyout {
   width: min(320px, 88vw);
-  background: #1c1b1b;
+  background: var(--surface);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
 }
 
@@ -206,24 +206,24 @@ watch(
   text-align: center;
 }
 
-.flyout-state--error { color: #e5e2e1; }
+.flyout-state--error { color: var(--foreground); }
 
 .flyout-state-title {
   margin: 0;
   font-size: var(--text-lg);
-  color: #e5e2e1;
+  color: var(--foreground);
 }
 
 .flyout-state-msg {
   margin: 0;
-  color: #707070;
+  color: var(--text-dim);
   font-size: var(--text-sm);
 }
 
 .skeleton-block {
   height: 0.875rem;
   border-radius: 4px;
-  background: #2a2a2a;
+  background: var(--surface-high);
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }
 
@@ -244,7 +244,7 @@ watch(
 }
 
 @keyframes skeleton-pulse {
-  0%, 100% { background: #2a2a2a; }
-  50% { background: #201f1f; }
+  0%, 100% { background: var(--surface-high); }
+  50% { background: var(--surface-container); }
 }
 </style>

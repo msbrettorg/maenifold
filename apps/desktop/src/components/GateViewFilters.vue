@@ -2,7 +2,7 @@
 import { Input } from '@/components/ui/input';
 
 const selectFieldClass =
-  'w-full rounded-md border border-white/10 bg-[#201f1f] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[#4d8eff]/40 focus:bg-[#2a2a2a] focus:ring-2 focus:ring-[#4d8eff]/15';
+  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--blue)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--blue)]/15';
 
 const props = defineProps<{
   searchText: string;
@@ -84,19 +84,19 @@ function emitSelect(
   grid-template-columns: minmax(14rem, 1.5fr) repeat(3, minmax(10rem, 1fr)) auto;
   gap: 0.75rem;
   padding: 0.9rem 1rem;
-  background: #1c1b1b;
+  background: var(--surface);
   border-radius: 0.25rem;
 }
 
 .gate-filters :deep(.gate-filters__search) {
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: #201f1f;
+  background: var(--surface-container);
   transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .gate-filters :deep(.gate-filters__search:focus) {
   border-color: rgb(77 142 255 / 0.4);
-  background: #2a2a2a;
+  background: var(--surface-high);
   box-shadow: 0 0 0 2px rgb(77 142 255 / 0.15);
 }
 
@@ -109,13 +109,13 @@ function emitSelect(
   white-space: nowrap;
   font-size: var(--text-caption);
   color: var(--foreground);
-  background: #201f1f;
+  background: var(--surface-container);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
 }
 
 .gate-toggle input {
-  accent-color: #4d8eff;
+  accent-color: var(--blue);
 }
 
 @media (max-width: 1100px) {

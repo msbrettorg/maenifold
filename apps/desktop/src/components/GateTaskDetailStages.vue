@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { CheckCircle } from 'lucide-vue-next';
 import type { GateTask } from '../lib/gate';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 
@@ -34,7 +35,23 @@ function stageState(index: number) {
         <span class="gate-detail-stages__index">{{ index + 1 }}</span>
         <div class="gate-detail-stages__copy">
           <span :class="['gate-detail-stages__chip', `gate-detail-stages__chip--${gateStageFamily(stage)}`]">{{ formatStageLabel(stage) }}</span>
-          <span class="gate-detail-stages__status">{{ stageState(index) === 'current' ? 'Current stage' : stageState(index) === 'completed' ? 'Complete' : 'Up next' }}</span>
+          <span
+            :class="[
+              'gate-detail-stages__status',
+              stageState(index) === 'current' ? 'text-brand font-semibold' : '',
+            ]"
+          >
+            <template v-if="stageState(index) === 'current'">
+              Current stage
+            </template>
+            <template v-else-if="stageState(index) === 'completed'">
+              <CheckCircle class="inline size-3.5 text-success" :stroke-width="1.5" />
+              Complete
+            </template>
+            <template v-else>
+              Up next
+            </template>
+          </span>
         </div>
       </li>
     </ol>
@@ -70,14 +87,14 @@ function stageState(index: number) {
   gap: 0.65rem;
   padding: 0.8rem 0.9rem;
   border-radius: 0.25rem;
-  background: #201f1f;
+  background: var(--surface-container);
 }
 
 .gate-detail-stages__track {
   width: 4px;
   align-self: stretch;
   border-radius: 4px;
-  background: #353534;
+  background: var(--surface-highest);
 }
 
 .gate-detail-stages__index {
@@ -87,7 +104,7 @@ function stageState(index: number) {
   width: 1.4rem;
   height: 1.4rem;
   border-radius: 4px;
-  background: #353534;
+  background: var(--surface-highest);
   font-size: var(--text-tiny);
 }
 
@@ -102,17 +119,17 @@ function stageState(index: number) {
   align-self: flex-start;
   padding: 0.2rem 0.55rem;
   border-radius: 4px;
-  color: #f4f7ff;
+  color: var(--foreground);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
 
-.gate-detail-stages__chip--pending { background: #707070; }
-.gate-detail-stages__chip--swe { background: #4d8eff; }
-.gate-detail-stages__chip--red-team { background: #f59e0b; }
+.gate-detail-stages__chip--pending { background: var(--text-dim); }
+.gate-detail-stages__chip--swe { background: var(--blue); }
+.gate-detail-stages__chip--red-team { background: var(--amber); }
 .gate-detail-stages__chip--blue-team,
-.gate-detail-stages__chip--done { background: #4edea3; }
-.gate-detail-stages__chip--failed { background: #ffb4ab; }
+.gate-detail-stages__chip--done { background: var(--sage); }
+.gate-detail-stages__chip--failed { background: var(--terracotta); }
 
 .gate-detail-stages__status {
   color: var(--muted-foreground);
@@ -120,18 +137,18 @@ function stageState(index: number) {
 }
 
 .gate-detail-stages__item--completed {
-  background: color-mix(in srgb, #4edea3 8%, #201f1f);
+  background: color-mix(in srgb, var(--sage) 8%, var(--surface-container));
 }
 
 .gate-detail-stages__item--completed .gate-detail-stages__track {
-  background: #4edea3;
+  background: var(--sage);
 }
 
 .gate-detail-stages__item--current {
-  background: #2a2a2a;
+  background: var(--surface-high);
 }
 
 .gate-detail-stages__item--current .gate-detail-stages__track {
-  background: #4d8eff;
+  background: var(--blue);
 }
 </style>

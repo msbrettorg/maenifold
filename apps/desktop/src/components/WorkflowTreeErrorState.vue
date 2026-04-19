@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AlertTriangle } from 'lucide-vue-next';
 defineProps<{
   error: string;
 }>();
@@ -10,7 +11,7 @@ defineEmits<{
 
 <template>
   <div class="tree-error" role="alert">
-    <div class="error-icon">⚠️</div>
+    <div class="error-icon"><AlertTriangle class="size-8 text-text-tertiary" :stroke-width="1.5" /></div>
     <div class="error-body">
       <p class="error-title">Failed to load workflow tree</p>
       <p class="error-detail">{{ error }}</p>

@@ -32,6 +32,8 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             cwd: None,
             timeout: None,
             agent_config: None,
+            adopt: None,
+            requires_role: None,
             retry_policy: None,
         }],
         edges: vec![],

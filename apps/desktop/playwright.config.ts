@@ -10,7 +10,8 @@ process.env.PLAYWRIGHT_DAEMON_URL = daemonBaseUrl;
 process.env.VITE_DAEMON_URL = daemonBaseUrl;
 
 export default defineConfig({
-  testDir: './tests/e2e',
+  testDir: './tests',
+  snapshotPathTemplate: '{testDir}/visual/baselines/{testFilePath}/{arg}{ext}',
   timeout: 60_000,
   workers: 1,
   expect: {

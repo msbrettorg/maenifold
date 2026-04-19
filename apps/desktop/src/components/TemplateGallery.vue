@@ -76,11 +76,7 @@ function handleIntentInput(value: string): void {
 </script>
 
 <template>
-  <div class="template-gallery">
-    <header class="gallery-header">
-      <h3 class="gallery-title">What would you like to do?</h3>
-    </header>
-
+  <div class="template-gallery flex flex-1 flex-col items-center justify-center px-8">
     <TemplateGalleryIntentForm
       :error="intentError"
       :has-intent-agent="hasIntentAgent"
@@ -91,13 +87,13 @@ function handleIntentInput(value: string): void {
     />
 
     <section class="gallery-card-section">
-      <div class="gallery-card-section-header">
-        <span class="gallery-card-section-label">or choose a template</span>
+      <div class="mt-6 mb-3 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
+        or choose a template
       </div>
       <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
         Configure an agent before creating a pipeline.
       </p>
-      <div class="gallery-cards">
+      <div class="gallery-cards w-full max-w-[800px]">
         <TemplateGalleryCard
           v-for="template in availableTemplates"
           :key="template.id"
@@ -124,25 +120,9 @@ function handleIntentInput(value: string): void {
   flex-direction: column;
   align-items: center;
   gap: 1.5rem;
-  padding: 1.5rem;
+  padding-block: 1.5rem;
   height: 100%;
   overflow-y: auto;
-}
-
-.gallery-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: min(100%, 960px);
-  text-align: center;
-}
-
-.gallery-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-display);
-  color: #e5e2e1;
 }
 
 .gallery-card-section {
@@ -150,24 +130,12 @@ function handleIntentInput(value: string): void {
   flex-direction: column;
   align-items: center;
   gap: 0.75rem;
-  width: min(100%, 960px);
+  width: 100%;
   text-align: center;
-}
-
-.gallery-card-section-header {
-  display: flex;
-  justify-content: center;
-}
-
-.gallery-card-section-label {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: #707070;
 }
 
 .gallery-cards {
   display: grid;
-  width: min(100%, 960px);
   grid-template-columns: repeat(auto-fit, minmax(180px, 180px));
   gap: 0.75rem;
   justify-content: center;
@@ -176,7 +144,7 @@ function handleIntentInput(value: string): void {
 .gallery-agent-warning {
   margin: 0;
   font-size: 0.75rem;
-  color: #ffb4ab;
+  color: var(--terracotta);
   text-align: center;
 }
 </style>

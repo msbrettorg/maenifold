@@ -44,10 +44,18 @@ export interface PipelineNodeAgentConfig {
   configOptions?: Record<string, unknown>;
 }
 
+export interface PipelineNodeAdopt {
+  role?: string;
+  color?: string;
+  perspective?: string;
+}
+
 export interface WorkflowNode extends PipelineNodeBase {
   type?: "workflow";
   workflowId: string;
   acpClient?: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   prompt?: string;
   cwd?: string;
   model?: string;
@@ -60,6 +68,8 @@ export interface PromptNode extends PipelineNodeBase {
   type: "prompt";
   prompt: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   toolMode?: string;
   model?: string;
   thoughtLevel?: string;
@@ -74,6 +84,8 @@ export interface SequentialThinkingNode extends PipelineNodeBase {
   type: "sequentialThinking";
   topic: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   totalThoughts?: number;
   analysisType?: string;
   model?: string;
@@ -163,7 +175,22 @@ interface ViewNodeBase {
 export interface NodeProvenanceDetail {
   sessionId?: string | null;
   thinkingSessionId?: string | null;
+  parentWorkflowId?: string | null;
+  lineageGateTaskId?: string | null;
+  lineagePipelineRunId?: string | null;
+  lineageThinkingSessionId?: string | null;
+  lineageMemoryNoteId?: string | null;
+  parent_workflow_id?: string | null;
+  lineage_gate_task_id?: string | null;
+  lineage_pipeline_run_id?: string | null;
+  lineage_thinking_session_id?: string | null;
+  lineage_memory_note_id?: string | null;
   canReconnect: boolean;
+  adoption?: {
+    role: string;
+    color: string;
+    perspective: string;
+  };
 }
 
 export interface NodeProvenance {
@@ -188,6 +215,8 @@ export interface WorkflowViewNode extends ViewNodeBase {
   type?: "workflow";
   workflowId: string;
   acpClient?: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   prompt?: string;
   cwd?: string;
   model?: string;
@@ -202,6 +231,8 @@ export interface PromptViewNode extends ViewNodeBase {
   type: "prompt";
   prompt: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   toolMode?: string;
   model?: string;
   thoughtLevel?: string;
@@ -217,6 +248,8 @@ export interface SequentialThinkingViewNode extends ViewNodeBase {
   type: "sequentialThinking";
   topic: string;
   agent: string;
+  adopt?: PipelineNodeAdopt;
+  requiresRole?: string;
   totalThoughts?: number;
   analysisType?: string;
   model?: string;

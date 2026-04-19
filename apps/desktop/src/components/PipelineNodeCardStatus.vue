@@ -1,9 +1,11 @@
 <script setup lang="ts">
+import type { Component } from 'vue';
+
 defineProps<{
   displayLabel: string;
   failureSummary?: string | null;
   statusAppearance: string;
-  typeIcon: string;
+  typeIcon: Component;
   typeLabel: string;
 }>();
 </script>
@@ -22,7 +24,10 @@ defineProps<{
         ⚠
       </span>
     </div>
-    <span class="type-pill">{{ typeIcon }} {{ typeLabel }}</span>
+    <span class="type-pill">
+      <component :is="typeIcon" class="size-4" :stroke-width="1.5" />
+      {{ typeLabel }}
+    </span>
   </div>
 </template>
 

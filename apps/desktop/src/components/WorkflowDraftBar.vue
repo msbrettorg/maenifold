@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Zap } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
 import type { WorkflowOrigin } from '../stores/workflow-library-helpers'
 import type { WorkflowSaveState } from '../stores/workflow-library-save-actions'
@@ -40,7 +41,7 @@ watch(
 <template>
   <div class="draft-bar" role="status" aria-live="polite">
     <template v-if="confirmingDiscard">
-      <span class="draft-bar-icon">⚡</span>
+      <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
       <span class="draft-bar-label">Unsaved changes — discard all?</span>
       <button class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="hasPendingSelection ? emit('cancel-pending') : (confirmingDiscard = false)">
         Cancel
@@ -50,7 +51,7 @@ watch(
       </button>
     </template>
     <template v-else>
-      <span class="draft-bar-icon">⚡</span>
+      <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
       <span class="draft-bar-label">
         {{ origin === 'packaged' ? 'Packaged workflow — will save as copy' : 'Unsaved changes' }}
       </span>

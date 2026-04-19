@@ -1,110 +1,50 @@
 <script setup lang="ts">
+import { Brain, GitBranch, Home, MessageSquare, Settings, ShieldCheck, Workflow } from 'lucide-vue-next';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TAB_ORDER } from '@/composables/useAppShell';
+import type { AppShellTab } from '@/stores/app-shell';
+
 const props = defineProps<{
-  modelValue: string;
+  modelValue: AppShellTab;
 }>();
 
 const emit = defineEmits<{
-  'update:modelValue': [value: string];
+  'update:modelValue': [value: AppShellTab];
 }>();
 
-const tabs = [
-  { value: 'agents', label: 'Agents' },
-  { value: 'pipelines', label: 'Pipelines' },
-  { value: 'gates', label: 'Gates' },
-  { value: 'workflows', label: 'Workflows' },
-  { value: 'graph', label: 'Graph' },
-] as const;
+const ICONS = {
+  Home,
+  MessageSquare,
+  GitBranch,
+  ShieldCheck,
+  Brain,
+  Workflow,
+  Settings,
+} as const;
 
-function selectTab(tab: string) {
+function selectTab(tab: AppShellTab) {
   emit('update:modelValue', tab);
 }
 </script>
 
 <template>
-  <nav class="app-tab-bar" aria-label="Primary navigation">
-    <div class="app-tab-bar__wordmark">maenifold</div>
-
-    <div class="app-tab-bar__tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.value"
-        type="button"
-        class="app-tab-bar__tab"
-        :class="{ 'app-tab-bar__tab--active': props.modelValue === tab.value }"
-        @click="selectTab(tab.value)"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+  <nav
+    aria-label="Primary navigation"
+    class="flex h-14 shrink-0 items-center border-b border-border-subtle bg-bg-app px-4"
+  >
+    <div class="mr-6 text-sm font-semibold tracking-[0.08em] text-text-primary lowercase">maenifold</div>
+    <Tabs :model-value="props.modelValue" class="w-full" @update:model-value="selectTab($event as AppShellTab)">
+      <TabsList variant="line" class="h-14 gap-1 bg-transparent p-0">
+        <TabsTrigger
+          v-for="tab in TAB_ORDER"
+          :key="tab.value"
+          :value="tab.value"
+          class="h-14 gap-2 rounded-none border-b-[3px] border-b-transparent px-3 text-text-secondary hover:text-text-primary data-[state=active]:border-b-brand data-[state=active]:text-text-primary data-active:border-b-brand data-active:text-text-primary"
+        >
+          <component :is="ICONS[tab.icon]" class="size-4" />
+          <span>{{ tab.label }}</span>
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
   </nav>
 </template>
-
-<style scoped>
-.app-tab-bar {
-  position: absolute;
-  inset: 0 0 auto 0;
-  z-index: 20;
-  display: flex;
-  align-items: center;
-  gap: 2rem;
-  height: 40px;
-  padding: 0 1rem;
-  background: var(--background);
-  box-sizing: border-box;
-}
-
-.app-tab-bar__wordmark {
-  color: var(--text);
-  font-family: var(--font-display);
-  font-size: var(--text-body-sm);
-  font-weight: var(--weight-title);
-  letter-spacing: 0.08em;
-  text-transform: lowercase;
-  white-space: nowrap;
-}
-
-.app-tab-bar__tabs {
-  display: flex;
-  align-items: center;
-  height: 100%;
-  gap: 1rem;
-}
-
-.app-tab-bar__tab {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  height: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font: inherit;
-  transition: color 150ms ease;
-}
-
-.app-tab-bar__tab:hover {
-  color: var(--text);
-}
-
-.app-tab-bar__tab::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 2px;
-  border-radius: 4px;
-  background: transparent;
-  transition: background-color 150ms ease;
-}
-
-.app-tab-bar__tab--active {
-  color: var(--text);
-}
-
-.app-tab-bar__tab--active::after {
-  background: var(--blue);
-}
-</style>

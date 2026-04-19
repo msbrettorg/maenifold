@@ -17,6 +17,9 @@ pub(super) async fn execute_node_request(
             workflow_id,
             existing_session_id,
             prompt,
+            adopt_instructions,
+            adopt_role,
+            requires_role,
             session_config,
         } => {
             super::executor_nodes_workflow::execute_workflow_node_request(
@@ -25,6 +28,9 @@ pub(super) async fn execute_node_request(
                 workflow_id,
                 existing_session_id,
                 prompt,
+                adopt_instructions,
+                adopt_role,
+                requires_role,
                 session_config,
                 agent.as_deref(),
                 event_tx.clone(),
@@ -35,6 +41,9 @@ pub(super) async fn execute_node_request(
             session_id,
             prompt,
             tool_mode,
+            adopt_instructions,
+            adopt_role,
+            requires_role,
             session_config,
         } => {
             super::executor_nodes_prompt::execute_prompt_node_request(
@@ -43,6 +52,9 @@ pub(super) async fn execute_node_request(
                 session_id,
                 prompt,
                 tool_mode,
+                adopt_instructions,
+                adopt_role,
+                requires_role,
                 session_config,
                 agent.as_deref(),
                 event_tx.clone(),
@@ -54,6 +66,9 @@ pub(super) async fn execute_node_request(
             topic,
             prompt_context,
             total_thoughts,
+            adopt_instructions,
+            adopt_role,
+            requires_role,
             session_config,
         } => {
             super::executor_nodes_thinking::execute_thinking_node_request(
@@ -63,6 +78,9 @@ pub(super) async fn execute_node_request(
                 topic,
                 prompt_context,
                 total_thoughts,
+                adopt_instructions,
+                adopt_role,
+                requires_role,
                 session_config,
                 agent.as_deref(),
                 event_tx,

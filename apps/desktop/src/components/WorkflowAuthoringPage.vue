@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Brain } from 'lucide-vue-next'
 import { usePipelineStore } from '../stores/pipeline'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import { getSidebarSizingTokens } from '../lib/sidebarSizing'
+import EmptyState from './EmptyState.vue'
 import PanelResizeHandle from './PanelResizeHandle.vue'
 import WorkflowBrowser from './WorkflowBrowser.vue'
 import WorkflowStepTimeline from './WorkflowStepTimeline.vue'
@@ -182,6 +184,13 @@ onBeforeUnmount(() => {
       :class="{ 'panel-browser--full': !isWorkflowSelected }"
       :style="isWorkflowSelected ? { width: `${browserWidth}px` } : undefined"
     />
+    <div v-if="!isWorkflowSelected" class="flex flex-1 items-center justify-center">
+      <EmptyState
+        :icon="Brain"
+        title="Select a workflow"
+        description="Choose a workflow from the browser to view its steps and details."
+      />
+    </div>
     <template v-if="isWorkflowSelected">
       <PanelResizeHandle
         side="left"
@@ -229,7 +238,7 @@ onBeforeUnmount(() => {
 .panel-browser,
 .panel-inspector {
   flex: 0 0 auto;
-  background: #1c1b1b;
+  background: var(--surface);
 }
 
 .panel-browser--full {
@@ -246,7 +255,7 @@ onBeforeUnmount(() => {
 
 .panel-timeline {
   flex: 1 1 auto;
-  background: #131313;
+  background: var(--background);
   min-width: 320px;
 }
 

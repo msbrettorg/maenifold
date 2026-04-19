@@ -17,6 +17,16 @@ interface PipelineListResult {
   pipelines?: PipelineListItem[];
 }
 
+export type PipelineAssetType = 'workflow' | 'role' | 'color' | 'perspective';
+
+export interface PipelineAssetSummary {
+  id: string;
+  name?: string;
+  emoji?: string;
+  description?: string;
+  multiAgent?: boolean;
+}
+
 const sharedMcpClients = new Map<string, ReturnType<typeof useMcpClient>>();
 
 export function getSharedMcpClient(baseUrl?: string) {
@@ -127,9 +137,7 @@ export function usePipelineMcp(baseUrl?: string) {
   }
 
   function listWorkflows(): Promise<string[]> {
-    return mcp.callTool('ListAssets', { type: 'workflow' }).then((result) => {
-      return normalizeWorkflowIds(result);
-    });
+    return mcp.callTool('ListAssets', { type: 'workflow' }).then((result) => normalizeWorkflowIds(result));
   }
 
   function listWorkflowSummaries(): Promise<WorkflowAssetSummary[]> {
@@ -147,6 +155,12 @@ export function usePipelineMcp(baseUrl?: string) {
   function listTools() {
     return mcp.listTools().then((result) => {
       return result;
+    });
+  }
+
+  function listAssets(type: PipelineAssetType): Promise<PipelineAssetSummary[]> {
+    return mcp.callTool('ListAssets', { type }).then((result) => {
+      return unwrapToolData<PipelineAssetSummary[]>(result);
     });
   }
 
@@ -177,6 +191,7 @@ export function usePipelineMcp(baseUrl?: string) {
     listWorkflowSummaries,
     readWorkflowDefinition,
     listTools,
+    listAssets,
     startPolling,
     diffViews,
   };

@@ -3,6 +3,7 @@ import type {
   PipelineDefinition,
   PipelineInputs,
   PipelineListItem,
+  PipelineNodeAdopt,
   PipelineNodeAgentConfig,
   PipelineView,
   PipelineNode,
@@ -21,6 +22,14 @@ interface LegacyExecutionFields {
   model?: string;
   thoughtLevel?: string;
   agentConfig?: PipelineNodeAgentConfig;
+}
+
+function cloneNodeAdopt(adopt: PipelineNodeAdopt): PipelineNodeAdopt {
+  return {
+    ...(adopt.role ? { role: adopt.role } : {}),
+    ...(adopt.color ? { color: adopt.color } : {}),
+    ...(adopt.perspective ? { perspective: adopt.perspective } : {}),
+  };
 }
 
 export function normalizePipelineList(
@@ -46,6 +55,10 @@ function normalizeViewNode(node: ViewNode): ViewNode {
 
   if ('agentConfig' in normalized && normalized.agentConfig) {
     normalized.agentConfig = cloneAgentConfig(normalized.agentConfig);
+  }
+
+  if ('adopt' in normalized && normalized.adopt) {
+    normalized.adopt = cloneNodeAdopt(normalized.adopt);
   }
 
   if ('toolProvenance' in normalized && normalized.toolProvenance) {
@@ -94,6 +107,45 @@ function cloneNodeProvenance(provenance: NodeProvenance): NodeProvenance {
         : {}),
       ...(provenance.detail.thinkingSessionId !== undefined
         ? { thinkingSessionId: provenance.detail.thinkingSessionId }
+        : {}),
+      ...(provenance.detail.parentWorkflowId !== undefined
+        ? { parentWorkflowId: provenance.detail.parentWorkflowId }
+        : {}),
+      ...(provenance.detail.lineageGateTaskId !== undefined
+        ? { lineageGateTaskId: provenance.detail.lineageGateTaskId }
+        : {}),
+      ...(provenance.detail.lineagePipelineRunId !== undefined
+        ? { lineagePipelineRunId: provenance.detail.lineagePipelineRunId }
+        : {}),
+      ...(provenance.detail.lineageThinkingSessionId !== undefined
+        ? { lineageThinkingSessionId: provenance.detail.lineageThinkingSessionId }
+        : {}),
+      ...(provenance.detail.lineageMemoryNoteId !== undefined
+        ? { lineageMemoryNoteId: provenance.detail.lineageMemoryNoteId }
+        : {}),
+      ...(provenance.detail.parent_workflow_id !== undefined
+        ? { parent_workflow_id: provenance.detail.parent_workflow_id }
+        : {}),
+      ...(provenance.detail.lineage_gate_task_id !== undefined
+        ? { lineage_gate_task_id: provenance.detail.lineage_gate_task_id }
+        : {}),
+      ...(provenance.detail.lineage_pipeline_run_id !== undefined
+        ? { lineage_pipeline_run_id: provenance.detail.lineage_pipeline_run_id }
+        : {}),
+      ...(provenance.detail.lineage_thinking_session_id !== undefined
+        ? { lineage_thinking_session_id: provenance.detail.lineage_thinking_session_id }
+        : {}),
+      ...(provenance.detail.lineage_memory_note_id !== undefined
+        ? { lineage_memory_note_id: provenance.detail.lineage_memory_note_id }
+        : {}),
+      ...(provenance.detail.adoption
+        ? {
+            adoption: {
+              role: provenance.detail.adoption.role,
+              color: provenance.detail.adoption.color,
+              perspective: provenance.detail.adoption.perspective,
+            },
+          }
         : {}),
       canReconnect: provenance.detail.canReconnect,
     },
@@ -163,6 +215,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         prompt: node.prompt,
         agent: node.agent,
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
@@ -180,6 +234,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
         ...(node.analysisType ? { analysisType: node.analysisType } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
@@ -197,6 +253,8 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         ...(client ? { acpClient: client } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(typeof node.timeout === 'number' ? { timeout: node.timeout } : {}),
@@ -242,6 +300,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         prompt: node.prompt,
         agent: node.agent,
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
@@ -259,6 +319,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         agent: node.agent,
         ...(typeof node.totalThoughts === 'number' ? { totalThoughts: node.totalThoughts } : {}),
         ...(node.analysisType ? { analysisType: node.analysisType } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(Array.isArray(node.allowedTools) ? { allowedTools: [...node.allowedTools] } : {}),
         ...(typeof node.maxTurns === 'number' ? { maxTurns: node.maxTurns } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
@@ -275,6 +337,8 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         workflowId: node.workflowId,
         ...(node.acpClient ? { acpClient: node.acpClient } : {}),
+        ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
+        ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(node.prompt ? { prompt: node.prompt } : {}),
         ...(node.cwd ? { cwd: node.cwd } : {}),
         ...(agentConfig ? { agentConfig } : {}),

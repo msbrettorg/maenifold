@@ -1,6 +1,14 @@
 export interface GateTask {
   taskId: string;
   canonicalTaskId: string | null;
+  lineageGateTaskId?: string | null;
+  lineagePipelineRunId?: string | null;
+  lineageThinkingSessionId?: string | null;
+  lineageMemoryNoteId?: string | null;
+  lineage_gate_task_id?: string | null;
+  lineage_pipeline_run_id?: string | null;
+  lineage_thinking_session_id?: string | null;
+  lineage_memory_note_id?: string | null;
   title: string;
   pipeline: string | null;
   state: string;

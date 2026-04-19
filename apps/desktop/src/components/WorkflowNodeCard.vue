@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Brain, FlaskConical, Search, Ruler, Settings, RefreshCw, AlertTriangle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import type { Component } from 'vue';
 import type { WorkflowSession } from '../lib/workflow-types';
 import WorkflowStepDetail from './WorkflowStepDetail.vue';
 
@@ -23,14 +25,13 @@ function isStepExpanded(stepNumber: number): boolean {
 }
 
 // ─── Status helpers ──────────────────────────────────────────────────────────
-const statusBadge = computed(() => {
-  switch (props.node.status) {
-    case 'completed': return '✅';
-    case 'abandoned': return '⚠️';
-    case 'active':    return '🔄';
-    default:          return '🔄';
+function statusIcon(status: string): Component {
+  switch (status) {
+    case 'abandoned': return AlertTriangle;
+    case 'active': return RefreshCw;
+    default: return RefreshCw;
   }
-});
+}
 
 const borderColor = computed(() => {
   switch (props.node.status) {
@@ -60,14 +61,17 @@ const progressPercent = computed(() =>
 );
 
 // ─── Workflow name / emoji ────────────────────────────────────────────────────
-const workflowEmoji = computed(() => {
+function nodeTypeIcon(name: string): Component {
+  if (name.includes('think')) return Brain;
+  if (name.includes('research')) return FlaskConical;
+  if (name.includes('review')) return Search;
+  if (name.includes('plan')) return Ruler;
+  return Settings;
+}
+
+const workflowIcon = computed(() => {
   const name = props.node.workflowName ?? props.node.workflowId;
-  if (name.includes('dispatch'))  return '📡';
-  if (name.includes('think'))     return '🧠';
-  if (name.includes('research'))  return '🔬';
-  if (name.includes('review'))    return '🔍';
-  if (name.includes('plan'))      return '📐';
-  return '⚙️';
+  return nodeTypeIcon(name);
 });
 
 // ─── Timing ──────────────────────────────────────────────────────────────────
@@ -115,13 +119,13 @@ function formatAbsolute(iso: string): string {
     <!-- ── Header ── -->
     <div class="card-header">
       <div class="header-left">
-        <span class="workflow-emoji">{{ workflowEmoji }}</span>
+        <component :is="workflowIcon" class="workflow-emoji size-4" :stroke-width="1.5" />
         <div class="header-titles">
           <span class="workflow-name">{{ node.workflowName || node.workflowId }}</span>
           <span class="session-id" :title="node.sessionId">{{ shortSessionId }}</span>
         </div>
       </div>
-      <span class="status-badge" :title="node.status">{{ statusBadge }}</span>
+      <component :is="statusIcon(node.status)" class="status-badge size-4" :stroke-width="1.5" :title="node.status" />
     </div>
 
     <!-- ── Progress bar ── -->
@@ -194,7 +198,7 @@ function formatAbsolute(iso: string): string {
 }
 
 .workflow-emoji {
-  font-size: var(--text-body-sm);
+  color: var(--workflow-card-muted);
   flex-shrink: 0;
 }
 
@@ -221,7 +225,7 @@ function formatAbsolute(iso: string): string {
 }
 
 .status-badge {
-  font-size: var(--text-body-sm);
+  color: var(--workflow-card-muted);
   flex-shrink: 0;
 }
 

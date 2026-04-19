@@ -27,6 +27,9 @@ mod task_status;
 mod tray;
 mod tray_lifecycle;
 mod tray_menu;
+mod ui_filtering;
+mod ui_progress;
+mod ui_task_data;
 mod ui_window;
 
 use std::process::ExitCode;

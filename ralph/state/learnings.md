@@ -39,3 +39,13 @@
 
 ### Delivered
 - T-179.35: Gate MCP EROFS fix — root validation, path-wrapped errors, 3 new tests (+113 lines, 3 files)
+
+## 2026-04-19 — Session 3 (maenifold-pipeline-driver LOC compliance)
+
+### What worked
+- Same file-splitting pattern from Session 1 applied cleanly to a different crate
+- SWE completed in ~130s with build verification
+- Blue-team completed in ~56s — fast turnaround
+
+### Delivered
+- T-200.7: main.rs 379→169+212 (recovery.rs extracted from pipeline-driver)

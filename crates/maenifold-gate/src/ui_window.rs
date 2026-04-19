@@ -1,47 +1,17 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::{Duration, SystemTime};
-
+use std::path::PathBuf;
+use std::time::Duration;
 use eframe::egui;
 use eframe::egui::{Color32, RichText};
 use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
 use egui_extras::{Column, TableBuilder};
-use serde::Deserialize;
-
-use crate::cli::{GateContext, StatusArgs};
-use crate::gate_tool_service::GateToolService;
-use crate::status_filter::StatusFilter;
-use crate::task_id;
 use crate::task_repository::{TaskPathSet, TaskRepository};
-
+use crate::ui_filtering::*;
+use crate::ui_progress::*;
+use crate::ui_task_data::*;
 const READ_MODEL_POLL_INTERVAL: Duration = Duration::from_secs(2);
-
-#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = "camelCase")]
-#[allow(dead_code)]
-struct TaskEntry {
-    task_id: String,
-    title: String,
-    pipeline: Option<String>,
-    state: String,
-    #[serde(default)]
-    stages: Vec<String>,
-    location: String,
-    attempts: u32,
-    path: PathBuf,
-    #[serde(default)]
-    issue: String,
-}
-
-#[derive(Debug, Clone)]
-struct TaskDetail {
-    entry: TaskEntry,
-    markdown: String,
-}
-
 #[derive(Debug)]
 pub struct GateUiWindow;
-
 impl GateUiWindow {
     pub fn run(root: PathBuf) -> i32 {
         let initial_read_model_timestamp = read_model_timestamp(&root);
@@ -57,7 +27,6 @@ impl GateUiWindow {
             entries.len(),
             root.display()
         );
-
         let options = eframe::NativeOptions {
             viewport: egui::ViewportBuilder::default()
                 .with_title("Gate UI")
@@ -65,7 +34,6 @@ impl GateUiWindow {
                 .with_min_inner_size([700.0, 640.0]),
             ..Default::default()
         };
-
         let app_root = root.clone();
         let result = eframe::run_native(
             "Gate UI",
@@ -88,62 +56,23 @@ impl GateUiWindow {
         }
     }
 }
-
-fn load_tasks(root: &Path) -> Result<Vec<TaskEntry>, String> {
-    let value = GateToolService::status(StatusArgs {
-        context: GateContext {
-            root: root.to_path_buf(),
-            requested_pipeline_name: None,
-            json_output: false,
-        },
-        filter: StatusFilter {
-            state: None,
-            ready_only: false,
-            include_done: false,
-        },
-    })
-    .map_err(|e| e.to_string())?;
-
-    let entries: Vec<TaskEntry> =
-        serde_json::from_value(value).map_err(|e| format!("failed to parse task data: {e}"))?;
-    Ok(entries)
-}
-
-fn read_model_timestamp(root: &Path) -> Option<SystemTime> {
-    latest_modified_time([
-        root.join(".gate").join("gate.db"),
-        root.join(".gate").join("gate.db-wal"),
-    ])
-}
-
-fn latest_modified_time(paths: [PathBuf; 2]) -> Option<SystemTime> {
-    paths
-        .into_iter()
-        .filter_map(|path| fs::metadata(path).ok()?.modified().ok())
-        .fold(None, |latest, modified| match latest {
-            Some(current) if current >= modified => Some(current),
-            _ => Some(modified),
-        })
-}
-
 #[allow(dead_code)]
-struct GateUiApp {
-    root: PathBuf,
-    tasks: Vec<TaskEntry>,
-    read_model_timestamp: Option<SystemTime>,
-    selected: Option<TaskDetail>,
-    detail_open: bool,
-    markdown_cache: CommonMarkCache,
-    search_text: String,
-    process_filter: FilterValue,
-    state_filter: FilterValue,
-    location_filter: FilterValue,
-    issues_only: bool,
-    sort_state: SortState,
+pub(crate) struct GateUiApp {
+    pub(crate) root: PathBuf,
+    pub(crate) tasks: Vec<TaskEntry>,
+    pub(crate) read_model_timestamp: Option<std::time::SystemTime>,
+    pub(crate) selected: Option<TaskDetail>,
+    pub(crate) detail_open: bool,
+    pub(crate) markdown_cache: CommonMarkCache,
+    pub(crate) search_text: String,
+    pub(crate) process_filter: FilterValue,
+    pub(crate) state_filter: FilterValue,
+    pub(crate) location_filter: FilterValue,
+    pub(crate) issues_only: bool,
+    pub(crate) sort_state: SortState,
 }
-
 impl GateUiApp {
-    fn new(root: PathBuf, tasks: Vec<TaskEntry>, read_model_timestamp: Option<SystemTime>) -> Self {
+    fn new(root: PathBuf, tasks: Vec<TaskEntry>, read_model_timestamp: Option<std::time::SystemTime>) -> Self {
         Self {
             root,
             tasks,
@@ -159,7 +88,6 @@ impl GateUiApp {
             sort_state: SortState::default(),
         }
     }
-
     fn open_task(&mut self, task: &TaskEntry) {
         let task_path = TaskPathSet {
             task_id: task.task_id.clone(),
@@ -184,7 +112,6 @@ impl GateUiApp {
             }
         }
     }
-
     fn visible_tasks(&self) -> Vec<TaskEntry> {
         let mut tasks: Vec<_> = self
             .tasks
@@ -195,21 +122,17 @@ impl GateUiApp {
         sort_tasks(&mut tasks, self.sort_state);
         tasks
     }
-
     fn refresh_tasks_if_needed(&mut self) {
         let Some(current_timestamp) = read_model_timestamp(&self.root) else {
             return;
         };
-
         let should_reload = match self.read_model_timestamp {
             Some(previous_timestamp) => current_timestamp > previous_timestamp,
             None => true,
         };
-
         if !should_reload {
             return;
         }
-
         match load_tasks(&self.root) {
             Ok(tasks) => {
                 self.tasks = tasks;
@@ -221,7 +144,6 @@ impl GateUiApp {
             }
         }
     }
-
     fn reset_stale_filters(&mut self) {
         self.process_filter
             .reset_if_missing(&process_values(&self.tasks));
@@ -231,13 +153,11 @@ impl GateUiApp {
             .reset_if_missing(&location_values(&self.tasks));
     }
 }
-
 impl eframe::App for GateUiApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         ctx.request_repaint_after(READ_MODEL_POLL_INTERVAL);
         self.refresh_tasks_if_needed();
         ctx.set_visuals(egui::Visuals::dark());
-
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.heading("Gate");
             ui.label(
@@ -248,10 +168,8 @@ impl eframe::App for GateUiApp {
             );
             toolbar(ui, self);
             ui.separator();
-
             let tasks = self.visible_tasks();
             let mut task_to_open: Option<TaskEntry> = None;
-
             TableBuilder::new(ui)
                 .id_salt("gate-task-table")
                 .striped(true)
@@ -261,38 +179,22 @@ impl eframe::App for GateUiApp {
                 .column(Column::exact(180.0).clip(true))
                 .header(22.0, |mut header| {
                     header.col(|ui| {
-                        if ui
-                            .button(header_text("ID", self.sort_state, SortColumn::Id))
-                            .clicked()
-                        {
+                        if ui.button(header_text("ID", self.sort_state, SortColumn::Id)).clicked() {
                             self.sort_state.toggle(SortColumn::Id);
                         }
                     });
                     header.col(|ui| {
-                        if ui
-                            .button(header_text("Name", self.sort_state, SortColumn::Name))
-                            .clicked()
-                        {
+                        if ui.button(header_text("Name", self.sort_state, SortColumn::Name)).clicked() {
                             self.sort_state.toggle(SortColumn::Name);
                         }
                     });
                     header.col(|ui| {
-                        if ui
-                            .button(header_text("Process", self.sort_state, SortColumn::Process))
-                            .clicked()
-                        {
+                        if ui.button(header_text("Process", self.sort_state, SortColumn::Process)).clicked() {
                             self.sort_state.toggle(SortColumn::Process);
                         }
                     });
                     header.col(|ui| {
-                        if ui
-                            .button(header_text(
-                                "Progress",
-                                self.sort_state,
-                                SortColumn::Progress,
-                            ))
-                            .clicked()
-                        {
+                        if ui.button(header_text("Progress", self.sort_state, SortColumn::Progress)).clicked() {
                             self.sort_state.toggle(SortColumn::Progress);
                         }
                     });
@@ -315,11 +217,7 @@ impl eframe::App for GateUiApp {
                                 task_to_open = Some(task.clone());
                             }
                             if !task.issue.is_empty() {
-                                response.on_hover_text(format!(
-                                    "{}\n{}",
-                                    task.path.display(),
-                                    task.issue
-                                ));
+                                response.on_hover_text(format!("{}\n{}", task.path.display(), task.issue));
                             } else {
                                 response.on_hover_text(task.path.display().to_string());
                             }
@@ -337,12 +235,10 @@ impl eframe::App for GateUiApp {
                         });
                     });
                 });
-
             if let Some(task) = task_to_open {
                 self.open_task(&task);
             }
         });
-
         if self.detail_open {
             let mut is_open = self.detail_open;
             if let Some(detail) = self.selected.clone() {
@@ -369,18 +265,10 @@ impl eframe::App for GateUiApp {
                             .color(Color32::GRAY),
                         );
                         ui.label(RichText::new(&detail.entry.title).strong());
-                        ui.label(
-                            RichText::new(detail.entry.path.display().to_string())
-                                .small()
-                                .color(Color32::GRAY),
-                        );
+                        ui.label(RichText::new(detail.entry.path.display().to_string()).small().color(Color32::GRAY));
                         ui.separator();
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            CommonMarkViewer::new().show(
-                                ui,
-                                &mut self.markdown_cache,
-                                &detail.markdown,
-                            );
+                            CommonMarkViewer::new().show(ui, &mut self.markdown_cache, &detail.markdown);
                         });
                     });
             }
@@ -388,382 +276,6 @@ impl eframe::App for GateUiApp {
         }
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortColumn {
-    Id,
-    Name,
-    Process,
-    Progress,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SortDirection {
-    Asc,
-    Desc,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-struct SortState {
-    column: Option<SortColumn>,
-    direction: SortDirection,
-}
-
-impl Default for SortDirection {
-    fn default() -> Self {
-        Self::Asc
-    }
-}
-
-impl SortState {
-    fn toggle(&mut self, column: SortColumn) {
-        match self.column {
-            Some(current) if current == column => {
-                self.direction = match self.direction {
-                    SortDirection::Asc => SortDirection::Desc,
-                    SortDirection::Desc => SortDirection::Asc,
-                };
-            }
-            _ => {
-                self.column = Some(column);
-                self.direction = SortDirection::Asc;
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct FilterValue(Option<String>);
-
-impl FilterValue {
-    fn all() -> Self {
-        Self(None)
-    }
-
-    fn label(&self) -> &str {
-        match &self.0 {
-            Some(value) => value.as_str(),
-            None => "All",
-        }
-    }
-
-    fn matches(&self, value: &str) -> bool {
-        match &self.0 {
-            Some(expected) => expected == value,
-            None => true,
-        }
-    }
-
-    fn reset_if_missing(&mut self, values: &[String]) {
-        if let Some(selected) = &self.0
-            && !values.iter().any(|value| value == selected)
-        {
-            *self = Self::all();
-        }
-    }
-}
-
-fn toolbar(ui: &mut egui::Ui, app: &mut GateUiApp) {
-    ui.horizontal_wrapped(|ui| {
-        ui.add(
-            egui::TextEdit::singleline(&mut app.search_text)
-                .hint_text("Filter tasks")
-                .desired_width(140.0),
-        );
-        filter_combo(
-            ui,
-            "Process",
-            &mut app.process_filter,
-            process_values(&app.tasks),
-        );
-        filter_combo(ui, "State", &mut app.state_filter, state_values(&app.tasks));
-        filter_combo(
-            ui,
-            "Location",
-            &mut app.location_filter,
-            location_values(&app.tasks),
-        );
-        ui.checkbox(&mut app.issues_only, "Issues only");
-    });
-}
-
-fn filter_combo(ui: &mut egui::Ui, label: &str, filter: &mut FilterValue, values: Vec<String>) {
-    egui::ComboBox::from_label(label)
-        .selected_text(filter.label())
-        .show_ui(ui, |ui| {
-            ui.selectable_value(filter, FilterValue::all(), "All");
-            for value in values {
-                ui.selectable_value(filter, FilterValue(Some(value.clone())), value);
-            }
-        });
-}
-
-fn process_values(tasks: &[TaskEntry]) -> Vec<String> {
-    sorted_unique_values(tasks.iter().map(|task| {
-        task.pipeline
-            .clone()
-            .unwrap_or_else(|| "unbound".to_string())
-    }))
-}
-
-fn state_values(tasks: &[TaskEntry]) -> Vec<String> {
-    sorted_unique_values(tasks.iter().map(|task| task.state.clone()))
-}
-
-fn location_values(tasks: &[TaskEntry]) -> Vec<String> {
-    sorted_unique_values(tasks.iter().map(|task| task.location.clone()))
-}
-
-fn sorted_unique_values(values: impl Iterator<Item = String>) -> Vec<String> {
-    let mut values: Vec<_> = values.collect();
-    values.sort();
-    values.dedup();
-    values
-}
-
-fn header_text(label: &str, sort_state: SortState, column: SortColumn) -> RichText {
-    let suffix = match (sort_state.column, sort_state.direction) {
-        (Some(current), SortDirection::Asc) if current == column => " ↑",
-        (Some(current), SortDirection::Desc) if current == column => " ↓",
-        _ => "",
-    };
-    RichText::new(format!("{label}{suffix}"))
-        .family(egui::FontFamily::Monospace)
-        .small()
-        .strong()
-}
-
-fn task_matches_filters(task: &TaskEntry, app: &GateUiApp) -> bool {
-    let search = app.search_text.trim().to_ascii_lowercase();
-    let matches_search = search.is_empty()
-        || task.task_id.to_ascii_lowercase().contains(&search)
-        || task.title.to_ascii_lowercase().contains(&search)
-        || task
-            .path
-            .display()
-            .to_string()
-            .to_ascii_lowercase()
-            .contains(&search);
-
-    let pipeline_str = task.pipeline.as_deref().unwrap_or("unbound");
-
-    matches_search
-        && app.process_filter.matches(pipeline_str)
-        && app.state_filter.matches(&task.state)
-        && app.location_filter.matches(&task.location)
-        && (!app.issues_only || !task.issue.is_empty())
-}
-
-fn sort_tasks(tasks: &mut [TaskEntry], sort_state: SortState) {
-    match sort_state.column {
-        None => {
-            tasks.sort_by(default_task_order);
-        }
-        Some(column) => {
-            tasks.sort_by(|left, right| {
-                let ordering = match column {
-                    SortColumn::Id => task_id::natural_cmp(&left.task_id, &right.task_id),
-                    SortColumn::Name => left.title.cmp(&right.title),
-                    SortColumn::Process => left.pipeline.cmp(&right.pipeline),
-                    SortColumn::Progress => progress_rank(left)
-                        .cmp(&progress_rank(right))
-                        .then(left.state.cmp(&right.state)),
-                };
-
-                let ordering = if ordering.is_eq() {
-                    default_task_order(left, right)
-                } else {
-                    ordering
-                };
-
-                match sort_state.direction {
-                    SortDirection::Asc => ordering,
-                    SortDirection::Desc => ordering.reverse(),
-                }
-            });
-        }
-    }
-}
-
-fn default_task_order(left: &TaskEntry, right: &TaskEntry) -> std::cmp::Ordering {
-    location_rank(&left.location)
-        .cmp(&location_rank(&right.location))
-        .then(left.state.cmp(&right.state))
-        .then_with(|| task_id::natural_cmp(&left.task_id, &right.task_id))
-}
-
-fn location_rank(location: &str) -> u8 {
-    match location {
-        "todo" => 0,
-        "done" => 1,
-        _ => 2,
-    }
-}
-
-fn summary_text(tasks: &[TaskEntry], visible: &[TaskEntry]) -> String {
-    let todo = tasks.iter().filter(|task| task.location == "todo").count();
-    let done = tasks.iter().filter(|task| task.location == "done").count();
-    format!(
-        "{} shown  {} total  {} todo  {} done",
-        visible.len(),
-        tasks.len(),
-        todo,
-        done
-    )
-}
-
-fn process_text(task: &TaskEntry) -> String {
-    let pipeline = task.pipeline.as_deref().unwrap_or("unbound");
-    if task.location == "done" {
-        format!("{} done", pipeline.to_uppercase())
-    } else {
-        pipeline.to_uppercase()
-    }
-}
-
-fn state_symbol(task: &TaskEntry) -> &'static str {
-    match task.state.as_str() {
-        "done" | "completed" => "●",
-        "pending" => "○",
-        "error" | "failed" => "✗",
-        _ => "◉",
-    }
-}
-
-fn completed_progress_color() -> Color32 {
-    Color32::from_rgb(110, 251, 190)
-}
-
-fn active_progress_color() -> Color32 {
-    Color32::from_rgb(255, 193, 7)
-}
-
-fn failed_progress_color() -> Color32 {
-    Color32::from_rgb(255, 107, 107)
-}
-
-fn pending_progress_color() -> Color32 {
-    Color32::from_gray(110)
-}
-
-fn is_failed_state(state: &str) -> bool {
-    matches!(state, "error" | "failed")
-}
-
-fn progress_color(task: &TaskEntry) -> Color32 {
-    if task.location == "done" {
-        completed_progress_color()
-    } else if is_failed_state(&task.state) {
-        failed_progress_color()
-    } else if task.state == "pending" {
-        pending_progress_color()
-    } else {
-        active_progress_color()
-    }
-}
-
-fn render_progress_dots(ui: &mut egui::Ui, task: &TaskEntry) {
-    if task.stages.is_empty() {
-        ui.label(
-            RichText::new(state_symbol(task))
-                .family(egui::FontFamily::Monospace)
-                .color(progress_color(task)),
-        );
-        return;
-    }
-
-    ui.horizontal(|ui| {
-        for stage in &task.stages {
-            let (symbol, color) = stage_dot(stage, task);
-            let response = ui.label(
-                RichText::new(symbol)
-                    .family(egui::FontFamily::Monospace)
-                    .color(color),
-            );
-            response.on_hover_text(stage.replace('-', " "));
-        }
-
-        if is_failed_state(&task.state) {
-            ui.label(
-                RichText::new("✗")
-                    .family(egui::FontFamily::Monospace)
-                    .color(failed_progress_color()),
-            )
-            .on_hover_text(task.state.replace('-', " "));
-        }
-    });
-}
-
-fn stage_dot(stage: &str, task: &TaskEntry) -> (&'static str, Color32) {
-    match stage_progress(stage, task) {
-        StageProgress::Completed => ("●", completed_progress_color()),
-        StageProgress::Active => ("◉", progress_color(task)),
-        StageProgress::Failed => ("●", failed_progress_color()),
-        StageProgress::Pending => ("○", pending_progress_color()),
-    }
-}
-
-fn stage_progress(stage: &str, task: &TaskEntry) -> StageProgress {
-    if task.location == "done" {
-        return StageProgress::Completed;
-    }
-
-    let stage_index = task.stages.iter().position(|candidate| candidate == stage);
-
-    if is_failed_state(&task.state) {
-        let Some(failed_index) = task
-            .stages
-            .iter()
-            .rposition(|candidate| !matches!(candidate.as_str(), "done" | "completed"))
-        else {
-            return StageProgress::Pending;
-        };
-
-        return match stage_index.unwrap_or(failed_index) {
-            index if index < failed_index => StageProgress::Completed,
-            index if index == failed_index => StageProgress::Failed,
-            _ => StageProgress::Pending,
-        };
-    }
-
-    let Some(active_index) = task
-        .stages
-        .iter()
-        .position(|candidate| candidate == &task.state)
-    else {
-        return StageProgress::Pending;
-    };
-    let stage_index = stage_index.unwrap_or(active_index);
-
-    if stage_index < active_index {
-        StageProgress::Completed
-    } else if stage_index == active_index {
-        StageProgress::Active
-    } else {
-        StageProgress::Pending
-    }
-}
-
-fn progress_rank(task: &TaskEntry) -> usize {
-    if task.location == "done" {
-        return task.stages.len() + 1;
-    }
-
-    task.stages
-        .iter()
-        .position(|stage| stage == &task.state)
-        .map(|index| index + 1)
-        .unwrap_or(0)
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum StageProgress {
-    Completed,
-    Active,
-    Failed,
-    Pending,
-}
-
 #[cfg(test)]
 mod tests {
     use std::fs;

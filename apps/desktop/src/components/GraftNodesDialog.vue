@@ -112,7 +112,13 @@ const connectToValue = computed({
 
           <div class="form-field">
             <Label for="graft-node-id">Node ID</Label>
-            <Input id="graft-node-id" v-model.trim="nodeId" type="text" placeholder="Optional custom ID" />
+            <Input
+              id="graft-node-id"
+              :model-value="nodeId"
+              type="text"
+              placeholder="Optional custom ID"
+              @update:model-value="(val: string | number) => nodeId = String(val).trim()"
+            />
           </div>
 
           <div class="form-field">
@@ -163,40 +169,85 @@ const connectToValue = computed({
           <template v-if="nodeType === 'workflow'">
             <div class="form-field">
               <Label for="graft-workflow-id">Workflow ID</Label>
-              <Input id="graft-workflow-id" v-model.trim="workflowId" :list="workflowListId" type="text" placeholder="Workflow ID" />
+              <Input
+                id="graft-workflow-id"
+                :model-value="workflowId"
+                :list="workflowListId"
+                type="text"
+                placeholder="Workflow ID"
+                @update:model-value="(val: string | number) => workflowId = String(val).trim()"
+              />
             </div>
             <datalist :id="workflowListId">
               <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
             </datalist>
             <div class="form-field">
               <Label for="graft-workflow-agent">Agent</Label>
-              <Input id="graft-workflow-agent" v-model.trim="workflowAgent" type="text" placeholder="Optional workflow agent" />
+              <Input
+                id="graft-workflow-agent"
+                :model-value="workflowAgent"
+                type="text"
+                placeholder="Optional workflow agent"
+                @update:model-value="(val: string | number) => workflowAgent = String(val).trim()"
+              />
             </div>
             <div class="form-field field-wide">
               <Label for="graft-workflow-prompt">Prompt</Label>
-              <Textarea id="graft-workflow-prompt" v-model.trim="workflowPrompt" class="graft-textarea" rows="3" placeholder="Optional workflow prompt" />
+              <Textarea
+                id="graft-workflow-prompt"
+                :model-value="workflowPrompt"
+                class="graft-textarea"
+                rows="3"
+                placeholder="Optional workflow prompt"
+                @update:model-value="(val: string | number) => workflowPrompt = String(val).trim()"
+              />
             </div>
           </template>
 
           <template v-else-if="nodeType === 'prompt'">
             <div class="form-field">
               <Label for="graft-prompt-agent">Agent</Label>
-              <Input id="graft-prompt-agent" v-model.trim="promptAgent" type="text" placeholder="Agent name" />
+              <Input
+                id="graft-prompt-agent"
+                :model-value="promptAgent"
+                type="text"
+                placeholder="Agent name"
+                @update:model-value="(val: string | number) => promptAgent = String(val).trim()"
+              />
             </div>
             <div class="form-field field-wide">
               <Label for="graft-prompt-template">Prompt</Label>
-              <Textarea id="graft-prompt-template" v-model.trim="promptTemplate" class="graft-textarea" rows="4" placeholder="Required prompt template" />
+              <Textarea
+                id="graft-prompt-template"
+                :model-value="promptTemplate"
+                class="graft-textarea"
+                rows="4"
+                placeholder="Required prompt template"
+                @update:model-value="(val: string | number) => promptTemplate = String(val).trim()"
+              />
             </div>
           </template>
 
           <template v-else-if="nodeType === 'sequentialThinking'">
             <div class="form-field">
               <Label for="graft-thinking-topic">Topic</Label>
-              <Input id="graft-thinking-topic" v-model.trim="thinkingTopic" type="text" placeholder="Topic" />
+              <Input
+                id="graft-thinking-topic"
+                :model-value="thinkingTopic"
+                type="text"
+                placeholder="Topic"
+                @update:model-value="(val: string | number) => thinkingTopic = String(val).trim()"
+              />
             </div>
             <div class="form-field">
               <Label for="graft-thinking-agent">Agent</Label>
-              <Input id="graft-thinking-agent" v-model.trim="thinkingAgent" type="text" placeholder="Agent name" />
+              <Input
+                id="graft-thinking-agent"
+                :model-value="thinkingAgent"
+                type="text"
+                placeholder="Agent name"
+                @update:model-value="(val: string | number) => thinkingAgent = String(val).trim()"
+              />
             </div>
             <div class="form-field">
               <Label for="graft-thinking-total-thoughts">Total thoughts</Label>
@@ -204,7 +255,13 @@ const connectToValue = computed({
             </div>
             <div class="form-field">
               <Label for="graft-thinking-analysis-type">Analysis type</Label>
-              <Input id="graft-thinking-analysis-type" v-model.trim="thinkingAnalysisType" type="text" placeholder="Optional analysis type" />
+              <Input
+                id="graft-thinking-analysis-type"
+                :model-value="thinkingAnalysisType"
+                type="text"
+                placeholder="Optional analysis type"
+                @update:model-value="(val: string | number) => thinkingAnalysisType = String(val).trim()"
+              />
             </div>
           </template>
 

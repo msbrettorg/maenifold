@@ -39,19 +39,43 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
       <div class="section-grid">
         <div class="form-group">
           <Label>Grace days sequential</Label>
-          <Input v-model.number="form.decay.graceDaysSequential" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.decay.graceDaysSequential"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.decay.graceDaysSequential = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Grace days workflows</Label>
-          <Input v-model.number="form.decay.graceDaysWorkflows" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.decay.graceDaysWorkflows"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.decay.graceDaysWorkflows = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Grace days default</Label>
-          <Input v-model.number="form.decay.graceDaysDefault" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.decay.graceDaysDefault"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.decay.graceDaysDefault = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Half life days</Label>
-          <Input v-model.number="form.decay.halfLifeDays" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.decay.halfLifeDays"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.decay.halfLifeDays = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Decay function</Label>
@@ -74,27 +98,65 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
       <div class="section-grid">
         <div class="form-group">
           <Label>Louvain gamma</Label>
-          <Input v-model.number="form.community.louvainGamma" type="number" min="0" step="0.1" />
+          <Input
+            :model-value="form.community.louvainGamma"
+            type="number"
+            min="0"
+            step="0.1"
+            @update:model-value="(val: string | number) => form.community.louvainGamma = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Min shared neighbors</Label>
-          <Input v-model.number="form.community.minSharedNeighbors" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.community.minSharedNeighbors"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.community.minSharedNeighbors = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Min overlap</Label>
-          <Input v-model.number="form.community.minOverlap" type="number" min="0" max="1" step="0.05" />
+          <Input
+            :model-value="form.community.minOverlap"
+            type="number"
+            min="0"
+            max="1"
+            step="0.05"
+            @update:model-value="(val: string | number) => form.community.minOverlap = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Max siblings</Label>
-          <Input v-model.number="form.community.maxSiblings" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.community.maxSiblings"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.community.maxSiblings = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>Debounce ms</Label>
-          <Input v-model.number="form.community.debounceMs" type="number" min="0" step="1" />
+          <Input
+            :model-value="form.community.debounceMs"
+            type="number"
+            min="0"
+            step="1"
+            @update:model-value="(val: string | number) => form.community.debounceMs = Number(val)"
+          />
         </div>
         <div class="form-group">
           <Label>NMI threshold</Label>
-          <Input v-model.number="form.community.nmiThreshold" type="number" min="0" max="1" step="0.05" />
+          <Input
+            :model-value="form.community.nmiThreshold"
+            type="number"
+            min="0"
+            max="1"
+            step="0.05"
+            @update:model-value="(val: string | number) => form.community.nmiThreshold = Number(val)"
+          />
         </div>
         <div class="optional-field">
           <div class="form-group">

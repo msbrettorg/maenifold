@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { computed, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
+import { useMcpResources } from '../composables/useMcpResources';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
@@ -20,8 +21,10 @@ const emit = defineEmits<{
 }>();
 
 const store = usePipelineStore();
+const resources = useMcpResources();
 const confirmDialogStore = useConfirmDialogStore();
 const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
+let disposeSessionSubscription: (() => void) | null = null;
 
 const pipelineItems = computed(() => {
   const q = props.filterQuery.trim().toLowerCase();
@@ -29,16 +32,80 @@ const pipelineItems = computed(() => {
   return pipelines.value.filter((p) => p.pipelineId.toLowerCase().includes(q));
 });
 
+function normalizePipelineSessionsPayload(payload: unknown): PipelineListItem[] {
+  if (Array.isArray(payload)) {
+    return payload as PipelineListItem[];
+  }
+  if (!payload || typeof payload !== 'object') {
+    return [];
+  }
+  const value = payload as { sessions?: PipelineListItem[]; pipelines?: PipelineListItem[] };
+  return Array.isArray(value.sessions)
+    ? value.sessions
+    : (Array.isArray(value.pipelines) ? value.pipelines : []);
+}
+
+async function refreshFromPipelineResource() {
+  const content = await resources.readResource('pipeline://sessions');
+  if (typeof content.text !== 'string') {
+    pipelines.value = [];
+    return;
+  }
+  const parsed = JSON.parse(content.text) as unknown;
+  pipelines.value = normalizePipelineSessionsPayload(parsed);
+}
+
+async function ensureSessionSubscription() {
+  if (!connected.value || disposeSessionSubscription) {
+    return;
+  }
+  disposeSessionSubscription = await resources.subscribeResource('pipeline://sessions', () => {
+    void refreshFromPipelineResource();
+  });
+}
+
+function clearSessionSubscription() {
+  if (!disposeSessionSubscription) {
+    return;
+  }
+  disposeSessionSubscription();
+  disposeSessionSubscription = null;
+}
+
 onMounted(async () => {
-  if (connected.value) await store.refreshList();
+  if (!connected.value) {
+    return;
+  }
+  try {
+    await refreshFromPipelineResource();
+    await ensureSessionSubscription();
+  } catch {
+    await store.refreshList();
+  }
 });
 
 watch(connected, async (c) => {
-  if (c) await store.refreshList();
+  if (!c) {
+    clearSessionSubscription();
+    return;
+  }
+  try {
+    await refreshFromPipelineResource();
+    await ensureSessionSubscription();
+  } catch {
+    await store.refreshList();
+  }
 });
 
 async function handleRefresh() {
-  if (connected.value) await store.refreshList();
+  if (!connected.value) {
+    return;
+  }
+  try {
+    await refreshFromPipelineResource();
+  } catch {
+    await store.refreshList();
+  }
 }
 
 function formatStatus(status: PipelineStatus): string {
@@ -86,6 +153,10 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   if (!confirmed) return;
   await store.deletePipelineById(item.pipelineId);
 }
+
+onBeforeUnmount(() => {
+  clearSessionSubscription();
+});
 </script>
 
 <template>

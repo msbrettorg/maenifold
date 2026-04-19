@@ -21,6 +21,7 @@ import PipelineStatusBadge from './PipelineStatusBadge.vue';
 import PipelineComposerToolbar from './PipelineComposerToolbar.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useComposerPalette } from '../composables/useComposerPalette';
+import { useComposerContextMenu } from '../composables/useComposerContextMenu';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineDefinition, PipelineNodeType, PipelineView } from '../lib/pipeline-types';
 import { createNode, createNodeId, type PipelineNodeDraftByType, type PipelineNodeInputByType } from '../lib/pipeline-node-factory';
@@ -29,7 +30,6 @@ import { getBareToolName } from '../lib/tool-categories';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
-import { usePromptDialogStore } from '../stores/prompt-dialog';
 
 const props = defineProps<{ designMode: boolean; localDefinition?: PipelineDefinition; view?: PipelineView | null }>();
 const emit = defineEmits<{
@@ -44,7 +44,6 @@ const emit = defineEmits<{
 
 const store = usePipelineStore();
 const configStore = useConfigStore();
-const promptDialogStore = usePromptDialogStore();
 const layoutDirection = ref<'LR' | 'TB'>('LR');
 provide('pipelineLayoutDirection', layoutDirection);
 const {
@@ -64,13 +63,8 @@ const {
 
 const { composerLayoutStyle, closePalette, paletteAsOverlay, paletteOpen, paletteResize, showPalettePanel, togglePalette } =
   useComposerPalette(() => props.designMode);
-type Point = { x: number; y: number };
-type ContextMenuState =
-  | { mode: 'canvas'; position: Point }
-  | { mode: 'node'; nodeId: string };
 
 const { serverResults, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
-const contextMenu = ref<ContextMenuState | null>(null);
 
 const firstAgent = computed(() => resolvePreferredAgent(configStore.agentNames));
 const firstWorkflow = computed(() => store.workflows[0] ?? '');
@@ -99,60 +93,28 @@ const hasRewindableNodes = computed(() =>
 const hasCompletedNodesWithOutput = computed(() =>
   props.view?.nodes.some((node) => node.status === 'completed' && Boolean(node.output)) ?? false,
 );
-const contextMenuNodeStatus = computed(() => {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return null;
-  const nodeId = contextMenu.value.nodeId;
-  return props.view?.nodes.find((node) => node.nodeId === nodeId)?.status ?? null;
+
+const {
+  contextMenu, contextMenuEnabled, contextMenuNodeStatus, contextMenuNodeHasOutput,
+  closeContextMenu, handleComposerContextMenu, handleEditNode, handleDuplicateNode,
+  handleDeleteNode, handleDisconnectEdges, handleServerNodeAction,
+  handleCanvasRunPipeline, handleCanvasRewindAll, handleCanvasGraft, handleCanvasPromoteToMemory,
+  handleContextMenuOpenChange, createPromptNode, createThinkingNode, createToolNode, createWorkflowNode,
+} = useComposerContextMenu({
+  designMode: () => props.designMode,
+  view: () => props.view,
+  firstAgent,
+  firstWorkflow,
+  createNodeAt,
+  editNode,
+  duplicateNode,
+  deleteNode,
+  disconnectNodeEdges,
+  toFlowPosition,
+  emitNodeDoubleClick: (nodeId) => emit('nodeDoubleClick', nodeId),
+  emitOpenGraft: () => emit('openGraft'),
+  emitOpenPromotion: () => emit('openPromotion'),
 });
-const contextMenuNodeHasOutput = computed(() => {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return false;
-  const nodeId = contextMenu.value.nodeId;
-  return Boolean(props.view?.nodes.find((node) => node.nodeId === nodeId)?.output);
-});
-
-function hasServerCanvasMenuActions(): boolean {
-  const view = props.view;
-  if (!view) return false;
-
-  return (
-    ['active', 'paused', 'stuck'].includes(view.status)
-    || view.nodes.some((node) => ['completed', 'abandoned', 'stuck'].includes(node.status))
-    || view.nodes.some((node) => node.status === 'completed' && Boolean(node.output))
-  );
-}
-
-function closeContextMenu(): void {
-  contextMenu.value = null;
-}
-
-function createContextNode(type: 'prompt' | 'sequentialThinking' | 'workflow' | 'tool', toolName?: string): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'canvas') return;
-
-  const node = type === 'prompt'
-    ? firstAgent.value
-      ? createNode('prompt', { id: createNodeId('prompt'), agent: firstAgent.value, prompt: 'Ask an agent' })
-      : null
-    : type === 'sequentialThinking'
-      ? firstAgent.value
-        ? createNode('sequentialThinking', {
-          id: createNodeId('sequentialThinking'),
-          agent: firstAgent.value,
-          topic: 'Think through a problem',
-          totalThoughts: 5,
-        })
-        : null
-      : type === 'workflow'
-        ? firstWorkflow.value
-          ? createNode('workflow', { id: createNodeId('workflow'), workflowId: firstWorkflow.value, agent: '' })
-          : null
-        : toolName
-          ? createNode('tool', { id: createNodeId('tool'), toolName })
-          : null;
-
-  if (!node) return;
-  createNodeAt(node, contextMenu.value.position);
-  closeContextMenu();
-}
 
 function maybeRefreshComposerCatalogs(): void {
   if (!props.designMode) return;
@@ -160,141 +122,14 @@ function maybeRefreshComposerCatalogs(): void {
   if (!hasLoadedCatalog.value) void refreshTools();
 }
 
-function handleComposerContextMenu(event: MouseEvent): void {
-  const target = event.target;
-  if (!(target instanceof Element)) return;
-  if (target.closest('.vue-flow__controls, .vue-flow__minimap')) return;
-
-  const flowRoot = event.currentTarget instanceof HTMLElement
-    ? event.currentTarget.querySelector<HTMLElement>('.vue-flow')
-    : target.closest<HTMLElement>('.vue-flow');
-  if (!flowRoot) {
-    closeContextMenu();
-    return;
-  }
-
-  const nodeId = target.closest<HTMLElement>('.vue-flow__node')?.dataset.id;
-  if (nodeId) {
-    editNode(nodeId);
-    contextMenu.value = { mode: 'node', nodeId };
-    return;
-  }
-
-  if (target.closest('.vue-flow__edge, .edge-indicator')) {
-    closeContextMenu();
-    return;
-  }
-
-  if (!props.designMode && !hasServerCanvasMenuActions()) {
-    closeContextMenu();
-    return;
-  }
-
-  contextMenu.value = {
-    mode: 'canvas',
-    position: toFlowPosition(event.clientX, event.clientY, flowRoot),
-  };
-}
-
-function handleEditNode(): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  emit('nodeDoubleClick', contextMenu.value.nodeId);
-  closeContextMenu();
-}
-
-function handleDuplicateNode(): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  duplicateNode(contextMenu.value.nodeId);
-  closeContextMenu();
-}
-
-function handleDeleteNode(): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  deleteNode(contextMenu.value.nodeId);
-  closeContextMenu();
-}
-
-function handleDisconnectEdges(): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  disconnectNodeEdges(contextMenu.value.nodeId);
-  closeContextMenu();
-}
-
-function handleServerNodeAction(action: 'restartNode' | 'rewindNode' | 'forkNode' | 'abandonNode'): void {
-  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
-  const { nodeId } = contextMenu.value;
-  closeContextMenu();
-
-  switch (action) {
-    case 'restartNode':
-      void store.restartNode(nodeId);
-      break;
-    case 'rewindNode':
-      void store.rewindNodes([nodeId]);
-      break;
-    case 'forkNode': {
-      if (!store.currentPipelineId) break;
-      void (async () => {
-        const requestedName = await promptDialogStore.requestValue({
-          title: 'Fork pipeline session',
-          description: 'Optional name for the forked pipeline session.',
-          placeholder: 'my-forked-session',
-          confirmLabel: 'Fork',
-        });
-        if (requestedName === null) return;
-        await store.forkPipeline(store.currentPipelineId!, nodeId, requestedName.trim() || undefined);
-      })();
-      break;
-    }
-    case 'abandonNode':
-      void store.updateNodeStatus(nodeId, 'abandoned');
-      break;
-  }
-}
-
-function handleCanvasRunPipeline(): void {
-  void store.runPipeline();
-  closeContextMenu();
-}
-
-function handleCanvasRewindAll(): void {
-  const rewindableIds = props.view?.nodes
-    .filter((node) => ['completed', 'abandoned', 'stuck'].includes(node.status))
-    .map((node) => node.nodeId) ?? [];
-  if (rewindableIds.length > 0) void store.rewindNodes(rewindableIds);
-  closeContextMenu();
-}
-
-function handleCanvasGraft(): void {
-  emit('openGraft');
-  closeContextMenu();
-}
-
-function handleCanvasPromoteToMemory(): void {
-  emit('openPromotion');
-  closeContextMenu();
-}
-
-const createPromptNode = () => createContextNode('prompt');
-const createThinkingNode = () => createContextNode('sequentialThinking');
-const createToolNode = (toolName: string) => createContextNode('tool', toolName);
-const createWorkflowNode = () => createContextNode('workflow');
 const edgeTypes = { smoothstep: markRaw(PipelineFlowEdge) };
-
 watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
 
 const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
-const contextMenuEnabled = computed(() => contextMenu.value !== null);
+
 function submitNode<T extends PipelineNodeType>(type: T, fields: PipelineNodeDraftByType[T]): void {
   const node = store.addNode(createNode(type, { id: createNodeId(type), ...fields } as PipelineNodeInputByType[T]));
-  void nextTick(() => {
-    editNode(node.id);
-    fitView();
-  });
-}
-
-function handleContextMenuOpenChange(open: boolean): void {
-  if (!open) closeContextMenu();
+  void nextTick(() => { editNode(node.id); fitView(); });
 }
 
 function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {

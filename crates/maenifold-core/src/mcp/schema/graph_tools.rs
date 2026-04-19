@@ -17,7 +17,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         ),
         "Visualize" => derived_tool_definition::<VisualizeParams>(
             registry_name,
-            "Generates a Mermaid diagram for concept relationships.",
+            "Generates Mermaid or graph JSON output for concept relationships.",
         ),
         "RepairConcepts" => derived_tool_definition::<RepairConceptsParams>(
             registry_name,

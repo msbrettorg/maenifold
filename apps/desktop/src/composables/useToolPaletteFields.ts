@@ -3,7 +3,6 @@ import type { AgentProbeResult } from '../lib/agent-probe-types';
 import { useMcpToolDiscovery } from './useMcpToolDiscovery';
 import { usePipelineMcp } from './usePipelineMcp';
 import { useReadyAgentProbe } from './useReadyAgentProbe';
-import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import {
   formatPipelineAgentOptionLabel,
   getAgentConfigOptionValue,
@@ -12,10 +11,6 @@ import {
   getEditableAgentConfigOptions,
   getAgentModeValue,
   isSessionConfigSelectGroup,
-  setAgentConfigOptionValue,
-  setAgentModelValue,
-  setAgentModeValue,
-  setAgentThoughtLevelValue,
 } from './pipeline-node-form-helpers';
 import { deriveServerHealth, getAuthSetupAction } from '../lib/palette-health';
 import {
@@ -25,39 +20,24 @@ import {
   scoredSearch,
   type ToolPaletteEntry,
 } from '../lib/tool-palette-catalog';
-import { writeLastUsedAgent } from '../lib/preferred-agent';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import type { ServerHealthStatus } from '../lib/types';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
 import { useNodePaletteStore } from '../stores/node-palette';
 import { usePipelineStore } from '../stores/pipeline';
+import {
+  createAgentUpdaters,
+  createPaletteKeydownHandler,
+  getErrorMessage,
+  highlightText,
+  isToolEntry,
+  optionId,
+  type ToolPaletteEmit,
+  type ToolPaletteProps,
+} from './useToolPaletteFields-helpers';
 
-interface ToolPaletteProps {
-  active?: boolean;
-  toolName: string;
-  agentName?: string;
-  agentConfig?: PipelineNodeAgentConfig;
-  toolArgs: Record<string, unknown>;
-  canSubmit?: boolean;
-}
-
-type ToolPaletteEmit = {
-  (event: 'update:toolName', value: string): void;
-  (event: 'update:agentName', value: string): void;
-  (event: 'update:agentConfig', value: PipelineNodeAgentConfig): void;
-  (event: 'update:toolArgs', value: Record<string, unknown>): void;
-  (event: 'validation', value: { valid: boolean }): void;
-  (event: 'submitRequest'): void;
-};
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-function isToolEntry(entry: ToolPaletteEntry): entry is ToolPaletteEntry & { kind: 'tool'; toolName: string; inputSchema: Record<string, unknown> } {
-  return entry.kind === 'tool' && entry.toolName !== null && entry.inputSchema !== null;
-}
+export type { ToolPaletteEmit, ToolPaletteProps } from './useToolPaletteFields-helpers';
 
 export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteEmit) {
   const mcp = usePipelineMcp();
@@ -125,79 +105,55 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
   const searchResults = computed<ToolPaletteEntry[]>(() => {
     const query = searchQuery.value.trim();
     if (!query) return [];
-    return scoredSearch(
-      catalogTools.value,
-      query,
-      getPaletteEntrySearchFields,
-    ).map((result) => result.item);
+    return scoredSearch(catalogTools.value, query, getPaletteEntrySearchFields).map((result) => result.item);
   });
-  const visibleTools = computed(() => {
-    if (isSearching.value) return searchResults.value;
-    return showCategories.value ? categorizedBrowseTools.value : [];
-  });
+  const visibleTools = computed(() => (isSearching.value ? searchResults.value : showCategories.value ? categorizedBrowseTools.value : []));
   const activeDescendantId = computed(() =>
     activeOptionName.value && visibleTools.value.some((tool) => tool.namespacedName === activeOptionName.value)
       ? optionId(activeOptionName.value)
       : undefined,
   );
   const selectionValid = computed(() => selectedToolHealth.value !== 'auth_required' && schemaValid.value);
-  const selectedAgentProbeResult = computed(() =>
-    props.agentName ? getProbe(props.agentName) : undefined,
-  );
+  const selectedAgentProbeResult = computed(() => (props.agentName ? getProbe(props.agentName) : undefined));
   const readyAgentProbe = useReadyAgentProbe(
     selectedAgentProbeResult,
     computed(() => props.agentConfig),
     (nextAgentConfig) => emit('update:agentConfig', nextAgentConfig),
   );
 
-  function optionId(name: string): string {
-    return `tool-palette-option-${name.replace(/[^a-z0-9_-]+/gi, '-')}`;
-  }
-  function getProbe(agentName: string): AgentProbeResult | undefined {
-    return agentName ? capabilitiesStore.getProbe(agentName) : undefined;
-  }
-  function formatAgentOptionLabel(agentName: string): string {
-    return formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
-  }
-  function selectedAgentProbe(): AgentProbeResult | undefined {
-    return selectedAgentProbeResult.value;
-  }
-  function readyProbe(): AgentProbeResult | undefined {
-    return readyAgentProbe.value;
-  }
-  function focusTool(name: string | null): void {
-    activeOptionName.value = name;
-  }
-  function commitTool(tool: ToolPaletteEntry & { kind: 'tool'; toolName: string }): void {
+  const getProbe = (agentName: string): AgentProbeResult | undefined =>
+    agentName ? capabilitiesStore.getProbe(agentName) : undefined;
+  const formatAgentOptionLabel = (agentName: string): string =>
+    formatPipelineAgentOptionLabel(agentName, getProbe(agentName));
+  const selectedAgentProbe = (): AgentProbeResult | undefined => selectedAgentProbeResult.value;
+  const readyProbe = (): AgentProbeResult | undefined => readyAgentProbe.value;
+  const focusTool = (name: string | null): void => { activeOptionName.value = name; };
+  const commitTool = (tool: ToolPaletteEntry & { kind: 'tool'; toolName: string }): void => {
     nodePaletteStore.setSelectedTool(tool.toolName);
     focusTool(tool.namespacedName);
     emit('update:toolName', tool.toolName);
-  }
-  function clearSelection(): void {
+  };
+  const clearSelection = (): void => {
     nodePaletteStore.setSelectedTool(null);
     emit('update:toolName', '');
     emit('update:toolArgs', {});
     schemaValid.value = true;
-  }
-  function clearSearch(): void {
-    nodePaletteStore.clearSearchQuery();
-  }
-  async function refreshCatalog(): Promise<void> {
+  };
+  const clearSearch = (): void => { nodePaletteStore.clearSearchQuery(); };
+  const refreshCatalog = async (): Promise<void> => {
     await refreshTools();
-    if (pipelineStore.tools.length === 0) {
-      await pipelineStore.refreshTools();
-    }
-  }
-  function openAuthDialog(tool: ToolPaletteEntry): void {
+    if (pipelineStore.tools.length === 0) await pipelineStore.refreshTools();
+  };
+  const openAuthDialog = (tool: ToolPaletteEntry): void => {
     authDialogTool.value = tool;
     authDialogError.value = null;
     focusTool(tool.namespacedName);
-  }
-  function closeAuthDialog(): void {
+  };
+  const closeAuthDialog = (): void => {
     authDialogTool.value = null;
     authDialogError.value = null;
     authDialogBusy.value = false;
-  }
+  };
   function handleToolSelect(tool: ToolPaletteEntry): void {
     focusTool(tool.namespacedName);
     const action = tool.health === 'auth_required' ? getAuthSetupAction(tool.server) : null;
@@ -205,9 +161,7 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
       openAuthDialog(tool);
       return;
     }
-    if (isToolEntry(tool)) {
-      commitTool(tool);
-    }
+    if (isToolEntry(tool)) commitTool(tool);
   }
   async function runAuthSetup(): Promise<void> {
     const tool = authDialogTool.value;
@@ -221,13 +175,9 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
       const refreshed = await refreshTools();
       if (pipelineStore.tools.length === 0) await pipelineStore.refreshTools();
       const next = refreshed.find((result) => result.server === tool.server);
-      const nextHealth = next
-        ? deriveServerHealth(next, hasStaleCacheByServer.value[next.server] ?? false)
-        : null;
+      const nextHealth = next ? deriveServerHealth(next, hasStaleCacheByServer.value[next.server] ?? false) : null;
       if (nextHealth === 'ready') {
-        if (isToolEntry(tool)) {
-          commitTool({ ...tool, health: 'ready', status: 'ok', error: null });
-        }
+        if (isToolEntry(tool)) commitTool({ ...tool, health: 'ready', status: 'ok', error: null });
         closeAuthDialog();
         return;
       }
@@ -240,24 +190,6 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
   }
   function updateToolName(event: Event): void {
     emit('update:toolName', (event.target as HTMLInputElement).value);
-  }
-  function updateAgentName(event: Event): void {
-    const nextAgent = (event.target as HTMLSelectElement).value;
-    emit('update:agentName', nextAgent);
-    emit('update:agentConfig', {});
-    writeLastUsedAgent(nextAgent);
-  }
-  function updateAgentMode(modeId: string): void {
-    emit('update:agentConfig', setAgentModeValue(props.agentConfig, modeId) ?? {});
-  }
-  function updateAgentModel(event: Event): void {
-    emit('update:agentConfig', setAgentModelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {});
-  }
-  function updateAgentThoughtLevel(event: Event): void {
-    emit('update:agentConfig', setAgentThoughtLevelValue(props.agentConfig, (event.target as HTMLSelectElement).value) ?? {});
-  }
-  function updateAgentConfigOption(option: ReturnType<typeof getEditableAgentConfigOptions>[number], event: Event): void {
-    emit('update:agentConfig', setAgentConfigOptionValue(props.agentConfig, option, (event.target as HTMLSelectElement).value) ?? {});
   }
   function onToolArgsChange(data: Record<string, unknown>): void {
     emit('update:toolArgs', data);
@@ -272,53 +204,23 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
     }
     if (props.canSubmit) emit('submitRequest');
   }
-  function handlePaletteKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && searchQuery.value) {
-      event.preventDefault();
-      clearSearch();
-      return;
-    }
-    if (visibleTools.value.length === 0 || !['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const currentIndex = visibleTools.value.findIndex((tool) => tool.namespacedName === activeOptionName.value);
-      const delta = event.key === 'ArrowDown' ? 1 : -1;
-      const nextIndex = currentIndex === -1
-        ? (delta > 0 ? 0 : visibleTools.value.length - 1)
-        : (currentIndex + delta + visibleTools.value.length) % visibleTools.value.length;
-      focusTool(visibleTools.value[nextIndex]!.namespacedName);
-      return;
-    }
-    event.preventDefault();
-    const activeTool = visibleTools.value.find((tool) => tool.namespacedName === activeOptionName.value) ?? visibleTools.value[0]!;
-    if (activeTool.namespacedName !== props.toolName || activeTool.health === 'auth_required') {
-      handleToolSelect(activeTool);
-      return;
-    }
-    submitSelectedTool();
-  }
-  function highlightText(text: string, query: string) {
-    const normalizedQuery = query.trim().toLowerCase();
-    if (!normalizedQuery) return [{ text, match: false }];
-    const normalizedText = text.toLowerCase();
-    const parts: Array<{ text: string; match: boolean }> = [];
-    let cursor = 0;
-    while (cursor < text.length) {
-      const matchIndex = normalizedText.indexOf(normalizedQuery, cursor);
-      if (matchIndex === -1) return [...parts, { text: text.slice(cursor), match: false }];
-      if (matchIndex > cursor) parts.push({ text: text.slice(cursor, matchIndex), match: false });
-      parts.push({ text: text.slice(matchIndex, matchIndex + normalizedQuery.length), match: true });
-      cursor = matchIndex + normalizedQuery.length;
-    }
-    return parts.length > 0 ? parts : [{ text, match: false }];
-  }
+
+  const agentUpdaters = createAgentUpdaters(props, emit);
+  const handlePaletteKeydown = createPaletteKeydownHandler({
+    searchQuery,
+    visibleTools,
+    activeOptionName,
+    toolName: () => props.toolName,
+    clearSearch,
+    focusTool,
+    handleToolSelect,
+    submitSelectedTool,
+  });
 
   watch(() => props.active, (active) => { if (active && !hasCatalog.value) void refreshCatalog(); }, { immediate: true });
   watch(catalogTools, (tools) => {
     if (!hasLoadedCatalog.value) return;
-    nodePaletteStore.pruneUnavailableTools(
-      tools.filter(isToolEntry).map((tool) => tool.toolName),
-    );
+    nodePaletteStore.pruneUnavailableTools(tools.filter(isToolEntry).map((tool) => tool.toolName));
     if (!props.toolName && nodePaletteStore.selectedToolName) emit('update:toolName', nodePaletteStore.selectedToolName);
   }, { immediate: true });
   watch(() => props.toolName, (value) => {
@@ -382,11 +284,11 @@ export function useToolPaletteFields(props: ToolPaletteProps, emit: ToolPaletteE
     showCategories,
     showQuickAdd,
     submitSelectedTool,
-    updateAgentConfigOption,
-    updateAgentMode,
-    updateAgentModel,
-    updateAgentName,
-    updateAgentThoughtLevel,
+    updateAgentConfigOption: agentUpdaters.updateAgentConfigOption,
+    updateAgentMode: agentUpdaters.updateAgentMode,
+    updateAgentModel: agentUpdaters.updateAgentModel,
+    updateAgentName: agentUpdaters.updateAgentName,
+    updateAgentThoughtLevel: agentUpdaters.updateAgentThoughtLevel,
     updateToolName,
     visibleTools,
   };

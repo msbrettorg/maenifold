@@ -7,8 +7,8 @@ use agent_client_protocol as acp;
 use jockey::EventSender;
 use serde_json::json;
 
-use super::agent_session::open_agent_session;
 use super::adoption::require_adopted_role;
+use super::agent_session::open_agent_session;
 use super::runner_helpers::{
     prompt_workflow_agent, step_think_config, terminal_workflow_status, workflow_completion_text,
     workflow_step_payload, workflow_text,

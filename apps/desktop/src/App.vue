@@ -7,7 +7,7 @@ import { useAppShell } from './composables/useAppShell';
 import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
 import ChatView from './components/ChatView.vue';
-import HomeDashboard from './components/HomeDashboard.vue';
+import MindDashboard from './components/MindDashboard.vue';
 import KnowledgeExplorer from './components/KnowledgeExplorer.vue';
 import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
 import PipelineView from './components/PipelineView.vue';
@@ -20,7 +20,6 @@ import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import type { AppShellTab } from './stores/app-shell';
 import { MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
 
@@ -56,24 +55,6 @@ const {
   handleAuthMethodCancel,
 } = useAppShell({ configStore, sessionStore });
 
-function handleOpenTab(tab: AppShellTab): void {
-  activeTab.value = tab;
-}
-
-async function handlePromptSubmit(prompt: string): Promise<void> {
-  const trimmedPrompt = prompt.trim();
-  if (!trimmedPrompt) {
-    return;
-  }
-
-  if (!sessionStore.isConnected && !sessionStore.isConnecting) {
-    await handleNewSession();
-  }
-
-  if (sessionStore.isConnected) {
-    await sessionStore.sendPrompt(trimmedPrompt);
-  }
-}
 </script>
 
 <template>
@@ -104,38 +85,14 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
       <!-- Main Content Area -->
       <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
-        <HomeDashboard
+        <MindDashboard
           v-if="showHome"
           key="home"
-          v-model:selected-agent="selectedAgent"
-          :has-agents="hasAgents"
-          :selected-cwd="selectedCwd"
-          :is-connected="isConnected"
-          :is-connecting="isConnecting"
-          :recent-sessions="sessionStore.savedSessions"
-          @agent-select="handleAgentSelect"
-          @select-folder="handleSelectFolder"
-          @new-session="handleNewSession"
-          @prompt-submit="handlePromptSubmit"
-          @open-tab="handleOpenTab"
-          @resume-session="handleResumeSession"
         />
 
-        <HomeDashboard
+        <MindDashboard
           v-else-if="activeTab === 'home'"
           key="home-with-active-session"
-          v-model:selected-agent="selectedAgent"
-          :has-agents="hasAgents"
-          :selected-cwd="selectedCwd"
-          :is-connected="isConnected"
-          :is-connecting="isConnecting"
-          :recent-sessions="sessionStore.savedSessions"
-          @agent-select="handleAgentSelect"
-          @select-folder="handleSelectFolder"
-          @new-session="handleNewSession"
-          @prompt-submit="handlePromptSubmit"
-          @open-tab="handleOpenTab"
-          @resume-session="handleResumeSession"
         />
 
         <ChatView

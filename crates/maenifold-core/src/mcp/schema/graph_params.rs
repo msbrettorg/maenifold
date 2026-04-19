@@ -7,6 +7,10 @@ use super::params::{
 use schemars::JsonSchema;
 use serde::Deserialize;
 
+fn default_visualize_format() -> VisualizeFormat {
+    VisualizeFormat::Mermaid
+}
+
 #[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct SyncParams {
@@ -46,9 +50,20 @@ pub struct VisualizeParams {
     #[serde(default = "default_thirty_u32")]
     #[schemars(default = "default_thirty_u32")]
     pub max_nodes: u32,
+    /// Visualization output format
+    #[serde(default = "default_visualize_format")]
+    #[schemars(default = "default_visualize_format")]
+    pub format: VisualizeFormat,
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum VisualizeFormat {
+    Mermaid,
+    Graph,
 }
 
 #[derive(Deserialize, JsonSchema)]

@@ -29,6 +29,12 @@ export interface JsonRpcResponse<T = unknown> {
   error?: JsonRpcError;
 }
 
+export interface JsonRpcNotification {
+  jsonrpc: '2.0';
+  method: string;
+  params?: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Tool-call result types
 // ---------------------------------------------------------------------------
@@ -54,6 +60,45 @@ export interface ToolsListResult {
 }
 
 // ---------------------------------------------------------------------------
+// Resource result types
+// ---------------------------------------------------------------------------
+
+export interface ResourceContent {
+  uri: string;
+  mimeType?: string;
+  text?: string;
+  blob?: string;
+}
+
+export interface ResourceDescriptor {
+  uri: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface ResourceTemplateDescriptor {
+  uriTemplate: string;
+  name?: string;
+  title?: string;
+  description?: string;
+  mimeType?: string;
+}
+
+export interface ResourcesReadResult {
+  contents?: ResourceContent[];
+}
+
+export interface ResourcesListResult {
+  resources?: ResourceDescriptor[];
+}
+
+export interface ResourceTemplatesListResult {
+  resourceTemplates?: ResourceTemplateDescriptor[];
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -65,7 +110,18 @@ function isJsonRpcResponse(value: unknown): value is JsonRpcResponse {
   return typeof value === 'object' && value !== null && (value as JsonRpcResponse).jsonrpc === '2.0';
 }
 
-function parseSseJsonRpcResponse<T>(body: string, requestId?: number): JsonRpcResponse<T> {
+function isJsonRpcNotification(value: unknown): value is JsonRpcNotification {
+  return typeof value === 'object'
+    && value !== null
+    && (value as JsonRpcNotification).jsonrpc === '2.0'
+    && typeof (value as JsonRpcNotification).method === 'string';
+}
+
+function parseSseJsonRpcResponse<T>(
+  body: string,
+  requestId?: number,
+  onNotification?: (notification: JsonRpcNotification) => void,
+): JsonRpcResponse<T> {
   const eventBlocks = body.split(/\r?\n\r?\n/);
 
   for (const block of eventBlocks) {
@@ -84,6 +140,11 @@ function parseSseJsonRpcResponse<T>(body: string, requestId?: number): JsonRpcRe
 
     try {
       const parsed = JSON.parse(candidate) as unknown;
+      if (isJsonRpcNotification(parsed)) {
+        onNotification?.(parsed);
+        continue;
+      }
+
       if (!isJsonRpcResponse(parsed)) {
         continue;
       }
@@ -104,13 +165,14 @@ export async function parseJsonRpcResponse<T>(
   response: Response,
   method: string,
   requestId?: number,
+  onNotification?: (notification: JsonRpcNotification) => void,
 ): Promise<JsonRpcResponse<T>> {
   const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
 
   if (contentType.includes('text/event-stream')) {
     const body = await response.text();
     try {
-      return parseSseJsonRpcResponse<T>(body, requestId);
+      return parseSseJsonRpcResponse<T>(body, requestId, onNotification);
     } catch (error) {
       const message = getErrorMessage(error);
       throw new Error(`Invalid SSE response from ${method}: ${message}`);

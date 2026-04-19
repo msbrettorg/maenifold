@@ -9,8 +9,8 @@ use crate::thinking::sequential_thinking;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::agent_session::{AgentResponse, AgentSession, open_agent_session};
 use super::adoption::require_adopted_role;
+use super::agent_session::{AgentResponse, AgentSession, open_agent_session};
 use super::runner::append_close_error_context;
 use super::runner::{AgentSessionConfig, sanitize_workflow_session_config};
 use super::runner_helpers::{Envelope, prompt_with_embedded_context, slug, tag_fallback};

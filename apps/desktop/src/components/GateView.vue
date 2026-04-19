@@ -6,15 +6,17 @@ import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
-import { useGateMcp } from '../composables/useGateMcp';
+import { useMcpResources } from '../composables/useMcpResources';
 import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import type { GateSnapshot, GateTask, GateTaskBody, GateTaskHistoryEntry } from '../lib/gate';
 import { parseGateTaskBodyContent } from '../lib/gate-task-body';
+import { createGateSnapshot } from '../lib/gate';
+import type { ResourceContent } from '../composables/mcpTransport';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
-const gate = useGateMcp();
+const resources = useMcpResources();
 const provenance = useProvenanceStore();
 const { navigateTo } = useProvenanceNavigation();
 
@@ -34,9 +36,11 @@ const detailBodyLoading = ref(false);
 const detailHistoryLoading = ref(false);
 const detailBodyError = ref('');
 const detailHistoryError = ref('');
-const activeWatcherRoot = ref('');
 let detailRequestToken = 0;
 let snapshotRequestToken = 0;
+let stopStatusSubscription: (() => void) | null = null;
+let stopTaskBodySubscription: (() => void) | null = null;
+let stopTaskHistorySubscription: (() => void) | null = null;
 
 const resolveTaskBodyContent = (taskBody: GateTaskBody | string) =>
   parseGateTaskBodyContent(typeof taskBody === 'string' ? taskBody : taskBody.markdown);
@@ -47,7 +51,7 @@ const sortColumn = ref<SortColumn>('id');
 const sortDirection = ref<SortDirection>('asc');
 
 const hasGateRoot = computed(() => registry.selectedGateRoot.value.length > 0);
-const uiError = computed(() => registry.error.value || error.value || gate.error.value || '');
+const uiError = computed(() => registry.error.value || error.value || '');
 const processOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map(processValue)));
 const stateOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.state)));
 const locationOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.location)));
@@ -160,9 +164,31 @@ function formatRefreshTime() {
   return `Last synced: ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 }
 
-function stopWatcher() {
-  activeWatcherRoot.value = '';
-  gate.stopPolling();
+function gateResourceUri(path: string, root: string) {
+  if (!root) {
+    return `gate://${path}`;
+  }
+  return `gate://${path}?root=${encodeURIComponent(root)}`;
+}
+
+function parseResourcePayload<T>(content: ResourceContent): T {
+  const text = content.text;
+  if (!text) {
+    throw new Error(`Resource ${content.uri} returned no text payload.`);
+  }
+  return JSON.parse(text) as T;
+}
+
+function stopStatusWatch() {
+  stopStatusSubscription?.();
+  stopStatusSubscription = null;
+}
+
+function stopTaskDetailWatchers() {
+  stopTaskBodySubscription?.();
+  stopTaskBodySubscription = null;
+  stopTaskHistorySubscription?.();
+  stopTaskHistorySubscription = null;
 }
 
 async function loadTaskDetail(task: GateTask | null, options: { preserveExisting?: boolean; showLoading?: boolean } = {}) {
@@ -198,9 +224,15 @@ async function loadTaskDetail(task: GateTask | null, options: { preserveExisting
   const isCurrentRequest = () => requestId === detailRequestToken && selectedTaskId.value === task.taskId;
   const root = registry.selectedGateRoot.value;
 
-  const bodyRequest = gate.readTaskBody(task.taskId, root)
-    .then((taskBody) => {
+  stopTaskDetailWatchers();
+
+  const bodyUri = gateResourceUri(`task/${encodeURIComponent(task.taskId)}`, root);
+  const historyUri = gateResourceUri(`history/${encodeURIComponent(task.taskId)}`, root);
+
+  const bodyRequest = resources.readResource(bodyUri)
+    .then((resource) => {
       if (!isCurrentRequest()) return;
+      const taskBody = parseResourcePayload<GateTaskBody>(resource);
       selectedTaskBody.value = resolveTaskBodyContent(taskBody);
       detailBodyError.value = '';
     })
@@ -215,9 +247,10 @@ async function loadTaskDetail(task: GateTask | null, options: { preserveExisting
       }
     });
 
-  const historyRequest = gate.readTaskHistory(task.taskId, root)
-    .then((history) => {
+  const historyRequest = resources.readResource(historyUri)
+    .then((resource) => {
       if (!isCurrentRequest()) return;
+      const history = parseResourcePayload<GateTaskHistoryEntry[]>(resource);
       selectedTaskHistory.value = history;
       detailHistoryError.value = '';
     })
@@ -233,6 +266,19 @@ async function loadTaskDetail(task: GateTask | null, options: { preserveExisting
     });
 
   await Promise.allSettled([bodyRequest, historyRequest]);
+
+  if (isCurrentRequest()) {
+    try {
+      stopTaskBodySubscription = await resources.subscribeResource(bodyUri, () => {
+        void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
+      });
+      stopTaskHistorySubscription = await resources.subscribeResource(historyUri, () => {
+        void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
+      });
+    } catch {
+      // Resource subscriptions are best-effort; manual refresh still works.
+    }
+  }
 }
 
 function clearSelection() {
@@ -244,6 +290,7 @@ function clearSelection() {
   detailHistoryLoading.value = false;
   detailBodyError.value = '';
   detailHistoryError.value = '';
+  stopTaskDetailWatchers();
 }
 
 async function refreshSnapshot(background = false) {
@@ -262,7 +309,11 @@ async function refreshSnapshot(background = false) {
   error.value = '';
 
   try {
-    const nextSnapshot = await gate.loadSnapshot(root);
+    const statusUri = gateResourceUri('status', root);
+    const resource = await resources.readResource(statusUri);
+    const statusPayload = parseResourcePayload<GateTask[] | { tasks?: GateTask[] }>(resource);
+    const tasks = Array.isArray(statusPayload) ? statusPayload : statusPayload.tasks ?? [];
+    const nextSnapshot = createGateSnapshot(root, tasks);
     if (requestId !== snapshotRequestToken || registry.selectedGateRoot.value !== root) {
       return;
     }
@@ -285,16 +336,20 @@ async function refreshSnapshot(background = false) {
   }
 }
 
-async function startWatcher(root: string) {
+async function startStatusWatch(root: string) {
   if (!root) {
-    stopWatcher();
+    stopStatusWatch();
     return;
   }
-  if (activeWatcherRoot.value === root) return;
-
-  stopWatcher();
-  activeWatcherRoot.value = root;
-  gate.startPolling(root, () => refreshSnapshot(true));
+  stopStatusWatch();
+  const statusUri = gateResourceUri('status', root);
+  try {
+    stopStatusSubscription = await resources.subscribeResource(statusUri, () => {
+      void refreshSnapshot(true);
+    });
+  } catch {
+    // Resource subscriptions are best-effort; manual refresh still works.
+  }
 }
 
 async function handleTaskSelect(task: GateTask) {
@@ -323,7 +378,7 @@ async function handleRemoveCurrentGate() {
 watch(() => registry.selectedGateRoot.value, async (root) => {
   selectedTaskId.value = '';
   await refreshSnapshot();
-  await startWatcher(root);
+  await startStatusWatch(root);
 }, { immediate: true });
 
 watch(processOptions, (options) => { if (selectedProcess.value !== 'all' && !options.includes(selectedProcess.value)) selectedProcess.value = 'all'; });
@@ -342,8 +397,8 @@ watch([() => provenance.pendingGateTaskId, snapshot], async ([pendingTaskId]) =>
 });
 
 onBeforeUnmount(() => {
-  stopWatcher();
-  void gate.disconnect();
+  stopStatusWatch();
+  stopTaskDetailWatchers();
 });
 </script>
 

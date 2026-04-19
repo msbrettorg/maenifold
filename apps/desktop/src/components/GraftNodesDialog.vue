@@ -19,10 +19,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
-import ToolPaletteFields from './ToolPaletteFields.vue';
+import GraftNodesDialogTypeFields from './GraftNodesDialogTypeFields.vue';
 
 const props = defineProps<{
   existingNodeIds: string[];
@@ -67,16 +66,12 @@ const NO_EDGE_VALUE = '__none__';
 
 const connectFromValue = computed({
   get: () => connectFrom.value || NO_EDGE_VALUE,
-  set: (value: string) => {
-    connectFrom.value = value === NO_EDGE_VALUE ? '' : value;
-  },
+  set: (value: string) => { connectFrom.value = value === NO_EDGE_VALUE ? '' : value; },
 });
 
 const connectToValue = computed({
   get: () => connectTo.value || NO_EDGE_VALUE,
-  set: (value: string) => {
-    connectTo.value = value === NO_EDGE_VALUE ? '' : value;
-  },
+  set: (value: string) => { connectTo.value = value === NO_EDGE_VALUE ? '' : value; },
 });
 </script>
 
@@ -166,115 +161,23 @@ const connectToValue = computed({
         </div>
 
         <div class="form-grid">
-          <template v-if="nodeType === 'workflow'">
-            <div class="form-field">
-              <Label for="graft-workflow-id">Workflow ID</Label>
-              <Input
-                id="graft-workflow-id"
-                :model-value="workflowId"
-                :list="workflowListId"
-                type="text"
-                placeholder="Workflow ID"
-                @update:model-value="(val: string | number) => workflowId = String(val).trim()"
-              />
-            </div>
-            <datalist :id="workflowListId">
-              <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
-            </datalist>
-            <div class="form-field">
-              <Label for="graft-workflow-agent">Agent</Label>
-              <Input
-                id="graft-workflow-agent"
-                :model-value="workflowAgent"
-                type="text"
-                placeholder="Optional workflow agent"
-                @update:model-value="(val: string | number) => workflowAgent = String(val).trim()"
-              />
-            </div>
-            <div class="form-field field-wide">
-              <Label for="graft-workflow-prompt">Prompt</Label>
-              <Textarea
-                id="graft-workflow-prompt"
-                :model-value="workflowPrompt"
-                class="graft-textarea"
-                rows="3"
-                placeholder="Optional workflow prompt"
-                @update:model-value="(val: string | number) => workflowPrompt = String(val).trim()"
-              />
-            </div>
-          </template>
-
-          <template v-else-if="nodeType === 'prompt'">
-            <div class="form-field">
-              <Label for="graft-prompt-agent">Agent</Label>
-              <Input
-                id="graft-prompt-agent"
-                :model-value="promptAgent"
-                type="text"
-                placeholder="Agent name"
-                @update:model-value="(val: string | number) => promptAgent = String(val).trim()"
-              />
-            </div>
-            <div class="form-field field-wide">
-              <Label for="graft-prompt-template">Prompt</Label>
-              <Textarea
-                id="graft-prompt-template"
-                :model-value="promptTemplate"
-                class="graft-textarea"
-                rows="4"
-                placeholder="Required prompt template"
-                @update:model-value="(val: string | number) => promptTemplate = String(val).trim()"
-              />
-            </div>
-          </template>
-
-          <template v-else-if="nodeType === 'sequentialThinking'">
-            <div class="form-field">
-              <Label for="graft-thinking-topic">Topic</Label>
-              <Input
-                id="graft-thinking-topic"
-                :model-value="thinkingTopic"
-                type="text"
-                placeholder="Topic"
-                @update:model-value="(val: string | number) => thinkingTopic = String(val).trim()"
-              />
-            </div>
-            <div class="form-field">
-              <Label for="graft-thinking-agent">Agent</Label>
-              <Input
-                id="graft-thinking-agent"
-                :model-value="thinkingAgent"
-                type="text"
-                placeholder="Agent name"
-                @update:model-value="(val: string | number) => thinkingAgent = String(val).trim()"
-              />
-            </div>
-            <div class="form-field">
-              <Label for="graft-thinking-total-thoughts">Total thoughts</Label>
-              <Input id="graft-thinking-total-thoughts" v-model="thinkingTotalThoughts" type="number" min="1" inputmode="numeric" placeholder="5" />
-            </div>
-            <div class="form-field">
-              <Label for="graft-thinking-analysis-type">Analysis type</Label>
-              <Input
-                id="graft-thinking-analysis-type"
-                :model-value="thinkingAnalysisType"
-                type="text"
-                placeholder="Optional analysis type"
-                @update:model-value="(val: string | number) => thinkingAnalysisType = String(val).trim()"
-              />
-            </div>
-          </template>
-
-          <template v-else>
-            <ToolPaletteFields
-              :active="nodeType === 'tool'"
-              :tool-name="toolName"
-              :tool-args="toolArgs"
-              @update:tool-name="toolName = $event"
-              @update:tool-args="toolArgs = $event"
-              @validation="toolArgsValid = $event.valid"
-            />
-          </template>
+          <GraftNodesDialogTypeFields
+            v-model:workflow-id="workflowId"
+            v-model:workflow-agent="workflowAgent"
+            v-model:workflow-prompt="workflowPrompt"
+            v-model:prompt-agent="promptAgent"
+            v-model:prompt-template="promptTemplate"
+            v-model:thinking-topic="thinkingTopic"
+            v-model:thinking-agent="thinkingAgent"
+            v-model:thinking-total-thoughts="thinkingTotalThoughts"
+            v-model:thinking-analysis-type="thinkingAnalysisType"
+            v-model:tool-name="toolName"
+            v-model:tool-args="toolArgs"
+            v-model:tool-args-valid="toolArgsValid"
+            :node-type="nodeType"
+            :workflows="workflows"
+            :workflow-list-id="workflowListId"
+          />
         </div>
 
         <p class="existing-nodes"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
@@ -333,23 +236,6 @@ const connectToValue = computed({
   min-width: 0;
   color: var(--text-dim);
   font-size: 0.75rem;
-}
-
-.field-wide {
-  grid-column: 1 / -1;
-}
-
-.field-block {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  color: var(--text-dim);
-  font-size: 0.75rem;
-}
-
-.graft-textarea {
-  resize: vertical;
-  min-height: 5rem;
 }
 
 .existing-nodes,

@@ -7,6 +7,7 @@ Generates Mermaid diagrams of concept relationships from `~/maenifold/memory.db`
 - `conceptName` (string, required): Central concept (NOT a file). Example: `"machine-learning"`
 - `depth` (int, optional): Graph traversal depth, 1-5 (default: 2)
 - `maxNodes` (int, optional): Max nodes in diagram, 5-100 (default: 30)
+- `format` (string, optional): Output mode — `"mermaid"` (default) or `"graph"`
 
 ## Returns
 
@@ -17,7 +18,22 @@ graph TD
     neural_networks -->|6| backpropagation
 ```
 
-Mermaid syntax ready for rendering. Edge weights show co-occurrence counts.
+`format="mermaid"` returns Mermaid syntax ready for rendering. Edge weights show co-occurrence counts.
+
+`format="graph"` returns structured JSON for graph UIs:
+
+```json
+{
+  "center": "machine-learning",
+  "nodes": [
+    { "id": "machine-learning", "label": "machine-learning", "depth": 0 },
+    { "id": "neural-networks", "label": "neural-networks", "depth": 1 }
+  ],
+  "edges": [
+    { "source": "machine-learning", "target": "neural-networks", "weight": 12 }
+  ]
+}
+```
 
 ## Example
 
@@ -25,7 +41,8 @@ Mermaid syntax ready for rendering. Edge weights show co-occurrence counts.
 {
   "conceptName": "GraphRAG",
   "depth": 1,
-  "maxNodes": 15
+  "maxNodes": 15,
+  "format": "graph"
 }
 ```
 

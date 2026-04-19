@@ -3,8 +3,15 @@ import { DEFAULT_MCP_BASE_URL, MCP_PROTOCOL_VERSION } from '../lib/constants';
 import { getApiBase } from '../lib/api-base';
 import { getHttpFetch } from '../lib/http';
 import type {
+  JsonRpcNotification,
   JsonRpcRequest,
   JsonRpcResponse,
+  ResourceContent,
+  ResourceDescriptor,
+  ResourceTemplatesListResult,
+  ResourceTemplateDescriptor,
+  ResourcesListResult,
+  ResourcesReadResult,
   ToolCallResult,
   ToolDefinition,
   ToolsListResult,
@@ -16,16 +23,36 @@ function resolveMcpUrl(baseUrl?: string) {
   return resolvedBase.endsWith('/mcp') ? resolvedBase : `${resolvedBase}/mcp`;
 }
 
+interface McpServerCapabilities {
+  resources?: {
+    subscribe?: boolean;
+    listChanged?: boolean;
+  };
+  [key: string]: unknown;
+}
+
+interface InitializeResult {
+  protocolVersion?: string;
+  capabilities?: McpServerCapabilities;
+  serverInfo?: {
+    name?: string;
+    version?: string;
+  };
+}
+
 export function useMcpClient(baseUrl?: string) {
   const sessionId = ref<string | null>(null);
   const connected = ref(false);
   const reconnecting = ref(false);
   const error = ref<string | null>(null);
+  const serverCapabilities = ref<McpServerCapabilities | null>(null);
 
   const mcpUrl = resolveMcpUrl(baseUrl);
   let nextId = 1;
   let reconnectPromise: Promise<void> | null = null;
   let disconnectRequested = false;
+  const notificationListeners = new Set<(notification: JsonRpcNotification) => void>();
+  const disconnectListeners = new Set<() => void>();
 
   function buildHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
@@ -43,8 +70,15 @@ export function useMcpClient(baseUrl?: string) {
   }
 
   function resetState() {
+    const hadActiveSession = connected.value || sessionId.value !== null;
     sessionId.value = null;
     connected.value = false;
+    serverCapabilities.value = null;
+    if (hadActiveSession) {
+      disconnectListeners.forEach((listener) => {
+        listener();
+      });
+    }
   }
 
   function createHttpError(method: string, status: number): Error {
@@ -145,7 +179,11 @@ export function useMcpClient(baseUrl?: string) {
 
       let payload: JsonRpcResponse<T>;
       try {
-        payload = await parseJsonRpcResponse<T>(response, method, request.id);
+        payload = await parseJsonRpcResponse<T>(response, method, request.id, (notification) => {
+          notificationListeners.forEach((listener) => {
+            listener(notification);
+          });
+        });
       } catch (err: unknown) {
         error.value = getErrorMessage(err);
         throw new Error(error.value);
@@ -167,7 +205,7 @@ export function useMcpClient(baseUrl?: string) {
     resetState();
 
     try {
-      const { response } = await jsonRpc('initialize', {
+      const { response, result } = await jsonRpc<InitializeResult>('initialize', {
         protocolVersion: MCP_PROTOCOL_VERSION,
         capabilities: {},
         clientInfo: { name: 'pipeline-ui', version: '0.1.0' },
@@ -175,6 +213,7 @@ export function useMcpClient(baseUrl?: string) {
 
       const headerSessionId = response.headers.get('Mcp-Session-Id');
       sessionId.value = headerSessionId;
+      serverCapabilities.value = result?.capabilities ?? null;
 
       try {
         await jsonRpc('notifications/initialized', undefined, {
@@ -279,9 +318,61 @@ export function useMcpClient(baseUrl?: string) {
   async function listTools(): Promise<ToolDefinition[]> {
     error.value = null;
     await ensureConnectedSession();
- 
+  
     const { result } = await jsonRpc<ToolsListResult>('tools/list');
     return result?.tools ?? [];
+  }
+
+  async function readResource(uri: string): Promise<ResourceContent> {
+    error.value = null;
+    await ensureConnectedSession();
+
+    const { result } = await jsonRpc<ResourcesReadResult>('resources/read', { uri });
+    return result?.contents?.[0] ?? { uri };
+  }
+
+  async function subscribeResource(uri: string): Promise<void> {
+    error.value = null;
+    await ensureConnectedSession();
+    await jsonRpc('resources/subscribe', { uri });
+  }
+
+  async function unsubscribeResource(uri: string): Promise<void> {
+    error.value = null;
+    await ensureConnectedSession();
+    await jsonRpc('resources/unsubscribe', { uri });
+  }
+
+  async function listResources(): Promise<ResourceDescriptor[]> {
+    error.value = null;
+    await ensureConnectedSession();
+    const { result } = await jsonRpc<ResourcesListResult>('resources/list');
+    return result?.resources ?? [];
+  }
+
+  async function listResourceTemplates(): Promise<ResourceTemplateDescriptor[]> {
+    error.value = null;
+    await ensureConnectedSession();
+    const { result } = await jsonRpc<ResourceTemplatesListResult>('resources/templates/list');
+    return result?.resourceTemplates ?? [];
+  }
+
+  function supportsResourceSubscribe(): boolean {
+    return serverCapabilities.value?.resources?.subscribe === true;
+  }
+
+  function onNotification(handler: (notification: JsonRpcNotification) => void): () => void {
+    notificationListeners.add(handler);
+    return () => {
+      notificationListeners.delete(handler);
+    };
+  }
+
+  function onDisconnect(handler: () => void): () => void {
+    disconnectListeners.add(handler);
+    return () => {
+      disconnectListeners.delete(handler);
+    };
   }
 
   return {
@@ -289,9 +380,18 @@ export function useMcpClient(baseUrl?: string) {
     connected: readonly(connected),
     reconnecting: readonly(reconnecting),
     error: readonly(error),
+    serverCapabilities: readonly(serverCapabilities),
     connect,
     disconnect,
     callTool,
     listTools,
+    readResource,
+    subscribeResource,
+    unsubscribeResource,
+    listResources,
+    listResourceTemplates,
+    supportsResourceSubscribe,
+    onNotification,
+    onDisconnect,
   };
 }

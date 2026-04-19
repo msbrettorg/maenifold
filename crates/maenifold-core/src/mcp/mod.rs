@@ -41,7 +41,7 @@ use crate::util::json::OutputFormat;
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
     ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
-    Tool,
+    SubscribeRequestParams, Tool, UnsubscribeRequestParams,
 };
 use rmcp::{ServerHandler, ServiceExt};
 use serde::Serialize;
@@ -88,6 +88,7 @@ impl ServerHandler for MaenifoldHandler {
             TransportKind::Stdio => ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                .enable_resources_subscribe()
                 // T-10.3: RTM FR-11 / RTM-071 — advertise MCP resource list change
                 // notifications so clients know to expect notifications/resources/list_changed.
                 .enable_resources_list_changed()
@@ -95,6 +96,7 @@ impl ServerHandler for MaenifoldHandler {
             TransportKind::Http => ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
+                .enable_resources_subscribe()
                 .build(),
         };
 
@@ -149,6 +151,22 @@ impl ServerHandler for MaenifoldHandler {
                 .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
                 .map_err(self::resources::map_resource_error)
         }
+    }
+
+    fn subscribe(
+        &self,
+        request: SubscribeRequestParams,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
+        std::future::ready(self::resources::handle_subscribe(&request.uri, &context))
+    }
+
+    fn unsubscribe(
+        &self,
+        request: UnsubscribeRequestParams,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
+        std::future::ready(self::resources::handle_unsubscribe(&request.uri, &context))
     }
 
     // T-5.1: RTM FR-22.1 — tools/call dispatches through ToolRegistry.

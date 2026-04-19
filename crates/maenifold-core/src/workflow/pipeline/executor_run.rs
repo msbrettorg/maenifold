@@ -11,8 +11,8 @@ use crate::registry::ToolRegistry;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
-use super::super::agent_session::{AgentSession, open_agent_session};
 use super::super::adoption::require_adopted_role;
+use super::super::agent_session::{AgentSession, open_agent_session};
 use super::super::runner::{self, AgentSessionConfig, WorkflowRunStatus};
 use super::super::think_runner::decode_think_failure;
 use super::executor_helpers::{MAX_CONCLUSION_CHARS, truncate_chars};

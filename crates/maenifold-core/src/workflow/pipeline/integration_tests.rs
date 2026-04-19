@@ -386,7 +386,10 @@ async fn timeout_is_terminal_even_with_retry_policy_node_abandons_without_retryi
     let node_states = read_raw_node_states(&context, session_id);
     let state = &node_states["sleep-node"];
     assert_eq!(state.status, NodeStatus::Abandoned);
-    let reason = state.failure_reason.as_deref().expect("timeout failure reason");
+    let reason = state
+        .failure_reason
+        .as_deref()
+        .expect("timeout failure reason");
     assert!(
         reason.contains("timeout after"),
         "expected timeout marker in failure reason, got: {reason}"

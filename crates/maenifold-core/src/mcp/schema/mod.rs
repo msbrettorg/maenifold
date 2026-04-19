@@ -1,6 +1,8 @@
 mod assumption_params;
 mod assumption_tools;
 mod graph_params;
+#[cfg(test)]
+mod graph_params_tests;
 mod graph_tools;
 mod memory_params;
 mod memory_tools;

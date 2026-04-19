@@ -7,10 +7,10 @@ use crate::error::MaenifoldError;
 use crate::util::json::OutputFormat;
 
 use super::super::executor_helpers::DispatchedNode;
+use super::super::executor_nodes_cwd::resolve_node_cwd;
 use super::super::executor_run::run_tool_node;
 use super::super::test_support::pipeline_test_context;
 use super::super::types::NodeStatus;
-use super::super::executor_nodes_cwd::resolve_node_cwd;
 use super::super::{NodeState, PipelineDefinition, PipelineNode};
 use super::*;
 
@@ -690,8 +690,7 @@ fn resolve_node_cwd_relative_valid_dir() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let sub = context.config.maenifold_root.join("rel_child");
     fs::create_dir_all(&sub).expect("create sub dir");
-    let result =
-        resolve_node_cwd(&context, Some(Path::new("rel_child"))).expect("should resolve");
+    let result = resolve_node_cwd(&context, Some(Path::new("rel_child"))).expect("should resolve");
     assert_eq!(result, sub.canonicalize().unwrap());
 }
 
@@ -732,8 +731,8 @@ fn resolve_node_cwd_relative_traversal_resolves() {
         .expect("root parent")
         .join("sibling-project");
     fs::create_dir_all(&sibling).expect("create sibling dir");
-    let result = resolve_node_cwd(&context, Some(Path::new("../sibling-project")))
-        .expect("should resolve");
+    let result =
+        resolve_node_cwd(&context, Some(Path::new("../sibling-project"))).expect("should resolve");
     let expected = sibling.canonicalize().unwrap();
     assert_eq!(result, expected);
 }

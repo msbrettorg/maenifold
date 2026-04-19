@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { useSessionStore } from '../stores/session';
+import { useAgentStore } from '../stores/agent';
 import { useMermaid } from '../composables/useMermaid';
 import { isAbsolutePath } from '../lib/acp-meta';
 import { getDaemonUrl } from '../lib/daemon-url';
@@ -13,6 +14,7 @@ type PendingAttachment = { id: string; kind: 'image' | 'audio'; label: string; b
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
+const agentStore = useAgentStore();
 const { renderMermaidBlocks } = useMermaid();
 const inputText = ref('');
 const activeCommandHint = ref<string | null>(null);
@@ -36,6 +38,23 @@ const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? '
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? 'Type your message...');
+const agentSessionStatus = computed(() => {
+  if (
+    currentSession.value?.sessionId
+    && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
+    && agentStore.selectedSession
+  ) {
+    return agentStore.selectedSession.status;
+  }
+  return null;
+});
+const agentSessionStatusLabel = computed(() => {
+  const status = agentSessionStatus.value;
+  if (!status) return '';
+  if (status === 'resumable') return 'resumable';
+  if (status === 'listed') return 'listed';
+  return status;
+});
 const expandedThoughtIds = computed(() => Array.from(expandedThoughts.value));
 const expandedToolCallIds = computed(() => Array.from(expandedToolCalls.value));
 watch(messages, async () => {
@@ -45,6 +64,19 @@ watch(messages, async () => {
   if (!isLoading.value) await renderMermaidBlocks(messagesContainer.value);
 }, { deep: true });
 onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); });
+onMounted(() => {
+  void agentStore.start();
+});
+onBeforeUnmount(() => {
+  void agentStore.stop();
+});
+watch(
+  () => currentSession.value?.sessionId ?? null,
+  (sessionId) => {
+    void agentStore.refreshSelectedSession(sessionId);
+  },
+  { immediate: true },
+);
 watch(inputText, (text) => { if (!text.startsWith('/')) activeCommandHint.value = null; });
 function setInputText(value: string): void { inputText.value = value; }
 
@@ -175,7 +207,10 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
           :option="option"
           @change="handleConfigOptionChange"
         />
-        <span class="agent-name">{{ currentSession?.agentName }}</span>
+        <span class="agent-name">
+          {{ currentSession?.agentName }}
+          <span v-if="agentSessionStatusLabel" class="agent-status">({{ agentSessionStatusLabel }})</span>
+        </span>
       </div>
     </div>
 

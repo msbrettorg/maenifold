@@ -71,7 +71,9 @@ where
     Fut: std::future::Future<Output = std::result::Result<NodeOutcome, RetryExecutionError>>,
 {
     let mut retry_attempts = initial_retry_attempts;
-    let remaining_attempts = retry_policy.max_attempts.saturating_sub(initial_retry_attempts);
+    let remaining_attempts = retry_policy
+        .max_attempts
+        .saturating_sub(initial_retry_attempts);
     if remaining_attempts == 0 {
         return match operation().await {
             Ok(outcome) => (outcome, retry_attempts),

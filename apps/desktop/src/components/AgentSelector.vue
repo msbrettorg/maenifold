@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
+import { useAgentStore } from '../stores/agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
 import AgentProbePreview from './AgentProbePreview.vue';
@@ -18,6 +19,7 @@ const emit = defineEmits<{
 }>();
 
 const configStore = useConfigStore();
+const agentStore = useAgentStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
 
 const selectedAgent = defineModel<string>('selected', { default: '' });
@@ -30,6 +32,21 @@ const selectedProbe = computed(() =>
 const selectedProbeLoading = computed(
   () => Boolean(selectedAgent.value) && !selectedProbe.value && capabilitiesStore.probeStatus === 'probing',
 );
+const activeSessionCountByAgent = computed(() => {
+  const counts = new Map<string, number>();
+  for (const session of agentStore.activeSessions) {
+    counts.set(session.agentName, (counts.get(session.agentName) ?? 0) + 1);
+  }
+  return counts;
+});
+
+onMounted(() => {
+  void agentStore.start();
+});
+
+onBeforeUnmount(() => {
+  void agentStore.stop();
+});
 
 watch(agents, (newAgents) => {
   if (newAgents.length === 0) {
@@ -61,11 +78,13 @@ function getProbe(agentName: string) {
 }
 
 function formatAgentOptionLabel(agentName: string): string {
+  const activeCount = activeSessionCountByAgent.value.get(agentName) ?? 0;
+  const activeSuffix = activeCount > 0 ? ` (${activeCount} active)` : '';
   const probe = getProbe(agentName);
-  if (!probe) return agentName;
-  if (probe.state === 'offline') return `${agentName} — offline`;
-  if (probe.error) return `${agentName} — probe failed`;
-  return agentName;
+  if (!probe) return `${agentName}${activeSuffix}`;
+  if (probe.state === 'offline') return `${agentName} — offline${activeSuffix}`;
+  if (probe.error) return `${agentName} — probe failed${activeSuffix}`;
+  return `${agentName}${activeSuffix}`;
 }
 </script>
 

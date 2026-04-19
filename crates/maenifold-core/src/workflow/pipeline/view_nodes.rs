@@ -366,7 +366,10 @@ mod tests {
         assert_eq!(think["provenance"]["detail"]["canReconnect"], true);
         assert_eq!(think["provenance"]["detail"]["adoption"]["role"], "none");
         assert_eq!(think["provenance"]["detail"]["adoption"]["color"], "none");
-        assert_eq!(think["provenance"]["detail"]["adoption"]["perspective"], "none");
+        assert_eq!(
+            think["provenance"]["detail"]["adoption"]["perspective"],
+            "none"
+        );
 
         let tool = nodes
             .iter()
@@ -386,6 +389,9 @@ mod tests {
         assert_eq!(tool["provenance"]["detail"]["canReconnect"], false);
         assert_eq!(tool["provenance"]["detail"]["adoption"]["role"], "none");
         assert_eq!(tool["provenance"]["detail"]["adoption"]["color"], "none");
-        assert_eq!(tool["provenance"]["detail"]["adoption"]["perspective"], "none");
+        assert_eq!(
+            tool["provenance"]["detail"]["adoption"]["perspective"],
+            "none"
+        );
     }
 }

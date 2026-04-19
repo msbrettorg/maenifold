@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import { Button } from '@/components/ui/button';
 import { useSessionStore } from '../stores/session';
+import { useAgentStore } from '../stores/agent';
 import type { SavedSession } from '../lib/types';
 
 const emit = defineEmits<{
@@ -10,6 +11,7 @@ const emit = defineEmits<{
 }>();
 
 const sessionStore = useSessionStore();
+const agentStore = useAgentStore();
 
 const sessions = computed(() => 
   [...sessionStore.savedSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
@@ -37,6 +39,14 @@ const liveSessionsByRemoteId = computed(() => {
   }
 
   return liveSessions;
+});
+
+onMounted(() => {
+  void agentStore.start();
+});
+
+onBeforeUnmount(() => {
+  void agentStore.stop();
 });
 
 function formatRelative(dateStr: string | number): string {
@@ -85,6 +95,10 @@ function isCurrentConnectedSession(session: SavedSession): boolean {
 
 function isCurrentConnectingSession(session: SavedSession): boolean {
   return liveSessionsByRemoteId.value.get(session.sessionId)?.isConnecting ?? false;
+}
+
+function hasActiveAgentSession(session: SavedSession): boolean {
+  return agentStore.activeSessionMap.has(session.sessionId);
 }
 
 function isResumeUnavailable(session: SavedSession): boolean {
@@ -156,13 +170,19 @@ async function handleDelete(session: SavedSession, event: Event) {
             </span>
             <span
               v-if="isCurrentConnectedSession(session)"
+                class="connection-state connected inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+              >
+                <span class="connection-dot" aria-hidden="true" />Connected
+              </span>
+            <span
+              v-else-if="hasActiveAgentSession(session)"
                class="connection-state connected inline-flex items-center gap-1 whitespace-nowrap text-tiny"
              >
-               <span class="connection-dot" aria-hidden="true" />Connected
+               <span class="connection-dot" aria-hidden="true" />Active
              </span>
             <span
               v-else-if="isCurrentConnectingSession(session)"
-               class="connection-state connecting inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+                class="connection-state connecting inline-flex items-center gap-1 whitespace-nowrap text-tiny"
              >
                <span class="connection-dot" aria-hidden="true" />Connecting
              </span>

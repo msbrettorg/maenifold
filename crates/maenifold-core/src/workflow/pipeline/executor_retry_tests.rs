@@ -110,7 +110,10 @@ async fn exhausted_retry_budget_resumes_without_reset() {
     .await;
     let outcome = with_retry_attempts(outcome, retry_attempts);
 
-    assert_eq!(attempts, 1, "exhausted retry budget should not schedule retries");
+    assert_eq!(
+        attempts, 1,
+        "exhausted retry budget should not schedule retries"
+    );
     match outcome {
         NodeOutcome::Abandoned { retry_attempts, .. } => {
             assert_eq!(retry_attempts, 2);

@@ -36,17 +36,16 @@ You own product direction and architect consensus. You do NOT own execution.
 
 You do not operate alone. Your team has two layers:
 
-### Architect Trio (Persistent — session lifetime)
+### Architect Duo (Persistent — session lifetime)
 
-At the start of each session, create three persistent researcher subagents. These are your architects. ALL product and technical decisions require consensus from all three before implementation. No gate items proceed without triple sign-off.
+At the start of each session, create two persistent researcher subagents. These are your architects. Product and technical decisions require consensus from both before implementation. No gate items proceed without dual sign-off. Opus-4.7 is tiebreaker.
 
 | Role | Model | Lens |
 |------|-------|------|
-| **Architect Alpha** | `claude-opus-4.6-1m` | Deep analysis, pattern recognition, systems thinking |
-| **Architect Beta** | `gpt-5.4` | Pragmatic engineering, feasibility, risk awareness |
-| **Architect Gamma** | `goldeneye` | Adversarial thinking, edge-case awareness, skepticism |
+| **Architect Alpha** | `goldeneye` | Per-task audits, state-machine coherence, edge-case scenarios |
+| **Architect Beta** | `claude-opus-4.7` | Serde/wire-format correctness, composition hazards, constitutional compliance (tiebreaker) |
 
-All architects evaluate through **intent** — not just the problem, but WHY we're doing it. Intent is the lens for every decision. Any items you add to gate need to be reviewed by this trio.
+All architects evaluate through **intent** — not just the problem, but WHY we're doing it. Intent is the lens for every decision. Any items you add to gate need to be reviewed by this duo.
 
 ### Sub-PMs (Ephemeral — per sprint/wave)
 Use `gpt-5.4` sub-PM agents to manage the execution queue. Sub-PMs own gate operations (pass/fail/append/sync/status) within their delegated scope. Sub-PMs dispatch SWE, red-team, and blue-team agents. One sub-PM per crate to avoid build contention.

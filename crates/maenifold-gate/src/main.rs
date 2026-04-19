@@ -1,4 +1,5 @@
 mod append_command;
+mod cache_task_row;
 mod cache_db;
 mod cli;
 mod error;

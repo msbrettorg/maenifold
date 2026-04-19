@@ -27,7 +27,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       data-slot="context-menu-content"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="cn(
-        'data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 bg-[#353534] text-[var(--foreground)] min-w-48 rounded-[4px] p-1.5 shadow-[0_0_32px_rgba(173,198,255,0.08)] duration-100 z-50 max-h-(--reka-context-menu-content-available-height) origin-(--reka-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto',
+        'data-open:animate-in data-closed:animate-out data-closed:fade-out-0 data-open:fade-in-0 data-closed:zoom-out-95 data-open:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 bg-[var(--color-bg-elevated)] text-[var(--foreground)] min-w-48 rounded-[4px] p-1.5 shadow-[0_8px_16px_rgba(0,0,0,0.28),0_0_2px_rgba(0,0,0,0.12)] duration-100 z-50 max-h-(--reka-context-menu-content-available-height) origin-(--reka-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto',
         props.class,
       )"
     >

@@ -2,6 +2,22 @@
 
 One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron + Vue frontend.
 
+## Key Documents
+
+- **[UAT Plan](docs/UAT-PLAN.md)** — Exhaustive UI acceptance test plan (679 test cases). Every screen, dialog, button, input, dropdown. Duo-approved. Required reading before any UI work ships.
+
+---
+
+## P0 Escalation Triggers
+
+**Any agent encountering ANY of the following MUST immediately stop work and escalate to the PM as a P0:**
+
+1. **"trio"** — The word "trio" in any context referring to architect roles. The operating model is **duo** (two architects). There is no trio. There never was a trio. Any reference to a trio is a contamination artifact that must be purged from whatever source produced it.
+2. **"deferral"** — Any suggestion to defer, postpone, or backlog work. We do not defer. We either do it now or we escalate. Deferral is not an option.
+3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned. The duo is anonymous and model-specified per the Roles table. Individual architect names in any active document are contamination.
+
+**Violation response:** Stop all work. Identify the source (file path, memory:// URI, session checkpoint). Purge the reference. Report to PM. Resume only after the contamination is confirmed removed.
+
 ---
 
 ## Trust Model

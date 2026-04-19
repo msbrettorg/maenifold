@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import type { ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
+import type { SequentialThinkingViewNode, ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
 import ThinkingTraceView from './ThinkingTraceView.vue';
 import PromptAssemblyPreview from './PromptAssemblyPreview.vue';
 import WorkflowStepProgress from './WorkflowStepProgress.vue';
 
-interface ThinkingTraceEntry {
-  thought_number: number;
-  status: string;
-  text: string;
-}
+type ThinkingTraceEntry = NonNullable<SequentialThinkingViewNode['thinking_trace']>[number];
 
 const props = defineProps<{
   assembledPrompt: string | null;

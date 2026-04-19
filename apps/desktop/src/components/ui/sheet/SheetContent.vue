@@ -7,7 +7,7 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import SheetClose from './SheetClose.vue'
 
 const sheetVariants = cva(
-  'fixed z-50 gap-4 bg-background p-6 shadow-[0_0_32px_rgba(173,198,255,0.08)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out',
+  'fixed z-50 gap-4 bg-background p-6 shadow-[0_8px_16px_rgba(0,0,0,0.28),0_0_2px_rgba(0,0,0,0.12)] transition ease-in-out data-[state=closed]:duration-300 data-[state=open]:duration-500 data-[state=open]:animate-in data-[state=closed]:animate-out',
   {
     variants: {
       side: {
@@ -56,7 +56,7 @@ const forwarded = useForwardPropsEmits(
       <slot />
       <SheetClose
         v-if="props.showCloseButton ?? true"
-        class="absolute right-4 top-4 rounded-[4px] text-[var(--text-dim)] opacity-100 transition-colors hover:bg-[#2a2a2a] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none"
+        class="absolute right-4 top-4 rounded-[4px] text-[var(--text-dim)] opacity-100 transition-colors hover:bg-[var(--color-bg-surface)] hover:text-[var(--foreground)] focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none"
       >
         <span class="sr-only">Close</span>
       </SheetClose>

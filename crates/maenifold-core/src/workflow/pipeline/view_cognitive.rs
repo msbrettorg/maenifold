@@ -14,7 +14,7 @@ use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
 static THOUGHT_HEADING_RE: LazyLock<Option<Regex>> = LazyLock::new(|| {
     Regex::new(
-        r"^Thought (\d+)/(\d+) \[([^\]]*)\](?:\s*\(Revises:\s*(\d+)\)|\s*\(Branch:\s*([^)]+)\))?$",
+        r"^Thought (\d+)/(\d+)(?: \[([^\]]*)\])?(?:\s*\(Revises:\s*(\d+)\)|\s*\(Branch:\s*([^)]+)\))?$",
     )
     .ok()
 });
@@ -109,14 +109,13 @@ pub(super) fn parse_thinking_trace(context: &ToolContext, session_id: &str) -> O
         &context.config,
     )
     .ok()?;
-    let sections = extract_h2_sections(&content);
 
     let thought_heading_re = THOUGHT_HEADING_RE.as_ref()?;
+    let sections = extract_thought_sections(&content, thought_heading_re);
 
     Some(
         sections
             .iter()
-            .filter(|(heading, _)| !heading.starts_with("Conclusion"))
             .filter_map(|(heading, body)| {
                 let caps = thought_heading_re.captures(heading)?;
                 let thought_number: u64 = caps.get(1)?.as_str().parse().ok()?;
@@ -137,6 +136,41 @@ pub(super) fn parse_thinking_trace(context: &ToolContext, session_id: &str) -> O
             })
             .collect(),
     )
+}
+
+fn extract_thought_sections(content: &str, thought_heading_re: &Regex) -> Vec<(String, String)> {
+    let mut sections = Vec::new();
+    let mut current_heading: Option<String> = None;
+    let mut current_body: Vec<String> = Vec::new();
+
+    for line in content.lines() {
+        let heading = line.trim_start().strip_prefix("## ").map(str::trim);
+        match heading {
+            Some(heading_text) if thought_heading_re.is_match(heading_text) => {
+                if let Some(previous_heading) = current_heading.replace(heading_text.to_string()) {
+                    sections.push((previous_heading, current_body.join("\n").trim().to_string()));
+                    current_body.clear();
+                }
+            }
+            Some(heading_text) if heading_text.starts_with("Conclusion") => {
+                if let Some(previous_heading) = current_heading.take() {
+                    sections.push((previous_heading, current_body.join("\n").trim().to_string()));
+                }
+                current_body.clear();
+            }
+            _ => {
+                if current_heading.is_some() {
+                    current_body.push(line.to_string());
+                }
+            }
+        }
+    }
+
+    if let Some(heading) = current_heading {
+        sections.push((heading, current_body.join("\n").trim().to_string()));
+    }
+
+    sections
 }
 
 fn resolve_thinking_session_uri(context: &ToolContext, session_id: &str) -> Option<String> {

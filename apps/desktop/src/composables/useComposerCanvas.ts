@@ -1,4 +1,5 @@
 import { computed, markRaw, nextTick, ref, watch } from 'vue';
+import type { Ref } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 import type { Connection, Edge, Node } from '@vue-flow/core';
 
@@ -24,6 +25,7 @@ type UseComposerCanvasOptions = {
   designMode: () => boolean;
   localDefinition: () => PipelineDefinition | undefined;
   view: () => PipelineView | null | undefined;
+  layoutDirection?: Ref<'LR' | 'TB'>;
   updateDefinition: (definition: PipelineDefinition) => void;
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edge: SelectedEdge | null) => void;
@@ -34,11 +36,19 @@ type UseComposerCanvasOptions = {
 type Point = { x: number; y: number };
 type SelectableFlowElement = { selected?: boolean };
 
+type Direction = 'LR' | 'TB';
+
+const DIRECTION_HANDLES: Record<Direction, { source: string; target: string }> = {
+  LR: { source: 'out-right', target: 'in-left' },
+  TB: { source: 'out-bottom', target: 'in-top' },
+};
+
 function isSelected(element: SelectableFlowElement): boolean {
   return !!element.selected;
 }
 
 export function useComposerCanvas(options: UseComposerCanvasOptions) {
+  const layoutDirection = options.layoutDirection ?? ref<Direction>('LR');
   const {
     onConnect,
     onEdgeClick,
@@ -124,30 +134,99 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     });
   }
 
-  /** Strip ELK edge routing points so edges revert to smoothstep calculation. */
-  function clearElkEdgePaths(edgeList: Edge[]): Edge[] {
+  function clearElkEdgePathsForNode(edgeList: Edge[], nodeId: string): Edge[] {
     return edgeList.map((edge) => {
+      if (edge.source !== nodeId && edge.target !== nodeId) return edge;
       if (!edge.data?.elkPoints) return edge;
       const { elkPoints: _, ...rest } = edge.data;
       return { ...edge, data: rest };
     });
   }
 
-  async function syncCanvas(definition: PipelineDefinition, view?: PipelineView | null): Promise<void> {
+  function applyDirectionHandles(edgeList: Edge[], direction: Direction): Edge[] {
+    const handles = DIRECTION_HANDLES[direction] ?? DIRECTION_HANDLES.LR;
+    return edgeList.map((edge) => ({
+      ...edge,
+      sourceHandle: handles.source,
+      targetHandle: handles.target,
+    }));
+  }
+
+  function mergeExistingElkPaths(nextEdges: Edge[], currentEdges: Edge[]): Edge[] {
+    const existingPaths = new Map<string, Array<{ x: number; y: number }>>();
+    for (const edge of currentEdges) {
+      const points = edge.data?.elkPoints;
+      if (points && points.length >= 2) existingPaths.set(edge.id, points);
+    }
+
+    return nextEdges.map((edge) => {
+      const points = existingPaths.get(edge.id);
+      if (!points) return edge;
+      return { ...edge, data: { ...edge.data, elkPoints: points } };
+    });
+  }
+
+  function hasViewStructureChanged(
+    view: PipelineView | null | undefined,
+    previousView: PipelineView | null | undefined,
+  ): boolean {
+    if (!view && !previousView) return false;
+    if (!view || !previousView) return true;
+
+    const nodeIds = new Set(view.nodes.map((node) => node.nodeId));
+    const previousNodeIds = new Set(previousView.nodes.map((node) => node.nodeId));
+    if (nodeIds.size !== previousNodeIds.size) return true;
+    for (const nodeId of nodeIds) {
+      if (!previousNodeIds.has(nodeId)) return true;
+    }
+
+    const edgePairs = new Set(view.edges.map((edge) => `${edge.source}->${edge.target}`));
+    const previousEdgePairs = new Set(
+      previousView.edges.map((edge) => `${edge.source}->${edge.target}`),
+    );
+    if (edgePairs.size !== previousEdgePairs.size) return true;
+    for (const pair of edgePairs) {
+      if (!previousEdgePairs.has(pair)) return true;
+    }
+
+    return false;
+  }
+
+  async function syncCanvas(
+    definition: PipelineDefinition,
+    view?: PipelineView | null,
+    layoutOptions?: { forceLayout?: boolean; skipLayout?: boolean },
+  ): Promise<void> {
     const cached = loadPositions(view?.pipelineId);
-    const hasCachedPositions =
-      definition.nodes.length > 0 && definition.nodes.every((node) => cached[node.id]);
 
     let nextNodes: Node[] = pipelineNodesToFlow(definition.nodes, view?.pipelineId, view?.nodes);
     let nextEdges: Edge[] = pipelineEdgesToFlow(definition.edges);
 
-    if (!hasCachedPositions && nextNodes.length > 0) {
-      const result = await layout(nextNodes, nextEdges, 'TB');
+    const fixedPositions = Object.fromEntries(
+      nextNodes
+        .filter((node) => cached[node.id])
+        .map((node) => [node.id, cached[node.id]]),
+    ) as Record<string, { x: number; y: number }>;
+    const hasUncachedNodes = nextNodes.some((node) => !fixedPositions[node.id]);
+    const shouldLayout =
+      nextNodes.length > 0 &&
+      !layoutOptions?.skipLayout &&
+      (layoutOptions?.forceLayout || hasUncachedNodes || Object.keys(fixedPositions).length === 0);
+
+    if (shouldLayout) {
+      const result = await layout(
+        nextNodes,
+        applyDirectionHandles(nextEdges, layoutDirection.value),
+        layoutDirection.value,
+        { fixedPositions },
+      );
       nextNodes = result.nodes;
       nextEdges = applyElkEdgePaths(nextEdges, result.edgePaths);
+    } else {
+      nextEdges = mergeExistingElkPaths(nextEdges, getEdges.value);
     }
 
-    nextEdges = annotateEdgeSiblings(nextEdges);
+    nextEdges = annotateEdgeSiblings(applyDirectionHandles(nextEdges, layoutDirection.value));
 
     nodes.value = nextNodes;
     edges.value = nextEdges;
@@ -165,7 +244,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   function syncLocalGraph(nextNodes: Node[], nextEdges: Edge[]): void {
-    const annotatedEdges = annotateEdgeSiblings(nextEdges);
+    const annotatedEdges = annotateEdgeSiblings(
+      applyDirectionHandles(nextEdges, layoutDirection.value),
+    );
     nodes.value = nextNodes;
     edges.value = annotatedEdges;
     setNodes(nextNodes);
@@ -214,14 +295,19 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   watch(
     options.view,
-    async (view) => {
+    async (view, previousView) => {
       if (!view || options.designMode()) return;
+      const structureChanged = hasViewStructureChanged(view, previousView);
       await syncCanvas(
         {
           nodes: view.nodes.map(toPipelineNodeFromViewNode),
           edges: view.edges,
         },
         view,
+        {
+          forceLayout: structureChanged,
+          skipLayout: !structureChanged,
+        },
       );
       const loadedPipelineId = view.pipelineId ?? null;
       if (loadedPipelineId && loadedPipelineId !== fittedPipelineId.value) {
@@ -229,15 +315,18 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         nextTick(() => fitView({ padding: 0.15, duration: 200 }));
       }
     },
-    { deep: true, immediate: true },
+    { immediate: true },
   );
 
-  onNodeDragStop(() => {
+  onNodeDragStop(({ node }) => {
     // ELK edge paths become stale after manual node repositioning — clear them
     // so edges fall back to the smoothstep path calculation.
     const currentEdges = getEdges.value;
-    if (currentEdges.some((e) => e.data?.elkPoints)) {
-      const clearedEdges = clearElkEdgePaths(currentEdges);
+    const draggedNodeId = node?.id;
+    if (draggedNodeId && currentEdges.some((e) => e.data?.elkPoints)) {
+      const clearedEdges = annotateEdgeSiblings(
+        clearElkEdgePathsForNode(currentEdges, draggedNodeId),
+      );
       edges.value = clearedEdges;
       setEdges(clearedEdges);
     }
@@ -247,6 +336,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   onConnect((connection: Connection) => {
     if (!options.designMode() || !connection.source || !connection.target) return;
+    const handles = DIRECTION_HANDLES[layoutDirection.value] ?? DIRECTION_HANDLES.LR;
 
     const currentEdges = edges.value as Edge[];
     const nextEdges: Edge[] = annotateEdgeSiblings([
@@ -255,6 +345,8 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         id: `${connection.source}->${connection.target}`,
         source: connection.source,
         target: connection.target,
+        sourceHandle: connection.sourceHandle ?? handles.source,
+        targetHandle: connection.targetHandle ?? handles.target,
         type: 'smoothstep',
         label: 'success',
         data: { edgeType: 'success' },
@@ -331,10 +423,20 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   async function handleAutoLayout(direction: 'LR' | 'TB'): Promise<void> {
+    layoutDirection.value = direction;
     const currentNodes: Node[] = getNodes.value;
     const currentEdges: Edge[] = getEdges.value;
-    const result = await layout(currentNodes, currentEdges, direction);
-    const nextEdges = annotateEdgeSiblings(applyElkEdgePaths(currentEdges, result.edgePaths));
+    const result = await layout(
+      currentNodes,
+      applyDirectionHandles(currentEdges, direction),
+      direction,
+    );
+    const nextEdges = annotateEdgeSiblings(
+      applyDirectionHandles(
+        applyElkEdgePaths(currentEdges, result.edgePaths),
+        direction,
+      ),
+    );
     nodes.value = result.nodes;
     edges.value = nextEdges;
     setNodes(result.nodes);

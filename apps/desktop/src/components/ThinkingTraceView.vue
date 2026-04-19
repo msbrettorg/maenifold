@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
@@ -11,7 +11,7 @@ import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import './ThinkingTraceView.css';
 
-defineProps<{
+const props = defineProps<{
   trace: NonNullable<SequentialThinkingViewNode['thinking_trace']>;
 }>();
 
@@ -85,31 +85,58 @@ function renderMarkdown(content: string): string {
   return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
 }
 
-function formatStatus(status: string): string {
-  return status
-    .replace(/[_-]+/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+function thoughtKey(thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number], index: number): string {
+  return `${thought.thought_number}-${index}`;
 }
 
-function isRevision(status: string): boolean {
-  return /revis/i.test(status);
+const openThoughts = ref<Record<string, boolean>>({});
+
+watch(
+  () => props.trace,
+  (trace) => {
+    const next: Record<string, boolean> = {};
+    trace.forEach((thought, index) => {
+      const key = thoughtKey(thought, index);
+      next[key] = openThoughts.value[key] ?? true;
+    });
+    openThoughts.value = next;
+  },
+  { immediate: true },
+);
+
+function isThoughtOpen(thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number], index: number): boolean {
+  return openThoughts.value[thoughtKey(thought, index)] ?? true;
 }
 
-function revisionTarget(status: string): number | null {
-  const match = status.match(/revis(?:e|es|ed|ion)?[^\d]*(\d+)/i);
-  return match ? Number(match[1]) : null;
+function setThoughtOpen(
+  thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number],
+  index: number,
+  open: boolean,
+): void {
+  openThoughts.value[thoughtKey(thought, index)] = open;
 }
 
-function isActive(status: string): boolean {
-  return /active|running|in[- ]?progress/i.test(status);
+function onThoughtToggle(
+  thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number],
+  index: number,
+  event: Event,
+): void {
+  const target = event.target;
+  if (target instanceof HTMLDetailsElement) {
+    setThoughtOpen(thought, index, target.open);
+  }
 }
 
-function statusClass(status: string): string {
-  if (isRevision(status)) return 'trace-status--revision';
-  if (isActive(status)) return 'trace-status--active';
-  if (/complete|done/i.test(status)) return 'trace-status--completed';
-  if (/stuck|abandon|fail|error/i.test(status)) return 'trace-status--warning';
-  return 'trace-status--pending';
+const allExpanded = computed(() =>
+  props.trace.length > 0 && props.trace.every((thought, index) => isThoughtOpen(thought, index)));
+
+function toggleAll(): void {
+  const expand = !allExpanded.value;
+  const next: Record<string, boolean> = {};
+  props.trace.forEach((thought, index) => {
+    next[thoughtKey(thought, index)] = expand;
+  });
+  openThoughts.value = next;
 }
 </script>
 
@@ -124,23 +151,26 @@ function statusClass(status: string): string {
     />
     <div class="trace-header">
       <h3>Thinking trace</h3>
-      <span class="trace-count">{{ trace.length }} thoughts</span>
+      <span class="trace-count">{{ props.trace.length }} thoughts</span>
+      <button type="button" class="trace-toggle" @click="toggleAll">
+        {{ allExpanded ? 'Collapse all' : 'Expand all' }}
+      </button>
     </div>
 
     <ol class="trace-list">
-      <li v-for="(thought, index) in trace" :key="`${thought.thought_number}-${index}`">
-        <details class="trace-card" :open="index < 3">
+      <li v-for="(thought, index) in props.trace" :key="`${thought.thought_number}-${index}`">
+        <details
+          class="trace-card"
+          :open="isThoughtOpen(thought, index)"
+          @toggle="onThoughtToggle(thought, index, $event)"
+        >
           <summary class="trace-summary">
             <div class="trace-summary__copy">
               <span class="trace-number">Thought {{ thought.thought_number }}</span>
-              <span v-if="isRevision(thought.status)" class="trace-revision">
-                Revises {{ revisionTarget(thought.status) ? `#${revisionTarget(thought.status)}` : 'an earlier thought' }}
+              <span v-if="thought.is_revision" class="trace-revision">
+                Revises {{ thought.revises_thought ? `#${thought.revises_thought}` : 'an earlier thought' }}
               </span>
             </div>
-            <span :class="['trace-status', statusClass(thought.status)]">
-              <span v-if="isActive(thought.status)" class="trace-status__dot" aria-hidden="true" />
-              {{ formatStatus(thought.status) }}
-            </span>
           </summary>
 
           <div class="trace-body">

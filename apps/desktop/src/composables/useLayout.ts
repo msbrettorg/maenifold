@@ -43,10 +43,42 @@ export function useLayout() {
     const fixedPositions = options?.fixedPositions ?? {};
     const activePorts = ACTIVE_PORTS[direction] ?? ACTIVE_PORTS.LR;
 
+    // ELK requires globally unique port IDs across the entire graph. Vue Flow
+    // handle IDs (e.g. 'in-left') are scoped per-node in the DOM, but ELK's
+    // port registry is flat — reusing the same id on every node causes ELK to
+    // either fail validation or fall back to implicit attachment points that
+    // don't align with the declared WEST/EAST/NORTH/SOUTH sides. We therefore
+    // namespace the ELK port id with the node id, and edges must reference
+    // those qualified ids (not the bare node id) so the routed sections
+    // actually start/end at the declared port positions.
+    const elkPortId = (nodeId: string, localPortId: string): string =>
+      `${nodeId}::${localPortId}`;
+
+    // Vue Flow renders handles at fixed DOM positions (centered on each side
+    // via `top: 50%` / `left: 50%`). For the routed edge endpoints to land on
+    // top of the visible connector dots we must pin the ELK port positions to
+    // the same centers — FIXED_SIDE alone lets ELK shift ports along the side
+    // for routing optimization, which produces visually disconnected lines.
+    const portCenterForSide = (side: string): { x: number; y: number } => {
+      switch (side) {
+        case 'WEST':
+          return { x: 0, y: NODE_HEIGHT / 2 };
+        case 'EAST':
+          return { x: NODE_WIDTH, y: NODE_HEIGHT / 2 };
+        case 'NORTH':
+          return { x: NODE_WIDTH / 2, y: 0 };
+        case 'SOUTH':
+        default:
+          return { x: NODE_WIDTH / 2, y: NODE_HEIGHT };
+      }
+    };
+    const inputPortPos = portCenterForSide(activePorts.inputSide);
+    const outputPortPos = portCenterForSide(activePorts.outputSide);
+
     const elkNodes: ElkNode[] = nodes.map((node) => {
       const fixed = fixedPositions[node.id];
       const nodeLayoutOptions: Record<string, string> = {
-        'elk.portConstraints': 'FIXED_SIDE',
+        'elk.portConstraints': 'FIXED_POS',
       };
       if (fixed) {
         nodeLayoutOptions['elk.position'] = `(${Math.round(fixed.x)}, ${Math.round(fixed.y)})`;
@@ -60,11 +92,19 @@ export function useLayout() {
         layoutOptions: nodeLayoutOptions,
         ports: [
           {
-            id: activePorts.input,
+            id: elkPortId(node.id, activePorts.input),
+            x: inputPortPos.x,
+            y: inputPortPos.y,
+            width: 0,
+            height: 0,
             layoutOptions: { 'port.side': activePorts.inputSide },
           },
           {
-            id: activePorts.output,
+            id: elkPortId(node.id, activePorts.output),
+            x: outputPortPos.x,
+            y: outputPortPos.y,
+            width: 0,
+            height: 0,
             layoutOptions: { 'port.side': activePorts.outputSide },
           },
         ],
@@ -73,8 +113,8 @@ export function useLayout() {
 
     const elkEdges: ElkExtendedEdge[] = edges.map((edge) => ({
       id: edge.id,
-      sources: [edge.source],
-      targets: [edge.target],
+      sources: [elkPortId(edge.source, activePorts.output)],
+      targets: [elkPortId(edge.target, activePorts.input)],
     }));
 
     const graph: ElkNode = {

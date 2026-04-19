@@ -1,6 +1,8 @@
 <script setup lang="ts">
+import { storeToRefs } from 'pinia';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
+import { useFolderPickerStore } from './stores/folder-picker';
 import { useAppShell } from './composables/useAppShell';
 import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
@@ -14,6 +16,8 @@ import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
+import FolderPickerDialog from './components/FolderPickerDialog.vue';
+import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
 import ToastContainer from './components/ToastContainer.vue';
 import type { AppShellTab } from './stores/app-shell';
@@ -21,6 +25,8 @@ import { MessageSquare } from 'lucide-vue-next';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
+const folderPickerStore = useFolderPickerStore();
+const { isOpen: isFolderPickerOpen, initialPath: folderPickerInitialPath } = storeToRefs(folderPickerStore);
 
 const {
   selectedAgent,
@@ -114,6 +120,23 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
           @resume-session="handleResumeSession"
         />
 
+        <HomeDashboard
+          v-else-if="activeTab === 'home'"
+          key="home-with-active-session"
+          v-model:selected-agent="selectedAgent"
+          :has-agents="hasAgents"
+          :selected-cwd="selectedCwd"
+          :is-connected="isConnected"
+          :is-connecting="isConnecting"
+          :recent-sessions="sessionStore.savedSessions"
+          @agent-select="handleAgentSelect"
+          @select-folder="handleSelectFolder"
+          @new-session="handleNewSession"
+          @prompt-submit="handlePromptSubmit"
+          @open-tab="handleOpenTab"
+          @resume-session="handleResumeSession"
+        />
+
         <ChatView
           v-else-if="activeTab === 'agents' && isConnected"
           :key="sessionStore.activeSessionId ?? 'active-session'"
@@ -173,6 +196,13 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
       @select="handleAuthMethodSelect"
       @cancel="handleAuthMethodCancel"
     />
+    <FolderPickerDialog
+      :open="isFolderPickerOpen"
+      :initial-path="folderPickerInitialPath"
+      @confirm="folderPickerStore.confirm"
+      @cancel="folderPickerStore.cancel"
+    />
+    <PromptDialog />
 
     <ToastContainer />
   </div>

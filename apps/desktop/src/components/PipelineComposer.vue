@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick } from 'vue';
+import { computed, nextTick, provide, ref } from 'vue';
 import { BaseEdge, EdgeLabelRenderer, VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -36,6 +36,8 @@ const emit = defineEmits<{
 }>();
 
 const store = usePipelineStore();
+const layoutDirection = ref<'LR' | 'TB'>('LR');
+provide('pipelineLayoutDirection', layoutDirection);
 const {
   createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, edgeIndicator, edgeLabel, edgePath,
   edgeLabelTitle, edgePathStyle, edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
@@ -43,6 +45,7 @@ const {
   designMode: () => props.designMode,
   localDefinition: () => props.localDefinition,
   view: () => props.view,
+  layoutDirection,
   updateDefinition: (definition) => emit('update:localDefinition', definition),
   selectNode: (nodeId) => emit('nodeSelected', nodeId),
   selectEdge: (edge) => emit('edgeSelected', edge),
@@ -126,6 +129,10 @@ function submitNode<T extends PipelineNodeType>(type: T, fields: PipelineNodeDra
 function handleContextMenuOpenChange(open: boolean): void {
   if (!open) closeContextMenu();
 }
+
+function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
+  layoutDirection.value = direction;
+}
 </script>
 
 <template>
@@ -142,9 +149,11 @@ function handleContextMenuOpenChange(open: boolean): void {
             <PipelineComposerToolbar
               :design-mode="designMode"
               :has-selection="hasSelection"
+              :layout-direction="layoutDirection"
               :palette-open="paletteOpen"
               :show-palette-toggle="designMode"
               @auto-layout="handleAutoLayout"
+              @set-layout-direction="handleLayoutDirectionChange"
               @delete-selected="deleteSelected"
               @fit-view="fitView"
               @toggle-palette="togglePalette"

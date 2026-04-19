@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 const props = defineProps<{
   messageId: string;
@@ -9,7 +10,9 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{ toggle: [messageId: string] }>();
-const renderedThought = computed(() => marked.parse(props.thought, { async: false }) as string);
+const renderedThought = computed(() =>
+  DOMPurify.sanitize(marked.parse(props.thought, { async: false }) as string)
+);
 const contentId = computed(() => `thought-content-${props.messageId}`);
 </script>
 

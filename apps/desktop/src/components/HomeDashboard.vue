@@ -83,6 +83,7 @@ function handleTileSelect(tile: HomeTile) {
 function handleComposerSubmit() {
   const trimmedPrompt = composerInput.value.trim();
   if (!trimmedPrompt) return;
+  emit('prompt-submit', trimmedPrompt);
   emit('select-tab', 'agents');
   emit('open-tab', 'agents');
   composerInput.value = '';

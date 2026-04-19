@@ -7,6 +7,7 @@ import { getBareToolName } from '../lib/tool-categories';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
+import { usePromptDialogStore } from '../stores/prompt-dialog';
 
 type Point = { x: number; y: number };
 
@@ -31,6 +32,7 @@ type UseComposerContextMenuOptions = {
 export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
   const store = usePipelineStore();
   const configStore = useConfigStore();
+  const promptDialogStore = usePromptDialogStore();
   const { serverResults, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
   const contextMenu = ref<ContextMenuState | null>(null);
 
@@ -196,9 +198,16 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
         break;
       case 'forkNode': {
         if (!store.currentPipelineId) break;
-        const requestedName = window.prompt('Optional name for the forked pipeline session:', '');
-        if (requestedName === null) break;
-        void store.forkPipeline(store.currentPipelineId, nodeId, requestedName.trim() || undefined);
+        void (async () => {
+          const requestedName = await promptDialogStore.requestValue({
+            title: 'Fork pipeline session',
+            description: 'Optional name for the forked pipeline session.',
+            placeholder: 'my-forked-session',
+            confirmLabel: 'Fork',
+          });
+          if (requestedName === null) return;
+          await store.forkPipeline(store.currentPipelineId!, nodeId, requestedName.trim() || undefined);
+        })();
         break;
       }
       case 'abandonNode':

@@ -5,6 +5,7 @@ import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
 import { useSessionStore } from '../stores/session';
 import { useAppShellStore } from '../stores/app-shell';
+import { usePromptDialogStore } from '../stores/prompt-dialog';
 import type { PipelineEdge, PipelineNode, ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
@@ -18,6 +19,7 @@ const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
 const sessionStore = useSessionStore();
 const appShellStore = useAppShellStore();
+const promptDialogStore = usePromptDialogStore();
 const { currentView, workflows } = storeToRefs(pipeline);
 const conclusionText = ref('');
 const forkedSessionId = ref<string | null>(null);
@@ -209,7 +211,12 @@ function extractForkedSessionId(result: unknown): string | null {
 async function forkNode(): Promise<void> {
   if (!viewNode.value?.sessionId || !viewNode.value.nodeId) return;
 
-  const requestedSessionIdInput = window.prompt('Optional name for the forked pipeline session:', '');
+  const requestedSessionIdInput = await promptDialogStore.requestValue({
+    title: 'Fork pipeline session',
+    description: 'Optional name for the forked pipeline session.',
+    placeholder: 'my-forked-session',
+    confirmLabel: 'Fork',
+  });
   if (requestedSessionIdInput === null) return;
   const requestedSessionId = requestedSessionIdInput.trim();
 

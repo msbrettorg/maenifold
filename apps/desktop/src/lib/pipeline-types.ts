@@ -262,8 +262,12 @@ export interface SequentialThinkingViewNode extends ViewNodeBase {
   assembled_prompt?: string | null;
   thinking_trace?: Array<{
     thought_number: number;
+    total_thoughts?: number;
     text: string;
-    status: string;
+    is_revision?: boolean;
+    revises_thought?: number | null;
+    branch_id?: string | null;
+    agent?: string | null;
   }> | null;
 }
 

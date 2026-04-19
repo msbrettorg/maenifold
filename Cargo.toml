@@ -29,7 +29,7 @@ once_cell = "1.21.3"
 parking_lot = "0.12.5"
 reqwest = { version = "0.13", features = ["json"] }
 regex = "1.12.2"
-rmcp = { version = "1.4.0", features = ["server", "transport-io", "macros", "schemars"] }
+rmcp = { version = "1.5.0", features = ["server", "transport-io", "macros", "schemars"] }
 sacp = "11.0.0"
 sacp-derive = "11.0.0"
 schemars = "0.8"
@@ -44,14 +44,14 @@ tracing-appender = "0.2"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 # T-17.2: RTM FR-23 (RTM-127, RTM-129, RTM-130) - HTTP transport needs networking and
 # SIGINT handling for graceful shutdown.
-tokio = { version = "1.48.0", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }
+tokio = { version = "1.52.1", features = ["macros", "rt-multi-thread", "io-std", "sync", "net", "signal"] }
 tokio-util = { version = "0.7", features = ["rt", "compat"] }
 tower-http = { version = "0.6", features = ["cors"] }
 walkdir = "2.5.0"
 pulldown-cmark = "0.13.0"
 sha2 = "0.10.9"
 base64 = "0.22.1"
-uuid = { version = "1.18.1", features = ["v4", "serde"] }
+uuid = { version = "1.23.1", features = ["v4", "serde"] }
 ort = { version = "2.0.0-rc.12", default-features = false, features = ["std", "ndarray", "download-binaries", "copy-dylibs", "tls-rustls"] }
 tokenizers = "0.22.2"
 tray-icon = "0.19"

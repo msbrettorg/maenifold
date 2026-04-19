@@ -1,6 +1,5 @@
 import { getSmoothStepPath, Position, type EdgeProps } from '@vue-flow/core';
 
-import type { FlowNodeData } from './pipeline-composer-flow';
 import type { EdgeConditionEquals } from './pipeline-types';
 
 type FlowEdgeCondition = {
@@ -36,9 +35,7 @@ export function edgeTooltip(data?: FlowEdgeData): string {
 
 export function edgeIndicator(edge: EdgeProps<FlowEdgeData>): 'mapped' | 'warning' | null {
   if (edgeMappings(edge.data).length > 0) return 'mapped';
-  return (edge.targetNode.data as FlowNodeData | undefined)?.type === 'tool'
-    ? 'warning'
-    : null;
+  return null;
 }
 
 function truncate(text: string, max = 20): string {

@@ -28,11 +28,14 @@ Read the backlog to see what's pending:
 
 Read `AGENTS.md` at repo root for project conventions and constitutional rules.
 Read `ralph/state/learnings.md` for known failure patterns and lessons learned.
+read `/Users/brett/.copilot/copilot-instructions.md` for operating instructions and RACI.
 
 ## Mission
 
 Use your duo of architects and team of agents to incrementally improve the codebase while preserving build and test stability. Check the RACI for role assignments.
 Gate task files in `todo/` are the source of truth for requirements and progress. All gate phases must be adhered to for quality assurance.
+
+You are not here to troubleshoot issues or write code. You are here to manage your team of specialized subagents by planning and assigning concurrent, safe tasks to them as work items adance through the gate process. If you are found writing code or troubleshooting issues best assigned to your subagents your work will ALL rejected, not just what you worked on.
 
 **You are scoped to a specific area.** Check `RALPH_TARGET_CRATE` and `RALPH_TARGET_PATH` environment variables immediately. Other RALPH instances are running in parallel on other areas — touching files outside your scope will cause edit conflicts and lost work.
 
@@ -74,7 +77,7 @@ If the graph has relevant prior work, read it. Do not duplicate effort or contra
 ## Execution protocol
 
 1. **State your scope.** Print your assigned crate (`RALPH_TARGET_CRATE`) and/or path (`RALPH_TARGET_PATH`) before doing anything else. If neither is set, state "unscoped — selecting freely."
-2. Implement the selected pending gate task (`T-200.X`).
+2. Implement the selected pending gate task (`T-XXX.YY`).
 3. Run the appropriate build check for your scope:
    - **Rust crate:** `cargo build --release -p <crate>`
    - **UI (apps/desktop):** `cd apps/desktop && npx vue-tsc --noEmit`
@@ -99,8 +102,8 @@ If the graph has relevant prior work, read it. Do not duplicate effort or contra
 Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"`
 
 2. Record success via gate:
-   - **MCP (preferred):** Use gate MCP `pass` tool — taskId `T-200.X`, agent `ralph`, notes `<what you did>`
-   - **CLI fallback:** `gate pass T-200.X --root . --agent ralph --notes '<what you did>'`
+   - **MCP (preferred):** Use gate MCP `pass` tool — taskId `T-XXX.YY`, agent `ralph`, notes `<what you did>`
+   - **CLI fallback:** `gate pass T-XXX.YY --root . --agent ralph --notes '<what you did>'`
 
 3. Write a maenifold memory note documenting what changed and why:
    - **MCP (preferred):** Use `WriteMemory` tool — title, content with `[[WikiLinks]]`, folder `mae-auto/iterations`
@@ -114,14 +117,14 @@ We eat our own dogfood - use maenifold and gate to build maenifold and gate and 
 
 If you encounter a bug, dead code, failing test, usability issue, documentation gap or improvement opportunity outside your current task scope — don't fix it. Create a new gate task file for a future iteration:
 
-1. Create `todo/T-200.{next}-{short-description}.md` with YAML frontmatter (`id`, `title`, `pipeline: lightweight`)
+1. Create `todo/T-XXX.{next}-{short-description}.md` with YAML frontmatter (`id`, `title`, `pipeline: lightweight`)
 2. Include acceptance criteria and a description of what you found
 3. Run `gate sync --root .` so gate picks it up
 4. Continue with your current task
 
 ## Convergence rule
 
-If no meaningful pending gate tasks remain (all `T-200.X` tasks are in `done/` or all remaining are blocked/non-viable), create convergence marker:
+If no meaningful pending gate tasks remain (all `T-XXX.YY` tasks are in `done/` or all remaining are blocked/non-viable), create convergence marker:
 
 - `touch ralph/state/converged`
 

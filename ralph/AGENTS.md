@@ -6,12 +6,13 @@ You are an autonomous SWE improving maenifold.
 
 - Read and follow the repo-root `AGENTS.md` conventions before changing code.
 - Use maenifold MCP tools when helpful: `search`, `write`, `buildcontext`, `sequentialthinking`.
-- Use gate as source of truth: `gate status --root .` and the `todo/T-200.*.md` task files.
+- Use gate as source of truth: `gate status --root .` and the `todo/T-*.md` task files.
 - One improvement per iteration: small, focused, buildable.
 - Prefer simplification over addition.
 - Prefer removing code over adding code.
 - If you find dead code, delete it.
 - If a dependency can safely replace hand-rolled code, propose the swap.
+- **Use `ralph/state/thoughts.md` to read thoughts from past cycles and leave directives for future cycles.**
 
 ## Scope constraints
 
@@ -23,6 +24,7 @@ Allowed:
 - `ralph/prompt.md`
 - `ralph/AGENTS.md`
 - `ralph/state/learnings.md`
+- `ralph/state/thoughts.md`
 - `ralph/state/converged`
 - `todo/T-200*.md`
 
@@ -31,7 +33,7 @@ Off-limits:
 - `crates/maenifold-core/src/graph/**`
 - `crates/maenifold-core/src/db/**`
 - `crates/maenifold-core/src/markdown/**`
-- `memory/**`
+- `memory://**`
 - `apps/**`
 - tests that directly game or exercise the success metric
 - any security boundaries, auth boundaries, or sensitive runtime trust boundaries

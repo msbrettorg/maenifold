@@ -131,8 +131,8 @@ function handleKeydown(event: KeyboardEvent) {
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-subtle);
   border-left: 4px solid transparent;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -141,7 +141,7 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 .step-card:hover {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
@@ -151,10 +151,10 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 .step-card--selected {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   border-left-color: var(--color-node-workflow);
   border-left-width: 4px;
-  border-color: color-mix(in srgb, var(--color-node-workflow) 36%, var(--border));
+  border-color: color-mix(in srgb, var(--color-node-workflow) 36%, var(--color-border-subtle));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 28%, transparent),
               0 0 18px color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
 }
@@ -166,7 +166,7 @@ function handleKeydown(event: KeyboardEvent) {
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -201,16 +201,16 @@ function handleKeydown(event: KeyboardEvent) {
   width: 20px;
   height: 20px;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font: var(--weight-title) var(--text-2xs)/1 var(--font-code);
 }
 
 .card-move-btn:hover:not(:disabled) {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   color: var(--color-node-workflow);
 }
 
@@ -229,7 +229,7 @@ function handleKeydown(event: KeyboardEvent) {
 .card-name {
   min-width: 0;
   font: var(--weight-title) var(--text-caption)/1.4 var(--font-body);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -244,7 +244,7 @@ function handleKeydown(event: KeyboardEvent) {
 .card-desc {
   margin: 0;
   font: var(--weight-body) var(--text-caption)/1.5 var(--font-body);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -265,7 +265,7 @@ function handleKeydown(event: KeyboardEvent) {
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   opacity: 0;
   transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
@@ -286,7 +286,7 @@ function handleKeydown(event: KeyboardEvent) {
   align-items: center;
   gap: var(--space-3);
   font: var(--weight-body) var(--text-caption)/1.4 var(--font-body);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .confirm-copy {
@@ -311,16 +311,16 @@ function handleKeydown(event: KeyboardEvent) {
 .card-confirm-btn {
   min-height: 28px;
   padding: 0 var(--space-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font: inherit;
   cursor: pointer;
 }
 
 .card-confirm-btn:hover {
-  background: var(--muted);
+  background: var(--color-bg-surface);
 }
 
 .card-confirm-btn--danger {

@@ -20,10 +20,10 @@ defineProps<{
 <style scoped>
 .gate-state {
   padding: 0.9rem 1rem;
-  color: var(--muted-foreground);
-  border: 1px solid var(--border);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .gate-state--error {

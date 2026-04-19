@@ -113,13 +113,13 @@ select {
   border-radius: 4px;
   font-size: var(--text-caption);
   background: var(--surface-container);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-family: var(--font-body);
 }
 
 option {
-  background: var(--input);
-  color: var(--foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
 }
 
 select:disabled {
@@ -133,6 +133,6 @@ select:disabled {
   background: var(--surface-container);
   border-radius: 4px;
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 </style>

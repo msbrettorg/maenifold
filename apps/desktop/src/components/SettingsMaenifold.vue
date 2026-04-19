@@ -237,13 +237,13 @@ onMounted(loadSettings);
 
 .section-header p,
 .muted {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .settings-card {
   padding: 1rem;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .feedback {
@@ -252,13 +252,13 @@ onMounted(loadSettings);
 }
 
 .feedback.success {
-  background: color-mix(in srgb, var(--ring) 18%, transparent);
-  color: var(--foreground);
+  background: color-mix(in srgb, var(--color-brand) 18%, transparent);
+  color: var(--color-text-primary);
 }
 
 .feedback.error {
-  background: color-mix(in srgb, var(--destructive) 18%, transparent);
-  color: var(--destructive);
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  color: var(--color-danger);
 }
 
 .form-actions {
@@ -275,14 +275,14 @@ onMounted(loadSettings);
 
 .save-btn {
   border: none;
-  background: var(--ring);
-  color: var(--foreground);
+  background: var(--color-brand);
+  color: var(--color-text-primary);
 }
 
 .reset-btn {
-  border: 1px solid var(--destructive);
+  border: 1px solid var(--color-danger);
   background: transparent;
-  color: var(--destructive);
+  color: var(--color-danger);
 }
 
 @media (max-width: 640px) {

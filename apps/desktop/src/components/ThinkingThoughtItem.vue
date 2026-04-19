@@ -55,11 +55,11 @@ function formatRelativeTime(iso: string): string {
 
 <style scoped>
 .thought-item {
-  --thinking-thought-badge: color-mix(in srgb, var(--primary-foreground) 76%, var(--color-node-prompt));
-  --thinking-thought-muted: color-mix(in srgb, var(--primary-foreground) 56%, var(--muted-foreground));
-  --thinking-thought-border: color-mix(in srgb, var(--border) 28%, var(--muted));
-  --thinking-thought-shadow: color-mix(in srgb, var(--muted) 76%, var(--background));
-  --thinking-thought-text: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
+  --thinking-thought-badge: color-mix(in srgb, var(--color-text-primary) 76%, var(--color-node-prompt));
+  --thinking-thought-muted: color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary));
+  --thinking-thought-border: color-mix(in srgb, var(--color-border-subtle) 28%, var(--color-bg-surface));
+  --thinking-thought-shadow: color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app));
+  --thinking-thought-text: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt));
   position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
@@ -73,7 +73,7 @@ function formatRelativeTime(iso: string): string {
   min-width: 2.5rem;
   padding: 0.26rem 0.45rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--muted));
+  background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--color-bg-surface));
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
   color: var(--thinking-thought-badge);
   font-family: var(--font-code);
@@ -83,7 +83,7 @@ function formatRelativeTime(iso: string): string {
 }
 
 .thought-entry {
-  background: color-mix(in srgb, var(--muted) 84%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 84%, var(--color-bg-app));
   border: 1px solid var(--thinking-thought-border);
   border-radius: var(--radius);
   padding: 0.65rem 0.75rem;
@@ -107,7 +107,7 @@ function formatRelativeTime(iso: string): string {
   font-size: var(--text-tiny);
   line-height: 1.1;
   white-space: nowrap;
-  background: color-mix(in srgb, var(--muted) 72%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
   color: var(--thinking-thought-text);
   letter-spacing: 0.04em;
 }

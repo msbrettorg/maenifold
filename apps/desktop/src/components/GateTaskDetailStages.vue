@@ -66,7 +66,7 @@ function stageState(index: number) {
 }
 
 .gate-detail-stages__label {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 
@@ -119,7 +119,7 @@ function stageState(index: number) {
   align-self: flex-start;
   padding: 0.2rem 0.55rem;
   border-radius: 4px;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
@@ -132,7 +132,7 @@ function stageState(index: number) {
 .gate-detail-stages__chip--failed { background: var(--terracotta); }
 
 .gate-detail-stages__status {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 

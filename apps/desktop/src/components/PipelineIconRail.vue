@@ -49,7 +49,7 @@ defineExpose({ focusPipelineToggle });
             <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[var(--surface-highest)] text-[var(--foreground)]">
+        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
           {{ pipelineTooltip }}
         </TooltipContent>
       </Tooltip>
@@ -65,7 +65,7 @@ defineExpose({ focusPipelineToggle });
             <Plus :size="18" />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="rounded-[4px] bg-[var(--surface-highest)] text-[var(--foreground)]">
+        <TooltipContent side="right" class="rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
           Create new pipeline
         </TooltipContent>
       </Tooltip>
@@ -82,7 +82,7 @@ defineExpose({ focusPipelineToggle });
   align-items: center;
   gap: 6px;
   padding: 6px;
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .rail-button {
@@ -94,7 +94,7 @@ defineExpose({ focusPipelineToggle });
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   background: transparent;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
@@ -113,15 +113,15 @@ defineExpose({ focusPipelineToggle });
 
 .rail-button:hover,
 .rail-button:focus-visible {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   outline: none;
 }
 
 .rail-button.is-active {
-  background: color-mix(in srgb, var(--ring) 16%, var(--card));
+  background: color-mix(in srgb, var(--color-brand) 16%, var(--color-bg-elevated));
 }
 
 .rail-button.is-active::before {
-  background: var(--ring);
+  background: var(--color-brand);
 }
 </style>

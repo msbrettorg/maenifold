@@ -87,19 +87,19 @@ function updateSearchQuery(event: Event) {
 
 <style scoped>
 .search-wrapper { position: relative; padding: var(--space-4) var(--space-4) var(--space-3); }
-.search-icon { position: absolute; left: calc(var(--space-4) + var(--space-3)); top: calc(50% + var(--space-1) / 2); transform: translateY(-50%); color: var(--muted-foreground); pointer-events: none; }
-.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--foreground); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
-.search-input::placeholder { color: var(--muted-foreground); }
+.search-icon { position: absolute; left: calc(var(--space-4) + var(--space-3)); top: calc(50% + var(--space-1) / 2); transform: translateY(-50%); color: var(--color-text-secondary); pointer-events: none; }
+.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--color-text-primary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
+.search-input::placeholder { color: var(--color-text-secondary); }
 .search-input:hover:not(:focus) { background: var(--surface-high); }
 .search-input:focus { background: var(--surface-high); border-color: rgba(77, 142, 255, 0.4); box-shadow: none; }
 .chip-row { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
 .chip-row::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--muted-foreground); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }
-.chip:hover { background: var(--muted); color: var(--foreground); }
-.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--muted)); color: var(--color-node-workflow); }
-.import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--card); }
+.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }
+.chip:hover { background: var(--color-text-tertiary); color: var(--color-text-primary); }
+.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--color-text-tertiary)); color: var(--color-node-workflow); }
+.import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
 .import-feedback--error { border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent); color: var(--color-status-abandoned); }
 .feedback-text { flex: 1 1 100%; font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); color: inherit; word-break: break-word; }
-.feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: transparent; color: var(--foreground); font: var(--weight-display) var(--text-tiny)/1 var(--font-body); cursor: pointer; }
-.feedback-btn:hover { background: var(--muted); }
+.feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-primary); font: var(--weight-display) var(--text-tiny)/1 var(--font-body); cursor: pointer; }
+.feedback-btn:hover { background: var(--color-bg-surface); }
 </style>

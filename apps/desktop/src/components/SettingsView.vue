@@ -80,7 +80,7 @@ const activeSection = ref<SectionId>('connection');
 
 .settings-header p {
   margin-top: 0.375rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .settings-layout {
@@ -127,7 +127,7 @@ const activeSection = ref<SectionId>('connection');
 }
 
 .nav-description {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
 }
 

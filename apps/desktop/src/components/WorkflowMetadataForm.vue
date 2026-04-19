@@ -135,12 +135,12 @@ const workflowCategory = computed({
 .workflow-form { display: flex; flex-direction: column; gap: var(--space-5); }
 .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
 .form-group { display: flex; flex-direction: column; gap: var(--space-1); }
-.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--muted-foreground); letter-spacing: 0.05em; }
-.field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--muted-foreground); padding: var(--space-2) 0; line-height: 1.5; }
-.toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--card); border-radius: var(--radius-md); border: 1px solid var(--border); color: var(--foreground); cursor: pointer; text-align: left; }
-.toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--border)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
+.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--color-text-secondary); letter-spacing: 0.05em; }
+.field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--color-text-secondary); padding: var(--space-2) 0; line-height: 1.5; }
+.toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--color-bg-elevated); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); color: var(--color-text-primary); cursor: pointer; text-align: left; }
+.toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--color-border-subtle)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
 .toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }
-.toggle-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--input); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
+.toggle-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--color-border-subtle); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
 .toggle-indicator--enabled { background: var(--color-node-workflow); justify-content: flex-end; }
-.indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--foreground); }
+.indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--color-text-primary); }
 </style>

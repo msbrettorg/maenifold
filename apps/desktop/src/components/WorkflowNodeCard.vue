@@ -164,19 +164,19 @@ function formatAbsolute(iso: string): string {
 <style scoped>
 /* ── Card shell ─────────────────────────────────────────────────────────────── */
 .workflow-node-card {
-  --workflow-card-text: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-workflow));
-  --workflow-card-heading: color-mix(in srgb, var(--primary-foreground) 92%, var(--color-node-workflow));
-  --workflow-card-muted: color-mix(in srgb, var(--primary-foreground) 54%, var(--muted-foreground));
-  --workflow-card-subtle: color-mix(in srgb, var(--primary-foreground) 40%, var(--muted-foreground));
-  --workflow-card-divider: color-mix(in srgb, var(--border) 30%, var(--muted));
+  --workflow-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
+  --workflow-card-heading: color-mix(in srgb, var(--color-text-primary) 92%, var(--color-node-workflow));
+  --workflow-card-muted: color-mix(in srgb, var(--color-text-primary) 54%, var(--color-text-secondary));
+  --workflow-card-subtle: color-mix(in srgb, var(--color-text-primary) 40%, var(--color-text-secondary));
+  --workflow-card-divider: color-mix(in srgb, var(--color-border-subtle) 30%, var(--color-bg-surface));
   width: 320px;
-  background: color-mix(in srgb, var(--muted) 88%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
   border-radius: var(--radius);
   border-left: 3px solid var(--color-status-active);
   padding: 0.875rem 1rem;
   color: var(--workflow-card-text);
   font-size: var(--text-caption);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--background) 35%, transparent);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-bg-app) 35%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -232,7 +232,7 @@ function formatAbsolute(iso: string): string {
 /* ── Progress bar ───────────────────────────────────────────────────────────── */
 .progress-track {
   height: 4px;
-  background: color-mix(in srgb, var(--muted) 72%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
   border-radius: 2px;
   overflow: hidden;
 }

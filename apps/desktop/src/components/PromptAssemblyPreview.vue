@@ -100,9 +100,9 @@ const sections = computed<PreviewSection[]>(() => {
 
 <style scoped>
 .assembly-preview {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--card, var(--background));
+  background: var(--card, var(--color-bg-app));
 }
 
 .assembly-preview__toggle {
@@ -115,14 +115,14 @@ const sections = computed<PreviewSection[]>(() => {
   border: none;
   border-radius: var(--radius);
   background: transparent;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font: inherit;
   font-weight: var(--weight-title);
   cursor: pointer;
 }
 
 .assembly-preview__toggle:hover {
-  background: color-mix(in srgb, var(--card, var(--background)) 88%, white 12%);
+  background: color-mix(in srgb, var(--card, var(--color-bg-app)) 88%, white 12%);
 }
 
 .assembly-preview__body {
@@ -142,7 +142,7 @@ const sections = computed<PreviewSection[]>(() => {
   font-size: var(--text-xs);
   font-weight: var(--weight-title);
   letter-spacing: 0.02em;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .assembly-preview__content {
@@ -151,9 +151,9 @@ const sections = computed<PreviewSection[]>(() => {
   overflow: auto;
   padding: 0.75rem;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--background);
-  color: var(--foreground);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
   font-family: var(--font-mono);
   font-size: var(--text-sm);
   line-height: 1.5;
@@ -171,7 +171,7 @@ const sections = computed<PreviewSection[]>(() => {
 .assembly-preview__content :deep(code) {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  background: var(--background);
+  background: var(--color-bg-app);
   border-radius: var(--radius);
   padding: 0.1rem 0.3rem;
 }
@@ -179,13 +179,13 @@ const sections = computed<PreviewSection[]>(() => {
 .assembly-preview__content :deep(pre) {
   margin: 0.75rem 0 0;
   padding: 0.75rem;
-  background: var(--background);
+  background: var(--color-bg-app);
   border-radius: var(--radius);
   overflow-x: auto;
 }
 
 .assembly-preview__chevron {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-sm);
 }
 </style>

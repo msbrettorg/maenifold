@@ -180,14 +180,14 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
 }
 
 .composer-toolbar :deep(.mode-badge) {
-  background: var(--background);
-  color: var(--muted-foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-secondary);
   cursor: pointer;
 }
 
 .composer-toolbar :deep(.mode-badge.selected) {
-  border-color: var(--ring);
-  color: var(--foreground);
-  background: color-mix(in srgb, var(--ring) 45%, transparent);
+  border-color: var(--color-brand);
+  color: var(--color-text-primary);
+  background: color-mix(in srgb, var(--color-brand) 45%, transparent);
 }
 </style>

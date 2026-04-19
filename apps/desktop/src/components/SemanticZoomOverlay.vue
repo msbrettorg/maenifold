@@ -348,7 +348,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   background: var(--card, var(--surface-container));
   border-radius: var(--radius-xl);
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
 }
 
@@ -362,9 +362,9 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   padding: var(--space-2) var(--space-4);
   font-family: var(--font-display);
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   background: var(--accent, var(--surface-highest));
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .zoom-failure-alert {

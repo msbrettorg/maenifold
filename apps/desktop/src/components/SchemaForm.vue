@@ -607,7 +607,7 @@ function numericFieldModelValue(fieldKey: string): string | number {
   gap: 0.375rem;
   padding: 0.875rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--card) 88%, transparent);
+  background: color-mix(in srgb, var(--color-bg-elevated) 88%, transparent);
 }
 
 .schema-form__label-row,
@@ -619,7 +619,7 @@ function numericFieldModelValue(fieldKey: string): string | number {
 
 .schema-form__label,
 .schema-form__switch-label {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }
@@ -634,19 +634,19 @@ function numericFieldModelValue(fieldKey: string): string | number {
 }
 
 .schema-form__required {
-  color: var(--ring);
+  color: var(--color-brand);
   font-size: var(--text-xs);
 }
 
 .schema-form__hint {
   margin: 0;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
 }
 
 .schema-form__error {
   margin: 0;
-  color: var(--destructive);
+  color: var(--color-danger);
   font-size: var(--text-xs);
 }
 </style>

@@ -79,7 +79,7 @@ defineProps<{
 }
 
 .node-title {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   white-space: nowrap;
    font-family: var(--font-display);
    font-size: var(--text-sm);

@@ -110,13 +110,13 @@ watch(
       id="pipeline-flyout"
       side="left"
       :show-close-button="false"
-      class="pipeline-flyout border-0 p-0 text-[var(--foreground)]"
+      class="pipeline-flyout border-0 p-0 text-[var(--color-text-primary)]"
     >
       <div ref="flyoutRef" class="flyout-shell" @keydown="handleKeydown">
         <SheetHeader class="gap-1 px-4 py-4 text-left">
           <div class="flyout-header-row">
             <div class="min-w-0">
-              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--foreground)]">Pipelines</SheetTitle>
+              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Pipelines</SheetTitle>
               <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Browse, load, and create pipeline sessions.</SheetDescription>
             </div>
             <Button
@@ -136,7 +136,7 @@ watch(
           <Input
             v-model="searchQuery"
             type="text"
-            class="border-0 bg-[var(--surface)] text-[var(--foreground)]"
+            class="border-0 bg-[var(--surface)] text-[var(--color-text-primary)]"
             placeholder="Search pipelines…"
           />
         </div>
@@ -206,12 +206,12 @@ watch(
   text-align: center;
 }
 
-.flyout-state--error { color: var(--foreground); }
+.flyout-state--error { color: var(--color-text-primary); }
 
 .flyout-state-title {
   margin: 0;
   font-size: var(--text-lg);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .flyout-state-msg {

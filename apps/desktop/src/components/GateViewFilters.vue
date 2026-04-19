@@ -108,7 +108,7 @@ function emitSelect(
   padding: 0 0.75rem;
   white-space: nowrap;
   font-size: var(--text-caption);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   background: var(--surface-container);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;

@@ -129,12 +129,12 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-table-wrap::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--color-border-subtle);
   border-radius: 4px;
 }
 
 .gate-table-wrap::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--color-text-secondary);
 }
 
 .gate-table {
@@ -202,12 +202,12 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-th-button:hover {
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .gate-sort-icon,
 .gate-empty {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .gate-sort-icon,
@@ -218,7 +218,7 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-row--issue .gate-title {
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .gate-title {
@@ -232,7 +232,7 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-process {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   text-transform: lowercase;
 }
 

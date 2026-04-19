@@ -477,8 +477,8 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
         class="border-border bg-[var(--surface-container)]"
       >
         <CardHeader class="space-y-1.5">
-          <CardTitle class="font-display text-[var(--text-sm)] text-[var(--foreground)]">Adopt configuration</CardTitle>
-          <CardDescription class="text-[var(--text-xs)] text-[var(--muted-foreground)]">
+          <CardTitle class="font-display text-[var(--text-sm)] text-[var(--color-text-primary)]">Adopt configuration</CardTitle>
+          <CardDescription class="text-[var(--text-xs)] text-[var(--color-text-secondary)]">
             Apply role, color, and perspective before node dispatch.
           </CardDescription>
         </CardHeader>

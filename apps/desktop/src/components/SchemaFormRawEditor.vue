@@ -42,9 +42,9 @@ function handleInput(event: Event): void {
   flex-direction: column;
   gap: var(--space-4);
   padding: var(--space-4);
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-lg);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .schema-form-raw-editor__header {
@@ -59,7 +59,7 @@ function handleInput(event: Event): void {
 }
 
 .schema-form-raw-editor__header p {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
 }
 
@@ -69,7 +69,7 @@ function handleInput(event: Event): void {
 }
 
 .schema-form-raw-editor__error {
-  color: var(--destructive);
+  color: var(--color-danger);
   font-size: var(--text-caption);
 }
 </style>

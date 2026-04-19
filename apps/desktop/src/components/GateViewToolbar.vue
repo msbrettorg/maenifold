@@ -106,14 +106,14 @@ function handleRootChange(event: Event) {
   font-family: var(--font-display);
   font-size: 1rem;
   font-weight: 500;
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .gate-chip {
   padding: 0.28rem 0.65rem;
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   border-radius: 4px;
   background: var(--surface-highest);
 }
@@ -136,7 +136,7 @@ function handleRootChange(event: Event) {
 
 .gate-meta,
 .gate-refreshed {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .gate-refreshed {

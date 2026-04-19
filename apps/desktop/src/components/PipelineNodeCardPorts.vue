@@ -13,7 +13,7 @@ import { Handle, Position } from '@vue-flow/core';
 .pipeline-node-ports :deep(.vue-flow__handle) {
   width: 12px;
   height: 12px;
-  border: 2px solid var(--background);
+  border: 2px solid var(--color-bg-app);
   background: var(--node-accent);
 }
 

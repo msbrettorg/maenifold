@@ -199,7 +199,7 @@ onMounted(async () => {
 .toggle-card p,
 .card-header p,
 .saved-value {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .card,
@@ -209,7 +209,7 @@ onMounted(async () => {
 
 .card {
   padding: 1rem;
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .toggle-card {
@@ -223,23 +223,23 @@ onMounted(async () => {
 
 .status-chip {
   padding: 0.35rem 0.6rem;
-  background: var(--card);
-  color: var(--muted-foreground);
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
   font-size: 0.75rem;
 }
 
 .status-chip.saving,
 .message.success {
-  color: var(--ring);
+  color: var(--color-brand);
 }
 
 .message.error {
-  color: var(--destructive);
+  color: var(--color-danger);
 }
 
 .secondary-btn {
   padding: 0.5rem 0.85rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
   background: transparent;
   color: inherit;
@@ -263,7 +263,7 @@ onMounted(async () => {
   display: flex;
   gap: 0;
   margin-top: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
   overflow: hidden;
 }
@@ -276,9 +276,9 @@ onMounted(async () => {
   padding: 0.45rem 0.5rem;
   cursor: pointer;
   font-size: 0.75rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   background: transparent;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--color-border-subtle);
   transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -293,12 +293,12 @@ onMounted(async () => {
 }
 
 .density-option.active {
-  background: var(--muted);
-  color: var(--foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
 }
 
 .density-option:hover:not(.active) {
-  background: var(--muted);
+  background: var(--color-bg-surface);
 }
 
 @media (max-width: 640px) {

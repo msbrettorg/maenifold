@@ -125,7 +125,7 @@ const progressLabel = computed(() => formatStageLabel(props.task.location === 'd
 .gate-progress__segment--failed { background: var(--terracotta); }
 
 .gate-progress__state {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 </style>

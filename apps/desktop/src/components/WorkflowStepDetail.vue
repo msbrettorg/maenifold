@@ -98,12 +98,12 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 <style scoped>
 /* ── Step row ───────────────────────────────────────────────────────────────── */
 .step-row {
-  --workflow-step-primary: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-workflow));
-  --workflow-step-muted: color-mix(in srgb, var(--primary-foreground) 58%, var(--muted-foreground));
-  --workflow-step-subtle: color-mix(in srgb, var(--primary-foreground) 40%, var(--muted-foreground));
-  --workflow-step-link: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-status-active));
-  --workflow-step-response: color-mix(in srgb, var(--primary-foreground) 74%, var(--color-node-workflow));
-  --workflow-step-border: color-mix(in srgb, var(--border) 32%, var(--muted));
+  --workflow-step-primary: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
+  --workflow-step-muted: color-mix(in srgb, var(--color-text-primary) 58%, var(--color-text-secondary));
+  --workflow-step-subtle: color-mix(in srgb, var(--color-text-primary) 40%, var(--color-text-secondary));
+  --workflow-step-link: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-active));
+  --workflow-step-response: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-node-workflow));
+  --workflow-step-border: color-mix(in srgb, var(--color-border-subtle) 32%, var(--color-bg-surface));
   display: flex;
   flex-direction: column;
   border-radius: 4px;
@@ -124,7 +124,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-main.clickable:hover {
-  background: color-mix(in srgb, var(--muted) 80%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 80%, var(--color-bg-app));
 }
 
 .step-num {
@@ -199,7 +199,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 .step-response {
   padding: 0.5rem 0.75rem;
   margin: 0.25rem 0 0.375rem 2.25rem;
-  background: color-mix(in srgb, var(--muted) 94%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 94%, var(--color-bg-app));
   border-radius: 4px;
   font-size: var(--text-caption);
   color: var(--workflow-step-response);
@@ -222,14 +222,14 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 .step-response :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
-  background: color-mix(in srgb, var(--muted) 88%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
   padding: 0.1em 0.3em;
   border-radius: 3px;
   color: var(--workflow-step-link);
 }
 
 .step-response :deep(pre) {
-  background: color-mix(in srgb, var(--muted) 98%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 98%, var(--color-bg-app));
   border-radius: 4px;
   padding: 0.5rem;
   overflow-x: auto;
@@ -257,12 +257,12 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 }
 
 .step-response :deep(th) {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   font-weight: var(--weight-title);
 }
 
 .step-response :deep(tr:nth-child(even)) {
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .step-response :deep(ul),
@@ -278,7 +278,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 /* ── WikiLink pills ────────────────────────────────────────────────────────── */
 .step-response :deep(.wiki-pill) {
   display: inline-block;
-  background: color-mix(in srgb, var(--ring) 18%, var(--muted));
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-bg-surface));
   color: var(--workflow-step-link);
   border-radius: 3px;
   padding: 0.05em 0.4em;

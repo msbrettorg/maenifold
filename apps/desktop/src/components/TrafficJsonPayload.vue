@@ -73,7 +73,7 @@ const tokens = computed(() => {
 .json-payload {
   margin: 0;
   padding: 0.5rem 0.75rem 0.75rem 2rem;
-  background: var(--background);
+  background: var(--color-bg-app);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   line-height: 1.5;

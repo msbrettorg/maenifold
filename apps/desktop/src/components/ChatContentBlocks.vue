@@ -168,8 +168,8 @@ function getBlockAriaLabel(block: ContentBlock): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);
@@ -187,22 +187,22 @@ function getBlockAriaLabel(block: ContentBlock): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   text-align: left;
 }
 .message-content :deep(th) {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
 }
 .message-content :deep(td) { font-size: var(--text-sm); }
-.message-content :deep(tr:nth-child(even)) { background: var(--background); }
-.message-content :deep(tr:hover) { background: var(--muted); }
+.message-content :deep(tr:nth-child(even)) { background: var(--color-bg-app); }
+.message-content :deep(tr:hover) { background: var(--color-bg-surface); }
 .message-image {
   display: block;
   max-width: min(100%, 32rem);
   max-height: 24rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
 }
 .message-audio { width: min(100%, 28rem); }
@@ -211,10 +211,10 @@ function getBlockAriaLabel(block: ContentBlock): string {
   align-items: flex-start;
   gap: 0.375rem;
   padding: 0.375rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
-  background: var(--muted);
-  color: var(--ring);
+  background: var(--color-bg-surface);
+  color: var(--color-brand);
   text-decoration: none;
   font-size: var(--text-sm);
   font-weight: var(--weight-display);
@@ -225,7 +225,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
 .resource-link-chip__meta {
   display: inline-flex;
   gap: 0.375rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
   font-weight: var(--weight-body);
   line-height: 1.1;
@@ -241,18 +241,18 @@ function getBlockAriaLabel(block: ContentBlock): string {
 .resource-link-uri {
   max-width: 18rem;
   overflow: hidden;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   text-overflow: ellipsis;
   font-weight: var(--weight-body);
 }
 .resource-block { display: flex; flex-direction: column; gap: 0.5rem; }
-.resource-label { color: var(--muted-foreground); font-size: var(--text-sm); word-break: break-all; }
+.resource-label { color: var(--color-text-secondary); font-size: var(--text-sm); word-break: break-all; }
 .resource-content {
   margin: 0;
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
 }
 </style>

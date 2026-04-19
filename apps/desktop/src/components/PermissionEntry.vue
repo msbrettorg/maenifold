@@ -167,36 +167,36 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 .entry-details { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; }
 .tool-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .tool-title { font-size: var(--text-body-sm); font-weight: var(--weight-title); }
-.tool-kind { color: var(--muted-foreground); font-size: var(--text-caption); text-transform: capitalize; }
+.tool-kind { color: var(--color-text-secondary); font-size: var(--text-caption); text-transform: capitalize; }
 .section h4 { margin: 0 0 0.5rem; font-size: var(--text-title); }
 .context-rows { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 0.5rem 0.75rem; margin: 0; }
-.context-rows dt { color: var(--muted-foreground); font-weight: var(--weight-title); }
-.context-rows dd { margin: 0; min-width: 0; color: var(--foreground); word-break: break-word; overflow-wrap: anywhere; }
+.context-rows dt { color: var(--color-text-secondary); font-weight: var(--weight-title); }
+.context-rows dd { margin: 0; min-width: 0; color: var(--color-text-primary); word-break: break-word; overflow-wrap: anywhere; }
 .locations,
 .content-preview,
-.raw-payload pre { background: var(--muted); border: 1px solid var(--border); border-radius: 4px; max-inline-size: 100%; }
+.raw-payload pre { background: var(--color-bg-surface); border: 1px solid var(--color-border-subtle); border-radius: 4px; max-inline-size: 100%; }
 .locations { padding: 0.5rem 0.75rem; }
-.location { color: var(--foreground); font-family: var(--font-code); font-size: var(--text-caption); padding: 0.125rem 0; word-break: break-all; }
+.location { color: var(--color-text-primary); font-family: var(--font-code); font-size: var(--text-caption); padding: 0.125rem 0; word-break: break-all; }
 .content-block + .content-block,
 .raw-payload { margin-top: 0.75rem; }
 .content-block,
 .raw-payload { min-width: 0; }
-.content-label { margin-bottom: 0.25rem; color: var(--muted-foreground); font-size: var(--text-caption); font-weight: var(--weight-title); letter-spacing: 0.04em; }
+.content-label { margin-bottom: 0.25rem; color: var(--color-text-secondary); font-size: var(--text-caption); font-weight: var(--weight-title); letter-spacing: 0.04em; }
 .content-preview,
 .raw-payload pre { margin: 0; padding: 0.75rem; font-family: var(--font-code); font-size: var(--text-caption); line-height: 1.4; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow: auto; }
 .raw-payload summary { cursor: pointer; font-weight: var(--weight-title); }
-.dialog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--border); background: var(--background); }
+.dialog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border-subtle); background: var(--color-bg-app); }
 .option-btn,
 .cancel-btn { flex: 1; min-width: 120px; padding: 0.625rem 1rem; border-radius: 4px; font-size: var(--text-body-sm); cursor: pointer; }
 .option-btn { border: none; font-weight: var(--weight-display); transition: background 0.15s; }
 .option-allow_once,
-.option-allow_always { background: var(--color-status-completed); color: var(--primary-foreground); }
+.option-allow_always { background: var(--color-status-completed); color: var(--color-text-primary); }
 .option-allow_once:hover,
-.option-allow_always:hover { background: color-mix(in srgb, var(--color-status-completed) 88%, var(--background)); }
+.option-allow_always:hover { background: color-mix(in srgb, var(--color-status-completed) 88%, var(--color-bg-app)); }
 .option-reject_once,
-.option-reject_always { background: var(--destructive); color: var(--primary-foreground); }
+.option-reject_always { background: var(--color-danger); color: var(--color-text-primary); }
 .option-reject_once:hover,
-.option-reject_always:hover { background: color-mix(in srgb, var(--destructive) 88%, var(--background)); }
-.cancel-btn { background: var(--background); border: 1px solid var(--border); }
-.cancel-btn:hover { background: var(--muted); }
+.option-reject_always:hover { background: color-mix(in srgb, var(--color-danger) 88%, var(--color-bg-app)); }
+.cancel-btn { background: var(--color-bg-app); border: 1px solid var(--color-border-subtle); }
+.cancel-btn:hover { background: var(--color-bg-surface); }
 </style>

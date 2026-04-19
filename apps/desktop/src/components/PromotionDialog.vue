@@ -232,7 +232,7 @@ function closeDialog(): void {
     <DialogContent class="promotion-dialog gap-0 p-0 sm:max-w-[64rem]" :show-close-button="false">
       <DialogHeader class="dialog-header">
         <div>
-          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[var(--foreground)]">Promote to memory</DialogTitle>
+          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Promote to memory</DialogTitle>
           <DialogDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
         </div>
         <Button type="button" variant="ghost" class="rounded-[4px]" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
@@ -362,7 +362,7 @@ function closeDialog(): void {
 :deep(.memory-preview span),
 :deep(.summary-row span),
 :deep(.summary-row strong) {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: 0.75rem;
 }
 
@@ -392,7 +392,7 @@ function closeDialog(): void {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: 16px;
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 :deep(.section-header p),

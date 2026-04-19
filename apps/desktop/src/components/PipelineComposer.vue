@@ -195,7 +195,7 @@ function handleContextMenuOpenChange(open: boolean): void {
             >
                <Background :color="'var(--surface-high)'" />
               <Controls :show-interactive="designMode" />
-               <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--background) 75%, transparent)'" />
+               <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--color-bg-app) 75%, transparent)'" />
               <template #edge-smoothstep="edgeProps">
                 <g>
                   <BaseEdge :id="edgeProps.id" :path="edgePath(edgeProps).d" :style="edgePathStyle(edgeProps)" :marker-start="edgeProps.markerStart" :marker-end="edgeProps.markerEnd" :interaction-width="edgeProps.interactionWidth" />
@@ -279,8 +279,8 @@ function handleContextMenuOpenChange(open: boolean): void {
   box-shadow: 0 0 32px color-mix(in srgb, var(--blue) 8%, transparent);
 }
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
-.pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--foreground); border: none; }
-.pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--muted); }
+.pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--color-text-primary); border: none; }
+.pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--color-bg-surface); }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
 .composer-status-badge {
@@ -304,9 +304,9 @@ function handleContextMenuOpenChange(open: boolean): void {
   border-radius: 999px;
   flex-shrink: 0;
 }
-.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; background: color-mix(in srgb, var(--background) 92%, var(--surface-high) 8%); color: var(--foreground); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--background) 15%, transparent); pointer-events: none; }
-.edge-indicator--mapped { background: color-mix(in srgb, var(--background) 82%, var(--color-status-active) 18%); }
-.edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--background) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--foreground)); }
+.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; background: color-mix(in srgb, var(--color-bg-app) 92%, var(--surface-high) 8%); color: var(--color-text-primary); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--color-bg-app) 15%, transparent); pointer-events: none; }
+.edge-indicator--mapped { background: color-mix(in srgb, var(--color-bg-app) 82%, var(--color-status-active) 18%); }
+.edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--color-bg-app) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--color-text-primary)); }
 .edge-condition-label {
   position: absolute;
   padding: 0.15rem 0.35rem;
@@ -321,6 +321,6 @@ function handleContextMenuOpenChange(open: boolean): void {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--muted-foreground); font-size: var(--text-sm); text-align: center; pointer-events: none; }
-.composer-empty-state-arrow { font-size: var(--text-2xl); line-height: 1; color: var(--muted-foreground); }
+.composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--color-text-secondary); font-size: var(--text-sm); text-align: center; pointer-events: none; }
+.composer-empty-state-arrow { font-size: var(--text-2xl); line-height: 1; color: var(--color-text-secondary); }
 </style>

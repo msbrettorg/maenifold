@@ -194,7 +194,7 @@ function handleSelectionChange(value: unknown) {
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font: inherit;
   font-size: var(--text-body-sm);
 }
@@ -234,7 +234,7 @@ function handleSelectionChange(value: unknown) {
   top: 0;
   width: 220px;
   background: var(--surface-container);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: var(--radius);
   box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
@@ -253,7 +253,7 @@ function handleSelectionChange(value: unknown) {
 }
 
 .command-name {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-body-sm);
   min-width: 120px;
   font-weight: var(--weight-title);

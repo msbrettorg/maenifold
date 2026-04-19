@@ -173,13 +173,13 @@ onUnmounted(stopResize);
   z-index: 10;
 }
 .resize-handle:hover,
-.resize-handle:active { background: var(--ring); opacity: 0.5; }
+.resize-handle:active { background: var(--color-brand); opacity: 0.5; }
 .monitor-header {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 .title {
   font-family: var(--font-display);

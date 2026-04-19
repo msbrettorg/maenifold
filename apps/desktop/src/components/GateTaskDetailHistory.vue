@@ -92,7 +92,7 @@ function formatTimestamp(timestamp: string | null) {
   justify-content: space-between;
   gap: 0.75rem;
   cursor: pointer;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   font-weight: var(--weight-display);
@@ -106,8 +106,8 @@ function formatTimestamp(timestamp: string | null) {
   min-width: 1.5rem;
   padding: 0.15rem 0.4rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--card) 78%, var(--muted));
-  color: var(--foreground);
+  background: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-bg-surface));
+  color: var(--color-text-primary);
 }
 
 .gate-detail-history__content {
@@ -119,7 +119,7 @@ function formatTimestamp(timestamp: string | null) {
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
   background: var(--surface-container);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .gate-detail-history__message--error {
@@ -160,7 +160,7 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail-history__stage,
 .gate-detail-history__time,
 .gate-detail-history__meta dt {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 
@@ -184,7 +184,7 @@ function formatTimestamp(timestamp: string | null) {
 }
 
 .gate-detail-history__markdown {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 
@@ -203,9 +203,9 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail-history__markdown :deep(code) {
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: color-mix(in srgb, var(--background) 75%, var(--muted));
-  color: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  background: color-mix(in srgb, var(--color-bg-app) 75%, var(--color-bg-surface));
+  color: var(--color-text-primary);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
@@ -213,7 +213,7 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail-history__markdown :deep(pre) {
   padding: 0.75rem;
   border-radius: var(--radius-md);
-  background: var(--muted);
+  background: var(--color-bg-surface);
   overflow-x: auto;
 }
 
@@ -230,7 +230,7 @@ function formatTimestamp(timestamp: string | null) {
 .gate-detail-history__markdown :deep(th),
 .gate-detail-history__markdown :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   text-align: left;
 }
 

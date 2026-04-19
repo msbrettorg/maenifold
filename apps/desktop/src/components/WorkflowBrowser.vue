@@ -244,6 +244,6 @@ watch(
 .browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
 .browser-primary-action { flex: 1; }
 .btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
-.btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--border); background: transparent; color: var(--muted-foreground); }
-.btn-import:hover { background: var(--card); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--border)); color: var(--foreground); }
+.btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--color-border-subtle); background: transparent; color: var(--color-text-secondary); }
+.btn-import:hover { background: var(--color-bg-elevated); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--color-border-subtle)); color: var(--color-text-primary); }
 </style>

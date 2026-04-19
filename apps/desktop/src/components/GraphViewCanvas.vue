@@ -39,14 +39,14 @@ defineEmits<{ retry: [] }>();
   background:
     radial-gradient(ellipse at 30% 50%, rgba(77, 142, 255, 0.03) 0%, transparent 60%),
     radial-gradient(ellipse at 70% 40%, rgba(78, 222, 163, 0.02) 0%, transparent 50%),
-    var(--background);
+    var(--color-bg-app);
 }
 
 :slotted(.graph-canvas) {
   position: relative;
   width: 100%;
   height: 100%;
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 
 .graph-empty-state,
@@ -67,7 +67,7 @@ defineEmits<{ retry: [] }>();
 .empty-icon {
   margin-bottom: 1rem;
   font-size: var(--text-display);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   opacity: 0.3;
 }
 
@@ -75,13 +75,13 @@ defineEmits<{ retry: [] }>();
   margin-bottom: 0.25rem;
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .empty-hint,
 .loading-text {
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .empty-hint {
@@ -93,7 +93,7 @@ defineEmits<{ retry: [] }>();
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 0.25rem;
   background: var(--surface-high);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--text-caption);
   transition: var(--transition-fast);
@@ -101,7 +101,7 @@ defineEmits<{ retry: [] }>();
 
 .empty-retry:hover {
   background: var(--surface-highest);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .loading-ring {

@@ -35,7 +35,7 @@ defineEmits<{
   overflow-y: auto;
   padding-right: var(--space-1);
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--color-border-subtle) transparent;
 }
 
 .schema-form-renderer::-webkit-scrollbar {
@@ -47,7 +47,7 @@ defineEmits<{
 }
 
 .schema-form-renderer::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--color-border-subtle);
   border-radius: 4px;
 }
 
@@ -84,31 +84,31 @@ defineEmits<{
 .schema-form-renderer :deep(.schema-form__array-item-label),
 .schema-form-renderer :deep(.schema-form__static-label),
 .schema-form-renderer :deep(.schema-form__dialog-title) {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
   font-weight: var(--weight-title);
 }
 
 .schema-form-renderer :deep(.schema-form__description) {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 
 .schema-form-renderer :deep(input:not([type='checkbox']):not([type='radio'])),
 .schema-form-renderer :deep(select),
 .schema-form-renderer :deep(textarea) {
-  background-color: var(--input);
-  border: 1px solid var(--border);
+  background-color: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-family: var(--font-body);
   padding: var(--space-2) var(--space-3);
   width: 100%;
 }
 
 .schema-form-renderer :deep(select option) {
-  background-color: var(--card);
-  color: var(--foreground);
+  background-color: var(--color-bg-elevated);
+  color: var(--color-text-primary);
 }
 
 .schema-form-renderer :deep(textarea) {
@@ -117,45 +117,45 @@ defineEmits<{
 
 .schema-form-renderer :deep(input::placeholder),
 .schema-form-renderer :deep(textarea::placeholder) {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .schema-form-renderer :deep(input:not([type='checkbox']):not([type='radio']):focus-visible),
 .schema-form-renderer :deep(select:focus-visible),
 .schema-form-renderer :deep(textarea:focus-visible) {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
-  border-color: var(--ring);
+  border-color: var(--color-brand);
 }
 
 .schema-form-renderer :deep(input[type='checkbox']),
 .schema-form-renderer :deep(input[type='radio']) {
   inline-size: 1rem;
   block-size: 1rem;
-  accent-color: var(--ring);
+  accent-color: var(--color-brand);
   flex: 0 0 auto;
 }
 
 .schema-form-renderer :deep(fieldset) {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-md);
   padding: var(--space-3);
-  background: color-mix(in srgb, var(--card) 92%, transparent);
+  background: color-mix(in srgb, var(--color-bg-elevated) 92%, transparent);
 }
 
 .schema-form-renderer :deep(legend) {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   padding: 0 var(--space-1);
 }
 
 .schema-form-renderer :deep(.schema-form__error) {
-  color: var(--destructive);
+  color: var(--color-danger);
   font-size: var(--text-tiny);
 }
 
 .schema-form-renderer :deep(.schema-form__asterisk),
 .schema-form-renderer :deep(.schema-form__required) {
-  color: var(--ring);
+  color: var(--color-brand);
 }
 
 .schema-form-renderer :deep(.schema-form__group),
@@ -175,7 +175,7 @@ defineEmits<{
 }
 
 .schema-form-renderer :deep(.schema-form__empty) {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
 }
 
@@ -199,19 +199,19 @@ defineEmits<{
   min-width: 1.5rem;
   min-height: 1.5rem;
   border-radius: 4px;
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 
 .schema-form-renderer :deep(.schema-form__stepper-line) {
   flex: 1;
   min-width: 2rem;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .schema-form-renderer :deep(.schema-form__category--selected) {
-  border-color: var(--ring);
-  color: var(--foreground);
+  border-color: var(--color-brand);
+  color: var(--color-text-primary);
 }
 </style>

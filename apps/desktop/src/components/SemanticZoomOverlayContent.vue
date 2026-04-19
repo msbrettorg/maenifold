@@ -66,7 +66,7 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
   font-family: var(--font-display);
   font-size: var(--text-caption);
   font-weight: var(--weight-title);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   cursor: pointer;
   padding: var(--space-2) 0;
   list-style: none;
@@ -86,8 +86,8 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   line-height: 1.5;
-  color: var(--muted-foreground);
-  background: var(--background);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-app);
   border-radius: var(--radius-md);
   white-space: pre-wrap;
   word-break: break-word;
@@ -109,7 +109,7 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
   flex-direction: column;
   gap: var(--space-1);
   padding: var(--space-2);
-  background: var(--muted);
+  background: var(--color-bg-surface);
   border-radius: var(--radius-md);
 }
 
@@ -125,12 +125,12 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .item-status {
   font-size: var(--text-tiny);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .zoom-status--active { color: var(--color-status-active); }
@@ -141,7 +141,7 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
 .zoom-empty {
   padding: var(--space-8);
   text-align: center;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
 }
 </style>

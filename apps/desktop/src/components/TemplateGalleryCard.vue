@@ -81,7 +81,7 @@ defineEmits<{
 .gallery-card-label {
   font-size: 0.875rem;
   font-weight: var(--weight-title);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .gallery-card-desc {
@@ -97,7 +97,7 @@ defineEmits<{
   border-radius: 4px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   background: color-mix(in srgb, var(--template-accent) 18%, transparent);
 }
 </style>

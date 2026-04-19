@@ -91,17 +91,17 @@ function statusIcon(status: string): Component {
 .tci-summary-expandable { cursor: pointer; }
 .tci-summary-expandable:hover { background: var(--surface-highest); }
 .tci-icon { font-size: var(--text-sm); }
-.tci-name { font-weight: var(--weight-display); color: var(--foreground); }
+.tci-name { font-weight: var(--weight-display); color: var(--color-text-primary); }
 .tci-location {
   flex: 1;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .tci-status { font-size: var(--text-xs); }
-.tci-chevron { color: var(--muted-foreground); font-size: var(--text-xs); }
+.tci-chevron { color: var(--color-text-secondary); font-size: var(--text-xs); }
 .status-pending { color: var(--text-dim); }
 .status-in_progress { color: var(--amber); }
 .status-completed { color: var(--sage); }

@@ -171,23 +171,23 @@ function formatEnvCount(count: number) {
 .section-header p,
 .empty-state,
 .agent-summary {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .agent-form,
 .agent-item {
   padding: 1rem;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .form-section {
   display: grid;
   gap: 0.75rem;
   padding: 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 
 .form-group span {
@@ -199,10 +199,10 @@ function formatEnvCount(count: number) {
 .form-group input {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
 }
 
 .form-group small,
@@ -222,24 +222,24 @@ function formatEnvCount(count: number) {
 
 .add-btn,
 .cancel-btn {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   background: transparent;
   color: inherit;
 }
 
 .save-btn {
   border: none;
-  background: var(--ring);
-  color: var(--foreground);
+  background: var(--color-brand);
+  color: var(--color-text-primary);
 }
 
 .delete-btn,
 .form-error {
-  color: var(--destructive);
+  color: var(--color-danger);
 }
 
 .delete-btn {
-  border: 1px solid var(--destructive);
+  border: 1px solid var(--color-danger);
   background: transparent;
   padding-inline: 0.6rem;
 }

@@ -107,7 +107,7 @@ function renderMarkdown(content: string): string {
 }
 .message-tool-only { padding-top: 0.375rem; padding-bottom: 0.375rem; }
 .message-header { margin-bottom: 0.5rem; }
-.role { color: var(--muted-foreground); font-size: var(--text-sm); font-weight: var(--weight-title); }
+.role { color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: var(--weight-title); }
 .message-content {
   line-height: 1.5;
   overflow-wrap: break-word;
@@ -139,8 +139,8 @@ function renderMarkdown(content: string): string {
   padding: 0.75rem;
   border-radius: 4px;
   overflow-x: auto;
-  background: var(--background);
-  color: var(--muted-foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-secondary);
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);

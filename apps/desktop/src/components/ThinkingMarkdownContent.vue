@@ -45,10 +45,10 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 
 <style scoped>
 .thinking-markdown-content {
-  --thinking-markdown-text: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-prompt));
-  --thinking-markdown-accent: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
-  --thinking-markdown-link: color-mix(in srgb, var(--primary-foreground) 68%, var(--color-status-active));
-  --thinking-markdown-border: color-mix(in srgb, var(--border) 32%, var(--muted));
+  --thinking-markdown-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-prompt));
+  --thinking-markdown-accent: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt));
+  --thinking-markdown-link: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-active));
+  --thinking-markdown-border: color-mix(in srgb, var(--color-border-subtle) 32%, var(--color-bg-surface));
   font-size: var(--text-caption);
   line-height: 1.5;
   color: var(--thinking-markdown-text);
@@ -98,7 +98,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(code) {
-  background: color-mix(in srgb, var(--muted) 100%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 100%, var(--color-bg-app));
   color: var(--thinking-markdown-accent);
   border-radius: 4px;
   padding: 0.1rem 0.3rem;
@@ -107,7 +107,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(pre) {
-  background: color-mix(in srgb, var(--muted) 100%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 100%, var(--color-bg-app));
   border-radius: var(--radius);
   padding: 0.55rem;
   overflow-x: auto;
@@ -135,12 +135,12 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
 }
 
 .thinking-markdown-content :deep(th) {
-  background: var(--muted);
+  background: var(--color-bg-surface);
   font-weight: var(--weight-title);
 }
 
 .thinking-markdown-content :deep(tr:nth-child(even)) {
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .thinking-markdown-content :deep(.wiki-pill) {
@@ -149,7 +149,7 @@ const renderedContentWithDOMPurify = computed(() => renderMarkdown(props.content
   padding: 0.08rem 0.42rem;
   margin: 0 0.08rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--ring) 18%, var(--muted));
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-bg-surface));
   color: var(--thinking-markdown-link);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);

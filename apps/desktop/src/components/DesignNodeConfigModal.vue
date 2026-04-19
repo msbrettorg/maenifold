@@ -39,7 +39,7 @@ const modalDescription = computed(() =>
   <Sheet :open="true" @update:open="(open) => !open && emit('close')">
     <SheetContent
       side="right"
-      class="config-panel gap-0 p-0 text-[var(--foreground)] sm:max-w-[360px]"
+      class="config-panel gap-0 p-0 text-[var(--color-text-primary)] sm:max-w-[360px]"
       :show-close-button="false"
     >
       <SheetHeader class="config-header">
@@ -100,7 +100,7 @@ const modalDescription = computed(() =>
   font-family: var(--font-display);
   font-size: var(--text-title);
   font-weight: 500;
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .config-body {

@@ -39,9 +39,9 @@ const skeletonItems = [1, 2, 3] as const;
 <style scoped>
 .tree-loading {
   width: 320px;
-  background: color-mix(in srgb, var(--muted) 88%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
   border-radius: var(--radius);
-  border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
+  border-left: 3px solid color-mix(in srgb, var(--color-border-subtle) 32%, var(--color-bg-surface));
   padding: 0.875rem 1rem;
   display: flex;
   flex-direction: column;
@@ -52,9 +52,9 @@ const skeletonItems = [1, 2, 3] as const;
   border-radius: 4px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--muted) 82%, var(--background)) 25%,
-    color-mix(in srgb, var(--muted) 68%, var(--background)) 50%,
-    color-mix(in srgb, var(--muted) 82%, var(--background)) 75%
+    color-mix(in srgb, var(--color-text-tertiary) 82%, var(--color-bg-app)) 25%,
+    color-mix(in srgb, var(--color-text-tertiary) 68%, var(--color-bg-app)) 50%,
+    color-mix(in srgb, var(--color-text-tertiary) 82%, var(--color-bg-app)) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
@@ -100,9 +100,9 @@ const skeletonItems = [1, 2, 3] as const;
   border-radius: 2px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--muted) 82%, var(--background)) 25%,
-    color-mix(in srgb, var(--muted) 68%, var(--background)) 50%,
-    color-mix(in srgb, var(--muted) 82%, var(--background)) 75%
+    color-mix(in srgb, var(--color-text-tertiary) 82%, var(--color-bg-app)) 25%,
+    color-mix(in srgb, var(--color-text-tertiary) 68%, var(--color-bg-app)) 50%,
+    color-mix(in srgb, var(--color-text-tertiary) 82%, var(--color-bg-app)) 75%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s infinite;
@@ -145,7 +145,7 @@ const skeletonItems = [1, 2, 3] as const;
   height: 100%;
   background: linear-gradient(
     180deg,
-    color-mix(in srgb, var(--border) 72%, var(--muted)),
+    color-mix(in srgb, var(--color-border-subtle) 72%, var(--color-text-tertiary)),
     transparent
   );
 }
@@ -158,9 +158,9 @@ const skeletonItems = [1, 2, 3] as const;
 .skeleton-child {
   flex: 1;
   min-width: 80px;
-  background: color-mix(in srgb, var(--muted) 92%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-app));
   border-radius: var(--radius);
-  border-left: 3px solid color-mix(in srgb, var(--border) 32%, var(--muted));
+  border-left: 3px solid color-mix(in srgb, var(--color-border-subtle) 32%, var(--color-bg-surface));
   padding: 0.6rem;
   display: flex;
   flex-direction: column;

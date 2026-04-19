@@ -219,7 +219,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </template>
 
 <style scoped>
-.chat-view { display: flex; flex-direction: column; height: 100%; background: var(--background); }
+.chat-view { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-app); }
 .chat-header {
   display: flex;
   align-items: center;
@@ -237,20 +237,20 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   font-weight: var(--weight-display);
 }
 .header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
-.agent-name { font-size: var(--text-sm); color: var(--muted-foreground); }
+.agent-name { font-size: var(--text-sm); color: var(--color-text-secondary); }
 .messages-container {
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--color-border-subtle) transparent;
 }
 .messages-container::-webkit-scrollbar { width: 8px; }
 .messages-container::-webkit-scrollbar-track { background: transparent; }
-.messages-container::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
-.messages-container::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+.messages-container::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 4px; }
+.messages-container::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
 .messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
 .messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: var(--radius); }
 .messages-container :deep(pre.mermaid-error) { border: 1px solid color-mix(in srgb, var(--border-error) 45%, transparent); }
-.messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--primary-foreground) 76%, var(--destructive)); font-size: var(--text-sm); }
+.messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--color-text-primary) 76%, var(--color-danger)); font-size: var(--text-sm); }
 </style>

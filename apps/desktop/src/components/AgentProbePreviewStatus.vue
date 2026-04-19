@@ -74,7 +74,7 @@ defineEmits<{
 
 .status-label {
   font-size: var(--text-tiny);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .status-message,
@@ -86,12 +86,12 @@ defineEmits<{
 
 .status-message,
 .technical-detail {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .warning-note,
 .degraded-note {
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .warning-note,
@@ -114,7 +114,7 @@ defineEmits<{
   border: none;
   border-radius: 4px;
   background: var(--surface-container);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-size: var(--text-tiny);
   font-weight: 400;

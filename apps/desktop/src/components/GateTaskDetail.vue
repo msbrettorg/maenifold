@@ -116,7 +116,7 @@ function renderMarkdown(content: string | null) {
 .gate-detail__eyebrow,
 .gate-detail__section-label,
 .gate-detail__message {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .gate-detail__eyebrow {
@@ -160,7 +160,7 @@ function renderMarkdown(content: string | null) {
 }
 
 .gate-detail__markdown {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   overflow-wrap: anywhere;
 }
 
@@ -186,9 +186,9 @@ function renderMarkdown(content: string | null) {
 .gate-detail__markdown :deep(code) {
   padding: 0.1rem 0.3rem;
   border-radius: var(--radius);
-  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-  background: color-mix(in srgb, var(--background) 75%, var(--muted));
-  color: var(--foreground);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+  background: color-mix(in srgb, var(--color-bg-app) 75%, var(--color-bg-surface));
+  color: var(--color-text-primary);
   font-family: var(--font-code);
   font-size: var(--text-tiny);
 }
@@ -196,7 +196,7 @@ function renderMarkdown(content: string | null) {
 .gate-detail__markdown :deep(pre) {
   padding: 0.75rem;
   border-radius: var(--radius-md);
-  background: var(--muted);
+  background: var(--color-bg-surface);
   overflow-x: auto;
 }
 
@@ -213,7 +213,7 @@ function renderMarkdown(content: string | null) {
 .gate-detail__markdown :deep(th),
 .gate-detail__markdown :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   text-align: left;
 }
 

@@ -82,7 +82,7 @@ function isGroup(
   border: none;
   border-radius: 4px;
   background: var(--surface-container);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-caption);
 }
 </style>

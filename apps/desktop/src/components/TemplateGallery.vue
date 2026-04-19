@@ -76,7 +76,7 @@ function handleIntentInput(value: string): void {
 </script>
 
 <template>
-  <div class="template-gallery flex flex-1 flex-col items-center justify-center px-8">
+  <div class="template-gallery flex flex-1 flex-col items-center px-8 pt-[16vh]">
     <TemplateGalleryIntentForm
       :error="intentError"
       :has-intent-agent="hasIntentAgent"

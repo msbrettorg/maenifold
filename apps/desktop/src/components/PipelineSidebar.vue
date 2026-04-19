@@ -148,7 +148,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   font-family: var(--font-display);
   font-weight: 500;
   font-size: var(--text-title);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .sidebar-actions {
@@ -214,7 +214,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 }
 
 .pipeline-select:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--color-brand);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -244,7 +244,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .pipeline-id {
   font-weight: var(--weight-display);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -258,7 +258,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 .progress-bar {
   height: 3px;
   border-radius: 2px;
-  background: var(--background);
+  background: var(--color-bg-app);
   overflow: hidden;
 }
 

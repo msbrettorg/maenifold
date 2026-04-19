@@ -82,7 +82,7 @@ const starterChips: { icon: Component; label: string }[] = [
 }
 .chat-empty-hint {
   margin: 0;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-md);
 }
 .chat-empty-chips {
@@ -99,7 +99,7 @@ const starterChips: { icon: Component; label: string }[] = [
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: var(--surface-high);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font: inherit;
   font-size: var(--text-sm);
   cursor: pointer;
@@ -113,19 +113,19 @@ const starterChips: { icon: Component; label: string }[] = [
   border-radius: 4px;
   background: var(--bg-warning);
   border: 1px solid rgba(66, 71, 83, 0.15);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 .loading-indicator {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 .spinner {
   width: 16px;
   height: 16px;
-  border: 2px solid var(--border);
+  border: 2px solid var(--color-border-subtle);
   border-top-color: var(--blue);
   border-radius: var(--radius);
   animation: spin 1s linear infinite;
@@ -136,7 +136,7 @@ const starterChips: { icon: Component; label: string }[] = [
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: transparent;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-sm);
   cursor: pointer;
 }

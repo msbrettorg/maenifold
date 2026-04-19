@@ -116,9 +116,9 @@ function formatEnvCount(count: number) {
 
 .form-section {
   padding: 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 
 .details-section summary,
@@ -151,7 +151,7 @@ function formatEnvCount(count: number) {
 .details-section p,
 .summary-count,
 .empty-detail {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .summary-count,
@@ -163,7 +163,7 @@ function formatEnvCount(count: number) {
 .summary-count {
   padding: 0.15rem 0.5rem;
   border-radius: 4px;
-  background: var(--card);
+  background: var(--color-bg-elevated);
   white-space: nowrap;
 }
 
@@ -177,10 +177,10 @@ function formatEnvCount(count: number) {
 .form-group select {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
 }
 
 .kv-row {
@@ -193,9 +193,9 @@ function formatEnvCount(count: number) {
 
 .server-editor {
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .server-editor-header {
@@ -208,7 +208,7 @@ function formatEnvCount(count: number) {
 
 .add-inline-btn,
 .remove-btn {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
   background: transparent;
   color: inherit;

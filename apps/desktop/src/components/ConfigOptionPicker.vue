@@ -162,10 +162,10 @@ onUnmounted(() => {
   align-items: center;
   gap: 0.375rem;
   padding: 0.375rem 0.625rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
   font-size: var(--text-caption);
   cursor: pointer;
   transition: all 0.15s ease;
@@ -173,8 +173,8 @@ onUnmounted(() => {
 }
 
 .config-option-button:hover {
-  background: var(--muted);
-  border-color: var(--ring);
+  background: var(--color-bg-surface);
+  border-color: var(--color-brand);
 }
 
 .config-option-icon {
@@ -191,7 +191,7 @@ onUnmounted(() => {
 
 .dropdown-arrow {
   font-size: var(--text-tiny);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   margin-left: 0.25rem;
   flex-shrink: 0;
 }
@@ -204,16 +204,16 @@ onUnmounted(() => {
   max-width: 360px;
   max-height: 320px;
   overflow-y: auto;
-  background: var(--background);
-  border: 1px solid var(--border);
+  background: var(--color-bg-app);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--background) 15%, transparent);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-bg-app) 15%, transparent);
   z-index: 100;
 }
 
 @media (prefers-color-scheme: dark) {
   .dropdown-menu {
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--background) 40%, transparent);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-bg-app) 40%, transparent);
   }
 }
 
@@ -221,14 +221,14 @@ onUnmounted(() => {
 .dropdown-item + .dropdown-item,
 .dropdown-group + .dropdown-item,
 .dropdown-item + .dropdown-group {
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .dropdown-group-header {
   padding: 0.5rem 0.75rem;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   letter-spacing: 0.04em;
 }
 
@@ -242,11 +242,11 @@ onUnmounted(() => {
 }
 
 .dropdown-item:hover {
-  background: var(--muted);
+  background: var(--color-bg-surface);
 }
 
 .dropdown-item.selected {
-  background: color-mix(in srgb, var(--ring) 24%, var(--card));
+  background: color-mix(in srgb, var(--color-brand) 24%, var(--color-bg-elevated));
 }
 
 .item-icon {
@@ -263,20 +263,20 @@ onUnmounted(() => {
 .item-name {
   display: block;
   font-weight: var(--weight-display);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-caption);
 }
 
 .item-description {
   display: block;
   font-size: var(--text-tiny);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   margin-top: 0.125rem;
   line-height: 1.3;
 }
 
 .check-mark {
-  color: var(--ring);
+  color: var(--color-brand);
   font-weight: var(--weight-title);
   margin-left: auto;
   flex-shrink: 0;

@@ -76,7 +76,7 @@ defineEmits<{
 
 .back-btn:hover {
   background: var(--surface-highest);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .header-stats {
@@ -117,6 +117,6 @@ defineEmits<{
 
 .action-btn:hover {
   background: var(--surface-highest);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 </style>

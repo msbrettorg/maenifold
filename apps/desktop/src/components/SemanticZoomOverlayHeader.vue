@@ -42,7 +42,7 @@ defineEmits<{
   font-family: var(--font-code);
   font-size: var(--text-caption);
   font-weight: var(--weight-title);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .zoom-type-pill,
@@ -53,7 +53,7 @@ defineEmits<{
 
 .zoom-type-pill {
   padding: 2px 8px;
-  color: var(--foreground);
+  color: var(--color-text-primary);
   background: color-mix(in srgb, var(--color-node-workflow) 15%, transparent);
 }
 
@@ -71,7 +71,7 @@ defineEmits<{
 
 .zoom-status {
   padding: 2px 6px;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   background: color-mix(in srgb, var(--color-status-pending) 15%, transparent);
 }
 
@@ -83,7 +83,7 @@ defineEmits<{
 .zoom-close {
   background: none;
   border: none;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-title);
   cursor: pointer;
   padding: var(--space-1);
@@ -92,12 +92,12 @@ defineEmits<{
 }
 
 .zoom-close:hover {
-  color: var(--foreground);
-  background: var(--muted);
+  color: var(--color-text-primary);
+  background: var(--color-bg-surface);
 }
 
 .zoom-close:focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--color-brand);
   outline-offset: 2px;
 }
 </style>

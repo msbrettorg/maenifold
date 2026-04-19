@@ -111,16 +111,16 @@ function onAfterLeave(element: Element): void {
 
 <style scoped>
 .thinking-session-card {
-  --thinking-card-text: color-mix(in srgb, var(--primary-foreground) 84%, var(--color-node-prompt));
-  --thinking-card-heading: color-mix(in srgb, var(--primary-foreground) 94%, var(--color-node-prompt));
-  --thinking-card-muted: color-mix(in srgb, var(--primary-foreground) 56%, var(--muted-foreground));
-  --thinking-card-badge: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-node-prompt));
+  --thinking-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-prompt));
+  --thinking-card-heading: color-mix(in srgb, var(--color-text-primary) 94%, var(--color-node-prompt));
+  --thinking-card-muted: color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary));
+  --thinking-card-badge: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt));
   width: 280px;
-  background: color-mix(in srgb, var(--muted) 92%, var(--background));
+  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-app));
   border-radius: var(--radius);
   border-left: 3px solid var(--color-node-prompt);
   color: var(--thinking-card-text);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--background) 28%, transparent);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-bg-app) 28%, transparent);
   overflow: hidden;
 }
 .card-header {
@@ -136,7 +136,7 @@ function onAfterLeave(element: Element): void {
   text-align: left;
   cursor: pointer;
 }
-.card-header:hover { background: color-mix(in srgb, var(--color-node-prompt) 8%, var(--muted)); }
+.card-header:hover { background: color-mix(in srgb, var(--color-node-prompt) 8%, var(--color-bg-surface)); }
 .header-left {
   display: flex;
   align-items: center;
@@ -150,7 +150,7 @@ function onAfterLeave(element: Element): void {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: color-mix(in srgb, var(--color-node-prompt) 14%, var(--muted));
+  background: color-mix(in srgb, var(--color-node-prompt) 14%, var(--color-bg-surface));
   flex-shrink: 0;
 }
 .header-copy {
@@ -191,27 +191,27 @@ function onAfterLeave(element: Element): void {
   white-space: nowrap;
 }
 .thought-count-badge {
-  background: color-mix(in srgb, var(--muted) 76%, var(--background));
-  color: color-mix(in srgb, var(--primary-foreground) 74%, var(--color-node-prompt));
+  background: color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app));
+  color: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-node-prompt));
 }
 .status-badge {
   border: 1px solid transparent;
   font-weight: var(--weight-title);
 }
 .status-active {
-  background: color-mix(in srgb, var(--color-status-active) 14%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-active) 14%, var(--color-bg-surface));
   border-color: color-mix(in srgb, var(--color-status-active) 28%, transparent);
-  color: color-mix(in srgb, var(--primary-foreground) 74%, var(--color-status-active));
+  color: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-status-active));
 }
 .status-completed {
-  background: color-mix(in srgb, var(--color-status-completed) 14%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-completed) 14%, var(--color-bg-surface));
   border-color: color-mix(in srgb, var(--color-status-completed) 28%, transparent);
-  color: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-status-completed));
+  color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-completed));
 }
 .status-abandoned {
-  background: color-mix(in srgb, var(--color-status-stuck) 14%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-stuck) 14%, var(--color-bg-surface));
   border-color: color-mix(in srgb, var(--color-status-stuck) 28%, transparent);
-  color: color-mix(in srgb, var(--primary-foreground) 68%, var(--color-status-stuck));
+  color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-stuck));
 }
 .expand-indicator {
   color: var(--thinking-card-muted);
@@ -246,7 +246,7 @@ function onAfterLeave(element: Element): void {
   padding: 0.75rem;
   border: 1px solid color-mix(in srgb, var(--color-node-prompt) 18%, transparent);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--color-node-prompt) 6%, var(--muted));
+  background: color-mix(in srgb, var(--color-node-prompt) 6%, var(--color-bg-surface));
 }
 .conclusion-label {
   margin-bottom: 0.45rem;

@@ -24,13 +24,13 @@ defineEmits<{
 
 <style scoped>
 .tree-error {
-  --tree-error-text: color-mix(in srgb, var(--primary-foreground) 74%, var(--destructive));
-  --tree-error-detail: color-mix(in srgb, var(--primary-foreground) 62%, var(--destructive));
+  --tree-error-text: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-danger));
+  --tree-error-detail: color-mix(in srgb, var(--color-text-primary) 62%, var(--color-danger));
   display: flex;
   align-items: flex-start;
   gap: 0.875rem;
   max-width: 480px;
-  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--color-bg-surface));
   border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 25%, transparent);
   border-radius: var(--radius);
   padding: 1rem 1.25rem;
@@ -66,7 +66,7 @@ defineEmits<{
 .retry-btn {
   flex-shrink: 0;
   align-self: center;
-  background: color-mix(in srgb, var(--color-status-abandoned) 18%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-abandoned) 18%, var(--color-bg-surface));
   border: 1px solid color-mix(in srgb, var(--color-status-abandoned) 30%, transparent);
   border-radius: var(--radius);
   padding: 0.375rem 0.75rem;
@@ -79,6 +79,6 @@ defineEmits<{
 }
 
 .retry-btn:hover {
-  background: color-mix(in srgb, var(--color-status-abandoned) 26%, var(--muted));
+  background: color-mix(in srgb, var(--color-status-abandoned) 26%, var(--color-bg-surface));
 }
 </style>

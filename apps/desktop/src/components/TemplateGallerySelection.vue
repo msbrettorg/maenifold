@@ -82,7 +82,7 @@ defineEmits<{
 }
 
 .gallery-runtime-input-item {
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: 0.875rem;
 }
 

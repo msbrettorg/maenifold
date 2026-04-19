@@ -233,12 +233,12 @@ function removeManualRow(id: string): void {
 </template>
 
 <style scoped>
-.mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+.mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-subtle); }
 .header { display: flex; flex-direction: column; gap: 0.25rem; }
 .header h3 { font-size: var(--text-base); font-weight: var(--weight-title); }
-.header p,.status,.empty-copy,.mapping-row small { color: var(--muted-foreground); font-size: var(--text-sm); }
+.header p,.status,.empty-copy,.mapping-row small { color: var(--color-text-secondary); font-size: var(--text-sm); }
 .mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
 .param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); }
+.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); background: var(--color-bg-app); }
 @media (max-width: 640px) { .manual-row { flex-direction: column; } }
 </style>

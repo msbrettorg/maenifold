@@ -239,12 +239,12 @@ function handleRewind(): Promise<void | undefined> {
   gap: 0.5rem;
   margin-left: 0.25rem;
   padding: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--border) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 82%, transparent);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--background) 82%, transparent);
+  background: color-mix(in srgb, var(--color-bg-app) 82%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--foreground) 12%, transparent);
+  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--color-text-primary) 12%, transparent);
 }
 
 .pipeline-action-bar__button {

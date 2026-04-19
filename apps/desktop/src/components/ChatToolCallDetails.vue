@@ -151,13 +151,13 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 .tool-call-content-list { display: flex; flex-direction: column; gap: 0.625rem; }
 .tool-content-block {
   padding: 0.625rem;
-  border: 1px solid color-mix(in srgb, var(--muted-foreground) 25%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent);
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 .tool-content-label {
   margin-bottom: 0.375rem;
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-xs);
   font-weight: var(--weight-title);
 }
@@ -169,25 +169,25 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   padding: 0.75rem;
   overflow-x: auto;
   border-radius: var(--radius);
-  background: var(--muted);
-  color: var(--muted-foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-secondary);
 }
 .tool-content-unknown code,
 .tool-diff-pre code,
 .tool-terminal-output code,
 .tool-call-payload code { font-family: var(--font-mono); font-size: var(--text-sm); }
 .tool-diff-line { display: block; white-space: pre; }
-.diff-line-header { color: color-mix(in srgb, var(--primary-foreground) 72%, var(--color-status-active)); }
+.diff-line-header { color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-active)); }
 .diff-line-context { color: inherit; }
-.diff-line-add { color: color-mix(in srgb, var(--primary-foreground) 68%, var(--color-status-completed)); }
-.diff-line-remove { color: color-mix(in srgb, var(--primary-foreground) 68%, var(--destructive)); }
+.diff-line-add { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-completed)); }
+.diff-line-remove { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-danger)); }
 .tool-terminal-placeholder,
-.tool-terminal-meta { margin: 0; color: var(--muted-foreground); }
+.tool-terminal-meta { margin: 0; color: var(--color-text-secondary); }
 .tool-terminal-status { font-weight: var(--weight-display); }
 .tool-call-payload {
-  border: 1px solid color-mix(in srgb, var(--muted-foreground) 35%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 .tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: var(--weight-title); cursor: pointer; }
 .tool-call-payload pre { margin: 0 0.75rem 0.75rem; }

@@ -82,18 +82,18 @@ function updateType(event: Event) {
 </template>
 
 <style scoped>
-.agent-form { padding: 1rem; border-radius: var(--radius); background: var(--card); }
+.agent-form { padding: 1rem; border-radius: var(--radius); background: var(--color-bg-elevated); }
 .agent-form h4 { margin: 0 0 0.75rem; }
 .form-group { display: block; margin-bottom: 0.75rem; }
 .form-group span { display: block; margin-bottom: 0.25rem; font-weight: 500; }
-.form-group input,.form-group select,.form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background); color: var(--foreground); }
+.form-group input,.form-group select,.form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); background: var(--color-bg-app); color: var(--color-text-primary); }
 .form-group textarea { resize: vertical; }
 .form-group small { font-size: 0.75rem; }
-.form-error { color: var(--destructive); }
+.form-error { color: var(--color-danger); }
 .form-actions { display: flex; justify-content: space-between; gap: 0.75rem; }
 .save-btn,.cancel-btn { padding: 0.5rem 0.9rem; border-radius: var(--radius); cursor: pointer; }
-.save-btn { border: none; background: var(--ring); color: var(--primary-foreground); }
-.cancel-btn { border: 1px solid var(--border); background: transparent; color: inherit; }
+.save-btn { border: none; background: var(--color-brand); color: var(--color-text-primary); }
+.cancel-btn { border: 1px solid var(--color-border-subtle); background: transparent; color: inherit; }
 @media (max-width: 640px) {
   .form-actions { flex-direction: column; align-items: stretch; }
 }

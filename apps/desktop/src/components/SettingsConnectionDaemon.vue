@@ -106,7 +106,7 @@ async function copyAddress() {
 .info-card {
   padding: 1rem;
   border-radius: 4px;
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .card-header {
@@ -128,7 +128,7 @@ async function copyAddress() {
 
 .info-card p,
 .stat-chip span {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .daemon-address {
@@ -148,7 +148,7 @@ async function copyAddress() {
   border: none;
   border-radius: 4px;
   background: var(--surface-high);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   cursor: pointer;
   font-size: 0.6875rem;
 }
@@ -175,24 +175,24 @@ async function copyAddress() {
 }
 
 .stat-chip.success strong {
-  color: var(--ring);
+  color: var(--color-brand);
 }
 
 .stat-chip.warning strong {
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .stat-chip.muted strong {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .stat-chip.error strong {
-  color: var(--destructive);
+  color: var(--color-danger);
 }
 
 .refresh-btn {
   padding: 0.5rem 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: transparent;
   color: inherit;

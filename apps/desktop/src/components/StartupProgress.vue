@@ -150,7 +150,7 @@ const progressValue = computed(() => {
   gap: 0.5rem;
   margin-bottom: 0.75rem;
 }
-.agent-name { font-weight: var(--weight-title); color: var(--foreground); }
+.agent-name { font-weight: var(--weight-title); color: var(--color-text-primary); }
 .progress-meta { display: inline-flex; align-items: center; gap: 0.5rem; }
 .phase-pill {
   display: inline-flex;
@@ -167,7 +167,7 @@ const progressValue = computed(() => {
 .phase-pill--error { background: var(--terracotta); }
 .elapsed-time {
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-family: var(--font-code);
 }
 .progress-status {
@@ -180,10 +180,10 @@ const progressValue = computed(() => {
   margin-bottom: 0.75rem;
 }
 .phase-icon { font-size: var(--text-title); }
-.phase-text { color: var(--muted-foreground); font-size: var(--text-body-sm); }
+.phase-text { color: var(--color-text-secondary); font-size: var(--text-body-sm); }
 .first-run-hint {
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-style: italic;
   margin-bottom: 0.75rem;
   padding: 0.5rem;
@@ -196,7 +196,7 @@ const progressValue = computed(() => {
   border: none;
   border-radius: 4px;
   background: var(--surface-high);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
   cursor: pointer;
 }
@@ -206,13 +206,13 @@ const progressValue = computed(() => {
   border: none;
   border-radius: 4px;
   background: var(--surface-high);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
   cursor: pointer;
 }
 .cancel-btn:hover {
-  background: color-mix(in srgb, var(--destructive) 18%, var(--surface-high));
-  color: var(--destructive);
+  background: color-mix(in srgb, var(--color-danger) 18%, var(--surface-high));
+  color: var(--color-danger);
 }
 .logs-container {
   margin-top: 0.75rem;
@@ -224,7 +224,7 @@ const progressValue = computed(() => {
   background: var(--surface-high);
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 .logs-content {
   max-height: 150px;
@@ -234,20 +234,20 @@ const progressValue = computed(() => {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--color-border-subtle) transparent;
 }
 .logs-content::-webkit-scrollbar { width: 8px; }
 .logs-content::-webkit-scrollbar-track { background: transparent; }
 .logs-content::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--color-border-subtle);
   border-radius: 4px;
 }
-.logs-content::-webkit-scrollbar-thumb:hover { background: var(--muted-foreground); }
+.logs-content::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
 .log-line {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.4;
 }
-.no-logs { color: var(--muted-foreground); font-style: italic; }
+.no-logs { color: var(--color-text-secondary); font-style: italic; }
 </style>

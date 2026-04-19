@@ -163,10 +163,10 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 .ab-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ab-wrap { display: inline-flex; }
 .ab-btn {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
-  background: var(--muted);
-  color: var(--foreground);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
   padding: 0.35rem 0.75rem;
   font-size: var(--text-sm);
   cursor: pointer;
@@ -179,10 +179,10 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
   gap: 0.375rem;
   padding: 0.25rem 0.625rem;
   border-radius: 4px;
-  background: var(--muted);
-  border: 1px solid var(--border);
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
   font-size: var(--text-sm);
 }
-.ab-remove { border: none; background: transparent; color: var(--muted-foreground); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }
+.ab-remove { border: none; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }
 .ab-remove:disabled { cursor: not-allowed; }
 </style>

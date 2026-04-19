@@ -129,7 +129,7 @@ function handleClose(): void {}
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: var(--surface-high);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-sm);
   cursor: pointer;
 }
@@ -144,7 +144,7 @@ textarea {
   border: 1px solid rgba(66, 71, 83, 0.15);
   border-radius: 4px;
   background: var(--surface);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   resize: none;
   font: inherit;
   font-size: var(--text-base);
@@ -161,7 +161,7 @@ textarea:focus {
   border: none;
   border-radius: 4px;
   background: var(--blue);
-  color: var(--primary-foreground);
+  color: var(--color-text-primary);
   font-size: var(--text-base);
   font-weight: var(--weight-display);
   cursor: pointer;

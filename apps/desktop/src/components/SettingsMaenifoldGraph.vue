@@ -112,11 +112,11 @@ defineProps<{
 .settings-card {
   padding: 1rem;
   border-radius: var(--radius);
-  background: var(--card);
+  background: var(--color-bg-elevated);
 }
 
 .details-section {
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
 }
 
 .details-section summary {
@@ -153,10 +153,10 @@ defineProps<{
 .form-group select {
   width: 100%;
   padding: 0.5rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
 }
 
 .checkbox-group,
@@ -169,15 +169,15 @@ defineProps<{
 .checkbox-group {
   min-height: 42px;
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 
 .optional-field {
   padding: 0.9rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 </style>

@@ -62,7 +62,7 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
 }
 
 .gate-detail-meta dt {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-tiny);
 }
 
@@ -83,7 +83,7 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
   padding: 0.25rem 0.55rem;
   border-radius: 4px;
   background: var(--surface-highest);
-  color: var(--foreground);
+  color: var(--color-text-primary);
   font-family: var(--font-code);
   font-size: var(--text-2xs);
   font-weight: var(--weight-title);

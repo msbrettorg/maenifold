@@ -76,7 +76,7 @@ const queueHint = computed(() =>
   gap: 0.5rem;
   align-items: flex-start;
   padding: 1rem;
-  background: var(--muted);
+  background: var(--color-bg-surface);
 }
 
 .dialog-header .icon {
@@ -93,7 +93,7 @@ const queueHint = computed(() =>
 .queue-hint {
   margin: 0;
   font-size: var(--text-caption);
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .pending-chip {

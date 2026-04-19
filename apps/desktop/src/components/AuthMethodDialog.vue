@@ -102,7 +102,7 @@ function handleSelect(methodId: string) {
 }
 
 .close-btn:hover {
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .dialog-content {
@@ -144,7 +144,7 @@ function handleSelect(methodId: string) {
 
 .method-name {
   font-weight: var(--weight-display);
-  color: var(--foreground);
+  color: var(--color-text-primary);
 }
 
 .method-desc {
@@ -158,7 +158,7 @@ function handleSelect(methodId: string) {
 }
 
 .auth-method-btn:hover .arrow {
-  color: var(--ring);
+  color: var(--color-brand);
 }
 
 .dialog-footer {

@@ -38,8 +38,30 @@ const liveSessionsByRemoteId = computed(() => {
   return liveSessions;
 });
 
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString();
+function formatRelative(dateStr: string | number): string {
+  const date = new Date(dateStr);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) {
+    return 'just now';
+  }
+  if (diffMin < 60) {
+    return `${diffMin}m ago`;
+  }
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) {
+    return `${diffHr}h ago`;
+  }
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay === 1) {
+    return 'yesterday';
+  }
+  if (diffDay < 7) {
+    return `${diffDay}d ago`;
+  }
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function handleResume(session: SavedSession) {
@@ -106,11 +128,11 @@ async function handleDelete(session: SavedSession, event: Event) {
 
 <template>
   <div>
-    <h3 class="mb-3 text-tiny font-normal text-[var(--text-dim)]">
+    <h3 class="mb-3 text-tiny font-normal text-text-tertiary">
       Sessions
     </h3>
 
-    <ul class="m-0 p-0 list-none" role="list" aria-label="Sessions">
+    <ul class="m-0 p-0 list-none flex flex-col gap-1.5" role="list" aria-label="Sessions">
       <li v-if="sessions.length === 0" class="p-8 text-muted-foreground text-center" role="listitem">
         <p>No saved sessions yet.</p>
         <p class="mt-2 text-caption">Create a new session to get started.</p>
@@ -119,16 +141,16 @@ async function handleDelete(session: SavedSession, event: Event) {
         v-for="session in sessions"
         :key="session.id"
         role="listitem"
-        class="session-item mb-1 flex cursor-pointer items-center justify-between rounded-[4px] border-none px-[0.625rem] py-2"
+        class="session-item flex cursor-pointer items-center justify-between rounded-[6px] border border-border-card bg-bg-elevated p-2.5 transition-all hover:bg-bg-surface-hover"
         :class="{ 'cursor-default': isResumeUnavailable(session) }"
         @click="handleResume(session)"
       >
         <div class="flex flex-1 flex-col gap-1 min-w-0 overflow-hidden">
           <div class="flex items-center gap-1.5 min-w-0">
             <span
-              class="block max-w-[200px] truncate text-caption font-medium text-foreground"
-              :title="session.title"
-            >
+               class="block max-w-[200px] truncate text-sm font-medium text-text-primary"
+               :title="session.title"
+             >
               {{ session.title }}
             </span>
             <span
@@ -159,7 +181,7 @@ async function handleDelete(session: SavedSession, event: Event) {
               from agent
             </span>
           </span>
-          <span class="text-tiny text-muted-foreground">{{ formatDate(session.lastUpdated) }}</span>
+          <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
         </div>
         <button
           class="delete-btn py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer"
@@ -175,49 +197,45 @@ async function handleDelete(session: SavedSession, event: Event) {
 
 <style scoped>
 .session-item {
-  transition: background 0.15s;
-}
-
-.session-item:hover {
-  background: color-mix(in srgb, var(--muted) 60%, transparent);
+  transition: background-color 0.15s;
 }
 
 .connection-state {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
 }
 
 .connection-dot {
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: var(--text-dim);
+  background: var(--color-text-muted);
 }
 
 .connection-state.connected {
-  color: var(--sage);
+  color: var(--color-success);
 }
 
 .connection-state.connected .connection-dot {
-  background: var(--sage);
+  background: var(--color-success);
   animation: pulse-dot 2s ease-in-out infinite;
 }
 
 .connection-state.connecting {
-  color: var(--amber);
+  color: var(--color-warning);
 }
 
 .connection-state.connecting .connection-dot {
-  background: var(--amber);
+  background: var(--color-warning);
   animation: pulse-dot 1s ease-in-out infinite;
 }
 
 .connection-state.unavailable .connection-dot {
-  background: var(--text-dim);
+  background: var(--color-text-muted);
 }
 
 .delete-btn:hover {
-  background: color-mix(in srgb, var(--destructive) 18%, transparent);
-  color: var(--destructive);
+  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  color: var(--color-danger);
 }
 
 @keyframes pulse-dot {

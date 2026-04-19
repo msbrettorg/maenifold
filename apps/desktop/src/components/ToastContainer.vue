@@ -68,8 +68,8 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   padding: 0.8rem 0.9rem;
   border-left: 3px solid var(--toast-accent);
   border-radius: 0.75rem;
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-bg-app);
+  color: var(--color-text-primary);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
 }

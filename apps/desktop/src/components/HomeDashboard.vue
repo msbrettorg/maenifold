@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col items-center justify-center px-8">
+  <div class="flex flex-1 flex-col items-center px-8 pt-[16vh]">
     <div class="mb-5">
       <Brain class="size-16 text-text-tertiary opacity-40" :stroke-width="1" />
     </div>

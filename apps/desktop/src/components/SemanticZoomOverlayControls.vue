@@ -114,7 +114,7 @@ defineEmits<{
   flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4) var(--space-4);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--color-border-subtle);
   background: color-mix(in srgb, var(--accent, var(--surface-highest)) 55%, var(--card, var(--surface-container)));
 }
 
@@ -129,13 +129,13 @@ defineEmits<{
   flex-direction: column;
   gap: 0.25rem;
   padding: 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  background: var(--background);
+  background: var(--color-bg-app);
 }
 
 .zoom-fork-result span {
-  color: var(--muted-foreground);
+  color: var(--color-text-secondary);
   font-size: var(--text-caption);
 }
 
@@ -149,7 +149,7 @@ defineEmits<{
   border: none;
   border-radius: 4px;
   background: var(--blue);
-  color: var(--primary-foreground);
+  color: var(--color-text-primary);
   font-weight: 600;
   font-size: var(--text-caption);
   cursor: pointer;

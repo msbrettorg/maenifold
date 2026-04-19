@@ -134,7 +134,7 @@ const resize = useResizeHandle({
   <!-- Sidebar resize handle -->
   <div
     v-if="visible"
-    class="relative z-10 -mx-[3px] w-[6px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--ring)] active:bg-[var(--ring)]"
+    class="relative z-10 -mx-[3px] w-[6px] shrink-0 cursor-col-resize transition-colors hover:bg-[var(--color-brand)] active:bg-[var(--color-brand)]"
     @mousedown="resize.startResize($event, 'right')"
   />
 
@@ -158,7 +158,7 @@ const resize = useResizeHandle({
   gap: 0.25rem;
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: var(--border) transparent;
+  scrollbar-color: var(--color-border-subtle) transparent;
 }
 
 .sidebar-content::-webkit-scrollbar {
@@ -170,12 +170,12 @@ const resize = useResizeHandle({
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: var(--border);
+  background: var(--color-border-subtle);
   border-radius: 4px;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: var(--muted-foreground);
+  background: var(--color-text-secondary);
 }
 
 .section :deep(.agent-selector label),

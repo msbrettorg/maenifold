@@ -255,7 +255,7 @@ onBeforeUnmount(() => {
 
 .panel-timeline {
   flex: 1 1 auto;
-  background: var(--background);
+  background: var(--color-bg-app);
   min-width: 320px;
 }
 

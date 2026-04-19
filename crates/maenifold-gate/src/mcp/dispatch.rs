@@ -90,7 +90,7 @@ pub(crate) fn context_from_value(
     json_output: bool,
     default_root: Option<&PathBuf>,
 ) -> Result<GateContext, GateError> {
-    let root = match optional_path(arguments, "root")? {
+    let raw_root = match optional_path(arguments, "root")? {
         Some(root) => root,
         None => default_root.cloned().ok_or_else(|| {
             GateError::Cli(
@@ -99,6 +99,18 @@ pub(crate) fn context_from_value(
             )
         })?,
     };
+    let root = std::fs::canonicalize(&raw_root).map_err(|error| {
+        GateError::Cli(format!(
+            "root path '{}' is not accessible: {error}; pass an absolute path to a writable project directory via the 'root' argument",
+            raw_root.display()
+        ))
+    })?;
+    if !root.is_dir() {
+        return Err(GateError::Cli(format!(
+            "root path '{}' is not a directory; pass an absolute path to a writable project directory via the 'root' argument",
+            root.display()
+        )));
+    }
 
     Ok(GateContext {
         root,
@@ -133,5 +145,25 @@ pub(crate) fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>
         Some(_) => Err(GateError::Cli(format!(
             "MCP argument '{key}' must be a boolean"
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::context_from_value;
+
+    #[test]
+    fn context_from_value_rejects_nonexistent_root() {
+        let args = json!({"root": "/nonexistent/path/abc123"});
+        let result = context_from_value(&args, false, None);
+        let err = result.expect_err("nonexistent root should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("/nonexistent/path/abc123"),
+            "error should contain the path: {msg}"
+        );
+        assert!(msg.contains("root"), "error should mention root: {msg}");
     }
 }

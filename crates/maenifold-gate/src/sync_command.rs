@@ -35,7 +35,12 @@ fn ensure_gate_gitignore_entry(root: &Path) -> Result<(), GateError> {
     let existing = match fs::read_to_string(&path) {
         Ok(contents) => contents,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
-        Err(error) => return Err(GateError::Io(error)),
+        Err(error) => {
+            return Err(GateError::Cli(format!(
+                "cannot read '{}': {error}; ensure the project root is accessible",
+                path.display()
+            )));
+        }
     };
 
     if existing
@@ -50,7 +55,12 @@ fn ensure_gate_gitignore_entry(root: &Path) -> Result<(), GateError> {
         updated.push('\n');
     }
     updated.push_str(".gate/\n");
-    fs::write(path, updated)?;
+    fs::write(&path, &updated).map_err(|error| {
+        GateError::Cli(format!(
+            "cannot write '{}': {error}; ensure the project root is writable or pass --root <writable-path>",
+            path.display()
+        ))
+    })?;
     Ok(())
 }
 
@@ -122,5 +132,39 @@ mod tests {
             .query_row("SELECT value FROM sentinel", [], |row| row.get(0))
             .expect("sentinel table should survive sync --rebuild");
         assert_eq!(sentinel_value, "kept");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn sync_gate_on_readonly_root_returns_actionable_error() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().expect("create temp root");
+        let root = temp.path().join("readonly_sync");
+        fs::create_dir_all(root.join("todo")).expect("create todo");
+        fs::create_dir_all(root.join("done")).expect("create done");
+        // Make root read-only AFTER creating subdirs
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o555))
+            .expect("make root read-only");
+
+        let err = sync_gate(SyncArgs {
+            context: GateContext {
+                root: root.clone(),
+                requested_pipeline_name: None,
+                json_output: false,
+            },
+            rebuild: true,
+        })
+        .expect_err("sync on read-only root should fail");
+
+        let msg = err.to_string();
+        assert!(
+            msg.contains(&root.to_string_lossy().to_string()) || msg.contains(".gate"),
+            "error should contain the path or .gate: {msg}"
+        );
+
+        // Cleanup
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755))
+            .expect("restore permissions");
     }
 }

@@ -120,7 +120,12 @@ impl GateCacheDb {
 
     fn connection(&self) -> Result<Connection, GateError> {
         if let Some(parent) = self.path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).map_err(|error| {
+                GateError::Cli(format!(
+                    "cannot create gate cache directory '{}': {error}; ensure the project root is writable or pass --root <writable-path>",
+                    parent.display()
+                ))
+            })?;
         }
         Self::migrate_if_stale(&self.path)?;
         let connection = Connection::open(&self.path)?;
@@ -531,5 +536,33 @@ mod tests {
             }
             other => panic!("expected duplicate canonical task id error, got {other}"),
         }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn cache_db_connection_on_readonly_path_includes_path_in_error() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().expect("create temp root");
+        let root = temp.path().join("readonly_project");
+        fs::create_dir_all(&root).expect("create readonly dir");
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o444))
+            .expect("make dir read-only");
+
+        let db = GateCacheDb::open(&root).expect("open cache db");
+        let err = db.connection().expect_err("read-only root should fail");
+        let msg = err.to_string();
+        assert!(
+            msg.contains(".gate"),
+            "error should mention .gate directory: {msg}"
+        );
+        assert!(
+            msg.contains("writable") || msg.contains("--root"),
+            "error should contain remediation hint: {msg}"
+        );
+
+        // Cleanup: restore permissions so temp dir can be removed
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755))
+            .expect("restore permissions");
     }
 }

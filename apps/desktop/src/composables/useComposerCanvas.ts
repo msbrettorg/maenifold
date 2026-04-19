@@ -1,4 +1,4 @@
-import { computed, markRaw, nextTick, ref, watch } from 'vue';
+import { computed, markRaw, ref } from 'vue';
 import type { Ref } from 'vue';
 import { useVueFlow } from '@vue-flow/core';
 import type { Connection, Edge, Node } from '@vue-flow/core';
@@ -12,12 +12,29 @@ import {
   pipelineEdgesToFlow,
   pipelineNodesToFlow,
   savePositions,
-  toPipelineNodeFromViewNode,
 } from '../lib/pipeline-composer-flow';
 import type { PipelineDefinition, PipelineView } from '../lib/pipeline-types';
-import { edgeIndicator, edgeLabel, edgeLabelTitle, edgePath, edgePathStyle, edgeTooltip } from '../lib/pipeline-composer-edge-utils';
+import {
+  edgeIndicator,
+  edgeLabel,
+  edgeLabelTitle,
+  edgePath,
+  edgePathStyle,
+  edgeTooltip,
+} from '../lib/pipeline-composer-edge-utils';
 import { createComposerNodeActions } from '../lib/pipeline-composer-node-actions';
+import {
+  applyDirectionHandles,
+  DEFAULT_DIRECTION,
+  DIRECTION_HANDLES,
+  isSelected,
+  toFlowPosition,
+  type Direction,
+  type SelectableFlowElement,
+} from '../lib/composer-canvas-helpers';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
+import { createComposerCanvasHandlers, type ComposerCanvasHandlersOptions } from './useComposerCanvasHandlers';
+import { setupComposerCanvasWatchers } from './useComposerCanvasWatchers';
 
 type SelectedEdge = { source: string; target: string };
 
@@ -32,45 +49,6 @@ type UseComposerCanvasOptions = {
   designNodeDoubleClick?: (nodeId: string) => void;
   edgeDoubleClick?: (edge: SelectedEdge) => void;
 };
-
-type Point = { x: number; y: number };
-type SelectableFlowElement = { selected?: boolean };
-
-type Direction = 'LR' | 'TB';
-const DEFAULT_DIRECTION: Direction = 'LR';
-
-const DIRECTION_HANDLES: Record<Direction, { source: string; target: string }> = {
-  LR: { source: 'out-right', target: 'in-left' },
-  TB: { source: 'out-bottom', target: 'in-top' },
-};
-
-function directionStorageKey(sessionId: string): string {
-  return `maenifold:pipeline:${sessionId}:direction`;
-}
-
-function parseDirection(raw: string | null): Direction {
-  return raw === 'TB' ? 'TB' : DEFAULT_DIRECTION;
-}
-
-function loadDirectionPreference(sessionId: string): Direction {
-  try {
-    return parseDirection(globalThis.localStorage?.getItem(directionStorageKey(sessionId)) ?? null);
-  } catch {
-    return DEFAULT_DIRECTION;
-  }
-}
-
-function saveDirectionPreference(sessionId: string, direction: Direction): void {
-  try {
-    globalThis.localStorage?.setItem(directionStorageKey(sessionId), direction);
-  } catch {
-    // Ignore localStorage failures.
-  }
-}
-
-function isSelected(element: SelectableFlowElement): boolean {
-  return !!element.selected;
-}
 
 export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const layoutDirection = options.layoutDirection ?? ref<Direction>(DEFAULT_DIRECTION);
@@ -122,56 +100,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const showEmptyState = computed(
     () => options.designMode() && nodes.value.length === 0,
   );
-
-  function applyDirectionHandles(edgeList: Edge[], direction: Direction): Edge[] {
-    const handles = DIRECTION_HANDLES[direction] ?? DIRECTION_HANDLES.LR;
-    const sourceCount = new Map<string, number>();
-    for (const edge of edgeList) {
-      sourceCount.set(edge.source, (sourceCount.get(edge.source) ?? 0) + 1);
-    }
-    const sourceIndex = new Map<string, number>();
-    return edgeList.map((edge) => {
-      const idx = sourceIndex.get(edge.source) ?? 0;
-      sourceIndex.set(edge.source, idx + 1);
-      const count = sourceCount.get(edge.source) ?? 1;
-      return {
-        ...edge,
-        sourceHandle: handles.source,
-        targetHandle: handles.target,
-        data: {
-          ...(edge.data ?? {}),
-          fanIndex: idx,
-          fanCount: count,
-        },
-      };
-    });
-  }
-
-  function hasViewStructureChanged(
-    view: PipelineView | null | undefined,
-    previousView: PipelineView | null | undefined,
-  ): boolean {
-    if (!view && !previousView) return false;
-    if (!view || !previousView) return true;
-
-    const nodeIds = new Set(view.nodes.map((node) => node.nodeId));
-    const previousNodeIds = new Set(previousView.nodes.map((node) => node.nodeId));
-    if (nodeIds.size !== previousNodeIds.size) return true;
-    for (const nodeId of nodeIds) {
-      if (!previousNodeIds.has(nodeId)) return true;
-    }
-
-    const edgePairs = new Set(view.edges.map((edge) => `${edge.source}->${edge.target}`));
-    const previousEdgePairs = new Set(
-      previousView.edges.map((edge) => `${edge.source}->${edge.target}`),
-    );
-    if (edgePairs.size !== previousEdgePairs.size) return true;
-    for (const pair of edgePairs) {
-      if (!previousEdgePairs.has(pair)) return true;
-    }
-
-    return false;
-  }
 
   async function syncCanvas(
     definition: PipelineDefinition,
@@ -234,88 +162,18 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   const { clearPendingDefinitionSync, scheduleDefinitionSync, shouldSyncCanvasImmediately } =
     useComposerSync(syncCanvas, options.designMode);
 
-  watch(
-    () => options.view()?.pipelineId ?? null,
-    (pipelineSessionId) => {
-      if (!pipelineSessionId) {
-        layoutDirection.value = DEFAULT_DIRECTION;
-        return;
-      }
-      layoutDirection.value = loadDirectionPreference(pipelineSessionId);
-    },
-    { immediate: true },
-  );
-
-  watch(
+  setupComposerCanvasWatchers({
+    designMode: options.designMode,
+    localDefinition: options.localDefinition,
+    view: options.view,
     layoutDirection,
-    (direction) => {
-      const pipelineSessionId = options.view()?.pipelineId;
-      if (!pipelineSessionId) {
-        return;
-      }
-      saveDirectionPreference(pipelineSessionId, direction);
-    },
-  );
-
-  watch(
-    options.localDefinition,
-    async (definition, previousDefinition) => {
-      if (!definition || !options.designMode()) return;
-      if (shouldSyncCanvasImmediately(definition, previousDefinition)) {
-        clearPendingDefinitionSync();
-        await syncCanvas(definition, options.view());
-        nextTick(() => fitView());
-        return;
-      }
-
-      scheduleDefinitionSync(definition, options.view());
-    },
-    { immediate: true },
-  );
-
-  watch(
-    options.designMode,
-    (designMode) => {
-      if (designMode) {
-        fittedPipelineId.value = null;
-      }
-    },
-    { immediate: true },
-  );
-
-  watch(
-    () => options.view()?.pipelineId ?? null,
-    (pipelineId, previousPipelineId) => {
-      if (pipelineId !== previousPipelineId) {
-        fittedPipelineId.value = null;
-      }
-    },
-  );
-
-  watch(
-    options.view,
-    async (view, previousView) => {
-      if (!view || options.designMode()) return;
-      const structureChanged = hasViewStructureChanged(view, previousView);
-      await syncCanvas(
-        {
-          nodes: view.nodes.map(toPipelineNodeFromViewNode),
-          edges: view.edges,
-        },
-        view,
-        {
-          forceLayout: structureChanged,
-          skipLayout: !structureChanged,
-        },
-      );
-      const loadedPipelineId = view.pipelineId ?? null;
-      if (loadedPipelineId && loadedPipelineId !== fittedPipelineId.value) {
-        fittedPipelineId.value = loadedPipelineId;
-        nextTick(() => fitView({ padding: 0.15, duration: 200 }));
-      }
-    },
-    { immediate: true },
-  );
+    fittedPipelineId,
+    fitView,
+    syncCanvas,
+    shouldSyncCanvasImmediately,
+    clearPendingDefinitionSync,
+    scheduleDefinitionSync,
+  });
 
   onNodeDragStop(({ node }) => {
     void node;
@@ -363,86 +221,34 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   const zoomStore = useSemanticZoomStore();
 
-  function enterInspect(nodeId: string, event: MouseEvent | TouchEvent): void {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
-    const nodeEl = target.closest<HTMLElement>('.vue-flow__node');
-    if (!nodeEl) return;
-    zoomStore.enterInspect(nodeId, nodeEl.getBoundingClientRect());
-  }
-
-  async function handleNodeDoubleClick(node: Node, event: MouseEvent | TouchEvent): Promise<void> {
-    if (options.designMode()) {
-      options.designNodeDoubleClick?.(node.id);
-      return;
-    }
-    enterInspect(node.id, event);
-  }
+  const handlerOptions: ComposerCanvasHandlersOptions = {
+    designMode: options.designMode,
+    selectNode: options.selectNode,
+    selectEdge: options.selectEdge,
+    designNodeDoubleClick: options.designNodeDoubleClick,
+    layoutDirection,
+    selectedNodes,
+    selectedEdges,
+    nodes: nodes as unknown as { value: Node[] },
+    edges: edges as unknown as { value: Edge[] },
+    getNodes: () => getNodes.value,
+    getEdges: () => getEdges.value,
+    setNodes: setNodes as (nodes: Node[]) => unknown,
+    setEdges: setEdges as (edges: Edge[]) => unknown,
+    fitView,
+    persistPositions,
+    syncLocalGraph,
+    zoomStore,
+  };
+  const handlers = createComposerCanvasHandlers(handlerOptions);
 
   onNodeDoubleClick(({ node, event }) => {
-    void handleNodeDoubleClick(node, event);
+    void handlers.handleNodeDoubleClick(node, event);
   });
 
   onEdgeDoubleClick(({ edge }) => {
     options.edgeDoubleClick?.({ source: edge.source, target: edge.target });
   });
-
-  function handleFlowKeyDown(event: KeyboardEvent): void {
-    if (event.key !== 'Enter' && event.key !== ' ') return;
-
-    const nodeEl = (event.target as Element).closest<HTMLElement>('.vue-flow__node');
-    if (!nodeEl?.dataset.id) return;
-
-    event.preventDefault();
-    options.selectNode(nodeEl.dataset.id);
-    options.selectEdge(null);
-  }
-
-  function deleteSelected(): void {
-    if (!options.designMode()) return;
-
-    const nodeIds = new Set(selectedNodes.value.map((node) => node.id));
-    const edgeIds = new Set(selectedEdges.value.map((edge) => edge.id));
-
-    const nextNodes = getNodes.value.filter((node) => !nodeIds.has(node.id));
-    const nextEdges = getEdges.value.filter(
-      (edge) => !edgeIds.has(edge.id) && !nodeIds.has(edge.source) && !nodeIds.has(edge.target),
-    );
-    syncLocalGraph(nextNodes, nextEdges);
-  }
-
-  async function handleAutoLayout(direction: 'LR' | 'TB'): Promise<void> {
-    layoutDirection.value = direction;
-    const currentNodes: Node[] = getNodes.value;
-    const currentEdges: Edge[] = getEdges.value;
-    const result = await layout(
-      currentNodes,
-      applyDirectionHandles(currentEdges, direction),
-      direction,
-    );
-    const nextEdges = applyDirectionHandles(currentEdges, direction);
-    nodes.value = result.nodes;
-    edges.value = nextEdges;
-    setNodes(result.nodes);
-    setEdges(nextEdges);
-    persistPositions(result.nodes);
-    nextTick(() => fitView());
-  }
-
-  function toFlowPosition(clientX: number, clientY: number, rootElement: HTMLElement): Point {
-    const rootRect = rootElement.getBoundingClientRect();
-    const viewportElement = rootElement.querySelector<HTMLElement>('.vue-flow__viewport');
-    const transform = viewportElement ? getComputedStyle(viewportElement).transform : 'none';
-    const matrix = transform && transform !== 'none'
-      ? new DOMMatrixReadOnly(transform)
-      : new DOMMatrixReadOnly();
-    const zoom = matrix.a || 1;
-
-    return {
-      x: Math.round(((clientX - rootRect.left - matrix.m41) / zoom) / 20) * 20,
-      y: Math.round(((clientY - rootRect.top - matrix.m42) / zoom) / 20) * 20,
-    };
-  }
 
   const nodeActions = createComposerNodeActions({
     designMode: options.designMode,
@@ -458,7 +264,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     createNodeAt: nodeActions.createNodeAt,
     deleteNode: nodeActions.deleteNode,
     defaultEdgeOptions,
-    deleteSelected,
+    deleteSelected: handlers.deleteSelected,
     disconnectNodeEdges: nodeActions.disconnectNodeEdges,
     edgeIndicator,
     edgeLabel,
@@ -469,8 +275,8 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     editNode: nodeActions.editNode,
     edges,
     fitView,
-    handleAutoLayout,
-    handleFlowKeyDown,
+    handleAutoLayout: handlers.handleAutoLayout,
+    handleFlowKeyDown: handlers.handleFlowKeyDown,
     hasSelection,
     nodeTypes,
     nodes,

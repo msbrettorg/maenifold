@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { getWorkspaceLabel } from '../lib/gate-display';
-
-const selectFieldClass =
-  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--color-brand)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--color-brand)]/15';
 
 const props = defineProps<{
   hasGateRoot: boolean;
@@ -34,10 +32,6 @@ const workspaceOptions = computed(() => props.gateRoots.map((root) => ({
 const currentWorkspaceLabel = computed(() => (
   props.selectedGateRoot ? getWorkspaceLabel(props.selectedGateRoot) : 'No workspace selected'
 ));
-
-function handleRootChange(event: Event) {
-  emit('change-root', (event.target as HTMLSelectElement).value);
-}
 </script>
 
 <template>
@@ -59,10 +53,14 @@ function handleRootChange(event: Event) {
     </div>
 
     <div class="gate-toolbar__actions">
-      <select :class="[selectFieldClass, 'gate-root-select']" :value="props.selectedGateRoot" :disabled="!props.isReady" @change="handleRootChange">
-        <option value="">Select root…</option>
-        <option v-for="root in workspaceOptions" :key="root.value" :value="root.value">{{ root.label }}</option>
-      </select>
+      <Select :model-value="props.selectedGateRoot || ''" :disabled="!props.isReady" @update:model-value="(v) => emit('change-root', String(v))">
+        <SelectTrigger class="gate-root-select">
+          <SelectValue placeholder="Select root…" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem v-for="root in workspaceOptions" :key="root.value" :value="root.value">{{ root.label }}</SelectItem>
+        </SelectContent>
+      </Select>
       <Button variant="ghost" @click="emit('browse')">Browse…</Button>
       <Button variant="ghost" :disabled="!props.hasGateRoot" @click="emit('remove')">Remove</Button>
       <Button variant="ghost" :disabled="!props.hasGateRoot || props.isLoading" @click="emit('refresh')">

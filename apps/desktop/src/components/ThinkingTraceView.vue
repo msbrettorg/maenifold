@@ -3,13 +3,13 @@ import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { Button } from '@/components/ui/button';
 import type { SequentialThinkingViewNode } from '../lib/pipeline-types';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { usePipelineStore } from '../stores/pipeline';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
-import './ThinkingTraceView.css';
 
 const props = defineProps<{
   trace: NonNullable<SequentialThinkingViewNode['thinking_trace']>;
@@ -152,9 +152,9 @@ function toggleAll(): void {
     <div class="trace-header">
       <h3>Thinking trace</h3>
       <span class="trace-count">{{ props.trace.length }} thoughts</span>
-      <button type="button" class="trace-toggle" @click="toggleAll">
+      <Button variant="ghost" size="sm" class="trace-toggle" @click="toggleAll">
         {{ allExpanded ? 'Collapse all' : 'Expand all' }}
-      </button>
+      </Button>
     </div>
 
     <ol class="trace-list">
@@ -181,3 +181,93 @@ function toggleAll(): void {
     </ol>
   </section>
 </template>
+
+<style scoped>
+.trace-panel { display: flex; flex-direction: column; gap: var(--space-3); }
+.trace-header, .trace-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
+.trace-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--foreground); }
+.trace-count, .trace-revision { color: var(--muted-foreground); font-size: var(--text-tiny); }
+.trace-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.trace-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--muted);
+  overflow: hidden;
+}
+.trace-summary {
+  list-style: none;
+  cursor: pointer;
+  padding: var(--space-3);
+}
+.trace-summary::-webkit-details-marker { display: none; }
+.trace-summary__copy { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.trace-number { font-family: var(--font-code); font-size: var(--text-caption); color: var(--foreground); }
+.trace-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  font-size: var(--text-tiny);
+  font-weight: var(--weight-title);
+  white-space: nowrap;
+}
+.trace-status__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: var(--radius);
+  background: currentColor;
+}
+.trace-status--active {
+  color: var(--color-status-active);
+  background: color-mix(in srgb, var(--color-status-active) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent);
+}
+.trace-status--completed {
+  color: var(--color-status-completed);
+  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent);
+}
+.trace-status--warning {
+  color: var(--color-status-stuck);
+  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent);
+}
+.trace-status--revision {
+  color: var(--ring);
+  background: color-mix(in srgb, var(--ring) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--ring) 30%, transparent);
+}
+.trace-status--pending {
+  color: var(--color-status-pending);
+  background: color-mix(in srgb, var(--color-status-pending) 12%, var(--background));
+  border-color: color-mix(in srgb, var(--color-status-pending) 30%, transparent);
+}
+.trace-body {
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.trace-content {
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.trace-content * { margin-top: 0; }
+.trace-content p:last-child { margin-bottom: 0; }
+.trace-content code {
+  font-family: var(--font-code);
+  font-size: var(--text-tiny);
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  padding: 0.1rem 0.3rem;
+}
+.trace-content pre {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2);
+  background: var(--background);
+  border-radius: var(--radius-sm);
+  overflow-x: auto;
+}
+</style>

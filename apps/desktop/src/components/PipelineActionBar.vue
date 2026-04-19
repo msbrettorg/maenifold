@@ -247,7 +247,7 @@ function handleRewind(): Promise<void | undefined> {
   border: 1px solid color-mix(in srgb, var(--color-border-subtle) 82%, transparent);
   border-radius: var(--radius);
   background: var(--surface-container);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
 }
 
 .pipeline-action-bar__button {

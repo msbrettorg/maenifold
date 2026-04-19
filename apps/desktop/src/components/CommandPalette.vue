@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
+import { Input } from '@/components/ui/input';
 import type { AvailableCommand } from '../lib/types';
 
 const props = defineProps<{
@@ -119,18 +120,18 @@ function handleSelectionChange(value: unknown) {
       @update:model-value="handleSelectionChange"
     >
       <div class="command-input-row">
-        <input
-          class="command-input"
+        <Input
+          class="command-input border-0 bg-transparent shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
           type="text"
           role="combobox"
           aria-label="Command palette"
           aria-autocomplete="list"
           :aria-controls="commandListId"
           :aria-expanded="visible"
-          :value="commandFilterValue"
+          :model-value="commandFilterValue"
           readonly
           tabindex="-1"
-        >
+        />
       </div>
 
       <CommandList :id="commandListId" class="command-list">
@@ -171,7 +172,7 @@ function handleSelectionChange(value: unknown) {
   background: var(--surface-container);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
   max-height: 320px;
   overflow: visible;
   z-index: 100;
@@ -237,7 +238,7 @@ function handleSelectionChange(value: unknown) {
   color: var(--color-text-primary);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
   padding: 8px 12px;
   font-size: var(--text-body-sm);
   white-space: normal;

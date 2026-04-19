@@ -5,6 +5,9 @@ import { PREFS_STORE_PATH } from '../lib/constants';
 import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/local-storage';
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
 import { type FontDensity, usePreferencesStore } from '../stores/preferences';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const prefsStore = usePreferencesStore();
 const { fontDensity } = storeToRefs(prefsStore);
@@ -113,32 +116,24 @@ onMounted(async () => {
             </div>
           </div>
           <div class="density-control">
-            <label
-              v-for="opt in densityOptions"
-              :key="opt.value"
-              class="density-option"
-              :class="{ active: fontDensity === opt.value }"
-            >
-              <input
-                type="radio"
-                name="fontDensity"
-                :value="opt.value"
-                :checked="fontDensity === opt.value"
-                :disabled="saving"
-                @change="handleDensityChange(opt.value)"
-              />
-              {{ opt.label }}
-            </label>
+            <Select :model-value="fontDensity" @update:model-value="(val) => handleDensityChange(val as FontDensity)">
+              <SelectTrigger :disabled="saving" class="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="opt in densityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        <label class="card toggle-card">
+        <div class="card toggle-card">
           <div>
             <strong>Telemetry</strong>
             <p>Allow the app to initialize Application Insights telemetry on launch.</p>
           </div>
-          <input v-model="telemetryEnabled" type="checkbox" :disabled="saving" @change="handleTelemetryToggle" />
-        </label>
+          <Checkbox :checked="telemetryEnabled" :disabled="saving" @update:checked="(val: boolean) => { telemetryEnabled = val; handleTelemetryToggle() }" />
+        </div>
 
         <div class="card">
           <div class="card-header">
@@ -146,9 +141,9 @@ onMounted(async () => {
               <strong>Last working directory</strong>
               <p>The app restores this folder on the next launch when available.</p>
             </div>
-            <button class="secondary-btn" :disabled="saving || !lastCwd" @click="clearLastCwd">
+            <Button variant="outline" class="secondary-btn" :disabled="saving || !lastCwd" @click="clearLastCwd">
               Clear saved folder
-            </button>
+            </Button>
           </div>
           <code class="saved-value">{{ displayCwd }}</code>
         </div>

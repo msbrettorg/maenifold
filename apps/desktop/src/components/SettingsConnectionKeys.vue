@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 interface EnvVarRow {
   key: string;
   value: string;
@@ -44,11 +49,11 @@ function formatEnvCount(count: number) {
     <div class="section-body">
       <div v-if="form.env.length === 0" class="empty-detail">No environment variables configured.</div>
       <div v-for="(entry, index) in form.env" :key="`env-${index}`" class="kv-row">
-        <input v-model="entry.key" type="text" placeholder="KEY" />
-        <input v-model="entry.value" type="text" placeholder="value" />
-        <button class="remove-btn" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</button>
+        <Input v-model="entry.key" type="text" placeholder="KEY" />
+        <Input v-model="entry.value" type="text" placeholder="value" />
+        <Button variant="ghost" size="icon" class="remove-btn" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
       </div>
-      <button class="add-inline-btn" type="button" @click="onAddEnvRow">+ Add Variable</button>
+      <Button variant="outline" class="add-inline-btn" type="button" @click="onAddEnvRow">+ Add Variable</Button>
     </div>
   </details>
 
@@ -66,40 +71,45 @@ function formatEnvCount(count: number) {
       <div v-for="(server, index) in form.mcpServers" :key="`mcp-${index}`" class="server-editor">
         <div class="server-editor-header">
           <strong>Server {{ index + 1 }}</strong>
-          <button class="remove-btn" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
+          <Button variant="ghost" size="icon" class="remove-btn" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
             ×
-          </button>
+          </Button>
         </div>
 
         <div class="server-grid">
-          <label class="form-group">
-            <span>Type</span>
-            <select v-model="server.type">
-              <option value="stdio">stdio</option>
-              <option value="http">http</option>
-            </select>
-          </label>
-          <label class="form-group">
-            <span>Name</span>
-            <input v-model="server.name" type="text" placeholder="server-name" />
-          </label>
-          <label class="form-group server-primary-field">
-            <span>{{ server.type === 'http' ? 'URL' : 'Command' }}</span>
-            <input
+          <div class="form-group">
+            <Label>Type</Label>
+            <Select :model-value="server.type" @update:model-value="(val) => server.type = val as 'stdio' | 'http'">
+              <SelectTrigger class="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="stdio">stdio</SelectItem>
+                <SelectItem value="http">http</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div class="form-group">
+            <Label>Name</Label>
+            <Input v-model="server.name" type="text" placeholder="server-name" />
+          </div>
+          <div class="form-group server-primary-field">
+            <Label>{{ server.type === 'http' ? 'URL' : 'Command' }}</Label>
+            <Input
               v-model="server.commandOrUrl"
               type="text"
               :placeholder="server.type === 'http' ? 'https://example.test/mcp' : 'npx @scope/server'"
             />
-          </label>
-          <label v-if="server.type === 'stdio'" class="form-group server-primary-field">
-            <span>Args</span>
-            <input v-model="server.args" type="text" placeholder="--flag value" />
+          </div>
+          <div v-if="server.type === 'stdio'" class="form-group server-primary-field">
+            <Label>Args</Label>
+            <Input v-model="server.args" type="text" placeholder="--flag value" />
             <small>Space-separated arguments.</small>
-          </label>
+          </div>
         </div>
       </div>
 
-      <button class="add-inline-btn" type="button" @click="onAddMcpServerRow">+ Add MCP Server</button>
+      <Button variant="outline" class="add-inline-btn" type="button" @click="onAddMcpServerRow">+ Add MCP Server</Button>
     </div>
   </details>
 </template>

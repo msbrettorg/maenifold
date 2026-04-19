@@ -598,33 +598,19 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
       </div>
       <fieldset class="pipeline-inspector__field-group">
         <legend>Edge type</legend>
-        <label class="pipeline-inspector__radio-option">
-          <input
-            :checked="(selectedDesignEdge.type ?? 'success') === 'success'"
-            type="radio"
-            name="edge-type"
-            @change="updateEdgeType('success')"
-          >
-          <span>Success</span>
-        </label>
-        <label class="pipeline-inspector__radio-option">
-          <input
-            :checked="selectedDesignEdge.type === 'always'"
-            type="radio"
-            name="edge-type"
-            @change="updateEdgeType('always')"
-          >
-          <span>Always</span>
-        </label>
-        <label class="pipeline-inspector__radio-option">
-          <input
-            :checked="selectedDesignEdge.type === 'conditional'"
-            type="radio"
-            name="edge-type"
-            @change="updateEdgeType('conditional')"
-          >
-          <span>Conditional</span>
-        </label>
+        <Select
+          :model-value="selectedDesignEdge.type ?? 'success'"
+          @update:model-value="(value) => updateEdgeType(String(value) as 'success' | 'always' | 'conditional')"
+        >
+          <SelectTrigger class="w-full">
+            <SelectValue placeholder="Select edge type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="success">Success</SelectItem>
+            <SelectItem value="always">Always</SelectItem>
+            <SelectItem value="conditional">Conditional</SelectItem>
+          </SelectContent>
+        </Select>
       </fieldset>
       <div v-if="isConditionalEdge" class="pipeline-inspector__field-group">
         <label class="pipeline-inspector__field">
@@ -642,15 +628,19 @@ function updateNodeFormValue(nextValue: Record<string, unknown>): void {
         </label>
         <label class="pipeline-inspector__field">
           <span>Equals type</span>
-          <select
-            :value="conditionalEqualsType"
-            class="w-full rounded-[4px] bg-[var(--surface-high)] px-3 py-2 text-[var(--text-sm)] text-[var(--text)] outline-none ring-0"
-            @change="updateConditionalEqualsType(($event.target as HTMLSelectElement).value)"
+          <Select
+            :model-value="conditionalEqualsType"
+            @update:model-value="(value) => updateConditionalEqualsType(String(value))"
           >
-            <option value="string">String</option>
-            <option value="number">Number</option>
-            <option value="boolean">Boolean</option>
-          </select>
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select equals type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="string">String</SelectItem>
+              <SelectItem value="number">Number</SelectItem>
+              <SelectItem value="boolean">Boolean</SelectItem>
+            </SelectContent>
+          </Select>
         </label>
         <label class="pipeline-inspector__field">
           <span>Equals (JSON literal)</span>

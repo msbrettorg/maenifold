@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia';
+import { Button } from '@/components/ui/button';
 import { useToastStore, type ToastLevel } from '../stores/toast';
 
 const toastStore = useToastStore();
@@ -31,15 +32,17 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
         role="status"
       >
         <p class="toast-message">{{ toast.message }}</p>
-        <button
+        <Button
           v-if="toast.dismissable"
           type="button"
+          variant="ghost"
+          size="icon-xs"
           class="toast-dismiss"
           aria-label="Dismiss notification"
           @click="toastStore.removeToast(toast.id)"
         >
           ×
-        </button>
+        </Button>
       </article>
     </TransitionGroup>
   </Teleport>
@@ -70,7 +73,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   border-radius: 0.75rem;
   background: var(--color-bg-app);
   color: var(--color-text-primary);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
   pointer-events: auto;
 }
 

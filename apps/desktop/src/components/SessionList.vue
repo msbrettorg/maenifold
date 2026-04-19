@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
 import { useSessionStore } from '../stores/session';
 import type { SavedSession } from '../lib/types';
 
@@ -183,13 +184,15 @@ async function handleDelete(session: SavedSession, event: Event) {
           </span>
           <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
         </div>
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
           class="delete-btn py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer"
-          @click="(e) => handleDelete(session, e)"
+          @click="(e: Event) => handleDelete(session, e)"
           :title="getDeleteTitle(session)"
         >
           ×
-        </button>
+        </Button>
       </li>
     </ul>
   </div>

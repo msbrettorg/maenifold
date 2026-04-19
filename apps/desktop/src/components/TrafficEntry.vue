@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import TrafficJsonPayload from './TrafficJsonPayload.vue';
+import { Button } from '@/components/ui/button';
 import type { TrafficEntry as TrafficLogEntry } from '../stores/traffic';
 
 const props = defineProps<{ entry: TrafficLogEntry }>();
@@ -46,7 +47,7 @@ function copyPayload() {
       <span class="method">{{ entry.method }}</span>
       <span v-if="typeLabel" class="type-label">{{ typeLabel }}</span>
       <span v-if="entry.requestId !== undefined" class="request-id">#{{ entry.requestId }}</span>
-      <button class="copy-btn" title="Copy JSON" @click.stop="copyPayload">📋</button>
+      <Button variant="ghost" size="icon-xs" class="copy-btn" title="Copy JSON" @click.stop="copyPayload">📋</Button>
     </div>
 
     <TrafficJsonPayload v-if="isExpanded" :payload="entry.payload" />

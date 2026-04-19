@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import type { Component } from 'vue';
 import { Pencil, Trash2, Package, Search, Play, Globe, Wrench, Settings } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import type { ToolCallInfo } from '../lib/types';
 import ChatToolCallDetails from './ChatToolCallDetails.vue';
 
@@ -44,8 +45,8 @@ function statusIcon(status: string): Component {
 
 <template>
   <div :class="['tci-item', `tool-${toolCall.status}`]" role="article" :aria-label="toolCallAriaLabel">
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       class="tci-summary"
       :class="{ 'tci-summary-expandable': hasDetails(toolCall) }"
       :aria-expanded="hasDetails(toolCall) ? isExpanded : undefined"
@@ -57,7 +58,7 @@ function statusIcon(status: string): Component {
       <span v-if="locationLabel(toolCall)" class="tci-location">{{ locationLabel(toolCall) }}</span>
       <span :class="['tci-status', `status-${toolCall.status}`]"><component :is="statusIcon(toolCall.status)" class="size-4" :stroke-width="1.5" /></span>
       <span v-if="hasDetails(toolCall)" class="tci-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
-    </button>
+    </Button>
     <ChatToolCallDetails
       v-if="hasDetails(toolCall) && isExpanded"
       :id="detailsId"

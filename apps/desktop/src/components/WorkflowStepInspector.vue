@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import type { ReasoningEffort, WorkflowStepDefinition, ToolHintPriority } from '../lib/workflow-asset-types'
@@ -80,11 +82,11 @@ function priorityClass(priority: ToolHintPriority): string {
       <section class="inspector-section" aria-labelledby="inspector-section-prompt">
         <h3 id="inspector-section-prompt" class="section-label">Prompt</h3>
         <div class="form-group">
-          <label class="field-label">Step name</label>
+          <Label class="field-label">Step name</Label>
           <Input v-model="stepName" type="text" />
         </div>
         <div class="form-group">
-          <label class="field-label">Description</label>
+          <Label class="field-label">Description</Label>
           <Textarea v-model="stepDescription" rows="4" />
         </div>
       </section>
@@ -112,7 +114,8 @@ function priorityClass(priority: ToolHintPriority): string {
       <section class="inspector-section" aria-labelledby="inspector-section-thinking">
         <h3 id="inspector-section-thinking" class="section-label">Sequential thinking</h3>
         <div class="form-group">
-          <button
+          <Button
+            variant="ghost"
             class="thinking-card"
             :class="{ enabled: selectedStep.requiresSequentialThinking }"
             type="button"
@@ -125,20 +128,21 @@ function priorityClass(priority: ToolHintPriority): string {
             <span class="thinking-indicator" :class="{ on: selectedStep.requiresSequentialThinking }">
               <span class="indicator-dot" />
             </span>
-          </button>
+          </Button>
         </div>
         <div class="form-group">
-          <label class="field-label">Reasoning effort</label>
+          <Label class="field-label">Reasoning effort</Label>
           <div class="effort-segments" role="group" aria-label="Reasoning effort">
-            <button
+            <Button
               v-for="level in reasoningLevels"
               :key="level"
+              variant="ghost"
               :class="['effort-segment', { active: selectedEffort === level }]"
               type="button"
               @click="selectedEffort = level"
             >
               {{ formatReasoningLevel(level) }}
-            </button>
+            </Button>
           </div>
         </div>
       </section>
@@ -146,7 +150,7 @@ function priorityClass(priority: ToolHintPriority): string {
       <section class="inspector-section inspector-section--last" aria-labelledby="inspector-section-meta">
         <h3 id="inspector-section-meta" class="section-label">Meta</h3>
         <div class="form-group">
-          <label class="field-label">Step ID</label>
+          <Label class="field-label">Step ID</Label>
           <code class="step-id-value">{{ selectedStep.id }}</code>
         </div>
       </section>

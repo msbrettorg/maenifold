@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+
 defineProps<{
   compact: boolean;
   degradedMessage: string | null;
@@ -27,9 +29,9 @@ defineEmits<{
         </span>
         <span v-if="statusMessage" class="status-message">{{ statusMessage }}</span>
       </div>
-      <button type="button" class="refresh-btn" :disabled="refreshDisabled" @click="$emit('refresh')">
+      <Button variant="outline" size="sm" class="refresh-btn" :disabled="refreshDisabled" @click="$emit('refresh')">
         {{ refreshing ? 'Refreshing…' : 'Refresh' }}
-      </button>
+      </Button>
     </div>
 
     <p v-if="warningMessage" class="warning-note" role="status" aria-live="polite">{{ warningMessage }}</p>

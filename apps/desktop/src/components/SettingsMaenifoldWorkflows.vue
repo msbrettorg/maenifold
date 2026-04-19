@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { MaenifoldSettings } from '../lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 defineProps<{
   form: MaenifoldSettings;
@@ -13,26 +16,29 @@ defineProps<{
     <details class="settings-card details-section" open>
       <summary><h4>Workflows &amp; Debug</h4></summary>
       <div class="section-grid">
-        <label class="checkbox-group">
-          <input v-model="form.debug.trace" type="checkbox" />
-          <span>Trace logging</span>
-        </label>
+        <div class="checkbox-group">
+          <Checkbox :checked="form.debug.trace" @update:checked="(val: boolean) => { form.debug.trace = val }" />
+          <Label>Trace logging</Label>
+        </div>
 
         <div class="optional-field optional-field-full">
-          <label class="form-group">
-            <span>Pipeline driver</span>
-            <input
+          <div class="form-group">
+            <Label>Pipeline driver</Label>
+            <Input
               :disabled="form.debug.pipelineDriver === null"
-              :value="form.debug.pipelineDriver ?? ''"
+              :model-value="form.debug.pipelineDriver ?? ''"
               type="text"
               placeholder="inline"
-              @input="onUpdatePipelineDriver"
+              @update:model-value="(val) => onUpdatePipelineDriver({ target: { value: String(val) } } as unknown as Event)"
             />
-          </label>
-          <label class="checkbox-inline">
-            <input :checked="form.debug.pipelineDriver === null" type="checkbox" @change="onPipelineDriverDefaultToggle" />
-            <span>Use default</span>
-          </label>
+          </div>
+          <div class="checkbox-inline">
+            <Checkbox
+              :checked="form.debug.pipelineDriver === null"
+              @update:checked="(val: boolean) => onPipelineDriverDefaultToggle({ target: { checked: val } } as unknown as Event)"
+            />
+            <Label>Use default</Label>
+          </div>
         </div>
       </div>
     </details>

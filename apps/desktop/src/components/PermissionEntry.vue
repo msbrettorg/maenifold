@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
 import type { PermissionRequest, ToolCallContentBlock } from '../lib/types';
 
 const props = defineProps<{ request: PermissionRequest }>();
@@ -149,15 +150,15 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
     </div>
 
     <div class="dialog-actions">
-      <button
+      <Button
         v-for="option in request.options"
         :key="option.optionId"
         :class="['option-btn', `option-${option.kind}`]"
         @click="emit('select', option.optionId)"
       >
         {{ option.name }}
-      </button>
-      <button class="cancel-btn" @click="emit('cancel')">Cancel</button>
+      </Button>
+      <Button variant="outline" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

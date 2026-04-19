@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
@@ -95,9 +96,9 @@ function handleClose(): void {}
       />
 
       <span class="composer-control-wrapper" :title="embeddedContextTooltip">
-        <button type="button" class="attachment-btn" :disabled="!supportsEmbeddedContext || disabled" @click="emit('insert-embedded-context-hint')">
+        <Button variant="outline" size="sm" class="attachment-btn" :disabled="!supportsEmbeddedContext || disabled" @click="emit('insert-embedded-context-hint')">
           @ File
-        </button>
+        </Button>
       </span>
 
       <div class="embedded-context-hint" :title="embeddedContextTooltip" :aria-disabled="!supportsEmbeddedContext">
@@ -109,7 +110,7 @@ function handleClose(): void {}
       <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
     </div>
 
-    <button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="emit('send')">Send</button>
+    <Button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="emit('send')">Send</Button>
   </div>
 </template>
 

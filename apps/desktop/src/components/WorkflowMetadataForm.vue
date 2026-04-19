@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
-
-const selectFieldClass =
-  'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20'
 
 const CATEGORY_OPTIONS: WorkflowCategory[] = [
   'reasoning',
@@ -54,34 +54,38 @@ const workflowCategory = computed({
 <template>
   <div v-if="workflow" class="workflow-form" role="form" aria-label="Workflow metadata">
     <div class="form-group">
-      <label class="field-label">Workflow ID</label>
+      <Label class="field-label">Workflow ID</Label>
       <code class="field-display">{{ workflow.id }}</code>
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-name">Name</label>
+      <Label class="field-label" for="workflow-name">Name</Label>
       <Input id="workflow-name" v-model="workflowName" type="text" />
     </div>
 
     <div class="form-row">
       <div class="form-group">
-        <label class="field-label" for="workflow-emoji">Emoji</label>
+        <Label class="field-label" for="workflow-emoji">Emoji</Label>
         <Input id="workflow-emoji" v-model="workflowEmoji" type="text" />
       </div>
 
       <div class="form-group">
-        <label class="field-label" for="workflow-category">Category</label>
-        <select id="workflow-category" v-model="workflowCategory" :class="selectFieldClass">
-          <option value="">Auto</option>
-          <option v-for="option in CATEGORY_OPTIONS" :key="option" :value="option">
-            {{ option }}
-          </option>
-        </select>
+        <Label class="field-label">Category</Label>
+        <Select :model-value="workflowCategory" @update:model-value="(v) => store.updateWorkflowCategory(v ? (String(v) as WorkflowCategory) : null)">
+          <SelectTrigger>
+            <SelectValue placeholder="Auto" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in CATEGORY_OPTIONS" :key="option" :value="option">
+              {{ option }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-description">Description</label>
+      <Label class="field-label" for="workflow-description">Description</Label>
       <Textarea
         id="workflow-description"
         v-model="workflowDescription"
@@ -90,7 +94,7 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label" for="workflow-triggers">Triggers</label>
+      <Label class="field-label" for="workflow-triggers">Triggers</Label>
       <Input
         id="workflow-triggers"
         v-model="workflowTriggers"
@@ -100,8 +104,9 @@ const workflowCategory = computed({
     </div>
 
     <div class="form-group">
-      <label class="field-label">Sequential thinking</label>
-      <button
+      <Label class="field-label">Sequential thinking</Label>
+      <Button
+        variant="ghost"
         class="toggle-card"
         :class="{ 'toggle-card--enabled': workflow.sequentialThinkingEnabled }"
         type="button"
@@ -111,12 +116,13 @@ const workflowCategory = computed({
         <span class="toggle-indicator" :class="{ 'toggle-indicator--enabled': workflow.sequentialThinkingEnabled }">
           <span class="indicator-dot" />
         </span>
-      </button>
+      </Button>
     </div>
 
     <div class="form-group">
-      <label class="field-label">Multi-agent</label>
-      <button
+      <Label class="field-label">Multi-agent</Label>
+      <Button
+        variant="ghost"
         class="toggle-card"
         :class="{ 'toggle-card--enabled': workflow.multiAgent }"
         type="button"
@@ -126,7 +132,7 @@ const workflowCategory = computed({
         <span class="toggle-indicator" :class="{ 'toggle-indicator--enabled': workflow.multiAgent }">
           <span class="indicator-dot" />
         </span>
-      </button>
+      </Button>
     </div>
   </div>
 </template>

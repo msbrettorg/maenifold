@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, useId } from 'vue';
+import { Button } from '@/components/ui/button';
 import type {
   SessionConfigOption,
   SessionConfigSelectGroup,
@@ -74,8 +75,9 @@ onUnmounted(() => {
     class="config-option-picker"
     :title="option.description || option.name"
   >
-    <button
-      type="button"
+    <Button
+      variant="outline"
+      size="sm"
       class="config-option-button"
       :aria-controls="listboxId"
       :aria-expanded="isOpen"
@@ -90,7 +92,7 @@ onUnmounted(() => {
         {{ currentOption?.name || option.currentValue || option.name }}
       </span>
       <span class="dropdown-arrow">{{ isOpen ? '▲' : '▼' }}</span>
-    </button>
+    </Button>
 
     <Transition name="dropdown">
       <div

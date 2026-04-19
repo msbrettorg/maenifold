@@ -2,6 +2,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { MessageSquare, GitBranch, Shield, Brain, Search, Send, Pencil } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { usePipelineStore } from '../stores/pipeline';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
@@ -122,17 +124,18 @@ onBeforeUnmount(() => {
     <h1 class="mb-3 text-center text-[26px] font-semibold tracking-tight text-text-primary">What can I help you with?</h1>
 
     <div class="mb-4 grid w-full max-w-[800px] grid-cols-5 gap-2">
-      <button
+      <Button
         v-for="cat in categories"
         :key="cat.key"
         type="button"
-        class="flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-[8px] border-[1.5px] border-border-card bg-bg-elevated px-1 py-3.5 transition-all hover:bg-bg-surface-hover"
+        variant="ghost"
+        class="flex h-auto min-h-[72px] flex-col items-center justify-center gap-1.5 whitespace-normal rounded-[8px] border-[1.5px] border-border-card bg-bg-elevated px-1 py-3.5 font-normal transition-all hover:bg-bg-surface-hover"
         @click="handleTileSelect(cat)"
       >
         <component :is="cat.icon" class="size-5" :class="cat.accentClass" :stroke-width="1.5" />
         <span class="text-center text-[11px] font-semibold text-text-secondary">{{ cat.title }}</span>
         <span class="text-center text-[9px] leading-tight text-text-tertiary">{{ cat.description }}</span>
-      </button>
+      </Button>
     </div>
 
     <div class="mb-4 flex flex-wrap justify-center gap-1.5">
@@ -152,18 +155,20 @@ onBeforeUnmount(() => {
     <div class="w-full max-w-[800px] rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)]">
       <form class="flex items-center gap-2" @submit.prevent="handleComposerSubmit">
         <Pencil class="size-4 shrink-0 text-text-tertiary" :stroke-width="1.5" />
-        <input
+        <Input
           v-model="composerInput"
           type="text"
           placeholder="Ask me anything..."
-          class="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
+          class="flex-1 border-0 bg-transparent text-sm text-text-primary shadow-none outline-none ring-0 placeholder:text-text-tertiary focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
         />
-        <button
+        <Button
           type="submit"
+          variant="ghost"
+          size="icon"
           class="flex size-9 items-center justify-center rounded-[var(--radius-4)] text-text-tertiary transition-colors hover:text-text-primary"
         >
           <Send class="size-4" :stroke-width="1.5" />
-        </button>
+        </Button>
       </form>
     </div>
   </div>

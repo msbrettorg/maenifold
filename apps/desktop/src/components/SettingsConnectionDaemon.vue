@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import type { AgentProbeResult } from '../lib/agent-probe-types';
+import { Button } from '@/components/ui/button';
 
 interface AgentRow {
   name: string;
@@ -64,16 +65,16 @@ async function copyAddress() {
           <h4>Daemon</h4>
           <p>Desktop settings are loaded from the daemon-backed configuration API.</p>
         </div>
-        <button class="refresh-btn" type="button" :disabled="isRefreshing" @click="props.onRefresh">
+        <Button variant="outline" class="refresh-btn" type="button" :disabled="isRefreshing" @click="props.onRefresh">
           {{ isRefreshing ? 'Refreshing…' : 'Refresh health' }}
-        </button>
+        </Button>
       </div>
 
       <div class="daemon-address">
         <code>{{ displayAddress }}</code>
-        <button class="copy-btn" type="button" @click="copyAddress">
+        <Button variant="ghost" class="copy-btn" type="button" size="sm" @click="copyAddress">
           {{ copied ? '✓' : 'Copy' }}
-        </button>
+        </Button>
       </div>
     </article>
 

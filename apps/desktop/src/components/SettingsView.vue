@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
@@ -28,16 +29,17 @@ const activeSection = ref<SectionId>('connection');
 
     <div class="settings-layout">
       <nav class="settings-nav" aria-label="Settings sections">
-        <button
+        <Button
           v-for="section in sections"
           :key="section.id"
+          variant="ghost"
           class="nav-item"
           :class="{ active: activeSection === section.id }"
           @click="activeSection = section.id"
         >
           <span class="nav-label">{{ section.label }}</span>
           <span class="nav-description">{{ section.description }}</span>
-        </button>
+        </Button>
       </nav>
 
       <main class="settings-content">

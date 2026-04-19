@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Ruler } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import type { PlanEntry } from '../lib/types';
 
 const props = defineProps<{
@@ -42,8 +43,9 @@ function toggleExpanded(): void {
 
 <template>
   <section class="plan-view">
-    <button
+    <Button
       type="button"
+      variant="ghost"
       class="plan-toggle"
       :aria-expanded="isExpanded"
       @click="toggleExpanded"
@@ -56,7 +58,7 @@ function toggleExpanded(): void {
         </span>
       </div>
       <span class="plan-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
-    </button>
+    </Button>
 
     <div v-if="isExpanded" class="plan-body">
       <ol class="plan-list">

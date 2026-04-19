@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { McpServerEntry } from '../lib/types'
+import { Button } from '@/components/ui/button'
 
 defineProps<{
   mcpServers: McpServerEntry[]
@@ -23,7 +24,7 @@ const emit = defineEmits<{
           <h3>MCP servers</h3>
           <p>Manage the shared global MCP server entries available to every configured agent.</p>
         </div>
-        <button class="add-btn" :disabled="showAddForm || !!editingServer" @click="emit('add')">+ Add MCP server</button>
+        <Button variant="outline" class="add-btn" :disabled="showAddForm || !!editingServer" @click="emit('add')">+ Add MCP server</Button>
       </div>
 
       <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
@@ -37,8 +38,8 @@ const emit = defineEmits<{
             </div>
           </div>
           <div class="agent-actions">
-            <button class="edit-btn" @click="emit('edit', server)">Edit</button>
-            <button class="delete-btn" @click="emit('delete', server.name)">Delete</button>
+            <Button variant="outline" class="edit-btn" @click="emit('edit', server)">Edit</Button>
+            <Button variant="destructive" class="delete-btn" @click="emit('delete', server.name)">Delete</Button>
           </div>
         </article>
 

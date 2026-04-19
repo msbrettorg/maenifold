@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-
-const selectFieldClass =
-  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--color-brand)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--color-brand)]/15';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const props = defineProps<{
   searchText: string;
@@ -22,28 +22,6 @@ const emit = defineEmits<{
   'update:selectedProcess': [value: string];
   'update:selectedState': [value: string];
 }>();
-
-function emitChecked(event: Event) {
-  emit('update:issuesOnly', (event.target as HTMLInputElement).checked);
-}
-
-function emitSelect(
-  eventName: 'update:selectedProcess' | 'update:selectedState' | 'update:selectedLocation',
-  event: Event,
-) {
-  const value = (event.target as HTMLSelectElement).value;
-  switch (eventName) {
-    case 'update:selectedProcess':
-      emit('update:selectedProcess', value);
-      break;
-    case 'update:selectedState':
-      emit('update:selectedState', value);
-      break;
-    case 'update:selectedLocation':
-      emit('update:selectedLocation', value);
-      break;
-  }
-}
 </script>
 
 <template>
@@ -56,25 +34,40 @@ function emitSelect(
       @update:model-value="emit('update:searchText', String($event))"
     />
 
-    <select :class="selectFieldClass" :value="props.selectedProcess" @change="(event) => emitSelect('update:selectedProcess', event)">
-      <option value="all">All processes</option>
-      <option v-for="value in props.processOptions" :key="value" :value="value">{{ value }}</option>
-    </select>
+    <Select :model-value="props.selectedProcess" @update:model-value="(v) => emit('update:selectedProcess', String(v))">
+      <SelectTrigger>
+        <SelectValue placeholder="All processes" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All processes</SelectItem>
+        <SelectItem v-for="value in props.processOptions" :key="value" :value="value">{{ value }}</SelectItem>
+      </SelectContent>
+    </Select>
 
-    <select :class="selectFieldClass" :value="props.selectedState" @change="(event) => emitSelect('update:selectedState', event)">
-      <option value="all">All states</option>
-      <option v-for="value in props.stateOptions" :key="value" :value="value">{{ value }}</option>
-    </select>
+    <Select :model-value="props.selectedState" @update:model-value="(v) => emit('update:selectedState', String(v))">
+      <SelectTrigger>
+        <SelectValue placeholder="All states" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All states</SelectItem>
+        <SelectItem v-for="value in props.stateOptions" :key="value" :value="value">{{ value }}</SelectItem>
+      </SelectContent>
+    </Select>
 
-    <select :class="selectFieldClass" :value="props.selectedLocation" @change="(event) => emitSelect('update:selectedLocation', event)">
-      <option value="all">All locations</option>
-      <option v-for="value in props.locationOptions" :key="value" :value="value">{{ value }}</option>
-    </select>
+    <Select :model-value="props.selectedLocation" @update:model-value="(v) => emit('update:selectedLocation', String(v))">
+      <SelectTrigger>
+        <SelectValue placeholder="All locations" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All locations</SelectItem>
+        <SelectItem v-for="value in props.locationOptions" :key="value" :value="value">{{ value }}</SelectItem>
+      </SelectContent>
+    </Select>
 
-    <label class="gate-toggle">
-      <input :checked="props.issuesOnly" type="checkbox" @change="emitChecked" />
-      Issues only
-    </label>
+    <div class="gate-toggle">
+      <Checkbox :checked="props.issuesOnly" @update:checked="(v: boolean | 'indeterminate') => emit('update:issuesOnly', v === true)" />
+      <Label>Issues only</Label>
+    </div>
   </div>
 </template>
 

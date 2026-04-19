@@ -1,5 +1,13 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import { useConfigStore } from '../stores/config';
@@ -40,11 +48,11 @@ watch(agents, (newAgents) => {
   }
 }, { immediate: true });
 
-function handleSelect(event: Event) {
-  const target = event.target as HTMLSelectElement;
-  selectedAgent.value = target.value;
-  if (target.value) {
-    emit('select', target.value);
+function handleSelect(value: string | number | bigint | Record<string, unknown> | null) {
+  const strValue = String(value ?? '');
+  selectedAgent.value = strValue;
+  if (strValue) {
+    emit('select', strValue);
   }
 }
 
@@ -63,22 +71,21 @@ function formatAgentOptionLabel(agentName: string): string {
 
 <template>
   <div class="agent-selector">
-    <label for="agent-select">Agent</label>
-     <select 
-       id="agent-select" 
-       role="listbox"
-       aria-label="Agent selector"
-       :value="selectedAgent"
-       @change="handleSelect"
-       :disabled="!hasAgents"
-     >
-      <option value="" disabled>
-        {{ hasAgents ? 'Select an agent...' : 'No agents configured' }}
-      </option>
-      <option v-for="agent in agents" :key="agent" :value="agent">
-        {{ formatAgentOptionLabel(agent) }}
-      </option>
-    </select>
+    <Label for="agent-select">Agent</Label>
+    <Select
+      :model-value="selectedAgent"
+      :disabled="!hasAgents"
+      @update:model-value="handleSelect"
+    >
+      <SelectTrigger id="agent-select" aria-label="Agent selector">
+        <SelectValue :placeholder="hasAgents ? 'Select an agent...' : 'No agents configured'" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem v-for="agent in agents" :key="agent" :value="agent">
+          {{ formatAgentOptionLabel(agent) }}
+        </SelectItem>
+      </SelectContent>
+    </Select>
 
     <AgentProbePreview
       v-if="selectedAgent"

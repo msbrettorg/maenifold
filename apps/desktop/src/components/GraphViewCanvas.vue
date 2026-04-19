@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+
 defineProps<{
   isLoading: boolean;
   error: string;
@@ -14,7 +16,7 @@ defineEmits<{ retry: [] }>();
       <div class="empty-icon">◎</div>
       <p class="empty-title">No graph connection</p>
       <p class="empty-hint">Launch maenifold to explore the knowledge graph.</p>
-      <button class="empty-retry" @click="$emit('retry')">Retry</button>
+      <Button variant="outline" size="sm" class="empty-retry" @click="$emit('retry')">Retry</Button>
     </div>
 
     <div v-else-if="isLoading" class="graph-loading" role="status" aria-live="polite">

@@ -25,7 +25,6 @@ import { usePipelineMobile } from '../composables/usePipelineMobile';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
-import './PipelineView.css';
 
 type SelectedEdge = { source: string; target: string } | null;
 type PipelineIconRailExpose = { focusPipelineToggle: () => void };
@@ -349,7 +348,7 @@ onBeforeUnmount(() => {
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />
       </section>
-      <button v-if="isNarrowViewport && mobileSidebarOpen" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
+      <Button v-if="isNarrowViewport && mobileSidebarOpen" variant="ghost" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
     </div>
     <GraftNodesDialog
       v-if="graftDialogOpen && currentView"
@@ -375,3 +374,227 @@ onBeforeUnmount(() => {
     <SemanticZoomOverlay />
   </div>
 </template>
+
+<style scoped>
+.pipeline-view {
+  --rail-width: 48px;
+  --flyout-width: 320px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--background);
+}
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--background) 82%, var(--terracotta) 18%);
+  color: var(--foreground);
+  flex-shrink: 0;
+}
+.error-icon { flex-shrink: 0; }
+.error-text { min-width: 0; }
+.success-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: color-mix(in srgb, var(--background) 84%, var(--sage) 16%);
+  color: var(--foreground);
+  flex-shrink: 0;
+}
+.success-icon { flex-shrink: 0; color: var(--color-status-completed); }
+.success-text { min-width: 0; flex: 1; }
+.banner-dismiss {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.pipeline-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--rail-width) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'rail composer'
+    'rail runner';
+  transition: grid-template-rows 0.25s ease;
+  overflow: hidden;
+  position: relative;
+  background: var(--surface);
+}
+.pipeline-grid.grid-empty {
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-areas: 'rail composer';
+}
+.pipeline-grid.runner-expanded .runner-panel { max-height: 50vh; }
+.rail-panel,
+.sidebar-panel,
+.composer-panel,
+.runner-panel {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.rail-panel {
+  grid-area: rail;
+  position: relative;
+  z-index: 12;
+  background: var(--surface);
+}
+.sidebar-panel {
+  grid-area: rail;
+  background: var(--surface);
+}
+.composer-panel {
+  grid-area: composer;
+  position: relative;
+}
+.pipeline-entry-surface {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+  min-height: 0;
+  padding: 1rem 1rem 0.75rem;
+}
+.browse-existing-btn {
+  align-self: flex-start;
+  height: 2rem;
+  border-radius: 0.25rem;
+}
+.runner-panel {
+  grid-area: runner;
+  position: relative;
+  max-height: 36px;
+  transition: max-height 0.25s ease;
+  background: var(--surface);
+}
+.grid-empty .runner-panel { display: none; }
+.runner-panel-header {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.runner-expand-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-height: 2rem;
+  padding: 0 0.6rem;
+  border: 0;
+  border-radius: 0.25rem;
+  background: var(--surface-high);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+.runner-expand-btn:hover {
+  background: var(--surface-highest);
+}
+.mobile-panel-controls,
+.mobile-inspector-header,
+.mobile-overlay {
+  display: none;
+}
+@media (max-width: 900px) {
+  .pipeline-grid {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'composer'
+      'runner';
+  }
+  .pipeline-grid.grid-empty {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: 'composer';
+  }
+  .rail-panel { display: none; }
+  .sidebar-panel {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: min(var(--sidebar-width), 88vw);
+    min-width: min(var(--sidebar-min-width), 88vw);
+    max-width: min(var(--sidebar-max-width), 88vw);
+    z-index: 20;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--shadow-16);
+  }
+  .pipeline-grid.mobile-sidebar-open .sidebar-panel { transform: translateX(0); }
+  .composer-panel { position: relative; }
+  .mobile-panel-controls {
+    display: flex;
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    z-index: 8;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+  .mobile-panel-toggle {
+    pointer-events: auto;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+    padding: 0.5rem 0.875rem;
+    border-radius: 0.25rem;
+    background: var(--surface-container);
+    color: var(--text);
+    font: inherit;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    box-shadow: var(--shadow-16);
+  }
+  .mobile-panel-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .mobile-inspector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    font-size: var(--text-sm);
+  }
+  .mobile-inspector-close {
+    min-height: 2.5rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.25rem;
+    background: var(--surface-high);
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+  }
+  .mobile-overlay {
+    display: block;
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: color-mix(in srgb, var(--background) 40%, transparent);
+    z-index: 18;
+    cursor: pointer;
+  }
+  .pipeline-grid.mobile-inspector-open .mobile-overlay { z-index: 9; }
+  .runner-panel-header {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+}
+</style>

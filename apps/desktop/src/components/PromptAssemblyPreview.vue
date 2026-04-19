@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { Button } from '@/components/ui/button';
 
 interface PreviewSection {
   key: string;
@@ -75,15 +76,15 @@ const sections = computed<PreviewSection[]>(() => {
 
 <template>
   <section class="assembly-preview">
-    <button
+    <Button
+      variant="ghost"
       class="assembly-preview__toggle"
-      type="button"
       :aria-expanded="isExpanded"
       @click="isExpanded = !isExpanded"
     >
       <span>Assembled Prompt</span>
       <span class="assembly-preview__chevron" aria-hidden="true">{{ isExpanded ? '▾' : '▸' }}</span>
-    </button>
+    </Button>
 
     <div v-if="isExpanded" class="assembly-preview__body">
       <div

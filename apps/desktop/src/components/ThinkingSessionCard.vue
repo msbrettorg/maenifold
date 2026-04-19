@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import { RefreshCw, AlertTriangle, Brain, CheckCircle } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import type { ThinkingSession } from '../lib/workflow-types';
 import ThinkingMarkdownContent from './ThinkingMarkdownContent.vue';
 import ThinkingThoughtItem from './ThinkingThoughtItem.vue';
@@ -76,7 +77,7 @@ function onAfterLeave(element: Element): void {
 
 <template>
   <div class="thinking-session-card">
-    <button type="button" class="card-header" :aria-expanded="isExpanded" @click="toggleExpanded">
+    <Button variant="ghost" class="card-header" :aria-expanded="isExpanded" @click="toggleExpanded">
       <div class="header-left">
         <span class="header-icon" aria-hidden="true"><Brain class="size-4" :stroke-width="1.5" /></span>
         <div class="header-copy">
@@ -93,7 +94,7 @@ function onAfterLeave(element: Element): void {
         </span>
         <span class="expand-indicator" aria-hidden="true">{{ isExpanded ? '▲' : '▼' }}</span>
       </div>
-    </button>
+    </Button>
     <Transition @before-enter="onBeforeEnter" @enter="onEnter" @after-enter="onAfterEnter" @before-leave="onBeforeLeave" @leave="onLeave" @after-leave="onAfterLeave">
       <div v-if="isExpanded" class="card-body">
         <ul v-if="node.thoughts.length" class="thought-list">

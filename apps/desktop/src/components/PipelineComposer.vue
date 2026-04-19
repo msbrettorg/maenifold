@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref } from 'vue';
+import { computed, nextTick, provide, ref, watch } from 'vue';
 import { BaseEdge, EdgeLabelRenderer, VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
@@ -18,11 +18,15 @@ import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
 import PipelineComposerToolbar from './PipelineComposerToolbar.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
-import { useComposerContextMenu } from '../composables/useComposerContextMenu';
 import { useComposerPalette } from '../composables/useComposerPalette';
+import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineDefinition, PipelineNodeType, PipelineView } from '../lib/pipeline-types';
 import { createNode, createNodeId, type PipelineNodeDraftByType, type PipelineNodeInputByType } from '../lib/pipeline-node-factory';
+import { getBareToolName } from '../lib/tool-categories';
+import { resolvePreferredAgent } from '../lib/preferred-agent';
+import { useConfigStore } from '../stores/config';
 import { usePipelineStore } from '../stores/pipeline';
+import { usePromptDialogStore } from '../stores/prompt-dialog';
 
 const props = defineProps<{ designMode: boolean; localDefinition?: PipelineDefinition; view?: PipelineView | null }>();
 const emit = defineEmits<{
@@ -36,6 +40,8 @@ const emit = defineEmits<{
 }>();
 
 const store = usePipelineStore();
+const configStore = useConfigStore();
+const promptDialogStore = usePromptDialogStore();
 const layoutDirection = ref<'LR' | 'TB'>('LR');
 provide('pipelineLayoutDirection', layoutDirection);
 const {
@@ -55,45 +61,223 @@ const {
 
 const { composerLayoutStyle, closePalette, paletteAsOverlay, paletteOpen, paletteResize, showPalettePanel, togglePalette } =
   useComposerPalette(() => props.designMode);
-const {
-  closeContextMenu,
-  contextMenu,
-  contextMenuNodeHasOutput,
-  contextMenuNodeStatus,
-  createPromptNode,
-  createThinkingNode,
-  createToolNode,
-  createWorkflowNode,
-  currentPipelineRunning,
-  currentPipelineStatus,
-  firstAgent,
-  firstWorkflow,
-  handleCanvasGraft,
-  handleCanvasPromoteToMemory,
-  handleCanvasRewindAll,
-  handleCanvasRunPipeline,
-  handleComposerContextMenu,
-  handleDeleteNode,
-  handleDisconnectEdges,
-  handleDuplicateNode,
-  handleEditNode,
-  handleServerNodeAction,
-  hasCompletedNodesWithOutput,
-  hasRewindableNodes,
-  toolGroups,
-} = useComposerContextMenu({
-  designMode: () => props.designMode,
-  view: () => props.view,
-  toFlowPosition,
-  createNodeAtPosition: createNodeAt,
-  editNode,
-  duplicateNode,
-  deleteNode,
-  disconnectNodeEdges,
-  emitNodeDoubleClick: (nodeId) => emit('nodeDoubleClick', nodeId),
-  emitOpenGraft: () => emit('openGraft'),
-  emitOpenPromotion: () => emit('openPromotion'),
+type Point = { x: number; y: number };
+type ContextMenuState =
+  | { mode: 'canvas'; position: Point }
+  | { mode: 'node'; nodeId: string };
+
+const { serverResults, hasLoadedCatalog, refreshTools } = useMcpToolDiscovery();
+const contextMenu = ref<ContextMenuState | null>(null);
+
+const firstAgent = computed(() => resolvePreferredAgent(configStore.agentNames));
+const firstWorkflow = computed(() => store.workflows[0] ?? '');
+const toolGroups = computed(() =>
+  serverResults.value
+    .map((result) => ({
+      server: result.server,
+      tools: [...result.tools]
+        .sort((left, right) => left.name.localeCompare(right.name))
+        .map((tool) => ({
+          name: tool.name,
+          displayName: tool.name.startsWith(`${result.server}.`)
+            ? tool.name.slice(result.server.length + 1)
+            : getBareToolName(tool.name),
+          description: tool.description,
+        })),
+    }))
+    .filter((group) => group.tools.length > 0),
+);
+
+const currentPipelineStatus = computed(() => props.view?.status ?? null);
+const currentPipelineRunning = computed(() => props.view?.running ?? false);
+const hasRewindableNodes = computed(() =>
+  props.view?.nodes.some((node) => ['completed', 'abandoned', 'stuck'].includes(node.status)) ?? false,
+);
+const hasCompletedNodesWithOutput = computed(() =>
+  props.view?.nodes.some((node) => node.status === 'completed' && Boolean(node.output)) ?? false,
+);
+const contextMenuNodeStatus = computed(() => {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return null;
+  const nodeId = contextMenu.value.nodeId;
+  return props.view?.nodes.find((node) => node.nodeId === nodeId)?.status ?? null;
 });
+const contextMenuNodeHasOutput = computed(() => {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return false;
+  const nodeId = contextMenu.value.nodeId;
+  return Boolean(props.view?.nodes.find((node) => node.nodeId === nodeId)?.output);
+});
+
+function hasServerCanvasMenuActions(): boolean {
+  const view = props.view;
+  if (!view) return false;
+
+  return (
+    ['active', 'paused', 'stuck'].includes(view.status)
+    || view.nodes.some((node) => ['completed', 'abandoned', 'stuck'].includes(node.status))
+    || view.nodes.some((node) => node.status === 'completed' && Boolean(node.output))
+  );
+}
+
+function closeContextMenu(): void {
+  contextMenu.value = null;
+}
+
+function createContextNode(type: 'prompt' | 'sequentialThinking' | 'workflow' | 'tool', toolName?: string): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'canvas') return;
+
+  const node = type === 'prompt'
+    ? firstAgent.value
+      ? createNode('prompt', { id: createNodeId('prompt'), agent: firstAgent.value, prompt: 'Ask an agent' })
+      : null
+    : type === 'sequentialThinking'
+      ? firstAgent.value
+        ? createNode('sequentialThinking', {
+          id: createNodeId('sequentialThinking'),
+          agent: firstAgent.value,
+          topic: 'Think through a problem',
+          totalThoughts: 5,
+        })
+        : null
+      : type === 'workflow'
+        ? firstWorkflow.value
+          ? createNode('workflow', { id: createNodeId('workflow'), workflowId: firstWorkflow.value, agent: '' })
+          : null
+        : toolName
+          ? createNode('tool', { id: createNodeId('tool'), toolName })
+          : null;
+
+  if (!node) return;
+  createNodeAt(node, contextMenu.value.position);
+  closeContextMenu();
+}
+
+function maybeRefreshComposerCatalogs(): void {
+  if (!props.designMode) return;
+  if (store.workflows.length === 0) void store.refreshWorkflows();
+  if (!hasLoadedCatalog.value) void refreshTools();
+}
+
+function handleComposerContextMenu(event: MouseEvent): void {
+  const target = event.target;
+  if (!(target instanceof Element)) return;
+  if (target.closest('.vue-flow__controls, .vue-flow__minimap')) return;
+
+  const flowRoot = event.currentTarget instanceof HTMLElement
+    ? event.currentTarget.querySelector<HTMLElement>('.vue-flow')
+    : target.closest<HTMLElement>('.vue-flow');
+  if (!flowRoot) {
+    closeContextMenu();
+    return;
+  }
+
+  const nodeId = target.closest<HTMLElement>('.vue-flow__node')?.dataset.id;
+  if (nodeId) {
+    editNode(nodeId);
+    contextMenu.value = { mode: 'node', nodeId };
+    return;
+  }
+
+  if (target.closest('.vue-flow__edge, .edge-indicator')) {
+    closeContextMenu();
+    return;
+  }
+
+  if (!props.designMode && !hasServerCanvasMenuActions()) {
+    closeContextMenu();
+    return;
+  }
+
+  contextMenu.value = {
+    mode: 'canvas',
+    position: toFlowPosition(event.clientX, event.clientY, flowRoot),
+  };
+}
+
+function handleEditNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  emit('nodeDoubleClick', contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDuplicateNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  duplicateNode(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDeleteNode(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  deleteNode(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleDisconnectEdges(): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  disconnectNodeEdges(contextMenu.value.nodeId);
+  closeContextMenu();
+}
+
+function handleServerNodeAction(action: 'restartNode' | 'rewindNode' | 'forkNode' | 'abandonNode'): void {
+  if (!contextMenu.value || contextMenu.value.mode !== 'node') return;
+  const { nodeId } = contextMenu.value;
+  closeContextMenu();
+
+  switch (action) {
+    case 'restartNode':
+      void store.restartNode(nodeId);
+      break;
+    case 'rewindNode':
+      void store.rewindNodes([nodeId]);
+      break;
+    case 'forkNode': {
+      if (!store.currentPipelineId) break;
+      void (async () => {
+        const requestedName = await promptDialogStore.requestValue({
+          title: 'Fork pipeline session',
+          description: 'Optional name for the forked pipeline session.',
+          placeholder: 'my-forked-session',
+          confirmLabel: 'Fork',
+        });
+        if (requestedName === null) return;
+        await store.forkPipeline(store.currentPipelineId!, nodeId, requestedName.trim() || undefined);
+      })();
+      break;
+    }
+    case 'abandonNode':
+      void store.updateNodeStatus(nodeId, 'abandoned');
+      break;
+  }
+}
+
+function handleCanvasRunPipeline(): void {
+  void store.runPipeline();
+  closeContextMenu();
+}
+
+function handleCanvasRewindAll(): void {
+  const rewindableIds = props.view?.nodes
+    .filter((node) => ['completed', 'abandoned', 'stuck'].includes(node.status))
+    .map((node) => node.nodeId) ?? [];
+  if (rewindableIds.length > 0) void store.rewindNodes(rewindableIds);
+  closeContextMenu();
+}
+
+function handleCanvasGraft(): void {
+  emit('openGraft');
+  closeContextMenu();
+}
+
+function handleCanvasPromoteToMemory(): void {
+  emit('openPromotion');
+  closeContextMenu();
+}
+
+const createPromptNode = () => createContextNode('prompt');
+const createThinkingNode = () => createContextNode('sequentialThinking');
+const createToolNode = (toolName: string) => createContextNode('tool', toolName);
+const createWorkflowNode = () => createContextNode('workflow');
+
+watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   workflow: 'var(--color-brand)',
@@ -285,7 +469,7 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 .composer-palette-sheet {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
 }
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--color-text-primary); border: none; }

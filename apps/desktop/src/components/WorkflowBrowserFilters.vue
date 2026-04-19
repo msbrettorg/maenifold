@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
 
 interface CategoryChip {
@@ -23,10 +25,6 @@ const emit = defineEmits<{
   (e: 'clear-import-state'): void
   (e: 'dismiss-import-error'): void
 }>()
-
-function updateSearchQuery(event: Event) {
-  emit('update:searchQuery', (event.target as HTMLInputElement).value)
-}
 </script>
 
 <template>
@@ -36,30 +34,32 @@ function updateSearchQuery(event: Event) {
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
-      <input
-        :value="searchQuery"
+      <Input
+        :model-value="searchQuery"
         type="text"
         class="search-input"
         placeholder="Find workflow..."
-        @input="updateSearchQuery"
+        @update:model-value="(v) => emit('update:searchQuery', String(v))"
       />
     </div>
 
     <div class="chip-row">
-      <button
+      <Button
         v-for="chip in chips"
         :key="chip.value"
+        variant="ghost"
+        size="sm"
         :class="['chip', { 'chip--active': categoryFilter === chip.value }]"
         type="button"
         @click="emit('update:categoryFilter', chip.value)"
       >
         {{ chip.label }}
-      </button>
+      </Button>
     </div>
 
     <div v-if="browserError" class="import-feedback import-feedback--error" role="alert">
       <span class="feedback-text">{{ browserError }}</span>
-      <button class="feedback-btn" type="button" @click="emit('retry')">Retry</button>
+      <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('retry')">Retry</Button>
     </div>
 
     <div
@@ -73,13 +73,13 @@ function updateSearchQuery(event: Event) {
         <span class="feedback-text">
           Workflow ID <code>{{ props.importConflict.id }}</code> already exists ({{ props.importConflict.name }}).
         </span>
-        <button class="feedback-btn" type="button" @click="emit('resolve-conflict', 'overwrite')">Overwrite</button>
-        <button class="feedback-btn" type="button" @click="emit('resolve-conflict', 'copy')">Import as Copy</button>
-        <button class="feedback-btn" type="button" @click="emit('clear-import-state')">Cancel</button>
+        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('resolve-conflict', 'overwrite')">Overwrite</Button>
+        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('resolve-conflict', 'copy')">Import as Copy</Button>
+        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="emit('clear-import-state')">Cancel</Button>
       </template>
       <template v-else-if="props.importError">
         <span class="feedback-text">{{ props.importError }}</span>
-        <button class="feedback-btn" type="button" @click="emit('dismiss-import-error')">Dismiss</button>
+        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="emit('dismiss-import-error')">Dismiss</Button>
       </template>
     </div>
   </div>

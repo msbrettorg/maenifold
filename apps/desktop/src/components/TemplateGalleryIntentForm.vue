@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
+
 const props = defineProps<{
   error: string;
   hasIntentAgent: boolean;
@@ -10,10 +12,6 @@ const emit = defineEmits<{
   submit: [];
   'update:modelValue': [value: string];
 }>();
-
-function handleInput(event: Event): void {
-  emit('update:modelValue', (event.target as HTMLInputElement).value);
-}
 </script>
 
 <template>
@@ -23,16 +21,16 @@ function handleInput(event: Event): void {
       <div
         class="rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)] w-full max-w-[800px]"
       >
-        <input
+        <Input
           id="pipeline-intent-input"
-          :value="props.modelValue"
+          :model-value="props.modelValue"
           type="text"
-          class="flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary w-full"
+          class="flex-1 border-0 bg-transparent text-sm text-text-primary shadow-none outline-none ring-0 placeholder:text-text-tertiary focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none w-full"
           placeholder="What do you want to do?"
           autocomplete="off"
           :disabled="props.submitting"
           :aria-invalid="props.error.length > 0"
-          @input="handleInput"
+          @update:model-value="(val: string | number) => emit('update:modelValue', String(val))"
         />
       </div>
       <p v-if="props.error" class="gallery-intent-error" role="alert">

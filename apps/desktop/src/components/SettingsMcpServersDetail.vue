@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { McpServerEntry } from '../lib/types'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type McpServerType = McpServerEntry['type']
 
@@ -39,44 +43,49 @@ function updateType(event: Event) {
   <div v-if="visible" class="agent-form" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
     <h4>{{ editingServer ? 'Edit MCP server' : 'Add new MCP server' }}</h4>
 
-    <label class="form-group">
-      <span>Name</span>
-      <input :value="formName" type="text" placeholder="filesystem" :disabled="!!editingServer" @input="updateValue($event, 'formName')" />
-    </label>
+    <div class="form-group">
+      <Label>Name</Label>
+      <Input :model-value="formName" type="text" placeholder="filesystem" :disabled="!!editingServer" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formName')" />
+    </div>
 
-    <label class="form-group">
-      <span>Type</span>
-      <select :value="formType" @change="updateType">
-        <option value="stdio">stdio</option>
-        <option value="http">http</option>
-      </select>
-    </label>
+    <div class="form-group">
+      <Label>Type</Label>
+      <Select :model-value="formType" @update:model-value="(val) => updateType({ target: { value: String(val) } } as unknown as Event)">
+        <SelectTrigger class="w-full">
+          <SelectValue placeholder="Select type" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="stdio">stdio</SelectItem>
+          <SelectItem value="http">http</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
 
     <template v-if="formType === 'stdio'">
-      <label class="form-group">
-        <span>Command</span>
-        <input :value="formCommand" type="text" placeholder="npx @modelcontextprotocol/server-filesystem" @input="updateValue($event, 'formCommand')" />
-      </label>
+      <div class="form-group">
+        <Label>Command</Label>
+        <Input :model-value="formCommand" type="text" placeholder="npx @modelcontextprotocol/server-filesystem" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formCommand')" />
+      </div>
 
-      <label class="form-group">
-        <span>Arguments</span>
+      <div class="form-group">
+        <Label>Arguments</Label>
         <textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" @input="updateValue($event, 'formArgs')" />
         <small>Enter one argument per line.</small>
-      </label>
+      </div>
     </template>
 
-    <label v-else class="form-group">
-      <span>URL</span>
-      <input :value="formUrl" type="url" placeholder="localhost:8080/mcp" @input="updateValue($event, 'formUrl')" />
-    </label>
+    <div v-else class="form-group">
+      <Label>URL</Label>
+      <Input :model-value="formUrl" type="url" placeholder="localhost:8080/mcp" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formUrl')" />
+    </div>
 
     <p v-if="formError" class="form-error">{{ formError }}</p>
 
     <div class="form-actions">
-      <button class="save-btn" :disabled="isSubmitting" @click="emit('submit')">
+      <Button class="save-btn" :disabled="isSubmitting" @click="emit('submit')">
         {{ isSubmitting ? 'Saving...' : 'Save' }}
-      </button>
-      <button class="cancel-btn" @click="emit('cancel')">Cancel</button>
+      </Button>
+      <Button variant="outline" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

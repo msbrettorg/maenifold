@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import GateTaskProgress from './GateTaskProgress.vue';
 import type { GateTask } from '../lib/gate';
 import { getTaskPathHint } from '../lib/gate-display';
@@ -52,28 +53,28 @@ function rowTitle(task: GateTask) {
       <thead>
         <tr>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('id')">
-            <button type="button" class="gate-th-button" @click="emit('sort', 'id')">
+            <Button variant="ghost" class="gate-th-button" @click="emit('sort', 'id')">
               <span>Task ID</span>
               <span class="gate-sort-icon">{{ sortIndicator('id') }}</span>
-            </button>
+            </Button>
           </th>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('name')">
-            <button type="button" class="gate-th-button" @click="emit('sort', 'name')">
+            <Button variant="ghost" class="gate-th-button" @click="emit('sort', 'name')">
               <span>Task</span>
               <span class="gate-sort-icon">{{ sortIndicator('name') }}</span>
-            </button>
+            </Button>
           </th>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('process')">
-            <button type="button" class="gate-th-button" @click="emit('sort', 'process')">
+            <Button variant="ghost" class="gate-th-button" @click="emit('sort', 'process')">
               <span>Process</span>
               <span class="gate-sort-icon">{{ sortIndicator('process') }}</span>
-            </button>
+            </Button>
           </th>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('progress')">
-            <button type="button" class="gate-th-button" @click="emit('sort', 'progress')">
+            <Button variant="ghost" class="gate-th-button" @click="emit('sort', 'progress')">
               <span>Progress</span>
               <span class="gate-sort-icon">{{ sortIndicator('progress') }}</span>
-            </button>
+            </Button>
           </th>
         </tr>
       </thead>

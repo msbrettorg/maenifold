@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Search, FileText, ClipboardList } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import { Button } from '@/components/ui/button';
 import PlanView from './PlanView.vue';
 import ChatMessageItem from './ChatMessageItem.vue';
 import type { ChatMessage, PlanEntry } from '../lib/types';
@@ -34,16 +35,16 @@ const starterChips: { icon: Component; label: string }[] = [
     <div v-if="messages.length === 0 && !isLoading" class="chat-empty">
       <p class="chat-empty-hint">Start a conversation or try one of these:</p>
       <div class="chat-empty-chips">
-        <button
+        <Button
           v-for="chip in starterChips"
           :key="chip.label"
-          type="button"
+          variant="outline"
           class="starter-chip"
           @click="emit('prefill', chip.label)"
         >
           <span class="chip-icon" aria-hidden="true"><component :is="chip.icon" class="size-4" :stroke-width="1.5" /></span>
           <span>{{ chip.label }}</span>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -66,7 +67,7 @@ const starterChips: { icon: Component; label: string }[] = [
     <div v-if="isLoading" class="loading-indicator">
       <span class="spinner"></span>
       <span>Thinking...</span>
-      <button type="button" class="cancel-btn" @click="emit('cancel')">Cancel</button>
+      <Button variant="outline" size="sm" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

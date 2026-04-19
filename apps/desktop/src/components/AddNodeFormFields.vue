@@ -1,5 +1,15 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import {
   useAddNodeFormFieldBindings,
@@ -8,9 +18,6 @@ import {
 } from '../composables/useAddNodeFormFieldBindings';
 import AgentProbePreview from './AgentProbePreview.vue';
 import ToolPaletteFields from './ToolPaletteFields.vue';
-
-const nativeSelectClass =
-  'w-full bg-[var(--surface)] text-foreground border border-[var(--color-border-subtle)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
 
 const props = defineProps<AddNodeFormFieldsProps>();
 const emit = defineEmits<AddNodeFormFieldsEmit>();
@@ -39,6 +46,10 @@ const {
   getAgentThoughtLevelValue,
   getAgentConfigOptionValue,
 } = useAddNodeFormFieldBindings(props, emit);
+
+function syntheticEvent(value: string | number | string[]): Event {
+  return { target: { value: String(value) } } as unknown as Event;
+}
 </script>
 
 <template>
@@ -72,17 +83,22 @@ const {
     <template v-if="hasAgentControls">
       <label>
         <span>Agent</span>
-        <select
-          :class="nativeSelectClass"
-          :data-testid="`${currentTestPrefix}-agent-select`"
-          :value="currentAgentName"
-          @change="updateCurrentAgentName"
+        <Select
+          :model-value="currentAgentName"
+          @update:model-value="(value) => updateCurrentAgentName(syntheticEvent(value as string))"
         >
-          <option value="">Select agent…</option>
-          <option v-for="name in configStore.agentNames" :key="name" :value="name">
-            {{ formatAgentOptionLabel(name) }}
-          </option>
-        </select>
+          <SelectTrigger
+            class="w-full"
+            :data-testid="`${currentTestPrefix}-agent-select`"
+          >
+            <SelectValue placeholder="Select agent…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="name in configStore.agentNames" :key="name" :value="name">
+              {{ formatAgentOptionLabel(name) }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </label>
 
       <div v-if="nodeType === 'workflow' && workflowAgent" class="field-wide">
@@ -106,73 +122,95 @@ const {
       <div v-if="currentAgentName" class="field-wide agent-config-panel">
         <template v-if="currentReadyProbe">
           <div v-if="currentReadyProbe.modeOptions.length" class="agent-mode-badges">
-            <button
+            <Button
               v-for="mode in currentReadyProbe.modeOptions"
               :key="mode.id"
               type="button"
+              variant="ghost"
+              size="xs"
               class="mode-badge"
               :class="{ selected: getAgentModeValue(currentAgentConfig, currentReadyProbe) === mode.id }"
               :data-testid="`${currentTestPrefix}-mode-badge-${mode.id}`"
               @click="updateCurrentMode(mode.id)"
             >
               {{ mode.name }}
-            </button>
+            </Button>
           </div>
           <div class="agent-config-grid">
             <label v-if="currentReadyProbe.modelOptions.length">
               <span>Model</span>
-              <select
-                :class="nativeSelectClass"
-                :data-testid="`${currentTestPrefix}-model-select`"
-                :value="getAgentModelValue(currentAgentConfig, currentReadyProbe)"
-                @change="updateCurrentModel"
+              <Select
+                :model-value="getAgentModelValue(currentAgentConfig, currentReadyProbe)"
+                @update:model-value="(value) => updateCurrentModel(syntheticEvent(value as string))"
               >
-                <option v-for="model in currentReadyProbe.modelOptions" :key="model.modelId" :value="model.modelId">
-                  {{ model.name }}
-                </option>
-              </select>
+                <SelectTrigger
+                  class="w-full"
+                  :data-testid="`${currentTestPrefix}-model-select`"
+                >
+                  <SelectValue placeholder="Select model" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="model in currentReadyProbe.modelOptions" :key="model.modelId" :value="model.modelId">
+                    {{ model.name }}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </label>
             <label v-if="currentReadyProbe.thoughtLevelConfigOption">
               <span>{{ currentReadyProbe.thoughtLevelConfigOption.name }}</span>
-              <select
-                :class="nativeSelectClass"
-                :data-testid="`${currentTestPrefix}-thought-level-select`"
-                :value="getAgentThoughtLevelValue(currentAgentConfig, currentReadyProbe)"
-                @change="updateCurrentThoughtLevel"
+              <Select
+                :model-value="getAgentThoughtLevelValue(currentAgentConfig, currentReadyProbe)"
+                @update:model-value="(value) => updateCurrentThoughtLevel(syntheticEvent(value as string))"
               >
-                <template
-                  v-for="entry in currentReadyProbe.thoughtLevelConfigOption.options"
-                  :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                <SelectTrigger
+                  class="w-full"
+                  :data-testid="`${currentTestPrefix}-thought-level-select`"
                 >
-                  <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
-                    <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">
-                      {{ groupOption.name }}
-                    </option>
-                  </optgroup>
-                  <option v-else :value="entry.value">{{ entry.name }}</option>
-                </template>
-              </select>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <template
+                    v-for="entry in currentReadyProbe.thoughtLevelConfigOption.options"
+                    :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                  >
+                    <SelectGroup v-if="isSessionConfigSelectGroup(entry)">
+                      <SelectLabel>{{ entry.name }}</SelectLabel>
+                      <SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">
+                        {{ groupOption.name }}
+                      </SelectItem>
+                    </SelectGroup>
+                    <SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem>
+                  </template>
+                </SelectContent>
+              </Select>
             </label>
             <label v-for="option in currentEditableOptions" :key="option.id">
               <span>{{ option.name }}</span>
-              <select
-                :class="nativeSelectClass"
-                :data-testid="`${currentTestPrefix}-config-${option.id}`"
-                :value="getAgentConfigOptionValue(currentAgentConfig, option)"
-                @change="updateCurrentConfigOption(option, $event)"
+              <Select
+                :model-value="getAgentConfigOptionValue(currentAgentConfig, option)"
+                @update:model-value="(value) => updateCurrentConfigOption(option, syntheticEvent(value as string))"
               >
-                <template
-                  v-for="entry in option.options"
-                  :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                <SelectTrigger
+                  class="w-full"
+                  :data-testid="`${currentTestPrefix}-config-${option.id}`"
                 >
-                  <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
-                    <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">
-                      {{ groupOption.name }}
-                    </option>
-                  </optgroup>
-                  <option v-else :value="entry.value">{{ entry.name }}</option>
-                </template>
-              </select>
+                  <SelectValue placeholder="Select" />
+                </SelectTrigger>
+                <SelectContent>
+                  <template
+                    v-for="entry in option.options"
+                    :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"
+                  >
+                    <SelectGroup v-if="isSessionConfigSelectGroup(entry)">
+                      <SelectLabel>{{ entry.name }}</SelectLabel>
+                      <SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">
+                        {{ groupOption.name }}
+                      </SelectItem>
+                    </SelectGroup>
+                    <SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem>
+                  </template>
+                </SelectContent>
+              </Select>
             </label>
           </div>
         </template>

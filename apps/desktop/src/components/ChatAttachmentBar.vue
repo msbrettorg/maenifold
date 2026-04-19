@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Image as ImageIcon, Headphones } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import type { ContentBlock } from '../lib/types';
 
 export type PendingAttachment = {
@@ -138,20 +139,20 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
     />
     <div class="ab-toolbar" role="toolbar" aria-label="Attachments">
       <span class="ab-wrap" :title="imageTooltip">
-        <button type="button" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
+        <Button variant="outline" size="sm" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
           <ImageIcon class="inline size-4" :stroke-width="1.5" /> Image
-        </button>
+        </Button>
       </span>
       <span class="ab-wrap" :title="audioTooltip">
-        <button type="button" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="triggerPicker('audio')">
+        <Button variant="outline" size="sm" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="triggerPicker('audio')">
           <Headphones class="inline size-4" :stroke-width="1.5" /> Audio
-        </button>
+        </Button>
       </span>
     </div>
     <div v-if="pendingAttachments.length" class="ab-pending">
       <div v-for="att in pendingAttachments" :key="att.id" class="ab-chip">
         <span><component :is="att.kind === 'image' ? ImageIcon : Headphones" class="inline size-4" :stroke-width="1.5" /> {{ att.label }}</span>
-        <button type="button" class="ab-remove" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</button>
+        <Button variant="ghost" size="icon-xs" class="ab-remove" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</Button>
       </div>
     </div>
   </div>

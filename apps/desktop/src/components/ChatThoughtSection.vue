@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
   messageId: string;
@@ -18,8 +19,8 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 
 <template>
   <div class="thought-section" role="region" aria-label="Thinking">
-    <button
-      type="button"
+    <Button
+      variant="ghost"
       class="thought-toggle"
       :aria-expanded="expanded"
       :aria-controls="contentId"
@@ -28,7 +29,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
       <span class="thought-icon">💭</span>
       <span class="thought-label">{{ expanded ? 'Hide thinking' : 'Show thinking' }}</span>
       <span class="thought-chevron">{{ expanded ? '▲' : '▼' }}</span>
-    </button>
+    </Button>
     <div v-if="expanded" :id="contentId" class="thought-content">
       <div v-html="renderedThought" />
     </div>

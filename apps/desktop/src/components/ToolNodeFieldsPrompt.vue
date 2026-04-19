@@ -1,9 +1,24 @@
 <script setup lang="ts">
 import type { PropType } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { AgentProbeConfigOption, AgentProbeResult } from '../lib/agent-probe-types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { SessionConfigSelectGroup, SessionConfigSelectOption } from '../lib/types';
 import AgentProbePreview from './AgentProbePreview.vue';
+
+function syntheticChangeEvent(value: unknown): Event {
+  return { target: { value: String(value ?? '') } } as unknown as Event;
+}
 
 const selectFieldClass =
   'w-full bg-input text-foreground border border-border rounded-md px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20';
@@ -31,61 +46,84 @@ defineProps({
 </script>
 
 <template>
-  <label>
+  <Label>
     <span>Agent Override</span>
-    <select :class="selectFieldClass" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
-      <option value="">Use tool default</option>
-      <option v-for="name in agentNames" :key="name" :value="name">
-        {{ formatAgentOptionLabel(name) }}
-      </option>
-    </select>
-  </label>
+    <Select :model-value="agentName" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
+      <SelectTrigger :class="selectFieldClass" data-testid="tool-agent-select">
+        <SelectValue placeholder="Use tool default" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="">Use tool default</SelectItem>
+        <SelectItem v-for="name in agentNames" :key="name" :value="name">
+          {{ formatAgentOptionLabel(name) }}
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  </Label>
 
   <div v-if="agentName" class="tool-agent-panel">
     <AgentProbePreview compact :agent-name="agentName" :probe="selectedAgentProbe" :loading="isProbeLoading(agentName)" />
     <template v-if="readyProbe">
       <div v-if="readyProbe.modeOptions.length" class="agent-mode-badges">
-        <button
+        <Button
           v-for="mode in readyProbe.modeOptions"
           :key="mode.id"
-          type="button"
+          variant="outline"
+          size="sm"
           class="mode-badge"
           :class="{ selected: getAgentModeValue(agentConfig, readyProbe) === mode.id }"
           :data-testid="`tool-mode-badge-${mode.id}`"
           @click="updateAgentMode(mode.id)"
         >
           {{ mode.name }}
-        </button>
+        </Button>
       </div>
       <div class="tool-agent-grid">
-        <label v-if="readyProbe.modelOptions.length">
+        <Label v-if="readyProbe.modelOptions.length">
           <span>Model</span>
-          <select :class="selectFieldClass" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe)" @change="updateAgentModel">
-            <option v-for="model in readyProbe.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option>
-          </select>
-        </label>
-        <label v-if="readyProbe.thoughtLevelConfigOption">
+          <Select :model-value="getAgentModelValue(agentConfig, readyProbe)" @update:model-value="(val) => updateAgentModel(syntheticChangeEvent(val))">
+            <SelectTrigger :class="selectFieldClass" data-testid="tool-model-select">
+              <SelectValue placeholder="Select model" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="model in readyProbe.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </Label>
+        <Label v-if="readyProbe.thoughtLevelConfigOption">
           <span>{{ readyProbe.thoughtLevelConfigOption.name }}</span>
-          <select :class="selectFieldClass" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe)" @change="updateAgentThoughtLevel">
-            <template v-for="entry in readyProbe.thoughtLevelConfigOption.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
-              <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
-                <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
-              </optgroup>
-              <option v-else :value="entry.value">{{ entry.name }}</option>
-            </template>
-          </select>
-        </label>
-        <label v-for="option in editableAgentConfigOptions" :key="option.id">
+          <Select :model-value="getAgentThoughtLevelValue(agentConfig, readyProbe)" @update:model-value="(val) => updateAgentThoughtLevel(syntheticChangeEvent(val))">
+            <SelectTrigger :class="selectFieldClass" data-testid="tool-thought-level-select">
+              <SelectValue placeholder="Select thought level" />
+            </SelectTrigger>
+            <SelectContent>
+              <template v-for="entry in readyProbe.thoughtLevelConfigOption.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                <SelectGroup v-if="isSessionConfigSelectGroup(entry)">
+                  <SelectLabel>{{ entry.name }}</SelectLabel>
+                  <SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</SelectItem>
+                </SelectGroup>
+                <SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem>
+              </template>
+            </SelectContent>
+          </Select>
+        </Label>
+        <Label v-for="option in editableAgentConfigOptions" :key="option.id">
           <span>{{ option.name }}</span>
-          <select :class="selectFieldClass" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)">
-            <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
-              <optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name">
-                <option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option>
-              </optgroup>
-              <option v-else :value="entry.value">{{ entry.name }}</option>
-            </template>
-          </select>
-        </label>
+          <Select :model-value="getAgentConfigOptionValue(agentConfig, option)" @update:model-value="(val) => updateAgentConfigOption(option, syntheticChangeEvent(val))">
+            <SelectTrigger :class="selectFieldClass" :data-testid="`tool-config-${option.id}`">
+              <SelectValue placeholder="Select option" />
+            </SelectTrigger>
+            <SelectContent>
+              <template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value">
+                <SelectGroup v-if="isSessionConfigSelectGroup(entry)">
+                  <SelectLabel>{{ entry.name }}</SelectLabel>
+                  <SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</SelectItem>
+                </SelectGroup>
+                <SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem>
+              </template>
+            </SelectContent>
+          </Select>
+        </Label>
       </div>
     </template>
   </div>

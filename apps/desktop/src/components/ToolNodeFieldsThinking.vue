@@ -2,6 +2,7 @@
 import type { PropType } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ToolPaletteItem {
   server: string;
@@ -74,11 +75,11 @@ function forwardToolName(value: string | number) {
     <p v-if="!hasCatalog" class="tool-palette__status">Refresh to load tools from MCP servers.</p>
     <p v-else-if="visibleTools.length === 0 && isSearching" class="tool-palette__status">No tools match “{{ searchQuery }}”.</p>
     <p v-else-if="visibleTools.length === 0" class="tool-palette__status">Quick Add is empty. Start typing to search across all connected servers.</p>
-    <button
+    <Button
       v-for="tool in visibleTools"
       :id="optionId(tool.namespacedName)"
       :key="tool.namespacedName"
-      type="button"
+      variant="ghost"
       class="tool-palette__option"
       :class="{ 'is-selected': tool.namespacedName === selectedToolName }"
       role="option"
@@ -105,10 +106,10 @@ function forwardToolName(value: string | number) {
         <span v-if="recentTools.includes(tool.namespacedName)" class="tool-palette__tag">Recent</span>
         <span v-if="tool.status === 'error'" class="tool-palette__tag tool-palette__tag--warning">Stale catalog</span>
       </span>
-    </button>
+    </Button>
   </div>
 
-  <label>
+  <Label>
     <span>Tool Name</span>
     <Input
       :model-value="toolName"
@@ -116,5 +117,5 @@ function forwardToolName(value: string | number) {
       placeholder="server.ToolName"
       @update:model-value="forwardToolName"
     />
-  </label>
+  </Label>
 </template>

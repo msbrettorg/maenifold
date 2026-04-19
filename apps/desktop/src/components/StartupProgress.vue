@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { Button } from '@/components/ui/button';
 
 const props = defineProps<{
   agentName: string;
@@ -104,18 +105,22 @@ const progressValue = computed(() => {
     </div>
     
     <div class="progress-actions">
-      <button 
+      <Button 
+        variant="ghost"
+        size="sm"
         class="details-btn"
         @click="emit('toggleDetails')"
       >
         {{ showDetails ? 'Hide details ▲' : 'Show details ▼' }}
-      </button>
-      <button 
+      </Button>
+      <Button 
+        variant="ghost"
+        size="sm"
         class="cancel-btn"
         @click="emit('cancel')"
       >
         Cancel
-      </button>
+      </Button>
     </div>
     
     <div v-if="showDetails" class="logs-container">

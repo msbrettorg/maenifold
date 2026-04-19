@@ -109,8 +109,9 @@ async function handleDelete(item: PipelineListItem, event: Event) {
           :key="item.pipelineId"
           :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
         >
-          <button
+          <Button
             type="button"
+            variant="ghost"
             class="pipeline-select"
             :data-pipeline-id="item.pipelineId"
             data-pipeline-item
@@ -126,7 +127,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
                 <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
               </div>
             </div>
-          </button>
+          </Button>
 
           <div class="pipeline-side">
             <span :class="['pipeline-status', `status-text--${item.status}`]">

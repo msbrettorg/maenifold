@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 import type { McpServerEntry } from '../lib/types';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import SettingsConnectionKeys from './SettingsConnectionKeys.vue';
 
 interface AgentRow {
@@ -69,22 +72,22 @@ function formatEnvCount(count: number) {
           <h4 class="text-sm font-medium text-text-secondary">Agents</h4>
           <p>Add, edit, and remove ACP agent definitions.</p>
         </div>
-        <button class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add agent</button>
+        <Button variant="outline" class="add-btn" :disabled="showAddForm" @click="onStartAdd">+ Add agent</Button>
       </div>
 
       <div v-if="showAddForm || editingAgent" class="agent-form">
         <h5>{{ editingAgent ? 'Edit agent' : 'Add new agent' }}</h5>
 
         <div class="form-section">
-          <label class="form-group">
-            <span>Name</span>
-            <input v-model="form.name" type="text" placeholder="My Agent" :disabled="editingAgent !== null" />
-          </label>
-          <label class="form-group">
-            <span>Command</span>
-            <input v-model="form.command" type="text" placeholder="npx @github/copilot-language-server@latest --acp" />
+          <div class="form-group">
+            <Label>Name</Label>
+            <Input v-model="form.name" type="text" placeholder="My Agent" :disabled="editingAgent !== null" />
+          </div>
+          <div class="form-group">
+            <Label>Command</Label>
+            <Input v-model="form.command" type="text" placeholder="npx @github/copilot-language-server@latest --acp" />
             <small>Full shell command including arguments.</small>
-          </label>
+          </div>
         </div>
 
         <SettingsConnectionKeys
@@ -97,10 +100,10 @@ function formatEnvCount(count: number) {
 
         <p v-if="form.error" class="form-error">{{ form.error }}</p>
         <div class="form-actions">
-          <button class="save-btn" :disabled="isSubmitting" @click="onSubmit">
+          <Button class="save-btn" :disabled="isSubmitting" @click="onSubmit">
             {{ isSubmitting ? 'Saving...' : 'Save' }}
-          </button>
-          <button class="cancel-btn" @click="onResetForm">Cancel</button>
+          </Button>
+          <Button variant="outline" class="cancel-btn" @click="onResetForm">Cancel</Button>
         </div>
       </div>
 
@@ -120,13 +123,14 @@ function formatEnvCount(count: number) {
             </div>
           </div>
           <div class="agent-actions">
-            <button
+            <Button
+              variant="outline"
               class="edit-btn border border-border-subtle text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
               @click="onStartEdit(agent)"
             >
               Edit
-            </button>
-            <button class="delete-btn" @click="onDelete(agent.name)">Delete</button>
+            </Button>
+            <Button variant="destructive" class="delete-btn" @click="onDelete(agent.name)">Delete</Button>
           </div>
         </article>
         <p v-if="agents.length === 0" class="empty-state">No agents configured yet. Add one to get started.</p>

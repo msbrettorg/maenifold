@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import type { MaenifoldSettings } from '../lib/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type OptionalNumberField = 'sessionAbandonMinutes' | 'snippetLength';
 
@@ -16,47 +20,52 @@ defineProps<{
     <details class="settings-card details-section" open>
       <summary><h4>General</h4></summary>
       <div class="section-grid">
-        <label class="form-group">
-          <span>Log rotation</span>
-          <select v-model="form.logRotation">
-            <option value="daily">daily</option>
-            <option value="hourly">hourly</option>
-            <option value="never">never</option>
-          </select>
-        </label>
-        <label class="form-group">
-          <span>Debounce ms</span>
-          <input v-model.number="form.debounceMs" type="number" min="0" step="1" />
-        </label>
-        <label class="checkbox-group"><input v-model="form.autoSync" type="checkbox" /><span>Auto sync</span></label>
-        <label class="checkbox-group"><input v-model="form.syncLogging" type="checkbox" /><span>Sync logging</span></label>
-        <label class="checkbox-group"><input v-model="form.sessionCleanup" type="checkbox" /><span>Session cleanup</span></label>
+        <div class="form-group">
+          <Label>Log rotation</Label>
+          <Select :model-value="form.logRotation" @update:model-value="(val) => form.logRotation = val as typeof form.logRotation">
+            <SelectTrigger class="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">daily</SelectItem>
+              <SelectItem value="hourly">hourly</SelectItem>
+              <SelectItem value="never">never</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div class="form-group">
+          <Label>Debounce ms</Label>
+          <Input :model-value="form.debounceMs" type="number" min="0" step="1" @update:model-value="(val) => { form.debounceMs = Number(val) }" />
+        </div>
+        <div class="checkbox-group"><Checkbox :checked="form.autoSync" @update:checked="(val: boolean) => { form.autoSync = val }" /><Label>Auto sync</Label></div>
+        <div class="checkbox-group"><Checkbox :checked="form.syncLogging" @update:checked="(val: boolean) => { form.syncLogging = val }" /><Label>Sync logging</Label></div>
+        <div class="checkbox-group"><Checkbox :checked="form.sessionCleanup" @update:checked="(val: boolean) => { form.sessionCleanup = val }" /><Label>Session cleanup</Label></div>
       </div>
     </details>
 
     <details class="settings-card details-section" open>
       <summary><h4>Database</h4></summary>
       <div class="section-grid">
-        <label class="form-group">
-          <span>SQLite busy timeout ms</span>
-          <input v-model.number="form.sqliteBusyTimeoutMs" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Sync lease ms</span>
-          <input v-model.number="form.syncLeaseMs" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Watcher buffer size</span>
-          <input v-model.number="form.watcherBufferSize" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Incremental optimize every</span>
-          <input v-model.number="form.incrementalOptimizeEvery" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Incremental vacuum minutes</span>
-          <input v-model.number="form.incrementalVacuumMinutes" type="number" min="0" step="1" />
-        </label>
+        <div class="form-group">
+          <Label>SQLite busy timeout ms</Label>
+          <Input :model-value="form.sqliteBusyTimeoutMs" type="number" min="0" step="1" @update:model-value="(val) => { form.sqliteBusyTimeoutMs = Number(val) }" />
+        </div>
+        <div class="form-group">
+          <Label>Sync lease ms</Label>
+          <Input :model-value="form.syncLeaseMs" type="number" min="0" step="1" @update:model-value="(val) => { form.syncLeaseMs = Number(val) }" />
+        </div>
+        <div class="form-group">
+          <Label>Watcher buffer size</Label>
+          <Input :model-value="form.watcherBufferSize" type="number" min="0" step="1" @update:model-value="(val) => { form.watcherBufferSize = Number(val) }" />
+        </div>
+        <div class="form-group">
+          <Label>Incremental optimize every</Label>
+          <Input :model-value="form.incrementalOptimizeEvery" type="number" min="0" step="1" @update:model-value="(val) => { form.incrementalOptimizeEvery = Number(val) }" />
+        </div>
+        <div class="form-group">
+          <Label>Incremental vacuum minutes</Label>
+          <Input :model-value="form.incrementalVacuumMinutes" type="number" min="0" step="1" @update:model-value="(val) => { form.incrementalVacuumMinutes = Number(val) }" />
+        </div>
       </div>
     </details>
 
@@ -64,53 +73,60 @@ defineProps<{
       <summary><h4>Session</h4></summary>
       <div class="section-grid">
         <div class="optional-field">
-          <label class="form-group">
-            <span>Session abandon minutes</span>
-            <input
+          <div class="form-group">
+            <Label>Session abandon minutes</Label>
+            <Input
               :disabled="form.sessionAbandonMinutes === null"
-              :value="form.sessionAbandonMinutes ?? 0"
+              :model-value="form.sessionAbandonMinutes ?? 0"
               type="number"
               min="0"
               step="1"
-              @input="onUpdateOptionalNumber('sessionAbandonMinutes', $event)"
+              @update:model-value="(val) => onUpdateOptionalNumber('sessionAbandonMinutes', { target: { value: String(val) } } as unknown as Event)"
             />
-          </label>
-          <label class="checkbox-inline">
-            <input
+          </div>
+          <div class="checkbox-inline">
+            <Checkbox
               :checked="form.sessionAbandonMinutes === null"
-              type="checkbox"
-              @change="onUseDefaultToggle('sessionAbandonMinutes', $event)"
+              @update:checked="(val: boolean) => onUseDefaultToggle('sessionAbandonMinutes', { target: { checked: val } } as unknown as Event)"
             />
-            <span>Use default</span>
-          </label>
+            <Label>Use default</Label>
+          </div>
         </div>
 
         <div class="optional-field">
-          <label class="form-group">
-            <span>Snippet length</span>
-            <input
+          <div class="form-group">
+            <Label>Snippet length</Label>
+            <Input
               :disabled="form.snippetLength === null"
-              :value="form.snippetLength ?? 0"
+              :model-value="form.snippetLength ?? 0"
               type="number"
               min="0"
               step="1"
-              @input="onUpdateOptionalNumber('snippetLength', $event)"
+              @update:model-value="(val) => onUpdateOptionalNumber('snippetLength', { target: { value: String(val) } } as unknown as Event)"
             />
-          </label>
-          <label class="checkbox-inline">
-            <input :checked="form.snippetLength === null" type="checkbox" @change="onUseDefaultToggle('snippetLength', $event)" />
-            <span>Use default</span>
-          </label>
+          </div>
+          <div class="checkbox-inline">
+            <Checkbox
+              :checked="form.snippetLength === null"
+              @update:checked="(val: boolean) => onUseDefaultToggle('snippetLength', { target: { checked: val } } as unknown as Event)"
+            />
+            <Label>Use default</Label>
+          </div>
         </div>
 
-        <label class="form-group">
-          <span>Sync role</span>
-          <select :value="form.syncRole ?? '__auto__'" @change="onUpdateSyncRole">
-            <option value="__auto__">auto</option>
-            <option value="primary">primary</option>
-            <option value="replica">replica</option>
-          </select>
-        </label>
+        <div class="form-group">
+          <Label>Sync role</Label>
+          <Select :model-value="form.syncRole ?? '__auto__'" @update:model-value="(val) => onUpdateSyncRole({ target: { value: String(val) } } as unknown as Event)">
+            <SelectTrigger class="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__auto__">auto</SelectItem>
+              <SelectItem value="primary">primary</SelectItem>
+              <SelectItem value="replica">replica</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </details>
   </div>

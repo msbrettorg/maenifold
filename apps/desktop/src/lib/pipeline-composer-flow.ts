@@ -81,10 +81,6 @@ export function savePositions(
   }
 }
 
-function defaultPosition(index: number): { x: number; y: number } {
-  return { x: (index % 4) * 340 + 40, y: Math.floor(index / 4) * 240 + 40 };
-}
-
 function toFlowNodeData(
   node: PipelineNode,
   viewNode?: ViewNode,
@@ -302,7 +298,7 @@ export function pipelineNodesToFlow(
     id: node.id,
     type: 'pipelineNode',
     class: getNodeShellClassName(viewMap.get(node.id)?.status),
-    position: cached[node.id] ?? defaultPosition(index),
+    position: cached[node.id] ?? { x: (index % 4) * 340 + 40, y: Math.floor(index / 4) * 240 + 40 },
     style: getNodeShellStyle(viewMap.get(node.id)?.status),
     data: toFlowNodeData(node, viewMap.get(node.id)),
   }));

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { nextTick, onUnmounted, ref, watch } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import TrafficEntry from './TrafficEntry.vue';
 import { useTrafficStore } from '../stores/traffic';
 
@@ -77,62 +79,70 @@ onUnmounted(stopResize);
       <span class="title">ACP traffic</span>
 
       <div class="controls">
-        <button
+        <Button
+          variant="ghost"
+          size="xs"
           class="control-btn"
           :class="{ active: trafficStore.isPaused }"
           :title="trafficStore.isPaused ? 'Resume' : 'Pause'"
           @click="trafficStore.togglePause()"
         >
           {{ trafficStore.isPaused ? '▶' : '⏸' }}
-        </button>
-        <button class="control-btn" title="Clear" @click="trafficStore.clear()">🗑</button>
+        </Button>
+        <Button variant="ghost" size="xs" class="control-btn" title="Clear" @click="trafficStore.clear()">🗑</Button>
 
         <div class="filter-pills">
-          <button
+          <Button
             v-for="opt in filterOptions"
             :key="opt.value"
+            variant="ghost"
+            size="xs"
             :class="['filter-pill', { active: trafficStore.filter === opt.value }]"
             @click="trafficStore.setFilter(opt.value)"
           >
             {{ opt.label }}
-          </button>
+          </Button>
         </div>
 
         <div class="filter-pills">
-          <button
+          <Button
             v-for="opt in directionOptions"
             :key="opt.value"
+            variant="ghost"
+            size="xs"
             :class="['filter-pill', { active: trafficStore.directionFilter === opt.value }]"
             @click="trafficStore.setDirectionFilter(opt.value)"
           >
             {{ opt.label }}
-          </button>
+          </Button>
         </div>
       </div>
 
       <div class="search-container">
-        <input
+        <Input
           type="text"
           class="search-input"
           placeholder="Filter method or notification…"
-          :value="trafficStore.methodFilter"
-          @input="trafficStore.setMethodFilter(($event.target as HTMLInputElement).value)"
+          :model-value="trafficStore.methodFilter"
+          @update:model-value="(value) => trafficStore.setMethodFilter(String(value))"
         />
-        <button
+        <Button
           v-if="trafficStore.methodFilter"
+          variant="ghost"
+          size="xs"
           class="search-clear-btn"
           title="Clear search"
           @click="trafficStore.clearMethodFilter()"
         >
           ×
-        </button>
+        </Button>
       </div>
 
       <span v-if="trafficStore.methodFilter" class="match-count">
         {{ trafficStore.filteredEntries.length }} match{{ trafficStore.filteredEntries.length === 1 ? '' : 'es' }}
       </span>
 
-      <button class="close-btn" title="Close" @click="emit('close')">×</button>
+      <Button variant="ghost" size="xs" class="close-btn" title="Close" @click="emit('close')">×</Button>
     </div>
 
     <div

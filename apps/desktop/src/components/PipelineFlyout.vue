@@ -175,7 +175,7 @@ watch(
 .pipeline-flyout {
   width: min(320px, 88vw);
   background: var(--surface);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-16);
 }
 
 .flyout-shell {

@@ -7,16 +7,22 @@ import mermaid from 'mermaid';
 const props = defineProps<{ content: string }>();
 const containerRef = ref<HTMLElement | null>(null);
 
+function readCssToken(token: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return value || fallback;
+}
+
 mermaid.initialize({
   startOnLoad: false,
   theme: 'dark',
   themeVariables: {
-    primaryColor: '#0078D4',
-    primaryTextColor: '#FFFFFF',
+    primaryColor: readCssToken('--color-brand', '#0078D4'),
+    primaryTextColor: '#fff',
     primaryBorderColor: 'var(--color-border-card)',
-    lineColor: '#A0AAB2',
-    secondaryColor: '#333333',
-    tertiaryColor: '#282828',
+    lineColor: readCssToken('--color-text-secondary', '#A0AAB2'),
+    secondaryColor: readCssToken('--color-bg-surface', '#333333'),
+    tertiaryColor: readCssToken('--color-bg-sidebar', '#282828'),
     fontFamily: "'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif",
     fontSize: '13px',
   },
@@ -92,7 +98,7 @@ watch(rendered, async () => {
   font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.7;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
   overflow-wrap: break-word;
 }
 
@@ -102,7 +108,7 @@ watch(rendered, async () => {
   font-weight: 600;
   line-height: 1.3;
   margin: 1.75rem 0 0.75rem;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
   border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 0.5rem;
 }
@@ -111,14 +117,14 @@ watch(rendered, async () => {
   font-weight: 600;
   line-height: 1.3;
   margin: 1.5rem 0 0.5rem;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
 }
 .note-prose :deep(h3) {
   font-size: 16px;
   font-weight: 600;
   line-height: 1.4;
   margin: 1.25rem 0 0.4rem;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
 }
 .note-prose :deep(h4),
 .note-prose :deep(h5),
@@ -127,7 +133,7 @@ watch(rendered, async () => {
   font-weight: 600;
   line-height: 1.4;
   margin: 1rem 0 0.35rem;
-  color: var(--color-text-secondary, #A0AAB2);
+  color: var(--color-text-secondary);
 }
 .note-prose :deep(h1:first-child),
 .note-prose :deep(h2:first-child),
@@ -145,7 +151,7 @@ watch(rendered, async () => {
 
 /* ── Links ── */
 .note-prose :deep(a) {
-  color: var(--color-brand, #0078D4);
+  color: var(--color-brand);
   text-decoration: none;
 }
 .note-prose :deep(a:hover) {
@@ -169,8 +175,8 @@ watch(rendered, async () => {
 
 /* ── Inline code ── */
 .note-prose :deep(code) {
-  background: var(--color-bg-surface, #333333);
-  color: var(--color-text-primary, #FFFFFF);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
   border-radius: 4px;
   padding: 0.15rem 0.4rem;
   font-size: 13px;
@@ -179,7 +185,7 @@ watch(rendered, async () => {
 
 /* ── Code blocks ── */
 .note-prose :deep(pre) {
-  background: var(--color-bg-surface, #333333);
+  background: var(--color-bg-surface);
   border: 1px solid var(--color-border-card);
   border-radius: 8px;
   padding: 1rem;
@@ -197,7 +203,7 @@ watch(rendered, async () => {
 
 /* ── Mermaid ── */
 .note-prose :deep(.mermaid-block) {
-  background: var(--color-bg-elevated, #2D2D2D);
+  background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-card);
   border-radius: 8px;
   padding: 1.5rem;
@@ -209,7 +215,7 @@ watch(rendered, async () => {
   font-family: inherit;
 }
 .note-prose :deep(.mermaid-error) {
-  color: var(--color-danger, #D13438);
+  color: var(--color-status-stuck);
   font-size: 13px;
   white-space: pre-wrap;
 }
@@ -230,9 +236,9 @@ watch(rendered, async () => {
   text-align: left;
 }
 .note-prose :deep(th) {
-  background: var(--color-bg-surface, #333333);
+  background: var(--color-bg-surface);
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
   font-size: 12px;
   letter-spacing: 0.03em;
 }
@@ -242,10 +248,10 @@ watch(rendered, async () => {
 
 /* ── Blockquotes ── */
 .note-prose :deep(blockquote) {
-  border-left: 3px solid var(--color-brand, #0078D4);
+  border-left: 3px solid var(--color-brand);
   padding: 0.5rem 0 0.5rem 1rem;
   margin: 0.75rem 0;
-  color: var(--color-text-secondary, #A0AAB2);
+  color: var(--color-text-secondary);
   font-style: italic;
 }
 .note-prose :deep(blockquote p) {
@@ -267,7 +273,7 @@ watch(rendered, async () => {
   margin: 0 0.1rem;
   border-radius: 4px;
   background: color-mix(in srgb, var(--color-brand) 12%, transparent);
-  color: var(--color-brand, #0078D4);
+  color: var(--color-brand);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;
@@ -277,7 +283,7 @@ watch(rendered, async () => {
 /* ── Strong / em ── */
 .note-prose :deep(strong) {
   font-weight: 600;
-  color: var(--color-text-primary, #FFFFFF);
+  color: var(--color-text-primary);
 }
 .note-prose :deep(em) {
   font-style: italic;

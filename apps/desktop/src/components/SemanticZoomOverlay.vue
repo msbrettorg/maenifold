@@ -360,7 +360,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
-  box-shadow: 0 32px 64px rgba(0,0,0,0.32), 0 0 8px rgba(0,0,0,0.16);
+  box-shadow: var(--shadow-64);
 }
 
 .zoom-body {

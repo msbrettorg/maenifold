@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { FlaskConical, Brain, PenTool, Globe, Briefcase } from 'lucide-vue-next';
 import type { Component } from 'vue';
+import { Button } from '@/components/ui/button';
 import type { PipelineTemplate } from '../lib/pipeline-templates';
 
 const ACCENT_BY_TEMPLATE_ID: Record<string, string> = {
@@ -30,9 +31,10 @@ defineEmits<{
 </script>
 
 <template>
-  <button
+  <Button
     type="button"
-    :class="['gallery-card shadow-[var(--shadow-8)] border-[1.5px] border-border-card', { 'gallery-card--selected': props.selected }]"
+    variant="ghost"
+    :class="['gallery-card shadow-[var(--shadow-8)] border-[1.5px] border-border-card flex h-auto flex-col items-start whitespace-normal rounded-[0.25rem] font-normal text-left', { 'gallery-card--selected': props.selected }]"
     :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? 'var(--color-brand)' }"
     @click="$emit('select')"
   >
@@ -40,7 +42,7 @@ defineEmits<{
     <span class="gallery-card-label">{{ props.template.label }}</span>
     <span class="gallery-card-desc">{{ props.template.description }}</span>
     <span v-if="props.template.category === 'enterprise'" class="gallery-card-badge">Enterprise</span>
-  </button>
+  </Button>
 </template>
 
 <style scoped>

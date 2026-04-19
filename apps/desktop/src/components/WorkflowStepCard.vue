@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { ChevronRight, ArrowUp, ArrowDown, Brain, X } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
 import type { WorkflowStepDefinition } from '../lib/workflow-asset-types'
 
 const emojiPattern = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?\s*/gu
@@ -68,54 +69,58 @@ function handleKeydown(event: KeyboardEvent) {
         <span class="confirm-label">Remove "{{ step.name }}"?</span>
         <span v-if="referenceWarning" class="confirm-warning">{{ referenceWarning }}</span>
       </div>
-      <button type="button" class="card-confirm-btn" @click.stop="confirmingRemove = false">Cancel</button>
-      <button type="button" class="card-confirm-btn card-confirm-btn--danger" @click.stop="emit('remove', step.id)">Remove</button>
+      <Button variant="outline" size="sm" class="card-confirm-btn" @click.stop="confirmingRemove = false">Cancel</Button>
+      <Button variant="destructive" size="sm" class="card-confirm-btn card-confirm-btn--danger" @click.stop="emit('remove', step.id)">Remove</Button>
     </div>
     <template v-else>
       <div class="card-top">
-        <button
-          type="button"
+        <Button
+          variant="ghost"
+          size="icon-xs"
           class="card-disclosure"
           :aria-label="expanded ? `Collapse ${step.name}` : `Expand ${step.name}`"
           :aria-expanded="expanded"
           @click.stop="emit('toggle-expanded', step.id)"
         >
           <ChevronRight class="size-3.5 transition-transform" :class="{ 'rotate-90': expanded }" :stroke-width="1.5" />
-        </button>
+        </Button>
         <span class="card-name">{{ cleanName }}</span>
         <div class="card-actions">
-          <button
+          <Button
+            variant="ghost"
+            size="icon-xs"
             class="card-move-btn"
             :disabled="!canMoveUp"
-            type="button"
             aria-label="Move step up"
             @click.stop="emit('move-up', step.id)"
           >
             <ArrowUp class="size-3.5" :stroke-width="1.5" />
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon-xs"
             class="card-move-btn"
             :disabled="!canMoveDown"
-            type="button"
             aria-label="Move step down"
             @click.stop="emit('move-down', step.id)"
           >
             <ArrowDown class="size-3.5" :stroke-width="1.5" />
-          </button>
+          </Button>
           <span
             v-if="step.requiresSequentialThinking"
             class="thinking-icon"
             title="Requires sequential thinking"
           ><Brain class="size-3.5" :stroke-width="1.5" /></span>
-          <button
+          <Button
             v-if="canRemove"
-            type="button"
+            variant="ghost"
+            size="icon-xs"
             class="card-remove-btn"
             :aria-label="`Remove ${step.name}`"
             @click.stop="confirmingRemove = true"
           >
             <X class="size-3.5" :stroke-width="1.5" />
-          </button>
+          </Button>
         </div>
       </div>
       <p v-if="step.description" class="card-desc" :class="{ 'card-desc--expanded': expanded }">{{ step.description }}</p>
@@ -142,7 +147,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 .step-card:hover {
   background: var(--color-bg-surface);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
+  box-shadow: var(--shadow-8);
 }
 
 .step-card:focus-visible {

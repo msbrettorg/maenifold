@@ -2,6 +2,16 @@
 import { Check, KeyRound, AlertTriangle, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cwdHasReasonablePathPrefix } from '../lib/pipeline-types';
 import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { ServerHealthStatus } from '../lib/types';
@@ -47,6 +57,10 @@ function updateCwd(value: string | number): void {
 
 function forwardToolName(value: string | number): void {
   emit('update:toolName', String(value));
+}
+
+function syntheticChangeEvent(value: unknown): Event {
+  return { target: { value: String(value ?? '') } } as unknown as Event;
 }
 
 function getCwdWarning(value: string): string | null {
@@ -123,31 +137,36 @@ const {
 
 <template>
   <div class="tool-palette field-wide">
-    <label>
+    <Label>
       <span>Agent Override</span>
-      <select :class="selectFieldClass" data-testid="tool-agent-select" :value="agentName" @change="updateAgentName">
-        <option value="">Use tool default</option>
-        <option v-for="name in configStore.agentNames" :key="name" :value="name">
-          {{ formatAgentOptionLabel(name) }}
-        </option>
-      </select>
-    </label>
+      <Select :model-value="agentName" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
+        <SelectTrigger :class="selectFieldClass" data-testid="tool-agent-select">
+          <SelectValue placeholder="Use tool default" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">Use tool default</SelectItem>
+          <SelectItem v-for="name in configStore.agentNames" :key="name" :value="name">
+            {{ formatAgentOptionLabel(name) }}
+          </SelectItem>
+        </SelectContent>
+      </Select>
+    </Label>
 
     <div v-if="agentName" class="tool-agent-panel">
       <AgentProbePreview compact :agent-name="agentName" :probe="selectedAgentProbe()" :loading="isProbeLoading(agentName)" />
       <template v-if="readyProbe()">
         <div v-if="readyProbe()?.modeOptions.length" class="agent-mode-badges">
-          <button v-for="mode in readyProbe()?.modeOptions" :key="mode.id" type="button" class="mode-badge" :class="{ selected: getAgentModeValue(agentConfig, readyProbe()) === mode.id }" :data-testid="`tool-mode-badge-${mode.id}`" @click="updateAgentMode(mode.id)">{{ mode.name }}</button>
+          <Button v-for="mode in readyProbe()?.modeOptions" :key="mode.id" variant="outline" size="sm" class="mode-badge" :class="{ selected: getAgentModeValue(agentConfig, readyProbe()) === mode.id }" :data-testid="`tool-mode-badge-${mode.id}`" @click="updateAgentMode(mode.id)">{{ mode.name }}</Button>
         </div>
         <div class="tool-agent-grid">
-          <label v-if="readyProbe()?.modelOptions.length"><span>Model</span><select :class="selectFieldClass" data-testid="tool-model-select" :value="getAgentModelValue(agentConfig, readyProbe())" @change="updateAgentModel"><option v-for="model in readyProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</option></select></label>
-          <label v-if="readyProbe()?.thoughtLevelConfigOption"><span>{{ readyProbe()?.thoughtLevelConfigOption?.name }}</span><select :class="selectFieldClass" data-testid="tool-thought-level-select" :value="getAgentThoughtLevelValue(agentConfig, readyProbe())" @change="updateAgentThoughtLevel"><template v-for="entry in readyProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
-          <label v-for="option in getEditableAgentConfigOptions(readyProbe())" :key="option.id"><span>{{ option.name }}</span><select :class="selectFieldClass" :data-testid="`tool-config-${option.id}`" :value="getAgentConfigOptionValue(agentConfig, option)" @change="updateAgentConfigOption(option, $event)"><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><optgroup v-if="isSessionConfigSelectGroup(entry)" :label="entry.name"><option v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</option></optgroup><option v-else :value="entry.value">{{ entry.name }}</option></template></select></label>
+          <Label v-if="readyProbe()?.modelOptions.length"><span>Model</span><Select :model-value="getAgentModelValue(agentConfig, readyProbe())" @update:model-value="(val) => updateAgentModel(syntheticChangeEvent(val))"><SelectTrigger :class="selectFieldClass" data-testid="tool-model-select"><SelectValue placeholder="Select model" /></SelectTrigger><SelectContent><SelectItem v-for="model in readyProbe()?.modelOptions" :key="model.modelId" :value="model.modelId">{{ model.name }}</SelectItem></SelectContent></Select></Label>
+          <Label v-if="readyProbe()?.thoughtLevelConfigOption"><span>{{ readyProbe()?.thoughtLevelConfigOption?.name }}</span><Select :model-value="getAgentThoughtLevelValue(agentConfig, readyProbe())" @update:model-value="(val) => updateAgentThoughtLevel(syntheticChangeEvent(val))"><SelectTrigger :class="selectFieldClass" data-testid="tool-thought-level-select"><SelectValue placeholder="Select thought level" /></SelectTrigger><SelectContent><template v-for="entry in readyProbe()?.thoughtLevelConfigOption?.options ?? []" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><SelectGroup v-if="isSessionConfigSelectGroup(entry)"><SelectLabel>{{ entry.name }}</SelectLabel><SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</SelectItem></SelectGroup><SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem></template></SelectContent></Select></Label>
+          <Label v-for="option in getEditableAgentConfigOptions(readyProbe())" :key="option.id"><span>{{ option.name }}</span><Select :model-value="getAgentConfigOptionValue(agentConfig, option)" @update:model-value="(val) => updateAgentConfigOption(option, syntheticChangeEvent(val))"><SelectTrigger :class="selectFieldClass" :data-testid="`tool-config-${option.id}`"><SelectValue placeholder="Select option" /></SelectTrigger><SelectContent><template v-for="entry in option.options" :key="isSessionConfigSelectGroup(entry) ? entry.group : entry.value"><SelectGroup v-if="isSessionConfigSelectGroup(entry)"><SelectLabel>{{ entry.name }}</SelectLabel><SelectItem v-for="groupOption in entry.options" :key="groupOption.value" :value="groupOption.value">{{ groupOption.name }}</SelectItem></SelectGroup><SelectItem v-else :value="entry.value">{{ entry.name }}</SelectItem></template></SelectContent></Select></Label>
         </div>
       </template>
     </div>
 
-    <label>
+    <Label>
       <span>Working directory</span>
       <Input
         :model-value="cwd"
@@ -158,7 +177,7 @@ const {
       <small v-if="getCwdWarning(cwd)" class="tool-palette__hint tool-palette__hint--warning">
         {{ getCwdWarning(cwd) }}
       </small>
-    </label>
+    </Label>
 
     <div class="tool-palette__header"><div><span>Tool Palette</span><p>Search across servers, or reuse your recent and pinned tools from Quick Add.</p></div><Button variant="ghost" :disabled="loading" @click="refreshCatalog">{{ loading ? 'Refreshing…' : 'Refresh' }}</Button></div>
     <p v-if="error && !hasCatalog" class="tool-palette__status tool-palette__status--error">{{ error }}</p>
@@ -169,12 +188,12 @@ const {
     <section v-if="showQuickAdd" class="tool-palette__quick-add" aria-label="Quick Add">
       <div class="tool-palette__quick-add-header"><div><strong>Quick Add</strong><p>Reuse recent and pinned tools without leaving intent-based browse mode.</p></div></div>
       <div class="tool-palette__quick-add-list">
-        <button v-for="tool in quickAddTools" :id="`${optionId(tool.namespacedName)}-quick-add`" :key="`quick-add-${tool.key}`" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" @click="handleToolSelect(tool)">
+        <Button v-for="tool in quickAddTools" :id="`${optionId(tool.namespacedName)}-quick-add`" :key="`quick-add-${tool.key}`" variant="ghost" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" @click="handleToolSelect(tool)">
           <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
           <span class="tool-palette__option-desc">{{ tool.description || 'No description.' }}</span>
           <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
           <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>
-        </button>
+        </Button>
       </div>
     </section>
 
@@ -185,23 +204,23 @@ const {
       <template v-else-if="showCategories">
         <div v-for="entry in categorizedTools" :key="entry.category.id" class="tool-palette__category" role="group" :aria-label="entry.category.label">
           <div class="tool-palette__category-header"><div><strong>{{ entry.category.label }}</strong><p>{{ entry.category.description }}</p></div><span class="tool-palette__tag">{{ entry.tools.length }}</span></div>
-          <button v-for="tool in entry.tools" :id="optionId(tool.namespacedName)" :key="tool.key" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
+          <Button v-for="tool in entry.tools" :id="optionId(tool.namespacedName)" :key="tool.key" variant="ghost" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
             <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong>{{ tool.displayName }}</strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
             <span class="tool-palette__option-desc">{{ tool.description || 'No description.' }}</span>
             <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
             <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>
-          </button>
+          </Button>
         </div>
       </template>
-      <button v-else v-for="tool in visibleTools" :id="optionId(tool.namespacedName)" :key="tool.key" type="button" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
+      <Button v-else v-for="tool in visibleTools" :id="optionId(tool.namespacedName)" :key="tool.key" variant="ghost" class="tool-palette__option" :class="[`tool-palette__option--${tool.health}`, { 'is-selected': tool.kind === 'tool' && tool.toolName === toolName, 'tool-palette__option--server-state': tool.kind === 'server_state' }]" role="option" :aria-selected="tool.kind === 'tool' && tool.toolName === toolName" @click="handleToolSelect(tool)">
         <div class="tool-palette__option-head"><div class="tool-palette__option-title"><span class="tool-health-badge" :class="`health-${tool.health}`" :aria-label="HEALTH_META[tool.health].label"><component :is="HEALTH_META[tool.health].icon" class="size-4" :stroke-width="1.5" /></span><strong><template v-for="(part, index) in highlightText(tool.displayName, searchQuery)" :key="`${tool.namespacedName}-name-${index}`"><mark v-if="part.match">{{ part.text }}</mark><span v-else>{{ part.text }}</span></template></strong></div><span class="tool-palette__server">{{ tool.server }}</span></div>
         <span class="tool-palette__option-desc"><template v-for="(part, index) in highlightText(tool.description || 'No description.', searchQuery)" :key="`${tool.namespacedName}-desc-${index}`"><mark v-if="part.match">{{ part.text }}</mark><span v-else>{{ part.text }}</span></template></span>
         <span v-if="tool.kind === 'server_state' && tool.error" class="tool-palette__option-error">{{ tool.error }}</span>
         <span class="tool-palette__option-tags"><span class="tool-palette__tag" :class="`tool-palette__tag--${tool.health}`">{{ HEALTH_META[tool.health].label }}</span><span v-if="tool.kind === 'tool' && nodePaletteStore.isToolPinned(tool.toolName!)" class="tool-palette__tag">Pinned</span><span v-if="tool.kind === 'tool' && nodePaletteStore.recentTools.includes(tool.toolName!)" class="tool-palette__tag">Recent</span></span>
-      </button>
+      </Button>
     </div>
 
-    <label><span>Tool Name</span><Input :model-value="toolName" type="text" placeholder="server.ToolName" @update:model-value="forwardToolName" /></label>
+    <Label><span>Tool Name</span><Input :model-value="toolName" type="text" placeholder="server.ToolName" @update:model-value="forwardToolName" /></Label>
 
     <section v-if="toolName" class="tool-palette__detail">
       <div class="tool-palette__detail-head"><div><strong>{{ selectedDiscoveryTool?.displayName ?? toolName.split('.').pop() }}</strong><p>{{ selectedToolDescription || 'No description.' }}</p></div><div class="tool-palette__detail-actions"><span v-if="selectedDiscoveryTool?.server" class="tool-palette__server">{{ selectedDiscoveryTool.server }}</span><span v-if="selectedToolHealth" class="tool-palette__tag" :class="`tool-palette__tag--${selectedToolHealth}`">{{ HEALTH_META[selectedToolHealth].label }}</span><Button variant="ghost" size="xs" @click="nodePaletteStore.togglePinnedTool(toolName)">{{ nodePaletteStore.isToolPinned(toolName) ? 'Unpin' : 'Pin' }}</Button><Button variant="ghost" size="xs" @click="clearSelection">Clear</Button></div></div>

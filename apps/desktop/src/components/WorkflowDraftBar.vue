@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Zap } from 'lucide-vue-next'
 import { ref, watch } from 'vue'
+import { Button } from '@/components/ui/button'
 import type { WorkflowOrigin } from '../stores/workflow-library-helpers'
 import type { WorkflowSaveState } from '../stores/workflow-library-save-actions'
 
@@ -43,12 +44,12 @@ watch(
     <template v-if="confirmingDiscard">
       <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
       <span class="draft-bar-label">Unsaved changes — discard all?</span>
-      <button class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="hasPendingSelection ? emit('cancel-pending') : (confirmingDiscard = false)">
+      <Button variant="ghost" class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="hasPendingSelection ? emit('cancel-pending') : (confirmingDiscard = false)">
         Cancel
-      </button>
-      <button class="draft-bar-btn draft-bar-btn--danger" type="button" @click="emit('discard')">
+      </Button>
+      <Button variant="destructive" class="draft-bar-btn draft-bar-btn--danger" type="button" @click="emit('discard')">
         Yes, Discard
-      </button>
+      </Button>
     </template>
     <template v-else>
       <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
@@ -62,17 +63,18 @@ watch(
       <span v-else-if="saveState === 'success'" class="draft-bar-message draft-bar-message--success">
         Saved ✓
       </span>
-      <button class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="confirmingDiscard = true">
+      <Button variant="ghost" class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="confirmingDiscard = true">
         Discard
-      </button>
-      <button
+      </Button>
+      <Button
+        variant="outline"
         class="draft-bar-btn draft-bar-btn--accent"
         :disabled="saveState === 'saving'"
         type="button"
         @click="emit('save')"
       >
         {{ saveState === 'error' ? 'Retry' : origin === 'packaged' ? 'Save Copy' : 'Save' }}
-      </button>
+      </Button>
     </template>
   </div>
 </template>

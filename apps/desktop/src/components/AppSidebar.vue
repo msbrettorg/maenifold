@@ -2,6 +2,7 @@
 import AgentSelector from './AgentSelector.vue';
 import SessionList from './SessionList.vue';
 import StartupProgress from './StartupProgress.vue';
+import { Button } from '@/components/ui/button';
 import { useResizeHandle } from '../composables/useResizeHandle';
 import { getSidebarSizingTokens } from '../lib/sidebarSizing';
 import type { SavedSession } from '../lib/types';
@@ -50,7 +51,9 @@ const resize = useResizeHandle({
     <div class="flex items-center justify-between px-4 pt-3 pb-2">
       <h2 class="m-0 text-xs font-medium uppercase tracking-[0.08em] text-text-secondary">Agents</h2>
       <div class="flex gap-1">
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           :class="[
             'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]',
             showTrafficMonitor && 'bg-[var(--surface-high)] text-[var(--color-brand)]',
@@ -58,13 +61,15 @@ const resize = useResizeHandle({
           @click="showTrafficMonitor = !showTrafficMonitor"
           title="ACP Traffic Monitor"
           aria-label="Toggle ACP traffic monitor"
-        ><Radio class="size-4" /></button>
-        <button
+        ><Radio class="size-4" /></Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
           @click="visible = false"
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
-        ><PanelLeftClose class="size-4" /></button>
+        ><PanelLeftClose class="size-4" /></Button>
       </div>
     </div>
 
@@ -88,24 +93,27 @@ const resize = useResizeHandle({
             >
               {{ selectedCwd ? selectedCwd.split(/[\\/]/).pop() : '.' }}
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               class="cursor-pointer rounded-[4px] border-none bg-[var(--surface-container)] px-2.5 py-2 text-[var(--text-body-sm)] transition-colors hover:bg-[var(--surface-high)] disabled:cursor-not-allowed disabled:opacity-50"
               @click="emit('select-folder')"
               title="Select folder"
             >
               <FolderOpen class="size-4" />
-            </button>
+            </Button>
           </div>
         </div>
 
-        <button
+        <Button
           v-if="hasAgents"
+          variant="default"
           class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[var(--color-brand)] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >
           New session
-        </button>
+        </Button>
 
         <!-- Startup Progress -->
         <StartupProgress
@@ -139,15 +147,17 @@ const resize = useResizeHandle({
   />
 
   <!-- Collapsed sidebar toggle -->
-  <button
+  <Button
     v-if="!visible"
+    variant="ghost"
+    size="icon"
     class="fixed top-1/2 left-0 cursor-pointer rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-dim)] -translate-y-1/2 transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
     @click="visible = true"
     title="Expand sidebar"
     aria-label="Expand sidebar"
   >
     <PanelLeftOpen class="size-4" />
-  </button>
+  </Button>
 </template>
 
 <style scoped>

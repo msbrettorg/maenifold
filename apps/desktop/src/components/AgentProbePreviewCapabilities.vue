@@ -1,5 +1,15 @@
 <script setup lang="ts">
 import type { SessionConfigSelectGroup, SessionConfigSelectOption, SessionConfigSelectOptions } from '../lib/types';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const EMPTY_VALUE = '__preview-empty__';
 
@@ -29,29 +39,32 @@ function isGroup(
 <template>
   <div class="field-grid" :class="{ compact: props.compact }">
     <div v-for="field in fields" :key="field.key" class="field-card">
-      <label class="field-label" :for="`preview-${field.key}`">{{ field.label }}</label>
-      <select
-        :id="`preview-${field.key}`"
-        class="preview-select"
-        :value="field.currentValue ?? EMPTY_VALUE"
-        @change="(e: Event) => emit('update-field', field.key, (e.target as HTMLSelectElement).value)"
+      <Label class="field-label" :for="`preview-${field.key}`">{{ field.label }}</Label>
+      <Select
+        :model-value="field.currentValue ?? EMPTY_VALUE"
+        @update:model-value="(val) => emit('update-field', field.key, String(val))"
       >
-        <option v-if="!field.currentValue" :value="EMPTY_VALUE" disabled>{{ field.emptyLabel }}</option>
-        <template v-for="entry in field.options" :key="isGroup(entry) ? entry.group : entry.value">
-          <optgroup v-if="isGroup(entry)" :label="entry.name">
-            <option
-              v-for="groupOption in entry.options"
-              :key="groupOption.value"
-              :value="groupOption.value"
-            >
-              {{ groupOption.name }}
-            </option>
-          </optgroup>
-          <option v-else :value="entry.value">
-            {{ entry.name }}
-          </option>
-        </template>
-      </select>
+        <SelectTrigger :id="`preview-${field.key}`" class="preview-select">
+          <SelectValue :placeholder="field.emptyLabel" />
+        </SelectTrigger>
+        <SelectContent>
+          <template v-for="entry in field.options" :key="isGroup(entry) ? entry.group : entry.value">
+            <SelectGroup v-if="isGroup(entry)">
+              <SelectLabel>{{ entry.name }}</SelectLabel>
+              <SelectItem
+                v-for="groupOption in entry.options"
+                :key="groupOption.value"
+                :value="groupOption.value"
+              >
+                {{ groupOption.name }}
+              </SelectItem>
+            </SelectGroup>
+            <SelectItem v-else :value="entry.value">
+              {{ entry.name }}
+            </SelectItem>
+          </template>
+        </SelectContent>
+      </Select>
     </div>
   </div>
 </template>

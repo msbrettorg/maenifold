@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import type { AppAuthMethod } from '../lib/auth-methods';
 
 defineProps<{
@@ -37,16 +38,16 @@ function handleSelect(methodId: string) {
           </DialogDescription>
         </div>
         <DialogClose as-child>
-          <button type="button" class="close-btn" aria-label="Close authentication dialog">✕</button>
+          <Button variant="ghost" size="icon-sm" class="close-btn" aria-label="Close authentication dialog">✕</Button>
         </DialogClose>
       </DialogHeader>
 
       <div class="dialog-content">
         <div class="auth-methods">
-          <button
+          <Button
             v-for="method in authMethods"
             :key="method.id"
-            type="button"
+            variant="outline"
             class="auth-method-btn"
             @click="handleSelect(method.id)"
           >
@@ -57,15 +58,15 @@ function handleSelect(methodId: string) {
               </span>
             </div>
             <span class="arrow">→</span>
-          </button>
+          </Button>
         </div>
       </div>
 
       <DialogFooter class="dialog-footer">
         <DialogClose as-child>
-          <button type="button" class="cancel-btn">
+          <Button variant="outline" class="cancel-btn">
             Cancel
-          </button>
+          </Button>
         </DialogClose>
       </DialogFooter>
     </DialogContent>

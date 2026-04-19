@@ -3,6 +3,7 @@ import { onMounted, reactive, ref } from 'vue';
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { AgentsConfig, MaenifoldSettings } from '../lib/types';
 import { useConfigStore } from '../stores/config';
+import { Button } from '@/components/ui/button';
 import SettingsMaenifoldGraph from './SettingsMaenifoldGraph.vue';
 import SettingsMaenifoldMemory from './SettingsMaenifoldMemory.vue';
 import SettingsMaenifoldWorkflows from './SettingsMaenifoldWorkflows.vue';
@@ -201,12 +202,12 @@ onMounted(loadSettings);
         />
 
         <div class="form-actions">
-          <button class="save-btn" type="button" :disabled="isSubmitting" @click="handleSave">
+          <Button class="save-btn" type="button" :disabled="isSubmitting" @click="handleSave">
             {{ isSubmitting ? 'Saving…' : 'Save' }}
-          </button>
-          <button class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
+          </Button>
+          <Button variant="destructive" class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
             Reset to defaults
-          </button>
+          </Button>
         </div>
       </template>
     </div>

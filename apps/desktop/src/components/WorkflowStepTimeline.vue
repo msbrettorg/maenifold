@@ -238,13 +238,13 @@ watch(exportState, (state) => {
     <div v-if="exportPromptVisible || exportState !== 'idle'" class="export-feedback" role="status" aria-live="polite">
       <template v-if="exportPromptVisible">
         <span>Export draft or saved version?</span>
-        <button class="feedback-btn" type="button" @click="exportWorkflow('draft')">Draft</button>
-        <button class="feedback-btn" type="button" @click="exportWorkflow('saved')">Saved</button>
-        <button class="feedback-btn" type="button" @click="exportPromptVisible = false">Cancel</button>
+        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow('draft')">Draft</Button>
+        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow('saved')">Saved</Button>
+        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="exportPromptVisible = false">Cancel</Button>
       </template>
       <template v-else-if="exportState === 'error'">
         <span>{{ exportError ?? 'Export failed.' }}</span>
-        <button class="feedback-btn" type="button" @click="exportWorkflow(lastExportVersion)">Retry</button>
+        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow(lastExportVersion)">Retry</Button>
       </template>
       <template v-else-if="exportState === 'success'">
         <span>Exported ✓</span>
@@ -297,9 +297,9 @@ watch(exportState, (state) => {
       <div class="step-rail">
         <span class="step-dot" />
       </div>
-      <button class="add-step-btn" type="button" @click="handleAddStep">
+      <Button variant="ghost" class="add-step-btn" type="button" @click="handleAddStep">
         ＋ Add new step
-      </button>
+      </Button>
     </div>
 
     <Transition name="draft-bar">

@@ -1,11 +1,35 @@
 <script setup lang="ts">
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { MaenifoldSettings } from '../lib/types';
 
-defineProps<{
+const props = defineProps<{
   form: MaenifoldSettings;
   onCommunityDefaultToggle: (event: Event) => void;
   onUpdateCommunityRecompute: (event: Event) => void;
 }>();
+
+function emitCommunityRecompute(value: string | number) {
+  const synthetic = {
+    target: { value: String(value) },
+  } as unknown as Event;
+  props.onUpdateCommunityRecompute(synthetic);
+}
+
+function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
+  const synthetic = {
+    target: { checked: checked === true },
+  } as unknown as Event;
+  props.onCommunityDefaultToggle(synthetic);
+}
 </script>
 
 <template>
@@ -13,80 +37,84 @@ defineProps<{
     <details class="settings-card details-section" open>
       <summary><h4>Decay</h4></summary>
       <div class="section-grid">
-        <label class="form-group">
-          <span>Grace days sequential</span>
-          <input v-model.number="form.decay.graceDaysSequential" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Grace days workflows</span>
-          <input v-model.number="form.decay.graceDaysWorkflows" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Grace days default</span>
-          <input v-model.number="form.decay.graceDaysDefault" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Half life days</span>
-          <input v-model.number="form.decay.halfLifeDays" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Decay function</span>
-          <select v-model="form.decay.function">
-            <option value="power-law">power-law</option>
-            <option value="exponential">exponential</option>
-            <option value="linear">linear</option>
-          </select>
-        </label>
+        <div class="form-group">
+          <Label>Grace days sequential</Label>
+          <Input v-model.number="form.decay.graceDaysSequential" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Grace days workflows</Label>
+          <Input v-model.number="form.decay.graceDaysWorkflows" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Grace days default</Label>
+          <Input v-model.number="form.decay.graceDaysDefault" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Half life days</Label>
+          <Input v-model.number="form.decay.halfLifeDays" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Decay function</Label>
+          <Select v-model="form.decay.function">
+            <SelectTrigger class="w-full">
+              <SelectValue placeholder="Select decay function" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="power-law">power-law</SelectItem>
+              <SelectItem value="exponential">exponential</SelectItem>
+              <SelectItem value="linear">linear</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
     </details>
 
     <details class="settings-card details-section" open>
       <summary><h4>Community Detection</h4></summary>
       <div class="section-grid">
-        <label class="form-group">
-          <span>Louvain gamma</span>
-          <input v-model.number="form.community.louvainGamma" type="number" min="0" step="0.1" />
-        </label>
-        <label class="form-group">
-          <span>Min shared neighbors</span>
-          <input v-model.number="form.community.minSharedNeighbors" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Min overlap</span>
-          <input v-model.number="form.community.minOverlap" type="number" min="0" max="1" step="0.05" />
-        </label>
-        <label class="form-group">
-          <span>Max siblings</span>
-          <input v-model.number="form.community.maxSiblings" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>Debounce ms</span>
-          <input v-model.number="form.community.debounceMs" type="number" min="0" step="1" />
-        </label>
-        <label class="form-group">
-          <span>NMI threshold</span>
-          <input v-model.number="form.community.nmiThreshold" type="number" min="0" max="1" step="0.05" />
-        </label>
+        <div class="form-group">
+          <Label>Louvain gamma</Label>
+          <Input v-model.number="form.community.louvainGamma" type="number" min="0" step="0.1" />
+        </div>
+        <div class="form-group">
+          <Label>Min shared neighbors</Label>
+          <Input v-model.number="form.community.minSharedNeighbors" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Min overlap</Label>
+          <Input v-model.number="form.community.minOverlap" type="number" min="0" max="1" step="0.05" />
+        </div>
+        <div class="form-group">
+          <Label>Max siblings</Label>
+          <Input v-model.number="form.community.maxSiblings" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>Debounce ms</Label>
+          <Input v-model.number="form.community.debounceMs" type="number" min="0" step="1" />
+        </div>
+        <div class="form-group">
+          <Label>NMI threshold</Label>
+          <Input v-model.number="form.community.nmiThreshold" type="number" min="0" max="1" step="0.05" />
+        </div>
         <div class="optional-field">
-          <label class="form-group">
-            <span>Recompute file threshold</span>
-            <input
+          <div class="form-group">
+            <Label>Recompute file threshold</Label>
+            <Input
               :disabled="form.community.recomputeFileThreshold === null"
-              :value="form.community.recomputeFileThreshold ?? 0"
+              :model-value="form.community.recomputeFileThreshold ?? 0"
               type="number"
               min="0"
               step="1"
-              @input="onUpdateCommunityRecompute"
+              @update:model-value="emitCommunityRecompute"
             />
-          </label>
-          <label class="checkbox-inline">
-            <input
-              :checked="form.community.recomputeFileThreshold === null"
-              type="checkbox"
-              @change="onCommunityDefaultToggle"
+          </div>
+          <Label class="checkbox-inline">
+            <Checkbox
+              :model-value="form.community.recomputeFileThreshold === null"
+              @update:model-value="emitCommunityDefaultToggle"
             />
             <span>Use default</span>
-          </label>
+          </Label>
         </div>
       </div>
     </details>
@@ -94,9 +122,9 @@ defineProps<{
     <details class="settings-card details-section" open>
       <summary><h4>Vector / Embedding</h4></summary>
       <div class="section-grid">
-        <label class="checkbox-group"><input v-model="form.vector.embeddingLogs" type="checkbox" /><span>Embedding logs</span></label>
-        <label class="checkbox-group"><input v-model="form.vector.vectorLogs" type="checkbox" /><span>Vector logs</span></label>
-        <label class="checkbox-group"><input v-model="form.vector.disableVector" type="checkbox" /><span>Disable vector</span></label>
+        <Label class="checkbox-group"><Checkbox v-model="form.vector.embeddingLogs" /><span>Embedding logs</span></Label>
+        <Label class="checkbox-group"><Checkbox v-model="form.vector.vectorLogs" /><span>Vector logs</span></Label>
+        <Label class="checkbox-group"><Checkbox v-model="form.vector.disableVector" /><span>Disable vector</span></Label>
       </div>
     </details>
   </div>

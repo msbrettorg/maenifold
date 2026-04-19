@@ -3365,17 +3365,8 @@ checksum = "670fdfda89751bc4a84ac13eaa63e205cf0fd22b4c9a5fbfa085b63c1f1d3a30"
 name = "maenifold-cli"
 version = "0.1.0"
 dependencies = [
- "anyhow",
- "assert_cmd",
- "chrono",
  "maenifold-core",
  "maenifold-jockey",
- "predicates",
- "rmcp",
- "rusqlite",
- "serde_json",
- "tempfile",
- "tokio",
 ]
 
 [[package]]

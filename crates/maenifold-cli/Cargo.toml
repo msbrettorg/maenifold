@@ -8,20 +8,8 @@ name = "maenifold"
 path = "src/main.rs"
 
 [dependencies]
-anyhow.workspace = true
 maenifold-core = { path = "../maenifold-core" }
 maenifold-jockey = { path = "../maenifold-jockey" }
-rmcp.workspace = true
-tokio.workspace = true
-serde_json.workspace = true
-
-[dev-dependencies]
-assert_cmd.workspace = true
-chrono.workspace = true
-predicates.workspace = true
-rusqlite.workspace = true
-serde_json.workspace = true
-tempfile.workspace = true
 
 [lints]
 workspace = true

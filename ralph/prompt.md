@@ -31,8 +31,10 @@ Read `ralph/state/learnings.md` for known failure patterns and lessons learned.
 
 ## Mission
 
-Use your team of agents to incrementally improve the codebase while preserving build and test stability.
+Use your duo of architects and team of agents to incrementally improve the codebase while preserving build and test stability. Check the RACI for role assignments.
 Gate task files in `todo/` are the source of truth for requirements and progress. All gate phases must be adhered to for quality assurance.
+
+**You are scoped to a specific area.** Check `RALPH_TARGET_CRATE` and `RALPH_TARGET_PATH` environment variables immediately. Other RALPH instances are running in parallel on other areas — touching files outside your scope will cause edit conflicts and lost work.
 
 ## Knowledge grounding (mandatory)
 
@@ -56,7 +58,11 @@ If the graph has relevant prior work, read it. Do not duplicate effort or contra
 - Pick the next pending gate task from status.
 - Read the selected task file in `todo/` for title, description, and acceptance criteria.
 - One improvement per iteration.
-- If `RALPH_TARGET_CRATE` environment variable is set and non-empty, prioritize work in that crate.
+- **Scope awareness is mandatory.** Check both environment variables at the start of every iteration:
+  - `RALPH_TARGET_CRATE` — when set, you are assigned to a Rust crate (e.g., `maenifold-gate`). Only touch files in that crate. Build with `cargo build --release -p <crate>`. Test with `cargo test -p <crate>`.
+  - `RALPH_TARGET_PATH` — when set, you are assigned to a filesystem path (e.g., `apps/desktop`). Only touch files under that path. For `apps/desktop`, build with `cd apps/desktop && npx vue-tsc --noEmit` and verify with `cd apps/desktop && npm run build`.
+  - When both are empty, you may work on any area but still limit to one crate/path per iteration.
+- **Other agents are running in parallel on other areas.** Do not touch files outside your assigned scope. Do not run workspace-wide builds or formatters. Confine all changes to your scope.
 
 ## Change-size limits
 
@@ -67,10 +73,15 @@ If the graph has relevant prior work, read it. Do not duplicate effort or contra
 
 ## Execution protocol
 
-1. Implement the selected pending gate task (`T-200.X`).
-2. Run `cargo build --release -p <crate>` for the affected crate.
-3. Run `cargo test -p <crate>` for the affected crate.
-4. On failure, iterate fix attempts up to 3 times.
+1. **State your scope.** Print your assigned crate (`RALPH_TARGET_CRATE`) and/or path (`RALPH_TARGET_PATH`) before doing anything else. If neither is set, state "unscoped — selecting freely."
+2. Implement the selected pending gate task (`T-200.X`).
+3. Run the appropriate build check for your scope:
+   - **Rust crate:** `cargo build --release -p <crate>`
+   - **UI (apps/desktop):** `cd apps/desktop && npx vue-tsc --noEmit`
+4. Run the appropriate tests for your scope:
+   - **Rust crate:** `cargo test -p <crate>`
+   - **UI (apps/desktop):** `cd apps/desktop && npm run build`
+5. On failure, iterate fix attempts up to 3 times.
 5. If still failing after 3 attempts:
    - Revert or abandon the partial change safely.
    - Record failure via gate:
@@ -99,7 +110,9 @@ Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"`
 
 ## Issue discovery
 
-If you encounter a bug, dead code, missing test, or improvement opportunity outside your current task scope — don't fix it. Create a new gate task file for a future iteration:
+We eat our own dogfood - use maenifold and gate to build maenifold and gate and pay careful attention to usability and user experience.
+
+If you encounter a bug, dead code, failing test, usability issue, documentation gap or improvement opportunity outside your current task scope — don't fix it. Create a new gate task file for a future iteration:
 
 1. Create `todo/T-200.{next}-{short-description}.md` with YAML frontmatter (`id`, `title`, `pipeline: lightweight`)
 2. Include acceptance criteria and a description of what you found

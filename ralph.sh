@@ -2,9 +2,10 @@
 
 set -u
 
-MODEL="claude-opus-4.6"
+MODEL="claude-opus-4.6-1m"
 MAX_ITERATIONS=50
 CRATE=""
+SCOPE_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -20,9 +21,13 @@ while [[ $# -gt 0 ]]; do
       CRATE="${2:-}"
       shift 2
       ;;
+    --path)
+      SCOPE_PATH="${2:-}"
+      shift 2
+      ;;
     *)
       echo "Unknown argument: $1"
-      echo "Usage: $0 [--model <model>] [--max-iterations <n>] [--crate <crate>]"
+      echo "Usage: $0 [--model <model>] [--max-iterations <n>] [--crate <crate>] [--path <path>]"
       exit 1
       ;;
   esac
@@ -37,9 +42,9 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   fi
 
   start_epoch="$(date +%s)"
-  echo "=== RALPH iteration ${iteration}/${MAX_ITERATIONS} (model=${MODEL}, crate=${CRATE:-all}) ==="
+  echo "=== RALPH iteration ${iteration}/${MAX_ITERATIONS} (model=${MODEL}, crate=${CRATE:-all}, path=${SCOPE_PATH:-all}) ==="
 
-  RALPH_TARGET_CRATE="$CRATE" copilot -p "$(cat ralph/prompt.md)" --agent product-manager --yolo --model "$MODEL"
+  RALPH_TARGET_CRATE="$CRATE" RALPH_TARGET_PATH="$SCOPE_PATH" copilot -p "$(cat ralph/prompt.md)" --agent product-manager --yolo --model "$MODEL"
   exit_code=$?
 
   end_epoch="$(date +%s)"

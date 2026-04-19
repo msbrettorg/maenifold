@@ -1,15 +1,12 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
+import { DialogClose } from '@/components/ui/dialog';
 
 defineProps<{
   displayLabel: string;
   nodeType: string;
   statusLabel: string;
-}>();
-
-defineEmits<{
-  close: [];
 }>();
 </script>
 
@@ -20,9 +17,11 @@ defineEmits<{
       <span :class="['zoom-type-pill', `zoom-type--${nodeType}`]">{{ nodeType }}</span>
       <span :class="['zoom-status', `zoom-status--${statusLabel}`]">{{ statusLabel }}</span>
     </div>
-    <Button class="zoom-close" variant="ghost" size="icon" aria-label="Close inspection" title="Close (Esc)" @click="$emit('close')">
-      <X class="size-4" />
-    </Button>
+    <DialogClose as-child>
+      <Button class="zoom-close" variant="ghost" size="icon" aria-label="Close inspection" title="Close (Esc)">
+        <X class="size-4" />
+      </Button>
+    </DialogClose>
   </header>
 </template>
 

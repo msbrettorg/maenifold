@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
+import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import {
   createNode,
@@ -26,7 +27,6 @@ import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
 import { useConfigStore } from './config';
-import { useToastStore } from './toast';
 import {
   isCreateResult,
   normalizePipelineList,
@@ -78,7 +78,6 @@ function serializeEdge(edge: PipelineEdge): PipelineEdge {
 export const usePipelineStore = defineStore('pipeline', () => {
   const mcp = usePipelineMcp();
   const configStore = useConfigStore();
-  const toastStore = useToastStore();
   const pipelines = ref<PipelineListItem[]>([]);
   const currentPipelineId = ref<string | null>(null);
   const currentView = ref<PipelineView | null>(null);
@@ -110,7 +109,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     const message = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
     errorMessage.value = message;
     successMessage.value = null;
-    toastStore.addToast({ message, level: 'error' });
+    toast.error(message);
   }
   async function withError<T>(tool: string, fn: () => Promise<T>): Promise<T | undefined> {
     clearError();

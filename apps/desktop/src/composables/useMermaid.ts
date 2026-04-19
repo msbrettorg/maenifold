@@ -1,4 +1,5 @@
 import type mermaidType from 'mermaid';
+import type { Ref } from 'vue';
 
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidRenderSequence = 0;
@@ -25,17 +26,38 @@ async function getMermaid(): Promise<typeof mermaidType> {
   return mermaid;
 }
 
-function createErrorMessage(error: unknown): HTMLDivElement {
-  const errorMessage = document.createElement('div');
-  errorMessage.className = 'mermaid-error-message';
-  errorMessage.textContent = `Unable to render Mermaid diagram: ${
-    error instanceof Error ? error.message : 'Unknown error'
-  }`;
-  return errorMessage;
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('\'', '&#39;');
+}
+
+function renderErrorMessageHtml(error: unknown): string {
+  const message = error instanceof Error ? error.message : 'Unknown error';
+  return `<div class="mermaid-error-message">Unable to render Mermaid diagram: ${escapeHtml(message)}</div>`;
+}
+
+function resolveContainer(
+  containerOrRef: HTMLElement | Ref<HTMLElement | null>
+): HTMLElement | null {
+  if (containerOrRef instanceof HTMLElement) {
+    return containerOrRef;
+  }
+  return containerOrRef.value;
 }
 
 export function useMermaid() {
-  async function renderMermaidBlocks(container: HTMLElement): Promise<void> {
+  async function renderMermaidBlocks(
+    containerOrRef: HTMLElement | Ref<HTMLElement | null>
+  ): Promise<void> {
+    const container = resolveContainer(containerOrRef);
+    if (!container) {
+      return;
+    }
+
     const mermaid = await getMermaid();
     const mermaidBlocks = Array.from(
       container.querySelectorAll<HTMLElement>('code.language-mermaid')
@@ -53,7 +75,7 @@ export function useMermaid() {
       if (!definition) {
         preBlock.classList.add('mermaid-error');
         if (!preBlock.querySelector('.mermaid-error-message')) {
-          preBlock.append(createErrorMessage(new Error('Empty Mermaid definition.')));
+          preBlock.insertAdjacentHTML('beforeend', renderErrorMessageHtml(new Error('Empty Mermaid definition.')));
         }
         continue;
       }
@@ -61,14 +83,11 @@ export function useMermaid() {
       try {
         const renderId = `mermaid-diagram-${mermaidRenderSequence++}`;
         const { svg } = await mermaid.render(renderId, definition);
-        const renderedBlock = document.createElement('div');
-        renderedBlock.className = 'mermaid-rendered';
-        renderedBlock.innerHTML = svg;
-        preBlock.replaceWith(renderedBlock);
+        preBlock.outerHTML = `<div class="mermaid-rendered">${svg}</div>`;
       } catch (error) {
         preBlock.classList.add('mermaid-error');
         if (!preBlock.querySelector('.mermaid-error-message')) {
-          preBlock.append(createErrorMessage(error));
+          preBlock.insertAdjacentHTML('beforeend', renderErrorMessageHtml(error));
         }
       }
     }

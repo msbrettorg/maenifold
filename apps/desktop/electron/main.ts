@@ -66,7 +66,7 @@ async function createWindow(): Promise<void> {
       preload: join(moduleDir, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false,
+      sandbox: true,
     },
   });
   mainWindow.on('ready-to-show', () => mainWindow?.show());

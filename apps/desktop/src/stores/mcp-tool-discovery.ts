@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import { deriveServerHealth } from '../lib/palette-health';
 import type {
@@ -7,14 +8,12 @@ import type {
   McpServerDiscoveryResult,
   ServerHealthStatus,
 } from '../lib/types';
-import { useToastStore } from './toast';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
 export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => {
-  const toastStore = useToastStore();
   const serverResults = ref<McpServerDiscoveryResult[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -90,7 +89,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     } catch (cause) {
       const message = getErrorMessage(cause);
       error.value = message;
-      toastStore.addToast({ message, level: 'warning' });
+      toast.warning(message);
       return serverResults.value;
     } finally {
       loading.value = false;

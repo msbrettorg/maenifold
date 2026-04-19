@@ -37,18 +37,43 @@ type Point = { x: number; y: number };
 type SelectableFlowElement = { selected?: boolean };
 
 type Direction = 'LR' | 'TB';
+const DEFAULT_DIRECTION: Direction = 'LR';
 
 const DIRECTION_HANDLES: Record<Direction, { source: string; target: string }> = {
   LR: { source: 'out-right', target: 'in-left' },
   TB: { source: 'out-bottom', target: 'in-top' },
 };
 
+function directionStorageKey(sessionId: string): string {
+  return `maenifold:pipeline:${sessionId}:direction`;
+}
+
+function parseDirection(raw: string | null): Direction {
+  return raw === 'TB' ? 'TB' : DEFAULT_DIRECTION;
+}
+
+function loadDirectionPreference(sessionId: string): Direction {
+  try {
+    return parseDirection(globalThis.localStorage?.getItem(directionStorageKey(sessionId)) ?? null);
+  } catch {
+    return DEFAULT_DIRECTION;
+  }
+}
+
+function saveDirectionPreference(sessionId: string, direction: Direction): void {
+  try {
+    globalThis.localStorage?.setItem(directionStorageKey(sessionId), direction);
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
 function isSelected(element: SelectableFlowElement): boolean {
   return !!element.selected;
 }
 
 export function useComposerCanvas(options: UseComposerCanvasOptions) {
-  const layoutDirection = options.layoutDirection ?? ref<Direction>('LR');
+  const layoutDirection = options.layoutDirection ?? ref<Direction>(DEFAULT_DIRECTION);
   const {
     onConnect,
     onEdgeClick,
@@ -208,6 +233,29 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   const { clearPendingDefinitionSync, scheduleDefinitionSync, shouldSyncCanvasImmediately } =
     useComposerSync(syncCanvas, options.designMode);
+
+  watch(
+    () => options.view()?.pipelineId ?? null,
+    (pipelineSessionId) => {
+      if (!pipelineSessionId) {
+        layoutDirection.value = DEFAULT_DIRECTION;
+        return;
+      }
+      layoutDirection.value = loadDirectionPreference(pipelineSessionId);
+    },
+    { immediate: true },
+  );
+
+  watch(
+    layoutDirection,
+    (direction) => {
+      const pipelineSessionId = options.view()?.pipelineId;
+      if (!pipelineSessionId) {
+        return;
+      }
+      saveDirectionPreference(pipelineSessionId, direction);
+    },
+  );
 
   watch(
     options.localDefinition,

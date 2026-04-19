@@ -1,0 +1,23 @@
+.zoom-panel {
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  background: var(--color-neutral-background-3, var(--card, var(--surface-container)));
+  border-color: var(--color-border-subtle);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--color-brand) 18%, transparent);
+}
+
+.zoom-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4);
+}
+
+.zoom-agent-summary {
+  padding: var(--space-2) var(--space-4);
+  font-family: var(--font-display);
+  font-size: var(--text-caption);
+  color: var(--color-text-secondary);
+  background: var(--accent, var(--surface-highest));
+  border-bottom: 1px solid var(--color-border-subtle);
+}

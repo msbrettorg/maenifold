@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, nextTick, provide, ref, watch } from 'vue';
-import { BaseEdge, EdgeLabelRenderer, VueFlow } from '@vue-flow/core';
+import { computed, markRaw, nextTick, provide, ref, watch } from 'vue';
+import { VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
 import { MiniMap } from '@vue-flow/minimap';
@@ -16,12 +16,15 @@ import '@vue-flow/minimap/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
+import PipelineFlowEdge from './PipelineFlowEdge.vue';
+import PipelineStatusBadge from './PipelineStatusBadge.vue';
 import PipelineComposerToolbar from './PipelineComposerToolbar.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useComposerPalette } from '../composables/useComposerPalette';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineDefinition, PipelineNodeType, PipelineView } from '../lib/pipeline-types';
 import { createNode, createNodeId, type PipelineNodeDraftByType, type PipelineNodeInputByType } from '../lib/pipeline-node-factory';
+import { NODE_TYPE_COLORS } from '../lib/pipeline-status-tokens';
 import { getBareToolName } from '../lib/tool-categories';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useConfigStore } from '../stores/config';
@@ -45,8 +48,8 @@ const promptDialogStore = usePromptDialogStore();
 const layoutDirection = ref<'LR' | 'TB'>('LR');
 provide('pipelineLayoutDirection', layoutDirection);
 const {
-  createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, edgeIndicator, edgeLabel, edgePath,
-  edgeLabelTitle, edgePathStyle, edgeTooltip, editNode, edges, fitView, handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
+  createNodeAt, defaultEdgeOptions, deleteSelected, deleteNode, disconnectNodeEdges, duplicateNode, editNode, edges, fitView,
+  handleAutoLayout, handleFlowKeyDown, hasSelection, nodeTypes, nodes, showEmptyState, toFlowPosition,
 } = useComposerCanvas({
   designMode: () => props.designMode,
   localDefinition: () => props.localDefinition,
@@ -276,32 +279,12 @@ const createPromptNode = () => createContextNode('prompt');
 const createThinkingNode = () => createContextNode('sequentialThinking');
 const createToolNode = (toolName: string) => createContextNode('tool', toolName);
 const createWorkflowNode = () => createContextNode('workflow');
+const edgeTypes = { smoothstep: markRaw(PipelineFlowEdge) };
 
 watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
 
-const NODE_TYPE_COLORS: Record<string, string> = {
-  workflow: 'var(--color-brand)',
-  prompt: 'color-mix(in srgb, var(--color-brand) 55%, var(--text) 45%)',
-  sequentialThinking: 'var(--plum)',
-  tool: 'var(--sage)',
-};
 const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
 const contextMenuEnabled = computed(() => contextMenu.value !== null);
-const STATUS_COLORS: Record<string, string> = {
-  active: 'var(--color-brand)',
-  completed: 'var(--sage)',
-  stuck: 'var(--terracotta)',
-  abandoned: 'var(--text-dim)',
-};
-const pipelineStatusBadge = computed(() => {
-  const status = props.view?.status;
-  if (!status) {
-    return null;
-  }
-  const color = STATUS_COLORS[status] ?? 'var(--text-dim)';
-  return { label: status, color };
-});
-
 function submitNode<T extends PipelineNodeType>(type: T, fields: PipelineNodeDraftByType[T]): void {
   const node = store.addNode(createNode(type, { id: createNodeId(type), ...fields } as PipelineNodeInputByType[T]));
   void nextTick(() => {
@@ -344,10 +327,7 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
             >
               <slot name="toolbar-actions" />
             </PipelineComposerToolbar>
-            <div v-if="pipelineStatusBadge" class="composer-status-badge" :aria-label="`Pipeline status: ${pipelineStatusBadge.label}`">
-              <span class="composer-status-dot" :style="{ backgroundColor: pipelineStatusBadge.color }" aria-hidden="true" />
-              <span>{{ pipelineStatusBadge.label }}</span>
-            </div>
+            <PipelineStatusBadge :status="view?.status ?? null" />
 
               <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
                 <SheetContent
@@ -375,11 +355,12 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
               :default-edge-options="defaultEdgeOptions"
               :default-viewport="{ zoom: 1, x: 0, y: 0 }"
               :min-zoom="0.2"
-              :max-zoom="2"
-              :snap-to-grid="true"
-              :snap-grid="[20, 20]"
-              :nodes-draggable="designMode"
-              :nodes-connectable="designMode"
+               :max-zoom="2"
+               :snap-to-grid="true"
+               :snap-grid="[20, 20]"
+               :edge-types="edgeTypes"
+               :nodes-draggable="designMode"
+               :nodes-connectable="designMode"
               :edges-updatable="designMode"
               :elements-selectable="true"
               :delete-key-code="designMode ? 'Backspace' : null"
@@ -389,30 +370,6 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
                <Background :color="'var(--surface-high)'" />
               <Controls :show-interactive="designMode" />
                <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--color-bg-app) 75%, transparent)'" />
-              <template #edge-smoothstep="edgeProps">
-                <g>
-                  <BaseEdge :id="edgeProps.id" :path="edgePath(edgeProps).d" :style="edgePathStyle(edgeProps)" :marker-start="edgeProps.markerStart" :marker-end="edgeProps.markerEnd" :interaction-width="edgeProps.interactionWidth" />
-                  <title>{{ edgeTooltip(edgeProps.data) }}</title>
-                </g>
-                <EdgeLabelRenderer v-if="edgeLabel(edgeProps.data)">
-                  <div
-                    class="edge-condition-label"
-                    :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
-                    :title="edgeLabelTitle(edgeProps.data) ?? undefined"
-                  >
-                    {{ edgeLabel(edgeProps.data) }}
-                  </div>
-                </EdgeLabelRenderer>
-                <EdgeLabelRenderer v-if="edgeIndicator(edgeProps)">
-                  <div
-                    :class="['edge-indicator', `edge-indicator--${edgeIndicator(edgeProps)}`]"
-                    :style="{ transform: `translate(-50%, -50%) translate(${edgePath(edgeProps).x}px, ${edgePath(edgeProps).y}px)` }"
-                    :title="edgeTooltip(edgeProps.data)"
-                  >
-                    {{ edgeIndicator(edgeProps) === 'mapped' ? '⇄' : '⚠' }}
-                  </div>
-                </EdgeLabelRenderer>
-              </template>
             </VueFlow>
 
             <div v-if="showEmptyState" class="composer-empty-state">
@@ -476,43 +433,6 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 .pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--color-bg-surface); }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
-.composer-status-badge {
-  position: absolute;
-  top: 0.75rem;
-  left: 0.75rem;
-  z-index: 7;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.35rem 0.6rem;
-  border-radius: 4px;
-  background: var(--surface-container);
-  color: var(--text);
-  font-size: var(--text-xs);
-}
-.composer-status-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  flex-shrink: 0;
-}
-.edge-indicator { position: absolute; display: grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 4px; background: color-mix(in srgb, var(--color-bg-app) 92%, var(--surface-high) 8%); color: var(--color-text-primary); font-size: var(--text-sm); font-weight: var(--weight-title); box-shadow: 0 1px 4px color-mix(in srgb, var(--color-bg-app) 15%, transparent); pointer-events: none; }
-.edge-indicator--mapped { background: color-mix(in srgb, var(--color-bg-app) 82%, var(--color-status-active) 18%); }
-.edge-indicator--warning { border-color: var(--color-status-stuck); background: color-mix(in srgb, var(--color-bg-app) 82%, var(--color-status-stuck) 18%); color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--color-text-primary)); }
-.edge-condition-label {
-  position: absolute;
-  padding: 0.15rem 0.35rem;
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--text);
-  font-size: var(--text-xs);
-  line-height: 1.2;
-  pointer-events: none;
-  max-width: 18ch;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--color-text-secondary); font-size: var(--text-sm); text-align: center; pointer-events: none; }
 .composer-empty-state-arrow { font-size: var(--text-2xl); line-height: 1; color: var(--color-text-secondary); }
 </style>

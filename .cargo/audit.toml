@@ -1,0 +1,20 @@
+[advisories]
+ignore = [
+  # RUSTSEC-2026-0097: rand unsoundness in custom logger paths.
+  # This workspace has no direct rand usage in source and no custom rand logger usage.
+  # Current lockfile resolves to rand 0.8.6 / 0.9.4 / 0.10.1 (non-vulnerable versions).
+  # Expiry: 2026-10-19
+  "RUSTSEC-2026-0097",
+  # GTK3 bindings are unmaintained and currently pulled in transitively via:
+  # tray-icon -> muda -> gtk (Linux-only dependency chain).
+  # Runtime target for this workspace is macOS; this advisory set is tracked by
+  # T-178.10f until tray-icon/muda migrate off GTK3.
+  # Expiry: 2026-10-19
+  "RUSTSEC-2024-0412", # gdk
+  "RUSTSEC-2024-0413", # atk
+  "RUSTSEC-2024-0415", # gtk
+  "RUSTSEC-2024-0416", # atk-sys
+  "RUSTSEC-2024-0418", # gdk-sys
+  "RUSTSEC-2024-0419", # gtk3-macros
+  "RUSTSEC-2024-0420", # gtk-sys
+]

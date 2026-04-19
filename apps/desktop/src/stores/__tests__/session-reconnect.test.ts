@@ -4,7 +4,16 @@ import { reactive } from 'vue';
 
 import { createEmptySessionState } from '../../lib/types';
 import { createMockBridge } from '../../test/setup';
-import { useToastStore } from '../toast';
+
+const toast = {
+  info: vi.fn(),
+  warning: vi.fn(),
+  error: vi.fn(),
+  success: vi.fn(),
+  message: vi.fn(),
+};
+
+vi.mock('vue-sonner', () => ({ toast }));
 
 const mockBridge = createMockBridge('resume-agent');
 mockBridge.initialize.mockResolvedValue({
@@ -31,6 +40,11 @@ describe('useSessionStore reconnect flow', () => {
     mockBridge.disconnect.mockClear();
     mockBridge.initialize.mockClear();
     mockBridge.loadSession.mockClear();
+    toast.info.mockClear();
+    toast.warning.mockClear();
+    toast.error.mockClear();
+    toast.success.mockClear();
+    toast.message.mockClear();
   });
 
   it('activates an existing live local session without creating a duplicate', async () => {
@@ -174,7 +188,6 @@ describe('useSessionStore reconnect flow', () => {
 
   it('keeps reconnect failures silent when reconnect UI suppresses errors', async () => {
     const store = useSessionStore();
-    const toastStore = useToastStore();
 
     const result = await store.focusOrResumeRemoteSession('acp-remote-missing', undefined, {
       suppressErrors: true,
@@ -184,14 +197,13 @@ describe('useSessionStore reconnect flow', () => {
     expect(store.error).toBeNull();
     expect(store.activeSessionId).toBeNull();
     expect(store.sessions.size).toBe(0);
-    expect(toastStore.toasts).toEqual([]);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('restores the previous session when a silent reconnect resume fails', async () => {
     mockBridge.loadSession.mockRejectedValueOnce(new Error('stale session'));
 
     const store = useSessionStore();
-    const toastStore = useToastStore();
     const existingSession = reactive(createEmptySessionState('local-existing', 'architect', '/repo'));
     existingSession.session = {
       id: 'saved-existing',
@@ -228,6 +240,6 @@ describe('useSessionStore reconnect flow', () => {
     expect(store.sessions.size).toBe(1);
     expect([...store.sessions.keys()]).toEqual(['local-existing']);
     expect(store.error).toBeNull();
-    expect(toastStore.toasts).toEqual([]);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });

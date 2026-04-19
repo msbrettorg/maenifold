@@ -2,6 +2,9 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useAppSession } from './useAppSession';
 import type { ConfigStoreLike, SessionStoreLike } from './useAppSession';
 import { useAppShellStore, type AppShellTab } from '../stores/app-shell';
+import { useConfirmDialogStore } from '../stores/confirm-dialog';
+import { usePromptDialogStore } from '../stores/prompt-dialog';
+import { useFolderPickerStore } from '../stores/folder-picker';
 
 export const TAB_ORDER = [
   { value: 'home', label: 'Home', icon: 'Home' },
@@ -28,14 +31,16 @@ export function useAppShell({
     },
   });
   const showHome = computed(() => activeTab.value === 'home' && !sessionStore.activeSessionId);
+  const confirmDialogStore = useConfirmDialogStore();
+  const promptDialogStore = usePromptDialogStore();
+  const folderPickerStore = useFolderPickerStore();
 
   const session = useAppSession({ configStore, sessionStore });
 
   function hasBlockingDialogOpen(): boolean {
-    if (typeof document === 'undefined') {
-      return false;
-    }
-    return document.querySelector('[role="dialog"]') !== null;
+    return confirmDialogStore.open
+      || promptDialogStore.isOpen
+      || folderPickerStore.isOpen;
   }
 
   function isEditableTarget(target: EventTarget | null): boolean {

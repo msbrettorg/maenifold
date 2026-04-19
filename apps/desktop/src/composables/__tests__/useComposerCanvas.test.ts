@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, getActivePinia, setActivePinia } from 'pinia';
 import { defineComponent, nextTick, ref } from 'vue';
+import type { Ref } from 'vue';
 import { mount } from '@vue/test-utils';
 
 const flowHooks = vi.hoisted(() => ({
@@ -114,10 +115,12 @@ function mountComposerCanvas(options?: {
   designMode?: boolean;
   definition?: PipelineDefinition;
   view?: PipelineView | null;
+  layoutDirection?: Ref<'LR' | 'TB'>;
 }) {
   const designMode = ref(options?.designMode ?? false);
   const definition = ref<PipelineDefinition>(options?.definition ?? { nodes: [], edges: [] });
   const view = ref<PipelineView | null | undefined>(options?.view ?? createView());
+  const layoutDirection = options?.layoutDirection ?? ref<'LR' | 'TB'>('LR');
 
   mount(
     defineComponent({
@@ -126,6 +129,7 @@ function mountComposerCanvas(options?: {
           designMode: () => designMode.value,
           localDefinition: () => definition.value,
           view: () => view.value,
+          layoutDirection,
           updateDefinition: vi.fn(),
           selectNode: vi.fn(),
           selectEdge: vi.fn(),
@@ -140,7 +144,7 @@ function mountComposerCanvas(options?: {
     },
   );
 
-  return { definition, designMode, view };
+  return { definition, designMode, layoutDirection, view };
 }
 
 async function flushComposerCanvas() {
@@ -156,6 +160,7 @@ describe('useComposerCanvas double-click behavior', () => {
     flowHooks.setEdges.mockReset();
     flowHooks.setNodes.mockReset();
     document.body.innerHTML = '';
+    localStorage.clear();
   });
 
   it('reconnects non-tool nodes by ACP session and switches to the Agents tab', async () => {
@@ -311,6 +316,7 @@ describe('useComposerCanvas runtime auto-fit behavior', () => {
     flowHooks.setEdges.mockReset();
     flowHooks.setNodes.mockReset();
     document.body.innerHTML = '';
+    localStorage.clear();
   });
 
   it('fits once on the initial runtime load for a pipeline', async () => {
@@ -362,5 +368,50 @@ describe('useComposerCanvas runtime auto-fit behavior', () => {
 
     expect(flowHooks.fitView).toHaveBeenCalledTimes(1);
     expect(flowHooks.fitView).toHaveBeenCalledWith({ padding: 0.15, duration: 200 });
+  });
+});
+
+describe('useComposerCanvas layout direction persistence', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    flowHooks.nodeDoubleClick = null;
+    flowHooks.fitView.mockReset();
+    flowHooks.setEdges.mockReset();
+    flowHooks.setNodes.mockReset();
+    document.body.innerHTML = '';
+    localStorage.clear();
+  });
+
+  it('restores saved direction for the active pipeline session', async () => {
+    localStorage.setItem('maenifold:pipeline:pipeline-1:direction', 'TB');
+    const layoutDirection = ref<'LR' | 'TB'>('LR');
+
+    mountComposerCanvas({ view: createView(), layoutDirection });
+    await flushComposerCanvas();
+
+    expect(layoutDirection.value).toBe('TB');
+  });
+
+  it('keeps separate layout directions per pipeline session', async () => {
+    const layoutDirection = ref<'LR' | 'TB'>('LR');
+    localStorage.setItem('maenifold:pipeline:pipeline-2:direction', 'LR');
+
+    const { view } = mountComposerCanvas({ view: createView(), layoutDirection });
+    await flushComposerCanvas();
+
+    layoutDirection.value = 'TB';
+    await nextTick();
+
+    expect(localStorage.getItem('maenifold:pipeline:pipeline-1:direction')).toBe('TB');
+
+    view.value = createView({ pipelineId: 'pipeline-2' });
+    await flushComposerCanvas();
+
+    expect(layoutDirection.value).toBe('LR');
+
+    view.value = createView({ pipelineId: 'pipeline-1' });
+    await flushComposerCanvas();
+
+    expect(layoutDirection.value).toBe('TB');
   });
 });

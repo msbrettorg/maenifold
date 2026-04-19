@@ -20,9 +20,9 @@ import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import ToastContainer from './components/ToastContainer.vue';
 import type { AppShellTab } from './stores/app-shell';
 import { MessageSquare } from 'lucide-vue-next';
+import { Toaster } from 'vue-sonner';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
@@ -206,6 +206,16 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
     <ConfirmDialog />
     <PromptDialog />
 
-    <ToastContainer />
+    <Toaster
+      theme="dark"
+      rich-colors
+      :style="{
+        '--normal-bg': 'var(--color-neutral-background-3)',
+        '--normal-text': 'var(--color-neutral-foreground-1)',
+        '--normal-border': 'var(--color-neutral-stroke-1)',
+        '--border-radius': '4px',
+      }"
+      :toast-options="{ classes: { toast: 'rounded-[4px]' } }"
+    />
   </div>
 </template>

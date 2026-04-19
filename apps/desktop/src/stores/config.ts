@@ -1,9 +1,9 @@
 // Agent configuration store with daemon-backed hot-reload support
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
-import { useToastStore } from './toast';
 
 interface ConfigChangedEventPayload {
   path?: string;
@@ -19,7 +19,6 @@ function getErrorMessage(error: unknown): string {
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const toastStore = useToastStore();
   const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
@@ -50,7 +49,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toastStore.addToast({ message, level: 'error' });
+      toast.error(message);
     } finally {
       loading.value = false;
     }
@@ -72,7 +71,7 @@ export const useConfigStore = defineStore('config', () => {
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toastStore.addToast({ message, level: 'error' });
+      toast.error(message);
     } finally {
       loading.value = false;
     }
@@ -99,18 +98,18 @@ export const useConfigStore = defineStore('config', () => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
       const message = payload.message ?? 'Config reload failed';
       error.value = message;
-      toastStore.addToast({ message, level: 'warning' });
+      toast.warning(message);
     });
     source.addEventListener('watch-error', (event) => {
       const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
       const message = payload.message ?? 'Config watch failed';
       error.value = message;
-      toastStore.addToast({ message, level: 'warning' });
+      toast.warning(message);
     });
     source.onerror = () => {
       const message = error.value ?? 'Config watch connection lost';
       error.value = message;
-      toastStore.addToast({ message, level: 'warning' });
+      toast.warning(message);
     };
     configWatch.value = source;
   }

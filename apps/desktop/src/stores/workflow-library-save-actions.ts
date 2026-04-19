@@ -41,16 +41,18 @@ function validateDraft(draft: WorkflowAssetDefinition): string | null {
   return null
 }
 
-function downloadWorkflowJson(id: string, content: string) {
+function downloadWorkflowJson(content: string) {
   const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = `${id}.json`
-  document.body.append(link)
-  link.click()
-  link.remove()
-  URL.revokeObjectURL(url)
+  const popup = window.open(url, '_blank', 'noopener,noreferrer')
+  if (!popup) {
+    URL.revokeObjectURL(url)
+    throw new Error('Unable to open export in a new window. Please allow popups and try again.')
+  }
+
+  window.setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 10_000)
 }
 
 export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
@@ -68,7 +70,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
           ? context.currentDefinition.value
           : (context.draftDefinition.value ?? context.currentDefinition.value)
       const merged = mergeDraftIntoRaw(context.rawJson.value, sourceDefinition)
-      downloadWorkflowJson(sourceDefinition.id, `${JSON.stringify(merged, null, 2)}\n`)
+      downloadWorkflowJson(`${JSON.stringify(merged, null, 2)}\n`)
       context.exportState.value = 'success'
       return true
     } catch (error) {

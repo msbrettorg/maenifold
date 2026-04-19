@@ -1,6 +1,7 @@
+// Public surface: createNode and createNodeId. Type aliases and helpers
+// live in pipeline-node-factory-types.ts and pipeline-node-factory-helpers.ts
+// so this file can stay focused on the dispatch logic.
 import type {
-  PipelineNodeAdopt,
-  PipelineNodeAgentConfig,
   PipelineNode,
   PipelineNodeType,
   PromptNode,
@@ -9,266 +10,36 @@ import type {
   WorkflowNode,
 } from './pipeline-types';
 import {
-  cwdHasReasonablePathPrefix,
-  normalizeNodeCwd,
-} from './pipeline-types';
+  buildDisplayLabel,
+  buildExecutionFields,
+  buildNodeAdopt,
+  buildWorkflowExecutionFields,
+  DEFAULT_TOTAL_THOUGHTS,
+  normalizeOptionalText,
+} from './pipeline-node-factory-helpers';
+import type {
+  PipelineNodeInput,
+  PipelineNodeInputByType,
+  PipelineNodeByType,
+  PromptNodeInput,
+  SequentialThinkingNodeInput,
+  ToolNodeInput,
+  WorkflowNodeInput,
+} from './pipeline-node-factory-types';
 
 export { normalizeNodeCwd } from './pipeline-types';
-
-interface PipelineNodeExecutionFields {
-  model?: string;
-  thoughtLevel?: string;
-  allowedTools?: string[];
-  maxTurns?: number;
-  cwd?: string;
-  timeout?: number;
-  agentConfig?: PipelineNodeAgentConfig;
-}
-
-interface WorkflowNodeExecutionSelection {
-  model?: string;
-  thoughtLevel?: string;
-  cwd?: string;
-  timeout?: number;
-  agentConfig?: PipelineNodeAgentConfig;
-}
-
-export interface WorkflowNodeInput extends WorkflowNodeExecutionSelection {
-  id: string;
-  displayLabel?: string;
-  workflowId: string;
-  acpClient?: string;
-  agent?: string;
-  adopt?: PipelineNodeAdopt;
-  requiresRole?: string;
-  prompt?: string;
-}
-
-export interface PromptNodeInput extends PipelineNodeExecutionFields {
-  id: string;
-  displayLabel?: string;
-  prompt: string;
-  agent: string;
-  adopt?: PipelineNodeAdopt;
-  requiresRole?: string;
-  toolMode?: string;
-}
-
-export interface SequentialThinkingNodeInput extends PipelineNodeExecutionFields {
-  id: string;
-  displayLabel?: string;
-  topic: string;
-  agent: string;
-  adopt?: PipelineNodeAdopt;
-  requiresRole?: string;
-  totalThoughts?: number;
-  analysisType?: string;
-}
-
-export interface ToolNodeInput extends PipelineNodeExecutionFields {
-  id: string;
-  displayLabel?: string;
-  toolName: string;
-  agent?: string;
-  toolArgs?: Record<string, unknown>;
-}
-
-export interface PipelineNodeInputByType {
-  workflow: WorkflowNodeInput;
-  prompt: PromptNodeInput;
-  sequentialThinking: SequentialThinkingNodeInput;
-  tool: ToolNodeInput;
-}
-
-export interface PipelineNodeByType {
-  workflow: WorkflowNode;
-  prompt: PromptNode;
-  sequentialThinking: SequentialThinkingNode;
-  tool: ToolNode;
-}
-
-export type PipelineNodeInput = PipelineNodeInputByType[PipelineNodeType];
-export type PipelineNodeDraftByType = {
-  [Type in PipelineNodeType]: Omit<PipelineNodeInputByType[Type], 'id'>;
-};
-
-const DEFAULT_TOTAL_THOUGHTS = 5;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function cloneStringArray(value: string[] | undefined, fieldName: string): string[] | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!Array.isArray(value) || value.some((entry) => typeof entry !== 'string')) {
-    throw new Error(`${fieldName} must be an array of strings`);
-  }
-
-  return [...value];
-}
-
-function cloneOptionalNumber(
-  value: number | undefined,
-  fieldName: string,
-): number | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!Number.isFinite(value) || value < 0) {
-    throw new Error(`${fieldName} must be a non-negative number`);
-  }
-
-  return value;
-}
-
-function cloneAgentConfig(
-  value: PipelineNodeAgentConfig | undefined,
-): PipelineNodeAgentConfig | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!isRecord(value)) {
-    throw new Error('agentConfig must be a JSON object');
-  }
-
-  if (value.model !== undefined && typeof value.model !== 'string') {
-    throw new Error('agentConfig.model must be a string');
-  }
-
-  if (value.mode !== undefined && typeof value.mode !== 'string') {
-    throw new Error('agentConfig.mode must be a string');
-  }
-
-  if (value.thoughtLevel !== undefined && typeof value.thoughtLevel !== 'string') {
-    throw new Error('agentConfig.thoughtLevel must be a string');
-  }
-
-  if (
-    value.configOptions !== undefined
-    && (!isRecord(value.configOptions) || Array.isArray(value.configOptions))
-  ) {
-    throw new Error('agentConfig.configOptions must be a JSON object');
-  }
-
-  return {
-    ...(typeof value.model === 'string' && value.model.length > 0
-      ? { model: value.model }
-      : {}),
-    ...(typeof value.mode === 'string' && value.mode.length > 0
-      ? { mode: value.mode }
-      : {}),
-    ...(typeof value.thoughtLevel === 'string' && value.thoughtLevel.length > 0
-      ? { thoughtLevel: value.thoughtLevel }
-      : {}),
-    ...(value.configOptions && Object.keys(value.configOptions).length > 0
-      ? { configOptions: { ...value.configOptions } }
-      : {}),
-  };
-}
-
-function normalizeExecutionCwd(value: unknown): string | undefined {
-  const cwd = normalizeNodeCwd(value);
-
-  if (cwd && !cwdHasReasonablePathPrefix(cwd)) {
-    console.warn(
-      `[pipeline-node-factory] cwd "${cwd}" does not start with a typical path prefix`,
-    );
-  }
-
-  return cwd;
-}
-
-function normalizeOptionalText(value: unknown, fieldName: string): string | undefined {
-  if (value == null) {
-    return undefined;
-  }
-
-  if (typeof value !== 'string') {
-    throw new Error(`${fieldName} must be a string`);
-  }
-
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function buildNodeAdopt(value: PipelineNodeAdopt | undefined): PipelineNodeAdopt | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  if (!isRecord(value)) {
-    throw new Error('adopt must be a JSON object');
-  }
-
-  const adopt: PipelineNodeAdopt = {
-    ...(normalizeOptionalText(value.role, 'adopt.role') ? { role: normalizeOptionalText(value.role, 'adopt.role') } : {}),
-    ...(normalizeOptionalText(value.color, 'adopt.color') ? { color: normalizeOptionalText(value.color, 'adopt.color') } : {}),
-    ...(normalizeOptionalText(value.perspective, 'adopt.perspective') ? { perspective: normalizeOptionalText(value.perspective, 'adopt.perspective') } : {}),
-  };
-
-  return Object.keys(adopt).length > 0 ? adopt : undefined;
-}
-
-function buildExecutionFields(
-  fields: PipelineNodeExecutionFields,
-): PipelineNodeExecutionFields {
-  const allowedTools = cloneStringArray(fields.allowedTools, 'allowedTools');
-  const maxTurns = cloneOptionalNumber(fields.maxTurns, 'maxTurns');
-  const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
-  const cwd = normalizeExecutionCwd(fields.cwd);
-  const agentConfig = cloneAgentConfig(fields.agentConfig);
-
-  return {
-    ...(typeof fields.model === 'string' && fields.model.length > 0
-      ? { model: fields.model }
-      : {}),
-    ...(typeof fields.thoughtLevel === 'string' && fields.thoughtLevel.length > 0
-      ? { thoughtLevel: fields.thoughtLevel }
-      : {}),
-    ...(allowedTools ? { allowedTools } : {}),
-    ...(maxTurns !== undefined ? { maxTurns } : {}),
-    ...(cwd ? { cwd } : {}),
-    ...(timeout !== undefined ? { timeout } : {}),
-    ...(agentConfig ? { agentConfig } : {}),
-  };
-}
-
-function buildWorkflowExecutionFields(
-  fields: WorkflowNodeExecutionSelection,
-): WorkflowNodeExecutionSelection {
-  const cwd = normalizeExecutionCwd(fields.cwd);
-  const timeout = cloneOptionalNumber(fields.timeout, 'timeout');
-  const agentConfig = cloneAgentConfig(fields.agentConfig);
-
-  return {
-    ...(typeof fields.model === 'string' && fields.model.length > 0
-      ? { model: fields.model }
-      : {}),
-    ...(typeof fields.thoughtLevel === 'string' && fields.thoughtLevel.length > 0
-      ? { thoughtLevel: fields.thoughtLevel }
-      : {}),
-    ...(cwd ? { cwd } : {}),
-    ...(timeout !== undefined ? { timeout } : {}),
-    ...(agentConfig ? { agentConfig } : {}),
-  };
-}
-
-function buildDisplayLabel(
-  value: string | undefined,
-): Pick<WorkflowNode, 'displayLabel'>
-| Pick<PromptNode, 'displayLabel'>
-| Pick<SequentialThinkingNode, 'displayLabel'>
-| Pick<ToolNode, 'displayLabel'>
-| Record<string, never> {
-  return typeof value === 'string' && value.length > 0
-    ? { displayLabel: value }
-    : {};
-}
+export type {
+  PipelineNodeInput,
+  PipelineNodeInputByType,
+  PipelineNodeByType,
+  PipelineNodeDraftByType,
+  PromptNodeInput,
+  SequentialThinkingNodeInput,
+  ToolNodeInput,
+  WorkflowNodeInput,
+  PipelineNodeExecutionFields,
+  WorkflowNodeExecutionSelection,
+} from './pipeline-node-factory-types';
 
 export function createNodeId(type: PipelineNodeType): string {
   return typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -276,10 +47,7 @@ export function createNodeId(type: PipelineNodeType): string {
     : `${type}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
-export function createNode(
-  type: 'workflow',
-  fields: WorkflowNodeInput,
-): WorkflowNode;
+export function createNode(type: 'workflow', fields: WorkflowNodeInput): WorkflowNode;
 export function createNode(type: 'prompt', fields: PromptNodeInput): PromptNode;
 export function createNode(
   type: 'sequentialThinking',
@@ -300,134 +68,95 @@ export function createNode(
 
   switch (type) {
     case 'workflow': {
-      const workflowFields = fields as WorkflowNodeInput;
-
-      if (
-        typeof workflowFields.workflowId !== 'string' ||
-        workflowFields.workflowId.length === 0
-      ) {
+      const f = fields as WorkflowNodeInput;
+      if (typeof f.workflowId !== 'string' || f.workflowId.length === 0) {
         throw new Error('Workflow nodes require workflowId');
       }
-
+      const adopt = buildNodeAdopt(f.adopt);
+      const requiresRole = normalizeOptionalText(f.requiresRole, 'requiresRole');
       return {
-        id: workflowFields.id,
+        id: f.id,
         type: 'workflow',
-        ...buildDisplayLabel(workflowFields.displayLabel),
-        workflowId: workflowFields.workflowId,
-        ...((workflowFields.acpClient ?? '').length > 0
-          ? { acpClient: workflowFields.acpClient }
-          : {}),
-        ...(buildNodeAdopt(workflowFields.adopt) ? { adopt: buildNodeAdopt(workflowFields.adopt) } : {}),
-        ...(normalizeOptionalText(workflowFields.requiresRole, 'requiresRole')
-          ? { requiresRole: normalizeOptionalText(workflowFields.requiresRole, 'requiresRole') }
-          : {}),
-        ...(typeof workflowFields.prompt === 'string' &&
-        workflowFields.prompt.length > 0
-          ? { prompt: workflowFields.prompt }
-          : {}),
-        ...buildWorkflowExecutionFields(workflowFields),
+        ...buildDisplayLabel(f.displayLabel),
+        workflowId: f.workflowId,
+        ...((f.acpClient ?? '').length > 0 ? { acpClient: f.acpClient } : {}),
+        ...(adopt ? { adopt } : {}),
+        ...(requiresRole ? { requiresRole } : {}),
+        ...(typeof f.prompt === 'string' && f.prompt.length > 0 ? { prompt: f.prompt } : {}),
+        ...buildWorkflowExecutionFields(f),
       };
     }
     case 'prompt': {
-      const promptFields = fields as PromptNodeInput;
-
-      if (
-        typeof promptFields.prompt !== 'string' ||
-        promptFields.prompt.length === 0
-      ) {
+      const f = fields as PromptNodeInput;
+      if (typeof f.prompt !== 'string' || f.prompt.length === 0) {
         throw new Error('Prompt nodes require prompt');
       }
-      if (
-        typeof promptFields.agent !== 'string' ||
-        promptFields.agent.length === 0
-      ) {
+      if (typeof f.agent !== 'string' || f.agent.length === 0) {
         throw new Error('Prompt nodes require agent');
       }
-
+      const adopt = buildNodeAdopt(f.adopt);
+      const requiresRole = normalizeOptionalText(f.requiresRole, 'requiresRole');
       return {
-        id: promptFields.id,
+        id: f.id,
         type: 'prompt',
-        ...buildDisplayLabel(promptFields.displayLabel),
-        prompt: promptFields.prompt,
-        agent: promptFields.agent,
-        ...(buildNodeAdopt(promptFields.adopt) ? { adopt: buildNodeAdopt(promptFields.adopt) } : {}),
-        ...(normalizeOptionalText(promptFields.requiresRole, 'requiresRole')
-          ? { requiresRole: normalizeOptionalText(promptFields.requiresRole, 'requiresRole') }
+        ...buildDisplayLabel(f.displayLabel),
+        prompt: f.prompt,
+        agent: f.agent,
+        ...(adopt ? { adopt } : {}),
+        ...(requiresRole ? { requiresRole } : {}),
+        ...(typeof f.toolMode === 'string' && f.toolMode.length > 0
+          ? { toolMode: f.toolMode }
           : {}),
-        ...(typeof promptFields.toolMode === 'string' && promptFields.toolMode.length > 0
-          ? { toolMode: promptFields.toolMode }
-          : {}),
-        ...buildExecutionFields(promptFields),
+        ...buildExecutionFields(f),
       };
     }
     case 'sequentialThinking': {
-      const sequentialThinkingFields = fields as SequentialThinkingNodeInput;
-
-      if (
-        typeof sequentialThinkingFields.topic !== 'string' ||
-        sequentialThinkingFields.topic.length === 0
-      ) {
+      const f = fields as SequentialThinkingNodeInput;
+      if (typeof f.topic !== 'string' || f.topic.length === 0) {
         throw new Error('Sequential thinking nodes require topic');
       }
-      if (
-        typeof sequentialThinkingFields.agent !== 'string' ||
-        sequentialThinkingFields.agent.length === 0
-      ) {
+      if (typeof f.agent !== 'string' || f.agent.length === 0) {
         throw new Error('Sequential thinking nodes require agent');
       }
-
+      const adopt = buildNodeAdopt(f.adopt);
+      const requiresRole = normalizeOptionalText(f.requiresRole, 'requiresRole');
       return {
-        id: sequentialThinkingFields.id,
+        id: f.id,
         type: 'sequentialThinking',
-        ...buildDisplayLabel(sequentialThinkingFields.displayLabel),
-        topic: sequentialThinkingFields.topic,
-        agent: sequentialThinkingFields.agent,
-        ...(buildNodeAdopt(sequentialThinkingFields.adopt)
-          ? { adopt: buildNodeAdopt(sequentialThinkingFields.adopt) }
-          : {}),
-        ...(normalizeOptionalText(sequentialThinkingFields.requiresRole, 'requiresRole')
-          ? { requiresRole: normalizeOptionalText(sequentialThinkingFields.requiresRole, 'requiresRole') }
-          : {}),
+        ...buildDisplayLabel(f.displayLabel),
+        topic: f.topic,
+        agent: f.agent,
+        ...(adopt ? { adopt } : {}),
+        ...(requiresRole ? { requiresRole } : {}),
         totalThoughts:
-          typeof sequentialThinkingFields.totalThoughts === 'number' &&
-          Number.isFinite(sequentialThinkingFields.totalThoughts)
-            ? sequentialThinkingFields.totalThoughts
+          typeof f.totalThoughts === 'number' && Number.isFinite(f.totalThoughts)
+            ? f.totalThoughts
             : DEFAULT_TOTAL_THOUGHTS,
-        ...(typeof sequentialThinkingFields.analysisType === 'string' &&
-        sequentialThinkingFields.analysisType.length > 0
-          ? { analysisType: sequentialThinkingFields.analysisType }
+        ...(typeof f.analysisType === 'string' && f.analysisType.length > 0
+          ? { analysisType: f.analysisType }
           : {}),
-        ...buildExecutionFields(sequentialThinkingFields),
+        ...buildExecutionFields(f),
       };
     }
     case 'tool': {
-      const toolFields = fields as ToolNodeInput;
-
-      if (
-        typeof toolFields.toolName !== 'string' ||
-        toolFields.toolName.length === 0
-      ) {
+      const f = fields as ToolNodeInput;
+      if (typeof f.toolName !== 'string' || f.toolName.length === 0) {
         throw new Error('Tool nodes require toolName');
       }
       if (
-        toolFields.toolArgs !== undefined &&
-        (typeof toolFields.toolArgs !== 'object' ||
-          toolFields.toolArgs === null ||
-          Array.isArray(toolFields.toolArgs))
+        f.toolArgs !== undefined
+        && (typeof f.toolArgs !== 'object' || f.toolArgs === null || Array.isArray(f.toolArgs))
       ) {
         throw new Error('Tool nodes require toolArgs to be a JSON object');
       }
-
       return {
-        id: toolFields.id,
+        id: f.id,
         type: 'tool',
-        ...buildDisplayLabel(toolFields.displayLabel),
-        toolName: toolFields.toolName,
-        ...(typeof toolFields.agent === 'string' && toolFields.agent.length > 0
-          ? { agent: toolFields.agent }
-          : {}),
-        ...(toolFields.toolArgs ? { toolArgs: toolFields.toolArgs } : {}),
-        ...buildExecutionFields(toolFields),
+        ...buildDisplayLabel(f.displayLabel),
+        toolName: f.toolName,
+        ...(typeof f.agent === 'string' && f.agent.length > 0 ? { agent: f.agent } : {}),
+        ...(f.toolArgs ? { toolArgs: f.toolArgs } : {}),
+        ...buildExecutionFields(f),
       };
     }
     default:

@@ -16,6 +16,7 @@ interface WorkflowSessionSummary {
 
 interface WorkflowSessionsResponse {
   sessions: WorkflowSessionSummary[];
+  errors?: Array<{ uri: string; error: string }>;
   generated_at?: string;
 }
 
@@ -31,14 +32,15 @@ interface WorkflowSessionDetail {
   history?: Array<{ heading: string; body: string }>;
 }
 
-function parseResourceJson<T>(content: ResourceContent, fallback: T): T {
+function parseResourceJson<T>(content: ResourceContent): T {
   if (typeof content.text !== 'string') {
-    return fallback;
+    throw new Error(`Missing text payload for resource: ${content.uri}`);
   }
   try {
     return JSON.parse(content.text) as T;
-  } catch {
-    return fallback;
+  } catch (parseError) {
+    const message = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(`Invalid JSON payload for resource ${content.uri}: ${message}`);
   }
 }
 
@@ -63,9 +65,12 @@ export const useWorkflowStore = defineStore('workflow', () => {
     error.value = null;
     try {
       const resource = await resources.readResource('workflow://sessions');
-      const payload = parseResourceJson<WorkflowSessionsResponse>(resource, { sessions: [] });
+      const payload = parseResourceJson<WorkflowSessionsResponse>(resource);
       activeSessions.value = Array.isArray(payload.sessions) ? payload.sessions : [];
       lastUpdated.value = payload.generated_at ?? new Date().toISOString();
+      if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+        error.value = payload.errors.map(({ uri, error: message }) => `${uri}: ${message}`).join('\n');
+      }
       if (
         selectedSessionId.value
         && !activeSessions.value.some((session) => session.id === selectedSessionId.value)
@@ -92,13 +97,10 @@ export const useWorkflowStore = defineStore('workflow', () => {
       const resource = await resources.readResource(
         `workflow://session/${encodeURIComponent(selectedSessionId.value)}`,
       );
-      selectedSession.value = parseResourceJson<WorkflowSessionDetail>(resource, {
-        id: selectedSessionId.value,
-        uri: '',
-        status: 'unknown',
-      });
+      selectedSession.value = parseResourceJson<WorkflowSessionDetail>(resource);
     } catch (unknownError) {
       error.value = unknownError instanceof Error ? unknownError.message : String(unknownError);
+      selectedSession.value = null;
     }
   }
 

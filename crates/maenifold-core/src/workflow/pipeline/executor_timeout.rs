@@ -131,6 +131,7 @@ mod tests {
             prompt: "prompt".to_string(),
             tool_mode: "disabled".to_string(),
             adopt_instructions: vec![],
+            adopt_role: None,
             requires_role: None,
             session_config: sample_session_config(Some(7)),
         };
@@ -151,6 +152,7 @@ mod tests {
             prompt: "prompt".to_string(),
             tool_mode: "disabled".to_string(),
             adopt_instructions: vec![],
+            adopt_role: None,
             requires_role: None,
             session_config: sample_session_config(None),
         };

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
-import { useMcpResources } from '../composables/useMcpResources';
+import { McpCapabilityUnsupportedError, useMcpResources } from '../composables/useMcpResources';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
@@ -24,6 +24,7 @@ const store = usePipelineStore();
 const resources = useMcpResources();
 const confirmDialogStore = useConfirmDialogStore();
 const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
+const resourceError = ref<string | null>(null);
 let disposeSessionSubscription: (() => void) | null = null;
 
 const pipelineItems = computed(() => {
@@ -55,13 +56,46 @@ async function refreshFromPipelineResource() {
   pipelines.value = normalizePipelineSessionsPayload(parsed);
 }
 
+function isCapabilityUnsupported(error: unknown): boolean {
+  return error instanceof McpCapabilityUnsupportedError;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function handleResourceFailure(context: string, error: unknown) {
+  if (!isCapabilityUnsupported(error)) {
+    resourceError.value = `${context}: ${getErrorMessage(error)}`;
+    console.warn(`[PipelineSidebar] ${context}; falling back to store.refreshList()`, error);
+  }
+  await store.refreshList();
+}
+
 async function ensureSessionSubscription() {
   if (!connected.value || disposeSessionSubscription) {
     return;
   }
-  disposeSessionSubscription = await resources.subscribeResource('pipeline://sessions', () => {
-    void refreshFromPipelineResource();
-  });
+  const onResourceUpdate = () => {
+    void refreshFromPipelineResource().catch(async (error: unknown) => {
+      await handleResourceFailure('Failed to refresh pipeline resource from MCP update', error);
+    });
+  };
+
+  try {
+    disposeSessionSubscription = await resources.subscribeResource('pipeline://sessions', onResourceUpdate);
+  } catch (error) {
+    if (isCapabilityUnsupported(error)) {
+      throw error;
+    }
+
+    await wait(2000);
+    disposeSessionSubscription = await resources.subscribeResource('pipeline://sessions', onResourceUpdate);
+  }
 }
 
 function clearSessionSubscription() {
@@ -79,8 +113,9 @@ onMounted(async () => {
   try {
     await refreshFromPipelineResource();
     await ensureSessionSubscription();
-  } catch {
-    await store.refreshList();
+    resourceError.value = null;
+  } catch (error) {
+    await handleResourceFailure('Failed to sync pipeline sessions from MCP resource', error);
   }
 });
 
@@ -92,8 +127,9 @@ watch(connected, async (c) => {
   try {
     await refreshFromPipelineResource();
     await ensureSessionSubscription();
-  } catch {
-    await store.refreshList();
+    resourceError.value = null;
+  } catch (error) {
+    await handleResourceFailure('Failed to sync pipeline sessions after MCP reconnect', error);
   }
 });
 
@@ -103,8 +139,9 @@ async function handleRefresh() {
   }
   try {
     await refreshFromPipelineResource();
-  } catch {
-    await store.refreshList();
+    resourceError.value = null;
+  } catch (error) {
+    await handleResourceFailure('Failed to refresh pipeline sessions from MCP resource', error);
   }
 }
 
@@ -164,6 +201,12 @@ onBeforeUnmount(() => {
     <div v-if="!hideHeader" class="sidebar-header">
       <h3>Pipelines</h3>
       <div class="sidebar-actions">
+        <span
+          v-if="resourceError"
+          class="resource-warning"
+          :title="resourceError"
+          aria-label="Pipeline resource fallback active"
+        >⚠</span>
         <Button variant="ghost" size="sm" type="button" title="Refresh" @click="handleRefresh">↻</Button>
         <Button variant="ghost" size="sm" type="button" @click="handleNew">+ New</Button>
       </div>
@@ -247,7 +290,13 @@ onBeforeUnmount(() => {
 
 .sidebar-actions {
   display: flex;
+  align-items: center;
   gap: 0.25rem;
+}
+
+.resource-warning {
+  font-size: var(--text-xs);
+  color: var(--amber);
 }
 
 .empty-state {

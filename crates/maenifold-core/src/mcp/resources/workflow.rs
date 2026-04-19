@@ -19,7 +19,14 @@ const WORKFLOW_MEMORY_FOLDER_URI: &str = "memory://thinking/workflow";
 #[derive(Debug, Serialize)]
 struct WorkflowSessionsPayload {
     sessions: Vec<WorkflowSessionSummary>,
+    errors: Vec<WorkflowSessionReadError>,
     generated_at: String,
+}
+
+#[derive(Debug, Serialize)]
+struct WorkflowSessionReadError {
+    uri: String,
+    error: String,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -94,14 +101,25 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
 
 fn read_workflow_sessions() -> Result<WorkflowSessionsPayload> {
     let config = Config::current();
-    let mut sessions = get_memory_files(&config, Some(WORKFLOW_MEMORY_FOLDER_URI))?
-        .into_iter()
-        .filter_map(|uri| read_session_summary(&config, &uri).ok())
-        .collect::<Vec<_>>();
+    let mut sessions = Vec::new();
+    let mut errors = Vec::new();
+
+    for uri in get_memory_files(&config, Some(WORKFLOW_MEMORY_FOLDER_URI))? {
+        match read_session_summary(&config, &uri) {
+            Ok(session) => sessions.push(session),
+            Err(error) => errors.push(WorkflowSessionReadError {
+                uri,
+                error: error.to_string(),
+            }),
+        }
+    }
+
     sessions.sort_by(|left, right| right.updated_at.cmp(&left.updated_at));
+    errors.sort_by(|left, right| left.uri.cmp(&right.uri));
 
     Ok(WorkflowSessionsPayload {
         sessions,
+        errors,
         generated_at: current_iso_timestamp(),
     })
 }

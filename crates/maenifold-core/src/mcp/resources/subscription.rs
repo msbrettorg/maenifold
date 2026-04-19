@@ -10,6 +10,7 @@ use std::sync::mpsc::{self, Sender};
 use std::sync::{LazyLock, Mutex};
 use std::thread::JoinHandle;
 use std::time::Duration;
+use uuid::Uuid;
 
 use super::subscription_worker::{spawn_asset_watcher_worker, AssetWatcherSignal};
 
@@ -94,7 +95,7 @@ pub fn subscribe(
     uri: &str,
     context: &RequestContext<RoleServer>,
 ) -> std::result::Result<(), rmcp::ErrorData> {
-    let session_key = session_key(context);
+    let session_key = subscribe_session_key(context);
     let mut guard = SUBSCRIPTIONS.lock().expect("subscription registry lock");
     prune_closed_subscriptions_locked(&mut guard);
 
@@ -120,7 +121,9 @@ pub fn subscribe(
 }
 
 pub fn unsubscribe(uri: &str, context: &RequestContext<RoleServer>) {
-    let session_key = session_key(context);
+    let Some(session_key) = unsubscribe_session_key(context) else {
+        return;
+    };
     let mut guard = SUBSCRIPTIONS.lock().expect("subscription registry lock");
     prune_closed_subscriptions_locked(&mut guard);
 
@@ -182,19 +185,35 @@ fn prune_closed_subscriptions_locked(registry: &mut SubscriptionRegistry) {
         .retain(|_, session| !session.peer.is_transport_closed() && !session.uris.is_empty());
 }
 
-fn session_key(context: &RequestContext<RoleServer>) -> String {
+fn subscribe_session_key(context: &RequestContext<RoleServer>) -> String {
+    if let Some(session_key) = header_session_key(context) {
+        return session_key;
+    }
+
+    if context.extensions.get::<HttpRequestParts>().is_some() {
+        return format!("http:ephemeral:{}", Uuid::new_v4());
+    }
+
+    "stdio".to_string()
+}
+
+fn unsubscribe_session_key(context: &RequestContext<RoleServer>) -> Option<String> {
+    if context.extensions.get::<HttpRequestParts>().is_some() {
+        return header_session_key(context);
+    }
+    Some("stdio".to_string())
+}
+
+fn header_session_key(context: &RequestContext<RoleServer>) -> Option<String> {
     if let Some(parts) = context.extensions.get::<HttpRequestParts>() {
         if let Some(value) = parts
             .headers
             .get(HEADER_SESSION_ID)
             .and_then(|header| header.to_str().ok())
         {
-            return format!("http:{value}");
+            return Some(format!("http:{value}"));
         }
-        if let Some(addr) = parts.extensions.get::<std::net::SocketAddr>() {
-            return format!("http-remote:{addr}");
-        }
-        return "http-stateless".to_string();
+        return None;
     }
-    "stdio".to_string()
+    None
 }

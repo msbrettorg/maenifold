@@ -342,11 +342,19 @@ async function startStatusWatch(root: string) {
     return;
   }
   stopStatusWatch();
+  if (registry.selectedGateRoot.value !== root) {
+    return;
+  }
   const statusUri = gateResourceUri('status', root);
   try {
-    stopStatusSubscription = await resources.subscribeResource(statusUri, () => {
+    const subscription = await resources.subscribeResource(statusUri, () => {
       void refreshSnapshot(true);
     });
+    if (registry.selectedGateRoot.value !== root) {
+      subscription();
+      return;
+    }
+    stopStatusSubscription = subscription;
   } catch {
     // Resource subscriptions are best-effort; manual refresh still works.
   }

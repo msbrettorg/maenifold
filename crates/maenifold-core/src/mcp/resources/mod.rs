@@ -6,6 +6,9 @@ use rmcp::RoleServer;
 pub mod agent;
 mod asset;
 pub mod gate;
+pub mod gate_history;
+pub mod gate_status;
+pub mod gate_task;
 pub mod graph;
 pub mod pipeline;
 pub mod subscription;
@@ -86,9 +89,29 @@ fn resource_exists(uri: &str) -> bool {
         return true;
     }
 
-    handle_list_resources()
+    if handle_list_resources()
         .map(|result| result.resources.iter().any(|resource| resource.uri == uri))
         .unwrap_or(false)
+    {
+        return true;
+    }
+
+    handle_list_resource_templates()
+        .map(|result| {
+            result
+                .resource_templates
+                .iter()
+                .any(|template| uri_matches_template(uri, &template.uri_template))
+        })
+        .unwrap_or(false)
+}
+
+fn uri_matches_template(uri: &str, uri_template: &str) -> bool {
+    let base = uri_template
+        .split_once('{')
+        .map(|(prefix, _)| prefix)
+        .unwrap_or(uri_template);
+    !base.is_empty() && uri.starts_with(base)
 }
 
 pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {

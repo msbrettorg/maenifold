@@ -17,6 +17,7 @@ import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import FolderPickerDialog from './components/FolderPickerDialog.vue';
+import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
 import ToastContainer from './components/ToastContainer.vue';
@@ -202,6 +203,7 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
       @confirm="folderPickerStore.confirm"
       @cancel="folderPickerStore.cancel"
     />
+    <ConfirmDialog />
     <PromptDialog />
 
     <ToastContainer />

@@ -96,15 +96,15 @@ const {
 });
 
 const NODE_TYPE_COLORS: Record<string, string> = {
-  workflow: 'var(--blue)',
-  prompt: 'color-mix(in srgb, var(--blue) 55%, var(--text) 45%)',
+  workflow: 'var(--color-brand)',
+  prompt: 'color-mix(in srgb, var(--color-brand) 55%, var(--text) 45%)',
   sequentialThinking: 'var(--plum)',
   tool: 'var(--sage)',
 };
 const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
 const contextMenuEnabled = computed(() => contextMenu.value !== null);
 const STATUS_COLORS: Record<string, string> = {
-  active: 'var(--blue)',
+  active: 'var(--color-brand)',
   completed: 'var(--sage)',
   stuck: 'var(--terracotta)',
   abandoned: 'var(--text-dim)',
@@ -285,7 +285,7 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 .composer-palette-sheet {
   background: var(--surface);
   color: var(--text);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--blue) 8%, transparent);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
 }
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--color-text-primary); border: none; }
@@ -305,7 +305,6 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
   background: var(--surface-container);
   color: var(--text);
   font-size: var(--text-xs);
-  text-transform: lowercase;
 }
 .composer-status-dot {
   width: 6px;

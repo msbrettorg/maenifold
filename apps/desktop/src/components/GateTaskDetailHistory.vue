@@ -81,7 +81,7 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail-history {
   padding: 0.875rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-container);
 }
@@ -116,7 +116,7 @@ function formatTimestamp(timestamp: string | null) {
 
 .gate-detail-history__message {
   padding: 0.75rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-container);
   color: var(--color-text-secondary);
@@ -234,7 +234,7 @@ function formatTimestamp(timestamp: string | null) {
   text-align: left;
 }
 
-.gate-detail-history__item--swe::before { background: var(--blue); }
+.gate-detail-history__item--swe::before { background: var(--color-brand); }
 .gate-detail-history__item--red-team::before { background: var(--amber); }
 .gate-detail-history__item--blue-team::before,
 .gate-detail-history__item--done::before { background: var(--sage); }

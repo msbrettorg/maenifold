@@ -39,7 +39,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 .thought-section {
   margin-bottom: 0.75rem;
   overflow: hidden;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
 }
 .thought-toggle {
@@ -72,7 +72,7 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 .thought-content :deep(p:last-child) { margin-bottom: 0; }
 .thought-content :deep(code) {
   padding: 0.125rem 0.25rem;
-  border-radius: 3px;
+  border-radius: 4px;
   background: var(--surface-high);
   font-size: var(--text-sm);
 }

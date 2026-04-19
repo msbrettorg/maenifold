@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { X } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+
 defineProps<{
   displayLabel: string;
   nodeType: string;
@@ -17,9 +20,9 @@ defineEmits<{
       <span :class="['zoom-type-pill', `zoom-type--${nodeType}`]">{{ nodeType }}</span>
       <span :class="['zoom-status', `zoom-status--${statusLabel}`]">{{ statusLabel }}</span>
     </div>
-    <button class="zoom-close" aria-label="Close inspection" title="Close (Esc)" @click="$emit('close')">
-      ×
-    </button>
+    <Button class="zoom-close" variant="ghost" size="icon" aria-label="Close inspection" title="Close (Esc)" @click="$emit('close')">
+      <X class="size-4" />
+    </Button>
   </header>
 </template>
 
@@ -81,11 +84,7 @@ defineEmits<{
 .zoom-status--ready { background: color-mix(in srgb, var(--color-status-ready) 15%, transparent); color: var(--color-status-ready); }
 
 .zoom-close {
-  background: none;
-  border: none;
   color: var(--color-text-secondary);
-  font-size: var(--text-title);
-  cursor: pointer;
   padding: var(--space-1);
   line-height: 1;
   border-radius: var(--radius-sm);

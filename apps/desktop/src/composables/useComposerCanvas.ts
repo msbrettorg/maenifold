@@ -98,51 +98,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     () => options.designMode() && nodes.value.length === 0,
   );
 
-  /** Apply ELK edge routing points to flow edges after auto-layout. */
-  function applyElkEdgePaths(
-    edgeList: Edge[],
-    edgePaths: Map<string, Array<{ x: number; y: number }>>,
-  ): Edge[] {
-    return edgeList.map((edge) => {
-      const points = edgePaths.get(edge.id);
-      if (!points || points.length < 2) return edge;
-      return { ...edge, data: { ...edge.data, elkPoints: points } };
-    });
-  }
-
-  /**
-   * Annotate every edge with its position among siblings sharing the same source
-   * node. The smoothstep fallback uses these to spread fan-outs into distinct
-   * lanes so ≥4 outgoing edges from one source no longer overlap on a single
-   * horizontal/vertical bus.
-   */
-  function annotateEdgeSiblings(edgeList: Edge[]): Edge[] {
-    const groups = new Map<string, string[]>();
-    for (const edge of edgeList) {
-      const ids = groups.get(edge.source) ?? [];
-      ids.push(edge.id);
-      groups.set(edge.source, ids);
-    }
-    return edgeList.map((edge) => {
-      const sibs = groups.get(edge.source) ?? [edge.id];
-      const siblingTotal = sibs.length;
-      const siblingIndex = sibs.indexOf(edge.id);
-      return {
-        ...edge,
-        data: { ...edge.data, siblingIndex, siblingTotal },
-      };
-    });
-  }
-
-  function clearElkEdgePathsForNode(edgeList: Edge[], nodeId: string): Edge[] {
-    return edgeList.map((edge) => {
-      if (edge.source !== nodeId && edge.target !== nodeId) return edge;
-      if (!edge.data?.elkPoints) return edge;
-      const { elkPoints: _, ...rest } = edge.data;
-      return { ...edge, data: rest };
-    });
-  }
-
   function applyDirectionHandles(edgeList: Edge[], direction: Direction): Edge[] {
     const handles = DIRECTION_HANDLES[direction] ?? DIRECTION_HANDLES.LR;
     return edgeList.map((edge) => ({
@@ -150,20 +105,6 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
       sourceHandle: handles.source,
       targetHandle: handles.target,
     }));
-  }
-
-  function mergeExistingElkPaths(nextEdges: Edge[], currentEdges: Edge[]): Edge[] {
-    const existingPaths = new Map<string, Array<{ x: number; y: number }>>();
-    for (const edge of currentEdges) {
-      const points = edge.data?.elkPoints;
-      if (points && points.length >= 2) existingPaths.set(edge.id, points);
-    }
-
-    return nextEdges.map((edge) => {
-      const points = existingPaths.get(edge.id);
-      if (!points) return edge;
-      return { ...edge, data: { ...edge.data, elkPoints: points } };
-    });
   }
 
   function hasViewStructureChanged(
@@ -221,12 +162,9 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         { fixedPositions },
       );
       nextNodes = result.nodes;
-      nextEdges = applyElkEdgePaths(nextEdges, result.edgePaths);
-    } else {
-      nextEdges = mergeExistingElkPaths(nextEdges, getEdges.value);
     }
 
-    nextEdges = annotateEdgeSiblings(applyDirectionHandles(nextEdges, layoutDirection.value));
+    nextEdges = applyDirectionHandles(nextEdges, layoutDirection.value);
 
     nodes.value = nextNodes;
     edges.value = nextEdges;
@@ -244,13 +182,11 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   }
 
   function syncLocalGraph(nextNodes: Node[], nextEdges: Edge[]): void {
-    const annotatedEdges = annotateEdgeSiblings(
-      applyDirectionHandles(nextEdges, layoutDirection.value),
-    );
+    const directedEdges = applyDirectionHandles(nextEdges, layoutDirection.value);
     nodes.value = nextNodes;
-    edges.value = annotatedEdges;
+    edges.value = directedEdges;
     setNodes(nextNodes);
-    setEdges(annotatedEdges);
+    setEdges(directedEdges);
     persistPositions(nextNodes);
     emitDefinitionUpdate();
   }
@@ -319,17 +255,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
   );
 
   onNodeDragStop(({ node }) => {
-    // ELK edge paths become stale after manual node repositioning — clear them
-    // so edges fall back to the smoothstep path calculation.
-    const currentEdges = getEdges.value;
-    const draggedNodeId = node?.id;
-    if (draggedNodeId && currentEdges.some((e) => e.data?.elkPoints)) {
-      const clearedEdges = annotateEdgeSiblings(
-        clearElkEdgePathsForNode(currentEdges, draggedNodeId),
-      );
-      edges.value = clearedEdges;
-      setEdges(clearedEdges);
-    }
+    void node;
     savePositions(getNodes.value, options.view()?.pipelineId);
     emitDefinitionUpdate();
   });
@@ -339,7 +265,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
     const handles = DIRECTION_HANDLES[layoutDirection.value] ?? DIRECTION_HANDLES.LR;
 
     const currentEdges = edges.value as Edge[];
-    const nextEdges: Edge[] = annotateEdgeSiblings([
+    const nextEdges: Edge[] = [
       ...currentEdges,
       {
         id: `${connection.source}->${connection.target}`,
@@ -351,7 +277,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
         label: 'success',
         data: { edgeType: 'success' },
       },
-    ]);
+    ];
     edges.value = nextEdges;
     setEdges(nextEdges);
     emitDefinitionUpdate();
@@ -431,12 +357,7 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
       applyDirectionHandles(currentEdges, direction),
       direction,
     );
-    const nextEdges = annotateEdgeSiblings(
-      applyDirectionHandles(
-        applyElkEdgePaths(currentEdges, result.edgePaths),
-        direction,
-      ),
-    );
+    const nextEdges = applyDirectionHandles(currentEdges, direction);
     nodes.value = result.nodes;
     edges.value = nextEdges;
     setNodes(result.nodes);

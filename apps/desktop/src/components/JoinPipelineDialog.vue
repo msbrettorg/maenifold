@@ -11,6 +11,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import type { EdgeType, PipelineEdge } from '../lib/pipeline-types';
 
 interface JoinEdgeRow {
@@ -89,10 +97,10 @@ function handleSubmit() {
       </DialogHeader>
 
       <form class="dialog-form" @submit.prevent="handleSubmit">
-        <label>
-          <span>Source pipeline session ID</span>
-          <Input v-model="sourceSessionId" type="text" placeholder="session-abc123" />
-        </label>
+        <div class="form-field">
+          <Label for="join-source-session-id">Source pipeline session ID</Label>
+          <Input id="join-source-session-id" v-model="sourceSessionId" type="text" placeholder="session-abc123" />
+        </div>
 
         <div class="edge-list">
           <div class="edge-list-header">
@@ -101,24 +109,26 @@ function handleSubmit() {
           </div>
 
           <div v-for="(edge, index) in edgeRows" :key="`join-edge-${index}`" class="edge-row">
-            <label>
-              <span>Source node ID</span>
-              <Input v-model="edge.source" type="text" placeholder="source-node-id" />
-            </label>
-            <label>
-              <span>Target node ID</span>
-              <Input v-model="edge.target" type="text" placeholder="target-node-id" />
-            </label>
-            <label>
-              <span>Edge type</span>
-              <select
-                v-model="edge.type"
-                class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-              >
-                <option value="success">Success</option>
-                <option value="always">Always</option>
-              </select>
-            </label>
+            <div class="form-field">
+              <Label :for="`join-edge-source-${index}`">Source node ID</Label>
+              <Input :id="`join-edge-source-${index}`" v-model="edge.source" type="text" placeholder="source-node-id" />
+            </div>
+            <div class="form-field">
+              <Label :for="`join-edge-target-${index}`">Target node ID</Label>
+              <Input :id="`join-edge-target-${index}`" v-model="edge.target" type="text" placeholder="target-node-id" />
+            </div>
+            <div class="form-field">
+              <Label :for="`join-edge-type-${index}`">Edge type</Label>
+              <Select v-model="edge.type">
+                <SelectTrigger :id="`join-edge-type-${index}`" class="w-full">
+                  <SelectValue placeholder="Select edge type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="success">Success</SelectItem>
+                  <SelectItem value="always">Always</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <Button type="button" variant="ghost" class="edge-remove" :disabled="busy || edgeRows.length <= 1" @click="removeEdgeRow(index)">
               Remove
             </Button>
@@ -163,7 +173,7 @@ function handleSubmit() {
 }
 
 .dialog-form,
-label {
+.form-field {
   display: grid;
   gap: 0.35rem;
 }
@@ -173,7 +183,7 @@ label {
   padding: 0 1.5rem 1.5rem;
 }
 
-label {
+.form-field {
   min-width: 0;
   color: var(--text-dim);
   font-size: 0.75rem;

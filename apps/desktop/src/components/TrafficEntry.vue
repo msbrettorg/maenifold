@@ -67,7 +67,7 @@ function copyPayload() {
   background: var(--text-dim);
 }
 .entry.out::before {
-  background: var(--blue);
+  background: var(--color-brand);
 }
 .entry.in::before {
   background: var(--plum);
@@ -102,7 +102,7 @@ function copyPayload() {
   font-weight: bold;
 }
 
-.direction-icon.out { color: var(--blue); }
+.direction-icon.out { color: var(--color-brand); }
 .direction-icon.in { color: var(--text-dim); }
 
 .entry.error .direction-icon,
@@ -120,7 +120,7 @@ function copyPayload() {
 
 .request-id {
   margin-left: auto;
-  color: var(--blue);
+  color: var(--color-brand);
   font-size: var(--text-tiny);
   font-family: var(--font-code);
 }

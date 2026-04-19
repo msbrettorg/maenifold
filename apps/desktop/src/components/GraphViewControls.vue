@@ -64,7 +64,7 @@ defineEmits<{
   width: 24px;
   height: 24px;
   padding: 0;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-high);
   color: var(--accent-prompt);
@@ -104,7 +104,7 @@ defineEmits<{
   align-items: center;
   gap: 0.25rem;
   padding: 0.25rem 0.5rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-high);
   color: var(--text-secondary);

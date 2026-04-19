@@ -169,9 +169,9 @@ function handleSelectionChange(value: unknown) {
   width: 400px;
   margin-bottom: 6px;
   background: var(--surface-container);
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
   max-height: 320px;
   overflow: visible;
   z-index: 100;
@@ -235,9 +235,9 @@ function handleSelectionChange(value: unknown) {
   width: 220px;
   background: var(--surface-container);
   color: var(--color-text-primary);
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
   padding: 8px 12px;
   font-size: var(--text-body-sm);
   white-space: normal;
@@ -261,7 +261,6 @@ function handleSelectionChange(value: unknown) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-transform: none;
 }
 
 .command-description {

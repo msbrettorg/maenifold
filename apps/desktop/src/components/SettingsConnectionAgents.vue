@@ -147,7 +147,6 @@ function formatEnvCount(count: number) {
   margin-bottom: 0.75rem;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
 }

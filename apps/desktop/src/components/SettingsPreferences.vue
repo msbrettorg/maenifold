@@ -168,7 +168,6 @@ onMounted(async () => {
   margin-bottom: 0.75rem;
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-tertiary);
 }
@@ -255,7 +254,7 @@ onMounted(async () => {
   display: block;
   margin-top: 0.75rem;
   word-break: break-all;
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-code);
   font-size: 0.75rem;
 }
 

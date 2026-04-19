@@ -224,7 +224,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   font-size: var(--text-tiny);
   background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
   padding: 0.1em 0.3em;
-  border-radius: 3px;
+  border-radius: 4px;
   color: var(--workflow-step-link);
 }
 
@@ -280,7 +280,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   display: inline-block;
   background: color-mix(in srgb, var(--color-brand) 18%, var(--color-bg-surface));
   color: var(--workflow-step-link);
-  border-radius: 3px;
+  border-radius: 4px;
   padding: 0.05em 0.4em;
   font-size: var(--text-caption);
   font-weight: var(--weight-display);

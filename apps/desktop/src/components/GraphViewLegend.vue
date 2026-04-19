@@ -46,7 +46,7 @@ defineProps<{
 }
 
 .graph-legend__swatch--primary {
-  background: var(--blue);
+  background: var(--color-brand);
 }
 
 .graph-legend__swatch--secondary {

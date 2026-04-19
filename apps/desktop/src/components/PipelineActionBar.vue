@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia';
 import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
 import type { PipelineStatus } from '../lib/pipeline-types';
 import { usePipelineStore } from '../stores/pipeline';
+import { useConfirmDialogStore } from '../stores/confirm-dialog';
 
 type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'rewind' | 'delete';
 
@@ -12,7 +13,7 @@ interface ActionConfig {
   key: ActionKey;
   label: string;
   icon: Component;
-  variant: 'default' | 'destructive';
+  variant: 'default' | 'secondary' | 'destructive';
   class?: string;
   run: () => Promise<unknown>;
 }
@@ -20,6 +21,7 @@ interface ActionConfig {
 type PipelineActionStatus = PipelineStatus | 'abandoned';
 
 const store = usePipelineStore();
+const confirmDialogStore = useConfirmDialogStore();
 const { currentView, designMode, isRunning, localDefinition } = storeToRefs(store);
 const busyAction = ref<ActionKey | null>(null);
 
@@ -129,8 +131,7 @@ const actions = computed((): ActionConfig[] => {
               key: 'pause',
               label: 'Pause',
               icon: Pause,
-              variant: 'default',
-              class: 'bg-[var(--color-status-stuck)] text-[var(--text-on-accent)] hover:bg-[var(--color-status-active)]',
+              variant: 'secondary',
               run: () => store.pausePipeline(),
             },
             {
@@ -197,8 +198,12 @@ async function runAction(action: ActionConfig): Promise<void> {
   }
 }
 
-function handleDelete(): Promise<void | undefined> {
-  if (!window.confirm('Delete this pipeline? This action cannot be undone.')) {
+async function handleDelete(): Promise<void | undefined> {
+  const confirmed = await confirmDialogStore.confirm(
+    'Delete this pipeline?',
+    'This action cannot be undone.',
+  );
+  if (!confirmed) {
     return Promise.resolve(undefined);
   }
 
@@ -241,10 +246,8 @@ function handleRewind(): Promise<void | undefined> {
   padding: 0.5rem;
   border: 1px solid color-mix(in srgb, var(--color-border-subtle) 82%, transparent);
   border-radius: var(--radius);
-  background: color-mix(in srgb, var(--color-bg-app) 82%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow: 0 0.5rem 1.5rem color-mix(in srgb, var(--color-text-primary) 12%, transparent);
+  background: var(--surface-container);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
 }
 
 .pipeline-action-bar__button {

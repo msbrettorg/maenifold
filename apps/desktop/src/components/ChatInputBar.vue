@@ -126,7 +126,7 @@ function handleClose(): void {}
 .composer-control-wrapper { display: inline-flex; }
 .attachment-btn {
   padding: 0.35rem 0.75rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: var(--surface-high);
   color: var(--color-text-primary);
@@ -141,7 +141,7 @@ function handleClose(): void {}
 textarea {
   flex: 1;
   padding: 0.75rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: var(--surface);
   color: var(--color-text-primary);
@@ -153,14 +153,14 @@ textarea {
 textarea::placeholder { color: var(--text-dim); }
 textarea:focus {
   outline: none;
-  border-color: rgba(77, 142, 255, 0.4);
+  border-color: var(--color-brand);
   box-shadow: none;
 }
 .send-btn {
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 4px;
-  background: var(--blue);
+  background: var(--color-brand);
   color: var(--color-text-primary);
   font-size: var(--text-base);
   font-weight: var(--weight-display);

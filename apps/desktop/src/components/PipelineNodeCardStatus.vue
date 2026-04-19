@@ -58,8 +58,8 @@ defineProps<{
 
 .status-dot--pending,
 .status-dot--cancelled { background: var(--color-status-pending); }
-.status-dot--active,
-.status-dot--stuck { background: var(--color-status-active); }
+.status-dot--active { background: var(--color-status-active); }
+.status-dot--stuck { background: var(--color-status-stuck); }
 .status-dot--completed { background: var(--color-status-completed); }
 .status-dot--abandoned { background: var(--color-status-abandoned); }
 

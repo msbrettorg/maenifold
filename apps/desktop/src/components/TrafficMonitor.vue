@@ -222,8 +222,8 @@ onUnmounted(stopResize);
 }
 .filter-pill:hover { background: var(--surface-high); }
 .filter-pill.active {
-  background: var(--blue);
-  border-color: var(--blue);
+  background: var(--color-brand);
+  border-color: var(--color-brand);
   color: var(--text);
 }
 .search-container {

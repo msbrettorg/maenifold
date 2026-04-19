@@ -192,7 +192,7 @@ function priorityClass(priority: ToolHintPriority): string {
 .indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--color-text-primary); }
 .tool-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .tool-chip { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) var(--space-2); border-radius: var(--radius-sm); background: color-mix(in srgb, var(--color-bg-elevated) 80%, var(--color-bg-app)); box-shadow: inset 0 0 0 0.75px color-mix(in srgb, var(--color-border-subtle) 75%, transparent); color: var(--color-text-primary); font: var(--weight-code) var(--text-tiny)/1.4 var(--font-code); }
-.priority-badge { padding: 2px 4px; border-radius: 3px; font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.03em; }
+.priority-badge { padding: 2px 4px; border-radius: 4px; font: var(--weight-title) var(--text-2xs)/1.4 var(--font-code); letter-spacing: 0.03em; }
 .priority-mandatory { background: color-mix(in srgb, var(--color-status-abandoned) 25%, transparent); color: var(--color-status-abandoned); }
 .priority-recommended { background: color-mix(in srgb, var(--color-node-workflow) 20%, transparent); color: var(--color-node-workflow); }
 .priority-optional { background: color-mix(in srgb, var(--color-text-secondary) 20%, transparent); color: var(--color-text-secondary); }

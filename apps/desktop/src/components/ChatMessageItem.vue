@@ -158,7 +158,7 @@ function renderMarkdown(content: string): string {
 .message-content :deep(th),
 .message-content :deep(td) {
   padding: 0.5rem 0.75rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   text-align: left;
 }
 .message-content :deep(th) {

@@ -142,7 +142,7 @@ function handleKeydown(event: KeyboardEvent) {
 
 .step-card:hover {
   background: var(--color-bg-surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.14), 0 0 2px rgba(0,0,0,0.12);
 }
 
 .step-card:focus-visible {

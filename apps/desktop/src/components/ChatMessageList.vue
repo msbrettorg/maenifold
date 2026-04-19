@@ -96,7 +96,7 @@ const starterChips: { icon: Component; label: string }[] = [
   align-items: center;
   gap: 0.375rem;
   padding: 0.5rem 0.875rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: var(--surface-high);
   color: var(--color-text-primary);
@@ -112,7 +112,7 @@ const starterChips: { icon: Component; label: string }[] = [
   padding: 0.75rem 1rem;
   border-radius: 4px;
   background: var(--bg-warning);
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   color: var(--color-text-primary);
 }
 .loading-indicator {
@@ -126,14 +126,14 @@ const starterChips: { icon: Component; label: string }[] = [
   width: 16px;
   height: 16px;
   border: 2px solid var(--color-border-subtle);
-  border-top-color: var(--blue);
+  border-top-color: var(--color-brand);
   border-radius: var(--radius);
   animation: spin 1s linear infinite;
 }
 .cancel-btn {
   margin-left: auto;
   padding: 0.25rem 0.5rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: transparent;
   color: var(--color-text-primary);

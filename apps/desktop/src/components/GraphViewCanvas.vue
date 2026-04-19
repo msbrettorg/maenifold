@@ -37,8 +37,8 @@ defineEmits<{ retry: [] }>();
   flex: 1;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 30% 50%, rgba(77, 142, 255, 0.03) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 40%, rgba(78, 222, 163, 0.02) 0%, transparent 50%),
+    radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--color-brand) 3%, transparent) 0%, transparent 60%),
+    radial-gradient(ellipse at 70% 40%, color-mix(in srgb, var(--color-status-completed) 2%, transparent) 0%, transparent 50%),
     var(--color-bg-app);
 }
 
@@ -61,7 +61,7 @@ defineEmits<{ retry: [] }>();
 }
 
 .graph-empty-state {
-  background: radial-gradient(ellipse at center, rgba(77, 142, 255, 0.03) 0%, transparent 70%);
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-brand) 3%, transparent) 0%, transparent 70%);
 }
 
 .empty-icon {
@@ -90,7 +90,7 @@ defineEmits<{ retry: [] }>();
 
 .empty-retry {
   padding: 0.4rem 1.2rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-high);
   color: var(--color-text-secondary);
@@ -108,8 +108,8 @@ defineEmits<{ retry: [] }>();
   width: 32px;
   height: 32px;
   margin-bottom: 0.75rem;
-  border: 2px solid rgba(66, 71, 83, 0.15);
-  border-top-color: var(--blue);
+  border: 2px solid var(--color-border-subtle);
+  border-top-color: var(--color-brand);
   border-radius: var(--radius);
   animation: spin 0.8s linear infinite;
 }

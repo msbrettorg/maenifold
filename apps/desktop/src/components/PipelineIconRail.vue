@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { PanelLeftClose, PanelLeftOpen, Plus } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const props = defineProps<{
@@ -14,7 +15,7 @@ const emit = defineEmits<{
   (e: 'new-pipeline'): void;
 }>();
 
-const pipelineButtonRef = ref<HTMLButtonElement | null>(null);
+const pipelineButtonRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
 
 const pipelineTooltip = computed(() =>
   props.activePipelineLabel
@@ -25,7 +26,11 @@ const pipelineTooltip = computed(() =>
 const isPipelineActive = computed(() => props.flyoutOpen || props.activePipelineLabel.length > 0);
 
 function focusPipelineToggle() {
-  pipelineButtonRef.value?.focus();
+  if (pipelineButtonRef.value instanceof HTMLElement) {
+    pipelineButtonRef.value.focus();
+    return;
+  }
+  pipelineButtonRef.value?.$el?.focus();
 }
 
 defineExpose({ focusPipelineToggle });
@@ -36,10 +41,12 @@ defineExpose({ focusPipelineToggle });
     <nav class="pipeline-icon-rail" aria-label="Pipeline navigation">
       <Tooltip>
         <TooltipTrigger as-child>
-          <button
+          <Button
             ref="pipelineButtonRef"
             type="button"
             class="rail-button"
+            variant="ghost"
+            size="icon"
             :class="{ 'is-active': isPipelineActive }"
             :aria-expanded="flyoutOpen"
             aria-controls="pipeline-flyout"
@@ -47,7 +54,7 @@ defineExpose({ focusPipelineToggle });
             @click="emit('toggle-flyout')"
           >
             <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
           {{ pipelineTooltip }}
@@ -56,14 +63,16 @@ defineExpose({ focusPipelineToggle });
 
       <Tooltip>
         <TooltipTrigger as-child>
-          <button
+          <Button
             type="button"
             class="rail-button"
+            variant="ghost"
+            size="icon"
             aria-label="Create new pipeline"
             @click="emit('new-pipeline')"
           >
             <Plus :size="18" />
-          </button>
+          </Button>
         </TooltipTrigger>
         <TooltipContent side="right" class="rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
           Create new pipeline
@@ -89,14 +98,7 @@ defineExpose({ focusPipelineToggle });
   position: relative;
   width: 36px;
   height: 36px;
-  border: 0;
-  border-radius: var(--radius);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   color: var(--color-text-primary);
-  background: transparent;
-  cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
 

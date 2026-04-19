@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { ChevronDown, ChevronUp, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import DesignNodeConfigModal from './DesignNodeConfigModal.vue';
 import GraftNodesDialog from './GraftNodesDialog.vue';
@@ -239,7 +240,9 @@ onBeforeUnmount(() => {
     <div v-if="successMessage" class="success-banner" role="status">
       <span class="success-icon">✓</span>
       <span class="success-text">{{ successMessage }}</span>
-      <button class="banner-dismiss" type="button" aria-label="Dismiss success" @click="store.clearSuccess()">✕</button>
+      <Button class="banner-dismiss" type="button" variant="ghost" size="icon" aria-label="Dismiss success" @click="store.clearSuccess()">
+        <X class="size-4" />
+      </Button>
     </div>
     <div
       class="pipeline-grid"
@@ -264,9 +267,9 @@ onBeforeUnmount(() => {
       </section>
       <section class="composer-panel">
         <div v-if="isNarrowViewport" class="mobile-panel-controls">
-          <button type="button" class="mobile-panel-toggle" @click="toggleMobileSidebar">
+          <Button type="button" class="mobile-panel-toggle" variant="outline" size="sm" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
-          </button>
+          </Button>
         </div>
         <div v-if="showTemplateGallery" class="pipeline-entry-surface">
           <Button
@@ -329,9 +332,10 @@ onBeforeUnmount(() => {
           >
             Join pipeline
           </Button>
-          <button
+          <Button
             class="runner-expand-btn"
             type="button"
+            variant="ghost"
             aria-label="Toggle runner"
             :aria-expanded="runnerExpanded"
             :title="runnerExpanded ? 'Hide runner' : 'Show runner'"
@@ -339,8 +343,9 @@ onBeforeUnmount(() => {
             @keydown="handleRunnerToggleKeydown"
           >
             <span>Runner</span>
-            <span aria-hidden="true">{{ runnerExpanded ? '▼' : '▲' }}</span>
-          </button>
+            <ChevronDown v-if="runnerExpanded" aria-hidden="true" class="size-4" />
+            <ChevronUp v-else aria-hidden="true" class="size-4" />
+          </Button>
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />
       </section>

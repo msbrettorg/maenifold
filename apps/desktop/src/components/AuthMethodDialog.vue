@@ -124,7 +124,7 @@ function handleSelect(methodId: string) {
   align-items: center;
   justify-content: space-between;
   padding: 0.875rem 1rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: var(--surface);
   cursor: pointer;
@@ -167,7 +167,7 @@ function handleSelect(methodId: string) {
 
 .cancel-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: transparent;
   color: var(--text-dim);

@@ -119,7 +119,7 @@ const activeSection = ref<SectionId>('connection');
 
 .nav-item.active {
   background: var(--surface-high);
-  border-left-color: var(--blue);
+  border-left-color: var(--color-brand);
 }
 
 .nav-label {

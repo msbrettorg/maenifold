@@ -167,7 +167,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 .entry-details { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; }
 .tool-info { display: flex; flex-direction: column; gap: 0.25rem; }
 .tool-title { font-size: var(--text-body-sm); font-weight: var(--weight-title); }
-.tool-kind { color: var(--color-text-secondary); font-size: var(--text-caption); text-transform: capitalize; }
+.tool-kind { color: var(--color-text-secondary); font-size: var(--text-caption); }
 .section h4 { margin: 0 0 0.5rem; font-size: var(--text-title); }
 .context-rows { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 0.5rem 0.75rem; margin: 0; }
 .context-rows dt { color: var(--color-text-secondary); font-weight: var(--weight-title); }

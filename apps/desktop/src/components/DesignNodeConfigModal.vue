@@ -78,7 +78,7 @@ const modalDescription = computed(() =>
   border-radius: 0;
   overflow: hidden;
   border: 0;
-  box-shadow: 0 0 32px rgba(173, 198, 255, 0.08);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
 }
 
 .config-heading {

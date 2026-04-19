@@ -245,7 +245,6 @@ code {
   font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 
 .evidence-header h1 {
@@ -273,7 +272,6 @@ code {
 .evidence-meta dt {
   font-size: var(--text-xs);
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 

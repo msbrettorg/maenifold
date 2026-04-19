@@ -11,6 +11,14 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { PipelineEdge, PipelineNode } from '../lib/pipeline-types';
 import { useGraftNodes } from '../composables/useGraftNodes';
@@ -54,6 +62,22 @@ const {
   busy: computed(() => props.busy ?? false),
   onSubmit: (nodes, edges) => emit('submit', nodes, edges),
 });
+
+const NO_EDGE_VALUE = '__none__';
+
+const connectFromValue = computed({
+  get: () => connectFrom.value || NO_EDGE_VALUE,
+  set: (value: string) => {
+    connectFrom.value = value === NO_EDGE_VALUE ? '' : value;
+  },
+});
+
+const connectToValue = computed({
+  get: () => connectTo.value || NO_EDGE_VALUE,
+  set: (value: string) => {
+    connectTo.value = value === NO_EDGE_VALUE ? '' : value;
+  },
+});
 </script>
 
 <template>
@@ -71,109 +95,117 @@ const {
 
       <form class="dialog-form" @submit.prevent="handleSubmit">
         <div class="form-grid">
-          <label>
-            <span>Node type</span>
-            <select
-              v-model="nodeType"
-              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              <option value="workflow">Workflow</option>
-              <option value="prompt">Prompt</option>
-              <option value="sequentialThinking">Sequential Thinking</option>
-              <option value="tool">Tool</option>
-            </select>
-          </label>
+          <div class="form-field">
+            <Label for="graft-node-type">Node type</Label>
+            <Select v-model="nodeType">
+              <SelectTrigger id="graft-node-type" class="w-full">
+                <SelectValue placeholder="Select node type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="workflow">Workflow</SelectItem>
+                <SelectItem value="prompt">Prompt</SelectItem>
+                <SelectItem value="sequentialThinking">Sequential Thinking</SelectItem>
+                <SelectItem value="tool">Tool</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label>
-            <span>Node ID</span>
-            <Input v-model.trim="nodeId" type="text" placeholder="Optional custom ID" />
-          </label>
+          <div class="form-field">
+            <Label for="graft-node-id">Node ID</Label>
+            <Input id="graft-node-id" v-model.trim="nodeId" type="text" placeholder="Optional custom ID" />
+          </div>
 
-          <label>
-            <span>Run after</span>
-            <select
-              v-model="connectFrom"
-              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              <option value="">No upstream edge</option>
-              <option v-for="existingNodeId in existingNodeIds" :key="`from-${existingNodeId}`" :value="existingNodeId">
-                {{ existingNodeId }}
-              </option>
-            </select>
-          </label>
+          <div class="form-field">
+            <Label for="graft-connect-from">Run after</Label>
+            <Select v-model="connectFromValue">
+              <SelectTrigger id="graft-connect-from" class="w-full">
+                <SelectValue placeholder="No upstream edge" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NO_EDGE_VALUE">No upstream edge</SelectItem>
+                <SelectItem v-for="existingNodeId in existingNodeIds" :key="`from-${existingNodeId}`" :value="existingNodeId">
+                  {{ existingNodeId }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label>
-            <span>Continue to</span>
-            <select
-              v-model="connectTo"
-              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              <option value="">No downstream edge</option>
-              <option v-for="existingNodeId in existingNodeIds" :key="`to-${existingNodeId}`" :value="existingNodeId">
-                {{ existingNodeId }}
-              </option>
-            </select>
-          </label>
+          <div class="form-field">
+            <Label for="graft-connect-to">Continue to</Label>
+            <Select v-model="connectToValue">
+              <SelectTrigger id="graft-connect-to" class="w-full">
+                <SelectValue placeholder="No downstream edge" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem :value="NO_EDGE_VALUE">No downstream edge</SelectItem>
+                <SelectItem v-for="existingNodeId in existingNodeIds" :key="`to-${existingNodeId}`" :value="existingNodeId">
+                  {{ existingNodeId }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-          <label>
-            <span>Edge type</span>
-            <select
-              v-model="edgeType"
-              class="w-full bg-[var(--surface)] text-foreground border border-[rgba(66,71,83,0.15)] rounded-[4px] px-3 py-2 text-caption outline-none focus:border-ring focus:ring-2 focus:ring-ring/20"
-            >
-              <option value="success">Success</option>
-              <option value="always">Always</option>
-            </select>
-          </label>
+          <div class="form-field">
+            <Label for="graft-edge-type">Edge type</Label>
+            <Select v-model="edgeType">
+              <SelectTrigger id="graft-edge-type" class="w-full">
+                <SelectValue placeholder="Select edge type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="success">Success</SelectItem>
+                <SelectItem value="always">Always</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
         <div class="form-grid">
           <template v-if="nodeType === 'workflow'">
-            <label>
-              <span>Workflow ID</span>
-              <Input v-model.trim="workflowId" :list="workflowListId" type="text" placeholder="Workflow ID" />
-            </label>
+            <div class="form-field">
+              <Label for="graft-workflow-id">Workflow ID</Label>
+              <Input id="graft-workflow-id" v-model.trim="workflowId" :list="workflowListId" type="text" placeholder="Workflow ID" />
+            </div>
             <datalist :id="workflowListId">
               <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
             </datalist>
-            <label>
-              <span>Agent</span>
-              <Input v-model.trim="workflowAgent" type="text" placeholder="Optional workflow agent" />
-            </label>
-            <label class="field-wide">
-              <span>Prompt</span>
-              <Textarea v-model.trim="workflowPrompt" class="graft-textarea" rows="3" placeholder="Optional workflow prompt" />
-            </label>
+            <div class="form-field">
+              <Label for="graft-workflow-agent">Agent</Label>
+              <Input id="graft-workflow-agent" v-model.trim="workflowAgent" type="text" placeholder="Optional workflow agent" />
+            </div>
+            <div class="form-field field-wide">
+              <Label for="graft-workflow-prompt">Prompt</Label>
+              <Textarea id="graft-workflow-prompt" v-model.trim="workflowPrompt" class="graft-textarea" rows="3" placeholder="Optional workflow prompt" />
+            </div>
           </template>
 
           <template v-else-if="nodeType === 'prompt'">
-            <label>
-              <span>Agent</span>
-              <Input v-model.trim="promptAgent" type="text" placeholder="Agent name" />
-            </label>
-            <label class="field-wide">
-              <span>Prompt</span>
-              <Textarea v-model.trim="promptTemplate" class="graft-textarea" rows="4" placeholder="Required prompt template" />
-            </label>
+            <div class="form-field">
+              <Label for="graft-prompt-agent">Agent</Label>
+              <Input id="graft-prompt-agent" v-model.trim="promptAgent" type="text" placeholder="Agent name" />
+            </div>
+            <div class="form-field field-wide">
+              <Label for="graft-prompt-template">Prompt</Label>
+              <Textarea id="graft-prompt-template" v-model.trim="promptTemplate" class="graft-textarea" rows="4" placeholder="Required prompt template" />
+            </div>
           </template>
 
           <template v-else-if="nodeType === 'sequentialThinking'">
-            <label>
-              <span>Topic</span>
-              <Input v-model.trim="thinkingTopic" type="text" placeholder="Topic" />
-            </label>
-            <label>
-              <span>Agent</span>
-              <Input v-model.trim="thinkingAgent" type="text" placeholder="Agent name" />
-            </label>
-            <label>
-              <span>Total thoughts</span>
-              <Input v-model="thinkingTotalThoughts" type="number" min="1" inputmode="numeric" placeholder="5" />
-            </label>
-            <label>
-              <span>Analysis type</span>
-              <Input v-model.trim="thinkingAnalysisType" type="text" placeholder="Optional analysis type" />
-            </label>
+            <div class="form-field">
+              <Label for="graft-thinking-topic">Topic</Label>
+              <Input id="graft-thinking-topic" v-model.trim="thinkingTopic" type="text" placeholder="Topic" />
+            </div>
+            <div class="form-field">
+              <Label for="graft-thinking-agent">Agent</Label>
+              <Input id="graft-thinking-agent" v-model.trim="thinkingAgent" type="text" placeholder="Agent name" />
+            </div>
+            <div class="form-field">
+              <Label for="graft-thinking-total-thoughts">Total thoughts</Label>
+              <Input id="graft-thinking-total-thoughts" v-model="thinkingTotalThoughts" type="number" min="1" inputmode="numeric" placeholder="5" />
+            </div>
+            <div class="form-field">
+              <Label for="graft-thinking-analysis-type">Analysis type</Label>
+              <Input id="graft-thinking-analysis-type" v-model.trim="thinkingAnalysisType" type="text" placeholder="Optional analysis type" />
+            </div>
           </template>
 
           <template v-else>
@@ -238,7 +270,7 @@ const {
   gap: 0.75rem;
 }
 
-label {
+.form-field {
   display: grid;
   gap: 0.35rem;
   min-width: 0;

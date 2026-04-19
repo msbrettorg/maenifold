@@ -149,7 +149,7 @@ function renderMarkdown(content: string | null) {
 .gate-detail__issue,
 .gate-detail__message {
   padding: 0.75rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-container);
 }
@@ -166,7 +166,7 @@ function renderMarkdown(content: string | null) {
 
 .gate-detail__body {
   padding: 0.9rem;
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface-container);
 }

@@ -6,7 +6,7 @@ const toastStore = useToastStore();
 const { toasts } = storeToRefs(toastStore);
 
 const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
-  info: 'var(--blue)',
+  info: 'var(--color-brand)',
   warning: 'var(--amber)',
   error: 'var(--terracotta)',
   success: 'var(--sage)',
@@ -70,7 +70,7 @@ const ACCENT_BY_LEVEL: Record<ToastLevel, string> = {
   border-radius: 0.75rem;
   background: var(--color-bg-app);
   color: var(--color-text-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
   pointer-events: auto;
 }
 

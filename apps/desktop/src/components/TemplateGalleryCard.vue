@@ -4,7 +4,7 @@ import type { Component } from 'vue';
 import type { PipelineTemplate } from '../lib/pipeline-templates';
 
 const ACCENT_BY_TEMPLATE_ID: Record<string, string> = {
-  'research-and-verify': 'var(--blue)',
+  'research-and-verify': 'var(--color-brand)',
   'think-and-critique': 'var(--plum)',
   'draft-and-refine': 'var(--amber)',
   'explore-and-synthesize': 'var(--sage)',
@@ -33,7 +33,7 @@ defineEmits<{
   <button
     type="button"
     :class="['gallery-card shadow-[var(--shadow-8)] border-[1.5px] border-border-card', { 'gallery-card--selected': props.selected }]"
-    :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? 'var(--blue)' }"
+    :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? 'var(--color-brand)' }"
     @click="$emit('select')"
   >
     <component :is="iconMap[props.template.icon] ?? FlaskConical" class="gallery-card-icon size-5 text-text-secondary" :stroke-width="1.5" />

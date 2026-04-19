@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { Button } from '@/components/ui/button';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
 import { useSessionStore } from '../stores/session';
@@ -277,13 +278,16 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
             class="zoom-failure-pre"
             :class="{ 'zoom-failure-pre--collapsed': isFailureLong && !isFailureExpanded }"
           >{{ failureReason }}</pre>
-          <button
+          <Button
             v-if="isFailureLong"
             class="zoom-failure-toggle"
+            variant="link"
+            size="sm"
+            type="button"
             @click="isFailureExpanded = !isFailureExpanded"
           >
             {{ isFailureExpanded ? 'Show less' : 'Show more' }}
-          </button>
+          </Button>
         </div>
 
         <div class="zoom-body">
@@ -344,7 +348,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   z-index: 1000;
   display: grid;
   place-items: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--color-bg-overlay);
 }
 
 .zoom-panel {
@@ -356,7 +360,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--color-border-subtle);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 32px 64px rgba(0,0,0,0.32), 0 0 8px rgba(0,0,0,0.16);
 }
 
 .zoom-body {
@@ -408,15 +412,11 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeyDown));
 }
 
 .zoom-failure-toggle {
-  display: inline;
   margin-top: var(--space-1);
   padding: 0;
-  border: none;
-  background: none;
   color: var(--color-status-abandoned);
   font-family: var(--font-body);
   font-size: var(--text-tiny);
-  cursor: pointer;
   opacity: 0.8;
 }
 

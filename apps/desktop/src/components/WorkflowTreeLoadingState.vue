@@ -97,7 +97,7 @@ const skeletonItems = [1, 2, 3] as const;
 
 .loading-progress {
   height: 4px;
-  border-radius: 2px;
+  border-radius: 4px;
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--color-text-tertiary) 82%, var(--color-bg-app)) 25%,
@@ -175,6 +175,6 @@ const skeletonItems = [1, 2, 3] as const;
 
 .skeleton-child-label {
   height: 9px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 </style>

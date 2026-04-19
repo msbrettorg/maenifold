@@ -81,24 +81,24 @@ defineEmits<{
       >
         {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
       </Button>
-      <button
+      <Button
         v-if="canReconnect && reconnectSessionId"
-        class="zoom-reconnect-btn"
+        variant="outline"
         :disabled="reconnectBusy || busyAction !== null"
         type="button"
         @click="$emit('reconnect')"
       >
         {{ reconnectBusy ? 'Reconnecting…' : 'Reconnect' }}
-      </button>
-      <button
+      </Button>
+      <Button
         v-if="canConnectLive"
-        class="zoom-reconnect-btn"
+        variant="outline"
         :disabled="reconnectBusy || busyAction !== null"
         type="button"
         @click="$emit('reconnect')"
       >
         {{ reconnectBusy ? 'Connecting…' : 'Connect to live session' }}
-      </button>
+      </Button>
     </div>
 
     <div v-if="forkedSessionId" class="zoom-fork-result" role="status">
@@ -144,24 +144,4 @@ defineEmits<{
   word-break: break-all;
 }
 
-.zoom-reconnect-btn {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--blue);
-  color: var(--color-text-primary);
-  font-weight: 600;
-  font-size: var(--text-caption);
-  cursor: pointer;
-  transition: opacity 0.15s ease;
-}
-
-.zoom-reconnect-btn:hover:not(:disabled) {
-  opacity: 0.88;
-}
-
-.zoom-reconnect-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
 </style>

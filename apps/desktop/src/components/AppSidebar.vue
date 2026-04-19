@@ -53,7 +53,7 @@ const resize = useResizeHandle({
         <button
           :class="[
             'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]',
-            showTrafficMonitor && 'bg-[var(--surface-high)] text-[var(--blue)]',
+            showTrafficMonitor && 'bg-[var(--surface-high)] text-[var(--color-brand)]',
           ]"
           @click="showTrafficMonitor = !showTrafficMonitor"
           title="ACP Traffic Monitor"
@@ -100,7 +100,7 @@ const resize = useResizeHandle({
 
         <button
           v-if="hasAgents"
-          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[var(--blue)] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          class="mt-4 w-full cursor-pointer rounded-[4px] border-none bg-[var(--color-brand)] px-4 py-2.5 text-[var(--text-body-sm)] font-[var(--weight-display)] text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           :disabled="!selectedAgent || isConnecting"
           @click="emit('new-session')"
         >

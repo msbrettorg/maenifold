@@ -202,7 +202,6 @@ function toggleExpanded(): void {
   border-radius: 4px;
   font-size: var(--text-tiny);
   font-weight: var(--weight-title);
-  text-transform: capitalize;
 }
 
 .priority-high {

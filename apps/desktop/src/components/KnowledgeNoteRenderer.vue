@@ -13,7 +13,7 @@ mermaid.initialize({
   themeVariables: {
     primaryColor: '#0078D4',
     primaryTextColor: '#FFFFFF',
-    primaryBorderColor: 'rgba(255,255,255,0.12)',
+    primaryBorderColor: 'var(--color-border-card)',
     lineColor: '#A0AAB2',
     secondaryColor: '#333333',
     tertiaryColor: '#282828',
@@ -89,7 +89,7 @@ watch(rendered, async () => {
 
 <style scoped>
 .note-prose {
-  font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   font-size: 14px;
   line-height: 1.7;
   color: var(--color-text-primary, #FFFFFF);
@@ -103,7 +103,7 @@ watch(rendered, async () => {
   line-height: 1.3;
   margin: 1.75rem 0 0.75rem;
   color: var(--color-text-primary, #FFFFFF);
-  border-bottom: 1px solid var(--color-border-subtle, rgba(255,255,255,0.08));
+  border-bottom: 1px solid var(--color-border-subtle);
   padding-bottom: 0.5rem;
 }
 .note-prose :deep(h2) {
@@ -174,13 +174,13 @@ watch(rendered, async () => {
   border-radius: 4px;
   padding: 0.15rem 0.4rem;
   font-size: 13px;
-  font-family: 'JetBrains Mono', 'Cascadia Code', 'Fira Code', monospace;
+  font-family: var(--font-code);
 }
 
 /* ── Code blocks ── */
 .note-prose :deep(pre) {
   background: var(--color-bg-surface, #333333);
-  border: 1px solid var(--color-border-card, rgba(255,255,255,0.08));
+  border: 1px solid var(--color-border-card);
   border-radius: 8px;
   padding: 1rem;
   margin: 0.75rem 0;
@@ -198,7 +198,7 @@ watch(rendered, async () => {
 /* ── Mermaid ── */
 .note-prose :deep(.mermaid-block) {
   background: var(--color-bg-elevated, #2D2D2D);
-  border: 1px solid var(--color-border-card, rgba(255,255,255,0.08));
+  border: 1px solid var(--color-border-card);
   border-radius: 8px;
   padding: 1.5rem;
   margin: 1rem 0;
@@ -225,7 +225,7 @@ watch(rendered, async () => {
 }
 .note-prose :deep(th),
 .note-prose :deep(td) {
-  border: 1px solid var(--color-border-subtle, rgba(255,255,255,0.08));
+  border: 1px solid var(--color-border-subtle);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
@@ -234,11 +234,10 @@ watch(rendered, async () => {
   font-weight: 600;
   color: var(--color-text-primary, #FFFFFF);
   font-size: 12px;
-  text-transform: uppercase;
   letter-spacing: 0.03em;
 }
 .note-prose :deep(tr:nth-child(even)) {
-  background: rgba(255, 255, 255, 0.02);
+  background: color-mix(in srgb, var(--color-bg-elevated) 35%, transparent);
 }
 
 /* ── Blockquotes ── */
@@ -256,7 +255,7 @@ watch(rendered, async () => {
 /* ── Horizontal rules ── */
 .note-prose :deep(hr) {
   border: none;
-  border-top: 1px solid var(--color-border-subtle, rgba(255,255,255,0.08));
+  border-top: 1px solid var(--color-border-subtle);
   margin: 1.5rem 0;
 }
 
@@ -267,7 +266,7 @@ watch(rendered, async () => {
   padding: 0.1rem 0.5rem;
   margin: 0 0.1rem;
   border-radius: 4px;
-  background: rgba(0, 120, 212, 0.12);
+  background: color-mix(in srgb, var(--color-brand) 12%, transparent);
   color: var(--color-brand, #0078D4);
   font-size: 13px;
   font-weight: 500;

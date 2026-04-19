@@ -139,7 +139,7 @@ async function copyAddress() {
 }
 
 .daemon-address code {
-  font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-code);
   font-size: 0.75rem;
 }
 

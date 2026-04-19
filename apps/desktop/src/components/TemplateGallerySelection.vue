@@ -56,7 +56,7 @@ defineEmits<{
   gap: 0.75rem;
   padding: 1rem;
   width: min(100%, 720px);
-  border: 1px solid rgba(66, 71, 83, 0.15);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 0.25rem;
   background: var(--surface);
 }

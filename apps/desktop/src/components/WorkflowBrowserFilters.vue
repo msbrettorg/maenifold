@@ -91,7 +91,7 @@ function updateSearchQuery(event: Event) {
 .search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--color-text-primary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
 .search-input::placeholder { color: var(--color-text-secondary); }
 .search-input:hover:not(:focus) { background: var(--surface-high); }
-.search-input:focus { background: var(--surface-high); border-color: rgba(77, 142, 255, 0.4); box-shadow: none; }
+.search-input:focus { background: var(--surface-high); border-color: var(--color-brand); box-shadow: none; }
 .chip-row { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
 .chip-row::-webkit-scrollbar { display: none; }
 .chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }

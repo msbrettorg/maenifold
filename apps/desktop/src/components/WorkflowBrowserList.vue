@@ -80,7 +80,7 @@ function stepLabel(count?: number): string | null {
 
 <style scoped>
 .workflow-list { flex: 1; list-style: none; margin: 0; padding: 0 8px 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; scrollbar-width: thin; scrollbar-color: var(--color-bg-elevated) transparent; }
-.workflow-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-left: 3px solid transparent; border-radius: 6px; background: var(--color-bg-surface); cursor: pointer; transition: background 0.15s; }
+.workflow-item { display: flex; align-items: center; gap: 8px; padding: 8px; border-left: 3px solid transparent; border-radius: 8px; background: var(--color-bg-surface); cursor: pointer; transition: background 0.15s; }
 .workflow-item:hover { background: var(--color-bg-surface-hover); }
 .workflow-item--selected { background: var(--color-bg-surface-hover); border-left-color: var(--color-brand); }
 .workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: 50%; background: var(--color-brand); margin-right: -4px; }
@@ -88,7 +88,7 @@ function stepLabel(count?: number): string | null {
 .workflow-name { font-size: 13px; font-weight: 500; line-height: 1.4; color: var(--color-text-primary); white-space: normal; word-break: break-word; }
 .workflow-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .meta-category { font-size: 11px; line-height: 1.4; color: var(--color-text-secondary); }
-.meta-steps { font-size: 11px; line-height: 1.4; font-family: 'JetBrains Mono', monospace; color: var(--color-text-tertiary); }
+.meta-steps { font-size: 11px; line-height: 1.4; font-family: var(--font-body); color: var(--color-text-tertiary); }
 .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px 16px; text-align: center; }
 .empty-message { font-size: 13px; font-weight: 500; line-height: 1.6; color: var(--color-text-secondary); }
 .empty-hint { font-size: 11px; line-height: 1.6; color: var(--color-text-tertiary); }

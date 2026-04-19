@@ -233,14 +233,14 @@ function formatAbsolute(iso: string): string {
 .progress-track {
   height: 4px;
   background: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
-  border-radius: 2px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background: var(--color-status-completed);
-  border-radius: 2px;
+  border-radius: 4px;
   transition: width 0.3s ease;
 }
 

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { getWorkspaceLabel } from '../lib/gate-display';
 
 const selectFieldClass =
-  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--blue)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--blue)]/15';
+  'w-full rounded-md border border-white/10 bg-[var(--surface-container)] px-3 py-2 text-caption text-foreground outline-none transition focus:border-[var(--color-brand)]/40 focus:bg-[var(--surface-high)] focus:ring-2 focus:ring-[var(--color-brand)]/15';
 
 const props = defineProps<{
   hasGateRoot: boolean;
@@ -119,7 +119,7 @@ function handleRootChange(event: Event) {
 }
 
 .gate-chip--todo {
-  background: var(--blue);
+  background: var(--color-brand);
 }
 
 .gate-chip--done {

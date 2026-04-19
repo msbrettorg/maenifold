@@ -117,7 +117,7 @@ function rowTitle(task: GateTask) {
   border: 1px solid var(--color-border-card);
   border-radius: 8px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+  scrollbar-color: var(--color-border-card) transparent;
 }
 
 .gate-table-wrap::-webkit-scrollbar {
@@ -233,7 +233,6 @@ function rowTitle(task: GateTask) {
 
 .gate-process {
   color: var(--color-text-secondary);
-  text-transform: lowercase;
 }
 
 .gate-issue-dot {

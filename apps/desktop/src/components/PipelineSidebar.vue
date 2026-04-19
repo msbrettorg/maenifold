@@ -4,6 +4,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { computed, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
+import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
 
 const props = withDefaults(defineProps<{
@@ -19,6 +20,7 @@ const emit = defineEmits<{
 }>();
 
 const store = usePipelineStore();
+const confirmDialogStore = useConfirmDialogStore();
 const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
 
 const pipelineItems = computed(() => {
@@ -49,19 +51,39 @@ function progressPct(item: PipelineListItem): number {
 
 async function handleSelect(pipelineId: string) {
   if (currentPipelineId.value === pipelineId) return;
-  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) return;
+  if (hasDirtyDraft.value) {
+    const confirmed = await confirmDialogStore.confirm(
+      'Discard unsaved pipeline draft?',
+      'Your unsaved draft changes will be lost.',
+    );
+    if (!confirmed) {
+      return;
+    }
+  }
   const loaded = await store.loadPipeline(pipelineId);
   if (loaded) emit('pipeline-selected', pipelineId);
 }
 
-function handleNew() {
-  if (hasDirtyDraft.value && !window.confirm('Discard unsaved pipeline draft?')) return;
+async function handleNew() {
+  if (hasDirtyDraft.value) {
+    const confirmed = await confirmDialogStore.confirm(
+      'Discard unsaved pipeline draft?',
+      'Your unsaved draft changes will be lost.',
+    );
+    if (!confirmed) {
+      return;
+    }
+  }
   store.newPipeline();
 }
 
 async function handleDelete(item: PipelineListItem, event: Event) {
   event.stopPropagation();
-  if (!confirm(`Delete pipeline "${item.pipelineId}"?`)) return;
+  const confirmed = await confirmDialogStore.confirm(
+    `Delete pipeline "${item.pipelineId}"?`,
+    'This action cannot be undone.',
+  );
+  if (!confirmed) return;
   await store.deletePipelineById(item.pipelineId);
 }
 </script>
@@ -194,7 +216,7 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 .pipeline-item:hover { background: var(--surface-high); }
 
 .pipeline-item.active {
-  border-left-color: var(--blue);
+  border-left-color: var(--color-brand);
   background: var(--surface-high);
 }
 
@@ -257,15 +279,15 @@ async function handleDelete(item: PipelineListItem, event: Event) {
 
 .progress-bar {
   height: 3px;
-  border-radius: 2px;
+  border-radius: 4px;
   background: var(--color-bg-app);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 2px;
-  background: var(--blue);
+  border-radius: 4px;
+  background: var(--color-brand);
   transition: width 0.3s ease;
 }
 

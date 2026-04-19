@@ -155,7 +155,7 @@
     z-index: 20;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
-    box-shadow: 0 0 32px color-mix(in srgb, var(--blue) 8%, transparent);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
   }
   .pipeline-grid.mobile-sidebar-open .sidebar-panel { transform: translateX(0); }
   .composer-panel { position: relative; }
@@ -180,7 +180,7 @@
     font: inherit;
     font-size: var(--text-sm);
     cursor: pointer;
-    box-shadow: 0 0 32px color-mix(in srgb, var(--blue) 8%, transparent);
+    box-shadow: 0 8px 16px rgba(0,0,0,0.28), 0 0 2px rgba(0,0,0,0.12);
   }
   .mobile-panel-toggle:disabled {
     opacity: 0.5;

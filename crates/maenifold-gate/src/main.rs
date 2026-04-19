@@ -25,6 +25,7 @@ mod task_repository;
 mod task_sections;
 mod task_status;
 mod tray;
+mod tray_lifecycle;
 mod tray_menu;
 mod ui_window;
 
@@ -33,9 +34,11 @@ use std::process::ExitCode;
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let code = match cli::GateCliApp::classify(&args) {
-        cli::CliAction::Mcp { root } => tray::run_with_tray(tray::GateServerMode::Stdio, root),
+        cli::CliAction::Mcp { root } => {
+            tray::run_with_tray(tray_lifecycle::GateServerMode::Stdio, root)
+        }
         cli::CliAction::Http { port, root } => {
-            tray::run_with_tray(tray::GateServerMode::Http(port), root)
+            tray::run_with_tray(tray_lifecycle::GateServerMode::Http(port), root)
         }
         cli::CliAction::Headless => cli::GateCliApp::run(&args),
     };

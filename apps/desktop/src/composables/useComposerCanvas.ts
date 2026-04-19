@@ -100,11 +100,26 @@ export function useComposerCanvas(options: UseComposerCanvasOptions) {
 
   function applyDirectionHandles(edgeList: Edge[], direction: Direction): Edge[] {
     const handles = DIRECTION_HANDLES[direction] ?? DIRECTION_HANDLES.LR;
-    return edgeList.map((edge) => ({
-      ...edge,
-      sourceHandle: handles.source,
-      targetHandle: handles.target,
-    }));
+    const sourceCount = new Map<string, number>();
+    for (const edge of edgeList) {
+      sourceCount.set(edge.source, (sourceCount.get(edge.source) ?? 0) + 1);
+    }
+    const sourceIndex = new Map<string, number>();
+    return edgeList.map((edge) => {
+      const idx = sourceIndex.get(edge.source) ?? 0;
+      sourceIndex.set(edge.source, idx + 1);
+      const count = sourceCount.get(edge.source) ?? 1;
+      return {
+        ...edge,
+        sourceHandle: handles.source,
+        targetHandle: handles.target,
+        data: {
+          ...(edge.data ?? {}),
+          fanIndex: idx,
+          fanCount: count,
+        },
+      };
+    });
   }
 
   function hasViewStructureChanged(

@@ -1,4 +1,4 @@
-import { getSmoothStepPath, type EdgeProps } from '@vue-flow/core';
+import { Position, getSmoothStepPath, type EdgeProps } from '@vue-flow/core';
 
 import type { EdgeConditionEquals } from './pipeline-types';
 
@@ -11,7 +11,14 @@ export type FlowEdgeData = {
   edgeType: 'success' | 'always' | 'conditional';
   condition?: FlowEdgeCondition;
   mapping?: Record<string, string>;
+  /** Index of this edge among all edges sharing the same source handle (0-based). */
+  fanIndex?: number;
+  /** Total number of edges sharing the same source handle. */
+  fanCount?: number;
 };
+
+/** Pixel separation between adjacent edges that share a source handle. */
+const FAN_SHELF_SPACING = 18;
 
 function edgeMappings(data?: FlowEdgeData): Array<[string, string]> {
   return Object.entries(data?.mapping ?? {}).filter(
@@ -69,6 +76,14 @@ export function edgePathStyle(
 }
 
 export function edgePath(edge: EdgeProps<FlowEdgeData>): { d: string; x: number; y: number } {
+  const fanIndex = edge.data?.fanIndex ?? 0;
+  const fanCount = edge.data?.fanCount ?? 1;
+  const fanOffset =
+    fanCount > 1 ? (fanIndex - (fanCount - 1) / 2) * FAN_SHELF_SPACING : 0;
+  const isVertical =
+    edge.sourcePosition === Position.Top || edge.sourcePosition === Position.Bottom;
+  const midX = (edge.sourceX + edge.targetX) / 2;
+  const midY = (edge.sourceY + edge.targetY) / 2;
   const [d, x, y] = getSmoothStepPath({
     sourceX: edge.sourceX,
     sourceY: edge.sourceY,
@@ -78,6 +93,8 @@ export function edgePath(edge: EdgeProps<FlowEdgeData>): { d: string; x: number;
     targetPosition: edge.targetPosition,
     offset: 20,
     borderRadius: 12,
+    centerX: isVertical ? undefined : midX + fanOffset,
+    centerY: isVertical ? midY + fanOffset : undefined,
   });
   return { d, x, y };
 }

@@ -3,42 +3,31 @@ import { defineStore } from 'pinia';
 import { toast } from 'vue-sonner';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import {
-  createNode,
   type LogEntry,
   type PipelineDefinition,
-  type PipelineEdge,
   type PipelineInputs,
   type PipelineListItem,
-  type PipelineNode,
-  type PipelineNodeType,
   type PipelineView,
 } from '../lib/pipeline-types';
-import type {
-  PipelineNodeInput,
-  PromptNodeInput,
-  SequentialThinkingNodeInput,
-  ToolNodeInput,
-  WorkflowNodeInput,
-} from '../lib/pipeline-node-factory';
-import { type PipelineTemplate } from '../lib/pipeline-templates';
-import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
-import { createNodeId } from '../lib/pipeline-node-factory';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { createPipelineLifecycleActions } from './pipeline-lifecycle-actions';
 import { createPipelineMutationActions } from './pipeline-mutation-actions';
 import { useConfigStore } from './config';
 import {
-  isCreateResult,
   normalizePipelineList,
-  normalizeView,
-  serializePipelineDefinition,
   toLocalDefinition,
 } from './pipeline-view-transforms';
-import { hydrateEventLogFromView } from '../composables/pipeline-view-diff';
+import { createPipelineRunnerActions } from './pipeline-runner';
+import {
+  createPipelineRefreshActions,
+  createRunInputDraftActions,
+  seedRunInputDraftFromView,
+  serializeEdge,
+  withLocalMetadata,
+} from './pipeline-sync';
+import { createPipelineDesignActions } from './pipeline-design';
 
 const EMPTY_DEFINITION = (): PipelineDefinition => ({ nodes: [], edges: [] });
-const ACTIVE_POLLING_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['active']);
-const TERMINAL_PIPELINE_STATUSES: ReadonlySet<PipelineView['status']> = new Set(['completed', 'abandoned', 'cancelled', 'stuck']);
 
 interface ToolDefinition {
   name: string;
@@ -48,31 +37,6 @@ interface ToolDefinition {
 
 interface AssetSummaryOption {
   id: string;
-}
-
-function serializeEdge(edge: PipelineEdge): PipelineEdge {
-  if (edge.type === 'conditional') {
-    const path = edge.condition?.path?.trim() ?? '';
-    if (path.length === 0) {
-      throw new Error(`Conditional edge ${edge.source} → ${edge.target} requires a non-empty path.`);
-    }
-    const equals = edge.condition?.equals;
-    if (!['string', 'number', 'boolean'].includes(typeof equals)) {
-      throw new Error(`Conditional edge ${edge.source} → ${edge.target} requires a string, number, or boolean equals value.`);
-    }
-  }
-
-  return {
-    source: edge.source,
-    target: edge.target,
-    ...(edge.type ? { type: edge.type } : {}),
-    ...(edge.type === 'conditional' && edge.condition
-      ? { path: edge.condition.path.trim(), equals: edge.condition.equals }
-      : {}),
-    ...(edge.mapping && Object.keys(edge.mapping).length > 0
-      ? { mapping: { ...edge.mapping } }
-      : {}),
-  };
 }
 
 export const usePipelineStore = defineStore('pipeline', () => {
@@ -96,15 +60,9 @@ export const usePipelineStore = defineStore('pipeline', () => {
     }
   }
 
-  function clearError() {
-    errorMessage.value = null;
-  }
-  function clearSuccess() {
-    successMessage.value = null;
-  }
-  function setSuccessMessage(message: string | null) {
-    successMessage.value = message;
-  }
+  function clearError() { errorMessage.value = null; }
+  function clearSuccess() { successMessage.value = null; }
+  function setSuccessMessage(message: string | null) { successMessage.value = message; }
   function setError(tool: string, err: unknown) {
     const message = `${tool}: ${err instanceof Error ? err.message : String(err)}`;
     errorMessage.value = message;
@@ -118,8 +76,11 @@ export const usePipelineStore = defineStore('pipeline', () => {
       catch (err) { setError(tool, err); return undefined; }
     });
   }
+
   const designMode = ref(true);
-  const hasDirtyDraft = computed(() => designMode.value && (localDefinition.value?.nodes?.length ?? 0) > 0);
+  const hasDirtyDraft = computed(
+    () => designMode.value && (localDefinition.value?.nodes?.length ?? 0) > 0,
+  );
   const eventLog = ref<LogEntry[]>([]);
   const workflows = ref<string[]>([]);
   const tools = ref<ToolDefinition[]>([]);
@@ -127,309 +88,73 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const colorAssets = ref<AssetSummaryOption[]>([]);
   const perspectiveAssets = ref<AssetSummaryOption[]>([]);
   const runInputDrafts = ref<Record<string, PipelineInputs>>({});
-  let stopPollingHandle: (() => void) | null = null;
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
   const primaryAgent = computed(() => resolvePreferredAgent(configStore.agentNames).trim());
-  function withLocalMetadata(
-    definition: PipelineDefinition,
-    metadata?: {
-      templateId?: string;
-    },
-  ): PipelineDefinition {
-    const templateId = metadata?.templateId;
-    return {
-      ...definition,
-      ...(templateId ? { templateId } : {}),
-    };
-  }
-  function seedRunInputDraftFromView(view: PipelineView | null) {
-    if (!view?.pipelineId) {
-      return;
-    }
 
-    const existingDraft = runInputDrafts.value[view.pipelineId];
-    if (existingDraft && Object.keys(existingDraft).length > 0) {
-      return;
-    }
-
-    if (!view.inputs || Object.keys(view.inputs).length === 0) {
-      return;
-    }
-
-    runInputDrafts.value = {
-      ...runInputDrafts.value,
-      [view.pipelineId]: { ...view.inputs },
-    };
-  }
-  function setView(
-    view: PipelineView | null,
-    metadata?: {
-      templateId?: string;
-    },
-  ) {
+  function setView(view: PipelineView | null, metadata?: { templateId?: string }) {
     currentView.value = view;
-    seedRunInputDraftFromView(currentView.value);
+    seedRunInputDraftFromView(runInputDrafts, currentView.value);
     localDefinition.value = view
       ? withLocalMetadata(toLocalDefinition(view), metadata)
       : EMPTY_DEFINITION();
     syncPollingState(view);
   }
-  function appendNode(node: PipelineNode): PipelineNode {
-    localDefinition.value = {
-      ...localDefinition.value,
-      nodes: [...localDefinition.value.nodes, node],
-    };
-    return node;
-  }
-  async function connect() {
-    await withLoading(async () => {
-      await mcp.connect();
-      if (!mcp.connected.value) {
-        throw new Error(mcp.error.value ?? 'Failed to connect to MCP service');
-      }
-    });
-  }
-  function disconnect() {
-    stopCurrentPolling();
-    mcp.disconnect();
-  }
+
+  const {
+    startViewPolling,
+    stopCurrentPolling,
+    syncPollingState,
+    resumePollingForActiveView,
+    refreshView,
+  } = createPipelineRunnerActions({
+    mcp, currentPipelineId, currentView, eventLog, setView, withLoading,
+  });
+
+  const { refreshWorkflows, refreshTools, refreshAdoptAssets } = createPipelineRefreshActions({
+    mcp, workflows, tools, roleAssets, colorAssets, perspectiveAssets, withLoading,
+  });
+
+  const { getRunInputDraft, setRunInputDraft, replaceRunInputDraft } =
+    createRunInputDraftActions(runInputDrafts);
+
   async function refreshList() {
     await withLoading(async () => {
       pipelines.value = normalizePipelineList(await mcp.listPipelines());
     });
   }
-  async function loadPipeline(pipelineId: string): Promise<boolean> {
-    const view = await withError('view_pipeline', async () => normalizeView(await mcp.viewPipeline(pipelineId)));
-    if (!view) {
-      return false;
-    }
 
-    stopCurrentPolling();
-    currentPipelineId.value = pipelineId;
-    setView(view);
-    designMode.value = false;
-    eventLog.value = hydrateEventLogFromView(view);
+  const {
+    addNode,
+    loadPipeline,
+    newPipeline,
+    createPipeline,
+    applyTemplate,
+    createIntentPipeline,
+    connect,
+    disconnect,
+  } = createPipelineDesignActions({
+    mcp,
+    configStore,
+    currentPipelineId,
+    currentView,
+    localDefinition,
+    pipelines,
+    designMode,
+    eventLog,
+    maxConcurrency,
+    primaryAgent,
+    setView,
+    stopCurrentPolling,
+    refreshList,
+    setError,
+    withError,
+    withLoading,
+  });
 
-    return true;
-  }
-  function newPipeline() {
-    stopCurrentPolling();
-    currentPipelineId.value = null;
-    setView(null);
-    maxConcurrency.value = 8;
-    designMode.value = true;
-    eventLog.value = [];
-  }
-  async function createPipeline(definitionOverride?: PipelineDefinition) {
-    return withError('create_pipeline', async () => {
-      const definition = serializePipelineDefinition(definitionOverride ?? localDefinition.value);
-      definition.nodes.forEach((node) => {
-        if (node.type === 'workflow' && !('workflowId' in node && node.workflowId)) {
-          throw new Error(`Workflow node '${node.id}' is missing workflowId`);
-        }
-      });
-      const result = await mcp.createPipeline({
-        ...definition,
-        edges: definition.edges.map(serializeEdge),
-      }, maxConcurrency.value);
-      if (isCreateResult(result) && typeof result.pipelineId === 'string' && result.pipelineId.length > 0) {
-        const pipelineId = result.pipelineId;
-        currentPipelineId.value = pipelineId;
-        designMode.value = false;
-        await withError('view_pipeline', async () => {
-          stopCurrentPolling();
-          currentPipelineId.value = pipelineId;
-          setView(normalizeView(await mcp.viewPipeline(pipelineId)));
-          designMode.value = false;
-          eventLog.value = [];
-        });
-        await refreshList();
-      }
-      return result;
-    });
-  }
-  function addNode(node: PipelineNode): PipelineNode;
-  function addNode(type: 'workflow', fields: WorkflowNodeInput): PipelineNode;
-  function addNode(type: 'prompt', fields: PromptNodeInput): PipelineNode;
-  function addNode(type: 'sequentialThinking', fields: SequentialThinkingNodeInput): PipelineNode;
-  function addNode(type: 'tool', fields: ToolNodeInput): PipelineNode;
-  function addNode(nodeOrType: PipelineNode | PipelineNodeType, fields?: PipelineNodeInput): PipelineNode {
-    if (typeof nodeOrType !== 'string') {
-      return appendNode(nodeOrType);
-    }
-
-    if (!fields) {
-      throw new Error(`Missing fields for ${nodeOrType} node`);
-    }
-
-    return appendNode(createNode(nodeOrType, fields));
-  }
-  async function applyTemplate(template: PipelineTemplate): Promise<boolean> {
-    const agents = resolveAgents(
-      configStore.agentNames,
-      resolvePreferredAgent(configStore.agentNames),
-    );
-    const agent = agents.primaryAgent.trim();
-    if (agent.length === 0) {
-      setError('apply_template', new Error('No agent is available for template-based creation. Configure an agent before creating a pipeline.'));
-      return false;
-    }
-
-    const result = instantiateTemplate(template, agents);
-    const definition = withLocalMetadata(result.definition, {
-      templateId: template.id,
-    });
-    localDefinition.value = definition;
-    return true;
-  }
-  function buildIntentDefinition(prompt: string, agent: string): PipelineDefinition {
-    const nodeId = createNodeId('prompt');
-
-    return {
-      nodes: [
-        createNode('prompt', {
-          id: nodeId,
-          prompt,
-          agent,
-          displayLabel: 'Intent',
-        }),
-      ],
-      edges: [],
-    };
-  }
-  async function createIntentPipeline(intent: string): Promise<boolean> {
-    const prompt = intent.trim();
-    if (prompt.length === 0) {
-      return false;
-    }
-
-    const agent = primaryAgent.value;
-    if (agent.length === 0) {
-      setError('create_intent_pipeline', new Error('No agent is available for intent-based creation. Configure an agent before creating a pipeline.'));
-      return false;
-    }
-
-    const definition = buildIntentDefinition(prompt, agent);
-    localDefinition.value = definition;
-    return true;
-  }
-  function getRunInputDraft(pipelineSessionId: string | null | undefined): PipelineInputs {
-    if (!pipelineSessionId) {
-      return {};
-    }
-
-    return { ...(runInputDrafts.value[pipelineSessionId] ?? {}) };
-  }
-  function setRunInputDraft(pipelineSessionId: string, key: string, value: string) {
-    runInputDrafts.value = {
-      ...runInputDrafts.value,
-      [pipelineSessionId]: {
-        ...(runInputDrafts.value[pipelineSessionId] ?? {}),
-        [key]: value,
-      },
-    };
-  }
-  function replaceRunInputDraft(pipelineSessionId: string, inputs: PipelineInputs) {
-    runInputDrafts.value = {
-      ...runInputDrafts.value,
-      [pipelineSessionId]: { ...inputs },
-    };
-  }
-  async function refreshWorkflows() {
-    await withLoading(async () => {
-      try { workflows.value = await mcp.listWorkflows(); } catch { /* non-critical */ }
-    });
-  }
   function listWorkflowSummaries() { return mcp.listWorkflowSummaries(); }
   function readWorkflowDefinition(id: string) { return mcp.readWorkflowDefinition(id); }
-  async function refreshTools() {
-    await withLoading(async () => {
-      try { tools.value = await mcp.listTools(); } catch { /* non-critical */ }
-    });
-  }
-  async function refreshAdoptAssets() {
-    await withLoading(async () => {
-      try {
-        const [roles, colors, perspectives] = await Promise.all([
-          mcp.listAssets('role'),
-          mcp.listAssets('color'),
-          mcp.listAssets('perspective'),
-        ]);
-        roleAssets.value = roles
-          .map((asset) => ({ id: asset.id }))
-          .filter((asset) => asset.id.trim().length > 0);
-        colorAssets.value = colors
-          .map((asset) => ({ id: asset.id }))
-          .filter((asset) => asset.id.trim().length > 0);
-        perspectiveAssets.value = perspectives
-          .map((asset) => ({ id: asset.id }))
-          .filter((asset) => asset.id.trim().length > 0);
-      } catch {
-        // Non-critical for pipeline editing.
-      }
-    });
-  }
-  async function refreshView(options?: { resetEventLog?: boolean }) {
-    if (!currentPipelineId.value) return;
-    await withLoading(async () => {
-      const previousView = currentView.value;
-      const nextView = normalizeView(await mcp.viewPipeline(currentPipelineId.value!));
-      if (options?.resetEventLog) {
-        eventLog.value = hydrateEventLogFromView(nextView);
-      } else if (previousView) {
-        const entries = mcp.diffViews(previousView, nextView);
-        if (entries.length > 0) {
-          eventLog.value = [...eventLog.value, ...entries];
-        }
-      }
-      setView(nextView);
-    });
-  }
-  function startViewPolling() {
-    stopCurrentPolling();
-    if (!currentPipelineId.value) return;
-    stopPollingHandle = mcp.startPolling(currentPipelineId.value, (view) => {
-      const nextView = normalizeView(view);
-      if (currentView.value) {
-        const entries = mcp.diffViews(currentView.value, nextView);
-        if (entries.length > 0) {
-          eventLog.value = [...eventLog.value, ...entries];
-        }
-      }
-      setView(nextView);
-    }, 3000);
-  }
-  function stopCurrentPolling() {
-    if (!stopPollingHandle) return;
-    stopPollingHandle();
-    stopPollingHandle = null;
-  }
-  function syncPollingState(view: PipelineView | null) {
-    if (!view) {
-      stopCurrentPolling();
-      return;
-    }
 
-    const hasActiveNodes = Array.isArray(view.active) && view.active.length > 0;
-    const hasRunningNodes =
-      view.running === true ||
-      view.nodes.some((node) => node.status === 'active');
-
-    if (ACTIVE_POLLING_PIPELINE_STATUSES.has(view.status) || hasActiveNodes || hasRunningNodes) {
-      if (!stopPollingHandle && currentPipelineId.value === view.pipelineId) {
-        startViewPolling();
-      }
-      return;
-    }
-
-    if (TERMINAL_PIPELINE_STATUSES.has(view.status) || stopPollingHandle) {
-      stopCurrentPolling();
-    }
-  }
-  function resumePollingForActiveView() {
-    syncPollingState(currentView.value);
-  }
   const {
     runPipeline,
     pausePipeline,

@@ -203,7 +203,7 @@ impl MaenifoldMcpServer {
             .await
             .map_err(|e| MaenifoldError::Message(format!("MCP server init failed: {e}")))?;
         // T-12.0: RTM FR-11 / RTM-071 — delegate asset-resource change watching to
-        // resources.rs so mod.rs stays focused on MCP server lifecycle and tool dispatch.
+        // mcp/resources/ so mod.rs stays focused on MCP server lifecycle and tool dispatch.
         let asset_watcher = self::resources::start_asset_watcher(&config, service.peer().clone())?;
         let wait_result = tokio::select! {
             result = service.waiting() => {

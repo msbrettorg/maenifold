@@ -4,7 +4,7 @@
   border-radius: 4px;
   background: var(--color-neutral-background-3, var(--card, var(--surface-container)));
   border-color: var(--color-border-subtle);
-  box-shadow: 0 0 24px color-mix(in srgb, var(--color-brand) 18%, transparent);
+  box-shadow: none;
 }
 
 .zoom-body {

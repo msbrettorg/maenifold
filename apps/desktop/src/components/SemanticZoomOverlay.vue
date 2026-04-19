@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
 import { useSessionStore } from '../stores/session';
@@ -214,6 +214,8 @@ watch(() => viewNode.value?.nodeId, () => {
       class="zoom-panel max-h-[80vh] w-[90vw] max-w-[720px] gap-0 overflow-hidden border p-0 shadow-none"
       :show-close-button="false"
     >
+      <DialogTitle class="sr-only">{{ displayLabel }}</DialogTitle>
+      <DialogDescription class="sr-only">Pipeline node inspection details</DialogDescription>
       <SemanticZoomOverlayHeader
         :display-label="displayLabel"
         :node-type="nodeType"

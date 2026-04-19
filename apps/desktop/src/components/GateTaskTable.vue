@@ -109,15 +109,15 @@ function rowTitle(task: GateTask) {
 
 <style scoped>
 .gate-table-wrap {
-  flex: 1.4;
+  flex: 2;
   min-height: 24rem;
   padding: 0.5rem;
   overflow: auto;
-  background: var(--background);
-  border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 0.25rem;
+  background: var(--color-bg-app);
+  border: 1px solid var(--color-border-card);
+  border-radius: 8px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(66, 71, 83, 0.4) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .gate-table-wrap::-webkit-scrollbar {

@@ -87,14 +87,14 @@ function renderMarkdown(content: string | null) {
 
 .gate-detail {
   gap: 1rem;
-  flex: 1;
+  flex: 3;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   padding: 1rem;
-  background: var(--surface);
-  border: 1px solid rgba(66, 71, 83, 0.15);
-  border-radius: 0.25rem;
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border-card);
+  border-radius: 8px;
 }
 
 .gate-detail__header,

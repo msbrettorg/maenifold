@@ -1,6 +1,9 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+import { ChevronRight, ArrowUp, ArrowDown, Brain, X } from 'lucide-vue-next'
 import type { WorkflowStepDefinition } from '../lib/workflow-asset-types'
+
+const emojiPattern = /[\p{Emoji_Presentation}\p{Extended_Pictographic}]\uFE0F?\s*/gu
 
 const props = defineProps<{
   canRemove: boolean
@@ -11,6 +14,8 @@ const props = defineProps<{
   selected: boolean
   step: WorkflowStepDefinition
 }>()
+
+const cleanName = computed(() => props.step.name.replace(emojiPattern, '').trim())
 
 const emit = defineEmits<{
   'move-down': [stepId: string]
@@ -75,9 +80,9 @@ function handleKeydown(event: KeyboardEvent) {
           :aria-expanded="expanded"
           @click.stop="emit('toggle-expanded', step.id)"
         >
-          <span class="disclosure-caret" :class="{ 'disclosure-caret--open': expanded }">▸</span>
+          <ChevronRight class="size-3.5 transition-transform" :class="{ 'rotate-90': expanded }" :stroke-width="1.5" />
         </button>
-        <span class="card-name">{{ step.name }}</span>
+        <span class="card-name">{{ cleanName }}</span>
         <div class="card-actions">
           <button
             class="card-move-btn"
@@ -86,7 +91,7 @@ function handleKeydown(event: KeyboardEvent) {
             aria-label="Move step up"
             @click.stop="emit('move-up', step.id)"
           >
-            ↑
+            <ArrowUp class="size-3.5" :stroke-width="1.5" />
           </button>
           <button
             class="card-move-btn"
@@ -95,13 +100,13 @@ function handleKeydown(event: KeyboardEvent) {
             aria-label="Move step down"
             @click.stop="emit('move-down', step.id)"
           >
-            ↓
+            <ArrowDown class="size-3.5" :stroke-width="1.5" />
           </button>
           <span
             v-if="step.requiresSequentialThinking"
             class="thinking-icon"
             title="Requires sequential thinking"
-          >🧠</span>
+          ><Brain class="size-3.5" :stroke-width="1.5" /></span>
           <button
             v-if="canRemove"
             type="button"
@@ -109,7 +114,7 @@ function handleKeydown(event: KeyboardEvent) {
             :aria-label="`Remove ${step.name}`"
             @click.stop="confirmingRemove = true"
           >
-            ×
+            <X class="size-3.5" :stroke-width="1.5" />
           </button>
         </div>
       </div>

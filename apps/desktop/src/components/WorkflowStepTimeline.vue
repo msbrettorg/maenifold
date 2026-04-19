@@ -209,7 +209,6 @@ watch(exportState, (state) => {
   <section v-else class="timeline" aria-label="Workflow step timeline">
     <header class="timeline-header">
       <h1 class="timeline-title">
-        <span class="title-emoji">{{ displayedDefinition.emoji }}</span>
         {{ displayedDefinition.name }}
       </h1>
       <div class="header-actions">

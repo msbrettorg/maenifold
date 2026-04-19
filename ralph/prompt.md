@@ -10,7 +10,7 @@ Load these skills before doing anything else:
 - `maenifold` — knowledge graph, memory, reasoning, workflows, pipelines
 - `gate` — task backlog, pass/fail, process governance
 
-### 2. Initialize gate
+### 2. Initialize
 
 Sync the gate cache so status is current:
 
@@ -27,17 +27,19 @@ Read the backlog to see what's pending:
 ### 4. Read project conventions
 
 Read `AGENTS.md` at repo root for project conventions and constitutional rules.
+Read `ralph/state/learnings.md` for known failure patterns and lessons learned.
 
 ## Mission
 
-Incrementally improve the codebase while preserving build and test stability.
-Gate task files in `todo/` are the source of truth for requirements and progress.
+Use your team of agents to incrementally improve the codebase while preserving build and test stability.
+Gate task files in `todo/` are the source of truth for requirements and progress. All gate phases must be adhered to for quality assurance.
 
 ## Knowledge grounding (mandatory)
 
 Before making any change, search the knowledge graph for related prior work:
 
 **MCP (preferred):**
+- `RecentActivity` — recent thinking sessions and notes
 - `SearchMemories` — find related notes
 - `BuildContext` — traverse concept neighbors
 - `SequentialThinking` — reason through complex tradeoffs

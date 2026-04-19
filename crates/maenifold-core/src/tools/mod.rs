@@ -1,4 +1,6 @@
 mod acp_exec;
+mod acp_exec_context;
+mod acp_exec_payload;
 mod catalog;
 mod context;
 mod diagnostics;

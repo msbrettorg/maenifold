@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { onMounted } from 'vue';
 import { storeToRefs } from 'pinia';
+import { useOnboarding } from './composables/useOnboarding';
+import OnboardingWizard from './components/OnboardingWizard.vue';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
 import { useFolderPickerStore } from './stores/folder-picker';
@@ -55,10 +58,23 @@ const {
   handleAuthMethodCancel,
 } = useAppShell({ configStore, sessionStore });
 
+const { isFirstRun, checkFirstRun } = useOnboarding();
+
+onMounted(() => {
+  checkFirstRun();
+});
+
+function onOnboardingComplete(): void {
+  // Re-sync local gate state from persisted storage. The wizard's composable
+  // instance and this composable instance hold independent refs, so we re-read
+  // to ensure the gate flips after the wizard persists completion.
+  checkFirstRun();
+}
 </script>
 
 <template>
-  <div class="relative box-border flex h-screen flex-col overflow-hidden">
+  <OnboardingWizard v-if="isFirstRun" @complete="onOnboardingComplete" />
+  <div v-else class="relative box-border flex h-screen flex-col overflow-hidden">
     <AppTabBar v-model="activeTab" />
 
     <div class="flex min-h-0 flex-1 overflow-hidden">

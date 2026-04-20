@@ -29,6 +29,7 @@
   --color-text-text-primary: var(--foreground);
   --color-text-text-secondary: var(--text-secondary);
   --color-brand: var(--blue);
+  --color-brand-hover: var(--brand-hover);
   --color-success: var(--sage);
   --color-warning: var(--amber);
   --color-danger: var(--terracotta);

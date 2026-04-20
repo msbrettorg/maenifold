@@ -3,7 +3,6 @@ import { computed, inject, onUnmounted, ref, type Ref } from 'vue';
 import { Check, ExternalLink, Sparkles } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import { useConfigStore } from '../stores/config';
 
 const goBack = inject<() => void>('onboarding-go-back');
@@ -18,14 +17,14 @@ let disposed = false;
 
 const firstAgent = computed<string>(() => configStore.agentNames[0] ?? 'Unknown');
 
-const memoryPath = '~/maenifold/memory';
+const memoryPath = computed<string>(
+  () => configStore.configPath || '~/.config/maenifold/maenifold.json',
+);
 
 async function probeDaemon(): Promise<boolean> {
   try {
-    const res = await fetch(`${DAEMON_BASE_URL}/health`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    return res.ok;
+    await configStore.loadConfig();
+    return configStore.error === null;
   } catch {
     return false;
   }
@@ -144,7 +143,7 @@ onUnmounted(() => {
             <Check class="h-3 w-3" />
           </span>
           <div class="flex flex-col gap-0.5">
-            <span class="text-sm font-medium text-text-primary">Memory</span>
+            <span class="text-sm font-medium text-text-primary">Config</span>
             <span class="text-xs text-text-secondary font-mono">{{ memoryPath }}</span>
           </div>
         </li>

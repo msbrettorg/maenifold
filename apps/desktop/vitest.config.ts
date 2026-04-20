@@ -19,6 +19,7 @@ export default defineConfig({
       '**/dist/**',
       'evidence/**',
       'tests/e2e/**',
+      'tests/visual/**',
     ],
   },
 });

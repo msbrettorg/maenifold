@@ -32,6 +32,17 @@ Object.defineProperty(window, 'localStorage', {
   configurable: true,
 });
 
+// jsdom polyfill: reka-ui (and other libs) use ResizeObserver at runtime.
+// jsdom does not provide one, so we install a no-op shim for tests.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  class ResizeObserverShim {
+    observe(): void {}
+    unobserve(): void {}
+    disconnect(): void {}
+  }
+  globalThis.ResizeObserver = ResizeObserverShim;
+}
+
 export class MockAcpClientBridge {
   agentId: string;
   onSessionUpdate: ((notification: unknown) => void) | null = null;

@@ -3,11 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils';
 
+vi.mock('elkjs/lib/elk-api', () => ({
+  default: class {
+    layout() {
+      return Promise.resolve({ children: [], edges: [] });
+    }
+  },
+}));
+
+vi.mock('elkjs/lib/elk-worker.min.js?url', () => ({
+  default: 'mock-elk-worker.js',
+}));
+
 import PipelineComposer from '../PipelineComposer.vue';
 import PipelineIconRail from '../PipelineIconRail.vue';
 import PipelineSidebar from '../PipelineSidebar.vue';
 import PipelineView from '../PipelineView.vue';
 import { usePipelineStore } from '../../stores/pipeline';
+import { useConfirmDialogStore } from '../../stores/confirm-dialog';
 
 const vueFlowStubs = {
   VueFlow: {
@@ -64,6 +77,7 @@ function mountPipelineView(
   vi.spyOn(store, 'refreshTools').mockResolvedValue();
 
   const wrapper = mount(PipelineView, {
+    attachTo: document.body,
     global: {
       plugins: [pinia],
       stubs: vueFlowStubs,
@@ -76,6 +90,14 @@ function mountPipelineView(
 async function openFlyout(wrapper: VueWrapper<any>) {
   await wrapper.get('button[aria-label="Open pipelines flyout"]').trigger('click');
   await flushPromises();
+}
+
+function findFlyout(): HTMLElement | null {
+  return document.body.querySelector<HTMLElement>('.pipeline-flyout');
+}
+
+function findInBody<E extends Element = HTMLElement>(selector: string): E | null {
+  return document.body.querySelector<E>(selector);
 }
 
 beforeEach(() => {
@@ -97,17 +119,17 @@ describe('PipelineView layout behavior', () => {
 
     expect(wrapper.findComponent(PipelineIconRail).exists()).toBe(true);
     expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(false);
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(false);
+    expect(findFlyout()).toBeNull();
 
     await openFlyout(wrapper);
 
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(true);
+    expect(findFlyout()).not.toBeNull();
     expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(true);
 
     await wrapper.get('button[aria-label="Close pipelines flyout"]').trigger('click');
     await flushPromises();
 
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(false);
+    expect(findFlyout()).toBeNull();
     expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(false);
   });
 
@@ -126,12 +148,12 @@ describe('PipelineView layout behavior', () => {
     wrapper.findComponent(PipelineComposer).vm.$emit('nodeSelected', 'node-1');
     await flushPromises();
 
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(true);
+    expect(findFlyout()).not.toBeNull();
 
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
     await flushPromises();
 
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(false);
+    expect(findFlyout()).toBeNull();
   });
 
   it('keeps node selection in server mode without rendering inspector controls', async () => {
@@ -185,7 +207,8 @@ describe('PipelineView layout behavior', () => {
         ];
       },
     });
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const confirmDialogStore = useConfirmDialogStore();
+    const confirmSpy = vi.spyOn(confirmDialogStore, 'confirm').mockResolvedValue(false);
     const loadPipelineSpy = vi.spyOn(store, 'loadPipeline')
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
@@ -193,28 +216,37 @@ describe('PipelineView layout behavior', () => {
     await flushPromises();
     await openFlyout(wrapper);
 
-    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+    const pipelineNextButton = (): HTMLElement => {
+      const el = findInBody('[data-pipeline-id="pipeline-next"]');
+      if (!el) throw new Error('pipeline-next button not found in document body');
+      return el;
+    };
+
+    pipelineNextButton().click();
     await flushPromises();
 
-    expect(confirmSpy).toHaveBeenCalledWith('Discard unsaved pipeline draft?');
+    expect(confirmSpy).toHaveBeenCalledWith(
+      'Discard unsaved pipeline draft?',
+      'Your unsaved draft changes will be lost.',
+    );
     expect(loadPipelineSpy).not.toHaveBeenCalled();
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(true);
+    expect(findFlyout()).not.toBeNull();
 
-    confirmSpy.mockReturnValue(true);
+    confirmSpy.mockResolvedValue(true);
     store.designMode = false;
     store.localDefinition = { nodes: [], edges: [] };
 
-    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+    pipelineNextButton().click();
     await flushPromises();
 
     expect(loadPipelineSpy).toHaveBeenCalledTimes(1);
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(true);
+    expect(findFlyout()).not.toBeNull();
 
-    await wrapper.get('[data-pipeline-id="pipeline-next"]').trigger('click');
+    pipelineNextButton().click();
     await flushPromises();
 
     expect(loadPipelineSpy).toHaveBeenCalledTimes(2);
-    expect(wrapper.find('#pipeline-flyout').exists()).toBe(false);
+    expect(findFlyout()).toBeNull();
   });
 
   it('keeps mobile behavior by hiding the rail and rendering the existing sidebar layout', async () => {

@@ -3,6 +3,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 import SemanticZoomOverlay from '../SemanticZoomOverlay.vue';
 import { usePipelineStore } from '../../stores/pipeline';
+import { usePromptDialogStore } from '../../stores/prompt-dialog';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
 import type { ViewNode } from '../../lib/pipeline-types';
 
@@ -45,61 +46,58 @@ describe('SemanticZoomOverlay', () => {
     zoom.focusedNodeId = 'node-1';
   });
 
-  it('shows footer actions using the same status gating as inspector actions', () => {
+  it('shows footer actions using the same status gating as inspector actions', async () => {
     const wrapper = mount(SemanticZoomOverlay, {
-      global: {
-        stubs: {
-          teleport: true,
-        },
-      },
+      attachTo: document.body,
     });
+    await flushPromises();
 
-    expect(wrapper.text()).toContain('Fork from node');
-    expect(wrapper.text()).toContain('Rewind node');
-    expect(wrapper.text()).not.toContain('Restart node');
-    expect(wrapper.text()).not.toContain('Abandon node');
+    expect(document.body.textContent).toContain('Fork from node');
+    expect(document.body.textContent).toContain('Rewind node');
+    expect(document.body.textContent).not.toContain('Restart node');
+    expect(document.body.textContent).not.toContain('Abandon node');
+    wrapper.unmount();
   });
 
-  it('shows restart and rewind for abandoned nodes', () => {
+  it('shows restart and rewind for abandoned nodes', async () => {
     const pipeline = usePipelineStore();
     pipeline.currentView!.nodes = [createNode({ status: 'abandoned' })];
 
     const wrapper = mount(SemanticZoomOverlay, {
-      global: {
-        stubs: {
-          teleport: true,
-        },
-      },
+      attachTo: document.body,
     });
+    await flushPromises();
 
-    expect(wrapper.text()).toContain('Fork from node');
-    expect(wrapper.text()).toContain('Restart node');
-    expect(wrapper.text()).toContain('Rewind node');
-    expect(wrapper.text()).not.toContain('Abandon node');
+    expect(document.body.textContent).toContain('Fork from node');
+    expect(document.body.textContent).toContain('Restart node');
+    expect(document.body.textContent).toContain('Rewind node');
+    expect(document.body.textContent).not.toContain('Abandon node');
+    wrapper.unmount();
   });
 
   it('wires fork actions through the pipeline store and shows the returned session id', async () => {
     const pipeline = usePipelineStore();
-    const promptSpy = vi.spyOn(window, 'prompt').mockReturnValue('');
+    const promptDialog = usePromptDialogStore();
+    const requestValueSpy = vi.spyOn(promptDialog, 'requestValue').mockResolvedValue('');
 
     const wrapper = mount(SemanticZoomOverlay, {
-      global: {
-        stubs: {
-          teleport: true,
-        },
-      },
+      attachTo: document.body,
     });
-
-    await wrapper
-      .findAll('button')
-      .find((button) => button.text() === 'Fork from node')!
-      .trigger('click');
     await flushPromises();
 
-    expect(promptSpy).toHaveBeenCalledWith('Optional name for the forked pipeline session:', '');
-    expect(pipeline.forkPipeline).toHaveBeenCalledWith('session-1', 'node-1', undefined);
-    expect(wrapper.text()).toContain('fork-1');
+    const forkButton = Array.from(document.body.querySelectorAll('button'))
+      .find((btn) => btn.textContent?.trim() === 'Fork from node');
+    expect(forkButton, 'Fork from node button should be present').toBeDefined();
+    forkButton!.click();
+    await flushPromises();
 
-    promptSpy.mockRestore();
+    expect(requestValueSpy).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Fork pipeline session',
+    }));
+    expect(pipeline.forkPipeline).toHaveBeenCalledWith('session-1', 'node-1', undefined);
+    expect(document.body.textContent).toContain('fork-1');
+
+    requestValueSpy.mockRestore();
+    wrapper.unmount();
   });
 });

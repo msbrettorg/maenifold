@@ -60,8 +60,12 @@ function forwardToolName(value: string | number): void {
 }
 
 function syntheticChangeEvent(value: unknown): Event {
-  return { target: { value: String(value ?? '') } } as unknown as Event;
+  const raw = String(value ?? '');
+  const normalized = raw === AGENT_DEFAULT_OPTION ? '' : raw;
+  return { target: { value: normalized } } as unknown as Event;
 }
+
+const AGENT_DEFAULT_OPTION = '__default__';
 
 function getCwdWarning(value: string): string | null {
   if (!value) {
@@ -139,12 +143,12 @@ const {
   <div class="tool-palette field-wide">
     <Label>
       <span>Agent Override</span>
-      <Select :model-value="agentName" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
+      <Select :model-value="agentName || AGENT_DEFAULT_OPTION" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
         <SelectTrigger :class="selectFieldClass" data-testid="tool-agent-select">
           <SelectValue placeholder="Use tool default" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">Use tool default</SelectItem>
+          <SelectItem :value="AGENT_DEFAULT_OPTION">Use tool default</SelectItem>
           <SelectItem v-for="name in configStore.agentNames" :key="name" :value="name">
             {{ formatAgentOptionLabel(name) }}
           </SelectItem>

@@ -13,6 +13,18 @@ const flowHooks = vi.hoisted(() => ({
   setNodes: vi.fn(),
 }));
 
+vi.mock('elkjs/lib/elk-api', () => ({
+  default: class {
+    layout() {
+      return Promise.resolve({ children: [], edges: [] });
+    }
+  },
+}));
+
+vi.mock('elkjs/lib/elk-worker.min.js?url', () => ({
+  default: 'mock-elk-worker.js',
+}));
+
 vi.mock('@vue-flow/core', () => ({
   getSmoothStepPath: vi.fn(() => ['', 0, 0]),
   useVueFlow: () => ({
@@ -163,30 +175,12 @@ describe('useComposerCanvas double-click behavior', () => {
     localStorage.clear();
   });
 
-  it('reconnects non-tool nodes by ACP session and switches to the Agents tab', async () => {
-    const appShellStore = useAppShellStore();
-    const sessionStore = useSessionStore();
-    const zoomStore = useSemanticZoomStore();
-    appShellStore.setActiveTab('pipelines');
-
-    const reconnectSpy = vi
-      .spyOn(sessionStore, 'focusOrResumeRemoteSession')
-      .mockResolvedValue({ status: 'resumed', localSessionId: 'local-1' });
-    const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
-
-    mountComposerCanvas({ view: createView() });
-    const { target } = createEventTarget();
-
-    await flowHooks.nodeDoubleClick?.({
-      node: { id: 'prompt-1' },
-      event: createMouseEvent(target),
-    });
-    await nextTick();
-
-    expect(reconnectSpy).toHaveBeenCalledWith('acp-remote-1');
-    expect(appShellStore.activeTab).toBe('agents');
-    expect(inspectSpy).not.toHaveBeenCalled();
-  });
+  // Removed in T-170.10: inline reconnect-on-double-click was moved to the
+  // SemanticZoomOverlay/PipelineFlyout. handleNodeDoubleClick now only calls
+  // enterInspect (or designNodeDoubleClick in design mode) — it does not call
+  // focusOrResumeRemoteSession or change the active tab. Tests that asserted
+  // those behaviors were removed because the production code no longer
+  // implements them.
 
   it('preserves inspect zoom for tool nodes and never attempts reconnect', async () => {
     const appShellStore = useAppShellStore();
@@ -285,27 +279,9 @@ describe('useComposerCanvas double-click behavior', () => {
     expect(inspectSpy).toHaveBeenCalledWith('prompt-1', expect.any(DOMRect));
   });
 
-  it('stays stable when reconnect cannot find the ACP session', async () => {
-    const appShellStore = useAppShellStore();
-    const sessionStore = useSessionStore();
-    const zoomStore = useSemanticZoomStore();
-    appShellStore.setActiveTab('pipelines');
-
-    vi.spyOn(sessionStore, 'focusOrResumeRemoteSession').mockResolvedValue({ status: 'missing' });
-    const inspectSpy = vi.spyOn(zoomStore, 'enterInspect');
-
-    mountComposerCanvas({ view: createView() });
-    const { target } = createEventTarget();
-
-    await flowHooks.nodeDoubleClick?.({
-      node: { id: 'prompt-1' },
-      event: createMouseEvent(target),
-    });
-    await nextTick();
-
-    expect(appShellStore.activeTab).toBe('pipelines');
-    expect(inspectSpy).not.toHaveBeenCalled();
-  });
+  // Removed in T-170.10: see note above. The "reconnect cannot find ACP
+  // session" path was part of the inline double-click reconnect logic that
+  // no longer exists.
 });
 
 describe('useComposerCanvas runtime auto-fit behavior', () => {

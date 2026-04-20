@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, nextTick } from 'vue';
+import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 
 function createStorageMock(): Storage {
@@ -32,12 +33,17 @@ async function loadRegistry(seedRoot = '') {
   const { useGateRegistry } = await import('../useGateRegistry');
   const registry = {} as ReturnType<typeof useGateRegistry>;
 
+  const pinia = createPinia();
+  setActivePinia(pinia);
+
   mount(defineComponent({
     setup() {
       Object.assign(registry, useGateRegistry(() => seedRoot));
       return () => null;
     },
-  }));
+  }), {
+    global: { plugins: [pinia] },
+  });
 
   await flushPromises();
   await nextTick();
@@ -84,17 +90,9 @@ describe('useGateRegistry', () => {
     expect(registry.error.value).toBe('');
   });
 
-  it('uses a browser prompt fallback when dialog is unavailable', async () => {
-    vi.spyOn(window, 'prompt').mockReturnValue('/browser/root');
-    // @ts-expect-error test shim
-    globalThis.HTMLDialogElement = undefined;
-
-    const registry = await loadRegistry();
-    const selected = await registry.browseForRoot();
-
-    expect(selected).toBe('/browser/root');
-    expect(registry.selectedGateRoot.value).toBe('/browser/root');
-    expect(registry.gateRoots.value).toEqual(['/browser/root']);
-    expect(window.localStorage.getItem('preferences.json:selectedGateRoot')).toBe(JSON.stringify('/browser/root'));
-  });
+  // Removed: `pickAbsoluteDirectory` no longer falls back to `window.prompt`
+  // when `HTMLDialogElement` is undefined. The directory picker now goes
+  // through the `useFolderPickerStore` (Pinia), which is driven exclusively
+  // by an in-app dialog UI. The old browser-prompt fallback path no longer
+  // exists in production, so the test that asserted it has been removed.
 });

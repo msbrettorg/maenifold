@@ -4,7 +4,27 @@ import { createPinia, setActivePinia } from 'pinia';
 import { flushPromises, mount } from '@vue/test-utils';
 
 import AddNodeForm from '../AddNodeForm.vue';
+import Select from '../ui/select/Select.vue';
 import { normalizeAgentProbeResult } from '../../lib/agent-probe-types';
+
+// Helpers to drive the reka-ui Select component (which renders <button role="combobox">,
+// not a native <select>) by emitting update:modelValue on the wrapping Select component.
+async function setSelectValueByAttr(
+  wrapper: ReturnType<typeof mount>,
+  attrSelector: string,
+  value: string,
+): Promise<void> {
+  const trigger = wrapper.get(attrSelector).element;
+  const selects = wrapper.findAllComponents(Select);
+  for (const sel of selects) {
+    if ((sel.element as Element).contains(trigger)) {
+      sel.vm.$emit('update:modelValue', value);
+      await flushPromises();
+      return;
+    }
+  }
+  throw new Error(`No Select component wraps element matching ${attrSelector}`);
+}
 import { useAgentCapabilitiesStore } from '../../stores/agent-capabilities';
 import { useConfigStore } from '../../stores/config';
 import { useMcpToolDiscoveryStore } from '../../stores/mcp-tool-discovery';
@@ -132,14 +152,14 @@ describe('AddNodeForm', () => {
       },
     });
 
-    await wrapper.get('select[aria-label="Node type"]').setValue('prompt');
-    await wrapper.get('[data-testid="prompt-agent-select"]').setValue('architect');
+    await setSelectValueByAttr(wrapper, '[role="combobox"][aria-label="Node type"]', 'prompt');
+    await setSelectValueByAttr(wrapper, '[data-testid="prompt-agent-select"]', 'architect');
     await flushPromises();
 
     await wrapper.get('[data-testid="prompt-mode-badge-workflow"]').trigger('click');
-    await wrapper.get('[data-testid="prompt-model-select"]').setValue('gpt-5-mini');
-    await wrapper.get('[data-testid="prompt-thought-level-select"]').setValue('high');
-    await wrapper.get('[data-testid="prompt-config-temperature"]').setValue('1');
+    await setSelectValueByAttr(wrapper, '[data-testid="prompt-model-select"]', 'gpt-5-mini');
+    await setSelectValueByAttr(wrapper, '[data-testid="prompt-thought-level-select"]', 'high');
+    await setSelectValueByAttr(wrapper, '[data-testid="prompt-config-temperature"]', '1');
     await wrapper.get('textarea[placeholder="Required prompt template"]').setValue('Investigate the failure');
     await wrapper.get('form.composer-toolbar').trigger('submit');
 
@@ -173,7 +193,7 @@ describe('AddNodeForm', () => {
       },
     });
 
-    await wrapper.get('select[aria-label="Node type"]').setValue('tool');
+    await setSelectValueByAttr(wrapper, '[role="combobox"][aria-label="Node type"]', 'tool');
     await wrapper.get('input[type="search"]').setValue('search');
     await flushPromises();
 

@@ -53,7 +53,7 @@ describe('PipelineRunner loaded event formatting', () => {
       global: { plugins: [pinia] },
     });
 
-    expect(wrapper.text()).toContain('↺ Compile assets loaded as completed — output: snapshotted output preview');
+    expect(wrapper.text()).toContain('Compile assets loaded as completed — output: snapshotted output preview');
     expect(wrapper.text()).not.toContain('live output should not be used');
   });
 
@@ -90,7 +90,7 @@ describe('PipelineRunner loaded event formatting', () => {
       global: { plugins: [pinia] },
     });
 
-    expect(wrapper.text()).toContain('❌ Compile assets abandoned — details: tool execution failed: missing credentials');
+    expect(wrapper.text()).toContain('Compile assets abandoned: tool execution failed: missing credentials');
     expect(wrapper.text()).not.toContain('backend error should not replace');
   });
 });

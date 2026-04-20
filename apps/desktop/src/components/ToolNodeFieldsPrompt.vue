@@ -16,8 +16,12 @@ import type { PipelineNodeAgentConfig } from '../lib/pipeline-types';
 import type { SessionConfigSelectGroup, SessionConfigSelectOption } from '../lib/types';
 import AgentProbePreview from './AgentProbePreview.vue';
 
+const AGENT_DEFAULT_OPTION = '__default__';
+
 function syntheticChangeEvent(value: unknown): Event {
-  return { target: { value: String(value ?? '') } } as unknown as Event;
+  const raw = String(value ?? '');
+  const normalized = raw === AGENT_DEFAULT_OPTION ? '' : raw;
+  return { target: { value: normalized } } as unknown as Event;
 }
 
 const selectFieldClass =
@@ -48,12 +52,12 @@ defineProps({
 <template>
   <Label>
     <span>Agent Override</span>
-    <Select :model-value="agentName" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
+    <Select :model-value="agentName || AGENT_DEFAULT_OPTION" @update:model-value="(val) => updateAgentName(syntheticChangeEvent(val))">
       <SelectTrigger :class="selectFieldClass" data-testid="tool-agent-select">
         <SelectValue placeholder="Use tool default" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="">Use tool default</SelectItem>
+        <SelectItem :value="AGENT_DEFAULT_OPTION">Use tool default</SelectItem>
         <SelectItem v-for="name in agentNames" :key="name" :value="name">
           {{ formatAgentOptionLabel(name) }}
         </SelectItem>

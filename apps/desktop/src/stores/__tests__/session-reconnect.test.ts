@@ -5,13 +5,15 @@ import { reactive } from 'vue';
 import { createEmptySessionState } from '../../lib/types';
 import { createMockBridge } from '../../test/setup';
 
-const toast = {
-  info: vi.fn(),
-  warning: vi.fn(),
-  error: vi.fn(),
-  success: vi.fn(),
-  message: vi.fn(),
-};
+const { toast } = vi.hoisted(() => ({
+  toast: {
+    info: vi.fn(),
+    warning: vi.fn(),
+    error: vi.fn(),
+    success: vi.fn(),
+    message: vi.fn(),
+  },
+}));
 
 vi.mock('vue-sonner', () => ({ toast }));
 

@@ -1,5 +1,6 @@
 mod adapter;
 mod client;
+mod client_terminal;
 mod runtime_state;
 mod session;
 mod worker;

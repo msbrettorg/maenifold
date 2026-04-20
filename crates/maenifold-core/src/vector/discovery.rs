@@ -41,6 +41,7 @@ pub fn load_model() -> Result<()> {
         embedding_dims,
         max_tokens,
         model_filename,
+        model_path: model_path.clone(),
     });
     Ok(())
 }

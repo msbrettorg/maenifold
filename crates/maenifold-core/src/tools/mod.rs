@@ -4,6 +4,7 @@ mod acp_exec_payload;
 mod catalog;
 mod context;
 mod diagnostics;
+mod embedding_models;
 mod recent_activity;
 mod recent_activity_format;
 mod response;
@@ -13,6 +14,7 @@ pub use acp_exec::acp_exec;
 pub use catalog::{list_assets, read_mcp_resource};
 pub use context::{ToolContext, not_yet_implemented, render};
 pub use diagnostics::{get_config, memory_status};
+pub use embedding_models::embedding_models;
 pub use recent_activity::{
     RecentActivityRecord, collect_recent_activity_records, parse_recent_activity_timespan,
     recent_activity,

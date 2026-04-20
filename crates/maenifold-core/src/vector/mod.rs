@@ -1,5 +1,6 @@
 use ort::session::Session;
 use serde::Deserialize;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 use tokenizers::Tokenizer;
 
@@ -40,6 +41,7 @@ pub(crate) struct ModelState {
     pub(crate) embedding_dims: usize,
     pub(crate) max_tokens: usize,
     pub(crate) model_filename: String,
+    pub(crate) model_path: PathBuf,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +95,14 @@ pub fn model_filename() -> Option<String> {
         .get()
         .and_then(|state| state.lock().ok())
         .and_then(|guard| guard.as_ref().map(|state| state.model_filename.clone()))
+}
+
+/// Get the full path to the loaded model file, or None if no model loaded
+pub fn model_path() -> Option<PathBuf> {
+    MODEL_STATE
+        .get()
+        .and_then(|state| state.lock().ok())
+        .and_then(|guard| guard.as_ref().map(|state| state.model_path.clone()))
 }
 
 pub(crate) fn model_state() -> &'static Mutex<Option<ModelState>> {

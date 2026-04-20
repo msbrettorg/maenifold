@@ -236,4 +236,9 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         aliases: &["acpexec", "acp_exec"],
         invoke: tools::acp_exec,
     },
+    ToolDescriptor {
+        name: "EmbeddingModels",
+        aliases: &["embeddingmodels", "embedding_models"],
+        invoke: tools::embedding_models,
+    },
 ];

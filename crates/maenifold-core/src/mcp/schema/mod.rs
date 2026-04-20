@@ -1,5 +1,7 @@
 mod assumption_params;
 mod assumption_tools;
+mod embedding_models_params;
+mod embedding_models_tools;
 mod graph_params;
 #[cfg(test)]
 mod graph_params_tests;
@@ -34,6 +36,7 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
         .or_else(|| workflow_tools::tool(registry_name))
         .or_else(|| assumption_tools::tool(registry_name))
         .or_else(|| system_tools::tool(registry_name))
+        .or_else(|| embedding_models_tools::tool(registry_name))
         .ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "Missing MCP tool schema mapping for registry tool {registry_name}"

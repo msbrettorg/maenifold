@@ -152,7 +152,7 @@ pub(crate) fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>
 mod tests {
     use serde_json::json;
 
-    use super::context_from_value;
+    use super::{context_from_value, optional_string, optional_bool, required_string, call_gate_tool};
 
     #[test]
     fn context_from_value_rejects_nonexistent_root() {
@@ -165,5 +165,75 @@ mod tests {
             "error should contain the path: {msg}"
         );
         assert!(msg.contains("root"), "error should mention root: {msg}");
+    }
+
+    #[test]
+    fn optional_string_returns_some_for_string() {
+        let args = json!({"key": "value"});
+        assert_eq!(
+            optional_string(&args, "key").expect("parse string"),
+            Some("value".to_string())
+        );
+    }
+
+    #[test]
+    fn optional_string_returns_none_for_null() {
+        let args = json!({"key": null});
+        assert_eq!(optional_string(&args, "key").expect("parse null"), None);
+    }
+
+    #[test]
+    fn optional_string_returns_none_for_missing() {
+        let args = json!({});
+        assert_eq!(optional_string(&args, "key").expect("parse missing"), None);
+    }
+
+    #[test]
+    fn optional_string_rejects_non_string() {
+        let args = json!({"key": 42});
+        let err = optional_string(&args, "key").expect_err("should reject number");
+        assert!(err.to_string().contains("must be a string"));
+    }
+
+    #[test]
+    fn optional_bool_returns_some_for_bool() {
+        let args = json!({"key": true});
+        assert_eq!(optional_bool(&args, "key").expect("parse bool"), Some(true));
+    }
+
+    #[test]
+    fn optional_bool_returns_none_for_missing() {
+        let args = json!({});
+        assert_eq!(optional_bool(&args, "key").expect("parse missing"), None);
+    }
+
+    #[test]
+    fn optional_bool_rejects_non_bool() {
+        let args = json!({"key": "true"});
+        let err = optional_bool(&args, "key").expect_err("should reject string");
+        assert!(err.to_string().contains("must be a boolean"));
+    }
+
+    #[test]
+    fn required_string_returns_value() {
+        let args = json!({"key": "value"});
+        assert_eq!(
+            required_string(&args, "key").expect("parse required"),
+            "value"
+        );
+    }
+
+    #[test]
+    fn required_string_rejects_missing() {
+        let args = json!({});
+        let err = required_string(&args, "key").expect_err("should reject missing");
+        assert!(err.to_string().contains("missing required"));
+    }
+
+    #[test]
+    fn call_gate_tool_rejects_unknown_tool() {
+        let args = json!({});
+        let err = call_gate_tool("nonexistent", &args, None).expect_err("should reject unknown tool");
+        assert!(err.to_string().contains("unknown gate MCP tool"));
     }
 }

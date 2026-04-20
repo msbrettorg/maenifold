@@ -4,12 +4,14 @@ import { Button } from '@/components/ui/button';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
+import SettingsModels from './SettingsModels.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
   { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
   { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
+  { id: 'models', label: 'Models', description: 'Download and manage embedding models.' },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ] as const;
 
@@ -46,6 +48,7 @@ const activeSection = ref<SectionId>('connection');
         <SettingsConnection v-if="activeSection === 'connection'" />
         <SettingsMcpServers v-else-if="activeSection === 'mcp-servers'" />
         <SettingsMaenifold v-else-if="activeSection === 'maenifold'" />
+        <SettingsModels v-else-if="activeSection === 'models'" />
         <SettingsPreferences v-else />
       </main>
     </div>

@@ -77,30 +77,22 @@ impl CachedTaskStatusRow {
         root: &Path,
         requested_pipeline_name: Option<&str>,
     ) -> Result<Value, GateError> {
+        let ctx = ErrorRowContext {
+            root,
+            file: &self.file,
+            task_id: &self.task_id,
+            location: &self.location,
+            linked: self.linked,
+        };
         if self.issue.is_empty()
             && let Some(requested) = requested_pipeline_name
             && self.pipeline.as_deref() != Some(requested)
         {
-            return Ok(pipeline_mismatch_row(
-                root,
-                &self.file,
-                &self.task_id,
-                &self.location,
-                self.linked,
-                requested,
-                self.pipeline.as_deref(),
-            ));
+            return Ok(pipeline_mismatch_row(&ctx, requested, self.pipeline.as_deref()));
         }
 
         if !self.issue.is_empty() {
-            return Ok(error_status_row(
-                root,
-                &self.file,
-                &self.task_id,
-                &self.location,
-                self.linked,
-                &self.issue,
-            ));
+            return Ok(error_status_row(&ctx, &self.issue));
         }
 
         let stages: Vec<String> = serde_json::from_str(&self.stages_json)?;
@@ -196,44 +188,36 @@ pub(crate) fn clear_task_rows(transaction: &Transaction<'_>) -> Result<(), GateE
     Ok(())
 }
 
-pub(crate) fn error_status_row(
-    root: &Path,
-    file: &str,
-    task_id: &str,
-    location: &str,
-    linked: bool,
-    issue: &str,
-) -> Value {
+pub(crate) struct ErrorRowContext<'a> {
+    pub root: &'a Path,
+    pub file: &'a str,
+    pub task_id: &'a str,
+    pub location: &'a str,
+    pub linked: bool,
+}
+
+pub(crate) fn error_status_row(ctx: &ErrorRowContext<'_>, issue: &str) -> Value {
     json!({
-        "taskId": task_id,
-        "title": task_id,
+        "taskId": ctx.task_id,
+        "title": ctx.task_id,
         "pipeline": Value::Null,
         "state": "error",
         "stages": [],
         "attempts": 0,
-        "location": location,
-        "path": root.join(file),
-        "linked": linked,
+        "location": ctx.location,
+        "path": ctx.root.join(ctx.file),
+        "linked": ctx.linked,
         "issue": issue,
     })
 }
 
-#[allow(clippy::too_many_arguments)]
 pub(crate) fn pipeline_mismatch_row(
-    root: &Path,
-    file: &str,
-    task_id: &str,
-    location: &str,
-    linked: bool,
+    ctx: &ErrorRowContext<'_>,
     requested: &str,
     bound: Option<&str>,
 ) -> Value {
     error_status_row(
-        root,
-        file,
-        task_id,
-        location,
-        linked,
+        ctx,
         &GateError::PipelineOverrideMismatch {
             requested: requested.to_string(),
             bound: bound.unwrap_or("unbound").to_string(),

@@ -15,6 +15,36 @@ const STAGE_HEADINGS: &[(&str, &str)] = &[
     ("done", "Done"),
 ];
 
+struct SectionRecord<'a> {
+    stage: &'a str,
+    record_kind: &'a str,
+    outcome: Option<&'a str>,
+    agent: &'a str,
+    notes: &'a str,
+    model: Option<&'a str>,
+}
+
+impl SectionRecord<'_> {
+    fn render(&self) -> String {
+        let heading = record_heading(self.stage);
+        let mut section = format!(
+            "## {heading}\n\n- Stage ID: {}\n- Record Kind: {}\n- Agent: {}\n- Recorded At: {}\n",
+            self.stage,
+            self.record_kind,
+            self.agent,
+            Utc::now().to_rfc3339()
+        );
+        if let Some(model) = self.model {
+            section.push_str(&format!("- Model: {model}\n"));
+        }
+        if let Some(outcome) = self.outcome {
+            section.push_str(&format!("- Outcome: {}\n", outcome.to_uppercase()));
+        }
+        section.push_str(&format!("- Notes: {}\n", self.notes));
+        section
+    }
+}
+
 impl CanonicalSectionFactory {
     pub fn build_append_section(
         stage: &str,
@@ -22,7 +52,15 @@ impl CanonicalSectionFactory {
         notes: &str,
         model: Option<&str>,
     ) -> String {
-        Self::build(stage, "append", None, agent, notes, model)
+        SectionRecord {
+            stage,
+            record_kind: "append",
+            outcome: None,
+            agent,
+            notes,
+            model,
+        }
+        .render()
     }
 
     pub fn build_outcome_section(
@@ -32,31 +70,15 @@ impl CanonicalSectionFactory {
         notes: &str,
         model: Option<&str>,
     ) -> String {
-        Self::build(stage, "outcome", Some(outcome), agent, notes, model)
-    }
-
-    fn build(
-        stage: &str,
-        record_kind: &str,
-        outcome: Option<&str>,
-        agent: &str,
-        notes: &str,
-        model: Option<&str>,
-    ) -> String {
-        let heading = record_heading(stage);
-        let mut section = format!(
-            "## {heading}\n\n- Stage ID: {stage}\n- Record Kind: {record_kind}\n- Agent: {agent}\n- Recorded At: {}\n",
-            Utc::now().to_rfc3339()
-        );
-
-        if let Some(model) = model {
-            section.push_str(&format!("- Model: {model}\n"));
+        SectionRecord {
+            stage,
+            record_kind: "outcome",
+            outcome: Some(outcome),
+            agent,
+            notes,
+            model,
         }
-        if let Some(outcome) = outcome {
-            section.push_str(&format!("- Outcome: {}\n", outcome.to_uppercase()));
-        }
-        section.push_str(&format!("- Notes: {notes}\n"));
-        section
+        .render()
     }
 }
 
@@ -142,4 +164,3 @@ mod tests {
         assert_eq!(record.notes, "spec reviewed and approved");
     }
 }
-

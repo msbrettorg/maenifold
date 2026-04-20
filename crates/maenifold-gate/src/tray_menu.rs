@@ -3,9 +3,6 @@ use std::path::Path;
 use maenifold_core::tray_menu::TrayMenuState;
 use tray_icon::menu::{Menu, MenuId, MenuItem};
 
-#[cfg(target_os = "macos")]
-use libc;
-
 use crate::tray_lifecycle::GateServerMode;
 
 const SERVICE_LABEL: &str = "com.ma-collective.gate";

@@ -28,6 +28,12 @@ See the [maenifold skill README](../../skills/maenifold/README.md) for complete 
 
 ### System Diagram
 
+_System Diagram — diagram_ ::
+Nodes: User · Product Manager / Skill · PRD.md / RTM.md / TODO.md / RETROSPECTIVES.md · Agent Pool / 8 concurrent slots · SWE Instance 1 · SWE Instance 2 · Red-team · Blue-team · Researcher · ... 3 more slots · Hook System · Concept-as-Protocol / Graph Context Injection (+5 more).
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 graph TB
     User[User] -->|invokes| PM[Product Manager<br/>Skill]
@@ -72,9 +78,17 @@ graph TB
     style Graph fill:#0969DA
 ```
 
+</details>
+
 ### Hook Integration
 
 The hook system provides automatic enhancements to subagent interactions:
+
+_Hook Integration — diagram_ ::
+Nodes: [authentication.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 sequenceDiagram
@@ -100,6 +114,8 @@ sequenceDiagram
         Hook->>PM: Allow agent stop
     end
 ```
+
+</details>
 
 ## How It Works
 
@@ -166,6 +182,12 @@ On session initialization, automatically inject repository context:
 
 Complex work is decomposed into **waves** where multiple agents execute in parallel:
 
+_Wave-Based Orchestration — diagram_ ::
+Nodes: Sprint Start · Discovery Wave / 3 agents parallel · Specs Wave · RTM Creation · User Confirmation · Validation Wave · Implementation Planning · Implementation Dispatch / 8 agents parallel · Red Team Wave / 3 agents parallel · Remediation Wave · Implementation Verification · Test Wave / 3 agents parallel (+3 more).
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 graph LR
     Start[Sprint Start] --> Discovery[Discovery Wave<br/>3 agents parallel]
@@ -200,6 +222,8 @@ graph LR
     style Review fill:#0969DA
 ```
 
+</details>
+
 **Key Principle**: Dispatch all agents in **one message** per wave for concurrent execution.
 
 Example:
@@ -220,6 +244,12 @@ Task("Analyze RTM-002", agent="swe")
 
 Every artifact maintains full traceability through the requirements hierarchy:
 
+_Traceability Chain — diagram_ ::
+Nodes: PRD.md / Functional Requirements / FR-X.X · RTM.md / Test Cases / FR-X.X → TC-X.X.X · TODO.md / Tasks / T-X.X.X → FR-X.X · Code / // T-X.X.X: RTM FR-X.X · Git Commit / T-X.X.X in message · ConfessionReport / References T-X.X.X.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 graph TD
     PRD[PRD.md<br/>Functional Requirements<br/>FR-X.X] --> RTM[RTM.md<br/>Test Cases<br/>FR-X.X → TC-X.X.X]
@@ -236,11 +266,19 @@ graph TD
     style Confession fill:#0969DA
 ```
 
+</details>
+
 **Rule**: Work without traceability is rejected.
 
 ### Sequential Thinking Collaboration
 
 All agents in a wave can share the same sequential thinking session:
+
+_Sequential Thinking Collaboration — diagram_ ::
+Nodes: PM creates session: / sprint-20260129-discovery · SWE-1 contributes / thoughts + concepts · SWE-2 contributes / thoughts + concepts · SWE-3 contributes / thoughts + concepts · Consolidated Session / All thoughts + concepts · memory://workflows/thinking/ / sprint-20260129-discovery.md · Knowledge Graph / Concepts become nodes · Future Sessions / Benefit from richer graph.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph TD
@@ -266,6 +304,8 @@ graph TD
     style Graph fill:#0969DA
     style Future fill:#0969DA
 ```
+
+</details>
 
 **Benefits**:
 - Persistent thought process across ephemeral agents
@@ -306,6 +346,11 @@ Structured JSON workflows that define:
 ## Execution Flow Example
 
 ### Sprint Flow with Wave-Based Orchestration
+
+_Sprint Flow with Wave-Based Orchestration — diagram_ ::
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 sequenceDiagram
@@ -358,6 +403,8 @@ sequenceDiagram
     PM->>PM: Verify RTM traceability
     PM->>User: Sprint complete
 ```
+
+</details>
 
 ## Key Principles
 

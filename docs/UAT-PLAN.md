@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-04-19  
 **Status:** Draft  
-**Total Test Cases:** 575
+**Total Test Cases:** 759
 
 ---
 
@@ -1017,6 +1017,19 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-513 | Settings | SettingsPreferences | Telemetry checkbox | Uncheck | Telemetry disabled | Both |
 | TC-514 | Settings | SettingsPreferences | Clear last cwd button | Click | CWD cleared | Both |
 
+### K.10 Settings Models
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-633 | Settings | SettingsModels | Model card | Observe each model | Card displays name, dimensions, size, license, and status badge (Installed / Active / Available) | Both |
+| TC-634 | Settings | SettingsModels | Download button | Click on uninstalled model | Download begins; progress indicator appears; button disabled while in flight | Both |
+| TC-635 | Settings | SettingsModels | Activate button | Click on installed-but-not-active model | Model becomes active; Active badge moves to this card; previous active model loses badge | Both |
+| TC-636 | Settings | SettingsModels | Active badge | Observe current model | Exactly one model shows the Active badge (shadcn `Badge`); active card visually distinguished | Both |
+| TC-637 | Settings | SettingsModels | Delete button 🔴 | Click on installed non-active model | shadcn `AlertDialog` confirmation appears; on confirm, model is removed from disk and card returns to Available state | Both |
+| TC-638 | Settings | SettingsModels | Re-embedding warning | Activate a model with different dimensions than current | Warning dialog explains existing embeddings will be invalidated and corpus must be re-embedded; user must confirm before activation proceeds | Both |
+| TC-639 | Settings | SettingsModels | Loading state | Observe during download/activate/delete | Spinner or progress UI visible; affected card controls disabled until operation completes | Both |
+| TC-640 | Settings | SettingsModels | Error state | Trigger network or disk error during model operation | Inline error message displayed on the card with a Retry button (shadcn `Button` variant); no app crash | Both |
+
 ---
 
 ## L. Diagnostics & Traffic
@@ -1147,6 +1160,21 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-570 | Various | Inputs | Text input | Cmd+Z / Ctrl+Z | Last input undone | Both |
 | TC-571 | Various | Inputs | Text input | Cmd+Shift+Z / Ctrl+Y | Redo works | Both |
 
+### M.12 Design System Primitives (cross-cutting)
+
+These tests apply to **every** screen/component in the app. Inspect the rendered DOM and Tailwind classes — any violation is a failure regardless of visual appearance. See `apps/desktop/DESIGN.md` for the authoritative spec.
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-641 | All | All | Interactive controls | Inspect DOM | All buttons, dialogs, cards, tabs, selects, badges, tooltips, accordions, and scroll areas use shadcn-vue / reka-ui primitives (`Button`, `Dialog`, `Card`, `Tabs`, `Select`, `Badge`, `Tooltip`, `Accordion`, `ScrollArea`) — no hand-rolled equivalents | Both |
+| TC-642 | All | All | Confirmations & prompts | Trigger any destructive or confirmation flow | shadcn `AlertDialog` is used; native `window.confirm()`, `window.alert()`, and `window.prompt()` MUST NOT appear | Both |
+| TC-643 | All | All | Disclosure / collapsible content | Expand/collapse any disclosure UI | Implemented via shadcn `Accordion`; no hand-rolled `<details>`/`<summary>` elements present in DOM | Both |
+| TC-644 | All | All | Buttons | Inspect every clickable button | shadcn `Button` component with documented variants is used; no hand-rolled `<button>` with bespoke CSS classes | Both |
+| TC-645 | All | All | Colors | Inspect computed styles and class lists | All color usage references design tokens (`bg-bg-app`, `bg-bg-surface`, `text-text-primary`, `text-text-secondary`, `bg-brand`, `border-border-subtle`, etc.); no hardcoded hex colors in component class strings or inline styles | Both |
+| TC-646 | All | All | Border radius | Inspect rounded elements | All radii use the token scale `4px`, `8px`, or `12px` (`rounded-[4px]` / `rounded-[8px]` / `rounded-[12px]` or named tokens); no arbitrary radius values | Both |
+| TC-647 | All | All | Typography | Inspect font-family on any text | Only the Segoe UI Variable system stack per DESIGN.md is permitted in computed `font-family`; no custom or third-party webfonts | Both |
+| TC-648 | All | All | Shadows / elevation | Inspect any elevated surface (card, dialog, popover, toast) | Shadows MUST use only the `shadow-fluent-8`, `shadow-fluent-16`, or `shadow-fluent-64` tokens per DESIGN.md §4; no arbitrary `box-shadow` values | Both |
+
 ---
 
 ## O. Onboarding Wizard
@@ -1239,10 +1267,10 @@ Test cases are organized by screen/feature area and cover every interactive elem
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-626 | Wizard | All steps | Typography | Observe headings | 28px bold tracking-tight text-text-primary | Both |
 | TC-627 | Wizard | All steps | Body text | Observe | text-sm text-text-secondary leading-relaxed | Both |
-| TC-628 | Wizard | All steps | Borders | Observe | Tonal surface shifts only, no `1px solid` hard borders | Both |
-| TC-629 | Wizard | All steps | Buttons | Observe primary | Gradient brand bg, dark text, 4px radius | Both |
+| TC-628 | Wizard | All steps | Borders | Observe | 1px borders expected per DESIGN.md §5; use `border-border-subtle` and `border-border-card` tokens (no hardcoded colors) | Both |
+| TC-629 | Wizard | All steps | Buttons | Observe primary | shadcn `Button` with `bg-brand` (#0078D4), `hover:bg-brand-hover` (#106EBE), `text-primary-foreground`, `rounded-[8px]` | Both |
 | TC-630 | Wizard | All steps | Status dots | Observe | 6px dots (not pill badges) | Both |
-| TC-631 | Wizard | All steps | Shadows | Observe | No drop shadows (ambient glow only) | Both |
+| TC-631 | Wizard | All steps | Shadows | Observe | Shadows MUST use only the `shadow-fluent-8`/`shadow-fluent-16`/`shadow-fluent-64` tokens per DESIGN.md §4 | Both |
 | TC-632 | Wizard | All steps | Casing | Observe all text | Sentence case (never ALL CAPS) | Both |
 
 ---
@@ -1321,12 +1349,12 @@ For each test case, record:
 | H. Knowledge | 24 |
 | I. Workflow Authoring | 46 |
 | J. Agents & Templates | 17 |
-| K. Settings | 61 |
+| K. Settings | 69 |
 | L. Diagnostics & Traffic | 15 |
-| M. Cross-Cutting & Edge Cases | 42 |
+| M. Cross-Cutting & Edge Cases | 50 |
 | N. Context-Specific (iframe) | 7 |
 | O. Onboarding Wizard | 54 |
-| **Total** | **575** |
+| **Total** | **759** |
 
 ---
 

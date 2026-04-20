@@ -151,6 +151,11 @@ Schema invariants:
 
 ## Module UML
 
+_Module UML — diagram_ ::
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 classDiagram
 direction TB
@@ -428,6 +433,8 @@ GateDefinitionCatalog --> GateDefinitionValidator
 GateDefinitionCatalog --> GateDefinition
 ```
 
+</details>
+
 ## Allowed Module Inventory
 
 Only these source files are allowed in `crates/maenifold-gate/src`:
@@ -650,6 +657,12 @@ If implementation requires a new file, this spec must be updated first.
 
 ### SDD
 
+_SDD — diagram_ ::
+Nodes: *.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 stateDiagram-v2
 [*] --> pending
@@ -665,7 +678,15 @@ blue-team --> pending: fail
 done --> [*]
 ```
 
+</details>
+
 ### TDD
+
+_TDD — diagram_ ::
+Nodes: *.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 stateDiagram-v2
@@ -682,7 +703,15 @@ red-team --> pending: fail
 done --> [*]
 ```
 
+</details>
+
 ### GSD
+
+_GSD — diagram_ ::
+Nodes: *.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 stateDiagram-v2
@@ -701,7 +730,15 @@ verify --> execute: fail
 done --> [*]
 ```
 
+</details>
+
 ### Lightweight
+
+_Lightweight — diagram_ ::
+Nodes: *.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 stateDiagram-v2
@@ -715,6 +752,8 @@ blue-team --> pending: fail
 
 done --> [*]
 ```
+
+</details>
 
 ## MCP Tool Surface
 

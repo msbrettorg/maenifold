@@ -152,6 +152,24 @@ Build passing is necessary but not sufficient.
 
 SWEs format only files they created or modified. Workspace-wide formatters are forbidden.
 
+### Rendering Fallbacks (Lowest Common Denominator)
+
+Agent-facing markdown — prompt templates, workflow assets, MCP `instructions`, agent-served docs, skill READMEs — **MUST render in terminal MCP clients**. Verified failure modes (Copilot CLI, 2026-04-20):
+
+- ` ```mermaid ` fenced blocks → render as raw source.
+- `![alt](path)` images → render as nothing.
+- LaTeX `$...$` and `$$...$$` math → render as raw source.
+
+**Rule:** for any agent-facing markdown, emit content that works everywhere.
+
+- **Mermaid** → provide an ASCII / unicode box-drawing fallback or plain-prose summary adjacent to the diagram. Wrap the source mermaid in `<details><summary>Diagram (graphical viewers)</summary>` so it doesn't dominate terminal output.
+- **Images** → describe the image inline AND include a "open `<absolute path>` in a graphical viewer" instruction. Do not rely on alt text alone.
+- **LaTeX** → use unicode (Σ ∫ √ ≤ ∈ α β ∞ π) or plain text (`e^(i*pi) + 1 = 0`). Never emit `$$...$$`.
+
+What renders reliably everywhere: standard markdown (headings, lists, tables, blockquotes, links, code blocks with syntax highlighting, task lists, footnotes), ASCII / unicode box-drawing, emoji and unicode symbols, inline HTML (`<kbd>`, `<details>`/`<summary>`, `<u>`), horizontal rules.
+
+Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based copilot) WILL render mermaid/math/images correctly — but those surfaces are not the lowest common denominator.
+
 ---
 
 ## Severity

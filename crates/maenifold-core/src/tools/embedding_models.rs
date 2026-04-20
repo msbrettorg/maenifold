@@ -17,8 +17,19 @@ struct CuratedModel {
     size_bytes: u64,
     license: &'static str,
     huggingface_repo: &'static str,
+    released: &'static str,
+    mrl_dimensions: Option<&'static [usize]>,
+    mteb_retrieval: Option<f32>,
 }
 
+/// Curated embedding model catalog.
+///
+/// Selection criteria:
+/// - ONNX Runtime compatible (verified on Apple Silicon)
+/// - Permissive license (Apache-2.0, MIT) — CC-BY-NC flagged
+/// - Spectrum: tiny/fast → balanced → high-quality → long-context
+/// - Matryoshka (MRL) models preferred for runtime dimension flexibility
+/// - MTEB retrieval scores from https://huggingface.co/spaces/mteb/leaderboard (April 2026)
 const CURATED_MODELS: &[CuratedModel] = &[
     CuratedModel {
         id: "all-MiniLM-L6-v2",
@@ -28,6 +39,9 @@ const CURATED_MODELS: &[CuratedModel] = &[
         size_bytes: 90_405_214,
         license: "Apache-2.0",
         huggingface_repo: "sentence-transformers/all-MiniLM-L6-v2",
+        released: "2021-08",
+        mrl_dimensions: None,
+        mteb_retrieval: Some(41.9),
     },
     CuratedModel {
         id: "bge-small-en-v1.5",
@@ -37,33 +51,33 @@ const CURATED_MODELS: &[CuratedModel] = &[
         size_bytes: 67_000_000,
         license: "MIT",
         huggingface_repo: "BAAI/bge-small-en-v1.5",
+        released: "2023-09",
+        mrl_dimensions: None,
+        mteb_retrieval: Some(51.7),
     },
     CuratedModel {
-        id: "bge-base-en-v1.5",
-        name: "BGE Base English v1.5",
+        id: "snowflake-arctic-embed-m-v2.0",
+        name: "Snowflake Arctic Embed M v2.0",
         dimensions: 768,
-        max_tokens: 512,
-        size_bytes: 220_000_000,
-        license: "MIT",
-        huggingface_repo: "BAAI/bge-base-en-v1.5",
+        max_tokens: 8192,
+        size_bytes: 610_000_000,
+        license: "Apache-2.0",
+        huggingface_repo: "Snowflake/snowflake-arctic-embed-m-v2.0",
+        released: "2024-12",
+        mrl_dimensions: Some(&[256, 512, 768]),
+        mteb_retrieval: Some(55.4),
     },
     CuratedModel {
-        id: "bge-large-en-v1.5",
-        name: "BGE Large English v1.5",
+        id: "mxbai-embed-large-v1",
+        name: "mxbai Embed Large v1",
         dimensions: 1024,
         max_tokens: 512,
-        size_bytes: 400_000_000,
-        license: "MIT",
-        huggingface_repo: "BAAI/bge-large-en-v1.5",
-    },
-    CuratedModel {
-        id: "snowflake-arctic-embed-m",
-        name: "Snowflake Arctic Embed M",
-        dimensions: 768,
-        max_tokens: 512,
-        size_bytes: 240_000_000,
+        size_bytes: 670_000_000,
         license: "Apache-2.0",
-        huggingface_repo: "Snowflake/snowflake-arctic-embed-m",
+        huggingface_repo: "mixedbread-ai/mxbai-embed-large-v1",
+        released: "2024-03",
+        mrl_dimensions: Some(&[256, 512, 768, 1024]),
+        mteb_retrieval: Some(54.4),
     },
     CuratedModel {
         id: "nomic-embed-text-v1.5",
@@ -73,6 +87,45 @@ const CURATED_MODELS: &[CuratedModel] = &[
         size_bytes: 200_000_000,
         license: "Apache-2.0",
         huggingface_repo: "nomic-ai/nomic-embed-text-v1.5",
+        released: "2024-02",
+        mrl_dimensions: Some(&[64, 128, 256, 512, 768]),
+        mteb_retrieval: Some(53.0),
+    },
+    CuratedModel {
+        id: "jina-embeddings-v3",
+        name: "Jina Embeddings v3",
+        dimensions: 1024,
+        max_tokens: 8192,
+        size_bytes: 1_100_000_000,
+        license: "CC-BY-NC-4.0",
+        huggingface_repo: "jinaai/jina-embeddings-v3",
+        released: "2024-09",
+        mrl_dimensions: Some(&[32, 64, 128, 256, 512, 768, 1024]),
+        mteb_retrieval: Some(55.8),
+    },
+    CuratedModel {
+        id: "qwen3-embedding-0.6b",
+        name: "Qwen3 Embedding 0.6B",
+        dimensions: 1024,
+        max_tokens: 32768,
+        size_bytes: 1_200_000_000,
+        license: "Apache-2.0",
+        huggingface_repo: "Qwen/Qwen3-Embedding-0.6B",
+        released: "2025-06",
+        mrl_dimensions: Some(&[32, 64, 128, 256, 512, 768, 1024]),
+        mteb_retrieval: Some(64.3),
+    },
+    CuratedModel {
+        id: "bge-large-en-v1.5",
+        name: "BGE Large English v1.5",
+        dimensions: 1024,
+        max_tokens: 512,
+        size_bytes: 400_000_000,
+        license: "MIT",
+        huggingface_repo: "BAAI/bge-large-en-v1.5",
+        released: "2023-09",
+        mrl_dimensions: None,
+        mteb_retrieval: Some(54.3),
     },
 ];
 
@@ -147,6 +200,9 @@ fn handle_list(context: &ToolContext) -> Value {
                 "sizeBytes": model.size_bytes,
                 "license": model.license,
                 "huggingfaceRepo": model.huggingface_repo,
+                "released": model.released,
+                "mrlDimensions": model.mrl_dimensions,
+                "mtebRetrieval": model.mteb_retrieval,
                 "installed": installed,
                 "isActive": is_active,
             })

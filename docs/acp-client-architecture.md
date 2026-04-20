@@ -57,6 +57,53 @@ stream accumulation, and a headless ACP client.
 
 ## Sequence Diagram — ACP Lifecycle
 
+Textual sequence (Caller drives the lifecycle; participants on the right are internal modules):
+
+```
+Caller            transport            initialize           session_new          set_config         prompt          update_handler
+  │                   │                     │                     │                    │                │                  │
+  │── spawn_agent(cmd, cwd, env) ─────────► │                     │                    │                │                  │
+  │◄── AgentHandle ──                       │                     │                    │                │                  │
+  │                                         │                     │                    │                │                  │
+  │── initialize(conn, clientCaps,                                                                                          │
+  │   clientInfo) ────────────────────────► │                     │                    │                │                  │
+  │◄── { protocolVersion, agentCaps,                                                                                        │
+  │     agentInfo, authMethods } ──         │                                                                               │
+  │                                         │                                                                               │
+  │   [opt] authMethods not empty:                                                                                          │
+  │── authenticate(conn, auth) ───────────► │                     │                                                         │
+  │◄── { success } ──                       │                                                                               │
+  │                                                               │                                                         │
+  │── session_new(conn, cwd, mcpServers) ──────────────────────► │                                                         │
+  │◄── { sessionId, configOptions, modes } ──                    │                                                         │
+  │                                                                                    │                                    │
+  │   [opt] configOptions available:                                                   │                                    │
+  │── set_config_option(conn, sid, "model", val) ─────────────────────────────────────►│                                    │
+  │◄── updated configOptions ──                                                        │                                    │
+  │── set_config_option(conn, sid, "thought_level", val) ─────────────────────────────►│                                    │
+  │◄── updated configOptions ──                                                        │                                    │
+  │                                                                                                     │                   │
+  │── session_prompt(conn, sid, [ContentBlock]) ──────────────────────────────────────────────────────►│                   │
+  │                                                                                                     │── session/update ►│
+  │   loop until StopReason:                                                                                                │
+  │      update_handler handles all variants:                                                                               │
+  │      agent_message_chunk, user_message_chunk, agent_thought_chunk,                                                      │
+  │      tool_call, tool_call_update, plan, current_mode_update,                                                            │
+  │      config_option_update, session_info_update, available_commands_update                                               │
+  │                                                                                                     │◄── accumulate ────│
+  │◄── { stopReason } ─────────────────────────────────────────────────────────────────────────────────                     │
+```
+
+Phases at a glance:
+
+1. **Spawn** — Caller asks `transport` for an agent subprocess; receives an `AgentHandle`.
+2. **Initialize** — Caller calls `initialize` to negotiate protocol version, agent capabilities, and supported auth methods. If `authMethods` is non-empty, Caller calls `authenticate` next.
+3. **Session create** — `session_new` returns a `sessionId`, available `configOptions`, and `modes`.
+4. **Configure (optional)** — When the agent advertises options, Caller may call `set_config_option` for keys like `model` and `thought_level`.
+5. **Prompt loop** — `session_prompt` streams `session/update` notifications into `update_handler` (nine variants, listed above) until the agent emits a `stopReason`.
+
+<details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
+
 ```mermaid
 sequenceDiagram
     participant Caller
@@ -96,6 +143,8 @@ sequenceDiagram
     end
     prompt-->>Caller: { stopReason }
 ```
+
+</details>
 
 ## File Contracts
 

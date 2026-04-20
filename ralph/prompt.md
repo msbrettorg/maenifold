@@ -37,6 +37,10 @@ Print your assigned scope before doing anything else. Other RALPH instances are 
 - `RALPH_TARGET_PATH` — filesystem path (e.g., `apps/desktop`). Build with `cd apps/desktop && npx vue-tsc --noEmit && npm run build`.
 - If both are empty: state "unscoped — selecting freely" and limit to one crate/path per iteration anyway.
 
+### 6. Render for terminal clients
+
+This prompt and any task spec, agent docs, or workflow content you author **must render in terminal MCP clients**. No `mermaid` fenced blocks, no images (`![...]`), no LaTeX (`$...$` or `$$...$$`) without an adjacent text fallback. Use ASCII / unicode box-drawing for diagrams and unicode (Σ √ ≤ ∈ α β ∞ π) or plain text for math. See `AGENTS.md` → "Rendering Fallbacks" for the full rule.
+
 ---
 
 ## Knowledge grounding (mandatory, before any change)

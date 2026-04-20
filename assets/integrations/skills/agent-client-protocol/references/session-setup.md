@@ -8,6 +8,11 @@ Sessions represent a specific conversation or thread between the [Client](./over
 
 Before creating a session, Clients **MUST** first complete the initialization phase to establish protocol compatibility and capabilities.
 
+_Diagram — diagram_ ::
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -33,6 +38,8 @@ sequenceDiagram
 
     Note over Client,Agent: Ready for prompts
 ```
+
+</details>
 
 ## Creating a Session
 

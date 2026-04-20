@@ -19,6 +19,12 @@ Maenifold operates as a **6-layer composition architecture** where higher layers
 
 ### 6-Layer Stack
 
+_6-Layer Stack — diagram_ ::
+Nodes: Workflow / Multi-step processes / Nested workflows · Sequential Thinking / Branching, revision / Multi-session persistence · Adopt / Roles, colors, perspectives / Conditioned reasoning · Recent Activity / Assumption Ledger / State tracking · Write/Read/Search/Edit / BuildContext, FindSimilar / Persist & Query · WikiLinks / Atomic units / Graph nodes.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 graph TB
     subgraph "Layer 6: Orchestration"
@@ -59,6 +65,8 @@ graph TB
     style Concepts fill:#0969DA
 ```
 
+</details>
+
 **Layer 1: Concepts** - Every `[[WikiLink]]` becomes a graph node. Foundation for all knowledge.
 
 **Layer 2: Memory + Graph** - Tools persist (`writememory`) and query (`searchmemories`, `buildcontext`, `findsimilarconcepts`) knowledge.
@@ -75,6 +83,12 @@ graph TB
 
 #### Chain Pattern
 
+_Chain Pattern — diagram_ ::
+Nodes: findsimilarconcepts / Discover variants · Pick best match · buildcontext / Get relationships · searchmemories / Find files · readmemory / Access content.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 graph LR
     A[findsimilarconcepts<br/>Discover variants] --> B[Pick best match]
@@ -89,6 +103,8 @@ graph LR
     style E fill:#0969DA
 ```
 
+</details>
+
 **Use case**: Navigate from unknown domain to specific knowledge.
 
 **Example**:
@@ -99,6 +115,12 @@ graph LR
 5. `readmemory("memory://security/jwt-implementation")` → specific content
 
 #### HYDE Pattern (Hypothetical Document Embeddings)
+
+_HYDE Pattern (Hypothetical Document Embeddings) — diagram_ ::
+Nodes: Synthesize hypothetical answer / with concepts inline · Extract concepts / from synthesis · buildcontext for / each concept · searchmemories using / enriched context · readmemory for / relevant files · Answer with / actual knowledge.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph TD
@@ -115,6 +137,8 @@ graph TD
     style E fill:#0969DA
     style F fill:#0969DA
 ```
+
+</details>
 
 **Use case**: Answer complex questions by first hypothesizing, then grounding in graph.
 
@@ -137,6 +161,12 @@ User: "How do I implement OAuth2 flows?"
 ```
 
 #### Sequential Thinking Branching
+
+_Sequential Thinking Branching — diagram_ ::
+Nodes: Main Session: / sequential-20260129-001 · Thought 1: / Problem analysis · Thought 2: / Approach A or B? · Branch A: / Explore approach A · Branch B: / Explore approach B · Thought A.1: / A seems better · Thought B.1: / B has issues · Thought 3: / Choose A, continue main · Persist to memory:// / with concepts · Graph nodes created.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph TD
@@ -167,6 +197,8 @@ graph TD
     style Graph fill:#0969DA
 ```
 
+</details>
+
 **Use case**: Explore multiple alternatives without losing thought continuity.
 
 **Example**:
@@ -180,6 +212,12 @@ graph TD
 ```
 
 ### Knowledge Graph Growth
+
+_Knowledge Graph Growth — diagram_ ::
+Nodes: User asks question · searchmemories / Check existing knowledge · Use existing / memory:// files · Research external sources · writememory / with concepts · sync / Extract WikiLinks · Create graph nodes / for each concept · Create relationships / from co-occurrence · buildcontext now returns / richer relationships · Future sessions / benefit from growth · Answer question.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph TD
@@ -213,6 +251,8 @@ graph TD
     style Answer fill:#0969DA
 ```
 
+</details>
+
 **Key insight**: The graph is not static. Every interaction can grow it:
 
 1. **Question**: User asks about [[authentication]]
@@ -226,6 +266,12 @@ graph TD
 **Compounding effect**: Graph becomes institutional memory that persists and improves across all sessions.
 
 ### How Concepts Become Nodes
+
+_How Concepts Become Nodes — diagram_ ::
+Nodes: Fixed authentication bug / using JWT tokens / and session-management · sync tool · Graph Node: / authentication · Graph Node: / JWT · Graph Node: / session-management.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph LR
@@ -256,6 +302,8 @@ graph LR
     style Node3 fill:#0969DA
 ```
 
+</details>
+
 **Process**:
 1. Write memory file with `[[WikiLinks]]` in double brackets
 2. Call `sync` (or happens automatically)
@@ -271,6 +319,12 @@ graph LR
 - Reuse existing concepts before creating near-duplicates
 
 ### Context Compounding Example
+
+_Context Compounding Example — diagram_ ::
+Nodes: Session 1: Learn OAuth2 · writememory OAuth2 basics · Session 2: Learn PKCE · buildcontext finds OAuth2 relation · writememory PKCE extension · Session 3: Learn JWT · buildcontext finds OAuth2 + PKCE · writememory JWT tokens · Session 4: Implement auth · buildcontext finds ALL prior work · Rich context: OAuth2, PKCE, JWT, / plus all memory:// files · Grounded implementation.
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
 
 ```mermaid
 graph TD
@@ -304,6 +358,8 @@ graph TD
     style Rich fill:#0969DA
     style Answer4 fill:#0969DA
 ```
+
+</details>
 
 **Timeline**:
 - **Day 1**: Learn OAuth2 basics → write memory:// note with [[OAuth2]]

@@ -4,6 +4,22 @@ This guide documents the runtime architecture as implemented in this repository,
 
 ## Runtime topology
 
+```
+[Desktop app] <-----> [Maenifold daemon :8080]  (HTTP /mcp + /api/*)
+                              ^
+                              |
+[CLI: maenifold (stdio)] <--> [maenifold-core] <--> [Daemon]
+                              ^
+                              |
+[maenifold-pipeline-driver] --+--> [ACP runtimes via maenifold-jockey]
+
+[gate service :8081] <--> [todo/ + done/ task files]   (HTTP /mcp)
+```
+
+Two service surfaces (daemon :8080 and gate :8081) plus the CLI all converge on `maenifold-core`. The pipeline driver dispatches ACP runtimes through `maenifold-jockey`.
+
+<details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
+
 ```mermaid
 flowchart LR
     Desktop["Desktop app"] <--> Daemon["Maenifold daemon :8080 (/mcp + /api/*)"]
@@ -13,6 +29,8 @@ flowchart LR
     Driver <--> ACP["ACP runtimes via maenifold-jockey"]
     Gate["gate service :8081 (/mcp)"] <--> Files["todo/ + done/ task files"]
 ```
+
+</details>
 
 ## Crates and responsibilities (5 crates)
 

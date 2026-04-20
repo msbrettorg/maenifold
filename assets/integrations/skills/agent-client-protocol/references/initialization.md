@@ -6,6 +6,11 @@
 
 The Initialization phase allows [Clients](./overview.md#client) and [Agents](./overview.md#agent) to negotiate protocol versions, capabilities, and authentication methods.
 
+_Diagram — diagram_ ::
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -17,6 +22,8 @@ sequenceDiagram
     Agent-->>Client: initialize response
     Note over Client,Agent: Ready for session setup
 ```
+
+</details>
 
 Before a Session can be created, Clients **MUST** initialize the connection by calling the `initialize` method with:
 

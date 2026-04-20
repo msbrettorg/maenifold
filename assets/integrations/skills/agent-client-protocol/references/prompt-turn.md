@@ -10,6 +10,11 @@ Before sending prompts, Clients **MUST** first complete the initialization phase
 
 ## The Prompt Turn Lifecycle
 
+_The Prompt Turn Lifecycle — diagram_ ::
+Relationships shown by arrows in the diagram source below — open in a graphical viewer (or the maenifold desktop app / GitHub web UI) to render.
+
+<details><summary>Mermaid source (graphical viewers only)</summary>
+
 ```mermaid
 sequenceDiagram
     participant Client
@@ -49,6 +54,8 @@ sequenceDiagram
 
     Agent-->>Client: session/prompt response (stopReason)
 ```
+
+</details>
 
 ### 1. User Message
 

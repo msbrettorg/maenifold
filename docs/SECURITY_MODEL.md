@@ -6,6 +6,65 @@ This document describes what the security model **is**, not what it should be.
 
 ## Data Flow Diagram
 
+```
+External Entities                             maenifold Process                          Persistent Storage
+─────────────────                             ─────────────────                          ──────────────────
+
+[npm Registry] ──┐
+                 ├──► binary + native libs + ONNX model ─► (no code signing)
+[Homebrew /     ─┘
+ GitHub Rel.] ────► binary + SHA-256 checksums ─────────► (no SLSA provenance)
+
+[MCP Client] ─────► JSON-RPC via stdio ────► [MCP Server] ──┐
+                                                            │
+[CLI User]   ─────► --tool --payload ──────► [CLI Parser] ──┤
+                                                            ▼
+[Env Vars    ─────► paths, config (no ──► (consumed by process; no validation
+ MAENIFOLD_*]       validation beyond     beyond type-safe parsing)
+                    type-safe parsing)
+                                                  │
+                                                  ▼
+                                          [ToolRegistry — 28 tools]
+                                                  │
+              ┌───────────────────┬───────────────┼──────────────┬──────────────┐
+              ▼                   ▼               ▼              ▼              ▼
+       [MarkdownIO]       [SearchEngine]    [DecayCalc]   [graph queries  parameterized]
+        read/write +      FTS5 + vector +                       │
+        path validation   RRF fusion                            ▼
+              │                   │                       ┌─────────────┐
+              ▼                   ▼                       │  SQLite     │
+       ┌──────────────┐    queries to ─────────────────► │  memory.db  │
+       │ Markdown     │                                  │  (concepts, │
+       │ Files        │    [IncrementalSync] ──watch──► │  file_search│
+       │ ~/maenifold/ │◄──────┘   │                      │  FTS5,      │
+       │ memory/      │           ├──upsert content──►  │  graph,     │
+       └──────────────┘           │   + concepts         │  vec_*)     │
+                                  ▼                      └─────────────┘
+                              [ONNX Runtime] ──384-dim──► (above)
+                                  ▲                          ▲
+                          loaded in-process              loaded as native
+                          (no integrity check)           ext (no integrity)
+                                  │                          │
+                          ┌───────┴───────┐           ┌──────┴──────┐
+                          │ ONNX Model    │           │ sqlite-vec  │
+                          │ all-MiniLM-   │           │ vec0.{dylib,│
+                          │ L6-v2.onnx    │           │ so, dll}    │
+                          └───────────────┘           └─────────────┘
+
+       [AssetWatcher] ─watch *.json──► ~/maenifold/assets/
+                     ─resource notifications──► [MCP Server]
+```
+
+Trust-boundary highlights visible in the flow above:
+
+- **Distribution → process**: binaries arrive via npm or Homebrew with no code signing and no SLSA provenance.
+- **MCP client / CLI user → process**: requests cross stdio or shell args; there is no authentication.
+- **Process → filesystem**: `MarkdownIO` validates paths before reading or writing markdown.
+- **Process → SQLite**: all queries are parameterized; embeddings and graph data live in `memory.db`.
+- **Process → native deps**: ONNX model and `sqlite-vec` are loaded in-process with no integrity verification.
+
+<details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
+
 ```mermaid
 flowchart TB
     classDef external fill:#4a6fa5,stroke:#2d4a7a,color:#fff
@@ -85,6 +144,8 @@ flowchart TB
     ONNXM -->|"loaded in-process\n(no integrity check)"| ONNX
     VECEXT -->|"loaded as native\nextension\n(no integrity check)"| SQLITE
 ```
+
+</details>
 
 ## Trust Boundaries
 

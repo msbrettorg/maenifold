@@ -38,6 +38,30 @@ on [[System Design Trade-offs]].
 ```
 
 ## Tool Relationships
+
+```
+                    [AI Agent: LLM]
+                          |
+              +-----------+-----------+
+              |                       |
+        Adopt (perspective)    Workflow / SequentialThinking
+                                      |
+                                Write/Edit/Read
+                                      |
+                                    Sync
+                                      |
+                +---------------------+---------------------+
+                |          |             |                  |
+          SearchMemories  BuildContext  FindSimilar     Visualize
+                +---------------------+---------------------+
+                                      |
+                                  back to LLM
+```
+
+Flow: an Agent **Adopt**s a perspective, then dispatches **Workflow** or **SequentialThinking** which **Write/Edit/Read** memory files. **Sync** rebuilds the graph. The Agent then queries via **SearchMemories**, **BuildContext**, **FindSimilar**, or **Visualize** — results return to the LLM.
+
+<details><summary>Same diagram in Mermaid (graphical viewers only — terminal clients render this as raw source)</summary>
+
 ```mermaid
 graph TD
     subgraph AGENT["AI Agent"]
@@ -77,5 +101,7 @@ graph TD
     GRAPH --> LLM
     RM --> LLM
 ```
+
+</details>
 
 **Key principle**: Write with `[[WikiLinks]]` (e.g., [[machine-learning]], [[API-design]]) → Sync → Search/BuildContext → Retrieve. Each memory enriches future searches.

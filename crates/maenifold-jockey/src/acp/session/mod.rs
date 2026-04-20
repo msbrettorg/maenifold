@@ -1,5 +1,6 @@
 mod cold_start;
 mod execute;
+mod execute_stream;
 mod mcp;
 mod prewarm;
 mod session_cmds;

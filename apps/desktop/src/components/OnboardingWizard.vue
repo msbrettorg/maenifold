@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { computed, provide } from 'vue';
+import { computed, provide, ref } from 'vue';
 import { Check } from 'lucide-vue-next';
 
 import { useOnboarding, type OnboardingStepId } from '../composables/useOnboarding';
 import OnboardingStepAgent from './OnboardingStepAgent.vue';
 import OnboardingStepDaemon from './OnboardingStepDaemon.vue';
+import OnboardingStepDone from './OnboardingStepDone.vue';
+import OnboardingStepModel from './OnboardingStepModel.vue';
 import OnboardingStepWelcome from './OnboardingStepWelcome.vue';
 
 const emit = defineEmits<{ complete: [] }>();
@@ -33,9 +35,14 @@ const stepComponents: Record<OnboardingStepId, any | null> = {
   welcome: OnboardingStepWelcome,
   daemon: OnboardingStepDaemon,
   agent: OnboardingStepAgent,
-  model: null, // T-201.5
-  done: null, // T-201.5
+  model: OnboardingStepModel,
+  done: OnboardingStepDone,
 };
+
+const modelSkipped = ref(false);
+const selectedModelName = ref<string | null>(null);
+provide('onboarding-model-skipped', modelSkipped);
+provide('onboarding-selected-model', selectedModelName);
 
 const activeStepComponent = computed(() => {
   return stepComponents[currentStepId.value] ?? OnboardingStepWelcome;

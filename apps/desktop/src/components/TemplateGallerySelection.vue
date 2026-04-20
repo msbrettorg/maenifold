@@ -64,7 +64,7 @@ defineEmits<{
 .gallery-field-label {
   font-size: 0.75rem;
   font-weight: 400;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .gallery-runtime-inputs {

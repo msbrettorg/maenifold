@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { PermissionRequest, ToolCallContentBlock } from '../lib/types';
 
@@ -138,15 +144,21 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
         </div>
       </section>
 
-      <details v-if="rawInputJson" class="raw-payload">
-        <summary>Raw tool input</summary>
-        <pre>{{ rawInputJson }}</pre>
-      </details>
+      <Accordion v-if="rawInputJson || rawOutputJson" type="multiple" class="raw-payload-group">
+        <AccordionItem v-if="rawInputJson" value="input" class="raw-payload">
+          <AccordionTrigger>Raw tool input</AccordionTrigger>
+          <AccordionContent>
+            <pre>{{ rawInputJson }}</pre>
+          </AccordionContent>
+        </AccordionItem>
 
-      <details v-if="rawOutputJson" class="raw-payload">
-        <summary>Raw tool output</summary>
-        <pre>{{ rawOutputJson }}</pre>
-      </details>
+        <AccordionItem v-if="rawOutputJson" value="output" class="raw-payload">
+          <AccordionTrigger>Raw tool output</AccordionTrigger>
+          <AccordionContent>
+            <pre>{{ rawOutputJson }}</pre>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
 
     <div class="dialog-actions">

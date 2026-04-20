@@ -305,7 +305,7 @@ onBeforeUnmount(() => {
   place-items: center;
   padding: 2rem 1rem;
   text-align: center;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .pipeline-list-scroll {
@@ -329,7 +329,7 @@ onBeforeUnmount(() => {
   gap: 0.75rem;
   padding: 0.75rem;
   border-left: 4px solid transparent;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--surface-container);
   transition: background 0.15s, border-color 0.15s;
 }
@@ -359,7 +359,7 @@ onBeforeUnmount(() => {
 .pipeline-select:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
 }
 
 .status-bead {
@@ -370,12 +370,12 @@ onBeforeUnmount(() => {
   margin-top: 0.375rem;
 }
 
-.bead--pending { background: var(--text-dim); }
+.bead--pending { background: var(--text-secondary); }
 .bead--active { background: var(--amber); }
 .bead--completed { background: var(--sage); }
 .bead--abandoned, .bead--stuck { background: var(--terracotta); }
 .bead--ready, .bead--paused { background: var(--sage); }
-.bead--cancelled { background: var(--text-dim); }
+.bead--cancelled { background: var(--text-secondary); }
 
 .pipeline-meta {
   flex: 1;
@@ -395,19 +395,19 @@ onBeforeUnmount(() => {
 
 .pipeline-progress {
   font-size: var(--text-xs);
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .progress-bar {
   height: 3px;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--color-bg-app);
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--color-brand);
   transition: width 0.3s ease;
 }

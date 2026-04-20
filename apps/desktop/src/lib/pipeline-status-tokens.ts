@@ -9,5 +9,5 @@ export const STATUS_COLORS: Record<string, string> = {
   active: 'var(--color-brand)',
   completed: 'var(--sage)',
   stuck: 'var(--terracotta)',
-  abandoned: 'var(--text-dim)',
+  abandoned: 'var(--text-secondary)',
 };

@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,10 +39,17 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
 </script>
 
 <template>
-  <div class="settings-groups" role="group" aria-label="Maenifold graph settings">
-    <details class="settings-card details-section" open>
-      <summary><h4>Decay</h4></summary>
-      <div class="section-grid">
+  <Accordion
+    type="multiple"
+    :default-value="['decay', 'community', 'vector']"
+    class="settings-groups"
+    role="group"
+    aria-label="Maenifold graph settings"
+  >
+    <AccordionItem value="decay" class="settings-card details-section">
+      <AccordionTrigger><h4>Decay</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="form-group">
           <Label>Grace days sequential</Label>
           <Input
@@ -90,12 +103,14 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
             </SelectContent>
           </Select>
         </div>
-      </div>
-    </details>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
 
-    <details class="settings-card details-section" open>
-      <summary><h4>Community Detection</h4></summary>
-      <div class="section-grid">
+    <AccordionItem value="community" class="settings-card details-section">
+      <AccordionTrigger><h4>Community Detection</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="form-group">
           <Label>Louvain gamma</Label>
           <Input
@@ -178,18 +193,21 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
             <span>Use default</span>
           </Label>
         </div>
-      </div>
-    </details>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
 
-    <details class="settings-card details-section" open>
-      <summary><h4>Vector / Embedding</h4></summary>
-      <div class="section-grid">
+    <AccordionItem value="vector" class="settings-card details-section">
+      <AccordionTrigger><h4>Vector / Embedding</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <Label class="checkbox-group"><Checkbox v-model="form.vector.embeddingLogs" /><span>Embedding logs</span></Label>
         <Label class="checkbox-group"><Checkbox v-model="form.vector.vectorLogs" /><span>Vector logs</span></Label>
         <Label class="checkbox-group"><Checkbox v-model="form.vector.disableVector" /><span>Disable vector</span></Label>
       </div>
-    </details>
-  </div>
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 </template>
 
 <style scoped>

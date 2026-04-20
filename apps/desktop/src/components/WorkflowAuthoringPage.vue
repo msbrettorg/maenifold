@@ -126,6 +126,16 @@ function handleInspectorResize(delta: number) {
   inspectorWidth.value = clamp(inspectorWidth.value - delta, INSPECTOR_MIN, maxInspector)
 }
 
+function handleBrowserReset() {
+  applyWidths(BROWSER_DEFAULT, inspectorWidth.value)
+  persistWidths()
+}
+
+function handleInspectorReset() {
+  applyWidths(browserWidth.value, INSPECTOR_DEFAULT)
+  persistWidths()
+}
+
 watch(currentId, () => {
   selectedStepId.value = null
 })
@@ -197,6 +207,7 @@ onBeforeUnmount(() => {
         @drag-start="draggingPanel = 'browser'"
         @resize="handleBrowserResize"
         @drag-end="draggingPanel = null; persistWidths()"
+        @reset="handleBrowserReset"
       />
       <WorkflowStepTimeline
         class="panel panel-timeline"
@@ -211,6 +222,7 @@ onBeforeUnmount(() => {
           @drag-start="draggingPanel = 'inspector'"
           @resize="handleInspectorResize"
           @drag-end="draggingPanel = null; persistWidths()"
+          @reset="handleInspectorReset"
         />
         <WorkflowStepInspector
           class="panel panel-inspector"

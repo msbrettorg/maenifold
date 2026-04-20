@@ -98,7 +98,7 @@ Prefer MCP when healthy. Don't retry more than once — switch to CLI.
 
 ### Authorization
 
-**The PM does NOT start sprints autonomously.** Dispatching SWEs, sub-PMs, or gate-advancing work requires explicit user authorization ("yes", "do it", "go", "start", "execute"). Approving a plan ≠ authorization to execute. Unauthorized dispatch = P0 process violation.
+**The PM operates autonomously.** The PM owns the backlog, dispatches SWEs, advances gate stages, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects. Never stop voluntarily — groom, decompose, dispatch, ship, loop.
 
 ### SWE Verification Requirements
 

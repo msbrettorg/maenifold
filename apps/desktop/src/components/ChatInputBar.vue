@@ -50,6 +50,13 @@ const showCommandPalette = computed(() => {
 });
 const commandFilter = computed(() => props.modelValue.startsWith('/') ? props.modelValue.slice(1) : '');
 
+function submit(): void {
+  if (props.disabled || !props.modelValue.trim()) {
+    return;
+  }
+  emit('send');
+}
+
 function handleKeyDown(event: KeyboardEvent): void {
   if (showCommandPalette.value && commandPaletteRef.value) {
     if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(event.key)) {
@@ -60,7 +67,7 @@ function handleKeyDown(event: KeyboardEvent): void {
 
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault();
-    emit('send');
+    submit();
   }
 }
 
@@ -110,7 +117,7 @@ function handleClose(): void {}
       <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
     </div>
 
-    <Button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="emit('send')">Send</Button>
+    <Button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="submit">Send</Button>
   </div>
 </template>
 
@@ -136,7 +143,7 @@ function handleClose(): void {}
 }
 .attachment-btn:disabled,
 .send-btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.embedded-context-hint { color: var(--text-dim); font-size: var(--text-sm); }
+.embedded-context-hint { color: var(--text-secondary); font-size: var(--text-sm); }
 .embedded-context-hint[aria-disabled='true'] { opacity: 0.7; }
 .attachment-error { color: var(--terracotta); font-size: var(--text-sm); }
 textarea {
@@ -151,7 +158,7 @@ textarea {
   font-size: var(--text-base);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-textarea::placeholder { color: var(--text-dim); }
+textarea::placeholder { color: var(--text-secondary); }
 textarea:focus {
   outline: none;
   border-color: var(--color-brand);

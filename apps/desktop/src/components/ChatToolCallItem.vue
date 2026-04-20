@@ -103,9 +103,9 @@ function statusIcon(status: string): Component {
 }
 .tci-status { font-size: var(--text-xs); }
 .tci-chevron { color: var(--color-text-secondary); font-size: var(--text-xs); }
-.status-pending { color: var(--text-dim); }
+.status-pending { color: var(--text-secondary); }
 .status-in_progress { color: var(--amber); }
 .status-completed { color: var(--sage); }
 .status-failed { color: var(--terracotta); }
-.status-cancelled { color: var(--text-dim); }
+.status-cancelled { color: var(--text-secondary); }
 </style>

@@ -119,7 +119,7 @@ defineEmits<{ retry: [] }>();
 .loading-detail {
   margin-top: 0.25rem;
   font-size: 0.6875rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -132,7 +132,7 @@ defineEmits<{ retry: [] }>();
   padding: 0.5rem 1rem;
   text-align: center;
   font-size: 0.6875rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   pointer-events: none;
 }
 

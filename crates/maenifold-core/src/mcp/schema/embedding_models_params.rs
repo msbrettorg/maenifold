@@ -10,6 +10,9 @@ pub enum EmbeddingModelsAction {
     Status,
     /// List curated models with install/active status
     List,
+    /// Download a model from HuggingFace into the managed catalog (subdir layout)
+    #[serde(rename = "download")]
+    Download,
     /// Set the active model (writes config; daemon restart + sync required to apply)
     Activate,
     /// Delete an installed model from disk (refuses to delete the active model)

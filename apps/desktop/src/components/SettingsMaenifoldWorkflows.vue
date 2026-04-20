@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { MaenifoldSettings } from '../lib/types';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,10 +18,17 @@ defineProps<{
 </script>
 
 <template>
-  <div class="settings-groups" role="group" aria-label="Maenifold workflow settings">
-    <details class="settings-card details-section" open>
-      <summary><h4>Workflows &amp; Debug</h4></summary>
-      <div class="section-grid">
+  <Accordion
+    type="multiple"
+    :default-value="['workflows-debug']"
+    class="settings-groups"
+    role="group"
+    aria-label="Maenifold workflow settings"
+  >
+    <AccordionItem value="workflows-debug" class="settings-card details-section">
+      <AccordionTrigger><h4>Workflows &amp; Debug</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="checkbox-group">
           <Checkbox :checked="form.debug.trace" @update:checked="(val: boolean) => { form.debug.trace = val }" />
           <Label>Trace logging</Label>
@@ -40,9 +53,10 @@ defineProps<{
             <Label>Use default</Label>
           </div>
         </div>
-      </div>
-    </details>
-  </div>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 </template>
 
 <style scoped>

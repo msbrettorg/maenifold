@@ -233,7 +233,7 @@ function closeDialog(): void {
       <DialogHeader class="dialog-header">
         <div>
           <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Promote to memory</DialogTitle>
-          <DialogDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
+          <DialogDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
         </div>
         <Button type="button" variant="ghost" class="rounded-[4px]" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
       </DialogHeader>

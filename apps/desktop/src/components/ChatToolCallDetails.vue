@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
@@ -16,6 +22,19 @@ defineProps<{
 
 const rawInputExpanded = ref(false);
 const rawOutputExpanded = ref(false);
+
+const rawPayloadOpenSections = computed<string[]>({
+  get() {
+    const open: string[] = [];
+    if (rawInputExpanded.value) open.push('input');
+    if (rawOutputExpanded.value) open.push('output');
+    return open;
+  },
+  set(values: string[]) {
+    rawInputExpanded.value = values.includes('input');
+    rawOutputExpanded.value = values.includes('output');
+  },
+});
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -124,25 +143,26 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
       </div>
     </div>
 
-    <details
-      v-if="toolCall.rawInput"
-      class="tool-call-payload"
-      :aria-expanded="rawInputExpanded"
-      @toggle="rawInputExpanded = ($event.currentTarget as HTMLDetailsElement).open"
+    <Accordion
+      v-if="toolCall.rawInput || toolCall.rawOutput"
+      v-model="rawPayloadOpenSections"
+      type="multiple"
+      class="tool-call-payload-group"
     >
-      <summary>Raw input</summary>
-      <pre><code>{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
-    </details>
+      <AccordionItem v-if="toolCall.rawInput" value="input" class="tool-call-payload">
+        <AccordionTrigger>Raw input</AccordionTrigger>
+        <AccordionContent>
+          <pre><code>{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
+        </AccordionContent>
+      </AccordionItem>
 
-    <details
-      v-if="toolCall.rawOutput"
-      class="tool-call-payload"
-      :aria-expanded="rawOutputExpanded"
-      @toggle="rawOutputExpanded = ($event.currentTarget as HTMLDetailsElement).open"
-    >
-      <summary>Raw output</summary>
-      <pre><code>{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
-    </details>
+      <AccordionItem v-if="toolCall.rawOutput" value="output" class="tool-call-payload">
+        <AccordionTrigger>Raw output</AccordionTrigger>
+        <AccordionContent>
+          <pre><code>{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   </div>
 </template>
 

@@ -10,7 +10,11 @@ const emit = defineEmits<{
   (event: 'drag-start'): void
   (event: 'resize', delta: number): void
   (event: 'drag-end'): void
+  (event: 'reset'): void
 }>()
+
+const KEYBOARD_STEP = 10
+const KEYBOARD_STEP_LARGE = 50
 
 const handleRef = ref<HTMLElement | null>(null)
 const activePointerId = ref<number | null>(null)
@@ -50,6 +54,24 @@ function finishDrag(event?: PointerEvent) {
   emit('drag-end')
 }
 
+function handleKeyDown(event: KeyboardEvent) {
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    const magnitude = event.shiftKey ? KEYBOARD_STEP_LARGE : KEYBOARD_STEP
+    const delta = event.key === 'ArrowRight' ? magnitude : -magnitude
+    emit('resize', delta)
+    emit('drag-end')
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    emit('reset')
+  }
+}
+
+function handleDoubleClick(event: MouseEvent) {
+  event.preventDefault()
+  emit('reset')
+}
+
 onBeforeUnmount(() => {
   finishDrag()
 })
@@ -70,6 +92,8 @@ onBeforeUnmount(() => {
     @pointerup="finishDrag"
     @pointercancel="finishDrag"
     @lostpointercapture="finishDrag"
+    @keydown="handleKeyDown"
+    @dblclick="handleDoubleClick"
     @dragstart.prevent
   >
     <span class="panel-resize-handle__grip" aria-hidden="true" />
@@ -88,9 +112,18 @@ onBeforeUnmount(() => {
 }
 
 .panel-resize-handle:hover,
-.panel-resize-handle:focus-visible,
 .panel-resize-handle--dragging {
   background: transparent;
+}
+
+.panel-resize-handle:focus {
+  outline: none;
+}
+
+.panel-resize-handle:focus-visible {
+  outline: 2px solid var(--color-brand, var(--ring, #6366f1));
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--color-brand, var(--ring, #6366f1)) 12%, transparent);
 }
 
 .panel-resize-handle__grip {

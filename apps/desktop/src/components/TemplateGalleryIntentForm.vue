@@ -72,7 +72,7 @@ const emit = defineEmits<{
 }
 
 .gallery-intent-hint {
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .gallery-intent-error,

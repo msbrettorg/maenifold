@@ -117,7 +117,7 @@ watch(
           <div class="flyout-header-row">
             <div class="min-w-0">
               <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Pipelines</SheetTitle>
-              <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">Browse, load, and create pipeline sessions.</SheetDescription>
+              <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">Browse, load, and create pipeline sessions.</SheetDescription>
             </div>
             <Button
               type="button"
@@ -216,13 +216,13 @@ watch(
 
 .flyout-state-msg {
   margin: 0;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-sm);
 }
 
 .skeleton-block {
   height: 0.875rem;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--surface-high);
   animation: skeleton-pulse 1.4s ease-in-out infinite;
 }

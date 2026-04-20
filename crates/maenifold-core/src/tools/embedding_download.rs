@@ -30,6 +30,19 @@ pub async fn download_model(
         ));
     }
 
+    // T-202.9 remediation: refuse to download into the catalog layout when a
+    // legacy flat install (`{models_dir}/{model_id}.onnx`) is present. The two
+    // layouts cannot coexist cleanly — the runtime scan would still pick the
+    // flat file by size, so the catalog install would be invisible. Force the
+    // user to remove the legacy artifact first.
+    let legacy_flat = models_dir.join(format!("{model_id}.onnx"));
+    if legacy_flat.is_file() {
+        return Err(format!(
+            "Legacy model exists at {}, remove it first before downloading the catalog version.",
+            legacy_flat.display()
+        ));
+    }
+
     let staging = models_dir.join(format!(".{}.downloading", model_id));
     let _ = fs::remove_dir_all(&staging).await; // clean any prior failed attempt
     fs::create_dir_all(&staging)

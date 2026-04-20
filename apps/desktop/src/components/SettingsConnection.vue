@@ -6,6 +6,16 @@ import { useConfigStore } from '../stores/config';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import SettingsConnectionAgents from './SettingsConnectionAgents.vue';
 import SettingsConnectionDaemon from './SettingsConnectionDaemon.vue';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AgentRow {
   name: string;
@@ -179,7 +189,21 @@ async function handleSubmit() {
 }
 
 async function handleDelete(name: string) {
-  if (!confirm(`Delete agent "${name}"?`)) return;
+  pendingDeleteAgent.value = name;
+}
+
+const pendingDeleteAgent = ref<string | null>(null);
+const deleteDialogOpen = computed({
+  get: () => pendingDeleteAgent.value !== null,
+  set: (open: boolean) => {
+    if (!open) pendingDeleteAgent.value = null;
+  },
+});
+
+async function confirmDeleteAgent() {
+  const name = pendingDeleteAgent.value;
+  pendingDeleteAgent.value = null;
+  if (!name) return;
 
   try {
     const response = await fetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(name)}`, {
@@ -235,6 +259,26 @@ async function refreshHealth() {
         :show-add-form="showAddForm"
       />
     </div>
+
+    <AlertDialog v-model:open="deleteDialogOpen">
+      <AlertDialogContent class="sm:max-w-[28rem]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete agent "{{ pendingDeleteAgent }}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove the agent configuration. This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            @click="confirmDeleteAgent"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </section>
 </template>
 

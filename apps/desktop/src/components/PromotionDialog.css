@@ -47,7 +47,7 @@
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
@@ -86,7 +86,7 @@
 .summary-row p {
   margin: 0;
   white-space: pre-wrap;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .result-card__actions {
@@ -142,7 +142,7 @@
 .field-help,
 .result-score,
 .info-message {
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .mono {

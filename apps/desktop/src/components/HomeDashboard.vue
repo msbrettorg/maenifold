@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { MessageSquare, GitBranch, Shield, Brain, Search, Send, Pencil } from 'lucide-vue-next';
-import type { Component } from 'vue';
+import { Shield, Brain, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePipelineStore } from '../stores/pipeline';
@@ -15,7 +14,7 @@ interface HomeTile {
   key: string;
   title: string;
   description: string;
-  icon: Component;
+  icon: string;
   accentClass: string;
   tab?: AppShellTab;
   action?: string;
@@ -46,11 +45,11 @@ const gateSnapshot = ref<GateSnapshot | null>(null);
 const composerInput = ref('');
 
 const categories: HomeTile[] = [
-  { key: 'agents', title: 'Agents', description: 'Start or resume sessions', icon: MessageSquare, accentClass: 'text-brand', tab: 'agents' },
-  { key: 'pipelines', title: 'Pipelines', description: 'Run multi-step workflows', icon: GitBranch, accentClass: 'text-success', tab: 'pipelines' },
-  { key: 'gate', title: 'Gate', description: 'Track tasks & delivery', icon: Shield, accentClass: 'text-warning', tab: 'gate' },
-  { key: 'workflows', title: 'Workflows', description: 'Browse & author', icon: Brain, accentClass: 'text-thinking', tab: 'workflows' },
-  { key: 'knowledge', title: 'Knowledge', description: 'Explore the graph', icon: Search, accentClass: 'text-brand', tab: 'knowledge' },
+  { key: 'agents', title: 'Agents', description: 'Start or resume sessions', icon: '💬', accentClass: 'text-brand', tab: 'agents' },
+  { key: 'pipelines', title: 'Pipelines', description: 'Run multi-step workflows', icon: '🔀', accentClass: 'text-success', tab: 'pipelines' },
+  { key: 'gate', title: 'Gate', description: 'Track tasks & delivery', icon: '📋', accentClass: 'text-warning', tab: 'gate' },
+  { key: 'workflows', title: 'Workflows', description: 'Browse & author', icon: '⚡', accentClass: 'text-thinking', tab: 'workflows' },
+  { key: 'knowledge', title: 'Knowledge', description: 'Explore the graph', icon: '🧠', accentClass: 'text-brand', tab: 'knowledge' },
 ];
 
 const daemonConnected = computed(() => props.isConnected);
@@ -132,7 +131,7 @@ onBeforeUnmount(() => {
         class="flex h-auto min-h-[72px] flex-col items-center justify-center gap-1.5 whitespace-normal rounded-[8px] border-[1.5px] border-border-card bg-bg-elevated px-1 py-3.5 font-normal transition-all hover:bg-bg-surface-hover"
         @click="handleTileSelect(cat)"
       >
-        <component :is="cat.icon" class="size-5" :class="cat.accentClass" :stroke-width="1.5" />
+        <span class="text-2xl leading-none" :class="cat.accentClass">{{ cat.icon }}</span>
         <span class="text-center text-[11px] font-semibold text-text-secondary">{{ cat.title }}</span>
         <span class="text-center text-[9px] leading-tight text-text-tertiary">{{ cat.description }}</span>
       </Button>

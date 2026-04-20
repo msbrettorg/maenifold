@@ -185,7 +185,7 @@ function handleSubmit() {
 
 .form-field {
   min-width: 0;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 
@@ -204,7 +204,7 @@ function handleSubmit() {
 .edge-list-header h4 {
   margin: 0;
   font-size: 0.75rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .edge-row {

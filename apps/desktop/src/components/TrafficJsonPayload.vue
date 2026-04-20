@@ -86,6 +86,6 @@ const tokens = computed(() => {
 .t-str { color: var(--sage); }
 .t-num { color: var(--amber); }
 .t-bool { color: var(--plum); }
-.t-nil { color: var(--text-dim); font-style: italic; }
-.t-p { color: var(--text-dim); }
+.t-nil { color: var(--text-secondary); font-style: italic; }
+.t-p { color: var(--text-secondary); }
 </style>

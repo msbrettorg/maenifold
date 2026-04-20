@@ -139,7 +139,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   display: grid;
   gap: 0.35rem;
   min-width: 0;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 

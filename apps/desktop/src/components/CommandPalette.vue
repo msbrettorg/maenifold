@@ -188,7 +188,7 @@ function handleSelectionChange(value: unknown) {
   display: flex;
   align-items: center;
   padding: 10px 16px;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .command-input {
@@ -224,7 +224,7 @@ function handleSelectionChange(value: unknown) {
 
 .command-empty {
   padding: 1rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-body-sm);
   text-align: center;
 }
@@ -274,7 +274,7 @@ function handleSelectionChange(value: unknown) {
 }
 
 .command-hint {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-family: var(--font-code);
   font-size: var(--text-caption);
   white-space: nowrap;

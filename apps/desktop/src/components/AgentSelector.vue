@@ -130,7 +130,7 @@ function formatAgentOptionLabel(agentName: string): string {
 label {
   font-size: var(--text-tiny);
   font-weight: 400;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 select {

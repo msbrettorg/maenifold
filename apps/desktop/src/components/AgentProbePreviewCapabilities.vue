@@ -86,7 +86,7 @@ function isGroup(
 .field-label {
   font-size: var(--text-caption);
   font-weight: 400;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .preview-select {

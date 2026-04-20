@@ -101,7 +101,7 @@ const queueHint = computed(() =>
   padding: 0.125rem 0.5rem;
   border-radius: 999px;
   background: var(--surface-high);
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-tiny);
 }
 

@@ -45,7 +45,7 @@ const modalDescription = computed(() =>
       <SheetHeader class="config-header">
         <div class="config-heading">
           <SheetTitle class="config-title">{{ modalTitle }}</SheetTitle>
-          <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-dim)]">{{ modalDescription }}</SheetDescription>
+          <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">{{ modalDescription }}</SheetDescription>
         </div>
         <Button
           class="config-close rounded-[4px]"

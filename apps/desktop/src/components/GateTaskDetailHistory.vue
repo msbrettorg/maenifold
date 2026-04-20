@@ -2,6 +2,12 @@
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import type { GateTaskHistoryEntry } from '../lib/gate';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 
@@ -29,43 +35,52 @@ function formatTimestamp(timestamp: string | null) {
 </script>
 
 <template>
-  <details class="gate-detail-history" :open="history.length > 0" :aria-labelledby="historySummaryId">
-    <summary :id="historySummaryId" class="gate-detail-history__summary">
-      <span>Gate history</span>
-      <span v-if="history.length" class="gate-detail-history__count">{{ history.length }}</span>
-    </summary>
-    <div class="gate-detail-history__content">
-      <p v-if="historyLoading" class="gate-detail-history__message">Loading task history…</p>
-      <p v-else-if="historyError" class="gate-detail-history__message gate-detail-history__message--error">{{ historyError }}</p>
-      <p v-else-if="!history.length" class="gate-detail-history__message">No recorded gate history yet.</p>
-      <ol v-else class="gate-detail-history__list">
-        <li
-          v-for="(entry, index) in history"
-          :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`"
-          :class="['gate-detail-history__item', `gate-detail-history__item--${gateStageFamily(entry.stage)}`]"
-        >
-          <div class="gate-detail-history__header">
-            <div>
-              <p class="gate-detail-history__stage">{{ formatStageLabel(entry.stage) }}</p>
-              <h4>{{ entry.event }}</h4>
-            </div>
-            <time class="gate-detail-history__time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
-          </div>
-          <dl class="gate-detail-history__meta">
-            <div>
-              <dt>Agent</dt>
-              <dd>{{ entry.agent || '—' }}</dd>
-            </div>
-            <div>
-              <dt>Model</dt>
-              <dd>{{ entry.model || '—' }}</dd>
-            </div>
-          </dl>
-          <div v-if="entry.notes" class="gate-detail-history__markdown" v-html="renderMarkdown(entry.notes)" />
-        </li>
-      </ol>
-    </div>
-  </details>
+  <Accordion
+    type="multiple"
+    :model-value="history.length > 0 ? ['gate-history'] : []"
+    class="gate-detail-history"
+    :aria-labelledby="historySummaryId"
+  >
+    <AccordionItem value="gate-history">
+      <AccordionTrigger :id="historySummaryId" class="gate-detail-history__summary">
+        <span>Gate history</span>
+        <span v-if="history.length" class="gate-detail-history__count">{{ history.length }}</span>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div class="gate-detail-history__content">
+          <p v-if="historyLoading" class="gate-detail-history__message">Loading task history…</p>
+          <p v-else-if="historyError" class="gate-detail-history__message gate-detail-history__message--error">{{ historyError }}</p>
+          <p v-else-if="!history.length" class="gate-detail-history__message">No recorded gate history yet.</p>
+          <ol v-else class="gate-detail-history__list">
+            <li
+              v-for="(entry, index) in history"
+              :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`"
+              :class="['gate-detail-history__item', `gate-detail-history__item--${gateStageFamily(entry.stage)}`]"
+            >
+              <div class="gate-detail-history__header">
+                <div>
+                  <p class="gate-detail-history__stage">{{ formatStageLabel(entry.stage) }}</p>
+                  <h4>{{ entry.event }}</h4>
+                </div>
+                <time class="gate-detail-history__time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
+              </div>
+              <dl class="gate-detail-history__meta">
+                <div>
+                  <dt>Agent</dt>
+                  <dd>{{ entry.agent || '—' }}</dd>
+                </div>
+                <div>
+                  <dt>Model</dt>
+                  <dd>{{ entry.model || '—' }}</dd>
+                </div>
+              </dl>
+              <div v-if="entry.notes" class="gate-detail-history__markdown" v-html="renderMarkdown(entry.notes)" />
+            </li>
+          </ol>
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 </template>
 
 <style scoped>

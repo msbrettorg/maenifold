@@ -225,7 +225,7 @@ onUnmounted(stopResize);
   border: none;
   border-radius: 4px;
   background: var(--surface-container);
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-tiny);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -252,19 +252,19 @@ onUnmounted(stopResize);
   font-size: var(--text-tiny);
   outline: none;
 }
-.search-input::placeholder { color: var(--text-dim); }
+.search-input::placeholder { color: var(--text-secondary); }
 .search-clear-btn {
   padding: 0 0.25rem;
   border: none;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-body-sm);
   line-height: 1;
   cursor: pointer;
 }
 .search-clear-btn:hover { color: var(--text); }
 .match-count {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-tiny);
   white-space: nowrap;
 }
@@ -272,7 +272,7 @@ onUnmounted(stopResize);
   padding: 0.25rem 0.5rem;
   border: none;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-body-sm);
   cursor: pointer;
 }
@@ -284,7 +284,7 @@ onUnmounted(stopResize);
 .empty-state {
   padding: 2rem;
   text-align: center;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 .paused-indicator {
   position: absolute;

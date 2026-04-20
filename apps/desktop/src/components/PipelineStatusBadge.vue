@@ -10,7 +10,7 @@ const badge = computed(() => {
   if (!props.status) return null;
   return {
     label: props.status,
-    color: STATUS_COLORS[props.status] ?? 'var(--text-dim)',
+    color: STATUS_COLORS[props.status] ?? 'var(--text-secondary)',
   };
 });
 </script>
@@ -32,7 +32,7 @@ const badge = computed(() => {
   align-items: center;
   gap: 0.5rem;
   padding: 0.35rem 0.6rem;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--surface-container);
   color: var(--text);
   font-size: var(--text-xs);

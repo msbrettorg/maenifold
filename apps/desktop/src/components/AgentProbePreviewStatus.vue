@@ -71,7 +71,7 @@ defineEmits<{
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: var(--text-dim);
+  background: var(--text-secondary);
 }
 
 .status-label {
@@ -139,7 +139,7 @@ defineEmits<{
 
 .pending .status-bead,
 .idle .status-bead {
-  background: var(--text-dim);
+  background: var(--text-secondary);
 }
 
 .offline .status-bead {

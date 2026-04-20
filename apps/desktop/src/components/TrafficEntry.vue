@@ -65,7 +65,7 @@ function copyPayload() {
   position: absolute;
   inset: 0 auto 0 0;
   width: 4px;
-  background: var(--text-dim);
+  background: var(--text-secondary);
 }
 .entry.out::before {
   background: var(--color-brand);
@@ -89,11 +89,11 @@ function copyPayload() {
 
 .expand-icon {
   width: 1em;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .timestamp {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-tiny);
   font-family: var(--font-code);
 }
@@ -104,13 +104,13 @@ function copyPayload() {
 }
 
 .direction-icon.out { color: var(--color-brand); }
-.direction-icon.in { color: var(--text-dim); }
+.direction-icon.in { color: var(--text-secondary); }
 
 .entry.error .direction-icon,
 .entry.error .method { color: var(--terracotta); }
 
 .type-label {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-tiny);
 }
 

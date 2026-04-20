@@ -124,7 +124,7 @@ function stageState(index: number) {
   font-size: var(--text-tiny);
 }
 
-.gate-detail-stages__chip--pending { background: var(--text-dim); }
+.gate-detail-stages__chip--pending { background: var(--text-secondary); }
 .gate-detail-stages__chip--swe { background: var(--color-brand); }
 .gate-detail-stages__chip--red-team { background: var(--amber); }
 .gate-detail-stages__chip--blue-team,

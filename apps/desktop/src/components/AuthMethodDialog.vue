@@ -98,7 +98,7 @@ function handleSelect(methodId: string) {
   background: transparent;
   font-size: var(--text-title);
   cursor: pointer;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   padding: 0.25rem;
 }
 
@@ -150,12 +150,12 @@ function handleSelect(methodId: string) {
 
 .method-desc {
   font-size: 0.75rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .arrow {
   font-size: var(--text-title);
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 
 .auth-method-btn:hover .arrow {
@@ -171,7 +171,7 @@ function handleSelect(methodId: string) {
   border: 1px solid var(--color-border-subtle);
   border-radius: 4px;
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   cursor: pointer;
   font-size: 0.75rem;
 }

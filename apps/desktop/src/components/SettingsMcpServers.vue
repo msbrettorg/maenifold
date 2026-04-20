@@ -5,6 +5,16 @@ import SettingsMcpServersList from './SettingsMcpServersList.vue';
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { AgentsConfig, McpServerEntry } from '../lib/types';
 import { useConfigStore } from '../stores/config';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 type McpServerType = McpServerEntry['type'];
 
@@ -133,7 +143,21 @@ async function handleSubmit() {
 }
 
 async function handleDelete(name: string) {
-  if (!confirm(`Delete MCP server "${name}"?`)) return;
+  pendingDeleteServer.value = name;
+}
+
+const pendingDeleteServer = ref<string | null>(null);
+const deleteDialogOpen = computed({
+  get: () => pendingDeleteServer.value !== null,
+  set: (open: boolean) => {
+    if (!open) pendingDeleteServer.value = null;
+  },
+});
+
+async function confirmDeleteServer() {
+  const name = pendingDeleteServer.value;
+  pendingDeleteServer.value = null;
+  if (!name) return;
 
   try {
     feedback.value = null;
@@ -184,6 +208,28 @@ async function handleDelete(name: string) {
       @submit="handleSubmit"
       @cancel="resetForm"
     />
+
+    <AlertDialog v-model:open="deleteDialogOpen">
+      <AlertDialogContent class="sm:max-w-[28rem]">
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete MCP server "{{ pendingDeleteServer }}"?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will remove the MCP server configuration. Agents using this
+            server will no longer have access to it. This action cannot be
+            undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            @click="confirmDeleteServer"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </section>
 </template>
 

@@ -70,7 +70,7 @@ const indicatorColor = computed(() =>
   place-items: center;
   width: 1.4rem;
   height: 1.4rem;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: color-mix(in srgb, var(--color-bg-app) 92%, var(--surface-high) 8%);
   color: var(--color-text-primary);
   font-size: var(--text-sm);
@@ -92,7 +92,7 @@ const indicatorColor = computed(() =>
 .edge-condition-label {
   position: absolute;
   padding: 0.15rem 0.35rem;
-  border-radius: 4px;
+  border-radius: var(--radius-4);
   background: var(--surface-high);
   color: var(--text);
   font-size: var(--text-xs);

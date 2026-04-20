@@ -1,13 +1,16 @@
 {
   "star": {
-    "totalUsageMs": 22753637,
+    "totalUsageMs": 27476012,
     "prompted": true
   },
   "monitor": {
-    "replyPrefix": "Agency Cowork: ",
+    "replyPrefix": "maenifold: ",
     "autopilotMode": true,
     "autoApprovePermissions": true,
-    "yoloMode": true
+    "yoloMode": true,
+    "enabled": true,
+    "keyword": "@maenifold",
+    "smartPermission": false
   },
   "memory": {
     "location": "local"

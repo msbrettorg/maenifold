@@ -272,7 +272,7 @@ function formatEnvCount(count: number) {
   width: 6px;
   height: 6px;
   border-radius: 4px;
-  background: var(--text-dim);
+  background: var(--text-secondary);
   flex-shrink: 0;
 }
 

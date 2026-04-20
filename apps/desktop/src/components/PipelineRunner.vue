@@ -155,7 +155,7 @@ function formatLogEntry(entry: LogEntry) {
 }
 .status-line {
   padding: 0.75rem 1rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: var(--text-base);
   background: var(--surface-container);
 }
@@ -179,6 +179,6 @@ function formatLogEntry(entry: LogEntry) {
   color: var(--text);
 }
 .empty-state {
-  color: var(--text-dim);
+  color: var(--text-secondary);
 }
 </style>

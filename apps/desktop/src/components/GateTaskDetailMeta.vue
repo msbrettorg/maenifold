@@ -91,7 +91,7 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
 }
 
 .gate-detail-meta__badge--process { background: var(--outline-variant); }
-.gate-detail-meta__badge--pending { background: var(--text-dim); }
+.gate-detail-meta__badge--pending { background: var(--text-secondary); }
 .gate-detail-meta__badge--swe { background: var(--color-brand); }
 .gate-detail-meta__badge--red-team { background: var(--amber); }
 .gate-detail-meta__badge--blue-team,

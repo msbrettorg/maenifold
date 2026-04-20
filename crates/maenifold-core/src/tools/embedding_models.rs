@@ -3,11 +3,90 @@ use crate::acp_config::{AgentsConfig, MaenifoldSettings};
 use crate::error::{MaenifoldError, Result};
 use crate::util::json::{OutputFormat, success};
 use crate::vector;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::path::Path;
 
-/// Curated embedding model catalog entry
+/// Bundled catalog JSON, embedded at compile time. Used when no external
+/// `{assets_path}/models/catalog.json` override is present.
+const BUNDLED_CATALOG_JSON: &str = include_str!("../../assets/models/catalog.json");
+
+/// Owned catalog entry deserialized from JSON (or converted from the
+/// compile-time `CURATED_MODELS` fallback).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct CatalogModel {
+    pub id: String,
+    pub name: String,
+    pub dimensions: usize,
+    pub max_tokens: usize,
+    pub size_bytes: u64,
+    pub license: String,
+    pub huggingface_repo: String,
+    #[serde(default)]
+    pub onnx_repo: Option<String>,
+    pub released: String,
+    #[serde(default)]
+    pub mrl_dimensions: Option<Vec<usize>>,
+    #[serde(default)]
+    pub mteb_retrieval: Option<f32>,
+}
+
+impl CatalogModel {
+    fn from_curated(m: &CuratedModel) -> Self {
+        Self {
+            id: m.id.to_string(),
+            name: m.name.to_string(),
+            dimensions: m.dimensions,
+            max_tokens: m.max_tokens,
+            size_bytes: m.size_bytes,
+            license: m.license.to_string(),
+            huggingface_repo: m.huggingface_repo.to_string(),
+            onnx_repo: m.onnx_repo.map(str::to_string),
+            released: m.released.to_string(),
+            mrl_dimensions: m.mrl_dimensions.map(<[usize]>::to_vec),
+            mteb_retrieval: m.mteb_retrieval,
+        }
+    }
+}
+
+/// Load the curated embedding model catalog.
+///
+/// Resolution order:
+/// 1. External JSON at `{assets_path}/models/catalog.json` (user-overridable).
+/// 2. Bundled JSON via `include_str!` (default ships with binary).
+/// 3. Compile-time `CURATED_MODELS` static array (defensive fallback in case
+///    the bundled JSON ever fails to parse — should be unreachable).
+pub(crate) fn load_catalog(assets_path: &Path) -> Vec<CatalogModel> {
+    let external = assets_path.join("models").join("catalog.json");
+    if external.is_file() {
+        match std::fs::read_to_string(&external) {
+            Ok(text) => match serde_json::from_str::<Vec<CatalogModel>>(&text) {
+                Ok(models) => return models,
+                Err(e) => tracing::warn!(
+                    "Failed to parse {}: {e}; falling back to bundled catalog",
+                    external.display()
+                ),
+            },
+            Err(e) => tracing::warn!(
+                "Failed to read {}: {e}; falling back to bundled catalog",
+                external.display()
+            ),
+        }
+    }
+
+    match serde_json::from_str::<Vec<CatalogModel>>(BUNDLED_CATALOG_JSON) {
+        Ok(models) => models,
+        Err(e) => {
+            tracing::error!(
+                "Failed to parse bundled catalog JSON: {e}; falling back to compiled CURATED_MODELS"
+            );
+            CURATED_MODELS.iter().map(CatalogModel::from_curated).collect()
+        }
+    }
+}
+
+/// Curated embedding model catalog entry (compile-time fallback only).
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct CuratedModel {
@@ -196,14 +275,15 @@ fn handle_list(context: &ToolContext) -> Value {
     let models_dir = context.config.assets_path.join("models");
     let active_model_path = vector::model_path();
 
-    let models: Vec<Value> = CURATED_MODELS
+    let catalog = load_catalog(&context.config.assets_path);
+    let models: Vec<Value> = catalog
         .iter()
         .map(|model| {
             let is_active = active_model_path
                 .as_deref()
-                .map(|p| is_active_model(p, model.id))
+                .map(|p| is_active_model(p, &model.id))
                 .unwrap_or(false);
-            let installed = is_model_installed(&models_dir, model.id) || is_active;
+            let installed = is_model_installed(&models_dir, &model.id) || is_active;
 
             json!({
                 "id": model.id,
@@ -241,7 +321,8 @@ fn handle_download(context: &ToolContext, payload: &Value) -> Result<Value> {
             )
         })?;
 
-    let entry = CURATED_MODELS
+    let catalog = load_catalog(&context.config.assets_path);
+    let entry = catalog
         .iter()
         .find(|m| m.id == model_id)
         .ok_or_else(|| {
@@ -251,8 +332,8 @@ fn handle_download(context: &ToolContext, payload: &Value) -> Result<Value> {
     let models_dir = context.config.assets_path.join("models");
 
     let id = model_id.to_string();
-    let repo = entry.huggingface_repo.to_string();
-    let onnx = entry.onnx_repo.map(|s| s.to_string());
+    let repo = entry.huggingface_repo.clone();
+    let onnx = entry.onnx_repo.clone();
     let dir = models_dir.clone();
     tokio::spawn(async move {
         match super::embedding_download::download_model(&id, &repo, onnx.as_deref(), &dir).await {
@@ -264,15 +345,14 @@ fn handle_download(context: &ToolContext, payload: &Value) -> Result<Value> {
     Ok(json!({ "accepted": true, "modelId": model_id }))
 }
 
-/// Check if a model is installed by looking for ONNX files in both flat and subdirectory layouts.
+/// Check if a model is installed under the catalog-managed subdirectory layout.
+///
+/// Only `{models_dir}/{model_id}/*.onnx` counts as "installed" for the catalog.
+/// Flat/legacy `{models_dir}/{model_id}.onnx` files are discovered by the
+/// runtime scan in `discovery.rs` but are NOT catalog-managed and therefore
+/// must not be reported as installed by the catalog tooling — activate/delete
+/// only operate on the subdir layout.
 fn is_model_installed(models_dir: &Path, model_id: &str) -> bool {
-    // Flat layout: {models_dir}/{model_id}.onnx
-    let flat_path = models_dir.join(format!("{model_id}.onnx"));
-    if flat_path.is_file() && flat_path.metadata().map(|m| m.len() > 0).unwrap_or(false) {
-        return true;
-    }
-
-    // Subdirectory layout: {models_dir}/{model_id}/*.onnx
     let sub_dir = models_dir.join(model_id);
     if sub_dir.is_dir() && let Ok(entries) = std::fs::read_dir(&sub_dir) {
         for entry in entries.flatten() {
@@ -329,7 +409,10 @@ fn handle_activate(context: &ToolContext, payload: &Value) -> Result<Value> {
             MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
         })?;
 
-    if !CURATED_MODELS.iter().any(|m| m.id == model_id) {
+    if !load_catalog(&context.config.assets_path)
+        .iter()
+        .any(|m| m.id == model_id)
+    {
         return Err(MaenifoldError::Message(format!(
             "Unknown model: {model_id}"
         )));
@@ -383,6 +466,18 @@ fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Value> {
 
     let models_dir = context.config.assets_path.join("models");
     let target_dir = models_dir.join(model_id);
+
+    // T-202.9 remediation: when no active_model is configured, the runtime
+    // falls back to scanning (`discovery.rs::discover_model`) and picks the
+    // largest *.onnx — meaning any installed model could become the active
+    // one on next restart. Refuse to delete in that ambiguous state and
+    // require the user to explicitly pin an active model first.
+    if active_model.is_none() && target_dir.is_dir() {
+        return Err(MaenifoldError::Message(
+            "Cannot delete while no active model is configured. Activate a different model first.".to_string(),
+        ));
+    }
+
     if !target_dir.exists() {
         return Err(MaenifoldError::Message(format!(
             "Model directory not found: {}",

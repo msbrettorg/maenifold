@@ -82,7 +82,7 @@ const emit = defineEmits<{
 }
 
 .dialog-body {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 0.75rem;
 }
 

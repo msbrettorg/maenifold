@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { MaenifoldSettings } from '../lib/types';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,10 +22,17 @@ defineProps<{
 </script>
 
 <template>
-  <div class="settings-groups" role="group" aria-label="Maenifold memory settings">
-    <details class="settings-card details-section" open>
-      <summary><h4>General</h4></summary>
-      <div class="section-grid">
+  <Accordion
+    type="multiple"
+    :default-value="['general', 'database', 'session']"
+    class="settings-groups"
+    role="group"
+    aria-label="Maenifold memory settings"
+  >
+    <AccordionItem value="general" class="settings-card details-section">
+      <AccordionTrigger><h4>General</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="form-group">
           <Label>Log rotation</Label>
           <Select :model-value="form.logRotation" @update:model-value="(val) => form.logRotation = val as typeof form.logRotation">
@@ -41,11 +54,13 @@ defineProps<{
         <div class="checkbox-group"><Checkbox :checked="form.syncLogging" @update:checked="(val: boolean) => { form.syncLogging = val }" /><Label>Sync logging</Label></div>
         <div class="checkbox-group"><Checkbox :checked="form.sessionCleanup" @update:checked="(val: boolean) => { form.sessionCleanup = val }" /><Label>Session cleanup</Label></div>
       </div>
-    </details>
+      </AccordionContent>
+    </AccordionItem>
 
-    <details class="settings-card details-section" open>
-      <summary><h4>Database</h4></summary>
-      <div class="section-grid">
+    <AccordionItem value="database" class="settings-card details-section">
+      <AccordionTrigger><h4>Database</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="form-group">
           <Label>SQLite busy timeout ms</Label>
           <Input :model-value="form.sqliteBusyTimeoutMs" type="number" min="0" step="1" @update:model-value="(val) => { form.sqliteBusyTimeoutMs = Number(val) }" />
@@ -67,11 +82,13 @@ defineProps<{
           <Input :model-value="form.incrementalVacuumMinutes" type="number" min="0" step="1" @update:model-value="(val) => { form.incrementalVacuumMinutes = Number(val) }" />
         </div>
       </div>
-    </details>
+      </AccordionContent>
+    </AccordionItem>
 
-    <details class="settings-card details-section" open>
-      <summary><h4>Session</h4></summary>
-      <div class="section-grid">
+    <AccordionItem value="session" class="settings-card details-section">
+      <AccordionTrigger><h4>Session</h4></AccordionTrigger>
+      <AccordionContent>
+        <div class="section-grid">
         <div class="optional-field">
           <div class="form-group">
             <Label>Session abandon minutes</Label>
@@ -128,8 +145,9 @@ defineProps<{
           </Select>
         </div>
       </div>
-    </details>
-  </div>
+      </AccordionContent>
+    </AccordionItem>
+  </Accordion>
 </template>
 
 <style scoped>

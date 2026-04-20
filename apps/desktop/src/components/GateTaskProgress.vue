@@ -49,7 +49,7 @@ const segments = computed(() => {
           : props.task.state === 'pending'
             ? 'pending'
             : 'active',
-      color: 'var(--text-dim)',
+      color: 'var(--text-secondary)',
     }];
   }
 
@@ -111,12 +111,12 @@ const progressLabel = computed(() => formatStageLabel(props.task.location === 'd
   background: var(--surface-highest);
 }
 
-.gate-progress__segment--completed.gate-progress__segment--pending { background: var(--text-dim); }
+.gate-progress__segment--completed.gate-progress__segment--pending { background: var(--text-secondary); }
 .gate-progress__segment--completed.gate-progress__segment--swe { background: color-mix(in srgb, var(--color-brand) 72%, var(--surface-highest)); }
 .gate-progress__segment--completed.gate-progress__segment--red-team { background: color-mix(in srgb, var(--amber) 72%, var(--surface-highest)); }
 .gate-progress__segment--completed.gate-progress__segment--blue-team,
 .gate-progress__segment--completed.gate-progress__segment--done { background: color-mix(in srgb, var(--sage) 72%, var(--surface-highest)); }
-.gate-progress__segment--active.gate-progress__segment--pending { background: var(--text-dim); }
+.gate-progress__segment--active.gate-progress__segment--pending { background: var(--text-secondary); }
 .gate-progress__segment--active.gate-progress__segment--swe { background: var(--color-brand); }
 .gate-progress__segment--active.gate-progress__segment--red-team { background: var(--amber); }
 .gate-progress__segment--active.gate-progress__segment--blue-team,

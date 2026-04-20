@@ -90,7 +90,7 @@
 .browse-existing-btn {
   align-self: flex-start;
   height: 2rem;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-4);
 }
 .runner-panel {
   grid-area: runner;
@@ -116,7 +116,7 @@
   min-height: 2rem;
   padding: 0 0.6rem;
   border: 0;
-  border-radius: 0.25rem;
+  border-radius: var(--radius-4);
   background: var(--surface-high);
   color: var(--text);
   font: inherit;
@@ -174,7 +174,7 @@
     min-height: 2.75rem;
     min-width: 2.75rem;
     padding: 0.5rem 0.875rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-4);
     background: var(--surface-container);
     color: var(--text);
     font: inherit;
@@ -198,7 +198,7 @@
   .mobile-inspector-close {
     min-height: 2.5rem;
     padding: 0.25rem 0.75rem;
-    border-radius: 0.25rem;
+    border-radius: var(--radius-4);
     background: var(--surface-high);
     color: var(--text);
     font: inherit;

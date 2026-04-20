@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import type { WorkflowStepEntry } from '../lib/pipeline-types';
 
 defineProps<{
@@ -58,10 +64,14 @@ function statusClass(status: string): string {
               {{ step.status }}
             </span>
           </div>
-          <details v-if="step.output" class="step-output">
-            <summary>Output</summary>
-            <pre>{{ step.output }}</pre>
-          </details>
+          <Accordion v-if="step.output" type="multiple" class="step-output">
+            <AccordionItem :value="`step-output-${step.step_name}`">
+              <AccordionTrigger>Output</AccordionTrigger>
+              <AccordionContent>
+                <pre>{{ step.output }}</pre>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </div>
       </li>
     </ol>

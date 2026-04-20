@@ -25,9 +25,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.19.0",
-    "@fontsource/inter": "^5.2.8",
     "@fontsource/jetbrains-mono": "^5.2.8",
-    "@fontsource/space-grotesk": "^5.2.10",
     "@jsonforms/core": "^3.7.0",
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",

@@ -3,6 +3,12 @@ import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import type { SequentialThinkingViewNode } from '../lib/pipeline-types';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
@@ -89,42 +95,29 @@ function thoughtKey(thought: NonNullable<SequentialThinkingViewNode['thinking_tr
   return `${thought.thought_number}-${index}`;
 }
 
-const openThoughts = ref<Record<string, boolean>>({});
+const openThoughtIds = ref<string[]>([]);
+let initialized = false;
 
 watch(
   () => props.trace,
   (trace) => {
-    const next: Record<string, boolean> = {};
-    trace.forEach((thought, index) => {
-      const key = thoughtKey(thought, index);
-      next[key] = openThoughts.value[key] ?? true;
-    });
-    openThoughts.value = next;
+    if (!initialized) {
+      openThoughtIds.value = trace.map((thought, index) => thoughtKey(thought, index));
+      initialized = true;
+      return;
+    }
+    const validKeys = new Set(trace.map((thought, index) => thoughtKey(thought, index)));
+    const previous = openThoughtIds.value.filter((key) => validKeys.has(key));
+    const newKeys = trace
+      .map((thought, index) => thoughtKey(thought, index))
+      .filter((key) => !openThoughtIds.value.includes(key));
+    openThoughtIds.value = [...previous, ...newKeys];
   },
   { immediate: true },
 );
 
 function isThoughtOpen(thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number], index: number): boolean {
-  return openThoughts.value[thoughtKey(thought, index)] ?? true;
-}
-
-function setThoughtOpen(
-  thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number],
-  index: number,
-  open: boolean,
-): void {
-  openThoughts.value[thoughtKey(thought, index)] = open;
-}
-
-function onThoughtToggle(
-  thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number],
-  index: number,
-  event: Event,
-): void {
-  const target = event.target;
-  if (target instanceof HTMLDetailsElement) {
-    setThoughtOpen(thought, index, target.open);
-  }
+  return openThoughtIds.value.includes(thoughtKey(thought, index));
 }
 
 const allExpanded = computed(() =>
@@ -132,11 +125,9 @@ const allExpanded = computed(() =>
 
 function toggleAll(): void {
   const expand = !allExpanded.value;
-  const next: Record<string, boolean> = {};
-  props.trace.forEach((thought, index) => {
-    next[thoughtKey(thought, index)] = expand;
-  });
-  openThoughts.value = next;
+  openThoughtIds.value = expand
+    ? props.trace.map((thought, index) => thoughtKey(thought, index))
+    : [];
 }
 </script>
 
@@ -157,28 +148,29 @@ function toggleAll(): void {
       </Button>
     </div>
 
-    <ol class="trace-list">
-      <li v-for="(thought, index) in props.trace" :key="`${thought.thought_number}-${index}`">
-        <details
-          class="trace-card"
-          :open="isThoughtOpen(thought, index)"
-          @toggle="onThoughtToggle(thought, index, $event)"
-        >
-          <summary class="trace-summary">
-            <div class="trace-summary__copy">
-              <span class="trace-number">Thought {{ thought.thought_number }}</span>
-              <span v-if="thought.is_revision" class="trace-revision">
-                Revises {{ thought.revises_thought ? `#${thought.revises_thought}` : 'an earlier thought' }}
-              </span>
-            </div>
-          </summary>
-
+    <Accordion v-model="openThoughtIds" type="multiple" class="trace-list" as="ol">
+      <AccordionItem
+        v-for="(thought, index) in props.trace"
+        :key="`${thought.thought_number}-${index}`"
+        :value="thoughtKey(thought, index)"
+        class="trace-card"
+        as="li"
+      >
+        <AccordionTrigger class="trace-summary">
+          <div class="trace-summary__copy">
+            <span class="trace-number">Thought {{ thought.thought_number }}</span>
+            <span v-if="thought.is_revision" class="trace-revision">
+              Revises {{ thought.revises_thought ? `#${thought.revises_thought}` : 'an earlier thought' }}
+            </span>
+          </div>
+        </AccordionTrigger>
+        <AccordionContent>
           <div class="trace-body">
             <div class="trace-content" v-html="renderMarkdown(thought.text)" />
           </div>
-        </details>
-      </li>
-    </ol>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   </section>
 </template>
 

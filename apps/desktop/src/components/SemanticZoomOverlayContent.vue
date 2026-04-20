@@ -1,5 +1,11 @@
 <script setup lang="ts">
 import type { SequentialThinkingViewNode, ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import ThinkingTraceView from './ThinkingTraceView.vue';
 import PromptAssemblyPreview from './PromptAssemblyPreview.vue';
 import WorkflowStepProgress from './WorkflowStepProgress.vue';
@@ -27,20 +33,30 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
 
     <WorkflowStepProgress v-if="props.workflowSteps && props.workflowSteps.length > 0" :steps="props.workflowSteps" />
 
-    <details v-if="props.nodeOutput" class="zoom-section" open>
-      <summary class="zoom-section-title">Output</summary>
-      <pre class="zoom-pre">{{ props.nodeOutput }}</pre>
-    </details>
+    <Accordion
+      v-if="props.nodeOutput || props.toolProvenance"
+      type="multiple"
+      :default-value="['output', 'tool-provenance']"
+    >
+      <AccordionItem v-if="props.nodeOutput" value="output" class="zoom-section">
+        <AccordionTrigger class="zoom-section-title">Output</AccordionTrigger>
+        <AccordionContent>
+          <pre class="zoom-pre">{{ props.nodeOutput }}</pre>
+        </AccordionContent>
+      </AccordionItem>
 
-    <details v-if="props.toolProvenance" class="zoom-section" open>
-      <summary class="zoom-section-title">Tool Provenance</summary>
-      <div class="zoom-metadata">
-        <span class="item-label">Tool</span>
-        <strong>{{ props.toolProvenance.toolName }}</strong>
-      </div>
-      <pre class="zoom-pre">{{ formatJson(props.toolProvenance.resolvedArgs ?? null) }}</pre>
-      <pre v-if="props.toolProvenance.responseSummary" class="zoom-pre">{{ props.toolProvenance.responseSummary }}</pre>
-    </details>
+      <AccordionItem v-if="props.toolProvenance" value="tool-provenance" class="zoom-section">
+        <AccordionTrigger class="zoom-section-title">Tool Provenance</AccordionTrigger>
+        <AccordionContent>
+          <div class="zoom-metadata">
+            <span class="item-label">Tool</span>
+            <strong>{{ props.toolProvenance.toolName }}</strong>
+          </div>
+          <pre class="zoom-pre">{{ formatJson(props.toolProvenance.resolvedArgs ?? null) }}</pre>
+          <pre v-if="props.toolProvenance.responseSummary" class="zoom-pre">{{ props.toolProvenance.responseSummary }}</pre>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
 
     <div
       v-if="!props.assembledPrompt && !props.thinkingTrace && !props.workflowSteps && !props.nodeOutput && !props.toolProvenance"

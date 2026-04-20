@@ -205,13 +205,37 @@ Tray behavior on macOS:
 
 ## Prompt Templates
 
-This skill ships SDD-oriented prompt templates:
+This skill ships prompt templates for each agent role:
 
 - `references/swe-prompt-template.md`
 - `references/red-prompt-template.md`
 - `references/blue-prompt-template.md`
+- `references/confession-prompt-template.md`
 
 Use them as starting points, then adapt them to your repo and test commands.
+
+### Stage → Prompt Mapping (sdd-c / tdd-c)
+
+For confession-enhanced processes (`sdd-c`, `tdd-c`), use this mapping to dispatch the correct prompt for each stage:
+
+| Gate Stage | Prompt Template | Agent | Role |
+|------------|----------------|-------|------|
+| `pending` | (PM dispatches) | PM | Dispatch |
+| `swe` | `swe-prompt-template.md` | SWE | Implementation |
+| `swe-confess` | `confession-prompt-template.md` (SWE section) | Same SWE | Self-confession |
+| `red-team` | `red-prompt-template.md` | Red-team | Adversarial audit |
+| `red-team-confess` | `confession-prompt-template.md` (Red-team section) | Same red-team | Self-confession |
+| `blue-team` | `blue-prompt-template.md` | Blue-team | Verification |
+| `blue-team-confess` | `confession-prompt-template.md` (Blue-team section) | Same blue-team | Self-confession |
+| `pm-confess` | `confession-prompt-template.md` (PM section) | PM | PM self-confession |
+| `red-team-audit` | `confession-prompt-template.md` (Audit section) | Fresh red-team | Falsify PM confession |
+
+**Rules:**
+- `-confess` stages are run by the **same agent** who did the work (self-confession)
+- `-confess` fail routes back to the work stage (not pending) — redo the work, don't restart
+- `pm-confess` fail routes to `pending` — the PM's attestation was inadequate
+- `red-team-audit` fail routes to `pending` — full restart, the pipeline's honesty was compromised
+- `red-team-audit` is a **fresh** red-team agent (not the same one from earlier) to prevent collusion
 
 ## Recovery
 

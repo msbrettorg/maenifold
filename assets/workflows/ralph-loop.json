@@ -1,0 +1,220 @@
+{
+  "id": "ralph-loop",
+  "name": "RALPH Loop — Autonomous Codebase Improvement",
+  "emoji": "🔄",
+  "description": "PM-led multi-agent convergence loop. Reads the gate backlog, dispatches SWE/red-team/blue-team agents through gate stages, commits improvements, writes findings to the knowledge graph. Each workflow run is one RALPH iteration. Inspired by Benjamin Abt's RALPH method and thirdlayer's AutoAgent.",
+  "triggers": [
+    "ralph loop",
+    "autonomous improvement",
+    "convergence loop",
+    "codebase improvement",
+    "ralph iteration",
+    "self-improvement loop"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": true,
+  "steps": [
+    {
+      "id": "bootstrap-and-scope",
+      "name": "🚀 Bootstrap & Scope Check",
+      "description": "Load skills, sync gate, and establish scope for this iteration.\n\n1. Load `maenifold` and `gate` skills\n2. Sync gate cache: `gate sync --root . --rebuild`\n3. Check scope environment variables (`RALPH_TARGET_CRATE`, `RALPH_TARGET_PATH`)\n4. Read `ralph/state/learnings.md` for known failure patterns\n5. Read `AGENTS.md` for constitutional rules and RACI\n\nState your scope before proceeding. If unscoped, state 'unscoped — selecting freely.'",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "SearchMemories": {
+            "reason": "Find prior RALPH iteration results and learnings",
+            "priority": "recommended"
+          },
+          "RecentActivity": {
+            "reason": "See what was done in recent iterations",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Skills loaded",
+          "Gate synced",
+          "Scope stated (crate, path, or unscoped)"
+        ],
+        "next_actions": [
+          "Select a task from the gate backlog"
+        ]
+      }
+    },
+    {
+      "id": "task-selection",
+      "name": "🎯 Task Selection",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nSelect the next task to work on from the gate backlog.\n\n1. Run `gate status --root .` to see pending tasks\n2. Read each candidate task file in `todo/` for acceptance criteria\n3. Check `done/` for ID conflicts before creating new tasks\n4. **Epic handling:** If a task has `type: epic` in frontmatter, your job is to DECOMPOSE it into sub-tasks, not implement it. Create sub-task files. This IS a valid iteration.\n5. Select ONE task that fits within change-size limits (≤12 files, ≤600 LOC)\n6. If no viable tasks exist, consider creating improvement tasks from dogfooding observations\n\nUse sequential thinking to reason through the selection — consider scope constraints, task difficulty, and dependency ordering.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Reason through task selection considering scope, difficulty, and dependencies",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Check knowledge graph for related prior work on the selected task",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Traverse concept neighbors for relevant context",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "One task selected with ID and title stated",
+          "Task file read and acceptance criteria understood",
+          "Scope confirmed as within change-size limits"
+        ],
+        "next_actions": [
+          "Dispatch SWE agent to implement"
+        ]
+      }
+    },
+    {
+      "id": "swe-dispatch",
+      "name": "🛠️ SWE Dispatch",
+      "description": "Dispatch a SWE agent to implement the selected task.\n\nUse the Task tool to launch a `swe` agent with:\n- Task ID and full acceptance criteria from the task file\n- Scope constraints (crate/path)\n- Build command: `cargo build --release -p <crate>` or `cd apps/desktop && npx vue-tsc --noEmit`\n- Test command: `cargo test -p <crate>` or `cd apps/desktop && npm run build`\n- `CARGO_TARGET_DIR=target/agents/<task-id>` for build isolation\n- Model: per RACI table (default: `gpt-5.3-codex`)\n\nDo NOT write code yourself. Do NOT troubleshoot SWE failures — if the SWE fails 3 times, fail the task via gate and move on.\n\nAfter SWE completes, verify:\n1. `git diff --stat` confirms files were modified\n2. Modified files match the spec's file list\n3. Spot-check at least one acceptance criterion against actual code",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch SWE agent with complete context",
+            "priority": "mandatory",
+            "agent_type": "swe"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "SWE agent completed successfully",
+          "Build passes",
+          "Delta verified via git diff"
+        ],
+        "next_actions": [
+          "Record gate pass for SWE stage, proceed to red-team (if SDD/SLC) or blue-team (if lightweight)"
+        ],
+        "escape_hatches": {
+          "swe_failure": {
+            "workflowId": "ralph-loop",
+            "condition": "SWE fails after 3 attempts — gate fail the task, record learnings, skip to record-and-commit"
+          }
+        }
+      }
+    },
+    {
+      "id": "gate-swe-pass",
+      "name": "✅ Gate SWE Pass",
+      "description": "Record the SWE stage pass via gate.\n\n`gate pass <task-id> --root . --agent swe --notes '<what was implemented>'`\n\nIf the task pipeline is `lightweight`, this advances to blue-team. If `sdd` or `slc`, this advances to red-team.\n\nCheck the task's pipeline to determine next step.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Gate pass recorded",
+          "Task state advanced to next stage"
+        ],
+        "next_actions": [
+          "If red-team stage: dispatch red-team agent",
+          "If blue-team stage: dispatch blue-team agent"
+        ]
+      }
+    },
+    {
+      "id": "red-team-dispatch",
+      "name": "🔴 Red-Team Dispatch (SDD/SLC only)",
+      "description": "Dispatch a red-team agent to adversarially audit the SWE's changes.\n\nSkip this step if the task pipeline is `lightweight` (no red-team stage).\n\nUse the Task tool to launch a `red-team` agent with:\n- The task spec and acceptance criteria\n- `git diff` of the SWE's changes\n- Model: `goldeneye` (per RACI)\n- Instruction: audit ONLY files modified by the SWE, verdict on the delta\n\nIf red-team finds blocking issues:\n1. `gate fail <task-id> --root . --agent red-team --notes '<findings>'`\n2. Re-dispatch SWE with the findings (remediation cycle)\n3. Max 2 remediation cycles, then escalate\n\nIf red-team passes:\n1. `gate pass <task-id> --root . --agent red-team --notes '<verdict>'`",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch red-team agent for adversarial audit",
+            "priority": "mandatory",
+            "agent_type": "red-team"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Red-team verdict received (PASS or FAIL)",
+          "Gate pass or fail recorded",
+          "If fail: remediation dispatched or escalated"
+        ],
+        "next_actions": [
+          "If pass: proceed to blue-team",
+          "If fail: remediation cycle or skip to learnings"
+        ]
+      }
+    },
+    {
+      "id": "blue-team-dispatch",
+      "name": "🔵 Blue-Team Dispatch",
+      "description": "Dispatch a blue-team agent to verify build, tests, and acceptance criteria.\n\nUse the Task tool to launch a `blue-team` agent with:\n- The task spec and acceptance criteria\n- Specific test commands to run\n- Model: `claude-opus-4.5` (per RACI)\n- Instruction: run ONLY tests for changed code, verify build, check LOC compliance\n\nIf blue-team fails:\n1. `gate fail <task-id> --root . --agent blue-team --notes '<findings>'`\n2. Re-dispatch SWE for fixes (remediation)\n\nIf blue-team passes:\n1. `gate pass <task-id> --root . --agent blue-team --notes '<verdict>'`\n2. This is the terminal stage — gate moves the task file to `done/`",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "Task": {
+            "reason": "Dispatch blue-team agent for verification",
+            "priority": "mandatory",
+            "agent_type": "blue-team"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Blue-team verdict received (PASS or FAIL)",
+          "Gate pass or fail recorded",
+          "If terminal pass: task file moved to done/"
+        ],
+        "next_actions": [
+          "If pass: proceed to commit and record",
+          "If fail: remediation or skip to learnings"
+        ]
+      }
+    },
+    {
+      "id": "commit-and-record",
+      "name": "📝 Commit & Record to Knowledge Graph",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nCommit the completed work and record findings to the knowledge graph.\n\n1. **Commit:**\n   ```bash\n   git add -A\n   git commit -m '<description of change>\n\n   Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>'\n   ```\n\n2. **Write memory note** to `mae-auto/iterations/` documenting:\n   - What changed and why\n   - Files modified with line counts\n   - Gate task ID and pipeline used\n   - Thinking session ID (if any)\n   - Include `[[WikiLinks]]` to relevant domain concepts\n\n3. **Update learnings** — append any new patterns to `ralph/state/learnings.md`:\n   - What worked well\n   - What failed and why\n   - Operational patterns discovered",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Reflect on what worked and what to record for future iterations",
+            "priority": "mandatory",
+            "estimated_thoughts": 2
+          },
+          "WriteMemory": {
+            "reason": "Persist iteration results to knowledge graph",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Changes committed with proper message",
+          "Memory note written with WikiLinks",
+          "Learnings updated if new patterns discovered"
+        ],
+        "next_actions": [
+          "Check convergence"
+        ]
+      }
+    },
+    {
+      "id": "convergence-check",
+      "name": "🏁 Convergence Check",
+      "description": "Determine whether to continue or signal convergence.\n\n1. Re-check `gate status --root .` for remaining pending tasks\n2. If pending tasks remain within scope: DO NOT converge, the outer loop will run another iteration\n3. If no viable pending tasks remain: `touch ralph/state/converged`\n4. If the only remaining task is an epic: DO NOT converge — decompose it next iteration\n\n**NEVER STOP voluntarily.** The outer shell loop controls iteration count. Your job is to signal convergence ONLY when the backlog is genuinely empty.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "Convergence decision made",
+          "Either: converged marker created, or: ready for next iteration"
+        ],
+        "next_actions": [
+          "Workflow complete — outer loop decides whether to run again"
+        ]
+      }
+    }
+  ]
+}

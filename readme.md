@@ -70,6 +70,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Tool nodes can execute MCP calls directly, so structured retrieval and system actions do not require model-token spend.
 - Workflow nodes and graph-backed context let pipelines reuse structured reasoning playbooks instead of rebuilding the same process on every run.
 - Supports pipeline surgery: `fork`, `graft`, `join`, and `rewind`.
+- **Pipelines double as evaluations.** Fork a completed pipeline, re-run it with a different harness configuration, and compare execution traces. Graft scoring nodes onto a completed run without re-executing upstream work. Every execution trace persists with full provenance — node outputs, timing, agent attribution, thinking session content. No separate eval framework needed; the pipeline executor IS the benchmark runtime.
 
 ### Gates
 
@@ -224,6 +225,7 @@ Bundled integration assets live under [`assets/integrations/`](assets/integratio
 
 - **Future direction:** self-evolving pipelines that learn from execution traces and improve how they gather context, route reasoning, and shape the graph over time.
 - **Future direction:** move maenifold closer to a no-code environment for agent orchestration, with workflows, pipelines, and the graph working together through shared local state.
+- **Future direction:** pipeline-as-evaluation — use fork, graft, and execution trace comparison to benchmark harness quality without a separate eval framework.
 
 ## Development
 

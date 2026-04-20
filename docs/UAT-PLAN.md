@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-04-19  
 **Status:** Draft  
-**Total Test Cases:** 412
+**Total Test Cases:** 575
 
 ---
 
@@ -1149,6 +1149,104 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
+## O. Onboarding Wizard
+
+### O.1 Wizard Gate & Lifecycle
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-579 | App | App.vue | Onboarding gate | First launch (no localStorage) | Wizard displays full-screen, blocking app | Both |
+| TC-580 | App | App.vue | Onboarding gate | After completing onboarding | Main app displays, wizard hidden | Both |
+| TC-581 | App | App.vue | Onboarding gate | Clear localStorage, reload | Wizard displays again | Both |
+
+### O.2 Wizard Shell & Navigation
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-582 | Wizard | OnboardingWizard | Left sidebar | Observe | Shows 5 steps: Welcome, Daemon, Agent, Model, Finish | Both |
+| TC-583 | Wizard | OnboardingWizard | Step indicators | Observe current step | Current step highlighted with brand color ring | Both |
+| TC-584 | Wizard | OnboardingWizard | Step indicators | Observe completed steps | Completed steps show green checkmark | Both |
+| TC-585 | Wizard | OnboardingWizard | Step indicators | Click completed step | Navigates back to that step | Both |
+| TC-586 | Wizard | OnboardingWizard | Step indicators | Click future step | Does nothing (disabled) | Both |
+| TC-587 | Wizard | OnboardingWizard | Step transition | Advance to next step | Smooth slide animation (opacity + translateY) | Both |
+
+### O.3 Welcome Step
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-588 | Wizard | OnboardingStepWelcome | Heading | Observe | Shows welcome text | Both |
+| TC-589 | Wizard | OnboardingStepWelcome | Continue button | Click | Advances to Daemon step | Both |
+
+### O.4 Daemon Step
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-590 | Wizard | OnboardingStepDaemon | Auto-probe on mount | Observe | Probes daemon via `GET /api/config` (not `/health`) | Both |
+| TC-591 | Wizard | OnboardingStepDaemon | Connected state | Observe when daemon running | Green success box with agent/MCP server counts | Both |
+| TC-592 | Wizard | OnboardingStepDaemon | Disconnected state | Observe when daemon down | Red dot, "Disconnected", correct start command | Both |
+| TC-593 | Wizard | OnboardingStepDaemon | Start command | Observe text | Shows `maenifold --http` (NOT `maenifold-cli serve`) | Both |
+| TC-594 | Wizard | OnboardingStepDaemon | Copy button | Click | Copies correct command to clipboard 📋 | Both |
+| TC-595 | Wizard | OnboardingStepDaemon | Copy button | After click | Shows "✓ Copied!" for 2 seconds | Both |
+| TC-596 | Wizard | OnboardingStepDaemon | Check connection | Click | Re-probes daemon | Both |
+| TC-597 | Wizard | OnboardingStepDaemon | Continue button | Observe when disconnected | Button disabled | Both |
+| TC-598 | Wizard | OnboardingStepDaemon | Continue button | Click when connected | Advances to Agent step | Both |
+| TC-599 | Wizard | OnboardingStepDaemon | Auto-poll | Wait 5 seconds while disconnected | Re-probes automatically | Both |
+| TC-600 | Wizard | OnboardingStepDaemon | Back button | Click | Returns to Welcome step | Both |
+
+### O.5 Agent Step
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-601 | Wizard | OnboardingStepAgent | Agent name input | Observe default | Pre-filled with "Copilot" or similar | Both |
+| TC-602 | Wizard | OnboardingStepAgent | Agent command input | Observe | Text input for full shell command, placeholder shows real ACP command | Both |
+| TC-603 | Wizard | OnboardingStepAgent | Agent command input | Observe placeholder | Shows `npx @github/copilot-language-server@latest --acp` or similar real command | Both |
+| TC-604 | Wizard | OnboardingStepAgent | Add agent | Click with valid name+command | Agent added via `POST /api/config/agents`, advances | Both |
+| TC-605 | Wizard | OnboardingStepAgent | Duplicate name | Enter existing agent name | Error message shown, button disabled | Both |
+| TC-606 | Wizard | OnboardingStepAgent | Empty name | Clear name field | Button disabled | Both |
+| TC-607 | Wizard | OnboardingStepAgent | Skip/existing | Observe when agents already configured | Shows existing agents, allows continuing | Both |
+| TC-608 | Wizard | OnboardingStepAgent | Back button | Click | Returns to Daemon step | Both |
+
+### O.6 Model Step
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-609 | Wizard | OnboardingStepModel | Model list | Observe on mount | Loads models via `EmbeddingModels` MCP tool | Both |
+| TC-610 | Wizard | OnboardingStepModel | Model cards | Observe | Shows model name, dimensions, max tokens, size | Both |
+| TC-611 | Wizard | OnboardingStepModel | Active model badge | Observe | Currently active model shows "active" badge | Both |
+| TC-612 | Wizard | OnboardingStepModel | Select model | Click model card | Radio indicator selects that model | Both |
+| TC-613 | Wizard | OnboardingStepModel | Download button | Click | Downloads selected model, shows progress | Both |
+| TC-614 | Wizard | OnboardingStepModel | Skip button | Click "Download later" | Advances to Finish step, model marked as skipped | Both |
+| TC-615 | Wizard | OnboardingStepModel | Dimension warning | Observe | Warning about re-embedding if dimensions change | Both |
+| TC-616 | Wizard | OnboardingStepModel | Load error | Observe when MCP unavailable | Error message with retry button | Both |
+| TC-617 | Wizard | OnboardingStepModel | Back button | Click | Returns to Agent step | Both |
+
+### O.7 Finish Step
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-618 | Wizard | OnboardingStepDone | Summary card | Observe | Shows daemon ✓, agent name, model status, config path | Both |
+| TC-619 | Wizard | OnboardingStepDone | Model skipped | Observe when model was skipped | Warning indicator on model row | Both |
+| TC-620 | Wizard | OnboardingStepDone | Config path | Observe | Shows real config path from store (NOT hardcoded) | Both |
+| TC-621 | Wizard | OnboardingStepDone | Documentation link | Click | Opens GitHub repo in new tab | Both |
+| TC-622 | Wizard | OnboardingStepDone | Start button | Click | Probes daemon, completes onboarding, shows main app | Both |
+| TC-623 | Wizard | OnboardingStepDone | Start button | Click when daemon down | Warning toast, does not complete | Both |
+| TC-624 | Wizard | OnboardingStepDone | Back button | Click | Returns to Model step | Both |
+| TC-625 | Wizard | OnboardingStepDone | Glow animation | Observe | Subtle brand gradient glow behind content | Both |
+
+### O.8 Design Compliance
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-626 | Wizard | All steps | Typography | Observe headings | 28px bold tracking-tight text-text-primary | Both |
+| TC-627 | Wizard | All steps | Body text | Observe | text-sm text-text-secondary leading-relaxed | Both |
+| TC-628 | Wizard | All steps | Borders | Observe | Tonal surface shifts only, no `1px solid` hard borders | Both |
+| TC-629 | Wizard | All steps | Buttons | Observe primary | Gradient brand bg, dark text, 4px radius | Both |
+| TC-630 | Wizard | All steps | Status dots | Observe | 6px dots (not pill badges) | Both |
+| TC-631 | Wizard | All steps | Shadows | Observe | No drop shadows (ambient glow only) | Both |
+| TC-632 | Wizard | All steps | Casing | Observe all text | Sentence case (never ALL CAPS) | Both |
+
+---
+
 ## N. Context-Specific Tests (Cowork iframe)
 
 ### N.1 Iframe Limitations
@@ -1227,7 +1325,8 @@ For each test case, record:
 | L. Diagnostics & Traffic | 15 |
 | M. Cross-Cutting & Edge Cases | 42 |
 | N. Context-Specific (iframe) | 7 |
-| **Total** | **521** |
+| O. Onboarding Wizard | 54 |
+| **Total** | **575** |
 
 ---
 

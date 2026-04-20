@@ -176,3 +176,59 @@
 - T-201.5: OnboardingStepModel + OnboardingStepDone (256+217 LOC)
 
 ### Total: ~1,157 LOC across 7 new files + 3 modified files
+
+## 2026-04-19 — Session 9 (Sprint 201 verification + reka-ui test fix)
+
+### What worked
+- T-201.8 verification task completed quickly — no code changes needed, all commands pass
+- T-202.1 test migration fix: SWE (claude-opus-4.7) fixed 17 failing tests in one pass (15min, 160 tool calls)
+- Blue-team caught a real issue (unused @ts-expect-error) — remediation completed in under 30s
+- Multi-turn SWE agent pattern (write_agent follow-up) works cleanly for one-line fixes
+
+### Patterns
+- "No changes needed" SWE claims for verification tasks are valid when independently confirmed — but still verify via git diff
+- reka-ui Select renders `<button role="combobox">` not `<select>` — tests must use `findAllComponents(Select)` + emit pattern
+- reka-ui SelectItem forbids empty string values — use sentinel (`__default__`) translated at boundary
+- Dialog/Sheet teleport to document.body — test queries must use `document.body.querySelector`, not `wrapper.find`
+- jsdom lacks ResizeObserver and Worker — environment polyfills in setup.ts are standard practice (not mocks)
+- `vi.hoisted(() => …)` solves vi.mock factory hoisting TDZ errors
+- Blue-team remediation cycle works: FAIL → SWE follow-up → re-verify → PASS
+
+### Delivered
+- T-201.8: Sprint 201 build verification — PASS (no changes, all 4 commands clean)
+- T-202.1: 17 reka-ui test failures fixed — 10 files modified, 2 dead test files deleted, net -564 lines
+- T-202.1 discovery: created follow-up task during T-201.8 verification (efficient issue tracking)
+
+## 2026-04-19 — Sprint 201 RCA: Hallucinated UI (CRITICAL)
+
+### What failed
+Sprint 201 onboarding wizard shipped hallucinated API surfaces. The UI compiles but cannot function:
+- `maenifold-cli serve` — binary is `maenifold`, no `serve` subcommand (actual: `maenifold --http`)
+- `GET /health` — endpoint does not exist in `crates/maenifold-core/src/api/routes.rs`
+- Hardcoded runtime presets (`copilot-cli`, `claude`, `openai`) — agents are configured in `maenifold.json`, not preset dropdowns
+
+### Root cause: Spec hallucination
+RALPH's SWE agent authored task specs (T-201.3, T-201.4) that prescribed API surfaces without verifying they exist in the codebase. The SWE implemented the spec faithfully. The spec was wrong.
+
+### Why gate didn't catch it
+- **SDD pipeline** (`pending → swe → red-team → blue-team → done`) assumes specs are correct
+- **Red-team** caught code quality issues (unmount race) but never verified API surfaces exist
+- **Blue-team** verified typecheck/build — a `fetch()` to a nonexistent endpoint is valid TypeScript
+- **No stage validates that referenced API surfaces actually exist in the codebase**
+
+### Process fix: Use TDD for integration work
+TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grounding:
+- Blue-team writes tests FIRST — to test `GET /health`, they must verify the endpoint exists
+- Hallucinations die on contact with reality before any UI code is written
+- SDD is for refactors where the contract is already proven; TDD is for anything touching an integration boundary
+
+### Pipeline selection rule (MANDATORY)
+- **TDD** — any task where frontend calls backend APIs, CLI commands, or MCP tools
+- **TDD** — any task where the spec references endpoints, routes, or external surfaces
+- **SDD** — pure refactors, file splits, code hygiene where the contract is unchanged
+- **Lightweight** — mechanical changes (formatting, renames, moves)
+- **SLC** — cross-crate new capabilities; sub-tasks inherit parent pipeline unless explicitly justified
+
+### Additional fixes applied
+- Red-team prompt must verify: "Do all API surfaces, endpoints, and CLI commands referenced in this code actually exist in the codebase?"
+- Sub-tasks of an SLC epic must inherit the parent's pipeline, not downgrade to SDD

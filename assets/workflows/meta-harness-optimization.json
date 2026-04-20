@@ -1,0 +1,160 @@
+{
+  "id": "meta-harness-optimization",
+  "name": "Meta-Harness Optimization",
+  "emoji": "🔧",
+  "description": "AutoAgent-style harness self-optimization. Diagnose bottlenecks in the RALPH harness (workflows, roles, prompts, model assignments), propose one change, test empirically via inner RALPH loop, evaluate gate outcomes, keep or revert. Each workflow run is one meta-iteration.",
+  "triggers": [
+    "meta harness optimization",
+    "optimize harness",
+    "autoagent",
+    "meta-agent",
+    "harness self-improvement",
+    "optimize the optimizer"
+  ],
+  "sequentialThinkingEnabled": true,
+  "multiAgent": false,
+  "steps": [
+    {
+      "id": "capture-baseline",
+      "name": "Capture Baseline — snapshot gate metrics before any change",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nCapture the current state of the harness and gate delivery metrics as a baseline. This is the 'before' measurement for the experiment.\n\n**FIRST-ITERATION RULE (autoagent):** If `META_ITERATION = 1`, do NOT propose any change in this run. Run RALPH unmodified to establish the initial F-score baseline. Skip directly to step `run-inner-loop`, then in `record-verdict` write `{kept: true, reason: \"baseline run\"}` and exit. Subsequent iterations require a baseline file to compare against.\n\n1. Run `gate status --root .` to get the current backlog\n2. Count completed tasks in `done/` directory\n3. Read `ralph/state/learnings.md` for known operational patterns\n4. Search the knowledge graph for prior meta-agent experiments (`mae-auto/meta/`)\n5. Read `ralph/state/meta-baseline.json` if the shell pre-captured it (contains `score_baseline` with prior F, H, T, S, C values)\n6. Compute current F-score components from the baseline:\n   - **H** (holdout, weight 0.75): replay the 3 frozen pipelines (`ftk-analysis-1776357291320`, `ftk-analysis-1776362447817`, `synopsys-final-1776283202985`) using the `Pipeline` tool. `H = passing_count / 3`.\n   - **T** (train, weight 0.15): from gate status, normalize `delivered_tasks × (1 − red_team_findings_per_task) × first_pass_blue_team_rate` to [0,1] against iteration budget.\n   - **S** (stability, weight 0.05): `1 − normalized_variance(F_n − F_{n−1})` over last 5 iterations; **= 0 when N < 3 (warmup)**.\n   - **C** (cost, weight 0.05): `1 − (this_iter_tokens / baseline_tokens)`, clipped to [0,1]; **= 0 on first iteration**.\n\nRecord baseline F = 0.75H + 0.15T + 0.05S + 0.05C in your thinking session for comparison after the inner loop.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Structure baseline capture and identify which metrics to track",
+            "priority": "mandatory",
+            "estimated_thoughts": 3
+          },
+          "SearchMemories": {
+            "reason": "Find prior meta-agent experiment results",
+            "priority": "mandatory"
+          },
+          "BuildContext": {
+            "reason": "Traverse harness-related concepts for prior optimization history",
+            "priority": "recommended"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Gate metrics captured (pending count, done count)",
+          "Prior experiment history loaded from graph",
+          "Baseline recorded in thinking session"
+        ],
+        "next_actions": [
+          "Diagnose harness bottleneck"
+        ]
+      }
+    },
+    {
+      "id": "diagnose-bottleneck",
+      "name": "Diagnose Bottleneck — identify the weakest harness surface",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nAnalyze gate history, RALPH learnings, and prior experiments to identify which harness surface is the current bottleneck.\n\nMutable surfaces to evaluate:\n- `assets/workflows/*.json` — step ordering, thinking requirements\n- `assets/roles/*.json` — role conditioning quality\n- `ralph/prompt.md` — RALPH iteration protocol\n- `ralph/AGENTS.md` — agent conventions\n- Model assignments in `AGENTS.md` Roles table\n- Agent configs in `maenifold.json`\n\nDiagnosis patterns:\n- Red-team keeps finding same bug class → role conditioning\n- SWE agents miss acceptance criteria → RALPH prompt\n- Workflow steps produce low-value output → workflow restructuring\n- Specific model underperforms in a role → model assignment\n- RALPH converges too slowly → prompt efficiency\n\nIMMUTABLE (do not diagnose): source code, gate processes, MCP schemas, meta-prompt.md, meta.sh.",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Systematic bottleneck analysis across all mutable surfaces",
+            "priority": "mandatory",
+            "estimated_thoughts": 5
+          },
+          "SearchMemories": {
+            "reason": "Find patterns in prior RALPH failures and successes",
+            "priority": "mandatory"
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Single bottleneck surface identified",
+          "Evidence cited from gate history or RALPH learnings",
+          "Hypothesis formed about what change would improve outcomes"
+        ],
+        "next_actions": [
+          "Propose one change to the identified surface"
+        ]
+      }
+    },
+    {
+      "id": "propose-change",
+      "name": "Propose Change — one edit to one surface",
+      "description": "Propose exactly ONE change to exactly ONE harness surface. This is the core constraint for attribution — if you change two things, you cannot tell which one mattered.\n\nWrite a clear hypothesis: 'Changing X in surface Y will improve metric Z because [evidence].'\n\nMake the edit. Keep a mental note of what the file looked like before (the shell has already git-tagged a snapshot for revert).\n\nDo NOT edit immutable files. Do NOT edit source code. Do NOT make multiple changes.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "Exactly one file edited",
+          "Hypothesis documented",
+          "Change is within the mutable surface allowlist"
+        ],
+        "next_actions": [
+          "Run RALPH inner loop to test the change"
+        ]
+      }
+    },
+    {
+      "id": "run-inner-loop",
+      "name": "Run Inner Loop — execute RALPH to test the harness change",
+      "description": "Run the RALPH inner loop to empirically test the harness change. Execute:\n\n```bash\n./ralph.sh --max-iterations $META_INNER_ITERATIONS --model $META_INNER_MODEL \\\n  ${RALPH_TARGET_CRATE:+--crate \"$RALPH_TARGET_CRATE\"} \\\n  ${RALPH_TARGET_PATH:+--path \"$RALPH_TARGET_PATH\"}\n```\n\nDo NOT skip this step. You need empirical signal, not speculation. The inner loop may take time — that is expected.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {},
+        "reasoning_effort": "low",
+        "stop_conditions": [
+          "RALPH inner loop completed or converged",
+          "ralph/state/converged exists OR max iterations reached"
+        ],
+        "next_actions": [
+          "Evaluate outcomes against baseline"
+        ]
+      }
+    },
+    {
+      "id": "evaluate-outcome",
+      "name": "Evaluate Outcome — compare gate metrics to baseline",
+      "description": "SEQUENTIAL THINKING REQUIRED\n\nCompute the post-iteration F-score and compare against the baseline captured in step 1.\n\n**Score function (this is what you optimize):**\n\n```\nF = 0.75 × H + 0.15 × T + 0.05 × S + 0.05 × C\n```\n\nMeasure each term:\n- **H** (holdout, 0.75): re-replay the 3 frozen pipelines (`ftk-analysis-1776357291320`, `ftk-analysis-1776362447817`, `synopsys-final-1776283202985`). `H = passing_count / 3`. This is the primary anti-Goodhart defense — heavy weight on hidden replay.\n- **T** (train, 0.15): from new entries in `done/` since baseline, compute `(delivered_tasks × (1 − red_team_findings_per_task) × first_pass_blue_team_rate)` normalized to [0,1] against the iteration budget.\n- **S** (stability, 0.05): variance of `F_n − F_{n−1}` over rolling window. **0 during warmup (N<3 prior iterations).**\n- **C** (cost, 0.05): `1 − (this_iter_tokens / baseline_tokens)`, clipped to [0,1]. **0 on first iteration (no baseline).**\n\n**Keep / Discard rules (autoagent verbatim):**\n1. If `F_after > F_before` → **keep**.\n2. If `F_after == F_before` AND harness is simpler (LOC removed, surface area reduced) → **keep**.\n3. Otherwise → **revert**.\n\n**Overfitting test (autoagent):** Before keeping, ask \"if this exact diagnosis disappeared, would this still be a worthwhile improvement?\" If no, it's overfitting — revert.\n\nA change that improves T while crashing H is a bad trade — and the 0.75 weight will catch you. Compute F as a single number; do not freelance with \"judgment\".",
+      "requiresSequentialThinking": true,
+      "metadata": {
+        "toolHints": {
+          "SequentialThinking": {
+            "reason": "Compare multi-dimensional metrics and form a keep/revert judgment",
+            "priority": "mandatory",
+            "estimated_thoughts": 4
+          }
+        },
+        "reasoning_effort": "high",
+        "stop_conditions": [
+          "Before/after metrics compared",
+          "Keep or revert decision made with cited evidence",
+          "Composite judgment documented"
+        ],
+        "next_actions": [
+          "Write verdict and record experiment"
+        ]
+      }
+    },
+    {
+      "id": "record-verdict",
+      "name": "Record Verdict — write verdict file and experiment note",
+      "description": "Write the structured verdict file the shell expects, then record the experiment in the knowledge graph.\n\n1. Write `ralph/state/meta-verdict.json`:\n   ```json\n   {\n     \"kept\": true,\n     \"reason\": \"<why this change improved outcomes, or why it didn't>\",\n     \"surface\": \"<single file path that was changed>\",\n     \"hypothesis\": \"<what you predicted the change would do>\",\n     \"score_before\": { \"F\": 0.785, \"H\": 0.667, \"T\": 0.40, \"S\": 0.90, \"C\": 0.50 },\n     \"score_after\":  { \"F\": 0.855, \"H\": 1.000, \"T\": 0.40, \"S\": 0.90, \"C\": 0.00 },\n     \"tasks_before\": 0,\n     \"tasks_after\":  0,\n     \"done_before\":  0,\n     \"done_after\":   0,\n     \"warmup\": false,\n     \"simplicity_delta_loc\": 0,\n     \"overfitting_check\": \"<answer to overfitting test in one sentence>\"\n   }\n   ```\n\n2. If kept=true: `git add -A && git commit -m 'meta: <description>'` with the constitutional `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer\n3. If kept=true: Write a memory note to `mae-auto/meta/` documenting the successful change with [[WikiLinks]]\n4. If kept=false: do NOT commit, do NOT write a memory note — the shell handles revert\n5. **Baseline-run special case** (META_ITERATION=1): write `{kept: true, reason: \"baseline run\", score_after: <computed F values>, warmup: true}` and skip the memory note — the baseline run is its own record\n\nThe verdict file is MANDATORY. Missing verdict = the shell reverts everything regardless of correctness.",
+      "requiresSequentialThinking": false,
+      "metadata": {
+        "toolHints": {
+          "WriteMemory": {
+            "reason": "Record successful experiment to mae-auto/meta/ (only if kept=true)",
+            "priority": "conditional"
+          }
+        },
+        "reasoning_effort": "medium",
+        "stop_conditions": [
+          "ralph/state/meta-verdict.json written with valid JSON",
+          "If kept: changes committed and memory note written",
+          "If not kept: verdict file written, no commit"
+        ],
+        "next_actions": [
+          "Meta-iteration complete. Shell handles revert if needed."
+        ]
+      }
+    }
+  ]
+}

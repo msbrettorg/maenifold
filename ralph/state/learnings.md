@@ -149,4 +149,30 @@
 - T-179.33: SettingsModels.vue — Models section in Settings tab with current model, available models list, status badges, dimension warning (1 new file, 1 modified)
 
 ### Remaining
-- T-179.34: First-run onboarding wizard — SLC pipeline, exceeds RALPH change-size limits (~2450 LOC reference impl). Needs human-driven sprint with full architect duo.
+- T-179.34: Epic decomposed and all 5 sub-tasks delivered in Sprint 201.
+
+## 2026-04-19 — Session 8 (Sprint 201: Onboarding Wizard)
+
+### What worked
+- Epic decomposition as a RALPH iteration works: duo review → create task files → commit → continue to next task
+- Architect duo (goldeneye + claude-opus-4.7) consensus on decomposition saved rework: goldeneye's 4-task minimum vs opus-4.7's 6-task maximum, PM compromised at 5
+- SDD pipeline with real red-team catches real bugs: wrong API endpoint (T-201.4), unmount race condition (T-201.3), hardcoded colors (T-201.2, T-201.5)
+- Remediation cycles (fail → fix → re-audit) complete in under 60s when the fix is surgical
+- `disposed` guard pattern (let disposed = false; if (disposed) return after await) is now standard for all async Vue components
+
+### Patterns
+- Always check existing codebase for API patterns before specifying endpoints (SettingsConnection.vue had the right POST pattern)
+- `text-primary-foreground` is the correct token for text on brand/success backgrounds (not `text-white`)
+- `--color-brand-hover` needed explicit registration in tailwind @theme block to work as a utility
+- CSS `var()` hex fallbacks count as hardcoded colors — red-team catches these
+- provide/inject is cleaner than prop-drilling for wizard step→shell communication
+- SWE agents (claude-opus-4.7) reliably complete Vue component work with full specs
+
+### Delivered
+- T-201.1: useOnboarding composable + 11 Vitest tests (113+117 LOC)
+- T-201.2: OnboardingWizard shell + Welcome step + App.vue gate (134+55+18 LOC)
+- T-201.3: OnboardingStepDaemon health check (219 LOC)
+- T-201.4: OnboardingStepAgent config + addAgent store method (201+27 LOC)
+- T-201.5: OnboardingStepModel + OnboardingStepDone (256+217 LOC)
+
+### Total: ~1,157 LOC across 7 new files + 3 modified files

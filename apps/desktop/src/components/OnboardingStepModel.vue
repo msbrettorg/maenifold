@@ -78,24 +78,17 @@ function selectModel(model: ModelInfo): void {
 async function onDownload(): Promise<void> {
   if (selectedModel.value === null) return;
   downloadError.value = null;
-  downloading.value = true;
-  try {
-    await callTool('EmbeddingModels', {
-      action: 'download',
-      modelId: selectedModel.value.id,
-    });
-    if (disposed) return;
+
+  // If the selected model is already installed, just advance — no download needed
+  if (selectedModel.value.installed) {
     if (modelSkipped) modelSkipped.value = false;
     if (selectedModelName) selectedModelName.value = selectedModel.value.name;
     advance?.();
-  } catch (e) {
-    if (disposed) return;
-    downloadError.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    if (!disposed) {
-      downloading.value = false;
-    }
+    return;
   }
+
+  // Model not installed — download action doesn't exist yet, show clear error
+  downloadError.value = `Download not yet available. Please install "${selectedModel.value.name}" manually from HuggingFace (${selectedModel.value.id}) and place the ONNX file in your maenifold models directory.`;
 }
 
 function onSkip(): void {
@@ -249,7 +242,7 @@ onUnmounted(() => {
           @click="onDownload"
         >
           <Loader2 v-if="downloading" class="h-4 w-4 animate-spin" />
-          <span>{{ downloading ? 'Downloading…' : 'Download →' }}</span>
+          <span>{{ selectedModel?.installed ? 'Continue →' : 'Download →' }}</span>
         </button>
       </div>
     </div>

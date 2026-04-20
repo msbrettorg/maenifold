@@ -30,7 +30,7 @@ struct FrontmatterTask {
     #[serde(
         default,
         rename = "sessionId",
-        deserialize_with = "deserialize_optional_session_id"
+        deserialize_with = "deserialize_optional_string"
     )]
     session_id: Option<String>,
 }
@@ -85,17 +85,6 @@ pub fn is_linked_session_id(session_id: Option<&str>) -> bool {
 }
 
 fn deserialize_optional_string<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let value = Option::<serde_yaml::Value>::deserialize(deserializer)?;
-    Ok(match value {
-        Some(serde_yaml::Value::String(value)) => Some(value),
-        _ => None,
-    })
-}
-
-fn deserialize_optional_session_id<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
 where
     D: Deserializer<'de>,
 {

@@ -243,7 +243,7 @@ mod tests {
     use serde_json::Value;
 
     #[test]
-    fn mcp_tool_list_exposes_exactly_six_gate_tools() {
+    fn mcp_tool_list_exposes_exactly_seven_gate_tools() {
         let tools = list();
         let names: Vec<_> = tools.iter().map(|tool| tool.name.as_str()).collect();
         assert_eq!(

@@ -1,51 +1,45 @@
 <script setup lang="ts">
-import { inject, onMounted, onUnmounted, ref } from 'vue';
+import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { ClipboardCopy, Plug } from 'lucide-vue-next';
 
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
-
-interface DaemonStatus {
-  version?: string;
-  tools?: number;
-  agents?: number;
-}
+import { useConfigStore } from '../stores/config';
 
 type ProbeState = 'checking' | 'connected' | 'disconnected';
 
 const advance = inject<() => void>('onboarding-advance');
 const goBack = inject<() => void>('onboarding-go-back');
 
+const configStore = useConfigStore();
+
 const state = ref<ProbeState>('checking');
-const status = ref<DaemonStatus | null>(null);
 const copied = ref(false);
-const command = 'maenifold-cli serve';
+const command = 'maenifold --http';
+
+const agentCount = computed(() => configStore.agentNames.length);
+const mcpServerCount = computed(() => (configStore.config.mcpServers ?? []).length);
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
 let disposed = false;
 
-async function checkDaemonHealth(): Promise<DaemonStatus | null> {
+async function checkDaemonHealth(): Promise<boolean> {
   try {
-    const res = await fetch(`${DAEMON_BASE_URL}/health`, {
-      signal: AbortSignal.timeout(3000),
-    });
-    if (!res.ok) return null;
-    return (await res.json()) as DaemonStatus;
+    await configStore.loadConfig();
+    return configStore.error === null;
   } catch {
-    return null;
+    return false;
   }
 }
 
 async function runProbe(): Promise<void> {
   state.value = 'checking';
-  const result = await checkDaemonHealth();
+  const ok = await checkDaemonHealth();
   if (disposed) return;
-  if (result) {
-    status.value = result;
+  if (ok) {
     state.value = 'connected';
     stopPolling();
   } else {
-    status.value = null;
     state.value = 'disconnected';
     startPolling();
   }
@@ -54,10 +48,9 @@ async function runProbe(): Promise<void> {
 function startPolling(): void {
   if (pollTimer !== null) return;
   pollTimer = setInterval(async () => {
-    const result = await checkDaemonHealth();
+    const ok = await checkDaemonHealth();
     if (disposed) return;
-    if (result) {
-      status.value = result;
+    if (ok) {
       state.value = 'connected';
       stopPolling();
     }
@@ -179,9 +172,8 @@ onUnmounted(() => {
     >
       <span class="text-sm font-medium text-text-primary">✓ Connected to daemon</span>
       <div class="flex flex-col gap-0.5 text-xs text-text-secondary">
-        <span v-if="status?.version">Version: {{ status.version }}</span>
-        <span v-if="typeof status?.tools === 'number'">Tools: {{ status.tools }}</span>
-        <span v-if="typeof status?.agents === 'number'">Agents: {{ status.agents }}</span>
+        <span>Agents: {{ agentCount }}</span>
+        <span>MCP servers: {{ mcpServerCount }}</span>
       </div>
     </div>
 

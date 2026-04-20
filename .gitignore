@@ -17,3 +17,4 @@ memory
 # Obsidian vault config (user-local)
 .obsidian/
 ralph/state/converged
+.mcp.json

@@ -1,0 +1,113 @@
+import { computed, type ComputedRef, ref, type Ref } from 'vue';
+
+import { PREFS_STORE_PATH } from '../lib/constants';
+import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+
+export const ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'done'] as const;
+export type OnboardingStepId = (typeof ONBOARDING_STEPS)[number];
+
+const ONBOARDING_KEY = 'onboarding';
+const CURRENT_VERSION = 1;
+
+interface OnboardingState {
+  completed: boolean;
+  completedAt?: string;
+  version: number;
+}
+
+export interface UseOnboardingReturn {
+  isFirstRun: Ref<boolean>;
+  step: Ref<number>;
+  highWaterStep: Ref<number>;
+  currentStepId: ComputedRef<OnboardingStepId>;
+  canGoBack: ComputedRef<boolean>;
+  canGoForward: ComputedRef<boolean>;
+  ONBOARDING_STEPS: typeof ONBOARDING_STEPS;
+  checkFirstRun: () => boolean;
+  advance: () => void;
+  goToStep: (target: number) => void;
+  goBack: () => void;
+  markComplete: () => void;
+}
+
+function readOnboardingState(): OnboardingState | null {
+  return readStorageValue<OnboardingState>(PREFS_STORE_PATH, ONBOARDING_KEY);
+}
+
+export function useOnboarding(): UseOnboardingReturn {
+  const isFirstRun = ref<boolean>(true);
+  const step = ref<number>(0);
+  const highWaterStep = ref<number>(0);
+
+  const lastIndex = ONBOARDING_STEPS.length - 1;
+
+  const currentStepId = computed<OnboardingStepId>(() => {
+    const idx = Math.min(Math.max(step.value, 0), lastIndex);
+    return ONBOARDING_STEPS[idx];
+  });
+
+  const canGoBack = computed<boolean>(() => step.value > 0);
+  const canGoForward = computed<boolean>(() => step.value < highWaterStep.value);
+
+  function checkFirstRun(): boolean {
+    const state = readOnboardingState();
+    if (!state || !state.completed || state.version < CURRENT_VERSION) {
+      isFirstRun.value = true;
+      return true;
+    }
+    isFirstRun.value = false;
+    return false;
+  }
+
+  function advance(): void {
+    if (step.value >= lastIndex) {
+      return;
+    }
+    step.value += 1;
+    if (step.value > highWaterStep.value) {
+      highWaterStep.value = step.value;
+    }
+  }
+
+  function goToStep(target: number): void {
+    if (!Number.isInteger(target)) {
+      return;
+    }
+    if (target < 0 || target > highWaterStep.value) {
+      return;
+    }
+    step.value = target;
+  }
+
+  function goBack(): void {
+    if (step.value <= 0) {
+      return;
+    }
+    step.value -= 1;
+  }
+
+  function markComplete(): void {
+    const state: OnboardingState = {
+      completed: true,
+      completedAt: new Date().toISOString(),
+      version: CURRENT_VERSION,
+    };
+    writeStorageValue(PREFS_STORE_PATH, ONBOARDING_KEY, state);
+    isFirstRun.value = false;
+  }
+
+  return {
+    isFirstRun,
+    step,
+    highWaterStep,
+    currentStepId,
+    canGoBack,
+    canGoForward,
+    ONBOARDING_STEPS,
+    checkFirstRun,
+    advance,
+    goToStep,
+    goBack,
+    markComplete,
+  };
+}

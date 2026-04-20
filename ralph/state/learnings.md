@@ -127,3 +127,26 @@
 - T-200.16: 3 clippy violations fixed (ErrorRowContext, SectionRecord, redundant import)
 - T-200.17: 13 unit tests for state_machine (8) and gate_definition (5)
 - T-200.18: 10 MCP dispatch argument parsing tests (164 total tests)
+
+## 2026-04-19 — Session 7 (embedding-models MCP tool + Settings UI)
+
+### What worked
+- Full SDD pipeline (SWE → red-team → blue-team) with remediation cycles works reliably for cross-concern features
+- goldeneye red-team catches real bugs: dead code branches, silent defaults, install-path mismatches, misleading UX
+- Parallel status/list MCP calls via Promise.all in Vue components work cleanly
+- Gate CLI fallback reliable when MCP returns EROFS
+- gate sync --rebuild needed after pass/fail to update status cache
+
+### Patterns
+- SWE unreliable narrator: verify edits persisted — T-179.32 SWE claimed embedding_models.rs fixed but file was untracked (no diff visible), needed careful verification
+- gate pass may succeed silently but not update cache — always run gate sync --rebuild before checking status
+- For new untracked files, git diff --stat won't show changes — check git status --short for ?? entries
+- activeModel computed pattern (find active from list) is better than relying on raw model_filename for UI display
+- v-else-if="!error" guard pattern prevents misleading empty-state rendering on MCP failure
+
+### Delivered
+- T-179.32: EmbeddingModels MCP tool — status + list operations, curated 6-model catalog, path-aware active detection, non-empty file validation (3 new files, 5 modified)
+- T-179.33: SettingsModels.vue — Models section in Settings tab with current model, available models list, status badges, dimension warning (1 new file, 1 modified)
+
+### Remaining
+- T-179.34: First-run onboarding wizard — SLC pipeline, exceeds RALPH change-size limits (~2450 LOC reference impl). Needs human-driven sprint with full architect duo.

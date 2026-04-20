@@ -3,6 +3,7 @@ import { computed, provide } from 'vue';
 import { Check } from 'lucide-vue-next';
 
 import { useOnboarding, type OnboardingStepId } from '../composables/useOnboarding';
+import OnboardingStepDaemon from './OnboardingStepDaemon.vue';
 import OnboardingStepWelcome from './OnboardingStepWelcome.vue';
 
 const emit = defineEmits<{ complete: [] }>();
@@ -29,7 +30,7 @@ const stepLabels: Record<OnboardingStepId, string> = {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const stepComponents: Record<OnboardingStepId, any | null> = {
   welcome: OnboardingStepWelcome,
-  daemon: null, // T-201.3
+  daemon: OnboardingStepDaemon,
   agent: null, // T-201.4
   model: null, // T-201.5
   done: null, // T-201.5

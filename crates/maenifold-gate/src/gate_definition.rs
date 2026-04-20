@@ -145,4 +145,44 @@ mod tests {
             vec!["pending", "swe", "red-team", "blue-team", "done"]
         );
     }
+
+    #[test]
+    fn rejects_unsupported_schema_version() {
+        let result = GateDefinition::from_json_text(
+            r#"{"schemaVersion": 2, "id": "test", "name": "Test", "initial": "pending", "states": {"pending": {"terminal": true}}}"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_empty_id() {
+        let result = GateDefinition::from_json_text(
+            r#"{"schemaVersion": 1, "id": "", "name": "Test", "initial": "pending", "states": {"pending": {"terminal": true}}}"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_empty_name() {
+        let result = GateDefinition::from_json_text(
+            r#"{"schemaVersion": 1, "id": "test", "name": "", "initial": "pending", "states": {"pending": {"terminal": true}}}"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_terminal_state_with_transitions() {
+        let result = GateDefinition::from_json_text(
+            r#"{"schemaVersion": 1, "id": "test", "name": "Test", "initial": "pending", "states": {"pending": {"on": {"pass": "done"}}, "done": {"terminal": true, "on": {"pass": "pending"}}}}"#,
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn rejects_unknown_transition_target() {
+        let result = GateDefinition::from_json_text(
+            r#"{"schemaVersion": 1, "id": "test", "name": "Test", "initial": "pending", "states": {"pending": {"on": {"pass": "nonexistent"}}}}"#,
+        );
+        assert!(result.is_err());
+    }
 }

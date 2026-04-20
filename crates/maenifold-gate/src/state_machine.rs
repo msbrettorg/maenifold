@@ -111,4 +111,56 @@ mod tests {
 
         assert_eq!(acting_stage, "pending");
     }
+
+    #[test]
+    fn swe_fail_returns_to_pending() {
+        let t = StateMachine::next_on_fail("swe", &sdd_definition()).expect("swe fail");
+        assert_eq!(t.acting_stage, "swe");
+        assert_eq!(t.next_state, "pending");
+    }
+
+    #[test]
+    fn swe_pass_advances_to_red_team() {
+        let t = StateMachine::next_on_pass("swe", &sdd_definition()).expect("swe pass");
+        assert_eq!(t.acting_stage, "swe");
+        assert_eq!(t.next_state, "red-team");
+    }
+
+    #[test]
+    fn red_team_pass_advances_to_blue_team() {
+        let t = StateMachine::next_on_pass("red-team", &sdd_definition()).expect("red pass");
+        assert_eq!(t.acting_stage, "red-team");
+        assert_eq!(t.next_state, "blue-team");
+    }
+
+    #[test]
+    fn blue_team_pass_reaches_done() {
+        let t = StateMachine::next_on_pass("blue-team", &sdd_definition()).expect("blue pass");
+        assert_eq!(t.acting_stage, "blue-team");
+        assert_eq!(t.next_state, "done");
+    }
+
+    #[test]
+    fn empty_state_defaults_to_initial() {
+        let stage = StateMachine::acting_stage_name("", &sdd_definition()).expect("empty state");
+        assert_eq!(stage, "pending");
+    }
+
+    #[test]
+    fn unknown_state_returns_error() {
+        let result = StateMachine::next_on_pass("nonexistent", &sdd_definition());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn terminal_state_rejects_transition() {
+        let result = StateMachine::next_on_pass("done", &sdd_definition());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn pending_has_no_fail_transition() {
+        let result = StateMachine::next_on_fail("pending", &sdd_definition());
+        assert!(result.is_err());
+    }
 }

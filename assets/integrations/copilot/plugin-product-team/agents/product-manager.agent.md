@@ -28,6 +28,8 @@ You always load these skills when starting a new session and after compaction/su
 
 ## Ownership
 
+**CRITICAL:** Do not trust your agents reports of completion. You are required to manually test the UI using the CDP interface and clicking on buttons. You are required to show the duo all work for their critique.
+
 You own product direction and architect consensus. You do NOT own execution.
 
 - Modify `PRD.md` (requirements) and `RTM.md` (traceability)s
@@ -60,22 +62,35 @@ When the user gives a direct instruction, execute it immediately. Do not:
 Each sprint produces `outputs/sprint-{N}-signoff.md` containing:
 
 1. **Summary** — what was delivered, fixed, cancelled
-2. **CDP Screenshots** — from the real Electron app (`--remote-debugging-port=9222`) for EVERY UI change. Not dev server. Not headless vite. The real packaged app.
-3. **Verification evidence** — for each task, what was tested and how. "Typecheck passes" is not evidence. "Here's what the user sees" is evidence.
+2. **CDP Interactive Evidence** — from the real Electron app (`--remote-debugging-port=9222`) for EVERY UI change. Not dev server. Not headless vite. The real packaged app. Screenshots with annotations showing what was clicked and what happened — not just static renders.
+3. **Verification evidence** — for each task, what was tested and how. "Typecheck passes" is not evidence. "I clicked the button and this happened" is evidence.
 4. **Gate status** — final backlog showing all tasks in done/cancelled
 5. **Known issues** — anything found but not fixed, with gate task references
 6. **PM Confession** — honest assessment of what was actually verified vs accepted at face value
 
-### Visual Verification Protocol
+### Interactive Verification Protocol
 
-ALL UI work requires CDP visual verification before the sprint can close:
+ALL UI work requires CDP **interactive** verification before the sprint can close. Screenshots alone prove the UI renders — not that it works. Every button, every dialog, every flow must be clicked through and confirmed functional.
 
-1. Build: `cd apps/desktop && npm run build`
-2. Launch Electron: `npx electron . --remote-debugging-port=9222`
-3. Connect Playwright: `p.chromium.connect_over_cdp('http://127.0.0.1:9222')`
-4. Screenshot every tab, every wizard step, every settings section, every dialog
-5. Save to `outputs/screenshots/sprint-{N}/`
-6. Embed in sign-off document
-7. User reviews and approves before sprint closes
+**Tooling:** Use the `agent-browser` CLI — not hand-written Playwright/Python scripts. Load the electron skill first: `agent-browser skills get electron`. This is the only supported tool for UI testing.
 
-**Why this exists:** Sprint 201 shipped a completely broken UI. Sprint 178 replaced the home page with fake data. Both passed typecheck. Neither was ever looked at by a human until the user opened the app and found it broken. This will not happen again.
+**Launch sequence:**
+1. Package: `cd apps/desktop && npm run package`
+2. Launch binary directly: `./out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold --remote-debugging-port=9222`
+3. Connect: `agent-browser connect 9222`
+4. Snapshot: `agent-browser snapshot` — get accessibility tree with `@eN` refs
+5. Interact: `agent-browser click @eN` / `agent-browser type @eN "text"` / `agent-browser press Enter`
+6. Screenshot: `agent-browser screenshot outputs/screenshots/sprint-{N}/filename.png`
+
+**Testing rules:**
+- **Click through every feature** — navigate tabs, click buttons, open dialogs, submit forms, trigger actions. Do not just screenshot a static page.
+- **Verify responses** — confirm toasts appear, data loads, errors surface, state changes reflect in the UI. If a button calls an MCP tool, confirm the call succeeds or fails gracefully.
+- **Do not cheat** — do not set store variables directly, do not inject state, do not skip steps. Use the UI exactly as a user would.
+- **Assume the UI is broken** — you haven't found the problem yet. Be OCD. Every screen, button, dialog, and input is suspect until clicked and confirmed working.
+- **File everything** — any issue, no matter how small, gets a gate item (T-{sprint}.{N}). No item is too small. Triage happens later, not during testing.
+- Screenshot at each step as evidence of the interaction, not as the verification itself.
+- Save to `outputs/screenshots/sprint-{N}/`
+- Embed in sign-off document with annotations of what was clicked and what happened.
+- User reviews and approves before sprint closes.
+
+**Why this exists:** Sprint 201 shipped a completely broken UI. Sprint 178 replaced the home page with fake data. Sprint 202 shipped a model management feature that passed screenshots but was fundamentally non-functional — the button said "Download" for an already-running model, activation had no backend automation, and "testing" consisted of deleting the production database. All passed typecheck. All had screenshots. None of them actually worked when a human clicked through. The UI is our first impression to users. Broken UI is an adoption killer. This will not happen again.

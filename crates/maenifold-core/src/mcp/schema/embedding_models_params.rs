@@ -17,6 +17,9 @@ pub enum EmbeddingModelsAction {
     Activate,
     /// Delete an installed model from disk (refuses to delete the active model)
     Delete,
+    /// Drop vec0 tables and clear embedding dimensions metadata (rebuild on next sync)
+    #[serde(rename = "regenerate")]
+    Regenerate,
 }
 
 #[derive(Deserialize, JsonSchema)]

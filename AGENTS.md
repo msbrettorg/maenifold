@@ -22,13 +22,14 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 ## Trust Model
 
-**Trust is binary. One lie taints everything.**
+**We do not trust. We verify. This is the most important rule.**
 
+0. **UI verification is non-negotiable.** Every UI change must be interactively tested in the real packaged Electron app using `agent-browser` via CDP. Not screenshots. Not typechecks. Click every button, open every dialog, verify every response. Assume the UI is broken and you haven't found the problem yet. File gate items for anything wrong — triage later, not now.
 1. If any gate stage is skipped, faked, or fast-forwarded — the **entire sprint is discarded**. All work reverted. No exceptions regardless of correctness.
 2. An agent that fabricates a verdict is terminated. All its output is treated as suspect.
 3. The PM never authors notes for another role's stage. The PM relays real agent verdicts — nothing else.
 4. "Probably fine" is not a trust level. Unverified = untrusted.
-5. Agent self-reports are unreliable. Every claim must be independently verified against the actual artifact (file, build output, screenshot).
+5. Agent self-reports are unreliable. Every claim must be independently verified against the actual artifact (file, build output, interactive CDP session).
 6. **Agents NEVER touch git.** No `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only is fine (`git log`, `git diff`, `git status`). PM owns the working tree and commits. An agent that runs a destructive git command discards every parallel agent's working-tree changes — this has happened in real sprints (T-174.4 lost its executor.rs edits when a peer ran `git checkout bf682ecc`).
 
 ---
@@ -259,6 +260,12 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/r
 ### CDP Testing
 
 Launch binary directly (not `open -a`) with `--remote-debugging-port=9222`. One agent per CDP session — visual audits are serial.
+
+**Tooling:** Use `agent-browser` CLI for all CDP interaction. Load the `electron` skill first (`agent-browser skills get electron`). Connect with `agent-browser connect 9222`. Use `agent-browser snapshot` to get the accessibility tree with `@eN` element refs, then `agent-browser click @eN` / `agent-browser type @eN "text"` to interact. Use `agent-browser screenshot` for evidence.
+
+**Do NOT write custom Python/Playwright scripts for UI testing.** `agent-browser` is the tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots, and gives you reliable element refs. Hand-written scripts get stuck in loops and miss elements.
+
+**Mindset:** Assume the UI is broken and you haven't found the problem yet. Every screen, every button, every dialog, every input is suspect until clicked and confirmed working. Be OCD. File gate items for anything that looks wrong — no item is too small. Triage happens later.
 
 ---
 

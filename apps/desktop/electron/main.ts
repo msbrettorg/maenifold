@@ -63,7 +63,7 @@ async function createWindow(): Promise<void> {
     height: 800,
     show: false,
     webPreferences: {
-      preload: join(moduleDir, 'preload.js'),
+      preload: join(moduleDir, 'preload.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -94,6 +94,31 @@ function registerIpcHandlers(): void {
   ipcMain.handle('file:read-binary', async (_event, filePath: string) => readFile(filePath));
   ipcMain.handle('app:get-version', () => app.getVersion());
 }
+
+app.on('render-process-gone', async (_event, _webContents, details) => {
+  console.error('[maenifold] Renderer process gone:', details.reason, details.exitCode);
+  if (details.reason !== 'clean-exit') {
+    mainWindow = null;
+    await createWindow();
+  }
+});
+
+app.on('child-process-gone', (_event, details) => {
+  console.error('[maenifold] Child process gone:', details.type, details.reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('[maenifold] Uncaught exception:', error);
+  const fs = require('fs');
+  const path = require('path');
+  const crashLog = path.join(app.getPath('userData'), 'crash.log');
+  fs.appendFileSync(crashLog, `[${new Date().toISOString()}] uncaughtException: ${error.stack || error}\n`);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[maenifold] Unhandled rejection:', reason);
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();

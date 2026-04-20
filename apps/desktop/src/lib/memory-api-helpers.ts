@@ -25,7 +25,7 @@ export function extractUri(value: unknown): string | null {
 
   if (!isRecord(value)) return null;
 
-  for (const key of ['uri', 'memoryUri', 'identifier']) {
+  for (const key of ['uri', 'memoryUri', 'identifier', 'path']) {
     const candidate = toNonEmptyString(value[key]);
     if (candidate) return candidate;
   }

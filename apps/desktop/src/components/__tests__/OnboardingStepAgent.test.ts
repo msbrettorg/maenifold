@@ -209,7 +209,6 @@ describe('OnboardingStepAgent', () => {
       }
 
       // Submit the form
-      const submitButton = wrapper.find('button:not([disabled])');
       const buttons = wrapper.findAll('button');
       const addButton = buttons.find((b) => b.text().includes('Add agent'));
       expect(addButton).toBeDefined();
@@ -220,7 +219,7 @@ describe('OnboardingStepAgent', () => {
       // Verify addAgent was called with the correct shape
       expect(addAgentSpy).toHaveBeenCalled();
 
-      const [agentName, agentConfig] = addAgentSpy.mock.calls[0];
+      const [, agentConfig] = addAgentSpy.mock.calls[0];
 
       // BUG: Current implementation passes { command: 'copilot-cli' } (preset ID)
       // CORRECT: Should pass { command: '<user-typed-command>' }

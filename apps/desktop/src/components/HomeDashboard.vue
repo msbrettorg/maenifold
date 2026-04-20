@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
     <div class="mb-4 flex flex-wrap justify-center gap-1.5">
       <div class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary">
         <span class="size-1.5 rounded-full" :class="daemonConnected ? 'bg-success' : 'bg-danger'" />
-        {{ daemonConnected ? 'Connected' : 'Disconnected' }}
+        {{ daemonConnected ? 'Connected' : 'Daemon not connected' }}
       </div>
       <div
         v-if="pendingGateTasks > 0"
@@ -150,6 +150,12 @@ onBeforeUnmount(() => {
         {{ pendingGateTasks }} pending
       </div>
     </div>
+    <p
+      v-if="!daemonConnected"
+      class="mb-4 text-center text-[11px] text-text-tertiary"
+    >
+      Start the maenifold daemon or check Settings &gt; Connection
+    </p>
 
     <div class="w-full max-w-[800px] rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)]">
       <form class="flex items-center gap-2" @submit.prevent="handleComposerSubmit">

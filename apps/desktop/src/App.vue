@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, reactive, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useOnboarding } from './composables/useOnboarding';
 import OnboardingWizard from './components/OnboardingWizard.vue';
@@ -63,6 +63,17 @@ function handleOpenTab(tab: AppShellTab): void {
   activeTab.value = tab;
 }
 
+// Lazy-mount tabs on first visit, then keep them alive via v-show so we avoid
+// repeated mount/unmount churn (which previously caused GPU context thrash and
+// crashes when WebGL-backed views were destroyed). Home is always pre-mounted
+// because it is the default landing tab and is also rendered in the
+// "showHome" overlay state regardless of activeTab.
+const visitedTabs = reactive(new Set<AppShellTab>(['home']));
+
+watch(activeTab, (tab) => {
+  visitedTabs.add(tab);
+}, { immediate: true });
+
 async function handlePromptSubmit(prompt: string): Promise<void> {
   const trimmedPrompt = prompt.trim();
   if (!trimmedPrompt) {
@@ -122,7 +133,7 @@ function onOnboardingComplete(): void {
       <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
         <HomeDashboard
-          v-if="showHome"
+          v-show="showHome"
           key="home"
           v-model:selected-agent="selectedAgent"
           :has-agents="hasAgents"
@@ -139,7 +150,7 @@ function onOnboardingComplete(): void {
         />
 
         <HomeDashboard
-          v-else-if="activeTab === 'home'"
+          v-show="!showHome && activeTab === 'home'"
           key="home-with-active-session"
           v-model:selected-agent="selectedAgent"
           :has-agents="hasAgents"
@@ -156,34 +167,36 @@ function onOnboardingComplete(): void {
         />
 
         <ChatView
-          v-else-if="activeTab === 'agents' && isConnected"
+          v-if="visitedTabs.has('agents')"
+          v-show="!showHome && activeTab === 'agents' && isConnected"
           :key="sessionStore.activeSessionId ?? 'active-session'"
         />
 
-        <div v-else-if="activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
+        <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
           <div class="flex flex-1 overflow-auto p-4">
             <WorkflowAuthoringPage />
           </div>
         </div>
 
-        <div v-else-if="activeTab === 'pipelines'" class="flex flex-1 flex-col overflow-hidden">
+        <div v-if="visitedTabs.has('pipelines')" v-show="!showHome && activeTab === 'pipelines'" class="flex flex-1 flex-col overflow-hidden">
           <PipelineView />
         </div>
 
-        <div v-else-if="activeTab === 'gate'" class="flex flex-1 flex-col overflow-hidden">
+        <div v-if="visitedTabs.has('gate')" v-show="!showHome && activeTab === 'gate'" class="flex flex-1 flex-col overflow-hidden">
           <GateView :cwd="selectedCwd" />
         </div>
 
-        <div v-else-if="activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
+        <div v-if="visitedTabs.has('knowledge')" v-show="!showHome && activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
           <KnowledgeExplorer />
         </div>
 
-        <div v-else-if="activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">
+        <div v-if="visitedTabs.has('settings')" v-show="!showHome && activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">
           <SettingsView />
         </div>
 
         <EmptyState
-          v-else-if="activeTab === 'agents'"
+          v-if="visitedTabs.has('agents')"
+          v-show="!showHome && activeTab === 'agents' && !isConnected"
           :icon="MessageSquare"
           title="No active session"
           description="Select an agent and start a new session"

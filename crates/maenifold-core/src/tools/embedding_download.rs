@@ -3,9 +3,67 @@
 //! Downloads ONNX + tokenizer assets to a staging directory, then performs
 //! an atomic rename into the final model directory under `{models_dir}/{model_id}/`.
 
-use hf_hub::api::tokio::Api;
+use hf_hub::api::tokio::{Api, Progress};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 use tokio::fs;
+
+/// Snapshot of an in-flight download, exposed to the catalog `list` handler so
+/// the desktop UI can render progress beside the "Downloading…" button. Bytes
+/// reflect the *currently downloading file* (typically `model.onnx`); the
+/// secondary `model.onnx_data` file restarts the counter.
+#[derive(Debug, Clone)]
+pub struct ProgressSnapshot {
+    pub current_bytes: u64,
+    pub total_bytes: u64,
+    pub filename: String,
+}
+
+static PROGRESS: OnceLock<Mutex<HashMap<String, ProgressSnapshot>>> = OnceLock::new();
+
+fn progress_map() -> &'static Mutex<HashMap<String, ProgressSnapshot>> {
+    PROGRESS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+/// Read the current download progress for a model id, if a download is in
+/// flight. Returns `None` once the model is fully downloaded (the entry is
+/// removed in `Progress::finish`).
+pub fn get_download_progress(model_id: &str) -> Option<ProgressSnapshot> {
+    progress_map().lock().ok()?.get(model_id).cloned()
+}
+
+#[derive(Clone)]
+struct DownloadTracker {
+    model_id: String,
+}
+
+impl Progress for DownloadTracker {
+    async fn init(&mut self, size: usize, filename: &str) {
+        let snap = ProgressSnapshot {
+            current_bytes: 0,
+            total_bytes: size as u64,
+            filename: filename.to_string(),
+        };
+        if let Ok(mut map) = progress_map().lock() {
+            map.insert(self.model_id.clone(), snap);
+        }
+    }
+
+    async fn update(&mut self, size: usize) {
+        if let Ok(mut map) = progress_map().lock()
+            && let Some(entry) = map.get_mut(&self.model_id)
+        {
+            entry.current_bytes = entry.current_bytes.saturating_add(size as u64);
+        }
+    }
+
+    async fn finish(&mut self) {
+        if let Ok(mut map) = progress_map().lock() {
+            map.remove(&self.model_id);
+        }
+    }
+}
 
 /// Download a model's ONNX + tokenizer files from HuggingFace.
 ///
@@ -55,20 +113,36 @@ pub async fn download_model(
     let onnx_source = onnx_repo.unwrap_or(hf_repo);
     let onnx_api = api.model(onnx_source.to_string());
 
-    // Download model.onnx
+    // T-202.39: report progress on the large ONNX files only — the tokenizer/
+    // config files below are tiny and not worth wiring through the tracker.
+    let tracker = DownloadTracker {
+        model_id: model_id.to_string(),
+    };
+
+    // Download model.onnx with progress reporting.
     let onnx_path = onnx_api
-        .get("onnx/model.onnx")
+        .download_with_progress("onnx/model.onnx", tracker.clone())
         .await
         .map_err(|e| format!("ONNX download failed: {e}"))?;
     fs::copy(&onnx_path, staging.join("model.onnx"))
         .await
         .map_err(|e| e.to_string())?;
 
-    // Try model.onnx_data (external data file — some models have it)
-    if let Ok(data_path) = onnx_api.get("onnx/model.onnx_data").await {
+    // Try model.onnx_data (external data file — some models have it).
+    if let Ok(data_path) = onnx_api
+        .download_with_progress("onnx/model.onnx_data", tracker.clone())
+        .await
+    {
         fs::copy(&data_path, staging.join("model.onnx_data"))
             .await
             .map_err(|e| e.to_string())?;
+    }
+
+    // Ensure the progress entry is cleared even if `download_with_progress`
+    // exited without calling `finish` (e.g. metadata fetch failure for the
+    // optional `model.onnx_data`).
+    if let Ok(mut map) = progress_map().lock() {
+        map.remove(model_id);
     }
 
     // Tokenizer files from the original repo (not onnx_repo)

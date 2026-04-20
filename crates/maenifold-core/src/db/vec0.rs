@@ -94,6 +94,20 @@ pub fn ensure_vec0_tables(conn: &Connection, assets_path: &Path) -> Result<()> {
         return Ok(());
     }
 
+    // T-202.9: Detect if the active model has changed. If the user activated a different
+    // model since the last sync, we must rebuild vectors even if dimensions match
+    // (different models with the same dimensionality corrupt the index).
+    let stored_model_id = get_model_metadata(conn, "active_model_id");
+    let current_model_id = vector::model_id();
+    // T-202.9 P0: `vector::model_id()` returns None at cold-start because the
+    // ONNX model is loaded lazily. Without the `current_model_id.is_some()` guard,
+    // every restart sees stored=Some, current=None → false-positive "model changed"
+    // → vec0 tables nuked on every boot. Only treat it as a change when both sides
+    // are known and actually differ.
+    let model_changed = stored_model_id.is_some()
+        && current_model_id.is_some()
+        && stored_model_id != current_model_id;
+
     let stored_dims = get_model_metadata(conn, "embedding_dimensions")
         .and_then(|value| value.parse::<usize>().ok());
     let vec_concepts_dims = vec0_table_dimensions(conn, "vec_concepts");
@@ -101,7 +115,8 @@ pub fn ensure_vec0_tables(conn: &Connection, assets_path: &Path) -> Result<()> {
     let schema_matches =
         vec_concepts_dims == Some(current_dims) && vec_memory_files_dims == Some(current_dims);
 
-    if (stored_dims != Some(current_dims) || !schema_matches)
+    // Rebuild vectors if: (1) model changed, (2) dimensions differ, or (3) schema mismatch
+    if (model_changed || stored_dims != Some(current_dims) || !schema_matches)
         && recreate_vec0_tables(conn, current_dims).is_err()
     {
         return Ok(());
@@ -110,6 +125,10 @@ pub fn ensure_vec0_tables(conn: &Connection, assets_path: &Path) -> Result<()> {
     upsert_model_metadata(conn, "embedding_dimensions", &current_dims.to_string())?;
     if let Some(model_filename) = vector::model_filename() {
         upsert_model_metadata(conn, "model_filename", &model_filename)?;
+    }
+    // T-202.9: Store the active model ID so we can detect future model changes.
+    if let Some(model_id) = current_model_id {
+        upsert_model_metadata(conn, "active_model_id", &model_id)?;
     }
 
     Ok(())

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
-import { Download, Loader2, Trash2, Check, Info } from 'lucide-vue-next';
+import { Download, Loader2, Trash2, Check, Info, RefreshCw } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import { useMcpClient } from '../composables/useMcpClient';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,11 @@ interface ModelInfo {
   released?: string;
   mrlDimensions?: number[];
   mtebRetrieval?: number;
+  downloadProgress?: {
+    current: number;
+    total: number;
+    filename?: string;
+  } | null;
 }
 
 interface ModelListResponse {
@@ -72,8 +78,10 @@ const currentDimensions = ref<number>(0);
 const pending = reactive<Record<string, PendingAction | undefined>>({});
 
 // Dialog state for confirmations.
-type DialogType = 'activate' | 'delete';
+type DialogType = 'activate' | 'delete' | 'regenerate';
 const dialog = ref<{ type: DialogType; modelId: string } | null>(null);
+
+const regenerating = ref(false);
 
 const dialogModel = computed<ModelInfo | null>(() => {
   if (!dialog.value) return null;
@@ -194,11 +202,37 @@ function openDeleteDialog(model: ModelInfo): void {
   dialog.value = { type: 'delete', modelId: model.id };
 }
 
+function openRegenerateDialog(): void {
+  dialog.value = { type: 'regenerate', modelId: '' };
+}
+
+async function regenerateEmbeddings(): Promise<void> {
+  if (regenerating.value) return;
+  regenerating.value = true;
+  error.value = '';
+  try {
+    await callTool('EmbeddingModels', { action: 'regenerate' });
+    toast.success('Embeddings cleared. Run sync to rebuild.');
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    error.value = message;
+    toast.error(`Failed to regenerate embeddings: ${message}`);
+  } finally {
+    regenerating.value = false;
+  }
+}
+
 async function confirmDialog(): Promise<void> {
   const current = dialog.value;
   if (!current) return;
-  const model = models.value.find((m) => m.id === current.modelId);
   dialog.value = null;
+
+  if (current.type === 'regenerate') {
+    await regenerateEmbeddings();
+    return;
+  }
+
+  const model = models.value.find((m) => m.id === current.modelId);
   if (!model) return;
 
   if (current.type === 'activate') {
@@ -247,13 +281,25 @@ onUnmounted(() => {
 
 <template>
   <TooltipProvider :delay-duration="200">
-    <section class="settings-section" role="region" aria-label="Models">
+    <section class="settings-section" role="region" aria-label="Embeddings">
       <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
         <div class="section-header">
           <div>
-            <h3>Models</h3>
+            <h3>Embeddings</h3>
             <p>Embedding models for semantic search and concept similarity.</p>
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            class="regenerate-button"
+            :disabled="regenerating"
+            @click="openRegenerateDialog"
+          >
+            <Loader2 v-if="regenerating" :size="14" class="spin mr-1" />
+            <RefreshCw v-else :size="14" class="mr-1" />
+            {{ regenerating ? 'Regenerating…' : 'Regenerate embeddings' }}
+          </Button>
         </div>
 
         <p v-if="error" class="message error" role="alert">{{ error }}</p>
@@ -348,7 +394,13 @@ onUnmounted(() => {
                     class="spin mr-1"
                   />
                   <Download v-else :size="14" class="mr-1" />
-                  {{ pending[model.id] === 'downloading' ? 'Downloading…' : 'Download' }}
+                  {{
+                    pending[model.id] === 'downloading'
+                      ? (model.downloadProgress && model.downloadProgress.total > 0
+                          ? `Downloading… ${formatSize(model.downloadProgress.current)} / ${formatSize(model.downloadProgress.total)}`
+                          : 'Downloading…')
+                      : 'Download'
+                  }}
                 </Button>
 
                 <!-- Installed but not active: Activate + Delete -->
@@ -407,6 +459,9 @@ onUnmounted(() => {
               <template v-if="dialog?.type === 'activate'">
                 Activate {{ dialogModel?.name ?? 'model' }}?
               </template>
+              <template v-else-if="dialog?.type === 'regenerate'">
+                Regenerate all embeddings?
+              </template>
               <template v-else>
                 Delete {{ dialogModel?.name ?? 'model' }}?
               </template>
@@ -415,6 +470,11 @@ onUnmounted(() => {
               <template v-if="dialog?.type === 'activate'">
                 This will rebuild all vector embeddings. Search will be
                 temporarily unavailable while the index is regenerated.
+              </template>
+              <template v-else-if="dialog?.type === 'regenerate'">
+                This will delete all vector embeddings and rebuild them from
+                scratch. Search will be unavailable until the rebuild
+                completes.
               </template>
               <template v-else>
                 This will remove the downloaded model files from disk. You can
@@ -425,7 +485,9 @@ onUnmounted(() => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction @click="confirmDialog">
-              {{ dialog?.type === 'activate' ? 'Activate' : 'Delete' }}
+              <template v-if="dialog?.type === 'activate'">Activate</template>
+              <template v-else-if="dialog?.type === 'regenerate'">Regenerate</template>
+              <template v-else>Delete</template>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -565,6 +627,11 @@ onUnmounted(() => {
 
 .delete-button:hover {
   color: var(--color-danger);
+}
+
+.regenerate-button {
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .active-note {

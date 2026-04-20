@@ -39,16 +39,15 @@ defineEmits<{ retry: [] }>();
   flex: 1;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at 30% 50%, color-mix(in srgb, var(--color-brand) 3%, transparent) 0%, transparent 60%),
-    radial-gradient(ellipse at 70% 40%, color-mix(in srgb, var(--color-status-completed) 2%, transparent) 0%, transparent 50%),
-    var(--color-bg-app);
+    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.03) 0%, transparent 55%),
+    radial-gradient(ellipse at center, #0a0c10 0%, #050608 40%, #020305 100%);
 }
 
 :slotted(.graph-canvas) {
   position: relative;
   width: 100%;
   height: 100%;
-  background: var(--color-bg-app);
+  background: transparent;
 }
 
 .graph-empty-state,

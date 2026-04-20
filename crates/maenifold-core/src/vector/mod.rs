@@ -105,6 +105,31 @@ pub fn model_path() -> Option<PathBuf> {
         .and_then(|guard| guard.as_ref().map(|state| state.model_path.clone()))
 }
 
+/// T-202.9: Extract the currently loaded model ID from the model path.
+/// Supports two on-disk layouts:
+///   - Subdir layout: `models/bge-small-en-v1.5/model.onnx` → "bge-small-en-v1.5"
+///   - Flat layout:   `models/all-MiniLM-L6-v2.onnx`        → "all-MiniLM-L6-v2"
+/// When the parent directory is the well-known `models` root, fall back to the
+/// file stem so flat-layout installations get a meaningful, distinct ID instead
+/// of the literal string "models".
+pub fn model_id() -> Option<String> {
+    model_path().and_then(|path| {
+        let parent_name = path
+            .parent()
+            .and_then(|p| p.file_name())
+            .and_then(|n| n.to_str());
+
+        if parent_name == Some("models") {
+            // Flat layout: derive ID from the file stem.
+            path.file_stem()
+                .and_then(|s| s.to_str())
+                .map(str::to_string)
+        } else {
+            parent_name.map(str::to_string)
+        }
+    })
+}
+
 pub(crate) fn model_state() -> &'static Mutex<Option<ModelState>> {
     MODEL_STATE.get_or_init(|| Mutex::new(None))
 }

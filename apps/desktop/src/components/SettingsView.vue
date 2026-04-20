@@ -3,14 +3,14 @@ import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
-import SettingsModels from './SettingsModels.vue';
+import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
   { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
   { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
-  { id: 'models', label: 'Models', description: 'Download and manage embedding models.' },
+  { id: 'embeddings', label: 'Embeddings', description: 'Manage embedding models and vector index.' },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
 </script>
@@ -39,7 +39,7 @@ const sections = [
         <TabsContent value="connection"><SettingsConnection /></TabsContent>
         <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
         <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
-        <TabsContent value="models"><SettingsModels /></TabsContent>
+        <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
       </div>
     </TabsRoot>

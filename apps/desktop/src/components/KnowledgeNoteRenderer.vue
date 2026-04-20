@@ -151,11 +151,13 @@ watch(rendered, async () => {
 
 /* ── Links ── */
 .note-prose :deep(a) {
-  color: var(--color-brand);
-  text-decoration: none;
+  color: var(--color-text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--color-brand);
+  text-underline-offset: 2px;
 }
 .note-prose :deep(a:hover) {
-  text-decoration: underline;
+  text-decoration-color: var(--color-text-primary);
 }
 
 /* ── Lists ── */
@@ -272,8 +274,8 @@ watch(rendered, async () => {
   padding: 0.1rem 0.5rem;
   margin: 0 0.1rem;
   border-radius: 4px;
-  background: color-mix(in srgb, var(--color-brand) 12%, transparent);
-  color: var(--color-brand);
+  background: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  color: var(--color-text-primary);
   font-size: 13px;
   font-weight: 500;
   white-space: nowrap;

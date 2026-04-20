@@ -21,6 +21,11 @@ export function useForceGraph(
     const el = containerRef.value;
     if (!el) return;
 
+    // mind.html aesthetic: monochrome white-on-deep-space; structure emerges from density
+    const labelColor = 'rgba(255, 255, 255, 0.7)';
+    const labelHighlightColor = '#FFFFFF';
+    const labelDimmedColor = 'rgba(255, 255, 255, 0.25)';
+
     nodeMap = new Map();
     for (const n of nodes) nodeMap.set(n.id, n);
 
@@ -56,21 +61,20 @@ export function useForceGraph(
             'width': 'data(nodeRadius)',
             'height': 'data(nodeRadius)',
             'background-color': 'data(nodeColor)',
-            'background-opacity': 0.85,
-            'border-width': 1,
-            'border-color': 'data(nodeColor)',
-            'border-opacity': 0.4,
+            'background-opacity': 0.95,
+            'border-width': 0,
             'label': 'data(label)',
-            'color': '#999',
+            'color': labelColor,
             'font-size': '8px',
-            'font-family': 'Inter, -apple-system, sans-serif',
+            'font-family': '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace',
             'font-weight': 400,
             'text-valign': 'bottom',
             'text-halign': 'center',
             'text-margin-y': 4,
             'text-max-width': '80px',
             'text-wrap': 'ellipsis',
-            'min-zoomed-font-size': 9,
+            // Hide labels until zoomed in — structure first, names second
+            'min-zoomed-font-size': 14,
             'overlay-opacity': 0,
           } as cytoscape.Css.Node,
         },
@@ -78,10 +82,10 @@ export function useForceGraph(
           selector: 'edge',
           style: {
             'width': 0.5,
-            'line-color': 'rgba(77, 142, 255, 0.15)',
+            'line-color': 'rgba(255, 255, 255, 0.05)',
             'curve-style': 'haystack',
             'haystack-radius': 0.5,
-            'opacity': 0.6,
+            'opacity': 1,
             'overlay-opacity': 0,
           } as cytoscape.Css.Edge,
         },
@@ -94,10 +98,10 @@ export function useForceGraph(
         {
           selector: '.highlighted',
           style: {
+            'background-color': '#FFFFFF',
             'background-opacity': 1,
-            'border-width': 2,
-            'border-opacity': 1,
-            'color': '#e5e2e1',
+            'border-width': 0,
+            'color': labelHighlightColor,
             'font-size': '10px',
             'font-weight': 500,
             'z-index': 10,
@@ -106,8 +110,8 @@ export function useForceGraph(
         {
           selector: '.highlighted-edge',
           style: {
-            'line-color': 'rgba(77, 166, 255, 0.5)',
-            'width': 1.5,
+            'line-color': 'rgba(255, 255, 255, 0.45)',
+            'width': 1,
             'opacity': 1,
             'z-index': 10,
           } as cytoscape.Css.Edge,
@@ -116,15 +120,14 @@ export function useForceGraph(
           selector: '.dimmed',
           style: {
             'background-opacity': 0.15,
-            'border-opacity': 0.05,
-            'opacity': 0.1,
-            'color': 'rgba(150,150,150,0.3)',
+            'opacity': 0.15,
+            'color': labelDimmedColor,
           } as cytoscape.Css.Node,
         },
         {
           selector: '.dimmed-edge',
           style: {
-            'opacity': 0.03,
+            'opacity': 0.02,
           } as cytoscape.Css.Edge,
         },
         // LOD: hide labels at low zoom
@@ -170,23 +173,23 @@ export function useForceGraph(
       const nodes = cy.nodes();
 
       if (zoom < 0.4) {
-        // Far out: hide all labels, show only large nodes' edges
+        // Far out: hide all labels, edges nearly invisible — let density carry structure
         nodes.addClass('lod-no-labels');
-        cy.edges().style('opacity', 0.25);
+        cy.edges().style('opacity', 0.6);
       } else if (zoom < 0.8) {
         // Medium: show labels on large nodes only
         nodes.forEach((n) => {
-          if ((n.data('nodeRadius') ?? 0) >= 10) {
+          if ((n.data('nodeRadius') ?? 0) >= 4) {
             n.removeClass('lod-no-labels');
           } else {
             n.addClass('lod-no-labels');
           }
         });
-        cy.edges().style('opacity', 0.45);
+        cy.edges().style('opacity', 0.85);
       } else {
         // Close: full detail
         nodes.removeClass('lod-no-labels');
-        cy.edges().style('opacity', 0.6);
+        cy.edges().style('opacity', 1);
       }
     });
 

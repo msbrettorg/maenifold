@@ -85,10 +85,8 @@ fn find_model_path() -> Result<PathBuf> {
     // the C# runtime: `~/maenifold/assets/models`.
     candidate_dirs.push(config.assets_path.join("models"));
 
-    // T-202.9a: when an explicit `active_model` is configured, look for
-    // `{models_dir}/{active_model}/model.onnx` in each candidate directory
-    // before falling through to scanning. This lets users select a specific
-    // installed model deterministically rather than picking the largest *.onnx.
+    // T-202.9: when an explicit `active_model` is configured, require that it exists.
+    // Do NOT silently fall back to scanning; a missing configured model is a fatal error.
     if let Some(active_id) = config.settings.vector.active_model.as_deref()
         && !active_id.is_empty()
     {
@@ -101,11 +99,17 @@ fn find_model_path() -> Result<PathBuf> {
                 return Ok(candidate);
             }
         }
-        // Fall through to scanning if the configured active model isn't
-        // installed in any candidate directory — preserves backwards
-        // compatibility while still surfacing a model.
+        // T-202.9: Configured model not found — fail fatally rather than silently
+        // falling back to scanning. This prevents silent corruption from loading
+        // the wrong model.
+        return Err(MaenifoldError::Message(format!(
+            "Active model '{}' not found in any candidate directory. \
+             Refusing to start. Please activate a different model or download it first.",
+            active_id
+        )));
     }
 
+    // Fall-through scanning when no active model is explicitly configured.
     for dir in &candidate_dirs {
         if let Some(model_path) = discover_model(dir) {
             return Ok(model_path);

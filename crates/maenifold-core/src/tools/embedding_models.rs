@@ -1,5 +1,6 @@
 use super::context::{ToolContext, load_help_doc, render};
 use crate::acp_config::{AgentsConfig, MaenifoldSettings};
+use crate::db;
 use crate::error::{MaenifoldError, Result};
 use crate::util::json::{OutputFormat, success};
 use crate::vector;
@@ -236,7 +237,7 @@ pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String
         .get("action")
         .and_then(Value::as_str)
         .ok_or_else(|| crate::error::MaenifoldError::Message(
-            "Missing required parameter 'action'. Available actions: status, list, download, activate, delete".to_string()
+            "Missing required parameter 'action'. Available actions: status, list, download, activate, delete, regenerate".to_string()
         ))?;
 
     let response = match action {
@@ -245,9 +246,10 @@ pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String
         "download" => handle_download(context, payload)?,
         "activate" => handle_activate(context, payload)?,
         "delete" => handle_delete(context, payload)?,
+        "regenerate" => handle_regenerate(context, payload)?,
         _ => {
             return Err(crate::error::MaenifoldError::Message(format!(
-                "Unknown EmbeddingModels action '{action}'. Available: status, list, download, activate, delete"
+                "Unknown EmbeddingModels action '{action}'. Available: status, list, download, activate, delete, regenerate"
             )));
         }
     };
@@ -273,17 +275,36 @@ fn handle_status() -> Value {
 
 fn handle_list(context: &ToolContext) -> Value {
     let models_dir = context.config.assets_path.join("models");
-    let active_model_path = vector::model_path();
 
     let catalog = load_catalog(&context.config.assets_path);
+    // T-202.9 P0 (Bug 3): determine the effective active model id once, so the
+    // UI can render the "Active" badge regardless of layout (subdir/flat) and
+    // regardless of whether the ONNX session has been lazily loaded yet.
+    let active_id = effective_active_model_id(context, &catalog);
+
     let models: Vec<Value> = catalog
         .iter()
         .map(|model| {
-            let is_active = active_model_path
-                .as_deref()
-                .map(|p| is_active_model(p, &model.id))
-                .unwrap_or(false);
-            let installed = is_model_installed(&models_dir, &model.id) || is_active;
+            let layout = installed_layout(&models_dir, &model.id);
+            let is_active = active_id.as_deref() == Some(model.id.as_str());
+            // T-202.9 P0 (Bug 1): a legacy flat install ({models_dir}/{id}.onnx)
+            // counts as installed even though catalog tooling normally manages
+            // only the subdir layout. If the model is the currently-active one
+            // (e.g. discovered by runtime scan), surface it as installed too so
+            // the UI doesn't show "Download" next to a model that's already in
+            // use.
+            let installed = layout.is_some() || is_active;
+
+            // T-202.39: surface in-flight download progress so the desktop
+            // UI can render byte counts beside the "Downloading…" button.
+            let download_progress =
+                super::embedding_download::get_download_progress(&model.id).map(|p| {
+                    json!({
+                        "current": p.current_bytes,
+                        "total": p.total_bytes,
+                        "filename": p.filename,
+                    })
+                });
 
             json!({
                 "id": model.id,
@@ -298,7 +319,9 @@ fn handle_list(context: &ToolContext) -> Value {
                 "mrlDimensions": model.mrl_dimensions,
                 "mtebRetrieval": model.mteb_retrieval,
                 "installed": installed,
+                "installedLayout": layout,
                 "isActive": is_active,
+                "downloadProgress": download_progress,
             })
         })
         .collect();
@@ -308,6 +331,7 @@ fn handle_list(context: &ToolContext) -> Value {
     json!({
         "models": models,
         "currentDimensions": current_dims,
+        "activeModelId": active_id,
     })
 }
 
@@ -335,38 +359,155 @@ fn handle_download(context: &ToolContext, payload: &Value) -> Result<Value> {
     let repo = entry.huggingface_repo.clone();
     let onnx = entry.onnx_repo.clone();
     let dir = models_dir.clone();
-    tokio::spawn(async move {
-        match super::embedding_download::download_model(&id, &repo, onnx.as_deref(), &dir).await {
-            Ok(path) => tracing::info!("Downloaded {id} to {}", path.display()),
-            Err(e) => tracing::error!("Download failed for {id}: {e}"),
-        }
-    });
 
-    Ok(json!({ "accepted": true, "modelId": model_id }))
+    // T-202.37 P0: previously this used `tokio::spawn` fire-and-forget, which
+    // caused the UI to show "Downloading…" indefinitely because (1) the spawned
+    // task could be dropped when the MCP tool dispatch returned, and (2) any
+    // download error was only emitted to tracing and never surfaced to the
+    // caller. Run the download synchronously from the (sync) tool handler so
+    // success/failure flows back to the MCP response and the frontend's poll
+    // observes installed=true (or surfaces the error in its catch block).
+    let download_future = async move {
+        super::embedding_download::download_model(&id, &repo, onnx.as_deref(), &dir).await
+    };
+
+    let result = match tokio::runtime::Handle::try_current() {
+        Ok(handle) => {
+            if !matches!(
+                handle.runtime_flavor(),
+                tokio::runtime::RuntimeFlavor::MultiThread
+            ) {
+                return Err(MaenifoldError::Message(
+                    "Embedding model download requires a multi-thread Tokio runtime when invoked from async context".to_string(),
+                ));
+            }
+            tokio::task::block_in_place(|| handle.block_on(download_future))
+        }
+        Err(_) => {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+                .map_err(|e| {
+                    MaenifoldError::Message(format!(
+                        "Failed to build runtime for embedding model download: {e}"
+                    ))
+                })?;
+            rt.block_on(download_future)
+        }
+    };
+
+    match result {
+        Ok(path) => {
+            tracing::info!("Downloaded {model_id} to {}", path.display());
+            Ok(json!({
+                "downloaded": true,
+                "modelId": model_id,
+                "path": path.display().to_string(),
+            }))
+        }
+        Err(e) => {
+            tracing::error!("Download failed for {model_id}: {e}");
+            Err(MaenifoldError::Message(format!(
+                "Download failed for {model_id}: {e}"
+            )))
+        }
+    }
 }
 
-/// Check if a model is installed under the catalog-managed subdirectory layout.
+/// T-202.9 P0 (Bug 1): detect whether a model is installed and which on-disk
+/// layout it uses.
 ///
-/// Only `{models_dir}/{model_id}/*.onnx` counts as "installed" for the catalog.
-/// Flat/legacy `{models_dir}/{model_id}.onnx` files are discovered by the
-/// runtime scan in `discovery.rs` but are NOT catalog-managed and therefore
-/// must not be reported as installed by the catalog tooling — activate/delete
-/// only operate on the subdir layout.
-fn is_model_installed(models_dir: &Path, model_id: &str) -> bool {
+/// - `Some("subdir")` — `{models_dir}/{model_id}/*.onnx` (catalog-managed
+///   layout used by the download flow).
+/// - `Some("flat")` — `{models_dir}/{model_id}.onnx` (legacy layout that the
+///   runtime still discovers via `discovery.rs::discover_model`).
+/// - `None` — no installed ONNX file found in either layout.
+///
+/// `activate`/`delete` continue to operate only on the subdir layout (see
+/// their respective handlers); this helper exists so the catalog `list`
+/// response can accurately report installation state for legacy installs that
+/// predate the subdir convention.
+fn installed_layout(models_dir: &Path, model_id: &str) -> Option<&'static str> {
     let sub_dir = models_dir.join(model_id);
-    if sub_dir.is_dir() && let Ok(entries) = std::fs::read_dir(&sub_dir) {
+    if sub_dir.is_dir()
+        && let Ok(entries) = std::fs::read_dir(&sub_dir)
+    {
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|e| e.to_str()) == Some("onnx")
                 && path.is_file()
                 && path.metadata().map(|m| m.len() > 0).unwrap_or(false)
             {
-                return true;
+                return Some("subdir");
             }
         }
     }
 
-    false
+    let flat = models_dir.join(format!("{model_id}.onnx"));
+    if let Ok(meta) = flat.metadata()
+        && meta.is_file()
+        && meta.len() > 0
+    {
+        return Some("flat");
+    }
+
+    None
+}
+
+/// T-202.9 P0 (Bug 3): determine the catalog id of the model that is (or would
+/// become) active. Resolution order mirrors `discovery.rs::find_model_path`:
+///
+/// 1. If an ONNX session is already loaded, derive the id from its on-disk
+///    path (works for both subdir and flat layouts).
+/// 2. Otherwise, honor an explicit `settings.vector.active_model` pin.
+/// 3. Otherwise, replicate `discover_model`: pick the largest installed
+///    `*.onnx` (flat layout) under `{assets_path}/models` and strip the
+///    extension. Subdir-only installs without an explicit pin remain
+///    ambiguous and return `None`.
+fn effective_active_model_id(context: &ToolContext, catalog: &[CatalogModel]) -> Option<String> {
+    if let Some(path) = vector::model_path() {
+        for model in catalog {
+            if is_active_model(&path, &model.id) {
+                return Some(model.id.clone());
+            }
+        }
+    }
+
+    if let Some(id) = context.config.settings.vector.active_model.as_deref()
+        && !id.is_empty()
+    {
+        return Some(id.to_string());
+    }
+
+    let models_dir = context.config.assets_path.join("models");
+    largest_flat_onnx_id(&models_dir)
+}
+
+/// Scan `models_dir` for top-level `*.onnx` files (legacy flat layout) and
+/// return the id (filename without extension) of the largest one. Mirrors
+/// `discovery.rs::discover_model` so `effective_active_model_id` reports what
+/// the daemon would actually load on next start when no `active_model` pin
+/// exists.
+fn largest_flat_onnx_id(models_dir: &Path) -> Option<String> {
+    let mut candidates: Vec<(u64, String)> = std::fs::read_dir(models_dir)
+        .ok()?
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let path = entry.path();
+            let extension = path.extension()?.to_str()?;
+            if !extension.eq_ignore_ascii_case("onnx") {
+                return None;
+            }
+            let metadata = entry.metadata().ok()?;
+            if !metadata.is_file() || metadata.len() == 0 {
+                return None;
+            }
+            let stem = path.file_stem()?.to_str()?.to_string();
+            Some((metadata.len(), stem))
+        })
+        .collect();
+    candidates.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
+    candidates.into_iter().next().map(|(_, stem)| stem)
 }
 
 /// Check if a loaded model path matches a catalog model ID.
@@ -431,6 +572,18 @@ fn handle_activate(context: &ToolContext, payload: &Value) -> Result<Value> {
         )));
     }
 
+    // T-202.9 P0 (Bug 2): determine whether the active model is actually changing.
+    // Different models with the SAME embedding dimensionality still produce
+    // incompatible vector spaces, so we must always clear vectors on any model
+    // swap — not just when dims differ.
+    let previous_model_id = context
+        .config
+        .settings
+        .vector
+        .active_model
+        .clone();
+    let model_changing = previous_model_id.as_deref() != Some(model_id);
+
     let root = &context.config.maenifold_root;
     let mut config = AgentsConfig::load(root);
     let mut settings = config.settings.unwrap_or_else(MaenifoldSettings::default);
@@ -438,11 +591,103 @@ fn handle_activate(context: &ToolContext, payload: &Value) -> Result<Value> {
     config.settings = Some(settings);
     write_agents_config(root, &config)?;
 
+    // The daemon's existing sync logic will rebuild vec_concepts/vec_memory_files
+    // on the next sync once the new model is loaded (handled by
+    // `db::ensure_vec0_tables` + `sync::vector_embeddings`).
+    let new_dims = load_catalog(&context.config.assets_path)
+        .iter()
+        .find(|m| m.id == model_id)
+        .map(|m| m.dimensions);
+    let current_dims = vector::embedding_dimensions().or_else(|| {
+        db::open_connection(&context.config.database_path)
+            .ok()
+            .and_then(|conn| db::get_model_metadata(&conn, "embedding_dimensions"))
+            .and_then(|s| s.parse::<usize>().ok())
+    });
+    // `dims_differ` is now informational only — used to shape the user-facing
+    // message. Whether we clear vectors is governed by `model_changing`.
+    let dims_differ = matches!((new_dims, current_dims), (Some(n), Some(c)) if n != c);
+
+    let mut vectors_cleared = false;
+    if model_changing {
+        match db::open_connection(&context.config.database_path) {
+            Ok(conn) => {
+                // T-202.9: Drop both vec0 virtual tables so `ensure_vec0_tables`
+                // rebuilds them with the correct dimensionality on next startup.
+                // Use targeted upserts on `model_metadata` (instead of a blanket
+                // DELETE) so we record the new active_model_id immediately and
+                // — when known — the new embedding_dimensions, without nuking
+                // unrelated metadata rows.
+                let drop_sql = "DROP TABLE IF EXISTS vec_concepts; \
+                                DROP TABLE IF EXISTS vec_memory_files;";
+                let mut ok = conn.execute_batch(drop_sql).is_ok();
+                if ok {
+                    if let Err(e) = conn.execute(
+                        "INSERT INTO model_metadata (key, value) VALUES (?1, ?2) \
+                         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                        rusqlite::params!["active_model_id", model_id],
+                    ) {
+                        tracing::warn!(
+                            "Failed to upsert active_model_id during activate for '{model_id}': {e}"
+                        );
+                        ok = false;
+                    }
+                    if let Some(dims) = new_dims {
+                        if let Err(e) = conn.execute(
+                            "INSERT INTO model_metadata (key, value) VALUES (?1, ?2) \
+                             ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+                            rusqlite::params!["embedding_dimensions", dims.to_string()],
+                        ) {
+                            tracing::warn!(
+                                "Failed to upsert embedding_dimensions during activate for '{model_id}': {e}"
+                            );
+                        }
+                    }
+                }
+
+                if ok {
+                    vectors_cleared = true;
+                    tracing::info!(
+                        "Vector index cleared for model swap '{:?}' -> '{model_id}' \
+                         (current={current_dims:?} dims, new={new_dims:?} dims). \
+                         Vectors will rebuild on next sync.",
+                        previous_model_id
+                    );
+                } else {
+                    tracing::warn!(
+                        "Failed to clear vector tables during activate for '{model_id}'"
+                    );
+                }
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Could not open database to clear vectors during activate for '{model_id}': {e}"
+                );
+            }
+        }
+    }
+
+    let message = if vectors_cleared && dims_differ {
+        "Model changed (different dimensions). Vector index cleared. Restart daemon to load the new model; vectors will rebuild on next sync."
+    } else if vectors_cleared {
+        "Model changed. Vector index cleared (different models produce incompatible vector spaces even at matching dimensions). Restart daemon and re-sync to regenerate embeddings."
+    } else if model_changing {
+        "Model changed but vector tables could not be cleared automatically — restart daemon and run sync; existing vectors may need to be removed manually."
+    } else {
+        "Model already active. Restart daemon if it has not yet picked up this configuration."
+    };
+
     Ok(json!({
         "activated": true,
         "modelId": model_id,
-        "reembedRequired": true,
-        "message": "Restart daemon to apply. All vectors will be rebuilt on next sync.",
+        "previousModelId": previous_model_id,
+        "modelChanged": model_changing,
+        "reembedRequired": model_changing,
+        "vectorsCleared": vectors_cleared,
+        "previousDimensions": current_dims,
+        "newDimensions": new_dims,
+        "dimensionsDiffer": dims_differ,
+        "message": message,
     }))
 }
 
@@ -496,6 +741,31 @@ fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Value> {
     Ok(json!({
         "deleted": true,
         "modelId": model_id,
+    }))
+}
+
+/// T-202.9 remediation: drop vec0 virtual tables and clear the recorded
+/// embedding dimensions so the next sync rebuilds embeddings from scratch
+/// against the currently-active model. Does not change the active model.
+fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Result<Value> {
+    let conn = db::open_connection(&context.config.database_path).map_err(|e| {
+        MaenifoldError::Message(format!(
+            "Failed to open database at '{}': {e}",
+            context.config.database_path.display()
+        ))
+    })?;
+
+    let sql = "DROP TABLE IF EXISTS vec_concepts; \
+               DROP TABLE IF EXISTS vec_memory_files; \
+               DELETE FROM model_metadata WHERE key = 'embedding_dimensions';";
+    conn.execute_batch(sql)
+        .map_err(|e| MaenifoldError::Message(format!("Failed to clear embeddings: {e}")))?;
+
+    tracing::info!("Embeddings cleared via regenerate action; vectors will rebuild on next sync.");
+
+    Ok(json!({
+        "regenerated": true,
+        "message": "Embeddings cleared. Run sync to rebuild.",
     }))
 }
 

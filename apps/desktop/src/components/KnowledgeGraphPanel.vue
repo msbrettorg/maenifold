@@ -13,17 +13,6 @@ import { useForceGraph } from '../composables/useForceGraph';
 import type { ForceEdge, ForceNode } from '../lib/graph-types';
 import { useKnowledgeStore } from '../stores/knowledge';
 
-const COMMUNITY_COLORS = [
-  'dodgerblue',
-  'mediumseagreen',
-  'goldenrod',
-  'mediumpurple',
-  'deepskyblue',
-  'tomato',
-  'darkturquoise',
-  'cornflowerblue',
-];
-
 const conceptFilter = ref('');
 const containerRef = ref<HTMLElement | null>(null);
 const store = useKnowledgeStore();
@@ -59,8 +48,29 @@ const filteredConcepts = computed(() => {
   return base.filter((item) => item.name.toLowerCase().includes(query));
 });
 
+// Golden-angle HSL palette: desaturated, high-lightness, consistent with the
+// near-white aesthetic of mind.html. Generated on demand from the index.
 function colorForCommunityIndex(index: number): string {
-  return COMMUNITY_COLORS[index % COMMUNITY_COLORS.length];
+  const hue = (index * 137.508) % 360;
+  return `hsl(${hue.toFixed(2)}, 40%, 75%)`;
+}
+
+// sqrt scaling keeps the dynamic range tight so high-degree nodes stay readable
+// without dominating the canvas. Mirrors mind.html's 1.6 → 6.5 px range.
+function radiusForDegree(degree: number, maxDegree: number): number {
+  if (maxDegree <= 0) return 1.6;
+  const ratio = Math.max(0, Math.min(1, degree / maxDegree));
+  return 1.6 + 4.9 * Math.sqrt(ratio);
+}
+
+// Map degree to luma — high-degree nodes brighter (#f0f0f0), low-degree dimmer (#a0a0a0).
+function lumaForDegree(degree: number, maxDegree: number): string {
+  if (maxDegree <= 0) return '#c0c0c0';
+  const ratio = Math.max(0, Math.min(1, degree / maxDegree));
+  // 0xa0 (160) → 0xf0 (240)
+  const value = Math.round(160 + ratio * 80);
+  const hex = value.toString(16).padStart(2, '0');
+  return `#${hex}${hex}${hex}`;
 }
 
 function mapCommunityGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
@@ -69,10 +79,12 @@ function mapCommunityGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
     return { nodes: [], edges: [] };
   }
 
+  const maxSize = graph.nodes.reduce((max, n) => Math.max(max, n.size), 0);
+
   const nodes = graph.nodes.map((node, index) => ({
     id: `community-${node.id}`,
     label: node.anchor,
-    radius: Math.max(8, Math.log2(node.size + 1) * 5),
+    radius: radiusForDegree(node.size, maxSize),
     color: colorForCommunityIndex(index),
   }));
 
@@ -94,11 +106,15 @@ function mapConceptGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
     return { nodes: [], edges: [] };
   }
 
+  const maxOccurrences = graph.nodes.reduce((max, n) => Math.max(max, n.occurrences), 0);
+
   const nodes = graph.nodes.map((node) => ({
     id: node.name,
     label: node.name,
-    radius: Math.max(6, Math.log2(node.occurrences + 1) * 3),
-    color: node.name === graph.anchor ? 'dodgerblue' : 'lightslategray',
+    radius: radiusForDegree(node.occurrences, maxOccurrences),
+    color: node.name === graph.anchor
+      ? '#FFFFFF'
+      : lumaForDegree(node.occurrences, maxOccurrences),
   }));
 
   const known = new Set(nodes.map((node) => node.id));
@@ -270,7 +286,7 @@ onMounted(async () => {
       </div>
 
       <GraphViewCanvas :is-loading="graphLoading" :error="graphError ?? ''" :node-count="nodeCount" @retry="reloadCurrentView">
-        <div ref="containerRef" class="relative h-full w-full bg-bg-app" />
+        <div ref="containerRef" class="relative h-full w-full" />
       </GraphViewCanvas>
     </div>
 

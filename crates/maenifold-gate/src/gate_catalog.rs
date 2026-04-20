@@ -7,13 +7,15 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd", "slc"];
+const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd", "slc", "sdd-c", "tdd-c"];
 const SDD_JSON: &str = include_str!("../assets/sdd.json");
 const TDD_JSON: &str = include_str!("../assets/tdd.json");
 const GSD_JSON: &str = include_str!("../assets/gsd.json");
 const LIGHTWEIGHT_JSON: &str = include_str!("../assets/lightweight.json");
 const MDD_JSON: &str = include_str!("../assets/mdd.json");
 const SLC_JSON: &str = include_str!("../assets/slc.json");
+const SDD_C_JSON: &str = include_str!("../assets/sdd-c.json");
+const TDD_C_JSON: &str = include_str!("../assets/tdd-c.json");
 static MAENIFOLD_ROOT_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 #[derive(Debug, Clone)]
@@ -114,6 +116,8 @@ fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
         "lightweight" => Ok(LIGHTWEIGHT_JSON),
         "mdd" => Ok(MDD_JSON),
         "slc" => Ok(SLC_JSON),
+        "sdd-c" => Ok(SDD_C_JSON),
+        "tdd-c" => Ok(TDD_C_JSON),
         _ => Err(GateError::UnknownBuiltinGate(name.to_string())),
     }
 }
@@ -124,7 +128,7 @@ mod tests {
 
     use tempfile::TempDir;
 
-    use super::{SDD_JSON, TDD_JSON, GSD_JSON, LIGHTWEIGHT_JSON, MDD_JSON, SLC_JSON, GateDefinitionCatalog, builtin_asset_text};
+    use super::{SDD_JSON, TDD_JSON, GSD_JSON, LIGHTWEIGHT_JSON, MDD_JSON, SLC_JSON, SDD_C_JSON, TDD_C_JSON, GateDefinitionCatalog, builtin_asset_text};
     use crate::gate_definition::GateDefinition;
     use crate::task_metadata::TaskMetadata;
 
@@ -262,6 +266,8 @@ mod tests {
             ("lightweight", LIGHTWEIGHT_JSON),
             ("mdd", MDD_JSON),
             ("slc", SLC_JSON),
+            ("sdd-c", SDD_C_JSON),
+            ("tdd-c", TDD_C_JSON),
         ];
         for (name, json) in assets {
             let definition = GateDefinition::from_json_text(json)

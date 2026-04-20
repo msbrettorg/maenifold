@@ -1,22 +1,18 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsModels from './SettingsModels.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 
-type SectionId = 'connection' | 'mcp-servers' | 'maenifold' | 'models' | 'preferences';
-
 const sections = [
-  { id: 'connection' as SectionId, label: 'Agents', description: 'Manage ACP agents and their configuration.' },
-  { id: 'mcp-servers' as SectionId, label: 'MCP servers', description: 'Configure global MCP server connections.' },
-  { id: 'maenifold' as SectionId, label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
-  { id: 'models' as SectionId, label: 'Models', description: 'Download and manage embedding models.' },
-  { id: 'preferences' as SectionId, label: 'Preferences', description: 'Control persisted application defaults.' },
+  { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
+  { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
+  { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
+  { id: 'models', label: 'Models', description: 'Download and manage embedding models.' },
+  { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
-
-const activeSection = ref<SectionId>('connection');
 </script>
 
 <template>
@@ -26,27 +22,27 @@ const activeSection = ref<SectionId>('connection');
       Configure your agent catalog and local application preferences.
     </p>
 
-    <div class="settings-layout">
-      <nav class="settings-nav">
-        <button
+    <TabsRoot default-value="connection" orientation="vertical" class="settings-layout">
+      <TabsList class="settings-nav" aria-label="Settings sections">
+        <TabsTrigger
           v-for="s in sections"
           :key="s.id"
-          :class="['settings-nav-item', { active: activeSection === s.id }]"
-          @click="activeSection = s.id"
+          :value="s.id"
+          class="settings-nav-item"
         >
           <span class="nav-label">{{ s.label }}</span>
           <span class="nav-desc">{{ s.description }}</span>
-        </button>
-      </nav>
+        </TabsTrigger>
+      </TabsList>
 
-      <main class="settings-content">
-        <SettingsConnection v-if="activeSection === 'connection'" />
-        <SettingsMcpServers v-else-if="activeSection === 'mcp-servers'" />
-        <SettingsMaenifold v-else-if="activeSection === 'maenifold'" />
-        <SettingsModels v-else-if="activeSection === 'models'" />
-        <SettingsPreferences v-else-if="activeSection === 'preferences'" />
-      </main>
-    </div>
+      <div class="settings-content">
+        <TabsContent value="connection"><SettingsConnection /></TabsContent>
+        <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
+        <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
+        <TabsContent value="models"><SettingsModels /></TabsContent>
+        <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
+      </div>
+    </TabsRoot>
   </div>
 </template>
 
@@ -86,7 +82,7 @@ const activeSection = ref<SectionId>('connection');
   background-color: var(--bg-surface-hover);
 }
 
-.settings-nav-item.active {
+.settings-nav-item[data-state="active"] {
   border-left-color: var(--blue);
   background-color: var(--bg-surface-hover);
 }

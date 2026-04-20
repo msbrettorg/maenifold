@@ -103,3 +103,104 @@ impl TaskSectionParser {
         Ok(records)
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::TaskSectionParser;
+
+    #[test]
+    fn non_gate_section_produces_no_records() {
+        let lines = vec![
+            "## Acceptance Criteria",
+            "",
+            "1. valid login returns token",
+            "2. invalid login returns 401",
+        ];
+        let records = TaskSectionParser::parse(&lines).expect("parse should succeed");
+        assert!(records.is_empty());
+    }
+
+    #[test]
+    fn missing_required_field_returns_error() {
+        let lines = vec![
+            "## SWE",
+            "",
+            "- Stage ID: swe",
+            "- Record Kind: outcome",
+            "- Recorded At: 2026-01-01T00:00:00Z",
+            "- Notes: implemented",
+        ];
+        let result = TaskSectionParser::parse(&lines);
+        assert!(result.is_err(), "missing Agent should cause an error");
+    }
+
+    #[test]
+    fn multiple_sections_parse_independently() {
+        let lines = vec![
+            "## Pending",
+            "",
+            "- Stage ID: pending",
+            "- Record Kind: outcome",
+            "- Agent: pm",
+            "- Recorded At: 2026-01-01T00:00:00Z",
+            "- Outcome: PASS",
+            "- Notes: spec approved",
+            "",
+            "## SWE",
+            "",
+            "- Stage ID: swe",
+            "- Record Kind: append",
+            "- Agent: swe-agent",
+            "- Recorded At: 2026-01-02T00:00:00Z",
+            "- Notes: implementation started",
+        ];
+        let records = TaskSectionParser::parse(&lines).expect("parse should succeed");
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].stage, "pending");
+        assert_eq!(records[0].outcome.as_deref(), Some("pass"));
+        assert_eq!(records[1].stage, "swe");
+        assert_eq!(records[1].record_kind, "append");
+        assert_eq!(records[1].outcome, None);
+    }
+
+    #[test]
+    fn unknown_fields_are_silently_ignored() {
+        let lines = vec![
+            "## SWE",
+            "",
+            "- Stage ID: swe",
+            "- Record Kind: outcome",
+            "- Agent: swe-agent",
+            "- Recorded At: 2026-01-01T00:00:00Z",
+            "- Outcome: PASS",
+            "- Custom: extra field",
+            "- Notes: done",
+        ];
+        let records = TaskSectionParser::parse(&lines).expect("parse should succeed");
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].agent, "swe-agent");
+        assert_eq!(records[0].notes, "done");
+    }
+
+    #[test]
+    fn mixed_gate_and_non_gate_sections() {
+        let lines = vec![
+            "## Acceptance Criteria",
+            "",
+            "1. valid login returns token",
+            "",
+            "## Pending",
+            "",
+            "- Stage ID: pending",
+            "- Record Kind: outcome",
+            "- Agent: pm",
+            "- Recorded At: 2026-01-01T00:00:00Z",
+            "- Outcome: PASS",
+            "- Notes: spec approved",
+        ];
+        let records = TaskSectionParser::parse(&lines).expect("parse should succeed");
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].stage, "pending");
+    }
+}

@@ -81,6 +81,7 @@
 ### Delivered
 - T-200.10: Code hygiene — test name fix (six→seven), duplicate deserializer removed, clippy allow removed, 3 section format roundtrip tests
 - T-200.13: 9 unit tests for TaskStatusDeriver::derive() — core state machine replay logic (131 total tests)
+- T-200.15: 5 edge-case tests for TaskSectionParser::parse() — parser robustness (132 total tests)
 
 ## 2026-04-19 — Session 5 (maenifold-jockey LOC compliance)
 

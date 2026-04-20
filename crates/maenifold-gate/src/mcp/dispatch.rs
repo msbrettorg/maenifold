@@ -63,6 +63,13 @@ pub(crate) fn call_gate_tool(
             notes: required_string(arguments, "notes")?,
             model: optional_string(arguments, "model")?,
         })?,
+        "cancel" => GateToolService::cancel(OutcomeArgs {
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+            agent: required_string(arguments, "agent")?,
+            notes: required_string(arguments, "notes")?,
+            model: optional_string(arguments, "model")?,
+        })?,
         "history" => GateToolService::history(HistoryArgs {
             context: context_from_value(arguments, false, root)?,
             task_id: required_string(arguments, "taskId")?,

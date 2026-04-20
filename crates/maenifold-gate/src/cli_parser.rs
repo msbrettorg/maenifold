@@ -35,6 +35,7 @@ pub(crate) enum GateSubcommand {
     History(HistoryCliArgs),
     Pass(OutcomeCliArgs),
     Fail(OutcomeCliArgs),
+    Cancel(OutcomeCliArgs),
     Sync(SyncCliArgs),
     Ui(UiCliArgs),
 }
@@ -63,6 +64,7 @@ impl GateSubcommand {
             }),
             Self::Pass(args) => CommandRequest::Pass(args.into_outcome_args()),
             Self::Fail(args) => CommandRequest::Fail(args.into_outcome_args()),
+            Self::Cancel(args) => CommandRequest::Cancel(args.into_outcome_args()),
             Self::Sync(args) => CommandRequest::Sync(SyncArgs {
                 context: args.shared.into_context(false),
                 rebuild: args.rebuild,

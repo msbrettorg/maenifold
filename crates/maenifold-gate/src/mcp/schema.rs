@@ -25,6 +25,12 @@ const FAIL_DESCRIPTION: &str = "Apply a FAIL outcome to the active gate stage fo
      tracker. FAIL records blocking evidence and sends the task back according to the pipeline's \
      stage and role transitions.";
 
+const CANCEL_DESCRIPTION: &str = "Administratively cancel a gate task and archive it to done/. Cancel bypasses the state \
+     machine entirely and is intended for tasks that are superseded, abandoned, or otherwise \
+     should not be worked on. Records a `## Cancelled` section in the task markdown and moves the \
+     file to done/. Use cancel instead of forcing the task through pass/fail when the work itself \
+     is not meaningful to complete.";
+
 const HISTORY_DESCRIPTION: &str = "Return the stage journey for a gate task from the authoritative markdown task file as a \
      JSON array of history records. Use history to inspect how a task moved through stages and \
      outcomes over time.";
@@ -175,6 +181,41 @@ pub fn list() -> Vec<McpToolDefinition> {
             }),
         },
         McpToolDefinition {
+            name: "cancel".to_string(),
+            description: CANCEL_DESCRIPTION.to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "taskId": {
+                        "type": "string",
+                        "description": "Required gate task identifier to cancel and archive, for example 'T-90.20'."
+                    },
+                    "root": {
+                        "type": "string",
+                        "description": ROOT_PARAMETER_DESCRIPTION
+                    },
+                    "pipeline": {
+                        "type": "string",
+                        "description": "Optional pipeline name used to resolve the task within a specific pipeline. When omitted, normal task lookup rules apply."
+                    },
+                    "agent": {
+                        "type": "string",
+                        "description": "Required agent or actor name recording the cancellation."
+                    },
+                    "notes": {
+                        "type": "string",
+                        "description": "Required human-readable rationale explaining why the task is being cancelled."
+                    },
+                    "model": {
+                        "type": "string",
+                        "description": "Optional model name associated with the cancellation record. When omitted, no model metadata is stored."
+                    }
+                },
+                "required": ["taskId", "agent", "notes"],
+                "additionalProperties": false
+            }),
+        },
+        McpToolDefinition {
             name: "history".to_string(),
             description: HISTORY_DESCRIPTION.to_string(),
             input_schema: json!({
@@ -243,7 +284,7 @@ mod tests {
     use serde_json::Value;
 
     #[test]
-    fn mcp_tool_list_exposes_exactly_seven_gate_tools() {
+    fn mcp_tool_list_exposes_exactly_eight_gate_tools() {
         let tools = list();
         let names: Vec<_> = tools.iter().map(|tool| tool.name.as_str()).collect();
         assert_eq!(
@@ -253,6 +294,7 @@ mod tests {
                 "append",
                 "pass",
                 "fail",
+                "cancel",
                 "history",
                 "task_body",
                 "sync"

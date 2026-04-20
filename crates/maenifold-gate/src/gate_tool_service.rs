@@ -5,6 +5,7 @@ use serde_json::{Value, json};
 
 use crate::append_command::append_task;
 use crate::cache_db::GateCacheDb;
+use crate::cancel_command::cancel_task;
 use crate::cli::{
     AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
 };
@@ -43,6 +44,14 @@ impl GateToolService {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
         fail_task(args)?;
+        refresh_read_model(&context)?;
+        task_status_from_read_model(&context, &task_id)
+    }
+
+    pub fn cancel(args: OutcomeArgs) -> Result<Value, GateError> {
+        let task_id = args.task_id.clone();
+        let context = args.context.clone();
+        cancel_task(args)?;
         refresh_read_model(&context)?;
         task_status_from_read_model(&context, &task_id)
     }

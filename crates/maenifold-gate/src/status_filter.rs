@@ -20,7 +20,9 @@ impl StatusFilter {
             return row["state"].as_str() == Some(expected.as_str());
         }
 
-        if !self.include_done && row["state"].as_str() == Some("done") {
+        if !self.include_done
+            && (row["state"].as_str() == Some("done") || row["state"].as_str() == Some("cancelled"))
+        {
             return false;
         }
 

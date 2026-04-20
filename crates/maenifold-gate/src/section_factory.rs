@@ -63,6 +63,18 @@ impl CanonicalSectionFactory {
         .render()
     }
 
+    pub fn build_cancel_section(agent: &str, notes: &str, model: Option<&str>) -> String {
+        SectionRecord {
+            stage: "cancelled",
+            record_kind: "cancel",
+            outcome: Some("cancel"),
+            agent,
+            notes,
+            model,
+        }
+        .render()
+    }
+
     pub fn build_outcome_section(
         stage: &str,
         outcome: &str,

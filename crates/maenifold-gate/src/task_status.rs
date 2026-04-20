@@ -34,6 +34,11 @@ impl TaskStatusDeriver {
         for record in &document.records {
             match record.record_kind.as_str() {
                 "append" => {}
+                "cancel" => {
+                    // cancel is an administrative action that bypasses the state machine.
+                    // It marks the task as terminally cancelled regardless of its current state.
+                    state = "cancelled".to_string();
+                }
                 "outcome" => {
                     let outcome = record.outcome.as_deref().ok_or_else(|| {
                         GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
@@ -81,6 +86,19 @@ impl TaskStatusDeriver {
                     )));
                 }
             }
+        }
+
+        if state == "cancelled" {
+            if location != "done" {
+                return Err(GateError::UnknownState(
+                    "cancelled task must reside in done/".to_string(),
+                ));
+            }
+            return Ok(EffectiveTaskState {
+                state,
+                attempts,
+                location: location.to_string(),
+            });
         }
 
         if location == "done" {

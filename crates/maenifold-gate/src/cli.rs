@@ -4,6 +4,7 @@ pub use maenifold_core::CliAction;
 
 use crate::cli_parser::*;
 use crate::append_command::AppendCommand;
+use crate::cancel_command::CancelCommand;
 use crate::fail_command::FailCommand;
 use crate::history_command::HistoryCommand;
 use crate::pass_command::PassCommand;
@@ -68,6 +69,7 @@ pub enum CommandRequest {
     History(HistoryArgs),
     Pass(OutcomeArgs),
     Fail(OutcomeArgs),
+    Cancel(OutcomeArgs),
     Sync(SyncArgs),
 }
 
@@ -135,6 +137,7 @@ fn run_command(request: CommandRequest) -> i32 {
         CommandRequest::History(args) => HistoryCommand::execute(args),
         CommandRequest::Pass(args) => PassCommand::execute(args),
         CommandRequest::Fail(args) => FailCommand::execute(args),
+        CommandRequest::Cancel(args) => CancelCommand::execute(args),
         CommandRequest::Sync(args) => SyncCommand::execute(args),
     };
 

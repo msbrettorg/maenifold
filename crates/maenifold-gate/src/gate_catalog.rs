@@ -124,7 +124,9 @@ mod tests {
 
     use tempfile::TempDir;
 
-    use super::{GateDefinitionCatalog, SDD_JSON};
+    use super::{SDD_JSON, TDD_JSON, GSD_JSON, LIGHTWEIGHT_JSON, MDD_JSON, SLC_JSON, GateDefinitionCatalog, builtin_asset_text};
+    use crate::gate_definition::GateDefinition;
+    use crate::task_metadata::TaskMetadata;
 
     fn set_maenifold_root(temp: &std::path::Path) -> (Option<OsString>, std::path::PathBuf) {
         let previous = std::env::var_os("MAENIFOLD_ROOT");
@@ -250,4 +252,60 @@ mod tests {
 
         assert_eq!(dir, temp.path().join("assets").join("gates"));
     }
+
+    #[test]
+    fn all_builtin_assets_parse_and_validate() {
+        let assets: &[(&str, &str)] = &[
+            ("sdd", SDD_JSON),
+            ("tdd", TDD_JSON),
+            ("gsd", GSD_JSON),
+            ("lightweight", LIGHTWEIGHT_JSON),
+            ("mdd", MDD_JSON),
+            ("slc", SLC_JSON),
+        ];
+        for (name, json) in assets {
+            let definition = GateDefinition::from_json_text(json)
+                .unwrap_or_else(|err| panic!("built-in '{name}' failed to parse: {err}"));
+            assert!(
+                !definition.initial.is_empty(),
+                "built-in '{name}' has empty initial state"
+            );
+            let stages = definition.ordered_stage_ids()
+                .unwrap_or_else(|err| panic!("built-in '{name}' failed ordered_stage_ids: {err}"));
+            assert!(
+                stages.len() >= 2,
+                "built-in '{name}' has fewer than 2 stages: {stages:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn builtin_asset_text_rejects_unknown_name() {
+        let result = builtin_asset_text("nonexistent");
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("nonexistent"), "error should mention the name: {err}");
+    }
+
+    #[test]
+    fn resolve_for_task_rejects_pipeline_mismatch() {
+        let root = tempfile::tempdir().expect("create temp root");
+        let metadata = TaskMetadata {
+            id: Some("T-1.1".to_string()),
+            title: "Test task".to_string(),
+            pipeline: "sdd".to_string(),
+            state: None,
+            session_id: None,
+        };
+        let result = GateDefinitionCatalog::resolve_for_task(
+            root.path(),
+            &metadata,
+            Some("tdd"),
+        );
+        assert!(result.is_err());
+        let err = result.unwrap_err().to_string();
+        assert!(err.contains("sdd"), "error should mention bound pipeline: {err}");
+        assert!(err.contains("tdd"), "error should mention requested pipeline: {err}");
+    }
+
 }

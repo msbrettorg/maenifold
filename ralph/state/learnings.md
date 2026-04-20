@@ -107,3 +107,23 @@
 
 ### Remaining LOC violations
 - None in maenifold-jockey — all files now under 300 LOC
+
+## 2026-04-19 — Session 6 (maenifold-gate clippy + test coverage)
+
+### What worked
+- Clippy violations are ideal lightweight tasks: mechanical, clear acceptance criteria
+- Struct extraction (ErrorRowContext, SectionRecord) cleanly resolves too_many_arguments
+- Test-only tasks complete fastest: ~90s SWE + ~40s blue-team
+- gpt-5.3-codex SWE agents reliably append test code when given exact test bodies
+- claude-opus-4.5 blue-team agents consistently verify build + test in under 45s
+
+### Patterns
+- Gate MCP still returns EROFS on macOS: CLI fallback is reliable
+- SWE agents occasionally touch ralph/ files: restore with git checkout before commit
+- Provide exact test code to minimize SWE interpretation variance
+- Sequential thinking sessions up front help identify correct task scope
+
+### Delivered
+- T-200.16: 3 clippy violations fixed (ErrorRowContext, SectionRecord, redundant import)
+- T-200.17: 13 unit tests for state_machine (8) and gate_definition (5)
+- T-200.18: 10 MCP dispatch argument parsing tests (164 total tests)

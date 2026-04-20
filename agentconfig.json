@@ -1,6 +1,7 @@
 {
   "star": {
-    "totalUsageMs": 18537615
+    "totalUsageMs": 22753637,
+    "prompted": true
   },
   "monitor": {
     "replyPrefix": "Agency Cowork: ",

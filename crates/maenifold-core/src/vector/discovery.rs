@@ -70,27 +70,46 @@ fn find_model_path() -> Result<PathBuf> {
         .parent()
         .ok_or(MaenifoldError::MissingExecutableParent)?;
 
-    let direct_models_dir = base_dir.join("assets").join("models");
-    if let Some(model_path) = discover_model(&direct_models_dir) {
-        return Ok(model_path);
-    }
-
+    // T-202.9a: collect candidate model directories in priority order so we can
+    // both (a) probe an explicitly-configured `active_model` and (b) fall back
+    // to legacy directory scanning against the same candidate set.
+    let config = Config::current();
+    let mut candidate_dirs: Vec<PathBuf> = Vec::new();
+    candidate_dirs.push(base_dir.join("assets").join("models"));
     for ancestor in base_dir.ancestors() {
-        let workspace_manifest = ancestor.join("Cargo.toml");
-        let models_dir = ancestor.join("assets").join("models");
-        if workspace_manifest.exists()
-            && let Some(model_path) = discover_model(&models_dir)
-        {
-            return Ok(model_path);
+        if ancestor.join("Cargo.toml").exists() {
+            candidate_dirs.push(ancestor.join("assets").join("models"));
         }
     }
+    // T-20.5: RTM FR-7 / RTM-148 — also check the shared runtime root used by
+    // the C# runtime: `~/maenifold/assets/models`.
+    candidate_dirs.push(config.assets_path.join("models"));
 
-    // T-20.5: RTM FR-7 / RTM-148 — after the existing exe-adjacent and Cargo
-    // walk-up probes, also check the shared runtime root used by the C# runtime:
-    // `~/maenifold/assets/models`.
-    let shared_models_dir = Config::current().assets_path.join("models");
-    if let Some(model_path) = discover_model(&shared_models_dir) {
-        return Ok(model_path);
+    // T-202.9a: when an explicit `active_model` is configured, look for
+    // `{models_dir}/{active_model}/model.onnx` in each candidate directory
+    // before falling through to scanning. This lets users select a specific
+    // installed model deterministically rather than picking the largest *.onnx.
+    if let Some(active_id) = config.settings.vector.active_model.as_deref()
+        && !active_id.is_empty()
+    {
+        for dir in &candidate_dirs {
+            let candidate = dir.join(active_id).join("model.onnx");
+            if let Ok(metadata) = candidate.metadata()
+                && metadata.is_file()
+                && metadata.len() > 0
+            {
+                return Ok(candidate);
+            }
+        }
+        // Fall through to scanning if the configured active model isn't
+        // installed in any candidate directory — preserves backwards
+        // compatibility while still surfacing a model.
+    }
+
+    for dir in &candidate_dirs {
+        if let Some(model_path) = discover_model(dir) {
+            return Ok(model_path);
+        }
     }
 
     // T-9.1: RTM FR-7 — removed compile-time CARGO_MANIFEST_DIR fallback that baked

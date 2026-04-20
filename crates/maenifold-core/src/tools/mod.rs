@@ -4,6 +4,7 @@ mod acp_exec_payload;
 mod catalog;
 mod context;
 mod diagnostics;
+mod embedding_download;
 mod embedding_models;
 mod recent_activity;
 mod recent_activity_format;

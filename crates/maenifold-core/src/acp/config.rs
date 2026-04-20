@@ -304,6 +304,11 @@ pub struct VectorSettings {
     pub vector_logs: bool,
     #[serde(default)]
     pub disable_vector: bool,
+    /// T-202.9a: explicit active embedding model ID (e.g. "bge-small-en-v1.5").
+    /// When set, [[discover_model]] resolves `{models_dir}/{active_model}/model.onnx`
+    /// before falling back to directory scanning.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub active_model: Option<String>,
 }
 
 impl Default for VectorSettings {
@@ -312,6 +317,7 @@ impl Default for VectorSettings {
             embedding_logs: false,
             vector_logs: false,
             disable_vector: false,
+            active_model: None,
         }
     }
 }
@@ -546,6 +552,7 @@ mod settings_tests {
                 embedding_logs: true,
                 vector_logs: true,
                 disable_vector: true,
+                active_model: None,
             },
             debug: DebugSettings {
                 trace: true,

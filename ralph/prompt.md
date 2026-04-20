@@ -123,6 +123,13 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 | `sdd` | Pure refactors, internal logic changes, integration contract already proven and unchanged. |
 | `slc` | Cross-crate work, new capabilities, requires discovery + spec phases. |
 | `lightweight` | Mechanical changes (formatting, renames, file moves, LOC splits). Build verifies. |
+
+**Visual verification rule (MANDATORY for all UI work):**
+- ALL UI changes require visual verification by the user AND the architect duo before gate pass
+- "vue-tsc passes" and "npm run build succeeds" are NOT visual verification
+- Playwright screenshots or user confirmation are the ONLY acceptable evidence that UI work is done
+- No UI task may be passed to done without a human seeing the result
+- This rule exists because Sprint 201 shipped a completely broken UI that blocked 100% of users, and Sprint 178 replaced the home page with fake data — both passed typecheck
 | `gsd` | Unknown scope, exploratory. Forces research → plan → execute → verify. |
 
 Sub-tasks of an SLC epic inherit the parent's pipeline unless you explicitly justify the downgrade in the sub-task's spec.

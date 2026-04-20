@@ -232,3 +232,4 @@ TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grou
 ### Additional fixes applied
 - Red-team prompt must verify: "Do all API surfaces, endpoints, and CLI commands referenced in this code actually exist in the codebase?"
 - Sub-tasks of an SLC epic must inherit the parent's pipeline, not downgrade to SDD
+- ALL UI work requires visual verification by the user AND the architect duo — typecheck/build is NOT sufficient (Sprint 178 also shipped fake home page data that passed typecheck)

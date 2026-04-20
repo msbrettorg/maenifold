@@ -3,6 +3,7 @@ import { computed, provide } from 'vue';
 import { Check } from 'lucide-vue-next';
 
 import { useOnboarding, type OnboardingStepId } from '../composables/useOnboarding';
+import OnboardingStepAgent from './OnboardingStepAgent.vue';
 import OnboardingStepDaemon from './OnboardingStepDaemon.vue';
 import OnboardingStepWelcome from './OnboardingStepWelcome.vue';
 
@@ -31,7 +32,7 @@ const stepLabels: Record<OnboardingStepId, string> = {
 const stepComponents: Record<OnboardingStepId, any | null> = {
   welcome: OnboardingStepWelcome,
   daemon: OnboardingStepDaemon,
-  agent: null, // T-201.4
+  agent: OnboardingStepAgent,
   model: null, // T-201.5
   done: null, // T-201.5
 };

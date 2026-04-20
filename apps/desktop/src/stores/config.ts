@@ -122,6 +122,29 @@ export const useConfigStore = defineStore('config', () => {
     error.value = null;
   }
 
+  async function addAgent(name: string, agent: AgentConfig): Promise<void> {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await fetch(`${DAEMON_BASE_URL}/api/config/agents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, config: agent }),
+      });
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(body || `Failed to add agent: HTTP ${response.status}`);
+      }
+      await loadConfig();
+    } catch (e) {
+      const message = getErrorMessage(e);
+      error.value = message;
+      throw new Error(message);
+    } finally {
+      loading.value = false;
+    }
+  }
+
   return {
     config,
     configPath,
@@ -135,5 +158,6 @@ export const useConfigStore = defineStore('config', () => {
     setupHotReload,
     updateFromEvent,
     clearError,
+    addAgent,
   };
 });

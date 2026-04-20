@@ -60,6 +60,7 @@ If the graph has relevant prior work, read it. Do not duplicate effort or contra
 
 - Pick the next pending gate task from status.
 - Read the selected task file in `todo/` for title, description, and acceptance criteria.
+- **Epic handling:** If a task has `type: epic` in its frontmatter, your job is to **decompose it into sub-tasks**, not implement it. Read the epic's decomposition instructions and create the sub-task files in `todo/`. Run `gate sync --root .` after creating them. This IS a valid iteration — commit the new task files and record it. Do NOT skip epics. Do NOT converge because the only remaining task is an epic.
 - One improvement per iteration.
 - **Scope awareness is mandatory.** Check both environment variables at the start of every iteration:
   - `RALPH_TARGET_CRATE` — when set, you are assigned to a Rust crate (e.g., `maenifold-gate`). Only touch files in that crate. Build with `cargo build --release -p <crate>`. Test with `cargo test -p <crate>`.
@@ -127,6 +128,8 @@ If you encounter a bug, dead code, failing test, usability issue, documentation 
 If no meaningful pending gate tasks remain (all `T-XXX.YY` tasks are in `done/` or all remaining are blocked/non-viable), create convergence marker:
 
 - `touch ralph/state/converged`
+
+**Epics are NOT blocked or non-viable.** An epic with `type: epic` is work — decomposition work. If the only remaining task is an epic, decompose it. Do not converge.
 
 ## Continuation rule
 

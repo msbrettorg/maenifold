@@ -2,6 +2,7 @@
 import { computed, inject, onMounted, onUnmounted, ref, type Ref } from 'vue';
 import { Brain, Loader2 } from 'lucide-vue-next';
 
+import { Button } from '@/components/ui/button';
 import { useMcpClient } from '../composables/useMcpClient';
 
 interface ModelInfo {
@@ -58,7 +59,8 @@ async function loadModels(): Promise<void> {
     models.value = result?.models ?? [];
     if (selectedId.value === null && models.value.length > 0) {
       const active = models.value.find((m) => m.isActive);
-      selectedId.value = (active ?? models.value[0]).id;
+      const installed = models.value.find((m) => m.installed);
+      selectedId.value = (active ?? installed ?? models.value[0]).id;
     }
   } catch (e) {
     if (disposed) return;
@@ -79,8 +81,8 @@ async function onDownload(): Promise<void> {
   if (selectedModel.value === null) return;
   downloadError.value = null;
 
-  // If the selected model is already installed, just advance — no download needed
-  if (selectedModel.value.installed) {
+  // If the selected model is already installed or active, just advance — no download needed
+  if (selectedModel.value.installed || selectedModel.value.isActive) {
     if (modelSkipped) modelSkipped.value = false;
     if (selectedModelName) selectedModelName.value = selectedModel.value.name;
     advance?.();
@@ -141,13 +143,9 @@ onUnmounted(() => {
 
     <div v-else-if="loadError" class="flex flex-col gap-2">
       <p class="text-danger text-sm">Failed to load models: {{ loadError }}</p>
-      <button
-        type="button"
-        class="self-start rounded-lg border border-border-subtle bg-bg-surface px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-bg-elevated"
-        @click="onRetry"
-      >
+      <Button variant="outline" size="sm" class="self-start" @click="onRetry">
         Retry
-      </button>
+      </Button>
     </div>
 
     <div v-else class="flex flex-col gap-2">
@@ -216,34 +214,24 @@ onUnmounted(() => {
     </p>
 
     <div class="flex items-center justify-between gap-3 pt-2">
-      <button
-        type="button"
-        :disabled="downloading"
-        class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50"
-        @click="onBack"
-      >
+      <Button variant="outline" :disabled="downloading" @click="onBack">
         ← Back
-      </button>
+      </Button>
 
       <div class="flex items-center gap-2">
-        <button
-          type="button"
-          :disabled="downloading"
-          class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50"
-          @click="onSkip"
-        >
+        <Button variant="outline" :disabled="downloading" @click="onSkip">
           Download later →
-        </button>
+        </Button>
 
-        <button
-          type="button"
+        <Button
+          variant="default"
+          class="bg-brand hover:bg-brand-hover text-primary-foreground px-6"
           :disabled="loading || !!loadError || selectedModel === null || downloading"
-          class="flex items-center gap-2 rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           @click="onDownload"
         >
           <Loader2 v-if="downloading" class="h-4 w-4 animate-spin" />
-          <span>{{ selectedModel?.installed ? 'Continue →' : 'Download →' }}</span>
-        </button>
+          <span>{{ selectedModel?.installed || selectedModel?.isActive ? 'Next →' : 'Download →' }}</span>
+        </Button>
       </div>
     </div>
   </div>

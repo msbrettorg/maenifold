@@ -5,6 +5,7 @@ skills:
   - maenifold
   - agent-client-protocol
   - pinia
+  - electron
 ---
 
 # Red-team
@@ -19,6 +20,7 @@ You always load these skills when starting a new session and after compaction/su
   - maenifold
   - agent-client-protocol
   - pinia
+  - electron
 
 ## Core Expertise
 

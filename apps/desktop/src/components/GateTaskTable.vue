@@ -50,6 +50,12 @@ function rowTitle(task: GateTask) {
 <template>
   <div class="gate-table-wrap">
     <table class="gate-table" role="table" aria-label="Gate task list">
+      <colgroup>
+        <col class="gate-col-id" />
+        <col />
+        <col class="gate-col-process" />
+        <col class="gate-col-progress" />
+      </colgroup>
       <thead>
         <tr>
           <th role="columnheader" scope="col" class="gate-th--sortable" :aria-sort="sortOrder('id')">
@@ -95,7 +101,7 @@ function rowTitle(task: GateTask) {
           <td class="gate-id">{{ task.taskId }}</td>
           <td class="gate-task">
             <div class="gate-task__title">
-              <span class="gate-title">{{ task.title }}</span>
+              <span class="gate-title line-clamp-2">{{ task.title }}</span>
               <span v-if="task.issue" class="gate-issue-dot" aria-hidden="true"></span>
             </div>
           </td>
@@ -159,13 +165,20 @@ function rowTitle(task: GateTask) {
   background: var(--surface);
 }
 
-.gate-table tbody tr:nth-child(odd) td {
-  background: var(--surface);
-  transition: background 160ms ease;
+.gate-col-id {
+  width: 100px;
 }
 
-.gate-table tbody tr:nth-child(even) td {
-  background: var(--surface-container);
+.gate-col-process {
+  width: 120px;
+}
+
+.gate-col-progress {
+  width: 200px;
+}
+
+.gate-table tbody tr td {
+  background: var(--surface);
   transition: background 160ms ease;
 }
 
@@ -227,9 +240,19 @@ function rowTitle(task: GateTask) {
 }
 
 .gate-task__title {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.45rem;
+  min-width: 0;
+}
+
+.gate-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.gate-issue-dot {
+  flex-shrink: 0;
 }
 
 .gate-process {

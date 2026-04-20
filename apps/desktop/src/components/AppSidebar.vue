@@ -55,7 +55,7 @@ const resize = useResizeHandle({
           variant="ghost"
           size="icon-sm"
           :class="[
-            'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]',
+            'cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]',
             showTrafficMonitor && 'bg-[var(--surface-high)] text-[var(--color-brand)]',
           ]"
           @click="showTrafficMonitor = !showTrafficMonitor"
@@ -65,7 +65,7 @@ const resize = useResizeHandle({
         <Button
           variant="ghost"
           size="icon-sm"
-          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-dim)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
+          class="cursor-pointer rounded-[4px] border-none bg-transparent px-2 py-1 text-[var(--text-caption)] text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
           @click="visible = false"
           title="Collapse sidebar"
           aria-label="Collapse sidebar"
@@ -84,7 +84,7 @@ const resize = useResizeHandle({
         <!-- Working Directory Picker -->
         <div class="mt-3">
           <label
-            class="mb-1.5 block text-[var(--text-tiny)] font-normal tracking-normal text-[var(--text-dim)]"
+            class="mb-1.5 block text-[var(--text-tiny)] font-normal tracking-normal text-[var(--text-secondary)]"
           >Working directory</label>
           <div class="flex items-center gap-2">
             <span
@@ -151,7 +151,7 @@ const resize = useResizeHandle({
     v-if="!visible"
     variant="ghost"
     size="icon"
-    class="fixed top-1/2 left-0 cursor-pointer rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-dim)] -translate-y-1/2 transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
+    class="fixed top-1/2 left-0 cursor-pointer rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-secondary)] -translate-y-1/2 transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
     @click="visible = true"
     title="Expand sidebar"
     aria-label="Expand sidebar"

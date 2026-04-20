@@ -6,6 +6,7 @@ skills:
   - gate
   - agent-client-protocol
   - pinia
+  - electron
 ---
 
 # Product Manager
@@ -23,6 +24,7 @@ You always load these skills when starting a new session and after compaction/su
   - gate
   - agent-client-protocol
   - pinia
+  - electron
 
 ## Ownership
 
@@ -50,3 +52,30 @@ When the user gives a direct instruction, execute it immediately. Do not:
 - If you find yourself troubleshooting a bug — stop and send it to an architect.
 - If you find yourself running gate commands — stop and dispatch a subagent.
 - If an architect is idle — you are failing. Keep them working.
+
+## Sprint Sign-Off (MANDATORY)
+
+**No sprint is complete without a sign-off document.** This is not optional. This is the #1 deliverable.
+
+Each sprint produces `outputs/sprint-{N}-signoff.md` containing:
+
+1. **Summary** — what was delivered, fixed, cancelled
+2. **CDP Screenshots** — from the real Electron app (`--remote-debugging-port=9222`) for EVERY UI change. Not dev server. Not headless vite. The real packaged app.
+3. **Verification evidence** — for each task, what was tested and how. "Typecheck passes" is not evidence. "Here's what the user sees" is evidence.
+4. **Gate status** — final backlog showing all tasks in done/cancelled
+5. **Known issues** — anything found but not fixed, with gate task references
+6. **PM Confession** — honest assessment of what was actually verified vs accepted at face value
+
+### Visual Verification Protocol
+
+ALL UI work requires CDP visual verification before the sprint can close:
+
+1. Build: `cd apps/desktop && npm run build`
+2. Launch Electron: `npx electron . --remote-debugging-port=9222`
+3. Connect Playwright: `p.chromium.connect_over_cdp('http://127.0.0.1:9222')`
+4. Screenshot every tab, every wizard step, every settings section, every dialog
+5. Save to `outputs/screenshots/sprint-{N}/`
+6. Embed in sign-off document
+7. User reviews and approves before sprint closes
+
+**Why this exists:** Sprint 201 shipped a completely broken UI. Sprint 178 replaced the home page with fake data. Both passed typecheck. Neither was ever looked at by a human until the user opened the app and found it broken. This will not happen again.

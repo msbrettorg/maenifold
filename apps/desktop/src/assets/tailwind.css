@@ -15,6 +15,7 @@
   --color-accent-tool: var(--accent-tool);
   --color-text-primary: var(--text-primary);
   --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: var(--text-tertiary);
   --color-text-muted: var(--text-muted);
   --color-border-default: var(--border-default);
   --color-border-focus: var(--border-focus);
@@ -86,8 +87,9 @@
   --spacing-7: 28px;
   --spacing-8: 32px;
 
+  --radius-4: 4px;
   --radius-sm: 4px;
-  --radius-md: 6px;
+  --radius-md: 8px;
   --radius-lg: 8px;
   --radius-xl: 12px;
 }
@@ -192,6 +194,7 @@
   --outline-variant: #b3a594;
   --text-primary: var(--text);
   --text-secondary: #5f584f;
+  --text-tertiary: #6B7280;
   --text-muted: var(--text-dim);
   --text-error: #b94a48;
   --text-code: #4f4a44;
@@ -254,6 +257,7 @@
     --bg-warning: #3d2e00;
     --outline-variant: #383838;
     --text-secondary: #A0AAB2;
+    --text-tertiary: #6B7280;
     --text-disabled: #4B5563;
     --text-error: #D13438;
     --text-code: #A0AAB2;
@@ -290,6 +294,7 @@
   --bg-warning: #3d2e00;
   --outline-variant: #383838;
   --text-secondary: #A0AAB2;
+  --text-tertiary: #6B7280;
   --text-disabled: #4B5563;
   --text-error: #D13438;
   --text-code: #A0AAB2;

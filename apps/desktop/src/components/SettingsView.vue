@@ -1,47 +1,42 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Button } from '@/components/ui/button';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsModels from './SettingsModels.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 
-const sections = [
-  { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
-  { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
-  { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
-  { id: 'models', label: 'Models', description: 'Download and manage embedding models.' },
-  { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
-] as const;
+type SectionId = 'connection' | 'mcp-servers' | 'maenifold' | 'models' | 'preferences';
 
-type SectionId = (typeof sections)[number]['id'];
+const sections = [
+  { id: 'connection' as SectionId, label: 'Agents', description: 'Manage ACP agents and their configuration.' },
+  { id: 'mcp-servers' as SectionId, label: 'MCP servers', description: 'Configure global MCP server connections.' },
+  { id: 'maenifold' as SectionId, label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
+  { id: 'models' as SectionId, label: 'Models', description: 'Download and manage embedding models.' },
+  { id: 'preferences' as SectionId, label: 'Preferences', description: 'Control persisted application defaults.' },
+];
 
 const activeSection = ref<SectionId>('connection');
 </script>
 
 <template>
-  <div class="settings-panel">
-    <header class="settings-header">
-      <div>
-        <h2>Settings</h2>
-        <p>Configure your agent catalog and local application preferences.</p>
-      </div>
-    </header>
+  <div class="h-full p-6">
+    <h2 class="text-lg font-semibold text-text-primary mb-1">Settings</h2>
+    <p class="text-sm text-text-secondary mb-6">
+      Configure your agent catalog and local application preferences.
+    </p>
 
     <div class="settings-layout">
-      <nav class="settings-nav" aria-label="Settings sections">
-        <Button
-          v-for="section in sections"
-          :key="section.id"
-          variant="ghost"
-          class="nav-item"
-          :class="{ active: activeSection === section.id }"
-          @click="activeSection = section.id"
+      <nav class="settings-nav">
+        <button
+          v-for="s in sections"
+          :key="s.id"
+          :class="['settings-nav-item', { active: activeSection === s.id }]"
+          @click="activeSection = s.id"
         >
-          <span class="nav-label">{{ section.label }}</span>
-          <span class="nav-description">{{ section.description }}</span>
-        </Button>
+          <span class="nav-label">{{ s.label }}</span>
+          <span class="nav-desc">{{ s.description }}</span>
+        </button>
       </nav>
 
       <main class="settings-content">
@@ -49,106 +44,71 @@ const activeSection = ref<SectionId>('connection');
         <SettingsMcpServers v-else-if="activeSection === 'mcp-servers'" />
         <SettingsMaenifold v-else-if="activeSection === 'maenifold'" />
         <SettingsModels v-else-if="activeSection === 'models'" />
-        <SettingsPreferences v-else />
+        <SettingsPreferences v-else-if="activeSection === 'preferences'" />
       </main>
     </div>
   </div>
 </template>
 
 <style scoped>
-.settings-panel {
-  width: 100%;
-  height: 100%;
-  max-height: none;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface-container);
-}
-
-.settings-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.25rem;
-}
-
-.settings-header h2,
-.settings-header p {
-  margin: 0;
-}
-
-.settings-header h2 {
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.settings-header p {
-  margin-top: 0.375rem;
-  color: var(--color-text-secondary);
-}
-
 .settings-layout {
-  display: grid;
-  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr);
-  min-height: 0;
-  flex: 1;
-  overflow: hidden;
+  display: flex;
+  gap: 24px;
+  height: calc(100% - 80px);
 }
 
 .settings-nav {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 1rem;
-  background: var(--surface);
-  overflow-y: auto;
+  gap: 4px;
+  width: 280px;
+  flex-shrink: 0;
 }
 
-.nav-item {
+.settings-nav-item {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem 1rem;
-  border-left: 4px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
+  align-items: flex-start;
   text-align: left;
+  gap: 4px;
+  border-radius: 4px;
+  border-left: 2px solid transparent;
+  padding: 10px 12px;
   cursor: pointer;
+  transition: background-color 0.15s;
+  background: transparent;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
 }
 
-.nav-item:hover {
-  background: var(--surface-high);
+.settings-nav-item:hover {
+  background-color: var(--bg-surface-hover);
 }
 
-.nav-item.active {
-  background: var(--surface-high);
-  border-left-color: var(--color-brand);
+.settings-nav-item.active {
+  border-left-color: var(--blue);
+  background-color: var(--bg-surface-hover);
 }
 
 .nav-label {
+  font-size: 0.875rem;
   font-weight: 600;
+  color: var(--text);
 }
 
-.nav-description {
-  color: var(--color-text-secondary);
+.nav-desc {
   font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.375;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .settings-content {
-  min-height: 0;
+  flex: 1;
   overflow-y: auto;
-  padding: 1.25rem;
-}
-
-@media (max-width: 720px) {
-  .settings-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .settings-nav {
-    border-bottom: none;
-  }
 }
 </style>

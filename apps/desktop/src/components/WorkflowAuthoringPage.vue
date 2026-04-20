@@ -183,7 +183,7 @@ onBeforeUnmount(() => {
       class="panel panel-browser"
       :style="isWorkflowSelected ? { width: `${browserWidth}px` } : undefined"
     />
-    <div v-if="!isWorkflowSelected" class="flex flex-1 items-center justify-center overflow-hidden">
+    <div v-if="!isWorkflowSelected" class="flex-1 grid place-items-center overflow-hidden">
       <EmptyState
         :icon="Brain"
         title="Select a workflow"
@@ -225,6 +225,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .workflow-authoring-page {
   display: flex;
+  width: 100%;
   height: 100%;
   overflow: hidden;
 }

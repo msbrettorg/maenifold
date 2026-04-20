@@ -96,7 +96,7 @@ const emit = defineEmits<{
 .chip-row::-webkit-scrollbar { display: none; }
 .chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }
 .chip:hover { background: var(--color-text-tertiary); color: var(--color-text-primary); }
-.chip--active { background: color-mix(in srgb, var(--color-node-workflow) 12%, var(--color-text-tertiary)); color: var(--color-node-workflow); }
+.chip--active { background: var(--color-brand-light, rgba(0, 120, 212, 0.15)); color: var(--color-text-primary); }
 .import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
 .import-feedback--error { border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent); color: var(--color-status-abandoned); }
 .feedback-text { flex: 1 1 100%; font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); color: inherit; word-break: break-word; }

@@ -5,6 +5,7 @@ skills:
   - maenifold
   - agent-client-protocol
   - pinia
+  - electron
 ---
 
 # Software Engineer
@@ -16,6 +17,7 @@ You always load these skills when starting a new session and after compaction/su
   - gate
   - agent-client-protocol
   - pinia
+  - electron
 
 ## Core Principles
 

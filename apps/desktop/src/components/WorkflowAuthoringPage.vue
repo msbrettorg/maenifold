@@ -181,10 +181,9 @@ onBeforeUnmount(() => {
   >
     <WorkflowBrowser
       class="panel panel-browser"
-      :class="{ 'panel-browser--full': !isWorkflowSelected }"
       :style="isWorkflowSelected ? { width: `${browserWidth}px` } : undefined"
     />
-    <div v-if="!isWorkflowSelected" class="flex flex-1 items-center justify-center">
+    <div v-if="!isWorkflowSelected" class="flex flex-1 items-center justify-center overflow-hidden">
       <EmptyState
         :icon="Brain"
         title="Select a workflow"

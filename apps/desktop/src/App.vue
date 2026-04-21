@@ -6,6 +6,7 @@ import OnboardingWizard from './components/OnboardingWizard.vue';
 import { useConfigStore } from './stores/config';
 import { useSessionStore } from './stores/session';
 import { useFolderPickerStore } from './stores/folder-picker';
+import { useAppShellStore } from './stores/app-shell';
 import { useAppShell } from './composables/useAppShell';
 import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
@@ -30,7 +31,9 @@ import type { AppShellTab } from './stores/app-shell';
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
 const folderPickerStore = useFolderPickerStore();
+const appShellStore = useAppShellStore();
 const { isOpen: isFolderPickerOpen, initialPath: folderPickerInitialPath } = storeToRefs(folderPickerStore);
+const { activeTab } = storeToRefs(appShellStore);
 
 const {
   selectedAgent,
@@ -39,7 +42,6 @@ const {
   showTrafficMonitor,
   showStartupDetails,
   showHome,
-  activeTab,
   isConnected,
   isConnecting,
   hasAgents,
@@ -60,7 +62,7 @@ const {
 } = useAppShell({ configStore, sessionStore });
 
 function handleOpenTab(tab: AppShellTab): void {
-  activeTab.value = tab;
+  appShellStore.setActiveTab(tab);
 }
 
 // Lazy-mount tabs on first visit, then keep them alive via v-show so we avoid
@@ -106,7 +108,7 @@ function onOnboardingComplete(): void {
 <template>
   <OnboardingWizard v-if="isFirstRun" @complete="onOnboardingComplete" />
   <div v-else class="relative box-border flex h-screen flex-col overflow-hidden">
-    <AppTabBar v-model="activeTab" />
+    <AppTabBar :model-value="activeTab" @update:model-value="appShellStore.setActiveTab($event)" />
 
     <div class="flex min-h-0 flex-1 overflow-hidden">
       <AppSidebar

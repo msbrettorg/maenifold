@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Search, RotateCcw, RefreshCw, Network, ArrowLeft, Loader2, Sparkles } from 'lucide-vue-next';

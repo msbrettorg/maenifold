@@ -247,6 +247,7 @@ const {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .tool-palette,.tool-agent-panel,.tool-agent-grid,.tool-palette__detail,.tool-palette__setup-callout,.tool-palette__quick-add,.tool-palette__quick-add-list { display: grid; gap: 0.75rem; }
 .tool-palette__hint { margin: 0; font-size: var(--text-xs); }

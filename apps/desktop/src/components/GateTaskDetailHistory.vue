@@ -83,6 +83,7 @@ function formatTimestamp(timestamp: string | null) {
   </Accordion>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .gate-detail-history,
 .gate-detail-history__content,

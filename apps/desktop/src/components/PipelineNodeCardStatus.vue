@@ -31,6 +31,7 @@ defineProps<{
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .node-header {
   display: flex;

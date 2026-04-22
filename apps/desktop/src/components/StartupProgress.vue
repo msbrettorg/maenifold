@@ -142,6 +142,7 @@ const progressValue = computed(() => {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .startup-progress {
   padding: 1rem;

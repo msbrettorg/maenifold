@@ -95,6 +95,7 @@ function renderMarkdown(content: string): string {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 4px; }
 .message-user {

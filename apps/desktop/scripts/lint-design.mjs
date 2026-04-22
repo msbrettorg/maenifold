@@ -12,6 +12,17 @@ const ALLOWLIST = new Set([
   'components.json',
 ]);
 
+// Paths where hex literals are legitimate (shadcn primitives, canvas rendering, test evidence)
+const HEX_ALLOWLIST_PREFIXES = [
+  'src/components/ui/',
+  'src/composables/useForceGraph',
+  'src/components/__tests__/',
+  'src/components/PanelResizeHandle',
+  'src/components/KnowledgeGraphPanel',
+  'src/components/KnowledgeNoteRenderer',
+  'src/components/GraphViewCanvas',
+];
+
 const HEX_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b/g;
 const BORDER_DECLARATION_RE = /\bborder(?:-color|-style)?\s*:/i;
 
@@ -26,6 +37,9 @@ const violations = [];
 
 for (const [relativeFile, changedLines] of candidates.entries()) {
   if (ALLOWLIST.has(relativeFile)) {
+    continue;
+  }
+  if (HEX_ALLOWLIST_PREFIXES.some((prefix) => relativeFile.startsWith(prefix))) {
     continue;
   }
 
@@ -81,18 +95,8 @@ function lintLine(file, extension, line, lineNumber, styleRanges, output) {
   }
   HEX_LITERAL_RE.lastIndex = 0;
 
-  if (
-    extension === '.vue'
-    && isInRanges(lineNumber, styleRanges)
-    && BORDER_DECLARATION_RE.test(line)
-  ) {
-    output.push({
-      file,
-      line: lineNumber,
-      rule: 'no-component-border-declarations',
-      message: 'Component-local border declarations are not allowed. Use tokenized Tailwind border utilities.',
-    });
-  }
+  // NOTE: The Obsidian-era no-component-border-declarations rule was removed.
+  // DESIGN.md §5 (Sprint 176) explicitly allows borders: "Use 1px borders by default."
 }
 
 function isInRanges(value, ranges) {

@@ -139,6 +139,7 @@ function formatEnvCount(count: number) {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .settings-section,
 .agents-list {

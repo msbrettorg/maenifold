@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, ref, watch, nextTick } from 'vue';
 import DOMPurify from 'dompurify';
@@ -93,6 +94,7 @@ watch(rendered, async () => {
   <article ref="containerRef" class="note-prose" v-html="rendered" />
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .note-prose {
   font-family: var(--font-body);

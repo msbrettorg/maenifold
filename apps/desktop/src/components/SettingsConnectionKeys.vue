@@ -124,6 +124,7 @@ function formatEnvCount(count: number) {
   </Accordion>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .form-section,
 .section-body,

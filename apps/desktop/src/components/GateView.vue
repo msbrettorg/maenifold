@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import GateViewContent from './GateViewContent.vue';

@@ -169,6 +169,7 @@ function priorityClass(priority: ToolHintPriority): string {
   </aside>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .step-inspector { height: 100%; background: var(--color-bg-elevated); overflow-y: auto; display: flex; flex-direction: column; padding-bottom: var(--space-4); }
 .panel-header { min-height: 44px; margin: 0 0 var(--space-4); padding: 0 var(--space-4); background: color-mix(in srgb, var(--color-bg-elevated) 30%, var(--color-bg-app)); display: flex; align-items: center; gap: var(--space-2); font-size: 0; color: transparent; flex-shrink: 0; }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { computed, inject, onUnmounted, ref } from 'vue';
 import { Bot } from 'lucide-vue-next';
 
@@ -147,7 +148,7 @@ onUnmounted(() => {
         <label for="agent-name" class="text-xs font-medium text-text-secondary">
           Agent name
         </label>
-        <input
+        <Input
           id="agent-name"
           v-model="agentName"
           type="text"
@@ -160,7 +161,7 @@ onUnmounted(() => {
         <label for="agent-command" class="text-xs font-medium text-text-secondary">
           Command
         </label>
-        <input
+        <Input
           id="agent-command"
           v-model="agentCommand"
           type="text"
@@ -175,22 +176,22 @@ onUnmounted(() => {
       <p v-if="errorMessage" class="text-danger text-sm">{{ errorMessage }}</p>
 
       <div class="flex items-center justify-between gap-3 pt-2">
-        <button
+        <Button
           type="button"
           class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated"
           @click="onBack"
         >
           ← Back
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
           :disabled="!isValid || submitting"
           class="rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           @click="onSubmit"
         >
           {{ submitting ? 'Adding…' : 'Add agent →' }}
-        </button>
+        </Button>
       </div>
     </template>
   </div>

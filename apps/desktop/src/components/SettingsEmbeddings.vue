@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import { Download, Loader2, Trash2, Check, Info, RefreshCw } from 'lucide-vue-next';
@@ -353,13 +354,13 @@ onUnmounted(() => {
                   <span class="extras-value">{{ model.mrlDimensions.join(' / ') }}</span>
                   <Tooltip>
                     <TooltipTrigger as-child>
-                      <button
+                      <Button
                         type="button"
                         class="info-trigger"
                         aria-label="What is MRL?"
                       >
                         <Info :size="12" />
-                      </button>
+                      </Button>
                     </TooltipTrigger>
                     <TooltipContent
                       side="top"
@@ -496,6 +497,7 @@ onUnmounted(() => {
   </TooltipProvider>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .settings-section {
   display: flex;

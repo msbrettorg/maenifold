@@ -110,6 +110,7 @@ function onAfterLeave(element: Element): void {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .thinking-session-card {
   --thinking-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-prompt));

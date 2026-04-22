@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
 import { ref } from 'vue';
 import { Image as ImageIcon, Headphones } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
@@ -128,7 +129,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 
 <template>
   <div class="ab-root">
-    <input
+    <Input
       ref="imageInputRef"
       class="ab-input"
       type="file"
@@ -136,7 +137,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
       multiple
       @change="handleSelection($event, 'image')"
     />
-    <input
+    <Input
       ref="audioInputRef"
       class="ab-input"
       type="file"

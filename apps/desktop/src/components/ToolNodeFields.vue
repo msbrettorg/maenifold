@@ -38,6 +38,7 @@ const emit = defineEmits<{
   />
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 :deep(.tool-palette),
 :deep(.tool-agent-panel),

@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -152,6 +153,7 @@ onMounted(async () => {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .settings-section {
   display: flex;

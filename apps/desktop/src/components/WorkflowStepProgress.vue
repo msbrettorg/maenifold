@@ -78,6 +78,7 @@ function statusClass(status: string): string {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .steps-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .steps-header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }

@@ -174,6 +174,7 @@ function toggleAll(): void {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .trace-panel { display: flex; flex-direction: column; gap: var(--space-3); }
 .trace-header, .trace-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }

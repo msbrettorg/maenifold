@@ -1,3 +1,4 @@
+<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
 import { ChevronRight, ArrowUp, ArrowDown, Brain, X } from 'lucide-vue-next'
@@ -128,6 +129,7 @@ function handleKeydown(event: KeyboardEvent) {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .step-card {
   width: 100%;

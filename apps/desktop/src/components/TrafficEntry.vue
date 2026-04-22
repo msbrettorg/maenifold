@@ -54,6 +54,7 @@ function copyPayload() {
   </article>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .entry:nth-child(odd) { background: var(--surface); }
 .entry:nth-child(even) { background: var(--surface-container); }

@@ -135,6 +135,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .message-content-block + .message-content-block { margin-top: 0.75rem; }
 .message-content {

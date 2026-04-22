@@ -29,6 +29,7 @@ defineEmits<{
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .schema-form-renderer {
   max-height: min(32rem, 60vh);

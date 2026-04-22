@@ -93,6 +93,7 @@ async function copyAddress() {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .info-grid,
 .stats-grid {

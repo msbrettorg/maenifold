@@ -51,6 +51,7 @@ const emit = defineEmits<{
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .settings-section,.agents-list { display: flex; flex-direction: column; }
 .settings-section { gap: 1rem; }

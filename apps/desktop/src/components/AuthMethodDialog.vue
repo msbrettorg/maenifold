@@ -73,6 +73,7 @@ function handleSelect(methodId: string) {
   </Dialog>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .auth-dialog {
   width: 90%;

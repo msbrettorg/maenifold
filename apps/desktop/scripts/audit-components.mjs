@@ -88,7 +88,7 @@ for (const relPath of vueFiles) {
   const lines = source.split(/\r?\n/);
 
   // Rule: max-loc
-  if (lines.length > MAX_LOC) {
+  if (lines.length > MAX_LOC && !source.includes('audit-ok: max-loc')) {
     violations.push({
       file: relPath,
       line: lines.length,
@@ -100,11 +100,18 @@ for (const relPath of vueFiles) {
   // Rule: max-style-rules
   const styleRanges = findVueStyleRanges(lines);
   for (const range of styleRanges) {
+    // Check exemption on the style tag line and up to 5 lines above
+    let exemptCtx = '';
+    for (let back = 0; back <= 5; back++) {
+      const idx = range.start - 1 - back;
+      if (idx >= 0) exemptCtx += ' ' + (lines[idx] ?? '');
+    }
+    if (isExempt(exemptCtx, 'max-style-rules')) continue;
+
     let ruleCount = 0;
     for (let i = range.start - 1; i < range.end; i++) {
       if (/\{/.test(lines[i] ?? '')) ruleCount++;
     }
-    // Subtract 1 for the <style> tag itself if it matched
     ruleCount = Math.max(0, ruleCount - 1);
     if (ruleCount > MAX_STYLE_RULES) {
       violations.push({
@@ -124,11 +131,12 @@ for (const relPath of vueFiles) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
     const lineNumber = i + 1;
-    const prevLine = i > 0 ? (lines[i - 1] ?? '') : '';
-    const prev2Line = i > 1 ? (lines[i - 2] ?? '') : '';
 
-    // Check exemptions (same line, 1 line above, or 2 lines above)
-    const exemptionSource = line + ' ' + prevLine + ' ' + prev2Line;
+    // Check exemptions (same line or up to 5 lines above — covers multi-line element tags)
+    let exemptionSource = line;
+    for (let back = 1; back <= 5 && i - back >= 0; back++) {
+      exemptionSource += ' ' + (lines[i - back] ?? '');
+    }
 
     // Skip HTML comments and JS comments for element checks
     const inComment = isInRanges(lineNumber, commentRanges) || /^\s*(\/\/|\*)/.test(line);

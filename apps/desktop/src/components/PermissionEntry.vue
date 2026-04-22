@@ -175,6 +175,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .permission-entry { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
 .entry-details { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; }

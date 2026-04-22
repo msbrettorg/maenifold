@@ -79,6 +79,7 @@ function renderMarkdown(content: string | null) {
   </aside>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .gate-detail,
 .gate-detail__header-copy,

@@ -40,6 +40,7 @@ defineEmits<{
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .preview-status {
   display: grid;

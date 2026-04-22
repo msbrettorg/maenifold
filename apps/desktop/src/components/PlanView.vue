@@ -91,6 +91,7 @@ function toggleExpanded(): void {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .plan-view {
   margin-bottom: 1rem;

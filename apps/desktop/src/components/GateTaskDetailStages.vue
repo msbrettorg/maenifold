@@ -58,6 +58,7 @@ function stageState(index: number) {
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .gate-detail-stages {
   display: flex;

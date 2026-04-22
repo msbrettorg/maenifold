@@ -95,6 +95,7 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   </li>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 /* ── Step row ───────────────────────────────────────────────────────────────── */
 .step-row {

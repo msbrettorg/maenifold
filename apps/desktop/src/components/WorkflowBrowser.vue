@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Input } from '@/components/ui/input';
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { Button } from './ui/button'
@@ -191,7 +192,7 @@ watch(
 
 <template>
   <aside class="workflow-browser" role="region" aria-label="Workflow library">
-    <input
+    <Input
       ref="importInputRef"
       class="sr-only-input"
       type="file"

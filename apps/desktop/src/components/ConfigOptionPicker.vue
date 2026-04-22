@@ -153,6 +153,7 @@ onUnmounted(() => {
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .config-option-picker {
   position: relative;

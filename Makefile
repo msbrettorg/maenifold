@@ -1,4 +1,4 @@
-.PHONY: release quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
+.PHONY: release audit audit-crates audit-frontend quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
 
 QUALITY_DIR := target/quality
 QUALITY_COVERAGE_DIR := $(QUALITY_DIR)/coverage
@@ -10,6 +10,14 @@ QUALITY_REPORT_DIR := $(QUALITY_DIR)/reports
 
 release:
 	cargo build --release -p maenifold-cli
+
+audit: audit-crates audit-frontend
+
+audit-crates:
+	@./scripts/audit-crates.sh
+
+audit-frontend:
+	@cd apps/desktop && node scripts/lint-design.mjs --all && node scripts/audit-components.mjs --all
 
 quality-lint:
 	cargo clippy --workspace --lib --bins -- -A clippy::all -W clippy::correctness -W clippy::suspicious -W clippy::perf -W dead_code -W unused -D warnings -A clippy::too-many-lines -A clippy::cognitive-complexity -A clippy::too-many-arguments

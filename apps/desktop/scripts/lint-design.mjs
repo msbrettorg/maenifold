@@ -216,7 +216,10 @@ function collectChangedLines(baseRef) {
 }
 
 function normalizeRelative(value) {
-  const relative = path.relative(APP_ROOT, path.resolve(REPO_ROOT, value));
+  const resolved = path.isAbsolute(value)
+    ? value
+    : path.resolve(APP_ROOT, value);
+  const relative = path.relative(APP_ROOT, resolved);
   if (relative.startsWith('..')) {
     return null;
   }

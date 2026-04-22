@@ -49,6 +49,10 @@ const RAW_ELEMENT_RULES = [
 
 const BTN_CLASS_RE = /class="[^"]*\bbtn[-\s]/;
 
+const CONSOLE_RE = /\bconsole\.(log|debug|warn|info)\b/;
+const TODO_RE = /\b(TODO|FIXME|HACK|XXX)\b/;
+const MOCK_RE = /\b(vi\.fn|jest\.fn|vi\.mock|jest\.mock|vi\.spyOn|jest\.spyOn|sinon\.(stub|mock|fake))\b/;
+
 const mode = process.argv.includes('--all') ? 'all' : 'changed';
 const violations = [];
 
@@ -56,6 +60,11 @@ const violations = [];
 const vueFiles = mode === 'all'
   ? collectAllVueFiles()
   : collectChangedVueFiles();
+
+// Collect .ts files for code-quality rules (console, todo, mock)
+const tsFiles = mode === 'all'
+  ? collectAllTsFiles()
+  : collectChangedTsFiles();
 
 // Check for sibling .css files (always scan all — they're few)
 for (const cssFile of collectSiblingCssFiles()) {
@@ -129,6 +138,62 @@ for (const relPath of vueFiles) {
         message: 'btn-* classname bypasses Button variant props — use variant/size props instead.',
       });
     }
+
+    // no-console rule (skip comments)
+    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line) && !isExempt(exemptionSource, 'no-console')) {
+      violations.push({
+        file: relPath,
+        line: lineNumber,
+        rule: 'no-console',
+        message: 'console.log/debug/warn in component — remove or use a proper logger.',
+      });
+    }
+
+    // no-todo rule
+    if (TODO_RE.test(line) && !isExempt(exemptionSource, 'no-todo')) {
+      violations.push({
+        file: relPath,
+        line: lineNumber,
+        rule: 'no-todo',
+        message: 'TODO/FIXME/HACK — resolve or file a gate task. Incomplete work is not shippable.',
+      });
+    }
+
+    // no-mock rule
+    if (MOCK_RE.test(line) && !isExempt(exemptionSource, 'no-mock')) {
+      violations.push({
+        file: relPath,
+        line: lineNumber,
+        rule: 'no-mock',
+        message: 'Mock/stub/fake — constitution forbids mocks. Test against real systems or delete.',
+      });
+    }
+  }
+}
+
+// Lint .ts files (code-quality rules only — no HTML/style checks)
+for (const relPath of tsFiles) {
+  const absPath = path.join(APP_ROOT, relPath);
+  const source = readFileSafe(absPath);
+  if (source == null) continue;
+
+  const lines = source.split(/\r?\n/);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    const lineNumber = i + 1;
+    const prevLine = i > 0 ? (lines[i - 1] ?? '') : '';
+    const exemptionSource = line + ' ' + prevLine;
+
+    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line) && !isExempt(exemptionSource, 'no-console')) {
+      violations.push({ file: relPath, line: lineNumber, rule: 'no-console', message: 'console.log/debug/warn — remove or use a proper logger.' });
+    }
+    if (TODO_RE.test(line) && !isExempt(exemptionSource, 'no-todo')) {
+      violations.push({ file: relPath, line: lineNumber, rule: 'no-todo', message: 'TODO/FIXME/HACK — resolve or file a gate task.' });
+    }
+    if (MOCK_RE.test(line) && !isExempt(exemptionSource, 'no-mock')) {
+      violations.push({ file: relPath, line: lineNumber, rule: 'no-mock', message: 'Mock/stub/fake — constitution forbids mocks.' });
+    }
   }
 }
 
@@ -157,8 +222,8 @@ if (violations.length > 0) {
 }
 
 const scanned = mode === 'all'
-  ? `${vueFiles.length} components`
-  : `${vueFiles.length} changed components`;
+  ? `${vueFiles.length} components, ${tsFiles.length} TS files`
+  : `${vueFiles.length} changed components, ${tsFiles.length} changed TS files`;
 console.log(`✅ audit:components passed (${scanned}).`);
 
 // --- helpers ---
@@ -191,29 +256,43 @@ function collectAllVueFiles() {
   return results.map((f) => path.relative(APP_ROOT, f).split(path.sep).join('/'));
 }
 
-function walkDir(dir, results) {
+function walkDir(dir, results, ext = '.vue') {
   if (dir.startsWith(UI_DIR)) return;
   if (path.basename(dir) === TESTS_DIR) return;
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      walkDir(full, results);
-    } else if (entry.isFile() && entry.name.endsWith('.vue')) {
+      walkDir(full, results, ext);
+    } else if (entry.isFile() && entry.name.endsWith(ext)) {
       results.push(full);
     }
   }
 }
 
 function collectChangedVueFiles() {
-  const result = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~1...HEAD', '--', 'src/components/'], {
+  return collectChangedFiles('.vue');
+}
+
+function collectAllTsFiles() {
+  const results = [];
+  walkDir(path.join(APP_ROOT, 'src'), results, '.ts');
+  return results.map((f) => path.relative(APP_ROOT, f).split(path.sep).join('/'));
+}
+
+function collectChangedTsFiles() {
+  return collectChangedFiles('.ts');
+}
+
+function collectChangedFiles(ext) {
+  const result = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~1...HEAD', '--', 'src/'], {
     cwd: APP_ROOT,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
   if (result.status !== 0 || !result.stdout.trim()) return [];
   return result.stdout.trim().split('\n')
-    .filter((f) => f.endsWith('.vue') && !f.includes('/ui/') && !f.includes('__tests__'));
+    .filter((f) => f.endsWith(ext) && !f.includes('/ui/') && !f.includes('__tests__'));
 }
 
 function collectSiblingCssFiles() {

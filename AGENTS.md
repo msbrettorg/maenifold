@@ -200,6 +200,9 @@ make app                                    # frontend + CLI
 cd apps/desktop && npm run package          # Electron bundle
 cd apps/desktop && npx vue-tsc --noEmit     # frontend typecheck
 ./rebuild.sh                                # full rebuild + restart
+make audit                                  # all constitution linters (Rust + frontend)
+make audit-crates                           # Rust: 300 LOC, no TODO, no unwrap
+make audit-frontend                         # Vue/TS: lint-design + audit-components
 ```
 
 Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/release/gate`.
@@ -208,10 +211,14 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/r
 
 ## Code Standards
 
-- **300 LOC hard limit** on source files. Split before adding. Red-team flags violations.
+- **300 LOC hard limit** on source files. Build-enforced by `audit-crates.sh` (Rust) and `audit-components.mjs` (Vue). Split before adding. Red-team flags violations.
 - **Research before building.** Hand-rolling what a library provides is a P0 escalation.
 - **LSP is mandatory** for Rust/TS/Vue navigation. No grep/glob on source files.
 - **Full-stack spec verification.** Frontend without backend plumbing is not a feature.
+- **No TODO/FIXME/HACK.** File a gate task instead. Build-enforced.
+- **No console.log/debug/warn.** Use a proper logger or remove. Build-enforced (frontend).
+- **No mocks/stubs/fakes.** Test against real systems or don't test. Build-enforced (frontend).
+- **No .unwrap() in non-test Rust.** Use `?` or `.expect("context")`. Build-enforced.
 
 ### Decision Rubrics
 

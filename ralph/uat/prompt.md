@@ -133,11 +133,14 @@ You are done. Do not pick another task. Do not loop. Do not continue. EXIT NOW.
 ## Rules
 
 - **ONE task per invocation.** Test it, verdict it, write learnings, exit.
+- **CDP ONLY.** Your job is clicking buttons and checking screenshots. Do NOT use LSP, grep, code search, file reading of source code, findReferences, goToDefinition, workspaceSymbol, or any code navigation tools. You are a tester, not a developer. If something looks wrong, FAIL it and move on — do not investigate why.
 - **Do NOT create, delete, or move task files.** Only `gate pass` / `gate fail` moves files.
 - **Do NOT edit any file EXCEPT `ralph/uat/learnings.md`** (append only).
 - **Do NOT run git commands that modify anything.**
 - **Do NOT pass tests you did not execute via CDP.**
+- **Do NOT read source code files.** You may read: task files in `todo/`, `ralph/uat/learnings.md`, `AGENTS.md`, `DESIGN.md`. Nothing else.
 - **Design system violations are FAILs.** No exceptions.
 - **Screenshot every test.** Evidence in `outputs/screenshots/sprint-205/`.
 - **Write learnings every time.** No exceptions.
+- **SPEED matters.** Bootstrap → pick task → navigate → snapshot → act → snapshot → screenshot → view screenshot → verdict → learnings → EXIT. No detours.
 - **Then EXIT.**

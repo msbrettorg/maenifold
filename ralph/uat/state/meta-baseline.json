@@ -517,15 +517,15 @@
     "canonicalTaskId": null,
     "title": "T-205.6 — UAT TC-006: Knowledge tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "failed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.6r-uat-knowledge-tab.md",
+    "location": "done",
+    "path": "./done/T-205.6r-uat-knowledge-tab.md",
     "linked": false,
     "issue": ""
   },
@@ -551,15 +551,15 @@
     "canonicalTaskId": null,
     "title": "T-205.7 — UAT TC-007: Workflows tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "passed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.7r-uat-workflows-tab.md",
+    "location": "done",
+    "path": "./done/T-205.7r-uat-workflows-tab.md",
     "linked": false,
     "issue": ""
   },
@@ -585,15 +585,15 @@
     "canonicalTaskId": null,
     "title": "T-205.8 — UAT TC-008: Settings tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "passed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.8r-uat-settings-tab.md",
+    "location": "done",
+    "path": "./done/T-205.8r-uat-settings-tab.md",
     "linked": false,
     "issue": ""
   },
@@ -619,15 +619,15 @@
     "canonicalTaskId": null,
     "title": "T-205.9 — UAT TC-009: Tab bar",
     "pipeline": "test",
-    "state": "pending",
+    "state": "passed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.9r-uat-tab-bar.md",
+    "location": "done",
+    "path": "./done/T-205.9r-uat-tab-bar.md",
     "linked": false,
     "issue": ""
   },

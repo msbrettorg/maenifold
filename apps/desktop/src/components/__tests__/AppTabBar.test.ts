@@ -3,6 +3,7 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import AppTabBar from '../AppTabBar.vue';
+import type { AppShellTab } from '@/stores/app-shell';
 
 /**
  * T-205.715: blue-team test for AppTabBar active-tab chrome.
@@ -38,7 +39,7 @@ const tabsStubs = {
   },
 };
 
-function mountAppTabBar(activeTab = 'home'): VueWrapper {
+function mountAppTabBar(activeTab: AppShellTab = 'home'): VueWrapper {
   const pinia = createPinia();
   setActivePinia(pinia);
 

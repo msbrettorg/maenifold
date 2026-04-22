@@ -239,21 +239,15 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/r
 
 ## Desktop UI
 
-**Design system:** `apps/desktop/DESIGN.md` is the authoritative spec. Read it before touching any Vue component. Reference screens: Stitch project `projects/1858563870757498867`.
+**Design system:** `apps/desktop/DESIGN.md` is the sole authoritative spec for visual design — tokens, typography, colors, borders, radii, shadows, motion. Read it before touching any Vue component. Do NOT duplicate design rules here; if it's visual, it belongs in DESIGN.md. Reference screens: Stitch project `projects/1858563870757498867`.
 
 **Stack:** shadcn-vue + Tailwind CSS v4 + Reka UI. Icons: `lucide-vue-next`.
 
-**Hard rules (violations are gate failures):**
+**Build-enforced rules** (automated in `npm run build`):
 
-1. No `1px solid` borders — tonal surface shifts only
-2. Sentence case always — never ALL CAPS
-3. No debug info in default UI state
-4. No redundant display
-5. Status beads (6px dots) — not pill badges
-6. `4px` radius — not bubbly
-7. No drop shadows — ambient glow only
-8. Typography: Space Grotesk 500 headlines, Inter 400 body, JetBrains Mono code. Text `#e5e2e1`, muted `#707070`
-9. Primary buttons: gradient `#adc6ff → #4d8eff`, dark text `#001a42`
+- `vue-tsc --noEmit` — type safety.
+- `audit:components` — no raw HTML controls, no sibling .css files, no btn-* classnames, 300 LOC limit, max 15 CSS rules per `<style>` block. Exempt a line with `<!-- audit-ok: rule-name -->`.
+- `lint:design` — no hex color literals, no component-local border declarations.
 
 **Layout z-index:** canvas base → backdrop `9` → inspector `10` → flyout `11` → context menu `60` → dialogs `1000`.
 

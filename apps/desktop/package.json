@@ -11,7 +11,8 @@
   "scripts": {
     "dev": "vite",
     "dev:electron": "vite",
-    "build": "vue-tsc --noEmit && vite build",
+    "build": "vue-tsc --noEmit && node ./scripts/audit-components.mjs --all && vite build",
+    "audit:components": "node ./scripts/audit-components.mjs --all",
     "build:electron": "vite build",
     "lint:design": "node ./scripts/lint-design.mjs",
     "package": "electron-forge package",

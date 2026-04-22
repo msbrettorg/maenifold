@@ -415,15 +415,15 @@
     "canonicalTaskId": null,
     "title": "T-205.3 — UAT TC-003: Agents tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "failed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.3r-uat-agents-tab.md",
+    "location": "done",
+    "path": "./done/T-205.3r-uat-agents-tab.md",
     "linked": false,
     "issue": ""
   },
@@ -449,15 +449,15 @@
     "canonicalTaskId": null,
     "title": "T-205.4 — UAT TC-004: Pipelines tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "failed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.4r-uat-pipelines-tab.md",
+    "location": "done",
+    "path": "./done/T-205.4r-uat-pipelines-tab.md",
     "linked": false,
     "issue": ""
   },
@@ -483,15 +483,15 @@
     "canonicalTaskId": null,
     "title": "T-205.5 — UAT TC-005: Gate tab",
     "pipeline": "test",
-    "state": "pending",
+    "state": "failed",
     "stages": [
       "pending",
       "passed",
       "failed"
     ],
     "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-205.5r-uat-gate-tab.md",
+    "location": "done",
+    "path": "./done/T-205.5r-uat-gate-tab.md",
     "linked": false,
     "issue": ""
   },

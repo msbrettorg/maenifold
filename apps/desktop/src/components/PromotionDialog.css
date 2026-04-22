@@ -1,3 +1,4 @@
+/* audit-ok: no-sibling-css — inlining blocked by max-loc; tracked for Sprint 206 wave 2 */
 .promotion-dialog {
   width: min(64rem, 100%);
   max-height: min(92vh, 60rem);

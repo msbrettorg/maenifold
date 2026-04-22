@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { inject } from 'vue';
 import { Sparkles } from 'lucide-vue-next';
 
@@ -42,13 +43,13 @@ const previewItems = [
     </ul>
 
     <div class="pt-2">
-      <button
+      <Button
         type="button"
         class="rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover"
         @click="onGetStarted"
       >
         Get started →
-      </button>
+      </Button>
     </div>
   </div>
 </template>

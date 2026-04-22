@@ -36,7 +36,7 @@ onBeforeUnmount(() => {
       <p v-else-if="activeSessions.length === 0" class="text-xs text-muted-foreground">No sessions available.</p>
 
       <div class="min-h-0 flex-1 overflow-auto">
-        <button
+        <Button
           v-for="session in activeSessions"
           :key="session.id"
           type="button"
@@ -48,7 +48,7 @@ onBeforeUnmount(() => {
           <span class="text-[11px] text-muted-foreground">
             {{ session.current_step ?? 0 }}/{{ session.total_steps ?? 0 }} · {{ session.status }}
           </span>
-        </button>
+        </Button>
       </div>
     </aside>
 

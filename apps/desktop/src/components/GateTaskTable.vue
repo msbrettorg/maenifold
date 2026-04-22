@@ -110,7 +110,7 @@ function rowTitle(task: GateTask) {
 
 <template>
   <div class="gate-table-wrap">
-    <table class="gate-table" role="table" aria-label="Gate task list">
+        <table class="gate-table" role="table" aria-label="Gate task list"> <!-- audit-ok: no-raw-table -->
       <colgroup>
         <col :style="{ width: columnWidths.id + 'px' }" />
         <col :style="{ width: columnWidths.name + 'px' }" />

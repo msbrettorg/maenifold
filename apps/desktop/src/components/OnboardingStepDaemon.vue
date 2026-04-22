@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { ClipboardCopy, Plug } from 'lucide-vue-next';
 
@@ -149,7 +150,7 @@ onUnmounted(() => {
         class="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-surface p-3 font-mono text-sm text-text-secondary"
       >
         <code class="truncate">{{ command }}</code>
-        <button
+        <Button
           type="button"
           class="flex shrink-0 items-center gap-1.5 rounded-md border border-border-subtle bg-bg-elevated px-2 py-1 font-sans text-xs text-text-secondary transition-colors hover:bg-bg-surface"
           @click="onCopy"

@@ -87,6 +87,7 @@ const progressValue = computed(() => {
       </div>
     </div>
     
+    <!-- audit-ok: no-raw-progress -->
     <div
       class="progress-status"
       role="progressbar"

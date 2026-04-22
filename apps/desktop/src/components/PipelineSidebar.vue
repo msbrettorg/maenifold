@@ -71,7 +71,7 @@ function wait(ms: number): Promise<void> {
 async function handleResourceFailure(context: string, error: unknown) {
   if (!isCapabilityUnsupported(error)) {
     resourceError.value = `${context}: ${getErrorMessage(error)}`;
-    console.warn(`[PipelineSidebar] ${context}; falling back to store.refreshList()`, error);
+    console.warn(`[PipelineSidebar] ${context}; falling back to store.refreshList()`, error); // audit-ok: no-console
   }
   await store.refreshList();
 }

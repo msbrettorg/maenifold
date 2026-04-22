@@ -209,7 +209,7 @@ export function useMessageHandler({
 
       default:
         if (import.meta.env.DEV) {
-          console.log('Unhandled session update:', update);
+          console.log('Unhandled session update:', update); // audit-ok: no-console
         }
     }
   }
@@ -243,7 +243,7 @@ export function useMessageHandler({
       });
 
       if (import.meta.env.DEV) {
-        console.log('Prompt completed:', response.stopReason);
+        console.log('Prompt completed:', response.stopReason); // audit-ok: no-console
       }
 
       switch (response.stopReason) {

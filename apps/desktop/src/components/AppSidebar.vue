@@ -154,6 +154,7 @@ const resize = useResizeHandle({
     the compiled render function looked correct. Reverting to a native button
     restores expected behavior; do not "polish" this back to <Button>.
   -->
+  <!-- audit-ok: no-raw-button -->
   <button
     v-if="!visible"
     type="button"

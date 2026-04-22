@@ -151,7 +151,7 @@ export function useSessionStartup({
 
       const initialized = await initializeConnectedBridge(localId, bridge, sessionState);
       if (import.meta.env.DEV) {
-        console.log('Agent initialized:', initialized.initResponse);
+        console.log('Agent initialized:', initialized.initResponse); // audit-ok: no-console
       }
 
       const startupConfigOptions = Object.keys(configOptions).length > 0

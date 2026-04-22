@@ -151,7 +151,7 @@ onUnmounted(() => {
     <div v-else class="flex flex-col gap-2">
       <span class="text-xs font-medium text-text-secondary">Available models</span>
       <div class="flex flex-col gap-2">
-        <button
+        <Button
           v-for="model in models"
           :key="model.id"
           type="button"
@@ -198,7 +198,7 @@ onUnmounted(() => {
               />
             </span>
           </div>
-        </button>
+        </Button>
       </div>
     </div>
 

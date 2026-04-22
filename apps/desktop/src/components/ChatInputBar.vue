@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
@@ -132,7 +133,7 @@ function handleClose(): void {}
 
       <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
 
-      <textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
+      <Textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
     </div>
 
     <Button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="submit">Send</Button>

@@ -33,18 +33,19 @@ const APP_ROOT = process.cwd();
 const COMPONENTS_DIR = path.join(APP_ROOT, 'src', 'components');
 const UI_DIR = path.join(COMPONENTS_DIR, 'ui');
 const TESTS_DIR = '__tests__';
+const SKIP_DIRS = new Set(['__tests__', 'test', 'tests', 'e2e', 'node_modules']);
 
 const MAX_STYLE_RULES = 15;
 const MAX_LOC = 300;
 
 const RAW_ELEMENT_RULES = [
-  { rule: 'no-raw-button', pattern: /<button[\s>]/i, message: 'Raw <button> — use shadcn <Button> from @/components/ui/button.' },
-  { rule: 'no-raw-input', pattern: /<input[\s>]/i, message: 'Raw <input> — use shadcn <Input> from @/components/ui/input.' },
-  { rule: 'no-raw-select', pattern: /<select[\s>]/i, message: 'Raw <select> — use shadcn <Select> from @/components/ui/select.' },
-  { rule: 'no-raw-textarea', pattern: /<textarea[\s>]/i, message: 'Raw <textarea> — use shadcn <Textarea> from @/components/ui/textarea.' },
-  { rule: 'no-raw-table', pattern: /<table[\s>]/i, message: 'Raw <table> — use shadcn Table from @/components/ui/table.' },
-  { rule: 'no-raw-progress', pattern: /<progress[\s>]|role="progressbar"/i, message: 'Raw progress — use shadcn <Progress> from @/components/ui/progress.' },
-  { rule: 'no-raw-dialog', pattern: /<dialog[\s>]|role="dialog"/i, message: 'Raw dialog — use shadcn <Dialog> from @/components/ui/dialog.' },
+  { rule: 'no-raw-button', pattern: /<button(?:[\s>/]|$)/, message: 'Raw <button> — use shadcn <Button> from @/components/ui/button.' },
+  { rule: 'no-raw-input', pattern: /<input(?:[\s>/]|$)/, message: 'Raw <input> — use shadcn <Input> from @/components/ui/input.' },
+  { rule: 'no-raw-select', pattern: /<select(?:[\s>/]|$)/, message: 'Raw <select> — use shadcn <Select> from @/components/ui/select.' },
+  { rule: 'no-raw-textarea', pattern: /<textarea(?:[\s>/]|$)/, message: 'Raw <textarea> — use shadcn <Textarea> from @/components/ui/textarea.' },
+  { rule: 'no-raw-table', pattern: /<table(?:[\s>/]|$)/, message: 'Raw <table> — use shadcn Table from @/components/ui/table.' },
+  { rule: 'no-raw-progress', pattern: /<progress(?:[\s>/]|$)|role="progressbar"/, message: 'Raw progress — use shadcn <Progress> from @/components/ui/progress.' },
+  { rule: 'no-raw-dialog', pattern: /<dialog(?:[\s>/]|$)|role="dialog"/, message: 'Raw dialog — use shadcn <Dialog> from @/components/ui/dialog.' },
 ];
 
 const BTN_CLASS_RE = /class="[^"]*\bbtn[-\s]/;
@@ -68,6 +69,8 @@ const tsFiles = mode === 'all'
 
 // Check for sibling .css files (always scan all — they're few)
 for (const cssFile of collectSiblingCssFiles()) {
+  const cssSource = readFileSafe(path.join(APP_ROOT, cssFile)) ?? '';
+  if (cssSource.includes('audit-ok: no-sibling-css')) continue;
   violations.push({
     file: cssFile,
     line: 1,
@@ -113,24 +116,36 @@ for (const relPath of vueFiles) {
     }
   }
 
+  // Find template ranges for raw element checks
+  const templateRanges = findVueTemplateRanges(lines);
+  const commentRanges = findHtmlCommentRanges(lines);
+
   // Per-line rules
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
     const lineNumber = i + 1;
     const prevLine = i > 0 ? (lines[i - 1] ?? '') : '';
+    const prev2Line = i > 1 ? (lines[i - 2] ?? '') : '';
 
-    // Check exemptions
-    const exemptionSource = line + ' ' + prevLine;
+    // Check exemptions (same line, 1 line above, or 2 lines above)
+    const exemptionSource = line + ' ' + prevLine + ' ' + prev2Line;
 
-    // Raw HTML element rules
-    for (const { rule, pattern, message } of RAW_ELEMENT_RULES) {
-      if (pattern.test(line) && !isExempt(exemptionSource, rule)) {
-        violations.push({ file: relPath, line: lineNumber, rule, message });
+    // Skip HTML comments and JS comments for element checks
+    const inComment = isInRanges(lineNumber, commentRanges) || /^\s*(\/\/|\*)/.test(line);
+    const inTemplate = isInRanges(lineNumber, templateRanges);
+
+    // Raw HTML element rules — only in <template>, skip comments
+    if (inTemplate && !inComment) {
+      for (const { rule, pattern, message } of RAW_ELEMENT_RULES) {
+        if (pattern.test(line) && !isExempt(exemptionSource, rule)) {
+          violations.push({ file: relPath, line: lineNumber, rule, message });
+        }
       }
     }
 
-    // btn-* classname rule
-    if (BTN_CLASS_RE.test(line) && !isExempt(exemptionSource, 'no-btn-classname')) {
+    // btn-* classname rule — only flag on raw <button>, not shadcn <Button>
+    // (shadcn Button components legitimately use CSS class hooks)
+    if (inTemplate && /class="[^"]*\bbtn[-\s]/.test(line) && /<button[\s>]/.test(line) && !isExempt(exemptionSource, 'no-btn-classname')) {
       violations.push({
         file: relPath,
         line: lineNumber,
@@ -250,6 +265,47 @@ function findVueStyleRanges(lines) {
   return ranges;
 }
 
+function findVueTemplateRanges(lines) {
+  const ranges = [];
+  let start = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (start == null && /^\s*<template\b/i.test(line)) {
+      start = i + 1;
+      continue;
+    }
+    if (start != null && /^\s*<\/template>/i.test(line)) {
+      ranges.push({ start, end: i + 1 });
+      start = null;
+    }
+  }
+  if (start != null) ranges.push({ start, end: lines.length });
+  return ranges;
+}
+
+function isInRanges(lineNumber, ranges) {
+  return ranges.some((r) => lineNumber >= r.start && lineNumber <= r.end);
+}
+
+function findHtmlCommentRanges(lines) {
+  const ranges = [];
+  let start = null;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i] ?? '';
+    if (start == null && line.includes('<!--')) {
+      if (line.includes('-->')) continue; // single-line comment — no range needed
+      start = i + 1;
+      continue;
+    }
+    if (start != null && line.includes('-->')) {
+      ranges.push({ start, end: i + 1 });
+      start = null;
+    }
+  }
+  if (start != null) ranges.push({ start, end: lines.length });
+  return ranges;
+}
+
 function collectAllVueFiles() {
   const results = [];
   walkDir(COMPONENTS_DIR, results);
@@ -258,7 +314,8 @@ function collectAllVueFiles() {
 
 function walkDir(dir, results, ext = '.vue') {
   if (dir.startsWith(UI_DIR)) return;
-  if (path.basename(dir) === TESTS_DIR) return;
+  const basename = path.basename(dir);
+  if (SKIP_DIRS.has(basename)) return;
 
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);

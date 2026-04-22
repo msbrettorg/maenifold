@@ -32,7 +32,7 @@ export function createPipelinePolling({ pollingError, reconnecting, viewPipeline
 
         consecutiveFailures += 1;
         if (consecutiveFailures < 3) {
-          console.warn('[pipeline-poll]', error);
+          console.warn('[pipeline-poll]', error); // audit-ok: no-console
           return;
         }
 

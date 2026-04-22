@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { computed, provide, ref } from 'vue';
 import { Check } from 'lucide-vue-next';
 
@@ -77,7 +78,7 @@ function onStepClick(index: number): void {
       <div class="mb-8 text-sm font-semibold text-text-primary">maenifold</div>
 
       <nav class="flex flex-col gap-1">
-        <button
+        <Button
           v-for="(stepId, index) in ONBOARDING_STEPS"
           :key="stepId"
           type="button"
@@ -109,7 +110,7 @@ function onStepClick(index: number): void {
           >
             {{ stepLabels[stepId] }}
           </span>
-        </button>
+        </Button>
       </nav>
     </aside>
 

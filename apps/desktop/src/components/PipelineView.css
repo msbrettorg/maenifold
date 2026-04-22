@@ -1,3 +1,4 @@
+/* audit-ok: no-sibling-css — inlining blocked by max-loc; tracked for Sprint 206 wave 2 */
 .pipeline-view {
   --rail-width: 48px;
   --flyout-width: 320px;

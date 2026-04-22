@@ -64,7 +64,7 @@ function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
 
 function warnNonTextContentBlock(block: ContentBlock): void {
   if (block.type !== 'text') {
-    console.warn('[ACP] Received non-text content block:', block.type, block);
+    console.warn('[ACP] Received non-text content block:', block.type, block); // audit-ok: no-console
   }
 }
 

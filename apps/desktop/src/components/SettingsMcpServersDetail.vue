@@ -3,6 +3,7 @@ import type { McpServerEntry } from '../lib/types'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 type McpServerType = McpServerEntry['type']
@@ -69,7 +70,7 @@ function updateType(event: Event) {
 
       <div class="form-group">
         <Label>Arguments</Label>
-        <textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" @input="updateValue($event, 'formArgs')" />
+        <Textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" @input="updateValue($event, 'formArgs')" />
         <small>Enter one argument per line.</small>
       </div>
     </template>

@@ -74,8 +74,6 @@ const {
             :key="folder.path"
             :node="folder"
             :active-uri="activeUri"
-            @open-folder="({ path, open }) => store.setFolderOpen(path, open)"
-            @open-note="store.openNote"
           />
 
           <p v-if="!rootFiles.length && !folders.length" class="px-2 py-3 text-[var(--text-body-sm)] text-text-secondary">

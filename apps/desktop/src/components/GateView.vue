@@ -13,6 +13,7 @@ import type { GateSnapshot, GateTask, GateTaskBody, GateTaskHistoryEntry } from 
 import { parseGateTaskBodyContent } from '../lib/gate-task-body';
 import { createGateSnapshot } from '../lib/gate';
 import type { ResourceContent } from '../composables/mcpTransport';
+import { getTaskPipelineLabel } from '../lib/gate-display';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
@@ -141,7 +142,7 @@ function uniqueValues(values: string[]) {
 }
 
 function processValue(task: GateTask) {
-  return task.pipeline?.trim() || 'unbound';
+  return getTaskPipelineLabel(task);
 }
 
 function progressRank(task: GateTask) {

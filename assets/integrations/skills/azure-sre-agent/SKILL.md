@@ -167,9 +167,22 @@ Use this skill when you receive a high CPU alert on any container app.
 5. Recommend rollback or fix based on findings
 ```
 
-Create in **Builder → Agent Canvas → Create → Skill**. The agent reads skill descriptions and auto-activates the most relevant one.
+Create in **Builder → Skills**. The agent reads skill descriptions and auto-activates the most relevant one.
 
-**Tool types attachable to skills:** Azure CLI, Kusto queries, Python scripts, MCP tools, Link (URL templates).
+**Tool types attachable to skills:** Azure CLI, Kusto queries, Python scripts, MCP tools, Link (URL templates), HTTP client.
+
+In custom agent YAML, use `allowed_skills` to specify which skills a custom agent can access:
+
+```yaml
+name: database_expert
+system_prompt: |
+  You are a database specialist.
+allowed_skills:
+  - postgres-troubleshooting
+  - connection-pool-guide
+tools:
+  - execute_kusto_query
+```
 
 See [sample_codes/common-patterns/skill-yaml.md](sample_codes/common-patterns/skill-yaml.md) for more examples.
 
@@ -208,8 +221,9 @@ For portal-based creation, the equivalent fields map to the UI form.
 - `system_prompt` — Expert persona and instructions
 - `handoff_description` — What orchestrator sees when delegating
 - `tools` — Available capabilities (see [Built-in Tools](#built-in-tools-no-setup-required))
-- `agent_type` — `Autonomous` or `Review`
+- `agent_type` — `Autonomous` or `Review` (set on response plans/scheduled tasks, not in agent YAML)
 - `mcp_tools` — MCP tool assignments (supports `connection-id/*` wildcards)
+- `allowed_skills` — Skills this custom agent can access (auto-enables skills)
 
 ### Subagent with MCP Tools (Code Analyzer)
 
@@ -364,6 +378,40 @@ Runs in isolated Azure Container Apps session:
 - Files must be saved to `/mnt/data/`
 - Pre-installed: pandas, matplotlib, seaborn
 
+### Custom Tools (Builder UI)
+
+Four custom tool types you create in **Builder → Tools**:
+
+| Type | Use Case | Example |
+|------|----------|---------|
+| **Kusto** | Predefined KQL queries with parameter substitution | Query error rates by service |
+| **Python** | Reusable Python functions with pip dependencies | SLA calculator, data transformers |
+| **Link** | URL templates with dynamic parameters | Open Grafana dashboard for a resource |
+| **HTTP Client** | Call REST APIs with authentication | Query internal APIs, webhook triggers |
+
+**Python tool creation approaches:**
+
+| Approach | You Provide | Agent Does | Best For |
+|----------|-------------|------------|----------|
+| Describe in English | "Calculate SLA from uptime and downtime" | Generates complete code | Quick custom logic |
+| Paste existing code | Your Python function | Wraps as a tool | Migrating existing scripts |
+| Write from scratch | Full function + pip deps | Registers as tool | Complex custom logic |
+
+### Agent Hooks (Safety Controls)
+
+Hooks intercept agent actions for governance and compliance. Two scopes:
+
+| Level | Created Via | Scope |
+|-------|-------------|-------|
+| **Agent-level** | Portal: Builder → Hooks | All threads and custom agents |
+| **Custom-agent-level** | REST API or Portal: Agent Canvas → Manage Hooks | One specific custom agent |
+
+**Hook types:** PreToolUse, PostToolUse, Stop. Example: block dangerous commands, audit tool usage, force completion markers.
+
+### Workspace Tools (Deep Context)
+
+> **Note:** Agents created before March 10, 2026 require workspace tools to be enabled. Enable **EnableWorkspaceTools** in **Capabilities → Experimental** for older agents.
+
 ## Best Practices
 
 - **Connect your most incident-prone repository first** — it immediately starts building Deep Context
@@ -405,17 +453,33 @@ See [references/community-and-ecosystem.md](references/community-and-ecosystem.m
 | Topic | How to Find |
 |-------|-------------|
 | Bicep resource type | `microsoft_docs_search(query="Microsoft.App agents Bicep template 2025-05-01-preview")` |
-| Detailed connector setup | `microsoft_docs_search(query="Azure SRE Agent connectors setup MCP")` |
+| Detailed connector setup | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/mcp-connector")` |
 | Incident platform integration | `microsoft_docs_search(query="Azure SRE Agent incident response PagerDuty ServiceNow")` |
 | Permission management | `microsoft_docs_search(query="Azure SRE Agent permissions RBAC managed identity")` |
-| Run modes (Review/Autonomous) | `microsoft_docs_fetch(url="https://sre.azure.com/docs/concepts/run-modes")` |
-| Agent hooks (safety controls) | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/agent-hooks")` |
-| Scheduled tasks | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/scheduled-tasks")` |
-| Plugin marketplace | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/plugin-marketplace")` |
-| Deep investigation | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/deep-investigation")` |
-| Workflow automation | `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/workflow-automation")` |
-| Full SRE Agent docs hub | `microsoft_docs_fetch(url="https://sre.azure.com/docs/")` |
+| Run modes (Review/Autonomous) | `microsoft_docs_search(query="Azure SRE Agent run modes review autonomous")` |
+| Agent hooks (safety controls) | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/tutorial-agent-hooks")` |
+| Scheduled tasks | `microsoft_docs_search(query="Azure SRE Agent scheduled tasks automation")` |
+| Plugin marketplace | `microsoft_docs_search(query="Azure SRE Agent plugin marketplace skills")` |
+| Skills authoring | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/skills")` |
+| Custom agents (subagents) | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/sub-agents")` |
+| Memory & knowledge | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/memory")` |
+| Tools reference | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/tools")` |
+| MCP connectors | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/mcp-connectors")` |
+| Python code execution | `microsoft_docs_search(query="Azure SRE Agent Python tools code execution custom")` |
+| Full SRE Agent docs hub | `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/overview")` |
 | Sandbox lab (AKS) | Browse [github.com/matthansen0/azure-sre-agent-sandbox](https://github.com/matthansen0/azure-sre-agent-sandbox) |
 | azd lab (Container Apps) | Browse [github.com/dm-chelupati/sre-agent-lab](https://github.com/dm-chelupati/sre-agent-lab) |
 | Plugin development | Browse [github.com/Azure/sre-agent-plugins](https://github.com/Azure/sre-agent-plugins) |
 | Code samples | `microsoft_code_sample_search(query="Azure SRE Agent", language="python")` |
+
+## CLI Alternative
+
+If the Learn MCP server is not available, use the `mslearn` CLI instead:
+
+| MCP Tool | CLI Command |
+|----------|-------------|
+| `microsoft_docs_search(query: "...")` | `mslearn search "..."` |
+| `microsoft_code_sample_search(query: "...", language: "...")` | `mslearn code-search "..." --language ...` |
+| `microsoft_docs_fetch(url: "...")` | `mslearn fetch "..."` |
+
+Run directly with `npx @microsoft/learn-cli <command>` or install globally with `npm install -g @microsoft/learn-cli`.

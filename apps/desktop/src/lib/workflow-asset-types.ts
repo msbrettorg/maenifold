@@ -61,6 +61,15 @@ export type WorkflowCategory =
   | 'memory'
   | 'custom'
 
+export const VALID_CATEGORIES: ReadonlySet<WorkflowCategory> = new Set([
+  'reasoning',
+  'scientific',
+  'multi-agent',
+  'devops',
+  'memory',
+  'custom',
+])
+
 const CATEGORY_KEYWORDS: Record<WorkflowCategory, string[]> = {
   reasoning: [
     'reasoning', 'abductive', 'bayesian', 'deductive', 'inductive',
@@ -87,7 +96,10 @@ const CATEGORY_KEYWORDS: Record<WorkflowCategory, string[]> = {
 }
 
 export function categorizeWorkflow(wf: WorkflowAssetSummary): WorkflowCategory {
-  if (wf.category) return wf.category
+  // Trust the explicit category only when it is a known category — defensive
+  // against malformed summaries that might smuggle through an arbitrary
+  // string. T-205.711.
+  if (wf.category && VALID_CATEGORIES.has(wf.category)) return wf.category
   if (wf.multiAgent) return 'multi-agent'
 
   const haystack = `${wf.id} ${wf.name} ${wf.description}`.toLowerCase()

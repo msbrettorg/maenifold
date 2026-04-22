@@ -347,14 +347,30 @@ html.font-comfortable {
   fill: var(--card);
 }
 
+/*
+ * Edge contrast: the upstream Vue Flow default (`#b1b1b7` @ 1px) is barely
+ * visible against our dark canvas background. Shift to the secondary text
+ * tone and bump the stroke so connecting lines read clearly without falling
+ * back to drop shadows (per design system: ambient glow only).
+ */
+.vue-flow__edge-path,
+.vue-flow__connection-path {
+  stroke: var(--text-secondary);
+  stroke-width: 1.75;
+  stroke-opacity: 0.95;
+}
+
 .vue-flow__edge.selected .vue-flow__edge-path,
 .vue-flow__edge:focus .vue-flow__edge-path,
 .vue-flow__edge:focus-visible .vue-flow__edge-path {
   stroke: var(--ring);
+  stroke-width: 2.25;
+  stroke-opacity: 1;
 }
 
 .vue-flow__edge.updating .vue-flow__edge-path {
   stroke: var(--muted-foreground);
+  stroke-width: 1.75;
 }
 
 .vue-flow__handle {

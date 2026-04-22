@@ -1,0 +1,37 @@
+[
+  {
+    "severity": "P2",
+    "area": "Home/Status",
+    "description": "Shows 'Disconnected' - expected if daemon not running, but should show connection guidance"
+  },
+  {
+    "severity": "P2",
+    "area": "Nav/Settings",
+    "description": "Error text visible on page"
+  },
+  {
+    "severity": "P1",
+    "area": "Settings/Agents\nManage ACP agents and their configuration.",
+    "description": "Sub-tab failed: Locator.click: Unsupported token \"BADSTRING\" while parsing css selector \"[role='tab']:has-text('Agents\nManage ACP agents and their configuration.')\". Did you mean to CSS.escape it?\nCall log:\n  - waiting for [role='tab']:has-text('Agents\nManage ACP agents and their configuration.') >> nth=0\n"
+  },
+  {
+    "severity": "P1",
+    "area": "Settings/MCP servers\nConfigure global MCP server connections.",
+    "description": "Sub-tab failed: Locator.click: Unsupported token \"BADSTRING\" while parsing css selector \"[role='tab']:has-text('MCP servers\nConfigure global MCP server connections.')\". Did you mean to CSS.escape it?\nCall log:\n  - waiting for [role='tab']:has-text('MCP servers\nConfigure global MCP server connections.') >> nth=0\n"
+  },
+  {
+    "severity": "P1",
+    "area": "Settings/Maenifold\nConfigure maenifold runtime behavior and tuning.",
+    "description": "Sub-tab failed: Locator.click: Unsupported token \"BADSTRING\" while parsing css selector \"[role='tab']:has-text('Maenifold\nConfigure maenifold runtime behavior and tuning.')\". Did you mean to CSS.escape it?\nCall log:\n  - waiting for [role='tab']:has-text('Maenifold\nConfigure maenifold runtime behavior and tuning.') >> nth=0\n"
+  },
+  {
+    "severity": "P1",
+    "area": "Settings/Embeddings\nManage embedding models and vector index.",
+    "description": "Sub-tab failed: Locator.click: Unsupported token \"BADSTRING\" while parsing css selector \"[role='tab']:has-text('Embeddings\nManage embedding models and vector index.')\". Did you mean to CSS.escape it?\nCall log:\n  - waiting for [role='tab']:has-text('Embeddings\nManage embedding models and vector index.') >> nth=0\n"
+  },
+  {
+    "severity": "P1",
+    "area": "Settings/Preferences\nControl persisted application defaults.",
+    "description": "Sub-tab failed: Locator.click: Unsupported token \"BADSTRING\" while parsing css selector \"[role='tab']:has-text('Preferences\nControl persisted application defaults.')\". Did you mean to CSS.escape it?\nCall log:\n  - waiting for [role='tab']:has-text('Preferences\nControl persisted application defaults.') >> nth=0\n"
+  }
+]

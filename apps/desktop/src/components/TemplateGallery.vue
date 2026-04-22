@@ -87,8 +87,8 @@ function handleIntentInput(value: string): void {
     />
 
     <section class="gallery-card-section">
-      <div class="mt-6 mb-3 text-[11px] font-semibold uppercase tracking-wider text-text-tertiary">
-        or choose a template
+      <div class="mt-6 mb-3 text-[11px] font-semibold tracking-wider text-text-tertiary">
+        Or choose a template
       </div>
       <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
         Configure an agent before creating a pipeline.

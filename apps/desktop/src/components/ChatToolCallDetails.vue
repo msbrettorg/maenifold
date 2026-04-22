@@ -191,6 +191,7 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   border-radius: var(--radius);
   background: var(--color-bg-surface);
   color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 .tool-content-unknown code,
 .tool-diff-pre code,

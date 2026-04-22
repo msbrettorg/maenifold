@@ -141,6 +141,7 @@ function renderMarkdown(content: string): string {
   overflow-x: auto;
   background: var(--color-bg-app);
   color: var(--color-text-secondary);
+  font-family: var(--font-mono);
 }
 .message-content :deep(code) {
   font-family: var(--font-mono);

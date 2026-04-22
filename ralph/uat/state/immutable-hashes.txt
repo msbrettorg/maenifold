@@ -1,0 +1,3 @@
+d19e5ae3ab14a2ad4fdcd14fe10b9370fa07934abdd7636fc5b3c4669cdedee5  ralph/uat/meta-prompt.md
+8e502975620c7cfe169c86f87d49ac0488effd9ca2ba810c03dc64926e41be12  meta-schmuck.sh
+6c8acd2b6cbb9f5999df0b336768f1a81456719e1d2b8b60216d91f39a2e8979  schmuck.sh

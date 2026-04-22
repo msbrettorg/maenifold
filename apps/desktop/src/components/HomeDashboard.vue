@@ -138,15 +138,26 @@ onBeforeUnmount(() => {
     </div>
 
     <div class="mb-4 flex flex-wrap justify-center gap-1.5">
-      <div class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary">
-        <span class="size-1.5 rounded-full" :class="daemonConnected ? 'bg-success' : 'bg-danger'" />
+      <div
+        role="status"
+        :aria-label="daemonConnected ? 'Daemon status: Connected' : 'Daemon status: Not connected'"
+        class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
+      >
+        <span
+          role="img"
+          :aria-label="daemonConnected ? 'Connected' : 'Disconnected'"
+          class="size-1.5 rounded-full"
+          :class="daemonConnected ? 'bg-success' : 'bg-danger'"
+        />
         {{ daemonConnected ? 'Connected' : 'Daemon not connected' }}
       </div>
       <div
         v-if="pendingGateTasks > 0"
+        role="status"
+        :aria-label="`${pendingGateTasks} pending gate ${pendingGateTasks === 1 ? 'task' : 'tasks'}`"
         class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
       >
-        <Shield class="size-3" :stroke-width="1.5" />
+        <Shield class="size-3" :stroke-width="1.5" aria-hidden="true" />
         {{ pendingGateTasks }} pending
       </div>
     </div>

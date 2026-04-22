@@ -17,6 +17,19 @@ export function formatStageLabel(value: string) {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+/**
+ * Returns true when a stage slug corresponds to a known pipeline stage
+ * (pending/swe/red-team/blue-team/done or recognized aliases) rather than
+ * an arbitrary markdown heading harvested from the task body (e.g.
+ * "problem", "acceptance", "found-during"). The Gate backend currently
+ * derives `task.stages` from every `## heading` in the task markdown, so
+ * the UI must filter out non-pipeline headings before rendering stage
+ * progress indicators.
+ */
+export function isPipelineStage(value: string): boolean {
+  return gateStageFamily(value) !== 'neutral';
+}
+
 export function gateStageFamily(value: string): GateStageFamily {
   const normalized = value.trim().toLowerCase();
 
@@ -40,4 +53,46 @@ export function getTaskPathHint(path: string, segmentCount = 3) {
   const segments = path.split(/[\\/]+/).filter(Boolean);
   if (!segments.length) return path;
   return segments.slice(-Math.min(segmentCount, segments.length)).join('/');
+}
+
+interface PipelineBindingTaskFields {
+  pipeline?: string | null;
+  issue?: string | null;
+  state?: string | null;
+}
+
+const PIPELINE_LABEL_FALLBACK = '—';
+
+// Extracts the bound pipeline name from a backend issue string. The backend emits
+// errors like:
+//   "task pipeline binding 'sdd' does not match requested pipeline 'foo'"
+// when a task's pipeline definition has drifted (digest mismatch) and clears the
+// `pipeline` field on the task row. We recover the original binding from the
+// issue text so the UI can keep showing it instead of falling back to "unbound".
+function parseBoundPipelineFromIssue(issue: string | null | undefined): string | null {
+  if (!issue) return null;
+  const match = issue.match(/binding ['"]([^'"]+)['"]/i);
+  if (!match) return null;
+  const bound = match[1].trim();
+  if (!bound || bound.toLowerCase() === 'unbound') return null;
+  return bound;
+}
+
+export function getTaskPipelineLabel(task: PipelineBindingTaskFields): string {
+  const direct = task.pipeline?.trim();
+  if (direct) return direct;
+  const recovered = parseBoundPipelineFromIssue(task.issue);
+  if (recovered) return recovered;
+  return PIPELINE_LABEL_FALLBACK;
+}
+
+// True when the task's pipeline binding cannot be resolved against the current
+// definition on disk (e.g. the pipeline definition's digest changed). The
+// backend signals this by clearing the pipeline field while populating an
+// issue string and forcing the task into an "error" state.
+export function isTaskPipelineDigestStale(task: PipelineBindingTaskFields): boolean {
+  const directlyBound = Boolean(task.pipeline?.trim());
+  if (directlyBound) return false;
+  const hasIssue = Boolean(task.issue?.trim());
+  return hasIssue;
 }

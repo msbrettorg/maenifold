@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
@@ -75,6 +76,15 @@ function handleCommandSelect(command: AvailableCommand): void {
   emit('select-command', command);
 }
 
+function handleEmbeddedContextClick(): void {
+  if (props.disabled) return;
+  if (!props.supportsEmbeddedContext) {
+    toast.info('Embedded file context is not yet available for this agent.');
+    return;
+  }
+  emit('insert-embedded-context-hint');
+}
+
 function handleClose(): void {}
 </script>
 
@@ -103,7 +113,15 @@ function handleClose(): void {}
       />
 
       <span class="composer-control-wrapper" :title="embeddedContextTooltip">
-        <Button variant="outline" size="sm" class="attachment-btn" :disabled="!supportsEmbeddedContext || disabled" @click="emit('insert-embedded-context-hint')">
+        <Button
+          variant="outline"
+          size="sm"
+          class="attachment-btn"
+          :class="{ 'attachment-btn-unavailable': !supportsEmbeddedContext }"
+          :disabled="disabled"
+          :aria-disabled="!supportsEmbeddedContext || disabled"
+          @click="handleEmbeddedContextClick"
+        >
           @ File
         </Button>
       </span>
@@ -143,6 +161,7 @@ function handleClose(): void {}
 }
 .attachment-btn:disabled,
 .send-btn:disabled { cursor: not-allowed; opacity: 0.55; }
+.attachment-btn-unavailable { opacity: 0.55; }
 .embedded-context-hint { color: var(--text-secondary); font-size: var(--text-sm); }
 .embedded-context-hint[aria-disabled='true'] { opacity: 0.7; }
 .attachment-error { color: var(--terracotta); font-size: var(--text-sm); }

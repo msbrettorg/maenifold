@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { Image as ImageIcon, Headphones } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import type { ContentBlock } from '../lib/types';
 
@@ -75,8 +76,14 @@ function readFileAsBase64(file: File): Promise<string> {
 
 function triggerPicker(kind: 'image' | 'audio'): void {
   if (props.isLoading) return;
-  if (kind === 'image' && !props.supportsImage) return;
-  if (kind === 'audio' && !props.supportsAudio) return;
+  if (kind === 'image' && !props.supportsImage) {
+    toast.info('Image attachments are not yet available for this agent.');
+    return;
+  }
+  if (kind === 'audio' && !props.supportsAudio) {
+    toast.info('Audio attachments are not yet available for this agent.');
+    return;
+  }
   const target = kind === 'image' ? imageInputRef.value : audioInputRef.value;
   target?.click();
 }
@@ -139,12 +146,28 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
     />
     <div class="ab-toolbar" role="toolbar" aria-label="Attachments">
       <span class="ab-wrap" :title="imageTooltip">
-        <Button variant="outline" size="sm" class="ab-btn" :disabled="!supportsImage || isLoading" @click="triggerPicker('image')">
+        <Button
+          variant="outline"
+          size="sm"
+          class="ab-btn"
+          :class="{ 'ab-btn-unavailable': !supportsImage }"
+          :disabled="isLoading"
+          :aria-disabled="!supportsImage || isLoading"
+          @click="triggerPicker('image')"
+        >
           <ImageIcon class="inline size-4" :stroke-width="1.5" /> Image
         </Button>
       </span>
       <span class="ab-wrap" :title="audioTooltip">
-        <Button variant="outline" size="sm" class="ab-btn" :disabled="!supportsAudio || isLoading" @click="triggerPicker('audio')">
+        <Button
+          variant="outline"
+          size="sm"
+          class="ab-btn"
+          :class="{ 'ab-btn-unavailable': !supportsAudio }"
+          :disabled="isLoading"
+          :aria-disabled="!supportsAudio || isLoading"
+          @click="triggerPicker('audio')"
+        >
           <Headphones class="inline size-4" :stroke-width="1.5" /> Audio
         </Button>
       </span>
@@ -173,6 +196,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
   cursor: pointer;
 }
 .ab-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.ab-btn-unavailable { opacity: 0.55; }
 .ab-pending { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 .ab-chip {
   display: inline-flex;

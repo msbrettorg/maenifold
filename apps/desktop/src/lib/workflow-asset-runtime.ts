@@ -6,15 +6,8 @@ import type {
   WorkflowStepDefinition,
   WorkflowStepMetadata,
 } from './workflow-asset-types'
+import { VALID_CATEGORIES } from './workflow-asset-types'
 
-const VALID_CATEGORIES: ReadonlySet<WorkflowCategory> = new Set([
-  'reasoning',
-  'scientific',
-  'multi-agent',
-  'devops',
-  'memory',
-  'custom',
-])
 const VALID_REASONING_EFFORTS: ReadonlySet<ReasoningEffort> = new Set(['low', 'medium', 'high'])
 const VALID_TOOL_HINT_PRIORITIES: ReadonlySet<string> = new Set(['mandatory', 'recommended', 'optional'])
 
@@ -116,6 +109,7 @@ export function filterWorkflowSummaries(input: unknown): {
     }
   }
 
+  const seenIds = new Set<string>()
   return input.reduce<{ valid: WorkflowAssetSummary[]; invalid: InvalidWorkflowAsset[] }>(
     (result, entry, index) => {
       const record = asRecord(entry)
@@ -124,9 +118,17 @@ export function filterWorkflowSummaries(input: unknown): {
         : `workflow-${index + 1}`
       try {
         if (!record) throw new Error('Workflow summary must be an object.')
+        const validatedId = requireString(record, 'id', 'Workflow ID')
+        // T-205.701: drop duplicate workflow summaries (same id appearing twice
+        // from the data source). Keep the first occurrence so library list
+        // entries remain unique.
+        if (seenIds.has(validatedId)) {
+          return result
+        }
+        seenIds.add(validatedId)
         const category = parseCategory(record.category)
         result.valid.push({
-          id: requireString(record, 'id', 'Workflow ID'),
+          id: validatedId,
           name: typeof record.name === 'string' && record.name.trim() ? record.name : id,
           emoji: typeof record.emoji === 'string' && record.emoji.trim() ? record.emoji : '⚙️',
           description: typeof record.description === 'string' ? record.description : '',

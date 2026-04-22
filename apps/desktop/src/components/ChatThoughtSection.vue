@@ -75,6 +75,21 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
   padding: 0.125rem 0.25rem;
   border-radius: 4px;
   background: var(--surface-high);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-style: normal;
+}
+.thought-content :deep(pre) {
+  padding: 0.75rem;
+  border-radius: 4px;
+  overflow-x: auto;
+  background: var(--color-bg-app);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+.thought-content :deep(pre code) {
+  background: transparent;
+  padding: 0;
   font-size: var(--text-sm);
 }
 </style>

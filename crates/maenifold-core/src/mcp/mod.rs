@@ -130,7 +130,7 @@ impl ServerHandler for MaenifoldHandler {
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> std::result::Result<ListResourcesResult, rmcp::ErrorData> {
-        tokio::task::spawn_blocking(self::resources::handle_list_resources)
+        tokio::task::spawn_blocking(|| with_lock_retry(self::resources::handle_list_resources))
             .await
             .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
             .map_err(self::resources::map_resource_error)
@@ -146,10 +146,12 @@ impl ServerHandler for MaenifoldHandler {
         let uri = request.uri.to_string();
 
         async move {
-            tokio::task::spawn_blocking(move || self::resources::handle_read_resource(&uri))
-                .await
-                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
-                .map_err(self::resources::map_resource_error)
+            tokio::task::spawn_blocking(move || {
+                with_lock_retry(|| self::resources::handle_read_resource(&uri))
+            })
+            .await
+            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+            .map_err(self::resources::map_resource_error)
         }
     }
 
@@ -184,6 +186,13 @@ impl ServerHandler for MaenifoldHandler {
         let tool_name_for_invoke = tool_name.clone();
 
         async move {
+            // T-205.716: Do NOT wrap `call_tool` in `with_lock_retry`. Tool
+            // dispatches include write operations (WriteMemory, EditMemory,
+            // Sync, etc.) that are not idempotent — retrying after a partial
+            // success would cause duplicate side effects. Each tool is
+            // responsible for its own transactional safety. `with_lock_retry`
+            // is only applied to the read-only resource dispatch sites
+            // (`list_resources`, `read_resource`).
             let result = tokio::task::spawn_blocking(move || {
                 ToolRegistry::global().try_invoke(
                     &tool_name_for_invoke,
@@ -267,6 +276,72 @@ fn format_tool_error(tool_name: &str, err: &MaenifoldError) -> String {
     } else {
         format!("Error invoking {tool_name}: {err}")
     }
+}
+
+// T-205.716: Detect transient lock-contention errors that should be retried at the
+// MCP dispatch boundary.
+//
+// EDEADLK (errno 11 on macOS, errno 35 on Linux) is returned by the kernel from
+// `fcntl(F_SETLKW)` when a circular wait is detected on POSIX record locks.
+// SQLite is the only consumer of these locks in maenifold, but the resulting
+// error can surface on whichever thread happens to be in the kernel wait at the
+// moment of detection. It then bubbles up as a `std::io::Error` and is
+// attributed to whichever MCP tool was being dispatched on that thread (often a
+// lock-light operation like ListAssets that simply got unlucky under load).
+//
+// SQLite's own SQLITE_BUSY/SQLITE_LOCKED errors are also retried here as defense
+// in depth. SQLite's per-connection `busy_timeout` already retries internally;
+// this catches the rare case where the timeout expires with the lock still held.
+fn is_transient_lock_error(err: &MaenifoldError) -> bool {
+    // EDEADLK errno values differ across Unix platforms.
+    const EDEADLK_DARWIN: i32 = 11;
+    const EDEADLK_LINUX: i32 = 35;
+    match err {
+        MaenifoldError::Io(io_err) => matches!(
+            io_err.raw_os_error(),
+            Some(EDEADLK_DARWIN) | Some(EDEADLK_LINUX)
+        ),
+        MaenifoldError::Sqlite(rusqlite::Error::SqliteFailure(code, _)) => matches!(
+            code.code,
+            rusqlite::ErrorCode::DatabaseBusy | rusqlite::ErrorCode::DatabaseLocked
+        ),
+        _ => false,
+    }
+}
+
+// T-205.716: Retry an MCP dispatch closure when the kernel returns a transient
+// lock-contention error. Bounded attempts with exponential backoff so that
+// genuine deadlocks still surface (eventually) rather than spinning forever.
+//
+// Total worst-case wait: 25 + 50 + 100 + 200 = 375ms across 4 retries before
+// the 5th attempt's error is returned to the caller. Combined with the 5s
+// SQLite busy_timeout per attempt, total worst case stays well under the
+// 60s ACP connection timeout, so genuine deadlocks (as opposed to brief
+// contention) still produce a clear error.
+fn with_lock_retry<F, T>(mut op: F) -> Result<T>
+where
+    F: FnMut() -> Result<T>,
+{
+    const MAX_ATTEMPTS: u32 = 5;
+    let mut delay_ms: u64 = 25;
+    for attempt in 0..MAX_ATTEMPTS {
+        match op() {
+            Ok(value) => return Ok(value),
+            Err(err) => {
+                if is_transient_lock_error(&err) && attempt + 1 < MAX_ATTEMPTS {
+                    std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+                    delay_ms = delay_ms.saturating_mul(2).min(500);
+                    continue;
+                }
+                return Err(err);
+            }
+        }
+    }
+    // Loop always returns within the body; this is unreachable but keeps the
+    // type checker happy for the explicit MAX_ATTEMPTS bound.
+    Err(MaenifoldError::Message(
+        "Lock retry exhausted without an error".to_string(),
+    ))
 }
 
 fn is_validation_error(err: &MaenifoldError) -> bool {

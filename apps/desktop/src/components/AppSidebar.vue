@@ -49,7 +49,7 @@ const resize = useResizeHandle({
     :style="{ width: resize.width.value + 'px', minWidth: resize.width.value + 'px' }"
   >
     <div class="flex items-center justify-between px-4 pt-3 pb-2">
-      <h2 class="m-0 text-xs font-medium uppercase tracking-[0.08em] text-text-secondary">Agents</h2>
+      <h2 class="m-0 text-xs font-medium tracking-[0.02em] text-text-secondary">Agents</h2>
       <div class="flex gap-1">
         <Button
           variant="ghost"
@@ -147,17 +147,23 @@ const resize = useResizeHandle({
   />
 
   <!-- Collapsed sidebar toggle -->
-  <Button
+  <!--
+    NOTE: This must remain a native <button>, not the shadcn <Button> component.
+    See T-205.702 — when this was converted to <Button> in 8bc192360 the click
+    handler stopped restoring the sidebar in the live Electron app even though
+    the compiled render function looked correct. Reverting to a native button
+    restores expected behavior; do not "polish" this back to <Button>.
+  -->
+  <button
     v-if="!visible"
-    variant="ghost"
-    size="icon"
-    class="fixed top-1/2 left-0 cursor-pointer rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-secondary)] -translate-y-1/2 transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
+    type="button"
+    class="fixed top-1/2 left-0 z-50 inline-flex size-9 -translate-y-1/2 cursor-pointer items-center justify-center rounded-r border-none bg-[var(--surface-container)] p-2 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-high)] hover:text-[var(--text)]"
     @click="visible = true"
     title="Expand sidebar"
     aria-label="Expand sidebar"
   >
     <PanelLeftOpen class="size-4" />
-  </Button>
+  </button>
 </template>
 
 <style scoped>

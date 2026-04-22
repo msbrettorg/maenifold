@@ -4,20 +4,21 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { KnowledgeFolderNode } from '../stores/knowledge';
+import { useKnowledgeStore, type KnowledgeFolderNode } from '../stores/knowledge';
 
 const props = defineProps<{
   node: KnowledgeFolderNode;
   activeUri: string | null;
 }>();
 
-const emit = defineEmits<{
-  (event: 'open-folder', payload: { path: string; open: boolean }): void;
-  (event: 'open-note', identifier: string): void;
-}>();
+const store = useKnowledgeStore();
 
 function handleOpenChange(nextOpen: boolean) {
-  emit('open-folder', { path: props.node.path, open: nextOpen });
+  void store.setFolderOpen(props.node.path, nextOpen);
+}
+
+function handleOpenNote(uri: string) {
+  void store.openNote(uri);
 }
 </script>
 
@@ -59,7 +60,7 @@ function handleOpenChange(nextOpen: boolean) {
             variant="ghost"
             class="h-8 justify-start gap-2 rounded-[var(--radius-8)] px-2"
             :class="activeUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
-            @click="emit('open-note', file.uri)"
+            @click="handleOpenNote(file.uri)"
           >
             <FileText class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate text-[var(--text-body-sm)] font-medium">{{ file.name }}</span>
@@ -70,8 +71,6 @@ function handleOpenChange(nextOpen: boolean) {
             :key="child.path"
             :node="child"
             :active-uri="activeUri"
-            @open-folder="emit('open-folder', $event)"
-            @open-note="emit('open-note', $event)"
           />
         </template>
       </div>

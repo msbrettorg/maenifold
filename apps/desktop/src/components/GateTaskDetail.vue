@@ -7,6 +7,7 @@ import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
 import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
+import { getTaskPipelineLabel, isTaskPipelineDigestStale } from '../lib/gate-display';
 
 const props = defineProps<{
   task: GateTask | null;
@@ -22,9 +23,11 @@ defineEmits<{ close: [] }>();
 
 const processLabel = computed(() => {
   if (!props.task) return '';
-  const pipeline = props.task.pipeline?.trim() || 'unbound';
+  const pipeline = getTaskPipelineLabel(props.task);
   return props.task.location === 'done' ? `${pipeline} done` : pipeline;
 });
+
+const pipelineStale = computed(() => Boolean(props.task && isTaskPipelineDigestStale(props.task)));
 
 const detailTitleId = computed(() => (props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'));
 
@@ -42,7 +45,7 @@ function renderMarkdown(content: string | null) {
       <div class="gate-detail__header-copy">
         <p class="gate-detail__eyebrow">Task detail</p>
         <h3 :id="detailTitleId">{{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}</h3>
-        <GateTaskDetailMeta v-if="task" :task="task" :process-label="processLabel" />
+        <GateTaskDetailMeta v-if="task" :task="task" :process-label="processLabel" :pipeline-stale="pipelineStale" />
       </div>
       <Button v-if="task" variant="ghost" @click="$emit('close')">Clear</Button>
     </div>

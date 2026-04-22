@@ -6,10 +6,12 @@ import { formatStageLabel, gateStageFamily, getTaskPathHint } from '../lib/gate-
 const props = defineProps<{
   task: GateTask;
   processLabel: string;
+  pipelineStale?: boolean;
 }>();
 
 const fileLabel = computed(() => getTaskPathHint(props.task.path));
 const stateTone = computed(() => gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state));
+const pipelineStaleTitle = computed(() => props.task.issue?.trim() || 'Pipeline definition has changed since this task was created.');
 </script>
 
 <template>
@@ -18,6 +20,13 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
       <dt>Process</dt>
       <dd>
         <span class="gate-detail-meta__badge gate-detail-meta__badge--process">{{ processLabel }}</span>
+        <span
+          v-if="pipelineStale"
+          class="gate-detail-meta__warning"
+          role="img"
+          aria-label="Pipeline definition has changed since this task was created"
+          :title="pipelineStaleTitle"
+        >⚠</span>
       </dd>
     </div>
     <div>
@@ -100,5 +109,12 @@ const stateTone = computed(() => gateStageFamily(props.task.location === 'done' 
 
 .gate-detail-meta__path {
   grid-column: 1 / -1;
+}
+
+.gate-detail-meta__warning {
+  margin-left: 0.4rem;
+  color: var(--amber, var(--terracotta));
+  font-size: var(--text-caption);
+  cursor: help;
 }
 </style>

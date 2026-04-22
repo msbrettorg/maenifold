@@ -39,7 +39,7 @@ function selectTab(tab: AppShellTab) {
           v-for="tab in TAB_ORDER"
           :key="tab.value"
           :value="tab.value"
-          class="h-14 gap-2 rounded-none border-b-[3px] border-b-transparent px-3 text-text-secondary hover:text-text-primary data-[state=active]:border-b-brand data-[state=active]:text-text-primary data-active:border-b-brand data-active:text-text-primary"
+          class="h-14 gap-2 rounded-none px-3 text-text-secondary hover:text-text-primary data-[state=active]:text-brand data-active:text-brand"
         >
           <component :is="ICONS[tab.icon]" class="size-4" />
           <span>{{ tab.label }}</span>

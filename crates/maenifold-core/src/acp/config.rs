@@ -99,6 +99,11 @@ fn default_debounce_ms() -> u64 {
 }
 
 fn default_sqlite_busy_timeout() -> u64 {
+    // T-205.716: 5000ms baseline. A higher value combined with the bounded
+    // retry in `mcp::with_lock_retry` would amplify worst-case latency past
+    // the 60s ACP connection timeout. With 5 retries at max 500ms backoff
+    // plus a 5s busy wait per attempt, total worst-case stays comfortably
+    // under the 60s ACP timeout.
     5000
 }
 

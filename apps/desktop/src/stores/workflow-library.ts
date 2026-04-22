@@ -52,7 +52,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
         (wf) =>
           wf.name.toLowerCase().includes(q) ||
           wf.description.toLowerCase().includes(q) ||
-          wf.id.toLowerCase().includes(q),
+          categorizeWorkflow(wf).toLowerCase().includes(q),
       )
     }
     return result
@@ -238,6 +238,18 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     saveState.value = 'idle'
   }
 
+  // Explicit setters for the browser filters. T-205.711 — using actions
+  // instead of writing to `storeToRefs(...)` refs from a child template
+  // makes the update path unambiguous and easy to reason about, and avoids
+  // any reliance on the SFC compiler's ref-write proxy semantics.
+  function setSearchQuery(value: string) {
+    searchQuery.value = value
+  }
+
+  function setCategoryFilter(value: WorkflowCategory | 'all') {
+    categoryFilter.value = value
+  }
+
   watch(() => pipelineStore.connected, (connected) => {
     if (connected && summaries.value.length === 0) fetchSummaries()
   }, { immediate: true })
@@ -290,5 +302,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     exportWorkflow,
     saveDraft,
     clearSelection,
+    setSearchQuery,
+    setCategoryFilter,
   }
 })

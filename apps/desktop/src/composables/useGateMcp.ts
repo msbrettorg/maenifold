@@ -11,6 +11,7 @@ import {
   type GateTask,
   type GateTaskHistoryEntry,
 } from '../lib/gate';
+import { isPipelineStage } from '../lib/gate-display';
 import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
@@ -100,8 +101,16 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
     return callGateTool<GateSyncResult>(GATE_SYNC_TOOLS, args);
   }
 
-  function status(args: GateStatusArgs): Promise<GateTask[]> {
-    return callGateTool<GateTask[]>(GATE_STATUS_TOOLS, args);
+  function normalizeTaskStages(task: GateTask): GateTask {
+    const filtered = Array.isArray(task.stages)
+      ? task.stages.filter(isPipelineStage)
+      : [];
+    return { ...task, stages: filtered };
+  }
+
+  async function status(args: GateStatusArgs): Promise<GateTask[]> {
+    const tasks = await callGateTool<GateTask[]>(GATE_STATUS_TOOLS, args);
+    return Array.isArray(tasks) ? tasks.map(normalizeTaskStages) : tasks;
   }
 
   function readTaskHistory(taskId: string, root?: string): Promise<GateTaskHistoryEntry[]> {

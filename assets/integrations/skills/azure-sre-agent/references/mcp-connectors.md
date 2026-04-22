@@ -147,6 +147,6 @@ Quick steps:
 
 ## For More Details
 
-- `microsoft_docs_fetch(url="https://sre.azure.com/docs/capabilities/mcp-connectors")`
-- `microsoft_docs_fetch(url="https://sre.azure.com/docs/tutorials/connectors/setup-mcp-connector")`
+- `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/mcp-connectors")`
+- `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/mcp-connector")`
 - `microsoft_docs_search(query="Azure SRE Agent MCP partner connectors Datadog Splunk")`

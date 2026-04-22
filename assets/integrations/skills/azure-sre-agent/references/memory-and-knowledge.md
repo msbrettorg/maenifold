@@ -111,6 +111,6 @@ Markdown, plain text, PDF, Word, PowerPoint, Excel, images, and more. Max 16 MB 
 
 ## For More Details
 
-- `microsoft_docs_fetch(url="https://sre.azure.com/docs/concepts/memory")`
+- `microsoft_docs_fetch(url="https://learn.microsoft.com/azure/sre-agent/memory")`
 - `microsoft_docs_search(query="Azure SRE Agent upload knowledge documents supported formats")`
 - `microsoft_docs_search(query="Azure SRE Agent connect knowledge external sources")`

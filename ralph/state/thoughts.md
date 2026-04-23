@@ -24,7 +24,7 @@ T-03.2, T-03.3, T-03.4, T-03.7 all shipped. T-03.8 SWE dispatched (style migrati
 - T-03.8 spec updated: EmptyState dropped (already clean), WorkflowStepTimeline scoped to CSS migration not component replacement (it's a timeline, not a stepper)
 - Next: T-03.9/T-03.10 prop drilling, T-03.16 final sweep
 
-## Backlog Notes
-- T-207.0 epic (MCP Gateway) and subtasks T-207.1–T-207.9 all at pending
-- T-203.0 epic (MCP Apps Host Support) and subtasks T-203.1–T-203.7 all at pending
-- `target/agents/` dirs consume 3-4Gi each — clean between SWE dispatches on constrained disks
+## Next Actions
+- T-03.5 and T-03.6 are SLC pipeline (discovery → spec → swe → red → blue → done) — need library evaluation first
+- T-03.16 needs decomposition: ~92 files with style blocks is too many for one task. Split by component group (Chat*, Gate*, Pipeline*, Settings*, Workflow*, Thinking*, etc.)
+- T-204.0 epic (Handy speech-to-text) has 7 well-spec'd subtasks all pending — ready for dispatch when T-03 wave stabilizes

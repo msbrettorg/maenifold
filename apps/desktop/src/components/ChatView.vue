@@ -89,9 +89,11 @@ async function handleSend(): Promise<void> {
       ...pendingAttachments.value.map((attachment) => attachment.block),
       ...(await buildEmbeddedContextAttachments(text)),
     ];
-    await sessionStore.sendPrompt(text, attachments);
-    inputText.value = '';
-    pendingAttachments.value = [];
+    const success = await sessionStore.sendPrompt(text, attachments);
+    if (success) {
+      inputText.value = '';
+      pendingAttachments.value = [];
+    }
   } catch (error) {
     attachmentError.value = error instanceof Error ? error.message : 'Failed to send prompt.';
     console.error('Failed to send prompt:', error);

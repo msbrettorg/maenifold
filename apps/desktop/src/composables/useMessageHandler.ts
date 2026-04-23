@@ -217,7 +217,7 @@ export function useMessageHandler({
   async function sendPrompt(
     text: string,
     attachments: ContentBlock[] = [],
-  ): Promise<void> {
+  ): Promise<boolean> {
     let activeSession: SessionState | null = null;
     try {
       const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
@@ -273,6 +273,7 @@ export function useMessageHandler({
       } finally {
         session.isLoading = false;
       }
+      return true;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (import.meta.env.DEV) {
@@ -282,7 +283,9 @@ export function useMessageHandler({
         activeSession.error = errorMessage;
         pushSystemMessage(activeSession, errorMessage);
       }
-      // Do NOT re-throw — the UI surfaces the error via session state.
+      // Do NOT re-throw — the UI surfaces the error via session state and the
+      // boolean return value lets callers decide whether to clear input.
+      return false;
     }
   }
 

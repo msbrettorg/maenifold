@@ -67,7 +67,7 @@ const emit = defineEmits<{
 
     <div class="grid gap-4">
       <span class="text-[var(--color-text-primary)] text-xs">Final content</span>
-      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">{{ nextPreview }}</pre>
+      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ nextPreview }}</pre>
     </div>
 
     <p v-if="formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ formError }}</p>

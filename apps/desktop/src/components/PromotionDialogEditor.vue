@@ -89,17 +89,17 @@ const description = {
 
     <div v-if="selectedAction !== 'create'" class="grid gap-4">
       <span class="text-[var(--color-text-primary)] text-xs">Current note</span>
-      <pre v-if="selectedMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">{{ selectedMemory.content }}</pre>
-      <pre v-else-if="loadingMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">Loading note…</pre>
-      <pre v-else-if="selectedResult" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">{{ selectedResult.uri }}</pre>
-      <pre v-else class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">Select a note to continue.</pre>
+      <pre v-if="selectedMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ selectedMemory.content }}</pre>
+      <pre v-else-if="loadingMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">Loading note…</pre>
+      <pre v-else-if="selectedResult" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ selectedResult.uri }}</pre>
+      <pre v-else class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">Select a note to continue.</pre>
     </div>
 
     <p v-if="selectedAction === 'update' && updateDisabledMessage" class="text-[var(--text-secondary)]">{{ updateDisabledMessage }}</p>
 
     <div class="grid gap-4">
       <span class="text-[var(--color-text-primary)] text-xs">What will be saved</span>
-      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">{{ nextPreview }}</pre>
+      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ nextPreview }}</pre>
     </div>
 
     <p v-if="formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ formError }}</p>

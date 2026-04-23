@@ -7,22 +7,19 @@ use super::dispatch::dispatch_pipeline;
 #[cfg(test)]
 pub(super) use super::executor_cleanup::cancellable_node_session_targets;
 use super::executor_cleanup::{cancel_active_nodes, terminate_node_sessions};
+use super::executor_apply::{apply_node_outcome, node_adoption_labels};
 use super::executor_helpers::{
     DispatchedNode, derive_execution_status, load_execution_config, load_pipeline_node_states,
     parse_dispatch_result,
 };
-use super::executor_nodes::{NodeOutcome, build_node_execution_request};
+use super::executor_nodes::build_node_execution_request;
 use super::executor_orchestration::{
     ExecutionCounts, NodeJoinResult, build_node_index, join_next_result, log_incomplete_execution,
     spawn_dispatched_node_task,
 };
-use super::executor_retry::{
-    earliest_retry_after, extract_retry_count_from_state, increment_node_attempts,
-    persist_retryable_failure,
-};
+use super::executor_retry::{earliest_retry_after, extract_retry_count_from_state};
 use super::executor_timeout::{extract_timeout, strip_node_timeout, timeout_result_kind};
 pub(super) use super::mapping_predecessor::{assemble_node_prompt, predecessor_context_content};
-use super::update::update_pipeline_node_status;
 use super::{NodeState, PipelineDefinition, PipelineNode};
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
@@ -231,94 +228,8 @@ async fn schedule_dispatched_node(
     Ok(())
 }
 
-fn node_adoption_labels(node: &PipelineNode) -> (&str, &str, &str) {
-    let role = node
-        .adopt()
-        .and_then(|adopt| adopt.role.as_deref())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("none");
-    let color = node
-        .adopt()
-        .and_then(|adopt| adopt.color.as_deref())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("none");
-    let perspective = node
-        .adopt()
-        .and_then(|adopt| adopt.perspective.as_deref())
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .unwrap_or("none");
-    (role, color, perspective)
-}
-fn apply_node_outcome(
-    context: &ToolContext,
-    session_id: &str,
-    node_id: &str,
-    outcome: NodeOutcome,
-    counts: &mut ExecutionCounts,
-) -> Result<()> {
-    match outcome {
-        NodeOutcome::Completed {
-            conclusion,
-            acp_session_id,
-            thinking_session_id,
-            tool_provenance,
-            retry_attempts,
-        } => {
-            increment_node_attempts(context, session_id, node_id, retry_attempts)?;
-            update_pipeline_node_status(
-                context,
-                session_id,
-                node_id,
-                "completed",
-                Some(&conclusion),
-                acp_session_id.as_deref(),
-                thinking_session_id.as_deref(),
-                tool_provenance.as_ref(),
-                None,
-            )?;
-            counts.completed += 1;
-        }
-        NodeOutcome::Abandoned {
-            reason,
-            phase,
-            transient_error_kind,
-            retry_attempts,
-            acp_session_id,
-            thinking_session_id,
-            is_outer_timeout,
-        } => {
-            if phase.is_retryable() && !is_outer_timeout {
-                return persist_retryable_failure(
-                    context,
-                    session_id,
-                    node_id,
-                    &reason,
-                    transient_error_kind,
-                    retry_attempts,
-                    acp_session_id.as_deref(),
-                    thinking_session_id.as_deref(),
-                );
-            }
-            increment_node_attempts(context, session_id, node_id, retry_attempts)?;
-            update_pipeline_node_status(
-                context,
-                session_id,
-                node_id,
-                "abandoned",
-                None,
-                acp_session_id.as_deref(),
-                thinking_session_id.as_deref(),
-                None,
-                Some(&reason),
-            )?;
-            counts.abandoned += 1;
-        }
-    }
-    Ok(())
-}
+
+
 
 #[cfg(test)]
 #[path = "apply_node_outcome_failure_reason_tests.rs"]

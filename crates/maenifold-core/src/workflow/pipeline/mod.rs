@@ -11,6 +11,7 @@ mod engine_ready;
 mod engine_ready_tests;
 mod engine_status;
 pub(super) mod executor;
+mod executor_apply;
 mod executor_cleanup;
 mod executor_helpers;
 mod executor_nodes;
@@ -22,6 +23,7 @@ mod executor_nodes_tool;
 mod executor_nodes_workflow;
 mod executor_orchestration;
 mod executor_retry;
+mod executor_retry_persist;
 #[cfg(test)]
 mod executor_retry_tests;
 mod executor_run;
@@ -60,6 +62,7 @@ mod test_fixtures_helpers;
 #[cfg(test)]
 mod test_support;
 mod types;
+mod types_node;
 mod types_wire;
 mod update;
 mod update_context;

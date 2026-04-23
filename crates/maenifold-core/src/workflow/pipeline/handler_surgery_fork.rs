@@ -5,10 +5,8 @@ use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use petgraph::Direction::Incoming;
-use petgraph::visit::{Bfs, Walker};
 use serde_yaml::Value as YamlValue;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 
 use super::super::handler_validation::workflow_node_file;
 use super::super::session_io::{
@@ -16,10 +14,14 @@ use super::super::session_io::{
     write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
-use super::super::{
-    NodeState, NodeStatus, PipelineDefinition, PredecessorOutput, validate_pipeline,
-};
+use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
 use super::ForkRequest;
+
+#[path = "handler_surgery_fork_helpers.rs"]
+mod helpers;
+use helpers::{
+    collect_fork_predecessor_context, format_predecessor_context_content, reachable_node_ids,
+};
 
 #[allow(clippy::too_many_lines)]
 pub(super) fn fork_pipeline(
@@ -289,61 +291,3 @@ pub(super) fn fork_pipeline(
     })
 }
 
-fn reachable_node_ids(
-    graph: &petgraph::stable_graph::StableGraph<String, super::super::EdgeType>,
-    start: petgraph::prelude::NodeIndex,
-) -> HashSet<String> {
-    Bfs::new(graph, start)
-        .iter(graph)
-        .map(|node_index| graph[node_index].clone())
-        .collect()
-}
-
-fn collect_fork_predecessor_context(
-    graph: &petgraph::stable_graph::StableGraph<String, super::super::EdgeType>,
-    reachable: &HashSet<String>,
-    source_node_states: &HashMap<String, NodeState>,
-) -> HashMap<String, Vec<PredecessorOutput>> {
-    let mut result = HashMap::new();
-
-    for node_index in graph.node_indices() {
-        let node_id = &graph[node_index];
-        if !reachable.contains(node_id.as_str()) {
-            continue;
-        }
-        let has_reachable_predecessor = graph
-            .neighbors_directed(node_index, Incoming)
-            .any(|pred_index| reachable.contains(graph[pred_index].as_str()));
-        if has_reachable_predecessor {
-            continue;
-        }
-
-        let mut predecessor_outputs = Vec::new();
-        for pred_index in graph.neighbors_directed(node_index, Incoming) {
-            let pred_id = &graph[pred_index];
-            if let Some(state) = source_node_states.get(pred_id.as_str())
-                && matches!(state.status, NodeStatus::Completed)
-                && let Some(output) = &state.output
-            {
-                predecessor_outputs.push(PredecessorOutput {
-                    node_id: pred_id.clone(),
-                    output: output.clone(),
-                });
-            }
-        }
-        if !predecessor_outputs.is_empty() {
-            predecessor_outputs.sort_by(|a, b| a.node_id.cmp(&b.node_id));
-            result.insert(node_id.clone(), predecessor_outputs);
-        }
-    }
-
-    result
-}
-
-fn format_predecessor_context_content(predecessor_outputs: &[PredecessorOutput]) -> String {
-    predecessor_outputs
-        .iter()
-        .map(|output| format!("### From {}\n\n{}", output.node_id, output.output))
-        .collect::<Vec<_>>()
-        .join("\n\n")
-}

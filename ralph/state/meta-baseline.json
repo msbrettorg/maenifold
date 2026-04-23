@@ -1,0 +1,956 @@
+[
+  {
+    "taskId": "T-02.0",
+    "canonicalTaskId": "T-02.0",
+    "title": "Epic: UI audit cleanup — design system compliance, dead code, accessibility",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.0-epic-ui-audit-cleanup.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.1",
+    "canonicalTaskId": "T-02.1",
+    "title": "Migrate style blocks to Tailwind — batch 1 (top 10 worst offenders)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.1-style-blocks-batch1.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.2",
+    "canonicalTaskId": "T-02.2",
+    "title": "Migrate style blocks to Tailwind — batch 2 (ranks 11-20)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.2-style-blocks-batch2.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.3",
+    "canonicalTaskId": "T-02.3",
+    "title": "Migrate style blocks to Tailwind — batch 3 (ranks 21-35)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.3-style-blocks-batch3.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.4",
+    "canonicalTaskId": "T-02.4",
+    "title": "Migrate style blocks to Tailwind — batch 4 (ranks 36-55)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.4-style-blocks-batch4.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.5",
+    "canonicalTaskId": "T-02.5",
+    "title": "Migrate style blocks to Tailwind — batch 5 (ranks 56-90)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.5-style-blocks-batch5.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.6",
+    "canonicalTaskId": "T-02.6",
+    "title": "Replace 162 arbitrary Tailwind values with canonical classes",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.6-tailwind-arbitrary-values.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.7",
+    "canonicalTaskId": "T-02.7",
+    "title": "Refactor WorkflowStep* prop drilling to provide/inject or Pinia",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.7-prop-drilling-workflow.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.8",
+    "canonicalTaskId": "T-02.8",
+    "title": "Refactor Settings* prop drilling to Pinia stores",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.8-prop-drilling-settings.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.9",
+    "canonicalTaskId": "T-02.9",
+    "title": "Fix WCAG AA color contrast failures",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.9-wcag-contrast-fix.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.10",
+    "canonicalTaskId": "T-02.10",
+    "title": "Convert raw <button> tags to shadcn Button component",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.10-raw-buttons-to-shadcn.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.11",
+    "canonicalTaskId": "T-02.11",
+    "title": "Replace 999px border-radius with canonical 12px max",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.11-border-radius-compliance.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.12",
+    "canonicalTaskId": "T-02.12",
+    "title": "Replace custom box-shadows with DESIGN.md shadow tokens",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.12-shadow-token-compliance.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.13",
+    "canonicalTaskId": "T-02.13",
+    "title": "Migrate external CSS files to Tailwind utilities",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.13-eliminate-external-css.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.14",
+    "canonicalTaskId": "T-02.14",
+    "title": "Extract duplicate Tailwind utility combos into reusable components",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.14-extract-duplicate-utilities.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.15",
+    "canonicalTaskId": "T-02.15",
+    "title": "Remove dead code — unused composable, stores, IPC channels",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.15-dead-code-cleanup.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.16",
+    "canonicalTaskId": "T-02.16",
+    "title": "Replace hardcoded color values with DESIGN.md tokens",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.16-hardcoded-colors.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.17",
+    "canonicalTaskId": "T-02.17",
+    "title": "Replace hardcoded spacing and font sizes with Tailwind scale",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.17-hardcoded-spacing-fonts.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.18",
+    "canonicalTaskId": "T-02.18",
+    "title": "Fix accessibility violations — ARIA, keyboard, focus",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.18-accessibility-fixes.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.19",
+    "canonicalTaskId": "T-02.19",
+    "title": "Refactor remaining prop drilling (Chat*, Pipeline*, Schema*)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.19-prop-drilling-remaining.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-02.20",
+    "canonicalTaskId": "T-02.20",
+    "title": "Audit and migrate inline styles to Tailwind or CSS variables",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-02.20-inline-styles-cleanup.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.0",
+    "canonicalTaskId": "T-203.0",
+    "title": "Epic: MCP Apps host support — inline interactive UIs in chat",
+    "pipeline": "slc",
+    "state": "discovery",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.0-epic-mcp-apps-host-support.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.2",
+    "canonicalTaskId": "T-203.2",
+    "title": "Parse _meta.ui from tool descriptions and store on capability model",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.2-parse-meta-ui-tool-descriptions.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.3",
+    "canonicalTaskId": "T-203.3",
+    "title": "McpAppFrame.vue — AppBridge host component",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.3-mcp-app-frame-component.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.4",
+    "canonicalTaskId": "T-203.4",
+    "title": "ChatContentBlocks integration — render McpAppFrame for ui:// tool results",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.4-chat-content-blocks-integration.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.5",
+    "canonicalTaskId": "T-203.5",
+    "title": "Security hardening — CSP enforcement + permission consent UI",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.5-security-csp-permission-consent.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.6",
+    "canonicalTaskId": "T-203.6",
+    "title": "E2E validation — MCP Apps rendering with official example server",
+    "pipeline": "slc",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "discovery",
+      "spec",
+      "swe",
+      "red-team",
+      "remediate",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.6-e2e-validation-official-example.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-203.7",
+    "canonicalTaskId": "T-203.7",
+    "title": "Gate MCP server returns 'Session not found' on first call after idle",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-203.7-gate-mcp-session-not-found.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.0",
+    "canonicalTaskId": "T-204.0",
+    "title": "Epic: Adopt Handy speech-to-text companion app",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.0-epic-handy-speech-to-text.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.1",
+    "canonicalTaskId": "T-204.1",
+    "title": "Spike: verify spawn-detached launch from Electron main process",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.1-spike-spawn-detached-electron.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.2",
+    "canonicalTaskId": "T-204.2",
+    "title": "IPC handlers: voice:check + voice:launch in main.ts + preload",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.2-ipc-voice-check-launch.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.3",
+    "canonicalTaskId": "T-204.3",
+    "title": "Pinia store voice-handy.ts with poll-while-focused",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.3-pinia-store-voice-handy.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.4",
+    "canonicalTaskId": "T-204.4",
+    "title": "VoiceInputButton.vue component (DESIGN.md compliant)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.4-voice-input-button-component.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.5",
+    "canonicalTaskId": "T-204.5",
+    "title": "Wire VoiceInputButton into ChatInputBar.vue toolbar",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.5-wire-into-chat-input-bar.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.6",
+    "canonicalTaskId": "T-204.6",
+    "title": "SettingsPreferences.vue Voice input section + platform hints",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.6-settings-voice-input-section.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.7",
+    "canonicalTaskId": "T-204.7",
+    "title": "Platform validation: macOS smoke + Windows/Linux notes",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.7-platform-validation.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.8-regenerate-embeddings-broken",
+    "canonicalTaskId": null,
+    "title": "T-204.8 — Regenerate embeddings action fails with \"no such module: vec0\"",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.8-regenerate-embeddings-broken.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.9-delete-flat-layout-models",
+    "canonicalTaskId": null,
+    "title": "T-204.9 — Delete embedding model button does not work (flat layout)",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.9-delete-flat-layout-models.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-204.10-embeddings-activate-broken",
+    "canonicalTaskId": null,
+    "title": "T-204.10 — Activate embedding model button does not work",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-204.10-embeddings-activate-broken.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-205.705-missing-view-all-agents-button",
+    "canonicalTaskId": null,
+    "title": "T-205.705 — Missing: \"View all agents\" button on Home dashboard",
+    "pipeline": "test",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-205.705-missing-view-all-agents-button.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.0",
+    "canonicalTaskId": "T-207.0",
+    "title": "Epic: MCP Tool Gateway — expose stdio MCP servers through Streamable HTTP",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.0-epic-mcp-gateway.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.1",
+    "canonicalTaskId": "T-207.1",
+    "title": "StdioSession: single-server stdio MCP client with lifecycle",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.1-stdio-session.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.2",
+    "canonicalTaskId": "T-207.2",
+    "title": "StdioPool: server pool manager with eager init and crash recovery",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.2-stdio-pool.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.3",
+    "canonicalTaskId": "T-207.3",
+    "title": "ToolRoutingRegistry: tool name to server name mapping",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.3-tool-routing-registry.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.4",
+    "canonicalTaskId": "T-207.4",
+    "title": "Extend MaenifoldHandler: delegate call_tool and list_tools",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.4-handler-delegation.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.5",
+    "canonicalTaskId": "T-207.5",
+    "title": "Config: gateway opt-in on McpServerEntry::Stdio",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.5-config-gateway-optin.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.6",
+    "canonicalTaskId": "T-207.6",
+    "title": "Error semantics: JSON-RPC errors, timeouts, cancellation",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.6-error-semantics.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.7",
+    "canonicalTaskId": "T-207.7",
+    "title": "Rust integration test + dashboard demo page",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.7-integration-test-demo.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.8",
+    "canonicalTaskId": "T-207.8",
+    "title": "Migrate pipeline driver external_mcp.rs to use StdioPool",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.8-pipeline-driver-migration.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-207.9",
+    "canonicalTaskId": "T-207.9",
+    "title": "Migrate /api/discovery/mcp-tools to use StdioPool cache",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-207.9-discovery-pool-cache.md",
+    "linked": false,
+    "issue": ""
+  }
+]

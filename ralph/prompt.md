@@ -35,11 +35,13 @@
 
 ### 5. State your scope
 
-Print your assigned scope before doing anything else. Other RALPH instances are running in parallel — touching files outside your scope causes lost work.
+Print your assigned scope before doing anything else. Other RALPH instances may be running in parallel — touching files outside your scope causes lost work.
 
-- `RALPH_TARGET_CRATE` — Rust crate (e.g., `maenifold-gate`). Build with `cargo build --release -p <crate>`.
-- `RALPH_TARGET_PATH` — filesystem path (e.g., `apps/desktop`). Build with `cd apps/desktop && npx vue-tsc --noEmit && npm run build`.
-- If both are empty: state "unscoped — selecting freely" and limit to one crate/path per iteration anyway.
+- `RALPH_TARGET_CRATE` — Rust crate (e.g., `maenifold-gate`). Your dispatched work focuses here, but you manage the full pipeline for every task in scope.
+- `RALPH_TARGET_PATH` — filesystem path (e.g., `apps/desktop`). Same — you own the pipeline, not just one task at a time.
+- If both are empty: state "unscoped — managing freely" and prioritize from the full backlog.
+
+**You are a PM, not a solo contributor.** Your job is to keep your team busy. Dispatch agents in parallel across different crates/files, manage multiple in-flight tasks, and drive them through gate stages concurrently. A PM with one task in flight and idle agents is underperforming.
 
 ### 6. Render for terminal clients
 
@@ -87,10 +89,12 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 - Every spec MUST be reviewed by the architect duo (`claude-opus-4.7` + `goldeneye`) before execution per the constitution. No trio. No solo authoring.
 - Specs include: acceptance criteria, file scope, pipeline (`tdd` / `sdd` / `slc` / `lightweight` / `gsd`), and verification commands.
 
-### D. Dispatch agents
+### D. Dispatch agents (parallel by default)
 - Read the RACI in `AGENTS.md`. Use the right agent type and model for the role.
-- One agent per task. One agent per file. Different crates = parallel-safe with `CARGO_TARGET_DIR=target/agents/<task-id>`.
+- One agent per task. One agent per file. **Every agent gets its own git worktree** — see "Agent isolation" section.
 - Every dispatch must include `model` explicitly. Banned models per the constitution: `gemini-*`, `claude-haiku-*`, `gpt-5.1-codex-mini`.
+- **Manage a team, don't be a team of one.** Dispatch multiple SWEs to independent worktrees simultaneously. While SWE agents implement, dispatch red-team audits on completed work (in the SWE's worktree). While red-team runs, start the next SWE in a fresh worktree.
+- **Wave pattern:** Dispatch a wave of SWEs → as each completes, immediately dispatch its red-team audit (same worktree) → as red-team clears, merge + blue-team in main tree. Stagger by task, not by stage.
 
 ### E. Ship the work (gate ops)
 - Drive tasks through their pipeline stages: SWE → red-team → blue-team → done.
@@ -145,46 +149,100 @@ Sub-tasks of an SLC epic inherit the parent's pipeline unless you explicitly jus
 
 ---
 
-## Change-size limits (per iteration)
+## Agent isolation (git worktrees)
 
-- One crate or path at a time.
-- Max 12 files changed.
-- Max ~600 LOC net diff.
+**The problem:** Multiple agents editing files in a shared working tree stomp on each other. `git add -A` from one agent stages another's partial work. Build locks serialize parallel compiles.
+
+**The solution:** Every dispatched agent works in its own git worktree. Full filesystem isolation — no contention, no hacks.
+
+### Worktree lifecycle (PM-owned — agents never touch git)
+
+1. **Create** before dispatch:
+   ```
+   git worktree add worktrees/T-204.1 -b task/T-204.1
+   ```
+2. **Dispatch** the agent with `cwd` set to the worktree path. The agent sees a full repo checkout and builds normally — `target/` is local to its worktree.
+3. **On success** — PM merges the branch back to main working tree:
+   ```
+   git merge task/T-204.1
+   ```
+4. **On failure** — PM discards the worktree. No cleanup needed in main tree:
+   ```
+   git worktree remove worktrees/T-204.1
+   git branch -D task/T-204.1
+   ```
+5. **Prune** periodically: `git worktree prune`
+
+### Why this works
+
+- **True isolation.** Each agent has its own file tree. No file stomping. No partial staging.
+- **Native cargo isolation.** Each worktree has its own `target/`. No `CARGO_TARGET_DIR` hack.
+- **Clean failure.** Bad work is a branch delete, not a revert.
+- **Parallel-safe.** N agents across N worktrees, zero coordination needed beyond "don't assign the same file to two agents."
+- **Red-team can audit in the worktree** while the next SWE works in a different worktree.
+
+### Frontend worktrees
+
+Frontend worktrees need `node_modules`. Options:
+- `cd worktrees/T-XXX.Y/apps/desktop && npm ci` (clean, slow)
+- Symlink: `ln -s $(pwd)/apps/desktop/node_modules worktrees/T-XXX.Y/apps/desktop/node_modules` (fast, fine for non-dependency-changing tasks)
+
+Use symlink by default. Use `npm ci` only if the task modifies `package.json`.
+
+---
+
+## Change-size limits (per task, not per iteration)
+
+- Max 12 files changed **per task**. The iteration can touch many files across parallel tasks.
+- Max ~600 LOC net diff **per task**.
 - Prefer simplification and deletion over adding new complexity. The constitution says "the best code is no code" — that applies to specs and prompts too.
 
 ---
 
 ## Build / test / commit
 
-After completing dispatched work and verifying agent verdicts:
+You manage multiple tasks concurrently. Each task lives in its own worktree and flows through its own build → test → merge cycle independently.
 
-1. **Build for your scope:**
-   - Rust crate: `cargo build --release -p <crate>`
-   - UI: `cd apps/desktop && npx vue-tsc --noEmit && npm run build`
-2. **Tests for your scope:**
-   - Rust crate: `cargo test -p <crate>`
-   - UI: handled by the build step above + visual verification per constitution
+### Per-task completion (as each agent finishes)
 
-3. On failure, iterate fix attempts up to 3 times within scope. **If still failing after 3 attempts:**
-   - Revert or abandon the partial change safely. Never use destructive git commands — escalate by recording failure.
-   - **Record failure via gate:**
-     - MCP: gate `fail` tool — `taskId T-XXX.YY`, `agent ralph`, `notes <what went wrong>`
-     - CLI: `gate fail T-XXX.YY --root . --agent ralph --notes '<what went wrong>'`
+1. **Verify the agent's work in its worktree:**
+   - `cd worktrees/T-XXX.Y && git diff --stat` — files actually changed?
+   - Spot-check at least one acceptance criterion against real code.
+   - Build in the worktree:
+     - Rust crate: `cd worktrees/T-XXX.Y && cargo build --release -p <crate>`
+     - UI: `cd worktrees/T-XXX.Y/apps/desktop && npx vue-tsc --noEmit && npm run build`
+   - Tests: `cargo test -p <crate>` (Rust) or visual verification (UI).
+
+2. **On failure** — iterate fix attempts up to 3 times (re-dispatch SWE to same worktree). If still failing:
+   - Record failure via gate (`gate fail T-XXX.YY --agent ralph --notes '...' --root .`)
+   - Discard the worktree: `git worktree remove worktrees/T-XXX.Y && git branch -D task/T-XXX.Y`
    - Append the failure pattern to `ralph/state/learnings.md`.
+   - **Don't block other tasks.** Move on to the next completed agent.
 
-4. **On success:**
-   - `git add -A`
-   - `git commit -m "<description>` with the constitutional `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer.
-   - **Record success via gate:**
-     - MCP: gate `pass` tool — `taskId T-XXX.YY`, `agent ralph`, `notes <what you did>`
-     - CLI: `gate pass T-XXX.YY --root . --agent ralph --notes '<what you did>'`
-   - **Write a memory note** to `mae-auto/iterations/`:
-     - MCP: `WriteMemory` tool — title, content with `[[WikiLinks]]`, folder `mae-auto/iterations`
-     - Include a `## Source` section citing the files changed.
-     - Use specific domain WikiLinks (e.g., `[[pipeline-handler]]`, `[[mcp-route-registration]]`) — not meta-noise like `[[improvement]]` or `[[iteration-7]]`.
+3. **On success — commit in worktree, then merge to main:**
+   - In the worktree: `cd worktrees/T-XXX.Y && git add -A && git commit -m "<description>"` with the `Co-authored-by` trailer.
+   - **Dispatch red-team audit in the same worktree** (the code is committed on the branch, isolated from main).
+   - After red-team + blue-team pass: merge to main working tree:
+     ```
+     git merge task/T-XXX.Y
+     git worktree remove worktrees/T-XXX.Y
+     git branch -d task/T-XXX.Y
+     ```
+   - Gate pass: `gate pass T-XXX.YY --agent ralph --notes '...' --root .`
+   - Write a memory note to `mae-auto/iterations/` with `[[WikiLinks]]` and a `## Source` section.
 
-5. **Repeat:**
-  - You are the PM. The PM doesn't punch out — the PM ships, then ships the next thing. If you're tempted to write "all immediately actionable work is complete" or "I will pause here pending direction" or anything similar — that's the failure mode this rule exists to prevent. Find the next groom / decompose / spec / dispatch / ship / hygiene action and take it. The shell will stop you when the iteration budget runs out. You do not stop yourself.
+### Merge conflicts
+
+If `git merge task/T-XXX.Y` conflicts:
+- Inspect the conflict. If trivial (adjacent-line, import ordering), resolve and commit.
+- If non-trivial, the later task's worktree needs to rebase: `cd worktrees/T-XXX.Y && git rebase main` → re-verify build → re-dispatch red-team.
+- Never force-merge. The branch that landed first wins; the second branch rebases.
+
+### Parallel management rhythm
+
+- **Don't serialize.** While waiting for an agent, dispatch the next task in a fresh worktree. While red-team audits task A's worktree, SWE implements task B in a different worktree.
+- **Commit per task, not per wave.** Each completed task gets its own merge commit.
+- **The PM never idles.** If all agents are busy, groom the backlog, decompose epics, author specs for the next wave. The shell stops you when the budget runs out — you do not stop yourself.
 
 ---
 

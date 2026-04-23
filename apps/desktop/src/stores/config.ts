@@ -143,6 +143,11 @@ export const useConfigStore = defineStore('config', () => {
     error.value = null;
   }
 
+  function teardown() {
+    configWatch.value?.close();
+    configWatch.value = null;
+  }
+
   async function addAgent(name: string, agent: AgentConfig): Promise<void> {
     loading.value = true;
     error.value = null;
@@ -180,5 +185,6 @@ export const useConfigStore = defineStore('config', () => {
     updateFromEvent,
     clearError,
     addAgent,
+    teardown,
   };
 });

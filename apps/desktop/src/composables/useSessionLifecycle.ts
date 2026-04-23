@@ -1,4 +1,5 @@
 // Session lifecycle composable — composition root for startup and connection flows.
+import { onScopeDispose } from 'vue';
 import type { SessionState } from '../lib/types';
 import type { SessionRuntimeDeps } from './session-runtime-deps';
 import { useSessionConnection } from './useSessionConnection';
@@ -64,7 +65,7 @@ export function useSessionLifecycle({
     }
   }, 500);
 
-  void bridgeClosePoll;
+  onScopeDispose(() => globalThis.clearInterval(bridgeClosePoll));
 
   return {
     performInitialization: startup.performInitialization,

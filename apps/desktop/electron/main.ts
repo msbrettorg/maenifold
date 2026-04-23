@@ -1,5 +1,4 @@
 import { execSync } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
@@ -87,11 +86,6 @@ function registerIpcHandlers(): void {
     const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openDirectory'] });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
-  ipcMain.handle('dialog:open-file', async () => {
-    const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openFile'] });
-    return result.canceled ? null : (result.filePaths[0] ?? null);
-  });
-  ipcMain.handle('file:read-binary', async (_event, filePath: string) => readFile(filePath));
   ipcMain.handle('app:get-version', () => app.getVersion());
 }
 

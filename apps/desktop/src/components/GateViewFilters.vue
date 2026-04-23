@@ -88,9 +88,9 @@ const emit = defineEmits<{
 }
 
 .gate-filters :deep(.gate-filters__search:focus) {
-  border-color: rgb(77 142 255 / 0.4);
+  border-color: color-mix(in srgb, var(--color-brand) 40%, transparent);
   background: var(--surface-high);
-  box-shadow: 0 0 0 2px rgb(77 142 255 / 0.15);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 15%, transparent);
 }
 
 .gate-toggle {

@@ -19,7 +19,7 @@ mermaid.initialize({
   theme: 'dark',
   themeVariables: {
     primaryColor: readCssToken('--color-brand', '#0078D4'),
-    primaryTextColor: '#fff',
+    primaryTextColor: readCssToken('--color-text-primary', '#FFFFFF'),
     primaryBorderColor: 'var(--color-border-card)',
     lineColor: readCssToken('--color-text-secondary', '#A0AAB2'),
     secondaryColor: readCssToken('--color-bg-surface', '#333333'),

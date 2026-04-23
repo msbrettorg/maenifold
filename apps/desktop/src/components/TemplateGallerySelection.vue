@@ -14,30 +14,30 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="gallery-selection">
-    <div v-if="template.runInputs.length > 0" class="gallery-runtime-inputs">
-      <span class="gallery-field-label">Run-time inputs</span>
-      <ul class="gallery-runtime-input-list">
+  <div class="flex flex-col gap-3 p-4 w-[min(100%,720px)] border border-[var(--color-border-subtle)] rounded-[0.25rem] bg-[var(--surface)]">
+    <div v-if="template.runInputs.length > 0" class="flex flex-col gap-[0.4rem]">
+      <span class="text-[0.75rem] font-normal text-[var(--text-secondary)]">Run-time inputs</span>
+      <ul class="m-0 pl-4 flex flex-col gap-1">
         <li
           v-for="input in template.runInputs"
           :key="input.key"
-          class="gallery-runtime-input-item"
+          class="text-text-primary text-[0.875rem]"
         >
-          <span class="gallery-runtime-input-name">
+          <span class="font-[number:var(--weight-display)]">
             {{ input.label }}
-            <span v-if="input.required" class="gallery-runtime-input-required">*</span>
+            <span v-if="input.required" class="text-[var(--terracotta)]">*</span>
           </span>
-          <span v-if="input.description" class="gallery-runtime-input-desc">
+          <span v-if="input.description" class="text-[var(--text-secondary)] text-[0.75rem]">
             {{ input.description }}
           </span>
         </li>
       </ul>
-      <p class="gallery-runtime-note">
+      <p class="text-[var(--text-secondary)] text-[0.75rem]">
         These values are requested when you run the pipeline, not when you create it.
       </p>
     </div>
 
-    <div class="gallery-actions">
+    <div class="flex items-center justify-center gap-3">
       <Button
         type="button"
         :disabled="!canCreate || !hasIntentAgent"
@@ -48,62 +48,3 @@ defineEmits<{
     </div>
   </div>
 </template>
-
-<style scoped>
-.gallery-selection {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem;
-  width: min(100%, 720px);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface);
-}
-
-.gallery-field-label {
-  font-size: 0.75rem;
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.gallery-runtime-inputs {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.gallery-runtime-input-list {
-  margin: 0;
-  padding-left: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.gallery-runtime-input-item {
-  color: var(--color-text-primary);
-  font-size: 0.875rem;
-}
-
-.gallery-runtime-input-name {
-  font-weight: var(--weight-display);
-}
-
-.gallery-runtime-input-required {
-  color: var(--terracotta);
-}
-
-.gallery-runtime-input-desc,
-.gallery-runtime-note {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.gallery-actions {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-</style>

@@ -15,15 +15,21 @@ watch(() => props.failureReason, () => {
 </script>
 
 <template>
-  <div v-if="failureReason" class="zoom-failure-alert" role="alert">
-    <strong>Failure reason</strong>
+  <!-- audit-ok: dynamic-binding (color-mix blend of status-abandoned with surface fallback chain not expressible as a single token) -->
+  <div
+    v-if="failureReason"
+    class="mt-[var(--space-3)] mx-[var(--space-4)] p-[var(--space-3)] rounded-[4px] text-[var(--color-status-abandoned)]"
+    style="background: color-mix(in srgb, var(--color-status-abandoned) 10%, var(--color-neutral-background-3, var(--card, var(--surface-container))));"
+    role="alert"
+  >
+    <strong class="block font-[family-name:var(--font-display)] text-[length:var(--text-caption)] font-[number:var(--weight-title)] mb-[var(--space-1)]">Failure reason</strong>
     <pre
-      class="zoom-failure-pre"
-      :class="{ 'zoom-failure-pre--collapsed': isLong && !isExpanded }"
+      class="m-0 font-mono text-[length:var(--text-tiny)] leading-[1.5] whitespace-pre-wrap break-words text-inherit max-h-[160px] overflow-y-auto"
+      :class="{ 'max-h-[3em] overflow-hidden': isLong && !isExpanded }"
     >{{ failureReason }}</pre>
     <Button
       v-if="isLong"
-      class="zoom-failure-toggle"
+      class="mt-[var(--space-1)] p-0 text-[var(--color-status-abandoned)] font-[family-name:var(--font-body)] text-[length:var(--text-tiny)] opacity-80 hover:opacity-100 hover:underline"
       variant="link"
       size="sm"
       type="button"
@@ -33,52 +39,3 @@ watch(() => props.failureReason, () => {
     </Button>
   </div>
 </template>
-
-<style scoped>
-.zoom-failure-alert {
-  margin: var(--space-3) var(--space-4) 0;
-  padding: var(--space-3);
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-status-abandoned) 10%, var(--color-neutral-background-3, var(--card, var(--surface-container))));
-  color: var(--color-status-abandoned);
-}
-
-.zoom-failure-alert strong {
-  display: block;
-  font-family: var(--font-display);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-  margin-bottom: var(--space-1);
-}
-
-.zoom-failure-pre {
-  margin: 0;
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  line-height: 1.5;
-  white-space: pre-wrap;
-  word-break: break-word;
-  color: inherit;
-  max-height: 160px;
-  overflow-y: auto;
-}
-
-.zoom-failure-pre--collapsed {
-  max-height: 3em;
-  overflow: hidden;
-}
-
-.zoom-failure-toggle {
-  margin-top: var(--space-1);
-  padding: 0;
-  color: var(--color-status-abandoned);
-  font-family: var(--font-body);
-  font-size: var(--text-tiny);
-  opacity: 0.8;
-}
-
-.zoom-failure-toggle:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-</style>

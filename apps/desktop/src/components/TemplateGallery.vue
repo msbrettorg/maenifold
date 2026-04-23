@@ -76,7 +76,7 @@ function handleIntentInput(value: string): void {
 </script>
 
 <template>
-  <div class="template-gallery flex flex-1 flex-col items-center px-8 pt-[16vh]">
+  <div class="flex flex-1 flex-col items-center gap-6 px-8 py-6 h-full overflow-y-auto">
     <TemplateGalleryIntentForm
       :error="intentError"
       :has-intent-agent="hasIntentAgent"
@@ -86,14 +86,14 @@ function handleIntentInput(value: string): void {
       @update:model-value="handleIntentInput"
     />
 
-    <section class="gallery-card-section">
+    <section class="flex flex-col items-center gap-3 w-full text-center">
       <div class="mt-6 mb-3 text-[11px] font-semibold tracking-wider text-text-tertiary">
         Or choose a template
       </div>
-      <p v-if="!hasIntentAgent" class="gallery-agent-warning" role="alert">
+      <p v-if="!hasIntentAgent" class="m-0 text-[0.75rem] text-[var(--terracotta)] text-center" role="alert">
         Configure an agent before creating a pipeline.
       </p>
-      <div class="gallery-cards w-full max-w-[800px]">
+      <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,180px))] gap-3 justify-center w-full max-w-[800px]">
         <TemplateGalleryCard
           v-for="template in availableTemplates"
           :key="template.id"
@@ -113,38 +113,3 @@ function handleIntentInput(value: string): void {
     />
   </div>
 </template>
-
-<style scoped>
-.template-gallery {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.5rem;
-  padding-block: 1.5rem;
-  height: 100%;
-  overflow-y: auto;
-}
-
-.gallery-card-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  width: 100%;
-  text-align: center;
-}
-
-.gallery-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 180px));
-  gap: 0.75rem;
-  justify-content: center;
-}
-
-.gallery-agent-warning {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--terracotta);
-  text-align: center;
-}
-</style>

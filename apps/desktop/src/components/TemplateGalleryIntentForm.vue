@@ -15,9 +15,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="gallery-hero w-full">
+  <section class="w-full flex flex-col items-center justify-center pt-4 pb-1">
     <h3 class="text-lg font-semibold text-text-primary text-center mb-4">What would you like to do?</h3>
-    <form class="gallery-intent-form" @submit.prevent="$emit('submit')">
+    <form class="w-full flex flex-col items-center gap-3" @submit.prevent="$emit('submit')">
       <div
         class="rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)] w-full max-w-[800px]"
       >
@@ -33,50 +33,15 @@ const emit = defineEmits<{
           @update:model-value="(val: string | number) => emit('update:modelValue', String(val))"
         />
       </div>
-      <p v-if="props.error" class="gallery-intent-error" role="alert">
+      <p v-if="props.error" class="m-0 text-[0.75rem] text-center text-[var(--terracotta)]" role="alert">
         {{ props.error }}
       </p>
-      <p class="gallery-intent-hint">
+      <p class="m-0 text-[0.75rem] text-center text-[var(--text-secondary)]">
         Press Enter to start designing your pipeline.
       </p>
-      <p v-if="!props.hasIntentAgent" class="gallery-agent-warning" role="alert">
+      <p v-if="!props.hasIntentAgent" class="m-0 text-[0.75rem] text-center text-[var(--terracotta)]" role="alert">
         Configure an agent before creating a pipeline.
       </p>
     </form>
   </section>
 </template>
-
-<style scoped>
-.gallery-hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem 0 0.25rem;
-}
-
-.gallery-intent-form {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.gallery-intent-hint,
-.gallery-intent-error,
-.gallery-agent-warning {
-  margin: 0;
-  font-size: 0.75rem;
-  text-align: center;
-}
-
-.gallery-intent-hint {
-  color: var(--text-secondary);
-}
-
-.gallery-intent-error,
-.gallery-agent-warning {
-  color: var(--terracotta);
-}
-</style>

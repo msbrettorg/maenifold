@@ -1,101 +1,71 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
 
-defineProps<{
+const props = defineProps<{
   displayLabel: string;
   nodeType: string;
   statusLabel: string;
 }>();
+
+const NODE_TYPE_BG: Record<string, string> = {
+  prompt: 'var(--color-node-prompt-15)',
+  sequentialThinking: 'var(--color-node-thinking-15)',
+  tool: 'var(--color-node-tool-15)',
+  workflow: 'var(--color-node-workflow-15)',
+};
+
+const STATUS_BG: Record<string, string> = {
+  active: 'var(--color-status-active-15)',
+  completed: 'var(--color-status-completed-15)',
+  abandoned: 'var(--color-status-abandoned-15)',
+  ready: 'var(--color-status-ready-15)',
+};
+
+const STATUS_FG: Record<string, string> = {
+  active: 'var(--color-status-active)',
+  completed: 'var(--color-status-completed)',
+  abandoned: 'var(--color-status-abandoned)',
+  ready: 'var(--color-status-ready)',
+};
+
+const pillStyle = computed(() => ({
+  background: NODE_TYPE_BG[props.nodeType] ?? 'var(--color-node-workflow-15)',
+}));
+
+const statusStyle = computed(() => ({
+  background: STATUS_BG[props.statusLabel] ?? 'var(--color-status-pending-15)',
+  color: STATUS_FG[props.statusLabel] ?? 'var(--color-text-secondary)',
+}));
 </script>
 
 <template>
-  <header class="zoom-header">
-    <div class="zoom-header-left">
-      <span class="zoom-node-id">{{ displayLabel }}</span>
-      <span :class="['zoom-type-pill', `zoom-type--${nodeType}`]">{{ nodeType }}</span>
-      <span :class="['zoom-status', `zoom-status--${statusLabel}`]">{{ statusLabel }}</span>
+  <header class="flex items-center justify-between py-[var(--space-3)] px-[var(--space-4)] bg-[var(--accent,var(--surface-highest))]">
+    <div class="flex items-center gap-[var(--space-2)]">
+      <span class="font-mono text-[length:var(--text-caption)] font-[number:var(--weight-title)] text-text-primary">{{ displayLabel }}</span>
+      <!-- audit-ok: dynamic-binding (background tied to nodeType variant via color-mix tokens) -->
+      <span
+        class="rounded-[4px] text-[length:var(--text-tiny)] py-[2px] px-[8px] text-text-primary"
+        :style="pillStyle"
+      >{{ nodeType }}</span>
+      <!-- audit-ok: dynamic-binding (background and color tied to statusLabel variant via color-mix tokens) -->
+      <span
+        class="rounded-[4px] text-[length:var(--text-tiny)] py-[2px] px-[6px]"
+        :style="statusStyle"
+      >{{ statusLabel }}</span>
     </div>
     <DialogClose as-child>
-      <Button class="zoom-close" variant="ghost" size="icon" aria-label="Close inspection" title="Close (Esc)">
+      <Button
+        class="text-text-secondary p-[var(--space-1)] leading-none rounded-[var(--radius-sm)] hover:text-text-primary hover:bg-[var(--color-bg-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-brand)] focus-visible:outline-offset-2"
+        variant="ghost"
+        size="icon"
+        aria-label="Close inspection"
+        title="Close (Esc)"
+      >
         <X class="size-4" />
       </Button>
     </DialogClose>
   </header>
 </template>
-
-<style scoped>
-.zoom-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  background: var(--accent, var(--surface-highest));
-}
-
-.zoom-header-left {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.zoom-node-id {
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-  color: var(--color-text-primary);
-}
-
-.zoom-type-pill,
-.zoom-status {
-  border-radius: 4px;
-  font-size: var(--text-tiny);
-}
-
-.zoom-type-pill {
-  padding: 2px 8px;
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-node-workflow) 15%, transparent);
-}
-
-.zoom-type--prompt {
-  background: color-mix(in srgb, var(--color-node-prompt) 15%, transparent);
-}
-
-.zoom-type--sequentialThinking {
-  background: color-mix(in srgb, var(--color-node-thinking) 15%, transparent);
-}
-
-.zoom-type--tool {
-  background: color-mix(in srgb, var(--color-node-tool) 15%, transparent);
-}
-
-.zoom-status {
-  padding: 2px 6px;
-  color: var(--color-text-secondary);
-  background: color-mix(in srgb, var(--color-status-pending) 15%, transparent);
-}
-
-.zoom-status--active { background: color-mix(in srgb, var(--color-status-active) 15%, transparent); color: var(--color-status-active); }
-.zoom-status--completed { background: color-mix(in srgb, var(--color-status-completed) 15%, transparent); color: var(--color-status-completed); }
-.zoom-status--abandoned { background: color-mix(in srgb, var(--color-status-abandoned) 15%, transparent); color: var(--color-status-abandoned); }
-.zoom-status--ready { background: color-mix(in srgb, var(--color-status-ready) 15%, transparent); color: var(--color-status-ready); }
-
-.zoom-close {
-  color: var(--color-text-secondary);
-  padding: var(--space-1);
-  line-height: 1;
-  border-radius: var(--radius-sm);
-}
-
-.zoom-close:hover {
-  color: var(--color-text-primary);
-  background: var(--color-bg-surface);
-}
-
-.zoom-close:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 2px;
-}
-</style>

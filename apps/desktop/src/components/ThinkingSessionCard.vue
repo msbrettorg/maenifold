@@ -122,7 +122,7 @@ function onAfterLeave(element: Element): void {
   border-radius: var(--radius);
   border-left: 3px solid var(--color-node-prompt);
   color: var(--thinking-card-text);
-  box-shadow: 0 6px 18px color-mix(in srgb, var(--color-bg-app) 28%, transparent);
+  box-shadow: var(--shadow-16);
   overflow: hidden;
 }
 .card-header {

@@ -176,7 +176,7 @@ function formatAbsolute(iso: string): string {
   padding: 0.875rem 1rem;
   color: var(--workflow-card-text);
   font-size: var(--text-caption);
-  box-shadow: 0 2px 8px color-mix(in srgb, var(--color-bg-app) 35%, transparent);
+  box-shadow: var(--shadow-8);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

@@ -75,7 +75,7 @@ const indicatorColor = computed(() =>
   color: var(--color-text-primary);
   font-size: var(--text-sm);
   font-weight: var(--weight-title);
-  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-bg-app) 15%, transparent);
+  box-shadow: var(--shadow-8);
   pointer-events: none;
 }
 

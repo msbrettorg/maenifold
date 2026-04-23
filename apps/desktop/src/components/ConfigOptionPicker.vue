@@ -210,13 +210,13 @@ onUnmounted(() => {
   background: var(--color-bg-app);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius);
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--color-bg-app) 15%, transparent);
+  box-shadow: var(--shadow-8);
   z-index: 100;
 }
 
 @media (prefers-color-scheme: dark) {
   .dropdown-menu {
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--color-bg-app) 40%, transparent);
+    box-shadow: var(--shadow-8);
   }
 }
 

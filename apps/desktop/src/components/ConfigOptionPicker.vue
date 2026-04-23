@@ -72,227 +72,115 @@ onUnmounted(() => {
 <template>
   <div
     ref="pickerRef"
-    class="config-option-picker"
+    class="relative inline-block"
     :title="option.description || option.name"
   >
     <Button
       variant="outline"
       size="sm"
-      class="config-option-button"
+      class="flex items-center gap-1.5 px-2.5 py-1.5 max-w-[200px] border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)] text-[var(--color-text-primary)] text-xs cursor-pointer transition-all duration-150 ease-in-out hover:bg-[var(--color-bg-surface)] hover:border-[var(--color-brand)]"
       :aria-controls="listboxId"
       :aria-expanded="isOpen"
       :aria-haspopup="'listbox'"
       :aria-label="optionPickerLabel"
       @click.stop="toggleDropdown"
     >
-      <span class="config-option-icon">
+      <span class="text-[length:var(--text-body-sm)] shrink-0">
         {{ getOptionIcon(option.currentValue, option.category) }}
       </span>
-      <span class="config-option-name">
+      <span class="font-[number:var(--weight-display)] whitespace-nowrap overflow-hidden text-ellipsis">
         {{ currentOption?.name || option.currentValue || option.name }}
       </span>
-      <span class="dropdown-arrow">{{ isOpen ? '▲' : '▼' }}</span>
+      <span class="text-xs text-[var(--color-text-secondary)] ml-1 shrink-0">{{ isOpen ? '▲' : '▼' }}</span>
     </Button>
 
-    <Transition name="dropdown">
+    <Transition
+      enter-active-class="transition-all duration-150 ease-out"
+      enter-from-class="opacity-0 -translate-y-1"
+      leave-active-class="transition-all duration-150 ease-out"
+      leave-to-class="opacity-0 -translate-y-1"
+    >
       <div
         v-if="isOpen"
         :id="listboxId"
-        class="dropdown-menu"
+        class="absolute top-[calc(100%+4px)] right-0 min-w-[280px] max-w-[360px] max-h-[320px] overflow-y-auto bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] rounded-[var(--radius)] shadow-[var(--shadow-8)] z-[100]"
         role="listbox"
         :aria-label="optionPickerLabel"
         @click.stop
       >
         <template
-          v-for="entry in option.options"
+          v-for="(entry, entryIndex) in option.options"
           :key="isGroup(entry) ? entry.group : entry.value"
         >
-          <div v-if="isGroup(entry)" class="dropdown-group" role="group" :aria-label="entry.name">
-            <div class="dropdown-group-header">{{ entry.name }}</div>
+          <div
+            v-if="isGroup(entry)"
+            class="[&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--color-border-subtle)]"
+            role="group"
+            :aria-label="entry.name"
+          >
+            <div class="px-3 py-2 text-xs font-[number:var(--weight-title)] text-[var(--color-text-secondary)] tracking-[0.04em]">
+              {{ entry.name }}
+            </div>
             <div
-              v-for="groupOption in entry.options"
+              v-for="(groupOption, groupIndex) in entry.options"
               :key="groupOption.value"
-              :class="['dropdown-item', { selected: groupOption.value === option.currentValue }]"
+              :class="[
+                'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-[var(--color-bg-surface)]',
+                groupIndex > 0 && 'border-t border-[var(--color-border-subtle)]',
+                groupOption.value === option.currentValue && 'bg-[color-mix(in_srgb,var(--color-brand)_24%,var(--color-bg-elevated))]',
+              ]"
               role="option"
               :aria-selected="groupOption.value === option.currentValue"
               @click="selectOption(groupOption.value)"
             >
-              <span class="item-icon">
+              <span class="text-[length:var(--text-body-sm)] shrink-0 mt-0.5">
                 {{ getOptionIcon(groupOption.value, option.category) }}
               </span>
-              <div class="item-content">
-                <span class="item-name">{{ groupOption.name }}</span>
-                <span v-if="groupOption.description" class="item-description">
+              <div class="flex-1 min-w-0">
+                <span class="block font-[number:var(--weight-display)] text-[var(--color-text-primary)] text-xs">{{ groupOption.name }}</span>
+                <span
+                  v-if="groupOption.description"
+                  class="block text-xs text-[var(--color-text-secondary)] mt-0.5 leading-snug"
+                >
                   {{ groupOption.description }}
                 </span>
               </div>
-              <span v-if="groupOption.value === option.currentValue" class="check-mark">✓</span>
+              <span
+                v-if="groupOption.value === option.currentValue"
+                class="text-[var(--color-brand)] font-[number:var(--weight-title)] ml-auto shrink-0"
+              >✓</span>
             </div>
           </div>
           <div
             v-else
-            :class="['dropdown-item', { selected: entry.value === option.currentValue }]"
+            :class="[
+              'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-[var(--color-bg-surface)]',
+              entryIndex > 0 && 'border-t border-[var(--color-border-subtle)]',
+              entry.value === option.currentValue && 'bg-[color-mix(in_srgb,var(--color-brand)_24%,var(--color-bg-elevated))]',
+            ]"
             role="option"
             :aria-selected="entry.value === option.currentValue"
             @click="selectOption(entry.value)"
           >
-            <span class="item-icon">
+            <span class="text-[length:var(--text-body-sm)] shrink-0 mt-0.5">
               {{ getOptionIcon(entry.value, option.category) }}
             </span>
-            <div class="item-content">
-              <span class="item-name">{{ entry.name }}</span>
-              <span v-if="entry.description" class="item-description">
+            <div class="flex-1 min-w-0">
+              <span class="block font-[number:var(--weight-display)] text-[var(--color-text-primary)] text-xs">{{ entry.name }}</span>
+              <span
+                v-if="entry.description"
+                class="block text-xs text-[var(--color-text-secondary)] mt-0.5 leading-snug"
+              >
                 {{ entry.description }}
               </span>
             </div>
-            <span v-if="entry.value === option.currentValue" class="check-mark">✓</span>
+            <span
+              v-if="entry.value === option.currentValue"
+              class="text-[var(--color-brand)] font-[number:var(--weight-title)] ml-auto shrink-0"
+            >✓</span>
           </div>
         </template>
       </div>
     </Transition>
   </div>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.config-option-picker {
-  position: relative;
-  display: inline-block;
-}
-
-.config-option-button {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.375rem 0.625rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-  color: var(--color-text-primary);
-  font-size: var(--text-caption);
-  cursor: pointer;
-  transition: all 0.15s ease;
-  max-width: 200px;
-}
-
-.config-option-button:hover {
-  background: var(--color-bg-surface);
-  border-color: var(--color-brand);
-}
-
-.config-option-icon {
-  font-size: var(--text-body-sm);
-  flex-shrink: 0;
-}
-
-.config-option-name {
-  font-weight: var(--weight-display);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.dropdown-arrow {
-  font-size: var(--text-tiny);
-  color: var(--color-text-secondary);
-  margin-left: 0.25rem;
-  flex-shrink: 0;
-}
-
-.dropdown-menu {
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  min-width: 280px;
-  max-width: 360px;
-  max-height: 320px;
-  overflow-y: auto;
-  background: var(--color-bg-app);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-8);
-  z-index: 100;
-}
-
-@media (prefers-color-scheme: dark) {
-  .dropdown-menu {
-    box-shadow: var(--shadow-8);
-  }
-}
-
-.dropdown-group + .dropdown-group,
-.dropdown-item + .dropdown-item,
-.dropdown-group + .dropdown-item,
-.dropdown-item + .dropdown-group {
-  border-top: 1px solid var(--color-border-subtle);
-}
-
-.dropdown-group-header {
-  padding: 0.5rem 0.75rem;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  color: var(--color-text-secondary);
-  letter-spacing: 0.04em;
-}
-
-.dropdown-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
-  padding: 0.625rem 0.75rem;
-  cursor: pointer;
-  transition: background 0.1s ease;
-}
-
-.dropdown-item:hover {
-  background: var(--color-bg-surface);
-}
-
-.dropdown-item.selected {
-  background: color-mix(in srgb, var(--color-brand) 24%, var(--color-bg-elevated));
-}
-
-.item-icon {
-  font-size: var(--text-body-sm);
-  flex-shrink: 0;
-  margin-top: 0.125rem;
-}
-
-.item-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.item-name {
-  display: block;
-  font-weight: var(--weight-display);
-  color: var(--color-text-primary);
-  font-size: var(--text-caption);
-}
-
-.item-description {
-  display: block;
-  font-size: var(--text-tiny);
-  color: var(--color-text-secondary);
-  margin-top: 0.125rem;
-  line-height: 1.3;
-}
-
-.check-mark {
-  color: var(--color-brand);
-  font-weight: var(--weight-title);
-  margin-left: auto;
-  flex-shrink: 0;
-}
-
-.dropdown-enter-active,
-.dropdown-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
-}
-
-.dropdown-enter-from,
-.dropdown-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
-</style>

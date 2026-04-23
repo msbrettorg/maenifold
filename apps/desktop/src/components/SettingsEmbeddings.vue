@@ -282,33 +282,33 @@ onUnmounted(() => {
 
 <template>
   <TooltipProvider :delay-duration="200">
-    <section class="settings-section" role="region" aria-label="Embeddings">
+    <section class="flex flex-col gap-4" role="region" aria-label="Embeddings">
       <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-        <div class="section-header">
+        <div class="flex justify-between gap-4 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-secondary max-sm:flex-col max-sm:items-stretch">
           <div>
-            <h3>Embeddings</h3>
-            <p>Embedding models for semantic search and concept similarity.</p>
+            <h3 class="m-0 font-display font-medium">Embeddings</h3>
+            <p class="m-0 text-text-secondary">Embedding models for semantic search and concept similarity.</p>
           </div>
           <Button
             type="button"
             variant="outline"
             size="sm"
-            class="regenerate-button"
+            class="rounded shrink-0"
             :disabled="regenerating"
             @click="openRegenerateDialog"
           >
-            <Loader2 v-if="regenerating" :size="14" class="spin mr-1" />
+            <Loader2 v-if="regenerating" :size="14" class="animate-spin mr-1" />
             <RefreshCw v-else :size="14" class="mr-1" />
             {{ regenerating ? 'Regenerating…' : 'Regenerate embeddings' }}
           </Button>
         </div>
 
-        <p v-if="error" class="message error" role="alert">{{ error }}</p>
+        <p v-if="error" class="m-0 text-danger text-[0.85rem] mt-2" role="alert">{{ error }}</p>
 
-        <div v-if="loading" class="loading-text">Loading model information…</div>
+        <div v-if="loading" class="p-4 text-text-secondary text-[0.85rem]">Loading model information…</div>
 
         <template v-else>
-          <Card size="sm" class="current-model-card">
+          <Card size="sm" class="mt-2">
             <CardHeader>
               <CardTitle class="text-sm">Current model</CardTitle>
               <CardDescription>
@@ -325,13 +325,13 @@ onUnmounted(() => {
             </CardHeader>
           </Card>
 
-          <div class="model-grid">
-            <Card v-for="model in models" :key="model.id" size="sm" class="model-card">
+          <div class="flex flex-col gap-3 mt-3">
+            <Card v-for="model in models" :key="model.id" size="sm">
               <CardHeader>
-                <div class="model-card-header">
-                  <div class="model-card-title">
+                <div class="flex justify-between gap-4 items-start w-full max-sm:flex-col max-sm:items-stretch">
+                  <div class="flex flex-col gap-1 min-w-0">
                     <CardTitle class="text-sm">{{ model.name }}</CardTitle>
-                    <CardDescription class="model-meta">
+                    <CardDescription class="text-[0.75rem]">
                       {{ model.dimensions }}d ·
                       {{ model.maxTokens }} max tokens ·
                       {{ formatSize(model.sizeBytes) }} ·
@@ -348,15 +348,15 @@ onUnmounted(() => {
                 </div>
               </CardHeader>
 
-              <CardContent class="model-extras">
-                <div v-if="model.mrlDimensions && model.mrlDimensions.length" class="mrl-row">
-                  <span class="extras-label">MRL:</span>
-                  <span class="extras-value">{{ model.mrlDimensions.join(' / ') }}</span>
+              <CardContent class="flex flex-col gap-1 text-[0.75rem] text-text-secondary">
+                <div v-if="model.mrlDimensions && model.mrlDimensions.length" class="flex items-center gap-[0.4rem]">
+                  <span class="text-text-tertiary">MRL:</span>
+                  <span class="text-text-primary tabular-nums">{{ model.mrlDimensions.join(' / ') }}</span>
                   <Tooltip>
                     <TooltipTrigger as-child>
                       <Button
                         type="button"
-                        class="info-trigger"
+                        class="inline-flex items-center justify-center bg-transparent border-0 p-[2px] text-text-tertiary cursor-help rounded-full hover:text-text-primary"
                         aria-label="What is MRL?"
                       >
                         <Info :size="12" />
@@ -373,13 +373,13 @@ onUnmounted(() => {
                   </Tooltip>
                 </div>
 
-                <div v-if="formatMteb(model.mtebRetrieval)" class="mteb-row">
-                  <span class="extras-label">MTEB retrieval:</span>
-                  <span class="extras-value">{{ formatMteb(model.mtebRetrieval) }}</span>
+                <div v-if="formatMteb(model.mtebRetrieval)" class="flex items-center gap-[0.4rem]">
+                  <span class="text-text-tertiary">MTEB retrieval:</span>
+                  <span class="text-text-primary tabular-nums">{{ formatMteb(model.mtebRetrieval) }}</span>
                 </div>
               </CardContent>
 
-              <CardFooter class="model-actions">
+              <CardFooter class="flex flex-wrap gap-2 items-center border-t border-border-card pt-3 mt-1">
                 <!-- Not installed: Download -->
                 <Button
                   v-if="!model.installed"
@@ -392,7 +392,7 @@ onUnmounted(() => {
                   <Loader2
                     v-if="pending[model.id] === 'downloading'"
                     :size="14"
-                    class="spin mr-1"
+                    class="animate-spin mr-1"
                   />
                   <Download v-else :size="14" class="mr-1" />
                   {{
@@ -416,7 +416,7 @@ onUnmounted(() => {
                     <Loader2
                       v-if="pending[model.id] === 'activating'"
                       :size="14"
-                      class="spin mr-1"
+                      class="animate-spin mr-1"
                     />
                     {{ pending[model.id] === 'activating' ? 'Activating…' : 'Activate' }}
                   </Button>
@@ -424,14 +424,14 @@ onUnmounted(() => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    class="delete-button"
+                    class="text-danger hover:text-danger"
                     :disabled="!!pending[model.id]"
                     @click="openDeleteDialog(model)"
                   >
                     <Loader2
                       v-if="pending[model.id] === 'deleting'"
                       :size="14"
-                      class="spin mr-1"
+                      class="animate-spin mr-1"
                     />
                     <Trash2 v-else :size="14" class="mr-1" />
                     {{ pending[model.id] === 'deleting' ? 'Deleting…' : 'Delete' }}
@@ -439,14 +439,14 @@ onUnmounted(() => {
                 </template>
 
                 <!-- Active: no destructive controls -->
-                <span v-else class="active-note">
+                <span v-else class="text-[0.75rem] text-text-tertiary">
                   Active model — switch to another installed model to manage this one.
                 </span>
               </CardFooter>
             </Card>
           </div>
 
-          <div v-if="hasDimensionWarning" class="warning-banner" role="status">
+          <div v-if="hasDimensionWarning" class="warning-banner mt-3 px-4 py-3 rounded-[var(--radius)] text-[0.8rem]" role="status">
             Switching to a model with different dimensions requires regenerating
             all embeddings.
           </div>
@@ -497,150 +497,8 @@ onUnmounted(() => {
   </TooltipProvider>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: color-mix requires raw CSS, no Tailwind equivalent -->
 <style scoped>
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-header {
-  margin-bottom: 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--color-text-secondary);
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.section-header h3,
-.section-header p,
-.message {
-  margin: 0;
-}
-
-.section-header h3 {
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.section-header p {
-  color: var(--color-text-secondary);
-}
-
-.message.error {
-  color: var(--color-danger);
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
-
-.loading-text {
-  padding: 1rem;
-  color: var(--color-text-secondary);
-  font-size: 0.85rem;
-}
-
-.current-model-card {
-  margin-top: 0.5rem;
-}
-
-.model-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.model-card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  align-items: flex-start;
-  width: 100%;
-}
-
-.model-card-title {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-
-.model-meta {
-  font-size: 0.75rem;
-}
-
-.model-extras {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-}
-
-.mrl-row,
-.mteb-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.extras-label {
-  color: var(--color-text-tertiary);
-}
-
-.extras-value {
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-
-.info-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  padding: 2px;
-  color: var(--color-text-tertiary);
-  cursor: help;
-  border-radius: 50%;
-}
-
-.info-trigger:hover {
-  color: var(--color-text-primary);
-}
-
-.model-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-  border-top: 1px solid var(--color-border-card);
-  padding-top: 0.75rem;
-  margin-top: 0.25rem;
-}
-
-.delete-button {
-  color: var(--color-danger);
-}
-
-.delete-button:hover {
-  color: var(--color-danger);
-}
-
-.regenerate-button {
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.active-note {
-  font-size: 0.75rem;
-  color: var(--color-text-tertiary);
-}
-
 .badge-active {
   background-color: color-mix(in srgb, var(--color-success) 18%, transparent);
   color: var(--color-success);
@@ -648,36 +506,7 @@ onUnmounted(() => {
 }
 
 .warning-banner {
-  margin-top: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
   background: color-mix(in srgb, var(--color-warning) 12%, transparent);
   color: var(--color-warning);
-  font-size: 0.8rem;
-}
-
-.spin {
-  animation: spin 1s linear infinite;
-}
-
-.mr-1 {
-  margin-right: 0.25rem;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (max-width: 640px) {
-  .section-header,
-  .model-card-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
 }
 </style>

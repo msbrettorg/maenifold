@@ -87,7 +87,12 @@ async function handlePromptSubmit(prompt: string): Promise<void> {
   }
 
   if (sessionStore.isConnected) {
-    await sessionStore.sendPrompt(trimmedPrompt);
+    const success = await sessionStore.sendPrompt(trimmedPrompt);
+    if (!success) {
+      // Surface failure to caller so post-send cleanup (e.g., clearing the
+      // composer input) is skipped and the user can retry without losing input.
+      return;
+    }
   }
 }
 

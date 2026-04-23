@@ -121,8 +121,9 @@ export function useSessionBootstrap({
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       const isAuthRequired =
-        errorMessage.toLowerCase().includes('authentication required') ||
-        errorMessage.includes('-32000');
+        (typeof (error as { code?: unknown })?.code === 'number' &&
+          (error as { code: number }).code === -32000) ||
+        errorMessage.toLowerCase().includes('authentication required');
 
       if (!isAuthRequired || authMethods.length === 0) {
         throw error;

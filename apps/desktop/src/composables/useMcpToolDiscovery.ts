@@ -24,5 +24,6 @@ export function useMcpToolDiscovery() {
     error,
     hasLoadedCatalog,
     refreshTools: store.refreshTools,
+    cancelInflightRefresh: store.cancelInflightRefresh,
   };
 }

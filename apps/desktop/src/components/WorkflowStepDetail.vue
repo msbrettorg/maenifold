@@ -95,9 +95,8 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   </li>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — Custom-property declarations (--workflow-step-*) defined on .step-row use color-mix() and design tokens; .step-response uses :deep() to style sanitized v-html markdown (p, code, table, ul, .wiki-pill). Status modifier classes (step-active/done/pending) are JS-emitted from stepStatusClass(); cannot be replaced with utility classes without losing the dynamic mapping. -->
 <style scoped>
-/* ── Step row ───────────────────────────────────────────────────────────────── */
 .step-row {
   --workflow-step-primary: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
   --workflow-step-muted: color-mix(in srgb, var(--color-text-primary) 58%, var(--color-text-secondary));
@@ -110,7 +109,6 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   border-radius: 4px;
   overflow: hidden;
 }
-
 .step-main {
   display: flex;
   align-items: center;
@@ -119,15 +117,12 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   padding: 0 0.25rem;
   border-radius: 4px;
 }
-
 .step-main.clickable {
   cursor: pointer;
 }
-
 .step-main.clickable:hover {
   background: color-mix(in srgb, var(--color-bg-surface) 80%, var(--color-bg-app));
 }
-
 .step-num {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
@@ -135,16 +130,20 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   min-width: 1.5rem;
   text-align: right;
 }
-
-.step-icon {
+.step-icon,
+.submachine-badge {
   font-size: var(--text-tiny);
   flex-shrink: 0;
 }
-
-.step-done { color: var(--color-status-completed); }
-.step-active { color: var(--color-status-active); }
-.step-pending { color: var(--workflow-step-subtle); }
-
+.step-done {
+  color: var(--color-status-completed);
+}
+.step-active {
+  color: var(--color-status-active);
+}
+.step-pending {
+  color: var(--workflow-step-subtle);
+}
 .step-name {
   flex: 1;
   white-space: nowrap;
@@ -153,26 +152,13 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   font-size: var(--text-caption);
   color: var(--workflow-step-primary);
 }
-
-.submachine-badge {
-  font-size: var(--text-tiny);
-  flex-shrink: 0;
-}
-
-.step-time {
-  font-size: var(--text-tiny);
-  color: var(--workflow-step-muted);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
+.step-time,
 .expand-chevron {
   font-size: var(--text-tiny);
   color: var(--workflow-step-muted);
   flex-shrink: 0;
+  white-space: nowrap;
 }
-
-/* ── Submachine connector ────────────────────────────────────────────────────── */
 .submachine-connector {
   display: flex;
   align-items: center;
@@ -180,13 +166,11 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   padding-left: 2.25rem;
   margin-bottom: 0.125rem;
 }
-
 .connector-line {
   color: var(--color-status-active);
   font-size: var(--text-tiny);
   line-height: 1;
 }
-
 .connector-label {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
@@ -195,8 +179,6 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
-/* ── Expanded response ───────────────────────────────────────────────────────── */
 .step-response {
   padding: 0.5rem 0.75rem;
   margin: 0.25rem 0 0.375rem 2.25rem;
@@ -207,19 +189,15 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   line-height: 1.55;
   overflow-x: auto;
 }
-
 .step-response :deep(p) {
   margin: 0.25rem 0;
 }
-
 .step-response :deep(p:first-child) {
   margin-top: 0;
 }
-
 .step-response :deep(p:last-child) {
   margin-bottom: 0;
 }
-
 .step-response :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
@@ -228,19 +206,16 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   border-radius: 4px;
   color: var(--workflow-step-link);
 }
-
 .step-response :deep(pre) {
   background: color-mix(in srgb, var(--color-bg-surface) 98%, var(--color-bg-app));
   border-radius: 4px;
   padding: 0.5rem;
   overflow-x: auto;
 }
-
 .step-response :deep(pre code) {
   background: none;
   padding: 0;
 }
-
 .step-response :deep(table) {
   border-collapse: collapse;
   width: 100%;
@@ -249,34 +224,27 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   overflow-x: auto;
   display: block;
 }
-
 .step-response :deep(th),
 .step-response :deep(td) {
   border: 1px solid var(--workflow-step-border);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
-
 .step-response :deep(th) {
   background: var(--color-bg-surface);
   font-weight: var(--weight-title);
 }
-
 .step-response :deep(tr:nth-child(even)) {
   background: var(--color-bg-elevated);
 }
-
 .step-response :deep(ul),
 .step-response :deep(ol) {
   margin: 0.25rem 0;
   padding-left: 1.25rem;
 }
-
 .step-response :deep(li) {
   margin: 0.125rem 0;
 }
-
-/* ── WikiLink pills ────────────────────────────────────────────────────────── */
 .step-response :deep(.wiki-pill) {
   display: inline-block;
   background: color-mix(in srgb, var(--color-brand) 18%, var(--color-bg-surface));

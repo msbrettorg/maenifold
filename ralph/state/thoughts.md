@@ -13,11 +13,16 @@ Stuff you learn should go in ralph/state/learnings.md
 - T-03.14 (memory leaks) — DONE. onScopeDispose for interval/drag cleanup, teardown() for EventSource.
 - T-03.15 (error handling) — DONE. Red-team caught P1 (sendPrompt swallowing errors → silent input loss). Fixed: returns boolean, ChatView/App.vue check before clearing input.
 
-## Wave 2 Ready
-T-03.2 through T-03.8 are component replacements unblocked by T-03.1 token infrastructure. Each is a substantial refactor requiring library installs + component rewrites. Next iteration should start these.
-- 105 components have `<style>` blocks — T-03.2 through T-03.8 will replace hand-rolled components after T-03.1 lands
-- 130+ distinct color-mix patterns in components — ~60 blend-to-transparent (use Tailwind opacity), ~70 two-color blends (pre-computed tokens or per-component migration)
-- T-03.9/T-03.10 prop drilling, T-03.11 WCAG contrast, T-03.16 final sweep all blocked on T-03.1
+## Wave 2 DONE — Wave 3 Ready
+T-03.2, T-03.3, T-03.4, T-03.7 all shipped. T-03.8 SWE dispatched (style migration for AgentSelector, ConfigOptionPicker, WorkflowStepTimeline).
+- Pre-installed deps in main tree before worktrees to avoid package.json merge conflicts
+- vue-json-pretty, markdown-it, @shikijs/markdown-it, @tanstack/vue-table, shadcn table+stepper all landed
+- WikiLink pills in KnowledgeNoteRenderer now via markdown-it inline plugin (html:false safe)
+- ThinkingMarkdownContent.vue deleted (consolidated into KnowledgeNoteRenderer with clamp prop)
+- PanelResizeHandle.vue deleted (WorkflowAuthoringPage uses shadcn ResizablePanelGroup)
+- T-03.4 spec was stale (SchemaForm.css didn't exist, prop counts wrong) — grounded and simplified to just SchemaFormRawEditor.vue style migration
+- T-03.8 spec updated: EmptyState dropped (already clean), WorkflowStepTimeline scoped to CSS migration not component replacement (it's a timeline, not a stepper)
+- Next: T-03.9/T-03.10 prop drilling, T-03.16 final sweep
 
 ## Backlog Notes
 - T-207.0 epic (MCP Gateway) and subtasks T-207.1–T-207.9 all at pending

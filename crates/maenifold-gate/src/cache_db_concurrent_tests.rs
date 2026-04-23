@@ -97,12 +97,10 @@ fn concurrent_read_during_write_does_not_fail_with_database_locked() {
     drop(write_conn);
 
     // Check reader results
-    let (successes, failures) = reader_handle.join().expect("reader thread panicked");
+    let (_successes, failures) = reader_handle.join().expect("reader thread panicked");
 
-    // With busy_timeout configured, all reads should eventually succeed.
+    // With busy_timeout configured, all reads should succeed.
     // Without busy_timeout, some reads may fail with "database is locked".
-    // We require at least 80% success rate for the test to pass.
-    let success_rate = (successes as f64) / 10.0;
     if !failures.is_empty() {
         eprintln!("Concurrent read failures ({} of 10):", failures.len());
         for failure in &failures {
@@ -110,9 +108,8 @@ fn concurrent_read_during_write_does_not_fail_with_database_locked() {
         }
     }
     assert!(
-        success_rate >= 0.8,
-        "concurrent reads should mostly succeed with busy_timeout; got {:.0}% success rate",
-        success_rate * 100.0
+        failures.is_empty(),
+        "all concurrent reads should succeed with busy_timeout; failures: {failures:?}",
     );
 }
 
@@ -177,15 +174,15 @@ fn concurrent_sync_and_list_does_not_deadlock() {
         .collect();
 
     for _ in 0..20 {
-        let _ = GateCacheDb::sync(&root, &tasks);
+        GateCacheDb::sync(&root, &tasks).expect("sync should succeed with busy_timeout");
         thread::sleep(Duration::from_millis(10));
     }
 
     let success_count = reader_handle.join().expect("reader panicked");
 
     // With WAL mode + busy_timeout, we expect most reads to succeed
-    assert!(
-        success_count >= 15,
-        "at least 15/20 concurrent list_task_status calls should succeed; got {success_count}"
+    assert_eq!(
+        success_count, 20,
+        "all concurrent list_task_status calls should succeed with busy_timeout; got {success_count}/20"
     );
 }

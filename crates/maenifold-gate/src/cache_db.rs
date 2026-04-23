@@ -144,6 +144,7 @@ impl GateCacheDb {
             return Ok(());
         }
         let conn = Connection::open(path)?;
+        conn.busy_timeout(Duration::from_secs(5))?;
         let version: i32 = conn
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap_or(0);

@@ -233,3 +233,20 @@ TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grou
 - Red-team prompt must verify: "Do all API surfaces, endpoints, and CLI commands referenced in this code actually exist in the codebase?"
 - Sub-tasks of an SLC epic must inherit the parent's pipeline, not downgrade to SDD
 - ALL UI work requires visual verification by the user AND the architect duo — typecheck/build is NOT sufficient (Sprint 178 also shipped fake home page data that passed typecheck)
+
+## 2026-04-22 — Session 10 (Sprint 1 constitution-audit decomposition refresh)
+
+### What worked
+- Re-running `make audit-crates` before touching `T-01.0` immediately exposed stale counts and stale file ownership in the epic/subtask set.
+- Architect duo review was worth the round-trip: both reviewers independently caught that `src/mcp/mod.rs` should stay single-owner and that `tests/sdd_cli_flow.rs` needs its own task.
+- Adding `thinking:` plus `parent:` metadata to the authored task files keeps the backlog aligned with the current sequential-thinking session and parent epic.
+
+### Patterns
+- Count-bearing task titles rot quickly on moving audit backlogs; prefer stable titles and keep counts inside the body.
+- For audit-remediation decomposition, keep each file owned by exactly one task — especially when one file has multiple violation types (`max-loc` + `no-unwrap`).
+- Gate MCP can fail with `io error: Resource deadlock avoided (os error 11)` during `sync`/`status` on freshly edited task files even when the CLI succeeds immediately; file a follow-up and fall back to CLI.
+
+### Delivered
+- Refreshed `T-01.0` to match the current 102-violation audit.
+- Corrected `T-01.1` to the non-MCP unwrap scope.
+- Authored `T-01.2` through `T-01.7` for the Sprint 1 `maenifold-gate` cleanup slice.

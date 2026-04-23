@@ -28,7 +28,7 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="gate-content">
+  <div class="flex flex-col gap-4 min-h-0 lg:flex-row">
     <GateTaskTable
       :tasks="tasks"
       :selected-task-id="selectedTaskId"
@@ -49,17 +49,3 @@ defineEmits<{
     />
   </div>
 </template>
-
-<style scoped>
-.gate-content {
-  display: flex;
-  gap: 1rem;
-  min-height: 0;
-}
-
-@media (max-width: 1100px) {
-  .gate-content {
-    flex-direction: column;
-  }
-}
-</style>

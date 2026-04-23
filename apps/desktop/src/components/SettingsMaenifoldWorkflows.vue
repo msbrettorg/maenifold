@@ -21,21 +21,21 @@ defineProps<{
   <Accordion
     type="multiple"
     :default-value="['workflows-debug']"
-    class="settings-groups"
+    class="flex flex-col gap-4"
     role="group"
     aria-label="Maenifold workflow settings"
   >
-    <AccordionItem value="workflows-debug" class="settings-card details-section">
-      <AccordionTrigger><h4>Workflows &amp; Debug</h4></AccordionTrigger>
+    <AccordionItem value="workflows-debug" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+      <AccordionTrigger><h4 class="m-0">Workflows &amp; Debug</h4></AccordionTrigger>
       <AccordionContent>
-        <div class="section-grid">
-        <div class="checkbox-group">
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
+        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app">
           <Checkbox :checked="form.debug.trace" @update:checked="(val: boolean) => { form.debug.trace = val }" />
           <Label>Trace logging</Label>
         </div>
 
-        <div class="optional-field optional-field-full">
-          <div class="form-group">
+        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app col-span-full">
+          <div class="flex flex-col gap-[0.45rem]">
             <Label>Pipeline driver</Label>
             <Input
               :disabled="form.debug.pipelineDriver === null"
@@ -45,7 +45,7 @@ defineProps<{
               @update:model-value="(val) => onUpdatePipelineDriver({ target: { value: String(val) } } as unknown as Event)"
             />
           </div>
-          <div class="checkbox-inline">
+          <div class="flex gap-[0.65rem] items-center">
             <Checkbox
               :checked="form.debug.pipelineDriver === null"
               @update:checked="(val: boolean) => onPipelineDriverDefaultToggle({ target: { checked: val } } as unknown as Event)"
@@ -58,86 +58,3 @@ defineProps<{
     </AccordionItem>
   </Accordion>
 </template>
-
-<style scoped>
-.settings-groups {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.settings-card {
-  padding: 1rem;
-  border-radius: var(--radius);
-  background: var(--color-bg-elevated);
-}
-
-.details-section {
-  border: 1px solid var(--color-border-subtle);
-}
-
-.details-section summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-.details-section summary::-webkit-details-marker {
-  display: none;
-}
-
-.details-section[open] summary {
-  margin-bottom: 0.75rem;
-}
-
-.details-section summary h4 {
-  margin: 0;
-}
-
-.section-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0.9rem;
-}
-
-.form-group,
-.optional-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-  color: var(--color-text-primary);
-}
-
-.checkbox-group,
-.checkbox-inline {
-  display: flex;
-  gap: 0.65rem;
-  align-items: center;
-}
-
-.checkbox-group {
-  min-height: 42px;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-}
-
-.optional-field {
-  padding: 0.9rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-}
-
-.optional-field-full {
-  grid-column: 1 / -1;
-}
-</style>

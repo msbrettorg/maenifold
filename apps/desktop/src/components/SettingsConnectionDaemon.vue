@@ -58,153 +58,37 @@ async function copyAddress() {
 </script>
 
 <template>
-  <section class="info-grid">
-    <article class="info-card">
-      <div class="card-header">
+  <section class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(260px,1fr))]">
+    <article class="p-4 rounded bg-bg-elevated">
+      <div class="flex justify-between gap-3 items-start max-sm:flex-col max-sm:items-stretch">
         <div>
-          <h4>Daemon</h4>
-          <p>Desktop settings are loaded from the daemon-backed configuration API.</p>
+          <h4 class="m-0 font-display font-medium">Daemon</h4>
+          <p class="m-0 text-text-secondary">Desktop settings are loaded from the daemon-backed configuration API.</p>
         </div>
-        <Button variant="outline" class="refresh-btn" type="button" :disabled="isRefreshing" @click="props.onRefresh">
+        <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded bg-transparent text-inherit cursor-pointer" type="button" :disabled="isRefreshing" @click="props.onRefresh">
           {{ isRefreshing ? 'Refreshing…' : 'Refresh health' }}
         </Button>
       </div>
 
-      <div class="daemon-address">
-        <code>{{ displayAddress }}</code>
-        <Button variant="ghost" class="copy-btn" type="button" size="sm" @click="copyAddress">
+      <div class="flex items-center gap-2 mt-3">
+        <code class="font-code text-[0.75rem]">{{ displayAddress }}</code>
+        <Button variant="ghost" class="px-2 py-[0.2rem] border-none rounded bg-[var(--surface-high)] text-text-secondary cursor-pointer text-[0.6875rem] hover:bg-[var(--surface-highest)]" type="button" size="sm" @click="copyAddress">
           {{ copied ? '✓' : 'Copy' }}
         </Button>
       </div>
     </article>
 
-    <article class="info-card">
-      <h4>Agent health</h4>
-      <p>Live capability probing tracks whether configured agents are reachable and ready.</p>
+    <article class="p-4 rounded bg-bg-elevated">
+      <h4 class="m-0 font-display font-medium">Agent health</h4>
+      <p class="m-0 text-text-secondary">Live capability probing tracks whether configured agents are reachable and ready.</p>
 
-      <div class="stats-grid">
-        <div class="stat-chip"><strong>{{ stats.total }}</strong><span>Configured</span></div>
-        <div class="stat-chip success"><strong>{{ stats.ready }}</strong><span>Ready</span></div>
-        <div class="stat-chip warning"><strong>{{ stats.pending }}</strong><span>Pending</span></div>
-        <div class="stat-chip muted"><strong>{{ stats.offline }}</strong><span>Offline</span></div>
-        <div class="stat-chip" :class="stats.error > 0 ? 'error' : 'muted'"><strong>{{ stats.error }}</strong><span>Errors</span></div>
+      <div class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(100px,1fr))] mt-[0.9rem]">
+        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem]">{{ stats.total }}</strong><span class="text-text-secondary">Configured</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-brand">{{ stats.ready }}</strong><span class="text-text-secondary">Ready</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-text-primary">{{ stats.pending }}</strong><span class="text-text-secondary">Pending</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-text-secondary">{{ stats.offline }}</strong><span class="text-text-secondary">Offline</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem]" :class="stats.error > 0 ? 'text-danger' : 'text-text-secondary'">{{ stats.error }}</strong><span class="text-text-secondary">Errors</span></div>
       </div>
     </article>
   </section>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.info-grid,
-.stats-grid {
-  display: grid;
-  gap: 1rem;
-}
-
-.info-grid {
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-}
-
-.info-card {
-  padding: 1rem;
-  border-radius: 4px;
-  background: var(--color-bg-elevated);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: flex-start;
-}
-
-.info-card h4,
-.info-card p {
-  margin: 0;
-}
-
-.info-card h4 {
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.info-card p,
-.stat-chip span {
-  color: var(--color-text-secondary);
-}
-
-.daemon-address {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.daemon-address code {
-  font-family: var(--font-code);
-  font-size: 0.75rem;
-}
-
-.copy-btn {
-  padding: 0.2rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font-size: 0.6875rem;
-}
-
-.copy-btn:hover {
-  background: var(--surface-highest);
-}
-
-.stats-grid {
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  margin-top: 0.9rem;
-}
-
-.stat-chip {
-  display: grid;
-  gap: 0.2rem;
-  padding: 0.75rem;
-  border-radius: 4px;
-  background: var(--surface);
-}
-
-.stat-chip strong {
-  font-size: 0.9375rem;
-}
-
-.stat-chip.success strong {
-  color: var(--color-brand);
-}
-
-.stat-chip.warning strong {
-  color: var(--color-text-primary);
-}
-
-.stat-chip.muted strong {
-  color: var(--color-text-secondary);
-}
-
-.stat-chip.error strong {
-  color: var(--color-danger);
-}
-
-.refresh-btn {
-  padding: 0.5rem 0.9rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-@media (max-width: 640px) {
-  .card-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-</style>

@@ -91,32 +91,32 @@ onMounted(async () => {
 </script>
 
 <template>
-  <section class="settings-section" role="form" aria-label="Preferences">
+  <section class="flex flex-col gap-4" role="form" aria-label="Preferences">
     <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="section-header">
+      <div class="flex justify-between gap-4 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary max-sm:flex-col max-sm:items-stretch">
         <div>
-          <h3>Preferences</h3>
-          <p>Persisted locally on this device.</p>
+          <h3 class="m-0 font-display font-medium">Preferences</h3>
+          <p class="m-0 text-text-secondary">Persisted locally on this device.</p>
         </div>
-        <span class="status-chip" :class="{ saving }">
+        <span class="rounded-[var(--radius)] px-[0.6rem] py-[0.35rem] bg-bg-elevated text-[0.75rem]" :class="saving ? 'text-brand' : 'text-text-secondary'">
           {{ saving ? 'Saving…' : 'Local only' }}
         </span>
       </div>
 
-      <p v-if="error" class="message error">{{ error }}</p>
-      <p v-else-if="status" class="message success">{{ status }}</p>
+      <p v-if="error" class="m-0 text-danger">{{ error }}</p>
+      <p v-else-if="status" class="m-0 text-brand">{{ status }}</p>
 
-      <div v-if="loading" class="card">Loading saved preferences…</div>
+      <div v-if="loading" class="p-4 rounded-[var(--radius)] bg-bg-elevated">Loading saved preferences…</div>
 
       <template v-else>
-        <div class="card">
-          <div class="card-header">
+        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated">
+          <div class="flex justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
             <div>
               <strong>Text size</strong>
-              <p>Adjust the UI font scale across the entire application.</p>
+              <p class="m-0 text-text-secondary">Adjust the UI font scale across the entire application.</p>
             </div>
           </div>
-          <div class="density-control">
+          <div class="flex gap-0 mt-3 border border-border-subtle rounded-[var(--radius)] overflow-hidden">
             <Select :model-value="fontDensity" @update:model-value="(val) => handleDensityChange(val as FontDensity)">
               <SelectTrigger :disabled="saving" class="w-full">
                 <SelectValue />
@@ -128,181 +128,27 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div class="card toggle-card">
+        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated flex justify-between gap-4 items-center max-sm:flex-col max-sm:items-stretch">
           <div>
             <strong>Telemetry</strong>
-            <p>Allow the app to initialize Application Insights telemetry on launch.</p>
+            <p class="m-0 text-text-secondary">Allow the app to initialize Application Insights telemetry on launch.</p>
           </div>
           <Checkbox :checked="telemetryEnabled" :disabled="saving" @update:checked="(val: boolean) => { telemetryEnabled = val; handleTelemetryToggle() }" />
         </div>
 
-        <div class="card">
-          <div class="card-header">
+        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated">
+          <div class="flex justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
             <div>
               <strong>Last working directory</strong>
-              <p>The app restores this folder on the next launch when available.</p>
+              <p class="m-0 text-text-secondary">The app restores this folder on the next launch when available.</p>
             </div>
-            <Button variant="outline" class="secondary-btn" :disabled="saving || !lastCwd" @click="clearLastCwd">
+            <Button variant="outline" class="px-[0.85rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving || !lastCwd" @click="clearLastCwd">
               Clear saved folder
             </Button>
           </div>
-          <code class="saved-value">{{ displayCwd }}</code>
+          <code class="block mt-3 m-0 break-all font-code text-[0.75rem] text-text-secondary">{{ displayCwd }}</code>
         </div>
       </template>
     </div>
   </section>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-header {
-  margin-bottom: 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-}
-
-.section-header,
-.toggle-card,
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.section-header h3,
-.section-header p,
-.message,
-.toggle-card p,
-.card-header p,
-.saved-value {
-  margin: 0;
-}
-
-.section-header h3 {
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.section-header p,
-.toggle-card p,
-.card-header p,
-.saved-value {
-  color: var(--color-text-secondary);
-}
-
-.card,
-.status-chip {
-  border-radius: var(--radius);
-}
-
-.card {
-  padding: 1rem;
-  background: var(--color-bg-elevated);
-}
-
-.toggle-card {
-  align-items: center;
-}
-
-.toggle-card input {
-  width: 1.1rem;
-  height: 1.1rem;
-}
-
-.status-chip {
-  padding: 0.35rem 0.6rem;
-  background: var(--color-bg-elevated);
-  color: var(--color-text-secondary);
-  font-size: 0.75rem;
-}
-
-.status-chip.saving,
-.message.success {
-  color: var(--color-brand);
-}
-
-.message.error {
-  color: var(--color-danger);
-}
-
-.secondary-btn {
-  padding: 0.5rem 0.85rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.secondary-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.saved-value {
-  display: block;
-  margin-top: 0.75rem;
-  word-break: break-all;
-  font-family: var(--font-code);
-  font-size: 0.75rem;
-}
-
-.density-control {
-  display: flex;
-  gap: 0;
-  margin-top: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  overflow: hidden;
-}
-
-.density-option {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.5rem;
-  cursor: pointer;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  background: transparent;
-  border-right: 1px solid var(--color-border-subtle);
-  transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.density-option:last-child {
-  border-right: none;
-}
-
-.density-option input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.density-option.active {
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
-}
-
-.density-option:hover:not(.active) {
-  background: var(--color-bg-surface);
-}
-
-@media (max-width: 640px) {
-  .section-header,
-  .toggle-card,
-  .card-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-</style>

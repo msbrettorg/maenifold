@@ -43,49 +43,49 @@ function formatEnvCount(count: number) {
 </script>
 
 <template>
-  <Accordion type="multiple" :default-value="['env', 'mcp']" class="connection-accordion">
-    <AccordionItem value="env" class="form-section details-section">
+  <Accordion type="multiple" :default-value="['env', 'mcp']">
+    <AccordionItem value="env" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
       <AccordionTrigger>
         <div>
-          <h5 class="text-sm font-medium text-text-secondary">Environment variables</h5>
-          <p>Optional key/value pairs passed to this agent process.</p>
+          <h5 class="m-0 text-sm font-medium text-text-secondary">Environment variables</h5>
+          <p class="m-0 text-text-secondary">Optional key/value pairs passed to this agent process.</p>
         </div>
-        <span class="summary-count">{{ formatEnvCount(form.env.length) }}</span>
+        <span class="text-text-secondary text-[0.75rem] px-2 py-[0.15rem] rounded bg-bg-elevated whitespace-nowrap">{{ formatEnvCount(form.env.length) }}</span>
       </AccordionTrigger>
       <AccordionContent>
-        <div class="section-body">
-          <div v-if="form.env.length === 0" class="empty-detail">No environment variables configured.</div>
-          <div v-for="(entry, index) in form.env" :key="`env-${index}`" class="kv-row">
-            <Input v-model="entry.key" type="text" placeholder="KEY" />
+        <div class="flex flex-col gap-3">
+          <div v-if="form.env.length === 0" class="text-text-secondary text-[0.75rem]">No environment variables configured.</div>
+          <div v-for="(entry, index) in form.env" :key="`env-${index}`" class="flex justify-between gap-3 items-end max-sm:flex-col max-sm:items-stretch">
+            <Input v-model="entry.key" type="text" placeholder="KEY" class="max-w-[14rem] max-sm:max-w-none" />
             <Input v-model="entry.value" type="text" placeholder="value" />
-            <Button variant="ghost" size="icon" class="remove-btn" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
+            <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
           </div>
-          <Button variant="outline" class="add-inline-btn" type="button" @click="onAddEnvRow">+ Add Variable</Button>
+          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer" type="button" @click="onAddEnvRow">+ Add Variable</Button>
         </div>
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="mcp" class="form-section details-section">
+    <AccordionItem value="mcp" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
       <AccordionTrigger>
         <div>
-          <h5 class="text-sm font-medium text-text-secondary">Per-agent MCP servers</h5>
-          <p>Optional MCP servers available only to this agent.</p>
+          <h5 class="m-0 text-sm font-medium text-text-secondary">Per-agent MCP servers</h5>
+          <p class="m-0 text-text-secondary">Optional MCP servers available only to this agent.</p>
         </div>
-        <span class="summary-count">{{ formatServerCount(form.mcpServers.length) }}</span>
+        <span class="text-text-secondary text-[0.75rem] px-2 py-[0.15rem] rounded bg-bg-elevated whitespace-nowrap">{{ formatServerCount(form.mcpServers.length) }}</span>
       </AccordionTrigger>
       <AccordionContent>
-        <div class="section-body">
-          <div v-if="form.mcpServers.length === 0" class="empty-detail">No per-agent MCP servers configured.</div>
-          <div v-for="(server, index) in form.mcpServers" :key="`mcp-${index}`" class="server-editor">
-            <div class="server-editor-header">
+        <div class="flex flex-col gap-3">
+          <div v-if="form.mcpServers.length === 0" class="text-text-secondary text-[0.75rem]">No per-agent MCP servers configured.</div>
+          <div v-for="(server, index) in form.mcpServers" :key="`mcp-${index}`" class="flex flex-col gap-3 p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-elevated">
+            <div class="flex justify-between gap-3 items-center">
               <strong>Server {{ index + 1 }}</strong>
-              <Button variant="ghost" size="icon" class="remove-btn" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
+              <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
                 ×
               </Button>
             </div>
 
-            <div class="server-grid">
-              <div class="form-group">
+            <div class="flex flex-col gap-3">
+              <div class="flex flex-col gap-[0.45rem]">
                 <Label>Type</Label>
                 <Select :model-value="server.type" @update:model-value="(val) => server.type = val as 'stdio' | 'http'">
                   <SelectTrigger class="w-full">
@@ -97,11 +97,11 @@ function formatEnvCount(count: number) {
                   </SelectContent>
                 </Select>
               </div>
-              <div class="form-group">
+              <div class="flex flex-col gap-[0.45rem]">
                 <Label>Name</Label>
                 <Input v-model="server.name" type="text" placeholder="server-name" />
               </div>
-              <div class="form-group server-primary-field">
+              <div class="flex flex-col gap-[0.45rem] w-full">
                 <Label>{{ server.type === 'http' ? 'URL' : 'Command' }}</Label>
                 <Input
                   v-model="server.commandOrUrl"
@@ -109,159 +109,17 @@ function formatEnvCount(count: number) {
                   :placeholder="server.type === 'http' ? 'https://example.test/mcp' : 'npx @scope/server'"
                 />
               </div>
-              <div v-if="server.type === 'stdio'" class="form-group server-primary-field">
+              <div v-if="server.type === 'stdio'" class="flex flex-col gap-[0.45rem] w-full">
                 <Label>Args</Label>
                 <Input v-model="server.args" type="text" placeholder="--flag value" />
-                <small>Space-separated arguments.</small>
+                <small class="text-[0.75rem]">Space-separated arguments.</small>
               </div>
             </div>
           </div>
 
-          <Button variant="outline" class="add-inline-btn" type="button" @click="onAddMcpServerRow">+ Add MCP Server</Button>
+          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer" type="button" @click="onAddMcpServerRow">+ Add MCP Server</Button>
         </div>
       </AccordionContent>
     </AccordionItem>
   </Accordion>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.form-section,
-.section-body,
-.server-grid,
-.server-editor {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.form-section {
-  padding: 0.9rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-}
-
-.details-section summary,
-.kv-row,
-.server-editor-header {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.details-section summary {
-  align-items: center;
-  list-style: none;
-  cursor: pointer;
-}
-
-.details-section summary::-webkit-details-marker {
-  display: none;
-}
-
-.details-section[open] summary {
-  margin-bottom: 0.75rem;
-}
-
-.details-section h5,
-.details-section p {
-  margin: 0;
-}
-
-.details-section p,
-.summary-count,
-.empty-detail {
-  color: var(--color-text-secondary);
-}
-
-.summary-count,
-.empty-detail,
-.form-group small {
-  font-size: 0.75rem;
-}
-
-.summary-count {
-  padding: 0.15rem 0.5rem;
-  border-radius: 4px;
-  background: var(--color-bg-elevated);
-  white-space: nowrap;
-}
-
-.form-group span {
-  display: block;
-  margin-bottom: 0.25rem;
-  font-weight: 500;
-}
-
-.form-group input,
-.form-group select {
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-  color: var(--color-text-primary);
-}
-
-.kv-row {
-  align-items: end;
-}
-
-.kv-row input:first-child {
-  max-width: 14rem;
-}
-
-.server-editor {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-elevated);
-}
-
-.server-editor-header {
-  align-items: center;
-}
-
-.server-primary-field {
-  width: 100%;
-}
-
-.add-inline-btn,
-.remove-btn {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-}
-
-.add-inline-btn {
-  padding: 0.5rem 0.9rem;
-}
-
-.remove-btn {
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  align-self: end;
-  font-size: 0.9375rem;
-  line-height: 1;
-}
-
-@media (max-width: 640px) {
-  .details-section summary,
-  .kv-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .kv-row input:first-child {
-    max-width: none;
-  }
-
-  .remove-btn {
-    align-self: flex-start;
-  }
-}
-</style>

@@ -32,6 +32,7 @@ mod executor_timeout;
 #[cfg(test)]
 mod executor_timeout_tests;
 mod external_mcp;
+mod external_mcp_transport;
 #[cfg(test)]
 mod failure_reason_scope_tests;
 mod handler;

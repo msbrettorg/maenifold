@@ -28,6 +28,27 @@ const statusIconMap: Record<PlanEntry['status'], string> = {
   completed: '✓',
 };
 
+const statusColorMap: Record<PlanEntry['status'], string> = {
+  pending: 'text-[var(--color-status-pending)]',
+  in_progress: 'text-[var(--color-status-active)] animate-plan-pulse',
+  completed: 'text-[var(--color-status-completed)]',
+};
+
+const priorityStyle: Record<string, Record<string, string>> = {
+  high: {
+    background: 'color-mix(in srgb, var(--color-status-abandoned) 12%, var(--color-bg-app))',
+    color: 'var(--color-danger)',
+  },
+  medium: {
+    background: 'color-mix(in srgb, var(--color-status-stuck) 16%, var(--color-bg-app))',
+    color: 'color-mix(in srgb, var(--color-status-stuck) 72%, var(--color-text-primary))',
+  },
+  low: {
+    background: 'color-mix(in srgb, var(--color-status-pending) 14%, var(--color-bg-app))',
+    color: 'var(--color-text-secondary)',
+  },
+};
+
 watch(
   () => props.entries,
   () => {
@@ -42,48 +63,55 @@ function toggleExpanded(): void {
 </script>
 
 <template>
-  <section class="plan-view">
+  <section class="mb-4 rounded-md border border-border-subtle bg-bg-surface overflow-hidden">
     <Button
       type="button"
       variant="ghost"
-      class="plan-toggle"
+      class="flex items-center justify-between gap-3 w-full py-3.5 px-4 bg-transparent text-text-text-primary cursor-pointer text-left hover:bg-bg-surface h-auto"
       :aria-expanded="isExpanded"
       @click="toggleExpanded"
     >
-      <div class="plan-heading">
-        <span class="plan-icon"><Ruler class="size-4" :stroke-width="1.5" /></span>
-        <span class="plan-title">Agent Plan</span>
-        <span class="plan-summary">
+      <div class="flex items-center gap-2.5 min-w-0">
+        <span class="shrink-0"><Ruler class="size-4" :stroke-width="1.5" /></span>
+        <span class="font-[var(--weight-title)]">Agent Plan</span>
+        <span class="text-text-secondary text-[length:var(--text-caption)]">
           {{ completedCount }}/{{ entryCount }} completed
         </span>
       </div>
-      <span class="plan-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
+      <span class="text-text-secondary text-[length:var(--text-caption)]">{{ isExpanded ? '▲' : '▼' }}</span>
     </Button>
 
-    <div v-if="isExpanded" class="plan-body">
-      <ol class="plan-list">
+    <div v-if="isExpanded" class="border-t border-border-subtle pt-3 px-4 pb-4">
+      <ol class="flex flex-col gap-3 m-0 p-0 list-none">
         <li
           v-for="(entry, index) in entries"
           :key="`${index}-${entry.content}`"
-          class="plan-entry"
+          class="flex items-start gap-3"
         >
           <span
-            :class="['plan-status', `status-${entry.status}`]"
+            :class="[
+              'inline-flex items-center justify-center w-6 h-6 mt-0.5 rounded-sm bg-bg-surface text-[length:var(--text-body-sm)] font-[var(--weight-title)] shrink-0',
+              statusColorMap[entry.status],
+            ]"
             :title="statusLabelMap[entry.status]"
             :aria-label="statusLabelMap[entry.status]"
           >
             {{ statusIconMap[entry.status] }}
           </span>
-          <div class="plan-entry-content">
-            <div class="plan-entry-header">
-              <span :class="['priority-badge', `priority-${entry.priority}`]">
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-2 mb-1">
+              <!-- audit-ok: dynamic-binding inline color-mix() expressions for priority badge backgrounds; cannot tokenize per-priority blends -->
+              <span
+                class="inline-flex items-center py-0.5 px-2 rounded-sm text-tiny font-[var(--weight-title)]"
+                :style="priorityStyle[entry.priority]"
+              >
                 {{ entry.priority }}
               </span>
-              <span class="plan-entry-status-text">
+              <span class="text-text-secondary text-[length:var(--text-caption)]">
                 {{ statusLabelMap[entry.status] }}
               </span>
             </div>
-            <p class="plan-entry-text">{{ entry.content }}</p>
+            <p class="m-0 text-text-text-primary leading-snug whitespace-pre-wrap">{{ entry.content }}</p>
           </div>
         </li>
       </ol>
@@ -91,142 +119,10 @@ function toggleExpanded(): void {
   </section>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: keyframe-animation @keyframes pulse used by .animate-plan-pulse for in-progress status indicator. -->
 <style scoped>
-.plan-view {
-  margin-bottom: 1rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-surface);
-  overflow: hidden;
-}
-
-.plan-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  width: 100%;
-  padding: 0.875rem 1rem;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  cursor: pointer;
-  text-align: left;
-}
-
-.plan-toggle:hover {
-  background: var(--color-bg-surface);
-}
-
-.plan-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 0;
-}
-
-.plan-icon {
-  flex-shrink: 0;
-}
-
-.plan-title {
-  font-weight: var(--weight-title);
-}
-
-.plan-summary,
-.plan-chevron,
-.plan-entry-status-text {
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-}
-
-.plan-body {
-  border-top: 1px solid var(--color-border-subtle);
-  padding: 0.75rem 1rem 1rem;
-}
-
-.plan-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.plan-entry {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
-
-.plan-status {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.5rem;
-  height: 1.5rem;
-  margin-top: 0.125rem;
-  border-radius: 4px;
-  background: var(--color-bg-surface);
-  font-size: var(--text-body-sm);
-  font-weight: var(--weight-title);
-  flex-shrink: 0;
-}
-
-.status-pending { color: var(--color-status-pending); }
-
-.status-in_progress {
-  color: var(--color-status-active);
+.animate-plan-pulse {
   animation: pulse 1.2s ease-in-out infinite;
-}
-
-.status-completed {
-  color: var(--color-status-completed);
-}
-
-.plan-entry-content {
-  min-width: 0;
-  flex: 1;
-}
-
-.plan-entry-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.priority-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-}
-
-.priority-high {
-  background: color-mix(in srgb, var(--color-status-abandoned) 12%, var(--color-bg-app));
-  color: var(--color-danger);
-}
-
-.priority-medium {
-  background: color-mix(in srgb, var(--color-status-stuck) 16%, var(--color-bg-app));
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--color-text-primary));
-}
-
-.priority-low {
-  background: color-mix(in srgb, var(--color-status-pending) 14%, var(--color-bg-app));
-  color: var(--color-text-secondary);
-}
-
-.plan-entry-text {
-  margin: 0;
-  color: var(--color-text-primary);
-  line-height: 1.45;
-  white-space: pre-wrap;
 }
 
 @keyframes pulse {

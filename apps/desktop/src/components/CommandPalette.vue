@@ -113,15 +113,15 @@ function handleSelectionChange(value: unknown) {
 </script>
 
 <template>
-  <div v-if="visible" class="command-palette">
+  <div v-if="visible" class="absolute bottom-full left-0 w-[400px] mb-1.5 bg-surface-container rounded-md shadow-fluent-16 max-h-80 overflow-visible z-[100] border border-border-subtle">
     <Command
       :model-value="selectedCommandName"
-      class="command-root"
+      class="p-0 rounded-md bg-transparent"
       @update:model-value="handleSelectionChange"
     >
-      <div class="command-input-row">
+      <div class="flex items-center py-2.5 px-4 text-text-secondary">
         <Input
-          class="command-input border-0 bg-transparent shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
+          class="w-full bg-transparent text-text-text-primary text-[length:var(--text-body-sm)] border-0 shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-0 focus:outline-none h-auto px-0 py-0 rounded-none font-inherit"
           type="text"
           role="combobox"
           aria-label="Command palette"
@@ -134,8 +134,8 @@ function handleSelectionChange(value: unknown) {
         />
       </div>
 
-      <CommandList :id="commandListId" class="command-list">
-        <div v-if="filteredCommands.length === 0" class="command-empty">
+      <CommandList :id="commandListId" class="max-h-80 overflow-y-auto px-2 pb-2">
+        <div v-if="filteredCommands.length === 0" class="p-4 text-text-secondary text-[length:var(--text-body-sm)] text-center">
           No matching commands.
         </div>
         <CommandItem
@@ -143,140 +143,24 @@ function handleSelectionChange(value: unknown) {
           :id="commandOptionId(cmd.name)"
           :key="cmd.name"
           :value="cmd.name"
-          class="command-item"
+          class="mt-1 rounded-sm bg-transparent transition-colors duration-150 ease-out data-[selected=true]:bg-surface-high hover:bg-surface-high"
           @mouseenter="selectedCommandName = cmd.name"
           @select="selectCommand(cmd)"
         >
-          <div class="command-row">
-            <span class="command-name">{{ formatCommandName(cmd.name) }}</span>
-            <span class="command-description">{{ cmd.description }}</span>
-            <span v-if="cmd.input?.hint" class="command-hint">{{ cmd.input.hint }}</span>
+          <div class="flex items-center w-full gap-3">
+            <span class="text-text-text-primary text-[length:var(--text-body-sm)] min-w-[120px] font-[var(--weight-title)] shrink-0 whitespace-nowrap overflow-hidden text-ellipsis">{{ formatCommandName(cmd.name) }}</span>
+            <span class="text-text-secondary text-[length:var(--text-body-sm)] flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ cmd.description }}</span>
+            <span v-if="cmd.input?.hint" class="text-text-secondary font-mono text-[length:var(--text-caption)] whitespace-nowrap">{{ cmd.input.hint }}</span>
           </div>
         </CommandItem>
       </CommandList>
     </Command>
 
-    <div v-if="selectedCommand?.description" class="command-tooltip">
+    <div
+      v-if="selectedCommand?.description"
+      class="absolute left-[calc(100%+8px)] top-0 w-[220px] bg-surface-container text-text-text-primary rounded-md shadow-fluent-16 py-2 px-3 text-[length:var(--text-body-sm)] whitespace-normal z-[200] break-words border border-border-subtle"
+    >
       {{ selectedCommand.description }}
     </div>
   </div>
 </template>
-
-<style scoped>
-.command-palette {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  width: 400px;
-  margin-bottom: 6px;
-  background: var(--surface-container);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-16);
-  max-height: 320px;
-  overflow: visible;
-  z-index: 100;
-}
-
-.command-root {
-  padding: 0;
-  border-radius: var(--radius);
-  background: transparent;
-}
-
-.command-input-row {
-  display: flex;
-  align-items: center;
-  padding: 10px 16px;
-  color: var(--text-secondary);
-}
-
-.command-input {
-  width: 100%;
-  border: none;
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--text-body-sm);
-}
-
-.command-input:focus {
-  outline: none;
-}
-
-.command-list {
-  max-height: 320px;
-  overflow-y: auto;
-  padding: 0 0.5rem 0.5rem;
-}
-
-.command-item {
-  margin-top: 0.25rem;
-  border-radius: 4px;
-  background: transparent;
-  transition: background-color 150ms ease;
-}
-
-.command-item[data-selected='true'],
-.command-item:hover {
-  background: var(--surface-high);
-}
-
-.command-empty {
-  padding: 1rem;
-  color: var(--text-secondary);
-  font-size: var(--text-body-sm);
-  text-align: center;
-}
-
-.command-tooltip {
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 0;
-  width: 220px;
-  background: var(--surface-container);
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-16);
-  padding: 8px 12px;
-  font-size: var(--text-body-sm);
-  white-space: normal;
-  z-index: 200;
-  word-break: break-word;
-}
-
-.command-row {
-  display: flex;
-  align-items: center;
-  width: 100%;
-  gap: 0.75rem;
-}
-
-.command-name {
-  color: var(--color-text-primary);
-  font-size: var(--text-body-sm);
-  min-width: 120px;
-  font-weight: var(--weight-title);
-  flex-shrink: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.command-description {
-  color: var(--text-secondary);
-  font-size: var(--text-body-sm);
-  flex: 1 1 auto;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.command-hint {
-  color: var(--text-secondary);
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-  white-space: nowrap;
-}
-</style>

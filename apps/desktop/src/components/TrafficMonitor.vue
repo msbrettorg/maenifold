@@ -1,4 +1,4 @@
-<script setup lang="ts"> // audit-ok: max-loc
+<script setup lang="ts">
 import { nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -69,49 +69,65 @@ watch(
 );
 
 onUnmounted(stopResize);
+
+const controlBtnClass = 'py-1 px-2 rounded-sm bg-surface-container text-[var(--text)] text-tiny hover:bg-surface-high';
+const filterPillBase = 'py-[0.2rem] px-2 rounded-sm text-tiny transition-colors duration-150';
 </script>
 
 <template>
-  <!-- audit-ok: dynamic-binding (resizable panel height) -->
-  <section class="traffic-monitor" :style="{ height: `${panelHeight}px` }">
-    <div class="resize-handle" title="Drag to resize" @mousedown="startResize" />
+  <!-- audit-ok: dynamic-binding panel height is set from JS via :style for user resizing. -->
+  <section class="flex flex-col relative bg-surface text-[length:var(--text-caption)]" :style="{ height: `${panelHeight}px` }">
+    <div
+      class="absolute top-0 inset-x-0 h-1.5 cursor-ns-resize z-10 hover:bg-brand hover:opacity-50 active:bg-brand active:opacity-50"
+      title="Drag to resize"
+      @mousedown="startResize"
+    />
 
-    <div class="monitor-header">
-      <span class="title">ACP traffic</span>
+    <div class="flex items-center gap-2 py-2 px-3 bg-bg-app">
+      <span class="font-display font-medium text-sm text-[var(--text)]">ACP traffic</span>
 
-      <div class="controls">
+      <div class="flex items-center gap-1 ml-auto">
         <Button
           variant="ghost"
           size="xs"
-          class="control-btn"
-          :class="{ active: trafficStore.isPaused }"
+          :class="[controlBtnClass, trafficStore.isPaused ? 'bg-warning' : '']"
           :title="trafficStore.isPaused ? 'Resume' : 'Pause'"
           @click="trafficStore.togglePause()"
         >
           {{ trafficStore.isPaused ? '▶' : '⏸' }}
         </Button>
-        <Button variant="ghost" size="xs" class="control-btn" title="Clear" @click="trafficStore.clear()">🗑</Button>
+        <Button variant="ghost" size="xs" :class="controlBtnClass" title="Clear" @click="trafficStore.clear()">🗑</Button>
 
-        <div class="filter-pills">
+        <div class="flex gap-1 ml-2">
           <Button
             v-for="opt in filterOptions"
             :key="opt.value"
             variant="ghost"
             size="xs"
-            :class="['filter-pill', { active: trafficStore.filter === opt.value }]"
+            :class="[
+              filterPillBase,
+              trafficStore.filter === opt.value
+                ? 'bg-brand text-[var(--text)]'
+                : 'bg-surface-container text-text-text-secondary hover:bg-surface-high',
+            ]"
             @click="trafficStore.setFilter(opt.value)"
           >
             {{ opt.label }}
           </Button>
         </div>
 
-        <div class="filter-pills">
+        <div class="flex gap-1 ml-2">
           <Button
             v-for="opt in directionOptions"
             :key="opt.value"
             variant="ghost"
             size="xs"
-            :class="['filter-pill', { active: trafficStore.directionFilter === opt.value }]"
+            :class="[
+              filterPillBase,
+              trafficStore.directionFilter === opt.value
+                ? 'bg-brand text-[var(--text)]'
+                : 'bg-surface-container text-text-text-secondary hover:bg-surface-high',
+            ]"
             @click="trafficStore.setDirectionFilter(opt.value)"
           >
             {{ opt.label }}
@@ -119,10 +135,10 @@ onUnmounted(stopResize);
         </div>
       </div>
 
-      <div class="search-container">
+      <div class="flex items-center ml-2 bg-surface rounded-sm">
         <Input
           type="text"
-          class="search-input"
+          class="w-[120px] py-1 px-1.5 bg-transparent text-[var(--text)] text-tiny border-0 shadow-none ring-0 focus-visible:ring-0 focus-visible:border-transparent focus:outline-none placeholder:text-text-text-secondary h-auto rounded-sm"
           placeholder="Filter method or notification…"
           :model-value="trafficStore.methodFilter"
           @update:model-value="(value) => trafficStore.setMethodFilter(String(value))"
@@ -131,7 +147,7 @@ onUnmounted(stopResize);
           v-if="trafficStore.methodFilter"
           variant="ghost"
           size="xs"
-          class="search-clear-btn"
+          class="py-0 px-1 bg-transparent text-text-text-secondary text-[length:var(--text-body-sm)] leading-none hover:text-[var(--text)]"
           title="Clear search"
           @click="trafficStore.clearMethodFilter()"
         >
@@ -139,22 +155,28 @@ onUnmounted(stopResize);
         </Button>
       </div>
 
-      <span v-if="trafficStore.methodFilter" class="match-count">
+      <span v-if="trafficStore.methodFilter" class="text-text-text-secondary text-tiny whitespace-nowrap">
         {{ trafficStore.filteredEntries.length }} match{{ trafficStore.filteredEntries.length === 1 ? '' : 'es' }}
       </span>
 
-      <Button variant="ghost" size="xs" class="close-btn" title="Close" @click="emit('close')">×</Button>
+      <Button
+        variant="ghost"
+        size="xs"
+        class="py-1 px-2 bg-transparent text-text-text-secondary text-[length:var(--text-body-sm)] hover:bg-surface-high"
+        title="Close"
+        @click="emit('close')"
+      >×</Button>
     </div>
 
     <div
       ref="logContainer"
-      class="log-container"
+      class="flex-1 overflow-y-auto font-mono"
       role="log"
       aria-live="polite"
       aria-label="Traffic monitor"
       @scroll="handleScroll"
     >
-      <div v-if="trafficStore.filteredEntries.length === 0" class="empty-state">
+      <div v-if="trafficStore.filteredEntries.length === 0" class="p-8 text-center text-text-text-secondary">
         No traffic captured yet. Connect to an agent to see ACP messages.
       </div>
       <TrafficEntry
@@ -164,138 +186,11 @@ onUnmounted(stopResize);
       />
     </div>
 
-    <div v-if="trafficStore.isPaused" class="paused-indicator">⏸ Paused</div>
+    <!-- audit-ok: dynamic-binding inline color-mix() blends status-stuck with text color for paused indicator label tone. -->
+    <div
+      v-if="trafficStore.isPaused"
+      class="absolute right-2 bottom-2 py-1 px-2 rounded-sm bg-warning text-tiny"
+      style="color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text));"
+    >⏸ Paused</div>
   </section>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.traffic-monitor {
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  background: var(--surface);
-  font-size: var(--text-caption);
-}
-.resize-handle {
-  position: absolute;
-  inset: 0 0 auto;
-  height: 6px;
-  cursor: ns-resize;
-  z-index: 10;
-}
-.resize-handle:hover,
-.resize-handle:active { background: var(--color-brand); opacity: 0.5; }
-.monitor-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--color-bg-app);
-}
-.title {
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--text-sm);
-  color: var(--text);
-}
-.controls {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  margin-left: auto;
-}
-.control-btn {
-  padding: 0.25rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-container);
-  color: var(--text);
-  font-size: var(--text-tiny);
-  cursor: pointer;
-}
-.control-btn:hover,
-.close-btn:hover { background: var(--surface-high); }
-.control-btn.active { background: var(--bg-warning); }
-.filter-pills {
-  display: flex;
-  gap: 0.25rem;
-  margin-left: 0.5rem;
-}
-.filter-pill {
-  padding: 0.2rem 0.5rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-container);
-  color: var(--text-secondary);
-  font-size: var(--text-tiny);
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-.filter-pill:hover { background: var(--surface-high); }
-.filter-pill.active {
-  background: var(--color-brand);
-  border-color: var(--color-brand);
-  color: var(--text);
-}
-.search-container {
-  display: flex;
-  align-items: center;
-  margin-left: 0.5rem;
-  background: var(--surface);
-  border-radius: 4px;
-}
-.search-input {
-  width: 120px;
-  padding: 0.25rem 0.4rem;
-  border: none;
-  background: transparent;
-  color: var(--text);
-  font-size: var(--text-tiny);
-  outline: none;
-}
-.search-input::placeholder { color: var(--text-secondary); }
-.search-clear-btn {
-  padding: 0 0.25rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-body-sm);
-  line-height: 1;
-  cursor: pointer;
-}
-.search-clear-btn:hover { color: var(--text); }
-.match-count {
-  color: var(--text-secondary);
-  font-size: var(--text-tiny);
-  white-space: nowrap;
-}
-.close-btn {
-  padding: 0.25rem 0.5rem;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--text-body-sm);
-  cursor: pointer;
-}
-.log-container {
-  flex: 1;
-  overflow-y: auto;
-  font-family: var(--font-code);
-}
-.empty-state {
-  padding: 2rem;
-  text-align: center;
-  color: var(--text-secondary);
-}
-.paused-indicator {
-  position: absolute;
-  right: 0.5rem;
-  bottom: 0.5rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  background: var(--bg-warning);
-  font-size: var(--text-tiny);
-  color: color-mix(in srgb, var(--color-status-stuck) 72%, var(--text));
-}
-</style>

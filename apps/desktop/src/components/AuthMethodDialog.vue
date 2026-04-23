@@ -28,43 +28,48 @@ function handleSelect(methodId: string) {
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
-    <DialogContent class="auth-dialog gap-0 p-0 sm:max-w-[420px]" :show-close-button="false">
-      <DialogHeader class="dialog-header">
-        <div class="dialog-heading">
+    <DialogContent class="gap-0 p-0 w-[90%] sm:max-w-[420px]" :show-close-button="false">
+      <DialogHeader class="flex flex-row items-start justify-between p-4 px-5">
+        <div class="grid gap-2 text-left">
           <DialogTitle>Authentication required</DialogTitle>
-          <DialogDescription class="description">
+          <DialogDescription class="m-0">
             <strong>{{ agentName }}</strong> requires authentication to continue.
             Select an authentication method.
           </DialogDescription>
         </div>
         <DialogClose as-child>
-          <Button variant="ghost" size="icon-sm" class="close-btn" aria-label="Close authentication dialog">✕</Button>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            class="text-[length:var(--text-title)] text-text-secondary hover:text-text-primary p-1"
+            aria-label="Close authentication dialog"
+          >✕</Button>
         </DialogClose>
       </DialogHeader>
 
-      <div class="dialog-content">
-        <div class="auth-methods">
+      <div class="p-5">
+        <div class="flex flex-col gap-2">
           <Button
             v-for="method in authMethods"
             :key="method.id"
             variant="outline"
-            class="auth-method-btn"
+            class="group flex items-center justify-between py-3.5 px-4 rounded-sm bg-surface hover:bg-surface-high cursor-pointer text-left transition-all duration-150 ease-out h-auto"
             @click="handleSelect(method.id)"
           >
-            <div class="method-info">
-              <span class="method-name">{{ method.name }}</span>
-              <span v-if="method.description" class="method-desc">
+            <div class="flex flex-col gap-1">
+              <span class="font-[var(--weight-display)] text-text-primary">{{ method.name }}</span>
+              <span v-if="method.description" class="text-xs text-text-secondary">
                 {{ method.description }}
               </span>
             </div>
-            <span class="arrow">→</span>
+            <span class="text-[length:var(--text-title)] text-text-secondary group-hover:text-brand">→</span>
           </Button>
         </div>
       </div>
 
-      <DialogFooter class="dialog-footer">
+      <DialogFooter class="py-3 px-5">
         <DialogClose as-child>
-          <Button variant="outline" class="cancel-btn">
+          <Button variant="outline" class="py-2 px-4 rounded-sm bg-transparent text-text-secondary hover:bg-surface-high text-xs">
             Cancel
           </Button>
         </DialogClose>
@@ -72,112 +77,3 @@ function handleSelect(methodId: string) {
     </DialogContent>
   </Dialog>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.auth-dialog {
-  width: 90%;
-  max-width: 420px;
-}
-
-.dialog-header {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 1rem 1.25rem;
-}
-
-.dialog-heading {
-  display: grid;
-  gap: 0.5rem;
-  text-align: left;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  font-size: var(--text-title);
-  cursor: pointer;
-  color: var(--text-secondary);
-  padding: 0.25rem;
-}
-
-.close-btn:hover {
-  color: var(--color-text-primary);
-}
-
-.dialog-content {
-  padding: 1.25rem;
-}
-
-.description {
-  margin: 0;
-}
-
-.auth-methods {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.auth-method-btn {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--surface);
-  cursor: pointer;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-
-.auth-method-btn:hover {
-  background: var(--surface-high);
-}
-
-.method-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.method-name {
-  font-weight: var(--weight-display);
-  color: var(--color-text-primary);
-}
-
-.method-desc {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.arrow {
-  font-size: var(--text-title);
-  color: var(--text-secondary);
-}
-
-.auth-method-btn:hover .arrow {
-  color: var(--color-brand);
-}
-
-.dialog-footer {
-  padding: 0.75rem 1.25rem;
-}
-
-.cancel-btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.75rem;
-}
-
-.cancel-btn:hover {
-  background: var(--surface-high);
-}
-</style>

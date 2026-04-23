@@ -75,21 +75,35 @@ const progressValue = computed(() => {
     default: return 0;
   }
 });
+
+const phasePillBgClass = computed(() => {
+  switch (status.value) {
+    case 'initializing': return 'bg-warning';
+    case 'ready': return 'bg-success';
+    case 'error': return 'bg-danger';
+    default: return 'bg-[var(--accent-prompt)]';
+  }
+});
 </script>
 
 <template>
-  <section class="startup-progress">
-    <div class="progress-header">
-      <span class="agent-name">Connecting to {{ agentName }}...</span>
-      <div class="progress-meta">
-        <span class="phase-pill" :class="`phase-pill--${status}`">{{ status }}</span>
-        <span class="elapsed-time">{{ formattedTime }}</span>
+  <section class="p-4 bg-surface-container rounded-sm mt-3">
+    <div class="flex justify-between items-center gap-2 mb-3">
+      <span class="font-[var(--weight-title)] text-text-text-primary">Connecting to {{ agentName }}...</span>
+      <div class="inline-flex items-center gap-2">
+        <span
+          :class="[
+            'inline-flex items-center py-0.5 px-2 rounded-xl text-tiny text-[var(--text)]',
+            phasePillBgClass,
+          ]"
+        >{{ status }}</span>
+        <span class="text-[length:var(--text-caption)] text-text-text-secondary font-mono">{{ formattedTime }}</span>
       </div>
     </div>
-    
+
     <!-- audit-ok: no-raw-progress -->
     <div
-      class="progress-status"
+      class="flex items-center gap-2 p-2 bg-surface-high rounded-sm mb-3"
       role="progressbar"
       aria-label="Startup progress"
       :aria-valuemin="0"
@@ -97,44 +111,50 @@ const progressValue = computed(() => {
       :aria-valuenow="progressValue"
       :aria-valuetext="phaseText"
     >
-      <span class="phase-icon">{{ phaseIcon }}</span>
-      <span class="phase-text">{{ phaseText }}</span>
+      <span class="text-[length:var(--text-title)]">{{ phaseIcon }}</span>
+      <span class="text-text-text-secondary text-[length:var(--text-body-sm)]">{{ phaseText }}</span>
     </div>
-    
-    <div v-if="isLongWait && !showDetails" class="first-run-hint">
+
+    <!-- audit-ok: dynamic-binding inline color-mix() blends bg-warning into surface-container for first-run hint background. -->
+    <div
+      v-if="isLongWait && !showDetails"
+      class="text-[length:var(--text-caption)] text-text-text-secondary italic mb-3 p-2 rounded-sm"
+      style="background: color-mix(in srgb, var(--bg-warning) 18%, var(--surface-container));"
+    >
       First run may take longer while dependencies are installed.
     </div>
-    
-    <div class="progress-actions">
-      <Button 
+
+    <div class="flex gap-2 justify-between">
+      <Button
         variant="ghost"
         size="sm"
-        class="details-btn"
+        class="py-1.5 px-3 rounded-sm bg-surface-high text-text-text-secondary text-[length:var(--text-caption)] hover:bg-surface-highest"
         @click="emit('toggleDetails')"
       >
         {{ showDetails ? 'Hide details ▲' : 'Show details ▼' }}
       </Button>
-      <Button 
+      <!-- audit-ok: dynamic-binding hover blends danger color into surface-high; cannot tokenize a hover-only blend without a custom variant. -->
+      <Button
         variant="ghost"
         size="sm"
-        class="cancel-btn"
+        class="py-1.5 px-3 rounded-sm bg-surface-high text-text-text-secondary text-[length:var(--text-caption)] hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,var(--surface-high))] hover:text-danger"
         @click="emit('cancel')"
       >
         Cancel
       </Button>
     </div>
-    
-    <div v-if="showDetails" class="logs-container">
-      <div class="logs-header">Output</div>
-      <div class="logs-content">
-        <div 
-          v-for="(log, index) in logs.slice(-50)" 
+
+    <div v-if="showDetails" class="mt-3 rounded-sm overflow-hidden">
+      <div class="py-1.5 px-2 bg-surface-high text-tiny font-[var(--weight-title)] text-text-text-secondary">Output</div>
+      <div class="logs-content max-h-[150px] overflow-y-auto p-2 bg-surface-high font-mono text-tiny">
+        <div
+          v-for="(log, index) in logs.slice(-50)"
           :key="index"
-          class="log-line"
+          class="text-text-text-secondary whitespace-pre-wrap break-all leading-snug"
         >
           {{ log }}
         </div>
-        <div v-if="logs.length === 0" class="no-logs">
+        <div v-if="logs.length === 0" class="text-text-text-secondary italic">
           Waiting for output...
         </div>
       </div>
@@ -142,103 +162,9 @@ const progressValue = computed(() => {
   </section>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules ::-webkit-scrollbar pseudo-elements are not addressable via Tailwind utilities; scoped to .logs-content for the agent output panel. -->
 <style scoped>
-.startup-progress {
-  padding: 1rem;
-  background: var(--surface-container);
-  border-radius: 4px;
-  margin-top: 0.75rem;
-}
-.progress-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.75rem;
-}
-.agent-name { font-weight: var(--weight-title); color: var(--color-text-primary); }
-.progress-meta { display: inline-flex; align-items: center; gap: 0.5rem; }
-.phase-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-xl);
-  font-size: var(--text-tiny);
-  color: var(--text);
-  background: var(--accent-prompt);
-}
-.phase-pill--initializing { background: var(--amber); }
-.phase-pill--ready { background: var(--sage); }
-.phase-pill--error { background: var(--terracotta); }
-.elapsed-time {
-  font-size: var(--text-caption);
-  color: var(--color-text-secondary);
-  font-family: var(--font-code);
-}
-.progress-status {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem;
-  background: var(--surface-high);
-  border-radius: 4px;
-  margin-bottom: 0.75rem;
-}
-.phase-icon { font-size: var(--text-title); }
-.phase-text { color: var(--color-text-secondary); font-size: var(--text-body-sm); }
-.first-run-hint {
-  font-size: var(--text-caption);
-  color: var(--color-text-secondary);
-  font-style: italic;
-  margin-bottom: 0.75rem;
-  padding: 0.5rem;
-  background: color-mix(in srgb, var(--bg-warning) 18%, var(--surface-container));
-  border-radius: 4px;
-}
-.progress-actions { display: flex; gap: 0.5rem; justify-content: space-between; }
-.details-btn {
-  padding: 0.375rem 0.75rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-  cursor: pointer;
-}
-.details-btn:hover { background: var(--surface-highest); }
-.cancel-btn {
-  padding: 0.375rem 0.75rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-  cursor: pointer;
-}
-.cancel-btn:hover {
-  background: color-mix(in srgb, var(--color-danger) 18%, var(--surface-high));
-  color: var(--color-danger);
-}
-.logs-container {
-  margin-top: 0.75rem;
-  border-radius: 4px;
-  overflow: hidden;
-}
-.logs-header {
-  padding: 0.375rem 0.5rem;
-  background: var(--surface-high);
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  color: var(--color-text-secondary);
-}
 .logs-content {
-  max-height: 150px;
-  overflow-y: auto;
-  padding: 0.5rem;
-  background: var(--surface-high);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-subtle) transparent;
 }
@@ -249,11 +175,4 @@ const progressValue = computed(() => {
   border-radius: 4px;
 }
 .logs-content::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
-.log-line {
-  color: var(--color-text-secondary);
-  white-space: pre-wrap;
-  word-break: break-all;
-  line-height: 1.4;
-}
-.no-logs { color: var(--color-text-secondary); font-style: italic; }
 </style>

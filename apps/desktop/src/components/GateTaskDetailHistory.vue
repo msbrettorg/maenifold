@@ -60,7 +60,7 @@ function formatTimestamp(timestamp: string | null) {
           >Loading task history…</p>
           <p
             v-else-if="historyError"
-            class="p-3 border border-border-subtle rounded bg-surface-container text-danger"
+            class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
           >{{ historyError }}</p>
           <p
             v-else-if="!history.length"

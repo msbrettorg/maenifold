@@ -90,7 +90,7 @@ function handleClose(): void {}
 </script>
 
 <template>
-  <div class="input-container">
+  <div class="relative flex items-end gap-2 px-4 py-3 bg-[var(--surface)]">
     <CommandPalette
       ref="commandPaletteRef"
       :commands="availableCommands"
@@ -100,7 +100,7 @@ function handleClose(): void {}
       @close="handleClose"
     />
 
-    <div class="composer">
+    <div class="flex-1 flex flex-col gap-2">
       <ChatAttachmentBar
         :is-loading="disabled"
         :supports-image="supportsImageAttachments"
@@ -113,12 +113,12 @@ function handleClose(): void {}
         @attachment-error="emit('attachment-error', $event)"
       />
 
-      <span class="composer-control-wrapper" :title="embeddedContextTooltip">
+      <span class="inline-flex" :title="embeddedContextTooltip">
         <Button
           variant="outline"
           size="sm"
-          class="attachment-btn"
-          :class="{ 'attachment-btn-unavailable': !supportsEmbeddedContext }"
+          class="px-3 py-[0.35rem] border border-border-subtle rounded bg-[var(--surface-high)] text-text-primary text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-[0.55]"
+          :class="{ 'opacity-[0.55]': !supportsEmbeddedContext }"
           :disabled="disabled"
           :aria-disabled="!supportsEmbeddedContext || disabled"
           @click="handleEmbeddedContextClick"
@@ -127,73 +127,31 @@ function handleClose(): void {}
         </Button>
       </span>
 
-      <div class="embedded-context-hint" :title="embeddedContextTooltip" :aria-disabled="!supportsEmbeddedContext">
+      <div
+        class="text-text-secondary text-sm aria-disabled:opacity-70"
+        :title="embeddedContextTooltip"
+        :aria-disabled="!supportsEmbeddedContext"
+      >
         {{ supportsEmbeddedContext ? 'Embed file context with @README.md or @"notes/file name.md".' : 'Embedded file context is unavailable for this agent.' }}
       </div>
 
-      <div v-if="attachmentError" class="attachment-error">{{ attachmentError }}</div>
+      <div v-if="attachmentError" class="text-[var(--terracotta)] text-sm">{{ attachmentError }}</div>
 
-      <Textarea v-model="text" :placeholder="placeholder" :disabled="disabled" rows="3" aria-label="Message input" @keydown="handleKeyDown" />
+      <Textarea
+        v-model="text"
+        :placeholder="placeholder"
+        :disabled="disabled"
+        rows="3"
+        aria-label="Message input"
+        class="flex-1 p-3 border border-border-subtle rounded bg-[var(--surface)] text-text-primary resize-none font-[inherit] text-base transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary focus:outline-none focus:border-brand focus:shadow-none"
+        @keydown="handleKeyDown"
+      />
     </div>
 
-    <Button class="send-btn" :disabled="!modelValue.trim() || disabled" @click="submit">Send</Button>
+    <Button
+      class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-[number:var(--weight-display)] cursor-pointer transition-colors duration-150 hover:not-disabled:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-[0.55]"
+      :disabled="!modelValue.trim() || disabled"
+      @click="submit"
+    >Send</Button>
   </div>
 </template>
-
-<style scoped>
-.input-container {
-  position: relative;
-  display: flex;
-  align-items: flex-end;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-}
-.composer { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
-.composer-control-wrapper { display: inline-flex; }
-.attachment-btn {
-  padding: 0.35rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-.attachment-btn:disabled,
-.send-btn:disabled { cursor: not-allowed; opacity: 0.55; }
-.attachment-btn-unavailable { opacity: 0.55; }
-.embedded-context-hint { color: var(--text-secondary); font-size: var(--text-sm); }
-.embedded-context-hint[aria-disabled='true'] { opacity: 0.7; }
-.attachment-error { color: var(--terracotta); font-size: var(--text-sm); }
-textarea {
-  flex: 1;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--surface);
-  color: var(--color-text-primary);
-  resize: none;
-  font: inherit;
-  font-size: var(--text-base);
-  transition: border-color 0.15s, box-shadow 0.15s;
-}
-textarea::placeholder { color: var(--text-secondary); }
-textarea:focus {
-  outline: none;
-  border-color: var(--color-brand);
-  box-shadow: none;
-}
-.send-btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--color-brand);
-  color: var(--color-text-primary);
-  font-size: var(--text-base);
-  font-weight: var(--weight-display);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.send-btn:hover:not(:disabled) { background: var(--brand-hover); }
-</style>

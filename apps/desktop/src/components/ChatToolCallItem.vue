@@ -41,23 +41,34 @@ function statusIcon(status: string): Component {
     default: return Wrench;
   }
 }
+
+function statusColorClass(status: string): string {
+  switch (status) {
+    case 'in_progress': return 'text-[var(--amber)]';
+    case 'completed': return 'text-[var(--sage)]';
+    case 'failed': return 'text-[var(--terracotta)]';
+    case 'pending':
+    case 'cancelled':
+    default: return 'text-[var(--text-secondary)]';
+  }
+}
 </script>
 
 <template>
-  <div :class="['tci-item', `tool-${toolCall.status}`]" role="article" :aria-label="toolCallAriaLabel">
+  <div class="flex flex-col rounded text-sm bg-[var(--surface-high)] overflow-hidden" role="article" :aria-label="toolCallAriaLabel">
     <Button
       variant="ghost"
-      class="tci-summary"
-      :class="{ 'tci-summary-expandable': hasDetails(toolCall) }"
+      class="flex items-center gap-2 w-full px-2 py-1 border-none bg-transparent text-inherit font-[inherit] text-left"
+      :class="hasDetails(toolCall) ? 'cursor-pointer hover:bg-[var(--surface-highest)]' : ''"
       :aria-expanded="hasDetails(toolCall) ? isExpanded : undefined"
       :aria-controls="hasDetails(toolCall) ? detailsId : undefined"
       @click="hasDetails(toolCall) && emit('toggle')"
     >
-      <span class="tci-icon"><component :is="toolIcon(toolCall.kind)" class="size-4" :stroke-width="1.5" /></span>
-      <span class="tci-name">{{ toolCall.title }}</span>
-      <span v-if="locationLabel(toolCall)" class="tci-location">{{ locationLabel(toolCall) }}</span>
-      <span :class="['tci-status', `status-${toolCall.status}`]"><component :is="statusIcon(toolCall.status)" class="size-4" :stroke-width="1.5" /></span>
-      <span v-if="hasDetails(toolCall)" class="tci-chevron">{{ isExpanded ? '▲' : '▼' }}</span>
+      <span class="text-sm"><component :is="toolIcon(toolCall.kind)" class="size-4" :stroke-width="1.5" /></span>
+      <span class="font-[number:var(--weight-display)] text-text-primary">{{ toolCall.title }}</span>
+      <span v-if="locationLabel(toolCall)" class="flex-1 text-text-secondary text-xs whitespace-nowrap overflow-hidden text-ellipsis">{{ locationLabel(toolCall) }}</span>
+      <span :class="['text-xs', statusColorClass(toolCall.status)]"><component :is="statusIcon(toolCall.status)" class="size-4" :stroke-width="1.5" /></span>
+      <span v-if="hasDetails(toolCall)" class="text-text-secondary text-xs">{{ isExpanded ? '▲' : '▼' }}</span>
     </Button>
     <ChatToolCallDetails
       v-if="hasDetails(toolCall) && isExpanded"
@@ -67,45 +78,3 @@ function statusIcon(status: string): Component {
     />
   </div>
 </template>
-
-<style scoped>
-.tci-item {
-  display: flex;
-  flex-direction: column;
-  border-radius: 4px;
-  font-size: var(--text-sm);
-  background: var(--surface-high);
-  overflow: hidden;
-}
-.tci-summary {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.25rem 0.5rem;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-.tci-summary-expandable { cursor: pointer; }
-.tci-summary-expandable:hover { background: var(--surface-highest); }
-.tci-icon { font-size: var(--text-sm); }
-.tci-name { font-weight: var(--weight-display); color: var(--color-text-primary); }
-.tci-location {
-  flex: 1;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tci-status { font-size: var(--text-xs); }
-.tci-chevron { color: var(--color-text-secondary); font-size: var(--text-xs); }
-.status-pending { color: var(--text-secondary); }
-.status-in_progress { color: var(--amber); }
-.status-completed { color: var(--sage); }
-.status-failed { color: var(--terracotta); }
-.status-cancelled { color: var(--text-secondary); }
-</style>

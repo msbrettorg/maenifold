@@ -18,57 +18,26 @@ const contentId = computed(() => `thought-content-${props.messageId}`);
 </script>
 
 <template>
-  <div class="thought-section" role="region" aria-label="Thinking">
+  <div class="mb-3 overflow-hidden border border-border-subtle rounded" role="region" aria-label="Thinking">
     <Button
       variant="ghost"
-      class="thought-toggle"
+      class="flex items-center gap-2 w-full px-3 py-2 border-none bg-[var(--surface-high)] text-text-secondary text-sm text-left cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-highest)]"
       :aria-expanded="expanded"
       :aria-controls="contentId"
       @click="emit('toggle', messageId)"
     >
-      <span class="thought-icon">💭</span>
-      <span class="thought-label">{{ expanded ? 'Hide thinking' : 'Show thinking' }}</span>
-      <span class="thought-chevron">{{ expanded ? '▲' : '▼' }}</span>
+      <span class="shrink-0 text-base">💭</span>
+      <span class="flex-1 text-xs font-[number:var(--weight-display)]">{{ expanded ? 'Hide thinking' : 'Show thinking' }}</span>
+      <span class="text-text-secondary text-xs">{{ expanded ? '▲' : '▼' }}</span>
     </Button>
-    <div v-if="expanded" :id="contentId" class="thought-content">
+    <div v-if="expanded" :id="contentId" class="thought-content py-3 pl-5 pr-4 bg-[var(--surface-container)] text-text-secondary text-base italic leading-[1.5]">
       <div v-html="renderedThought" />
     </div>
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules — deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html (p, code, pre, pre code) inside .thought-content; Tailwind utilities cannot reach this child markup across the scoped boundary. -->
 <style scoped>
-.thought-section {
-  margin-bottom: 0.75rem;
-  overflow: hidden;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-}
-.thought-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  width: 100%;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  background: var(--surface-high);
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
-  text-align: left;
-  cursor: pointer;
-  transition: background 0.15s ease;
-}
-.thought-toggle:hover { background: var(--surface-highest); }
-.thought-icon { flex-shrink: 0; font-size: var(--text-base); }
-.thought-label { flex: 1; font-size: var(--text-xs); font-weight: var(--weight-display); }
-.thought-chevron { color: var(--color-text-secondary); font-size: var(--text-xs); }
-.thought-content {
-  padding: 0.75rem 1rem 0.75rem 1.25rem;
-  background: var(--surface-container);
-  color: var(--color-text-secondary);
-  font-size: var(--text-base);
-  font-style: italic;
-  line-height: 1.5;
-}
 .thought-content :deep(p) { margin: 0 0 0.5rem; }
 .thought-content :deep(p:last-child) { margin-bottom: 0; }
 .thought-content :deep(code) {

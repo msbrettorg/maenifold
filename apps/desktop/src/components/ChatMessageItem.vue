@@ -67,12 +67,17 @@ function renderMarkdown(content: string): string {
 
 <template>
   <div
-    :class="['message', `message-${message.role}`, { 'message-tool-only': isToolOnlyAssistantMessage }]"
+    class="mb-4 p-3 rounded"
+    :class="[
+      message.role === 'user' ? 'ml-auto max-w-[80%] bg-[var(--surface-high)]' : '',
+      message.role === 'assistant' ? 'bg-[var(--surface-container)]' : '',
+      isToolOnlyAssistantMessage ? 'pt-1.5 pb-1.5' : '',
+    ]"
     role="article"
     :aria-label="messageAriaLabel"
   >
-    <div class="message-header">
-      <span class="role">{{ senderLabel }}</span>
+    <div class="mb-2">
+      <span class="text-text-secondary text-sm font-[number:var(--weight-title)]">{{ senderLabel }}</span>
     </div>
 
     <ChatThoughtSection
@@ -91,29 +96,12 @@ function renderMarkdown(content: string): string {
     />
 
     <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
-    <div v-if="legacyContentWithDOMPurify" class="message-content" v-html="legacyContentWithDOMPurify" />
+    <div v-if="legacyContentWithDOMPurify" class="message-content leading-[1.5] [overflow-wrap:break-word] [word-wrap:break-word]" v-html="legacyContentWithDOMPurify" />
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html (h1–h4, p, ul/ol, pre, code, table, th/td) inside .message-content; Tailwind utilities cannot reach this child markup across the scoped boundary. -->
 <style scoped>
-.message { margin-bottom: 1rem; padding: 0.75rem; border-radius: 4px; }
-.message-user {
-  margin-left: auto;
-  max-width: 80%;
-  background: var(--surface-high);
-}
-.message-assistant {
-  background: var(--surface-container);
-}
-.message-tool-only { padding-top: 0.375rem; padding-bottom: 0.375rem; }
-.message-header { margin-bottom: 0.5rem; }
-.role { color: var(--color-text-secondary); font-size: var(--text-sm); font-weight: var(--weight-title); }
-.message-content {
-  line-height: 1.5;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-}
 .message-content :deep(h1),
 .message-content :deep(h2),
 .message-content :deep(h3),

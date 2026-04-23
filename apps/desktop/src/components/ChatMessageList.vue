@@ -32,17 +32,17 @@ const starterChips: { icon: Component; label: string }[] = [
 <template>
   <div role="log" aria-live="polite" aria-label="Chat messages">
     <!-- Empty state with starter chips -->
-    <div v-if="messages.length === 0 && !isLoading" class="chat-empty">
-      <p class="chat-empty-hint">Start a conversation or try one of these:</p>
-      <div class="chat-empty-chips">
+    <div v-if="messages.length === 0 && !isLoading" class="flex flex-col items-center gap-3 px-4 py-12 text-center">
+      <p class="m-0 text-text-secondary text-md">Start a conversation or try one of these:</p>
+      <div class="flex flex-wrap justify-center gap-2">
         <Button
           v-for="chip in starterChips"
           :key="chip.label"
           variant="outline"
-          class="starter-chip"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 border border-border-subtle rounded bg-[var(--surface-high)] text-text-primary font-[inherit] text-sm cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-highest)]"
           @click="emit('prefill', chip.label)"
         >
-          <span class="chip-icon" aria-hidden="true"><component :is="chip.icon" class="size-4" :stroke-width="1.5" /></span>
+          <span class="text-sm" aria-hidden="true"><component :is="chip.icon" class="size-4" :stroke-width="1.5" /></span>
           <span>{{ chip.label }}</span>
         </Button>
       </div>
@@ -60,86 +60,14 @@ const starterChips: { icon: Component; label: string }[] = [
       @toggle-tool-call="emit('toggle-tool-call', $event)"
     />
 
-    <div v-if="pendingPermissionCount > 0" class="permission-status">
+    <div v-if="pendingPermissionCount > 0" class="mt-4 px-4 py-3 rounded bg-[var(--bg-warning)] border border-border-subtle text-text-primary">
       {{ pendingPermissionCount }} permission request{{ pendingPermissionCount === 1 ? '' : 's' }} awaiting review.
     </div>
 
-    <div v-if="isLoading" class="loading-indicator">
-      <span class="spinner"></span>
+    <div v-if="isLoading" class="flex items-center gap-2 p-3 text-text-secondary">
+      <span class="inline-block w-4 h-4 border-2 border-border-subtle border-t-brand rounded-[var(--radius)] animate-spin"></span>
       <span>Thinking...</span>
-      <Button variant="outline" size="sm" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" size="sm" class="ml-auto px-2 py-1 border border-border-subtle rounded bg-transparent text-text-primary text-sm cursor-pointer" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.chat-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 3rem 1rem;
-  text-align: center;
-}
-.chat-empty-hint {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--text-md);
-}
-.chat-empty-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.5rem;
-}
-.starter-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--surface-high);
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: background 0.15s;
-}
-.starter-chip:hover { background: var(--surface-highest); }
-.chip-icon { font-size: var(--text-sm); }
-.permission-status {
-  margin-top: 1rem;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
-  background: var(--bg-warning);
-  border: 1px solid var(--color-border-subtle);
-  color: var(--color-text-primary);
-}
-.loading-indicator {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  color: var(--color-text-secondary);
-}
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--color-border-subtle);
-  border-top-color: var(--color-brand);
-  border-radius: var(--radius);
-  animation: spin 1s linear infinite;
-}
-.cancel-btn {
-  margin-left: auto;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: transparent;
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-</style>

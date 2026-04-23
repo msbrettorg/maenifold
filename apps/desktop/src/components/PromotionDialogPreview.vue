@@ -25,9 +25,9 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="dialog-section">
-    <div class="search-row">
-      <label class="field-block search-field">
+  <section class="grid gap-4 px-4 pb-4">
+    <div class="flex gap-3 items-end max-[720px]:flex-col">
+      <label class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs flex-1">
         <span>Search existing notes</span>
         <Input
           class="border-0"
@@ -39,7 +39,7 @@ const emit = defineEmits<{
       </label>
       <Button
         type="button"
-        class="search-button"
+        class="shrink-0"
         variant="ghost"
         :disabled="searching || writing"
         @click="emit('search')"
@@ -48,19 +48,19 @@ const emit = defineEmits<{
       </Button>
     </div>
 
-    <p v-if="infoMessage" class="info-message">{{ infoMessage }}</p>
-    <p v-if="promotionError && !formError" class="form-error" role="alert">{{ promotionError }}</p>
-    <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+    <p v-if="infoMessage" class="text-[var(--text-secondary)]">{{ infoMessage }}</p>
+    <p v-if="promotionError && !formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ promotionError }}</p>
+    <p v-if="formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ formError }}</p>
 
-    <div v-if="searchResults.length > 0" class="result-list">
-      <article v-for="result in searchResults" :key="result.uri" class="result-card">
-        <div class="result-card__body">
+    <div v-if="searchResults.length > 0" class="grid gap-4">
+      <article v-for="result in searchResults" :key="result.uri" class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <div class="grid gap-[0.35rem] min-w-0">
           <strong>{{ result.title }}</strong>
-          <code class="mono">{{ result.uri }}</code>
-          <p v-if="result.snippet">{{ result.snippet }}</p>
-          <span class="result-score">Score {{ result.score.toFixed(2) }}</span>
+          <code class="font-mono break-all">{{ result.uri }}</code>
+          <p v-if="result.snippet" class="m-0 whitespace-pre-wrap text-[var(--text-secondary)]">{{ result.snippet }}</p>
+          <span class="text-[var(--text-secondary)]">Score {{ result.score.toFixed(2) }}</span>
         </div>
-        <div class="result-card__actions">
+        <div class="flex gap-3 flex-wrap max-[720px]:justify-stretch">
           <Button type="button" variant="ghost" :disabled="busy" @click="emit('select-action', 'append', result)">
             Append to this
           </Button>
@@ -71,7 +71,7 @@ const emit = defineEmits<{
       </article>
     </div>
 
-    <div class="dialog-actions">
+    <div class="flex flex-wrap items-center gap-3 max-[720px]:justify-stretch [&>:first-child:not(:only-child)]:mr-auto">
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">
         Cancel
       </Button>

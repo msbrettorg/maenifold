@@ -237,9 +237,9 @@ function publishValue(nextData: Record<string, unknown>): void {
 </script>
 
 <template>
-  <section class="schema-form" role="form" :aria-label="props.ariaLabel">
-    <div class="schema-form__surface">
-      <div v-if="isSimpleMode" class="schema-form__fields">
+  <section class="flex flex-col gap-4" role="form" :aria-label="props.ariaLabel">
+    <div class="flex flex-col gap-4">
+      <div v-if="isSimpleMode" class="grid gap-3.5">
         <SchemaFormField
           v-for="field in simpleFields"
           :key="field.key"
@@ -251,7 +251,7 @@ function publishValue(nextData: Record<string, unknown>): void {
       </div>
 
       <template v-else>
-        <div v-if="canToggleAdvancedRaw" class="schema-form__toolbar">
+        <div v-if="canToggleAdvancedRaw" class="flex justify-end">
           <Button type="button" variant="ghost" @click="toggleAdvancedRaw">
             {{ showAdvancedRaw ? 'Back to form' : 'Advanced JSON' }}
           </Button>
@@ -276,5 +276,3 @@ function publishValue(nextData: Record<string, unknown>): void {
     </div>
   </section>
 </template>
-
-<style src="./SchemaForm.css"></style>

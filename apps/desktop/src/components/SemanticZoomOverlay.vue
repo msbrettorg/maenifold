@@ -16,7 +16,6 @@ import SemanticZoomOverlayContent from './SemanticZoomOverlayContent.vue';
 import SemanticZoomOverlayControls from './SemanticZoomOverlayControls.vue';
 import SemanticZoomOverlayFailure from './SemanticZoomOverlayFailure.vue';
 import SemanticZoomOverlayHeader from './SemanticZoomOverlayHeader.vue';
-import './SemanticZoomOverlay.css';
 const zoom = useSemanticZoomStore();
 const pipeline = usePipelineStore();
 const sessionStore = useSessionStore();
@@ -211,7 +210,7 @@ watch(() => viewNode.value?.nodeId, () => {
   <Dialog :open="zoom.isInspecting && !!viewNode" @update:open="(open) => !open && zoom.back()">
     <DialogContent
       v-if="viewNode"
-      class="zoom-panel max-h-[80vh] w-[90vw] max-w-[720px] gap-0 overflow-hidden border p-0 shadow-none"
+      class="flex max-h-[80vh] w-[90vw] max-w-[720px] flex-col gap-0 overflow-hidden border border-border-subtle bg-card p-0 shadow-none"
       :show-close-button="false"
     >
       <DialogTitle class="sr-only">{{ displayLabel }}</DialogTitle>
@@ -221,9 +220,9 @@ watch(() => viewNode.value?.nodeId, () => {
         :node-type="nodeType"
         :status-label="statusLabel"
       />
-      <div v-if="agentSummary" class="zoom-agent-summary">{{ agentSummary }}</div>
+      <div v-if="agentSummary" class="border-b border-border-subtle bg-accent px-4 py-2 font-display text-[var(--text-caption)] text-text-secondary">{{ agentSummary }}</div>
       <SemanticZoomOverlayFailure :failure-reason="failureReason" />
-      <div class="zoom-body">
+      <div class="flex-1 overflow-y-auto p-4">
         <SemanticZoomOverlayContent
           :assembled-prompt="assembledPrompt"
           :node-output="nodeOutput"

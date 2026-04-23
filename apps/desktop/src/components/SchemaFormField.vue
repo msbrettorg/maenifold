@@ -36,26 +36,26 @@ function stringModelValue(): string {
 </script>
 
 <template>
-  <div class="schema-form__field">
+  <div class="grid gap-1.5 rounded-[4px] p-3.5 bg-[color-mix(in_srgb,var(--color-bg-elevated)_88%,transparent)]">
     <template v-if="field.kind === 'boolean'">
-      <div class="schema-form__switch-row">
+      <div class="flex items-center gap-2">
         <Switch
           :id="fieldId()"
           :model-value="Boolean(value)"
           @update:model-value="emit('update', $event)"
         />
-        <Label :for="fieldId()" class="schema-form__switch-label">
+        <Label :for="fieldId()" class="text-text-primary text-sm font-[var(--weight-body)]">
           {{ field.label }}
         </Label>
-        <span v-if="field.required" class="schema-form__required">*</span>
+        <span v-if="field.required" class="text-brand text-xs">*</span>
       </div>
     </template>
     <template v-else>
-      <div class="schema-form__label-row">
-        <Label :for="fieldId()" class="schema-form__label">
+      <div class="flex items-center gap-2">
+        <Label :for="fieldId()" class="text-text-primary text-sm font-[var(--weight-title)]">
           {{ field.label }}
         </Label>
-        <span v-if="field.required" class="schema-form__required">*</span>
+        <span v-if="field.required" class="text-brand text-xs">*</span>
       </div>
 
       <Input
@@ -70,7 +70,7 @@ function stringModelValue(): string {
         :model-value="stringModelValue()"
         @update:model-value="emit('update', $event)"
       >
-        <SelectTrigger class="schema-form__select-trigger">
+        <SelectTrigger class="w-full rounded-[4px]">
           <SelectValue :placeholder="`Select ${field.label.toLowerCase()}`" />
         </SelectTrigger>
         <SelectContent>
@@ -101,10 +101,10 @@ function stringModelValue(): string {
       />
     </template>
 
-    <p v-if="field.description" class="schema-form__hint">
+    <p v-if="field.description" class="m-0 text-text-secondary text-xs">
       {{ field.description }}
     </p>
-    <p v-if="error" class="schema-form__error">
+    <p v-if="error" class="m-0 text-danger text-xs">
       {{ error }}
     </p>
   </div>

@@ -31,48 +31,48 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section class="dialog-section">
-    <div class="section-header">
+  <section class="grid gap-4 px-4 pb-4">
+    <div class="flex gap-3 max-[720px]:flex-col">
       <div>
-        <h4>Confirm promotion</h4>
-        <p>Review the destination and the generated content before saving to memory.</p>
+        <h4 class="m-0 font-display font-medium text-base text-[var(--color-text-primary)]">Confirm promotion</h4>
+        <p class="text-[var(--text-secondary)]">Review the destination and the generated content before saving to memory.</p>
       </div>
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Back</Button>
     </div>
 
-    <div class="confirm-summary">
-      <div class="summary-row">
-        <strong>Action</strong>
-        <span>{{ selectedAction }}</span>
+    <div class="grid gap-4">
+      <div class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <strong class="text-[var(--color-text-primary)] text-xs">Action</strong>
+        <span class="text-[var(--color-text-primary)] text-xs">{{ selectedAction }}</span>
       </div>
-      <div v-if="selectedAction === 'create'" class="summary-row">
-        <strong>Title</strong>
-        <span>{{ title }}</span>
+      <div v-if="selectedAction === 'create'" class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <strong class="text-[var(--color-text-primary)] text-xs">Title</strong>
+        <span class="text-[var(--color-text-primary)] text-xs">{{ title }}</span>
       </div>
-      <div v-if="selectedAction === 'create' && folder" class="summary-row">
-        <strong>Folder</strong>
-        <span>{{ folder }}</span>
+      <div v-if="selectedAction === 'create' && folder" class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <strong class="text-[var(--color-text-primary)] text-xs">Folder</strong>
+        <span class="text-[var(--color-text-primary)] text-xs">{{ folder }}</span>
       </div>
-      <div v-if="selectedAction === 'create' && tags.length" class="summary-row">
-        <strong>Tags</strong>
-        <span>{{ tags.join(', ') }}</span>
+      <div v-if="selectedAction === 'create' && tags.length" class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <strong class="text-[var(--color-text-primary)] text-xs">Tags</strong>
+        <span class="text-[var(--color-text-primary)] text-xs">{{ tags.join(', ') }}</span>
       </div>
-      <div v-if="selectedResult || selectedMemory" class="summary-row">
-        <strong>Target note</strong>
-        <span>{{ selectedMemory?.uri ?? selectedResult?.uri }}</span>
+      <div v-if="selectedResult || selectedMemory" class="flex gap-3 justify-between items-start rounded-[4px] p-3.5 bg-[var(--surface)] max-[720px]:flex-col">
+        <strong class="text-[var(--color-text-primary)] text-xs">Target note</strong>
+        <span class="text-[var(--color-text-primary)] text-xs">{{ selectedMemory?.uri ?? selectedResult?.uri }}</span>
       </div>
     </div>
 
-    <p v-if="selectedAction === 'update' && updateDisabledMessage" class="info-message">{{ updateDisabledMessage }}</p>
+    <p v-if="selectedAction === 'update' && updateDisabledMessage" class="text-[var(--text-secondary)]">{{ updateDisabledMessage }}</p>
 
-    <div class="memory-preview">
-      <span>Final content</span>
-      <pre>{{ nextPreview }}</pre>
+    <div class="grid gap-4">
+      <span class="text-[var(--color-text-primary)] text-xs">Final content</span>
+      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-inherit">{{ nextPreview }}</pre>
     </div>
 
-    <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+    <p v-if="formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ formError }}</p>
 
-    <div class="dialog-actions">
+    <div class="flex flex-wrap items-center gap-3 max-[720px]:justify-stretch [&>:first-child:not(:only-child)]:mr-auto">
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">Cancel</Button>
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('retry')">Retry</Button>
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Edit</Button>

@@ -98,7 +98,16 @@ pub(crate) fn context_from_value(
     default_root: Option<&PathBuf>,
 ) -> Result<GateContext, GateError> {
     let raw_root = match optional_path(arguments, "root")? {
-        Some(root) => root,
+        Some(root) => {
+            if root.is_relative() {
+                return Err(GateError::Cli(format!(
+                    "root path '{}' is relative; pass an absolute path (e.g. '/Users/you/project') \
+                     because the MCP server cannot resolve paths relative to the client's working directory",
+                    root.display()
+                )));
+            }
+            root
+        }
         None => default_root.cloned().ok_or_else(|| {
             GateError::Cli(
                 "no root bound to this session; pass 'root' argument on any tool call to bind a workspace"
@@ -172,6 +181,25 @@ mod tests {
             "error should contain the path: {msg}"
         );
         assert!(msg.contains("root"), "error should mention root: {msg}");
+    }
+
+    #[test]
+    fn context_from_value_rejects_relative_root() {
+        let args = json!({"root": "."});
+        let result = context_from_value(&args, false, None);
+        let err = result.expect_err("relative root should fail");
+        let msg = err.to_string();
+        assert!(msg.contains("relative"), "error should mention relative: {msg}");
+        assert!(msg.contains("absolute"), "error should suggest absolute: {msg}");
+    }
+
+    #[test]
+    fn context_from_value_rejects_relative_subdir_root() {
+        let args = json!({"root": "some/subdir"});
+        let result = context_from_value(&args, false, None);
+        let err = result.expect_err("relative subdir root should fail");
+        let msg = err.to_string();
+        assert!(msg.contains("relative"), "error should mention relative: {msg}");
     }
 
     #[test]

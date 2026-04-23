@@ -110,11 +110,11 @@ watch(
       id="pipeline-flyout"
       side="left"
       :show-close-button="false"
-      class="pipeline-flyout border-0 p-0 text-[var(--color-text-primary)]"
+      class="w-[min(320px,88vw)] border-0 bg-[var(--surface)] p-0 text-[var(--color-text-primary)] shadow-[var(--shadow-16)]"
     >
-      <div ref="flyoutRef" class="flyout-shell" @keydown="handleKeydown">
+      <div ref="flyoutRef" class="flex h-full flex-col" @keydown="handleKeydown">
         <SheetHeader class="gap-1 px-4 py-4 text-left">
-          <div class="flyout-header-row">
+          <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
               <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Pipelines</SheetTitle>
               <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">Browse, load, and create pipeline sessions.</SheetDescription>
@@ -132,7 +132,7 @@ watch(
           </div>
         </SheetHeader>
 
-        <div class="flyout-search">
+        <div class="px-4 pb-3">
           <Input
             v-model="searchQuery"
             type="text"
@@ -141,21 +141,32 @@ watch(
           />
         </div>
 
-        <ScrollArea class="flyout-body">
-          <div v-if="showLoadingState" class="flyout-state" aria-live="polite">
-            <div class="skeleton-block skeleton-block--title" />
-            <div class="skeleton-block skeleton-block--wide" />
-            <div class="skeleton-block" />
+        <ScrollArea class="h-[calc(100vh-7rem)]">
+          <div
+            v-if="showLoadingState"
+            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
+            aria-live="polite"
+          >
+            <div class="skeleton-pulse h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
+            <div class="skeleton-pulse h-3.5 w-[min(28rem,90vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
+            <div class="skeleton-pulse h-3.5 w-[min(20rem,88vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
           </div>
 
-          <div v-else-if="showErrorState" class="flyout-state flyout-state--error" role="alert">
-            <p class="flyout-state-title">Failed to load</p>
-            <p class="flyout-state-msg">{{ connectionError }}</p>
+          <div
+            v-else-if="showErrorState"
+            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center text-[var(--color-text-primary)]"
+            role="alert"
+          >
+            <p class="m-0 text-[length:var(--text-lg)] text-[var(--color-text-primary)]">Failed to load</p>
+            <p class="m-0 text-[length:var(--text-sm)] text-[var(--text-secondary)]">{{ connectionError }}</p>
             <Button type="button" class="rounded-[4px]" @click="emit('retry')">Retry</Button>
           </div>
 
-          <div v-else-if="pipelines.length === 0" class="flyout-state">
-            <p class="flyout-state-title">No pipelines yet</p>
+          <div
+            v-else-if="pipelines.length === 0"
+            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
+          >
+            <p class="m-0 text-[length:var(--text-lg)] text-[var(--color-text-primary)]">No pipelines yet</p>
             <Button type="button" class="rounded-[4px]" @click="emit('new-pipeline')">New pipeline</Button>
           </div>
 
@@ -171,76 +182,10 @@ watch(
   </Sheet>
 </template>
 
+<!-- audit-ok: keyframe-animation — @keyframes skeleton-pulse for skeleton loading states; not expressible as Tailwind utilities. -->
 <style scoped>
-.pipeline-flyout {
-  width: min(320px, 88vw);
-  background: var(--surface);
-  box-shadow: var(--shadow-16);
-}
-
-.flyout-shell {
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-}
-
-.flyout-header-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.flyout-search { padding: 0 1rem 0.75rem; }
-
-.flyout-body {
-  height: calc(100vh - 7rem);
-}
-
-.flyout-state {
-  min-height: calc(100vh - 12rem);
-  display: grid;
-  place-content: center;
-  gap: 0.75rem;
-  padding: 1.5rem;
-  text-align: center;
-}
-
-.flyout-state--error { color: var(--color-text-primary); }
-
-.flyout-state-title {
-  margin: 0;
-  font-size: var(--text-lg);
-  color: var(--color-text-primary);
-}
-
-.flyout-state-msg {
-  margin: 0;
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-}
-
-.skeleton-block {
-  height: 0.875rem;
-  border-radius: var(--radius-4);
-  background: var(--surface-high);
+.skeleton-pulse {
   animation: skeleton-pulse 1.4s ease-in-out infinite;
-}
-
-.skeleton-block--title {
-  width: min(14rem, 85vw);
-  height: 1.1rem;
-  justify-self: center;
-}
-
-.skeleton-block--wide {
-  width: min(28rem, 90vw);
-  justify-self: center;
-}
-
-.skeleton-block:not(.skeleton-block--title):not(.skeleton-block--wide) {
-  width: min(20rem, 88vw);
-  justify-self: center;
 }
 
 @keyframes skeleton-pulse {

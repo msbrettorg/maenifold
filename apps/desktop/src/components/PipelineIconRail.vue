@@ -38,16 +38,21 @@ defineExpose({ focusPipelineToggle });
 
 <template>
   <TooltipProvider v-if="!isNarrowViewport" :delay-duration="150">
-    <nav class="pipeline-icon-rail" aria-label="Pipeline navigation">
+    <nav
+      class="flex h-full w-full flex-col items-center gap-1.5 bg-[var(--color-bg-elevated)] p-1.5"
+      aria-label="Pipeline navigation"
+    >
       <Tooltip>
         <TooltipTrigger as-child>
+          <!-- audit-ok: dynamic-binding (active background uses color-mix() not expressible as a Tailwind utility) -->
           <Button
             ref="pipelineButtonRef"
             type="button"
-            class="rail-button"
+            class="relative h-9 w-9 text-[var(--color-text-primary)] transition-[background,color] duration-150 hover:bg-[var(--color-bg-surface)] focus-visible:bg-[var(--color-bg-surface)] focus-visible:outline-none before:content-[''] before:absolute before:-left-1.5 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-[var(--radius-4)] before:bg-transparent"
+            :class="isPipelineActive ? 'before:!bg-[var(--color-brand)]' : ''"
             variant="ghost"
             size="icon"
-            :class="{ 'is-active': isPipelineActive }"
+            :style="isPipelineActive ? { background: 'color-mix(in srgb, var(--color-brand) 16%, var(--color-bg-elevated))' } : undefined"
             :aria-expanded="flyoutOpen"
             aria-controls="pipeline-flyout"
             :aria-label="flyoutOpen ? 'Close pipelines flyout' : 'Open pipelines flyout'"
@@ -65,7 +70,7 @@ defineExpose({ focusPipelineToggle });
         <TooltipTrigger as-child>
           <Button
             type="button"
-            class="rail-button"
+            class="relative h-9 w-9 text-[var(--color-text-primary)] transition-[background,color] duration-150 hover:bg-[var(--color-bg-surface)] focus-visible:bg-[var(--color-bg-surface)] focus-visible:outline-none before:content-[''] before:absolute before:-left-1.5 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-[var(--radius-4)] before:bg-transparent"
             variant="ghost"
             size="icon"
             aria-label="Create new pipeline"
@@ -81,49 +86,3 @@ defineExpose({ focusPipelineToggle });
     </nav>
   </TooltipProvider>
 </template>
-
-<style scoped>
-.pipeline-icon-rail {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 6px;
-  background: var(--color-bg-elevated);
-}
-
-.rail-button {
-  position: relative;
-  width: 36px;
-  height: 36px;
-  color: var(--color-text-primary);
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.rail-button::before {
-  content: '';
-  position: absolute;
-  left: -6px;
-  top: 7px;
-  bottom: 7px;
-  width: 2px;
-  border-radius: var(--radius-4);
-  background: transparent;
-}
-
-.rail-button:hover,
-.rail-button:focus-visible {
-  background: var(--color-bg-surface);
-  outline: none;
-}
-
-.rail-button.is-active {
-  background: color-mix(in srgb, var(--color-brand) 16%, var(--color-bg-elevated));
-}
-
-.rail-button.is-active::before {
-  background: var(--color-brand);
-}
-</style>

@@ -225,12 +225,12 @@ async function refreshHealth() {
 </script>
 
 <template>
-  <section class="settings-section">
+  <section class="flex flex-col gap-4">
     <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="section-header">
+      <div class="flex justify-between gap-3 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary">
         <div>
-          <h3 class="text-base font-semibold text-text-primary">Connection settings</h3>
-          <p class="text-sm text-text-secondary">Manage the configured ACP agents available in the application.</p>
+          <h3 class="text-base font-semibold text-text-primary m-0">Connection settings</h3>
+          <p class="text-sm text-text-secondary m-0">Manage the configured ACP agents available in the application.</p>
         </div>
       </div>
 
@@ -282,24 +282,3 @@ async function refreshHealth() {
     </AlertDialog>
   </section>
 </template>
-
-<style scoped>
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-header {
-  margin-bottom: 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-}
-
-.section-header h3,
-.section-header p {
-  margin: 0;
-}
-</style>

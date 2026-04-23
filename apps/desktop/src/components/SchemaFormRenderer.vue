@@ -33,6 +33,8 @@ defineEmits<{
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules — all :deep() rules target third-party JSONForms internals; not migratable to Tailwind -->
+<!-- audit-ok: max-loc — :deep() style block for JSONForms theming -->
 <style scoped>
 .schema-form-renderer::-webkit-scrollbar { width: 8px; } .schema-form-renderer::-webkit-scrollbar-track { background: transparent; } .schema-form-renderer::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 4px; }
 .schema-form-renderer :deep(.schema-form__vertical-layout), .schema-form-renderer :deep(.schema-form__group-item), .schema-form-renderer :deep(.schema-form__array), .schema-form-renderer :deep(.schema-form__array-item), .schema-form-renderer :deep(.schema-form__array-item-content), .schema-form-renderer :deep(.schema-form__one-of), .schema-form-renderer :deep(.schema-form__categorization-panel) { display: flex; flex-direction: column; gap: var(--space-4); }

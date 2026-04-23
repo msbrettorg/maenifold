@@ -54,7 +54,7 @@ function copyPayload() {
       <span class="method">{{ entry.method }}</span>
       <span v-if="typeLabel" class="type-label">{{ typeLabel }}</span>
       <span v-if="entry.requestId !== undefined" class="request-id">#{{ entry.requestId }}</span>
-      <Button variant="ghost" size="icon-xs" class="copy-btn" aria-label="Copy JSON" @click.stop="copyPayload">📋</Button>
+      <Button variant="ghost" size="icon-xs" class="copy-btn" aria-label="Copy JSON" @keydown.stop @click.stop="copyPayload">📋</Button>
     </div>
 
     <TrafficJsonPayload v-if="isExpanded" :payload="entry.payload" />

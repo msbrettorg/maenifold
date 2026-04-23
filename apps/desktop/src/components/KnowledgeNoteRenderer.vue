@@ -90,12 +90,16 @@ async function renderMermaidInHtml(html: string): Promise<string> {
 }
 
 const rendered = ref('');
+let renderVersion = 0;
 
 async function updateRendered() {
+  const thisVersion = ++renderVersion;
   const initial = renderMarkdown(props.content);
+  if (thisVersion !== renderVersion) return;
   rendered.value = initial;
   await nextTick();
   const withMermaid = await renderMermaidInHtml(initial);
+  if (thisVersion !== renderVersion) return;
   if (withMermaid !== initial) {
     rendered.value = withMermaid;
   }

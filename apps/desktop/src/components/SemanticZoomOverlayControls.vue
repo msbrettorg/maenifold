@@ -27,8 +27,12 @@ defineEmits<{
 </script>
 
 <template>
-  <footer class="zoom-footer">
-    <div class="zoom-actions">
+  <!-- audit-ok: dynamic-binding (color-mix blend of accent fallback chain not pre-baked as a token) -->
+  <footer
+    class="flex flex-col gap-[var(--space-3)] py-[var(--space-3)] px-[var(--space-4)] pb-[var(--space-4)] border-t border-[var(--color-border-subtle)]"
+    style="background: color-mix(in srgb, var(--accent, var(--surface-highest)) 55%, var(--card, var(--surface-container)));"
+  >
+    <div class="flex flex-wrap gap-3">
       <Button
         variant="ghost"
         :disabled="busyAction !== null"
@@ -101,47 +105,13 @@ defineEmits<{
       </Button>
     </div>
 
-    <div v-if="forkedSessionId" class="zoom-fork-result" role="status">
-      <span>Forked session</span>
-      <strong class="zoom-mono">{{ forkedSessionId }}</strong>
+    <div
+      v-if="forkedSessionId"
+      class="flex flex-col gap-1 p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)]"
+      role="status"
+    >
+      <span class="text-text-secondary text-[length:var(--text-caption)]">Forked session</span>
+      <strong class="font-mono break-all">{{ forkedSessionId }}</strong>
     </div>
   </footer>
 </template>
-
-<style scoped>
-.zoom-footer {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  border-top: 1px solid var(--color-border-subtle);
-  background: color-mix(in srgb, var(--accent, var(--surface-highest)) 55%, var(--card, var(--surface-container)));
-}
-
-.zoom-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.zoom-fork-result {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--color-bg-app);
-}
-
-.zoom-fork-result span {
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-}
-
-.zoom-mono {
-  font-family: var(--font-code);
-  word-break: break-all;
-}
-
-</style>

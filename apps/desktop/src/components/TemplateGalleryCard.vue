@@ -35,72 +35,19 @@ defineEmits<{
   <Button
     type="button"
     variant="ghost"
-    :class="['gallery-card shadow-[var(--shadow-8)] border-[1.5px] border-border-card flex h-auto flex-col items-start whitespace-normal rounded-[0.25rem] font-normal text-left', { 'gallery-card--selected': props.selected }]"
+    class="shadow-[var(--shadow-8)] border-[1.5px] border-border-card flex h-auto flex-col items-start whitespace-normal rounded-[0.25rem] font-normal text-left relative gap-[0.35rem] min-h-[9rem] py-[0.875rem] pr-[0.875rem] pl-4 cursor-pointer transition-[background,transform] duration-150 ease-in-out before:content-[''] before:absolute before:top-0 before:bottom-0 before:left-0 before:w-1 before:rounded-l-[0.25rem] before:bg-[var(--template-accent)] bg-[var(--surface-container)] hover:bg-[var(--surface-high)]"
+    :class="{ 'bg-[var(--surface-high)]': props.selected }"
     :style="{ '--template-accent': ACCENT_BY_TEMPLATE_ID[props.template.id] ?? 'var(--color-brand)' }"
     @click="$emit('select')"
   >
-    <component :is="iconMap[props.template.icon] ?? FlaskConical" class="gallery-card-icon size-5 text-text-secondary" :stroke-width="1.5" />
-    <span class="gallery-card-label">{{ props.template.label }}</span>
-    <span class="gallery-card-desc">{{ props.template.description }}</span>
-    <span v-if="props.template.category === 'enterprise'" class="gallery-card-badge">Enterprise</span>
+    <component :is="iconMap[props.template.icon] ?? FlaskConical" class="size-5 text-text-secondary" :stroke-width="1.5" />
+    <span class="text-[0.875rem] font-[number:var(--weight-title)] text-text-primary">{{ props.template.label }}</span>
+    <span class="text-[0.8125rem] text-[var(--text-secondary)] leading-[1.3]">{{ props.template.description }}</span>
+    <!-- audit-ok: dynamic-binding (color-mix on dynamic --template-accent CSS var) -->
+    <span
+      v-if="props.template.category === 'enterprise'"
+      class="mt-auto inline-flex py-[0.125rem] px-2 rounded-[4px] text-[0.75rem] font-medium text-text-primary"
+      style="background: color-mix(in srgb, var(--template-accent) 18%, transparent);"
+    >Enterprise</span>
   </Button>
 </template>
-
-<style scoped>
-.gallery-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  position: relative;
-  min-height: 9rem;
-  padding: 0.875rem 0.875rem 0.875rem 1rem;
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.15s ease, transform 0.15s ease;
-}
-
-.gallery-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  border-radius: 0.25rem 0 0 0.25rem;
-  background: var(--template-accent);
-}
-
-.gallery-card:hover {
-  background: var(--surface-high);
-}
-
-.gallery-card--selected {
-  background: var(--surface-high);
-}
-
-.gallery-card-label {
-  font-size: 0.875rem;
-  font-weight: var(--weight-title);
-  color: var(--color-text-primary);
-}
-
-.gallery-card-desc {
-  font-size: 0.8125rem;
-  color: var(--text-secondary);
-  line-height: 1.3;
-}
-
-.gallery-card-badge {
-  margin-top: auto;
-  display: inline-flex;
-  padding: 0.125rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--template-accent) 18%, transparent);
-}
-</style>

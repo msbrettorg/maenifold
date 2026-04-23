@@ -26,7 +26,7 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
 </script>
 
 <template>
-  <div class="zoom-content">
+  <div class="flex flex-col gap-[var(--space-3)]">
     <PromptAssemblyPreview v-if="props.assembledPrompt" :assembled-prompt="props.assembledPrompt" />
 
     <ThinkingTraceView v-if="props.thinkingTrace && props.thinkingTrace.length > 0" :trace="props.thinkingTrace" />
@@ -38,122 +38,31 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
       type="multiple"
       :default-value="['output', 'tool-provenance']"
     >
-      <AccordionItem v-if="props.nodeOutput" value="output" class="zoom-section">
-        <AccordionTrigger class="zoom-section-title">Output</AccordionTrigger>
+      <AccordionItem v-if="props.nodeOutput" value="output">
+        <AccordionTrigger class="font-[family-name:var(--font-display)] text-[length:var(--text-caption)] font-[number:var(--weight-title)] text-text-primary cursor-pointer py-[var(--space-2)] px-0 list-none before:content-['▸_'] data-[state=open]:before:content-['▾_']">Output</AccordionTrigger>
         <AccordionContent>
-          <pre class="zoom-pre">{{ props.nodeOutput }}</pre>
+          <pre class="mt-[var(--space-2)] mb-0 mx-0 p-[var(--space-3)] font-mono text-[length:var(--text-tiny)] leading-[1.5] text-text-secondary bg-[var(--color-bg-app)] rounded-[var(--radius-md)] whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{{ props.nodeOutput }}</pre>
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem v-if="props.toolProvenance" value="tool-provenance" class="zoom-section">
-        <AccordionTrigger class="zoom-section-title">Tool Provenance</AccordionTrigger>
+      <AccordionItem v-if="props.toolProvenance" value="tool-provenance">
+        <AccordionTrigger class="font-[family-name:var(--font-display)] text-[length:var(--text-caption)] font-[number:var(--weight-title)] text-text-primary cursor-pointer py-[var(--space-2)] px-0 list-none before:content-['▸_'] data-[state=open]:before:content-['▾_']">Tool Provenance</AccordionTrigger>
         <AccordionContent>
-          <div class="zoom-metadata">
-            <span class="item-label">Tool</span>
+          <div class="flex items-center justify-between gap-[var(--space-2)] mt-[var(--space-2)]">
+            <span class="font-mono text-[length:var(--text-tiny)] font-[number:var(--weight-title)] text-text-primary">Tool</span>
             <strong>{{ props.toolProvenance.toolName }}</strong>
           </div>
-          <pre class="zoom-pre">{{ formatJson(props.toolProvenance.resolvedArgs ?? null) }}</pre>
-          <pre v-if="props.toolProvenance.responseSummary" class="zoom-pre">{{ props.toolProvenance.responseSummary }}</pre>
+          <pre class="mt-[var(--space-2)] mb-0 mx-0 p-[var(--space-3)] font-mono text-[length:var(--text-tiny)] leading-[1.5] text-text-secondary bg-[var(--color-bg-app)] rounded-[var(--radius-md)] whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{{ formatJson(props.toolProvenance.resolvedArgs ?? null) }}</pre>
+          <pre v-if="props.toolProvenance.responseSummary" class="mt-[var(--space-2)] mb-0 mx-0 p-[var(--space-3)] font-mono text-[length:var(--text-tiny)] leading-[1.5] text-text-secondary bg-[var(--color-bg-app)] rounded-[var(--radius-md)] whitespace-pre-wrap break-words max-h-[300px] overflow-y-auto">{{ props.toolProvenance.responseSummary }}</pre>
         </AccordionContent>
       </AccordionItem>
     </Accordion>
 
     <div
       v-if="!props.assembledPrompt && !props.thinkingTrace && !props.workflowSteps && !props.nodeOutput && !props.toolProvenance"
-      class="zoom-empty"
+      class="p-[var(--space-8)] text-center text-text-secondary text-[length:var(--text-caption)]"
     >
       This node hasn't produced any output yet.
     </div>
   </div>
 </template>
-
-<style scoped>
-.zoom-content {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.zoom-section-title {
-  font-family: var(--font-display);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-  color: var(--color-text-primary);
-  cursor: pointer;
-  padding: var(--space-2) 0;
-  list-style: none;
-}
-
-.zoom-section-title::before {
-  content: '▸ ';
-}
-
-.zoom-section[open] > .zoom-section-title::before {
-  content: '▾ ';
-}
-
-.zoom-pre {
-  margin: var(--space-2) 0 0;
-  padding: var(--space-3);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-app);
-  border-radius: var(--radius-md);
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.zoom-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.zoom-list-item {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2);
-  background: var(--color-bg-surface);
-  border-radius: var(--radius-md);
-}
-
-.zoom-metadata {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  margin-top: var(--space-2);
-}
-
-.item-label {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  color: var(--color-text-primary);
-}
-
-.item-status {
-  font-size: var(--text-tiny);
-  color: var(--color-text-secondary);
-}
-
-.zoom-status--active { color: var(--color-status-active); }
-.zoom-status--completed { color: var(--color-status-completed); }
-.zoom-status--abandoned { color: var(--color-status-abandoned); }
-.zoom-status--ready { color: var(--color-status-ready); }
-
-.zoom-empty {
-  padding: var(--space-8);
-  text-align: center;
-  color: var(--color-text-secondary);
-  font-size: var(--text-caption);
-}
-</style>

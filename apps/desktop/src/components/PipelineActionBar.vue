@@ -220,13 +220,13 @@ function handleRewind(): Promise<void | undefined> {
 </script>
 
 <template>
-  <div v-if="actions.length > 0" class="pipeline-action-bar" role="group" aria-label="Pipeline quick actions">
+  <div v-if="actions.length > 0" class="flex flex-wrap items-center gap-2 ml-1 p-2 rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--color-border-subtle)_82%,transparent)] bg-[var(--surface-container)] shadow-[var(--shadow-16)]" role="group" aria-label="Pipeline quick actions">
     <Button
       v-for="action in actions"
       :key="action.key"
       type="button"
       :variant="action.variant"
-      :class="['pipeline-action-bar__button', action.class]"
+      :class="['inline-flex items-center gap-[0.4rem]', action.class]"
       :disabled="busyAction !== null"
       @click="runAction(action)"
     >
@@ -235,24 +235,3 @@ function handleRewind(): Promise<void | undefined> {
     </Button>
   </div>
 </template>
-
-<style scoped>
-.pipeline-action-bar {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-left: 0.25rem;
-  padding: 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 82%, transparent);
-  border-radius: var(--radius);
-  background: var(--surface-container);
-  box-shadow: var(--shadow-16);
-}
-
-.pipeline-action-bar__button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-</style>

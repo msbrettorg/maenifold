@@ -3,6 +3,18 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-23 — T-03 Sprint (token infra, security, error handling)
+
+### Red-team catches
+- **T-03.13 prefix bypass**: `url.startsWith(rendererURL)` is bypassable via HTTP auth syntax (`http://localhost:5173@evil.com/`). Fix: compare `.origin`, not prefix.
+- **T-03.13 file: URL scope**: Allowing all `file:` URLs is too broad. Fix: restrict to `app.getAppPath()` subdirectory.
+- **T-03.15 error swallowing**: Wrapping async functions in try/catch that never re-throws or returns failure indicator causes CALLERS to lose error context. App.vue cleared user input after a failed sendPrompt because sendPrompt appeared to succeed. Fix: return boolean success indicator.
+
+### Patterns
+- Tasks with stale specs (T-03.11 textTertiary, T-03.12 dead code) can be closed with verification-only gate passes — saves SWE dispatch overhead.
+- `@theme` self-references (`--color-status-pending: var(--color-status-pending)`) are the correct Tailwind v4 pattern for registering `:root` CSS vars as utilities.
+- Pre-computing color-mix() blends as @theme tokens works for transparent-blend patterns; two-color blends need per-component migration.
+
 ## 2026-04-23 — Session: T-02 wave 3 (T-02.13, T-02.1)
 
 ### Audit gaming failure mode
@@ -373,3 +385,21 @@ TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grou
 ### Delivered
 - T-01.2: `crates/maenifold-gate/src/mcp/mod.rs` reduced to 225 LOC, local `KnownRoots` `.unwrap()` calls replaced with explicit `GateError` propagation, and the embedded test body split into `crates/maenifold-gate/src/mcp/tests/{mod,support,tool_flow,context_and_metadata,session_binding}.rs` with every touched file under 300 LOC.
 - Repaired malformed `todo/T-207.0-epic-mcp-gateway.md` and `todo/T-207.2-tool-routing-registry.md` frontmatter/content so gate could parse the backlog and close T-01.2 cleanly.
+
+Here's the execution plan:
+
+┌───────────────────────────┬─────────────────┬─────────────────────────────────────────────────┐
+│ Priority                  │ Task            │ What                                            │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│ P0 blockers               │ T-03.1          │ Token infrastructure — unblocks everything      │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│                           │ T-03.13         │ Electron security — independent, do in parallel │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│ Wave 1 (after T-03.1)     │ T-03.2–T-03.8   │ Component replacements — all parallel           │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│ Wave 2                    │ T-03.9–T-03.10  │ Prop drilling refactors                         │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│ Wave 3                    │ T-03.11–T-03.15 │ Quality: contrast, dead code, leaks, errors     │
+├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
+│ Final                     │ T-03.16         │ Strip every last <style> block                  │
+└───────────────────────────┴─────────────────┴─────────────────────────────────────────────────┘

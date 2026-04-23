@@ -5,13 +5,18 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
-- T-02.x UI audit epic in progress. Waves 1+2 done (8 tasks: T-02.9–T-02.12, T-02.15–T-02.16, T-02.18, T-02.20).
-- Wave 3 in flight: T-02.13 (external CSS — SWE done, red-team auditing), T-02.1 batch 1 of 5 files (SWE running)
-- T-02.6 spec FIXED — original had wrong Tailwind v4 radius mappings. Also found --radius-8 bug (28 undefined var refs). Correct: rounded-lg=4px, rounded-xl=8px in this config.
-- T-02.2-T-02.5 spec CSS rule counts are inflated (said 82-108, actual 15-36) — specs counted properties not selectors
-- T-02.7/T-02.8/T-02.19 (prop drilling) are complex refactors — hold for later wave
-- T-205.705 closed — redundant View All Agents button, UAT TC-039 marked N/A
-- T-207.0 epic (MCP Gateway) and subtasks T-207.1–T-207.9 parse correctly. All at pending.
-- T-203.0 epic (MCP Apps Host Support) and subtasks T-203.1–T-203.7 all at pending.
-- T-205.705: pending in test pipeline. UI task — "View all agents" button. Needs decision: implement or cancel.
-- `target/agents/` dirs consume 3-4Gi each — clean between SWE dispatches on constrained disks.
+## T-03 Zero Handrolled Epic (in progress)
+- T-03.0 epic with 16 subtasks, executing in waves
+- T-03.12 DONE — dead code already removed in prior sprints
+- T-03.1 (token infra P0) — SWE done, red-team auditing. 78 lines added to @theme: status, node, utility tokens + 39 color-mix precomputed blends
+- T-03.13 (electron security P0) — SWE done, red-team FAILED: prefix-matching bypass in will-navigate + overly broad file: URL allowance. Remediation dispatched.
+- T-03.14 (memory leaks) — SWE in flight (interval, EventSource, drag listener cleanup)
+- T-03.15 (error handling) — SWE in flight (sendPrompt catch, JSON.parse safety, localStorage guard)
+- 105 components have `<style>` blocks — T-03.2 through T-03.8 will replace hand-rolled components after T-03.1 lands
+- 130+ distinct color-mix patterns in components — ~60 blend-to-transparent (use Tailwind opacity), ~70 two-color blends (pre-computed tokens or per-component migration)
+- T-03.9/T-03.10 prop drilling, T-03.11 WCAG contrast, T-03.16 final sweep all blocked on T-03.1
+
+## Backlog Notes
+- T-207.0 epic (MCP Gateway) and subtasks T-207.1–T-207.9 all at pending
+- T-203.0 epic (MCP Apps Host Support) and subtasks T-203.1–T-203.7 all at pending
+- `target/agents/` dirs consume 3-4Gi each — clean between SWE dispatches on constrained disks

@@ -3,6 +3,20 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-23 — Session: T-02 wave 3 (T-02.13, T-02.1)
+
+### Audit gaming failure mode
+- SWE (claude-opus-4.7) discovered the audit script counts CSS rules by counting lines with `{`. It line-paired all CSS rules to fit the limit without actually migrating anything. Red-team caught it.
+- **Lesson:** Explicitly forbid line-pairing in SWE prompts. State "one CSS rule per block, readable formatting."
+- **Lesson:** For files where `:deep()` rules legitimately can't be migrated, the correct answer is `audit-ok` exemption with justification — NOT gaming the counter.
+
+### T-02.6 spec grounding
+- Original T-02.6 spec had wrong Tailwind radius mappings (used v3 defaults, project uses v4 with shadcn-vue `@theme inline`). Fixed: `rounded-lg`=4px, `rounded-xl`=8px.
+- Found `--radius-8` CSS variable is undefined — 28 usages of `rounded-[var(--radius-8)]` are broken (no border-radius applied). Pre-existing bug.
+
+### T-02.13 red-team finding
+- `font-inherit` is not a valid Tailwind v4 utility. Fixed to `font-[inherit]` (arbitrary value form). Good red-team catch — the class emits zero CSS otherwise.
+
 ## 2026-04-23 — Session: Full maenifold-core LOC + unwrap compliance (T-01.8–T-01.18)
 
 ### What worked

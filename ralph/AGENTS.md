@@ -26,7 +26,7 @@ Allowed:
 - `ralph/state/learnings.md`
 - `ralph/state/thoughts.md`
 - `ralph/state/converged`
-- `todo/T-200*.md`
+- `todo/T-*.md`
 
 Off-limits:
 - `crates/maenifold-core/src/search/**`

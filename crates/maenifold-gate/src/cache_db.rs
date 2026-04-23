@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::time::Duration;
 
 use rusqlite::{Connection, OpenFlags, Transaction};
 use serde_json::Value;
@@ -129,6 +130,7 @@ impl GateCacheDb {
         }
         Self::migrate_if_stale(&self.path)?;
         let connection = Connection::open(&self.path)?;
+        connection.busy_timeout(Duration::from_secs(5))?;
         ensure_wal_mode(&connection, &self.path)?;
         Ok(connection)
     }
@@ -159,10 +161,12 @@ impl GateCacheDb {
                 self.path.display()
             )));
         }
-        Ok(Connection::open_with_flags(
+        let connection = Connection::open_with_flags(
             &self.path,
             OpenFlags::SQLITE_OPEN_READ_ONLY,
-        )?)
+        )?;
+        connection.busy_timeout(Duration::from_secs(5))?;
+        Ok(connection)
     }
 }
 
@@ -244,3 +248,7 @@ mod tests;
 #[cfg(test)]
 #[path = "cache_db_sync_tests.rs"]
 mod sync_tests;
+
+#[cfg(test)]
+#[path = "cache_db_concurrent_tests.rs"]
+mod concurrent_tests;

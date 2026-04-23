@@ -51,7 +51,13 @@ export function useSessionPersistence() {
       return;
     }
 
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSessions.value));
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(savedSessions.value));
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.error('Failed to persist sessions to localStorage:', e); // audit-ok: no-console
+      }
+    }
   }
 
   async function deleteSession(sessionId: string): Promise<void> {

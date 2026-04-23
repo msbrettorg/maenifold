@@ -20,28 +20,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # --- System deps for glib/gtk (tray icon crate) ---
-      - name: Install system dependencies
-        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
-
-      # --- Rust toolchain (for backend crates) ---
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: "1.91.0"
-          components: rustfmt, clippy
-
-      - name: Cache cargo registry + target
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
       # --- Node.js (for desktop frontend) ---
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,10 +30,6 @@ jobs:
 
       - name: Install frontend dependencies
         run: cd apps/desktop && npm ci
-
-      # --- Precompile workspace (so the agent doesn't wait for cold builds) ---
-      - name: Build Rust workspace (debug, fast)
-        run: cargo build --workspace
 
       - name: Frontend type-check
         run: cd apps/desktop && npx vue-tsc --noEmit

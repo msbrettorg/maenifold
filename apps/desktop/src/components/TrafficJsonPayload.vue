@@ -64,7 +64,8 @@ const tokens = computed(() => {
 <template>
   <pre class="json-payload"><!--
   --><span
-    v-for="token in tokens"
+    v-for="(token, index) in tokens"
+    :key="index"
     :class="`t-${token[0]}`"
   >{{ token[1] }}</span></pre>
 </template>

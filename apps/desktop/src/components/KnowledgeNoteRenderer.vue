@@ -1,12 +1,11 @@
 <!-- audit-ok: max-loc -->
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked, type TokenizerAndRendererExtension } from 'marked';
 import mermaid from 'mermaid';
 
 const props = defineProps<{ content: string }>();
-const containerRef = ref<HTMLElement | null>(null);
 
 function readCssToken(token: string, fallback: string): string {
   if (typeof window === 'undefined') return fallback;
@@ -65,33 +64,48 @@ function renderMarkdown(content: string): string {
   return DOMPurify.sanitize(typeof result === 'string' ? result : '');
 }
 
-const rendered = computed(() => renderMarkdown(props.content));
-
-async function renderMermaidBlocks() {
-  if (!containerRef.value) return;
-  const blocks = containerRef.value.querySelectorAll('.mermaid-block');
-  if (blocks.length === 0) return;
-  for (const block of blocks) {
+async function renderMermaidInHtml(html: string): Promise<string> {
+  if (!html) return html;
+  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return html;
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(`<div id="root">${html}</div>`, 'text/html');
+  const root = doc.getElementById('root');
+  if (!root) return html;
+  const blocks = root.querySelectorAll('.mermaid-block');
+  if (blocks.length === 0) return html;
+  for (const block of Array.from(blocks)) {
     const code = block.textContent ?? '';
     const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
     try {
       const { svg } = await mermaid.render(id, code);
-      block.innerHTML = svg;
-      block.classList.add('mermaid-rendered');
+      const wrapper = doc.createElement('div');
+      wrapper.className = 'mermaid-block mermaid-rendered';
+      wrapper.innerHTML = DOMPurify.sanitize(svg);
+      block.replaceWith(wrapper);
     } catch {
       block.classList.add('mermaid-error');
     }
   }
+  return root.innerHTML;
 }
 
-watch(rendered, async () => {
+const rendered = ref('');
+
+async function updateRendered() {
+  const initial = renderMarkdown(props.content);
+  rendered.value = initial;
   await nextTick();
-  renderMermaidBlocks();
-});
+  const withMermaid = await renderMermaidInHtml(initial);
+  if (withMermaid !== initial) {
+    rendered.value = withMermaid;
+  }
+}
+
+watch(() => props.content, updateRendered, { immediate: true });
 </script>
 
 <template>
-  <article ref="containerRef" class="note-prose" v-html="rendered" />
+  <article class="note-prose" v-html="rendered" />
 </template>
 
 <!-- audit-ok: max-style-rules -->

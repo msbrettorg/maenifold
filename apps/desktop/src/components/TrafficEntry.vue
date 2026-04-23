@@ -40,14 +40,21 @@ function copyPayload() {
     role="article"
     :aria-label="entryAriaLabel"
   >
-    <div class="entry-header" @click="toggleExpand">
+    <div
+      class="entry-header"
+      role="button"
+      tabindex="0"
+      @click="toggleExpand"
+      @keydown.enter="toggleExpand"
+      @keydown.space.prevent="toggleExpand"
+    >
       <span class="expand-icon">{{ isExpanded ? '▾' : '▸' }}</span>
       <span class="timestamp">{{ formatTime(entry.timestamp) }}</span>
       <span :class="['direction-icon', entry.direction]">{{ directionIcon }}</span>
       <span class="method">{{ entry.method }}</span>
       <span v-if="typeLabel" class="type-label">{{ typeLabel }}</span>
       <span v-if="entry.requestId !== undefined" class="request-id">#{{ entry.requestId }}</span>
-      <Button variant="ghost" size="icon-xs" class="copy-btn" title="Copy JSON" @click.stop="copyPayload">📋</Button>
+      <Button variant="ghost" size="icon-xs" class="copy-btn" aria-label="Copy JSON" @click.stop="copyPayload">📋</Button>
     </div>
 
     <TrafficJsonPayload v-if="isExpanded" :payload="entry.payload" />
@@ -87,6 +94,11 @@ function copyPayload() {
 }
 
 .entry-header:hover { background: var(--surface-high); }
+
+.entry-header:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: -2px;
+}
 
 .expand-icon {
   width: 1em;

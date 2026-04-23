@@ -129,7 +129,7 @@ function formatLogEntry(entry: LogEntry) {
     </div>
 
     <ScrollArea
-      v-show="!props.collapsed"
+      v-if="!props.collapsed"
       class="tab-panel log-panel"
       aria-live="polite"
       aria-label="Event log"

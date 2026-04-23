@@ -3,6 +3,31 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-22 — Sprint 1 Gate LOC Compliance (T-01.3 through T-01.7)
+
+### What worked
+- `#[cfg(test)] #[path = "foo_tests.rs"] mod tests;` pattern is the standard mechanical split for test extraction — fast, safe, zero production changes
+- SWE agents (claude-opus-4.7) reliably execute test extractions when given precise line ranges and the exact pattern
+- Blue-team (claude-opus-4.5) consistently verifies in under 45 seconds
+- Batching 4 file splits in one SWE dispatch (T-01.3) worked cleanly — no conflicts since each file is independent
+- Cleaning stale `target/agents/` dirs is essential — they accumulate 3-4Gi each and can fill disk
+
+### Patterns
+- When test block itself exceeds 300 LOC, use TWO `#[path]` modules: `mod tests;` + `mod sync_tests;` (T-01.5 cache_db.rs 3-way split)
+- Integration test files (`tests/*.rs`) split by creating a new peer file with the same `mod support;` import — each file is its own test binary
+- Always `git add` ONLY the task-scoped files before committing — pre-existing worktree changes (e.g., mcp/ in-flight changes) must not leak into unrelated commits
+- Run `rm -rf target/agents/` between SWE dispatches if disk space is tight
+
+### Delivered
+- T-01.3: task_sections (311→125), task_repository (351→205), tray_menu (307→267), gate_catalog (317→127) + 4 test files
+- T-01.4: sdd_cli_flow (421→248) + sdd_cli_flow_lifecycle (179)
+- T-01.5: cache_db (568→246) + cache_db_tests (141) + cache_db_sync_tests (191)
+- T-01.6: ui_window (541→281) + ui_window_tests (260)
+- T-01.7: mcp/schema (460→283) + schema_tests (177), gate_tool_service (408→219) + gate_tool_service_tests (189)
+
+### Result
+Zero `max-loc` violations remaining for `maenifold-gate`. 140/140 unit tests pass. All integration tests pass.
+
 ## 2026-04-19 — Session 1 (maenifold-gate LOC compliance)
 
 ### What worked
@@ -268,3 +293,35 @@ TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grou
 
 ### Delivered
 - T-01.1: removed the six non-MCP `.unwrap()` calls from `tray.rs`, `tray_lifecycle.rs`, and `file_watcher.rs`; task advanced through SWE and blue-team to `done/`.
+
+## 2026-04-22 — Session 12 (Sprint 1 gate spec grooming refresh)
+
+### What worked
+- Grounding `T-01.2` against the live `mcp/mod.rs` before dispatch immediately showed that the safe split is test extraction, not production refactoring.
+- Architect-duo review is valuable even for backlog grooming: the second reviewer independently called out the hidden-risk areas (`KnownRoots` lock poison handling and preserved root-order semantics).
+- Rechecking live file sizes with `wc -l` caught `task_repository.rs` drift before the next SWE could start from stale counts.
+
+### Patterns
+- A `max-loc` task can be mostly a `#[cfg(test)]` problem. If production code is already below 300 LOC, the spec should explicitly direct the SWE to extract tests instead of inventing a deeper production split.
+- When a scoped file is already dirty, capture the authoritative live hunk in the task file itself; otherwise the next dispatcher may accidentally revert active work.
+- Refresh Sprint 1 cleanup specs against live files right before dispatch. Count-bearing task scopes rot quickly while parallel RALPH loops are editing the same crate.
+
+### Delivered
+- Refreshed `T-01.2` to specify mechanical `mcp/mod.rs` test extraction plus explicit lock-poison error propagation for `KnownRoots::current()` / `register()`.
+- Refreshed `T-01.3` to the current `task_repository.rs` size (351 LOC) and recorded the authoritative live `validate_task_path(...)` extraction hunk that must be preserved.
+
+## 2026-04-22 — Session 13 (T-01.2 MCP mod split + gate unblock)
+
+### What worked
+- PM spot-checking after SWE is what caught the real failure: the first extraction removed the inline `#[cfg(test)]` block from `mcp/mod.rs` but simply relocated the LOC violation into a new `src/mcp/tests.rs`.
+- A fast remediation loop worked cleanly once the spec explicitly required **every** created file from the split to stay under 300 LOC and prescribed the `src/mcp/tests/` child-module tree.
+- Blue-team's targeted `cargo test -p maenifold-gate mcp::` gate was the right verification surface for this task: it exercised the moved unit tests without dragging in unrelated crate work.
+
+### Patterns
+- After any file split that creates new Rust files, check `git status --short` in addition to `git diff --stat`; untracked files will not appear in the diff stat and can hide a fresh constitution violation.
+- For `#[cfg(test)]` extraction tasks, the spec must cap the **new** test files too, not just the original production file. Otherwise the SWE can satisfy the letter of the first LOC rule while violating the constitution on the replacement module.
+- `gate pass` / `gate fail` reparses the entire `todo/` backlog. Malformed untracked task files can block unrelated stage transitions, so repair or remove parse-broken backlog artifacts before retrying gate operations.
+
+### Delivered
+- T-01.2: `crates/maenifold-gate/src/mcp/mod.rs` reduced to 225 LOC, local `KnownRoots` `.unwrap()` calls replaced with explicit `GateError` propagation, and the embedded test body split into `crates/maenifold-gate/src/mcp/tests/{mod,support,tool_flow,context_and_metadata,session_binding}.rs` with every touched file under 300 LOC.
+- Repaired malformed `todo/T-207.0-epic-mcp-gateway.md` and `todo/T-207.2-tool-routing-registry.md` frontmatter/content so gate could parse the backlog and close T-01.2 cleanly.

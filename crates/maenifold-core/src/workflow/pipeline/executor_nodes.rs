@@ -281,3 +281,11 @@ pub(super) async fn execute_node_request(
 #[cfg(test)]
 #[path = "executor_nodes_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "executor_nodes_tests_interp.rs"]
+mod tests_interp;
+
+#[cfg(test)]
+#[path = "executor_nodes_tests_runtime.rs"]
+mod tests_runtime;

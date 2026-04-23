@@ -30,8 +30,8 @@ Canonical source: `/Users/brett/src/agency-cowork/ui/src/App.jsx` token constant
 | `borderCard` | `rgba(255,255,255,0.08)` | Card/tile border on dark surfaces | `App.jsx:20` |
 | `textPrimary` | `#FFFFFF` | Primary readable text | `App.jsx:22` |
 | `textSecondary` | `#A0AAB2` | Secondary/supporting text | `App.jsx:23` |
-| `textTertiary` | `#6B7280` | Captions/meta/subtle labels | `App.jsx:24` |
-| `textDisabled` | `#4B5563` | Disabled text/icon state | `App.jsx:25` |
+| `textTertiary` | `#848C90` | Captions/meta/subtle labels | `App.jsx:24` |
+| `textDisabled` | `#4B5563` | Disabled text/icon state (intentionally low-contrast per WCAG 1.4.3 inactive component exception) | `App.jsx:25` |
 | `brand` | `#0078D4` | Primary actions/focus/accent | `App.jsx:27` |
 | `brandHover` | `#106EBE` | Hover/active brand state | `App.jsx:28` |
 | `brandLight` | `rgba(0,120,212,0.15)` | Brand-tinted selected backgrounds | `App.jsx:29` |

@@ -85,7 +85,8 @@ fn create_watcher(
                         match config_manager.reload() {
                             Ok(new_config) => {
                                 update_runtime_settings(&config, new_config.settings.as_ref());
-                                let _ = sender.send(ConfigWatchEvent::Changed(Box::new(new_config)));
+                                let _ =
+                                    sender.send(ConfigWatchEvent::Changed(Box::new(new_config)));
                             }
                             Err(error) => {
                                 tracing::warn!(

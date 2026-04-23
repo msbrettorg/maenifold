@@ -141,11 +141,7 @@ fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     let mut seen = HashSet::new();
     let mut mcp_servers = Vec::new();
 
-    for server in config
-        .mcp_servers
-        .iter()
-        .chain(entry.mcp_servers.iter())
-    {
+    for server in config.mcp_servers.iter().chain(entry.mcp_servers.iter()) {
         let name = server.name().to_ascii_lowercase();
         if seen.insert(name) {
             mcp_servers.push(server.to_acp());

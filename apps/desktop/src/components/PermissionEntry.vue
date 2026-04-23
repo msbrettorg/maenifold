@@ -89,6 +89,16 @@ function renderContentBlock(block: ToolCallContentBlock): ContentBlockView {
   return { label: titleCase(block.type), body: fallback };
 }
 
+function optionClasses(kind: string): string {
+  if (kind === 'allow_once' || kind === 'allow_always') {
+    return 'bg-[var(--color-status-completed)] text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-status-completed)_88%,var(--color-bg-app))]';
+  }
+  if (kind === 'reject_once' || kind === 'reject_always') {
+    return 'bg-[var(--color-danger)] text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,var(--color-bg-app))]';
+  }
+  return '';
+}
+
 const toolCall = computed(() => props.request.toolCall);
 const contextRows = computed<ContextRow[]>(() => {
   const payload = toolCall.value.rawInput;
@@ -112,105 +122,65 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 </script>
 
 <template>
-  <div class="permission-entry" role="listitem">
-    <div class="tool-info">
-      <span class="tool-title">{{ request.toolCall.title }}</span>
-      <span class="tool-kind">{{ request.toolCall.kind }}</span>
+  <div class="flex flex-col gap-3 min-h-0" role="listitem">
+    <div class="flex flex-col gap-1">
+      <span class="text-[length:var(--text-body-sm)] font-[var(--weight-title)]">{{ request.toolCall.title }}</span>
+      <span class="text-[var(--color-text-secondary)] text-[length:var(--text-caption)]">{{ request.toolCall.kind }}</span>
     </div>
 
-    <div class="entry-details">
-      <section v-if="contextRows.length" class="section">
-        <h4>Requested action</h4>
-        <dl class="context-rows">
+    <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto [overscroll-behavior:contain] pr-1">
+      <section v-if="contextRows.length">
+        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Requested action</h4>
+        <dl class="grid grid-cols-[minmax(110px,auto)_1fr] gap-y-2 gap-x-3 m-0">
           <template v-for="row in contextRows" :key="row.label">
-            <dt>{{ row.label }}</dt>
-            <dd>{{ row.value }}</dd>
+            <dt class="text-[var(--color-text-secondary)] font-[var(--weight-title)]">{{ row.label }}</dt>
+            <dd class="m-0 min-w-0 text-[var(--color-text-primary)] break-words [overflow-wrap:anywhere]">{{ row.value }}</dd>
           </template>
         </dl>
       </section>
 
-      <section v-if="request.toolCall.locations?.length" class="section locations">
-        <h4>Locations</h4>
-        <div v-for="(location, index) in request.toolCall.locations" :key="index" class="location">
+      <section v-if="request.toolCall.locations?.length" class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full py-2 px-3">
+        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Locations</h4>
+        <div v-for="(location, index) in request.toolCall.locations" :key="index" class="text-[var(--color-text-primary)] font-[var(--font-code)] text-[length:var(--text-caption)] py-0.5 break-all">
           📁 {{ location.path }}
         </div>
       </section>
 
-      <section v-if="renderedBlocks.length" class="section">
-        <h4>Tool content</h4>
-        <div v-for="(block, index) in renderedBlocks" :key="`${block.label}-${index}`" class="content-block">
-          <div class="content-label">{{ block.label }}</div>
-          <pre class="content-preview">{{ block.body }}</pre>
+      <section v-if="renderedBlocks.length">
+        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Tool content</h4>
+        <div v-for="(block, index) in renderedBlocks" :key="`${block.label}-${index}`" class="min-w-0 [&+&]:mt-3">
+          <div class="mb-1 text-[var(--color-text-secondary)] text-[length:var(--text-caption)] font-[var(--weight-title)] tracking-[0.04em]">{{ block.label }}</div>
+          <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ block.body }}</pre>
         </div>
       </section>
 
-      <Accordion v-if="rawInputJson || rawOutputJson" type="multiple" class="raw-payload-group">
-        <AccordionItem v-if="rawInputJson" value="input" class="raw-payload">
-          <AccordionTrigger>Raw tool input</AccordionTrigger>
+      <Accordion v-if="rawInputJson || rawOutputJson" type="multiple">
+        <AccordionItem v-if="rawInputJson" value="input" class="min-w-0 mt-3">
+          <AccordionTrigger class="font-[var(--weight-title)] cursor-pointer">Raw tool input</AccordionTrigger>
           <AccordionContent>
-            <pre>{{ rawInputJson }}</pre>
+            <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ rawInputJson }}</pre>
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem v-if="rawOutputJson" value="output" class="raw-payload">
-          <AccordionTrigger>Raw tool output</AccordionTrigger>
+        <AccordionItem v-if="rawOutputJson" value="output" class="min-w-0 mt-3">
+          <AccordionTrigger class="font-[var(--weight-title)] cursor-pointer">Raw tool output</AccordionTrigger>
           <AccordionContent>
-            <pre>{{ rawOutputJson }}</pre>
+            <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ rawOutputJson }}</pre>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
 
-    <div class="dialog-actions">
+    <div class="flex flex-wrap gap-2 mt-1 pt-4 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-app)]">
       <Button
         v-for="option in request.options"
         :key="option.optionId"
-        :class="['option-btn', `option-${option.kind}`]"
+        :class="['flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer border-none font-[var(--weight-display)] transition-[background] duration-150', optionClasses(option.kind)]"
         @click="emit('select', option.optionId)"
       >
         {{ option.name }}
       </Button>
-      <Button variant="outline" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" class="flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-surface)]" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.permission-entry { display: flex; flex-direction: column; gap: 0.75rem; min-height: 0; }
-.entry-details { display: flex; flex-direction: column; gap: 0.75rem; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: 0.25rem; }
-.tool-info { display: flex; flex-direction: column; gap: 0.25rem; }
-.tool-title { font-size: var(--text-body-sm); font-weight: var(--weight-title); }
-.tool-kind { color: var(--color-text-secondary); font-size: var(--text-caption); }
-.section h4 { margin: 0 0 0.5rem; font-size: var(--text-title); }
-.context-rows { display: grid; grid-template-columns: minmax(110px, auto) 1fr; gap: 0.5rem 0.75rem; margin: 0; }
-.context-rows dt { color: var(--color-text-secondary); font-weight: var(--weight-title); }
-.context-rows dd { margin: 0; min-width: 0; color: var(--color-text-primary); word-break: break-word; overflow-wrap: anywhere; }
-.locations,
-.content-preview,
-.raw-payload pre { background: var(--color-bg-surface); border: 1px solid var(--color-border-subtle); border-radius: 4px; max-inline-size: 100%; }
-.locations { padding: 0.5rem 0.75rem; }
-.location { color: var(--color-text-primary); font-family: var(--font-code); font-size: var(--text-caption); padding: 0.125rem 0; word-break: break-all; }
-.content-block + .content-block,
-.raw-payload { margin-top: 0.75rem; }
-.content-block,
-.raw-payload { min-width: 0; }
-.content-label { margin-bottom: 0.25rem; color: var(--color-text-secondary); font-size: var(--text-caption); font-weight: var(--weight-title); letter-spacing: 0.04em; }
-.content-preview,
-.raw-payload pre { margin: 0; padding: 0.75rem; font-family: var(--font-code); font-size: var(--text-caption); line-height: 1.4; white-space: pre-wrap; word-break: break-word; overflow-wrap: anywhere; overflow: auto; }
-.raw-payload summary { cursor: pointer; font-weight: var(--weight-title); }
-.dialog-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 0.25rem; padding-top: 1rem; border-top: 1px solid var(--color-border-subtle); background: var(--color-bg-app); }
-.option-btn,
-.cancel-btn { flex: 1; min-width: 120px; padding: 0.625rem 1rem; border-radius: 4px; font-size: var(--text-body-sm); cursor: pointer; }
-.option-btn { border: none; font-weight: var(--weight-display); transition: background 0.15s; }
-.option-allow_once,
-.option-allow_always { background: var(--color-status-completed); color: var(--color-text-primary); }
-.option-allow_once:hover,
-.option-allow_always:hover { background: color-mix(in srgb, var(--color-status-completed) 88%, var(--color-bg-app)); }
-.option-reject_once,
-.option-reject_always { background: var(--color-danger); color: var(--color-text-primary); }
-.option-reject_once:hover,
-.option-reject_always:hover { background: color-mix(in srgb, var(--color-danger) 88%, var(--color-bg-app)); }
-.cancel-btn { background: var(--color-bg-app); border: 1px solid var(--color-border-subtle); }
-.cancel-btn:hover { background: var(--color-bg-surface); }
-</style>

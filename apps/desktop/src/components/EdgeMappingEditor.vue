@@ -170,19 +170,19 @@ function removeManualRow(id: string): void {
 </script>
 
 <template>
-  <section class="mapping-editor" role="form" aria-label="Edge mapping">
-    <div class="header">
-      <h3>Field Mapping</h3>
-      <p v-if="isToolTarget">Map source output paths into tool input parameters.</p>
-      <p v-else>Predecessor context is prepended automatically — mapping is optional for ACP nodes.</p>
+  <section class="flex flex-col gap-3 pt-2 border-t border-[var(--color-border-subtle)]" role="form" aria-label="Edge mapping">
+    <div class="flex flex-col gap-1">
+      <h3 class="text-[length:var(--text-base)] font-[var(--weight-title)]">Field Mapping</h3>
+      <p v-if="isToolTarget" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Map source output paths into tool input parameters.</p>
+      <p v-else class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Predecessor context is prepended automatically — mapping is optional for ACP nodes.</p>
     </div>
 
-    <p v-if="loadingSchemas" class="status">Loading tool schemas...</p>
-    <p v-if="!hasSourceOutput" class="status">Source output will be available after execution</p>
+    <p v-if="loadingSchemas" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Loading tool schemas...</p>
+    <p v-if="!hasSourceOutput" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Source output will be available after execution</p>
 
     <template v-if="isToolTarget && targetParams.length > 0">
-      <label v-for="param in targetParams" :key="param.name" class="mapping-row">
-        <span class="param-label">
+      <label v-for="param in targetParams" :key="param.name" class="flex flex-col gap-2 [&_small]:text-[var(--color-text-secondary)] [&_small]:text-[length:var(--text-sm)]">
+        <span class="flex items-center gap-2 justify-between">
           <strong>{{ param.name }}</strong>
           <small>{{ param.required ? 'Required' : 'Optional' }}</small>
         </span>
@@ -195,13 +195,13 @@ function removeManualRow(id: string): void {
         />
         <small v-if="param.description">{{ param.description }}</small>
       </label>
-      <p v-if="!hasMappings" class="empty-copy">No field mappings — edge carries topology only</p>
+      <p v-if="!hasMappings" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">No field mappings — edge carries topology only</p>
     </template>
 
     <template v-else>
-      <p v-if="isToolTarget && !loadingSchemas" class="status">Tool schema unavailable — enter parameter names manually</p>
-      <div v-if="manualRows.length > 0" class="manual-list">
-        <div v-for="row in manualRows" :key="row.id" class="manual-row">
+      <p v-if="isToolTarget && !loadingSchemas" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Tool schema unavailable — enter parameter names manually</p>
+      <div v-if="manualRows.length > 0" class="flex flex-col gap-2">
+        <div v-for="row in manualRows" :key="row.id" class="flex items-stretch gap-2 justify-between p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)] max-[640px]:flex-col">
           <Input
             v-model="row.param"
             class="flex-1"
@@ -220,7 +220,7 @@ function removeManualRow(id: string): void {
           <Button type="button" variant="ghost" @click="removeManualRow(row.id)">Remove</Button>
         </div>
       </div>
-      <p v-else class="empty-copy">
+      <p v-else class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">
         {{ hasMappings ? `Mappings configured for target ${targetLabel}` : 'No field mappings — edge carries topology only' }}
       </p>
       <Button type="button" variant="ghost" @click="addManualRow">Add mapping</Button>
@@ -231,14 +231,3 @@ function removeManualRow(id: string): void {
     </datalist>
   </section>
 </template>
-
-<style scoped>
-.mapping-editor { display: flex; flex-direction: column; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid var(--color-border-subtle); }
-.header { display: flex; flex-direction: column; gap: 0.25rem; }
-.header h3 { font-size: var(--text-base); font-weight: var(--weight-title); }
-.header p,.status,.empty-copy,.mapping-row small { color: var(--color-text-secondary); font-size: var(--text-sm); }
-.mapping-row,.manual-list { display: flex; flex-direction: column; gap: 0.5rem; }
-.param-label,.manual-row { display: flex; align-items: center; gap: 0.5rem; justify-content: space-between; }
-.manual-row { align-items: stretch; padding: 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); background: var(--color-bg-app); }
-@media (max-width: 640px) { .manual-row { flex-direction: column; } }
-</style>

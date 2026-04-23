@@ -156,7 +156,7 @@ async function handleDelete(session: SavedSession, event: Event) {
         v-for="session in sessions"
         :key="session.id"
         role="listitem"
-        class="session-item flex cursor-pointer items-center justify-between rounded-[6px] border border-border-card bg-bg-elevated p-2.5 transition-all hover:bg-bg-surface-hover"
+        class="flex cursor-pointer items-center justify-between rounded-[6px] border border-border-card bg-bg-elevated p-2.5 transition-[background-color] duration-150 hover:bg-bg-surface-hover"
         :class="{ 'cursor-default': isResumeUnavailable(session) }"
         @click="handleResume(session)"
       >
@@ -170,27 +170,27 @@ async function handleDelete(session: SavedSession, event: Event) {
             </span>
             <span
               v-if="isCurrentConnectedSession(session)"
-                class="connection-state connected inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-success)]"
               >
-                <span class="connection-dot" aria-hidden="true" />Connected
+                <span class="block size-1.5 rounded-[4px] bg-[var(--color-success)] [animation:pulse-dot_2s_ease-in-out_infinite]" aria-hidden="true" />Connected
               </span>
             <span
               v-else-if="hasActiveAgentSession(session)"
-               class="connection-state connected inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+               class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-success)]"
              >
-               <span class="connection-dot" aria-hidden="true" />Active
+               <span class="block size-1.5 rounded-[4px] bg-[var(--color-success)] [animation:pulse-dot_2s_ease-in-out_infinite]" aria-hidden="true" />Active
              </span>
             <span
               v-else-if="isCurrentConnectingSession(session)"
-                class="connection-state connecting inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-warning)]"
              >
-               <span class="connection-dot" aria-hidden="true" />Connecting
+               <span class="block size-1.5 rounded-[4px] bg-[var(--color-warning)] [animation:pulse-dot_1s_ease-in-out_infinite]" aria-hidden="true" />Connecting
              </span>
             <span
               v-else-if="isResumeUnavailable(session)"
-               class="connection-state unavailable inline-flex items-center gap-1 whitespace-nowrap text-tiny"
+               class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-text-secondary)]"
              >
-               <span class="connection-dot" aria-hidden="true" />Resume unavailable
+               <span class="block size-1.5 rounded-[4px] bg-[var(--color-text-muted)]" aria-hidden="true" />Resume unavailable
              </span>
           </div>
           <span class="text-tiny text-muted-foreground">
@@ -207,7 +207,7 @@ async function handleDelete(session: SavedSession, event: Event) {
         <Button
           variant="ghost"
           size="sm"
-          class="delete-btn py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer"
+          class="py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)] hover:text-[var(--color-danger)]"
           @click="(e: Event) => handleDelete(session, e)"
           :title="getDeleteTitle(session)"
         >
@@ -218,49 +218,8 @@ async function handleDelete(session: SavedSession, event: Event) {
   </div>
 </template>
 
+<!-- audit-ok: keyframe-animation — @keyframes cannot be expressed as Tailwind utilities -->
 <style scoped>
-.session-item {
-  transition: background-color 0.15s;
-}
-
-.connection-state {
-  color: var(--color-text-secondary);
-}
-
-.connection-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 4px;
-  background: var(--color-text-muted);
-}
-
-.connection-state.connected {
-  color: var(--color-success);
-}
-
-.connection-state.connected .connection-dot {
-  background: var(--color-success);
-  animation: pulse-dot 2s ease-in-out infinite;
-}
-
-.connection-state.connecting {
-  color: var(--color-warning);
-}
-
-.connection-state.connecting .connection-dot {
-  background: var(--color-warning);
-  animation: pulse-dot 1s ease-in-out infinite;
-}
-
-.connection-state.unavailable .connection-dot {
-  background: var(--color-text-muted);
-}
-
-.delete-btn:hover {
-  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
-  color: var(--color-danger);
-}
-
 @keyframes pulse-dot {
   0%,
   100% {

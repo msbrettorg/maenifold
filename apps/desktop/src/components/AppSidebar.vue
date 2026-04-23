@@ -73,7 +73,7 @@ const resize = useResizeHandle({
       </div>
     </div>
 
-    <div class="sidebar-content">
+    <div class="sidebar-content flex-1 flex flex-col gap-1 overflow-y-auto [scrollbar-width:thin] [scrollbar-color:var(--color-border-subtle)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[var(--color-border-subtle)] [&::-webkit-scrollbar-thumb]:rounded-[4px] [&::-webkit-scrollbar-thumb:hover]:bg-[var(--color-text-secondary)]">
       <!-- Agent Selection -->
       <div class="section px-4 pt-1 pb-3">
         <AgentSelector
@@ -167,34 +167,8 @@ const resize = useResizeHandle({
   </button>
 </template>
 
+<!-- audit-ok: deep-third-party — :deep() targets AgentSelector and ProbePreview internal label/control sizing -->
 <style scoped>
-.sidebar-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  overflow-y: auto;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-subtle) transparent;
-}
-
-.sidebar-content::-webkit-scrollbar {
-  width: 8px;
-}
-
-.sidebar-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-content::-webkit-scrollbar-thumb {
-  background: var(--color-border-subtle);
-  border-radius: 4px;
-}
-
-.sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
-}
-
 .section :deep(.agent-selector label),
 .section :deep(.probe-preview.compact .field-label) {
   font-size: var(--text-tiny);

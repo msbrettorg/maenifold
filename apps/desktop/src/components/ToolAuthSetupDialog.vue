@@ -26,21 +26,21 @@ const emit = defineEmits<{
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('close')">
-    <DialogContent class="auth-setup-dialog sm:max-w-lg" :show-close-button="false">
-      <DialogHeader class="dialog-header">
-        <span class="dialog-icon" aria-hidden="true">🔑</span>
-        <div class="dialog-copy">
+    <DialogContent class="sm:max-w-lg w-[min(28rem,100%)] grid gap-4" :show-close-button="false">
+      <DialogHeader class="flex flex-row items-start gap-3">
+        <span class="text-[length:var(--text-title)] leading-none" aria-hidden="true">🔑</span>
+        <div class="grid gap-1 text-left">
           <DialogTitle>{{ action.label }}</DialogTitle>
           <DialogDescription>{{ action.description }}</DialogDescription>
         </div>
       </DialogHeader>
 
-      <p class="dialog-body">
+      <p class="m-0 text-[var(--text-secondary)] text-[0.75rem]">
         {{ server }} needs setup before this tool can be used from the palette.
       </p>
-      <p v-if="error" class="dialog-error" role="alert">{{ error }}</p>
+      <p v-if="error" class="m-0 text-[var(--color-status-abandoned)] text-[0.75rem]" role="alert">{{ error }}</p>
 
-      <DialogFooter class="dialog-actions">
+      <DialogFooter class="flex flex-row gap-3 justify-between">
         <DialogClose as-child>
           <Button variant="ghost" :disabled="busy">Cancel</Button>
         </DialogClose>
@@ -51,53 +51,3 @@ const emit = defineEmits<{
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-.auth-setup-dialog {
-  width: min(28rem, 100%);
-  display: grid;
-  gap: 1rem;
-}
-
-.dialog-header,
-.dialog-actions {
-  display: flex;
-  gap: 0.75rem;
-}
-
-.dialog-header {
-  flex-direction: row;
-  align-items: flex-start;
-}
-
-.dialog-copy {
-  display: grid;
-  gap: 0.25rem;
-  text-align: left;
-}
-
-.dialog-body,
-.dialog-error {
-  margin: 0;
-}
-
-.dialog-body {
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.dialog-icon {
-  font-size: var(--text-title);
-  line-height: 1;
-}
-
-.dialog-error {
-  color: var(--color-status-abandoned);
-  font-size: 0.75rem;
-}
-
-.dialog-actions {
-  flex-direction: row;
-  justify-content: space-between;
-}
-</style>

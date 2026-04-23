@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Thought } from '../lib/workflow-types';
-import ThinkingMarkdownContent from './ThinkingMarkdownContent.vue';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 
 defineProps<{
   thought: Thought;
@@ -47,7 +47,7 @@ function formatRelativeTime(iso: string): string {
           </time>
         </div>
 
-        <ThinkingMarkdownContent :content="thought.content" clamp />
+        <KnowledgeNoteRenderer :content="thought.content" clamp />
       </div>
     </article>
   </li>

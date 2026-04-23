@@ -112,7 +112,7 @@ watch(() => props.content, updateRendered, { immediate: true });
   <article class="note-prose" v-html="rendered" />
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — All rules style sanitized v-html markdown via :deep() (h1-h6, p, code, table, blockquote, .mermaid-block, .note-wiki-pill); no Vue templates exist to attach Tailwind to. Several rely on color-mix() blends and tokens (--font-body, --color-status-stuck) without Tailwind equivalents. -->
 <style scoped>
 .note-prose {
   font-family: var(--font-body);
@@ -121,8 +121,6 @@ watch(() => props.content, updateRendered, { immediate: true });
   color: var(--color-text-primary);
   overflow-wrap: break-word;
 }
-
-/* ── Headings ── */
 .note-prose :deep(h1) {
   font-size: 24px;
   font-weight: 600;
@@ -160,16 +158,19 @@ watch(() => props.content, updateRendered, { immediate: true });
 .note-prose :deep(h3:first-child) {
   margin-top: 0;
 }
-
-/* ── Paragraphs ── */
 .note-prose :deep(p) {
   margin: 0 0 0.75rem;
 }
 .note-prose :deep(p:last-child) {
   margin-bottom: 0;
 }
-
-/* ── Links ── */
+.note-prose :deep(strong) {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.note-prose :deep(em) {
+  font-style: italic;
+}
 .note-prose :deep(a) {
   color: var(--color-text-primary);
   text-decoration: underline;
@@ -179,8 +180,6 @@ watch(() => props.content, updateRendered, { immediate: true });
 .note-prose :deep(a:hover) {
   text-decoration-color: var(--color-text-primary);
 }
-
-/* ── Lists ── */
 .note-prose :deep(ul),
 .note-prose :deep(ol) {
   margin: 0 0 0.75rem;
@@ -194,8 +193,6 @@ watch(() => props.content, updateRendered, { immediate: true });
   margin-top: 0.25rem;
   margin-bottom: 0;
 }
-
-/* ── Inline code ── */
 .note-prose :deep(code) {
   background: var(--color-bg-surface);
   color: var(--color-text-primary);
@@ -204,8 +201,6 @@ watch(() => props.content, updateRendered, { immediate: true });
   font-size: 13px;
   font-family: var(--font-code);
 }
-
-/* ── Code blocks ── */
 .note-prose :deep(pre) {
   background: var(--color-bg-surface);
   border: 1px solid var(--color-border-card);
@@ -222,8 +217,6 @@ watch(() => props.content, updateRendered, { immediate: true });
   border-radius: 0;
   font-size: inherit;
 }
-
-/* ── Mermaid ── */
 .note-prose :deep(.mermaid-block) {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-card);
@@ -241,8 +234,6 @@ watch(() => props.content, updateRendered, { immediate: true });
   font-size: 13px;
   white-space: pre-wrap;
 }
-
-/* ── Tables ── */
 .note-prose :deep(table) {
   border-collapse: collapse;
   width: 100%;
@@ -267,8 +258,6 @@ watch(() => props.content, updateRendered, { immediate: true });
 .note-prose :deep(tr:nth-child(even)) {
   background: color-mix(in srgb, var(--color-bg-elevated) 35%, transparent);
 }
-
-/* ── Blockquotes ── */
 .note-prose :deep(blockquote) {
   border-left: 3px solid var(--color-brand);
   padding: 0.5rem 0 0.5rem 1rem;
@@ -279,15 +268,16 @@ watch(() => props.content, updateRendered, { immediate: true });
 .note-prose :deep(blockquote p) {
   margin-bottom: 0.25rem;
 }
-
-/* ── Horizontal rules ── */
 .note-prose :deep(hr) {
   border: none;
   border-top: 1px solid var(--color-border-subtle);
   margin: 1.5rem 0;
 }
-
-/* ── WikiLink pills ── */
+.note-prose :deep(img) {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+}
 .note-prose :deep(.note-wiki-pill) {
   display: inline-flex;
   align-items: center;
@@ -300,21 +290,5 @@ watch(() => props.content, updateRendered, { immediate: true });
   font-weight: 500;
   white-space: nowrap;
   cursor: default;
-}
-
-/* ── Strong / em ── */
-.note-prose :deep(strong) {
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.note-prose :deep(em) {
-  font-style: italic;
-}
-
-/* ── Images ── */
-.note-prose :deep(img) {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 0.75rem 0;
 }
 </style>

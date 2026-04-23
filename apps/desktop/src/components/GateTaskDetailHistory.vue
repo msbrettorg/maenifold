@@ -38,43 +38,68 @@ function formatTimestamp(timestamp: string | null) {
   <Accordion
     type="multiple"
     :model-value="history.length > 0 ? ['gate-history'] : []"
-    class="gate-detail-history"
+    class="gate-detail-history flex flex-col gap-3 p-3.5 border border-border-subtle rounded bg-surface-container"
     :aria-labelledby="historySummaryId"
   >
     <AccordionItem value="gate-history">
-      <AccordionTrigger :id="historySummaryId" class="gate-detail-history__summary">
+      <AccordionTrigger
+        :id="historySummaryId"
+        class="flex items-center justify-between gap-3 cursor-pointer text-text-secondary font-mono text-xs font-medium leading-tight"
+      >
         <span>Gate history</span>
-        <span v-if="history.length" class="gate-detail-history__count">{{ history.length }}</span>
+        <span
+          v-if="history.length"
+          class="inline-flex items-center justify-center min-w-6 px-1.5 py-0.5 rounded bg-bg-elevated text-text-primary"
+        >{{ history.length }}</span>
       </AccordionTrigger>
       <AccordionContent>
-        <div class="gate-detail-history__content">
-          <p v-if="historyLoading" class="gate-detail-history__message">Loading task history…</p>
-          <p v-else-if="historyError" class="gate-detail-history__message gate-detail-history__message--error">{{ historyError }}</p>
-          <p v-else-if="!history.length" class="gate-detail-history__message">No recorded gate history yet.</p>
-          <ol v-else class="gate-detail-history__list">
+        <div class="flex flex-col gap-3 mt-3">
+          <p
+            v-if="historyLoading"
+            class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
+          >Loading task history…</p>
+          <p
+            v-else-if="historyError"
+            class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
+          >{{ historyError }}</p>
+          <p
+            v-else-if="!history.length"
+            class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
+          >No recorded gate history yet.</p>
+          <ol v-else class="m-0 p-0 list-none flex flex-col gap-3">
             <li
               v-for="(entry, index) in history"
               :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`"
-              :class="['gate-detail-history__item', `gate-detail-history__item--${gateStageFamily(entry.stage)}`]"
+              :class="[
+                'gate-detail-history__item relative p-3.5 rounded bg-surface-high flex flex-col gap-3',
+                `gate-detail-history__item--${gateStageFamily(entry.stage)}`,
+              ]"
             >
-              <div class="gate-detail-history__header">
+              <div class="flex justify-between gap-3">
                 <div>
-                  <p class="gate-detail-history__stage">{{ formatStageLabel(entry.stage) }}</p>
+                  <p class="mb-1 text-text-secondary text-xs">{{ formatStageLabel(entry.stage) }}</p>
                   <h4>{{ entry.event }}</h4>
                 </div>
-                <time class="gate-detail-history__time" :datetime="entry.timestamp ?? undefined">{{ formatTimestamp(entry.timestamp) }}</time>
+                <time
+                  class="whitespace-nowrap text-text-secondary text-xs"
+                  :datetime="entry.timestamp ?? undefined"
+                >{{ formatTimestamp(entry.timestamp) }}</time>
               </div>
-              <dl class="gate-detail-history__meta">
+              <dl class="grid grid-cols-2 gap-3">
                 <div>
-                  <dt>Agent</dt>
-                  <dd>{{ entry.agent || '—' }}</dd>
+                  <dt class="text-text-secondary text-xs">Agent</dt>
+                  <dd class="mt-1 font-mono text-sm">{{ entry.agent || '—' }}</dd>
                 </div>
                 <div>
-                  <dt>Model</dt>
-                  <dd>{{ entry.model || '—' }}</dd>
+                  <dt class="text-text-secondary text-xs">Model</dt>
+                  <dd class="mt-1 font-mono text-sm">{{ entry.model || '—' }}</dd>
                 </div>
               </dl>
-              <div v-if="entry.notes" class="gate-detail-history__markdown" v-html="renderMarkdown(entry.notes)" />
+              <div
+                v-if="entry.notes"
+                class="gate-detail-history__markdown text-text-primary [overflow-wrap:anywhere]"
+                v-html="renderMarkdown(entry.notes)"
+              />
             </li>
           </ol>
         </div>
@@ -83,78 +108,8 @@ function formatTimestamp(timestamp: string | null) {
   </Accordion>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — remaining rules are stage-family ::before pseudo-element accents and :deep() rules styling sanitized markdown injected via v-html. Pseudo-element content/positioning and cross-scope :deep() targets cannot be expressed as Tailwind utilities. -->
 <style scoped>
-.gate-detail-history,
-.gate-detail-history__content,
-.gate-detail-history__list,
-.gate-detail-history__item,
-.gate-detail-history__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.gate-detail-history {
-  padding: 0.875rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-}
-
-.gate-detail-history__summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-display);
-  line-height: 1.4;
-}
-
-.gate-detail-history__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-bg-surface));
-  color: var(--color-text-primary);
-}
-
-.gate-detail-history__content {
-  margin-top: 0.75rem;
-}
-
-.gate-detail-history__message {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-  color: var(--color-text-secondary);
-}
-
-.gate-detail-history__message--error {
-  color: var(--color-status-abandoned);
-}
-
-.gate-detail-history__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.gate-detail-history__item {
-  position: relative;
-  padding: 0.9rem;
-  border-radius: 0.25rem;
-  background: var(--surface-high);
-}
-
 .gate-detail-history__item::before {
   content: '';
   position: absolute;
@@ -166,42 +121,21 @@ function formatTimestamp(timestamp: string | null) {
   background: var(--surface-highest);
 }
 
-.gate-detail-history__header,
-.gate-detail-history__meta {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
+.gate-detail-history__item--swe::before {
+  background: var(--color-brand);
 }
 
-.gate-detail-history__stage,
-.gate-detail-history__time,
-.gate-detail-history__meta dt {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
+.gate-detail-history__item--red-team::before {
+  background: var(--amber);
 }
 
-.gate-detail-history__stage {
-  margin-bottom: 0.25rem;
+.gate-detail-history__item--blue-team::before,
+.gate-detail-history__item--done::before {
+  background: var(--sage);
 }
 
-.gate-detail-history__time {
-  white-space: nowrap;
-}
-
-.gate-detail-history__meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.gate-detail-history__meta dd {
-  margin-top: 0.25rem;
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-}
-
-.gate-detail-history__markdown {
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
+.gate-detail-history__item--failed::before {
+  background: var(--terracotta);
 }
 
 .gate-detail-history__markdown :deep(*) {
@@ -249,10 +183,4 @@ function formatTimestamp(timestamp: string | null) {
   border: 1px solid var(--color-border-subtle);
   text-align: left;
 }
-
-.gate-detail-history__item--swe::before { background: var(--color-brand); }
-.gate-detail-history__item--red-team::before { background: var(--amber); }
-.gate-detail-history__item--blue-team::before,
-.gate-detail-history__item--done::before { background: var(--sage); }
-.gate-detail-history__item--failed::before { background: var(--terracotta); }
 </style>

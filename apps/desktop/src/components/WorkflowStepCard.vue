@@ -129,7 +129,7 @@ function handleKeydown(event: KeyboardEvent) {
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — All rules use design tokens (--space-*, --radius-*, --color-*, --transition-fast, --weight-*, --text-*) and font: shorthand combining 4 properties. State modifiers (--selected, --expanded, --danger) are JS-toggled via :class bindings; pseudo-state hovers and :focus-within parent selectors cannot be expressed as plain Tailwind utilities. -->
 <style scoped>
 .step-card {
   width: 100%;
@@ -146,26 +146,21 @@ function handleKeydown(event: KeyboardEvent) {
   text-align: left;
   transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
-
 .step-card:hover {
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-8);
 }
-
 .step-card:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-node-workflow) 50%, transparent);
   outline-offset: 2px;
 }
-
 .step-card--selected {
   background: var(--color-bg-surface);
   border-left-color: var(--color-node-workflow);
   border-left-width: 4px;
   border-color: color-mix(in srgb, var(--color-node-workflow) 36%, var(--color-border-subtle));
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 28%, transparent),
-              0 0 18px color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 28%, transparent), 0 0 18px color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
 }
-
 .card-disclosure {
   width: 18px;
   height: 18px;
@@ -181,29 +176,21 @@ function handleKeydown(event: KeyboardEvent) {
   flex-shrink: 0;
   transition: color var(--transition-fast), background var(--transition-fast);
 }
-
 .card-disclosure:hover {
   background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent);
   color: var(--color-node-workflow);
 }
-
-.disclosure-caret {
-  display: inline-block;
-  font-size: 0.6875rem;
-  line-height: 1;
-  transition: transform var(--transition-fast);
-}
-
-.disclosure-caret--open {
-  transform: rotate(90deg);
-}
-
 .card-actions {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
-
+.card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
 .card-move-btn {
   width: 20px;
   height: 20px;
@@ -215,24 +202,14 @@ function handleKeydown(event: KeyboardEvent) {
   cursor: pointer;
   font: var(--weight-title) var(--text-2xs)/1 var(--font-code);
 }
-
 .card-move-btn:hover:not(:disabled) {
   background: var(--color-bg-surface);
   color: var(--color-node-workflow);
 }
-
 .card-move-btn:disabled {
   opacity: 0.35;
   cursor: default;
 }
-
-.card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-
 .card-name {
   min-width: 0;
   font: var(--weight-title) var(--text-caption)/1.4 var(--font-body);
@@ -241,13 +218,11 @@ function handleKeydown(event: KeyboardEvent) {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .thinking-icon {
   flex-shrink: 0;
   font-size: var(--text-body-sm);
   color: var(--color-node-thinking);
 }
-
 .card-desc {
   margin: 0;
   font: var(--weight-body) var(--text-caption)/1.5 var(--font-body);
@@ -257,14 +232,12 @@ function handleKeydown(event: KeyboardEvent) {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-
 .card-desc--expanded {
   display: block;
   -webkit-line-clamp: unset;
   overflow: visible;
   white-space: pre-wrap;
 }
-
 .card-remove-btn {
   width: 20px;
   height: 20px;
@@ -277,17 +250,14 @@ function handleKeydown(event: KeyboardEvent) {
   opacity: 0;
   transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
 }
-
 .step-card:hover .card-remove-btn,
 .step-card:focus-within .card-remove-btn {
   opacity: 1;
 }
-
 .card-remove-btn:hover {
   background: color-mix(in srgb, var(--color-status-abandoned) 15%, transparent);
   color: var(--color-status-abandoned);
 }
-
 .card-confirm-row {
   display: flex;
   align-items: center;
@@ -295,7 +265,6 @@ function handleKeydown(event: KeyboardEvent) {
   font: var(--weight-body) var(--text-caption)/1.4 var(--font-body);
   color: var(--color-text-secondary);
 }
-
 .confirm-copy {
   flex: 1;
   min-width: 0;
@@ -303,18 +272,15 @@ function handleKeydown(event: KeyboardEvent) {
   flex-direction: column;
   gap: var(--space-1);
 }
-
 .confirm-label,
 .confirm-warning {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .confirm-warning {
   color: var(--color-status-abandoned);
   font-size: var(--text-tiny);
 }
-
 .card-confirm-btn {
   min-height: 28px;
   padding: 0 var(--space-2);
@@ -325,11 +291,9 @@ function handleKeydown(event: KeyboardEvent) {
   font: inherit;
   cursor: pointer;
 }
-
 .card-confirm-btn:hover {
   background: var(--color-bg-surface);
 }
-
 .card-confirm-btn--danger {
   border-color: var(--color-status-abandoned);
   color: var(--color-status-abandoned);

@@ -265,7 +265,7 @@ onBeforeUnmount(() => {
   </aside>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules — Layout uses design tokens (--surface, --surface-container/high, --radius-*, --color-*, --text-*). The .bead--* (8 states) and .status-text--* (8 states) modifier systems map JS-driven status keys to status-specific design tokens (--color-status-pending/active/completed/abandoned/stuck/ready/cancelled, --amber, --sage, --terracotta) — replacing with Tailwind would require a 16-key lookup table at every call site. Hover/focus-visible parent selectors and :focus-within reveal patterns cannot be expressed as plain utilities. -->
 <style scoped>
 .pipeline-sidebar {
   width: 100%;
@@ -275,14 +275,12 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
 }
-
 .sidebar-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 1rem;
 }
-
 .sidebar-header h3 {
   margin: 0;
   font-family: var(--font-display);
@@ -290,18 +288,15 @@ onBeforeUnmount(() => {
   font-size: var(--text-title);
   color: var(--color-text-primary);
 }
-
 .sidebar-actions {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
-
 .resource-warning {
   font-size: var(--text-xs);
   color: var(--amber);
 }
-
 .empty-state {
   flex: 1;
   display: grid;
@@ -310,12 +305,10 @@ onBeforeUnmount(() => {
   text-align: center;
   color: var(--text-secondary);
 }
-
 .pipeline-list-scroll {
   flex: 1;
   min-height: 0;
 }
-
 .pipeline-list {
   list-style: none;
   margin: 0;
@@ -324,7 +317,6 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 0.5rem;
 }
-
 .pipeline-item {
   display: flex;
   align-items: flex-start;
@@ -336,14 +328,13 @@ onBeforeUnmount(() => {
   background: var(--surface-container);
   transition: background 0.15s, border-color 0.15s;
 }
-
-.pipeline-item:hover { background: var(--surface-high); }
-
+.pipeline-item:hover {
+  background: var(--surface-high);
+}
 .pipeline-item.active {
   border-left-color: var(--color-brand);
   background: var(--surface-high);
 }
-
 .pipeline-select {
   min-width: 0;
   flex: 1;
@@ -358,13 +349,11 @@ onBeforeUnmount(() => {
   text-align: left;
   cursor: pointer;
 }
-
 .pipeline-select:focus-visible {
   outline: 2px solid var(--color-brand);
   outline-offset: 3px;
   border-radius: var(--radius-4);
 }
-
 .status-bead {
   width: 6px;
   height: 6px;
@@ -372,14 +361,26 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
   margin-top: 0.375rem;
 }
-
-.bead--pending { background: var(--text-secondary); }
-.bead--active { background: var(--amber); }
-.bead--completed { background: var(--sage); }
-.bead--abandoned, .bead--stuck { background: var(--terracotta); }
-.bead--ready, .bead--paused { background: var(--sage); }
-.bead--cancelled { background: var(--text-secondary); }
-
+.bead--pending {
+  background: var(--text-secondary);
+}
+.bead--active {
+  background: var(--amber);
+}
+.bead--completed {
+  background: var(--sage);
+}
+.bead--abandoned,
+.bead--stuck {
+  background: var(--terracotta);
+}
+.bead--ready,
+.bead--paused {
+  background: var(--sage);
+}
+.bead--cancelled {
+  background: var(--text-secondary);
+}
 .pipeline-meta {
   flex: 1;
   display: flex;
@@ -387,7 +388,6 @@ onBeforeUnmount(() => {
   gap: 0.25rem;
   min-width: 0;
 }
-
 .pipeline-id {
   font-weight: var(--weight-display);
   color: var(--color-text-primary);
@@ -395,26 +395,22 @@ onBeforeUnmount(() => {
   overflow: hidden;
   text-overflow: ellipsis;
 }
-
 .pipeline-progress {
   font-size: var(--text-xs);
   color: var(--text-secondary);
 }
-
 .progress-bar {
   height: 3px;
   border-radius: var(--radius-4);
   background: var(--color-bg-app);
   overflow: hidden;
 }
-
 .progress-fill {
   height: 100%;
   border-radius: var(--radius-4);
   background: var(--color-brand);
   transition: width 0.3s ease;
 }
-
 .pipeline-side {
   display: flex;
   flex-direction: column;
@@ -422,27 +418,38 @@ onBeforeUnmount(() => {
   gap: 0.375rem;
   min-width: 0;
 }
-
 .pipeline-status {
   font-size: var(--text-xs);
   font-weight: var(--weight-display);
 }
-
-.status-text--pending { color: var(--color-status-pending); }
-.status-text--active { color: var(--color-status-active); }
-.status-text--completed { color: var(--color-status-completed); }
-.status-text--abandoned { color: var(--color-status-abandoned); }
-.status-text--stuck { color: var(--color-status-stuck); }
-.status-text--ready, .status-text--paused { color: var(--color-status-ready); }
-.status-text--cancelled { color: var(--color-status-abandoned); }
-
+.status-text--pending {
+  color: var(--color-status-pending);
+}
+.status-text--active {
+  color: var(--color-status-active);
+}
+.status-text--completed {
+  color: var(--color-status-completed);
+}
+.status-text--abandoned {
+  color: var(--color-status-abandoned);
+}
+.status-text--stuck {
+  color: var(--color-status-stuck);
+}
+.status-text--ready,
+.status-text--paused {
+  color: var(--color-status-ready);
+}
+.status-text--cancelled {
+  color: var(--color-status-abandoned);
+}
 .delete-btn {
   line-height: 1;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.15s;
 }
-
 .pipeline-item:hover .delete-btn,
 .pipeline-item:focus-within .delete-btn {
   opacity: 1;

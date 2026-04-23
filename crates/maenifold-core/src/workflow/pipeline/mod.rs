@@ -35,6 +35,10 @@ mod external_mcp;
 mod external_mcp_transport;
 #[cfg(test)]
 mod failure_reason_scope_tests;
+#[cfg(test)]
+mod failure_reason_scope_tests_cascade;
+#[cfg(test)]
+mod failure_reason_scope_tests_edge;
 mod handler;
 mod handler_crud;
 mod handler_lifecycle;
@@ -42,7 +46,11 @@ mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
 #[cfg(test)]
+mod integration_tests_helpers;
+#[cfg(test)]
 mod integration_tests;
+#[cfg(test)]
+mod integration_tests_cancel;
 mod lease;
 mod mapping_apply;
 mod mapping_predecessor;

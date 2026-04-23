@@ -238,3 +238,7 @@ mod apply_node_outcome_failure_reason_tests;
 #[cfg(test)]
 #[path = "retry_tests.rs"]
 mod retry_tests;
+
+#[cfg(test)]
+#[path = "retry_tests_exec.rs"]
+mod retry_tests_exec;

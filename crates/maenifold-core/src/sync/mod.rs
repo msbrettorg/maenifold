@@ -9,6 +9,8 @@ pub mod leader;
 mod sync_state;
 mod vector_diagnostics;
 mod vector_embeddings;
+mod vector_embeddings_helpers;
+mod file_index_lineage;
 mod watcher_batch;
 // T-64.4: RTM NFR-1 extracted watcher health tracking into a dedicated submodule.
 mod watcher_health;

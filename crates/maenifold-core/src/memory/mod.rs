@@ -1,4 +1,5 @@
 mod access;
+mod access_read;
 mod editing;
 mod editing_helpers;
 mod lifecycle;
@@ -10,7 +11,8 @@ use crate::decay::{
     get_decay_weight_for_file as decay_get_decay_weight_for_file,
 };
 
-pub use access::{read_memory, write_memory};
+pub use access::write_memory;
+pub use access_read::read_memory;
 pub use editing::edit_memory;
 pub use lifecycle::{delete_memory, move_memory};
 pub use listing::list_memories;

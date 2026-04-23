@@ -36,6 +36,8 @@ pub mod tools;
 #[cfg(feature = "app")]
 pub mod tray;
 #[cfg(feature = "app")]
+pub(crate) mod tray_helpers;
+#[cfg(feature = "app")]
 pub mod tray_menu;
 pub mod vector;
 pub mod workflow;

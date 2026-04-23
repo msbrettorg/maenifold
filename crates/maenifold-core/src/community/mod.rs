@@ -1,5 +1,6 @@
 mod data;
 mod louvain;
+mod louvain_scoring;
 mod metrics;
 mod persist;
 

@@ -1,6 +1,7 @@
 mod formatting;
 mod handler;
 mod session;
+mod session_init;
 mod validation;
 
 pub use handler::sequential_thinking;

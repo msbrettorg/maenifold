@@ -1,9 +1,10 @@
+use super::file_index_lineage::{
+    frontmatter_lineage_gate_task_id, frontmatter_lineage_pipeline_run_id,
+    frontmatter_lineage_thinking_session_id,
+};
 use super::sync_state::current_iso_timestamp;
 use crate::error::Result;
-use crate::lineage::{
-    gate_task_lineage_id, memory_note_lineage_id, pipeline_run_lineage_id,
-    thinking_session_lineage_id,
-};
+use crate::lineage::memory_note_lineage_id;
 use crate::markdown::{Frontmatter, WikiLinkFilter, extract_wikilinks};
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
@@ -258,54 +259,3 @@ pub(crate) fn upsert_processed_file(
     Ok(filtered_count)
 }
 
-fn frontmatter_lineage_gate_task_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
-    frontmatter
-        .as_ref()
-        .and_then(|fm| fm.get("lineage_gate_task_id"))
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .or_else(|| {
-            frontmatter
-                .as_ref()
-                .and_then(|fm| fm.get("gate_task_id"))
-                .and_then(|value| value.as_str())
-                .map(gate_task_lineage_id)
-        })
-}
-
-fn frontmatter_lineage_pipeline_run_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
-    frontmatter
-        .as_ref()
-        .and_then(|fm| fm.get("lineage_pipeline_run_id"))
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .or_else(|| {
-            frontmatter
-                .as_ref()
-                .and_then(|fm| fm.get("pipeline_run_id"))
-                .and_then(|value| value.as_str())
-                .map(pipeline_run_lineage_id)
-        })
-        .or_else(|| {
-            frontmatter
-                .as_ref()
-                .and_then(|fm| fm.get("pipeline_session_id"))
-                .and_then(|value| value.as_str())
-                .map(pipeline_run_lineage_id)
-        })
-}
-
-fn frontmatter_lineage_thinking_session_id(frontmatter: &Option<Frontmatter>) -> Option<String> {
-    frontmatter
-        .as_ref()
-        .and_then(|fm| fm.get("lineage_thinking_session_id"))
-        .and_then(|value| value.as_str())
-        .map(str::to_string)
-        .or_else(|| {
-            frontmatter
-                .as_ref()
-                .and_then(|fm| fm.get("thinking_session_id"))
-                .and_then(|value| value.as_str())
-                .map(thinking_session_lineage_id)
-        })
-}

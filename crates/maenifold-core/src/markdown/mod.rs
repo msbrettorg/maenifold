@@ -2,6 +2,7 @@ mod filter;
 mod paths;
 mod storage;
 mod wikilinks;
+mod wikilinks_strip;
 
 // T-12.0: RTM NFR-1 preserves the `markdown` facade while delegating to focused submodules.
 pub use filter::WikiLinkFilter;
@@ -16,5 +17,6 @@ pub use storage::{
 };
 pub use wikilinks::{
     extract_h2_sections, extract_wikilinks, extract_wikilinks_with_sections, normalize_concept,
-    slugify, strip_wikilink_brackets,
+    slugify,
 };
+pub use wikilinks_strip::strip_wikilink_brackets;

@@ -3,6 +3,25 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-23 — T-03 Wave 2 (component replacements)
+
+### What worked
+- **Pre-installing deps in main before creating worktrees** eliminates package.json merge conflicts. Install shadcn components + npm packages → commit → create worktrees with symlinked node_modules.
+- **3 parallel SWEs via git worktrees** — zero conflicts when targeting non-overlapping component files. All three completed in ~5 min.
+- **Immediate red-team dispatch in worktree** while next SWE works elsewhere maximizes pipeline throughput.
+- **T-03.4 spec grounding** caught stale claims (SchemaForm.css didn't exist, prop counts wrong). Re-grounding reduced the task from "full form rewrite" to "one file style migration" — 41 seconds SWE completion.
+
+### Red-team catches
+- **T-03.2 unknown status fallback**: PipelineStatusBadge dotClass had no fallback for unknown non-null status values. Fix: `?? 'bg-muted-foreground'`.
+- **T-03.7 WikiLink pills broken by html:false**: Pre-parse HTML injection of `<span>` tags gets escaped when markdown-it has `html: false`. Fix: markdown-it inline plugin that tokenizes `[[...]]` at parse level.
+- **T-03.7 stale Mermaid guard**: No version check after async `renderMermaidBlocks()`. Fix: post-await version comparison.
+- **T-03.4 token drift (accepted)**: `text-sm` (14px) vs `--text-body-sm` (13px) — 1px difference. Accepted as migration direction per T-03.0 policy.
+
+### Patterns
+- SchemaFormRenderer.vue's `:deep()` rules for third-party JSONForms are legitimately un-migratable to Tailwind. `audit-ok` exemption is correct.
+- WorkflowStepTimeline is a visual execution timeline, NOT a wizard stepper. Don't try to replace it with shadcn Stepper.
+- SWEs still create files without `git add` — always check `git status --short` for `??` untracked files (caught useMarkdownIt.ts).
+
 ## 2026-04-23 — T-03 Sprint (token infra, security, error handling)
 
 ### Red-team catches

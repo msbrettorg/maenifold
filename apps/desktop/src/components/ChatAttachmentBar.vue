@@ -128,10 +128,10 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 </script>
 
 <template>
-  <div class="ab-root">
+  <div class="flex flex-col gap-2">
     <Input
       ref="imageInputRef"
-      class="ab-input"
+      class="hidden"
       type="file"
       accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.ico,.tif,.tiff,image/*"
       multiple
@@ -139,19 +139,19 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
     />
     <Input
       ref="audioInputRef"
-      class="ab-input"
+      class="hidden"
       type="file"
       accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,audio/*"
       multiple
       @change="handleSelection($event, 'audio')"
     />
-    <div class="ab-toolbar" role="toolbar" aria-label="Attachments">
-      <span class="ab-wrap" :title="imageTooltip">
+    <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Attachments">
+      <span class="inline-flex" :title="imageTooltip">
         <Button
           variant="outline"
           size="sm"
-          class="ab-btn"
-          :class="{ 'ab-btn-unavailable': !supportsImage }"
+          class="border border-border-subtle rounded bg-bg-surface text-text-primary px-3 py-[0.35rem] text-sm cursor-pointer disabled:opacity-[0.55] disabled:cursor-not-allowed"
+          :class="{ 'opacity-[0.55]': !supportsImage }"
           :disabled="isLoading"
           :aria-disabled="!supportsImage || isLoading"
           @click="triggerPicker('image')"
@@ -159,12 +159,12 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
           <ImageIcon class="inline size-4" :stroke-width="1.5" /> Image
         </Button>
       </span>
-      <span class="ab-wrap" :title="audioTooltip">
+      <span class="inline-flex" :title="audioTooltip">
         <Button
           variant="outline"
           size="sm"
-          class="ab-btn"
-          :class="{ 'ab-btn-unavailable': !supportsAudio }"
+          class="border border-border-subtle rounded bg-bg-surface text-text-primary px-3 py-[0.35rem] text-sm cursor-pointer disabled:opacity-[0.55] disabled:cursor-not-allowed"
+          :class="{ 'opacity-[0.55]': !supportsAudio }"
           :disabled="isLoading"
           :aria-disabled="!supportsAudio || isLoading"
           @click="triggerPicker('audio')"
@@ -173,42 +173,11 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
         </Button>
       </span>
     </div>
-    <div v-if="pendingAttachments.length" class="ab-pending">
-      <div v-for="att in pendingAttachments" :key="att.id" class="ab-chip">
+    <div v-if="pendingAttachments.length" class="flex flex-wrap gap-2">
+      <div v-for="att in pendingAttachments" :key="att.id" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-bg-surface border border-border-subtle text-sm">
         <span><component :is="att.kind === 'image' ? ImageIcon : Headphones" class="inline size-4" :stroke-width="1.5" /> {{ att.label }}</span>
-        <Button variant="ghost" size="icon-xs" class="ab-remove" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</Button>
+        <Button variant="ghost" size="icon-xs" class="border-none bg-transparent text-text-secondary cursor-pointer text-base leading-none p-0 disabled:cursor-not-allowed" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</Button>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.ab-root { display: flex; flex-direction: column; gap: 0.5rem; }
-.ab-input { display: none; }
-.ab-toolbar { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.ab-wrap { display: inline-flex; }
-.ab-btn {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
-  padding: 0.35rem 0.75rem;
-  font-size: var(--text-sm);
-  cursor: pointer;
-}
-.ab-btn:disabled { opacity: 0.55; cursor: not-allowed; }
-.ab-btn-unavailable { opacity: 0.55; }
-.ab-pending { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.ab-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 4px;
-  background: var(--color-bg-surface);
-  border: 1px solid var(--color-border-subtle);
-  font-size: var(--text-sm);
-}
-.ab-remove { border: none; background: transparent; color: var(--color-text-secondary); cursor: pointer; font-size: var(--text-base); line-height: 1; padding: 0; }
-.ab-remove:disabled { cursor: not-allowed; }
-</style>

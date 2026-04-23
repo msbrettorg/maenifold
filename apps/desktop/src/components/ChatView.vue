@@ -199,24 +199,24 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </script>
 
 <template>
-  <div class="chat-view" role="region" aria-label="Chat">
-    <div class="chat-header">
-      <h2>{{ currentSession?.title || 'Chat' }}</h2>
-      <div class="header-right">
+  <div class="flex flex-col h-full bg-bg-app" role="region" aria-label="Chat">
+    <div class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface)]">
+      <h2 class="m-0 overflow-hidden whitespace-nowrap text-ellipsis text-md font-[number:var(--weight-display)]">{{ currentSession?.title || 'Chat' }}</h2>
+      <div class="flex flex-wrap items-center justify-end gap-3">
         <ConfigOptionPicker
           v-for="option in configOptions"
           :key="option.id"
           :option="option"
           @change="handleConfigOptionChange"
         />
-        <span class="agent-name">
+        <span class="text-sm text-text-secondary">
           {{ currentSession?.agentName }}
-          <span v-if="agentSessionStatusLabel" class="agent-status">({{ agentSessionStatusLabel }})</span>
+          <span v-if="agentSessionStatusLabel">({{ agentSessionStatusLabel }})</span>
         </span>
       </div>
     </div>
 
-    <div ref="messagesContainer" class="messages-container">
+    <div ref="messagesContainer" class="messages-container flex-1 overflow-y-auto p-4 [scrollbar-width:thin] [scrollbar-color:var(--color-border-subtle)_transparent]">
       <ChatMessageList
         :messages="messages"
         :current-plan="currentPlan"
@@ -255,33 +255,8 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules — pseudo-element + deep-third-party: ::-webkit-scrollbar pseudo-elements style the native scrollbar (no Tailwind utility); :deep(.mermaid-rendered) rules style SVG content rendered by Mermaid into the messages container, which Tailwind utilities cannot reach across the scoped boundary. color-mix() blends are static design tokens not expressible in Tailwind. -->
 <style scoped>
-.chat-view { display: flex; flex-direction: column; height: 100%; background: var(--color-bg-app); }
-.chat-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.75rem 1rem;
-  background: var(--surface);
-}
-.chat-header h2 {
-  margin: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  font-size: var(--text-md);
-  font-weight: var(--weight-display);
-}
-.header-right { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 0.75rem; }
-.agent-name { font-size: var(--text-sm); color: var(--color-text-secondary); }
-.messages-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-subtle) transparent;
-}
 .messages-container::-webkit-scrollbar { width: 8px; }
 .messages-container::-webkit-scrollbar-track { background: transparent; }
 .messages-container::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 4px; }

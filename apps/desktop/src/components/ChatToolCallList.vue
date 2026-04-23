@@ -11,7 +11,7 @@ const emit = defineEmits<{ 'toggle-tool-call': [toolCallId: string] }>();
 </script>
 
 <template>
-  <div class="tool-calls-section" role="region" aria-label="Tool calls">
+  <div class="flex flex-col gap-1 mb-3" role="region" aria-label="Tool calls">
     <ChatToolCallItem
       v-for="toolCall in toolCalls"
       :key="toolCall.toolCallId"
@@ -21,7 +21,3 @@ const emit = defineEmits<{ 'toggle-tool-call': [toolCallId: string] }>();
     />
   </div>
 </template>
-
-<style scoped>
-.tool-calls-section { display: flex; flex-direction: column; gap: 0.25rem; margin-bottom: 0.75rem; }
-</style>

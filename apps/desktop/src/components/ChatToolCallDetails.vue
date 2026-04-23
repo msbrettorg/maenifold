@@ -117,29 +117,29 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
 </script>
 
 <template>
-  <div :id="id" class="tool-call-details" role="region" :aria-expanded="expanded">
-    <div v-if="toolCall.content?.length" class="tool-call-content-list">
-      <div v-for="(block, blockIndex) in toolCall.content" :key="`${toolCall.toolCallId}-content-${blockIndex}`" class="tool-content-block">
+  <div :id="id" class="flex flex-col gap-[0.625rem] px-[0.625rem] pb-[0.625rem]" role="region" :aria-expanded="expanded">
+    <div v-if="toolCall.content?.length" class="flex flex-col gap-[0.625rem]">
+      <div v-for="(block, blockIndex) in toolCall.content" :key="`${toolCall.toolCallId}-content-${blockIndex}`" class="tool-content-block p-[0.625rem] rounded-[var(--radius)] bg-bg-elevated">
         <ChatContentBlocks v-if="isContentToolCallContentBlock(block)" :blocks="[block.content]" />
-        <div v-else-if="isDiffToolCallContentBlock(block)" class="tool-content-diff">
-          <div class="tool-content-label">{{ block.path }}</div>
-          <pre class="tool-diff-pre"><code><span
+        <div v-else-if="isDiffToolCallContentBlock(block)">
+          <div class="mb-1.5 text-text-secondary text-xs font-[number:var(--weight-title)]">{{ block.path }}</div>
+          <pre class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm"><span
             v-for="(line, lineIndex) in getUnifiedDiffLines(block)"
             :key="`${toolCall.toolCallId}-diff-${blockIndex}-${lineIndex}`"
-            :class="['tool-diff-line', getDiffLineClass(line)]"
+            :class="['block whitespace-pre', getDiffLineClass(line)]"
           >{{ line.text }}
 </span></code></pre>
         </div>
-        <div v-else-if="isTerminalToolCallContentBlock(block)" class="tool-content-terminal">
-          <div class="tool-content-label">
+        <div v-else-if="isTerminalToolCallContentBlock(block)">
+          <div class="mb-1.5 text-text-secondary text-xs font-[number:var(--weight-title)]">
             Terminal {{ block.terminalId }}
-            <span v-if="getTerminalStatusLabel(block)" class="tool-terminal-status">· {{ getTerminalStatusLabel(block) }}</span>
+            <span v-if="getTerminalStatusLabel(block)" class="font-[number:var(--weight-display)]">· {{ getTerminalStatusLabel(block) }}</span>
           </div>
-          <pre v-if="typeof block.output === 'string' && block.output.length > 0" class="tool-terminal-output"><code>{{ block.output }}</code></pre>
-          <p v-else class="tool-terminal-placeholder">Live terminal output will appear here once terminal rendering lands.</p>
-          <p v-if="block.truncated === true" class="tool-terminal-meta">Output truncated by the terminal byte limit.</p>
+          <pre v-if="typeof block.output === 'string' && block.output.length > 0" class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ block.output }}</code></pre>
+          <p v-else class="m-0 text-text-secondary">Live terminal output will appear here once terminal rendering lands.</p>
+          <p v-if="block.truncated === true" class="m-0 text-text-secondary">Output truncated by the terminal byte limit.</p>
         </div>
-        <pre v-else class="tool-content-unknown"><code>{{ JSON.stringify(block, null, 2) }}</code></pre>
+        <pre v-else class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(block, null, 2) }}</code></pre>
       </div>
     </div>
 
@@ -147,69 +147,34 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
       v-if="toolCall.rawInput || toolCall.rawOutput"
       v-model="rawPayloadOpenSections"
       type="multiple"
-      class="tool-call-payload-group"
     >
-      <AccordionItem v-if="toolCall.rawInput" value="input" class="tool-call-payload">
+      <AccordionItem v-if="toolCall.rawInput" value="input" class="tool-call-payload rounded-[var(--radius)] bg-bg-elevated">
         <AccordionTrigger>Raw input</AccordionTrigger>
         <AccordionContent>
-          <pre><code>{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
+          <pre class="m-0 mx-3 mb-3 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
         </AccordionContent>
       </AccordionItem>
 
-      <AccordionItem v-if="toolCall.rawOutput" value="output" class="tool-call-payload">
+      <AccordionItem v-if="toolCall.rawOutput" value="output" class="tool-call-payload rounded-[var(--radius)] bg-bg-elevated">
         <AccordionTrigger>Raw output</AccordionTrigger>
         <AccordionContent>
-          <pre><code>{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
+          <pre class="m-0 mx-3 mb-3 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
         </AccordionContent>
       </AccordionItem>
     </Accordion>
   </div>
 </template>
 
+<!-- audit-ok: max-style-rules — color-mix() borders and diff-line accent colors are static design tokens (theme-aware blends of text + status colors) that Tailwind utilities cannot express; rules limited to color-mix() declarations. -->
 <style scoped>
-.tool-call-details { display: flex; flex-direction: column; gap: 0.625rem; padding: 0 0.625rem 0.625rem; }
-.tool-call-content-list { display: flex; flex-direction: column; gap: 0.625rem; }
 .tool-content-block {
-  padding: 0.625rem;
   border: 1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent);
-  border-radius: var(--radius);
-  background: var(--color-bg-elevated);
 }
-.tool-content-label {
-  margin-bottom: 0.375rem;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-title);
+.tool-call-payload {
+  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
 }
-.tool-content-unknown,
-.tool-diff-pre,
-.tool-terminal-output,
-.tool-call-payload pre {
-  margin: 0;
-  padding: 0.75rem;
-  overflow-x: auto;
-  border-radius: var(--radius);
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
-.tool-content-unknown code,
-.tool-diff-pre code,
-.tool-terminal-output code,
-.tool-call-payload code { font-family: var(--font-mono); font-size: var(--text-sm); }
-.tool-diff-line { display: block; white-space: pre; }
 .diff-line-header { color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-active)); }
 .diff-line-context { color: inherit; }
 .diff-line-add { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-completed)); }
 .diff-line-remove { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-danger)); }
-.tool-terminal-placeholder,
-.tool-terminal-meta { margin: 0; color: var(--color-text-secondary); }
-.tool-terminal-status { font-weight: var(--weight-display); }
-.tool-call-payload {
-  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
-  border-radius: var(--radius);
-  background: var(--color-bg-elevated);
-}
-.tool-call-payload summary { padding: 0.5rem 0.75rem; font-weight: var(--weight-title); cursor: pointer; }
-.tool-call-payload pre { margin: 0 0.75rem 0.75rem; }
 </style>

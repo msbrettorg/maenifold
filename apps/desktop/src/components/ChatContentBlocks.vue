@@ -170,7 +170,7 @@ function getBlockAriaLabel(block: ContentBlock): string {
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules — :deep() rules style sanitized markdown HTML rendered via v-html (h1–h4, p, ul/ol, pre, code, table, th/td, tr); these target child markup that Tailwind utilities cannot reach across the scoped boundary. -->
+<!-- audit-ok: max-style-rules — deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html (h1–h4, p, ul/ol, pre, code, table, th/td, tr); these target child markup that Tailwind utilities cannot reach across the scoped boundary. -->
 <style scoped>
 .message-content :deep(h1),
 .message-content :deep(h2),

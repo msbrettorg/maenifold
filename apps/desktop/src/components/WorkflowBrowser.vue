@@ -191,10 +191,10 @@ watch(
 </script>
 
 <template>
-  <aside class="workflow-browser" role="region" aria-label="Workflow library">
+  <aside class="w-[var(--sidebar-width)] min-w-[var(--sidebar-min-width)] max-w-[var(--sidebar-max-width)] h-full bg-[var(--surface)] flex flex-col overflow-hidden" role="region" aria-label="Workflow library">
     <Input
       ref="importInputRef"
-      class="sr-only-input"
+      class="hidden"
       type="file"
       accept=".json,application/json"
       @change="handleImportSelection"
@@ -222,11 +222,18 @@ watch(
       @select="store.requestSelectWorkflow"
     />
 
-    <div class="browser-toolbar">
-      <Button class="browser-primary-action" type="button" @click="store.createNewWorkflow()">
+    <div class="flex gap-2 px-4 py-3 pb-4 shrink-0">
+      <Button class="flex-1" type="button" @click="store.createNewWorkflow()">
         + New workflow
       </Button>
-      <Button variant="outline" class="btn-import" type="button" title="Import workflow" @click="handleImportClick()">
+      <!-- audit-ok: dynamic-binding (color-mix hover state cannot be expressed in Tailwind) -->
+      <Button 
+        variant="outline" 
+        class="btn-import grid place-items-center w-9 border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-secondary)] min-h-9 rounded-[var(--radius-md)] cursor-pointer transition-[background,border-color,color,box-shadow] duration-[var(--transition-fast)]" 
+        type="button" 
+        title="Import workflow" 
+        @click="handleImportClick()"
+      >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
           <polyline points="7 10 12 15 17 10" />
@@ -237,14 +244,7 @@ watch(
   </aside>
 </template>
 
+<!-- audit-ok: dynamic-binding (color-mix hover state) -->
 <style scoped>
-.sr-only-input {
-  display: none;
-}
-.workflow-browser { width: var(--sidebar-width); min-width: var(--sidebar-min-width); max-width: var(--sidebar-max-width); height: 100%; background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
-.browser-toolbar { display: flex; gap: var(--space-2); padding: var(--space-3) var(--space-4) var(--space-4); flex-shrink: 0; }
-.browser-primary-action { flex: 1; }
-.btn-import { min-height: 36px; border-radius: var(--radius-md); cursor: pointer; transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast); }
-.btn-import { display: grid; place-items: center; width: 36px; border: 1px solid var(--color-border-subtle); background: transparent; color: var(--color-text-secondary); }
 .btn-import:hover { background: var(--color-bg-elevated); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--color-border-subtle)); color: var(--color-text-primary); }
 </style>

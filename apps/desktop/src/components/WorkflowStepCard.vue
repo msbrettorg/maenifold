@@ -59,38 +59,38 @@ function handleKeydown(event: KeyboardEvent) {
 
 <template>
     <div
-      :class="['step-card', { 'step-card--selected': selected }]"
+      :class="['step-card w-full min-w-0 flex flex-col gap-2 p-3 bg-[var(--color-bg-elevated)] border border-[var(--color-border-subtle)] border-l-4 border-l-transparent rounded-[var(--radius-md)] cursor-pointer text-left transition-[background,border-color,box-shadow] duration-[var(--transition-fast)]', { 'step-card--selected': selected }]"
     role="button"
     tabindex="0"
     @click="selectStep"
     @keydown="handleKeydown"
     >
-    <div v-if="confirmingRemove" class="card-confirm-row">
-      <div class="confirm-copy">
-        <span class="confirm-label">Remove "{{ step.name }}"?</span>
-        <span v-if="referenceWarning" class="confirm-warning">{{ referenceWarning }}</span>
+    <div v-if="confirmingRemove" class="flex items-center gap-3 [font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-text-secondary)]">
+      <div class="flex-1 min-w-0 flex flex-col gap-1">
+        <span class="overflow-hidden text-ellipsis">Remove "{{ step.name }}"?</span>
+        <span v-if="referenceWarning" class="overflow-hidden text-ellipsis text-[var(--color-status-abandoned)] text-[length:var(--text-tiny)]">{{ referenceWarning }}</span>
       </div>
-      <Button variant="outline" size="sm" class="card-confirm-btn" @click.stop="confirmingRemove = false">Cancel</Button>
-      <Button variant="destructive" size="sm" class="card-confirm-btn card-confirm-btn--danger" @click.stop="emit('remove', step.id)">Remove</Button>
+      <Button variant="outline" size="sm" class="min-h-7 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font:inherit] cursor-pointer hover:bg-[var(--color-bg-surface)]" @click.stop="confirmingRemove = false">Cancel</Button>
+      <Button variant="destructive" size="sm" class="card-confirm-btn--danger min-h-7 px-2 border border-[var(--color-status-abandoned)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-status-abandoned)] [font:inherit] cursor-pointer hover:bg-[var(--color-bg-surface)]" @click.stop="emit('remove', step.id)">Remove</Button>
     </div>
     <template v-else>
-      <div class="card-top">
+      <div class="flex items-center justify-between gap-2">
         <Button
           variant="ghost"
           size="icon-xs"
-          class="card-disclosure"
+          class="card-disclosure w-[18px] h-[18px] p-0 border-0 rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-secondary)] cursor-pointer inline-flex items-center justify-center shrink-0 transition-[color,background] duration-[var(--transition-fast)]"
           :aria-label="expanded ? `Collapse ${step.name}` : `Expand ${step.name}`"
           :aria-expanded="expanded"
           @click.stop="emit('toggle-expanded', step.id)"
         >
           <ChevronRight class="size-3.5 transition-transform" :class="{ 'rotate-90': expanded }" :stroke-width="1.5" />
         </Button>
-        <span class="card-name">{{ cleanName }}</span>
-        <div class="card-actions">
+        <span class="min-w-0 [font-weight:var(--weight-title)] text-[length:var(--text-caption)] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-text-primary)] whitespace-nowrap overflow-hidden text-ellipsis">{{ cleanName }}</span>
+        <div class="flex items-center gap-2">
           <Button
             variant="ghost"
             size="icon-xs"
-            class="card-move-btn"
+            class="card-move-btn w-5 h-5 p-0 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-secondary)] cursor-pointer [font-weight:var(--weight-title)] text-[length:var(--text-2xs)] leading-none [font-family:var(--font-code)] disabled:opacity-35 disabled:cursor-default"
             :disabled="!canMoveUp"
             aria-label="Move step up"
             @click.stop="emit('move-up', step.id)"
@@ -100,7 +100,7 @@ function handleKeydown(event: KeyboardEvent) {
           <Button
             variant="ghost"
             size="icon-xs"
-            class="card-move-btn"
+            class="card-move-btn w-5 h-5 p-0 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-secondary)] cursor-pointer [font-weight:var(--weight-title)] text-[length:var(--text-2xs)] leading-none [font-family:var(--font-code)] disabled:opacity-35 disabled:cursor-default"
             :disabled="!canMoveDown"
             aria-label="Move step down"
             @click.stop="emit('move-down', step.id)"
@@ -109,14 +109,14 @@ function handleKeydown(event: KeyboardEvent) {
           </Button>
           <span
             v-if="step.requiresSequentialThinking"
-            class="thinking-icon"
+            class="shrink-0 text-[length:var(--text-body-sm)] text-[var(--color-node-thinking)]"
             title="Requires sequential thinking"
           ><Brain class="size-3.5" :stroke-width="1.5" /></span>
           <Button
             v-if="canRemove"
             variant="ghost"
             size="icon-xs"
-            class="card-remove-btn"
+            class="card-remove-btn w-5 h-5 p-0 border-none rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-secondary)] cursor-pointer opacity-0 transition-[opacity,background,color] duration-[var(--transition-fast)]"
             :aria-label="`Remove ${step.name}`"
             @click.stop="confirmingRemove = true"
           >
@@ -124,36 +124,23 @@ function handleKeydown(event: KeyboardEvent) {
           </Button>
         </div>
       </div>
-      <p v-if="step.description" class="card-desc" :class="{ 'card-desc--expanded': expanded }">{{ step.description }}</p>
+      <p v-if="step.description" class="card-desc m-0 [font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.5] [font-family:var(--font-body)] text-[var(--color-text-secondary)] [-webkit-box-orient:vertical] overflow-hidden" :class="{ 'card-desc--expanded': expanded }">{{ step.description }}</p>
     </template>
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules — All rules use design tokens (--space-*, --radius-*, --color-*, --transition-fast, --weight-*, --text-*) and font: shorthand combining 4 properties. State modifiers (--selected, --expanded, --danger) are JS-toggled via :class bindings; pseudo-state hovers and :focus-within parent selectors cannot be expressed as plain Tailwind utilities. -->
+<!-- audit-ok: dynamic-binding (hover/focus state color-mix, parent selector visibility) -->
 <style scoped>
-.step-card {
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-subtle);
-  border-left: 4px solid transparent;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
 .step-card:hover {
   background: var(--color-bg-surface);
   box-shadow: var(--shadow-8);
 }
+
 .step-card:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--color-node-workflow) 50%, transparent);
   outline-offset: 2px;
 }
+
 .step-card--selected {
   background: var(--color-bg-surface);
   border-left-color: var(--color-node-workflow);
@@ -161,141 +148,36 @@ function handleKeydown(event: KeyboardEvent) {
   border-color: color-mix(in srgb, var(--color-node-workflow) 36%, var(--color-border-subtle));
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 28%, transparent), 0 0 18px color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
 }
-.card-disclosure {
-  width: 18px;
-  height: 18px;
-  padding: 0;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: color var(--transition-fast), background var(--transition-fast);
-}
+
 .card-disclosure:hover {
   background: color-mix(in srgb, var(--color-node-workflow) 12%, transparent);
   color: var(--color-node-workflow);
 }
-.card-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-.card-move-btn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  font: var(--weight-title) var(--text-2xs)/1 var(--font-code);
-}
+
 .card-move-btn:hover:not(:disabled) {
   background: var(--color-bg-surface);
   color: var(--color-node-workflow);
 }
-.card-move-btn:disabled {
-  opacity: 0.35;
-  cursor: default;
-}
-.card-name {
-  min-width: 0;
-  font: var(--weight-title) var(--text-caption)/1.4 var(--font-body);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.thinking-icon {
-  flex-shrink: 0;
-  font-size: var(--text-body-sm);
-  color: var(--color-node-thinking);
-}
+
 .card-desc {
-  margin: 0;
-  font: var(--weight-body) var(--text-caption)/1.5 var(--font-body);
-  color: var(--color-text-secondary);
   display: -webkit-box;
   -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
+
 .card-desc--expanded {
   display: block;
   -webkit-line-clamp: unset;
   overflow: visible;
   white-space: pre-wrap;
 }
-.card-remove-btn {
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
-}
+
 .step-card:hover .card-remove-btn,
 .step-card:focus-within .card-remove-btn {
   opacity: 1;
 }
+
 .card-remove-btn:hover {
   background: color-mix(in srgb, var(--color-status-abandoned) 15%, transparent);
-  color: var(--color-status-abandoned);
-}
-.card-confirm-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  font: var(--weight-body) var(--text-caption)/1.4 var(--font-body);
-  color: var(--color-text-secondary);
-}
-.confirm-copy {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-.confirm-label,
-.confirm-warning {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.confirm-warning {
-  color: var(--color-status-abandoned);
-  font-size: var(--text-tiny);
-}
-.card-confirm-btn {
-  min-height: 28px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  cursor: pointer;
-}
-.card-confirm-btn:hover {
-  background: var(--color-bg-surface);
-}
-.card-confirm-btn--danger {
-  border-color: var(--color-status-abandoned);
   color: var(--color-status-abandoned);
 }
 </style>

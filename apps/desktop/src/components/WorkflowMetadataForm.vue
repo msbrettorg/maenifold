@@ -52,25 +52,25 @@ const workflowCategory = computed({
 </script>
 
 <template>
-  <div v-if="workflow" class="workflow-form" role="form" aria-label="Workflow metadata">
-    <div class="form-group">
-      <Label class="field-label">Workflow ID</Label>
-      <code class="field-display">{{ workflow.id }}</code>
+  <div v-if="workflow" class="flex flex-col gap-5" role="form" aria-label="Workflow metadata">
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]">Workflow ID</Label>
+      <code class="[font-family:var(--font-code)] text-[length:var(--text-caption)] text-[var(--color-text-secondary)] py-2 leading-[1.5]">{{ workflow.id }}</code>
     </div>
 
-    <div class="form-group">
-      <Label class="field-label" for="workflow-name">Name</Label>
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]" for="workflow-name">Name</Label>
       <Input id="workflow-name" v-model="workflowName" type="text" />
     </div>
 
-    <div class="form-row">
-      <div class="form-group">
-        <Label class="field-label" for="workflow-emoji">Emoji</Label>
+    <div class="grid grid-cols-2 gap-3">
+      <div class="flex flex-col gap-1">
+        <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]" for="workflow-emoji">Emoji</Label>
         <Input id="workflow-emoji" v-model="workflowEmoji" type="text" />
       </div>
 
-      <div class="form-group">
-        <Label class="field-label">Category</Label>
+      <div class="flex flex-col gap-1">
+        <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]">Category</Label>
         <Select :model-value="workflowCategory" @update:model-value="(v) => store.updateWorkflowCategory(v ? (String(v) as WorkflowCategory) : null)">
           <SelectTrigger>
             <SelectValue placeholder="Auto" />
@@ -84,8 +84,8 @@ const workflowCategory = computed({
       </div>
     </div>
 
-    <div class="form-group">
-      <Label class="field-label" for="workflow-description">Description</Label>
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]" for="workflow-description">Description</Label>
       <Textarea
         id="workflow-description"
         v-model="workflowDescription"
@@ -93,8 +93,8 @@ const workflowCategory = computed({
       />
     </div>
 
-    <div class="form-group">
-      <Label class="field-label" for="workflow-triggers">Triggers</Label>
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]" for="workflow-triggers">Triggers</Label>
       <Input
         id="workflow-triggers"
         v-model="workflowTriggers"
@@ -103,50 +103,44 @@ const workflowCategory = computed({
       />
     </div>
 
-    <div class="form-group">
-      <Label class="field-label">Sequential thinking</Label>
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]">Sequential thinking</Label>
+      <!-- audit-ok: dynamic-binding — color-mix() border + box-shadow only when toggle is enabled -->
       <Button
         variant="ghost"
-        class="toggle-card"
-        :class="{ 'toggle-card--enabled': workflow.sequentialThinkingEnabled }"
+        class="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-elevated)] rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] cursor-pointer text-left"
+        :style="workflow.sequentialThinkingEnabled ? { borderColor: 'color-mix(in srgb, var(--color-node-workflow) 30%, var(--color-border-subtle))', boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent)' } : {}"
         type="button"
         @click="store.updateWorkflowSequentialThinkingEnabled(!workflow.sequentialThinkingEnabled)"
       >
-        <span class="toggle-copy">Enable workflow-level sequential thinking</span>
-        <span class="toggle-indicator" :class="{ 'toggle-indicator--enabled': workflow.sequentialThinkingEnabled }">
-          <span class="indicator-dot" />
+        <span class="[font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.5] [font-family:var(--font-body)]">Enable workflow-level sequential thinking</span>
+        <span
+          class="w-9 h-5 rounded-[4px] flex items-center p-0.5 transition-[background] duration-[var(--transition-fast)]"
+          :class="workflow.sequentialThinkingEnabled ? 'bg-[var(--color-node-workflow)] justify-end' : 'bg-[var(--color-border-subtle)]'"
+        >
+          <span class="w-4 h-4 rounded-[var(--radius)] bg-[var(--color-text-primary)]" />
         </span>
       </Button>
     </div>
 
-    <div class="form-group">
-      <Label class="field-label">Multi-agent</Label>
+    <div class="flex flex-col gap-1">
+      <Label class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-code)] text-[var(--color-text-secondary)] tracking-[0.05em]">Multi-agent</Label>
+      <!-- audit-ok: dynamic-binding — color-mix() border + box-shadow only when toggle is enabled -->
       <Button
         variant="ghost"
-        class="toggle-card"
-        :class="{ 'toggle-card--enabled': workflow.multiAgent }"
+        class="flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-bg-elevated)] rounded-[var(--radius-md)] border border-[var(--color-border-subtle)] text-[var(--color-text-primary)] cursor-pointer text-left"
+        :style="workflow.multiAgent ? { borderColor: 'color-mix(in srgb, var(--color-node-workflow) 30%, var(--color-border-subtle))', boxShadow: '0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent)' } : {}"
         type="button"
         @click="store.updateWorkflowMultiAgent(!workflow.multiAgent)"
       >
-        <span class="toggle-copy">Mark this workflow as multi-agent</span>
-        <span class="toggle-indicator" :class="{ 'toggle-indicator--enabled': workflow.multiAgent }">
-          <span class="indicator-dot" />
+        <span class="[font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.5] [font-family:var(--font-body)]">Mark this workflow as multi-agent</span>
+        <span
+          class="w-9 h-5 rounded-[4px] flex items-center p-0.5 transition-[background] duration-[var(--transition-fast)]"
+          :class="workflow.multiAgent ? 'bg-[var(--color-node-workflow)] justify-end' : 'bg-[var(--color-border-subtle)]'"
+        >
+          <span class="w-4 h-4 rounded-[var(--radius)] bg-[var(--color-text-primary)]" />
         </span>
       </Button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.workflow-form { display: flex; flex-direction: column; gap: var(--space-5); }
-.form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); }
-.form-group { display: flex; flex-direction: column; gap: var(--space-1); }
-.field-label { font: var(--weight-display) var(--text-tiny)/1.4 var(--font-code); color: var(--color-text-secondary); letter-spacing: 0.05em; }
-.field-display { font-family: var(--font-code); font-size: var(--text-caption); color: var(--color-text-secondary); padding: var(--space-2) 0; line-height: 1.5; }
-.toggle-card { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-4); background: var(--color-bg-elevated); border-radius: var(--radius-md); border: 1px solid var(--color-border-subtle); color: var(--color-text-primary); cursor: pointer; text-align: left; }
-.toggle-card--enabled { border-color: color-mix(in srgb, var(--color-node-workflow) 30%, var(--color-border-subtle)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-node-workflow) 16%, transparent); }
-.toggle-copy { font: var(--weight-body) var(--text-caption)/1.5 var(--font-body); }
-.toggle-indicator { width: 36px; height: 20px; border-radius: 4px; background: var(--color-border-subtle); display: flex; align-items: center; padding: 2px; transition: background var(--transition-fast); }
-.toggle-indicator--enabled { background: var(--color-node-workflow); justify-content: flex-end; }
-.indicator-dot { width: 16px; height: 16px; border-radius: var(--radius); background: var(--color-text-primary); }
-</style>

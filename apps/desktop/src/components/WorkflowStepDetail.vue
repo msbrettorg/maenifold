@@ -59,43 +59,43 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
 
 <template>
   <li
-    class="step-row"
+    class="step-row flex flex-col rounded overflow-hidden"
     role="article"
     :aria-labelledby="stepTitleId"
     :class="{ 'has-response': !!step.response, 'has-submachine': step.requiresSequentialThinking }"
   >
     <!-- Main step row -->
     <div
-      class="step-main"
+      class="step-main flex items-center gap-1.5 h-7 px-1 rounded"
       :class="{ clickable: !!step.response }"
       @click="step.response ? emit('toggle') : undefined"
     >
-      <span class="step-num">{{ String(step.stepNumber).padStart(2, '0') }}</span>
-      <span :class="['step-icon', stepStatusClass(step.status)]">
+      <span class="step-num [font-family:var(--font-code)] text-[length:var(--text-tiny)] min-w-6 text-right">{{ String(step.stepNumber).padStart(2, '0') }}</span>
+      <span :class="['step-icon text-[length:var(--text-tiny)] shrink-0', stepStatusClass(step.status)]">
         {{ stepStatusIcon(step.status) }}
       </span>
-      <span :id="stepTitleId" class="step-name">{{ step.name }}</span>
-      <span v-if="step.requiresSequentialThinking" class="submachine-badge" title="Sequential thinking"><Brain class="inline size-3.5" :stroke-width="1.5" /></span>
-      <span v-if="step.respondedAt" class="step-time">{{ relativeTime(step.respondedAt) }}</span>
-      <span v-if="step.response" class="expand-chevron">{{ expanded ? '▲' : '▼' }}</span>
+      <span :id="stepTitleId" class="step-name flex-1 whitespace-nowrap overflow-hidden text-ellipsis text-[length:var(--text-caption)]">{{ step.name }}</span>
+      <span v-if="step.requiresSequentialThinking" class="submachine-badge text-[length:var(--text-tiny)] shrink-0" title="Sequential thinking"><Brain class="inline size-3.5" :stroke-width="1.5" /></span>
+      <span v-if="step.respondedAt" class="step-time text-[length:var(--text-tiny)] shrink-0 whitespace-nowrap">{{ relativeTime(step.respondedAt) }}</span>
+      <span v-if="step.response" class="expand-chevron text-[length:var(--text-tiny)] shrink-0 whitespace-nowrap">{{ expanded ? '▲' : '▼' }}</span>
     </div>
 
     <!-- Submachine connector -->
-    <div v-if="step.requiresSequentialThinking && step.submachineSessionId" class="submachine-connector">
-      <span class="connector-line">│</span>
-      <span class="connector-label">→ thinking: {{ step.submachineSessionId }}</span>
+    <div v-if="step.requiresSequentialThinking && step.submachineSessionId" class="submachine-connector flex items-center gap-1 pl-9 mb-0.5">
+      <span class="connector-line text-[var(--color-status-active)] text-[length:var(--text-tiny)] leading-none">│</span>
+      <span class="connector-label [font-family:var(--font-code)] text-[length:var(--text-tiny)] whitespace-nowrap overflow-hidden text-ellipsis">→ thinking: {{ step.submachineSessionId }}</span>
     </div>
 
     <!-- Expanded response -->
     <div
       v-if="expanded && step.response"
-      class="step-response"
+      class="step-response py-2 px-3 mt-1 mb-1.5 ml-9 rounded text-[length:var(--text-caption)] leading-[1.55] overflow-x-auto"
       v-html="renderMarkdownWithDOMPurify(step.response)"
     />
   </li>
 </template>
 
-<!-- audit-ok: max-style-rules — Custom-property declarations (--workflow-step-*) defined on .step-row use color-mix() and design tokens; .step-response uses :deep() to style sanitized v-html markdown (p, code, table, ul, .wiki-pill). Status modifier classes (step-active/done/pending) are JS-emitted from stepStatusClass(); cannot be replaced with utility classes without losing the dynamic mapping. -->
+<!-- audit-ok: max-style-rules — :deep() rules for sanitized v-html markdown content cannot be expressed as Tailwind utilities -->
 <style scoped>
 .step-row {
   --workflow-step-primary: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
@@ -104,100 +104,62 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   --workflow-step-link: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-active));
   --workflow-step-response: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-node-workflow));
   --workflow-step-border: color-mix(in srgb, var(--color-border-subtle) 32%, var(--color-bg-surface));
-  display: flex;
-  flex-direction: column;
-  border-radius: 4px;
-  overflow: hidden;
 }
-.step-main {
-  display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  height: 28px;
-  padding: 0 0.25rem;
-  border-radius: 4px;
-}
+
 .step-main.clickable {
   cursor: pointer;
 }
+
 .step-main.clickable:hover {
   background: color-mix(in srgb, var(--color-bg-surface) 80%, var(--color-bg-app));
 }
+
 .step-num {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
   color: var(--workflow-step-subtle);
-  min-width: 1.5rem;
-  text-align: right;
 }
-.step-icon,
-.submachine-badge {
-  font-size: var(--text-tiny);
-  flex-shrink: 0;
-}
+
 .step-done {
   color: var(--color-status-completed);
 }
+
 .step-active {
   color: var(--color-status-active);
 }
+
 .step-pending {
   color: var(--workflow-step-subtle);
 }
+
 .step-name {
-  flex: 1;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  font-size: var(--text-caption);
   color: var(--workflow-step-primary);
 }
+
 .step-time,
 .expand-chevron {
-  font-size: var(--text-tiny);
   color: var(--workflow-step-muted);
-  flex-shrink: 0;
-  white-space: nowrap;
 }
-.submachine-connector {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  padding-left: 2.25rem;
-  margin-bottom: 0.125rem;
-}
-.connector-line {
-  color: var(--color-status-active);
-  font-size: var(--text-tiny);
-  line-height: 1;
-}
+
 .connector-label {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
   color: color-mix(in srgb, var(--workflow-step-link) 56%, var(--workflow-step-muted));
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+
 .step-response {
-  padding: 0.5rem 0.75rem;
-  margin: 0.25rem 0 0.375rem 2.25rem;
   background: color-mix(in srgb, var(--color-bg-surface) 94%, var(--color-bg-app));
-  border-radius: 4px;
-  font-size: var(--text-caption);
   color: var(--workflow-step-response);
-  line-height: 1.55;
-  overflow-x: auto;
 }
+
 .step-response :deep(p) {
   margin: 0.25rem 0;
 }
+
 .step-response :deep(p:first-child) {
   margin-top: 0;
 }
+
 .step-response :deep(p:last-child) {
   margin-bottom: 0;
 }
+
 .step-response :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
@@ -206,16 +168,19 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   border-radius: 4px;
   color: var(--workflow-step-link);
 }
+
 .step-response :deep(pre) {
   background: color-mix(in srgb, var(--color-bg-surface) 98%, var(--color-bg-app));
   border-radius: 4px;
   padding: 0.5rem;
   overflow-x: auto;
 }
+
 .step-response :deep(pre code) {
   background: none;
   padding: 0;
 }
+
 .step-response :deep(table) {
   border-collapse: collapse;
   width: 100%;
@@ -224,27 +189,33 @@ function renderMarkdownWithDOMPurify(text: string | undefined): string {
   overflow-x: auto;
   display: block;
 }
+
 .step-response :deep(th),
 .step-response :deep(td) {
   border: 1px solid var(--workflow-step-border);
   padding: 0.5rem 0.75rem;
   text-align: left;
 }
+
 .step-response :deep(th) {
   background: var(--color-bg-surface);
   font-weight: var(--weight-title);
 }
+
 .step-response :deep(tr:nth-child(even)) {
   background: var(--color-bg-elevated);
 }
+
 .step-response :deep(ul),
 .step-response :deep(ol) {
   margin: 0.25rem 0;
   padding-left: 1.25rem;
 }
+
 .step-response :deep(li) {
   margin: 0.125rem 0;
 }
+
 .step-response :deep(.wiki-pill) {
   display: inline-block;
   background: color-mix(in srgb, var(--color-brand) 18%, var(--color-bg-surface));

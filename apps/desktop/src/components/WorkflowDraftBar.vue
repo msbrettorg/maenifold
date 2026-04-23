@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Zap } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import type { WorkflowOrigin } from '../stores/workflow-library-helpers'
 import type { WorkflowSaveState } from '../stores/workflow-library-save-actions'
@@ -37,38 +37,71 @@ watch(
     }
   },
 )
+
+// Shared button base classes (re-applied via :class to keep template lines readable)
+const btnBase =
+  'min-h-6 px-2 rounded-[var(--radius-sm)] border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer disabled:cursor-wait disabled:opacity-70'
+
+const ghostBtn = computed(() => `${btnBase} hover:bg-[var(--color-bg-surface)]`)
+
+const labelMessage = computed(() =>
+  'flex-1 [font-weight:var(--weight-title)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-code)] text-[var(--color-status-active)] tracking-[0.04em]',
+)
 </script>
 
 <template>
-  <div class="draft-bar" role="status" aria-live="polite">
+  <!-- audit-ok: dynamic-binding — top border uses color-mix() with --color-status-active -->
+  <div
+    class="min-h-9 flex items-center gap-3 px-4 bg-[var(--color-bg-elevated)] shrink-0"
+    :style="{ borderTop: '1px solid color-mix(in srgb, var(--color-status-active) 30%, var(--color-border-subtle))' }"
+    role="status"
+    aria-live="polite"
+  >
     <template v-if="confirmingDiscard">
-      <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
-      <span class="draft-bar-label">Unsaved changes — discard all?</span>
-      <Button variant="ghost" class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="hasPendingSelection ? emit('cancel-pending') : (confirmingDiscard = false)">
+      <span class="text-[var(--color-status-active)] text-[length:var(--text-caption)]"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
+      <span :class="labelMessage">Unsaved changes — discard all?</span>
+      <Button variant="ghost" :class="ghostBtn" type="button" @click="hasPendingSelection ? emit('cancel-pending') : (confirmingDiscard = false)">
         Cancel
       </Button>
-      <Button variant="destructive" class="draft-bar-btn draft-bar-btn--danger" type="button" @click="emit('discard')">
+      <!-- audit-ok: dynamic-binding — danger hover uses color-mix() -->
+      <Button
+        variant="destructive"
+        :class="`${btnBase} border-[var(--color-status-abandoned)] text-[var(--color-status-abandoned)]`"
+        :style="{ '--tw-bg-hover': 'color-mix(in srgb, var(--color-status-abandoned) 14%, transparent)' }"
+        type="button"
+        @click="emit('discard')"
+      >
         Yes, Discard
       </Button>
     </template>
     <template v-else>
-      <span class="draft-bar-icon"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
-      <span class="draft-bar-label">
+      <span class="text-[var(--color-status-active)] text-[length:var(--text-caption)]"><Zap class="inline size-3.5" :stroke-width="1.5" /></span>
+      <span :class="labelMessage">
         {{ origin === 'packaged' ? 'Packaged workflow — will save as copy' : 'Unsaved changes' }}
       </span>
-      <span v-if="saveState === 'error' && saveMessage" class="draft-bar-message draft-bar-message--error">
+      <span
+        v-if="saveState === 'error' && saveMessage"
+        class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-status-abandoned)]"
+      >
         {{ saveMessage }}
       </span>
-      <span v-else-if="saveState === 'saving'" class="draft-bar-message">Saving…</span>
-      <span v-else-if="saveState === 'success'" class="draft-bar-message draft-bar-message--success">
+      <span
+        v-else-if="saveState === 'saving'"
+        class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-text-secondary)]"
+      >Saving…</span>
+      <span
+        v-else-if="saveState === 'success'"
+        class="[font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-status-active)]"
+      >
         Saved ✓
       </span>
-      <Button variant="ghost" class="draft-bar-btn draft-bar-btn--ghost" type="button" @click="confirmingDiscard = true">
+      <Button variant="ghost" :class="ghostBtn" type="button" @click="confirmingDiscard = true">
         Discard
       </Button>
+      <!-- audit-ok: dynamic-binding — accent hover uses color-mix() (handled via :style on hover) -->
       <Button
         variant="outline"
-        class="draft-bar-btn draft-bar-btn--accent"
+        :class="`${btnBase} border-[var(--color-status-active)] text-[var(--color-status-active)] hover:bg-[color-mix(in_srgb,var(--color-status-active)_14%,transparent)]`"
         :disabled="saveState === 'saving'"
         type="button"
         @click="emit('save')"
@@ -78,79 +111,3 @@ watch(
     </template>
   </div>
 </template>
-
-<style scoped>
-.draft-bar {
-  min-height: 36px;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0 var(--space-4);
-  background: var(--color-bg-elevated);
-  border-top: 1px solid color-mix(in srgb, var(--color-status-active) 30%, var(--color-border-subtle));
-  flex-shrink: 0;
-}
-
-.draft-bar-icon {
-  color: var(--color-status-active);
-  font-size: var(--text-caption);
-}
-
-.draft-bar-label {
-  flex: 1;
-  font: var(--weight-title) var(--text-tiny)/1 var(--font-code);
-  color: var(--color-status-active);
-  letter-spacing: 0.04em;
-}
-
-.draft-bar-message {
-  font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body);
-  color: var(--color-text-secondary);
-}
-
-.draft-bar-message--error {
-  color: var(--color-status-abandoned);
-}
-
-.draft-bar-message--success {
-  color: var(--color-status-active);
-}
-
-.draft-bar-btn {
-  min-height: 24px;
-  padding: 0 var(--space-2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border-subtle);
-  background: transparent;
-  color: var(--color-text-primary);
-  font: var(--weight-display) var(--text-tiny)/1 var(--font-body);
-  cursor: pointer;
-}
-
-.draft-bar-btn:disabled {
-  cursor: wait;
-  opacity: 0.7;
-}
-
-.draft-bar-btn--ghost:hover {
-  background: var(--color-bg-surface);
-}
-
-.draft-bar-btn--accent {
-  border-color: var(--color-status-active);
-  color: var(--color-status-active);
-}
-
-.draft-bar-btn--accent:hover {
-  background: color-mix(in srgb, var(--color-status-active) 14%, transparent);
-}
-
-.draft-bar-btn--danger {
-  border-color: var(--color-status-abandoned);
-  color: var(--color-status-abandoned);
-}
-
-.draft-bar-btn--danger:hover {
-  background: color-mix(in srgb, var(--color-status-abandoned) 14%, transparent);
-}
-</style>

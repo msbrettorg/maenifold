@@ -265,7 +265,7 @@ code {
 .evidence-meta {
   padding: 1rem 1.1rem;
   border: 1px solid var(--border-default);
-  border-radius: 1rem;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--bg-main) 82%, transparent);
 }
 
@@ -293,7 +293,7 @@ code {
   top: 2rem;
   padding: 1rem 1.1rem;
   border: 1px solid var(--border-default);
-  border-radius: 1rem;
+  border-radius: var(--radius-xl);
   background: color-mix(in srgb, var(--bg-main) 84%, transparent);
 }
 

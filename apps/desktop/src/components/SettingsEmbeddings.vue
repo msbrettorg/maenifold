@@ -606,7 +606,7 @@ onUnmounted(() => {
   padding: 2px;
   color: var(--color-text-tertiary);
   cursor: help;
-  border-radius: 9999px;
+  border-radius: 50%;
 }
 
 .info-trigger:hover {

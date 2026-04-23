@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="pipeline-view">
+  <div class="flex h-full flex-col overflow-hidden bg-[var(--background)]">
     <ProvenanceBreadcrumbs
       current-kind="pipeline"
       :current-id="currentPipelineLineageId"
@@ -150,22 +150,26 @@ onBeforeUnmount(() => {
       :links="provenanceLinks"
       @navigate="navigateTo"
     />
-    <div v-if="successMessage" class="success-banner" role="status">
-      <span class="success-icon">✓</span>
-      <span class="success-text">{{ successMessage }}</span>
-      <Button class="banner-dismiss" type="button" variant="ghost" size="icon" aria-label="Dismiss success" @click="store.clearSuccess()">
+    <div
+      v-if="successMessage"
+      class="flex shrink-0 items-center gap-2 px-4 py-3 text-[var(--foreground)] bg-[color-mix(in_srgb,var(--background)_84%,var(--sage)_16%)]"
+      role="status"
+    >
+      <span class="shrink-0 text-[var(--color-status-completed)]">✓</span>
+      <span class="min-w-0 flex-1">{{ successMessage }}</span>
+      <Button type="button" variant="ghost" size="icon" aria-label="Dismiss success" @click="store.clearSuccess()">
         <X class="size-4" />
       </Button>
     </div>
     <div
-      class="pipeline-grid"
+      class="pipeline-grid relative min-h-0 flex-1 overflow-hidden bg-[var(--surface)]"
       :class="{
         'grid-empty': showTemplateGallery,
         'runner-expanded': runnerExpanded,
         'mobile-sidebar-open': mobileSidebarOpen,
       }"
     >
-      <section v-if="!isNarrowViewport" class="rail-panel">
+      <section v-if="!isNarrowViewport" class="rail-panel relative z-[12] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
         <PipelineIconRail
           ref="iconRailRef"
           :active-pipeline-label="activePipelineLabel"
@@ -175,23 +179,17 @@ onBeforeUnmount(() => {
           @new-pipeline="handleNewPipeline"
         />
       </section>
-      <section v-if="isNarrowViewport" class="sidebar-panel">
+      <section v-if="isNarrowViewport" class="sidebar-panel min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
         <PipelineSidebar />
       </section>
-      <section class="composer-panel">
-        <div v-if="isNarrowViewport" class="mobile-panel-controls">
-          <Button type="button" class="mobile-panel-toggle" variant="outline" size="sm" @click="toggleMobileSidebar">
+      <section class="composer-panel relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+        <div v-if="isNarrowViewport" class="pointer-events-none absolute left-3 right-3 top-3 z-[8] flex gap-2">
+          <Button type="button" variant="outline" size="sm" class="pointer-events-auto min-h-11 min-w-11 cursor-pointer rounded-[var(--radius-4)] bg-[var(--surface-container)] px-3.5 py-2 text-[var(--text)] text-[length:var(--text-sm)] shadow-[var(--shadow-16)] disabled:cursor-not-allowed disabled:opacity-50" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
           </Button>
         </div>
-        <div v-if="showTemplateGallery" class="pipeline-entry-surface">
-          <Button
-            v-if="showBrowseExistingEntry"
-            type="button"
-            variant="ghost"
-            class="browse-existing-btn"
-            @click="handleTogglePipelineFlyout"
-          >
+        <div v-if="showTemplateGallery" class="flex h-full min-h-0 flex-col gap-3 px-4 pb-3 pt-4">
+          <Button v-if="showBrowseExistingEntry" type="button" variant="ghost" class="h-8 self-start rounded-[var(--radius-4)]" @click="handleTogglePipelineFlyout">
             Browse existing pipelines
           </Button>
           <TemplateGallery />
@@ -214,47 +212,27 @@ onBeforeUnmount(() => {
             </template>
           </PipelineComposer>
         </template>
-          <Transition name="pipeline-flyout">
-            <PipelineFlyout
-              v-if="isPipelineFlyoutOpen"
-              :connection-error="connectionError"
-              :show-error-state="showErrorState"
-              :show-loading-state="showLoadingState"
-              @close="handlePipelineSelected"
-              @new-pipeline="handleNewPipeline"
-              @retry="handleRetryLoad"
-            />
-          </Transition>
-        </section>
-      <section v-if="!showTemplateGallery" class="runner-panel">
-        <div class="runner-panel-header">
-          <Button
-            v-if="hasLoadedPipeline && runnerExpanded"
-            type="button"
-            :disabled="graftSubmitting"
-            @click="graftDialogOpen = true"
-          >
+        <Transition name="pipeline-flyout">
+          <PipelineFlyout
+            v-if="isPipelineFlyoutOpen"
+            :connection-error="connectionError"
+            :show-error-state="showErrorState"
+            :show-loading-state="showLoadingState"
+            @close="handlePipelineSelected"
+            @new-pipeline="handleNewPipeline"
+            @retry="handleRetryLoad"
+          />
+        </Transition>
+      </section>
+      <section v-if="!showTemplateGallery" class="runner-panel relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+        <div class="absolute right-3 top-3 z-[5] flex items-center gap-2">
+          <Button v-if="hasLoadedPipeline && runnerExpanded" type="button" :disabled="graftSubmitting" @click="graftDialogOpen = true">
             Graft nodes
           </Button>
-          <Button
-            v-if="hasLoadedPipeline && runnerExpanded"
-            type="button"
-            variant="ghost"
-            :disabled="joinSubmitting"
-            @click="joinDialogOpen = true"
-          >
+          <Button v-if="hasLoadedPipeline && runnerExpanded" type="button" variant="ghost" :disabled="joinSubmitting" @click="joinDialogOpen = true">
             Join pipeline
           </Button>
-          <Button
-            class="runner-expand-btn"
-            type="button"
-            variant="ghost"
-            aria-label="Toggle runner"
-            :aria-expanded="runnerExpanded"
-            :title="runnerExpanded ? 'Hide runner' : 'Show runner'"
-            @click="runnerExpanded = !runnerExpanded"
-            @keydown="handleRunnerToggleKeydown"
-          >
+          <Button type="button" variant="ghost" aria-label="Toggle runner" :aria-expanded="runnerExpanded" :title="runnerExpanded ? 'Hide runner' : 'Show runner'" class="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-[var(--radius-4)] border-0 bg-[var(--surface-high)] px-2.5 text-[var(--text)] text-[length:var(--text-xs)] hover:bg-[var(--surface-highest)]" @click="runnerExpanded = !runnerExpanded" @keydown="handleRunnerToggleKeydown">
             <span>Runner</span>
             <ChevronDown v-if="runnerExpanded" aria-hidden="true" class="size-4" />
             <ChevronUp v-else aria-hidden="true" class="size-4" />
@@ -262,7 +240,7 @@ onBeforeUnmount(() => {
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />
       </section>
-      <Button v-if="isNarrowViewport && mobileSidebarOpen" variant="ghost" type="button" class="mobile-overlay" aria-label="Close sidebar" @click="mobileSidebarOpen = false" />
+      <Button v-if="isNarrowViewport && mobileSidebarOpen" variant="ghost" type="button" aria-label="Close sidebar" class="absolute inset-0 z-[18] cursor-pointer border-0 bg-[color-mix(in_srgb,var(--background)_40%,transparent)]" @click="mobileSidebarOpen = false" />
     </div>
     <GraftNodesDialog
       v-if="graftDialogOpen && currentView"
@@ -289,4 +267,29 @@ onBeforeUnmount(() => {
   </div>
 </template>
 
-<style scoped src="./PipelineView.css"></style>
+<style scoped>
+.pipeline-grid {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) auto;
+  grid-template-areas: 'rail composer' 'rail runner';
+  transition: grid-template-rows 0.25s ease;
+}
+.pipeline-grid.grid-empty { grid-template-rows: minmax(0, 1fr); grid-template-areas: 'rail composer'; }
+.pipeline-grid.runner-expanded .runner-panel { max-height: 50vh; }
+.pipeline-grid.grid-empty .runner-panel { display: none; }
+.rail-panel, .sidebar-panel { grid-area: rail; }
+.composer-panel { grid-area: composer; }
+.runner-panel { grid-area: runner; max-height: 36px; transition: max-height 0.25s ease; }
+@media (max-width: 900px) {
+  .pipeline-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'composer' 'runner'; }
+  .pipeline-grid.grid-empty { grid-template-areas: 'composer'; }
+  .sidebar-panel {
+    position: absolute; inset: 0 auto 0 0;
+    width: min(var(--sidebar-width), 88vw);
+    transform: translateX(-100%); transition: transform 0.2s ease;
+    box-shadow: var(--shadow-16); z-index: 20;
+  }
+  .pipeline-grid.mobile-sidebar-open .sidebar-panel { transform: translateX(0); }
+}
+</style>

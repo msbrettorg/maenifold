@@ -7,9 +7,6 @@ use super::super::adapter::{acp_log, build_stdio_adapter, friendly_error_message
 use super::super::worker::{AcpEvent, AcpPromptResult, WorkerMsg, worker_tx};
 use super::cold_start::default_client_capabilities;
 use super::execute_stream::{error_code_from_raw, mock_execute, run_delta_loop};
-// use crate::db::app_session_role::{load_app_session_role_cli_id, save_app_session_role_cli_id};
-// TODO: wire session ID persistence through Jockey DB
-// use crate::types::AppState;
 
 pub async fn execute_runtime(
     runtime_kind: &str,
@@ -65,10 +62,6 @@ pub async fn execute_runtime(
         }),
     );
 
-    // TODO: wire session ID persistence through Jockey DB
-    // let resume_session_id = state.as_ref().and_then(|(s, app_sid)| {
-    //     load_app_session_role_cli_id(s, app_sid, runtime_key, role_name)
-    // });
     let resume_session_id = None;
     let app_session_scope = if app_session_id.trim().is_empty() {
         uuid::Uuid::new_v4().to_string()
@@ -115,19 +108,6 @@ pub async fn execute_runtime(
 
     match result {
         Ok((_output, session_id)) => {
-            // TODO: wire session ID persistence through Jockey DB
-            // if let Some((s, app_sid)) = state {
-            //     if !session_id.is_empty() {
-            //         let _ = save_app_session_role_cli_id(
-            //             s,
-            //             app_sid,
-            //             runtime_key,
-            //             role_name,
-            //             &session_id,
-            //         );
-            //     }
-            // }
-
             let output = if full_output.is_empty() {
                 if prompt.starts_with('/') {
                     format!(

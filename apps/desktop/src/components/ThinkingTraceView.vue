@@ -132,7 +132,7 @@ function toggleAll(): void {
 </script>
 
 <template>
-  <section class="trace-panel" aria-label="Thinking trace">
+  <section class="trace-panel flex flex-col gap-[var(--space-3)]" aria-label="Thinking trace">
     <ProvenanceBreadcrumbs
       current-kind="thinking"
       :current-id="currentThinkingSessionId"
@@ -140,33 +140,44 @@ function toggleAll(): void {
       :links="provenanceLinks"
       @navigate="navigateTo"
     />
-    <div class="trace-header">
-      <h3>Thinking trace</h3>
-      <span class="trace-count">{{ props.trace.length }} thoughts</span>
+    <div class="trace-header flex items-start justify-between gap-[var(--space-3)]">
+      <h3 class="m-0 text-[length:var(--text-body-sm)] text-[var(--foreground)]">Thinking trace</h3>
+      <span class="trace-count text-[var(--muted-foreground)] text-[length:var(--text-tiny)]">{{ props.trace.length }} thoughts</span>
       <Button variant="ghost" size="sm" class="trace-toggle" @click="toggleAll">
         {{ allExpanded ? 'Collapse all' : 'Expand all' }}
       </Button>
     </div>
 
-    <Accordion v-model="openThoughtIds" type="multiple" class="trace-list" as="ol">
+    <Accordion
+      v-model="openThoughtIds"
+      type="multiple"
+      class="trace-list list-none m-0 p-0 flex flex-col gap-[var(--space-2)]"
+      as="ol"
+    >
       <AccordionItem
         v-for="(thought, index) in props.trace"
         :key="`${thought.thought_number}-${index}`"
         :value="thoughtKey(thought, index)"
-        class="trace-card"
+        class="trace-card border border-[var(--border)] rounded-[var(--radius-md)] bg-[var(--muted)] overflow-hidden"
         as="li"
       >
-        <AccordionTrigger class="trace-summary">
-          <div class="trace-summary__copy">
-            <span class="trace-number">Thought {{ thought.thought_number }}</span>
-            <span v-if="thought.is_revision" class="trace-revision">
+        <AccordionTrigger class="trace-summary list-none cursor-pointer p-[var(--space-3)] flex items-start justify-between gap-[var(--space-3)]">
+          <div class="trace-summary__copy flex flex-col gap-[var(--space-1)] min-w-0">
+            <span class="trace-number font-[var(--font-code)] text-[length:var(--text-caption)] text-[var(--foreground)]">Thought {{ thought.thought_number }}</span>
+            <span
+              v-if="thought.is_revision"
+              class="trace-revision text-[var(--muted-foreground)] text-[length:var(--text-tiny)]"
+            >
               Revises {{ thought.revises_thought ? `#${thought.revises_thought}` : 'an earlier thought' }}
             </span>
           </div>
         </AccordionTrigger>
         <AccordionContent>
-          <div class="trace-body">
-            <div class="trace-content" v-html="renderMarkdown(thought.text)" />
+          <div class="trace-body px-[var(--space-3)] pb-[var(--space-3)] border-t border-[var(--border)]">
+            <div
+              class="trace-content text-[var(--foreground)] text-[length:var(--text-caption)] leading-[1.6] [overflow-wrap:anywhere]"
+              v-html="renderMarkdown(thought.text)"
+            />
           </div>
         </AccordionContent>
       </AccordionItem>
@@ -174,89 +185,18 @@ function toggleAll(): void {
   </section>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: deep-third-party (markdown rendered via v-html requires :deep() to style sanitized descendants) -->
 <style scoped>
-.trace-panel { display: flex; flex-direction: column; gap: var(--space-3); }
-.trace-header, .trace-summary { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); }
-.trace-header h3 { margin: 0; font-size: var(--text-body-sm); color: var(--foreground); }
-.trace-count, .trace-revision { color: var(--muted-foreground); font-size: var(--text-tiny); }
-.trace-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
-.trace-card {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  background: var(--muted);
-  overflow: hidden;
-}
-.trace-summary {
-  list-style: none;
-  cursor: pointer;
-  padding: var(--space-3);
-}
-.trace-summary::-webkit-details-marker { display: none; }
-.trace-summary__copy { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
-.trace-number { font-family: var(--font-code); font-size: var(--text-caption); color: var(--foreground); }
-.trace-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  border: 1px solid transparent;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  white-space: nowrap;
-}
-.trace-status__dot {
-  width: 0.45rem;
-  height: 0.45rem;
-  border-radius: var(--radius);
-  background: currentColor;
-}
-.trace-status--active {
-  color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 12%, var(--background));
-  border-color: color-mix(in srgb, var(--color-status-active) 30%, transparent);
-}
-.trace-status--completed {
-  color: var(--color-status-completed);
-  background: color-mix(in srgb, var(--color-status-completed) 12%, var(--background));
-  border-color: color-mix(in srgb, var(--color-status-completed) 30%, transparent);
-}
-.trace-status--warning {
-  color: var(--color-status-stuck);
-  background: color-mix(in srgb, var(--color-status-stuck) 12%, var(--background));
-  border-color: color-mix(in srgb, var(--color-status-stuck) 30%, transparent);
-}
-.trace-status--revision {
-  color: var(--ring);
-  background: color-mix(in srgb, var(--ring) 12%, var(--background));
-  border-color: color-mix(in srgb, var(--ring) 30%, transparent);
-}
-.trace-status--pending {
-  color: var(--color-status-pending);
-  background: color-mix(in srgb, var(--color-status-pending) 12%, var(--background));
-  border-color: color-mix(in srgb, var(--color-status-pending) 30%, transparent);
-}
-.trace-body {
-  padding: 0 var(--space-3) var(--space-3);
-  border-top: 1px solid var(--border);
-}
-.trace-content {
-  color: var(--foreground);
-  font-size: var(--text-caption);
-  line-height: 1.6;
-  overflow-wrap: anywhere;
-}
-.trace-content * { margin-top: 0; }
-.trace-content p:last-child { margin-bottom: 0; }
-.trace-content code {
+.trace-content :deep(*) { margin-top: 0; }
+.trace-content :deep(p:last-child) { margin-bottom: 0; }
+.trace-content :deep(code) {
   font-family: var(--font-code);
   font-size: var(--text-tiny);
   background: var(--background);
   border-radius: var(--radius-sm);
   padding: 0.1rem 0.3rem;
 }
-.trace-content pre {
+.trace-content :deep(pre) {
   margin: var(--space-2) 0 0;
   padding: var(--space-2);
   background: var(--background);

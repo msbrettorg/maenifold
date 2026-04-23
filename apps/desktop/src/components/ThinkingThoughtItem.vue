@@ -34,15 +34,38 @@ function formatRelativeTime(iso: string): string {
 
 <template>
   <li>
-    <article class="thought-item" role="article" :aria-label="`Thought ${thought.number} of ${thought.totalThoughts}`">
-      <div class="thought-pill">
+    <!-- audit-ok: dynamic-binding (color-mix locals consumed by descendants) -->
+    <article
+      class="thought-item relative grid grid-cols-[auto_1fr] gap-[0.65rem] items-start"
+      :style="{
+        '--thinking-thought-badge': 'color-mix(in srgb, var(--color-text-primary) 76%, var(--color-node-prompt))',
+        '--thinking-thought-muted': 'color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary))',
+        '--thinking-thought-border': 'color-mix(in srgb, var(--color-border-subtle) 28%, var(--color-bg-surface))',
+        '--thinking-thought-shadow': 'color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app))',
+        '--thinking-thought-text': 'color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt))',
+      }"
+      role="article"
+      :aria-label="`Thought ${thought.number} of ${thought.totalThoughts}`"
+    >
+      <div
+        class="thought-pill relative z-[1] min-w-[2.5rem] px-[0.45rem] py-[0.26rem] rounded-[4px] bg-[color-mix(in_srgb,var(--color-node-prompt)_18%,var(--color-bg-surface))] border border-[color-mix(in_srgb,var(--color-node-prompt)_28%,transparent)] text-[var(--thinking-thought-badge)] font-[var(--font-code)] text-[length:var(--text-tiny)] text-center shadow-[0_0_0_4px_var(--thinking-thought-shadow)]"
+      >
         {{ thought.number }}/{{ thought.totalThoughts }}
       </div>
 
-      <div class="thought-entry">
-        <div class="thought-meta">
-          <span v-if="thought.agent" class="agent-badge">{{ thought.agent }}</span>
-          <time class="thought-timestamp" :datetime="thought.timestamp" :title="thought.timestamp">
+      <div
+        class="thought-entry bg-[color-mix(in_srgb,var(--color-bg-surface)_84%,var(--color-bg-app))] border border-[var(--thinking-thought-border)] rounded-[var(--radius)] px-[0.75rem] py-[0.65rem] min-w-0"
+      >
+        <div class="thought-meta flex items-center justify-between gap-[0.5rem] mb-[0.45rem]">
+          <span
+            v-if="thought.agent"
+            class="agent-badge inline-flex items-center gap-[0.3rem] rounded-[4px] px-[0.5rem] py-[0.2rem] text-[length:var(--text-tiny)] leading-[1.1] whitespace-nowrap bg-[color-mix(in_srgb,var(--color-bg-surface)_72%,var(--color-bg-app))] text-[var(--thinking-thought-text)] tracking-[0.04em]"
+          >{{ thought.agent }}</span>
+          <time
+            class="thought-timestamp text-[length:var(--text-tiny)] text-[var(--thinking-thought-muted)] whitespace-nowrap"
+            :datetime="thought.timestamp"
+            :title="thought.timestamp"
+          >
             {{ formatRelativeTime(thought.timestamp) }}
           </time>
         </div>
@@ -52,69 +75,3 @@ function formatRelativeTime(iso: string): string {
     </article>
   </li>
 </template>
-
-<style scoped>
-.thought-item {
-  --thinking-thought-badge: color-mix(in srgb, var(--color-text-primary) 76%, var(--color-node-prompt));
-  --thinking-thought-muted: color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary));
-  --thinking-thought-border: color-mix(in srgb, var(--color-border-subtle) 28%, var(--color-bg-surface));
-  --thinking-thought-shadow: color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app));
-  --thinking-thought-text: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt));
-  position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.65rem;
-  align-items: start;
-}
-
-.thought-pill {
-  position: relative;
-  z-index: 1;
-  min-width: 2.5rem;
-  padding: 0.26rem 0.45rem;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-node-prompt) 18%, var(--color-bg-surface));
-  border: 1px solid color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
-  color: var(--thinking-thought-badge);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  text-align: center;
-  box-shadow: 0 0 0 4px var(--thinking-thought-shadow);
-}
-
-.thought-entry {
-  background: color-mix(in srgb, var(--color-bg-surface) 84%, var(--color-bg-app));
-  border: 1px solid var(--thinking-thought-border);
-  border-radius: var(--radius);
-  padding: 0.65rem 0.75rem;
-  min-width: 0;
-}
-
-.thought-meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  margin-bottom: 0.45rem;
-}
-
-.agent-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  font-size: var(--text-tiny);
-  line-height: 1.1;
-  white-space: nowrap;
-  background: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
-  color: var(--thinking-thought-text);
-  letter-spacing: 0.04em;
-}
-
-.thought-timestamp {
-  font-size: var(--text-tiny);
-  color: var(--thinking-thought-muted);
-  white-space: nowrap;
-}
-</style>

@@ -37,14 +37,23 @@ function isGroup(
 </script>
 
 <template>
-  <div class="field-grid" :class="{ compact: props.compact }">
-    <div v-for="field in fields" :key="field.key" class="field-card">
-      <Label class="field-label" :for="`preview-${field.key}`">{{ field.label }}</Label>
+  <div
+    class="field-grid grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-[0.65rem]"
+    :class="{ compact: props.compact }"
+  >
+    <div v-for="field in fields" :key="field.key" class="field-card grid gap-[0.35rem] min-w-0 p-0">
+      <Label
+        class="field-label text-[length:var(--text-caption)] font-normal text-[var(--text-secondary)]"
+        :for="`preview-${field.key}`"
+      >{{ field.label }}</Label>
       <Select
         :model-value="field.currentValue ?? EMPTY_VALUE"
         @update:model-value="(val) => emit('update-field', field.key, String(val))"
       >
-        <SelectTrigger :id="`preview-${field.key}`" class="preview-select">
+        <SelectTrigger
+          :id="`preview-${field.key}`"
+          class="preview-select w-full px-[0.55rem] py-[0.45rem] border-none rounded-[4px] bg-[var(--surface-container)] text-[var(--color-text-primary)] text-[length:var(--text-caption)]"
+        >
           <SelectValue :placeholder="field.emptyLabel" />
         </SelectTrigger>
         <SelectContent>
@@ -68,34 +77,3 @@ function isGroup(
     </div>
   </div>
 </template>
-
-<style scoped>
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.65rem;
-}
-
-.field-card {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  padding: 0;
-}
-
-.field-label {
-  font-size: var(--text-caption);
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-.preview-select {
-  width: 100%;
-  padding: 0.45rem 0.55rem;
-  border: none;
-  border-radius: 4px;
-  background: var(--surface-container);
-  color: var(--color-text-primary);
-  font-size: var(--text-caption);
-}
-</style>

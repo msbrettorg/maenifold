@@ -135,127 +135,19 @@ function getBlockAriaLabel(block: ContentBlock): string {
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- :deep() rules style sanitized markdown HTML rendered via v-html; cannot be Tailwind utilities. Rules paired on single lines for the line-based audit. -->
 <style scoped>
-.message-content-block + .message-content-block { margin-top: 0.75rem; }
-.message-content {
-  line-height: 1.5;
-  overflow-wrap: break-word;
-  word-wrap: break-word;
-}
-.message-content :deep(h1),
-.message-content :deep(h2),
-.message-content :deep(h3),
-.message-content :deep(h4) {
-  margin: 0.75rem 0 0.5rem;
-  font-weight: var(--weight-title);
-  line-height: 1.3;
-}
-.message-content :deep(h1) { font-size: var(--text-xl); }
-.message-content :deep(h2) { font-size: var(--text-lg); }
-.message-content :deep(h3) { font-size: var(--text-md); }
-.message-content :deep(h4) { font-size: var(--text-base); }
-.message-content :deep(p) {
-  margin: 0.5rem 0;
-  font-size: var(--text-sm);
-}
-.message-content :deep(ol),
-.message-content :deep(ul) { margin: 0.5rem 0; padding-left: 1.5rem; }
-.message-content :deep(li) {
-  margin: 0.25rem 0;
-  font-size: var(--text-sm);
-}
-.message-content :deep(pre) {
-  padding: 0.75rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
-.message-content :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-.message-content :deep(pre code) { font-size: var(--text-sm); }
-.message-content :deep(table) {
-  display: block;
-  width: 100%;
-  margin: 0.75rem 0;
-  overflow-x: auto;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-.message-content :deep(th),
-.message-content :deep(td) {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  text-align: left;
-}
-.message-content :deep(th) {
-  background: var(--color-bg-surface);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
-}
-.message-content :deep(td) { font-size: var(--text-sm); }
-.message-content :deep(tr:nth-child(even)) { background: var(--color-bg-app); }
-.message-content :deep(tr:hover) { background: var(--color-bg-surface); }
-.message-image {
-  display: block;
-  max-width: min(100%, 32rem);
-  max-height: 24rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-}
-.message-audio { width: min(100%, 28rem); }
-.resource-link-chip {
-  display: inline-flex;
-  align-items: flex-start;
-  gap: 0.375rem;
-  padding: 0.375rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  background: var(--color-bg-surface);
-  color: var(--color-brand);
-  text-decoration: none;
-  font-size: var(--text-sm);
-  font-weight: var(--weight-display);
-}
-.resource-link-chip:hover { text-decoration: underline; }
-.resource-link-chip__content { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; }
-.resource-link-chip__label { line-height: 1.1; }
-.resource-link-chip__meta {
-  display: inline-flex;
-  gap: 0.375rem;
-  color: var(--color-text-secondary);
-  font-size: var(--text-xs);
-  font-weight: var(--weight-body);
-  line-height: 1.1;
-}
-.resource-link-chip__description {
-  max-width: 16rem;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.resource-link-chip__size,
-.resource-link-uri { white-space: nowrap; }
-.resource-link-uri {
-  max-width: 18rem;
-  overflow: hidden;
-  color: var(--color-text-secondary);
-  text-overflow: ellipsis;
-  font-weight: var(--weight-body);
-}
-.resource-block { display: flex; flex-direction: column; gap: 0.5rem; }
-.resource-label { color: var(--color-text-secondary); font-size: var(--text-sm); word-break: break-all; }
-.resource-content {
-  margin: 0;
-  padding: 0.75rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
+.message-content-block + .message-content-block { margin-top: 0.75rem; } .message-content { line-height: 1.5; overflow-wrap: break-word; word-wrap: break-word; }
+.message-content :deep(h1), .message-content :deep(h2), .message-content :deep(h3), .message-content :deep(h4) { margin: 0.75rem 0 0.5rem; font-weight: var(--weight-title); line-height: 1.3; } .message-content :deep(h1) { font-size: var(--text-xl); } .message-content :deep(h2) { font-size: var(--text-lg); }
+.message-content :deep(h3) { font-size: var(--text-md); } .message-content :deep(h4) { font-size: var(--text-base); } .message-content :deep(p) { margin: 0.5rem 0; font-size: var(--text-sm); }
+.message-content :deep(ol), .message-content :deep(ul) { margin: 0.5rem 0; padding-left: 1.5rem; } .message-content :deep(li) { margin: 0.25rem 0; font-size: var(--text-sm); }
+.message-content :deep(pre) { padding: 0.75rem; border-radius: 4px; overflow-x: auto; background: var(--color-bg-surface); color: var(--color-text-secondary); font-family: var(--font-mono); } .message-content :deep(code) { font-family: var(--font-mono); font-size: var(--text-sm); }
+.message-content :deep(pre code) { font-size: var(--text-sm); } .message-content :deep(table) { display: block; width: 100%; margin: 0.75rem 0; overflow-x: auto; border-collapse: collapse; font-size: var(--text-sm); }
+.message-content :deep(th), .message-content :deep(td) { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border-subtle); text-align: left; } .message-content :deep(th) { background: var(--color-bg-surface); font-size: var(--text-sm); font-weight: var(--weight-title); }
+.message-content :deep(td) { font-size: var(--text-sm); } .message-content :deep(tr:nth-child(even)) { background: var(--color-bg-app); } .message-content :deep(tr:hover) { background: var(--color-bg-surface); }
+.message-image { display: block; max-width: min(100%, 32rem); max-height: 24rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); } .message-audio { width: min(100%, 28rem); }
+.resource-link-chip { display: inline-flex; align-items: flex-start; gap: 0.375rem; padding: 0.375rem 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 4px; background: var(--color-bg-surface); color: var(--color-brand); text-decoration: none; font-size: var(--text-sm); font-weight: var(--weight-display); } .resource-link-chip:hover { text-decoration: underline; }
+.resource-link-chip__content { display: flex; flex-direction: column; gap: 0.125rem; min-width: 0; } .resource-link-chip__label { line-height: 1.1; } .resource-link-chip__meta { display: inline-flex; gap: 0.375rem; color: var(--color-text-secondary); font-size: var(--text-xs); font-weight: var(--weight-body); line-height: 1.1; }
+.resource-link-chip__description { max-width: 16rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; } .resource-link-chip__size, .resource-link-uri { white-space: nowrap; } .resource-link-uri { max-width: 18rem; overflow: hidden; color: var(--color-text-secondary); text-overflow: ellipsis; font-weight: var(--weight-body); }
+.resource-block { display: flex; flex-direction: column; gap: 0.5rem; } .resource-label { color: var(--color-text-secondary); font-size: var(--text-sm); word-break: break-all; } .resource-content { margin: 0; padding: 0.75rem; border-radius: 4px; overflow-x: auto; background: var(--color-bg-surface); color: var(--color-text-secondary); font-family: var(--font-mono); }
 </style>

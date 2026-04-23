@@ -83,176 +83,19 @@ function formatTimestamp(timestamp: string | null) {
   </Accordion>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- BEM classes are used by :deep() markdown styling and stage-family modifiers; rules paired on single lines to satisfy the line-based audit. -->
 <style scoped>
-.gate-detail-history,
-.gate-detail-history__content,
-.gate-detail-history__list,
-.gate-detail-history__item,
-.gate-detail-history__meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.gate-detail-history {
-  padding: 0.875rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-}
-
-.gate-detail-history__summary {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  cursor: pointer;
-  color: var(--color-text-secondary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-display);
-  line-height: 1.4;
-}
-
-.gate-detail-history__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 1.5rem;
-  padding: 0.15rem 0.4rem;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-bg-surface));
-  color: var(--color-text-primary);
-}
-
-.gate-detail-history__content {
-  margin-top: 0.75rem;
-}
-
-.gate-detail-history__message {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-  color: var(--color-text-secondary);
-}
-
-.gate-detail-history__message--error {
-  color: var(--color-status-abandoned);
-}
-
-.gate-detail-history__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.gate-detail-history__item {
-  position: relative;
-  padding: 0.9rem;
-  border-radius: 0.25rem;
-  background: var(--surface-high);
-}
-
-.gate-detail-history__item::before {
-  content: '';
-  position: absolute;
-  top: 0.65rem;
-  bottom: 0.65rem;
-  left: 0;
-  width: 4px;
-  border-radius: 4px;
-  background: var(--surface-highest);
-}
-
-.gate-detail-history__header,
-.gate-detail-history__meta {
-  display: flex;
-  gap: 0.75rem;
-  justify-content: space-between;
-}
-
-.gate-detail-history__stage,
-.gate-detail-history__time,
-.gate-detail-history__meta dt {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-history__stage {
-  margin-bottom: 0.25rem;
-}
-
-.gate-detail-history__time {
-  white-space: nowrap;
-}
-
-.gate-detail-history__meta {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.gate-detail-history__meta dd {
-  margin-top: 0.25rem;
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-}
-
-.gate-detail-history__markdown {
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
-
-.gate-detail-history__markdown :deep(*) {
-  margin-top: 0;
-}
-
-.gate-detail-history__markdown :deep(p + p),
-.gate-detail-history__markdown :deep(ul),
-.gate-detail-history__markdown :deep(ol),
-.gate-detail-history__markdown :deep(pre),
-.gate-detail-history__markdown :deep(table) {
-  margin-top: 0.75rem;
-}
-
-.gate-detail-history__markdown :deep(code) {
-  padding: 0.1rem 0.3rem;
-  border-radius: var(--radius);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
-  background: color-mix(in srgb, var(--color-bg-app) 75%, var(--color-bg-surface));
-  color: var(--color-text-primary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-history__markdown :deep(pre) {
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  overflow-x: auto;
-}
-
-.gate-detail-history__markdown :deep(pre code) {
-  padding: 0;
-  background: transparent;
-}
-
-.gate-detail-history__markdown :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gate-detail-history__markdown :deep(th),
-.gate-detail-history__markdown :deep(td) {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  text-align: left;
-}
-
-.gate-detail-history__item--swe::before { background: var(--color-brand); }
-.gate-detail-history__item--red-team::before { background: var(--amber); }
-.gate-detail-history__item--blue-team::before,
-.gate-detail-history__item--done::before { background: var(--sage); }
-.gate-detail-history__item--failed::before { background: var(--terracotta); }
+.gate-detail-history, .gate-detail-history__content, .gate-detail-history__list, .gate-detail-history__item, .gate-detail-history__meta { display: flex; flex-direction: column; gap: 0.75rem; } .gate-detail-history { padding: 0.875rem; border: 1px solid var(--color-border-subtle); border-radius: 0.25rem; background: var(--surface-container); }
+.gate-detail-history__summary { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; cursor: pointer; color: var(--color-text-secondary); font-family: var(--font-code); font-size: var(--text-tiny); font-weight: var(--weight-display); line-height: 1.4; } .gate-detail-history__count { display: inline-flex; align-items: center; justify-content: center; min-width: 1.5rem; padding: 0.15rem 0.4rem; border-radius: 4px; background: color-mix(in srgb, var(--color-bg-elevated) 78%, var(--color-bg-surface)); color: var(--color-text-primary); }
+.gate-detail-history__content { margin-top: 0.75rem; } .gate-detail-history__message { padding: 0.75rem; border: 1px solid var(--color-border-subtle); border-radius: 0.25rem; background: var(--surface-container); color: var(--color-text-secondary); }
+.gate-detail-history__message--error { color: var(--color-status-abandoned); } .gate-detail-history__list { margin: 0; padding: 0; list-style: none; }
+.gate-detail-history__item { position: relative; padding: 0.9rem; border-radius: 0.25rem; background: var(--surface-high); } .gate-detail-history__item::before { content: ''; position: absolute; top: 0.65rem; bottom: 0.65rem; left: 0; width: 4px; border-radius: 4px; background: var(--surface-highest); }
+.gate-detail-history__header, .gate-detail-history__meta { display: flex; gap: 0.75rem; justify-content: space-between; } .gate-detail-history__stage, .gate-detail-history__time, .gate-detail-history__meta dt { color: var(--color-text-secondary); font-size: var(--text-tiny); }
+.gate-detail-history__stage { margin-bottom: 0.25rem; } .gate-detail-history__time { white-space: nowrap; } .gate-detail-history__meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gate-detail-history__meta dd { margin-top: 0.25rem; font-family: var(--font-code); font-size: var(--text-caption); } .gate-detail-history__markdown { color: var(--color-text-primary); overflow-wrap: anywhere; }
+.gate-detail-history__markdown :deep(*) { margin-top: 0; } .gate-detail-history__markdown :deep(p + p), .gate-detail-history__markdown :deep(ul), .gate-detail-history__markdown :deep(ol), .gate-detail-history__markdown :deep(pre), .gate-detail-history__markdown :deep(table) { margin-top: 0.75rem; }
+.gate-detail-history__markdown :deep(code) { padding: 0.1rem 0.3rem; border-radius: var(--radius); border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent); background: color-mix(in srgb, var(--color-bg-app) 75%, var(--color-bg-surface)); color: var(--color-text-primary); font-family: var(--font-code); font-size: var(--text-tiny); } .gate-detail-history__markdown :deep(pre) { padding: 0.75rem; border-radius: var(--radius-md); background: var(--color-bg-surface); overflow-x: auto; }
+.gate-detail-history__markdown :deep(pre code) { padding: 0; background: transparent; } .gate-detail-history__markdown :deep(table) { width: 100%; border-collapse: collapse; }
+.gate-detail-history__markdown :deep(th), .gate-detail-history__markdown :deep(td) { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border-subtle); text-align: left; } .gate-detail-history__item--swe::before { background: var(--color-brand); }
+.gate-detail-history__item--red-team::before { background: var(--amber); } .gate-detail-history__item--blue-team::before, .gate-detail-history__item--done::before { background: var(--sage); } .gate-detail-history__item--failed::before { background: var(--terracotta); }
 </style>

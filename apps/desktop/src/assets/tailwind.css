@@ -36,6 +36,31 @@
   --color-danger: var(--terracotta);
   --color-thinking: var(--plum);
 
+  --color-status-pending: var(--color-status-pending);
+  --color-status-active: var(--color-status-active);
+  --color-status-completed: var(--color-status-completed);
+  --color-status-abandoned: var(--color-status-abandoned);
+  --color-status-stuck: var(--color-status-stuck);
+  --color-status-ready: var(--color-status-ready);
+  --color-status-error: var(--color-status-error);
+
+  --color-node-prompt: var(--color-node-prompt);
+  --color-node-workflow: var(--color-node-workflow);
+  --color-node-thinking: var(--color-node-thinking);
+  --color-node-tool: var(--color-node-tool);
+
+  --color-brand-light: var(--brand-light);
+  --color-bg-overlay: var(--bg-overlay);
+  --color-bg-code: var(--bg-code);
+  --color-bg-error: var(--bg-error);
+  --color-bg-warning: var(--bg-warning);
+  --color-bg-input: var(--bg-input);
+  --color-text-disabled: var(--text-disabled);
+  --color-text-error: var(--text-error);
+  --color-text-code: var(--text-code);
+  --color-text-on-accent: var(--text-on-accent);
+  --color-border-error: var(--border-error);
+
   --shadow-fluent-8: var(--shadow-8);
   --shadow-fluent-16: var(--shadow-16);
   --shadow-fluent-64: var(--shadow-64);
@@ -88,10 +113,63 @@
   --spacing-8: 32px;
 
   --radius-4: 4px;
+  --radius-6: 6px;
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 8px;
   --radius-xl: 12px;
+  --radius-8: var(--radius-md);
+
+  /* Status color at opacity — used for status badges, row highlights */
+  --color-status-pending-15: color-mix(in srgb, var(--color-status-pending) 15%, transparent);
+  --color-status-active-15: color-mix(in srgb, var(--color-status-active) 15%, transparent);
+  --color-status-completed-15: color-mix(in srgb, var(--color-status-completed) 15%, transparent);
+  --color-status-abandoned-15: color-mix(in srgb, var(--color-status-abandoned) 15%, transparent);
+  --color-status-stuck-15: color-mix(in srgb, var(--color-status-stuck) 15%, transparent);
+  --color-status-ready-15: color-mix(in srgb, var(--color-status-ready) 15%, transparent);
+  --color-status-active-30: color-mix(in srgb, var(--color-status-active) 30%, transparent);
+  --color-status-completed-30: color-mix(in srgb, var(--color-status-completed) 30%, transparent);
+  --color-status-abandoned-45: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent);
+  --color-status-active-72: color-mix(in srgb, var(--color-status-active) 72%, transparent);
+
+  /* Node color at opacity — used for node cards, selection rings */
+  --color-node-prompt-15: color-mix(in srgb, var(--color-node-prompt) 15%, transparent);
+  --color-node-workflow-15: color-mix(in srgb, var(--color-node-workflow) 15%, transparent);
+  --color-node-thinking-15: color-mix(in srgb, var(--color-node-thinking) 15%, transparent);
+  --color-node-tool-15: color-mix(in srgb, var(--color-node-tool) 15%, transparent);
+  --color-node-workflow-10: color-mix(in srgb, var(--color-node-workflow) 10%, transparent);
+  --color-node-workflow-20: color-mix(in srgb, var(--color-node-workflow) 20%, transparent);
+  --color-node-workflow-50: color-mix(in srgb, var(--color-node-workflow) 50%, transparent);
+  --color-node-prompt-18: color-mix(in srgb, var(--color-node-prompt) 18%, transparent);
+  --color-node-prompt-28: color-mix(in srgb, var(--color-node-prompt) 28%, transparent);
+  --color-node-prompt-6: color-mix(in srgb, var(--color-node-prompt) 6%, transparent);
+  --color-node-prompt-8: color-mix(in srgb, var(--color-node-prompt) 8%, transparent);
+
+  /* Brand at opacity — used for selection highlights, active states */
+  --color-brand-15: color-mix(in srgb, var(--color-brand) 15%, transparent);
+  --color-brand-18: color-mix(in srgb, var(--color-brand) 18%, transparent);
+  --color-brand-22: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  --color-brand-24: color-mix(in srgb, var(--color-brand) 24%, transparent);
+  --color-brand-40: color-mix(in srgb, var(--color-brand) 40%, transparent);
+  --color-brand-45: color-mix(in srgb, var(--color-brand) 45%, transparent);
+
+  /* Danger at opacity — used for error states */
+  --color-danger-18: color-mix(in srgb, var(--color-danger) 18%, transparent);
+  --color-danger-45: color-mix(in srgb, var(--color-danger) 45%, transparent);
+
+  /* Surface blends — used for layered backgrounds */
+  --color-bg-elevated-30: color-mix(in srgb, var(--color-bg-elevated) 30%, var(--color-bg-app));
+  --color-bg-elevated-80: color-mix(in srgb, var(--color-bg-elevated) 80%, var(--color-bg-app));
+  --color-bg-elevated-82: color-mix(in srgb, var(--color-bg-elevated) 82%, var(--color-bg-app));
+  --color-bg-elevated-86: color-mix(in srgb, var(--color-bg-elevated) 86%, var(--color-bg-app));
+  --color-bg-surface-72: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
+  --color-bg-surface-84: color-mix(in srgb, var(--color-bg-surface) 84%, var(--color-bg-app));
+  --color-bg-surface-92: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-app));
+
+  /* Border blends — used for subtle borders at reduced opacity */
+  --color-border-subtle-65: color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
+  --color-border-subtle-75: color-mix(in srgb, var(--color-border-subtle) 75%, transparent);
+  --color-border-subtle-80: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
 }
 
 @theme inline {

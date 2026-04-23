@@ -104,10 +104,6 @@ const saveButtonLabel = computed(() => {
   if (!isDirty.value) return 'Saved'
   return origin.value === 'packaged' ? 'Save Copy' : 'Save'
 })
-const saveButtonClass = computed(() => ({
-  'timeline-save-button--dirty': isDirty.value,
-  'timeline-save-button--error': saveState.value === 'error',
-}))
 const exportPromptVisible = ref(false)
 const lastExportVersion = ref<'draft' | 'saved'>('draft')
 let exportFeedbackTimer: ReturnType<typeof setTimeout> | null = null
@@ -196,26 +192,36 @@ watch(exportState, (state) => {
 </script>
 
 <template>
-  <div v-if="definitionLoading" class="timeline-empty">
-    <span class="empty-text">Loading…</span>
+  <div
+    v-if="definitionLoading"
+    class="flex items-center justify-center h-full min-h-[200px] p-6"
+  >
+    <span class="text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs leading-relaxed">Loading…</span>
   </div>
 
-  <div v-else-if="!displayedDefinition" class="timeline-empty">
-    <div class="empty-state">
-      <span class="empty-title">Choose a workflow</span>
-      <span class="empty-text">Select a workflow from the browser to review its steps and edit its details.</span>
+  <div
+    v-else-if="!displayedDefinition"
+    class="flex items-center justify-center h-full min-h-[200px] p-6"
+  >
+    <div class="flex flex-col items-center gap-2 max-w-[340px] text-center">
+      <span class="text-[var(--color-text-primary)] font-[family-name:var(--font-display)] text-sm">Choose a workflow</span>
+      <span class="text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs leading-relaxed">Select a workflow from the browser to review its steps and edit its details.</span>
     </div>
   </div>
 
-  <section v-else class="timeline" aria-label="Workflow step timeline">
-    <header class="timeline-header">
-      <h1 class="timeline-title">
+  <section
+    v-else
+    class="flex flex-col gap-3 p-4 bg-[var(--color-bg-app)] min-h-full overflow-y-auto"
+    aria-label="Workflow step timeline"
+  >
+    <header class="flex items-start justify-between gap-4 pb-3 bg-[color-mix(in_srgb,var(--color-bg-elevated)_28%,var(--color-bg-app))] rounded-[var(--radius-sm)]">
+      <h1 class="m-0 font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-[number:var(--weight-title)] text-[var(--color-text-primary)] flex items-center gap-2 min-w-0 leading-tight">
         {{ displayedDefinition.name }}
       </h1>
-      <div class="header-actions">
+      <div class="flex items-center gap-2 shrink-0">
         <Button
           variant="outline"
-          class="timeline-fold-button"
+          class="text-[var(--color-text-secondary)] [&:not(:disabled):hover]:text-[var(--color-node-workflow)] [&:not(:disabled):hover]:border-[color-mix(in_srgb,var(--color-node-workflow)_40%,var(--color-border-subtle))]"
           :disabled="!displayedDefinition || displayedDefinition.steps.length === 0"
           @click="toggleAllExpanded"
         >
@@ -226,7 +232,13 @@ watch(exportState, (state) => {
         </Button>
         <Button
           variant="outline"
-          :class="['timeline-save-button', saveButtonClass]"
+          :class="[
+            isDirty
+              ? 'text-[var(--color-status-active)] border-[var(--color-status-active)] bg-[color-mix(in_srgb,var(--color-status-active)_10%,transparent)] opacity-100 cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-status-active)_18%,transparent)]'
+              : saveState === 'error'
+                ? 'text-[var(--color-status-abandoned)] border-[var(--color-status-abandoned)] bg-[color-mix(in_srgb,var(--color-status-abandoned)_10%,transparent)] opacity-100 cursor-pointer'
+                : 'text-[var(--color-text-secondary)] opacity-40 cursor-default',
+          ]"
           :disabled="saveState === 'saving' || (!isDirty && saveState !== 'error')"
           @click="emit('save')"
         >
@@ -236,45 +248,89 @@ watch(exportState, (state) => {
       </div>
     </header>
 
-    <div v-if="exportPromptVisible || exportState !== 'idle'" class="export-feedback" role="status" aria-live="polite">
+    <div
+      v-if="exportPromptVisible || exportState !== 'idle'"
+      class="flex items-center flex-wrap gap-2 text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs font-[number:var(--weight-display)] leading-snug"
+      role="status"
+      aria-live="polite"
+    >
       <template v-if="exportPromptVisible">
         <span>Export draft or saved version?</span>
-        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow('draft')">Draft</Button>
-        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow('saved')">Saved</Button>
-        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="exportPromptVisible = false">Cancel</Button>
+        <Button
+          variant="outline"
+          size="xs"
+          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
+          type="button"
+          @click="exportWorkflow('draft')"
+        >Draft</Button>
+        <Button
+          variant="outline"
+          size="xs"
+          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
+          type="button"
+          @click="exportWorkflow('saved')"
+        >Saved</Button>
+        <Button
+          variant="ghost"
+          size="xs"
+          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
+          type="button"
+          @click="exportPromptVisible = false"
+        >Cancel</Button>
       </template>
       <template v-else-if="exportState === 'error'">
         <span>{{ exportError ?? 'Export failed.' }}</span>
-        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="exportWorkflow(lastExportVersion)">Retry</Button>
+        <Button
+          variant="outline"
+          size="xs"
+          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
+          type="button"
+          @click="exportWorkflow(lastExportVersion)"
+        >Retry</Button>
       </template>
       <template v-else-if="exportState === 'success'">
         <span>Exported ✓</span>
       </template>
     </div>
 
-    <p v-if="saveError" class="save-feedback" role="alert">{{ saveError }}</p>
+    <p
+      v-if="saveError"
+      class="m-0 text-[var(--color-status-abandoned)] font-[family-name:var(--font-body)] text-xs font-[number:var(--weight-display)] leading-snug"
+      role="alert"
+    >{{ saveError }}</p>
 
 
-    <div class="timeline-meta">
+    <div class="flex items-center gap-3 flex-wrap font-[family-name:var(--font-code)] text-xs text-[var(--color-text-secondary)] tracking-[0.05em]">
       <span>{{ displayedDefinition.steps.length }} steps</span>
-      <span v-if="displayedDefinition.sequentialThinkingEnabled" class="meta-sep">
+      <span
+        v-if="displayedDefinition.sequentialThinkingEnabled"
+        class="before:content-[''] before:inline-block before:w-px before:h-[0.75em] before:bg-[var(--color-border-subtle)] before:mr-3 before:align-middle"
+      >
         Sequential thinking
       </span>
     </div>
 
-    <ol class="step-list">
+    <ol class="list-none m-0 p-0 flex flex-col gap-3">
       <li
         v-for="(step, index) in displayedDefinition.steps"
         :key="step.id"
-        class="step-entry"
+        class="flex gap-3 items-stretch"
       >
-        <div class="step-rail">
+        <div class="flex flex-col items-center w-10 shrink-0">
           <span
-            :class="['step-number', { 'step-number--selected': props.selectedStepId === step.id }]"
+            :class="[
+              'flex items-center justify-center w-10 h-10 rounded-[var(--radius)] border bg-[var(--color-bg-elevated)] font-[family-name:var(--font-code)] text-xs font-[number:var(--weight-title)] shrink-0 transition-[border-color,color,background] duration-150',
+              props.selectedStepId === step.id
+                ? 'border-[var(--color-node-workflow)] text-[var(--color-node-workflow)] bg-[color-mix(in_srgb,var(--color-node-workflow)_10%,var(--color-bg-elevated))]'
+                : 'border-[var(--color-border-subtle)] text-[var(--color-text-secondary)]',
+            ]"
           >
             {{ formatStepNumber(index) }}
           </span>
-          <span v-if="index < displayedDefinition.steps.length - 1" class="step-connector" />
+          <span
+            v-if="index < displayedDefinition.steps.length - 1"
+            class="flex-1 w-px min-h-3 border-l-2 border-dashed border-[var(--color-border-subtle)]"
+          />
         </div>
 
         <WorkflowStepCard
@@ -294,16 +350,26 @@ watch(exportState, (state) => {
       </li>
     </ol>
 
-    <div class="step-entry add-entry">
-      <div class="step-rail">
-        <span class="step-dot" />
+    <div class="flex gap-3 items-center group">
+      <div class="flex flex-col items-center w-10 shrink-0">
+        <span class="w-2 h-2 rounded-[var(--radius)] bg-[var(--color-text-secondary)] shrink-0 transition-colors duration-150 group-hover:bg-[var(--color-node-workflow)]" />
       </div>
-      <Button variant="ghost" class="add-step-btn" type="button" @click="handleAddStep">
+      <Button
+        variant="ghost"
+        class="flex-1 flex items-center justify-center gap-2 w-full p-3 bg-transparent border border-dashed border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] font-[family-name:var(--font-code)] text-xs tracking-[0.05em] cursor-pointer transition-[border-color,color,background] duration-150 hover:border-[var(--color-node-workflow)] hover:text-[var(--color-node-workflow)] hover:bg-[color-mix(in_srgb,var(--color-node-workflow)_6%,transparent)]"
+        type="button"
+        @click="handleAddStep"
+      >
         ＋ Add new step
       </Button>
     </div>
 
-    <Transition name="draft-bar">
+    <Transition
+      enter-active-class="transition-[transform,opacity] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+      enter-from-class="translate-y-full opacity-0"
+      leave-active-class="transition-[transform,opacity] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      leave-to-class="translate-y-full opacity-0"
+    >
       <WorkflowDraftBar
         v-if="isDirty || pendingWorkflowId !== null"
         :has-pending-selection="pendingWorkflowId !== null"
@@ -318,242 +384,3 @@ watch(exportState, (state) => {
     </Transition>
   </section>
 </template>
-
-<!-- audit-ok: max-style-rules — Layout uses design tokens (--space-*, --radius-*, --color-*, --transition-*, --weight-*, --text-*) and font: shorthand. Vue <Transition> classes (.draft-bar-enter-active, etc.) are required by Vue runtime and cannot be Tailwind utilities. .meta-sep::before pseudo-element renders a separator glyph; --selected/--dirty/--error modifiers are JS-toggled via :class. -->
-<style scoped>
-.timeline-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  min-height: 200px;
-  padding: var(--space-6);
-}
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-2);
-  max-width: 340px;
-  text-align: center;
-}
-.empty-title {
-  color: var(--color-text-primary);
-  font-family: var(--font-display);
-  font-size: var(--text-body);
-}
-.empty-text {
-  color: var(--color-text-secondary);
-  font-family: var(--font-body);
-  font-size: var(--text-caption);
-  line-height: 1.6;
-}
-.timeline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-bg-app);
-  min-height: 100%;
-  overflow-y: auto;
-}
-.timeline-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-  padding-bottom: var(--space-3);
-  background: color-mix(in srgb, var(--color-bg-elevated) 28%, var(--color-bg-app));
-  border-radius: var(--radius-sm);
-}
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-.timeline-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  font-weight: var(--weight-title);
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-width: 0;
-  line-height: 1.2;
-}
-.export-feedback {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  color: var(--color-text-secondary);
-  font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body);
-}
-.feedback-btn {
-  min-height: 24px;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  cursor: pointer;
-}
-.feedback-btn:hover {
-  background: var(--color-bg-elevated);
-}
-.timeline-save-button {
-  color: var(--color-text-secondary);
-  opacity: 0.4;
-  cursor: default;
-}
-.timeline-fold-button {
-  color: var(--color-text-secondary);
-}
-.timeline-fold-button:not(:disabled):hover {
-  color: var(--color-node-workflow);
-  border-color: color-mix(in srgb, var(--color-node-workflow) 40%, var(--color-border-subtle));
-}
-.timeline-save-button--dirty {
-  color: var(--color-status-active);
-  border-color: var(--color-status-active);
-  background: color-mix(in srgb, var(--color-status-active) 10%, transparent);
-  opacity: 1;
-  cursor: pointer;
-}
-.timeline-save-button--dirty:hover {
-  background: color-mix(in srgb, var(--color-status-active) 18%, transparent);
-}
-.timeline-save-button--error {
-  color: var(--color-status-abandoned);
-  border-color: var(--color-status-abandoned);
-  background: color-mix(in srgb, var(--color-status-abandoned) 10%, transparent);
-  opacity: 1;
-  cursor: pointer;
-}
-.save-feedback {
-  margin: 0;
-  color: var(--color-status-abandoned);
-  font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body);
-}
-.timeline-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  color: var(--color-text-secondary);
-  letter-spacing: 0.05em;
-}
-.meta-sep::before {
-  content: '';
-  display: inline-block;
-  width: 1px;
-  height: 0.75em;
-  background: var(--color-border-subtle);
-  margin-right: var(--space-3);
-  vertical-align: middle;
-}
-.step-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.step-entry {
-  display: flex;
-  gap: var(--space-3);
-  align-items: stretch;
-}
-.add-entry {
-  align-items: center;
-}
-.step-rail {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  width: 40px;
-  flex-shrink: 0;
-}
-.step-number {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-bg-elevated);
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-  font-weight: var(--weight-title);
-  color: var(--color-text-secondary);
-  flex-shrink: 0;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-}
-.step-number--selected {
-  border-color: var(--color-node-workflow);
-  color: var(--color-node-workflow);
-  background: color-mix(in srgb, var(--color-node-workflow) 10%, var(--color-bg-elevated));
-}
-.step-connector {
-  flex: 1;
-  width: 1px;
-  min-height: var(--space-3);
-  border-left: 2px dashed var(--color-border-subtle);
-}
-.step-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--radius);
-  background: var(--color-text-secondary);
-  flex-shrink: 0;
-  transition: background var(--transition-fast);
-}
-.add-entry:hover .step-dot {
-  background: var(--color-node-workflow);
-}
-.add-step-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-3);
-  background: transparent;
-  border: 1px dashed var(--color-border-subtle);
-  border-radius: var(--radius-sm);
-  color: var(--color-text-secondary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  letter-spacing: 0.05em;
-  cursor: pointer;
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
-}
-.add-step-btn:hover {
-  border-color: var(--color-node-workflow);
-  color: var(--color-node-workflow);
-  background: color-mix(in srgb, var(--color-node-workflow) 6%, transparent);
-}
-.draft-bar-enter-active {
-  transition: transform var(--transition-normal), opacity var(--transition-normal);
-}
-.draft-bar-enter-from {
-  transform: translateY(100%);
-  opacity: 0;
-}
-.draft-bar-leave-active {
-  transition: transform var(--transition-fast), opacity var(--transition-fast);
-}
-.draft-bar-leave-to {
-  transform: translateY(100%);
-  opacity: 0;
-}
-</style>

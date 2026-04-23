@@ -89,8 +89,13 @@ function formatAgentOptionLabel(agentName: string): string {
 </script>
 
 <template>
-  <div class="agent-selector">
-    <Label for="agent-select">Agent</Label>
+  <div class="flex flex-col gap-2">
+    <Label
+      for="agent-select"
+      class="text-[length:var(--text-tiny)] font-normal text-[var(--text-secondary)]"
+    >
+      Agent
+    </Label>
     <Select
       :model-value="selectedAgent"
       :disabled="!hasAgents"
@@ -113,52 +118,12 @@ function formatAgentOptionLabel(agentName: string): string {
       :loading="selectedProbeLoading"
       compact
     />
-    
-    <div v-if="!hasAgents" class="config-hint">
+
+    <div
+      v-if="!hasAgents"
+      class="mt-2 p-3 bg-[var(--surface-container)] rounded text-xs text-[var(--color-text-secondary)]"
+    >
       <p>No agents found. Add an agent in your config to get started.</p>
     </div>
   </div>
 </template>
-
-<style scoped>
-.agent-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-label {
-  font-size: var(--text-tiny);
-  font-weight: 400;
-  color: var(--text-secondary);
-}
-
-select {
-  padding: 0.5rem 0.625rem;
-  border: none;
-  border-radius: 4px;
-  font-size: var(--text-caption);
-  background: var(--surface-container);
-  color: var(--color-text-primary);
-  font-family: var(--font-body);
-}
-
-option {
-  background: var(--color-bg-surface);
-  color: var(--color-text-primary);
-}
-
-select:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.config-hint {
-  margin-top: 0.5rem;
-  padding: 0.75rem;
-  background: var(--surface-container);
-  border-radius: 4px;
-  font-size: var(--text-caption);
-  color: var(--color-text-secondary);
-}
-</style>

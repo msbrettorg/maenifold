@@ -1,5 +1,6 @@
 mod adoption;
 mod agent_session;
+mod agent_session_config;
 mod handler;
 mod handler_helpers;
 mod handler_session;
@@ -9,9 +10,16 @@ pub mod pipeline;
 mod queue;
 pub mod runner;
 pub(crate) mod runner_helpers;
+mod runner_prompt;
+mod think_runner_payloads;
 mod runner_state;
 mod status;
 mod submachine;
+mod submachine_gate;
+mod submachine_link;
+mod submachine_register;
+#[cfg(test)]
+mod submachine_tests;
 pub(crate) mod think_runner;
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
@@ -33,7 +41,10 @@ pub(crate) use status::{
 #[allow(unused_imports)]
 pub(crate) use submachine::{
     HostSessionType, ResumeSubmachineResult, SubmachineType, clear_submachine_frontmatter,
-    maybe_resume_submachine, parse_submachine_type, register_host_submachine,
-    register_workflow_submachine,
+    parse_submachine_type,
+};
+#[allow(unused_imports)]
+pub(crate) use submachine_register::{
+    maybe_resume_submachine, register_host_submachine, register_workflow_submachine,
 };
 pub use think_runner::{ThinkOptions, ThinkResult};

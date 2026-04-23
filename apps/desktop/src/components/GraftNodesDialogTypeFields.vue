@@ -26,7 +26,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
 
 <template>
   <template v-if="nodeType === 'workflow'">
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-workflow-id">Workflow ID</Label>
       <Input
         id="graft-workflow-id"
@@ -40,7 +40,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
     <datalist :id="workflowListId">
       <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
     </datalist>
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-workflow-agent">Agent</Label>
       <Input
         id="graft-workflow-agent"
@@ -50,12 +50,12 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => workflowAgent = String(val).trim()"
       />
     </div>
-    <div class="form-field field-wide">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm col-[1/-1]">
       <Label for="graft-workflow-prompt">Prompt</Label>
       <Textarea
         id="graft-workflow-prompt"
         :model-value="workflowPrompt"
-        class="graft-textarea"
+        class="resize-y min-h-[5rem]"
         rows="3"
         placeholder="Optional workflow prompt"
         @update:model-value="(val: string | number) => workflowPrompt = String(val).trim()"
@@ -64,7 +64,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
   </template>
 
   <template v-else-if="nodeType === 'prompt'">
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-prompt-agent">Agent</Label>
       <Input
         id="graft-prompt-agent"
@@ -74,12 +74,12 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => promptAgent = String(val).trim()"
       />
     </div>
-    <div class="form-field field-wide">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm col-[1/-1]">
       <Label for="graft-prompt-template">Prompt</Label>
       <Textarea
         id="graft-prompt-template"
         :model-value="promptTemplate"
-        class="graft-textarea"
+        class="resize-y min-h-[5rem]"
         rows="4"
         placeholder="Required prompt template"
         @update:model-value="(val: string | number) => promptTemplate = String(val).trim()"
@@ -88,7 +88,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
   </template>
 
   <template v-else-if="nodeType === 'sequentialThinking'">
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-thinking-topic">Topic</Label>
       <Input
         id="graft-thinking-topic"
@@ -98,7 +98,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => thinkingTopic = String(val).trim()"
       />
     </div>
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-thinking-agent">Agent</Label>
       <Input
         id="graft-thinking-agent"
@@ -108,7 +108,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => thinkingAgent = String(val).trim()"
       />
     </div>
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-thinking-total-thoughts">Total thoughts</Label>
       <Input
         id="graft-thinking-total-thoughts"
@@ -119,7 +119,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         placeholder="5"
       />
     </div>
-    <div class="form-field">
+    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
       <Label for="graft-thinking-analysis-type">Analysis type</Label>
       <Input
         id="graft-thinking-analysis-type"
@@ -142,22 +142,3 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
     />
   </template>
 </template>
-
-<style scoped>
-.form-field {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.field-wide {
-  grid-column: 1 / -1;
-}
-
-.graft-textarea {
-  resize: vertical;
-  min-height: 5rem;
-}
-</style>

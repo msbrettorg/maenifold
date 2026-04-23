@@ -18,7 +18,7 @@ defineEmits<{
 
 <template>
   <div
-    class="schema-form-renderer overflow-y-auto pr-1 [max-height:min(32rem,60vh)] [scrollbar-width:thin] [scrollbar-color:var(--color-border-subtle)_transparent]"
+    class="schema-form-renderer overflow-y-auto pr-1 [max-height:min(32rem,60vh)] [scrollbar-width:thin] [scrollbar-color:var(--color-border-subtle)_transparent] [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-[var(--color-border-subtle)] [&::-webkit-scrollbar-thumb]:rounded-[4px]"
     role="group"
     :aria-label="props.ariaLabel ?? props['aria-label']"
   >
@@ -35,8 +35,8 @@ defineEmits<{
 
 <!-- audit-ok: max-style-rules — all :deep() rules target third-party JSONForms internals; not migratable to Tailwind -->
 <!-- audit-ok: max-loc — :deep() style block for JSONForms theming -->
+<!-- audit-ok: deep-third-party — JSONForms internal selectors require :deep() -->
 <style scoped>
-.schema-form-renderer::-webkit-scrollbar { width: 8px; } .schema-form-renderer::-webkit-scrollbar-track { background: transparent; } .schema-form-renderer::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 4px; }
 .schema-form-renderer :deep(.schema-form__vertical-layout), .schema-form-renderer :deep(.schema-form__group-item), .schema-form-renderer :deep(.schema-form__array), .schema-form-renderer :deep(.schema-form__array-item), .schema-form-renderer :deep(.schema-form__array-item-content), .schema-form-renderer :deep(.schema-form__one-of), .schema-form-renderer :deep(.schema-form__categorization-panel) { display: flex; flex-direction: column; gap: var(--space-4); }
 .schema-form-renderer :deep(.schema-form__horizontal-layout) { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); } .schema-form-renderer :deep(.schema-form__layout-item), .schema-form-renderer :deep(.schema-form__control), .schema-form-renderer :deep(.schema-form__control-wrapper) { display: flex; flex-direction: column; gap: var(--space-2); }
 .schema-form-renderer :deep(.schema-form__label), .schema-form-renderer :deep(.schema-form__group-label), .schema-form-renderer :deep(.schema-form__array-legend), .schema-form-renderer :deep(.schema-form__array-label), .schema-form-renderer :deep(.schema-form__array-item-label), .schema-form-renderer :deep(.schema-form__static-label), .schema-form-renderer :deep(.schema-form__dialog-title) { color: var(--color-text-secondary); font-size: var(--text-caption); font-weight: var(--weight-title); } .schema-form-renderer :deep(.schema-form__description) { color: var(--color-text-secondary); font-size: var(--text-tiny); }

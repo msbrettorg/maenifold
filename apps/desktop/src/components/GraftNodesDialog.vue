@@ -77,9 +77,9 @@ const connectToValue = computed({
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
-    <DialogContent class="graft-dialog gap-0 p-0 sm:max-w-[48rem]" :show-close-button="false">
-      <DialogHeader class="dialog-header">
-        <div class="dialog-heading">
+    <DialogContent class="gap-0 p-0 sm:max-w-[48rem] w-[min(48rem,100%)] max-h-[min(90vh,52rem)] overflow-auto" :show-close-button="false">
+      <DialogHeader class="flex flex-row items-start justify-between gap-4 pt-6 px-6">
+        <div class="grid gap-[0.35rem] text-left">
           <DialogTitle>Graft nodes</DialogTitle>
           <DialogDescription>Add one node to the running pipeline and connect it to existing nodes.</DialogDescription>
         </div>
@@ -88,9 +88,9 @@ const connectToValue = computed({
         </DialogClose>
       </DialogHeader>
 
-      <form class="dialog-form" @submit.prevent="handleSubmit">
-        <div class="form-grid">
-          <div class="form-field">
+      <form class="grid gap-4 px-6 pb-6" @submit.prevent="handleSubmit">
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
+          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
             <Label for="graft-node-type">Node type</Label>
             <Select v-model="nodeType">
               <SelectTrigger id="graft-node-type" class="w-full">
@@ -105,7 +105,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="form-field">
+          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
             <Label for="graft-node-id">Node ID</Label>
             <Input
               id="graft-node-id"
@@ -116,7 +116,7 @@ const connectToValue = computed({
             />
           </div>
 
-          <div class="form-field">
+          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
             <Label for="graft-connect-from">Run after</Label>
             <Select v-model="connectFromValue">
               <SelectTrigger id="graft-connect-from" class="w-full">
@@ -131,7 +131,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="form-field">
+          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
             <Label for="graft-connect-to">Continue to</Label>
             <Select v-model="connectToValue">
               <SelectTrigger id="graft-connect-to" class="w-full">
@@ -146,7 +146,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="form-field">
+          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
             <Label for="graft-edge-type">Edge type</Label>
             <Select v-model="edgeType">
               <SelectTrigger id="graft-edge-type" class="w-full">
@@ -160,7 +160,7 @@ const connectToValue = computed({
           </div>
         </div>
 
-        <div class="form-grid">
+        <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
           <GraftNodesDialogTypeFields
             v-model:workflow-id="workflowId"
             v-model:workflow-agent="workflowAgent"
@@ -180,10 +180,10 @@ const connectToValue = computed({
           />
         </div>
 
-        <p class="existing-nodes"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
-        <p v-if="formError" class="form-error" role="alert">{{ formError }}</p>
+        <p class="m-0 text-[0.75rem] text-[var(--text-secondary)]"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
+        <p v-if="formError" class="m-0 text-[0.75rem] text-[var(--color-status-abandoned)]" role="alert">{{ formError }}</p>
 
-        <DialogFooter class="dialog-actions">
+        <DialogFooter class="pt-2">
           <DialogClose as-child>
             <Button type="button" variant="ghost" :disabled="busy">Cancel</Button>
           </DialogClose>
@@ -195,64 +195,3 @@ const connectToValue = computed({
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-.graft-dialog {
-  width: min(48rem, 100%);
-  max-height: min(90vh, 52rem);
-  overflow: auto;
-}
-
-.dialog-heading {
-  display: grid;
-  gap: 0.35rem;
-  text-align: left;
-}
-
-.dialog-header {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1.5rem 1.5rem 0;
-}
-
-.dialog-form {
-  display: grid;
-  gap: 1rem;
-  padding: 0 1.5rem 1.5rem;
-}
-
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-  gap: 0.75rem;
-}
-
-.form-field {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.existing-nodes,
-.form-error {
-  margin: 0;
-  font-size: 0.75rem;
-}
-
-.existing-nodes {
-  color: var(--text-secondary);
-}
-
-.form-error {
-  color: var(--color-status-abandoned);
-}
-
-.dialog-actions {
-  padding-top: 0.5rem;
-}
-</style>

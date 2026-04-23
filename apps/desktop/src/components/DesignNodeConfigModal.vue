@@ -39,16 +39,16 @@ const modalDescription = computed(() =>
   <Sheet :open="true" @update:open="(open) => !open && emit('close')">
     <SheetContent
       side="right"
-      class="config-panel gap-0 p-0 text-[var(--color-text-primary)] sm:max-w-[360px]"
+      class="gap-0 p-0 text-[var(--color-text-primary)] sm:max-w-[360px] w-[min(360px,92vw)] max-h-screen flex flex-col bg-[var(--surface)] rounded-none overflow-hidden border-0 shadow-[var(--shadow-16)] config-panel"
       :show-close-button="false"
     >
-      <SheetHeader class="config-header">
-        <div class="config-heading">
-          <SheetTitle class="config-title">{{ modalTitle }}</SheetTitle>
+      <SheetHeader class="flex flex-row items-center justify-between py-[var(--space-3)] px-[var(--space-4)] bg-[var(--surface)]">
+        <div class="grid gap-1 text-left">
+          <SheetTitle class="font-[var(--font-display)] text-[length:var(--text-title)] font-medium text-[var(--color-text-primary)]">{{ modalTitle }}</SheetTitle>
           <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">{{ modalDescription }}</SheetDescription>
         </div>
         <Button
-          class="config-close rounded-[4px]"
+          class="rounded-[4px]"
           variant="ghost"
           size="sm"
           type="button"
@@ -58,7 +58,7 @@ const modalDescription = computed(() =>
           Close
         </Button>
       </SheetHeader>
-      <ScrollArea class="config-body">
+      <ScrollArea class="config-body h-[calc(100vh-5rem)]">
         <DesignNodeConfigPanel
           :selected-node-id="selectedNodeId"
           :selected-edge="selectedEdge"
@@ -68,45 +68,8 @@ const modalDescription = computed(() =>
   </Sheet>
 </template>
 
+<!-- audit-ok: deep-third-party — :deep(.inspector) targets DesignNodeConfigPanel internal layout -->
 <style scoped>
-.config-panel {
-  width: min(360px, 92vw);
-  max-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border-radius: 0;
-  overflow: hidden;
-  border: 0;
-  box-shadow: var(--shadow-16);
-}
-
-.config-heading {
-  display: grid;
-  gap: 0.25rem;
-  text-align: left;
-}
-
-.config-header {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface);
-}
-
-.config-title {
-  font-family: var(--font-display);
-  font-size: var(--text-title);
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.config-body {
-  height: calc(100vh - 5rem);
-}
-
 .config-body :deep(.inspector) {
   border-left: none;
   height: auto;

@@ -30,21 +30,21 @@ const queueHint = computed(() =>
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
-    <DialogContent class="permission-dialog gap-0 p-0 sm:max-w-3xl" :show-close-button="false">
-      <DialogHeader class="dialog-header">
-        <div class="dialog-title-row">
-          <span class="icon" aria-hidden="true">🔐</span>
+    <DialogContent class="flex flex-col gap-0 p-0 sm:max-w-3xl w-[min(48rem,100%)] max-h-[min(42rem,calc(100vh-2rem))] overflow-hidden" :show-close-button="false">
+      <DialogHeader class="grid gap-2 items-start p-4 bg-[var(--color-bg-surface)]">
+        <div class="flex items-center gap-2">
+          <span class="text-[length:var(--text-title)]" aria-hidden="true">🔐</span>
           <DialogTitle>{{ titleText }}</DialogTitle>
-          <span v-if="pendingChip" class="pending-chip">{{ pendingChip }}</span>
+          <span v-if="pendingChip" class="ml-auto py-0.5 px-2 rounded-[var(--radius-xl)] bg-[var(--surface-high)] text-[var(--text-secondary)] text-[length:var(--text-tiny)]">{{ pendingChip }}</span>
         </div>
-        <DialogDescription class="queue-hint">
+        <DialogDescription class="m-0 text-[length:var(--text-caption)] text-[var(--color-text-secondary)]">
           Review the pending permission request and choose how to respond.
           <template v-if="queueHint"> {{ queueHint }}</template>
         </DialogDescription>
       </DialogHeader>
 
-      <div class="dialog-content">
-        <div class="permission-list" role="list" aria-label="Pending permission requests">
+      <div class="flex-1 min-h-0 p-4 overflow-hidden">
+        <div class="min-h-0" role="list" aria-label="Pending permission requests">
           <PermissionEntry
             :request="request"
             @select="emit('select', $event)"
@@ -55,57 +55,3 @@ const queueHint = computed(() =>
     </DialogContent>
   </Dialog>
 </template>
-
-<style scoped>
-.permission-dialog {
-  display: flex;
-  flex-direction: column;
-  width: min(48rem, 100%);
-  max-height: min(42rem, calc(100vh - 2rem));
-  overflow: hidden;
-}
-
-.dialog-title-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.dialog-header {
-  display: grid;
-  gap: 0.5rem;
-  align-items: flex-start;
-  padding: 1rem;
-  background: var(--color-bg-surface);
-}
-
-.dialog-header .icon {
-  font-size: var(--text-title);
-}
-
-.dialog-content {
-  flex: 1;
-  min-height: 0;
-  padding: 1rem;
-  overflow: hidden;
-}
-
-.queue-hint {
-  margin: 0;
-  font-size: var(--text-caption);
-  color: var(--color-text-secondary);
-}
-
-.pending-chip {
-  margin-left: auto;
-  padding: 0.125rem 0.5rem;
-  border-radius: var(--radius-xl);
-  background: var(--surface-high);
-  color: var(--text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.permission-list {
-  min-height: 0;
-}
-</style>

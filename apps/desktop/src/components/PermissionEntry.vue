@@ -122,7 +122,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 min-h-0" role="listitem">
+  <div class="entry-details flex flex-col gap-3 min-h-0" role="listitem">
     <div class="flex flex-col gap-1">
       <span class="text-[length:var(--text-body-sm)] font-[var(--weight-title)]">{{ request.toolCall.title }}</span>
       <span class="text-[var(--color-text-secondary)] text-[length:var(--text-caption)]">{{ request.toolCall.kind }}</span>
@@ -171,16 +171,16 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
       </Accordion>
     </div>
 
-    <div class="flex flex-wrap gap-2 mt-1 pt-4 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-app)]">
+    <div class="dialog-actions flex flex-wrap gap-2 mt-1 pt-4 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-app)]">
       <Button
         v-for="option in request.options"
         :key="option.optionId"
-        :class="['flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer border-none font-[var(--weight-display)] transition-[background] duration-150', optionClasses(option.kind)]"
+        :class="[`option-${option.kind}`, 'flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer border-none font-[var(--weight-display)] transition-[background] duration-150', optionClasses(option.kind)]"
         @click="emit('select', option.optionId)"
       >
         {{ option.name }}
       </Button>
-      <Button variant="outline" class="flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-surface)]" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" class="cancel-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-surface)]" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

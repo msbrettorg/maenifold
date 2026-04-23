@@ -30,7 +30,7 @@ const queueHint = computed(() =>
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
-    <DialogContent class="flex flex-col gap-0 p-0 sm:max-w-3xl w-[min(48rem,100%)] max-h-[min(42rem,calc(100vh-2rem))] overflow-hidden" :show-close-button="false">
+    <DialogContent class="permission-dialog dialog-content flex flex-col gap-0 p-0 sm:max-w-3xl w-[min(48rem,100%)] max-h-[min(42rem,calc(100vh-2rem))] overflow-hidden" :show-close-button="false">
       <DialogHeader class="grid gap-2 items-start p-4 bg-[var(--color-bg-surface)]">
         <div class="flex items-center gap-2">
           <span class="text-[length:var(--text-title)]" aria-hidden="true">🔐</span>

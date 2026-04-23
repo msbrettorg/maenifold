@@ -23,7 +23,7 @@ function requestAutoLayout(direction: 'LR' | 'TB'): void {
 </script>
 
 <template>
-  <div class="flow-toolbar" role="toolbar" aria-label="Pipeline actions">
+  <div class="absolute top-3 right-3 z-[5] flex flex-wrap justify-end gap-2" role="toolbar" aria-label="Pipeline actions">
     <Button
       type="button"
       :variant="props.layoutDirection === 'LR' ? 'secondary' : 'ghost'"
@@ -54,7 +54,3 @@ function requestAutoLayout(direction: 'LR' | 'TB'): void {
     <slot />
   </div>
 </template>
-
-<style scoped>
-.flow-toolbar { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 5; display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; }
-</style>

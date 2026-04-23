@@ -192,19 +192,47 @@ async function handleDelete(item: PipelineListItem, event: Event) {
   await store.deletePipelineById(item.pipelineId);
 }
 
+function beadClass(status: PipelineStatus): string {
+  switch (status) {
+    case 'active': return 'bg-[var(--amber)]';
+    case 'completed':
+    case 'paused': return 'bg-[var(--sage)]';
+    case 'abandoned':
+    case 'stuck': return 'bg-[var(--terracotta)]';
+    case 'cancelled':
+    default: return 'bg-[var(--text-secondary)]';
+  }
+}
+
+function statusTextClass(status: PipelineStatus): string {
+  switch (status) {
+    case 'active': return 'text-[var(--color-status-active)]';
+    case 'completed': return 'text-[var(--color-status-completed)]';
+    case 'stuck': return 'text-[var(--color-status-stuck)]';
+    case 'paused': return 'text-[var(--color-status-ready)]';
+    case 'abandoned':
+    case 'cancelled': return 'text-[var(--color-status-abandoned)]';
+    default: return 'text-[var(--color-status-pending)]';
+  }
+}
+
 onBeforeUnmount(() => {
   clearSessionSubscription();
 });
 </script>
 
 <template>
-  <aside class="pipeline-sidebar" role="complementary" aria-label="Pipeline sidebar">
-    <div v-if="!hideHeader" class="sidebar-header">
-      <h3>Pipelines</h3>
-      <div class="sidebar-actions">
+  <aside
+    class="flex h-full w-full min-w-0 flex-col bg-[var(--surface)]"
+    role="complementary"
+    aria-label="Pipeline sidebar"
+  >
+    <div v-if="!hideHeader" class="flex items-center justify-between p-4">
+      <h3 class="m-0 font-display text-[length:var(--text-title)] font-medium text-[var(--color-text-primary)]">Pipelines</h3>
+      <div class="flex items-center gap-1">
         <span
           v-if="resourceError"
-          class="resource-warning"
+          class="text-[length:var(--text-xs)] text-[var(--amber)]"
           :title="resourceError"
           aria-label="Pipeline resource fallback active"
         >⚠</span>
@@ -213,44 +241,60 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <div v-if="pipelineItems.length === 0" class="empty-state">
+    <div
+      v-if="pipelineItems.length === 0"
+      class="grid flex-1 place-items-center p-8 text-center text-[var(--text-secondary)]"
+    >
       <p>No pipelines yet</p>
     </div>
 
-    <ScrollArea v-else class="pipeline-list-scroll">
-      <ul class="pipeline-list">
+    <ScrollArea v-else class="min-h-0 flex-1">
+      <ul class="m-0 flex list-none flex-col gap-2 p-3">
         <li
           v-for="item in pipelineItems"
           :key="item.pipelineId"
-          :class="['pipeline-item', { active: currentPipelineId === item.pipelineId }]"
+          class="group flex items-start justify-between gap-3 rounded-[var(--radius-4)] border-l-4 border-transparent bg-[var(--surface-container)] p-3 transition-[background,border-color] duration-150 hover:bg-[var(--surface-high)]"
+          :class="currentPipelineId === item.pipelineId ? '!border-l-[var(--color-brand)] bg-[var(--surface-high)]' : ''"
         >
           <Button
             type="button"
             variant="ghost"
-            class="pipeline-select"
+            class="flex min-w-0 flex-1 cursor-pointer items-start gap-2.5 border-0 bg-transparent p-0 text-left text-inherit [font:inherit] focus-visible:rounded-[var(--radius-4)] focus-visible:outline-2 focus-visible:outline-[var(--color-brand)] focus-visible:outline-offset-[3px]"
             :data-pipeline-id="item.pipelineId"
             data-pipeline-item
             :aria-current="currentPipelineId === item.pipelineId ? 'page' : undefined"
             @click="handleSelect(item.pipelineId)"
           >
-            <span :class="['status-bead', `bead--${item.status}`]" />
+            <span
+              class="mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-[var(--radius)]"
+              :class="beadClass(item.status)"
+            />
 
-            <div class="pipeline-meta">
-              <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
-              <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
-              <div class="progress-bar">
+            <div class="flex min-w-0 flex-1 flex-col gap-1">
+              <span
+                class="overflow-hidden text-ellipsis whitespace-nowrap font-[var(--weight-display)] text-[var(--color-text-primary)]"
+                :title="item.pipelineId"
+              >{{ item.pipelineId }}</span>
+              <span class="text-[length:var(--text-xs)] text-[var(--text-secondary)]">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
+              <div class="h-[3px] overflow-hidden rounded-[var(--radius-4)] bg-[var(--color-bg-app)]">
                 <!-- audit-ok: dynamic-binding (progress bar width computed from pipeline state) -->
-                <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
+                <div
+                  class="h-full rounded-[var(--radius-4)] bg-[var(--color-brand)] transition-[width] duration-300"
+                  :style="{ width: `${progressPct(item)}%` }"
+                />
               </div>
             </div>
           </Button>
 
-          <div class="pipeline-side">
-            <span :class="['pipeline-status', `status-text--${item.status}`]">
+          <div class="flex min-w-0 flex-col items-end gap-1.5">
+            <span
+              class="text-[length:var(--text-xs)] font-[var(--weight-display)]"
+              :class="statusTextClass(item.status)"
+            >
               {{ formatStatus(item.status) }}
             </span>
             <Button
-              class="delete-btn h-6 rounded-[4px] px-2 text-xs"
+              class="h-6 cursor-pointer rounded-[4px] px-2 text-xs leading-none opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
               variant="destructive"
               size="sm"
               type="button"
@@ -264,194 +308,3 @@ onBeforeUnmount(() => {
     </ScrollArea>
   </aside>
 </template>
-
-<!-- audit-ok: max-style-rules — Layout uses design tokens (--surface, --surface-container/high, --radius-*, --color-*, --text-*). The .bead--* (8 states) and .status-text--* (8 states) modifier systems map JS-driven status keys to status-specific design tokens (--color-status-pending/active/completed/abandoned/stuck/ready/cancelled, --amber, --sage, --terracotta) — replacing with Tailwind would require a 16-key lookup table at every call site. Hover/focus-visible parent selectors and :focus-within reveal patterns cannot be expressed as plain utilities. -->
-<style scoped>
-.pipeline-sidebar {
-  width: 100%;
-  min-width: 0;
-  height: 100%;
-  background: var(--surface);
-  display: flex;
-  flex-direction: column;
-}
-.sidebar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem;
-}
-.sidebar-header h3 {
-  margin: 0;
-  font-family: var(--font-display);
-  font-weight: 500;
-  font-size: var(--text-title);
-  color: var(--color-text-primary);
-}
-.sidebar-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-.resource-warning {
-  font-size: var(--text-xs);
-  color: var(--amber);
-}
-.empty-state {
-  flex: 1;
-  display: grid;
-  place-items: center;
-  padding: 2rem 1rem;
-  text-align: center;
-  color: var(--text-secondary);
-}
-.pipeline-list-scroll {
-  flex: 1;
-  min-height: 0;
-}
-.pipeline-list {
-  list-style: none;
-  margin: 0;
-  padding: 0.75rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.pipeline-item {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem;
-  border-left: 4px solid transparent;
-  border-radius: var(--radius-4);
-  background: var(--surface-container);
-  transition: background 0.15s, border-color 0.15s;
-}
-.pipeline-item:hover {
-  background: var(--surface-high);
-}
-.pipeline-item.active {
-  border-left-color: var(--color-brand);
-  background: var(--surface-high);
-}
-.pipeline-select {
-  min-width: 0;
-  flex: 1;
-  padding: 0;
-  border: 0;
-  display: flex;
-  align-items: flex-start;
-  gap: 0.625rem;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.pipeline-select:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: 3px;
-  border-radius: var(--radius-4);
-}
-.status-bead {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius);
-  flex-shrink: 0;
-  margin-top: 0.375rem;
-}
-.bead--pending {
-  background: var(--text-secondary);
-}
-.bead--active {
-  background: var(--amber);
-}
-.bead--completed {
-  background: var(--sage);
-}
-.bead--abandoned,
-.bead--stuck {
-  background: var(--terracotta);
-}
-.bead--ready,
-.bead--paused {
-  background: var(--sage);
-}
-.bead--cancelled {
-  background: var(--text-secondary);
-}
-.pipeline-meta {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  min-width: 0;
-}
-.pipeline-id {
-  font-weight: var(--weight-display);
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.pipeline-progress {
-  font-size: var(--text-xs);
-  color: var(--text-secondary);
-}
-.progress-bar {
-  height: 3px;
-  border-radius: var(--radius-4);
-  background: var(--color-bg-app);
-  overflow: hidden;
-}
-.progress-fill {
-  height: 100%;
-  border-radius: var(--radius-4);
-  background: var(--color-brand);
-  transition: width 0.3s ease;
-}
-.pipeline-side {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.375rem;
-  min-width: 0;
-}
-.pipeline-status {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-display);
-}
-.status-text--pending {
-  color: var(--color-status-pending);
-}
-.status-text--active {
-  color: var(--color-status-active);
-}
-.status-text--completed {
-  color: var(--color-status-completed);
-}
-.status-text--abandoned {
-  color: var(--color-status-abandoned);
-}
-.status-text--stuck {
-  color: var(--color-status-stuck);
-}
-.status-text--ready,
-.status-text--paused {
-  color: var(--color-status-ready);
-}
-.status-text--cancelled {
-  color: var(--color-status-abandoned);
-}
-.delete-btn {
-  line-height: 1;
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.pipeline-item:hover .delete-btn,
-.pipeline-item:focus-within .delete-btn {
-  opacity: 1;
-}
-</style>

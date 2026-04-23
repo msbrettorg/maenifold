@@ -162,14 +162,14 @@ onBeforeUnmount(() => {
       </Button>
     </div>
     <div
-      class="pipeline-grid relative min-h-0 flex-1 overflow-hidden bg-[var(--surface)]"
-      :class="{
-        'grid-empty': showTemplateGallery,
-        'runner-expanded': runnerExpanded,
-        'mobile-sidebar-open': mobileSidebarOpen,
-      }"
+      class="relative min-h-0 flex-1 overflow-hidden bg-[var(--surface)] grid grid-cols-[48px_minmax(0,1fr)] [transition:grid-template-rows_0.25s_ease] max-[900px]:grid-cols-[minmax(0,1fr)]"
+      :class="[
+        showTemplateGallery
+          ? 'grid-rows-[minmax(0,1fr)] [grid-template-areas:\'rail_composer\'] max-[900px]:[grid-template-areas:\'composer\']'
+          : 'grid-rows-[minmax(0,1fr)_auto] [grid-template-areas:\'rail_composer\'_\'rail_runner\'] max-[900px]:[grid-template-areas:\'composer\'_\'runner\']',
+      ]"
     >
-      <section v-if="!isNarrowViewport" class="rail-panel relative z-[12] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section v-if="!isNarrowViewport" class="[grid-area:rail] relative z-[12] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
         <PipelineIconRail
           ref="iconRailRef"
           :active-pipeline-label="activePipelineLabel"
@@ -179,10 +179,14 @@ onBeforeUnmount(() => {
           @new-pipeline="handleNewPipeline"
         />
       </section>
-      <section v-if="isNarrowViewport" class="sidebar-panel min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section
+        v-if="isNarrowViewport"
+        class="[grid-area:rail] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)] max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:right-auto max-[900px]:w-[min(var(--sidebar-width),88vw)] max-[900px]:[transition:transform_0.2s_ease] max-[900px]:shadow-[var(--shadow-16)] max-[900px]:z-20"
+        :class="mobileSidebarOpen ? 'max-[900px]:[transform:translateX(0)]' : 'max-[900px]:[transform:translateX(-100%)]'"
+      >
         <PipelineSidebar />
       </section>
-      <section class="composer-panel relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section class="[grid-area:composer] relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
         <div v-if="isNarrowViewport" class="pointer-events-none absolute left-3 right-3 top-3 z-[8] flex gap-2">
           <Button type="button" variant="outline" size="sm" class="pointer-events-auto min-h-11 min-w-11 cursor-pointer rounded-[var(--radius-4)] bg-[var(--surface-container)] px-3.5 py-2 text-[var(--text)] text-[length:var(--text-sm)] shadow-[var(--shadow-16)] disabled:cursor-not-allowed disabled:opacity-50" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
@@ -224,7 +228,11 @@ onBeforeUnmount(() => {
           />
         </Transition>
       </section>
-      <section v-if="!showTemplateGallery" class="runner-panel relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section
+        v-if="!showTemplateGallery"
+        class="[grid-area:runner] relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)] [transition:max-height_0.25s_ease]"
+        :class="runnerExpanded ? 'max-h-[50vh]' : 'max-h-9'"
+      >
         <div class="absolute right-3 top-3 z-[5] flex items-center gap-2">
           <Button v-if="hasLoadedPipeline && runnerExpanded" type="button" :disabled="graftSubmitting" @click="graftDialogOpen = true">
             Graft nodes
@@ -266,30 +274,3 @@ onBeforeUnmount(() => {
     <SemanticZoomOverlay />
   </div>
 </template>
-
-<style scoped>
-.pipeline-grid {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) auto;
-  grid-template-areas: 'rail composer' 'rail runner';
-  transition: grid-template-rows 0.25s ease;
-}
-.pipeline-grid.grid-empty { grid-template-rows: minmax(0, 1fr); grid-template-areas: 'rail composer'; }
-.pipeline-grid.runner-expanded .runner-panel { max-height: 50vh; }
-.pipeline-grid.grid-empty .runner-panel { display: none; }
-.rail-panel, .sidebar-panel { grid-area: rail; }
-.composer-panel { grid-area: composer; }
-.runner-panel { grid-area: runner; max-height: 36px; transition: max-height 0.25s ease; }
-@media (max-width: 900px) {
-  .pipeline-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'composer' 'runner'; }
-  .pipeline-grid.grid-empty { grid-template-areas: 'composer'; }
-  .sidebar-panel {
-    position: absolute; inset: 0 auto 0 0;
-    width: min(var(--sidebar-width), 88vw);
-    transform: translateX(-100%); transition: transform 0.2s ease;
-    box-shadow: var(--shadow-16); z-index: 20;
-  }
-  .pipeline-grid.mobile-sidebar-open .sidebar-panel { transform: translateX(0); }
-}
-</style>

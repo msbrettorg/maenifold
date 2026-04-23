@@ -94,7 +94,7 @@ const showAbandon = computed(() => {
 <template>
   <ContextMenuContent
     v-if="mode === 'design' || target === 'node' || hasServerCanvasActions"
-    class="composer-context-menu"
+    class="min-w-[220px]"
     :side-offset="8"
     align="start"
     @close-auto-focus.prevent
@@ -141,9 +141,3 @@ const showAbandon = computed(() => {
       />
   </ContextMenuContent>
 </template>
-
-<style scoped>
-.composer-context-menu {
-  min-width: 220px;
-}
-</style>

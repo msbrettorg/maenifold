@@ -39,6 +39,7 @@ const direction = computed<'LR' | 'TB'>(() => props.direction ?? injectedDirecti
   </div>
 </template>
 
+<!-- audit-ok: deep-third-party — :deep() rules restyle Vue Flow's internal handle markup; not expressible as Tailwind utilities applied to template elements. -->
 <style scoped>
 .pipeline-node-ports :deep(.vue-flow__handle) {
   width: 12px;

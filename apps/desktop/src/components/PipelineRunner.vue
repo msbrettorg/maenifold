@@ -118,8 +118,11 @@ function formatLogEntry(entry: LogEntry) {
 </script>
 
 <template>
-  <section class="runner-panel" :class="{ 'runner-panel--collapsed': props.collapsed }">
-    <div class="status-line">
+  <section
+    class="flex flex-col bg-[var(--surface)]"
+    :class="props.collapsed ? 'min-h-0' : 'min-h-[260px]'"
+  >
+    <div class="flex items-center gap-2 px-4 py-3 bg-[var(--surface-container)] text-[var(--text-secondary)] text-[length:var(--text-base)]">
       <component
         :is="iconFor(currentView?.status ?? 'pending')"
         class="size-3.5"
@@ -130,55 +133,15 @@ function formatLogEntry(entry: LogEntry) {
 
     <ScrollArea
       v-show="!props.collapsed"
-      class="tab-panel log-panel"
+      class="flex-1 min-h-0 bg-[var(--surface-container)]"
       aria-live="polite"
       aria-label="Event log"
     >
-      <div class="log-panel-inner">
-        <p v-if="formattedLog.length === 0" class="empty-state">No events yet.</p>
-        <pre v-else class="log-lines"><code>{{ formattedLog.join('\n') }}</code></pre>
+      <div class="min-h-full p-4">
+        <p v-if="formattedLog.length === 0" class="text-[var(--text-secondary)]">No events yet.</p>
+        <pre v-else class="m-0 whitespace-pre-wrap break-words [font-family:var(--font-code)] text-[length:var(--text-sm)] text-[var(--text)]"><code>{{ formattedLog.join('\n') }}</code></pre>
         <div ref="logAnchor" />
       </div>
     </ScrollArea>
   </section>
 </template>
-
-<style scoped>
-.runner-panel {
-  display: flex;
-  flex-direction: column;
-  min-height: 260px;
-  background: var(--surface);
-}
-.runner-panel--collapsed {
-  min-height: 0;
-}
-.status-line {
-  padding: 0.75rem 1rem;
-  color: var(--text-secondary);
-  font-size: var(--text-base);
-  background: var(--surface-container);
-}
-.tab-panel {
-  flex: 1;
-  min-height: 0;
-}
-.log-panel {
-  background: var(--surface-container);
-}
-.log-panel-inner {
-  min-height: 100%;
-  padding: 1rem;
-}
-.log-lines {
-  margin: 0;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--font-code);
-  font-size: var(--text-sm);
-  color: var(--text);
-}
-.empty-state {
-  color: var(--text-secondary);
-}
-</style>

@@ -43,7 +43,7 @@ const indicatorColor = computed(() =>
   <EdgeLabelRenderer v-if="label">
     <!-- audit-ok: dynamic-binding (computed transform for edge label positioning along SVG path) -->
     <div
-      class="edge-condition-label"
+      class="absolute py-[0.15rem] px-[0.35rem] rounded-[var(--radius-4)] bg-[var(--surface-high)] text-[var(--text)] text-[length:var(--text-xs)] leading-[1.2] pointer-events-none max-w-[18ch] whitespace-nowrap overflow-hidden text-ellipsis"
       :style="{ transform: `translate(-50%, -50%) translate(${pathMemo.x}px, ${pathMemo.y}px)` }"
       :title="labelTitle ?? undefined"
     >
@@ -52,12 +52,19 @@ const indicatorColor = computed(() =>
   </EdgeLabelRenderer>
 
   <EdgeLabelRenderer v-if="indicator">
-    <!-- audit-ok: dynamic-binding (computed transform + CSS custom property for edge indicator) -->
+    <!-- audit-ok: dynamic-binding (computed transform + CSS custom property + color-mix backgrounds for edge indicator) -->
     <div
-      :class="['edge-indicator', `edge-indicator--${indicator}`]"
+      class="absolute grid place-items-center w-[1.4rem] h-[1.4rem] rounded-[var(--radius-4)] text-[length:var(--text-sm)] [font-weight:var(--weight-title)] shadow-[var(--shadow-8)] pointer-events-none"
       :style="{
         transform: `translate(-50%, -50%) translate(${pathMemo.x}px, ${pathMemo.y}px)`,
         '--edge-indicator-accent': indicatorColor,
+        background: indicator === 'mapped' || indicator === 'warning'
+          ? 'color-mix(in srgb, var(--color-bg-app) 82%, var(--edge-indicator-accent) 18%)'
+          : 'color-mix(in srgb, var(--color-bg-app) 92%, var(--surface-high) 8%)',
+        borderColor: indicator === 'warning' ? 'var(--edge-indicator-accent)' : undefined,
+        color: indicator === 'warning'
+          ? 'color-mix(in srgb, var(--edge-indicator-accent) 72%, var(--color-text-primary))'
+          : 'var(--color-text-primary)',
       }"
       :title="tooltip"
     >
@@ -65,45 +72,3 @@ const indicatorColor = computed(() =>
     </div>
   </EdgeLabelRenderer>
 </template>
-
-<style scoped>
-.edge-indicator {
-  position: absolute;
-  display: grid;
-  place-items: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: var(--radius-4);
-  background: color-mix(in srgb, var(--color-bg-app) 92%, var(--surface-high) 8%);
-  color: var(--color-text-primary);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
-  box-shadow: var(--shadow-8);
-  pointer-events: none;
-}
-
-.edge-indicator--mapped,
-.edge-indicator--warning {
-  background: color-mix(in srgb, var(--color-bg-app) 82%, var(--edge-indicator-accent) 18%);
-}
-
-.edge-indicator--warning {
-  border-color: var(--edge-indicator-accent);
-  color: color-mix(in srgb, var(--edge-indicator-accent) 72%, var(--color-text-primary));
-}
-
-.edge-condition-label {
-  position: absolute;
-  padding: 0.15rem 0.35rem;
-  border-radius: var(--radius-4);
-  background: var(--surface-high);
-  color: var(--text);
-  font-size: var(--text-xs);
-  line-height: 1.2;
-  pointer-events: none;
-  max-width: 18ch;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-</style>

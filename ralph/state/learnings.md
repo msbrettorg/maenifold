@@ -3,6 +3,40 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-23 — Session: Full maenifold-core LOC + unwrap compliance (T-01.8–T-01.18)
+
+### What worked
+- **Parallel SWE dispatch via git worktrees** is the key scaling technique. 3 SWEs simultaneously across api/, mcp/, tools/ — zero conflicts, zero coordination overhead.
+- **Wave pattern** (dispatch SWEs → merge → blue-team → gate pass → next wave) keeps throughput high. 4 waves completed in one session.
+- **claude-opus-4.7 SWEs** reliably execute file splits with precise prompts containing exact line numbers and structure analysis. 100% first-attempt success rate across 10 tasks.
+- **Near-threshold files** (301-425 LOC) mostly just need test extraction via `#[cfg(test)] #[path = "..._tests.rs"] mod tests;` — fastest pattern.
+- **Batched blue-team verification** (3 tasks per blue-team dispatch) is efficient and catches real issues (Path import bug).
+
+### Patterns
+- SWE worktree + branch lifecycle: `git worktree add worktrees/T-XX -b task/T-XX` → SWE works → `git add -A && git commit` → PM merges → `git worktree remove` → `git branch -d`
+- When merging multiple branches touching the same `mod.rs`, git auto-merges adjacent `mod` declarations cleanly (~95% of the time)
+- Files that get split often leave unused imports in the parent — check for `unused_imports` errors after merge
+- `#[path]` attribute is needed when test files reference types via `super::` that moved during splits
+- `memory/` directory was in `.gitignore` causing `git add` failures — use `git add -f` for new files there
+- SWEs sometimes create files in the worktree but fail to `git add` them before commit — always check `git status --short` for untracked `??` files after SWE completion
+
+### Delivered
+- T-01.8: api/ splits (acp_relay 1112→6 files, routes 1002→5 files, graph 426→2 files)
+- T-01.9: mcp/ splits (resources 860→5 files, pipeline schemas, mod)
+- T-01.10: tools/ splits (embedding_models, recent_activity, sessions)
+- T-01.11: pipeline batch 1 (executor_run, handler_crud, types_wire, external_mcp)
+- T-01.12: pipeline batch 2 (handler_lifecycle, session_write, executor_nodes, view_nodes)
+- T-01.13: pipeline batch 3 (types, handler_surgery_fork, executor_retry, executor)
+- T-01.14: pipeline test files (4 test files → 11)
+- T-01.15: workflow non-pipeline (submachine 847→5 files, runner, think_runner, agent_session)
+- T-01.16: other modules (acp/config 717→5 files, graph/preview, graph/analyzer, assets/manager)
+- T-01.17: 10 near-threshold files (tray, wikilinks, handler, access, session, etc.)
+- T-01.18: 30 no-unwrap violations across 8 files
+
+### Result
+81 → 0 violations. `make audit-crates` passes clean.
+
+
 ## 2026-04-22 — Sprint 1 Gate LOC Compliance (T-01.3 through T-01.7)
 
 ### What worked

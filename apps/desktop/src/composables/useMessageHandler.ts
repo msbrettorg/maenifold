@@ -218,57 +218,71 @@ export function useMessageHandler({
     text: string,
     attachments: ContentBlock[] = [],
   ): Promise<void> {
-    const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
-    await renameSessionFromFirstPrompt(session, text);
-
-    const prompt = [
-      { type: 'text', text } as const,
-      ...attachments.map((attachment) => cloneContentBlock(attachment)),
-    ];
-
-    // Add user message
-    session.messages.push({
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: text,
-      blocks: prompt.map((block) => cloneContentBlock(block)),
-      timestamp: Date.now(),
-    });
-
-    session.isLoading = true;
+    let activeSession: SessionState | null = null;
     try {
-      const response = await bridge.prompt({
-        sessionId: session.session.sessionId,
-        prompt,
+      const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
+      activeSession = session;
+      await renameSessionFromFirstPrompt(session, text);
+
+      const prompt = [
+        { type: 'text', text } as const,
+        ...attachments.map((attachment) => cloneContentBlock(attachment)),
+      ];
+
+      // Add user message
+      session.messages.push({
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: text,
+        blocks: prompt.map((block) => cloneContentBlock(block)),
+        timestamp: Date.now(),
       });
 
+      session.isLoading = true;
+      try {
+        const response = await bridge.prompt({
+          sessionId: session.session.sessionId,
+          prompt,
+        });
+
+        if (import.meta.env.DEV) {
+          console.log('Prompt completed:', response.stopReason); // audit-ok: no-console
+        }
+
+        switch (response.stopReason) {
+          case 'refusal':
+            session.error = 'The agent refused this request.';
+            break;
+          case 'max_tokens':
+            pushSystemMessage(session, 'Response was truncated due to token limits.');
+            break;
+          case 'max_turn_requests':
+            pushSystemMessage(session, 'Turn limit reached.');
+            break;
+          case 'end_turn':
+          case 'cancelled':
+          default:
+            break;
+        }
+
+        // Track prompt sent
+        trackEvent('PromptSent', {
+          messageLength: String(text.length),
+          stopReason: response.stopReason || 'unknown',
+        });
+      } finally {
+        session.isLoading = false;
+      }
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
       if (import.meta.env.DEV) {
-        console.log('Prompt completed:', response.stopReason); // audit-ok: no-console
+        console.error('sendPrompt failed:', err); // audit-ok: no-console
       }
-
-      switch (response.stopReason) {
-        case 'refusal':
-          session.error = 'The agent refused this request.';
-          break;
-        case 'max_tokens':
-          pushSystemMessage(session, 'Response was truncated due to token limits.');
-          break;
-        case 'max_turn_requests':
-          pushSystemMessage(session, 'Turn limit reached.');
-          break;
-        case 'end_turn':
-        case 'cancelled':
-        default:
-          break;
+      if (activeSession) {
+        activeSession.error = errorMessage;
+        pushSystemMessage(activeSession, errorMessage);
       }
-
-      // Track prompt sent
-      trackEvent('PromptSent', {
-        messageLength: String(text.length),
-        stopReason: response.stopReason || 'unknown',
-      });
-    } finally {
-      session.isLoading = false;
+      // Do NOT re-throw — the UI surfaces the error via session state.
     }
   }
 

@@ -73,11 +73,27 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     });
   }
 
+  let activeAbortController: AbortController | null = null;
+
+  function cancelInflightRefresh(): void {
+    if (activeAbortController) {
+      activeAbortController.abort();
+      activeAbortController = null;
+    }
+  }
+
   async function refreshTools(): Promise<McpServerDiscoveryResult[]> {
+    // Cancel any in-flight refresh before issuing a new one.
+    cancelInflightRefresh();
+    const controller = new AbortController();
+    activeAbortController = controller;
+
     loading.value = true;
     error.value = null;
     try {
-      const response = await fetch(`${DAEMON_BASE_URL}/api/discovery/mcp-tools`);
+      const response = await fetch(`${DAEMON_BASE_URL}/api/discovery/mcp-tools`, {
+        signal: controller.signal,
+      });
       if (!response.ok) {
         throw new Error(`Failed to discover MCP tools: HTTP ${response.status}`);
       }
@@ -87,11 +103,18 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       hasLoadedCatalog.value = true;
       return serverResults.value;
     } catch (cause) {
+      if (cause instanceof DOMException && cause.name === 'AbortError') {
+        // Aborted refreshes are expected on unmount/cancel; do not surface as errors.
+        return serverResults.value;
+      }
       const message = getErrorMessage(cause);
       error.value = message;
       toast.warning(message);
       return serverResults.value;
     } finally {
+      if (activeAbortController === controller) {
+        activeAbortController = null;
+      }
       loading.value = false;
     }
   }
@@ -106,5 +129,6 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     error,
     hasLoadedCatalog,
     refreshTools,
+    cancelInflightRefresh,
   };
 });

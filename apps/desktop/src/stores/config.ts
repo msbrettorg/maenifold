@@ -86,25 +86,46 @@ export const useConfigStore = defineStore('config', () => {
 
     const source = new EventSource(`${DAEMON_BASE_URL}/api/config/watch`);
     source.addEventListener('config-changed', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
-      config.value = payload.config;
-      configPath.value = payload.path ?? configPath.value;
-      error.value = null;
-      if (import.meta.env.DEV) {
-        console.log('Config hot-reloaded:', payload.config); // audit-ok: no-console
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
+        config.value = payload.config;
+        configPath.value = payload.path ?? configPath.value;
+        error.value = null;
+        if (import.meta.env.DEV) {
+          console.log('Config hot-reloaded:', payload.config); // audit-ok: no-console
+        }
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse config-changed payload:', e); // audit-ok: no-console
+        }
+        return;
       }
     });
     source.addEventListener('config-error', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-      const message = payload.message ?? 'Config reload failed';
-      error.value = message;
-      toast.warning(message);
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+        const message = payload.message ?? 'Config reload failed';
+        error.value = message;
+        toast.warning(message);
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse config-error payload:', e); // audit-ok: no-console
+        }
+        return;
+      }
     });
     source.addEventListener('watch-error', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-      const message = payload.message ?? 'Config watch failed';
-      error.value = message;
-      toast.warning(message);
+      try {
+        const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+        const message = payload.message ?? 'Config watch failed';
+        error.value = message;
+        toast.warning(message);
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error('Failed to parse watch-error payload:', e); // audit-ok: no-console
+        }
+        return;
+      }
     });
     source.onerror = () => {
       const message = error.value ?? 'Config watch connection lost';

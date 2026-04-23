@@ -138,18 +138,18 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 </script>
 
 <template>
-  <div class="pipeline-composer" role="application" aria-label="Pipeline canvas" @keydown="handleFlowKeyDown">
+  <div class="pipeline-composer relative w-full h-full min-h-[400px]" role="application" aria-label="Pipeline canvas" @keydown="handleFlowKeyDown">
     <!-- audit-ok: dynamic-binding (computed grid layout based on resizable palette/inspector widths) -->
-    <div class="composer-layout" :style="composerLayoutStyle">
-      <section v-if="showPalettePanel" class="composer-palette">
+    <div class="grid w-full h-full min-h-0" :style="composerLayoutStyle">
+      <section v-if="showPalettePanel" class="relative w-full h-full min-w-0 min-h-0">
         <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
         <!-- audit-ok: dynamic-binding (resize handle position tracks palette width) -->
-        <div class="composer-palette-resize" :style="{ left: `${paletteResize.width.value}px` }" @mousedown="paletteResize.startResize($event, 'right')" />
+        <div class="absolute top-0 bottom-0 w-[10px] -ml-[5px] cursor-col-resize z-[6]" :style="{ left: `${paletteResize.width.value}px` }" @mousedown="paletteResize.startResize($event, 'right')" />
       </section>
 
       <ContextMenu @update:open="handleContextMenuOpenChange">
         <ContextMenuTrigger as-child :disabled="!contextMenuEnabled">
-          <section class="composer-canvas" @contextmenu.capture="handleComposerContextMenu">
+          <section class="relative w-full h-full min-w-0 min-h-0" @contextmenu.capture="handleComposerContextMenu">
             <PipelineComposerToolbar
               :design-mode="designMode"
               :has-selection="hasSelection"
@@ -171,14 +171,14 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
                   v-if="paletteAsOverlay"
                  side="left"
                  :show-close-button="false"
-                  class="composer-palette-sheet w-[min(360px,88vw)] border-0 p-0 sm:max-w-[360px]"
+                  class="w-[min(360px,88vw)] border-0 p-0 sm:max-w-[360px] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-16)]"
                >
                   <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
                     <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--text)]">Add node</SheetTitle>
                    <Button type="button" variant="ghost" size="sm" class="h-8 rounded-[4px] px-2 text-xs" @click="closePalette">Close</Button>
                  </SheetHeader>
                  <ScrollArea class="h-[calc(100vh-4.5rem)]">
-                   <div class="composer-palette-sheet-body">
+                   <div class="min-h-0 pb-4">
                      <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
                    </div>
                  </ScrollArea>
@@ -202,16 +202,16 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
               :elements-selectable="true"
               :delete-key-code="designMode ? 'Backspace' : null"
               :fit-view-on-init="designMode"
-              class="pipeline-flow"
+              class="w-full h-full min-h-0"
             >
                <Background :color="'var(--surface-high)'" />
               <Controls :show-interactive="designMode" />
                <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--color-bg-app) 75%, transparent)'" />
             </VueFlow>
 
-            <div v-if="showEmptyState" class="composer-empty-state">
+            <div v-if="showEmptyState" class="absolute inset-0 grid place-items-center content-center gap-1 p-4 text-[var(--color-text-secondary)] text-[length:var(--text-sm)] text-center pointer-events-none">
               <span>{{ designMode ? 'Add nodes using the form or right-click the canvas' : 'Add your first node' }}</span>
-              <span v-if="!designMode" class="composer-empty-state-arrow" aria-hidden="true">↖</span>
+              <span v-if="!designMode" class="text-[length:var(--text-2xl)] leading-none text-[var(--color-text-secondary)]" aria-hidden="true">↖</span>
             </div>
           </section>
         </ContextMenuTrigger>
@@ -253,23 +253,11 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
   </div>
 </template>
 
+<!-- audit-ok: deep-third-party — :deep() rules below restyle Vue Flow's internal Controls/MiniMap markup (rendered outside this template); not expressible as Tailwind utilities applied to template elements. -->
 <style scoped>
-.pipeline-composer, .composer-layout, .composer-palette, .composer-canvas, .pipeline-flow { width: 100%; height: 100%; min-height: 0; }
-.pipeline-composer { min-height: 400px; position: relative; }
-.composer-layout { display: grid; }
-.composer-palette, .composer-canvas { position: relative; min-width: 0; }
-.composer-palette-resize { position: absolute; top: 0; bottom: 0; width: 10px; margin-left: -5px; cursor: col-resize; z-index: 6; }
-.composer-palette-sheet-body { min-height: 0; padding: 0 0 1rem; }
-.composer-palette-sheet {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-16);
-}
 .pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--color-text-primary); border: none; }
 .pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--color-bg-surface); }
 .pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
 .pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
-.composer-empty-state { position: absolute; inset: 0; display: grid; place-items: center; align-content: center; gap: 0.25rem; padding: 1rem; color: var(--color-text-secondary); font-size: var(--text-sm); text-align: center; pointer-events: none; }
-.composer-empty-state-arrow { font-size: var(--text-2xl); line-height: 1; color: var(--color-text-secondary); }
 </style>

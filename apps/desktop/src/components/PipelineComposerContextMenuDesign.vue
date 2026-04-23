@@ -56,12 +56,12 @@ function handleTool(toolName: string) {
       <ContextMenuSubTrigger :disabled="toolGroups.length === 0">
         <span>Run a tool…</span>
       </ContextMenuSubTrigger>
-      <ContextMenuSubContent class="composer-context-menu__submenu-panel">
+      <ContextMenuSubContent class="min-w-[240px] max-h-[min(420px,70vh)] overflow-auto">
         <template v-for="(group, index) in toolGroups" :key="group.server">
           <ContextMenuSub>
             <ContextMenuSubTrigger>
-              <span class="composer-context-menu__server-name">{{ group.server }}</span>
-              <span class="composer-context-menu__tool-count">{{ group.tools.length }}</span>
+              <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ group.server }}</span>
+              <span class="shrink-0 px-[0.45rem] py-[0.1rem] rounded-[var(--radius-4)] bg-[var(--color-border-card)] text-[var(--text-secondary)] text-[length:var(--text-xs)] font-[var(--weight-display)] leading-[1.3]">{{ group.tools.length }}</span>
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               <ContextMenuItem
@@ -91,9 +91,3 @@ function handleTool(toolName: string) {
     <ContextMenuItem @select="handleAction(() => emit('disconnect-edges'))">Disconnect all edges</ContextMenuItem>
   </template>
 </template>
-
-<style scoped>
-.composer-context-menu__submenu-panel { min-width: 240px; max-height: min(420px, 70vh); overflow: auto; }
-.composer-context-menu__server-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.composer-context-menu__tool-count { flex-shrink: 0; padding: 0.1rem 0.45rem; border-radius: var(--radius-4); background: var(--color-border-card); color: var(--text-secondary); font-size: var(--text-xs); font-weight: var(--weight-display); line-height: 1.3; }
-</style>

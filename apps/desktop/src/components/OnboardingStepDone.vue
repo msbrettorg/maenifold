@@ -3,6 +3,7 @@ import { computed, inject, onUnmounted, ref, type Ref } from 'vue';
 import { Check, ExternalLink, Sparkles } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
+import { Button } from '@/components/ui/button';
 import { useConfigStore } from '../stores/config';
 
 const goBack = inject<() => void>('onboarding-go-back');
@@ -151,33 +152,35 @@ onUnmounted(() => {
     </div>
 
     <div class="relative flex items-center justify-between gap-3 pt-2">
-      <button
+      <Button
         type="button"
+        variant="outline"
         :disabled="finishing"
-        class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50"
         @click="onBack"
       >
         ← Back
-      </button>
+      </Button>
 
       <div class="flex items-center gap-3">
-        <button
+        <Button
           type="button"
-          class="flex items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+          variant="ghost"
+          size="sm"
           @click="onOpenDocs"
         >
           <span>Read documentation</span>
           <ExternalLink class="h-3.5 w-3.5" />
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="default"
+          size="lg"
           :disabled="finishing"
-          class="rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           @click="onFinish"
         >
           {{ finishing ? 'Checking…' : 'Start using maenifold' }}
-        </button>
+        </Button>
       </div>
     </div>
   </div>

@@ -152,7 +152,8 @@ onUnmounted(() => {
         <code class="truncate">{{ command }}</code>
         <Button
           type="button"
-          class="flex shrink-0 items-center gap-1.5 rounded-md border border-border-subtle bg-bg-elevated px-2 py-1 font-sans text-xs text-text-secondary transition-colors hover:bg-bg-surface"
+          variant="outline"
+          size="xs"
           @click="onCopy"
         >
           <template v-if="copied">
@@ -162,7 +163,7 @@ onUnmounted(() => {
             <ClipboardCopy class="h-3.5 w-3.5" />
             <span>Copy</span>
           </template>
-        </button>
+        </Button>
       </div>
     </div>
 
@@ -179,33 +180,34 @@ onUnmounted(() => {
     </div>
 
     <div class="flex items-center justify-between gap-3 pt-2">
-      <button
+      <Button
         type="button"
-        class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated"
+        variant="outline"
         @click="onBack"
       >
         ← Back
-      </button>
+      </Button>
 
       <div class="flex items-center gap-2">
-        <button
+        <Button
           v-if="state !== 'connected'"
           type="button"
+          variant="outline"
           :disabled="state === 'checking'"
-          class="rounded-lg border border-border-subtle bg-bg-surface px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated disabled:cursor-not-allowed disabled:opacity-50"
           @click="onCheckConnection"
         >
           Check connection
-        </button>
+        </Button>
 
-        <button
+        <Button
           type="button"
+          variant="default"
+          size="lg"
           :disabled="state !== 'connected'"
-          class="rounded-lg border-none bg-brand px-6 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-50"
           @click="onContinue"
         >
           Continue →
-        </button>
+        </Button>
       </div>
     </div>
   </div>

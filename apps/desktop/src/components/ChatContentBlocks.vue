@@ -77,6 +77,24 @@ function getResourceUri(block: ContentBlock): string {
   return block.type === 'resource' ? block.resource.uri : '';
 }
 
+function sanitizeUri(uri: string | undefined): string | undefined {
+  if (!uri) return undefined;
+  try {
+    const url = new URL(uri);
+    if (['http:', 'https:', 'memory:'].includes(url.protocol)) return uri;
+    return undefined;
+  } catch {
+    // Relative URIs or malformed — block them
+    return undefined;
+  }
+}
+
+function onResourceLinkClick(event: MouseEvent, uri: string | undefined): void {
+  if (!sanitizeUri(uri)) {
+    event.preventDefault();
+  }
+}
+
 function getResourceBody(block: ContentBlock): string {
   if (block.type !== 'resource') return '';
   return 'text' in block.resource ? block.resource.text : block.resource.blob;
@@ -124,10 +142,11 @@ function getBlockAriaLabel(block: ContentBlock): string {
     <a
       v-else-if="block.type === 'resource_link'"
       class="resource-link-chip inline-flex items-start gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-bg-surface text-brand text-sm font-medium no-underline hover:underline"
-      :href="block.uri"
+      :href="sanitizeUri(block.uri)"
       target="_blank"
       rel="noreferrer noopener"
       :title="getResourceLinkTooltip(block) || undefined"
+      @click="onResourceLinkClick($event, block.uri)"
     >
       <span class="flex flex-col gap-0.5 min-w-0">
         <span class="leading-tight">{{ getResourceLinkLabel(block) }}</span>

@@ -113,33 +113,33 @@ function formatAbsolute(iso: string): string {
 <template>
   <!-- audit-ok: dynamic-binding (border color reflects node status) -->
   <div
-    class="workflow-node-card"
+    class="workflow-node-card w-80 rounded-[var(--radius)] border-l-[3px] border-l-[var(--color-status-active)] py-3.5 px-4 flex flex-col gap-2"
     role="listitem"
     :style="{ borderLeftColor: borderColor }"
   >
     <!-- ── Header ── -->
-    <div class="card-header">
-      <div class="header-left">
-        <component :is="workflowIcon" class="workflow-emoji size-4" :stroke-width="1.5" />
-        <div class="header-titles">
-          <span class="workflow-name">{{ node.workflowName || node.workflowId }}</span>
-          <span class="session-id" :title="node.sessionId">{{ shortSessionId }}</span>
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex items-center gap-2 min-w-0">
+        <component :is="workflowIcon" class="workflow-emoji size-4 shrink-0" :stroke-width="1.5" />
+        <div class="flex flex-col min-w-0">
+          <span class="workflow-name [font-weight:var(--weight-title)] text-[length:var(--text-caption)] whitespace-nowrap overflow-hidden text-ellipsis">{{ node.workflowName || node.workflowId }}</span>
+          <span class="session-id [font-family:var(--font-code)] text-[length:var(--text-tiny)] whitespace-nowrap" :title="node.sessionId">{{ shortSessionId }}</span>
         </div>
       </div>
-      <component :is="statusIcon(node.status)" class="status-badge size-4" :stroke-width="1.5" :title="node.status" />
+      <component :is="statusIcon(node.status)" class="status-badge size-4 shrink-0" :stroke-width="1.5" :title="node.status" />
     </div>
 
     <!-- ── Progress bar ── -->
-    <div class="progress-track" :title="`${completedSteps}/${totalSteps} steps`">
+    <div class="h-1 rounded bg-[color-mix(in_srgb,var(--color-bg-surface)_72%,var(--color-bg-app))] overflow-hidden" :title="`${completedSteps}/${totalSteps} steps`">
       <!-- audit-ok: dynamic-binding (progress bar width computed from runtime state) -->
-      <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
+      <div class="h-full bg-[var(--color-status-completed)] rounded transition-[width] duration-300 ease-in-out" :style="{ width: `${progressPercent}%` }" />
     </div>
-    <div class="progress-label">
+    <div class="text-[length:var(--text-tiny)] text-right -mt-1">
       {{ completedSteps }}/{{ totalSteps }} steps
     </div>
 
     <!-- ── Step list ── -->
-    <ul class="step-list">
+    <ul class="list-none p-0 m-0 flex flex-col gap-0">
       <WorkflowStepDetail
         v-for="step in node.steps"
         :key="step.stepNumber"
@@ -150,141 +150,50 @@ function formatAbsolute(iso: string): string {
     </ul>
 
     <!-- ── Timing footer ── -->
-    <div class="card-footer">
-      <span class="timing-item">
-        <span class="timing-label">Started</span>
-        <span class="timing-value">{{ startedFormatted }}</span>
+    <div class="flex gap-4 pt-1.5 border-t border-t-[var(--workflow-card-divider)]">
+      <span class="flex flex-col gap-0.5">
+        <span class="text-[length:var(--text-tiny)] tracking-[0.05em]">Started</span>
+        <span class="text-[length:var(--text-tiny)]">{{ startedFormatted }}</span>
       </span>
-      <span v-if="durationFormatted" class="timing-item">
-        <span class="timing-label">Duration</span>
-        <span class="timing-value">{{ durationFormatted }}</span>
+      <span v-if="durationFormatted" class="flex flex-col gap-0.5">
+        <span class="text-[length:var(--text-tiny)] tracking-[0.05em]">Duration</span>
+        <span class="text-[length:var(--text-tiny)]">{{ durationFormatted }}</span>
       </span>
     </div>
   </div>
 </template>
 
+<!-- audit-ok: dynamic-binding (color-mix custom properties used throughout card) -->
 <style scoped>
-/* ── Card shell ─────────────────────────────────────────────────────────────── */
 .workflow-node-card {
   --workflow-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
   --workflow-card-heading: color-mix(in srgb, var(--color-text-primary) 92%, var(--color-node-workflow));
   --workflow-card-muted: color-mix(in srgb, var(--color-text-primary) 54%, var(--color-text-secondary));
   --workflow-card-subtle: color-mix(in srgb, var(--color-text-primary) 40%, var(--color-text-secondary));
   --workflow-card-divider: color-mix(in srgb, var(--color-border-subtle) 30%, var(--color-bg-surface));
-  width: 320px;
   background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
-  border-radius: var(--radius);
-  border-left: 3px solid var(--color-status-active);
-  padding: 0.875rem 1rem;
   color: var(--workflow-card-text);
-  font-size: var(--text-caption);
   box-shadow: var(--shadow-8);
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-/* ── Header ─────────────────────────────────────────────────────────────────── */
-.card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-width: 0;
 }
 
 .workflow-emoji {
   color: var(--workflow-card-muted);
-  flex-shrink: 0;
-}
-
-.header-titles {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
 }
 
 .workflow-name {
-  font-weight: var(--weight-title);
-  font-size: var(--text-caption);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   color: var(--workflow-card-heading);
 }
 
-.session-id {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  color: var(--workflow-card-muted);
-  white-space: nowrap;
-}
-
+.session-id,
 .status-badge {
   color: var(--workflow-card-muted);
-  flex-shrink: 0;
 }
 
-/* ── Progress bar ───────────────────────────────────────────────────────────── */
-.progress-track {
-  height: 4px;
-  background: color-mix(in srgb, var(--color-bg-surface) 72%, var(--color-bg-app));
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--color-status-completed);
-  border-radius: 4px;
-  transition: width 0.3s ease;
-}
-
-.progress-label {
-  font-size: var(--text-tiny);
-  color: var(--workflow-card-muted);
-  text-align: right;
-  margin-top: -0.25rem;
-}
-
-/* ── Step list ──────────────────────────────────────────────────────────────── */
-.step-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-
-/* ── Footer timing ──────────────────────────────────────────────────────────── */
-.card-footer {
-  display: flex;
-  gap: 1rem;
-  padding-top: 0.375rem;
-  border-top: 1px solid var(--workflow-card-divider);
-}
-
-.timing-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-}
-
-.timing-label {
-  font-size: var(--text-tiny);
+.card-footer .timing-label {
   color: var(--workflow-card-subtle);
-  letter-spacing: 0.05em;
 }
 
-.timing-value {
-  font-size: var(--text-tiny);
+.card-footer .timing-value {
   color: var(--workflow-card-muted);
 }
 </style>

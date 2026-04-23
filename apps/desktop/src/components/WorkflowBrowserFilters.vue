@@ -29,27 +29,30 @@ const emit = defineEmits<{
 
 <template>
   <div role="search" aria-label="Workflow filters">
-    <div class="search-wrapper">
-      <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <div class="relative p-4 pb-3">
+      <svg class="absolute left-[calc(var(--space-4)+var(--space-3))] top-[calc(50%+var(--space-1)/2)] -translate-y-1/2 text-[var(--color-text-secondary)] pointer-events-none" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8" />
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <Input
         :model-value="searchQuery"
         type="text"
-        class="search-input"
+        class="w-full py-2 pr-3 pl-[calc(var(--space-3)+20px)] bg-[var(--surface)] border border-transparent rounded-[var(--radius-sm)] text-[var(--color-text-primary)] [font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.4] [font-family:var(--font-body)] outline-none transition-[border-color,box-shadow,background] duration-[var(--transition-fast)] placeholder:text-[var(--color-text-secondary)] hover:[&:not(:focus)]:bg-[var(--surface-high)] focus:bg-[var(--surface-high)] focus:border-[var(--color-brand)] focus:shadow-none"
         placeholder="Find workflow..."
         @update:model-value="(v) => emit('update:searchQuery', String(v))"
       />
     </div>
 
-    <div class="chip-row">
+    <div class="chip-row flex gap-2 px-4 pb-4 overflow-x-auto shrink-0">
       <Button
         v-for="chip in chips"
         :key="chip.value"
         variant="ghost"
         size="sm"
-        :class="['chip', { 'chip--active': categoryFilter === chip.value }]"
+        :class="[
+          'shrink-0 py-1 px-2 border border-transparent rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-secondary)] [font-weight:var(--weight-body)] text-[length:var(--text-caption)] leading-[1.4] [font-family:var(--font-body)] cursor-pointer whitespace-nowrap transition-[background,color] duration-[var(--transition-fast)] hover:bg-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]',
+          categoryFilter === chip.value && 'bg-[var(--color-brand-light,rgba(0,120,212,0.15))] text-[var(--color-text-primary)]'
+        ]"
         type="button"
         @click="emit('update:categoryFilter', chip.value)"
       >
@@ -57,49 +60,35 @@ const emit = defineEmits<{
       </Button>
     </div>
 
-    <div v-if="browserError" class="import-feedback import-feedback--error" role="alert">
-      <span class="feedback-text">{{ browserError }}</span>
-      <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('retry')">Retry</Button>
+    <div v-if="browserError" class="flex flex-wrap gap-2 items-center mx-4 mb-3 p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] bg-[var(--color-bg-elevated)]" :style="{ borderColor: 'color-mix(in srgb, var(--color-status-abandoned) 45%, transparent)', color: 'var(--color-status-abandoned)' }" role="alert">
+      <span class="flex-1 [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] break-words">{{ browserError }}</span>
+      <Button variant="outline" size="xs" class="min-h-6 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer hover:bg-[var(--color-bg-surface)]" type="button" @click="emit('retry')">Retry</Button>
     </div>
 
     <div
       v-if="props.importConflict || props.importError"
-      class="import-feedback"
-      :class="{ 'import-feedback--error': props.importError }"
+      class="flex flex-wrap gap-2 items-center mx-4 mb-3 p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius-md)] bg-[var(--color-bg-elevated)]"
+      :style="props.importError ? { borderColor: 'color-mix(in srgb, var(--color-status-abandoned) 45%, transparent)', color: 'var(--color-status-abandoned)' } : {}"
       :role="props.importError ? 'alert' : 'status'"
       aria-live="polite"
     >
       <template v-if="props.importConflict">
-        <span class="feedback-text">
+        <span class="flex-1 [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] break-words">
           Workflow ID <code>{{ props.importConflict.id }}</code> already exists ({{ props.importConflict.name }}).
         </span>
-        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('resolve-conflict', 'overwrite')">Overwrite</Button>
-        <Button variant="outline" size="xs" class="feedback-btn" type="button" @click="emit('resolve-conflict', 'copy')">Import as Copy</Button>
-        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="emit('clear-import-state')">Cancel</Button>
+        <Button variant="outline" size="xs" class="min-h-6 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer hover:bg-[var(--color-bg-surface)]" type="button" @click="emit('resolve-conflict', 'overwrite')">Overwrite</Button>
+        <Button variant="outline" size="xs" class="min-h-6 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer hover:bg-[var(--color-bg-surface)]" type="button" @click="emit('resolve-conflict', 'copy')">Import as Copy</Button>
+        <Button variant="ghost" size="xs" class="min-h-6 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer hover:bg-[var(--color-bg-surface)]" type="button" @click="emit('clear-import-state')">Cancel</Button>
       </template>
       <template v-else-if="props.importError">
-        <span class="feedback-text">{{ props.importError }}</span>
-        <Button variant="ghost" size="xs" class="feedback-btn" type="button" @click="emit('dismiss-import-error')">Dismiss</Button>
+        <span class="flex-1 [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-[1.4] [font-family:var(--font-body)] break-words">{{ props.importError }}</span>
+        <Button variant="ghost" size="xs" class="min-h-6 px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-[var(--color-text-primary)] [font-weight:var(--weight-display)] text-[length:var(--text-tiny)] leading-none [font-family:var(--font-body)] cursor-pointer hover:bg-[var(--color-bg-surface)]" type="button" @click="emit('dismiss-import-error')">Dismiss</Button>
       </template>
     </div>
   </div>
 </template>
 
+<!-- audit-ok: webkit-scrollbar -->
 <style scoped>
-.search-wrapper { position: relative; padding: var(--space-4) var(--space-4) var(--space-3); }
-.search-icon { position: absolute; left: calc(var(--space-4) + var(--space-3)); top: calc(50% + var(--space-1) / 2); transform: translateY(-50%); color: var(--color-text-secondary); pointer-events: none; }
-.search-input { width: 100%; padding: var(--space-2) var(--space-3) var(--space-2) calc(var(--space-3) + 20px); background: var(--surface); border: 1px solid transparent; border-radius: var(--radius-sm); color: var(--color-text-primary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); outline: none; transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast); }
-.search-input::placeholder { color: var(--color-text-secondary); }
-.search-input:hover:not(:focus) { background: var(--surface-high); }
-.search-input:focus { background: var(--surface-high); border-color: var(--color-brand); box-shadow: none; }
-.chip-row { display: flex; gap: var(--space-2); padding: 0 var(--space-4) var(--space-4); overflow-x: auto; scrollbar-width: none; flex-shrink: 0; }
 .chip-row::-webkit-scrollbar { display: none; }
-.chip { flex-shrink: 0; padding: var(--space-1) var(--space-2); border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-secondary); font: var(--weight-body) var(--text-caption)/1.4 var(--font-body); cursor: pointer; white-space: nowrap; transition: background var(--transition-fast), color var(--transition-fast); }
-.chip:hover { background: var(--color-text-tertiary); color: var(--color-text-primary); }
-.chip--active { background: var(--color-brand-light, rgba(0, 120, 212, 0.15)); color: var(--color-text-primary); }
-.import-feedback { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin: 0 var(--space-4) var(--space-3); padding: var(--space-3); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-md); background: var(--color-bg-elevated); }
-.import-feedback--error { border-color: color-mix(in srgb, var(--color-status-abandoned) 45%, transparent); color: var(--color-status-abandoned); }
-.feedback-text { flex: 1 1 100%; font: var(--weight-display) var(--text-tiny)/1.4 var(--font-body); color: inherit; word-break: break-word; }
-.feedback-btn { min-height: 24px; padding: 0 var(--space-2); border: 1px solid var(--color-border-subtle); border-radius: var(--radius-sm); background: transparent; color: var(--color-text-primary); font: var(--weight-display) var(--text-tiny)/1 var(--font-body); cursor: pointer; }
-.feedback-btn:hover { background: var(--color-bg-surface); }
 </style>

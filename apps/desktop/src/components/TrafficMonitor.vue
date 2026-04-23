@@ -72,6 +72,7 @@ onUnmounted(stopResize);
 </script>
 
 <template>
+  <!-- audit-ok: dynamic-binding (resizable panel height) -->
   <section class="traffic-monitor" :style="{ height: `${panelHeight}px` }">
     <div class="resize-handle" title="Drag to resize" @mousedown="startResize" />
 

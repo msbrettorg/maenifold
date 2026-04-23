@@ -31,6 +31,7 @@ defineEmits<{
 </script>
 
 <template>
+  <!-- audit-ok: dynamic-binding (CSS custom property; accent looked up by template id) -->
   <Button
     type="button"
     variant="ghost"

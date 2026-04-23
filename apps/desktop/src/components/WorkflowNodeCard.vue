@@ -111,6 +111,7 @@ function formatAbsolute(iso: string): string {
 </script>
 
 <template>
+  <!-- audit-ok: dynamic-binding (border color reflects node status) -->
   <div
     class="workflow-node-card"
     role="listitem"
@@ -130,6 +131,7 @@ function formatAbsolute(iso: string): string {
 
     <!-- ── Progress bar ── -->
     <div class="progress-track" :title="`${completedSteps}/${totalSteps} steps`">
+      <!-- audit-ok: dynamic-binding (progress bar width computed from runtime state) -->
       <div class="progress-fill" :style="{ width: `${progressPercent}%` }" />
     </div>
     <div class="progress-label">

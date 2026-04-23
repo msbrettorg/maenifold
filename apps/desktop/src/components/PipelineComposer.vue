@@ -139,9 +139,11 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 
 <template>
   <div class="pipeline-composer" role="application" aria-label="Pipeline canvas" @keydown="handleFlowKeyDown">
+    <!-- audit-ok: dynamic-binding (computed grid layout based on resizable palette/inspector widths) -->
     <div class="composer-layout" :style="composerLayoutStyle">
       <section v-if="showPalettePanel" class="composer-palette">
         <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
+        <!-- audit-ok: dynamic-binding (resize handle position tracks palette width) -->
         <div class="composer-palette-resize" :style="{ left: `${paletteResize.width.value}px` }" @mousedown="paletteResize.startResize($event, 'right')" />
       </section>
 

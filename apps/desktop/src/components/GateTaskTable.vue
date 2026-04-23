@@ -113,9 +113,13 @@ function rowTitle(task: GateTask) {
   <div class="gate-table-wrap">
         <table class="gate-table" role="table" aria-label="Gate task list"> <!-- audit-ok: no-raw-table -->
       <colgroup>
+        <!-- audit-ok: dynamic-binding (resizable column widths) -->
         <col :style="{ width: columnWidths.id + 'px' }" />
+        <!-- audit-ok: dynamic-binding (resizable column widths) -->
         <col :style="{ width: columnWidths.name + 'px' }" />
+        <!-- audit-ok: dynamic-binding (resizable column widths) -->
         <col :style="{ width: columnWidths.process + 'px' }" />
+        <!-- audit-ok: dynamic-binding (resizable column widths) -->
         <col :style="{ width: columnWidths.progress + 'px' }" />
       </colgroup>
       <thead>

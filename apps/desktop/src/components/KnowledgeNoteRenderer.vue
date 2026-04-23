@@ -70,7 +70,7 @@ watch(() => props.content, updateRendered, { immediate: true });
   by hand. @tailwindcss/typography ("prose") is not installed in this app,
   so the prose styles are inlined here using existing design tokens.
 -->
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: max-style-rules deep-third-party styling targets sanitized markdown HTML produced by markdown-it at runtime; no Vue template authors these elements so utility classes cannot be applied. -->
 <style scoped>
 .note-prose {
   font-family: var(--font-body);

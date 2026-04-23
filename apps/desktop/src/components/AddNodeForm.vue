@@ -49,7 +49,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
 </script>
 
 <template>
-  <form class="composer-toolbar" @submit.prevent="handleSubmit">
+  <form class="composer-toolbar grid gap-4 content-start h-full p-4 bg-surface overflow-y-auto" @submit.prevent="handleSubmit">
     <AddNodeFormTypeSelector
       v-model="nodeType"
       :can-add="canAdd"
@@ -101,17 +101,8 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
   </form>
 </template>
 
+<!-- audit-ok: max-style-rules deep-third-party: :deep() rules style child form components (AddNodeFormFields/AddNodeFormTypeSelector) whose markup is rendered inside the scoped boundary; Tailwind utilities cannot reach this child markup. -->
 <style scoped>
-.composer-toolbar {
-  display: grid;
-  gap: 1rem;
-  align-content: start;
-  height: 100%;
-  padding: 1rem;
-  background: var(--surface);
-  overflow-y: auto;
-}
-
 .composer-toolbar :deep(.toolbar-row) {
   display: flex;
   flex-wrap: wrap;

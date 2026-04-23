@@ -16,6 +16,21 @@ const typeLabel = computed(() => {
   return '';
 });
 
+const barClass = computed(() => {
+  if (props.entry.error) return 'before:bg-danger';
+  if (props.entry.direction === 'out') return 'before:bg-brand';
+  if (props.entry.direction === 'in') return 'before:bg-thinking';
+  return 'before:bg-text-secondary';
+});
+
+const directionIconClass = computed(() => {
+  if (props.entry.error) return 'text-danger';
+  if (props.entry.direction === 'out') return 'text-brand';
+  return 'text-text-secondary';
+});
+
+const methodClass = computed(() => (props.entry.error ? 'text-danger' : 'text-text-primary'));
+
 function toggleExpand() {
   isExpanded.value = !isExpanded.value;
 }
@@ -36,118 +51,38 @@ function copyPayload() {
 
 <template>
   <article
-    :class="['entry', entry.direction, { error: entry.error }]"
+    :class="[
+      'relative odd:bg-surface even:bg-surface-container',
+      'before:content-[\'\'] before:absolute before:inset-y-0 before:left-0 before:w-1',
+      barClass,
+    ]"
     role="article"
     :aria-label="entryAriaLabel"
   >
     <div
-      class="entry-header"
+      class="group flex items-center gap-2 py-1.5 pr-3 pl-4 cursor-pointer hover:bg-surface-high focus-visible:outline-2 focus-visible:outline-brand focus-visible:-outline-offset-2"
       role="button"
       tabindex="0"
       @click="toggleExpand"
       @keydown.enter="toggleExpand"
       @keydown.space.prevent="toggleExpand"
     >
-      <span class="expand-icon">{{ isExpanded ? '▾' : '▸' }}</span>
-      <span class="timestamp">{{ formatTime(entry.timestamp) }}</span>
-      <span :class="['direction-icon', entry.direction]">{{ directionIcon }}</span>
-      <span class="method">{{ entry.method }}</span>
-      <span v-if="typeLabel" class="type-label">{{ typeLabel }}</span>
-      <span v-if="entry.requestId !== undefined" class="request-id">#{{ entry.requestId }}</span>
-      <Button variant="ghost" size="icon-xs" class="copy-btn" aria-label="Copy JSON" @keydown.stop @click.stop="copyPayload">📋</Button>
+      <span class="w-[1em] text-text-secondary">{{ isExpanded ? '▾' : '▸' }}</span>
+      <span class="text-text-secondary text-tiny font-mono">{{ formatTime(entry.timestamp) }}</span>
+      <span :class="['w-[1em] font-bold', directionIconClass]">{{ directionIcon }}</span>
+      <span :class="['font-medium', methodClass]">{{ entry.method }}</span>
+      <span v-if="typeLabel" class="text-text-secondary text-tiny">{{ typeLabel }}</span>
+      <span v-if="entry.requestId !== undefined" class="ml-auto text-brand text-tiny font-mono">#{{ entry.requestId }}</span>
+      <Button
+        variant="ghost"
+        size="icon-xs"
+        class="opacity-0 group-hover:opacity-100 transition-opacity duration-150"
+        aria-label="Copy JSON"
+        @keydown.stop
+        @click.stop="copyPayload"
+      >📋</Button>
     </div>
 
     <TrafficJsonPayload v-if="isExpanded" :payload="entry.payload" />
   </article>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.entry:nth-child(odd) { background: var(--surface); }
-.entry:nth-child(even) { background: var(--surface-container); }
-.entry {
-  position: relative;
-}
-.entry::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: var(--text-secondary);
-}
-.entry.out::before {
-  background: var(--color-brand);
-}
-.entry.in::before {
-  background: var(--plum);
-}
-.entry.error::before {
-  background: var(--terracotta);
-}
-
-.entry-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.375rem 0.75rem 0.375rem 1rem;
-  cursor: pointer;
-}
-
-.entry-header:hover { background: var(--surface-high); }
-
-.entry-header:focus-visible {
-  outline: 2px solid var(--color-brand);
-  outline-offset: -2px;
-}
-
-.expand-icon {
-  width: 1em;
-  color: var(--text-secondary);
-}
-
-.timestamp {
-  color: var(--text-secondary);
-  font-size: var(--text-tiny);
-  font-family: var(--font-code);
-}
-
-.direction-icon {
-  width: 1em;
-  font-weight: bold;
-}
-
-.direction-icon.out { color: var(--color-brand); }
-.direction-icon.in { color: var(--text-secondary); }
-
-.entry.error .direction-icon,
-.entry.error .method { color: var(--terracotta); }
-
-.type-label {
-  color: var(--text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.method {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.request-id {
-  margin-left: auto;
-  color: var(--color-brand);
-  font-size: var(--text-tiny);
-  font-family: var(--font-code);
-}
-
-.copy-btn {
-  padding: 0.125rem 0.25rem;
-  border: none;
-  background: transparent;
-  cursor: pointer;
-  font-size: var(--text-tiny);
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.entry-header:hover .copy-btn { opacity: 1; }
-</style>

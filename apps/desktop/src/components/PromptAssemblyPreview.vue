@@ -75,92 +75,35 @@ const sections = computed<PreviewSection[]>(() => {
 </script>
 
 <template>
-  <section class="assembly-preview">
+  <section class="rounded-md bg-[var(--card,var(--color-bg-app))] border border-border-subtle">
     <Button
       variant="ghost"
-      class="assembly-preview__toggle"
+      class="w-full flex items-center justify-between gap-3 py-3 px-3.5 rounded-md bg-transparent text-text-primary font-[var(--weight-title)] hover:bg-[color-mix(in_srgb,var(--card,var(--color-bg-app))_88%,white_12%)] h-auto"
       :aria-expanded="isExpanded"
       @click="isExpanded = !isExpanded"
     >
       <span>Assembled Prompt</span>
-      <span class="assembly-preview__chevron" aria-hidden="true">{{ isExpanded ? '▾' : '▸' }}</span>
+      <span class="text-text-secondary text-sm" aria-hidden="true">{{ isExpanded ? '▾' : '▸' }}</span>
     </Button>
 
-    <div v-if="isExpanded" class="assembly-preview__body">
+    <div v-if="isExpanded" class="flex flex-col gap-3 px-3.5 pb-3.5">
       <div
         v-for="section in sections"
         :key="section.key"
-        class="assembly-preview__section"
+        class="flex flex-col gap-1.5"
       >
-        <div class="assembly-preview__label">{{ section.label }}</div>
-        <div class="assembly-preview__content" v-html="renderMarkdown(section.content)" />
+        <div class="text-xs font-[var(--weight-title)] tracking-[0.02em] text-text-secondary">{{ section.label }}</div>
+        <div
+          class="assembly-preview__content m-0 max-h-48 overflow-auto p-3 rounded-md border border-border-subtle bg-bg-app text-text-primary font-mono text-sm leading-normal [overflow-wrap:anywhere]"
+          v-html="renderMarkdown(section.content)"
+        />
       </div>
     </div>
   </section>
 </template>
 
+<!-- audit-ok: max-style-rules deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html inside .assembly-preview__content; Tailwind utilities cannot reach this child markup across the scoped boundary. -->
 <style scoped>
-.assembly-preview {
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--card, var(--color-bg-app));
-}
-
-.assembly-preview__toggle {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.75rem 0.875rem;
-  border: none;
-  border-radius: var(--radius);
-  background: transparent;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-weight: var(--weight-title);
-  cursor: pointer;
-}
-
-.assembly-preview__toggle:hover {
-  background: color-mix(in srgb, var(--card, var(--color-bg-app)) 88%, white 12%);
-}
-
-.assembly-preview__body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0 0.875rem 0.875rem;
-}
-
-.assembly-preview__section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.375rem;
-}
-
-.assembly-preview__label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-title);
-  letter-spacing: 0.02em;
-  color: var(--color-text-secondary);
-}
-
-.assembly-preview__content {
-  margin: 0;
-  max-height: 12rem;
-  overflow: auto;
-  padding: 0.75rem;
-  border-radius: var(--radius);
-  border: 1px solid var(--color-border-subtle);
-  background: var(--color-bg-app);
-  color: var(--color-text-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  overflow-wrap: anywhere;
-}
-
 .assembly-preview__content :deep(*) {
   margin-top: 0;
 }
@@ -183,10 +126,5 @@ const sections = computed<PreviewSection[]>(() => {
   background: var(--color-bg-app);
   border-radius: var(--radius);
   overflow-x: auto;
-}
-
-.assembly-preview__chevron {
-  color: var(--color-text-secondary);
-  font-size: var(--text-sm);
 }
 </style>

@@ -38,7 +38,7 @@ const emit = defineEmits<{
   />
 </template>
 
-<!-- audit-ok: max-style-rules — all rules use :deep() to style markup rendered by child components (ToolNodeFieldsTool/Prompt/Thinking/Workflow). Tailwind utilities cannot be applied across the scoped boundary; child components own their own utility classes. -->
+<!-- audit-ok: max-style-rules deep-third-party: all rules use :deep() to style markup rendered by child components (ToolNodeFieldsTool/Prompt/Thinking/Workflow). Tailwind utilities cannot be applied across the scoped boundary; child components own their own utility classes. -->
 <style scoped>
 :deep(.tool-palette),
 :deep(.tool-agent-panel),

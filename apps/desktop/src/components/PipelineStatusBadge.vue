@@ -41,7 +41,7 @@ const badge = computed(() => {
 .composer-status-dot {
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 </style>

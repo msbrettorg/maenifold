@@ -163,7 +163,7 @@ const progressValue = computed(() => {
   display: inline-flex;
   align-items: center;
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-xl);
   font-size: var(--text-tiny);
   color: var(--text);
   background: var(--accent-prompt);

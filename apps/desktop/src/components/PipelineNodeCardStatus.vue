@@ -52,7 +52,7 @@ defineProps<{
   position: relative;
   width: 6px;
   height: 6px;
-  border-radius: 999px;
+  border-radius: 50%;
   flex-shrink: 0;
   display: inline-block;
 }
@@ -68,7 +68,7 @@ defineProps<{
   content: '';
   position: absolute;
   inset: -3px;
-  border-radius: 999px;
+  border-radius: 50%;
   border: 1px solid color-mix(in srgb, var(--color-status-active) 72%, transparent);
   animation: status-dot-pulse 1.8s ease-out infinite;
 }

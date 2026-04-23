@@ -99,7 +99,7 @@ const queueHint = computed(() =>
 .pending-chip {
   margin-left: auto;
   padding: 0.125rem 0.5rem;
-  border-radius: 999px;
+  border-radius: var(--radius-xl);
   background: var(--surface-high);
   color: var(--text-secondary);
   font-size: var(--text-tiny);

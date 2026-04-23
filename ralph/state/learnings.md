@@ -3,6 +3,16 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-23 — T-03 Wave 4 (pipeline/graph CSS migration)
+
+### Gate pass collision
+- Running 3 rapid `gate pass` calls without verifying state between them caused the second and third passes to silently collide — only the first actually advanced state. **Always verify `gate status` between consecutive passes.** Use `gate pass ... && sleep 1 && gate status` pattern.
+
+### What worked
+- **Batching SWE dispatches by file group** — 3 batches of 4/6/3 files for 13 pipeline components. Each batch completes in 2-4 min.
+- **audit-ok for :deep() Vue Flow rules** — PipelineNodeCardPorts and PipelineComposer legitimately can't migrate `:deep()` rules that target third-party markup
+- **Red-team re-audit after remediation** — T-03.6 red-team caught a dropped `:slotted()` rule; SWE fixed it; fresh red-team re-audit confirmed the fix. Total cycle: ~5 min.
+
 ## 2026-04-23 — T-03 Wave 2 (component replacements)
 
 ### What worked

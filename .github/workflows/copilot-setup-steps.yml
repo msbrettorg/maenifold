@@ -21,9 +21,10 @@ jobs:
         uses: actions/checkout@v4
 
       # --- Rust toolchain (for backend crates) ---
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.90.0"
           components: rustfmt, clippy
 
       - name: Cache cargo registry + target

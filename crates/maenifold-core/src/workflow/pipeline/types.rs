@@ -72,7 +72,6 @@ impl PipelineDefinition {
     }
 }
 
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct PipelineEdge {

@@ -3,7 +3,8 @@ use std::path::PathBuf;
 use clap::{Args, CommandFactory, FromArgMatches, Parser, Subcommand, parser::ValueSource};
 
 use crate::cli::{
-    AppendArgs, CommandRequest, GateContext, HistoryArgs, OutcomeArgs, ParsedCli, StatusArgs, SyncArgs,
+    AppendArgs, CommandRequest, GateContext, HistoryArgs, OutcomeArgs, ParsedCli, StatusArgs,
+    SyncArgs,
 };
 use crate::error::GateError;
 use crate::status_filter::StatusFilter;

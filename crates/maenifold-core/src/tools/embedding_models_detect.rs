@@ -30,8 +30,8 @@ pub(super) fn handle_list(context: &ToolContext) -> Value {
 
             // T-202.39: surface in-flight download progress so the desktop
             // UI can render byte counts beside the "Downloading…" button.
-            let download_progress =
-                super::embedding_download::get_download_progress(&model.id).map(|p| {
+            let download_progress = super::embedding_download::get_download_progress(&model.id)
+                .map(|p| {
                     json!({
                         "current": p.current_bytes,
                         "total": p.total_bytes,
@@ -59,7 +59,8 @@ pub(super) fn handle_list(context: &ToolContext) -> Value {
         })
         .collect();
 
-    let current_dims = vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
+    let current_dims =
+        vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS);
 
     json!({
         "models": models,
@@ -200,7 +201,9 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
         .get("modelId")
         .and_then(Value::as_str)
         .ok_or_else(|| {
-            crate::error::MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
+            crate::error::MaenifoldError::Message(
+                "Missing required parameter 'modelId'".to_string(),
+            )
         })?;
 
     let active_model = context.config.settings.vector.active_model.as_deref();
@@ -220,7 +223,8 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
     // require the user to explicitly pin an active model first.
     if active_model.is_none() && target_dir.is_dir() {
         return Err(crate::error::MaenifoldError::Message(
-            "Cannot delete while no active model is configured. Activate a different model first.".to_string(),
+            "Cannot delete while no active model is configured. Activate a different model first."
+                .to_string(),
         ));
     }
 

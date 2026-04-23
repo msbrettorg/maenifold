@@ -11,11 +11,13 @@ use urlencoding::decode;
 use crate::mcp::resources::{gate_history, gate_status, gate_task};
 
 pub(super) fn list_resources() -> Vec<Resource> {
-    vec![RawResource::new("gate://status", "Gate status")
-        .with_title("Gate status")
-        .with_description("Current gate task status payload")
-        .with_mime_type("application/json")
-        .optional_annotate(None)]
+    vec![
+        RawResource::new("gate://status", "Gate status")
+            .with_title("Gate status")
+            .with_description("Current gate task status payload")
+            .with_mime_type("application/json")
+            .optional_annotate(None),
+    ]
 }
 
 pub(super) fn list_resource_templates() -> Vec<ResourceTemplate> {
@@ -36,11 +38,9 @@ pub(super) fn list_resource_templates() -> Vec<ResourceTemplate> {
 pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     let payload = read_gate_resource(uri)?;
     let text = serde_json::to_string_pretty(&payload)?;
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        text,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(text, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn read_gate_resource(uri: &str) -> Result<Value> {
@@ -184,9 +184,5 @@ pub(super) fn task_id_from_path(path: &Path) -> Option<String> {
         }
         break;
     }
-    if id.len() > 2 {
-        Some(id)
-    } else {
-        None
-    }
+    if id.len() > 2 { Some(id) } else { None }
 }

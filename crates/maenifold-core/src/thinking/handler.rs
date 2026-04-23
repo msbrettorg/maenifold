@@ -145,7 +145,6 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
     })
 }
 
-
 #[cfg(test)]
 #[path = "handler_tests.rs"]
 mod tests;

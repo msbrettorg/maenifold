@@ -128,7 +128,11 @@ mod tests {
     #[test]
     fn outcome_section_roundtrips_all_fields() {
         let section = CanonicalSectionFactory::build_outcome_section(
-            "red-team", "pass", "red-team-agent", "all checks passed", Some("goldeneye"),
+            "red-team",
+            "pass",
+            "red-team-agent",
+            "all checks passed",
+            Some("goldeneye"),
         );
         let lines: Vec<&str> = section.lines().collect();
         let records = TaskSectionParser::parse(&lines).expect("parse outcome section");
@@ -146,7 +150,11 @@ mod tests {
     #[test]
     fn outcome_section_without_model_roundtrips() {
         let section = CanonicalSectionFactory::build_outcome_section(
-            "swe", "fail", "swe-agent", "build failed: missing import", None,
+            "swe",
+            "fail",
+            "swe-agent",
+            "build failed: missing import",
+            None,
         );
         let lines: Vec<&str> = section.lines().collect();
         let records = TaskSectionParser::parse(&lines).expect("parse outcome without model");
@@ -162,7 +170,10 @@ mod tests {
     #[test]
     fn append_section_roundtrips_all_fields() {
         let section = CanonicalSectionFactory::build_append_section(
-            "pending", "pm", "spec reviewed and approved", Some("claude-opus-4.5"),
+            "pending",
+            "pm",
+            "spec reviewed and approved",
+            Some("claude-opus-4.5"),
         );
         let lines: Vec<&str> = section.lines().collect();
         let records = TaskSectionParser::parse(&lines).expect("parse append section");

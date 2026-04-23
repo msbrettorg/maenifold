@@ -176,7 +176,6 @@ pub(crate) fn validate_session_state(
     Ok((session_exists, None))
 }
 
-
 pub(crate) fn finalize_session(
     context: &ToolContext,
     uri: &str,

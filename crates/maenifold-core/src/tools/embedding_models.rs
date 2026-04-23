@@ -82,7 +82,10 @@ pub(crate) fn load_catalog(assets_path: &Path) -> Vec<CatalogModel> {
             tracing::error!(
                 "Failed to parse bundled catalog JSON: {e}; falling back to compiled CURATED_MODELS"
             );
-            CURATED_MODELS.iter().map(CatalogModel::from_curated).collect()
+            CURATED_MODELS
+                .iter()
+                .map(CatalogModel::from_curated)
+                .collect()
         }
     }
 }

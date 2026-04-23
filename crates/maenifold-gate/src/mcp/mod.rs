@@ -1,6 +1,6 @@
+pub(crate) mod dispatch;
 pub mod http;
 pub mod schema;
-pub(crate) mod dispatch;
 
 use std::future::Future;
 use std::path::PathBuf;
@@ -15,9 +15,9 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Map, Value};
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
-use dispatch::*;
 use self::schema::list;
 use crate::error::GateError;
+use dispatch::*;
 
 const GATE_SERVER_INSTRUCTIONS: &str = "Gate is the authoritative project task tracker. Task state lives in markdown files under \
      the workspace, while .gate/gate.db is only a read model produced by sync. Recommended \

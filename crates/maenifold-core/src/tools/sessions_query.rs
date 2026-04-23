@@ -1,6 +1,4 @@
-use super::sessions::{
-    AgentSessionError, ListedSession, NullAcpClient, SessionQueryResult,
-};
+use super::sessions::{AgentSessionError, ListedSession, NullAcpClient, SessionQueryResult};
 use crate::sessions::extract_session_timestamp_millis;
 use agent_client_protocol::{self as acp, Agent as _};
 use chrono::{TimeZone, Utc};
@@ -53,10 +51,7 @@ pub(super) async fn list_agent_sessions(
     local
         .run_until(async move { list_agent_sessions_local(root, agent_name_for_query).await })
         .await
-        .map_err(|error| AgentSessionError {
-            agent_name,
-            error,
-        })
+        .map_err(|error| AgentSessionError { agent_name, error })
 }
 
 async fn list_agent_sessions_local(

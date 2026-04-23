@@ -11,7 +11,6 @@ mod queue;
 pub mod runner;
 pub(crate) mod runner_helpers;
 mod runner_prompt;
-mod think_runner_payloads;
 mod runner_state;
 mod status;
 mod submachine;
@@ -21,6 +20,7 @@ mod submachine_register;
 #[cfg(test)]
 mod submachine_tests;
 pub(crate) mod think_runner;
+mod think_runner_payloads;
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
 pub(crate) use handler::workflow;

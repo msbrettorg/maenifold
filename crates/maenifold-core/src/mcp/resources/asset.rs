@@ -24,11 +24,9 @@ pub(super) fn list_resources() -> Result<Vec<Resource>> {
 pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     let value = current_asset_manager()?.read_resource(uri)?;
     let text = serde_json::to_string_pretty(&value)?;
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        text,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(text, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn current_asset_manager() -> Result<AssetManager> {

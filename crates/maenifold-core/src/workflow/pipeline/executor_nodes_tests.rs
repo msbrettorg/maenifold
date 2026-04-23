@@ -265,4 +265,3 @@ fn node_timeout_produces_abandoned_outcome() {
         }
     }
 }
-

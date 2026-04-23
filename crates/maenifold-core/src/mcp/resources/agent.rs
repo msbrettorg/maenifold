@@ -6,7 +6,7 @@ use rmcp::model::{
     ResourceTemplate,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub const AGENT_SESSIONS_URI: &str = "agent://sessions";
 pub const AGENT_SESSION_TEMPLATE_URI: &str = "agent://session/{id}";
@@ -94,11 +94,9 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
         )));
     };
 
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        body,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(body, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn list_sessions() -> Result<Vec<AgentSessionSummary>> {

@@ -4,10 +4,10 @@
 use crate::markdown::normalize_concept;
 use crate::repair::split_frontmatter_for_repair;
 
-use super::matcher::{collect_sections, find_concept_match, ConceptMatcher, MatchSpan};
+use super::matcher::{ConceptMatcher, MatchSpan, collect_sections, find_concept_match};
 use super::text_utils::{
-    byte_to_char_index, find_last_sentence_boundary, find_next_sentence_boundary, slice_chars,
-    skip_leading_whitespace_chars, truncate_chars,
+    byte_to_char_index, find_last_sentence_boundary, find_next_sentence_boundary,
+    skip_leading_whitespace_chars, slice_chars, truncate_chars,
 };
 
 // T-1.6: RTM NFR-1 - port CreateSmartPreview parity helper from C# GraphTools.cs.

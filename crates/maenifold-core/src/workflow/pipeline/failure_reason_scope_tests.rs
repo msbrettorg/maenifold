@@ -266,4 +266,3 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
         assert_eq!(node_states[node_id].failure_reason, None, "{node_id}");
     }
 }
-

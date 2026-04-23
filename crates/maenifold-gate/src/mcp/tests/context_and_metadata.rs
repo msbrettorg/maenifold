@@ -44,8 +44,8 @@ fn context_requires_explicit_root_when_service_default_is_unset() {
 
 #[test]
 fn server_instructions_explain_authoritative_gate_workflow() {
-    let handler =
-        GateMcpHandler::new(TransportKind::Stdio, KnownRoots::default()).expect("handler should build");
+    let handler = GateMcpHandler::new(TransportKind::Stdio, KnownRoots::default())
+        .expect("handler should build");
     let info = <GateMcpHandler as ServerHandler>::get_info(&handler);
     let instructions = info
         .instructions

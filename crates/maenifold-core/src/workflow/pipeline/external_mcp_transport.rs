@@ -1,8 +1,4 @@
-use rmcp::{
-    ServiceExt,
-    model::CallToolRequestParams,
-    transport::TokioChildProcess,
-};
+use rmcp::{ServiceExt, model::CallToolRequestParams, transport::TokioChildProcess};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::{
     collections::HashSet,

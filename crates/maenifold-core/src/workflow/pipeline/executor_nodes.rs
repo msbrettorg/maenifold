@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    path::PathBuf,
-};
+use std::{collections::HashMap, path::PathBuf};
 
 use jockey::EventSender;
 use serde_json::Value as JsonValue;
@@ -263,7 +260,6 @@ pub(super) fn build_node_execution_request(
         },
     })
 }
-
 
 pub(super) async fn execute_node_request(
     context: ToolContext,

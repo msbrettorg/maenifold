@@ -102,11 +102,9 @@ pub(super) fn read_or_route_to_concept(
         }
     };
 
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        body,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(body, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn make_resource(uri: &str, name: &str, description: &str) -> Resource {

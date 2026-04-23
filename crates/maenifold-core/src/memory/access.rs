@@ -205,4 +205,3 @@ This ensures your note is connected to the knowledge graph and not orphaned.".to
         ),
     })
 }
-

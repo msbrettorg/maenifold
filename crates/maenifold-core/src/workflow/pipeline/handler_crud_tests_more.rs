@@ -16,13 +16,7 @@ fn delete_pipeline_falls_back_to_raw_node_states_when_derived_state_is_corrupt()
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
-    seed_pipeline_session_with_workflows(
-        &context,
-        session_id,
-        definition,
-        node_states.clone(),
-        1,
-    );
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states.clone(), 1);
 
     delete_file(
         &workflow_session_uri(&node_states["node"].session_id),
@@ -66,13 +60,7 @@ fn delete_pipeline_cleans_up_historical_orphaned_child_workflow_sessions() {
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
-    seed_pipeline_session_with_workflows(
-        &context,
-        session_id,
-        definition,
-        node_states.clone(),
-        1,
-    );
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states.clone(), 1);
 
     let orphan_session_id = "workflow-1735689600000-node-orphan";
     let (frontmatter, content, _) = read_markdown(
@@ -156,8 +144,7 @@ fn delete_pipeline_does_not_delete_sibling_pipeline_child_workflow_sessions() {
         "title".to_string(),
         format!("Workflow Session {sibling_orphan_session_id}").into(),
     );
-    sibling_orphan_frontmatter
-        .insert("permalink".to_string(), sibling_orphan_session_id.into());
+    sibling_orphan_frontmatter.insert("permalink".to_string(), sibling_orphan_session_id.into());
     sibling_orphan_frontmatter.insert("nodeId".to_string(), "sibling-orphan".into());
     write_markdown(
         &workflow_session_uri(sibling_orphan_session_id),
@@ -167,8 +154,7 @@ fn delete_pipeline_does_not_delete_sibling_pipeline_child_workflow_sessions() {
     )
     .expect("write sibling orphaned workflow session");
 
-    let response =
-        delete_pipeline(&context, target_session_id).expect("delete target pipeline");
+    let response = delete_pipeline(&context, target_session_id).expect("delete target pipeline");
     let payload: Value = serde_json::from_str(&response).expect("json response");
 
     assert_eq!(payload["success"], Value::Bool(true));

@@ -7,9 +7,7 @@ use crate::sessions::pipeline_session_uri;
 use crate::util::json::OutputFormat;
 use crate::workflow::pipeline::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 
-use super::super::test_support::{
-    pipeline_test_context, seed_pipeline_session_with_node_sessions,
-};
+use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_node_sessions};
 use super::*;
 use serial_test::serial;
 

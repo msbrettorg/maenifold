@@ -25,15 +25,15 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     let connection = db::open_connection(&config.database_path)?;
 
     graph_corpus::read_or_route_to_concept(uri, &connection).map_err(|err| match err {
-        graph_corpus::GraphReadRouteError::NotHandled => MaenifoldError::InvalidResourceUri(
-            format!(
+        graph_corpus::GraphReadRouteError::NotHandled => {
+            MaenifoldError::InvalidResourceUri(format!(
                 "{uri}. Expected one of '{}', '{}', '{}', or '{}'",
                 graph_corpus::CORPUS_SNAPSHOT_URI,
                 graph_corpus::CORPUS_COMMUNITIES_URI,
                 graph_corpus::GRAPH_STATS_URI,
                 graph_concept::CONCEPT_TEMPLATE_URI
-            ),
-        ),
+            ))
+        }
         graph_corpus::GraphReadRouteError::ResourceError(error) => error,
     })
 }

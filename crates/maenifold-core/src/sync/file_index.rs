@@ -258,4 +258,3 @@ pub(crate) fn upsert_processed_file(
 
     Ok(filtered_count)
 }
-

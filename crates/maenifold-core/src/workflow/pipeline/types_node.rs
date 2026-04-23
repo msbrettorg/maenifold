@@ -2,8 +2,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
-use super::types_wire::PipelineNodeWire;
 use super::types::{AgentConfig, NodeAdopt, RetryPolicy};
+use super::types_wire::PipelineNodeWire;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "PipelineNodeWire", into = "PipelineNodeWire")]

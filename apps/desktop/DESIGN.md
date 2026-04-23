@@ -155,12 +155,41 @@ Emoji icons are intentional and canonical for top-level category recognition.
 
 ---
 
-## 10) Component Conventions
+## 10) Component Conventions — ZERO HAND-ROLLED COMPONENTS
 
-- Prefer [[shadcn-vue]] components and tokens as the implementation baseline.
-- Keep styling token-driven via this document’s [[Fluent 2]] values.
-- Avoid net-new bespoke component CSS unless absolutely required.
-- Sprint 176 direction: retire legacy bespoke CSS footprint (5,959 LOC referenced in planning) and converge on tokenized primitives.
+**No `<style>` blocks. No companion CSS files. No inline styles (except dynamic bindings). No exceptions. No `audit-ok` waivers.**
+
+Every component is `<template>` + `<script setup>` + Tailwind utility classes. Period.
+
+### What this means
+
+- **All visual styling uses Tailwind classes** referencing tokens defined in `@theme` in `tailwind.css`.
+- **No CSS rules in `<style>` blocks.** If Tailwind can’t express it, the token layer is broken — fix the tokens, don’t work around them.
+- **No companion `.css` files.** Delete them. Migrate to Tailwind classes.
+- **No `color-mix()` in components.** Pre-compute all mix variants as `@theme` tokens (e.g., `--color-node-accent-10`). Components use `bg-node-accent-10`.
+- **No `var()` in components.** Every CSS custom property must have a corresponding Tailwind utility via `@theme`. If it doesn’t, add it to `@theme`.
+- **Dynamic values** (computed widths, positions, transforms) use `:style` bindings with a `<- Cleaned up temporary codex command files audit-ok: dynamic-binding -->` comment explaining why. These are the ONLY permitted inline styles.
+
+### Allowed in `tailwind.css` only
+
+- `@theme` definitions (token → utility mapping)
+- `@layer base` resets
+- `@layer components` for shadcn-vue component overrides
+- `color-mix()` expressions inside `@theme` to pre-compute variants
+
+### Build enforcement
+
+- `audit:components` rejects any `.vue` file with a `<style>` block (zero tolerance)
+- `audit:components` rejects any companion `.css` file imported by a component
+- `lint:design` rejects hex color literals and component-local border declarations
+
+### If you can’t express it in Tailwind
+
+The answer is NEVER “add a `<style>` block.” The answer is ALWAYS:
+1. Add the missing token to `@theme` in `tailwind.css`
+2. Use an existing shadcn-vue component
+3. Create a shared component in `components/ui/` that encapsulates the pattern
+4. Escalate to PM — the design system has a gap that needs fixing
 
 ---
 

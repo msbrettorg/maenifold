@@ -40,7 +40,11 @@ pub(super) fn insertion_gain(
             - (node_degree / two_m).powi(2) * gamma)
 }
 
-pub(super) fn adjust_aggregate(aggregates: &mut BTreeMap<usize, f64>, community_id: usize, delta: f64) {
+pub(super) fn adjust_aggregate(
+    aggregates: &mut BTreeMap<usize, f64>,
+    community_id: usize,
+    delta: f64,
+) {
     let entry = aggregates.entry(community_id).or_insert(0.0);
     *entry += delta;
     if entry.abs() <= EPSILON {

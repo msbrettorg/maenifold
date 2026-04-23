@@ -46,11 +46,11 @@ mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
 #[cfg(test)]
-mod integration_tests_helpers;
-#[cfg(test)]
 mod integration_tests;
 #[cfg(test)]
 mod integration_tests_cancel;
+#[cfg(test)]
+mod integration_tests_helpers;
 mod lease;
 mod mapping_apply;
 mod mapping_predecessor;

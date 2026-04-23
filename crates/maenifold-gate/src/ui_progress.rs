@@ -137,7 +137,10 @@ pub(crate) fn stage_progress(stage: &str, task: &TaskEntry) -> StageProgress {
         };
     }
 
-    let Some(active_index) = task.stages.iter().position(|candidate| candidate == &task.state)
+    let Some(active_index) = task
+        .stages
+        .iter()
+        .position(|candidate| candidate == &task.state)
     else {
         return StageProgress::Pending;
     };

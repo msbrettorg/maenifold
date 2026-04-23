@@ -87,8 +87,7 @@ pub(super) fn spawn_server_thread(
                 }
             };
             let result = rt.block_on(async move {
-                crate::mcp::MaenifoldMcpServer::serve_http_with_shutdown(port, shutdown_token)
-                    .await
+                crate::mcp::MaenifoldMcpServer::serve_http_with_shutdown(port, shutdown_token).await
             });
             rt.shutdown_timeout(Duration::from_secs(5));
             match result {

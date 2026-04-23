@@ -184,4 +184,3 @@ fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpo
     assert_eq!(node_states["mixed-child"].status, NodeStatus::Pending);
     assert_eq!(node_states["mixed-child"].failure_reason, None);
 }
-

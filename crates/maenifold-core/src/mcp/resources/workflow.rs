@@ -65,14 +65,16 @@ pub(super) fn list_resources() -> Vec<Resource> {
 }
 
 pub(super) fn list_resource_templates() -> Vec<ResourceTemplate> {
-    vec![rmcp::model::RawResourceTemplate::new(
-        WORKFLOW_SESSION_TEMPLATE_URI,
-        "Workflow Session Detail",
-    )
-    .with_title("Workflow Session Detail")
-    .with_description("Detailed workflow session payload for a specific session id.")
-    .with_mime_type("application/json")
-    .optional_annotate(None)]
+    vec![
+        rmcp::model::RawResourceTemplate::new(
+            WORKFLOW_SESSION_TEMPLATE_URI,
+            "Workflow Session Detail",
+        )
+        .with_title("Workflow Session Detail")
+        .with_description("Detailed workflow session payload for a specific session id.")
+        .with_mime_type("application/json")
+        .optional_annotate(None),
+    ]
 }
 
 pub(super) fn is_workflow_uri(uri: &str) -> bool {
@@ -92,11 +94,9 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
         }
     };
 
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        payload,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(payload, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn read_workflow_sessions() -> Result<WorkflowSessionsPayload> {

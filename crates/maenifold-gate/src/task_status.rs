@@ -220,8 +220,9 @@ mod tests {
             outcome("red-team", "pass"),
             outcome("blue-team", "pass"),
         ];
-        let derived = TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "done")
-            .expect("derive should succeed");
+        let derived =
+            TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "done")
+                .expect("derive should succeed");
         assert_eq!(derived.state, "done");
         assert_eq!(derived.attempts, 0);
     }
@@ -229,8 +230,9 @@ mod tests {
     #[test]
     fn fail_returns_to_initial() {
         let records = vec![outcome("pending", "pass"), outcome("swe", "fail")];
-        let derived = TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
-            .expect("derive should succeed");
+        let derived =
+            TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
+                .expect("derive should succeed");
         assert_eq!(derived.state, "pending");
         assert_eq!(derived.attempts, 1);
     }
@@ -238,8 +240,9 @@ mod tests {
     #[test]
     fn append_does_not_change_state() {
         let records = vec![outcome("pending", "pass"), append("swe")];
-        let derived = TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
-            .expect("derive should succeed");
+        let derived =
+            TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
+                .expect("derive should succeed");
         assert_eq!(derived.state, "swe");
         assert_eq!(derived.attempts, 0);
     }
@@ -252,8 +255,9 @@ mod tests {
             outcome("pending", "pass"),
             outcome("swe", "fail"),
         ];
-        let derived = TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
-            .expect("derive should succeed");
+        let derived =
+            TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
+                .expect("derive should succeed");
         assert_eq!(derived.state, "pending");
         assert_eq!(derived.attempts, 2);
     }
@@ -289,8 +293,9 @@ mod tests {
             outcome("blue-team", "pass"),
             outcome("done", "fail"),
         ];
-        let derived = TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
-            .expect("derive should succeed");
+        let derived =
+            TaskStatusDeriver::derive(&document(None, records), &sdd_definition(), "todo")
+                .expect("derive should succeed");
         assert_eq!(derived.state, "pending");
         assert_eq!(derived.attempts, 1);
     }

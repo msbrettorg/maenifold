@@ -1,7 +1,7 @@
 use crate::error::{MaenifoldError, Result};
+use rmcp::RoleServer;
 use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
 use rmcp::service::RequestContext;
-use rmcp::RoleServer;
 
 pub mod agent;
 mod asset;
@@ -16,7 +16,7 @@ mod subscription_worker;
 pub mod throttle;
 pub mod workflow;
 
-pub use subscription::{notify_resource_updated, start_asset_watcher, AssetWatcherState};
+pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_watcher};
 
 // T-12.8: RTM FR-11 — resources/list assembly now lives in mcp/resources.
 pub fn handle_list_resources() -> Result<ListResourcesResult> {
@@ -170,8 +170,8 @@ pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
 #[cfg(test)]
 mod resources_tests_common;
 #[cfg(test)]
-mod resources_tests_list;
-#[cfg(test)]
 mod resources_tests_invocation;
+#[cfg(test)]
+mod resources_tests_list;
 #[cfg(test)]
 mod resources_tests_read;

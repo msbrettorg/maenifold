@@ -155,4 +155,3 @@ fn retrying_pipeline_status_is_active() {
 
     assert_eq!(compute_pipeline_status(&node_states), "active");
 }
-

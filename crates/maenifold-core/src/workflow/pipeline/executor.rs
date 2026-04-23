@@ -4,10 +4,10 @@ use std::sync::Arc;
 #[cfg(test)]
 pub(super) use super::NodeStatus;
 use super::dispatch::dispatch_pipeline;
+use super::executor_apply::{apply_node_outcome, node_adoption_labels};
 #[cfg(test)]
 pub(super) use super::executor_cleanup::cancellable_node_session_targets;
 use super::executor_cleanup::{cancel_active_nodes, terminate_node_sessions};
-use super::executor_apply::{apply_node_outcome, node_adoption_labels};
 use super::executor_helpers::{
     DispatchedNode, derive_execution_status, load_execution_config, load_pipeline_node_states,
     parse_dispatch_result,
@@ -227,9 +227,6 @@ async fn schedule_dispatched_node(
     );
     Ok(())
 }
-
-
-
 
 #[cfg(test)]
 #[path = "apply_node_outcome_failure_reason_tests.rs"]

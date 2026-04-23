@@ -290,4 +290,3 @@ pub(super) fn fork_pipeline(
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
 }
-

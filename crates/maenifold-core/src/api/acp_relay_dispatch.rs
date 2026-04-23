@@ -1,5 +1,7 @@
 use super::acp_relay::{PendingPrompt, RelayConfig, RelaySession};
-use super::acp_relay_helpers::{cancel_permissions, rpc_error, rpc_notification, rpc_ok, rpc_request, send_json};
+use super::acp_relay_helpers::{
+    cancel_permissions, rpc_error, rpc_notification, rpc_ok, rpc_request, send_json,
+};
 use super::acp_relay_prompt::{handle_prompt, handle_set_config_option};
 use super::acp_relay_session::{handle_initialize, handle_session_load, handle_session_new};
 use agent_client_protocol as acp;
@@ -58,14 +60,24 @@ pub(super) async fn handle_incoming(
 
     let response = match method {
         "initialize" if id.is_some() => Some(
-            handle_initialize(relay, session, params, id.clone().expect("id checked by match guard"))
-                .await
-                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
+            handle_initialize(
+                relay,
+                session,
+                params,
+                id.clone().expect("id checked by match guard"),
+            )
+            .await
+            .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/new" if id.is_some() => Some(
-            handle_session_new(relay, session, params, id.clone().expect("id checked by match guard"))
-                .await
-                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
+            handle_session_new(
+                relay,
+                session,
+                params,
+                id.clone().expect("id checked by match guard"),
+            )
+            .await
+            .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/load" if id.is_some() => Some(
             handle_session_load(
@@ -93,9 +105,14 @@ pub(super) async fn handle_incoming(
             Err(error) => Some(Err(error)),
         },
         "session/set_config_option" if id.is_some() => Some(
-            handle_set_config_option(relay, session, params, id.clone().expect("id checked by match guard"))
-                .await
-                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
+            handle_set_config_option(
+                relay,
+                session,
+                params,
+                id.clone().expect("id checked by match guard"),
+            )
+            .await
+            .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/cancel" => {
             handle_cancel(relay, session, pending_prompt, permission_ids, params);

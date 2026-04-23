@@ -1,5 +1,5 @@
-use super::{PipelineNodeWire, default_prompt_tool_mode, default_total_thoughts};
 use super::super::types::PipelineNode;
+use super::{PipelineNodeWire, default_prompt_tool_mode, default_total_thoughts};
 
 impl From<PipelineNode> for PipelineNodeWire {
     #[allow(clippy::too_many_lines)]

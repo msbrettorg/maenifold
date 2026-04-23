@@ -25,8 +25,8 @@ set -euo pipefail
 
 META_MODEL="claude-opus-4.7"
 META_REASONING_EFFORT="xhigh"
-MAX_ITERATIONS=10
-INNER_ITERATIONS=20
+MAX_ITERATIONS=2
+INNER_ITERATIONS=1
 INNER_MODEL="claude-opus-4.6-1m"
 INNER_REASONING_EFFORT="xhigh"
 CRATE=""
@@ -43,15 +43,11 @@ SNAPSHOT_ROOT="ralph/state/snapshots"
 # Files the meta-agent MUST NOT modify — verified by hash after each iteration
 IMMUTABLE_FILES=(
   "ralph/meta-prompt.md"
-  "meta.sh"
-  "ralph.sh"
 )
 
 SNAPSHOT_FILES=(
   "ralph/prompt.md"
   "ralph/meta-prompt.md"
-  "meta.sh"
-  "ralph.sh"
 )
 
 usage() {
@@ -244,14 +240,12 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     --model "$INNER_MODEL"
     --effort "$INNER_REASONING_EFFORT"
     --agent "$INNER_AGENT"
-    --crate "$CRATE"
-    --path "$SCOPE_PATH"
   )
+  [[ -n "$CRATE" ]] && INNER_ARGS+=(--crate "$CRATE")
+  [[ -n "$SCOPE_PATH" ]] && INNER_ARGS+=(--path "$SCOPE_PATH")
   [[ -n "$SESSION_NAME" ]] && INNER_ARGS+=(--name "${SESSION_NAME}-inner")
   [[ "$NO_CUSTOM_INSTRUCTIONS" == "true" ]] && INNER_ARGS+=(--no-custom-instructions)
   [[ "$NO_ASK_USER" == "true" ]] && INNER_ARGS+=(--no-ask-user)
-  [[ "$REASONING_SUMMARIES" == "true" ]] && INNER_ARGS+=(--enable-reasoning-summaries)
-  [[ "$REASONING_SUMMARIES" == "false" ]] && INNER_ARGS+=(--no-reasoning-summaries)
   for arg in "${EXTRA_COPILOT_ARGS[@]+"${EXTRA_COPILOT_ARGS[@]}"}"; do
     INNER_ARGS+=("$arg")
   done

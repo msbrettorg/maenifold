@@ -159,7 +159,11 @@ fn pipeline_node_states(
     serde_yaml::from_value(node_states).map_err(Into::into)
 }
 
-fn update_workflow_status(context: &ToolContext, workflow_session_id: &str, status: &str) -> Result<()> {
+fn update_workflow_status(
+    context: &ToolContext,
+    workflow_session_id: &str,
+    status: &str,
+) -> Result<()> {
     let workflow_uri = workflow_session_uri(workflow_session_id);
     let (frontmatter, workflow_content, _) = read_markdown(&workflow_uri, &context.config)?;
     let mut frontmatter = frontmatter.ok_or_else(|| {
@@ -194,7 +198,10 @@ fn session_date_parts(session_id: &str) -> (i32, u32, u32) {
 }
 
 fn session_timestamp_millis(session_id: &str) -> Option<i64> {
-    if session_id.split('-').any(|segment| segment.trim().is_empty()) {
+    if session_id
+        .split('-')
+        .any(|segment| segment.trim().is_empty())
+    {
         return None;
     }
 

@@ -5,7 +5,7 @@ use rmcp::model::{
     AnnotateAble, RawResource, RawResourceTemplate, ReadResourceResult, Resource, ResourceContents,
     ResourceTemplate,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 const PIPELINE_SESSIONS_URI: &str = "pipeline://sessions";
 const LEGACY_PIPELINE_SESSIONS_URI: &str = "pipeline://sessions/active";
@@ -13,11 +13,13 @@ const PIPELINE_SESSION_PREFIX: &str = "pipeline://session/";
 const PIPELINE_NODE_PREFIX: &str = "pipeline://node/";
 
 pub(super) fn list_resources() -> Result<Vec<Resource>> {
-    let mut resources = vec![RawResource::new(PIPELINE_SESSIONS_URI, "Pipeline sessions")
-        .with_title("Pipeline sessions")
-        .with_description("List of pipeline sessions for the dashboard.")
-        .with_mime_type("application/json")
-        .optional_annotate(None)];
+    let mut resources = vec![
+        RawResource::new(PIPELINE_SESSIONS_URI, "Pipeline sessions")
+            .with_title("Pipeline sessions")
+            .with_description("List of pipeline sessions for the dashboard.")
+            .with_mime_type("application/json")
+            .optional_annotate(None),
+    ];
 
     let sessions_payload = read_sessions_payload()?;
     if let Some(sessions) = sessions_payload.get("sessions").and_then(Value::as_array) {
@@ -188,9 +190,7 @@ fn read_pipeline_tool_data(payload: Value) -> Result<Value> {
 
 fn read_json_resource(uri: &str, payload: Value) -> Result<ReadResourceResult> {
     let text = serde_json::to_string_pretty(&payload)?;
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        text,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(text, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }

@@ -2,9 +2,7 @@
 //! [`super::file_index`] to keep the parent under the per-file LOC budget.
 //! No behavioral changes.
 
-use crate::lineage::{
-    gate_task_lineage_id, pipeline_run_lineage_id, thinking_session_lineage_id,
-};
+use crate::lineage::{gate_task_lineage_id, pipeline_run_lineage_id, thinking_session_lineage_id};
 use crate::markdown::Frontmatter;
 
 pub(super) fn frontmatter_lineage_gate_task_id(

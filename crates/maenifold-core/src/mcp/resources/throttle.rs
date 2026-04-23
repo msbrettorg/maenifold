@@ -1,9 +1,9 @@
 use std::sync::Arc;
 use std::time::Duration;
 
+use std::collections::HashSet;
 use tokio::sync::Mutex;
 use tokio::time::Instant;
-use std::collections::HashSet;
 
 pub const DEFAULT_THROTTLE_WINDOW: Duration = Duration::from_millis(250);
 
@@ -109,7 +109,7 @@ impl TrailingThrottle {
 
 #[cfg(test)]
 mod tests {
-    use super::{TrailingThrottle, DEFAULT_THROTTLE_WINDOW};
+    use super::{DEFAULT_THROTTLE_WINDOW, TrailingThrottle};
     use std::time::Duration;
     use tokio::task::JoinSet;
 

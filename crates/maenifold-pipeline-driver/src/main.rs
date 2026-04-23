@@ -128,7 +128,9 @@ async fn run(config: Config) -> Result<()> {
 fn parse_args() -> Result<(String, String)> {
     let mut args = std::env::args().skip(1);
     let session_id = args.next().ok_or_else(|| {
-        MaenifoldError::Message("usage: maenifold-pipeline-driver <session-id> [prompt ...]".to_string())
+        MaenifoldError::Message(
+            "usage: maenifold-pipeline-driver <session-id> [prompt ...]".to_string(),
+        )
     })?;
     let prompt = args.collect::<Vec<_>>().join(" ");
     Ok((session_id, prompt))

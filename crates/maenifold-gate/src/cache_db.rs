@@ -162,10 +162,7 @@ impl GateCacheDb {
                 self.path.display()
             )));
         }
-        let connection = Connection::open_with_flags(
-            &self.path,
-            OpenFlags::SQLITE_OPEN_READ_ONLY,
-        )?;
+        let connection = Connection::open_with_flags(&self.path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         connection.busy_timeout(Duration::from_secs(5))?;
         Ok(connection)
     }

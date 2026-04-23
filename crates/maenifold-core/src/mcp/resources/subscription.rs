@@ -12,7 +12,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 use uuid::Uuid;
 
-use super::subscription_worker::{spawn_asset_watcher_worker, AssetWatcherSignal};
+use super::subscription_worker::{AssetWatcherSignal, spawn_asset_watcher_worker};
 
 pub const MAX_SUBSCRIPTIONS_PER_SESSION: usize = 100;
 const SESSION_CAP_ERROR: &str = "subscription limit exceeded (max 100 per session)";

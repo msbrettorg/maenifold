@@ -138,8 +138,7 @@ fn test_non_sync_call_binds_root() {
     .expect("sync should build cache DB");
     invoke_handler_tool(&handler, "status", json!({ "root": root.path() }))
         .expect("status with explicit root should bind session root");
-    let output =
-        invoke_handler_tool(&handler, "status", json!({})).expect("status should succeed");
+    let output = invoke_handler_tool(&handler, "status", json!({})).expect("status should succeed");
 
     assert_eq!(single_task_id(&output), "T-117.1");
 }

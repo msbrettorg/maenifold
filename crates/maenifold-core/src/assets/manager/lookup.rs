@@ -1,8 +1,8 @@
 // T-01.16: AssetManager resource/asset/adopt lookups extracted from manager.rs.
 
-use super::AssetManager;
 use super::super::support::emit_asset_degraded_diagnostic;
 use super::super::types::AssetKind;
+use super::AssetManager;
 use crate::error::{MaenifoldError, Result};
 use serde_json::Value;
 use std::fs;

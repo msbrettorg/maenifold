@@ -1,7 +1,7 @@
 // T-01.16: AssetManager initialization extracted from manager.rs.
 
-use super::AssetManager;
 use super::super::support::resolve_packaged_assets_root;
+use super::AssetManager;
 use crate::config::Config;
 use crate::error::Result;
 use std::fs;

@@ -144,8 +144,7 @@ mod tests {
         fs::create_dir_all(root.join("todo")).expect("create todo");
         fs::create_dir_all(root.join("done")).expect("create done");
         // Make root read-only AFTER creating subdirs
-        fs::set_permissions(&root, fs::Permissions::from_mode(0o555))
-            .expect("make root read-only");
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o555)).expect("make root read-only");
 
         let err = sync_gate(SyncArgs {
             context: GateContext {
@@ -164,7 +163,6 @@ mod tests {
         );
 
         // Cleanup
-        fs::set_permissions(&root, fs::Permissions::from_mode(0o755))
-            .expect("restore permissions");
+        fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).expect("restore permissions");
     }
 }

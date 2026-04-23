@@ -1,7 +1,7 @@
-mod handlers;
 mod handler_config;
 mod handler_execute;
 mod handler_prewarm;
+mod handlers;
 mod notify;
 mod permission;
 mod pool;

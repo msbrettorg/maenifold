@@ -1,6 +1,5 @@
 use super::graph::{
-    CommunityEdge, CommunityGraph, CommunityNode, ConceptEdge, ConceptGraph, ConceptNode,
-    GraphEdge,
+    CommunityEdge, CommunityGraph, CommunityNode, ConceptEdge, ConceptGraph, ConceptNode, GraphEdge,
 };
 use crate::error::Result;
 use rusqlite::{Connection, params};

@@ -1,7 +1,7 @@
 // T-01.16: AssetManager tests extracted verbatim from manager.rs.
 
-use super::AssetManager;
 use super::super::types::AssetKind;
+use super::AssetManager;
 use crate::config::Config;
 use crate::test_util::ConfigResetGuard;
 use serde_json::Value;
@@ -102,15 +102,14 @@ fn untyped_list_assets_returns_four_kinds() {
     let config = Config::current();
     let manager = AssetManager::new(&config);
 
-    let result = manager.list_assets(None).expect("list_assets should succeed");
+    let result = manager
+        .list_assets(None)
+        .expect("list_assets should succeed");
     let Value::Array(kinds) = result else {
         panic!("Expected array, got: {result:?}");
     };
 
-    let kind_names: Vec<&str> = kinds
-        .iter()
-        .filter_map(|v| v.as_str())
-        .collect();
+    let kind_names: Vec<&str> = kinds.iter().filter_map(|v| v.as_str()).collect();
 
     assert_eq!(kind_names.len(), 4, "Should return exactly 4 asset kinds");
     assert!(kind_names.contains(&"workflow"), "Missing workflow");
@@ -177,9 +176,8 @@ fn concurrent_list_and_modify_assets_does_not_deadlock() {
         fs::create_dir_all(&kind_dir).expect("create asset dir");
         for i in 0..10 {
             let file_path = kind_dir.join(format!("asset-{i}.json"));
-            let content = format!(
-                r#"{{"id":"asset-{i}","name":"Asset {i}","description":"Test"}}"#
-            );
+            let content =
+                format!(r#"{{"id":"asset-{i}","name":"Asset {i}","description":"Test"}}"#);
             fs::write(&file_path, content).expect("write asset file");
         }
     }
@@ -215,9 +213,7 @@ fn concurrent_list_and_modify_assets_does_not_deadlock() {
             for kind in AssetKind::all() {
                 let kind_dir = assets_path_mod.join(kind.dir_name());
                 let temp_path = kind_dir.join(format!("temp-{counter}.json"));
-                let content = format!(
-                    r#"{{"id":"temp-{counter}","name":"Temp {counter}"}}"#
-                );
+                let content = format!(r#"{{"id":"temp-{counter}","name":"Temp {counter}"}}"#);
                 // Create and immediately remove to trigger fs events
                 if fs::write(&temp_path, content).is_ok() {
                     let _ = fs::remove_file(&temp_path);
@@ -254,9 +250,7 @@ fn concurrent_list_and_modify_assets_does_not_deadlock() {
                             || err_str.contains("os error 11")
                             || err_str.contains("EDEADLK")
                         {
-                            panic!(
-                                "Thread {thread_id} iteration {iteration}: DEADLOCK: {err_str}"
-                            );
+                            panic!("Thread {thread_id} iteration {iteration}: DEADLOCK: {err_str}");
                         }
                     }
                 }

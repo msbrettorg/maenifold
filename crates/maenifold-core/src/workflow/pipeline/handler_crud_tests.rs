@@ -80,13 +80,7 @@ fn delete_pipeline_refuses_running_pipeline_before_reading_pipeline_state() {
         template_id: None,
     };
     let node_states = states(&[("node", NodeStatus::Completed, 1)]);
-    seed_pipeline_session_with_workflows(
-        &context,
-        session_id,
-        definition,
-        node_states.clone(),
-        1,
-    );
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states.clone(), 1);
 
     let lock_path = lease::pipeline_lock_path(session_id, &context.config);
     std::fs::create_dir_all(lock_path.parent().expect("lock parent")).expect("create lock dir");
@@ -134,12 +128,10 @@ fn create_pipeline_persists_effective_inputs_on_definition_and_session() {
     .expect("create pipeline");
     let payload: Value = serde_json::from_str(&response).expect("json response");
     let pipeline_id = payload["data"]["pipelineId"].as_str().expect("pipeline id");
-    let (_, frontmatter, _) =
-        read_pipeline_session(&context, pipeline_id).expect("read pipeline");
+    let (_, frontmatter, _) = read_pipeline_session(&context, pipeline_id).expect("read pipeline");
     let definition: PipelineDefinition =
         frontmatter_value(&frontmatter, "definition").expect("definition");
-    let inputs: JsonMap<String, Value> =
-        frontmatter_value(&frontmatter, "inputs").expect("inputs");
+    let inputs: JsonMap<String, Value> = frontmatter_value(&frontmatter, "inputs").expect("inputs");
 
     assert_eq!(definition.nodes, vec![tool_node("tool")]);
     assert_eq!(

@@ -119,7 +119,6 @@ impl TaskSectionParser {
     }
 }
 
-
 #[cfg(test)]
 #[path = "task_sections_tests.rs"]
 mod tests;

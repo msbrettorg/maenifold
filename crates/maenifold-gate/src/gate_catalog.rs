@@ -7,7 +7,17 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd", "slc", "sdd-c", "tdd-c", "test"];
+const RESERVED_BUILTIN_NAMES: &[&str] = &[
+    "sdd",
+    "tdd",
+    "gsd",
+    "lightweight",
+    "mdd",
+    "slc",
+    "sdd-c",
+    "tdd-c",
+    "test",
+];
 const SDD_JSON: &str = include_str!("../assets/sdd.json");
 const TDD_JSON: &str = include_str!("../assets/tdd.json");
 const GSD_JSON: &str = include_str!("../assets/gsd.json");

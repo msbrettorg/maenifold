@@ -5,7 +5,7 @@ pub mod resources;
 pub mod schema;
 pub(crate) mod tool_utils;
 pub use resources::*;
-pub use tool_utils::{list_mcp_tools, McpToolDefinition};
+pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 use tool_utils::{format_tool_error, with_lock_retry};
 
 // FR-32-SEC: Shared CORS factory restricting origins to localhost variants
@@ -253,4 +253,3 @@ pub fn initialize_runtime(config: &Config) -> Result<()> {
     GraphDatabase::initialize_database(config)?;
     Ok(())
 }
-

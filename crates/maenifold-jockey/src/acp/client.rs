@@ -1,8 +1,8 @@
 use agent_client_protocol::{self as acp};
 use serde_json::{Value, json};
 
-use super::worker::{AcpEvent, DeltaSlot, permission_requests};
 pub(super) use super::client_terminal::shutdown_terminals;
+use super::worker::{AcpEvent, DeltaSlot, permission_requests};
 
 const RAW_PAYLOAD_LIMIT: usize = 64 * 1024;
 

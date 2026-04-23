@@ -4,24 +4,26 @@ use crate::error::{MaenifoldError, Result};
 use crate::graph::{load_graph_neighbors, preview};
 use rmcp::model::{AnnotateAble, ResourceTemplate};
 use rusqlite::{Connection, OptionalExtension};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub(super) const CONCEPT_TEMPLATE_URI: &str = "graph://concept/{name}";
 const CONCEPT_URI_PREFIX: &str = "graph://concept/";
 
 pub(super) fn list_resource_templates() -> Vec<ResourceTemplate> {
-    vec![rmcp::model::RawResourceTemplate {
-        uri_template: CONCEPT_TEMPLATE_URI.to_string(),
-        name: "Graph Concept Context".to_string(),
-        title: Some("Graph Concept Context".to_string()),
-        description: Some(
-            "Per-concept graph context with neighbors, co-occurrence counts, and source files."
-                .to_string(),
-        ),
-        icons: None,
-        mime_type: Some("application/json".to_string()),
-    }
-    .optional_annotate(None)]
+    vec![
+        rmcp::model::RawResourceTemplate {
+            uri_template: CONCEPT_TEMPLATE_URI.to_string(),
+            name: "Graph Concept Context".to_string(),
+            title: Some("Graph Concept Context".to_string()),
+            description: Some(
+                "Per-concept graph context with neighbors, co-occurrence counts, and source files."
+                    .to_string(),
+            ),
+            icons: None,
+            mime_type: Some("application/json".to_string()),
+        }
+        .optional_annotate(None),
+    ]
 }
 
 pub(super) fn read_concept_context(connection: &Connection, uri: &str) -> Result<Value> {

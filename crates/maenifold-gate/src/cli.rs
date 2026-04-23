@@ -2,9 +2,9 @@ use std::path::PathBuf;
 
 pub use maenifold_core::CliAction;
 
-use crate::cli_parser::*;
 use crate::append_command::AppendCommand;
 use crate::cancel_command::CancelCommand;
+use crate::cli_parser::*;
 use crate::fail_command::FailCommand;
 use crate::history_command::HistoryCommand;
 use crate::pass_command::PassCommand;

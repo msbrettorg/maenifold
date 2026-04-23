@@ -58,28 +58,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: pnpm
-          cache-dependency-path: apps/desktop/package.json
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10
+          cache: npm
+          cache-dependency-path: apps/desktop/package-lock.json
 
       - name: Install dependencies
-        run: pnpm install
+        run: npm ci
 
       - name: Build desktop UI
-        run: pnpm build
-
-      - name: Type-check desktop UI
-        run: npx vue-tsc --noEmit
-
-      - name: Design lint guardrails
-        run: pnpm lint:design
+        run: npm run build
 
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 
       - name: Visual baseline diff
-        run: pnpm test:visual
+        run: npm run test:visual

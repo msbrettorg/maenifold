@@ -199,7 +199,6 @@ pub struct PipelineNodeAdoptSchema {
     pub perspective: Option<String>,
 }
 
-
 // T-01.9: Re-export the node variant types from their dedicated module so existing
 // `super::pipeline_params::*` consumers (notably `super::params`) keep working.
 pub use super::pipeline_node_types::*;

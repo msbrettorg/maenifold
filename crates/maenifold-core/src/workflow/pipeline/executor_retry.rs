@@ -206,4 +206,3 @@ pub(super) fn increment_node_attempts(
 pub(super) fn extract_retry_count_from_state(state: Option<&NodeState>) -> u32 {
     state.and_then(|state| state.retry_count).unwrap_or(0)
 }
-

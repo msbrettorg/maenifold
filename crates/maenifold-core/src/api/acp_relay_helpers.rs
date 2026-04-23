@@ -26,7 +26,10 @@ pub(super) fn update_config_options(
     matched_category
 }
 
-pub(super) fn resolve_session_cwd(cwd: Option<PathBuf>, default_cwd: &str) -> Result<String, String> {
+pub(super) fn resolve_session_cwd(
+    cwd: Option<PathBuf>,
+    default_cwd: &str,
+) -> Result<String, String> {
     match cwd {
         Some(cwd) if !cwd.is_absolute() => Err("cwd must be an absolute path".to_string()),
         Some(cwd) => Ok(cwd.to_string_lossy().into_owned()),

@@ -211,4 +211,3 @@ pub fn generate_file_embedding(
 // existing `crate::sync::vector_embeddings::vec0_extension_available` import paths
 // continue to compile.
 pub(crate) use crate::db::vec0_extension_available;
-

@@ -106,7 +106,6 @@ pub(super) fn persist_pipeline_state_with_status(
     write_markdown(uri, Some(frontmatter), pipeline_content, &context.config)
 }
 
-
 pub(super) fn update_workflow_node_frontmatter(
     context: &ToolContext,
     workflow_session_id: &str,
@@ -143,7 +142,6 @@ pub(super) fn node_status_name(status: &NodeStatus) -> &'static str {
         NodeStatus::Retrying => "retrying",
     }
 }
-
 
 pub(super) fn write_workflow_node_session(
     context: &ToolContext,

@@ -1,10 +1,10 @@
 // T-01.16: AssetManager list/catalog operations extracted from manager.rs.
 
-use super::AssetManager;
 use super::super::support::{
     asset_files_in_root, asset_is_multi_agent, emit_asset_degraded_diagnostic,
 };
 use super::super::types::{AssetCatalog, AssetKind};
+use super::AssetManager;
 use crate::error::Result;
 use serde_json::Value;
 use std::fs;

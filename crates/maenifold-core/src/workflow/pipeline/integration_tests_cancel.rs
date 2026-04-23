@@ -11,12 +11,12 @@ use tokio_util::sync::CancellationToken;
 use crate::util::json::OutputFormat;
 
 use super::executor::execute_pipeline;
+use super::integration_tests_helpers::*;
 use super::session_read::{frontmatter_value, read_pipeline_session};
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_node_sessions};
 use super::{
     EdgeType, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode, RetryPolicy,
 };
-use super::integration_tests_helpers::*;
 
 #[tokio::test]
 #[serial]

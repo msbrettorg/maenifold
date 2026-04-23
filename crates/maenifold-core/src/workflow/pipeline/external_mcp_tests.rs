@@ -2,8 +2,8 @@ use std::{collections::HashMap, ffi::OsStr, ffi::OsString};
 
 use rmcp::model::{CallToolResult, Content};
 
-use super::*;
 use super::super::external_mcp_transport::build_child_path_env;
+use super::*;
 
 fn config_with_global_and_agents(
     global_servers: Vec<McpServerEntry>,
@@ -83,8 +83,7 @@ fn resolve_server_entry_falls_back_to_agent_server() {
         timeout: None,
         env: HashMap::new(),
     };
-    let config =
-        config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);
+    let config = config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);
 
     let resolved = resolve_server_entry(&config, "weather", Some("agent-a"))
         .expect("agent server resolves as fallback");
@@ -108,8 +107,7 @@ fn require_tool_allowed_defaults_to_all_when_none() {
 #[test]
 fn require_tool_allowed_permits_listed_tool() {
     let allowed = vec!["gate.status".to_string()];
-    require_tool_allowed("gate.status", Some(&allowed))
-        .expect("explicitly listed tool is allowed");
+    require_tool_allowed("gate.status", Some(&allowed)).expect("explicitly listed tool is allowed");
 }
 
 #[test]

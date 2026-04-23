@@ -9,7 +9,7 @@ use super::handler_config::{
     apply_cold_start_config, build_prompt_blocks, spawn_connection_health_watch,
 };
 use super::handlers::{ensure_connection, evict_if_cwd_changed};
-use super::pool::{CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, CancelHandle};
+use super::pool::{CANCEL_HANDLES, CONN_MAP, CancelHandle, PROMPT_LOCKS};
 use super::types::{AcpEvent, ConnectionDeathEvent};
 
 const PROMPT_LIVENESS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);

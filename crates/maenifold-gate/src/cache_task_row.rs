@@ -88,7 +88,11 @@ impl CachedTaskStatusRow {
             && let Some(requested) = requested_pipeline_name
             && self.pipeline.as_deref() != Some(requested)
         {
-            return Ok(pipeline_mismatch_row(&ctx, requested, self.pipeline.as_deref()));
+            return Ok(pipeline_mismatch_row(
+                &ctx,
+                requested,
+                self.pipeline.as_deref(),
+            ));
         }
 
         if !self.issue.is_empty() {

@@ -232,4 +232,3 @@ pub(crate) fn connected_components(graph: &GraphData) -> Vec<usize> {
 
     assignments
 }
-

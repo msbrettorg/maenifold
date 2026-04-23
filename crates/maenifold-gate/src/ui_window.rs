@@ -1,14 +1,14 @@
-use std::fs;
-use std::path::PathBuf;
-use std::time::Duration;
-use eframe::egui;
-use eframe::egui::{Color32, RichText};
-use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
-use egui_extras::{Column, TableBuilder};
 use crate::task_repository::{TaskPathSet, TaskRepository};
 use crate::ui_filtering::*;
 use crate::ui_progress::*;
 use crate::ui_task_data::*;
+use eframe::egui;
+use eframe::egui::{Color32, RichText};
+use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
+use egui_extras::{Column, TableBuilder};
+use std::fs;
+use std::path::PathBuf;
+use std::time::Duration;
 const READ_MODEL_POLL_INTERVAL: Duration = Duration::from_secs(2);
 #[derive(Debug)]
 pub struct GateUiWindow;
@@ -72,7 +72,11 @@ pub(crate) struct GateUiApp {
     pub(crate) sort_state: SortState,
 }
 impl GateUiApp {
-    fn new(root: PathBuf, tasks: Vec<TaskEntry>, read_model_timestamp: Option<std::time::SystemTime>) -> Self {
+    fn new(
+        root: PathBuf,
+        tasks: Vec<TaskEntry>,
+        read_model_timestamp: Option<std::time::SystemTime>,
+    ) -> Self {
         Self {
             root,
             tasks,
@@ -179,22 +183,38 @@ impl eframe::App for GateUiApp {
                 .column(Column::exact(180.0).clip(true))
                 .header(22.0, |mut header| {
                     header.col(|ui| {
-                        if ui.button(header_text("ID", self.sort_state, SortColumn::Id)).clicked() {
+                        if ui
+                            .button(header_text("ID", self.sort_state, SortColumn::Id))
+                            .clicked()
+                        {
                             self.sort_state.toggle(SortColumn::Id);
                         }
                     });
                     header.col(|ui| {
-                        if ui.button(header_text("Name", self.sort_state, SortColumn::Name)).clicked() {
+                        if ui
+                            .button(header_text("Name", self.sort_state, SortColumn::Name))
+                            .clicked()
+                        {
                             self.sort_state.toggle(SortColumn::Name);
                         }
                     });
                     header.col(|ui| {
-                        if ui.button(header_text("Process", self.sort_state, SortColumn::Process)).clicked() {
+                        if ui
+                            .button(header_text("Process", self.sort_state, SortColumn::Process))
+                            .clicked()
+                        {
                             self.sort_state.toggle(SortColumn::Process);
                         }
                     });
                     header.col(|ui| {
-                        if ui.button(header_text("Progress", self.sort_state, SortColumn::Progress)).clicked() {
+                        if ui
+                            .button(header_text(
+                                "Progress",
+                                self.sort_state,
+                                SortColumn::Progress,
+                            ))
+                            .clicked()
+                        {
                             self.sort_state.toggle(SortColumn::Progress);
                         }
                     });
@@ -217,7 +237,11 @@ impl eframe::App for GateUiApp {
                                 task_to_open = Some(task.clone());
                             }
                             if !task.issue.is_empty() {
-                                response.on_hover_text(format!("{}\n{}", task.path.display(), task.issue));
+                                response.on_hover_text(format!(
+                                    "{}\n{}",
+                                    task.path.display(),
+                                    task.issue
+                                ));
                             } else {
                                 response.on_hover_text(task.path.display().to_string());
                             }
@@ -265,10 +289,18 @@ impl eframe::App for GateUiApp {
                             .color(Color32::GRAY),
                         );
                         ui.label(RichText::new(&detail.entry.title).strong());
-                        ui.label(RichText::new(detail.entry.path.display().to_string()).small().color(Color32::GRAY));
+                        ui.label(
+                            RichText::new(detail.entry.path.display().to_string())
+                                .small()
+                                .color(Color32::GRAY),
+                        );
                         ui.separator();
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            CommonMarkViewer::new().show(ui, &mut self.markdown_cache, &detail.markdown);
+                            CommonMarkViewer::new().show(
+                                ui,
+                                &mut self.markdown_cache,
+                                &detail.markdown,
+                            );
                         });
                     });
             }

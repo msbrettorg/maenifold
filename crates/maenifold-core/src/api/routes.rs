@@ -95,10 +95,7 @@ impl IntoResponse for ApiError {
     }
 }
 
-pub(super) fn parse_optional<T>(
-    params: &HashMap<String, String>,
-    key: &str,
-) -> ApiResult<Option<T>>
+pub(super) fn parse_optional<T>(params: &HashMap<String, String>, key: &str) -> ApiResult<Option<T>>
 where
     T: FromStr,
     T::Err: Display,

@@ -168,7 +168,9 @@ pub(crate) fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>
 mod tests {
     use serde_json::json;
 
-    use super::{context_from_value, optional_string, optional_bool, required_string, call_gate_tool};
+    use super::{
+        call_gate_tool, context_from_value, optional_bool, optional_string, required_string,
+    };
 
     #[test]
     fn context_from_value_rejects_nonexistent_root() {
@@ -189,8 +191,14 @@ mod tests {
         let result = context_from_value(&args, false, None);
         let err = result.expect_err("relative root should fail");
         let msg = err.to_string();
-        assert!(msg.contains("relative"), "error should mention relative: {msg}");
-        assert!(msg.contains("absolute"), "error should suggest absolute: {msg}");
+        assert!(
+            msg.contains("relative"),
+            "error should mention relative: {msg}"
+        );
+        assert!(
+            msg.contains("absolute"),
+            "error should suggest absolute: {msg}"
+        );
     }
 
     #[test]
@@ -199,7 +207,10 @@ mod tests {
         let result = context_from_value(&args, false, None);
         let err = result.expect_err("relative subdir root should fail");
         let msg = err.to_string();
-        assert!(msg.contains("relative"), "error should mention relative: {msg}");
+        assert!(
+            msg.contains("relative"),
+            "error should mention relative: {msg}"
+        );
     }
 
     #[test]
@@ -268,7 +279,8 @@ mod tests {
     #[test]
     fn call_gate_tool_rejects_unknown_tool() {
         let args = json!({});
-        let err = call_gate_tool("nonexistent", &args, None).expect_err("should reject unknown tool");
+        let err =
+            call_gate_tool("nonexistent", &args, None).expect_err("should reject unknown tool");
         assert!(err.to_string().contains("unknown gate MCP tool"));
     }
 }

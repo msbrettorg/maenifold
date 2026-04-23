@@ -238,5 +238,3 @@ fn resolve_runtime_kind(agent_name: &str, cwd: &str) -> Result<String> {
     })?;
     Ok(agent_name.to_string())
 }
-
-

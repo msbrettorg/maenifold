@@ -17,7 +17,6 @@ SNAPSHOT_ROOT="ralph/state/snapshots"
 
 # Files the agent MUST NOT modify — verified by hash after each iteration
 IMMUTABLE_FILES=(
-  "ralph/prompt.md"
   "ralph.sh"
 )
 

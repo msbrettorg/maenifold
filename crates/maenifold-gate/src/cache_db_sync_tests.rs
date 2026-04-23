@@ -170,8 +170,7 @@ fn cache_db_connection_on_readonly_path_includes_path_in_error() {
     let temp = tempfile::tempdir().expect("create temp root");
     let root = temp.path().join("readonly_project");
     fs::create_dir_all(&root).expect("create readonly dir");
-    fs::set_permissions(&root, fs::Permissions::from_mode(0o444))
-        .expect("make dir read-only");
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o444)).expect("make dir read-only");
 
     let db = GateCacheDb::open(&root).expect("open cache db");
     let err = db.connection().expect_err("read-only root should fail");
@@ -186,6 +185,5 @@ fn cache_db_connection_on_readonly_path_includes_path_in_error() {
     );
 
     // Cleanup: restore permissions so temp dir can be removed
-    fs::set_permissions(&root, fs::Permissions::from_mode(0o755))
-        .expect("restore permissions");
+    fs::set_permissions(&root, fs::Permissions::from_mode(0o755)).expect("restore permissions");
 }

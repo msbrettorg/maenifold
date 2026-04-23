@@ -191,7 +191,6 @@ fn count_ranked_results(results: &[Value]) -> (usize, usize) {
     (text, semantic)
 }
 
-
 #[cfg(test)]
 #[path = "hybrid_tests.rs"]
 mod tests;

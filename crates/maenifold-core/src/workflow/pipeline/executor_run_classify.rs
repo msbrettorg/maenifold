@@ -203,7 +203,10 @@ pub(super) fn classify_think_result(
     }
 }
 
-pub(super) fn classify_tool_result(node_id: &str, result: Result<ToolExecutionResult>) -> NodeOutcome {
+pub(super) fn classify_tool_result(
+    node_id: &str,
+    result: Result<ToolExecutionResult>,
+) -> NodeOutcome {
     match result {
         Ok(result) if !result.response.trim().is_empty() => NodeOutcome::Completed {
             conclusion: result.response,

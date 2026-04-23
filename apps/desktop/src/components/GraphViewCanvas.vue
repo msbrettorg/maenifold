@@ -40,7 +40,9 @@ defineEmits<{ retry: [] }>();
       <p v-if="nodeCount > 0" class="mt-1 text-[0.6875rem] text-text-secondary tabular-nums">{{ nodeCount }} nodes discovered</p>
     </div>
 
-    <slot />
+    <div class="relative w-full h-full bg-transparent">
+      <slot />
+    </div>
 
     <div
       v-if="!isLoading && !error"

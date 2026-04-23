@@ -29,7 +29,10 @@ impl CircuitBreaker {
             return;
         }
 
-        let mut targets = self.targets.lock().unwrap();
+        let mut targets = self
+            .targets
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let state = targets.entry(target.to_string()).or_insert(TargetState {
             consecutive_transport_failures: 0,
             opened_at: None,
@@ -50,7 +53,10 @@ impl CircuitBreaker {
     }
 
     pub(super) fn record_success(&self, target: &str) {
-        let mut targets = self.targets.lock().unwrap();
+        let mut targets = self
+            .targets
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         if let Some(state) = targets.get_mut(target) {
             state.consecutive_transport_failures = 0;
             state.opened_at = None;
@@ -58,7 +64,10 @@ impl CircuitBreaker {
     }
 
     pub(super) fn is_open(&self, target: &str) -> bool {
-        let mut targets = self.targets.lock().unwrap();
+        let mut targets = self
+            .targets
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         match targets.get_mut(target) {
             Some(state) => match state.opened_at {
                 Some(opened_at) if opened_at.elapsed() < self.cooldown => true,

@@ -103,7 +103,7 @@ impl TrayApp<ServerMode, CoreTrayState> {
         #[cfg(target_os = "macos")]
         {
             use objc2_core_foundation::CFRunLoop;
-            let rl = CFRunLoop::main().unwrap();
+            let rl = CFRunLoop::main().expect("main CFRunLoop available on macOS main thread");
             rl.wake_up();
         }
     }
@@ -226,7 +226,9 @@ pub fn run_with_tray(mode: ServerMode) -> i32 {
     let mut builder = EventLoop::builder();
     #[cfg(target_os = "macos")]
     builder.with_activation_policy(ActivationPolicy::Accessory);
-    let event_loop = builder.build().unwrap();
+    let event_loop = builder
+        .build()
+        .expect("winit EventLoop builds on the main thread");
     let mut app = TrayApp {
         mode,
         shutdown_token,

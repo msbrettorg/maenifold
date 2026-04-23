@@ -106,7 +106,7 @@ mod tests {
 
     fn test_config(dir: &std::path::Path) -> Config {
         let memory = dir.join("memory");
-        std::fs::create_dir_all(&memory).unwrap();
+        std::fs::create_dir_all(&memory).unwrap(); // audit-ok: no-unwrap
         Config {
             maenifold_root: dir.to_path_buf(),
             memory_path: memory.clone(),
@@ -122,7 +122,7 @@ mod tests {
     // rewind_pipeline_rejects_when_lock_is_held
     #[test]
     fn session_lock_is_held_false_when_no_lock_file() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().unwrap(); // audit-ok: no-unwrap
         let config = test_config(dir.path());
         // Fake session id that parses to today's date
         let session_id = "pipeline-1700000000000-test";
@@ -131,18 +131,18 @@ mod tests {
 
     #[test]
     fn session_lock_is_held_false_after_lock_released() {
-        let dir = tempfile::tempdir().unwrap();
+        let dir = tempfile::tempdir().unwrap(); // audit-ok: no-unwrap
         let config = test_config(dir.path());
         let session_id = "pipeline-1700000000000-test";
         let lock_path = pipeline_lock_path(session_id, &config);
-        std::fs::create_dir_all(lock_path.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(lock_path.parent().unwrap()).unwrap(); // audit-ok: no-unwrap
 
         // Acquire then drop immediately.
         {
-            let file = std::fs::File::create(&lock_path).unwrap();
+            let file = std::fs::File::create(&lock_path).unwrap(); // audit-ok: no-unwrap
             let mut rw = fd_lock::RwLock::new(file);
-            let mut guard = rw.try_write().unwrap();
-            guard.write_all(b"test-holder").unwrap();
+            let mut guard = rw.try_write().unwrap(); // audit-ok: no-unwrap
+            guard.write_all(b"test-holder").unwrap(); // audit-ok: no-unwrap
             // guard dropped here — lock released
         }
 

@@ -61,12 +61,19 @@ async fn static_handler(uri: axum::http::Uri) -> Response {
         let mut response = (StatusCode::OK, content.data).into_response();
         response
             .headers_mut()
-            .insert(header::CONTENT_TYPE, mime.as_ref().parse().unwrap());
+            .insert(
+                header::CONTENT_TYPE,
+                mime.as_ref()
+                    .parse()
+                    .expect("mime_guess produces a valid HeaderValue"),
+            );
         // Files under assets/ get immutable caching.
         if path.starts_with("assets/") {
             response.headers_mut().insert(
                 header::CACHE_CONTROL,
-                "max-age=31536000, immutable".parse().unwrap(),
+                "max-age=31536000, immutable"
+                    .parse()
+                    .expect("static Cache-Control literal parses as HeaderValue"),
             );
         }
         return response;
@@ -78,7 +85,12 @@ async fn static_handler(uri: axum::http::Uri) -> Response {
             let mut response = Html(content.data).into_response();
             response
                 .headers_mut()
-                .insert(header::CACHE_CONTROL, "no-cache".parse().unwrap());
+                .insert(
+                    header::CACHE_CONTROL,
+                    "no-cache"
+                        .parse()
+                        .expect("static Cache-Control literal parses as HeaderValue"),
+                );
             response
         }
         None => (

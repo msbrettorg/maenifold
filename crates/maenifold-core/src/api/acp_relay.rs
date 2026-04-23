@@ -166,7 +166,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                     break;
                 }
             }
-            event = async { delta_rx.as_mut().unwrap().recv().await }, if delta_rx.is_some() => {
+            event = async { delta_rx.as_mut().expect("delta_rx checked by select! guard").recv().await }, if delta_rx.is_some() => {
                 let Some(event) = event else { delta_rx = None; continue; };
                 if let Some(active) = session.as_mut() {
                     apply_event_state(active, &event);
@@ -181,7 +181,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                     }
                 }
             }
-            result = async { result_rx.as_mut().unwrap().await }, if result_rx.is_some() => {
+            result = async { result_rx.as_mut().expect("result_rx checked by select! guard").await }, if result_rx.is_some() => {
                 let result = result.unwrap_or_else(|_| Err("worker disconnected".to_string()));
                 if let Some(session_id) = session.as_ref().map(|active| active.session_id.clone()) {
                     while let Some(event) = delta_rx.as_mut().and_then(|rx| rx.try_recv().ok()) {

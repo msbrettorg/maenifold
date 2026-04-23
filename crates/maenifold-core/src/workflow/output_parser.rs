@@ -206,7 +206,7 @@ mod tests {
     #[test]
     fn json_fallback_parse_accepts_trailing_json_after_leading_text() {
         let parsed =
-            json_fallback_parse(r#"Using skills now...{"response":"x","done":true}"#).unwrap();
+            json_fallback_parse(r#"Using skills now...{"response":"x","done":true}"#).unwrap(); // audit-ok: no-unwrap
 
         assert_eq!(parsed.get("response"), Some("x"));
         assert_eq!(parsed.get_bool("done"), Some(true));
@@ -217,7 +217,7 @@ mod tests {
         let json = trailing_json_object(
             r#"note {"response":"brace } and escaped quote \" here","done":true}"#,
         )
-        .unwrap();
+        .unwrap(); // audit-ok: no-unwrap
 
         assert_eq!(
             json,

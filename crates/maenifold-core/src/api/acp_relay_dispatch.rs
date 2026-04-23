@@ -58,14 +58,14 @@ pub(super) async fn handle_incoming(
 
     let response = match method {
         "initialize" if id.is_some() => Some(
-            handle_initialize(relay, session, params, id.clone().unwrap())
+            handle_initialize(relay, session, params, id.clone().expect("id checked by match guard"))
                 .await
-                .map(|result| rpc_ok(id.unwrap(), result)),
+                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/new" if id.is_some() => Some(
-            handle_session_new(relay, session, params, id.clone().unwrap())
+            handle_session_new(relay, session, params, id.clone().expect("id checked by match guard"))
                 .await
-                .map(|result| rpc_ok(id.unwrap(), result)),
+                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/load" if id.is_some() => Some(
             handle_session_load(
@@ -75,10 +75,10 @@ pub(super) async fn handle_incoming(
                 permission_ids,
                 next_permission_id,
                 params,
-                id.clone().unwrap(),
+                id.clone().expect("id checked by match guard"),
             )
             .await
-            .map(|result| rpc_ok(id.unwrap(), result)),
+            .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/prompt" if id.is_some() => match handle_prompt(
             relay,
@@ -87,22 +87,22 @@ pub(super) async fn handle_incoming(
             delta_rx,
             result_rx,
             params,
-            id.unwrap(),
+            id.expect("id checked by match guard"),
         ) {
             Ok(()) => None,
             Err(error) => Some(Err(error)),
         },
         "session/set_config_option" if id.is_some() => Some(
-            handle_set_config_option(relay, session, params, id.clone().unwrap())
+            handle_set_config_option(relay, session, params, id.clone().expect("id checked by match guard"))
                 .await
-                .map(|result| rpc_ok(id.unwrap(), result)),
+                .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
         "session/cancel" => {
             handle_cancel(relay, session, pending_prompt, permission_ids, params);
             None
         }
         _ if id.is_some() => Some(Err(rpc_error(
-            id.unwrap(),
+            id.expect("id checked by match guard"),
             -32601,
             format!("Method not found: {method}"),
         ))),

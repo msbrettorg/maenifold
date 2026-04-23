@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::{Value, json};
 use std::sync::LazyLock;
 static STEP_PROGRESS_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").unwrap());
+    LazyLock::new(|| Regex::new(r"Step (\d+)/(\d+)").expect("static step-progress regex is valid"));
 
 #[derive(Debug, Deserialize)]
 pub(crate) struct Envelope<T> {

@@ -24,7 +24,15 @@ T-03.2, T-03.3, T-03.4, T-03.7 all shipped. T-03.8 SWE dispatched (style migrati
 - T-03.8 spec updated: EmptyState dropped (already clean), WorkflowStepTimeline scoped to CSS migration not component replacement (it's a timeline, not a stepper)
 - Next: T-03.9/T-03.10 prop drilling, T-03.16 final sweep
 
+## Current Wave — T-03.5 and T-03.6 (CSS migration)
+- Both scoped down from full library replacements to CSS→Tailwind migration
+- T-03.6 (GraphViewCanvas): SWE done, red-team found P1 (dropped :slotted rule), remediated, re-auditing
+- T-03.5 (PipelineComposer 13 files): Batch 1 done (4 files committed). Batch 2 SWE dispatched (6 files). Batch 3 remaining (PipelineFlyout, PipelineIconRail, PipelineSidebar)
+- PipelineNodeCardPorts: ALL :deep() → audit-ok exemption (Vue Flow handles)
+- PipelineComposer: retains :deep() audit-ok for Vue Flow Controls/MiniMap
+
 ## Next Actions
-- T-03.5 and T-03.6 are SLC pipeline (discovery → spec → swe → red → blue → done) — need library evaluation first
-- T-03.16 needs decomposition: ~92 files with style blocks is too many for one task. Split by component group (Chat*, Gate*, Pipeline*, Settings*, Workflow*, Thinking*, etc.)
+- Complete T-03.5 Batch 3 (3 files: Flyout, IconRail, Sidebar)
+- Once T-03.5 + T-03.6 shipped → T-03.16 unblocked (all deps T-03.1–T-03.8 done)
+- T-03.16 needs decomposition: ~75 remaining files with style blocks after pipeline/graph cleanup. Split by component group: Chat* (10), Gate* (8), Settings* (14), Workflow* (10), Thinking* (3), SemanticZoom* (4), TemplateGallery* (4), AgentProbe* (3), standalone (~19)
 - T-204.0 epic (Handy speech-to-text) has 7 well-spec'd subtasks all pending — ready for dispatch when T-03 wave stabilizes

@@ -17,9 +17,21 @@ const shortSessionId = computed(() => props.node.sessionId.length <= 18
   ? props.node.sessionId
   : `${props.node.sessionId.slice(0, 8)}…${props.node.sessionId.slice(-6)}`);
 const statusMetaMap: Record<ThinkingSession['status'], { label: string; icon: Component; className: string }> = {
-  active: { label: 'Active', icon: RefreshCw, className: 'status-active' },
-  completed: { label: 'Completed', icon: CheckCircle, className: 'status-completed' },
-  abandoned: { label: 'Abandoned', icon: AlertTriangle, className: 'status-abandoned' },
+  active: {
+    label: 'Active',
+    icon: RefreshCw,
+    className: 'bg-[color-mix(in_srgb,var(--color-status-active)_14%,var(--color-bg-surface))] border-[color-mix(in_srgb,var(--color-status-active)_28%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_74%,var(--color-status-active))]',
+  },
+  completed: {
+    label: 'Completed',
+    icon: CheckCircle,
+    className: 'bg-[color-mix(in_srgb,var(--color-status-completed)_14%,var(--color-bg-surface))] border-[color-mix(in_srgb,var(--color-status-completed)_28%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_72%,var(--color-status-completed))]',
+  },
+  abandoned: {
+    label: 'Abandoned',
+    icon: AlertTriangle,
+    className: 'bg-[color-mix(in_srgb,var(--color-status-stuck)_14%,var(--color-bg-surface))] border-[color-mix(in_srgb,var(--color-status-stuck)_28%,transparent)] text-[color-mix(in_srgb,var(--color-text-primary)_68%,var(--color-status-stuck))]',
+  },
 } as const;
 const statusMeta = computed(() => statusMetaMap[props.node.status]);
 
@@ -76,33 +88,73 @@ function onAfterLeave(element: Element): void {
 </script>
 
 <template>
-  <div class="thinking-session-card">
-    <Button variant="ghost" class="card-header" :aria-expanded="isExpanded" @click="toggleExpanded">
-      <div class="header-left">
-        <span class="header-icon" aria-hidden="true"><Brain class="size-4" :stroke-width="1.5" /></span>
-        <div class="header-copy">
-          <span class="header-title">Thinking session</span>
-          <span class="session-id" :title="node.sessionId">{{ shortSessionId }}</span>
+  <!-- audit-ok: dynamic-binding (color-mix locals consumed by descendants) -->
+  <div
+    class="thinking-session-card w-[280px] bg-[color-mix(in_srgb,var(--color-bg-surface)_92%,var(--color-bg-app))] rounded-[var(--radius)] border-l-[3px] border-l-[var(--color-node-prompt)] text-[var(--thinking-card-text)] shadow-[var(--shadow-16)] overflow-hidden"
+    :style="{
+      '--thinking-card-text': 'color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-prompt))',
+      '--thinking-card-heading': 'color-mix(in srgb, var(--color-text-primary) 94%, var(--color-node-prompt))',
+      '--thinking-card-muted': 'color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary))',
+      '--thinking-card-badge': 'color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt))',
+    }"
+  >
+    <Button
+      variant="ghost"
+      class="card-header w-full flex items-start justify-between gap-[0.75rem] px-[0.95rem] py-[0.875rem] bg-transparent border-0 text-inherit text-left cursor-pointer h-auto rounded-none hover:bg-[color-mix(in_srgb,var(--color-node-prompt)_8%,var(--color-bg-surface))]"
+      :aria-expanded="isExpanded"
+      @click="toggleExpanded"
+    >
+      <div class="header-left flex items-center gap-[0.625rem] min-w-0">
+        <span
+          class="header-icon w-[1.75rem] h-[1.75rem] rounded-[4px] inline-flex items-center justify-center bg-[color-mix(in_srgb,var(--color-node-prompt)_14%,var(--color-bg-surface))] flex-shrink-0"
+          aria-hidden="true"
+        ><Brain class="size-4" :stroke-width="1.5" /></span>
+        <div class="header-copy flex flex-col min-w-0">
+          <span class="header-title text-[length:var(--text-body-sm)] font-[var(--weight-title)] text-[var(--thinking-card-heading)]">Thinking session</span>
+          <span
+            class="session-id font-[var(--font-code)] text-[length:var(--text-tiny)] text-[var(--thinking-card-muted)] whitespace-nowrap overflow-hidden text-ellipsis"
+            :title="node.sessionId"
+          >{{ shortSessionId }}</span>
         </div>
       </div>
 
-      <div class="header-right">
-        <span class="thought-count-badge">{{ thoughtCountLabel }}</span>
-        <span class="status-badge" :class="statusMeta.className" :title="node.status">
+      <div class="header-right flex items-center justify-end flex-wrap gap-[0.4rem] min-w-0">
+        <span
+          class="thought-count-badge inline-flex items-center gap-[0.3rem] rounded-[4px] px-[0.5rem] py-[0.2rem] text-[length:var(--text-tiny)] leading-[1.1] whitespace-nowrap bg-[color-mix(in_srgb,var(--color-bg-surface)_76%,var(--color-bg-app))] text-[color-mix(in_srgb,var(--color-text-primary)_74%,var(--color-node-prompt))]"
+        >{{ thoughtCountLabel }}</span>
+        <span
+          class="status-badge inline-flex items-center gap-[0.3rem] rounded-[4px] px-[0.5rem] py-[0.2rem] text-[length:var(--text-tiny)] leading-[1.1] whitespace-nowrap border border-transparent font-[var(--weight-title)]"
+          :class="statusMeta.className"
+          :title="node.status"
+        >
           <span aria-hidden="true"><component :is="statusMeta.icon" class="size-4" :stroke-width="1.5" /></span>
           {{ statusMeta.label }}
         </span>
-        <span class="expand-indicator" aria-hidden="true">{{ isExpanded ? '▲' : '▼' }}</span>
+        <span
+          class="expand-indicator text-[var(--thinking-card-muted)] text-[length:var(--text-tiny)] pt-[0.35rem]"
+          aria-hidden="true"
+        >{{ isExpanded ? '▲' : '▼' }}</span>
       </div>
     </Button>
     <Transition @before-enter="onBeforeEnter" @enter="onEnter" @after-enter="onAfterEnter" @before-leave="onBeforeLeave" @leave="onLeave" @after-leave="onAfterLeave">
-      <div v-if="isExpanded" class="card-body">
-        <ul v-if="node.thoughts.length" class="thought-list">
+      <div v-if="isExpanded" class="card-body px-[0.95rem] pb-[0.95rem]">
+        <ul
+          v-if="node.thoughts.length"
+          class="thought-list relative list-none m-0 pl-[0.35rem] flex flex-col gap-[0.8rem]"
+        >
           <ThinkingThoughtItem v-for="thought in node.thoughts" :key="`${thought.number}-${thought.timestamp}`" :thought="thought" />
         </ul>
-        <div v-else class="empty-state">No thoughts recorded for this session.</div>
-        <section v-if="node.conclusion" class="conclusion-section">
-          <div class="conclusion-label">Conclusion</div>
+        <div
+          v-else
+          class="empty-state py-[0.75rem] text-[length:var(--text-caption)] text-[var(--thinking-card-muted)]"
+        >No thoughts recorded for this session.</div>
+        <section
+          v-if="node.conclusion"
+          class="conclusion-section mt-[0.95rem] p-[0.75rem] border border-[color-mix(in_srgb,var(--color-node-prompt)_18%,transparent)] rounded-[var(--radius)] bg-[color-mix(in_srgb,var(--color-node-prompt)_6%,var(--color-bg-surface))]"
+        >
+          <div
+            class="conclusion-label mb-[0.45rem] text-[length:var(--text-tiny)] font-[var(--weight-title)] tracking-[0.06em] text-[var(--thinking-card-badge)]"
+          >Conclusion</div>
           <KnowledgeNoteRenderer :content="node.conclusion" />
         </section>
       </div>
@@ -110,126 +162,8 @@ function onAfterLeave(element: Element): void {
   </div>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: pseudo-element-gradient (timeline ::before with linear-gradient + color-mix unrepresentable in Tailwind) -->
 <style scoped>
-.thinking-session-card {
-  --thinking-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-prompt));
-  --thinking-card-heading: color-mix(in srgb, var(--color-text-primary) 94%, var(--color-node-prompt));
-  --thinking-card-muted: color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary));
-  --thinking-card-badge: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt));
-  width: 280px;
-  background: color-mix(in srgb, var(--color-bg-surface) 92%, var(--color-bg-app));
-  border-radius: var(--radius);
-  border-left: 3px solid var(--color-node-prompt);
-  color: var(--thinking-card-text);
-  box-shadow: var(--shadow-16);
-  overflow: hidden;
-}
-.card-header {
-  width: 100%;
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.875rem 0.95rem;
-  background: transparent;
-  border: 0;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.card-header:hover { background: color-mix(in srgb, var(--color-node-prompt) 8%, var(--color-bg-surface)); }
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 0;
-}
-.header-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--color-node-prompt) 14%, var(--color-bg-surface));
-  flex-shrink: 0;
-}
-.header-copy {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.header-title {
-  font-size: var(--text-body-sm);
-  font-weight: var(--weight-title);
-  color: var(--thinking-card-heading);
-}
-.session-id {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  color: var(--thinking-card-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.header-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  min-width: 0;
-}
-.thought-count-badge,
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  border-radius: 4px;
-  padding: 0.2rem 0.5rem;
-  font-size: var(--text-tiny);
-  line-height: 1.1;
-  white-space: nowrap;
-}
-.thought-count-badge {
-  background: color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app));
-  color: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-node-prompt));
-}
-.status-badge {
-  border: 1px solid transparent;
-  font-weight: var(--weight-title);
-}
-.status-active {
-  background: color-mix(in srgb, var(--color-status-active) 14%, var(--color-bg-surface));
-  border-color: color-mix(in srgb, var(--color-status-active) 28%, transparent);
-  color: color-mix(in srgb, var(--color-text-primary) 74%, var(--color-status-active));
-}
-.status-completed {
-  background: color-mix(in srgb, var(--color-status-completed) 14%, var(--color-bg-surface));
-  border-color: color-mix(in srgb, var(--color-status-completed) 28%, transparent);
-  color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-completed));
-}
-.status-abandoned {
-  background: color-mix(in srgb, var(--color-status-stuck) 14%, var(--color-bg-surface));
-  border-color: color-mix(in srgb, var(--color-status-stuck) 28%, transparent);
-  color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-stuck));
-}
-.expand-indicator {
-  color: var(--thinking-card-muted);
-  font-size: var(--text-tiny);
-  padding-top: 0.35rem;
-}
-.card-body { padding: 0 0.95rem 0.95rem; }
-.thought-list {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 0.35rem;
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
-}
 .thought-list::before {
   content: '';
   position: absolute;
@@ -243,23 +177,5 @@ function onAfterLeave(element: Element): void {
     color-mix(in srgb, var(--color-node-prompt) 22%, transparent)
   );
 }
-.conclusion-section {
-  margin-top: 0.95rem;
-  padding: 0.75rem;
-  border: 1px solid color-mix(in srgb, var(--color-node-prompt) 18%, transparent);
-  border-radius: var(--radius);
-  background: color-mix(in srgb, var(--color-node-prompt) 6%, var(--color-bg-surface));
-}
-.conclusion-label {
-  margin-bottom: 0.45rem;
-  font-size: var(--text-tiny);
-  font-weight: var(--weight-title);
-  letter-spacing: 0.06em;
-  color: var(--thinking-card-badge);
-}
-.empty-state {
-  padding: 0.75rem 0;
-  font-size: var(--text-caption);
-  color: var(--thinking-card-muted);
-}
 </style>
+

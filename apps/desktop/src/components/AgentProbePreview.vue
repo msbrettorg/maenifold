@@ -196,7 +196,10 @@ function handleUpdateField(key: string, value: string) {
 </script>
 
 <template>
-  <section class="probe-preview" :class="{ compact }">
+  <section
+    class="probe-preview grid"
+    :class="[compact ? 'gap-[0.75rem]' : 'gap-[0.65rem]', { compact }]"
+  >
     <AgentProbePreviewStatus
       :compact="compact"
       :degraded-message="degradedMessage"
@@ -218,14 +221,3 @@ function handleUpdateField(key: string, value: string) {
     />
   </section>
 </template>
-
-<style scoped>
-.probe-preview {
-  display: grid;
-  gap: 0.65rem;
-}
-
-.probe-preview.compact {
-  gap: 0.75rem;
-}
-</style>

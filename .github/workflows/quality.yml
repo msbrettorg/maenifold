@@ -16,9 +16,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: "1.91.0"
           components: clippy, llvm-tools-preview
 
       - name: Setup Node
@@ -37,11 +38,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
+
       - name: Install quality tools
         run: |
-          cargo install cargo-llvm-cov
-          cargo install cargo-machete
-          cargo install rust-code-analysis-cli
+          cargo install cargo-llvm-cov --locked
+          cargo install cargo-machete --locked
+          cargo install rust-code-analysis-cli --locked
           npm install -g jscpd
 
       - name: Generate quality reports

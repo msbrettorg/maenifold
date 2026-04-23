@@ -22,20 +22,20 @@ const sections = [
       Configure your agent catalog and local application preferences.
     </p>
 
-    <TabsRoot default-value="connection" orientation="vertical" class="settings-layout">
-      <TabsList class="settings-nav" aria-label="Settings sections">
+    <TabsRoot default-value="connection" orientation="vertical" class="flex gap-6 h-[calc(100%-80px)]">
+      <TabsList class="flex flex-col gap-1 w-[280px] flex-shrink-0" aria-label="Settings sections">
         <TabsTrigger
           v-for="s in sections"
           :key="s.id"
           :value="s.id"
-          class="settings-nav-item"
+          class="flex flex-col items-start text-left gap-1 rounded border-l-2 border-l-transparent border-t-0 border-r-0 border-b-0 px-3 py-2.5 cursor-pointer transition-colors duration-150 bg-transparent hover:bg-bg-surface-hover data-[state=active]:border-l-brand data-[state=active]:bg-bg-surface-hover"
         >
-          <span class="nav-label">{{ s.label }}</span>
-          <span class="nav-desc">{{ s.description }}</span>
+          <span class="text-sm font-semibold text-text-primary">{{ s.label }}</span>
+          <span class="text-xs text-text-secondary leading-snug line-clamp-2">{{ s.description }}</span>
         </TabsTrigger>
       </TabsList>
 
-      <div class="settings-content">
+      <div class="flex-1 overflow-y-auto">
         <TabsContent value="connection"><SettingsConnection /></TabsContent>
         <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
         <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
@@ -45,66 +45,3 @@ const sections = [
     </TabsRoot>
   </div>
 </template>
-
-<style scoped>
-.settings-layout {
-  display: flex;
-  gap: 24px;
-  height: calc(100% - 80px);
-}
-
-.settings-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 280px;
-  flex-shrink: 0;
-}
-
-.settings-nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 4px;
-  border-radius: 4px;
-  border-left: 2px solid transparent;
-  padding: 10px 12px;
-  cursor: pointer;
-  transition: background-color 0.15s;
-  background: transparent;
-  border-top: none;
-  border-right: none;
-  border-bottom: none;
-}
-
-.settings-nav-item:hover {
-  background-color: var(--bg-surface-hover);
-}
-
-.settings-nav-item[data-state="active"] {
-  border-left-color: var(--blue);
-  background-color: var(--bg-surface-hover);
-}
-
-.nav-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.nav-desc {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  line-height: 1.375;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.settings-content {
-  flex: 1;
-  overflow-y: auto;
-}
-</style>

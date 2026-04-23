@@ -179,7 +179,7 @@ async function confirmDeleteServer() {
 </script>
 
 <template>
-  <section class="settings-section" role="form" aria-label="MCP server settings">
+  <section class="flex flex-col gap-4" role="form" aria-label="MCP server settings">
     <SettingsMcpServersList
       :mcp-servers="mcpServers"
       :show-add-form="showAddForm"
@@ -232,7 +232,3 @@ async function confirmDeleteServer() {
     </AlertDialog>
   </section>
 </template>
-
-<style scoped>
-.settings-section { display: flex; flex-direction: column; gap: 1rem; }
-</style>

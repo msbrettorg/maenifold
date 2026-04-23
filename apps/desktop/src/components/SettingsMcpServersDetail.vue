@@ -41,15 +41,15 @@ function updateType(event: Event) {
 </script>
 
 <template>
-  <div v-if="visible" class="agent-form" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
-    <h4>{{ editingServer ? 'Edit MCP server' : 'Add new MCP server' }}</h4>
+  <div v-if="visible" class="p-4 rounded-[var(--radius)] bg-bg-elevated" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
+    <h4 class="m-0 mb-3">{{ editingServer ? 'Edit MCP server' : 'Add new MCP server' }}</h4>
 
-    <div class="form-group">
+    <div class="block mb-3">
       <Label>Name</Label>
       <Input :model-value="formName" type="text" placeholder="filesystem" :disabled="!!editingServer" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formName')" />
     </div>
 
-    <div class="form-group">
+    <div class="block mb-3">
       <Label>Type</Label>
       <Select :model-value="formType" @update:model-value="(val) => updateType({ target: { value: String(val) } } as unknown as Event)">
         <SelectTrigger class="w-full">
@@ -63,48 +63,30 @@ function updateType(event: Event) {
     </div>
 
     <template v-if="formType === 'stdio'">
-      <div class="form-group">
+      <div class="block mb-3">
         <Label>Command</Label>
         <Input :model-value="formCommand" type="text" placeholder="npx @modelcontextprotocol/server-filesystem" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formCommand')" />
       </div>
 
-      <div class="form-group">
+      <div class="block mb-3">
         <Label>Arguments</Label>
-        <Textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" @input="updateValue($event, 'formArgs')" />
-        <small>Enter one argument per line.</small>
+        <Textarea :value="formArgs" rows="4" placeholder="workspace-folder&#10;--read-only" class="resize-y" @input="updateValue($event, 'formArgs')" />
+        <small class="text-xs">Enter one argument per line.</small>
       </div>
     </template>
 
-    <div v-else class="form-group">
+    <div v-else class="block mb-3">
       <Label>URL</Label>
       <Input :model-value="formUrl" type="url" placeholder="localhost:8080/mcp" @update:model-value="(val) => updateValue({ target: { value: String(val) } } as unknown as Event, 'formUrl')" />
     </div>
 
-    <p v-if="formError" class="form-error">{{ formError }}</p>
+    <p v-if="formError" class="text-danger">{{ formError }}</p>
 
-    <div class="form-actions">
-      <Button class="save-btn" :disabled="isSubmitting" @click="emit('submit')">
+    <div class="flex justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
+      <Button class="px-3.5 py-2 rounded-[var(--radius)] cursor-pointer border-0 bg-brand text-text-primary" :disabled="isSubmitting" @click="emit('submit')">
         {{ isSubmitting ? 'Saving...' : 'Save' }}
       </Button>
-      <Button variant="outline" class="cancel-btn" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" class="px-3.5 py-2 rounded-[var(--radius)] cursor-pointer border border-border-subtle bg-transparent text-inherit" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>
-
-<style scoped>
-.agent-form { padding: 1rem; border-radius: var(--radius); background: var(--color-bg-elevated); }
-.agent-form h4 { margin: 0 0 0.75rem; }
-.form-group { display: block; margin-bottom: 0.75rem; }
-.form-group span { display: block; margin-bottom: 0.25rem; font-weight: 500; }
-.form-group input,.form-group select,.form-group textarea { width: 100%; padding: 0.5rem; border: 1px solid var(--color-border-subtle); border-radius: var(--radius); background: var(--color-bg-app); color: var(--color-text-primary); }
-.form-group textarea { resize: vertical; }
-.form-group small { font-size: 0.75rem; }
-.form-error { color: var(--color-danger); }
-.form-actions { display: flex; justify-content: space-between; gap: 0.75rem; }
-.save-btn,.cancel-btn { padding: 0.5rem 0.9rem; border-radius: var(--radius); cursor: pointer; }
-.save-btn { border: none; background: var(--color-brand); color: var(--color-text-primary); }
-.cancel-btn { border: 1px solid var(--color-border-subtle); background: transparent; color: inherit; }
-@media (max-width: 640px) {
-  .form-actions { flex-direction: column; align-items: stretch; }
-}
-</style>

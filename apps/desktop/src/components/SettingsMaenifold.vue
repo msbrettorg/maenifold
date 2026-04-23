@@ -168,19 +168,26 @@ onMounted(loadSettings);
 </script>
 
 <template>
-  <section class="settings-section" role="form" aria-label="Maenifold settings">
+  <section class="flex flex-col gap-4" role="form" aria-label="Maenifold settings">
     <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="section-header">
+      <div class="mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary">
         <div>
-          <h3>Maenifold settings</h3>
-          <p>Configure runtime behavior, persistence, graph tuning, and debug controls.</p>
+          <h3 class="m-0">Maenifold settings</h3>
+          <p class="m-0 text-text-secondary">Configure runtime behavior, persistence, graph tuning, and debug controls.</p>
         </div>
       </div>
 
-      <div v-if="isLoading" class="settings-card muted">Loading maenifold settings…</div>
+      <div v-if="isLoading" class="p-4 rounded-[var(--radius)] bg-bg-elevated text-text-secondary">Loading maenifold settings…</div>
 
       <template v-else>
-        <p v-if="feedback" class="feedback" :class="feedback.type">{{ feedback.message }}</p>
+        <p
+          v-if="feedback"
+          class="m-0 px-3.5 py-3 rounded-[var(--radius)]"
+          :style="feedback.type === 'success'
+            ? 'background: color-mix(in srgb, var(--color-brand) 18%, transparent); color: var(--color-text-primary);'
+            : 'background: color-mix(in srgb, var(--color-danger) 18%, transparent); color: var(--color-danger);'"
+        >{{ feedback.message }}</p>
+        <!-- audit-ok: dynamic-binding -->
 
         <SettingsMaenifoldMemory
           :form="form"
@@ -201,11 +208,11 @@ onMounted(loadSettings);
           :on-update-pipeline-driver="updatePipelineDriver"
         />
 
-        <div class="form-actions">
-          <Button class="save-btn" type="button" :disabled="isSubmitting" @click="handleSave">
+        <div class="flex gap-[0.65rem] max-sm:flex-col">
+          <Button class="px-4 py-[0.55rem] rounded-[var(--radius)] cursor-pointer border-0 bg-brand text-text-primary" type="button" :disabled="isSubmitting" @click="handleSave">
             {{ isSubmitting ? 'Saving…' : 'Save' }}
           </Button>
-          <Button variant="destructive" class="reset-btn" type="button" :disabled="isSubmitting" @click="handleReset">
+          <Button variant="destructive" class="px-4 py-[0.55rem] rounded-[var(--radius)] cursor-pointer border border-danger bg-transparent text-danger" type="button" :disabled="isSubmitting" @click="handleReset">
             Reset to defaults
           </Button>
         </div>
@@ -213,81 +220,3 @@ onMounted(loadSettings);
     </div>
   </section>
 </template>
-
-<style scoped>
-.settings-section {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.section-header {
-  margin-bottom: 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  color: var(--text-tertiary);
-}
-
-.section-header h3,
-.section-header p,
-.feedback {
-  margin: 0;
-}
-
-.section-header p,
-.muted {
-  color: var(--color-text-secondary);
-}
-
-.settings-card {
-  padding: 1rem;
-  border-radius: var(--radius);
-  background: var(--color-bg-elevated);
-}
-
-.feedback {
-  padding: 0.75rem 0.9rem;
-  border-radius: var(--radius);
-}
-
-.feedback.success {
-  background: color-mix(in srgb, var(--color-brand) 18%, transparent);
-  color: var(--color-text-primary);
-}
-
-.feedback.error {
-  background: color-mix(in srgb, var(--color-danger) 18%, transparent);
-  color: var(--color-danger);
-}
-
-.form-actions {
-  display: flex;
-  gap: 0.65rem;
-}
-
-.save-btn,
-.reset-btn {
-  padding: 0.55rem 1rem;
-  border-radius: var(--radius);
-  cursor: pointer;
-}
-
-.save-btn {
-  border: none;
-  background: var(--color-brand);
-  color: var(--color-text-primary);
-}
-
-.reset-btn {
-  border: 1px solid var(--color-danger);
-  background: transparent;
-  color: var(--color-danger);
-}
-
-@media (max-width: 640px) {
-  .form-actions {
-    flex-direction: column;
-  }
-}
-</style>

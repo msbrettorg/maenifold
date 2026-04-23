@@ -14,7 +14,7 @@ use super::types::{AcpEvent, ConnectionDeathEvent};
 const CRITICAL_CONFIG_KEYS: &[&str] = &["model", "thoughtLevel", "thought_level"];
 
 fn is_critical_config_key(key: &str) -> bool {
-    CRITICAL_CONFIG_KEYS.iter().any(|&k| k == key)
+    CRITICAL_CONFIG_KEYS.contains(&key)
 }
 
 /// Apply session mode and config options after a cold-start (or warm re-use).

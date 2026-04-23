@@ -145,7 +145,6 @@ fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
         .mcp_servers
         .iter()
         .chain(entry.mcp_servers.iter())
-        .cloned()
     {
         let name = server.name().to_ascii_lowercase();
         if seen.insert(name) {

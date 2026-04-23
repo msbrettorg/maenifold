@@ -65,12 +65,15 @@ onUnmounted(() => {
 <template>
   <div class="relative flex flex-col gap-6">
     <!-- Animated glow backdrop -->
-    <div class="wizard-glow" aria-hidden="true" />
+    <div
+      aria-hidden="true"
+      class="absolute -inset-8 z-0 pointer-events-none bg-brand/20 blur-3xl rounded-full animate-pulse"
+    />
 
     <div
       class="relative flex h-12 w-12 items-center justify-center rounded-xl bg-success/10 text-success"
     >
-      <Sparkles class="h-6 w-6 wizard-pulse" />
+      <Sparkles class="h-6 w-6 animate-pulse" />
     </div>
 
     <div class="relative flex flex-col gap-2">
@@ -186,34 +189,3 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style scoped>
-@keyframes wizardGlow {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.3; }
-}
-
-@keyframes wizardPulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-}
-
-.wizard-glow {
-  position: absolute;
-  inset: -2rem;
-  z-index: 0;
-  pointer-events: none;
-  background: radial-gradient(
-    circle at 30% 20%,
-    var(--color-brand) 0%,
-    transparent 60%
-  );
-  filter: blur(60px);
-  opacity: 0.15;
-  animation: wizardGlow 4s ease-in-out infinite;
-}
-
-.wizard-pulse {
-  animation: wizardPulse 2s ease-in-out infinite;
-  transform-origin: center;
-}
-</style>

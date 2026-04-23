@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "test",
+  "name": "Test",
+  "initial": "pending",
+  "states": {
+    "pending": {
+      "on": {
+        "pass": "done"
+      }
+    },
+    "done": {
+      "terminal": true
+    }
+  }
+}

@@ -7,7 +7,7 @@ use crate::error::GateError;
 use crate::gate_definition::GateDefinition;
 use crate::task_metadata::TaskMetadata;
 
-const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd", "slc", "sdd-c", "tdd-c"];
+const RESERVED_BUILTIN_NAMES: &[&str] = &["sdd", "tdd", "gsd", "lightweight", "mdd", "slc", "sdd-c", "tdd-c", "test"];
 const SDD_JSON: &str = include_str!("../assets/sdd.json");
 const TDD_JSON: &str = include_str!("../assets/tdd.json");
 const GSD_JSON: &str = include_str!("../assets/gsd.json");
@@ -16,6 +16,7 @@ const MDD_JSON: &str = include_str!("../assets/mdd.json");
 const SLC_JSON: &str = include_str!("../assets/slc.json");
 const SDD_C_JSON: &str = include_str!("../assets/sdd-c.json");
 const TDD_C_JSON: &str = include_str!("../assets/tdd-c.json");
+const TEST_JSON: &str = include_str!("../assets/test.json");
 static MAENIFOLD_ROOT_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 #[derive(Debug, Clone)]
@@ -118,6 +119,7 @@ fn builtin_asset_text(name: &str) -> Result<&'static str, GateError> {
         "slc" => Ok(SLC_JSON),
         "sdd-c" => Ok(SDD_C_JSON),
         "tdd-c" => Ok(TDD_C_JSON),
+        "test" => Ok(TEST_JSON),
         _ => Err(GateError::UnknownBuiltinGate(name.to_string())),
     }
 }

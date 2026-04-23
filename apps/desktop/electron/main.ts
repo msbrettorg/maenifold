@@ -1,7 +1,8 @@
 import { execSync } from 'node:child_process';
+import { appendFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 
 // The desktop app connects to the maenifold + gate services running under
 // launchd. It does NOT spawn its own daemons — one process per service,
@@ -76,6 +77,61 @@ async function createWindow(): Promise<void> {
     }
   });
 
+  // Precompute allowed origins for navigation guard
+  const rendererOrigin = process.env.ELECTRON_RENDERER_URL
+    ? (() => {
+        try {
+          return new URL(process.env.ELECTRON_RENDERER_URL).origin;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+  const appPath = app.getAppPath();
+
+  // Block navigation away from the app
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    try {
+      const parsed = new URL(url);
+      // Allow file:// only inside the packaged app directory
+      if (parsed.protocol === 'file:' && parsed.pathname.startsWith(appPath)) {
+        return;
+      }
+      // Allow the configured renderer dev server (origin match, not prefix)
+      if (rendererOrigin && parsed.origin === rendererOrigin) {
+        return;
+      }
+    } catch {
+      // Malformed URL — fall through to deny
+    }
+    event.preventDefault();
+  });
+
+  // Block new window creation; route safe external links to the OS browser
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const parsed = new URL(url);
+      if (['http:', 'https:'].includes(parsed.protocol)) {
+        void shell.openExternal(url);
+      }
+    } catch {
+      /* malformed URL — silently block */
+    }
+    return { action: 'deny' };
+  });
+
+  // Apply Content-Security-Policy on all responses to this session
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:* ws://localhost:*; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';",
+        ],
+      },
+    });
+  });
+
   const rendererUrl = process.env.ELECTRON_RENDERER_URL ?? process.env.VITE_DEV_SERVER_URL;
   if (rendererUrl) await mainWindow.loadURL(rendererUrl);
   else await mainWindow.loadFile(join(app.getAppPath(), 'dist', 'index.html'));
@@ -103,10 +159,8 @@ app.on('child-process-gone', (_event, details) => {
 
 process.on('uncaughtException', (error) => {
   console.error('[maenifold] Uncaught exception:', error);
-  const fs = require('fs');
-  const path = require('path');
-  const crashLog = path.join(app.getPath('userData'), 'crash.log');
-  fs.appendFileSync(crashLog, `[${new Date().toISOString()}] uncaughtException: ${error.stack || error}\n`);
+  const crashLog = join(app.getPath('userData'), 'crash.log');
+  appendFileSync(crashLog, `[${new Date().toISOString()}] uncaughtException: ${error.stack || error}\n`);
   process.exit(1);
 });
 

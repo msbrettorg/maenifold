@@ -86,7 +86,13 @@ export const useConfigStore = defineStore('config', () => {
 
     const source = new EventSource(`${DAEMON_BASE_URL}/api/config/watch`);
     source.addEventListener('config-changed', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
+      let payload: ConfigChangedEventPayload;
+      try {
+        payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
+      } catch {
+        console.error('[config] Malformed SSE data for config-changed'); // audit-ok: no-console
+        return;
+      }
       config.value = payload.config;
       configPath.value = payload.path ?? configPath.value;
       error.value = null;
@@ -95,13 +101,25 @@ export const useConfigStore = defineStore('config', () => {
       }
     });
     source.addEventListener('config-error', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      let payload: { message?: string };
+      try {
+        payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      } catch {
+        console.error('[config] Malformed SSE data for config-error'); // audit-ok: no-console
+        return;
+      }
       const message = payload.message ?? 'Config reload failed';
       error.value = message;
       toast.warning(message);
     });
     source.addEventListener('watch-error', (event) => {
-      const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      let payload: { message?: string };
+      try {
+        payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
+      } catch {
+        console.error('[config] Malformed SSE data for watch-error'); // audit-ok: no-console
+        return;
+      }
       const message = payload.message ?? 'Config watch failed';
       error.value = message;
       toast.warning(message);
@@ -120,6 +138,11 @@ export const useConfigStore = defineStore('config', () => {
 
   function clearError() {
     error.value = null;
+  }
+
+  function teardown() {
+    configWatch.value?.close();
+    configWatch.value = null;
   }
 
   async function addAgent(name: string, agent: AgentConfig): Promise<void> {
@@ -159,5 +182,6 @@ export const useConfigStore = defineStore('config', () => {
     updateFromEvent,
     clearError,
     addAgent,
+    teardown,
   };
 });

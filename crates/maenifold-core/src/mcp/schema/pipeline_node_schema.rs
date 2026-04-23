@@ -1,4 +1,10 @@
 use super::params::PipelineNodeSchema;
+use super::pipeline_node_schema_data_variants::{
+    sequential_thinking_variant_schema, tool_variant_schema,
+};
+use super::pipeline_node_schema_workflow_variants::{
+    prompt_variant_schema, workflow_variant_schema,
+};
 use schemars::JsonSchema;
 use schemars::r#gen::SchemaGenerator;
 use schemars::schema::Schema;
@@ -39,7 +45,9 @@ impl JsonSchema for PipelineNodeSchema {
 
 /// Shared inline schema for the `agentConfig` property that appears in prompt,
 /// sequentialThinking, and tool node variants.
-fn agent_config_schema() -> serde_json::Value {
+//
+// T-01.9: `pub(super)` so the variant modules can compose this helper inline.
+pub(super) fn agent_config_schema() -> serde_json::Value {
     json!({
         "description": "Agent configuration for pipeline node execution",
         "type": "object",
@@ -66,7 +74,8 @@ fn agent_config_schema() -> serde_json::Value {
     })
 }
 
-fn node_adopt_schema() -> serde_json::Value {
+// T-01.9: `pub(super)` so the variant modules can compose this helper inline.
+pub(super) fn node_adopt_schema() -> serde_json::Value {
     json!({
         "description": "Per-node adoption configuration applied before prompt dispatch",
         "type": "object",
@@ -88,348 +97,15 @@ fn node_adopt_schema() -> serde_json::Value {
     })
 }
 
+// T-01.9: Variant bodies were extracted to sibling modules; this entry point
+// just composes the `oneOf` array so the file stays well under the 300 LOC ceiling.
 fn node_schema_value() -> serde_json::Value {
     json!({
         "oneOf": [
-            {
-                "description": "A workflow pipeline node",
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["id", "type", "workflowId"],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "New node identifier"
-                    },
-                    "displayLabel": {
-                        "type": "string",
-                        "description": "Optional presentation-only label for UI surfaces"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": ["workflow"],
-                        "description": "Workflow node type"
-                    },
-                    "workflowId": {
-                        "type": "string",
-                        "description": "Workflow definition to run"
-                    },
-                    "acpClient": {
-                        "type": "string",
-                        "description": "Optional ACP client"
-                    },
-                    "adopt": node_adopt_schema(),
-                    "requiresRole": {
-                        "type": "string",
-                        "description": "Optional required role identifier for adopt validation"
-                    },
-                    "prompt": {
-                        "type": "string",
-                        "description": "Optional prompt for workflow nodes"
-                    },
-                    "cwd": {
-                        "type": "string",
-                        "description": "Optional working directory for this node"
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional timeout in seconds"
-                    },
-                    "retryMaxAttempts": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional maximum transient retry attempts; 0 means no retry"
-                    },
-                    "retryBackoffMinMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional minimum retry backoff in milliseconds"
-                    },
-                    "retryBackoffMaxMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional maximum retry backoff in milliseconds"
-                    },
-                    "retryJitter": {
-                        "type": "boolean",
-                        "description": "Optional jitter toggle for retry backoff"
-                    }
-                }
-            },
-            {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["id", "type", "prompt", "agent"],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "New node identifier"
-                    },
-                    "displayLabel": {
-                        "type": "string",
-                        "description": "Optional presentation-only label for UI surfaces"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": ["prompt"],
-                        "description": "Node type 'prompt'"
-                    },
-                    "prompt": {
-                        "type": "string",
-                        "description": "Prompt text for prompt nodes"
-                    },
-                    "agent": {
-                        "type": "string",
-                        "description": "ACP agent for prompt nodes"
-                    },
-                    "adopt": node_adopt_schema(),
-                    "requiresRole": {
-                        "type": "string",
-                        "description": "Optional required role identifier for adopt validation"
-                    },
-                    "toolMode": {
-                        "type": "string",
-                        "description": "Tool mode for prompt nodes"
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model override for prompt nodes"
-                    },
-                    "thoughtLevel": {
-                        "type": "string",
-                        "description": "Thought level override for prompt nodes"
-                    },
-                    "allowedTools": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "Allowed tools override for prompt nodes"
-                    },
-                    "maxTurns": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Maximum turns for prompt nodes"
-                    },
-                    "cwd": {
-                        "type": "string",
-                        "description": "Optional working directory for this node"
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional timeout in seconds"
-                    },
-                    "retryMaxAttempts": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional maximum transient retry attempts; 0 means no retry"
-                    },
-                    "retryBackoffMinMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional minimum retry backoff in milliseconds"
-                    },
-                    "retryBackoffMaxMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional maximum retry backoff in milliseconds"
-                    },
-                    "retryJitter": {
-                        "type": "boolean",
-                        "description": "Optional jitter toggle for retry backoff"
-                    },
-                    "agentConfig": agent_config_schema()
-                }
-            },
-            {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["id", "type", "topic", "totalThoughts", "agent"],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "New node identifier"
-                    },
-                    "displayLabel": {
-                        "type": "string",
-                        "description": "Optional presentation-only label for UI surfaces"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": ["sequentialThinking"],
-                        "description": "Node type 'sequentialThinking'"
-                    },
-                    "topic": {
-                        "type": "string",
-                        "description": "Topic for sequential thinking nodes"
-                    },
-                    "totalThoughts": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Thought count for thinking nodes"
-                    },
-                    "analysisType": {
-                        "type": "string",
-                        "description": "Analysis type for thinking nodes"
-                    },
-                    "agent": {
-                        "type": "string",
-                        "description": "ACP agent for sequential thinking nodes"
-                    },
-                    "adopt": node_adopt_schema(),
-                    "requiresRole": {
-                        "type": "string",
-                        "description": "Optional required role identifier for adopt validation"
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model override for sequential thinking nodes"
-                    },
-                    "thoughtLevel": {
-                        "type": "string",
-                        "description": "Thought level override for sequential thinking nodes"
-                    },
-                    "allowedTools": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "Allowed tools override for sequential thinking nodes"
-                    },
-                    "maxTurns": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Maximum turns for sequential thinking nodes"
-                    },
-                    "cwd": {
-                        "type": "string",
-                        "description": "Optional working directory for this node"
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional timeout in seconds"
-                    },
-                    "retryMaxAttempts": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional maximum transient retry attempts; 0 means no retry"
-                    },
-                    "retryBackoffMinMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional minimum retry backoff in milliseconds"
-                    },
-                    "retryBackoffMaxMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional maximum retry backoff in milliseconds"
-                    },
-                    "retryJitter": {
-                        "type": "boolean",
-                        "description": "Optional jitter toggle for retry backoff"
-                    },
-                    "agentConfig": agent_config_schema()
-                }
-            },
-            {
-                "type": "object",
-                "additionalProperties": false,
-                "required": ["id", "type", "toolName"],
-                "properties": {
-                    "id": {
-                        "type": "string",
-                        "description": "New node identifier"
-                    },
-                    "displayLabel": {
-                        "type": "string",
-                        "description": "Optional presentation-only label for UI surfaces"
-                    },
-                    "type": {
-                        "type": "string",
-                        "enum": ["tool"],
-                        "description": "Node type 'tool'"
-                    },
-                    "toolName": {
-                        "type": "string",
-                        "description": "MCP tool name for tool nodes"
-                    },
-                    "toolArgs": {
-                        "type": "object",
-                        "description": "Tool arguments for tool nodes",
-                        "additionalProperties": true
-                    },
-                    "agent": {
-                        "type": "string",
-                        "description": "Optional ACP agent for tool nodes"
-                    },
-                    "model": {
-                        "type": "string",
-                        "description": "Model override for tool nodes"
-                    },
-                    "thoughtLevel": {
-                        "type": "string",
-                        "description": "Thought level override for tool nodes"
-                    },
-                    "allowedTools": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "Allowed tools override for tool nodes"
-                    },
-                    "maxTurns": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Maximum turns for tool nodes"
-                    },
-                    "cwd": {
-                        "type": "string",
-                        "description": "Optional working directory for this node"
-                    },
-                    "timeout": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional timeout in seconds"
-                    },
-                    "retryMaxAttempts": {
-                        "type": "integer",
-                        "format": "uint32",
-                        "minimum": 0,
-                        "description": "Optional maximum transient retry attempts; 0 means no retry"
-                    },
-                    "retryBackoffMinMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional minimum retry backoff in milliseconds"
-                    },
-                    "retryBackoffMaxMs": {
-                        "type": "integer",
-                        "format": "uint64",
-                        "minimum": 0,
-                        "description": "Optional maximum retry backoff in milliseconds"
-                    },
-                    "retryJitter": {
-                        "type": "boolean",
-                        "description": "Optional jitter toggle for retry backoff"
-                    },
-                    "agentConfig": agent_config_schema()
-                }
-            }
+            workflow_variant_schema(),
+            prompt_variant_schema(),
+            sequential_thinking_variant_schema(),
+            tool_variant_schema(),
         ]
     })
 }

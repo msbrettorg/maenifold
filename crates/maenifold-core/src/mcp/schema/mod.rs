@@ -10,6 +10,9 @@ mod memory_params;
 mod memory_tools;
 mod params;
 mod pipeline_node_schema;
+mod pipeline_node_schema_data_variants;
+mod pipeline_node_schema_workflow_variants;
+mod pipeline_node_types;
 mod pipeline_params;
 #[cfg(test)]
 mod pipeline_params_tests;

@@ -64,14 +64,20 @@ function radiusForDegree(degree: number, maxDegree: number): number {
   return 1.6 + 4.9 * Math.sqrt(ratio);
 }
 
+function readCssToken(token: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return value || fallback;
+}
+
 // Map degree to luma — high-degree nodes brighter (#f0f0f0), low-degree dimmer (#a0a0a0).
 function lumaForDegree(degree: number, maxDegree: number): string {
-  if (maxDegree <= 0) return '#c0c0c0';
+  if (maxDegree <= 0) return readCssToken('--color-text-secondary', '#A0AAB2');
   const ratio = Math.max(0, Math.min(1, degree / maxDegree));
   // 0xa0 (160) → 0xf0 (240)
   const value = Math.round(160 + ratio * 80);
   const hex = value.toString(16).padStart(2, '0');
-  return `#${hex}${hex}${hex}`;
+  return `#${hex}${hex}${hex}`; // audit-ok: dynamic-canvas-value
 }
 
 function mapCommunityGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
@@ -114,7 +120,7 @@ function mapConceptGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
     label: node.name,
     radius: radiusForDegree(node.occurrences, maxOccurrences),
     color: node.name === graph.anchor
-      ? '#FFFFFF'
+      ? readCssToken('--color-text-primary', '#FFFFFF')
       : lumaForDegree(node.occurrences, maxOccurrences),
   }));
 

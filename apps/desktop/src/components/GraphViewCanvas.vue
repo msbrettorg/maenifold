@@ -39,8 +39,8 @@ defineEmits<{ retry: [] }>();
   flex: 1;
   overflow: hidden;
   background:
-    radial-gradient(ellipse at center, rgba(255, 255, 255, 0.03) 0%, transparent 55%),
-    radial-gradient(ellipse at center, #0a0c10 0%, #050608 40%, #020305 100%);
+    radial-gradient(ellipse at center, color-mix(in srgb, var(--color-text-primary) 3%, transparent) 0%, transparent 55%),
+    radial-gradient(ellipse at center, var(--color-bg-app) 0%, color-mix(in srgb, var(--color-bg-app) 30%, #000) 40%, #000 100%);
 }
 
 :slotted(.graph-canvas) {

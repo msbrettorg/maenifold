@@ -4,7 +4,7 @@ import type { Component } from 'vue';
 import { RefreshCw, AlertTriangle, Brain, CheckCircle } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import type { ThinkingSession } from '../lib/workflow-types';
-import ThinkingMarkdownContent from './ThinkingMarkdownContent.vue';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import ThinkingThoughtItem from './ThinkingThoughtItem.vue';
 
 const props = defineProps<{
@@ -103,7 +103,7 @@ function onAfterLeave(element: Element): void {
         <div v-else class="empty-state">No thoughts recorded for this session.</div>
         <section v-if="node.conclusion" class="conclusion-section">
           <div class="conclusion-label">Conclusion</div>
-          <ThinkingMarkdownContent :content="node.conclusion" />
+          <KnowledgeNoteRenderer :content="node.conclusion" />
         </section>
       </div>
     </Transition>

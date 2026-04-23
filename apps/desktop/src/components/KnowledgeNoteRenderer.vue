@@ -1,107 +1,52 @@
-<!-- audit-ok: max-loc -->
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue';
+import { ref, watch, useTemplateRef, nextTick } from 'vue';
 import DOMPurify from 'dompurify';
-import { marked, type TokenizerAndRendererExtension } from 'marked';
-import mermaid from 'mermaid';
+import { getMarkdownIt } from '../composables/useMarkdownIt';
+import { useMermaid } from '../composables/useMermaid';
 
-const props = defineProps<{ content: string }>();
+const props = withDefaults(
+  defineProps<{
+    content: string;
+    clamp?: boolean;
+  }>(),
+  { clamp: false },
+);
 
-function readCssToken(token: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
-  return value || fallback;
-}
-
-mermaid.initialize({
-  startOnLoad: false,
-  theme: 'dark',
-  themeVariables: {
-    primaryColor: readCssToken('--color-brand', '#0078D4'),
-    primaryTextColor: readCssToken('--color-text-primary', '#FFFFFF'),
-    primaryBorderColor: 'var(--color-border-card)',
-    lineColor: readCssToken('--color-text-secondary', '#A0AAB2'),
-    secondaryColor: readCssToken('--color-bg-surface', '#333333'),
-    tertiaryColor: readCssToken('--color-bg-sidebar', '#282828'),
-    fontFamily: "'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif",
-    fontSize: '13px',
-  },
-});
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
-
-const mermaidExtension: TokenizerAndRendererExtension = {
-  name: 'mermaidBlock',
-  level: 'block',
-  start(src: string) { return src.indexOf('```mermaid'); },
-  tokenizer(src: string) {
-    const match = src.match(/^```mermaid\s*\n([\s\S]*?)```/);
-    if (match) {
-      return { type: 'mermaidBlock', raw: match[0], text: match[1].trim() };
-    }
-    return undefined;
-  },
-  renderer(token) {
-    return `<pre class="mermaid-block">${escapeHtml((token as unknown as { text: string }).text)}</pre>`;
-  },
-};
-
-marked.use({ extensions: [mermaidExtension] });
-
-function renderMarkdown(content: string): string {
-  if (!content) return '';
-  const withWikiPills = content.replace(/\[\[([^\]]+)\]\]/g, (_match, label: string) => {
-    return `<span class="note-wiki-pill">${escapeHtml(label)}</span>`;
-  });
-  const result = marked.parse(withWikiPills, { async: false });
-  return DOMPurify.sanitize(typeof result === 'string' ? result : '');
-}
-
-async function renderMermaidInHtml(html: string): Promise<string> {
-  if (!html) return html;
-  if (typeof window === 'undefined' || typeof DOMParser === 'undefined') return html;
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div id="root">${html}</div>`, 'text/html');
-  const root = doc.getElementById('root');
-  if (!root) return html;
-  const blocks = root.querySelectorAll('.mermaid-block');
-  if (blocks.length === 0) return html;
-  for (const block of Array.from(blocks)) {
-    const code = block.textContent ?? '';
-    const id = `mermaid-${Math.random().toString(36).slice(2, 10)}`;
-    try {
-      const { svg } = await mermaid.render(id, code);
-      const wrapper = doc.createElement('div');
-      wrapper.className = 'mermaid-block mermaid-rendered';
-      wrapper.innerHTML = DOMPurify.sanitize(svg);
-      block.replaceWith(wrapper);
-    } catch {
-      block.classList.add('mermaid-error');
-    }
-  }
-  return root.innerHTML;
-}
-
+const containerRef = useTemplateRef<HTMLElement>('containerRef');
 const rendered = ref('');
 let renderVersion = 0;
+const { renderMermaidBlocks } = useMermaid();
 
-async function updateRendered() {
+async function updateRendered(): Promise<void> {
   const thisVersion = ++renderVersion;
-  const initial = renderMarkdown(props.content);
+  const source = props.content ?? '';
+  if (!source) {
+    rendered.value = '';
+    return;
+  }
+
+  const md = await getMarkdownIt();
   if (thisVersion !== renderVersion) return;
-  rendered.value = initial;
+
+  // markdown-it handles WikiLinks via the wikilinkPlugin (see useMarkdownIt).
+  // We do NOT pre-inject HTML here; html:false would escape it.
+  const html = md.render(source);
+  // DOMPurify sanitization is mandatory for any v-html assignment.
+  const safe = DOMPurify.sanitize(html, {
+    ADD_ATTR: ['class', 'style'],
+  });
+  if (thisVersion !== renderVersion) return;
+
+  rendered.value = safe;
+
   await nextTick();
-  const withMermaid = await renderMermaidInHtml(initial);
   if (thisVersion !== renderVersion) return;
-  if (withMermaid !== initial) {
-    rendered.value = withMermaid;
+  if (containerRef.value) {
+    await renderMermaidBlocks(containerRef.value);
+    // Re-check after the (async) mermaid pass: if the content changed while
+    // we were rendering diagrams, drop our DOM mutations on the floor — Vue
+    // will reconcile to the newer `rendered.value` on the next tick anyway.
+    if (thisVersion !== renderVersion) return;
   }
 }
 
@@ -109,10 +54,23 @@ watch(() => props.content, updateRendered, { immediate: true });
 </script>
 
 <template>
-  <article class="note-prose" v-html="rendered" />
+  <article
+    ref="containerRef"
+    class="note-prose"
+    :class="{ 'note-prose--clamp': clamp }"
+    v-html="rendered"
+  />
 </template>
 
-<!-- audit-ok: max-style-rules — All rules style sanitized v-html markdown via :deep() (h1-h6, p, code, table, blockquote, .mermaid-block, .note-wiki-pill); no Vue templates exist to attach Tailwind to. Several rely on color-mix() blends and tokens (--font-body, --color-status-stuck) without Tailwind equivalents. -->
+<!--
+  Styles below target sanitized markdown output (h1-h6, p, code, pre, table,
+  blockquote, .mermaid-rendered, .note-wiki-pill) generated from v-html.
+  These cannot be expressed via Tailwind utility classes on Vue templates
+  because the elements are produced by markdown-it at runtime, not authored
+  by hand. @tailwindcss/typography ("prose") is not installed in this app,
+  so the prose styles are inlined here using existing design tokens.
+-->
+<!-- audit-ok: max-style-rules -->
 <style scoped>
 .note-prose {
   font-family: var(--font-body);
@@ -120,6 +78,14 @@ watch(() => props.content, updateRendered, { immediate: true });
   line-height: 1.7;
   color: var(--color-text-primary);
   overflow-wrap: break-word;
+}
+.note-prose--clamp {
+  font-size: var(--text-caption);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
 }
 .note-prose :deep(h1) {
   font-size: 24px;
@@ -217,7 +183,10 @@ watch(() => props.content, updateRendered, { immediate: true });
   border-radius: 0;
   font-size: inherit;
 }
-.note-prose :deep(.mermaid-block) {
+.note-prose :deep(.shiki) {
+  background: var(--color-bg-surface) !important;
+}
+.note-prose :deep(.mermaid-rendered) {
   background: var(--color-bg-elevated);
   border: 1px solid var(--color-border-card);
   border-radius: 8px;
@@ -225,14 +194,17 @@ watch(() => props.content, updateRendered, { immediate: true });
   margin: 1rem 0;
   text-align: center;
   overflow-x: auto;
-}
-.note-prose :deep(.mermaid-rendered) {
   font-family: inherit;
 }
 .note-prose :deep(.mermaid-error) {
   color: var(--color-status-stuck);
   font-size: 13px;
   white-space: pre-wrap;
+}
+.note-prose :deep(.mermaid-error-message) {
+  color: var(--color-status-stuck);
+  font-size: 13px;
+  margin-top: 0.5rem;
 }
 .note-prose :deep(table) {
   border-collapse: collapse;
@@ -290,5 +262,11 @@ watch(() => props.content, updateRendered, { immediate: true });
   font-weight: 500;
   white-space: nowrap;
   cursor: default;
+}
+.note-prose--clamp :deep(p) {
+  margin: 0;
+}
+.note-prose--clamp :deep(p + p) {
+  margin-top: 0.35rem;
 }
 </style>

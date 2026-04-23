@@ -187,6 +187,7 @@ const failureSummary = computed(() => {
 </script>
 
 <template>
+  <!-- audit-ok: dynamic-binding (CSS custom property; accent color computed from node type) -->
   <div
     class="pipeline-node"
     :class="[nodeStatusClass, { 'is-active': isActive }]"

@@ -40,7 +40,7 @@ const resize = useResizeHandle({
 </script>
 
 <template>
-  <!-- Sidebar panel -->
+  <!-- audit-ok: dynamic-binding (resizable sidebar width) -->
   <aside
     v-if="visible"
     class="sidebar flex shrink-0 flex-col bg-[var(--surface)] text-[var(--text)]"

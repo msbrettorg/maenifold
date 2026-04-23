@@ -239,6 +239,7 @@ onBeforeUnmount(() => {
               <span class="pipeline-id" :title="item.pipelineId">{{ item.pipelineId }}</span>
               <span class="pipeline-progress">{{ item.completedCount }}/{{ item.nodeCount }} nodes</span>
               <div class="progress-bar">
+                <!-- audit-ok: dynamic-binding (progress bar width computed from pipeline state) -->
                 <div class="progress-fill" :style="{ width: `${progressPct(item)}%` }" />
               </div>
             </div>

@@ -28,6 +28,7 @@ const indicatorColor = computed(() =>
 
 <template>
   <g>
+    <!-- audit-ok: dynamic-binding (computed SVG edge styling from Vue Flow) -->
     <BaseEdge
       :id="id"
       :path="pathMemo.d"
@@ -40,6 +41,7 @@ const indicatorColor = computed(() =>
   </g>
 
   <EdgeLabelRenderer v-if="label">
+    <!-- audit-ok: dynamic-binding (computed transform for edge label positioning along SVG path) -->
     <div
       class="edge-condition-label"
       :style="{ transform: `translate(-50%, -50%) translate(${pathMemo.x}px, ${pathMemo.y}px)` }"
@@ -50,6 +52,7 @@ const indicatorColor = computed(() =>
   </EdgeLabelRenderer>
 
   <EdgeLabelRenderer v-if="indicator">
+    <!-- audit-ok: dynamic-binding (computed transform + CSS custom property for edge indicator) -->
     <div
       :class="['edge-indicator', `edge-indicator--${indicator}`]"
       :style="{

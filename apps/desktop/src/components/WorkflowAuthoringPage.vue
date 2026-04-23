@@ -189,6 +189,7 @@ onBeforeUnmount(() => {
     class="workflow-authoring-page"
     :class="{ 'workflow-authoring-page--dragging': draggingPanel !== null }"
   >
+    <!-- audit-ok: dynamic-binding (resizable panel width) -->
     <WorkflowBrowser
       class="panel panel-browser"
       :style="isWorkflowSelected ? { width: `${browserWidth}px` } : undefined"
@@ -224,6 +225,7 @@ onBeforeUnmount(() => {
           @drag-end="draggingPanel = null; persistWidths()"
           @reset="handleInspectorReset"
         />
+        <!-- audit-ok: dynamic-binding (resizable panel width) -->
         <WorkflowStepInspector
           class="panel panel-inspector"
           :selected-step-id="selectedStepId"

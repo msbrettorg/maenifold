@@ -17,6 +17,7 @@ const badge = computed(() => {
 
 <template>
   <div v-if="badge" class="composer-status-badge" :aria-label="`Pipeline status: ${badge.label}`">
+    <!-- audit-ok: dynamic-binding (status dot color computed from badge state) -->
     <span class="composer-status-dot" :style="{ backgroundColor: badge.color }" aria-hidden="true" />
     <span>{{ badge.label }}</span>
   </div>

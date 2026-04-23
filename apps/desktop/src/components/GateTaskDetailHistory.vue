@@ -32,13 +32,21 @@ function formatTimestamp(timestamp: string | null) {
     ? timestamp
     : value.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
+
+function accentColor(family: string): string {
+  if (family === 'swe') return 'var(--color-brand)';
+  if (family === 'red-team') return 'var(--amber)';
+  if (family === 'blue-team' || family === 'done') return 'var(--sage)';
+  if (family === 'failed') return 'var(--terracotta)';
+  return 'var(--surface-highest)';
+}
 </script>
 
 <template>
   <Accordion
     type="multiple"
     :model-value="history.length > 0 ? ['gate-history'] : []"
-    class="gate-detail-history flex flex-col gap-3 p-3.5 border border-border-subtle rounded bg-surface-container"
+    class="flex flex-col gap-3 p-3.5 border border-border-subtle rounded bg-surface-container"
     :aria-labelledby="historySummaryId"
   >
     <AccordionItem value="gate-history">
@@ -67,13 +75,12 @@ function formatTimestamp(timestamp: string | null) {
             class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
           >No recorded gate history yet.</p>
           <ol v-else class="m-0 p-0 list-none flex flex-col gap-3">
+            <!-- audit-ok: dynamic-binding (accent bar color varies by stage family) -->
             <li
               v-for="(entry, index) in history"
               :key="`${entry.timestamp ?? 'unknown'}-${entry.stage}-${entry.event}-${index}`"
-              :class="[
-                'gate-detail-history__item relative p-3.5 rounded bg-surface-high flex flex-col gap-3',
-                `gate-detail-history__item--${gateStageFamily(entry.stage)}`,
-              ]"
+              class="gate-detail-history__item relative p-3.5 rounded bg-surface-high flex flex-col gap-3 before:content-[''] before:absolute before:top-[0.65rem] before:bottom-[0.65rem] before:left-0 before:w-1 before:rounded before:bg-[var(--accent-bar-color)]"
+              :style="{ ['--accent-bar-color' as any]: accentColor(gateStageFamily(entry.stage)) }"
             >
               <div class="flex justify-between gap-3">
                 <div>
@@ -108,36 +115,8 @@ function formatTimestamp(timestamp: string | null) {
   </Accordion>
 </template>
 
-<!-- audit-ok: max-style-rules — remaining rules are stage-family ::before pseudo-element accents and :deep() rules styling sanitized markdown injected via v-html. Pseudo-element content/positioning and cross-scope :deep() targets cannot be expressed as Tailwind utilities. -->
+<!-- audit-ok: deep-third-party — :deep() rules style sanitized markdown injected via v-html (paragraph/list/table/code spacing). Cross-scope :deep() targets cannot be expressed as Tailwind utilities. -->
 <style scoped>
-.gate-detail-history__item::before {
-  content: '';
-  position: absolute;
-  top: 0.65rem;
-  bottom: 0.65rem;
-  left: 0;
-  width: 4px;
-  border-radius: 4px;
-  background: var(--surface-highest);
-}
-
-.gate-detail-history__item--swe::before {
-  background: var(--color-brand);
-}
-
-.gate-detail-history__item--red-team::before {
-  background: var(--amber);
-}
-
-.gate-detail-history__item--blue-team::before,
-.gate-detail-history__item--done::before {
-  background: var(--sage);
-}
-
-.gate-detail-history__item--failed::before {
-  background: var(--terracotta);
-}
-
 .gate-detail-history__markdown :deep(*) {
   margin-top: 0;
 }

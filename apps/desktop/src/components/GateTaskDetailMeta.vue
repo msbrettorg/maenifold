@@ -12,17 +12,31 @@ const props = defineProps<{
 const fileLabel = computed(() => getTaskPathHint(props.task.path));
 const stateTone = computed(() => gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state));
 const pipelineStaleTitle = computed(() => props.task.issue?.trim() || 'Pipeline definition has changed since this task was created.');
+
+function badgeBg(tone: string): string {
+  if (tone === 'pending') return 'var(--text-secondary)';
+  if (tone === 'swe') return 'var(--color-brand)';
+  if (tone === 'red-team') return 'var(--amber)';
+  if (tone === 'blue-team' || tone === 'done') return 'var(--sage)';
+  if (tone === 'failed') return 'var(--terracotta)';
+  return 'var(--surface-highest)';
+}
 </script>
 
 <template>
-  <dl class="gate-detail-meta" aria-label="Task metadata">
+  <dl
+    class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] items-start [&>div]:flex [&>div]:flex-col [&_dt]:text-[var(--color-text-secondary)] [&_dt]:text-[length:var(--text-tiny)] [&_dd]:flex [&_dd]:items-center [&_dd]:min-h-7 [&_dd]:mt-1 [&_dd]:break-words [&_dd]:font-mono [&_dd]:text-[length:var(--text-caption)]"
+    aria-label="Task metadata"
+  >
     <div>
       <dt>Process</dt>
       <dd>
-        <span class="gate-detail-meta__badge gate-detail-meta__badge--process">{{ processLabel }}</span>
+        <span
+          class="inline-flex items-center max-w-full px-[0.55rem] py-1 rounded-[4px] text-[var(--color-text-primary)] font-mono text-[length:var(--text-2xs)] font-[var(--weight-title)] leading-[1.4] bg-[var(--outline-variant)]"
+        >{{ processLabel }}</span>
         <span
           v-if="pipelineStale"
-          class="gate-detail-meta__warning"
+          class="ml-[0.4rem] text-[length:var(--text-caption)] cursor-help text-[var(--amber,var(--terracotta))]"
           role="img"
           aria-label="Pipeline definition has changed since this task was created"
           :title="pipelineStaleTitle"
@@ -32,7 +46,11 @@ const pipelineStaleTitle = computed(() => props.task.issue?.trim() || 'Pipeline 
     <div>
       <dt>State</dt>
       <dd>
-        <span :class="['gate-detail-meta__badge', 'gate-detail-meta__badge--state', `gate-detail-meta__badge--${stateTone}`]">
+        <!-- audit-ok: dynamic-binding (badge bg by stage family) -->
+        <span
+          class="inline-flex items-center max-w-full px-[0.55rem] py-1 rounded-[4px] text-[var(--color-text-primary)] font-mono text-[length:var(--text-2xs)] font-[var(--weight-title)] leading-[1.4]"
+          :style="{ background: badgeBg(stateTone) }"
+        >
           {{ formatStageLabel(task.location === 'done' ? 'done' : task.state) }}
         </span>
       </dd>
@@ -49,72 +67,9 @@ const pipelineStaleTitle = computed(() => props.task.issue?.trim() || 'Pipeline 
       <dt>Canonical ID</dt>
       <dd>{{ task.canonicalTaskId || '—' }}</dd>
     </div>
-    <div class="gate-detail-meta__path">
+    <div class="col-[1/-1]">
       <dt>File</dt>
       <dd :title="fileLabel">{{ fileLabel }}</dd>
     </div>
   </dl>
 </template>
-
-<style scoped>
-.gate-detail-meta,
-.gate-detail-meta > div {
-  display: flex;
-  flex-direction: column;
-}
-
-.gate-detail-meta {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
-  align-items: start;
-}
-
-.gate-detail-meta dt {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-meta dd {
-  display: flex;
-  align-items: center;
-  min-height: 1.75rem;
-  margin-top: 0.25rem;
-  word-break: break-word;
-  font-family: var(--font-code);
-  font-size: var(--text-caption);
-}
-
-.gate-detail-meta__badge {
-  display: inline-flex;
-  align-items: center;
-  max-width: 100%;
-  padding: 0.25rem 0.55rem;
-  border-radius: 4px;
-  background: var(--surface-highest);
-  color: var(--color-text-primary);
-  font-family: var(--font-code);
-  font-size: var(--text-2xs);
-  font-weight: var(--weight-title);
-  line-height: 1.4;
-}
-
-.gate-detail-meta__badge--process { background: var(--outline-variant); }
-.gate-detail-meta__badge--pending { background: var(--text-secondary); }
-.gate-detail-meta__badge--swe { background: var(--color-brand); }
-.gate-detail-meta__badge--red-team { background: var(--amber); }
-.gate-detail-meta__badge--blue-team,
-.gate-detail-meta__badge--done { background: var(--sage); }
-.gate-detail-meta__badge--failed { background: var(--terracotta); }
-
-.gate-detail-meta__path {
-  grid-column: 1 / -1;
-}
-
-.gate-detail-meta__warning {
-  margin-left: 0.4rem;
-  color: var(--amber, var(--terracotta));
-  font-size: var(--text-caption);
-  cursor: help;
-}
-</style>

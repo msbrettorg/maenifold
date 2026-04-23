@@ -338,9 +338,10 @@ onUnmounted(() => {
                       {{ model.license }}
                     </CardDescription>
                   </div>
+                  <!-- audit-ok: dynamic-binding -->
                   <Badge
                     :variant="statusFor(model).variant"
-                    :class="model.isActive ? 'badge-active' : ''"
+                    :style="model.isActive ? { backgroundColor: 'color-mix(in srgb, var(--color-success) 18%, transparent)', color: 'var(--color-success)', borderColor: 'color-mix(in srgb, var(--color-success) 30%, transparent)' } : undefined"
                   >
                     <Check v-if="model.isActive" :size="12" class="mr-1" />
                     {{ statusFor(model).label }}
@@ -446,7 +447,8 @@ onUnmounted(() => {
             </Card>
           </div>
 
-          <div v-if="hasDimensionWarning" class="warning-banner mt-3 px-4 py-3 rounded-[var(--radius)] text-[0.8rem]" role="status">
+          <!-- audit-ok: dynamic-binding -->
+          <div v-if="hasDimensionWarning" :style="{ background: 'color-mix(in srgb, var(--color-warning) 12%, transparent)', color: 'var(--color-warning)' }" class="mt-3 px-4 py-3 rounded-[var(--radius)] text-[0.8rem]" role="status">
             Switching to a model with different dimensions requires regenerating
             all embeddings.
           </div>
@@ -497,16 +499,3 @@ onUnmounted(() => {
   </TooltipProvider>
 </template>
 
-<!-- audit-ok: color-mix requires raw CSS, no Tailwind equivalent -->
-<style scoped>
-.badge-active {
-  background-color: color-mix(in srgb, var(--color-success) 18%, transparent);
-  color: var(--color-success);
-  border-color: color-mix(in srgb, var(--color-success) 30%, transparent);
-}
-
-.warning-banner {
-  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-  color: var(--color-warning);
-}
-</style>

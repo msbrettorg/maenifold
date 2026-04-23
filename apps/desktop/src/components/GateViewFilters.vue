@@ -25,9 +25,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="gate-filters" role="search" aria-label="Task filters">
+  <div
+    class="grid gap-3 px-4 py-[0.9rem] bg-[var(--surface)] rounded grid-cols-[minmax(14rem,1.5fr)_repeat(3,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
+    role="search"
+    aria-label="Task filters"
+  >
     <Input
-      class="gate-filters__search"
+      class="border border-[var(--color-border-card)] bg-[var(--surface-container)] transition-[background,border-color,box-shadow] duration-150 ease-[ease] focus:border-[color-mix(in_srgb,var(--color-brand)_40%,transparent)] focus:bg-[var(--surface-high)] focus:shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-brand)_15%,transparent)]"
       :model-value="props.searchText"
       type="search"
       placeholder="Filter tasks"
@@ -64,56 +68,11 @@ const emit = defineEmits<{
       </SelectContent>
     </Select>
 
-    <div class="gate-toggle">
+    <div
+      class="inline-flex items-center gap-2 min-h-10 px-3 whitespace-nowrap text-[length:var(--text-caption)] text-[var(--color-text-primary)] bg-[var(--surface-container)] border border-[var(--color-border-subtle)] rounded [&_input]:accent-[var(--color-brand)]"
+    >
       <Checkbox :checked="props.issuesOnly" @update:checked="(v: boolean | 'indeterminate') => emit('update:issuesOnly', v === true)" />
       <Label>Issues only</Label>
     </div>
   </div>
 </template>
-
-<style scoped>
-.gate-filters {
-  display: grid;
-  grid-template-columns: minmax(14rem, 1.5fr) repeat(3, minmax(10rem, 1fr)) auto;
-  gap: 0.75rem;
-  padding: 0.9rem 1rem;
-  background: var(--surface);
-  border-radius: 0.25rem;
-}
-
-.gate-filters :deep(.gate-filters__search) {
-  border: 1px solid var(--color-border-card);
-  background: var(--surface-container);
-  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
-}
-
-.gate-filters :deep(.gate-filters__search:focus) {
-  border-color: color-mix(in srgb, var(--color-brand) 40%, transparent);
-  background: var(--surface-high);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand) 15%, transparent); /* audit-ok: focus-ring */
-}
-
-.gate-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 2.5rem;
-  padding: 0 0.75rem;
-  white-space: nowrap;
-  font-size: var(--text-caption);
-  color: var(--color-text-primary);
-  background: var(--surface-container);
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-}
-
-.gate-toggle input {
-  accent-color: var(--color-brand);
-}
-
-@media (max-width: 1100px) {
-  .gate-filters {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

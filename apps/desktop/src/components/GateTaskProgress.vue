@@ -67,65 +67,40 @@ const segments = computed(() => {
 });
 
 const progressLabel = computed(() => formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state));
+
+function segmentBg(family: string, tone: string): string {
+  if (tone === 'failed') return 'var(--terracotta)';
+  if (tone === 'pending') return 'var(--surface-highest)';
+  if (tone === 'completed') {
+    if (family === 'pending') return 'var(--text-secondary)';
+    if (family === 'swe') return 'color-mix(in srgb, var(--color-brand) 72%, var(--surface-highest))';
+    if (family === 'red-team') return 'color-mix(in srgb, var(--amber) 72%, var(--surface-highest))';
+    if (family === 'blue-team' || family === 'done') return 'color-mix(in srgb, var(--sage) 72%, var(--surface-highest))';
+    return 'var(--surface-highest)';
+  }
+  if (tone === 'active') {
+    if (family === 'pending') return 'var(--text-secondary)';
+    if (family === 'swe') return 'var(--color-brand)';
+    if (family === 'red-team') return 'var(--amber)';
+    if (family === 'blue-team' || family === 'done') return 'var(--sage)';
+    return 'var(--surface-highest)';
+  }
+  return 'var(--surface-highest)';
+}
 </script>
 
 <template>
-  <div class="gate-progress">
-    <div class="gate-progress__bar" :aria-label="`${task.taskId} progress`">
+  <div class="flex flex-col items-start gap-[0.35rem]">
+    <div class="flex w-full min-w-[5.5rem] gap-[0.2rem]" :aria-label="`${task.taskId} progress`">
+      <!-- audit-ok: dynamic-binding (color-mix per stage tone/family) -->
       <span
         v-for="segment in segments"
         :key="`${task.taskId}-${segment.label}-${segment.tone}`"
-        class="gate-progress__segment"
-        :class="[`gate-progress__segment--${segment.tone}`, `gate-progress__segment--${segment.family}`]"
+        class="flex-1 min-w-[0.6rem] h-[0.45rem] rounded-[4px]"
+        :style="{ background: segmentBg(segment.family, segment.tone) }"
         :title="segment.label"
       />
     </div>
-    <span class="gate-progress__state">{{ progressLabel }}</span>
+    <span class="font-mono text-[length:var(--text-tiny)] text-[var(--color-text-secondary)]">{{ progressLabel }}</span>
   </div>
 </template>
-
-<style scoped>
-.gate-progress {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-}
-
-.gate-progress__bar {
-  display: flex;
-  width: 100%;
-  min-width: 5.5rem;
-  gap: 0.2rem;
-}
-
-.gate-progress__state {
-  font-family: var(--font-code);
-}
-
-.gate-progress__segment {
-  flex: 1;
-  min-width: 0.6rem;
-  height: 0.45rem;
-  border-radius: 4px;
-  background: var(--surface-highest);
-}
-
-.gate-progress__segment--completed.gate-progress__segment--pending { background: var(--text-secondary); }
-.gate-progress__segment--completed.gate-progress__segment--swe { background: color-mix(in srgb, var(--color-brand) 72%, var(--surface-highest)); }
-.gate-progress__segment--completed.gate-progress__segment--red-team { background: color-mix(in srgb, var(--amber) 72%, var(--surface-highest)); }
-.gate-progress__segment--completed.gate-progress__segment--blue-team,
-.gate-progress__segment--completed.gate-progress__segment--done { background: color-mix(in srgb, var(--sage) 72%, var(--surface-highest)); }
-.gate-progress__segment--active.gate-progress__segment--pending { background: var(--text-secondary); }
-.gate-progress__segment--active.gate-progress__segment--swe { background: var(--color-brand); }
-.gate-progress__segment--active.gate-progress__segment--red-team { background: var(--amber); }
-.gate-progress__segment--active.gate-progress__segment--blue-team,
-.gate-progress__segment--active.gate-progress__segment--done { background: var(--sage); }
-.gate-progress__segment--pending { background: var(--surface-highest); }
-.gate-progress__segment--failed { background: var(--terracotta); }
-
-.gate-progress__state {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
-}
-</style>

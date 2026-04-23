@@ -35,26 +35,36 @@ const currentWorkspaceLabel = computed(() => (
 </script>
 
 <template>
-  <header class="gate-toolbar" role="toolbar" aria-label="Gate actions">
-    <div class="gate-toolbar__copy">
-      <div class="gate-toolbar__copy-block">
-        <p class="gate-toolbar__title">Gates</p>
-        <p class="gate-meta" :title="props.selectedGateRoot || undefined">
+  <header
+    class="flex items-center flex-wrap gap-4 justify-between px-4 py-[0.9rem] bg-[var(--surface)] rounded max-[1100px]:flex-col max-[1100px]:items-stretch"
+    role="toolbar"
+    aria-label="Gate actions"
+  >
+    <div class="flex flex-col items-start flex-wrap gap-3">
+      <div class="flex flex-col items-start flex-wrap gap-2">
+        <p class="font-display text-base font-medium text-text-primary">Gates</p>
+        <p class="text-text-secondary" :title="props.selectedGateRoot || undefined">
           {{ props.hasGateRoot ? `Workspace ${currentWorkspaceLabel}` : 'Register a workspace to inspect gate tasks.' }}
         </p>
       </div>
-      <div v-if="props.hasGateRoot" class="gate-stats">
-        <span class="gate-chip gate-chip--todo">{{ props.todoCount }} todo</span>
-        <span class="gate-chip gate-chip--done">{{ props.doneCount }} done</span>
-        <span class="gate-chip gate-chip--total">{{ props.totalCount }} total</span>
-        <span v-if="props.shownCount !== props.totalCount" class="gate-chip gate-chip--filtered">{{ props.shownCount }} shown</span>
-        <span v-if="props.lastRefreshLabel" class="gate-refreshed">{{ props.lastRefreshLabel }}</span>
+      <div v-if="props.hasGateRoot" class="flex items-center flex-wrap gap-2">
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--color-brand)]">{{ props.todoCount }} todo</span>
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--sage)]">{{ props.doneCount }} done</span>
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--outline-variant)]">{{ props.totalCount }} total</span>
+        <span
+          v-if="props.shownCount !== props.totalCount"
+          class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--amber)]"
+        >{{ props.shownCount }} shown</span>
+        <span
+          v-if="props.lastRefreshLabel"
+          class="text-text-secondary font-mono text-[length:var(--text-tiny)]"
+        >{{ props.lastRefreshLabel }}</span>
       </div>
     </div>
 
-    <div class="gate-toolbar__actions">
+    <div class="flex items-center flex-wrap gap-2">
       <Select :model-value="props.selectedGateRoot || ''" :disabled="!props.isReady" @update:model-value="(v) => emit('change-root', String(v))">
-        <SelectTrigger class="gate-root-select">
+        <SelectTrigger class="min-w-[14rem] max-w-[18rem]">
           <SelectValue placeholder="Select root…" />
         </SelectTrigger>
         <SelectContent>
@@ -69,88 +79,3 @@ const currentWorkspaceLabel = computed(() => (
     </div>
   </header>
 </template>
-
-<style scoped>
-.gate-toolbar,
-.gate-toolbar__actions,
-.gate-stats,
-.gate-toolbar__copy,
-.gate-toolbar__copy-block {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.gate-toolbar {
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.9rem 1rem;
-  background: var(--surface);
-  border-radius: 0.25rem;
-}
-
-.gate-toolbar__copy,
-.gate-toolbar__copy-block {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.gate-toolbar__copy {
-  gap: 0.75rem;
-}
-
-.gate-toolbar__title {
-  font-family: var(--font-display);
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
-}
-
-.gate-chip {
-  padding: 0.28rem 0.65rem;
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-  color: var(--color-text-primary);
-  border-radius: 4px;
-  background: var(--surface-highest);
-}
-
-.gate-chip--todo {
-  background: var(--color-brand);
-}
-
-.gate-chip--done {
-  background: var(--sage);
-}
-
-.gate-chip--total {
-  background: var(--outline-variant);
-}
-
-.gate-chip--filtered {
-  background: var(--amber);
-}
-
-.gate-meta,
-.gate-refreshed {
-  color: var(--color-text-secondary);
-}
-
-.gate-refreshed {
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-}
-
-.gate-root-select {
-  min-width: 14rem;
-  max-width: 18rem;
-}
-
-@media (max-width: 1100px) {
-  .gate-toolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
-}
-</style>

@@ -14,30 +14,62 @@ const currentStageIndex = computed(() => {
 
 const stagesLabelId = computed(() => `gate-task-stages-${props.task.taskId}`);
 
-function stageState(index: number) {
+function stageState(index: number): 'completed' | 'current' | 'upcoming' {
   if (currentStageIndex.value < 0) return 'upcoming';
   if (index < currentStageIndex.value) return 'completed';
   if (index === currentStageIndex.value) return 'current';
   return 'upcoming';
 }
+
+function itemBg(state: string): string {
+  if (state === 'completed') return 'color-mix(in srgb, var(--sage) 8%, var(--surface-container))';
+  if (state === 'current') return 'var(--surface-high)';
+  return 'var(--surface-container)';
+}
+
+function trackBg(state: string): string {
+  if (state === 'completed') return 'var(--sage)';
+  if (state === 'current') return 'var(--color-brand)';
+  return 'var(--surface-highest)';
+}
+
+function chipBg(family: string): string {
+  if (family === 'swe') return 'var(--color-brand)';
+  if (family === 'red-team') return 'var(--amber)';
+  if (family === 'blue-team' || family === 'done') return 'var(--sage)';
+  if (family === 'failed') return 'var(--terracotta)';
+  if (family === 'pending') return 'var(--text-secondary)';
+  return 'var(--surface-highest)';
+}
 </script>
 
 <template>
-  <section v-if="task.stages.length" class="gate-detail-stages" :aria-labelledby="stagesLabelId">
-    <p :id="stagesLabelId" class="gate-detail-stages__label">Stage progress</p>
-    <ol class="gate-detail-stages__list">
+  <section v-if="task.stages.length" class="flex flex-col gap-3" :aria-labelledby="stagesLabelId">
+    <p :id="stagesLabelId" class="text-text-secondary text-[length:var(--text-tiny)]">Stage progress</p>
+    <ol class="flex flex-col gap-3 m-0 p-0 list-none">
+      <!-- audit-ok: dynamic-binding (item background varies by completion state, including color-mix) -->
       <li
         v-for="(stage, index) in task.stages"
         :key="stage"
-        :class="['gate-detail-stages__item', `gate-detail-stages__item--${stageState(index)}`]"
+        class="relative grid grid-cols-[auto_auto_1fr] items-center gap-[0.65rem] px-[0.9rem] py-[0.8rem] rounded"
+        :style="{ background: itemBg(stageState(index)) }"
       >
-        <span class="gate-detail-stages__track" aria-hidden="true"></span>
-        <span class="gate-detail-stages__index">{{ index + 1 }}</span>
-        <div class="gate-detail-stages__copy">
-          <span :class="['gate-detail-stages__chip', `gate-detail-stages__chip--${gateStageFamily(stage)}`]">{{ formatStageLabel(stage) }}</span>
+        <!-- audit-ok: dynamic-binding (track color varies by completion state) -->
+        <span
+          class="w-1 self-stretch rounded"
+          aria-hidden="true"
+          :style="{ background: trackBg(stageState(index)) }"
+        ></span>
+        <span class="inline-flex items-center justify-center w-[1.4rem] h-[1.4rem] rounded-[4px] bg-surface-highest text-[length:var(--text-tiny)]">{{ index + 1 }}</span>
+        <div class="flex flex-col gap-[0.3rem]">
+          <!-- audit-ok: dynamic-binding (chip color varies by stage family) -->
+          <span
+            class="inline-flex self-start px-[0.55rem] py-[0.2rem] rounded-[4px] text-text-primary font-mono text-[length:var(--text-tiny)]"
+            :style="{ background: chipBg(gateStageFamily(stage)) }"
+          >{{ formatStageLabel(stage) }}</span>
           <span
             :class="[
-              'gate-detail-stages__status',
+              'text-text-secondary text-[length:var(--text-tiny)]',
               stageState(index) === 'current' ? 'text-brand font-semibold' : '',
             ]"
           >
@@ -57,99 +89,3 @@ function stageState(index: number) {
     </ol>
   </section>
 </template>
-
-<!-- audit-ok: max-style-rules -->
-<style scoped>
-.gate-detail-stages {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.gate-detail-stages__label {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-stages__list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.gate-detail-stages__item {
-  position: relative;
-  display: grid;
-  grid-template-columns: auto auto 1fr;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.8rem 0.9rem;
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-}
-
-.gate-detail-stages__track {
-  width: 4px;
-  align-self: stretch;
-  border-radius: 4px;
-  background: var(--surface-highest);
-}
-
-.gate-detail-stages__index {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.4rem;
-  height: 1.4rem;
-  border-radius: 4px;
-  background: var(--surface-highest);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-stages__copy {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.gate-detail-stages__chip {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
-  color: var(--color-text-primary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-stages__chip--pending { background: var(--text-secondary); }
-.gate-detail-stages__chip--swe { background: var(--color-brand); }
-.gate-detail-stages__chip--red-team { background: var(--amber); }
-.gate-detail-stages__chip--blue-team,
-.gate-detail-stages__chip--done { background: var(--sage); }
-.gate-detail-stages__chip--failed { background: var(--terracotta); }
-
-.gate-detail-stages__status {
-  color: var(--color-text-secondary);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail-stages__item--completed {
-  background: color-mix(in srgb, var(--sage) 8%, var(--surface-container));
-}
-
-.gate-detail-stages__item--completed .gate-detail-stages__track {
-  background: var(--sage);
-}
-
-.gate-detail-stages__item--current {
-  background: var(--surface-high);
-}
-
-.gate-detail-stages__item--current .gate-detail-stages__track {
-  background: var(--color-brand);
-}
-</style>

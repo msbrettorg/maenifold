@@ -40,10 +40,14 @@ function renderMarkdown(content: string | null) {
 </script>
 
 <template>
-  <aside class="gate-detail" role="article" :aria-labelledby="detailTitleId">
-    <div class="gate-detail__header">
-      <div class="gate-detail__header-copy">
-        <p class="gate-detail__eyebrow">Task detail</p>
+  <aside
+    class="flex flex-col gap-4 flex-[3] min-w-0 min-h-0 overflow-hidden p-4 bg-bg-elevated border border-border-card rounded-lg"
+    role="article"
+    :aria-labelledby="detailTitleId"
+  >
+    <div class="flex justify-between items-start gap-3">
+      <div class="flex flex-col min-w-0 gap-2">
+        <p class="text-text-secondary text-[length:var(--text-tiny)]">Task detail</p>
         <h3 :id="detailTitleId">{{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}</h3>
         <GateTaskDetailMeta v-if="task" :task="task" :process-label="processLabel" :pipeline-stale="pipelineStale" />
       </div>
@@ -51,18 +55,34 @@ function renderMarkdown(content: string | null) {
     </div>
 
     <template v-if="task">
-      <div class="gate-detail__content">
-        <div class="gate-detail__body-scroll">
-          <section class="gate-detail__section">
-            <p class="gate-detail__section-label">Spec</p>
-            <p v-if="bodyLoading" class="gate-detail__message">Loading task detail…</p>
-            <p v-else-if="bodyError" class="gate-detail__message gate-detail__message--error">{{ bodyError }}</p>
-            <p v-else-if="!body.trim()" class="gate-detail__message">No task body content found.</p>
-            <div v-else class="gate-detail__markdown gate-detail__body" v-html="renderMarkdown(body)" />
+      <div class="flex flex-col gap-4 min-h-0">
+        <div class="flex flex-col gap-4 min-h-0 max-h-[min(52vh,34rem)] pr-1 overflow-auto">
+          <section class="flex flex-col gap-3">
+            <p class="text-text-secondary text-[length:var(--text-tiny)] flex flex-col">Spec</p>
+            <p
+              v-if="bodyLoading"
+              class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
+            >Loading task detail…</p>
+            <p
+              v-else-if="bodyError"
+              class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
+            >{{ bodyError }}</p>
+            <p
+              v-else-if="!body.trim()"
+              class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
+            >No task body content found.</p>
+            <div
+              v-else
+              class="gate-detail__markdown text-text-primary [overflow-wrap:anywhere] p-[0.9rem] border border-border-subtle rounded bg-surface-container"
+              v-html="renderMarkdown(body)"
+            />
           </section>
 
           <GateTaskDetailStages :task="task" />
-          <p v-if="task.issue" class="gate-detail__issue">{{ task.issue }}</p>
+          <p
+            v-if="task.issue"
+            class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
+          >{{ task.issue }}</p>
         </div>
 
         <GateTaskDetailHistory
@@ -73,108 +93,17 @@ function renderMarkdown(content: string | null) {
       </div>
     </template>
 
-    <p v-else class="gate-detail__message">
+    <p
+      v-else
+      class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
+    >
       Select a task from the table to inspect its gate history, path, and gate metadata.
     </p>
   </aside>
 </template>
 
-<!-- audit-ok: max-style-rules -->
+<!-- audit-ok: deep-third-party — :deep() rules style sanitized markdown injected via v-html (paragraph/list/table/code spacing). Cross-scope :deep() targets cannot be expressed as Tailwind utilities. -->
 <style scoped>
-.gate-detail,
-.gate-detail__header-copy,
-.gate-detail__content,
-.gate-detail__body-scroll {
-  display: flex;
-  flex-direction: column;
-}
-
-.gate-detail {
-  gap: 1rem;
-  flex: 3;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  padding: 1rem;
-  background: var(--color-bg-elevated);
-  border: 1px solid var(--color-border-card);
-  border-radius: 8px;
-}
-
-.gate-detail__header,
-.gate-detail__section {
-  gap: 0.75rem;
-}
-
-.gate-detail__header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.gate-detail__header-copy {
-  min-width: 0;
-  gap: 0.5rem;
-}
-
-.gate-detail__eyebrow,
-.gate-detail__section-label,
-.gate-detail__message {
-  color: var(--color-text-secondary);
-}
-
-.gate-detail__eyebrow {
-  font-size: var(--text-tiny);
-}
-
-.gate-detail__content {
-  gap: 1rem;
-  min-height: 0;
-}
-
-.gate-detail__body-scroll {
-  gap: 1rem;
-  min-height: 0;
-  max-height: min(52vh, 34rem);
-  padding-right: 0.25rem;
-  overflow: auto;
-}
-
-.gate-detail__section,
-.gate-detail__section-label {
-  display: flex;
-  flex-direction: column;
-}
-
-.gate-detail__section-label {
-  font-size: var(--text-tiny);
-}
-
-.gate-detail__issue,
-.gate-detail__message {
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-}
-
-.gate-detail__message--error,
-.gate-detail__issue {
-  color: var(--color-status-abandoned);
-}
-
-.gate-detail__markdown {
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
-
-.gate-detail__body {
-  padding: 0.9rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 0.25rem;
-  background: var(--surface-container);
-}
-
 .gate-detail__markdown :deep(*) {
   margin-top: 0;
 }
@@ -219,11 +148,5 @@ function renderMarkdown(content: string | null) {
   padding: 0.5rem 0.75rem;
   border: 1px solid var(--color-border-subtle);
   text-align: left;
-}
-
-@media (max-width: 960px) {
-  .gate-detail {
-    min-width: 0;
-  }
 }
 </style>

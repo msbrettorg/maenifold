@@ -87,10 +87,16 @@ pub(crate) fn spawn_root_monitor(
     std::thread::Builder::new()
         .name("gate-tray-root-monitor".into())
         .spawn(move || {
-            let mut last_has_root = root.read().unwrap().is_some();
+            let mut last_has_root = root
+                .read()
+                .expect("tray root monitor root: lock poisoned")
+                .is_some();
             while !shutdown_token.is_cancelled() {
                 std::thread::sleep(Duration::from_millis(ROOT_STATE_POLL_MS));
-                let has_root = root.read().unwrap().is_some();
+                let has_root = root
+                    .read()
+                    .expect("tray root monitor root: lock poisoned")
+                    .is_some();
                 if has_root != last_has_root {
                     last_has_root = has_root;
                     let _ = proxy.send_event(TrayUserEvent::RootAvailabilityChanged(has_root));

@@ -85,7 +85,10 @@ fn watch_loop(
             break;
         }
 
-        let current_root = root.read().unwrap().clone();
+        let current_root = root
+            .read()
+            .expect("gate file watcher root: lock poisoned")
+            .clone();
         if watched_root != current_root {
             let previous_root = watched_root.clone();
             let initial_root_assignment = previous_root.is_none() && current_root.is_some();

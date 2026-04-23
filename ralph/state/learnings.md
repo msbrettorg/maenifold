@@ -1,5 +1,8 @@
 # RALPH Learnings
 
+Record things you discover in this file.
+Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
+
 ## 2026-04-19 — Session 1 (maenifold-gate LOC compliance)
 
 ### What worked
@@ -250,3 +253,18 @@ TDD pipeline (`pending → blue-team → swe → red-team → done`) forces grou
 - Refreshed `T-01.0` to match the current 102-violation audit.
 - Corrected `T-01.1` to the non-MCP unwrap scope.
 - Authored `T-01.2` through `T-01.7` for the Sprint 1 `maenifold-gate` cleanup slice.
+
+## 2026-04-22 — Session 11 (T-01.1 non-MCP unwrap cleanup)
+
+### What worked
+- Running the architect duo review before dispatch caught a real spec gap even on a mechanical `lightweight` task.
+- A narrow SWE prompt that explicitly preserved the live `tray.rs` worktree state landed the six unwrap replacements without disturbing unrelated crate work.
+- Blue-team could verify the scoped `no-unwrap` acceptance cleanly even though `make audit-crates` still fails on the wider backlog.
+
+### Patterns
+- If a scoped file is already dirty, the task file itself must say exactly which existing hunk is authoritative and must be preserved; otherwise single-owner assumptions drift.
+- `gate` MCP can throw `Resource deadlock avoided (os error 11)` on `pass`, not just `sync`/`status`; after one MCP failure, switch the stage transition to the CLI immediately.
+- For backlog-cleanup tasks whose repo-wide audit is still red, validate the task’s acceptance by confirming the scoped violations disappear while treating unrelated audit findings as informational.
+
+### Delivered
+- T-01.1: removed the six non-MCP `.unwrap()` calls from `tray.rs`, `tray_lifecycle.rs`, and `file_watcher.rs`; task advanced through SWE and blue-team to `done/`.

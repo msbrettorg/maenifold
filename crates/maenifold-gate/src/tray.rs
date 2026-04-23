@@ -36,7 +36,13 @@ struct GateTrayApp {
 
 impl GateTrayApp {
     fn initialize_tray(&mut self, event_loop: &ActiveEventLoop) {
-        let has_root = self.tray.state.root.read().unwrap().is_some();
+        let has_root = self
+            .tray
+            .state
+            .root
+            .read()
+            .expect("tray root: lock poisoned")
+            .is_some();
         let menu_state = build_tray_menu(self.tray.mode, has_root);
         let GateTrayMenuState {
             open_ui_id,
@@ -71,7 +77,7 @@ impl GateTrayApp {
         #[cfg(target_os = "macos")]
         {
             use objc2_core_foundation::CFRunLoop;
-            let run_loop = CFRunLoop::main().unwrap();
+            let run_loop = CFRunLoop::main().expect("failed to access main CFRunLoop");
             run_loop.wake_up();
         }
     }
@@ -96,7 +102,13 @@ impl GateTrayApp {
             .as_ref()
             .is_some_and(|id| event.id == *id)
         {
-            let root = self.tray.state.root.read().unwrap().clone();
+            let root = self
+                .tray
+                .state
+                .root
+                .read()
+                .expect("tray root: lock poisoned")
+                .clone();
             open_ui(root.as_deref());
             return;
         }
@@ -109,7 +121,13 @@ impl GateTrayApp {
             .is_some_and(|id| event.id == *id)
             && let Some(port) = self.tray.mode.port()
         {
-            let root = self.tray.state.root.read().unwrap().clone();
+            let root = self
+                .tray
+                .state
+                .root
+                .read()
+                .expect("tray root: lock poisoned")
+                .clone();
             toggle_login_item(port, root.as_deref(), self.tray.state.login_item.as_ref());
         }
     }

@@ -15,6 +15,7 @@ mod executor_apply;
 mod executor_cleanup;
 mod executor_helpers;
 mod executor_nodes;
+mod executor_nodes_build_helpers;
 mod executor_nodes_cwd;
 mod executor_nodes_dispatch;
 mod executor_nodes_prompt;
@@ -50,6 +51,7 @@ mod orphan_cascade_tests;
 mod session_io;
 mod session_read;
 mod session_write;
+mod session_write_files;
 pub mod stream;
 #[cfg(test)]
 mod t1047_scope_tests;

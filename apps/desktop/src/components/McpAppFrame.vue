@@ -67,7 +67,7 @@ async function initBridge() {
         if (disposed) return;
         const html = resource.text ?? '';
         if (!html) {
-          errorMessage.value = `Empty resource returned for '${uri}'`;
+          errorMessage.value = 'App resource was empty';
           return;
         }
         await ab.sendSandboxResourceReady({

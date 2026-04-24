@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use petgraph::algo::is_cyclic_directed;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use super::{PipelineDefinition, PipelineNode};
 
@@ -72,6 +72,7 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
     }
 
     let mut node_ids = HashSet::with_capacity(definition.nodes.len());
+    let mut session_refs = HashMap::new();
     for node in &definition.nodes {
         if !node_ids.insert(node.id()) {
             return Err(MaenifoldError::InvalidArgument(format!(
@@ -80,6 +81,7 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
             )));
         }
 
+        validate_unique_session_ref(node, &mut session_refs)?;
         validate_node_semantics(node)?;
     }
 
@@ -100,6 +102,30 @@ pub fn validate_pipeline(definition: &PipelineDefinition) -> Result<()> {
         return Err(MaenifoldError::InvalidArgument(
             "Pipeline definition contains a cycle".to_string(),
         ));
+    }
+
+    Ok(())
+}
+
+fn validate_unique_session_ref<'a>(
+    node: &'a PipelineNode,
+    session_refs: &mut HashMap<(&'a str, &'a str), &'a str>,
+) -> Result<()> {
+    let PipelineNode::Prompt {
+        id,
+        session_ref: Some(session_ref),
+        ..
+    } = node
+    else {
+        return Ok(());
+    };
+
+    let key = (session_ref.agent.as_str(), session_ref.session_id.as_str());
+    if let Some(existing_node_id) = session_refs.insert(key, id.as_str()) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Nodes '{}' and '{}' share the same sessionRef (agent: '{}', sessionId: '{}'). Each session can only be referenced by one node.",
+            existing_node_id, id, session_ref.agent, session_ref.session_id
+        )));
     }
 
     Ok(())
@@ -145,94 +171,5 @@ fn validate_conditional_edge(edge: &super::PipelineEdge) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::workflow::pipeline::{EdgeType, PipelineDefinition, PipelineEdge, PipelineNode};
-
-    fn make_node(id: &str) -> PipelineNode {
-        PipelineNode::SequentialThinking {
-            id: id.to_string(),
-            display_label: None,
-            topic: "topic".to_string(),
-            total_thoughts: 1,
-            analysis_type: None,
-            agent: "agent".to_string(),
-            model: None,
-            thought_level: None,
-            allowed_tools: None,
-            max_turns: None,
-            cwd: None,
-            timeout: None,
-            agent_config: None,
-            adopt: None,
-            requires_role: None,
-            retry_policy: None,
-        }
-    }
-
-    fn base_definition() -> PipelineDefinition {
-        PipelineDefinition {
-            nodes: vec![make_node("source"), make_node("target")],
-            edges: vec![],
-            inputs: None,
-            template_id: None,
-        }
-    }
-
-    #[test]
-    fn validate_pipeline_accepts_conditional_edge_with_non_empty_path() {
-        let mut definition = base_definition();
-        definition.edges.push(PipelineEdge {
-            source: "source".to_string(),
-            target: "target".to_string(),
-            edge_type: EdgeType::Conditional {
-                path: "result.verdict".to_string(),
-                equals: serde_json::json!("PASS"),
-            },
-            mapping: None,
-        });
-
-        let result = validate_pipeline(&definition);
-        assert!(result.is_ok(), "expected conditional edge to validate");
-    }
-
-    #[test]
-    fn validate_pipeline_rejects_conditional_edge_with_empty_path() {
-        let mut definition = base_definition();
-        definition.edges.push(PipelineEdge {
-            source: "source".to_string(),
-            target: "target".to_string(),
-            edge_type: EdgeType::Conditional {
-                path: "   ".to_string(),
-                equals: serde_json::json!("PASS"),
-            },
-            mapping: None,
-        });
-
-        let error = validate_pipeline(&definition).expect_err("expected validation error");
-        assert_eq!(
-            error.to_string(),
-            "Conditional edge 'source -> target' field 'path' must not be empty"
-        );
-    }
-
-    #[test]
-    fn validate_pipeline_rejects_conditional_edge_with_unknown_source_node() {
-        let mut definition = base_definition();
-        definition.edges.push(PipelineEdge {
-            source: "missing".to_string(),
-            target: "target".to_string(),
-            edge_type: EdgeType::Conditional {
-                path: "verdict".to_string(),
-                equals: serde_json::json!("PASS"),
-            },
-            mapping: None,
-        });
-
-        let error = validate_pipeline(&definition).expect_err("expected validation error");
-        assert_eq!(
-            error.to_string(),
-            "Conditional edge 'missing -> target' references unknown source node 'missing'"
-        );
-    }
-}
+#[path = "validation_tests.rs"]
+mod tests;

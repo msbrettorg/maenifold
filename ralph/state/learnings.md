@@ -3,6 +3,32 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 1637 (multi-track dispatch)
+
+### Researcher gate pass violation REPEATED
+- T-211.1: researcher (opus-4.5) ran `gate pass` on its own stage AGAIN, same pattern as T-214.1
+- **Lesson: The researcher prompt template needs explicit "do NOT run gate commands" instruction. This is now a recurring pattern.**
+
+### SWE creates duplicate/unrequested files
+- T-209.6: SWE created `meta-loop.sh` (107 LOC standalone duplicate) not in spec, AND changed pipeline-meta.sh permission from 755 to 644
+- PM caught both during verification — removed duplicate, fixed permission
+- **Lesson: Always check `git diff --stat` for unexpected files and `git diff --summary` for permission changes**
+
+### Red-team delayed evaluation pattern misunderstanding
+- T-209.6 red-team flagged score timing as "critical logic bug" — it was actually correct delayed evaluation hill-climbing
+- PM triaged as false positive after tracing the full iteration lifecycle
+- **Lesson: When red-team flags optimization logic, trace through 2-3 iterations manually before accepting. Optimization patterns are often non-obvious.**
+
+### Red-team diminishing returns on shell script validation
+- T-209.6 re-audit FAIL on verdict field type validation (has() but not type checking) — PM overrode as informational
+- For dev tools with controlled inputs (own ACP agent), jq field existence checks are sufficient
+- **Lesson: Apply proportional rigor — security boundaries get strict validation, internal dev tool contracts get existence checks**
+
+### Atomic write bug found by red-team
+- T-211.2: write_atomically used backup-then-rename pattern creating ENOENT window
+- Fix: single fs::rename() — Unix rename atomically replaces
+- **Lesson: On Unix, fs::rename(tmp, target) is the only correct atomic write pattern. Never move the target away before replacing it.**
+
 ## 2026-04-24 — Iteration 1450 (epic decomposition + session-as-node)
 
 ### Researcher agent ran gate pass on its own stage

@@ -7,7 +7,7 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1554 — Session-as-Node Final + Cleanup
 
-### Shipped (7 tasks + 1 epic)
+### Shipped (8 tasks + 1 epic)
 - **T-214.11** ✅ Session node visual treatment (MessageCircleMore icon, tooltip, dashed border)
 - **T-214.14** ✅ resume_session_id single-use (1 remediation cycle)
 - **T-214.15** ✅ resumed boolean observability
@@ -16,10 +16,10 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-212.2** ✅ OTEL wiring in pipeline-meta.sh
 - **T-212.3** ✅ Monitoring docs in ralph/README.md
 - **T-212.0** ✅ EPIC CLOSED — ralph-console complete
+- **T-209.5** ✅ Pipeline score function (1 remediation cycle)
 
 ### In Progress
-- **T-209.5** ⏳ Score function (SWE dispatched)
-- **T-210.2** ⏳ Trouter WebSocket client (SWE dispatched)
+- **T-210.2** ⏳ Trouter WebSocket client (red-team auditing, 223 LOC)
 
 ### T-214 Epic: 14/15 done
 - T-214.13 (E2E validation) is the only remaining task

@@ -21,11 +21,11 @@ Stuff you learn should go in ralph/state/learnings.md
 - T-03.26 filed: strip ALL audit-ok exemptions and ban at build time
 
 ## Next Actions
-- Close T-03.0 epic
-- T-204.0 epic (Handy speech-to-text) has 7 well-spec'd subtasks all pending — ready for dispatch
-- T-203.0 epic (MCP Apps host support) has 6 subtasks pending
-- T-207.0 epic (MCP Gateway) has subtasks pending
-- T-209.0 epic (Pipeline-driven delivery) pending
+- T-05.87, T-05.92, T-05.94, T-05.95 ready for dispatch in next iteration
+- T-05.67 (vec0 wizard) is P2 — defer until P1s clear
+- prewarm.rs config error swallowing filed as informational by red-team (T-05.91) — needs its own task
+- Agents filing tasks during blue-team (T-05.85-95) is a process violation — blue-team should only verify, not file. But findings are real. Need to add explicit "do NOT file tasks" to blue-team prompts.
+- Gate database locking should be better now with T-05.84 mutex — verify in next iteration
 ## Sprint 05 — Component Rebuild (in progress)
 - 56 components deleted and rebuilt from scratch — all pass rejection criteria
 - Codex audit found 47 MORE files with hand-rolled patterns (ScrollArea, Card, Skeleton, Dialog, Progress, Badge, Tooltip)

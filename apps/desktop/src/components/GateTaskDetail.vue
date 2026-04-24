@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -9,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 import { getTaskPipelineLabel, isTaskPipelineDigestStale } from '../lib/gate-display';
 

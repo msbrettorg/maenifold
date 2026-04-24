@@ -5,6 +5,28 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-1637 — Multi-Track Dispatch
+
+### In Flight
+- **T-209.6** — Pipeline meta outer loop (SWE done, red-team auditing)
+- **T-210.3** — Teams message handler (SWE done, 1 remediation, red-team PASS, merged, blue-team verifying)
+- **T-211.2** — Schedule config schema (SWE dispatched, worktree ready)
+
+### Shipped This Iteration
+- **T-211.1** ✅ Scheduler research (GSD, memory note written to tech/scheduling/)
+
+### Next Actions
+- After T-210.3 blue-team passes → close task → dispatch T-210.4 (MCP tools)
+- After T-209.6 red-team passes → merge → blue-team → close → T-209.7 unblocked
+- After T-211.2 lands → T-211.3 (cron parser) unblocked — NOTE: spec says `cron` crate but research recommends `croner`, update spec before dispatch
+- T-214.13 (E2E validation) at research stage — needs CDP testing
+- T-210.9 (MSAL auth) is unblocked but needs spec grounding on which Azure AD Rust library to use
+
+### Process Notes
+- Researcher ran gate pass on T-211.1 — known process violation, added explicit warning to future researcher prompts
+- SWE T-209.6 created duplicate meta-loop.sh and lost execute permission on pipeline-meta.sh — caught and fixed before red-team
+- Red-team T-210.3 found real issues: strip_html bypass + unbounded HashMap — 1 remediation cycle, re-audit PASS
+
 ## Iteration 20260424-1554 — Session-as-Node Final + Cleanup
 
 ### Shipped (8 tasks + 1 epic)

@@ -21,6 +21,7 @@ const HEX_ALLOWLIST_PREFIXES = [
   'src/components/KnowledgeGraphPanel',
   'src/components/KnowledgeNoteRenderer',
   'src/components/GraphViewCanvas',
+  'src/lib/knowledge-graph-mappers', // SSR canvas rendering fallbacks
 ];
 
 const HEX_LITERAL_RE = /#[0-9a-fA-F]{3,8}\b/g;

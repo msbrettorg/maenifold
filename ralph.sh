@@ -5,6 +5,8 @@ set -euo pipefail
 MODEL="claude-opus-4.6-1m"
 REASONING_EFFORT="xhigh"
 MAX_ITERATIONS=50
+MAX_RUNTIME_SECONDS=0        # 0 = unlimited; e.g. 14400 = 4 hours
+STUCK_TIMEOUT_SECONDS=600    # 10 min without log output = stuck
 CRATE=""
 SCOPE_PATH=""
 AGENT="product-manager"
@@ -12,12 +14,12 @@ SESSION_NAME=""
 NO_CUSTOM_INSTRUCTIONS=false
 NO_ASK_USER=false
 CONTINUE=false
+NOTIFY=true
 EXTRA_COPILOT_ARGS=()
 
 # Files the agent MUST NOT modify — verified by hash after each iteration
 IMMUTABLE_FILES=(
   "ralph.sh"
-)
 )
 
 usage() {
@@ -28,12 +30,15 @@ Options:
   --model <model>              Copilot model (default: claude-opus-4.6-1m)
   --effort <level>             Reasoning effort: low|medium|high|xhigh (default: xhigh)
   --max-iterations <n>         Iteration limit (default: 50)
+  --max-runtime <seconds>      Wall-clock runtime cap; 0 = unlimited (default: 0)
+  --stuck-timeout <seconds>    Abort if no log output for N seconds (default: 600)
   --crate <crate>              Scope to a Rust crate
   --path <path>                Scope to a filesystem path
   --agent <agent>              Copilot agent (default: product-manager)
   --name <name>                Session name passed to copilot
   --no-custom-instructions     Disable AGENTS.md / custom instructions
   --no-ask-user                Disable ask_user tool (fully autonomous)
+  --no-notify                  Disable macOS notifications
   --add-dir <dir>              Additional directory for copilot access (repeatable)
 EOF
 }
@@ -43,6 +48,15 @@ require_command() {
     echo "ERROR: missing required command: $1"
     exit 1
   }
+}
+
+# --- OS notification (macOS) ---
+notify() {
+  local title="$1"
+  local message="$2"
+  if [[ "$NOTIFY" == "true" && "$(uname)" == "Darwin" ]]; then
+    osascript -e "display notification \"$message\" with title \"$title\"" 2>/dev/null || true
+  fi
 }
 
 create_thinking_session() {
@@ -71,6 +85,8 @@ while [[ $# -gt 0 ]]; do
     --effort|--reasoning-effort)
                         REASONING_EFFORT="${2:-}";  shift 2 ;;
     --max-iterations)   MAX_ITERATIONS="${2:-}";    shift 2 ;;
+    --max-runtime)      MAX_RUNTIME_SECONDS="${2:-}"; shift 2 ;;
+    --stuck-timeout)    STUCK_TIMEOUT_SECONDS="${2:-}"; shift 2 ;;
     --crate)            CRATE="${2:-}";             shift 2 ;;
     --path)             SCOPE_PATH="${2:-}";        shift 2 ;;
     --agent)            AGENT="${2:-}";             shift 2 ;;
@@ -78,6 +94,7 @@ while [[ $# -gt 0 ]]; do
     --no-custom-instructions)
                         NO_CUSTOM_INSTRUCTIONS=true; shift ;;
     --no-ask-user)      NO_ASK_USER=true;          shift ;;
+    --no-notify)        NOTIFY=false;              shift ;;
     --add-dir)          EXTRA_COPILOT_ARGS+=(--add-dir "${2:-}"); shift 2 ;;
     *)
       echo "Unknown argument: $1"
@@ -86,6 +103,8 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+LOOP_START_EPOCH="$(date +%s)"
 
 mkdir -p ralph/state
 
@@ -167,6 +186,16 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   echo "╚══════════════════════════════════════════════════════════════════╝"
   echo ""
 
+  # --- Max runtime check ---
+  if [[ "$MAX_RUNTIME_SECONDS" -gt 0 ]]; then
+    elapsed=$(( $(date +%s) - LOOP_START_EPOCH ))
+    if [[ "$elapsed" -ge "$MAX_RUNTIME_SECONDS" ]]; then
+      echo "MAX RUNTIME (${MAX_RUNTIME_SECONDS}s) reached after ${elapsed}s — stopping."
+      notify "RALPH" "Max runtime reached after ${elapsed}s"
+      break
+    fi
+  fi
+
   # Export iteration config
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
@@ -195,9 +224,47 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   [[ "$CONTINUE" == "true" ]] && COPILOT_ARGS+=(--continue)
   COPILOT_ARGS+=("${EXTRA_COPILOT_ARGS[@]+"${EXTRA_COPILOT_ARGS[@]}"}")
 
+  # --- Run with stuck detection ---
+  # Background: monitor log file for activity. If no new output for
+  # STUCK_TIMEOUT_SECONDS, the copilot PID is sent SIGTERM.
   set +e
-  copilot "${COPILOT_ARGS[@]}" 2>&1 | tee "$iter_log"
-  exit_code=${PIPESTATUS[0]}
+  copilot "${COPILOT_ARGS[@]}" 2>&1 | tee "$iter_log" &
+  copilot_tee_pid=$!
+
+  if [[ "$STUCK_TIMEOUT_SECONDS" -gt 0 ]]; then
+    (
+      while true; do
+        sleep 30
+        # Check if copilot is still running
+        if ! ps -p $copilot_tee_pid > /dev/null 2>&1; then
+          break
+        fi
+        # Check log file modification time
+        if [[ -f "$iter_log" ]]; then
+          last_mod=$(stat -f %m "$iter_log" 2>/dev/null || stat -c %Y "$iter_log" 2>/dev/null || echo 0)
+          now=$(date +%s)
+          idle=$(( now - last_mod ))
+          if [[ "$idle" -ge "$STUCK_TIMEOUT_SECONDS" ]]; then
+            echo ""
+            echo "⚠ STUCK DETECTED: no output for ${idle}s (threshold: ${STUCK_TIMEOUT_SECONDS}s)"
+            # Send SIGTERM to the tee pipeline (which propagates to copilot)
+            kill $copilot_tee_pid 2>/dev/null || true
+            break
+          fi
+        fi
+      done
+    ) &
+    stuck_monitor_pid=$!
+  fi
+
+  wait $copilot_tee_pid
+  exit_code=$?
+
+  # Clean up stuck monitor if still running
+  if [[ -n "${stuck_monitor_pid:-}" ]]; then
+    kill $stuck_monitor_pid 2>/dev/null || true
+    wait $stuck_monitor_pid 2>/dev/null || true
+  fi
   set -e
 
   end_epoch="$(date +%s)"

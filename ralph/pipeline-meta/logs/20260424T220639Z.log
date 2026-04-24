@@ -1,0 +1,8 @@
+[2026-04-24T22:06:39Z] pipeline-meta.sh starting
+[2026-04-24T22:06:39Z] root=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4
+[2026-04-24T22:06:39Z] max_parallel=1
+[2026-04-24T22:06:39Z] dry_run=true
+[2026-04-24T22:06:39Z] log_file=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/logs/20260424T220639Z.log
+[2026-04-24T22:06:39Z] WARN: gate status unavailable; using todo/ fallback backlog for dry-run
+ralph/pipeline-meta/pipeline-meta.sh: line 319: wait: `': not a pid or valid job spec
+ralph/pipeline-meta/pipeline-meta.sh: line 323: remaining[@]: unbound variable

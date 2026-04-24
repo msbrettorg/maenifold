@@ -60,3 +60,10 @@ Stuff you learn should go in ralph/state/learnings.md
 - T-05.94 CLOSED — empty note display fix shipped
 - Sprint 05 remaining: T-05.67 (P2), T-05.96 (in-flight), T-05.97 (P2)
 - Next sprint priority: T-203.0 (MCP Apps epic, SLC discovery)
+
+## T-203.2 Completed (2026-04-24)
+- MCP Apps _meta.ui parsing shipped through full SDD+red-team+blue-team pipeline
+- Red-team caught real security issue: unvalidated resourceUri could accept javascript:/file:// schemes
+- Remediation: enforce ui:// prefix only, deny-by-default
+- Re-audit raised path traversal concern within ui:// — accepted as informational (AppBridge sandbox handles)
+- T-203.3 (McpAppFrame.vue) advanced to SWE stage, ready for next iteration

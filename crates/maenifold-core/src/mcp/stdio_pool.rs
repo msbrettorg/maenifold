@@ -4,8 +4,8 @@ use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdio
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, Tool};
 use serde_json::Value;
-use std::collections::HashMap;
-use std::sync::{RwLock as StdRwLock, RwLockReadGuard};
+use std::collections::{HashMap, HashSet};
+use std::sync::{Arc, RwLock as StdRwLock, RwLockReadGuard};
 use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::task::JoinSet;
@@ -27,11 +27,21 @@ pub struct StdioServerConfig {
 
 struct ManagedServer {
     config: StdioServerConfig,
-    session: StdioSession,
+    session: Arc<StdioSession>,
 }
 
 impl StdioPool {
     pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
+        let mut seen = HashSet::new();
+        for config in &servers {
+            if !seen.insert(&config.name) {
+                return Err(MaenifoldError::Message(format!(
+                    "Duplicate gateway server name: '{}'. Each server must have a unique name.",
+                    config.name
+                )));
+            }
+        }
+
         let mut tasks = JoinSet::new();
         for config in servers {
             tasks.spawn(async move {
@@ -44,7 +54,13 @@ impl StdioPool {
         while let Some(joined) = tasks.join_next().await {
             match joined {
                 Ok((_, config, Ok(session))) => {
-                    started.insert(config.name.clone(), ManagedServer { config, session });
+                    started.insert(
+                        config.name.clone(),
+                        ManagedServer {
+                            config,
+                            session: Arc::new(session),
+                        },
+                    );
                 }
                 Ok((name, _, Err(error))) => {
                     warn!(server = %name, error = %error, "failed to start stdio MCP server");
@@ -73,13 +89,16 @@ impl StdioPool {
         tool_name: &str,
         arguments: Value,
     ) -> Result<CallToolResult> {
-        let initial = {
+        let session = {
             let servers = self.servers.read().await;
             let server = servers
                 .get(server_name)
                 .ok_or_else(|| missing_server(server_name))?;
-            if server.session.is_usable() {
-                Some(server.session.call_tool(tool_name, arguments.clone()).await)
+            server.session.clone()
+        };
+        let initial = {
+            if session.is_usable() {
+                Some(session.call_tool(tool_name, arguments.clone()).await)
             } else {
                 None
             }
@@ -113,7 +132,7 @@ impl StdioPool {
         };
         *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
         let mut shutdowns = FuturesUnordered::new();
-        for mut session in sessions {
+        for session in sessions {
             shutdowns.push(async move { session.shutdown().await });
         }
         while shutdowns.next().await.is_some() {}
@@ -125,11 +144,14 @@ impl StdioPool {
         tool_name: &str,
         arguments: Value,
     ) -> Result<CallToolResult> {
-        let servers = self.servers.read().await;
-        let server = servers
-            .get(server_name)
-            .ok_or_else(|| missing_server(server_name))?;
-        server.session.call_tool(tool_name, arguments).await
+        let session = {
+            let servers = self.servers.read().await;
+            let server = servers
+                .get(server_name)
+                .ok_or_else(|| missing_server(server_name))?;
+            server.session.clone()
+        };
+        session.call_tool(tool_name, arguments).await
     }
 
     async fn restart_server(&self, server_name: &str) -> Result<()> {
@@ -144,7 +166,7 @@ impl StdioPool {
             server.config.clone()
         };
 
-        let mut replacement = Some(start_session(&config).await?);
+        let mut replacement = Some(Arc::new(start_session(&config).await?));
         let outcome = {
             let mut servers = self.servers.write().await;
             match servers.get(server_name) {
@@ -178,7 +200,7 @@ impl StdioPool {
         let (old_session, tools) = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
-                if let Some(mut session) = replacement {
+                if let Some(session) = replacement {
                     session.shutdown().await;
                 }
                 return Err(error);
@@ -188,10 +210,10 @@ impl StdioPool {
         if let Some(tools) = tools {
             *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
         }
-        if let Some(mut session) = replacement {
+        if let Some(session) = replacement {
             session.shutdown().await;
         }
-        if let Some(mut session) = old_session {
+        if let Some(session) = old_session {
             session.shutdown().await;
         }
         Ok(())
@@ -255,7 +277,7 @@ fn ensure_replacement_tools(
 
 async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     let mut shutdowns = FuturesUnordered::new();
-    for mut server in servers.into_values() {
+    for server in servers.into_values() {
         shutdowns.push(async move { server.session.shutdown().await });
     }
     while shutdowns.next().await.is_some() {}

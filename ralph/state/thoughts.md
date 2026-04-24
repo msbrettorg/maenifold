@@ -70,9 +70,15 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-207.0** ✅ EPIC CLOSED — all P1 subtasks done
 - **T-207.6** ✅ DONE (prior RALPH instance) — error semantics shipped
 - **T-207.8** ✅ DONE — pipeline driver migrated (1 remediation cycle: global→param, PoolGuard, async)
-- **T-207.11** FILED — resource proxying to unblock T-203.0 MCP Apps epic
+- **T-207.11** ✅ DONE — ui:// resource proxying (1 remediation cycle: error masking fix)
 - Concept repair: MCP-Gateway variants consolidated (9 replacements)
-- **5 tasks shipped, 1 epic closed, 1 task filed this iteration**
+- **6 tasks shipped, 1 epic closed this iteration**
+- T-203.8 NOW UNBLOCKED by T-207.11
+
+## Next Actions
+- T-203.8 (McpAppFrame resource fetch) — now unblocked, P1, frontend SDD
+- T-203.6 (E2E validation) — unblocked after T-203.8
+- T-207.7 (integration test) — P2, deferred
 
 ## Next Actions
 - Land T-207.8 after red-team pass → merge → blue-team → done

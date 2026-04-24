@@ -136,10 +136,10 @@ const table = useVueTable<GateTask>({
     <ScrollArea class="h-full">
     <Table class="w-full table-fixed">
       <colgroup>
-        <col class="w-24" />
+        <col class="w-[100px]" />
         <col />
         <col class="w-20" />
-        <col class="w-56" />
+        <col class="w-[200px]" />
       </colgroup>
       <TableHeader class="bg-muted/40">
         <TableRow

@@ -19,3 +19,4 @@ memory
 ralph/state/converged
 .mcp.json
 worktrees/
+ralph/state/snapshots/

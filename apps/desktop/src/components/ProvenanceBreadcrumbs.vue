@@ -8,6 +8,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
+import { Card, CardContent } from '@/components/ui/card';
 import { compactProvenanceId, provenanceKindLabel, type ProvenanceKind, type ProvenanceLink } from '../lib/provenance';
 
 const props = defineProps<{
@@ -47,32 +48,34 @@ const hasContent = computed(() => {
 </script>
 
 <template>
-  <div v-if="hasContent" class="rounded-[8px] border border-border-subtle bg-bg-surface px-3 py-2">
-    <Breadcrumb>
-      <BreadcrumbList class="text-body-sm">
-        <template v-for="(link, index) in normalizedLinks" :key="`${link.kind}:${link.id}`">
-          <BreadcrumbSeparator v-if="index > 0" />
+  <Card v-if="hasContent" class="rounded-[8px] py-0 shadow-none ring-0 border border-border-subtle bg-bg-surface">
+    <CardContent class="px-3 py-2">
+      <Breadcrumb>
+        <BreadcrumbList class="text-body-sm">
+          <template v-for="(link, index) in normalizedLinks" :key="`${link.kind}:${link.id}`">
+            <BreadcrumbSeparator v-if="index > 0" />
+            <BreadcrumbItem>
+              <BreadcrumbLink
+                as="button"
+                class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-secondary hover:text-text-primary"
+                @click="$emit('navigate', link)"
+              >
+                <span class="text-text-tertiary">{{ provenanceKindLabel(link.kind) }}</span>
+                <span class="font-mono text-tiny">
+                  {{ link.label ?? compactProvenanceId(link.id) }}
+                </span>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+          </template>
+          <BreadcrumbSeparator v-if="normalizedLinks.length > 0" />
           <BreadcrumbItem>
-            <BreadcrumbLink
-              as="button"
-              class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-secondary hover:text-text-primary"
-              @click="$emit('navigate', link)"
-            >
-              <span class="text-text-tertiary">{{ provenanceKindLabel(link.kind) }}</span>
-              <span class="font-mono text-tiny">
-                {{ link.label ?? compactProvenanceId(link.id) }}
-              </span>
-            </BreadcrumbLink>
+            <BreadcrumbPage class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-primary">
+              <span>{{ provenanceKindLabel(props.currentKind) }}</span>
+              <span class="font-mono text-tiny">{{ currentText }}</span>
+            </BreadcrumbPage>
           </BreadcrumbItem>
-        </template>
-        <BreadcrumbSeparator v-if="normalizedLinks.length > 0" />
-        <BreadcrumbItem>
-          <BreadcrumbPage class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-primary">
-            <span>{{ provenanceKindLabel(props.currentKind) }}</span>
-            <span class="font-mono text-tiny">{{ currentText }}</span>
-          </BreadcrumbPage>
-        </BreadcrumbItem>
-      </BreadcrumbList>
-    </Breadcrumb>
-  </div>
+        </BreadcrumbList>
+      </Breadcrumb>
+    </CardContent>
+  </Card>
 </template>

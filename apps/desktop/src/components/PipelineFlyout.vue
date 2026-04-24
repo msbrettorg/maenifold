@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sheet,
   SheetContent,
@@ -147,9 +148,9 @@ watch(
             class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
             aria-live="polite"
           >
-            <div class="h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
-            <div class="h-3.5 w-[min(28rem,90vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
-            <div class="h-3.5 w-[min(20rem,88vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
+            <Skeleton class="h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-sm" />
+            <Skeleton class="h-3.5 w-[min(28rem,90vw)] justify-self-center rounded-sm" />
+            <Skeleton class="h-3.5 w-[min(20rem,88vw)] justify-self-center rounded-sm" />
           </div>
 
           <div

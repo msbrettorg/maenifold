@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, useId } from 'vue';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type {
   SessionConfigOption,
   SessionConfigSelectGroup,
@@ -103,11 +104,12 @@ onUnmounted(() => {
       <div
         v-if="isOpen"
         :id="listboxId"
-        class="absolute top-[calc(100%+4px)] right-0 z-[100] min-w-[280px] max-w-[360px] max-h-[320px] overflow-y-auto rounded-lg border border-border-subtle bg-bg-app shadow-fluent-8"
+        class="absolute top-[calc(100%+4px)] right-0 z-[100] min-w-[280px] max-w-[360px] rounded-lg border border-border-subtle bg-bg-app shadow-fluent-8"
         role="listbox"
         :aria-label="optionPickerLabel"
         @click.stop
       >
+        <ScrollArea class="max-h-[320px]">
         <template
           v-for="(entry, entryIndex) in option.options"
           :key="isGroup(entry) ? entry.group : entry.value"
@@ -180,6 +182,7 @@ onUnmounted(() => {
             >✓</span>
           </div>
         </template>
+        </ScrollArea>
       </div>
     </Transition>
   </div>

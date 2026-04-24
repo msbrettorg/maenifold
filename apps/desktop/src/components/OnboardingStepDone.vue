@@ -4,6 +4,7 @@ import { Check, ExternalLink, Sparkles } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useConfigStore } from '../stores/config';
 
 const goBack = inject<() => void>('onboarding-go-back');
@@ -86,8 +87,9 @@ onUnmounted(() => {
     </div>
 
     <!-- Summary card -->
-    <div class="relative bg-bg-elevated border border-border-card rounded-xl p-5">
-      <ul class="flex flex-col gap-3">
+    <Card class="relative rounded-xl py-0 shadow-none ring-0 border border-border-card bg-bg-elevated">
+      <CardContent class="p-5">
+        <ul class="flex flex-col gap-3">
         <li class="flex items-start gap-3">
           <span
             class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-success text-primary-foreground"
@@ -152,7 +154,8 @@ onUnmounted(() => {
           </div>
         </li>
       </ul>
-    </div>
+      </CardContent>
+    </Card>
 
     <div class="relative flex items-center justify-between gap-3 pt-2">
       <Button

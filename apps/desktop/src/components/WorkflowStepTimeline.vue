@@ -7,6 +7,7 @@ import WorkflowDraftBar from './WorkflowDraftBar.vue'
 import WorkflowExportBar from './WorkflowExportBar.vue'
 import WorkflowStepTimelineEntry from './WorkflowStepTimelineEntry.vue'
 import WorkflowStepTimelineHeader from './WorkflowStepTimelineHeader.vue'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 const props = defineProps<{
   selectedStepId: string | null
@@ -199,11 +200,9 @@ watch(exportState, (state) => {
     </div>
   </div>
 
-  <section
-    v-else
-    class="flex flex-col gap-3 p-4 bg-bg-app min-h-full overflow-y-auto"
-    aria-label="Workflow step timeline"
-  >
+  <section v-else class="bg-bg-app min-h-full" aria-label="Workflow step timeline">
+    <ScrollArea class="h-full">
+    <div class="flex flex-col gap-3 p-4">
     <WorkflowStepTimelineHeader
       :title="displayedDefinition.name"
       :has-steps="displayedDefinition.steps.length > 0"
@@ -292,5 +291,7 @@ watch(exportState, (state) => {
         @save="emit('save')"
       />
     </Transition>
+    </div>
+    </ScrollArea>
   </section>
 </template>

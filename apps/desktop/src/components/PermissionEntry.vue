@@ -7,6 +7,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { PermissionRequest, ToolCallContentBlock } from '../lib/types';
 
 const props = defineProps<{ request: PermissionRequest }>();
@@ -128,7 +129,8 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
       <span class="text-caption text-text-secondary">{{ request.toolCall.kind }}</span>
     </div>
 
-    <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto [overscroll-behavior:contain] pr-1">
+    <ScrollArea class="flex-1 min-h-0 [&>[data-radix-scroll-area-viewport]]:[overscroll-behavior:contain] pr-1">
+    <div class="flex flex-col gap-3">
       <section v-if="contextRows.length">
         <h4 class="m-0 mb-2 text-title">Requested action</h4>
         <dl class="grid grid-cols-[minmax(110px,auto)_1fr] gap-y-2 gap-x-3 m-0">
@@ -170,6 +172,7 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
         </AccordionItem>
       </Accordion>
     </div>
+    </ScrollArea>
 
     <div class="dialog-actions mt-1 flex flex-wrap gap-2 border-t border-border-subtle bg-bg-app pt-4">
       <Button

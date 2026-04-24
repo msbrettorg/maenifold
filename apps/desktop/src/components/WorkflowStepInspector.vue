@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
@@ -97,9 +98,10 @@ function priorityVariant(
 
 <template>
   <aside
-    class="h-full overflow-y-auto flex flex-col bg-background"
+    class="h-full flex flex-col bg-background"
     aria-label="Step inspector"
   >
+    <ScrollArea class="flex-1">
     <div v-if="!displayedDefinition" class="flex-1" aria-hidden="true" />
 
     <template v-else-if="selectedStep">
@@ -178,15 +180,17 @@ function priorityVariant(
                 <CardTitle class="text-sm">Sequential thinking</CardTitle>
               </CardHeader>
               <CardContent class="space-y-4">
-                <div class="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/30 p-3">
-                  <div class="flex flex-col gap-0.5">
-                    <span class="text-sm text-foreground">Sequential thinking</span>
-                    <span class="text-xs text-muted-foreground">
-                      Enable chain-of-thought
-                    </span>
-                  </div>
-                  <Switch v-model="requiresThinking" aria-label="Enable sequential thinking" />
-                </div>
+                <Card class="bg-muted/30">
+                  <CardContent class="flex items-center justify-between gap-3 p-3">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-sm text-foreground">Sequential thinking</span>
+                      <span class="text-xs text-muted-foreground">
+                        Enable chain-of-thought
+                      </span>
+                    </div>
+                    <Switch v-model="requiresThinking" aria-label="Enable sequential thinking" />
+                  </CardContent>
+                </Card>
 
                 <div class="flex flex-col gap-2">
                   <Label for="reasoning-effort" class="text-xs uppercase tracking-wider text-muted-foreground">
@@ -251,5 +255,6 @@ function priorityVariant(
         </Card>
       </div>
     </template>
+    </ScrollArea>
   </aside>
 </template>

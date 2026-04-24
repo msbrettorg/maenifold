@@ -5,6 +5,7 @@ import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
@@ -35,13 +36,13 @@ const sections = [
         </TabsTrigger>
       </TabsList>
 
-      <div class="flex-1 overflow-y-auto">
+      <ScrollArea class="flex-1">
         <TabsContent value="connection"><SettingsConnection /></TabsContent>
         <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
         <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
         <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
-      </div>
+      </ScrollArea>
     </Tabs>
   </div>
 </template>

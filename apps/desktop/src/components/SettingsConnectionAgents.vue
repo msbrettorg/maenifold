@@ -2,6 +2,7 @@
 import type { AgentProbeResult } from '../lib/agent-probe-types';
 import type { McpServerEntry } from '../lib/types';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import SettingsConnectionKeys from './SettingsConnectionKeys.vue';
@@ -68,7 +69,8 @@ function formatEnvCount(count: number) {
 
 <template>
   <section class="flex flex-col gap-4">
-    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
+    <Card class="rounded-[8px] py-0 shadow-none ring-0 border border-border-card bg-bg-elevated">
+      <CardContent class="p-4">
       <div class="flex justify-between gap-3 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary max-sm:flex-col max-sm:items-stretch">
         <div>
           <h4 class="m-0 text-sm font-medium text-text-secondary">Agents</h4>
@@ -137,6 +139,7 @@ function formatEnvCount(count: number) {
         </article>
         <p v-if="agents.length === 0" class="m-0 text-text-secondary">No agents configured yet. Add one to get started.</p>
       </div>
-    </div>
+      </CardContent>
+    </Card>
   </section>
 </template>

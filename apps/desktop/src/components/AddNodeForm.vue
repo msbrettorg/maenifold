@@ -4,6 +4,7 @@ import { useAddNodeForm } from '../composables/useAddNodeForm';
 import type { PipelineNodeDraftByType } from '../lib/pipeline-node-factory';
 import AddNodeFormFields from './AddNodeFormFields.vue';
 import AddNodeFormTypeSelector from './AddNodeFormTypeSelector.vue';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SubmitNode {
   (type: 'workflow', fields: PipelineNodeDraftByType['workflow']): void;
@@ -50,9 +51,11 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
 
 <template>
   <form
-    class="grid gap-4 content-start h-full p-4 bg-surface overflow-y-auto"
+    class="h-full p-4 bg-surface"
     @submit.prevent="handleSubmit"
   >
+    <ScrollArea class="h-full">
+    <div class="grid gap-4 content-start">
     <AddNodeFormTypeSelector
       v-model="nodeType"
       :can-add="canAdd"
@@ -101,5 +104,7 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
       @validation="toolArgsValid = $event.valid"
       @submit-request="handleSubmit"
     />
+    </div>
+    </ScrollArea>
   </form>
 </template>

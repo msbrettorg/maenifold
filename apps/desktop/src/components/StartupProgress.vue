@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Loader2,
   Rocket,
@@ -191,21 +192,23 @@ const progressBarColorClass = computed(() => {
       </div>
 
       <div v-if="showDetails" class="rounded-md overflow-hidden border border-border-subtle">
-        <div class="py-1.5 px-2 bg-surface-high text-xs font-semibold text-text-secondary">
+        <Badge variant="secondary" class="rounded-none w-full justify-start py-1.5 px-2 text-xs font-semibold uppercase tracking-wide">
           Output
-        </div>
-        <div class="max-h-[150px] overflow-y-auto p-2 bg-surface-high font-mono text-xs">
-          <div
-            v-for="(log, index) in logs.slice(-50)"
-            :key="index"
-            class="text-text-secondary whitespace-pre-wrap break-all leading-snug"
-          >
-            {{ log }}
+        </Badge>
+        <ScrollArea class="h-[150px] bg-surface-high">
+          <div class="p-2 font-mono text-xs">
+            <div
+              v-for="(log, index) in logs.slice(-50)"
+              :key="index"
+              class="text-text-secondary whitespace-pre-wrap break-all leading-snug"
+            >
+              {{ log }}
+            </div>
+            <div v-if="logs.length === 0" class="text-text-secondary italic">
+              Waiting for output...
+            </div>
           </div>
-          <div v-if="logs.length === 0" class="text-text-secondary italic">
-            Waiting for output...
-          </div>
-        </div>
+        </ScrollArea>
       </div>
     </CardContent>
   </Card>

@@ -3,6 +3,7 @@ import type { JsonSchema } from '@jsonforms/core';
 import { JsonForms } from '@jsonforms/vue';
 import { frozenRenderers } from '../lib/jsonforms-theme';
 import { schemaFormAjv } from '../lib/schema-form';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const props = defineProps<{
   ariaLabel?: string;
@@ -17,8 +18,8 @@ defineEmits<{
 </script>
 
 <template>
-  <div
-    class="overflow-y-auto pr-1 max-h-[min(32rem,60vh)]"
+  <ScrollArea
+    class="pr-1 max-h-[min(32rem,60vh)]"
     role="group"
     :aria-label="props.ariaLabel ?? props['aria-label']"
   >
@@ -30,5 +31,5 @@ defineEmits<{
       validation-mode="ValidateAndShow"
       @change="$emit('change', $event)"
     />
-  </div>
+  </ScrollArea>
 </template>

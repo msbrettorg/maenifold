@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, provide, ref, type Component } from 'vue';
 
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Stepper,
   StepperIndicator,
@@ -77,32 +79,45 @@ provide('onboarding-mark-complete', handleMarkComplete);
 </script>
 
 <template>
-  <div class="fixed inset-0 z-50 flex flex-col items-center justify-start min-h-screen p-8 bg-bg-app overflow-y-auto">
-    <Stepper
-      v-model="stepIndex"
-      :linear="false"
-      class="w-full max-w-2xl mb-8 flex items-start justify-between gap-2"
+  <Dialog :open="true" :modal="true">
+    <DialogContent
+      :show-close-button="false"
+      class="left-0 top-0 z-50 grid h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-bg-app p-0 shadow-none"
+      @interact-outside.prevent
+      @escape-key-down.prevent
+      @pointer-down-outside.prevent
     >
-      <StepperItem
-        v-for="(item, i) in steps"
-        :key="item.id"
-        :step="i + 1"
-        :disabled="i > highWaterStep"
-        class="flex items-center gap-2 flex-1 last:flex-none"
-      >
-        <StepperTrigger>
-          <StepperIndicator>{{ i + 1 }}</StepperIndicator>
-          <StepperTitle class="text-xs">{{ item.label }}</StepperTitle>
-        </StepperTrigger>
-        <StepperSeparator
-          v-if="i < steps.length - 1"
-          class="h-0.5 flex-1"
-        />
-      </StepperItem>
-    </Stepper>
+      <DialogTitle class="sr-only">Onboarding</DialogTitle>
+      <ScrollArea class="h-full w-full">
+        <div class="flex flex-col items-center justify-start min-h-screen p-8">
+          <Stepper
+            v-model="stepIndex"
+            :linear="false"
+            class="w-full max-w-2xl mb-8 flex items-start justify-between gap-2"
+          >
+            <StepperItem
+              v-for="(item, i) in steps"
+              :key="item.id"
+              :step="i + 1"
+              :disabled="i > highWaterStep"
+              class="flex items-center gap-2 flex-1 last:flex-none"
+            >
+              <StepperTrigger>
+                <StepperIndicator>{{ i + 1 }}</StepperIndicator>
+                <StepperTitle class="text-xs">{{ item.label }}</StepperTitle>
+              </StepperTrigger>
+              <StepperSeparator
+                v-if="i < steps.length - 1"
+                class="h-0.5 flex-1"
+              />
+            </StepperItem>
+          </Stepper>
 
-    <div class="w-full max-w-2xl">
-      <component :is="activeStepComponent" :key="currentStepId" />
-    </div>
-  </div>
+          <div class="w-full max-w-2xl">
+            <component :is="activeStepComponent" :key="currentStepId" />
+          </div>
+        </div>
+      </ScrollArea>
+    </DialogContent>
+  </Dialog>
 </template>

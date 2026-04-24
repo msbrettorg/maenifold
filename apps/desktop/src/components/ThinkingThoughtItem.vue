@@ -2,6 +2,7 @@
 import { ChevronDown } from 'lucide-vue-next';
 import type { Thought } from '../lib/workflow-types';
 import { Badge } from './ui/badge';
+import { Card, CardContent } from './ui/card';
 import {
   Collapsible,
   CollapsibleContent,
@@ -54,40 +55,42 @@ function formatRelativeTime(iso: string): string {
         {{ thought.number }}/{{ thought.totalThoughts }}
       </Badge>
 
-      <div class="min-w-0 rounded-md border border-border bg-card px-3 py-2.5">
-        <div class="mb-1.5 flex items-center justify-between gap-2">
-          <Badge
-            v-if="thought.agent"
-            variant="outline"
-            class="text-[10px] font-normal tracking-wide text-muted-foreground"
-          >
-            {{ thought.agent }}
-          </Badge>
-          <span v-else />
+      <Card class="min-w-0 rounded-md py-0 shadow-none ring-0 border border-border bg-card">
+        <CardContent class="px-3 py-2.5">
+          <div class="mb-1.5 flex items-center justify-between gap-2">
+            <Badge
+              v-if="thought.agent"
+              variant="outline"
+              class="text-[10px] font-normal tracking-wide text-muted-foreground"
+            >
+              {{ thought.agent }}
+            </Badge>
+            <span v-else />
 
-          <div class="flex items-center gap-2">
-            <time
-              class="whitespace-nowrap text-[10px] text-muted-foreground"
-              :datetime="thought.timestamp"
-              :title="thought.timestamp"
-            >
-              {{ formatRelativeTime(thought.timestamp) }}
-            </time>
-            <CollapsibleTrigger
-              :aria-label="`Toggle thought ${thought.number}`"
-              class="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              <ChevronDown
-                class="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=closed]/thought:-rotate-90"
-              />
-            </CollapsibleTrigger>
+            <div class="flex items-center gap-2">
+              <time
+                class="whitespace-nowrap text-[10px] text-muted-foreground"
+                :datetime="thought.timestamp"
+                :title="thought.timestamp"
+              >
+                {{ formatRelativeTime(thought.timestamp) }}
+              </time>
+              <CollapsibleTrigger
+                :aria-label="`Toggle thought ${thought.number}`"
+                class="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+              >
+                <ChevronDown
+                  class="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=closed]/thought:-rotate-90"
+                />
+              </CollapsibleTrigger>
+            </div>
           </div>
-        </div>
 
-        <CollapsibleContent>
-          <KnowledgeNoteRenderer :content="thought.content" clamp />
-        </CollapsibleContent>
-      </div>
+          <CollapsibleContent>
+            <KnowledgeNoteRenderer :content="thought.content" clamp />
+          </CollapsibleContent>
+        </CardContent>
+      </Card>
     </Collapsible>
   </li>
 </template>

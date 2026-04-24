@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
@@ -70,7 +71,8 @@ function renderMarkdown(content: string | null) {
     <Separator v-if="task" />
 
     <CardContent v-if="task" class="p-0 flex flex-col gap-4 min-h-0 flex-1">
-      <div class="flex flex-col gap-4 min-h-0 max-h-[min(52vh,34rem)] pr-1 overflow-auto">
+      <ScrollArea class="max-h-[min(52vh,34rem)] pr-1">
+      <div class="flex flex-col gap-4 min-h-0">
         <section class="flex flex-col gap-3">
           <p class="text-xs text-muted-foreground uppercase tracking-wide">Spec</p>
 
@@ -108,6 +110,7 @@ function renderMarkdown(content: string | null) {
           {{ task.issue }}
         </p>
       </div>
+      </ScrollArea>
 
       <Separator />
 

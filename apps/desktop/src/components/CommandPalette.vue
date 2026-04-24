@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue';
 import { Command, CommandItem, CommandList } from '@/components/ui/command';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import type { AvailableCommand } from '../lib/types';
 
 const props = defineProps<{
@@ -134,33 +136,45 @@ function handleSelectionChange(value: unknown) {
         />
       </div>
 
-      <CommandList :id="commandListId" class="max-h-80 overflow-y-auto px-2 pb-2">
-        <div v-if="filteredCommands.length === 0" class="p-4 text-center text-body-sm text-text-secondary">
-          No matching commands.
-        </div>
-        <CommandItem
-          v-for="cmd in filteredCommands"
-          :id="commandOptionId(cmd.name)"
-          :key="cmd.name"
-          :value="cmd.name"
-          class="mt-1 rounded-sm bg-transparent transition-colors duration-150 ease-out data-[selected=true]:bg-surface-high hover:bg-surface-high"
-          @mouseenter="selectedCommandName = cmd.name"
-          @select="selectCommand(cmd)"
-        >
-          <div class="flex items-center w-full gap-3">
-            <span class="min-w-[120px] shrink-0 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm font-semibold text-text-text-primary">{{ formatCommandName(cmd.name) }}</span>
-            <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm text-text-secondary">{{ cmd.description }}</span>
-            <span v-if="cmd.input?.hint" class="whitespace-nowrap font-mono text-caption text-text-secondary">{{ cmd.input.hint }}</span>
+      <CommandList :id="commandListId" class="max-h-none overflow-visible px-2 pb-2">
+        <ScrollArea class="max-h-80">
+          <div v-if="filteredCommands.length === 0" class="p-4 text-center text-body-sm text-text-secondary">
+            No matching commands.
           </div>
-        </CommandItem>
+          <TooltipProvider :delay-duration="0" :disable-hoverable-content="true">
+            <Tooltip
+              v-for="cmd in filteredCommands"
+              :key="cmd.name"
+              :open="cmd.description ? selectedCommandName === cmd.name : false"
+            >
+              <TooltipTrigger as-child>
+                <CommandItem
+                  :id="commandOptionId(cmd.name)"
+                  :value="cmd.name"
+                  class="mt-1 rounded-sm bg-transparent transition-colors duration-150 ease-out data-[selected=true]:bg-surface-high hover:bg-surface-high"
+                  @mouseenter="selectedCommandName = cmd.name"
+                  @select="selectCommand(cmd)"
+                >
+                  <div class="flex items-center w-full gap-3">
+                    <span class="min-w-[120px] shrink-0 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm font-semibold text-text-text-primary">{{ formatCommandName(cmd.name) }}</span>
+                    <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm text-text-secondary">{{ cmd.description }}</span>
+                    <span v-if="cmd.input?.hint" class="whitespace-nowrap font-mono text-caption text-text-secondary">{{ cmd.input.hint }}</span>
+                  </div>
+                </CommandItem>
+              </TooltipTrigger>
+              <TooltipContent
+                v-if="cmd.description"
+                side="right"
+                :side-offset="12"
+                align="start"
+                class="w-[220px] max-w-[220px] whitespace-normal break-words"
+              >
+                {{ cmd.description }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </ScrollArea>
       </CommandList>
     </Command>
-
-    <div
-      v-if="selectedCommand?.description"
-      class="absolute left-[calc(100%+8px)] top-0 z-[200] w-[220px] break-words rounded-md border border-border-subtle bg-surface-container px-3 py-2 text-body-sm text-text-text-primary shadow-fluent-16 whitespace-normal"
-    >
-      {{ selectedCommand.description }}
-    </div>
   </div>
 </template>

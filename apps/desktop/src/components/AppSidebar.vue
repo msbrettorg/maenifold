@@ -3,6 +3,7 @@ import AgentSelector from './AgentSelector.vue';
 import SessionList from './SessionList.vue';
 import StartupProgress from './StartupProgress.vue';
 import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useResizeHandle } from '../composables/useResizeHandle';
 import { getSidebarSizingTokens } from '../lib/sidebarSizing';
 import type { SavedSession } from '../lib/types';
@@ -68,7 +69,8 @@ const resize = useResizeHandle({
       </div>
     </div>
 
-    <div class="flex flex-1 flex-col gap-1 overflow-y-auto">
+    <ScrollArea class="flex-1">
+      <div class="flex flex-col gap-1">
       <!-- Agent Selection -->
       <div class="px-4 pt-1 pb-3">
         <AgentSelector
@@ -131,7 +133,8 @@ const resize = useResizeHandle({
           @delete="(id: string) => emit('delete-session', id)"
         />
       </div>
-    </div>
+      </div>
+    </ScrollArea>
   </aside>
 
   <!-- Sidebar resize handle -->

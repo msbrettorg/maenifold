@@ -10,6 +10,7 @@ import TemplateGalleryCard from './TemplateGalleryCard.vue';
 import TemplateGalleryIntentForm from './TemplateGalleryIntentForm.vue';
 import TemplateGallerySelection from './TemplateGallerySelection.vue';
 import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const store = usePipelineStore();
 const configStore = useConfigStore();
@@ -77,7 +78,8 @@ function handleIntentInput(value: string): void {
 </script>
 
 <template>
-  <div class="flex flex-1 flex-col items-center gap-6 px-8 py-6 h-full overflow-y-auto">
+  <ScrollArea class="flex-1 h-full">
+  <div class="flex flex-col items-center gap-6 px-8 py-6">
     <TemplateGalleryIntentForm
       :error="intentError"
       :has-intent-agent="hasIntentAgent"
@@ -115,4 +117,5 @@ function handleIntentInput(value: string): void {
       @create="handleInstantiate"
     />
   </div>
+  </ScrollArea>
 </template>

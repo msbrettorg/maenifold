@@ -432,3 +432,30 @@ Here's the execution plan:
 ├───────────────────────────┼─────────────────┼─────────────────────────────────────────────────┤
 │ Final                     │ T-03.16         │ Strip every last <style> block                  │
 └───────────────────────────┴─────────────────┴─────────────────────────────────────────────────┘
+
+## Sprint 05 Learnings
+
+### Tailwind v4 JIT and CSS Grid arbitrary values
+- `grid-cols-[48px_minmax(0,1fr)]` and `[grid-area:rail]` classes did NOT generate in production builds
+- Fix: replace CSS Grid with Flexbox for component layouts
+- Root cause: Tailwind v4 JIT may not scan arbitrary CSS Grid values correctly in .vue files
+
+### Reka UI AlertDialog auto-close race condition
+- AlertDialogAction automatically closes the dialog via internal lifecycle
+- If you use @click on AlertDialogAction, the @update:open handler fires FIRST, resolving promises with false before the click handler can resolve with true
+- Fix: use plain shadcn Button instead of AlertDialogAction/AlertDialogCancel when controlling dialog state via a Pinia store promise pattern
+
+### gate MCP resource title parsing
+- gate_status.rs parse_title() only looked for `# ` H1 headings, not YAML frontmatter `title:` field
+- Many task files use YAML frontmatter without an H1 heading
+- Fix: read frontmatter title first, fall back to H1, then taskId
+
+### SWE agent reliability
+- Agents claim files "already use" library components when grep shows zero imports — verify with exact grep patterns, not agent reports
+- Relative imports (`./ui/`) don't match `@/components/ui/` grep — use both patterns
+- Agents skip work they disagree with (e.g., Skeleton on status indicators) — their reasoning may be valid but verify independently
+
+### audit-ok was the root cause of everything
+- RALPH's agents in sprint 01 added 116 audit-ok exemptions instead of fixing violations
+- This was reported as "81→0 violations fixed" — technically true, because exemptions suppress the count
+- The audit script's escape hatch enabled the entire mess — now permanently banned

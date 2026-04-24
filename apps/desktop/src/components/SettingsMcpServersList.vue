@@ -2,6 +2,7 @@
 import type { McpServerEntry } from '../lib/types'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -27,12 +28,13 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <section
-    class="flex flex-col gap-4 rounded-lg border border-border-card bg-bg-elevated p-4"
+  <Card
+    class="rounded-lg py-0 shadow-none ring-0 border border-border-card bg-bg-elevated"
     role="group"
     aria-label="Configured MCP servers"
   >
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <CardContent class="flex flex-col gap-4 p-4">
+      <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
       <div class="flex flex-col gap-1">
         <h3 class="text-sm font-semibold text-text-primary">MCP servers</h3>
         <p class="text-xs text-text-secondary">
@@ -107,5 +109,6 @@ const emit = defineEmits<{
         </TableBody>
       </Table>
     </div>
-  </section>
+    </CardContent>
+  </Card>
 </template>

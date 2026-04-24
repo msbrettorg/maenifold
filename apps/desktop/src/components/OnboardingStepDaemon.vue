@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { ClipboardCopy, Plug } from 'lucide-vue-next';
 
@@ -119,65 +120,71 @@ onUnmounted(() => {
     </div>
 
     <!-- Checking -->
-    <div
+    <Card
       v-if="state === 'checking'"
-      class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-surface p-4"
+      class="rounded-xl py-0 shadow-none ring-0 border border-border-subtle bg-bg-surface"
     >
-      <span class="relative flex h-2.5 w-2.5">
-        <span
-          class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75"
-        />
-        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand" />
-      </span>
-      <span class="text-sm text-text-secondary">Checking connection...</span>
-    </div>
+      <CardContent class="flex items-center gap-3 p-4">
+        <span class="relative flex h-2.5 w-2.5">
+          <span
+            class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand opacity-75"
+          />
+          <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand" />
+        </span>
+        <span class="text-sm text-text-secondary">Checking connection...</span>
+      </CardContent>
+    </Card>
 
     <!-- Disconnected -->
     <div v-else-if="state === 'disconnected'" class="flex flex-col gap-3">
-      <div class="flex items-center gap-3 rounded-xl border border-border-subtle bg-bg-surface p-4">
-        <span class="inline-flex h-2.5 w-2.5 rounded-full bg-danger" />
-        <div class="flex flex-col">
-          <span class="text-sm font-medium text-danger">Disconnected</span>
-          <span class="text-xs text-text-tertiary">Expected at: {{ DAEMON_BASE_URL }}</span>
-        </div>
-      </div>
+      <Card class="rounded-xl py-0 shadow-none ring-0 border border-border-subtle bg-bg-surface">
+        <CardContent class="flex items-center gap-3 p-4">
+          <span class="inline-flex h-2.5 w-2.5 rounded-full bg-danger" />
+          <div class="flex flex-col">
+            <span class="text-sm font-medium text-danger">Disconnected</span>
+            <span class="text-xs text-text-tertiary">Expected at: {{ DAEMON_BASE_URL }}</span>
+          </div>
+        </CardContent>
+      </Card>
 
       <p class="text-sm text-text-secondary">
         Start the daemon by running this command in your terminal:
       </p>
 
-      <div
-        class="flex items-center justify-between gap-3 rounded-lg border border-border-subtle bg-bg-surface p-3 font-mono text-sm text-text-secondary"
-      >
-        <code class="truncate">{{ command }}</code>
-        <Button
-          type="button"
-          variant="outline"
-          size="xs"
-          @click="onCopy"
-        >
-          <template v-if="copied">
-            <span>✓ Copied!</span>
-          </template>
-          <template v-else>
-            <ClipboardCopy class="h-3.5 w-3.5" />
-            <span>Copy</span>
-          </template>
-        </Button>
-      </div>
+      <Card class="rounded-lg py-0 shadow-none ring-0 border border-border-subtle bg-bg-surface">
+        <CardContent class="flex items-center justify-between gap-3 p-3 font-mono text-sm text-text-secondary">
+          <code class="truncate">{{ command }}</code>
+          <Button
+            type="button"
+            variant="outline"
+            size="xs"
+            @click="onCopy"
+          >
+            <template v-if="copied">
+              <span>✓ Copied!</span>
+            </template>
+            <template v-else>
+              <ClipboardCopy class="h-3.5 w-3.5" />
+              <span>Copy</span>
+            </template>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
 
     <!-- Connected -->
-    <div
+    <Card
       v-else
-      class="flex flex-col gap-2 rounded-xl border border-success bg-success/10 p-4"
+      class="rounded-xl py-0 shadow-none ring-0 border border-success bg-success/10"
     >
-      <span class="text-sm font-medium text-text-primary">✓ Connected to daemon</span>
-      <div class="flex flex-col gap-0.5 text-xs text-text-secondary">
-        <span>Agents: {{ agentCount }}</span>
-        <span>MCP servers: {{ mcpServerCount }}</span>
-      </div>
-    </div>
+      <CardContent class="flex flex-col gap-2 p-4">
+        <span class="text-sm font-medium text-text-primary">✓ Connected to daemon</span>
+        <div class="flex flex-col gap-0.5 text-xs text-text-secondary">
+          <span>Agents: {{ agentCount }}</span>
+          <span>MCP servers: {{ mcpServerCount }}</span>
+        </div>
+      </CardContent>
+    </Card>
 
     <div class="flex items-center justify-between gap-3 pt-2">
       <Button

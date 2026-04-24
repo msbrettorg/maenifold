@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskProgress from './GateTaskProgress.vue';
 import type { GateTask } from '../lib/gate';
 import {
@@ -131,7 +132,8 @@ const table = useVueTable<GateTask>({
 </script>
 
 <template>
-  <div class="flex-[2] min-h-96 overflow-auto rounded-lg border bg-background">
+  <div class="flex-[2] min-h-96 rounded-lg border bg-background">
+    <ScrollArea class="h-full">
     <Table class="w-full table-fixed">
       <colgroup>
         <col class="w-24" />
@@ -205,5 +207,6 @@ const table = useVueTable<GateTask>({
         </TableRow>
       </TableBody>
     </Table>
+    </ScrollArea>
   </div>
 </template>

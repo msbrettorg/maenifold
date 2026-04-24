@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { resolveToolDefinition } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
@@ -201,24 +202,26 @@ function removeManualRow(id: string): void {
     <template v-else>
       <p v-if="isToolTarget && !loadingSchemas" class="text-sm text-text-secondary">Tool schema unavailable — enter parameter names manually</p>
       <div v-if="manualRows.length > 0" class="flex flex-col gap-2">
-        <div v-for="row in manualRows" :key="row.id" class="flex items-stretch justify-between gap-2 rounded border border-border-subtle bg-bg-app p-3 max-[640px]:flex-col">
-          <Input
-            v-model="row.param"
-            class="flex-1"
-            placeholder="Target parameter"
-            type="text"
-            @blur="commitManualRows"
-          />
-          <Input
-            v-model="row.path"
-            class="flex-1"
-            :list="sourceOutputKeys.length > 0 ? sourcePathListId : undefined"
-            :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
-            type="text"
-            @blur="commitManualRows"
-          />
-          <Button type="button" variant="ghost" @click="removeManualRow(row.id)">Remove</Button>
-        </div>
+        <Card v-for="row in manualRows" :key="row.id" size="sm" class="rounded-md py-0 shadow-none ring-0 border border-border-subtle bg-bg-app">
+          <CardContent class="flex items-stretch justify-between gap-2 p-3 max-[640px]:flex-col">
+            <Input
+              v-model="row.param"
+              class="flex-1"
+              placeholder="Target parameter"
+              type="text"
+              @blur="commitManualRows"
+            />
+            <Input
+              v-model="row.path"
+              class="flex-1"
+              :list="sourceOutputKeys.length > 0 ? sourcePathListId : undefined"
+              :placeholder="sourceOutputKeys.length > 0 ? 'Source dot-path' : 'e.g. results[0].title'"
+              type="text"
+              @blur="commitManualRows"
+            />
+            <Button type="button" variant="ghost" @click="removeManualRow(row.id)">Remove</Button>
+          </CardContent>
+        </Card>
       </div>
       <p v-else class="text-sm text-text-secondary">
         {{ hasMappings ? `Mappings configured for target ${targetLabel}` : 'No field mappings — edge carries topology only' }}

@@ -6,6 +6,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { WorkflowStepEntry } from '../lib/pipeline-types';
 
 defineProps<{
@@ -100,7 +101,9 @@ function lineClass(s: string): string {
             <AccordionItem :value="`step-output-${step.step_name}`">
               <AccordionTrigger>Output</AccordionTrigger>
               <AccordionContent>
-                <pre class="mt-1 mb-0 p-2 bg-bg-app border border-border-subtle rounded-sm whitespace-pre-wrap break-words font-mono text-xs text-text-primary overflow-x-auto">{{ step.output }}</pre>
+                <ScrollArea class="mt-1 max-w-full rounded-sm border border-border-subtle bg-bg-app">
+                  <pre class="m-0 p-2 whitespace-pre-wrap break-words font-mono text-xs text-text-primary">{{ step.output }}</pre>
+                </ScrollArea>
               </AccordionContent>
             </AccordionItem>
           </Accordion>

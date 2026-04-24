@@ -106,7 +106,7 @@ impl StdioPool {
 
         match initial {
             Some(Ok(result)) => Ok(result),
-            Some(Err(error)) if is_prewrite_failure(&error) => {
+            Some(Err(MaenifoldError::SessionUnusable)) => {
                 self.restart_server(server_name).await?;
                 self.call_after_restart(server_name, tool_name, arguments).await
             }
@@ -171,7 +171,7 @@ impl StdioPool {
             let mut servers = self.servers.write().await;
             match servers.get(server_name) {
                 None => Err(missing_server(server_name)),
-                Some(server) if server.session.is_usable() => Ok((None, None)),
+                Some(server) if server.session.is_usable() => Ok(None),
                 Some(_) => {
                     let Some(new_session) = replacement.as_ref() else {
                         return Err(MaenifoldError::Message(
@@ -192,12 +192,14 @@ impl StdioPool {
                             })?,
                         )
                     };
-                    Ok((Some(old), Some(collect_tools(&servers)?)))
+                    *self.tools.write().unwrap_or_else(|error| error.into_inner()) =
+                        collect_tools(&servers)?;
+                    Ok(Some(old))
                 }
             }
         };
 
-        let (old_session, tools) = match outcome {
+        let old_session = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
                 if let Some(session) = replacement {
@@ -207,9 +209,6 @@ impl StdioPool {
             }
         };
 
-        if let Some(tools) = tools {
-            *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
-        }
         if let Some(session) = replacement {
             session.shutdown().await;
         }
@@ -281,10 +280,6 @@ async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
         shutdowns.push(async move { server.session.shutdown().await });
     }
     while shutdowns.next().await.is_some() {}
-}
-
-fn is_prewrite_failure(error: &MaenifoldError) -> bool {
-    matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable")
 }
 
 fn missing_server(server_name: &str) -> MaenifoldError {

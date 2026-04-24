@@ -67,12 +67,12 @@ impl StdioSession {
     }
     pub async fn call_tool(&self, name: &str, arguments: Value) -> Result<CallToolResult> {
         if !self.is_usable() {
-            return Err(MaenifoldError::Message("MCP stdio session is not usable".to_string()));
+            return Err(MaenifoldError::SessionUnusable);
         }
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         let mut io = self.io.lock().await;
         if self.is_poisoned() || !self.refresh_liveness() {
-            return Err(MaenifoldError::Message("MCP stdio session is not usable".to_string()));
+            return Err(MaenifoldError::SessionUnusable);
         }
         let request = json!({"jsonrpc":"2.0","id":id,"method":"tools/call","params":{"name":name,"arguments":arguments}});
         let response = match tokio::time::timeout(CALL_TIMEOUT, async {

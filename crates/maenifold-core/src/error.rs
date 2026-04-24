@@ -38,6 +38,8 @@ pub enum MaenifoldError {
         message: String,
         data: Value,
     },
+    #[error("MCP stdio session is not usable")]
+    SessionUnusable,
     #[error("{0}")]
     Message(String),
     #[error("Agent setup failed: {0}")]

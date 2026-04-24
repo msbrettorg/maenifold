@@ -34,7 +34,6 @@ pub struct StdioSession {
     dead: AtomicBool,
     poisoned: AtomicBool,
 }
-
 impl StdioSession {
     pub async fn start(entry: &McpServerStdioConfig) -> Result<Self> {
         let mut state = spawn(entry)?;
@@ -121,11 +120,9 @@ impl StdioSession {
             Err(error) => Err(error),
         }
     }
-
     pub fn tools(&self) -> Arc<[Tool]> { Arc::clone(&self.tools) }
     pub fn is_usable(&self) -> bool { !self.is_poisoned() && self.refresh_liveness() }
     pub fn is_poisoned(&self) -> bool { self.poisoned.load(Ordering::SeqCst) }
-
     pub async fn shutdown(self) {
         let mut io = self.io.lock().await;
         let _ = io.0.shutdown().await;
@@ -155,12 +152,9 @@ impl StdioSession {
         }
     }
 }
-
 fn lock_std<T>(mutex: &StdMutex<T>) -> MutexGuard<'_, T> { mutex.lock().expect("stdio session mutex poisoned") }
 fn is_supported_version(version: &str) -> bool { matches!(version, MCP_PROTOCOL_VERSION | LEGACY_PROTOCOL_VERSION) }
-
 fn is_connection_error(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(msg) if msg.contains("connection error")) }
-
 fn spawn(entry: &McpServerStdioConfig) -> Result<StartupState> {
     let mut command = Command::new(&entry.command);
     command.args(&entry.args).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());

@@ -7,6 +7,7 @@ import {
 } from '@modelcontextprotocol/ext-apps/app-bridge';
 import type { McpUiResourcePermissions } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { Skeleton } from './ui/skeleton';
+import { useMcpClient } from '@/composables/useMcpClient';
 import type { ToolCallInfo } from '@/lib/types';
 
 const props = defineProps<{
@@ -18,6 +19,7 @@ const bridge = shallowRef<AppBridge | null>(null);
 const ready = ref(false);
 const errorMessage = ref<string | null>(null);
 const sandboxHeight = ref<number>(420);
+const { readResource } = useMcpClient();
 let disposed = false;
 
 const appUi = computed(() => props.toolCall.appUi ?? null);
@@ -55,19 +57,26 @@ async function initBridge() {
 
     ab.onsandboxready = async () => {
       if (disposed) return;
-      // Placeholder resource — T-203.4 will fetch via MCP resources/read
-      const uri = appUi.value?.resourceUri ?? 'unknown';
-      const escapedUri = uri.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const html = `<!doctype html><html><body style="font-family:system-ui;padding:1rem">
-<h2>MCP App UI</h2>
-<p>Resource: <code>${escapedUri}</code></p>
-<p><em>Live resource fetch wires up in T-203.4.</em></p>
-</body></html>`;
-      await ab.sendSandboxResourceReady({
-        html,
-        sandbox: 'allow-scripts allow-same-origin allow-forms',
-        permissions: permissions.value,
-      } as any);
+      const uri = appUi.value?.resourceUri;
+      if (!uri) {
+        errorMessage.value = 'No resourceUri in tool _meta.ui';
+        return;
+      }
+      try {
+        const resource = await readResource(uri);
+        const html = resource.text ?? '';
+        if (!html) {
+          errorMessage.value = `Empty resource returned for '${uri}'`;
+          return;
+        }
+        await ab.sendSandboxResourceReady({
+          html,
+          sandbox: 'allow-scripts allow-same-origin allow-forms',
+          permissions: permissions.value,
+        } as any);
+      } catch (err) {
+        errorMessage.value = `Failed to fetch resource '${uri}': ${err instanceof Error ? err.message : String(err)}`;
+      }
     };
 
     ab.oninitialized = async () => {

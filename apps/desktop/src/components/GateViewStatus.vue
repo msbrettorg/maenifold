@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GateSnapshot } from '../lib/gate';
+import { Alert, AlertDescription } from './ui/alert';
 
 defineProps<{
   uiError: string;
@@ -11,32 +12,16 @@ defineProps<{
 </script>
 
 <template>
-  <p
-    v-if="uiError"
-    class="px-4 py-[0.9rem] border border-border-subtle rounded-lg bg-bg-elevated text-status-abandoned"
-    role="alert"
-  >
-    {{ uiError }}
-  </p>
-  <p
-    v-else-if="!hasGateRoot"
-    class="px-4 py-[0.9rem] border border-border-subtle rounded-lg bg-bg-elevated text-text-secondary"
-    role="status"
-  >
-    No Gate root selected.
-  </p>
-  <p
-    v-else-if="isLoading && !snapshot"
-    class="px-4 py-[0.9rem] border border-border-subtle rounded-lg bg-bg-elevated text-text-secondary"
-    role="status"
-  >
-    Loading gate snapshot…
-  </p>
-  <p
-    v-else-if="snapshot && !snapshot.exists"
-    class="px-4 py-[0.9rem] border border-border-subtle rounded-lg bg-bg-elevated text-text-secondary"
-    role="status"
-  >
-    No .gate/gate.db found in {{ selectedGateRoot }}.
-  </p>
+  <Alert v-if="uiError" variant="destructive" role="alert">
+    <AlertDescription>{{ uiError }}</AlertDescription>
+  </Alert>
+  <Alert v-else-if="!hasGateRoot" role="status">
+    <AlertDescription>No Gate root selected.</AlertDescription>
+  </Alert>
+  <Alert v-else-if="isLoading && !snapshot" role="status">
+    <AlertDescription>Loading gate snapshot…</AlertDescription>
+  </Alert>
+  <Alert v-else-if="snapshot && !snapshot.exists" role="status">
+    <AlertDescription>No .gate/gate.db found in {{ selectedGateRoot }}.</AlertDescription>
+  </Alert>
 </template>

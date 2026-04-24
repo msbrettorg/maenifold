@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { TabsRoot, TabsList, TabsTrigger, TabsContent } from 'reka-ui';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
@@ -22,13 +22,13 @@ const sections = [
       Configure your agent catalog and local application preferences.
     </p>
 
-    <TabsRoot default-value="connection" orientation="vertical" class="flex gap-6 h-[calc(100%-80px)]">
-      <TabsList class="flex flex-col gap-1 w-[280px] flex-shrink-0" aria-label="Settings sections">
+    <Tabs default-value="connection" orientation="vertical" class="flex gap-6 h-[calc(100%-80px)]">
+      <TabsList variant="line" class="flex flex-col gap-1 w-[280px] flex-shrink-0 bg-transparent p-0 rounded-none h-fit" aria-label="Settings sections">
         <TabsTrigger
           v-for="s in sections"
           :key="s.id"
           :value="s.id"
-          class="flex flex-col items-start text-left gap-1 rounded border-l-2 border-l-transparent border-t-0 border-r-0 border-b-0 px-3 py-2.5 cursor-pointer transition-colors duration-150 bg-transparent hover:bg-bg-surface-hover data-[state=active]:border-l-brand data-[state=active]:bg-bg-surface-hover"
+          class="flex flex-col items-start text-left gap-1 rounded border-l-2 border-l-transparent px-3 py-2.5 cursor-pointer transition-colors duration-150 bg-transparent hover:bg-bg-surface-hover data-[state=active]:border-l-brand data-[state=active]:bg-bg-surface-hover h-auto w-full justify-start whitespace-normal"
         >
           <span class="text-sm font-semibold text-text-primary">{{ s.label }}</span>
           <span class="text-xs text-text-secondary leading-snug line-clamp-2">{{ s.description }}</span>
@@ -42,6 +42,6 @@ const sections = [
         <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
       </div>
-    </TabsRoot>
+    </Tabs>
   </div>
 </template>

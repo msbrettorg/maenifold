@@ -9,6 +9,7 @@ import { getAvailableTemplates, resolveAgents } from '../lib/pipeline-template-r
 import TemplateGalleryCard from './TemplateGalleryCard.vue';
 import TemplateGalleryIntentForm from './TemplateGalleryIntentForm.vue';
 import TemplateGallerySelection from './TemplateGallerySelection.vue';
+import { Card, CardContent } from '@/components/ui/card';
 
 const store = usePipelineStore();
 const configStore = useConfigStore();
@@ -93,15 +94,17 @@ function handleIntentInput(value: string): void {
       <p v-if="!hasIntentAgent" class="m-0 text-[0.75rem] text-danger text-center" role="alert">
         Configure an agent before creating a pipeline.
       </p>
-      <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,180px))] gap-3 justify-center w-full max-w-[800px]">
-        <TemplateGalleryCard
-          v-for="template in availableTemplates"
-          :key="template.id"
-          :selected="selectedTemplateId === template.id"
-          :template="template"
-          @select="selectTemplate(template)"
-        />
-      </div>
+      <Card class="w-full max-w-[800px] bg-transparent border-border-subtle/50">
+        <CardContent class="grid grid-cols-[repeat(auto-fit,minmax(180px,180px))] gap-3 justify-center">
+          <TemplateGalleryCard
+            v-for="template in availableTemplates"
+            :key="template.id"
+            :selected="selectedTemplateId === template.id"
+            :template="template"
+            @select="selectTemplate(template)"
+          />
+        </CardContent>
+      </Card>
     </section>
 
     <TemplateGallerySelection

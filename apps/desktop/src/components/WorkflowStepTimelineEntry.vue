@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import WorkflowStepCard from './WorkflowStepCard.vue';
+import { Badge } from '@/components/ui/badge';
 import type { WorkflowStepDefinition } from '../lib/workflow-asset-types';
 
 const props = defineProps<{
@@ -27,16 +28,17 @@ function formatStepNumber(index: number): string {
 <template>
   <li class="flex gap-3 items-stretch">
     <div class="flex flex-col items-center w-10 shrink-0">
-      <span
+      <Badge
+        variant="outline"
         :class="[
-          'flex items-center justify-center w-10 h-10 rounded border bg-bg-elevated font-mono text-xs font-semibold shrink-0 transition-colors duration-150',
+          'flex items-center justify-center w-10 h-10 rounded font-mono text-xs font-semibold shrink-0 transition-colors duration-150',
           props.selectedStepId === step.id
             ? 'border-node-workflow text-node-workflow bg-node-workflow/10'
-            : 'border-border-subtle text-text-secondary',
+            : 'border-border-subtle text-text-secondary bg-bg-elevated',
         ]"
       >
         {{ formatStepNumber(index) }}
-      </span>
+      </Badge>
       <span
         v-if="index < totalSteps - 1"
         class="flex-1 w-px min-h-3 border-l-2 border-dashed border-border-subtle"

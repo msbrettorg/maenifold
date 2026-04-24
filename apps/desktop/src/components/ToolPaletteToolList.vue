@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import ToolPaletteToolOption from './ToolPaletteToolOption.vue';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ToolPaletteOption, ToolPaletteToolOptionProps } from '../lib/tool-palette-helpers';
 
 interface CategoryEntry {
@@ -46,46 +47,48 @@ const emit = defineEmits<{
     </div>
   </section>
 
-  <div
-    class="grid gap-1.5 max-h-[min(18rem,38vh)] p-0.5 overflow-y-auto rounded-md outline-none"
-    role="listbox"
-    :aria-label="isSearching ? 'Tool search results' : 'Browse by intent tools'"
-    :aria-activedescendant="activeDescendantId"
-    tabindex="0"
-    @keydown="(e: KeyboardEvent) => emit('paletteKeydown', e)"
-  >
-    <p v-if="!hasCatalog" class="m-0 text-text-secondary text-sm">Refresh to load tools from MCP servers.</p>
-    <p v-else-if="visibleTools.length === 0 && isSearching" class="m-0 text-text-secondary text-sm">No tools match “{{ searchQuery }}”.</p>
-    <p v-else-if="visibleTools.length === 0" class="m-0 text-text-secondary text-sm">No tools are available to browse yet. Refresh to load the tool catalog.</p>
-    <template v-else-if="showCategories">
-      <div
-        v-for="(entry, categoryIndex) in categorizedTools"
-        :key="entry.category.id"
-        :class="['grid gap-2', categoryIndex > 0 ? 'pt-2 border-t border-border-subtle/65' : '']"
-        role="group"
-        :aria-label="entry.category.label"
-      >
-        <div :class="splitRowClass">
-          <div>
-            <strong>{{ entry.category.label }}</strong>
-            <p class="m-0 text-text-secondary text-sm">{{ entry.category.description }}</p>
+  <ScrollArea class="max-h-[min(18rem,38vh)] rounded-md">
+    <div
+      class="grid gap-1.5 p-0.5 outline-none"
+      role="listbox"
+      :aria-label="isSearching ? 'Tool search results' : 'Browse by intent tools'"
+      :aria-activedescendant="activeDescendantId"
+      tabindex="0"
+      @keydown="(e: KeyboardEvent) => emit('paletteKeydown', e)"
+    >
+      <p v-if="!hasCatalog" class="m-0 text-text-secondary text-sm">Refresh to load tools from MCP servers.</p>
+      <p v-else-if="visibleTools.length === 0 && isSearching" class="m-0 text-text-secondary text-sm">No tools match “{{ searchQuery }}”.</p>
+      <p v-else-if="visibleTools.length === 0" class="m-0 text-text-secondary text-sm">No tools are available to browse yet. Refresh to load the tool catalog.</p>
+      <template v-else-if="showCategories">
+        <div
+          v-for="(entry, categoryIndex) in categorizedTools"
+          :key="entry.category.id"
+          :class="['grid gap-2', categoryIndex > 0 ? 'pt-2 border-t border-border-subtle/65' : '']"
+          role="group"
+          :aria-label="entry.category.label"
+        >
+          <div :class="splitRowClass">
+            <div>
+              <strong>{{ entry.category.label }}</strong>
+              <p class="m-0 text-text-secondary text-sm">{{ entry.category.description }}</p>
+            </div>
+            <span :class="tagBaseClass">{{ entry.tools.length }}</span>
           </div>
-          <span :class="tagBaseClass">{{ entry.tools.length }}</span>
+          <ToolPaletteToolOption
+            v-for="tool in entry.tools"
+            :key="tool.key"
+            v-bind="optionProps(tool, { isOption: true })"
+            @select="(t: ToolPaletteOption) => emit('select', t)"
+          />
         </div>
-        <ToolPaletteToolOption
-          v-for="tool in entry.tools"
-          :key="tool.key"
-          v-bind="optionProps(tool, { isOption: true })"
-          @select="(t: ToolPaletteOption) => emit('select', t)"
-        />
-      </div>
-    </template>
-    <ToolPaletteToolOption
-      v-else
-      v-for="tool in visibleTools"
-      :key="tool.key"
-      v-bind="optionProps(tool, { isOption: true, highlight: true })"
-      @select="(t: ToolPaletteOption) => emit('select', t)"
-    />
-  </div>
+      </template>
+      <ToolPaletteToolOption
+        v-else
+        v-for="tool in visibleTools"
+        :key="tool.key"
+        v-bind="optionProps(tool, { isOption: true, highlight: true })"
+        @select="(t: ToolPaletteOption) => emit('select', t)"
+      />
+    </div>
+  </ScrollArea>
 </template>

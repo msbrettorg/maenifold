@@ -5,6 +5,7 @@ import { Pencil, Trash2, Package, Search, Play, Globe, Wrench, Settings } from '
 import { Button } from '@/components/ui/button';
 import type { ToolCallInfo } from '../lib/types';
 import ChatToolCallDetails from './ChatToolCallDetails.vue';
+import McpAppFrame from './McpAppFrame.vue';
 
 const emit = defineEmits<{ toggle: [] }>();
 const props = defineProps<{
@@ -13,8 +14,9 @@ const props = defineProps<{
 }>();
 const detailsId = computed(() => `tool-call-details-${props.toolCall.toolCallId}`);
 const toolCallAriaLabel = computed(() => `${props.toolCall.title} tool call`);
+const hasAppUi = computed(() => Boolean(props.toolCall.appUi?.resourceUri));
 function hasDetails(tc: ToolCallInfo): boolean {
-  return Boolean(tc.content?.length || tc.rawInput || tc.rawOutput);
+  return Boolean(tc.content?.length || tc.rawInput || tc.rawOutput || tc.appUi?.resourceUri);
 }
 
 function locationLabel(tc: ToolCallInfo): string | null {
@@ -75,6 +77,11 @@ function statusColorClass(status: string): string {
       :id="detailsId"
       :tool-call="toolCall"
       :expanded="isExpanded"
+    />
+    <McpAppFrame
+      v-if="hasAppUi && toolCall.status === 'completed'"
+      :tool-call="toolCall"
+      class="mx-2 mb-2"
     />
   </div>
 </template>

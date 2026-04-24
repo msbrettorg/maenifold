@@ -26,14 +26,21 @@ if [[ "${1:-}" == "watch" ]]; then
   case "$MODE" in
     otel)
       [[ ! -f "$OTEL_FILE" ]] && { echo "Waiting for $OTEL_FILE..."; while [[ ! -f "$OTEL_FILE" ]]; do sleep 2; done; }
-      exec otel-tui --from-json-file "$OTEL_FILE" ;;
+      # Run in foreground with trap so Ctrl+C cleans up otel-tui (frees port 8888)
+      trap 'exit 0' INT TERM
+      otel-tui --from-json-file "$OTEL_FILE"
+      ;;
     log)
       log=$(latest_log); [[ -z "$log" ]] && { echo "No logs yet."; exit 1; }
       exec tail -f "$log" ;;
     both)
       command -v tmux >/dev/null 2>&1 || { echo "tmux required for --both"; exit 1; }
+      # Ensure clean shutdown of tmux session on Ctrl+C
+      cleanup_tmux() { tmux has-session -t ralph-watch 2>/dev/null && tmux send-keys -t ralph-watch C-c && sleep 1 && tmux kill-session -t ralph-watch 2>/dev/null; }
+      trap cleanup_tmux INT TERM EXIT
       tmux new-session -d -s ralph-watch "otel-tui --from-json-file $OTEL_FILE" \; \
-        split-window -v "tail -f $(latest_log || echo /dev/null)" \; attach ;;
+        split-window -v "tail -f $(latest_log || echo /dev/null)" \; attach
+      ;;
   esac
   exit 0
 fi

@@ -179,6 +179,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     --autopilot
     --model "$MODEL"
     --reasoning-effort "$REASONING_EFFORT"
+    --enable-reasoning-summaries
   )
   [[ -n "$SESSION_NAME" ]] && COPILOT_ARGS+=(--name "${SESSION_NAME}-iter${iteration}")
   [[ "$NO_CUSTOM_INSTRUCTIONS" == "true" ]] && COPILOT_ARGS+=(--no-custom-instructions)

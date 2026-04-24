@@ -5,13 +5,16 @@ import { PREFS_STORE_PATH } from '../lib/constants';
 import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/local-storage';
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
 import { type FontDensity, usePreferencesStore } from '../stores/preferences';
+import { useVoiceHandyStore } from '@/stores/voice-handy';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 
 const prefsStore = usePreferencesStore();
+const voiceStore = useVoiceHandyStore();
 const { fontDensity } = storeToRefs(prefsStore);
 
 const densityOptions: { value: FontDensity; label: string }[] = [
@@ -173,6 +176,40 @@ onMounted(async () => {
             <code class="block break-all rounded bg-background px-2 py-1 font-mono text-xs text-muted-foreground">
               {{ displayCwd }}
             </code>
+          </div>
+
+          <!-- Voice input section -->
+          <div class="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
+            <div class="flex flex-col gap-1">
+              <h3 class="text-base font-semibold">Voice input</h3>
+              <p class="m-0 text-sm text-muted-foreground">Speech-to-text via Handy companion app</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <Checkbox
+                :checked="voiceStore.enabled"
+                @update:checked="voiceStore.setEnabled($event)"
+              />
+              <Label>Enable voice input button</Label>
+            </div>
+
+            <div class="flex items-center gap-2 text-sm">
+              <span v-if="voiceStore.installed" class="text-success">✓ Handy installed</span>
+              <span v-else-if="voiceStore.installed === false" class="text-muted-foreground">
+                ✗ Handy not installed — {{ voiceStore.installHint }}
+              </span>
+              <span v-else class="text-muted-foreground">Checking...</span>
+            </div>
+
+            <Button
+              v-if="voiceStore.installed"
+              variant="outline"
+              size="sm"
+              class="self-start"
+              @click="voiceStore.launch()"
+            >
+              {{ voiceStore.running ? 'Open Handy' : 'Launch Handy' }}
+            </Button>
           </div>
         </template>
       </CardContent>

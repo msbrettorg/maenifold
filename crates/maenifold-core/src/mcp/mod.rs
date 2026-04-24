@@ -59,7 +59,6 @@ struct MaenifoldHandler {
     gateway_pool: Option<Arc<StdioPool>>,
     gateway_routing: Option<Arc<ToolRoutingRegistry>>,
 }
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
     Stdio,
@@ -90,7 +89,6 @@ impl MaenifoldHandler {
         self.gateway_routing = Some(routing);
     }
 }
-
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
@@ -142,7 +140,22 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
         let uri = request.uri.to_string();
+        let gateway_pool = self.gateway_pool.clone();
         async move {
+            if uri.starts_with("ui://")
+                && self.gateway_routing.is_some()
+                && let Some(pool) = gateway_pool
+            {
+                for (server_name, _) in pool.all_gateway_tools() {
+                    if let Ok(result) = pool.read_resource(&server_name, &uri).await {
+                        return Ok(result);
+                    }
+                }
+                return Err(rmcp::ErrorData::resource_not_found(
+                    format!("No gateway server has resource '{uri}'"),
+                    None,
+                ));
+            }
             tokio::task::spawn_blocking(move || {
                 with_lock_retry(|| self::resources::handle_read_resource(&uri))
             })
@@ -151,7 +164,6 @@ impl ServerHandler for MaenifoldHandler {
             .map_err(self::resources::map_resource_error)
         }
     }
-
     fn subscribe(
         &self,
         request: SubscribeRequestParams,
@@ -200,14 +212,7 @@ impl ServerHandler for MaenifoldHandler {
                         && let Some(server_name) = routing.lookup(&tool_name)
                     {
                         let server_name = server_name.to_string();
-                        let gateway_tool = tool_name.clone();
-                        let handle = tokio::runtime::Handle::current();
-                        let call_server = server_name.clone();
-                        let gateway_result = tokio::task::spawn_blocking(move || {
-                            handle.block_on(pool.call_tool(&call_server, &gateway_tool, arguments))
-                        })
-                        .await
-                        .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
+                        let gateway_result = pool.call_tool(&server_name, &tool_name, arguments).await;
                         return match gateway_result {
                             Ok(result) => Ok(result),
                             Err(err) => {

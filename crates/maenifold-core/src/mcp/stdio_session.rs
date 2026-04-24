@@ -2,7 +2,7 @@ use crate::error::{
     GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result,
 };
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
-use rmcp::model::{CallToolResult, InitializeResult, ListToolsResult, Tool};
+use rmcp::model::{CallToolResult, InitializeResult, ListToolsResult, ReadResourceResult, Tool};
 use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 use std::io;
@@ -74,6 +74,12 @@ impl StdioSession {
         })
     }
     pub async fn call_tool(&self, name: &str, arguments: Value) -> Result<CallToolResult> {
+        self.do_request("tools/call", json!({"name": name, "arguments": arguments}), format!("tool '{name}'")).await
+    }
+    pub async fn read_resource(&self, uri: &str) -> Result<ReadResourceResult> {
+        self.do_request("resources/read", json!({"uri": uri}), format!("resource '{uri}'")).await
+    }
+    async fn do_request<T: DeserializeOwned>(&self, method: &str, params: Value, what: String) -> Result<T> {
         if !self.is_usable() {
             return Err(MaenifoldError::SessionUnusable);
         }
@@ -82,7 +88,7 @@ impl StdioSession {
         if self.is_poisoned() || !self.refresh_liveness() {
             return Err(MaenifoldError::SessionUnusable);
         }
-        let request = json!({"jsonrpc":"2.0","id":id,"method":"tools/call","params":{"name":name,"arguments":arguments}});
+        let request = json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let response = match tokio::time::timeout(self.call_timeout, async {
             send_message(&mut io.0, &request).await?;
             read_response(&mut io.1, id).await
@@ -91,7 +97,7 @@ impl StdioSession {
             Err(_) => {
                 let _ = send_message(&mut io.0, &json!({"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":id}})).await;
                 self.poisoned.store(true, Ordering::SeqCst);
-                return Err(self.gateway_error(GATEWAY_TIMEOUT_ERROR, format!("Gateway: {} tool '{name}' timed out after {}s", self.server_name, self.call_timeout.as_secs())).await);
+                return Err(self.gateway_error(GATEWAY_TIMEOUT_ERROR, format!("Gateway: {} {} timed out after {}s", self.server_name, what, self.call_timeout.as_secs())).await);
             }
         };
         match response {
@@ -110,12 +116,14 @@ impl StdioSession {
         let mut io = self.io.lock().await;
         let _ = io.0.shutdown().await;
         drop(io);
-        if let Some(mut child) = lock_std(&self.child).take() {
+        let child_opt = { lock_std(&self.child).take() };
+        if let Some(mut child) = child_opt {
             if !wait_for_exit(&mut child, SHUTDOWN_WAIT).await {
                 terminate_child(&mut child).await;
             }
         }
-        if let Some(task) = lock_std(&self.stderr_task).take() { let _ = task.await; }
+        let task_opt = { lock_std(&self.stderr_task).take() };
+        if let Some(task) = task_opt { let _ = task.await; }
     }
     fn refresh_liveness(&self) -> bool {
         if self.dead.load(Ordering::SeqCst) { return false; }

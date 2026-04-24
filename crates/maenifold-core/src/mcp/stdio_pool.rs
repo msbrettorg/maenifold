@@ -2,7 +2,7 @@ use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
 use crate::mcp::stdio_session::StdioSession;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
-use rmcp::model::{CallToolResult, Tool};
+use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, RwLock as StdRwLock, RwLockReadGuard};
@@ -82,32 +82,19 @@ impl StdioPool {
         tool_name: &str,
         arguments: Value,
     ) -> Result<CallToolResult> {
-        let session = {
-            let servers = self.servers.read().await;
-            let server = servers
-                .get(server_name)
-                .ok_or_else(|| missing_server(server_name))?;
-            server.session.clone()
-        };
-        let initial = {
-            if session.is_usable() {
-                Some(session.call_tool(tool_name, arguments.clone()).await)
-            } else {
-                None
-            }
-        };
-        match initial {
-            Some(Ok(result)) => Ok(result),
-            Some(Err(error)) if is_prewrite_failure(&error) => {
-                self.restart_server(server_name).await?;
-                self.call_after_restart(server_name, tool_name, arguments).await
-            }
-            Some(Err(error)) => Err(error),
-            None => {
-                self.restart_server(server_name).await?;
-                self.call_after_restart(server_name, tool_name, arguments).await
-            }
-        }
+        let t = tool_name.to_string();
+        self.with_restart(server_name, move |s| {
+            let t = t.clone();
+            let a = arguments.clone();
+            Box::pin(async move { s.call_tool(&t, a).await })
+        }).await
+    }
+    pub async fn read_resource(&self, server_name: &str, uri: &str) -> Result<ReadResourceResult> {
+        let u = uri.to_string();
+        self.with_restart(server_name, move |s| {
+            let u = u.clone();
+            Box::pin(async move { s.read_resource(&u).await })
+        }).await
     }
     pub fn all_tools(&self) -> Vec<Tool> { lock_tools(&self.tools).clone() }
     pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
@@ -134,15 +121,29 @@ impl StdioPool {
         }
         while shutdowns.next().await.is_some() {}
     }
-    async fn call_after_restart(&self, server_name: &str, tool_name: &str, arguments: Value) -> Result<CallToolResult> {
+    async fn with_restart<T: Send>(
+        &self,
+        server_name: &str,
+        f: impl Fn(Arc<StdioSession>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send>>,
+    ) -> Result<T> {
         let session = {
             let servers = self.servers.read().await;
-            let server = servers
-                .get(server_name)
-                .ok_or_else(|| missing_server(server_name))?;
-            server.session.clone()
+            servers.get(server_name).ok_or_else(|| missing_server(server_name))?.session.clone()
         };
-        session.call_tool(tool_name, arguments).await
+        let initial = if session.is_usable() { Some(f(session).await) } else { None };
+        if let Some(result) = initial {
+            match result {
+                Ok(value) => return Ok(value),
+                Err(error) if !is_prewrite_failure(&error) => return Err(error),
+                Err(_) => {}
+            }
+        }
+        self.restart_server(server_name).await?;
+        let session = {
+            let servers = self.servers.read().await;
+            servers.get(server_name).ok_or_else(|| missing_server(server_name))?.session.clone()
+        };
+        f(session).await
     }
     async fn restart_server(&self, server_name: &str) -> Result<()> {
         let config = {

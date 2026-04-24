@@ -26,7 +26,13 @@ if [[ "${1:-}" == "watch" ]]; then
   case "$MODE" in
     otel)
       [[ ! -f "$OTEL_FILE" ]] && { echo "Waiting for $OTEL_FILE..."; while [[ ! -f "$OTEL_FILE" ]]; do sleep 2; done; }
-      # Run in foreground with trap so Ctrl+C cleans up otel-tui (frees port 8888)
+      # Clear stale otel-tui holding port 8888
+      stale_pid=$(lsof -ti :8888 2>/dev/null || true)
+      if [[ -n "$stale_pid" ]]; then
+        echo "Stopping stale otel-tui (pid $stale_pid) on port 8888..."
+        kill "$stale_pid" 2>/dev/null || true
+        sleep 1
+      fi
       trap 'exit 0' INT TERM
       otel-tui --from-json-file "$OTEL_FILE"
       ;;

@@ -32,6 +32,7 @@ mod ui_filtering;
 mod ui_progress;
 mod ui_task_data;
 mod ui_window;
+mod ui_window_detail;
 
 use std::process::ExitCode;
 

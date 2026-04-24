@@ -4,8 +4,11 @@ use std::sync::Arc;
 use rmcp::model::Tool;
 use serde_json::{Map, Value};
 
+use super::dispatch_helpers::{
+    context_from_value, optional_bool, optional_string, required_string,
+};
 use crate::cli::{
-    AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
+    AppendArgs, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
 };
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
@@ -96,85 +99,13 @@ pub(crate) fn tool_requires_write_lock(tool_name: &str) -> bool {
     matches!(tool_name, "append" | "pass" | "fail" | "cancel" | "sync")
 }
 
-pub(crate) fn context_from_value(
-    arguments: &Value,
-    json_output: bool,
-    default_root: Option<&PathBuf>,
-) -> Result<GateContext, GateError> {
-    let raw_root = match optional_path(arguments, "root")? {
-        Some(root) => {
-            if root.is_relative() {
-                return Err(GateError::Cli(format!(
-                    "root path '{}' is relative; pass an absolute path (e.g. '/Users/you/project') \
-                     because the MCP server cannot resolve paths relative to the client's working directory",
-                    root.display()
-                )));
-            }
-            root
-        }
-        None => default_root.cloned().ok_or_else(|| {
-            GateError::Cli(
-                "no root bound to this session; pass 'root' argument on any tool call to bind a workspace"
-                    .to_string(),
-            )
-        })?,
-    };
-    let root = std::fs::canonicalize(&raw_root).map_err(|error| {
-        GateError::Cli(format!(
-            "root path '{}' is not accessible: {error}; pass an absolute path to a writable project directory via the 'root' argument",
-            raw_root.display()
-        ))
-    })?;
-    if !root.is_dir() {
-        return Err(GateError::Cli(format!(
-            "root path '{}' is not a directory; pass an absolute path to a writable project directory via the 'root' argument",
-            root.display()
-        )));
-    }
-
-    Ok(GateContext {
-        root,
-        requested_pipeline_name: optional_string(arguments, "pipeline")?,
-        json_output,
-    })
-}
-
-pub(crate) fn optional_path(arguments: &Value, key: &str) -> Result<Option<PathBuf>, GateError> {
-    Ok(optional_string(arguments, key)?.map(PathBuf::from))
-}
-
-pub(crate) fn required_string(arguments: &Value, key: &str) -> Result<String, GateError> {
-    optional_string(arguments, key)?
-        .ok_or_else(|| GateError::Cli(format!("missing required MCP argument '{key}'")))
-}
-
-pub(crate) fn optional_string(arguments: &Value, key: &str) -> Result<Option<String>, GateError> {
-    match arguments.get(key) {
-        Some(Value::String(value)) => Ok(Some(value.clone())),
-        Some(Value::Null) | None => Ok(None),
-        Some(_) => Err(GateError::Cli(format!(
-            "MCP argument '{key}' must be a string"
-        ))),
-    }
-}
-
-pub(crate) fn optional_bool(arguments: &Value, key: &str) -> Result<Option<bool>, GateError> {
-    match arguments.get(key) {
-        Some(Value::Bool(value)) => Ok(Some(*value)),
-        Some(Value::Null) | None => Ok(None),
-        Some(_) => Err(GateError::Cli(format!(
-            "MCP argument '{key}' must be a boolean"
-        ))),
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
-    use super::{
-        call_gate_tool, context_from_value, optional_bool, optional_string, required_string,
-        tool_requires_write_lock,
+    use super::{call_gate_tool, tool_requires_write_lock};
+    use crate::mcp::dispatch_helpers::{
+        context_from_value, optional_bool, optional_string, required_string,
     };
 
     #[test]

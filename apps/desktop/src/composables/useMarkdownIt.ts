@@ -1,6 +1,8 @@
 import MarkdownIt from 'markdown-it';
 import type { StateInline } from 'markdown-it/index.js';
-import Shiki from '@shikijs/markdown-it';
+import { fromHighlighter } from '@shikijs/markdown-it';
+import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
+import { bundledLanguages, createHighlighter } from 'shiki';
 
 let mdPromise: Promise<MarkdownIt> | null = null;
 
@@ -62,8 +64,14 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
         typographer: false,
       });
 
+      const shikiHighlighter = await createHighlighter({
+        themes: ['github-light', 'github-dark'],
+        langs: Object.keys(bundledLanguages),
+        engine: createJavaScriptRegexEngine(),
+      });
+
       md.use(
-        await Shiki({
+        fromHighlighter(shikiHighlighter, {
           themes: {
             light: 'github-light',
             dark: 'github-dark',
@@ -93,4 +101,3 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
   }
   return mdPromise;
 }
-

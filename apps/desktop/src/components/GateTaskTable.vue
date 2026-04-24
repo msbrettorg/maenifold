@@ -125,7 +125,13 @@ function headerLabel(columnId: string) {
   <div
     class="flex-[2] min-h-96 overflow-auto rounded-lg border border-border-card bg-bg-app p-2"
   >
-    <Table class="border-separate" style="border-spacing: 0 2px">
+    <Table class="w-full table-fixed border-separate" style="border-spacing: 0 2px">
+      <colgroup>
+        <col class="w-24" />
+        <col />
+        <col class="w-20" />
+        <col class="w-56" />
+      </colgroup>
       <TableHeader>
         <TableRow
           v-for="headerGroup in table.getHeaderGroups()"
@@ -170,8 +176,9 @@ function headerLabel(columnId: string) {
           <TableCell class="px-4 py-3.5">
             <div class="flex min-w-0 items-center gap-2">
               <span
+                :title="row.original.title"
                 :class="[
-                  'min-w-0 break-words font-normal line-clamp-2',
+                  'min-w-0 flex-1 truncate font-normal',
                   row.original.issue ? 'text-text-primary' : '',
                 ]"
               >
@@ -198,7 +205,7 @@ function headerLabel(columnId: string) {
               ⚠
             </span>
           </TableCell>
-          <TableCell class="rounded-r px-4 py-3.5">
+          <TableCell class="rounded-r px-4 py-3.5 whitespace-normal">
             <GateTaskProgress :task="row.original" />
           </TableCell>
         </TableRow>

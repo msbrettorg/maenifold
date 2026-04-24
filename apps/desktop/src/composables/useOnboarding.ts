@@ -60,13 +60,14 @@ export function useOnboarding(): UseOnboardingReturn {
   }
 
   function advance(): void {
-    if (step.value >= lastIndex) {
+    const nextStep = Math.min(step.value + 1, lastIndex);
+    if (nextStep === step.value) {
       return;
     }
-    step.value += 1;
-    if (step.value > highWaterStep.value) {
-      highWaterStep.value = step.value;
+    if (nextStep > highWaterStep.value) {
+      highWaterStep.value = nextStep;
     }
+    step.value = nextStep;
   }
 
   function goToStep(target: number): void {

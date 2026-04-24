@@ -117,7 +117,7 @@ async fn conditional_retry_policy_transient_failure_then_success_pipeline_comple
 
     let result = tokio::time::timeout(
         Duration::from_secs(10),
-        execute_pipeline(&context, session_id, "", CancellationToken::new(), None),
+        execute_pipeline(&context, session_id, "", CancellationToken::new()),
     )
     .await
     .expect("pipeline execution should finish")

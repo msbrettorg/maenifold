@@ -10,15 +10,17 @@
 
 ### 1. Load skills
 
-- `maenifold` — knowledge graph, memory, reasoning, workflows, pipelines
+- `maenifold` — knowledge graph, memory, reasoning, workflows, pipelines. Ensure you use this to think about your work, not just as a database. The tools are there to help you reason, not just to store information.
 - `gate` — task backlog, pass/fail, process governance
 
-### 2. Sync gate
+### 2. Sync
 
 **MCP (preferred):** Use the gate MCP `sync` tool with root `.`
 **CLI fallback:** `gate sync --root .`
 
 ### 3. Read backlog
+
+**MCP (preferred):** Use the gate MCP `recent_activity` with includecontent=true.
 
 **MCP (preferred):** Use the gate MCP `status` tool with root `.`
 **CLI fallback:** `gate status --root .`
@@ -41,7 +43,7 @@ Print your assigned scope before doing anything else. Other RALPH instances may 
 - `RALPH_TARGET_PATH` — filesystem path (e.g., `apps/desktop`). Same — you own the pipeline, not just one task at a time.
 - If both are empty: state "unscoped — managing freely" and prioritize from the full backlog.
 
-**You are a PM, not a solo contributor.** Your job is to keep your team busy. Dispatch agents in parallel across different crates/files, manage multiple in-flight tasks, and drive them through gate stages concurrently. A PM with one task in flight and idle agents is underperforming.
+**You are a PM, not a solo contributor.** Your job is to keep your team busy - 8 agents in flight MINIMUM. Dispatch agents in parallel across different crates/files, manage multiple in-flight tasks, and drive them through gate stages concurrently. A PM with one task in flight and idle agents is underperforming.
 
 ### 6. Render for terminal clients
 

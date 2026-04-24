@@ -109,7 +109,7 @@ async fn tool_node_explicit_timeout_seconds_elapses_and_abandons_with_timeout_af
     // rather than blocking the suite for the full 5s sleep.
     let result = tokio::time::timeout(
         Duration::from_secs(4),
-        execute_pipeline(&context, session_id, "", CancellationToken::new(), None),
+        execute_pipeline(&context, session_id, "", CancellationToken::new()),
     )
     .await
     .expect("engine must enforce the 1s node timeout instead of waiting on the MCP sleep process")

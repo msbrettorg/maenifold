@@ -75,7 +75,7 @@ mod tests {
     fn tool(name: &str) -> Tool {
         Tool::new(
             name.to_string(),
-            Some(format!("{name} description")),
+            format!("{name} description"),
             Arc::new(Map::<String, Value>::new()),
         )
     }

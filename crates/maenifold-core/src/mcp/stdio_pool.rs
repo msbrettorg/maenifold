@@ -14,6 +14,7 @@ use tracing::warn;
 pub struct StdioPool {
     servers: RwLock<HashMap<String, ManagedServer>>,
     tools: StdRwLock<Vec<Tool>>,
+    gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
 }
 
 #[derive(Debug, Clone)]
@@ -69,8 +70,8 @@ impl StdioPool {
             }
         }
 
-        let tools = match collect_tools(&started) {
-            Ok(tools) => tools,
+        let (tools, gateway_tools) = match collect_gateway_tools(&started) {
+            Ok(tool_state) => tool_state,
             Err(error) => {
                 shutdown_servers(started).await;
                 return Err(error);
@@ -80,6 +81,7 @@ impl StdioPool {
         Ok(Self {
             servers: RwLock::new(started),
             tools: StdRwLock::new(tools),
+            gateway_tools: StdRwLock::new(gateway_tools),
         })
     }
 
@@ -122,6 +124,13 @@ impl StdioPool {
         lock_tools(&self.tools).clone()
     }
 
+    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
+        self.gateway_tools
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
+    }
+
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -131,6 +140,9 @@ impl StdioPool {
                 .collect::<Vec<_>>()
         };
         *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self.gateway_tools
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
         let mut shutdowns = FuturesUnordered::new();
         for session in sessions {
             shutdowns.push(async move { session.shutdown().await });
@@ -192,12 +204,12 @@ impl StdioPool {
                             })?,
                         )
                     };
-                    Ok((Some(old), Some(collect_tools(&servers)?)))
+                    Ok((Some(old), Some(collect_gateway_tools(&servers)?)))
                 }
             }
         };
 
-        let (old_session, tools) = match outcome {
+        let (old_session, tool_state) = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
                 if let Some(session) = replacement {
@@ -207,8 +219,12 @@ impl StdioPool {
             }
         };
 
-        if let Some(tools) = tools {
+        if let Some((tools, gateway_tools)) = tool_state {
             *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
+            *self
+                .gateway_tools
+                .write()
+                .unwrap_or_else(|error| error.into_inner()) = gateway_tools;
         }
         if let Some(session) = replacement {
             session.shutdown().await;
@@ -233,11 +249,16 @@ async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
     StdioSession::start(&entry).await
 }
 
-fn collect_tools(servers: &HashMap<String, ManagedServer>) -> Result<Vec<Tool>> {
+fn collect_gateway_tools(
+    servers: &HashMap<String, ManagedServer>,
+) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
     let mut owners = HashMap::<String, String>::new();
     let mut tools = Vec::new();
+    let mut gateway_tools = Vec::new();
     for (server_name, server) in servers {
-        for tool in server.session.tools().iter() {
+        let mut server_tools = server.session.tools().iter().cloned().collect::<Vec<_>>();
+        server_tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
+        for tool in &server_tools {
             let tool_name = tool.name.to_string();
             if let Some(other) = owners.insert(tool_name.clone(), server_name.clone()) {
                 return Err(MaenifoldError::Message(format!(
@@ -246,8 +267,11 @@ fn collect_tools(servers: &HashMap<String, ManagedServer>) -> Result<Vec<Tool>> 
             }
             tools.push(tool.clone());
         }
+        gateway_tools.push((server_name.clone(), server_tools));
     }
-    Ok(tools)
+    gateway_tools.sort_by(|(left, _), (right, _)| left.cmp(right));
+    tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
+    Ok((tools, gateway_tools))
 }
 
 fn ensure_replacement_tools(

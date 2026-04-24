@@ -106,7 +106,7 @@ async fn run(config: Config) -> Result<()> {
         signal_cancel.cancel();
     });
 
-    let execution_result = execute_pipeline(&context, &session_id, &prompt, cancel).await;
+    let execution_result = execute_pipeline(&context, &session_id, &prompt, cancel, None).await;
     signal_task.abort();
     let _ = signal_task.await;
 

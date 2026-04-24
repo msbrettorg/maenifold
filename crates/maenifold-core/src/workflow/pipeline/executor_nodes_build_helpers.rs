@@ -66,6 +66,7 @@ pub(super) fn merged_session_config(
     allowed_tools: &Option<Vec<String>>,
     max_turns: Option<u32>,
     timeout_seconds: Option<u64>,
+    resume_session_id: Option<String>,
 ) -> Result<AgentSessionConfig> {
     Ok(AgentSessionConfig {
         cwd: resolve_node_cwd(context, node_cwd)?,
@@ -82,6 +83,7 @@ pub(super) fn merged_session_config(
         timeout_seconds,
         session_id: Some(session_id.to_string()),
         auto_approve: true, // Pipeline nodes run headless; auto-grant permissions.
+        resume_session_id,
     })
 }
 

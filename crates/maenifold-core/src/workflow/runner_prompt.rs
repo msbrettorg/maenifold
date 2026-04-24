@@ -33,6 +33,10 @@ pub(crate) struct AgentSessionConfig {
     /// Defaults to `false` (safe for interactive sessions).
     /// Pipeline/headless execution paths should set this to `true`.
     pub auto_approve: bool,
+    /// Optional ACP session ID to resume via `session/load` before sending the
+    /// prompt. When `None`, a new session is created. Distinct from
+    /// `session_id`, which is the internal pool key (app_session_id).
+    pub resume_session_id: Option<String>,
 }
 
 pub(crate) fn sanitize_workflow_session_config(
@@ -129,6 +133,7 @@ mod tests {
             timeout_seconds: None,
             session_id: None,
             auto_approve: true,
+            resume_session_id: None,
         }
     }
 

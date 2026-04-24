@@ -7,27 +7,26 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1400 — Quality + Pipeline Delivery
 
-### In-flight SWEs (3 parallel worktrees)
-- **T-213.1** — Split 3 oversized gate files (lightweight, worktrees/T-213.1)
-- **T-213.2** — Split embedding_models_detect.rs (lightweight, worktrees/T-213.2)
-- **T-209.1** — NodeState telemetry (SDD, worktrees/T-209.1)
+### Shipped
+- **T-213.1** ✅ DONE — Split 3 gate files (1 remediation: blue-team caught test import)
+- **T-213.2** ✅ DONE — Split embedding_models_detect.rs
+- `make audit-crates` now passes clean (0 violations)
 
-### Backlog status
-- 13 tasks in todo/ (2 new LOC splits + 11 existing)
-- 3 SLC epics need decomposition: T-210.0 (Teams Monitor P1), T-211.0 (Scheduled Tasks P2), T-212.0 (Ralph Console P2)
-- T-209.0 already decomposed into T-209.1-7
-- T-05.67 (vec0 wizard) and T-207.7 (integration test) are standalone P2
+### In-flight
+- **T-209.1** — NodeState telemetry at red-team stage (gpt-5.3-codex auditing)
 
-### Backlog hygiene done
-- Cleaned 16 stale todo/ duplicates from parallel RALPH instances
-- Removed stale worktree branch (task/T-204.3)
-- Fixed my own duplicate detection bug (macOS grep -P not supported, false positives)
-- Restored 13 wrongly deleted files
+### Session-as-Node Epic (T-214.0) — duo reviewed, updated
+- Both opus-4.7 and gpt-5.4 said REQUEST CHANGES (accepted)
+- Key changes: Snapshot deferred to Phase 1.5, Query-only MVP
+- T-214.2 needs spike first (session/load RPC behavior in executor)
+- T-214.4 merged into T-214.1 (wire format coupled to types)
+- Missing tasks added: spike, locking, frontend TS propagation, split tests
 
-### Product roadmap
-- Phase 1: Session-as-Node — spec exists in memory://, not yet filed as epic
-- Session infrastructure (list_sessions, load_session) already exists in backend
-- PipelineNode needs SessionRef extension for session-based prompt dispatch
+### Next actions after T-209.1 lands
+- Merge T-209.1 worktree → blue-team → done
+- Dispatch T-209.2 (SDD pipeline template) or T-209.3 (lightweight+TDD templates)
+- Start Session-as-Node spike (T-214.S)
+- Decompose T-210.0 (Teams Monitor) sub-task files into todo/
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

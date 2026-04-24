@@ -4,25 +4,32 @@ use std::path::{Path, PathBuf};
 use std::sync::RwLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-fn load_agents_config(root: &Path) -> Value {
+fn load_agents_config(root: &Path) -> Result<Value, String> {
     let path = root.join("maenifold.json");
-    std::fs::read_to_string(&path)
-        .ok()
-        .and_then(|contents| serde_json::from_str(&contents).ok())
-        .unwrap_or_else(|| Value::Object(Default::default()))
+    let contents = std::fs::read_to_string(&path).map_err(|error| {
+        if error.kind() == std::io::ErrorKind::NotFound {
+            format!("maenifold.json not found at {}", path.display())
+        } else {
+            format!("Failed to read maenifold.json: {error}")
+        }
+    })?;
+    serde_json::from_str(&contents)
+        .map_err(|error| format!("Failed to parse maenifold.json: {error}"))
 }
 
-fn find_agent_entry<'a>(config: &'a Value, runtime: &str) -> Result<&'a Value, String> {
-    config
+fn find_agent_entry(root: &Path, runtime: &str) -> Result<(Value, Value), String> {
+    let config = load_agents_config(root)?;
+    let entry = config
         .get("agents")
         .and_then(Value::as_object)
         .and_then(|agents| {
             agents
                 .iter()
                 .find(|(key, _)| key.eq_ignore_ascii_case(runtime))
-                .map(|(_, entry)| entry)
+                .map(|(_, entry)| entry.clone())
         })
-        .ok_or_else(|| format!("agent '{}' not found in maenifold.json", runtime))
+        .ok_or_else(|| format!("Agent '{runtime}' not found in maenifold.json"))?;
+    Ok((config, entry))
 }
 
 fn command_parts(entry: &Value) -> (&str, Vec<&str>) {
@@ -128,13 +135,12 @@ fn resolve_adapter_for_name(
     runtime: &str,
     root: &PathBuf,
 ) -> Result<(String, Vec<String>, Vec<(String, String)>), String> {
-    let config = load_agents_config(root);
-    let entry = find_agent_entry(&config, runtime)?;
-    let (binary, args) = command_parts(entry);
+    let (config, entry) = find_agent_entry(root, runtime)?;
+    let (binary, args) = command_parts(&entry);
     if binary.is_empty() {
         return Err(format!("agent '{}' has an empty command", runtime));
     }
-    let mut env = entry_env(entry);
+    let mut env = entry_env(&entry);
     for var_name in env_passthrough(&config) {
         if !env.iter().any(|(key, _)| key == var_name) {
             if let Ok(value) = std::env::var(var_name) {

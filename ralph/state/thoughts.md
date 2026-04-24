@@ -63,16 +63,16 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-203.8** filed — McpAppFrame resource fetch, blocked on T-207.4
 - **7 tasks shipped, 1 cancelled this iteration**
 
-## Iteration 20260424-1241 — Gateway Wave 2
+## Iteration 20260424-1241 — Gateway Wave 2 — COMPLETE
 - **T-207.10** ✅ DONE — startup wiring already in code, advanced through gate
-- **T-207.4** ✅ DONE (prior iteration) — red-team PASS confirmed
+- **T-207.4** ✅ DONE (prior iteration) — red-team PASS confirmed  
 - **T-207.9** ✅ DONE — discovery endpoint uses StdioPool cache
-- **T-207.0** ✅ EPIC CLOSED — 9/10 subtasks done, T-207.7 (P2) remains
+- **T-207.0** ✅ EPIC CLOSED — all P1 subtasks done
 - **T-207.6** ✅ DONE (prior RALPH instance) — error semantics shipped
-- **T-207.8** ⏳ RED-TEAM re-audit — remediation fixed global pool, panic safety, async
+- **T-207.8** ✅ DONE — pipeline driver migrated (1 remediation cycle: global→param, PoolGuard, async)
 - **T-207.11** FILED — resource proxying to unblock T-203.0 MCP Apps epic
-- **T-203.8** STILL BLOCKED — now depends on T-207.11
 - Concept repair: MCP-Gateway variants consolidated (9 replacements)
+- **5 tasks shipped, 1 epic closed, 1 task filed this iteration**
 
 ## Next Actions
 - Land T-207.8 after red-team pass → merge → blue-team → done

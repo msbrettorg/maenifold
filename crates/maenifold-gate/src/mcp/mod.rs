@@ -13,6 +13,7 @@ use rmcp::model::{
 };
 use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Map, Value};
+use tokio::sync::Mutex as AsyncMutex;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
 use self::schema::list;
@@ -66,17 +67,23 @@ pub(crate) fn localhost_cors() -> CorsLayer {
 /// Shared map of known workspace roots. Each entry is a canonical path
 /// registered when any tool call succeeds with an explicit `root` argument.
 /// The most recently used root is stored at the end.
-#[derive(Debug, Clone, Default)]
-pub(crate) struct KnownRoots(Arc<RwLock<Vec<PathBuf>>>);
+#[derive(Debug, Clone)]
+pub(crate) struct KnownRoots {
+    roots: Arc<RwLock<Vec<PathBuf>>>,
+    write_mutex: Arc<AsyncMutex<()>>,
+}
 
 impl KnownRoots {
     pub(crate) fn with_initial(root: Option<PathBuf>) -> Self {
         let roots = root.into_iter().collect();
-        Self(Arc::new(RwLock::new(roots)))
+        Self {
+            roots: Arc::new(RwLock::new(roots)),
+            write_mutex: Arc::new(AsyncMutex::new(())),
+        }
     }
 
     fn current(&self) -> Result<Option<PathBuf>, GateError> {
-        self.0
+        self.roots
             .read()
             .map_err(|err| GateError::Cli(format!("known roots read lock poisoned: {err}")))
             .map(|roots| roots.last().cloned())
@@ -84,12 +91,22 @@ impl KnownRoots {
 
     fn register(&self, root: PathBuf) -> Result<(), GateError> {
         let mut roots = self
-            .0
+            .roots
             .write()
             .map_err(|err| GateError::Cli(format!("known roots write lock poisoned: {err}")))?;
         roots.retain(|r| r != &root);
         roots.push(root);
         Ok(())
+    }
+
+    fn write_mutex(&self) -> Arc<AsyncMutex<()>> {
+        Arc::clone(&self.write_mutex)
+    }
+}
+
+impl Default for KnownRoots {
+    fn default() -> Self {
+        Self::with_initial(None)
     }
 }
 
@@ -97,6 +114,7 @@ pub(crate) struct GateMcpHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
     known_roots: KnownRoots,
+    write_mutex: Arc<AsyncMutex<()>>,
     default_root: Option<PathBuf>,
     bound_root: Mutex<Option<PathBuf>>,
 }
@@ -114,6 +132,7 @@ impl GateMcpHandler {
         Ok(Self {
             transport,
             tools,
+            write_mutex: known_roots.write_mutex(),
             known_roots,
             default_root,
             bound_root: Mutex::new(None),
@@ -176,6 +195,11 @@ impl ServerHandler for GateMcpHandler {
                 .as_ref()
                 .or(bound_root.as_ref())
                 .or(self.default_root.as_ref());
+            let _write_guard = if tool_requires_write_lock(&tool_name) {
+                Some(self.write_mutex.lock().await)
+            } else {
+                None
+            };
             match call_gate_tool(&tool_name, &arguments, default_root) {
                 Ok(output) => {
                     if let Some(root) = explicit_root.as_ref() {

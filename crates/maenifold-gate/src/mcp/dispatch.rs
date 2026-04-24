@@ -92,6 +92,10 @@ pub(crate) fn call_gate_tool(
     serde_json::to_string_pretty(&result).map_err(GateError::from)
 }
 
+pub(crate) fn tool_requires_write_lock(tool_name: &str) -> bool {
+    matches!(tool_name, "append" | "pass" | "fail" | "cancel" | "sync")
+}
+
 pub(crate) fn context_from_value(
     arguments: &Value,
     json_output: bool,
@@ -170,6 +174,7 @@ mod tests {
 
     use super::{
         call_gate_tool, context_from_value, optional_bool, optional_string, required_string,
+        tool_requires_write_lock,
     };
 
     #[test]
@@ -282,5 +287,22 @@ mod tests {
         let err =
             call_gate_tool("nonexistent", &args, None).expect_err("should reject unknown tool");
         assert!(err.to_string().contains("unknown gate MCP tool"));
+    }
+
+    #[test]
+    fn tool_requires_write_lock_only_for_mutations() {
+        for tool_name in ["append", "pass", "fail", "cancel", "sync"] {
+            assert!(
+                tool_requires_write_lock(tool_name),
+                "{tool_name} should acquire the write lock"
+            );
+        }
+
+        for tool_name in ["status", "history", "task_body", "unknown"] {
+            assert!(
+                !tool_requires_write_lock(tool_name),
+                "{tool_name} should not acquire the write lock"
+            );
+        }
     }
 }

@@ -51,17 +51,23 @@ Stuff you learn should go in ralph/state/learnings.md
 - WASM errors from shiki are secondary issue → T-05.96 filed (use JS engine instead of oniguruma)
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
-## Current Iteration (2026-04-24 late PM session)
+## Current Iteration (2026-04-24 PM session) — COMPLETE
 - **T-207.5** ✅ DONE — gateway config opt-in (lightweight)
 - **T-204.2** ✅ DONE — Handy IPC handlers (lightweight)
 - **T-207.1** ✅ DONE — StdioSession MCP client (SDD, 2 remediation cycles, 262 LOC)
 - **T-203.7** ❌ CANCELLED — upstream rmcp stateless session handling, 2 fix attempts failed
 - **T-204.3** ✅ DONE — voice-handy Pinia store (SWE self-passed, process violation noted)
-- **T-207.2** 🔄 SWE dispatched — StdioPool server manager
-- **T-204.4** 🔄 SWE dispatched — VoiceInputButton.vue (prior pass was phantom, re-dispatched)
+- **T-204.4** ✅ DONE — VoiceInputButton.vue (SDD, 3 red-team cycles, 68 LOC)
+- **T-204.5** ✅ DONE — wire VoiceInputButton into ChatInputBar (lightweight, SWE self-passed)
+- **T-207.2** ✅ DONE — StdioPool server manager (SDD, 1 remediation cycle, 291 LOC)
 - **T-203.8** filed — McpAppFrame resource fetch, blocked on T-207.4
-- **T-203.0** epic: 5/6 subtasks done. T-203.6 blocked on T-207.4
-- **T-207.0** epic: T-207.1✅ T-207.5✅ → T-207.2🔄 → T-207.3 → T-207.4
+- **7 tasks shipped, 1 cancelled this iteration**
+
+## Next Actions
+- T-207.3 (ToolRoutingRegistry) — next on gateway critical path, unblocked by T-207.2
+- T-207.4 (handler delegation) — after T-207.3, unblocks T-203.8 and T-203.6
+- T-204.6 (SettingsPreferences voice section) — next Handy task
+- T-207.6 (error semantics) — can parallel with T-207.3
 
 ## Prior iteration results
 - T-203.3 DONE — McpAppFrame.vue + sandbox proxy

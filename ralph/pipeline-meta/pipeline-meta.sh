@@ -22,6 +22,7 @@ LOCK_FD=""
 LOCK_MODE="pid"
 JOB_PIDS=()
 CHILD_PIDS=()
+FAILURES=0
 
 require_command() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -52,6 +53,14 @@ strip_matching_quotes() {
     fi
   fi
   printf '%s' "$value"
+}
+
+validate_task_id() {
+  local id="$1"
+  if [[ ! "$id" =~ ^T-[0-9]+(\.[0-9]+)?$ ]]; then
+    log "ERROR: invalid task ID: $id"
+    return 1
+  fi
 }
 
 frontmatter_value() {
@@ -239,15 +248,10 @@ create_lock() {
     printf '%s\n' "$$" 1>&"$LOCK_FD"
   else
     LOCK_MODE="pid"
-    if [[ -f "$LOCK_FILE" ]]; then
-      local existing_pid=""
-      existing_pid="$(cat "$LOCK_FILE" 2>/dev/null || true)"
-      if [[ -n "$existing_pid" ]] && kill -0 "$existing_pid" 2>/dev/null; then
-        printf 'ERROR: pipeline-meta.sh is already running (pid=%s, lockfile=%s)\n' "$existing_pid" "$LOCK_FILE" >&2
-        exit 1
-      fi
-    fi
-    printf '%s\n' "$$" >"$LOCK_FILE"
+    ( set -C; printf '%s\n' "$$" >"$LOCK_FILE" ) 2>/dev/null || {
+      log "ERROR: another instance is running (lock file exists)"
+      exit 1
+    }
   fi
 }
 
@@ -294,6 +298,7 @@ wait_for_all_jobs() {
   for pid in "${JOB_PIDS[@]+"${JOB_PIDS[@]}"}"; do
     if ! wait "$pid"; then
       overall_status=1
+      FAILURES=$((FAILURES + 1))
     fi
   done
 
@@ -316,7 +321,9 @@ prune_finished_jobs() {
     if [[ "$still_running" -eq 1 ]]; then
       remaining+=("$pid")
     else
-      wait "$pid" || true
+      if ! wait "$pid"; then
+        FAILURES=$((FAILURES + 1))
+      fi
     fi
   done
 
@@ -357,7 +364,7 @@ process_task() {
 
   if [[ ! -f "$task_file" ]]; then
     log "ERROR: task file missing for ${task_id}: ${task_file}"
-    return 0
+    return 1
   fi
 
   frontmatter_task_id="$(frontmatter_value "$task_file" "id")"
@@ -368,6 +375,10 @@ process_task() {
   frontmatter_pipeline="$(frontmatter_value "$task_file" "pipeline")"
   if [[ -n "$frontmatter_pipeline" ]]; then
     gate_pipeline="$frontmatter_pipeline"
+  fi
+
+  if ! validate_task_id "$task_id"; then
+    return 1
   fi
 
   crate="$(frontmatter_value "$task_file" "crate")"
@@ -381,7 +392,7 @@ process_task() {
       wall_clock_seconds=$((end_epoch - start_epoch))
       record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
     fi
-    return 0
+    return 1
   fi
 
   worktree_path="${WORKTREE_BASE_DIR}/${task_id}"
@@ -395,7 +406,7 @@ process_task() {
       wall_clock_seconds=$((end_epoch - start_epoch))
       record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
     fi
-    return 0
+    return 1
   fi
 
   if [[ -n "$PIPELINE_META_DRY_RUN" ]]; then
@@ -412,7 +423,7 @@ process_task() {
     end_epoch="$(date +%s)"
     wall_clock_seconds=$((end_epoch - start_epoch))
     record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
-    return 0
+    return 1
   fi
 
   if ! git -C "$PIPELINE_META_ROOT" worktree add "$worktree_path" -b "$branch_name"; then
@@ -420,7 +431,7 @@ process_task() {
     end_epoch="$(date +%s)"
     wall_clock_seconds=$((end_epoch - start_epoch))
     record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
-    return 0
+    return 1
   fi
   worktree_created=true
 
@@ -440,7 +451,7 @@ process_task() {
     wall_clock_seconds=$((end_epoch - start_epoch))
     record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
     log "FAILED: worktree preserved at ${worktree_path}"
-    return 0
+    return 1
   fi
 
   set +e
@@ -460,7 +471,7 @@ process_task() {
     wall_clock_seconds=$((end_epoch - start_epoch))
     record_metrics "$task_id" "$gate_pipeline" "$wall_clock_seconds" "failed" false
     log "FAILED: worktree preserved at ${worktree_path}"
-    return 0
+    return 1
   fi
 
   pipeline_status="$(extract_pipeline_status "$view_json")"
@@ -491,7 +502,7 @@ process_task() {
     return 0
   fi
 
-  return 0
+  return 1
 }
 
 main() {
@@ -550,7 +561,11 @@ main() {
     '
   )
 
-  wait_for_all_jobs
+  wait_for_all_jobs || true
+  if [[ "$FAILURES" -gt 0 ]]; then
+    log "WARN: ${FAILURES} task(s) failed"
+    exit 1
+  fi
   log "pipeline-meta.sh finished"
 }
 

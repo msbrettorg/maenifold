@@ -60,6 +60,8 @@ impl MessageHandler {
     }
 
     pub fn handle(&mut self, message: &EventMessage) -> Option<MatchResult> {
+        self.prune_expired();
+
         if !sender_allowed(message, &self.config.sender_allow_list, &self.config.sender_deny_list) {
             return None;
         }
@@ -92,18 +94,32 @@ impl MessageHandler {
                 last_match.elapsed() < Duration::from_secs(self.config.cooldown_seconds)
             })
     }
+
+    fn prune_expired(&mut self) {
+        let cooldown = Duration::from_secs(self.config.cooldown_seconds);
+        self.last_match_by_conversation
+            .retain(|_, last_match| last_match.elapsed() < cooldown);
+    }
 }
 
 pub fn strip_html(content: &str) -> String {
     let mut output = String::with_capacity(content.len());
     let mut in_tag = false;
+    let mut chars = content.chars().peekable();
 
-    for ch in content.chars() {
+    while let Some(ch) = chars.next() {
         match ch {
             '<' => {
-                in_tag = true;
-                if !output.ends_with(' ') {
-                    output.push(' ');
+                let is_tag_start = chars
+                    .peek()
+                    .is_some_and(|next| next.is_ascii_alphabetic() || matches!(next, '/' | '!'));
+                if is_tag_start {
+                    in_tag = true;
+                    if !output.ends_with(' ') {
+                        output.push(' ');
+                    }
+                } else {
+                    output.push(ch);
                 }
             }
             '>' => {

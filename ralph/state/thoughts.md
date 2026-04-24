@@ -42,3 +42,21 @@ Stuff you learn should go in ralph/state/learnings.md
 - NEED: build enforcement to PREVENT hand-rolled components from being introduced — audit-components.mjs needs `require-design-import` rule
 - NEED: the audit from codex should be turned into a build rule, not just a one-time scan
 - LEARNING: gate MCP "database is locked" errors are intermittent but may succeed — always verify status after. Double-pass race conditions have advanced tasks past intended stages.
+
+## T-05.94 Resolution (2026-04-24)
+- Root cause was NOT a rendering bug. Root-level memory files (Celonis.md, Session-as-Node.md) are genuinely empty (0 bytes)
+- Users see gray bar because KnowledgeContent.vue had no empty-content fallback
+- Fix: added v-else-if for empty/whitespace content showing EmptyState
+- Rendering pipeline works perfectly for notes with content (verified via CDP + direct store call)
+- WASM errors from shiki are secondary issue → T-05.96 filed (use JS engine instead of oniguruma)
+- Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
+
+## Next Actions (updated 2026-04-24)
+- T-05.96 (lightweight) in-flight — shiki JS engine fix
+- T-05.97 (P2) — gate column resize, ready for dispatch
+- T-05.67 (P2) — vec0 wizard, deferred
+- T-05.92 CLOSED — cargo vuln fixed, npm vulns documented as mermaid accepted risk
+- T-05.87 CLOSED — 4/5 UAT fixes verified, 1 regression filed (T-05.97)
+- T-05.94 CLOSED — empty note display fix shipped
+- Sprint 05 remaining: T-05.67 (P2), T-05.96 (in-flight), T-05.97 (P2)
+- Next sprint priority: T-203.0 (MCP Apps epic, SLC discovery)

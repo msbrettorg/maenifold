@@ -64,10 +64,13 @@ Stuff you learn should go in ralph/state/learnings.md
 - **7 tasks shipped, 1 cancelled this iteration**
 
 ## Next Actions
-- T-207.3 (ToolRoutingRegistry) — next on gateway critical path, unblocked by T-207.2
-- T-207.4 (handler delegation) — after T-207.3, unblocks T-203.8 and T-203.6
-- T-204.6 (SettingsPreferences voice section) — next Handy task
-- T-207.6 (error semantics) — can parallel with T-207.3
+- T-207.6 (error semantics) — document the error contract, partially implemented
+- T-207.7 (integration test) — prove gateway works end-to-end
+- T-207.8 (pipeline migration) — migrate pipeline driver to shared pool
+- T-207.9 (discovery migration) — migrate discovery to pool cache
+- T-204.6 already done. T-204.7 appears done (SWE self-passed). Only T-204.0 epic closure remains.
+- T-203.8 (McpAppFrame resource fetch) — now unblocked by T-207.4! Next iteration should tackle this.
+- T-203.6 (E2E validation) — unblocked once T-203.8 lands
 
 ## Prior iteration results
 - T-203.3 DONE — McpAppFrame.vue + sandbox proxy

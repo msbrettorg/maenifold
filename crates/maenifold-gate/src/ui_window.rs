@@ -4,11 +4,14 @@ use crate::ui_progress::*;
 use crate::ui_task_data::*;
 use eframe::egui;
 use eframe::egui::{Color32, RichText};
-use egui_commonmark::{CommonMarkCache, CommonMarkViewer};
+use egui_commonmark::CommonMarkCache;
 use egui_extras::{Column, TableBuilder};
 use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
+
+use crate::ui_window_detail::show_task_detail_window;
+
 const READ_MODEL_POLL_INTERVAL: Duration = Duration::from_secs(2);
 #[derive(Debug)]
 pub struct GateUiWindow;
@@ -265,45 +268,12 @@ impl eframe::App for GateUiApp {
         });
         if self.detail_open {
             let mut is_open = self.detail_open;
-            if let Some(detail) = self.selected.clone() {
-                let pipeline_label = detail
-                    .entry
-                    .pipeline
-                    .as_deref()
-                    .unwrap_or("unbound")
-                    .to_uppercase();
-                egui::Window::new(format!("{} {}", detail.entry.task_id, detail.entry.title))
-                    .open(&mut is_open)
-                    .default_width(420.0)
-                    .default_height(760.0)
-                    .show(ctx, |ui| {
-                        ui.label(
-                            RichText::new(format!(
-                                "{}  {}  {}",
-                                detail.entry.task_id,
-                                pipeline_label,
-                                detail.entry.state.to_uppercase(),
-                            ))
-                            .family(egui::FontFamily::Monospace)
-                            .small()
-                            .color(Color32::GRAY),
-                        );
-                        ui.label(RichText::new(&detail.entry.title).strong());
-                        ui.label(
-                            RichText::new(detail.entry.path.display().to_string())
-                                .small()
-                                .color(Color32::GRAY),
-                        );
-                        ui.separator();
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            CommonMarkViewer::new().show(
-                                ui,
-                                &mut self.markdown_cache,
-                                &detail.markdown,
-                            );
-                        });
-                    });
-            }
+            show_task_detail_window(
+                ctx,
+                &mut is_open,
+                self.selected.as_ref(),
+                &mut self.markdown_cache,
+            );
             self.detail_open = is_open;
         }
     }

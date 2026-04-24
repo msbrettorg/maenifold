@@ -1,4 +1,5 @@
 pub(crate) mod dispatch;
+mod dispatch_helpers;
 pub mod http;
 pub mod schema;
 
@@ -17,6 +18,7 @@ use tokio::sync::Mutex as AsyncMutex;
 use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
 use self::schema::list;
+use crate::mcp::dispatch_helpers::optional_path;
 use crate::error::GateError;
 use dispatch::*;
 

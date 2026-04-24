@@ -1,8 +1,7 @@
-use crate::error::GateError;
-use crate::gate_definition::GateDefinition;
-use crate::state_machine::StateMachine;
-use crate::task_file::TaskDocument;
-
+use crate::{
+    error::GateError, gate_definition::GateDefinition, state_machine::StateMachine,
+    task_file::TaskDocument,
+};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EffectiveTaskState {
     pub state: String,
@@ -30,13 +29,11 @@ impl TaskStatusDeriver {
             initial.clone()
         };
         let mut attempts = 0;
-
         for record in &document.records {
             match record.record_kind.as_str() {
                 "append" => {}
                 "cancel" => {
-                    // cancel is an administrative action that bypasses the state machine.
-                    // It marks the task as terminally cancelled regardless of its current state.
+                    // cancel bypasses the state machine and terminally marks the task as cancelled.
                     state = "cancelled".to_string();
                 }
                 "outcome" => {

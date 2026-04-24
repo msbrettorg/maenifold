@@ -51,17 +51,24 @@ Stuff you learn should go in ralph/state/learnings.md
 - WASM errors from shiki are secondary issue → T-05.96 filed (use JS engine instead of oniguruma)
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
-## Next Actions (updated 2026-04-24)
-- T-203.0 epic: 5/6 subtasks done. T-203.6 (E2E) blocked on resource fetch wiring
+## Current Iteration (2026-04-24 late PM session)
+- **T-204.1** DONE — spike verified via reference impl (spawn-detached works). Handy.app at /Applications/
+- **T-204.2** — SWE done, blue-team running. voice.ts + preload + types.
+- **T-203.7** — SWE done, red-team PASS, blue-team running. NeverSessionManager → LocalSessionManager fix.
+- **T-207.1** — SWE done, red-team running. StdioSession 299 LOC, critical path.
+- **T-207.5** — SWE done (prior iter), blue-team running. gateway: bool config field.
+- **T-212.0** — Fixed YAML frontmatter (was missing, gate couldn't parse canonicalTaskId)
+- **T-203.0** epic: 5/6 subtasks done. T-203.6 blocked on T-207.4
+- **T-207.0** epic: critical path T-207.1→T-207.2→T-207.3→T-207.4
+- **Next:** When T-207.1 clears red+blue, merge and dispatch T-207.2 SWE
+- **Next:** When T-204.2 clears blue, merge and dispatch T-204.3 (Pinia store)
+- **T-05.67** (P2) — vec0 wizard, deferred again
+
+## Prior iteration results
 - T-203.3 DONE — McpAppFrame.vue + sandbox proxy
 - T-203.4 DONE — ChatToolCallItem integration
-- T-203.5 DONE — Security hardening (permission handler + tool guard)
-- T-204.8 DONE — regenerate embeddings fix
-- T-204.9 DONE — delete flat models + path traversal protection
-- T-204.10 DONE — activate flat models
-- **6 tasks shipped this iteration**
-- Next priority by sprint: T-203.6 blocked → T-203.7 (gate session bug) → T-204.x (Handy voice)
-- T-05.67 (P2) — vec0 wizard, deferred
+- T-203.5 DONE — Security hardening
+- T-204.8/9/10 DONE — embedding model fixes
 
 ## T-203.2 Completed (2026-04-24)
 - MCP Apps _meta.ui parsing shipped through full SDD+red-team+blue-team pipeline

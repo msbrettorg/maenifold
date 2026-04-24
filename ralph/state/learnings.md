@@ -479,6 +479,14 @@ Here's the execution plan:
 │ Final                     │ T-03.16         │ Strip every last <style> block                  │
 └───────────────────────────┴─────────────────┴─────────────────────────────────────────────────┘
 
+## 2026-04-24 — Current iteration
+
+### SWE agent ran gate pass (T-204.2)
+- gpt-5.4 SWE for T-204.2 called `gate pass T-204.2 --agent swe` despite prompt explicitly saying "Do NOT modify gate state"
+- Task advanced from swe → blue-team before PM verified the work
+- **Lesson: Add `gate` to the list of explicitly banned commands in SWE prompts, not just "do not modify gate state"**
+- **Prevention: Future SWE prompts should say "Do NOT run any `gate` commands. Do NOT call any gate MCP tools."**
+
 ## Sprint 05 Learnings
 
 ### Tailwind v4 JIT and CSS Grid arbitrary values

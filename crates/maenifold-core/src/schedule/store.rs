@@ -142,7 +142,6 @@ fn write_atomically(path: &Path, content: &[u8]) -> Result<()> {
 
     for _ in 0..8 {
         let temp_path = create_sidecar_path(path, "schedule-tmp");
-        let backup_path = create_sidecar_path(path, "schedule-prev");
         let result = (|| -> std::io::Result<()> {
             let mut file = fs::OpenOptions::new()
                 .create_new(true)
@@ -151,34 +150,12 @@ fn write_atomically(path: &Path, content: &[u8]) -> Result<()> {
             file.write_all(content)?;
             file.sync_all()?;
             drop(file);
-
-            let existing_moved = if path.exists() {
-                fs::rename(path, &backup_path)?;
-                true
-            } else {
-                false
-            };
-
-            if let Err(error) = fs::rename(&temp_path, path) {
-                if existing_moved {
-                    let _ = fs::rename(&backup_path, path);
-                    sync_directory(parent);
-                }
-                return Err(error);
-            }
-
+            fs::rename(&temp_path, path)?;
             sync_directory(parent);
-
-            if existing_moved {
-                fs::remove_file(&backup_path)?;
-                sync_directory(parent);
-            }
-
             Ok(())
         })();
 
         let _ = fs::remove_file(&temp_path);
-        let _ = fs::remove_file(&backup_path);
 
         match result {
             Ok(()) => return Ok(()),

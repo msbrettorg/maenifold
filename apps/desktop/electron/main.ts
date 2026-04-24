@@ -2,7 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
+
+protocol.registerSchemesAsPrivileged([
+  { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
+]);
 
 // The desktop app connects to the maenifold + gate services running under
 // launchd. It does NOT spawn its own daemons — one process per service,
@@ -148,6 +152,11 @@ async function createWindow(): Promise<void> {
 
   // Apply Content-Security-Policy on all responses to this session
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    // Don't override CSP for sandbox proxy (it has its own)
+    if (details.url.startsWith('mcp-app-sandbox://')) {
+      callback({ responseHeaders: details.responseHeaders });
+      return;
+    }
     callback({
       responseHeaders: {
         ...details.responseHeaders,
@@ -161,6 +170,75 @@ async function createWindow(): Promise<void> {
   const rendererUrl = process.env.ELECTRON_RENDERER_URL ?? process.env.VITE_DEV_SERVER_URL;
   if (rendererUrl) await mainWindow.loadURL(rendererUrl);
   else await mainWindow.loadFile(join(app.getAppPath(), 'dist', 'index.html'));
+}
+
+function registerSandboxProtocol(): void {
+  protocol.handle('mcp-app-sandbox', (request) => {
+    const url = new URL(request.url);
+    let cspHeader = "default-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' blob: data:; style-src 'self' 'unsafe-inline' blob: data:; img-src 'self' data: blob:; font-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; frame-src 'none'; object-src 'none'; base-uri 'none'";
+
+    const cspParam = url.searchParams.get('csp');
+    if (cspParam) {
+      try {
+        const cspConfig = JSON.parse(decodeURIComponent(cspParam));
+        if (Array.isArray(cspConfig?.connectDomains)) {
+          // Sanitize: reject entries with CSP-breaking characters
+          const safe = cspConfig.connectDomains.filter(
+            (d: unknown) => typeof d === 'string' && !/[;\r\n'" ]/.test(d),
+          );
+          if (safe.length) {
+            cspHeader = cspHeader.replace(
+              "connect-src 'self'",
+              `connect-src 'self' ${safe.join(' ')}`,
+            );
+          }
+        }
+      } catch {
+        /* ignore bad CSP param */
+      }
+    }
+
+    const sandboxHtml = `<!doctype html>
+<html><head>
+<meta charset="utf-8">
+<meta name="color-scheme" content="light dark">
+<style>html,body{margin:0;height:100vh;width:100vw;background:transparent}body{display:flex;flex-direction:column}*{box-sizing:border-box}iframe{background:transparent;border:0;padding:0;overflow:hidden;flex-grow:1;color-scheme:inherit}</style>
+</head><body><script type="module">
+import{buildAllowAttribute}from"@modelcontextprotocol/ext-apps/app-bridge";
+const inner=document.createElement("iframe");
+inner.style="width:100%;height:100%;border:none";
+inner.setAttribute("sandbox","allow-scripts allow-same-origin allow-forms");
+document.body.appendChild(inner);
+window.addEventListener("message",e=>{
+  if(e.source===window.parent){
+    if(e.data?.method==="ui/notifications/sandbox-resource-ready"){
+      const{html,sandbox,permissions}=e.data.params;
+      if(typeof sandbox==="string")inner.setAttribute("sandbox",sandbox);
+      const allow=buildAllowAttribute(permissions);
+      if(allow)inner.setAttribute("allow",allow);
+      if(typeof html==="string"){
+        const doc=inner.contentDocument||inner.contentWindow?.document;
+        if(doc){doc.open();doc.write(html);doc.close()}
+        else{inner.srcdoc=html}
+      }
+    }else if(inner.contentWindow){
+      inner.contentWindow.postMessage(e.data,"*");
+    }
+  }else if(e.source===inner.contentWindow){
+    window.parent.postMessage(e.data,"*");
+  }
+});
+window.parent.postMessage({jsonrpc:"2.0",method:"ui/notifications/sandbox-proxy-ready",params:{}},"*");
+<\/script></body></html>`;
+
+    return new Response(sandboxHtml, {
+      headers: {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Content-Security-Policy': cspHeader,
+        'Cache-Control': 'no-cache',
+      },
+    });
+  });
 }
 
 function registerIpcHandlers(): void {
@@ -216,6 +294,7 @@ if (!app.requestSingleInstanceLock()) {
   });
   app.whenReady().then(async () => {
     registerIpcHandlers();
+    registerSandboxProtocol();
     await ensureServices();
     await createWindow();
   });

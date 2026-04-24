@@ -92,17 +92,10 @@ impl MaenifoldHandler {
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio => ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .enable_resources_subscribe()
-                .enable_resources_list_changed()
-                .build(),
-            TransportKind::Http => ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .enable_resources_subscribe()
-                .build(),
+            TransportKind::Stdio => ServerCapabilities::builder().enable_tools().enable_resources()
+                .enable_resources_subscribe().enable_resources_list_changed().build(),
+            TransportKind::Http => ServerCapabilities::builder().enable_tools().enable_resources()
+                .enable_resources_subscribe().build(),
         };
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -146,15 +139,18 @@ impl ServerHandler for MaenifoldHandler {
                 && self.gateway_routing.is_some()
                 && let Some(pool) = gateway_pool
             {
+                let mut last_err = None;
                 for (server_name, _) in pool.all_gateway_tools() {
-                    if let Ok(result) = pool.read_resource(&server_name, &uri).await {
-                        return Ok(result);
+                    match pool.read_resource(&server_name, &uri).await {
+                        Ok(result) => return Ok(result),
+                        Err(e) => { last_err = Some(e); }
                     }
                 }
-                return Err(rmcp::ErrorData::resource_not_found(
-                    format!("No gateway server has resource '{uri}'"),
-                    None,
-                ));
+                return Err(match last_err {
+                    Some(MaenifoldError::JsonRpc { code, message, .. }) if code == -32002 => rmcp::ErrorData::resource_not_found(message, None),
+                    Some(err) => rmcp::ErrorData::internal_error(format!("Gateway resource fetch failed for '{uri}': {err}"), None),
+                    None => rmcp::ErrorData::resource_not_found(format!("No gateway server configured for '{uri}'"), None),
+                });
             }
             tokio::task::spawn_blocking(move || {
                 with_lock_retry(|| self::resources::handle_read_resource(&uri))

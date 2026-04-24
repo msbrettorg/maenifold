@@ -67,6 +67,14 @@ pub enum PipelineWorkflowNodeType {
     Workflow,
 }
 #[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionRefSchema {
+    /// ACP agent name for the session
+    pub agent: String,
+    /// ACP session ID to resume
+    pub session_id: String,
+}
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelinePromptNodeSchema {
     /// New node identifier
@@ -122,6 +130,12 @@ pub struct PipelinePromptNodeSchema {
     pub retry_jitter: Option<bool>,
     #[serde(default)]
     pub agent_config: Option<PipelineAgentConfigSchema>,
+    /// Optional session reference for resuming an existing ACP session.
+    ///
+    /// Validation that `sessionRef.agent` matches the node `agent` occurs in
+    /// `workflow/pipeline/types_wire.rs` during `TryFrom<PipelineNodeWire>`.
+    #[serde(default)]
+    pub session_ref: Option<SessionRefSchema>,
 }
 #[derive(Deserialize, JsonSchema)]
 pub enum PipelinePromptNodeType {

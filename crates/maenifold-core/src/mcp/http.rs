@@ -2,6 +2,8 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::stdio_pool::StdioPool;
+use crate::mcp::tool_routing::ToolRoutingRegistry;
 use axum::Router;
 use axum::routing::get;
 use rmcp::transport::streamable_http_server::{
@@ -32,13 +34,18 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 // idle beyond the keepalive window.
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
+    gateway: Option<(Arc<StdioPool>, Arc<ToolRoutingRegistry>)>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
     StreamableHttpService::new(
-        || {
-            MaenifoldHandler::new(TransportKind::Http)
-                .map_err(|e| std::io::Error::other(e.to_string()))
+        move || {
+            let mut handler = MaenifoldHandler::new(TransportKind::Http)
+                .map_err(|e| std::io::Error::other(e.to_string()))?;
+            if let Some((pool, routing)) = gateway.as_ref() {
+                handler.set_gateway(pool.clone(), routing.clone());
+            }
+            Ok(handler)
         },
         session_manager,
         StreamableHttpServerConfig::default()
@@ -84,7 +91,7 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         let router = router(
-            service(shutdown_token.child_token()),
+            service(shutdown_token.child_token(), None),
             ApiState::new(config.clone()),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
@@ -145,7 +152,10 @@ mod tests {
     }
 
     fn test_router(state: ApiState) -> axum::Router {
-        router(service(tokio_util::sync::CancellationToken::new()), state)
+        router(
+            service(tokio_util::sync::CancellationToken::new(), None),
+            state,
+        )
             .layer(localhost_cors())
     }
 

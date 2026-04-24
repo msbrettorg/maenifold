@@ -47,6 +47,8 @@ use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::util::json::OutputFormat;
+use crate::mcp::stdio_pool::StdioPool;
+use crate::mcp::tool_routing::ToolRoutingRegistry;
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
     ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
@@ -63,6 +65,8 @@ pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
+    gateway_pool: Option<Arc<StdioPool>>,
+    gateway_routing: Option<Arc<ToolRoutingRegistry>>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -84,7 +88,17 @@ impl MaenifoldHandler {
                 Tool::new(t.name, t.description, Arc::new(schema))
             })
             .collect();
-        Ok(Self { transport, tools })
+        Ok(Self {
+            transport,
+            tools,
+            gateway_pool: None,
+            gateway_routing: None,
+        })
+    }
+
+    fn set_gateway(&mut self, pool: Arc<StdioPool>, routing: Arc<ToolRoutingRegistry>) {
+        self.gateway_pool = Some(pool);
+        self.gateway_routing = Some(routing);
     }
 }
 
@@ -125,8 +139,12 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
+        let mut tools = self.tools.clone();
+        if let Some(routing) = &self.gateway_routing {
+            tools.extend_from_slice(routing.gateway_tools());
+        }
         std::future::ready(Ok(ListToolsResult {
-            tools: self.tools.clone(),
+            tools,
             next_cursor: None,
             meta: None,
         }))
@@ -192,19 +210,13 @@ impl ServerHandler for MaenifoldHandler {
             None => json!({}),
         };
         let tool_name_for_invoke = tool_name.clone();
+        let native_arguments = arguments.clone();
 
         async move {
-            // T-205.716: Do NOT wrap `call_tool` in `with_lock_retry`. Tool
-            // dispatches include write operations (WriteMemory, EditMemory,
-            // Sync, etc.) that are not idempotent — retrying after a partial
-            // success would cause duplicate side effects. Each tool is
-            // responsible for its own transactional safety. `with_lock_retry`
-            // is only applied to the read-only resource dispatch sites
-            // (`list_resources`, `read_resource`).
             let result = tokio::task::spawn_blocking(move || {
                 ToolRegistry::global().try_invoke(
                     &tool_name_for_invoke,
-                    &arguments,
+                    &native_arguments,
                     OutputFormat::Json,
                 )
             })
@@ -213,10 +225,31 @@ impl ServerHandler for MaenifoldHandler {
 
             match result {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
+                Err(MaenifoldError::UnknownTool(_)) => {
+                    if let (Some(pool), Some(routing)) = (self.gateway_pool.clone(), self.gateway_routing.clone())
+                        && let Some(server_name) = routing.lookup(&tool_name)
+                    {
+                        let server_name = server_name.to_string();
+                        let gateway_tool = tool_name.clone();
+                        let handle = tokio::runtime::Handle::current();
+                        return tokio::task::spawn_blocking(move || {
+                            handle.block_on(pool.call_tool(&server_name, &gateway_tool, arguments))
+                        })
+                            .await
+                            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+                            .map_err(|e| {
+                                rmcp::ErrorData::internal_error(format_tool_error(&tool_name, &e), None)
+                            });
+                    }
+                    Ok(CallToolResult::error(vec![Content::text(format_tool_error(
+                        &tool_name,
+                        &MaenifoldError::UnknownTool(tool_name.clone()),
+                    ))]))
+                }
                 // T-11.6: RTM FR-11 preserves raw validation diagnostics while prefixing internal failures.
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(
-                    format_tool_error(&tool_name, &err),
-                )])),
+                Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(
+                    &tool_name, &err,
+                ))])),
             }
         }
     }

@@ -200,12 +200,17 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
 
-  # --- Logging and session capture ---
+  # --- Logging, OTEL, and session capture ---
   LOG_DIR="ralph/state/logs"
   SESSION_DIR="ralph/state/sessions"
-  mkdir -p "$LOG_DIR" "$SESSION_DIR"
+  OTEL_DIR="ralph/state/otel"
+  mkdir -p "$LOG_DIR" "$SESSION_DIR" "$OTEL_DIR"
   iter_log="${LOG_DIR}/iter-${iteration}.log"
   iter_session="${SESSION_DIR}/iter-${iteration}.md"
+  otel_file="${OTEL_DIR}/current.jsonl"
+
+  # OTEL: append to a single current.jsonl so otel-tui can tail it live
+  export COPILOT_OTEL_FILE_EXPORTER_PATH="$otel_file"
 
   # Build copilot args
   COPILOT_ARGS=(

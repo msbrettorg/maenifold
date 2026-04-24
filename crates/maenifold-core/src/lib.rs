@@ -26,6 +26,7 @@ pub use util::paths;
 pub mod registry;
 // T-12.2: RTM FR-6 / FR-2 - expose extracted repair/analysis module.
 pub mod repair;
+pub mod schedule;
 pub mod search;
 pub mod sessions;
 pub mod similar;

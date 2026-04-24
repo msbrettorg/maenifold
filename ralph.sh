@@ -289,15 +289,18 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   # --- Revert or keep ---
   if [[ "$should_revert" == "true" ]]; then
     echo "REVERTING iteration ${iteration}: ${revert_reason}"
+    notify "RALPH ⚠️" "Iteration ${iteration} reverted: ${revert_reason}"
     git checkout -- . 2>/dev/null || true
     consecutive_reverts=$((consecutive_reverts + 1))
 
     if [[ $consecutive_reverts -ge 3 ]]; then
       echo "3 consecutive reverts — auto-converging."
+      notify "RALPH 🛑" "3 consecutive reverts — auto-converged"
       touch ralph/state/converged
     fi
   else
     echo "KEEPING iteration ${iteration}: changes accepted"
+    notify "RALPH ✅" "Iteration ${iteration} complete (${duration}s)"
     consecutive_reverts=0
   fi
 
@@ -305,9 +308,11 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 
   if [[ -f "ralph/state/converged" ]]; then
     echo "Converged marker found after iteration ${iteration}; exiting loop."
+    notify "RALPH 🏁" "Converged after ${iteration} iterations"
     break
   fi
 done
 
 echo ""
 echo "Ralph loop complete after ${iteration} iterations."
+notify "RALPH 🏁" "Loop complete — ${iteration} iterations"

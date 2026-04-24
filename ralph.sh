@@ -25,16 +25,19 @@ if [[ "${1:-}" == "watch" ]]; then
   latest_log() { ls -t "$LOG_DIR"/iter-*.log 2>/dev/null | head -1; }
   case "$MODE" in
     otel)
-      [[ ! -f "$OTEL_FILE" ]] && { echo "Waiting for $OTEL_FILE..."; while [[ ! -f "$OTEL_FILE" ]]; do sleep 2; done; }
-      # Clear stale otel-tui holding port 8888
-      stale_pid=$(lsof -ti :8888 2>/dev/null || true)
-      if [[ -n "$stale_pid" ]]; then
-        echo "Stopping stale otel-tui (pid $stale_pid) on port 8888..."
-        kill "$stale_pid" 2>/dev/null || true
-        sleep 1
-      fi
+      # Clear stale otel-tui holding ports 4317/4318/8888
+      for port in 4317 4318 8888; do
+        stale_pid=$(lsof -ti :"$port" 2>/dev/null || true)
+        if [[ -n "$stale_pid" ]]; then
+          echo "Clearing stale process on port $port (pid $stale_pid)..."
+          kill "$stale_pid" 2>/dev/null || true
+        fi
+      done
+      sleep 1
+      echo "Starting otel-tui collector on ports 4317 (gRPC) + 4318 (HTTP)..."
+      echo "Run ralph.sh in another terminal — it auto-detects and sends OTLP to port 4318."
       trap 'exit 0' INT TERM
-      otel-tui --from-json-file "$OTEL_FILE"
+      otel-tui
       ;;
     log)
       log=$(latest_log); [[ -z "$log" ]] && { echo "No logs yet."; exit 1; }
@@ -261,8 +264,14 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   iter_session="${SESSION_DIR}/iter-${iteration}.md"
   otel_file="${OTEL_DIR}/current.jsonl"
 
-  # OTEL: append to a single current.jsonl so otel-tui can tail it live
-  export COPILOT_OTEL_FILE_EXPORTER_PATH="$otel_file"
+  # OTEL: send to otel-tui collector if running (port 4318), else file fallback
+  if lsof -ti :4318 >/dev/null 2>&1; then
+    export OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4318"
+    unset COPILOT_OTEL_FILE_EXPORTER_PATH 2>/dev/null || true
+  else
+    export COPILOT_OTEL_FILE_EXPORTER_PATH="$otel_file"
+    unset OTEL_EXPORTER_OTLP_ENDPOINT 2>/dev/null || true
+  fi
 
   # Build copilot args
   COPILOT_ARGS=(

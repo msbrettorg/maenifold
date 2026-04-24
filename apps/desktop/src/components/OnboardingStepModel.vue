@@ -1,96 +1,49 @@
 <script setup lang="ts">
-import { computed, inject, onMounted, onUnmounted, ref, type Ref } from 'vue';
+import { inject, onMounted, type Ref } from 'vue';
 import { Brain, Loader2 } from 'lucide-vue-next';
 
 import { Button } from '@/components/ui/button';
-import { useMcpClient } from '../composables/useMcpClient';
-
-interface ModelInfo {
-  id: string;
-  name: string;
-  dimensions: number;
-  maxTokens: number;
-  sizeBytes: number;
-  installed: boolean;
-  isActive: boolean;
-}
-
-interface ModelListResponse {
-  models: ModelInfo[];
-  currentDimensions: number;
-}
+import { Progress } from '@/components/ui/progress';
+import {
+  useOnboardingModelDownload,
+  type OnboardingModelInfo,
+} from '../composables/useOnboardingModelDownload';
+import { formatModelSize } from '../composables/useEmbeddingsActions';
 
 const advance = inject<() => void>('onboarding-advance');
 const goBack = inject<() => void>('onboarding-go-back');
 const modelSkipped = inject<Ref<boolean>>('onboarding-model-skipped');
 const selectedModelName = inject<Ref<string | null>>('onboarding-selected-model');
 
-const { callTool, connect, connected } = useMcpClient();
-
-const loading = ref(true);
-const loadError = ref<string | null>(null);
-const downloadError = ref<string | null>(null);
-const downloading = ref(false);
-const models = ref<ModelInfo[]>([]);
-const selectedId = ref<string | null>(null);
-
-let disposed = false;
-
-const selectedModel = computed<ModelInfo | null>(
-  () => models.value.find((m) => m.id === selectedId.value) ?? null,
-);
+const {
+  loading,
+  loadError,
+  downloadError,
+  downloading,
+  models,
+  selectedModel,
+  selectedModelProgress,
+  hasDownloadProgress,
+  downloadPercent,
+  loadModels,
+  selectModel,
+  downloadSelectedModel,
+} = useOnboardingModelDownload({
+  advance,
+  modelSkipped,
+  selectedModelName,
+});
 
 function formatSize(bytes: number): string {
-  if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(1)} GB`;
-  if (bytes >= 1_000_000) return `${Math.round(bytes / 1_000_000)} MB`;
-  return `${Math.round(bytes / 1_000)} KB`;
+  return formatModelSize(bytes);
 }
 
-async function loadModels(): Promise<void> {
-  loading.value = true;
-  loadError.value = null;
-  try {
-    if (!connected.value) {
-      await connect();
-    }
-    if (disposed) return;
-    const result = await callTool<ModelListResponse>('EmbeddingModels', { action: 'list' });
-    if (disposed) return;
-    models.value = result?.models ?? [];
-    if (selectedId.value === null && models.value.length > 0) {
-      const active = models.value.find((m) => m.isActive);
-      const installed = models.value.find((m) => m.installed);
-      selectedId.value = (active ?? installed ?? models.value[0]).id;
-    }
-  } catch (e) {
-    if (disposed) return;
-    loadError.value = e instanceof Error ? e.message : String(e);
-  } finally {
-    if (!disposed) {
-      loading.value = false;
-    }
-  }
-}
-
-function selectModel(model: ModelInfo): void {
-  if (downloading.value) return;
-  selectedId.value = model.id;
+function onSelectModel(model: OnboardingModelInfo): void {
+  selectModel(model);
 }
 
 async function onDownload(): Promise<void> {
-  if (selectedModel.value === null) return;
-  downloadError.value = null;
-
-  // If the selected model is already installed or active, just advance — no download needed
-  if (selectedModel.value.installed || selectedModel.value.isActive) {
-    if (modelSkipped) modelSkipped.value = false;
-    if (selectedModelName) selectedModelName.value = selectedModel.value.name;
-    advance?.();
-    return;
-  }
-
-  // Model not installed — download action doesn't exist yet, show clear error
-  downloadError.value = `Download not yet available. Please install "${selectedModel.value.name}" manually from HuggingFace (${selectedModel.value.id}) and place the ONNX file in your maenifold models directory.`;
+  await downloadSelectedModel();
 }
 
 function onSkip(): void {
@@ -111,10 +64,6 @@ function onRetry(): void {
 
 onMounted(() => {
   void loadModels();
-});
-
-onUnmounted(() => {
-  disposed = true;
 });
 </script>
 
@@ -156,11 +105,11 @@ onUnmounted(() => {
           :key="model.id"
           type="button"
           :disabled="downloading"
-          class="bg-bg-surface border border-border-subtle rounded-xl p-4 cursor-pointer text-left transition-colors hover:border-text-tertiary disabled:cursor-not-allowed disabled:opacity-60"
-          :class="{
-            'border-brand bg-brand/5': selectedId === model.id,
-          }"
-          @click="selectModel(model)"
+           class="bg-bg-surface border border-border-subtle rounded-xl p-4 cursor-pointer text-left transition-colors hover:border-text-tertiary disabled:cursor-not-allowed disabled:opacity-60"
+           :class="{
+             'border-brand bg-brand/5': selectedModel?.id === model.id,
+           }"
+           @click="onSelectModel(model)"
         >
           <div class="flex items-center justify-between gap-3">
             <div class="flex flex-col gap-1">
@@ -185,17 +134,17 @@ onUnmounted(() => {
               </span>
             </div>
             <span
-              class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
-              :class="
-                selectedId === model.id
-                  ? 'border-brand bg-brand'
-                  : 'border-border-subtle bg-bg-surface'
-              "
-            >
-              <span
-                v-if="selectedId === model.id"
-                class="h-1.5 w-1.5 rounded-full bg-primary-foreground"
-              />
+               class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
+               :class="
+                 selectedModel?.id === model.id
+                   ? 'border-brand bg-brand'
+                   : 'border-border-subtle bg-bg-surface'
+               "
+             >
+               <span
+                 v-if="selectedModel?.id === model.id"
+                 class="h-1.5 w-1.5 rounded-full bg-primary-foreground"
+               />
             </span>
           </div>
         </Button>
@@ -207,6 +156,40 @@ onUnmounted(() => {
       class="bg-warning/10 border border-warning rounded-xl p-4 text-sm text-text-secondary"
     >
       ⚠️ Changing dimensions later requires re-embedding all existing memories.
+    </div>
+
+    <div
+      v-if="downloading && selectedModel"
+      class="flex flex-col gap-2 rounded-xl border border-border-subtle bg-bg-surface p-4"
+    >
+      <div class="flex items-center justify-between gap-3">
+        <span class="text-sm font-medium text-text-primary">
+          Downloading {{ selectedModel.name }}
+        </span>
+        <span v-if="hasDownloadProgress" class="text-xs text-text-secondary">
+          {{ Math.round(downloadPercent) }}%
+        </span>
+      </div>
+
+      <Progress
+        v-if="hasDownloadProgress"
+        :model-value="downloadPercent"
+        class="h-2"
+      />
+      <div
+        v-else
+        class="h-2 overflow-hidden rounded-full bg-muted"
+      >
+        <div class="h-full w-1/3 rounded-full bg-primary animate-pulse" />
+      </div>
+
+      <p class="text-xs text-text-secondary">
+        {{
+          hasDownloadProgress
+            ? `Downloaded ${formatSize(selectedModelProgress?.current ?? 0)} of ${formatSize(selectedModelProgress?.total ?? 0)}`
+            : 'Preparing download…'
+        }}
+      </p>
     </div>
 
     <p v-if="downloadError" class="text-danger text-sm">
@@ -230,7 +213,15 @@ onUnmounted(() => {
           @click="onDownload"
         >
           <Loader2 v-if="downloading" class="h-4 w-4 animate-spin" />
-          <span>{{ selectedModel?.installed || selectedModel?.isActive ? 'Next →' : 'Download →' }}</span>
+          <span>
+            {{
+              downloading
+                ? 'Downloading…'
+                : selectedModel?.installed || selectedModel?.isActive
+                  ? 'Next →'
+                  : 'Download →'
+            }}
+          </span>
         </Button>
       </div>
     </div>

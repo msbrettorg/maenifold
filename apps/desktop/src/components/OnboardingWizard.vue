@@ -45,16 +45,8 @@ const steps: StepConfig[] = [
   { id: 'done', label: 'Finish', component: OnboardingStepDone },
 ];
 
-// Bridge useOnboarding (0-based step) <-> Stepper v-model (1-based).
-const stepIndex = computed<number>({
-  get: () => step.value + 1,
-  set: (value) => {
-    const target = value - 1;
-    if (target >= 0 && target <= highWaterStep.value) {
-      goToStep(target);
-    }
-  },
-});
+// Stepper expects 1-based modelValue; useOnboarding stores a 0-based step index.
+const stepIndex = computed<number>(() => step.value + 1);
 
 const activeStepComponent = computed<Component>(() => {
   return (
@@ -71,6 +63,12 @@ provide('onboarding-selected-model', selectedModelName);
 function handleMarkComplete(): void {
   markComplete();
   emit('complete');
+}
+
+function handleStepTrigger(target: number): void {
+  if (target <= highWaterStep.value) {
+    goToStep(target);
+  }
 }
 
 provide('onboarding-advance', advance);
@@ -91,7 +89,7 @@ provide('onboarding-mark-complete', handleMarkComplete);
       <ScrollArea class="h-full w-full">
         <div class="flex flex-col items-center justify-start min-h-screen p-8">
           <Stepper
-            v-model="stepIndex"
+            :model-value="stepIndex"
             :linear="false"
             class="w-full max-w-2xl mb-8 flex items-start justify-between gap-2"
           >
@@ -102,7 +100,7 @@ provide('onboarding-mark-complete', handleMarkComplete);
               :disabled="i > highWaterStep"
               class="flex items-center gap-2 flex-1 last:flex-none"
             >
-              <StepperTrigger>
+              <StepperTrigger @click="handleStepTrigger(i)">
                 <StepperIndicator>{{ i + 1 }}</StepperIndicator>
                 <StepperTitle class="text-xs">{{ item.label }}</StepperTitle>
               </StepperTrigger>

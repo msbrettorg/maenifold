@@ -5,10 +5,11 @@ use std::path::Path;
 use crate::{
     acp_config::{AgentsConfig, McpServerEntry},
     error::{MaenifoldError, Result},
+    mcp::stdio_pool::StdioPool,
     tools::ToolContext,
 };
 
-use super::external_mcp_transport::{invoke_via_http, invoke_via_stdio};
+use super::external_mcp_transport::{invoke_via_http, invoke_via_stdio, invoke_via_stdio_fallback};
 
 pub(super) fn split_namespaced_tool_name(tool_name: &str) -> Option<(&str, &str)> {
     let (server_name, remote_tool_name) = tool_name.split_once('.')?;
@@ -32,19 +33,44 @@ pub(super) async fn invoke_external_tool(
     require_tool_allowed(&namespaced_tool_name, allowed_tools)?;
     let server = resolve_server_entry(config, server_name, agent_name)?;
     let arguments = tool_arguments(tool_args)?;
+    let stdio_pool = super::current_stdio_pool();
 
+    call_external_mcp_tool(
+        context,
+        &server,
+        server_name,
+        remote_tool_name,
+        arguments,
+        cwd,
+        stdio_pool.as_deref(),
+    )
+    .await
+}
+
+async fn call_external_mcp_tool(
+    _context: &ToolContext,
+    server: &McpServerEntry,
+    server_name: &str,
+    remote_tool_name: &str,
+    arguments: Option<JsonMap<String, JsonValue>>,
+    cwd: &Path,
+    stdio_pool: Option<&StdioPool>,
+) -> Result<String> {
     match &server {
         McpServerEntry::Stdio { command, args, .. } => {
-            invoke_via_stdio(
-                context,
-                server_name,
-                remote_tool_name,
-                command,
-                args,
-                arguments,
-                cwd,
-            )
-            .await
+            if let Some(pool) = stdio_pool {
+                invoke_via_stdio(server_name, remote_tool_name, arguments, pool).await
+            } else {
+                invoke_via_stdio_fallback(
+                    server_name,
+                    remote_tool_name,
+                    command,
+                    args,
+                    arguments,
+                    cwd,
+                )
+                .await
+            }
         }
         McpServerEntry::Http { url, .. } => {
             invoke_via_http(server_name, remote_tool_name, url, arguments).await

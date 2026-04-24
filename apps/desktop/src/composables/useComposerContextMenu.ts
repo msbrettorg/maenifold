@@ -1,5 +1,6 @@
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import type { PipelineView } from '../lib/pipeline-types';
+import type { SessionRef } from '../lib/pipeline-types';
 import { createNode, createNodeId } from '../lib/pipeline-node-factory';
 import { usePipelineStore } from '../stores/pipeline';
 import { usePromptDialogStore } from '../stores/prompt-dialog';
@@ -29,6 +30,8 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
   const store = usePipelineStore();
   const promptDialogStore = usePromptDialogStore();
   const contextMenu: Ref<ContextMenuState | null> = ref(null);
+  const sessionPickerOpen = ref(false);
+  const pendingSessionNodePosition = ref<Point | null>(null);
 
   const contextMenuEnabled = computed(() => contextMenu.value !== null);
 
@@ -56,6 +59,11 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
 
   function closeContextMenu(): void {
     contextMenu.value = null;
+  }
+
+  function closeSessionPicker(): void {
+    sessionPickerOpen.value = false;
+    pendingSessionNodePosition.value = null;
   }
 
   function createContextNode(type: 'prompt' | 'sequentialThinking' | 'workflow' | 'tool', toolName?: string): void {
@@ -185,6 +193,28 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
     closeContextMenu();
   }
 
+  function openSessionPicker(): void {
+    if (!contextMenu.value || contextMenu.value.mode !== 'canvas') return;
+    pendingSessionNodePosition.value = contextMenu.value.position;
+    sessionPickerOpen.value = true;
+    closeContextMenu();
+  }
+
+  function addSessionNode(sessionRef: SessionRef): void {
+    const position = pendingSessionNodePosition.value;
+    if (!position) return;
+
+    const node = createNode('prompt', {
+      id: createNodeId('prompt'),
+      agent: sessionRef.agent,
+      prompt: 'Ask an agent',
+      sessionRef,
+    });
+
+    options.createNodeAt(node, position);
+    closeSessionPicker();
+  }
+
   function handleContextMenuOpenChange(open: boolean): void {
     if (!open) closeContextMenu();
   }
@@ -194,7 +224,9 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
     contextMenuEnabled,
     contextMenuNodeStatus,
     contextMenuNodeHasOutput,
+    sessionPickerOpen,
     closeContextMenu,
+    closeSessionPicker,
     createContextNode,
     handleComposerContextMenu,
     handleEditNode,
@@ -207,6 +239,8 @@ export function useComposerContextMenu(options: UseComposerContextMenuOptions) {
     handleCanvasGraft,
     handleCanvasPromoteToMemory,
     handleContextMenuOpenChange,
+    openSessionPicker,
+    addSessionNode,
     createPromptNode: () => createContextNode('prompt'),
     createThinkingNode: () => createContextNode('sequentialThinking'),
     createToolNode: (toolName: string) => createContextNode('tool', toolName),

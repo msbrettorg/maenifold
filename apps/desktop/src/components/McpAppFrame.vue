@@ -108,6 +108,17 @@ async function initBridge() {
       return {};
     };
 
+    ab.oncalltool = async (_params) => {
+      // Tool call scope restriction: only allow calls to the originating server
+      // Full proxying will be wired in a future task when useMcpClient exposes
+      // raw CallToolResult shape. For now, return an error indicating tool calls
+      // are not yet supported.
+      return {
+        content: [{ type: 'text', text: 'Tool calls from MCP Apps are not yet supported.' }],
+        isError: true,
+      } as any;
+    };
+
     await ab.connect(transport);
     if (disposed) return;
     bridge.value = ab;

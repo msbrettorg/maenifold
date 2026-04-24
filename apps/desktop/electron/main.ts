@@ -167,6 +167,23 @@ async function createWindow(): Promise<void> {
     });
   });
 
+  // MCP Apps permission handler — default-deny, only allow explicitly requested permissions
+  mainWindow.webContents.session.setPermissionRequestHandler(
+    (_webContents, permission, callback, details) => {
+      // Only allow permissions from sandbox iframes (mcp-app-sandbox:// origin)
+      const isSandbox = details.requestingUrl?.startsWith('mcp-app-sandbox://');
+      // Allowed permission types that MCP Apps can request
+      const allowed = new Set(['clipboard-write', 'clipboard-read']);
+      if (isSandbox && allowed.has(permission)) {
+        callback(true);
+        return;
+      }
+      // Default deny — camera/mic/geolocation require explicit user consent
+      // which we don't have a consent UI for yet (T-203.5 follow-up)
+      callback(false);
+    },
+  );
+
   const rendererUrl = process.env.ELECTRON_RENDERER_URL ?? process.env.VITE_DEV_SERVER_URL;
   if (rendererUrl) await mainWindow.loadURL(rendererUrl);
   else await mainWindow.loadFile(join(app.getAppPath(), 'dist', 'index.html'));

@@ -115,11 +115,12 @@ function handleAdd(): void {
               <header class="text-xs font-semibold uppercase tracking-wide text-text-secondary">
                 {{ group.agent }}
               </header>
-              <button
+              <Button
                 v-for="session in group.sessions"
                 :key="session.sessionId"
+                variant="ghost"
                 type="button"
-                class="flex w-full flex-col gap-2 rounded-2xl border px-3 py-3 text-left transition-colors"
+                class="flex h-auto w-full flex-col items-start gap-2 rounded-2xl border px-3 py-3 text-left"
                 :class="selectedKey === sessionKey(group.agent, session.sessionId)
                   ? 'border-primary bg-accent'
                   : 'border-border bg-background hover:bg-muted/50'"
@@ -136,7 +137,7 @@ function handleAdd(): void {
                 <p v-if="session.title" class="text-xs text-muted-foreground">
                   {{ session.title }}
                 </p>
-              </button>
+              </Button>
             </section>
           </div>
         </ScrollArea>

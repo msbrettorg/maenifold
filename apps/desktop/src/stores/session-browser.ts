@@ -2,15 +2,10 @@ import { defineStore, storeToRefs } from 'pinia';
 import { computed } from 'vue';
 import { useAgentStore, type AgentSessionSummary } from './agent';
 
+const RESUMABLE_STATUSES = new Set(['resumable']);
+
 function isResumableSession(session: AgentSessionSummary): boolean {
-  const normalizedStatus = session.status.trim().toLowerCase();
-  return (
-    normalizedStatus.includes('resumable') ||
-    normalizedStatus.includes('load_session') ||
-    normalizedStatus.includes('load-session') ||
-    normalizedStatus.includes('load session') ||
-    normalizedStatus.includes('loadsession')
-  );
+  return RESUMABLE_STATUSES.has(session.status.trim().toLowerCase());
 }
 
 export const useSessionBrowserStore = defineStore('session-browser', () => {
@@ -36,8 +31,13 @@ export const useSessionBrowserStore = defineStore('session-browser', () => {
     allSessions.value.filter((session) => isResumableSession(session)),
   );
 
-  async function refreshSessions() {
-    await agentStore.refreshSessions();
+  async function refreshSessions(): Promise<boolean> {
+    try {
+      await agentStore.refreshSessions();
+      return !error.value;
+    } catch {
+      return false;
+    }
   }
 
   function getSessionDetail(agentName: string, sessionId: string): AgentSessionSummary | null {

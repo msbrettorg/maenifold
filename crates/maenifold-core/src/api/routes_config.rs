@@ -130,13 +130,45 @@ pub(super) async fn discover_mcp_tools_handler(
     State(state): State<ApiState>,
 ) -> ApiResult<Json<Vec<mcp_discovery::McpServerDiscoveryResult>>> {
     let config = state.config_manager.get_config();
-    Ok(Json(
-        mcp_discovery::discover_all_mcp_tools(
-            &config.mcp_servers,
-            mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT,
-        )
-        .await,
-    ))
+    let mut results = Vec::new();
+
+    if let Some(pool) = &state.gateway_pool {
+        for (server_name, tools) in pool.all_gateway_tools() {
+            let tools = tools
+                .into_iter()
+                .map(|tool| mcp_discovery::McpDiscoveredTool {
+                    name: format!("{server_name}.{}", tool.name),
+                    description: tool.description.as_ref().map(ToString::to_string),
+                    input_schema: serde_json::Value::Object((*tool.input_schema).clone()),
+                })
+                .collect();
+            results.push(mcp_discovery::McpServerDiscoveryResult {
+                server: server_name,
+                server_type: "stdio".to_string(),
+                status: mcp_discovery::McpDiscoveryStatus::Ok,
+                error: None,
+                tools,
+            });
+        }
+    }
+
+    let non_gateway: Vec<_> = config
+        .mcp_servers
+        .iter()
+        .filter(|server| !server.is_gateway())
+        .cloned()
+        .collect();
+    if !non_gateway.is_empty() {
+        results.extend(
+            mcp_discovery::discover_all_mcp_tools(
+                &non_gateway,
+                mcp_discovery::DEFAULT_DISCOVERY_TIMEOUT,
+            )
+            .await,
+        );
+    }
+
+    Ok(Json(results))
 }
 
 pub(super) async fn add_agent_handler(

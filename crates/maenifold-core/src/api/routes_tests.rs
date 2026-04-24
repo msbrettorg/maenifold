@@ -19,7 +19,7 @@ fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
     let config = Config::current();
     config.ensure_directories().expect("ensure directories");
     GraphDatabase::initialize_database(&config).expect("initialize database");
-    (temp, ApiState::new(config), ConfigResetGuard)
+    (temp, ApiState::new(config, None), ConfigResetGuard)
 }
 
 fn seed_graph_community_fixture(state: &ApiState) {

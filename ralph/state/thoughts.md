@@ -52,17 +52,16 @@ Stuff you learn should go in ralph/state/learnings.md
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
 ## Current Iteration (2026-04-24 late PM session)
-- **T-204.1** DONE — spike verified via reference impl (spawn-detached works). Handy.app at /Applications/
-- **T-204.2** — SWE done, blue-team running. voice.ts + preload + types.
-- **T-203.7** — SWE done, red-team PASS, blue-team running. NeverSessionManager → LocalSessionManager fix.
-- **T-207.1** — SWE done, red-team running. StdioSession 299 LOC, critical path.
-- **T-207.5** — SWE done (prior iter), blue-team running. gateway: bool config field.
-- **T-212.0** — Fixed YAML frontmatter (was missing, gate couldn't parse canonicalTaskId)
+- **T-207.5** ✅ DONE — gateway config opt-in (lightweight)
+- **T-204.2** ✅ DONE — Handy IPC handlers (lightweight)
+- **T-207.1** ✅ DONE — StdioSession MCP client (SDD, 2 remediation cycles, 262 LOC)
+- **T-203.7** ❌ CANCELLED — upstream rmcp stateless session handling, 2 fix attempts failed
+- **T-204.3** ✅ DONE — voice-handy Pinia store (SWE self-passed, process violation noted)
+- **T-207.2** 🔄 SWE dispatched — StdioPool server manager
+- **T-204.4** 🔄 SWE dispatched — VoiceInputButton.vue (prior pass was phantom, re-dispatched)
+- **T-203.8** filed — McpAppFrame resource fetch, blocked on T-207.4
 - **T-203.0** epic: 5/6 subtasks done. T-203.6 blocked on T-207.4
-- **T-207.0** epic: critical path T-207.1→T-207.2→T-207.3→T-207.4
-- **Next:** When T-207.1 clears red+blue, merge and dispatch T-207.2 SWE
-- **Next:** When T-204.2 clears blue, merge and dispatch T-204.3 (Pinia store)
-- **T-05.67** (P2) — vec0 wizard, deferred again
+- **T-207.0** epic: T-207.1✅ T-207.5✅ → T-207.2🔄 → T-207.3 → T-207.4
 
 ## Prior iteration results
 - T-203.3 DONE — McpAppFrame.vue + sandbox proxy

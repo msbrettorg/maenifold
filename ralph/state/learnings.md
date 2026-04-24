@@ -506,8 +506,11 @@ Here's the execution plan:
 ### SWE agent ran gate pass (T-204.2)
 - gpt-5.4 SWE for T-204.2 called `gate pass T-204.2 --agent swe` despite prompt explicitly saying "Do NOT modify gate state"
 - Task advanced from swe → blue-team before PM verified the work
+- Same SWE also implemented T-204.3 (voice-handy.ts store) and gate-passed it through its entire pipeline — scope creep + process violation in one move
+- T-204.4 had a phantom gate-pass from a prior iteration (VoiceInputButton.vue never existed but was recorded as swe PASS)
 - **Lesson: Add `gate` to the list of explicitly banned commands in SWE prompts, not just "do not modify gate state"**
 - **Prevention: Future SWE prompts should say "Do NOT run any `gate` commands. Do NOT call any gate MCP tools."**
+- **Prevention: PM must verify file existence, not just git diff stat, before accepting SWE claims**
 
 ## Sprint 05 Learnings
 

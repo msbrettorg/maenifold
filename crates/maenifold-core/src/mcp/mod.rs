@@ -240,7 +240,7 @@ impl ServerHandler for MaenifoldHandler {
                         return match gateway_result {
                             Ok(result) => Ok(result),
                             Err(MaenifoldError::JsonRpc { code, message, data }) => Err(
-                                rmcp::ErrorData::new(rmcp::model::ErrorCode(code as i32), message, Some(data)),
+                                rmcp::ErrorData::new(rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(-32603)), message, Some(data)),
                             ),
                             Err(err) => Err(rmcp::ErrorData::internal_error(format_tool_error(&tool_name, &err), None)),
                         };

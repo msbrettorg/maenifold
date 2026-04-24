@@ -197,6 +197,20 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                     let _ = result_tx.send(result);
                 });
             }
+            WorkerMsg::GetResumeState {
+                runtime_key,
+                role_name,
+                app_session_id,
+                result_tx,
+            } => {
+                let key = pool_key(&app_session_id, &runtime_key, &role_name);
+                tokio::task::spawn_local(async move {
+                    let resumed = CONN_MAP.with(|m| {
+                        m.borrow().get(&key).map(|live| live.resumed).unwrap_or(false)
+                    });
+                    let _ = result_tx.send(resumed);
+                });
+            }
             WorkerMsg::SetMode {
                 runtime_key,
                 role_name,

@@ -275,6 +275,7 @@ pub(crate) async fn cold_start(
         instance_id: LIVE_CONNECTION_SEQ.fetch_add(1, Ordering::Relaxed),
         conn: Rc::new(conn),
         session_id,
+        resumed: start_result.resumed,
         cwd: abs_cwd.to_string(),
         delta_slot,
         available_modes,

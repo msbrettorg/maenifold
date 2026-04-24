@@ -63,6 +63,7 @@ pub async fn execute_runtime(
         }),
     );
 
+    let requested_resume = resume_session_id.is_some();
     let resume_session_id = resume_session_id;
     let app_session_scope = if app_session_id.trim().is_empty() {
         uuid::Uuid::new_v4().to_string()
@@ -109,6 +110,18 @@ pub async fn execute_runtime(
 
     match result {
         Ok((_output, session_id)) => {
+            let resumed = if requested_resume {
+                let (tx, rx) = oneshot::channel();
+                let _ = worker_tx().send(WorkerMsg::GetResumeState {
+                    runtime_key: runtime_key.clone(),
+                    role_name: role_name.to_string(),
+                    app_session_id: app_session_id_owned.clone(),
+                    result_tx: tx,
+                });
+                rx.await.unwrap_or(false)
+            } else {
+                false
+            };
             let output = if full_output.is_empty() {
                 if prompt.starts_with('/') {
                     format!(
@@ -144,7 +157,9 @@ pub async fn execute_runtime(
                     "mode": "live",
                     "agentKind": runtime_key,
                     "runtimeKey": runtime_key,
-                    "sessionId": session_id
+                    "sessionId": session_id,
+                    "resumed": resumed,
+                    "requestedResume": requested_resume
                 }),
             }
         }

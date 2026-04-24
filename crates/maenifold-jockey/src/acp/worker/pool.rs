@@ -24,6 +24,7 @@ pub(crate) struct LiveConnection {
     pub(crate) instance_id: u64,
     pub(crate) conn: Rc<acp::ClientSideConnection>,
     pub(crate) session_id: acp::SessionId,
+    pub(crate) resumed: bool,
     pub(crate) cwd: String,
     pub(crate) delta_slot: DeltaSlot,
     #[allow(dead_code)]

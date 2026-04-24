@@ -166,6 +166,12 @@ pub enum WorkerMsg {
         app_session_id: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
+    GetResumeState {
+        runtime_key: String,
+        role_name: String,
+        app_session_id: String,
+        result_tx: oneshot::Sender<bool>,
+    },
     SetMode {
         runtime_key: String,
         role_name: String,

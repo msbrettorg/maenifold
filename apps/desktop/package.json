@@ -32,6 +32,7 @@
     "@jsonforms/vue": "^3.7.0",
     "@jsonforms/vue-vanilla": "^3.7.0",
     "@microsoft/applicationinsights-web": "^3.4.1",
+    "@modelcontextprotocol/ext-apps": "^1.7.0",
     "@shikijs/markdown-it": "^4.0.2",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.2.2",

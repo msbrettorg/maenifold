@@ -1,0 +1,110 @@
+import { defineStore } from 'pinia';
+import { onUnmounted, ref } from 'vue';
+import { readStorageValue, writeStorageValue } from '../lib/local-storage';
+
+const STORE_NS = 'voice';
+const ENABLED_KEY = 'enabled';
+const POLL_INTERVAL_MS = 5000;
+const LAUNCH_RECHECK_DELAY_MS = 2000;
+
+export const useVoiceHandyStore = defineStore('voice-handy', () => {
+  const installed = ref<boolean | null>(null);
+  const running = ref(false);
+  const path = ref<string | null>(null);
+  const installHint = ref('');
+  const enabled = ref(readStorageValue<boolean>(STORE_NS, ENABLED_KEY) ?? true);
+
+  const hasElectronApi = typeof window !== 'undefined'
+    && window.electronAPI
+    && typeof window.electronAPI.voiceCheck === 'function';
+
+  let pollInterval: ReturnType<typeof setInterval> | null = null;
+
+  async function check() {
+    if (!hasElectronApi) {
+      return;
+    }
+
+    try {
+      const voiceCheck = window.electronAPI?.voiceCheck;
+      if (!voiceCheck) {
+        return;
+      }
+
+      const result = await voiceCheck();
+      installed.value = result.installed;
+      running.value = result.running;
+      path.value = result.path;
+      installHint.value = result.installHint;
+    } catch {
+      // Silently fail — don't crash the app if IPC is unavailable
+    }
+  }
+
+  async function launch() {
+    if (!hasElectronApi || typeof window.electronAPI?.voiceLaunch !== 'function') {
+      return;
+    }
+
+    try {
+      const result = await window.electronAPI.voiceLaunch();
+      if (!result.ok) {
+        return;
+      }
+
+      setTimeout(() => {
+        void check();
+      }, LAUNCH_RECHECK_DELAY_MS);
+    } catch {
+      // Silently fail
+    }
+  }
+
+  function setEnabled(value: boolean) {
+    enabled.value = value;
+    writeStorageValue(STORE_NS, ENABLED_KEY, value);
+  }
+
+  function startPolling() {
+    if (!hasElectronApi || pollInterval) {
+      return;
+    }
+
+    void check();
+    pollInterval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hasFocus()) {
+        void check();
+      }
+    }, POLL_INTERVAL_MS);
+  }
+
+  function stopPolling() {
+    if (!pollInterval) {
+      return;
+    }
+
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+
+  if (hasElectronApi) {
+    startPolling();
+  }
+
+  onUnmounted(() => {
+    stopPolling();
+  });
+
+  return {
+    installed,
+    running,
+    path,
+    installHint,
+    enabled,
+    check,
+    launch,
+    setEnabled,
+    startPolling,
+    stopPolling,
+  };
+});

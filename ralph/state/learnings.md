@@ -22,6 +22,11 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - `block_in_place` + `Handle::block_on` can panic on current-thread runtimes
 - **Lesson: Global state for request-scoped resources is always wrong. Pass via parameters.**
 
+### Red-team auditing wrong tree
+- Dispatched red-team re-audit BEFORE merging worktree to main → red-team read old code from main, not the remediated code in the worktree
+- Red-team reported all findings unfixed because it never saw the fixes
+- **Lesson: Merge the worktree to main BEFORE dispatching red-team re-audit, OR explicitly point the red-team agent to the worktree path.**
+
 ## 2026-04-24 — T-203.7 / T-207.1 / T-204.x iteration (late session)
 
 ### Gate MCP "Session not found" is upstream rmcp issue (T-203.7 cancelled)

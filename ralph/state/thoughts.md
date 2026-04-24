@@ -66,18 +66,19 @@ Stuff you learn should go in ralph/state/learnings.md
 ## Iteration 20260424-1241 — Gateway Wave 2
 - **T-207.10** ✅ DONE — startup wiring already in code, advanced through gate
 - **T-207.4** ✅ DONE (prior iteration) — red-team PASS confirmed
-- **T-207.6** ⏳ SWE in flight — error semantics (configurable timeout, tracing, -32001 error code)
-- **T-207.8** ⏳ SWE in flight — pipeline driver migration to StdioPool
-- **T-203.8** STILL BLOCKED — needs resources/read proxying, T-207 only did tools
-- **T-207.9** BLOCKED — spec references ArcSwap<GatewayRuntime> that doesn't exist; needs spec update to use Option<Arc<StdioPool>> in ApiState directly
-- **T-207.7** UNBLOCKED but P2 — integration test, sequenced after T-207.6
+- **T-207.9** ✅ DONE — discovery endpoint uses StdioPool cache
+- **T-207.0** ✅ EPIC CLOSED — 9/10 subtasks done, T-207.7 (P2) remains
+- **T-207.6** ✅ DONE (prior RALPH instance) — error semantics shipped
+- **T-207.8** ⏳ RED-TEAM re-audit — remediation fixed global pool, panic safety, async
+- **T-207.11** FILED — resource proxying to unblock T-203.0 MCP Apps epic
+- **T-203.8** STILL BLOCKED — now depends on T-207.11
+- Concept repair: MCP-Gateway variants consolidated (9 replacements)
 
 ## Next Actions
-- Land T-207.6 + T-207.8 (in-flight SWEs), run red-team + blue-team, merge
-- T-207.9 needs spec rewrite: replace ArcSwap<GatewayRuntime> with Option<Arc<StdioPool>> in ApiState
-- T-203.8 needs resource proxying task filed — gateway currently only proxies tools, not resources
-- T-207.0 epic: 8/9 subtasks done when T-207.6+T-207.8 land; T-207.9 remains
-- T-204.0 epic closure — check if all subtasks done
+- Land T-207.8 after red-team pass → merge → blue-team → done
+- T-207.11 (resource proxying) is next P1 for unblocking MCP Apps
+- T-207.7 (integration test) is P2 — deferred
+- T-209.x series (pipeline-driven delivery) — future epic, well-decomposed
 
 ## Prior iteration results
 - T-203.3 DONE — McpAppFrame.vue + sandbox proxy

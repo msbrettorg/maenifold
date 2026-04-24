@@ -4,6 +4,7 @@ import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSessionStore } from '../stores/session';
 import { useAgentStore } from '../stores/agent';
 import type { SavedSession } from '../lib/types';
@@ -180,28 +181,19 @@ async function handleDelete(session: SavedSession, event: Event) {
                 v-if="isCurrentConnectedSession(session)"
                 class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-success"
               >
-                <span
-                  class="block size-1.5 rounded-sm bg-success animate-pulse"
-                  aria-hidden="true"
-                />Connected
+                <Skeleton class="size-1.5 rounded-sm bg-success" aria-hidden="true" />Connected
               </span>
               <span
                 v-else-if="hasActiveAgentSession(session)"
                 class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-success"
               >
-                <span
-                  class="block size-1.5 rounded-sm bg-success animate-pulse"
-                  aria-hidden="true"
-                />Active
+                <Skeleton class="size-1.5 rounded-sm bg-success" aria-hidden="true" />Active
               </span>
               <span
                 v-else-if="isCurrentConnectingSession(session)"
                 class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-warning"
               >
-                <span
-                  class="block size-1.5 rounded-sm bg-warning animate-pulse"
-                  aria-hidden="true"
-                />Connecting
+                <Skeleton class="size-1.5 rounded-sm bg-warning" aria-hidden="true" />Connecting
               </span>
               <span
                 v-else-if="isResumeUnavailable(session)"

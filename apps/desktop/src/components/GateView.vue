@@ -5,7 +5,6 @@ import GateViewFilters from './GateViewFilters.vue';
 import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
-import { ScrollArea } from './ui/scroll-area';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { useMcpResources } from '../composables/useMcpResources';
@@ -146,8 +145,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <ScrollArea class="flex-1" role="region" aria-label="Gate tasks">
-    <section class="flex flex-1 flex-col gap-3 p-4">
+  <div class="flex flex-1 flex-col min-h-0 p-4 gap-3" role="region" aria-label="Gate tasks">
       <ProvenanceBreadcrumbs
         current-kind="gate"
         :current-id="detail.currentGateLineageId.value"
@@ -222,6 +220,5 @@ onBeforeUnmount(() => {
         @select="detail.selectTask"
         @close="detail.clearSelection"
       />
-    </section>
-  </ScrollArea>
+  </div>
 </template>

@@ -56,7 +56,7 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 
 | Surface | Entry point | What it is for |
 |---------|-------------|----------------|
-| **Desktop app** | Packaged Electron app or `npm run dev:electron` | Human operator console for agents, pipelines, gate tasks, knowledge exploration, workflow authoring, and local settings. |
+| **Desktop app** | Packaged Electron app or `npm run dev:electron` | Human operator console for agents (with inline MCP Apps), pipelines, gate tasks, knowledge exploration, workflow authoring, and local settings. |
 | **MCP server** | `maenifold --mcp` | Native tool surface for Codex, Claude Code, Continue, Cline, and other MCP-capable clients. |
 | **HTTP daemon** | `maenifold --http` | Long-running local control plane used by the desktop app and any HTTP-based integrations. |
 | **CLI** | `maenifold --tool ... --payload ...` | One-shot automation, scripting, debugging, and reproducible direct tool invocation. |
@@ -82,6 +82,7 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 | **Explore notes and concept structure** | Knowledge | Search the memory corpus, read notes, follow WikiLinks, and inspect concept communities. |
 | **Author workflow assets** | Workflows | Create, import, edit, validate, and save reusable workflow definitions. |
 | **Configure the local runtime** | Settings | Manage agents, MCP servers, runtime tuning, embedding models, and desktop-local preferences. |
+| **Proxy external MCP servers** | MCP Tool Gateway | Expose stdio MCP servers through maenifold's Streamable HTTP endpoint with lifecycle management and crash recovery. |
 
 ---
 
@@ -123,6 +124,7 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 | **[Hybrid Search](https://dl.acm.org/doi/10.1145/1571941.1572114)** | Semantic similarity + exact matching | `SearchMemories` fuses with Reciprocal Rank Fusion (k=60) |
 | **Concept Repair** | Normalize WikiLink variants safely | `RepairConcepts` validates similarity ≥0.7 before replacing |
 | **WikiLink Filtering** | Write-time concept blocklist | `.wikilink-filter.json` prevents hub concepts from graph pollution |
+| **MCP Resources** | Live-queryable graph state via URI scheme | `graph://` URIs for corpus snapshots, communities, concepts, and recent activity with subscribe/notify |
 
 ### Reasoning
 
@@ -130,6 +132,7 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 |---------|---------------|----------------|
 | **[Sequential Thinking](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)** | State machine: `active` → `completed`/`cancelled`/`abandoned`. Multi-step reasoning with revision, branching, and concurrent multi-agent branches | Extends MCP server with `sessionId`, `branchId`, `parentWorkflowId`; can be registered as a Workflow submachine |
 | **Assumption Ledger** | Track beliefs and their validation status | `AssumptionLedger` with confidence levels, evidence links |
+| **Pipeline Execution** | DAG-ordered execution with conditional routing, per-node retry, timeout enforcement, and session resume | `Pipeline` tool with `EdgeType::Conditional`, `backon` retry, `sessionRef` for ACP session reconnection |
 
 ### Workflow System
 
@@ -452,6 +455,7 @@ The Agents workspace is the session-centric surface for direct ACP conversations
 | **Embedded context button** | Opens the context selector for attaching structured context. |
 | **Image attachment button** | Opens the file picker for image attachments. |
 | **Audio attachment button** | Opens the file picker for audio attachments. |
+| **Voice input button** | Opens the Handy companion app for speech-to-text dictation when available. |
 | **Attachment remove action** | Removes an attached image or audio item before sending. |
 | **Suggestion chips** | Sends precomposed starter prompts from the message list. |
 | **Cancel response button** | Stops a streaming response without ending the session. |
@@ -547,6 +551,7 @@ The Gate workspace is the read and inspect surface for local `.gate` task state.
 | **History panel** | Shows stage-change history. |
 | **Progress panel** | Shows progress notes and related status detail. |
 | **Loading and empty states** | Replace the table with clear feedback when data is still loading or nothing matches. |
+| **Cancel command** | Archives a task without completing it — for superseded or abandoned work. |
 
 ### Knowledge
 
@@ -745,12 +750,12 @@ Not every control in the app is always visible. The following surfaces appear on
 
 ## Cognitive Assets
 
-| Asset | Count | Examples |
-|-------|-------|----------|
-| **Workflows** | 35+ | Deductive, design thinking, agentic sprints, game theory, research think tank |
-| **Roles** | 16 | Architect, PM, red-team, blue-team, researcher, writer, FinOps practitioner |
-| **Thinking Colors** | 7 | DeBono's Six Hats + Gray (skeptical inquiry) |
-| **Perspectives** | 12 | Native language modes for culturally-aware reasoning |
+| Asset | Examples |
+|-------|----------|
+| **Workflows** | Deductive, design thinking, agentic sprints, game theory, research think tank |
+| **Roles** | Architect, PM, red-team, blue-team, researcher, writer, FinOps practitioner |
+| **Thinking Colors** | DeBono's Six Hats + Gray and Pink |
+| **Perspectives** | Native language modes for culturally-aware reasoning |
 
 ---
 
@@ -793,7 +798,7 @@ Following the **NO FAKE TESTS** principle:
 | Spec | Value |
 |------|-------|
 | Language | Rust |
-| Vectors | 384-dim (all-MiniLM-L6-v2 via ONNX) |
+| Vectors | 384-dim default (all-MiniLM-L6-v2 via ONNX); switchable via EmbeddingModels catalog |
 | Search | Reciprocal Rank Fusion (k=60) |
 | Database | SQLite + [sqlite-vec](https://github.com/asg017/sqlite-vec) (bundled) |
 | Memory Cycle | Configurable interval; decay params expressed as cycle multiples |
@@ -840,8 +845,13 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 
 | Skill | What You Get |
 |-------|--------------|
-| **[Maenifold](../integrations/claude-code/plugin-maenifold/skills/maenifold/references/README.md)** | 25+ tools, 6 composable layers, sequential thinking, 35+ workflows |
-| **[Product Manager](../integrations/claude-code/plugin-product-team/skills/product-manager/README.md)** | Multi-agent orchestration, graph context injection, quality gates, sprint traceability |
+| **Maenifold** | Knowledge graph, sequential thinking, workflows, and full MCP tool surface |
+| **Gate** | File-authoritative task management with staged delivery |
+| **ACP** | Agent Client Protocol integration and session management |
+| **Pinia** | Vue.js state management patterns and debugging |
+| **Workflow Authoring** | Workflow JSON asset creation and validation |
+| **Azure SRE** | Azure site reliability engineering patterns |
+| **Wiki Research** | Research grounded in knowledge graph context |
 
 ---
 
@@ -849,8 +859,10 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 
 | Integration | What It Does |
 |-------------|-------------|
-| **[Claude Code Plugin](../integrations/claude-code/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
-| **[OpenCode Plugins](../integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
+| **[Copilot Plugin](../assets/integrations/copilot/plugin-maenifold/)** | MCP server, graph-of-thought hooks, skill auto-loading |
+| **[Claude Code Plugin](../assets/integrations/claude-code/)** | Claude Code plugin assets |
+| **[OpenCode Plugins](../assets/integrations/opencode/)** | WikiLink-aware compaction, session persistence for OpenCode CLI |
+| **[Reusable Skills](../assets/integrations/skills/)** | Maenifold, gate, ACP, Pinia, workflow authoring, Azure SRE, and wiki-research |
 
 ---
 
@@ -860,7 +872,15 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 ~/maenifold/
 ├── memory/           # Your markdown memories with WikiLinks
 ├── memory.db         # Knowledge graph and vector embeddings
-└── assets/           # Workflows, roles, colors, perspectives
+├── assets/           # Workflows, roles, colors, perspectives
+│   └── integrations/ # Agent and skill integrations
+├── crates/           # Rust backend workspace
+│   ├── maenifold-core/           # Library — tools, search, graph, ACP, pipeline engine
+│   ├── maenifold-cli/            # Binary — CLI + MCP server
+│   ├── maenifold-gate/           # Binary — file-authoritative task management
+│   ├── maenifold-jockey/         # Binary — desktop integration daemon
+│   └── maenifold-pipeline-driver/ # Binary — headless pipeline executor
+└── apps/desktop/     # Electron + Vue 3 desktop application
 ```
 
 ---

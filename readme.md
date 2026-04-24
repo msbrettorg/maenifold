@@ -55,11 +55,19 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 
 ## Main Surfaces
 
+### Home
+
+- Launch surface with one-click tiles for Agents, Pipelines, Gate, Workflows, and Knowledge.
+- Quick-prompt field for jumping directly into an agent session.
+- Status badges showing daemon connection and corpus health.
+
 ### Agents
 
 - ACP chat sessions against external agents from one desktop shell.
 - Choose the ACP harness, mode, model, and reasoning effort per session, with permission prompts and traffic inspection built into the UI.
 - Designed for multi-agent work without changing the backend protocol.
+- Supports MCP Apps: tools that declare a UI hint render inline interactive frames inside the chat transcript.
+- Optional voice input via the Handy companion app — dictate prompts when the companion is running.
 - The reasoning layer needs a way to talk to agents. This is it.
 
 ### Pipelines
@@ -70,6 +78,11 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Tool nodes can execute MCP calls directly, so structured retrieval and system actions do not require model-token spend.
 - Workflow nodes and graph-backed context let pipelines reuse structured reasoning playbooks instead of rebuilding the same process on every run.
 - Supports pipeline surgery: `fork`, `graft`, `join`, and `rewind`.
+- **Conditional edges** route execution based on upstream output values via JSON-path matching.
+- **Per-node retry** with configurable backoff, jitter, and max attempts via `backon`.
+- **Per-node timeout** enforcement with automatic cancellation.
+- **Session resume** lets prompt nodes reconnect to prior ACP sessions via `sessionRef`.
+- **Pipeline templates** ship as bundled assets: SDD, TDD, and lightweight delivery flows are ready to use.
 - **Pipelines double as evaluations.** Fork a completed pipeline, re-run it with a different harness configuration, and compare execution traces. Graft scoring nodes onto a completed run without re-executing upstream work. Every execution trace persists with full provenance — node outputs, timing, agent attribution, thinking session content. No separate eval framework needed; the pipeline executor IS the benchmark runtime.
 
 ### Gates
@@ -78,6 +91,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Gates provide the local work ledger for staged delivery, review, and rework inside maenifold.
 - Think of it as a local issue tracker that agents and humans can both drive.
 - Supports staged delivery flows through `status`, `append`, `pass`, `fail`, `history`, and `sync`.
+- `cancel` archives a task without completing it — for superseded or abandoned work.
 - The same task system can be driven from CLI, MCP, or the desktop UI.
 - How the reasoning layer tracks and stages work that matters.
 
@@ -96,11 +110,20 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - The visual surface for the memory and graph layer described above.
 - Useful for spotting domain neighborhoods before opening the underlying memory files.
 
+### MCP Tool Gateway
+
+- External stdio MCP servers can be proxied through maenifold's Streamable HTTP endpoint.
+- Opt-in per server: flag a stdio entry in `maenifold.json` and the gateway handles lifecycle, crash recovery, and tool routing.
+- Tool names from upstream servers appear alongside native maenifold tools in `list_tools`.
+- Resources from upstream servers are also proxied via `resources/read`.
+- No separate gateway binary — the existing `maenifold --http` daemon is the host.
+
 ## Architecture
 
 maenifold is MCP-native by design. The server speaks stdio MCP and streamable HTTP, and the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. All domain state lives behind MCP instead of being reimplemented in each frontend. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as an Electron + Vue app and is excluded from the Rust workspace itself.
 
 Because MCP is the only domain interface, there is no capability gap between human and agent. An agent can write memories, create pipelines, dispatch other agents, and pass or fail gate tasks — the same operations a human performs through the desktop app. Pipelines are not static: an agent running inside a pipeline can fork the pipeline it's executing in, and completed upstream work is preserved. Mutation of a live run (graft, rewind, join) is intentionally guarded — cancel or complete first, then reshape.
+The server also exposes MCP resources — `graph://` URIs for corpus snapshots, community data, concept detail, and recent activity — with subscribe/notify support for live updates.
 
 ## Example Flow
 
@@ -128,6 +151,7 @@ maenifold-rs/
 │   ├── maenifold-core/              # Library — tools, search, graph, ACP, pipeline engine
 │   ├── maenifold-cli/               # Binary — CLI + MCP server
 │   ├── maenifold-gate/              # Binary — file-authoritative task management
+│   ├── maenifold-jockey/            # Binary — desktop integration daemon
 │   └── maenifold-pipeline-driver/   # Binary — headless pipeline executor
 ├── apps/desktop/                    # Electron + Vue 3 desktop application
 ├── assets/                          # Workflows, roles, colors, perspectives, integrations
@@ -184,26 +208,28 @@ npm install && npm run dev:electron
 
 A desktop window should open with tabs for Agents, Pipelines, Gates, Workflows, and Graph across the top.
 
+On first launch, an onboarding wizard walks you through daemon connection, agent configuration, and embedding model selection before showing the main app.
+
 For HTTP mode, the backend also supports `maenifold --http` and exposes streamable MCP at `/mcp`.
 
 ## Tools
 
-maenifold exposes roughly 30 MCP tools across eight categories:
+maenifold exposes MCP tools across eight categories:
 
 - **Memory** — `WriteMemory`, `ReadMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `ListMemories`
 - **Search** — `SearchMemories`, `ExtractConceptsFromFile`, `FindSimilarConcepts`
 - **Graph** — `Sync`, `BuildContext`, `Visualize`
 - **Repair** — `RepairConcepts`, `AnalyzeConceptCorruption`
 - **Reasoning** — `SequentialThinking`, `Workflow`, `AssumptionLedger`
-- **Pipeline / ACP** — `Pipeline`, `ListAgents`, `AcpExec`
+- **Pipeline / ACP** — `Pipeline`, `ListAgents`, `ListSessions`, `AcpExec`
 - **Assets** — `Adopt`, `ListAssets`, `UpdateAssets`, `ReadMcpResource`
-- **System** — `GetConfig`, `GetHelp`, `RecentActivity`, `MemoryStatus`, `RunFullBenchmark`
+- **System** — `GetConfig`, `GetHelp`, `RecentActivity`, `MemoryStatus`, `EmbeddingModels`, `RunFullBenchmark`
 
 Tool reference docs live under [`assets/usage/tools/`](assets/usage/tools/). The canonical registry is [`crates/maenifold-core/src/registry.rs`](crates/maenifold-core/src/registry.rs).
 
 ## Assets
 
-The repo ships with dozens of bundled workflows, roles, colors, and perspectives:
+The repo ships with bundled workflows, roles, colors, and perspectives:
 
 - **Workflows** in `assets/workflows/`
 - **Roles** in `assets/roles/`
@@ -218,8 +244,9 @@ Bundled integration assets live under [`assets/integrations/`](assets/integratio
 
 - [`assets/integrations/claude-code/`](assets/integrations/claude-code/) — Claude Code plugin assets
 - [`assets/integrations/copilot/`](assets/integrations/copilot/) — Copilot plugin assets
+- Codex agent configuration in repo config for Codex-targeted sessions and tooling
 - [`assets/integrations/opencode/`](assets/integrations/opencode/) — OpenCode agent and plugin assets
-- [`assets/integrations/skills/`](assets/integrations/skills/) — reusable skills, including maenifold, gate, ACP, and Pinia support
+- [`assets/integrations/skills/`](assets/integrations/skills/) — reusable skills for maenifold, gate, ACP, Pinia, workflow authoring, Azure SRE, and wiki-research
 
 ## What's Next
 
@@ -258,9 +285,12 @@ Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/m
 - [`docs/README.md`](docs/README.md)
 - [`docs/BOOTSTRAP.md`](docs/BOOTSTRAP.md)
 - [`docs/SCRIPTING.md`](docs/SCRIPTING.md)
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 - [`docs/acp-client-architecture.md`](docs/acp-client-architecture.md)
 - [`docs/SECURITY_MODEL.md`](docs/SECURITY_MODEL.md)
 - [`docs/TESTING_PHILOSOPHY.md`](docs/TESTING_PHILOSOPHY.md)
+- [`docs/UAT-PLAN.md`](docs/UAT-PLAN.md)
+- [`docs/WHAT_WE_DONT_DO.md`](docs/WHAT_WE_DONT_DO.md)
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
 
 ## License

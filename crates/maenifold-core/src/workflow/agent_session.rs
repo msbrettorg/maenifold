@@ -55,6 +55,8 @@ pub(crate) struct AgentSession {
     role_mode: Option<String>,
     config_options: Vec<(String, String)>,
     auto_approve: bool,
+    /// Optional ACP session ID to resume on the next prompt via `session/load`.
+    resume_session_id: Option<String>,
     event_tx: jockey::EventSender,
     cleanup_on_drop: AtomicBool,
 }
@@ -110,6 +112,7 @@ pub(crate) async fn open_agent_session(
         role_mode: session_config.mode.clone(),
         config_options,
         auto_approve,
+        resume_session_id: session_config.resume_session_id.clone(),
         event_tx: event_tx.clone(),
         cleanup_on_drop: AtomicBool::new(true),
     })
@@ -153,6 +156,7 @@ impl AgentSession {
             self.config_options.clone(),
             None,
             &self.session_id,
+            self.resume_session_id.clone(),
         )
         .await;
         info!(

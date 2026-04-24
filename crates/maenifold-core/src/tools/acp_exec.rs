@@ -91,6 +91,7 @@ fn exec_with_jockey(
                 role_config_options,
                 None,
                 &app_session_id,
+                None,
             )
             .await;
             acp_prompt_result_into_result(result)

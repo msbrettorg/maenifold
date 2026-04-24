@@ -155,8 +155,19 @@ pub(crate) async fn cold_start(
         })
     }
 
-    let start_result: SessionStartResult = if supports_load {
-        if let Some(sid) = resume_session_id {
+    let start_result: SessionStartResult = match resume_session_id {
+        Some(sid) => {
+            // Caller explicitly requested resume; silent fallback to a new session
+            // would lose user context. Fail loudly instead.
+            if !supports_load {
+                acp_log(
+                    "session.load.unsupported",
+                    json!({ "runtime": runtime_key, "sessionId": &sid }),
+                );
+                return Err(format!(
+                    "agent '{runtime_key}' does not advertise loadSession capability; cannot resume session '{sid}'"
+                ));
+            }
             let mut load_req = acp::LoadSessionRequest::new(
                 acp::SessionId::from(sid.clone()),
                 std::path::PathBuf::from(abs_cwd),
@@ -191,17 +202,16 @@ pub(crate) async fn cold_start(
                 }
                 Err(e) => {
                     acp_log(
-                        "session.load.fallback",
-                        json!({ "runtime": runtime_key, "error": e.to_string() }),
+                        "session.load.failed",
+                        json!({ "runtime": runtime_key, "sessionId": &sid, "error": e.to_string() }),
                     );
-                    do_new_session(&conn, abs_cwd, mcp_servers).await?
+                    return Err(format!(
+                        "session/load failed for session '{sid}' on agent '{runtime_key}': {e}"
+                    ));
                 }
             }
-        } else {
-            do_new_session(&conn, abs_cwd, mcp_servers).await?
         }
-    } else {
-        do_new_session(&conn, abs_cwd, mcp_servers).await?
+        None => do_new_session(&conn, abs_cwd, mcp_servers).await?,
     };
 
     let discovered_models =

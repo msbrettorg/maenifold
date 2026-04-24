@@ -121,6 +121,7 @@ pub(super) fn build_node_execution_request(
                     &None,
                     None,
                     *timeout,
+                    None,
                 )?,
             }
         }
@@ -136,6 +137,7 @@ pub(super) fn build_node_execution_request(
             timeout,
             adopt,
             requires_role,
+            session_ref,
             ..
         } => {
             let session_id = node_session_id(node_states, node.id(), dispatch);
@@ -177,6 +179,9 @@ pub(super) fn build_node_execution_request(
                     allowed_tools,
                     *max_turns,
                     *timeout,
+                    session_ref
+                        .as_ref()
+                        .map(|sr| sr.session_id.clone()),
                 )?,
             }
         }
@@ -234,6 +239,7 @@ pub(super) fn build_node_execution_request(
                     allowed_tools,
                     *max_turns,
                     *timeout,
+                    None,
                 )?,
             }
         }

@@ -151,6 +151,23 @@ pub(crate) async fn ensure_connection(
     mcp_servers: Vec<acp::McpServer>,
     resume_session_id: Option<String>,
 ) -> Result<bool, String> {
+    // When the caller explicitly requests session resume, the cached connection
+    // (keyed only by pool key, not by ACP session_id) cannot be assumed to point
+    // at the requested session. Evict it so cold_start can run session/load.
+    if resume_session_id.is_some() {
+        let evicted = CONN_MAP.with(|m| m.borrow_mut().remove(key).is_some());
+        if evicted {
+            acp_log(
+                "pool.evict",
+                json!({
+                    "runtime": runtime_key,
+                    "role": role_name,
+                    "reason": "resume_requested",
+                    "sessionId": resume_session_id.as_deref().unwrap_or(""),
+                }),
+            );
+        }
+    }
     let already_live = CONN_MAP.with(|m| m.borrow().contains_key(key));
     if already_live {
         acp_log(

@@ -88,6 +88,7 @@ mod tests {
             timeout_seconds,
             session_id: None,
             auto_approve: true,
+            resume_session_id: None,
         }
     }
 

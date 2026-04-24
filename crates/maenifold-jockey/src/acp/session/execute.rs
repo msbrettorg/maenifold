@@ -21,6 +21,7 @@ pub async fn execute_runtime(
     role_config_options: Vec<(String, String)>,
     _state: Option<(&crate::types::AppState, &str)>,
     app_session_id: &str,
+    resume_session_id: Option<String>,
 ) -> AcpPromptResult {
     let normalized = runtime_kind.trim().to_ascii_lowercase();
 
@@ -62,7 +63,7 @@ pub async fn execute_runtime(
         }),
     );
 
-    let resume_session_id = None;
+    let resume_session_id = resume_session_id;
     let app_session_scope = if app_session_id.trim().is_empty() {
         uuid::Uuid::new_v4().to_string()
     } else {

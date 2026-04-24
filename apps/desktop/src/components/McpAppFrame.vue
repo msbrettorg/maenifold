@@ -64,6 +64,7 @@ async function initBridge() {
       }
       try {
         const resource = await readResource(uri);
+        if (disposed) return;
         const html = resource.text ?? '';
         if (!html) {
           errorMessage.value = `Empty resource returned for '${uri}'`;
@@ -75,7 +76,8 @@ async function initBridge() {
           permissions: permissions.value,
         } as any);
       } catch (err) {
-        errorMessage.value = `Failed to fetch resource '${uri}': ${err instanceof Error ? err.message : String(err)}`;
+        if (disposed) return;
+        errorMessage.value = `Failed to fetch app resource`;
       }
     };
 

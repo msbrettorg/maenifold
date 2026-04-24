@@ -1,12 +1,9 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import { Shield, Brain, Send, Pencil } from 'lucide-vue-next';
+import { onMounted, ref } from 'vue';
+import { Brain, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePipelineStore } from '../stores/pipeline';
-import { useGateMcp } from '../composables/useGateMcp';
-import { useGateRegistry } from '../composables/useGateRegistry';
-import type { GateSnapshot } from '../lib/gate';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 
@@ -39,9 +36,6 @@ const emit = defineEmits<{
 }>();
 
 const pipelineStore = usePipelineStore();
-const gate = useGateMcp();
-const gateRegistry = useGateRegistry(() => props.selectedCwd);
-const gateSnapshot = ref<GateSnapshot | null>(null);
 const composerInput = ref('');
 
 const categories: HomeTile[] = [
@@ -51,24 +45,6 @@ const categories: HomeTile[] = [
   { key: 'workflows', title: 'Workflows', description: 'Browse & author', icon: '⚡', accentClass: 'text-thinking', tab: 'workflows' },
   { key: 'knowledge', title: 'Knowledge', description: 'Explore the graph', icon: '🧠', accentClass: 'text-brand', tab: 'knowledge' },
 ];
-
-const daemonConnected = computed(() => props.isConnected);
-const pendingGateTasks = computed(
-  () => (gateSnapshot.value?.tasks ?? []).filter((task) => task.location === 'todo' && task.state === 'pending').length,
-);
-
-async function refreshGateSnapshot() {
-  const root = gateRegistry.selectedGateRoot.value;
-  if (!root) {
-    gateSnapshot.value = null;
-    return;
-  }
-  try {
-    gateSnapshot.value = await gate.loadSnapshot(root);
-  } catch {
-    gateSnapshot.value = null;
-  }
-}
 
 function handleTileSelect(tile: HomeTile) {
   if (tile.action === 'new-session') {
@@ -90,27 +66,8 @@ function handleComposerSubmit() {
   composerInput.value = '';
 }
 
-watch(
-  () => gateRegistry.selectedGateRoot.value,
-  async (root) => {
-    if (!root) {
-      gate.stopPolling();
-      gateSnapshot.value = null;
-      return;
-    }
-    await refreshGateSnapshot();
-    gate.startPolling(root, refreshGateSnapshot);
-  },
-  { immediate: true },
-);
-
 onMounted(async () => {
-  await Promise.allSettled([pipelineStore.refreshList(), refreshGateSnapshot()]);
-});
-
-onBeforeUnmount(() => {
-  gate.stopPolling();
-  void gate.disconnect();
+  await pipelineStore.refreshList();
 });
 </script>
 
@@ -136,37 +93,6 @@ onBeforeUnmount(() => {
         <span class="text-center text-[9px] leading-tight text-text-tertiary">{{ cat.description }}</span>
       </Button>
     </div>
-
-    <div class="mb-4 flex flex-wrap justify-center gap-1.5">
-      <div
-        role="status"
-        :aria-label="daemonConnected ? 'Daemon status: Connected' : 'Daemon status: Not connected'"
-        class="flex items-center gap-1.5 rounded-[4px] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
-      >
-        <span
-          role="img"
-          :aria-label="daemonConnected ? 'Connected' : 'Disconnected'"
-          class="size-1.5 rounded-full"
-          :class="daemonConnected ? 'bg-success' : 'bg-danger'"
-        />
-        {{ daemonConnected ? 'Connected' : 'Daemon not connected' }}
-      </div>
-      <div
-        v-if="pendingGateTasks > 0"
-        role="status"
-        :aria-label="`${pendingGateTasks} pending gate ${pendingGateTasks === 1 ? 'task' : 'tasks'}`"
-        class="flex items-center gap-1.5 rounded-[4px] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
-      >
-        <Shield class="size-3" :stroke-width="1.5" aria-hidden="true" />
-        {{ pendingGateTasks }} pending
-      </div>
-    </div>
-    <p
-      v-if="!daemonConnected"
-      class="mb-4 text-center text-[11px] text-text-tertiary"
-    >
-      Start the maenifold daemon or check Settings &gt; Connection
-    </p>
 
     <div class="w-full max-w-[800px] rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-fluent-8">
       <form class="flex items-center gap-2" @submit.prevent="handleComposerSubmit">

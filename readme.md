@@ -22,7 +22,7 @@ For anyone who spends more time gathering context and re-doing analysis than doi
 
 # maenifold
 
-maenifold is a local-first Rust backend plus a Tauri desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all hit the same tool surface — agents and humans share the same core domain operations. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
+maenifold is a local-first Rust backend plus an Electron desktop app for working with persistent agent memory, ACP sessions, reusable workflow assets, visual pipelines, and gated delivery. The desktop app, the CLI, and external AI clients all hit the same tool surface — agents and humans share the same core domain operations. The goal is simple: one place to reason, orchestrate, execute against the world, and keep context alive across sessions.
 
 Pipelines can mix tool calls, agent sessions, and workflow nodes in a single executable DAG.
 
@@ -98,7 +98,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 
 ## Architecture
 
-maenifold is MCP-native by design. The server speaks stdio MCP and streamable HTTP, and the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. All domain state lives behind MCP instead of being reimplemented in each frontend. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as a Tauri + Vue app and is excluded from the Rust workspace itself.
+maenifold is MCP-native by design. The server speaks stdio MCP and streamable HTTP, and the pipeline runtime can call external MCP servers over stdio or streamable HTTP/HTTPS. All domain state lives behind MCP instead of being reimplemented in each frontend. The repo is a monorepo: the Rust workspace owns the backend crates, while `apps/desktop/` lives alongside it as an Electron + Vue app and is excluded from the Rust workspace itself.
 
 Because MCP is the only domain interface, there is no capability gap between human and agent. An agent can write memories, create pipelines, dispatch other agents, and pass or fail gate tasks — the same operations a human performs through the desktop app. Pipelines are not static: an agent running inside a pipeline can fork the pipeline it's executing in, and completed upstream work is preserved. Mutation of a live run (graft, rewind, join) is intentionally guarded — cancel or complete first, then reshape.
 
@@ -129,7 +129,7 @@ maenifold-rs/
 │   ├── maenifold-cli/               # Binary — CLI + MCP server
 │   ├── maenifold-gate/              # Binary — file-authoritative task management
 │   └── maenifold-pipeline-driver/   # Binary — headless pipeline executor
-├── apps/desktop/                    # Tauri + Vue 3 desktop application
+├── apps/desktop/                    # Electron + Vue 3 desktop application
 ├── assets/                          # Workflows, roles, colors, perspectives, integrations
 └── docs/                            # Architecture, guides, research
 ```
@@ -138,7 +138,7 @@ maenifold-rs/
 
 - Rust 1.75+ (stable toolchain)
 - Node 18+ and npm (for the desktop app)
-- Tauri system dependencies — see the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/)
+- `apps/desktop/` uses Electron + Vite for the desktop shell
 - macOS ARM64, Linux x64, or Windows x64
 
 ## Quick Start
@@ -175,11 +175,11 @@ maenifold tool BuildContext '{"conceptName":"authentication","depth":2}'
 
 On a fresh install with no memory files, SearchMemories returns an empty result set — that's expected.
 
-**Desktop app (requires Tauri prerequisites above):**
+**Desktop app (Electron + Vue):**
 
 ```bash
 cd apps/desktop
-npm install && npm run tauri dev
+npm install && npm run dev:electron
 ```
 
 A desktop window should open with tabs for Agents, Pipelines, Gates, Workflows, and Graph across the top.
@@ -238,7 +238,7 @@ cargo test -p maenifold-core
 MAENIFOLD_FULL_SUITE=1 cargo test
 ```
 
-Desktop work happens under `apps/desktop/` with its own Node/Tauri toolchain. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full build, test, and quality workflow.
+Desktop work happens under `apps/desktop/` with its own Node/Electron toolchain. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for the full build, test, and quality workflow.
 
 Release automation currently packages macOS ARM64, Linux x64, and Windows x64. There are no release tags in this repository today, so treat source builds as the supported path.
 
@@ -250,7 +250,7 @@ Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/m
 - **Pipeline `run` fails with "driver binary not found":** The pipeline executor spawns a separate `maenifold-pipeline-driver` process and expects it next to the `maenifold` binary. Run `./rebuild.sh` to symlink all binaries, or manually: `sudo ln -sf $(pwd)/target/release/maenifold-pipeline-driver /usr/local/bin/maenifold-pipeline-driver`.
 - **Pipeline tool nodes abandon immediately:** External MCP tool nodes (e.g. `azure-mcp-server.kusto`) resolve their server config from `maenifold.json`. Ensure the server is listed in the top-level `mcpServers` array and that the pipeline driver binary is installed (see above).
 - **SearchMemories returns empty results:** Expected on a fresh install with no memory files. Write a memory first with `WriteMemory`.
-- **Tauri build fails on Linux:** Install the system dependencies listed in the [Tauri v2 prerequisites](https://v2.tauri.app/start/prerequisites/) — this typically includes `libwebkit2gtk-4.1-dev` and friends.
+- **Desktop dev shell doesn't start Electron:** Run `npm run dev:electron` from `apps/desktop/`. The plain `npm run dev` script starts only the Vite renderer; the Electron host is wired behind the `dev:electron` lifecycle event.
 - **MCP client can't spawn the server:** Ensure the `command` in your MCP config points to an absolute path or a binary on your PATH.
 
 ## Documentation

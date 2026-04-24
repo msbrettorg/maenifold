@@ -10,6 +10,10 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 
 ## Table of Contents
 
+- [Product Overview](#product-overview)
+  - [Runtime Surfaces](#runtime-surfaces)
+  - [Persistent State](#persistent-state)
+  - [Operator Workflows](#operator-workflows)
 - [Theoretical Foundations](#theoretical-foundations)
 - [How It Works](#how-it-works)
   - [Sequential Thinking](#sequential-thinking)
@@ -20,22 +24,64 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 - [Quick Start](#quick-start)
   - [For VSCode Users](#for-vscode-users)
   - [For Developers](#for-developers)
-- [The Cognitive Stack](#the-cognitive-stack)
-  - [Memory Layer](#memory-layer)
-  - [Graph Layer](#graph-layer)
-  - [Symbolic Communication](#symbolic-communication)
-  - [Reasoning Layer](#reasoning-layer)
+- [Desktop UI Reference](#desktop-ui-reference)
+  - [Application Shell](#application-shell)
+  - [Home](#home)
+  - [Agents](#agents)
+  - [Pipelines](#pipelines)
+  - [Gate](#gate)
+  - [Knowledge](#knowledge)
+  - [Workflows](#workflows)
+  - [Settings](#settings)
+  - [Onboarding Permissions and Dialogs](#onboarding-permissions-and-dialogs)
+  - [Diagnostics Traffic and Cross-Cutting Behavior](#diagnostics-traffic-and-cross-cutting-behavior)
 - [Cognitive Assets](#cognitive-assets)
-- [Key Capabilities](#key-capabilities)
-- [Example Usage](#example-usage)
-- [Real-World Impact](#real-world-impact)
+- [Demo Artifacts](#demo-artifacts)
 - [Testing & Validation](#testing--validation)
 - [Technical Specifications](#technical-specifications)
 - [Technical Principles](#technical-principles)
 - [Configuration](#configuration)
 - [Skills](#skills)
+- [Integrations](#integrations)
 - [Project Structure](#project-structure)
 - [License & Attribution](#license--attribution)
+
+---
+
+## Product Overview
+
+maenifold is a local-first product composed of a shared markdown memory corpus, a graph-and-vector index, a long-running local daemon, an MCP tool surface for agents, and a packaged Electron desktop console for operators. The same knowledge base, workflows, and local configuration power the CLI, desktop app, and MCP-integrated clients.
+
+### Runtime Surfaces
+
+| Surface | Entry point | What it is for |
+|---------|-------------|----------------|
+| **Desktop app** | Packaged Electron app or `npm run dev:electron` | Human operator console for agents, pipelines, gate tasks, knowledge exploration, workflow authoring, and local settings. |
+| **MCP server** | `maenifold --mcp` | Native tool surface for Codex, Claude Code, Continue, Cline, and other MCP-capable clients. |
+| **HTTP daemon** | `maenifold --http` | Long-running local control plane used by the desktop app and any HTTP-based integrations. |
+| **CLI** | `maenifold --tool ... --payload ...` | One-shot automation, scripting, debugging, and reproducible direct tool invocation. |
+| **Cognitive assets** | `assets/` plus memory-root assets | Reusable workflows, roles, perspectives, colors, and prompt scaffolds that shape reasoning. |
+
+### Persistent State
+
+| Artifact | Backing store | Notes |
+|----------|---------------|-------|
+| **Markdown memory corpus** | `memory/` | Source of truth for notes, decisions, research, and thinking traces. |
+| **Graph and vector cache** | `memory.db` | SQLite cache for embeddings, graph structure, and search acceleration. Regenerable from memory files. |
+| **Workflow and role library** | `assets/` | JSON and markdown assets for orchestration, roles, perspectives, and packaged guidance. |
+| **Desktop preferences** | Local application storage | Device-local UI preferences such as text size, telemetry choice, and last working directory. |
+| **Daemon-backed configuration** | Local config files plus daemon API | Agent definitions, MCP server definitions, runtime tuning, and embedding model state. |
+
+### Operator Workflows
+
+| Workflow | Primary surface | Outcome |
+|----------|-----------------|---------|
+| **Start or resume an agent session** | Home, Agents | Create ACP-backed conversations, attach files, inspect tool calls, and continue prior work. |
+| **Design and run a pipeline** | Pipelines | Compose prompt, workflow, tool, and sequential-thinking nodes into a DAG and execute it. |
+| **Track delivery work** | Gate | Browse task files, filter by process or state, and inspect stage history and progress. |
+| **Explore notes and concept structure** | Knowledge | Search the memory corpus, read notes, follow WikiLinks, and inspect concept communities. |
+| **Author workflow assets** | Workflows | Create, import, edit, validate, and save reusable workflow definitions. |
+| **Configure the local runtime** | Settings | Manage agents, MCP servers, runtime tuning, embedding models, and desktop-local preferences. |
 
 ---
 
@@ -311,69 +357,389 @@ See [SCRIPTING.md](SCRIPTING.md) for advanced patterns and [BOOTSTRAP.md](BOOTST
 
 ---
 
-## The Cognitive Stack
+## Desktop UI Reference
 
-### Memory Layer
+The desktop app is the packaged Electron control plane for maenifold. This section documents the shipped top-level tabs plus the conditional controls that appear only when a session, pipeline run, destructive action, or first-launch workflow is active. The acceptance matrix with test-case IDs lives in [UAT-PLAN.md](UAT-PLAN.md); the tables below are the human-oriented operator reference.
 
-Every piece of knowledge lives as a markdown file with a unique URI:
-- `memory://decisions/api-design` — Architectural decisions
-- `memory://thinking/session-12345` — Sequential thinking sessions
-- `memory://research/rag-comparison` — Research notes
+All screenshots in this section were captured from the packaged Electron app on 2026-04-23. If your viewer does not render images, open the corresponding PNG in `docs/ui-tour-screenshots/`.
 
-All files are human-readable, Obsidian-compatible, and persist across sessions.
+### Application Shell
 
-**Two-Stage Memory Model**: Following the hippocampal-neocortical distinction:
-- **Episodic** (`memory://thinking/`): Fast encoding, rapid decay — raw reasoning traces
-- **Semantic** (`memory://research/`, `memory://decisions/`): Slow consolidation, stable knowledge
-- **Immortal**: Validated assumptions and core architecture — exempt from decay
+The shell is shared across every top-level workspace.
 
-The memory-consolidation workflow transfers high-value episodic memories to semantic storage, mirroring biological memory consolidation during sleep.
+#### Primary tabs
 
-### Graph Layer
+| Tab | What it does |
+|-----|--------------|
+| **Home** | Launch surface with quick navigation and a one-shot prompt composer. |
+| **Agents** | ACP sessions, chat transcript, attachments, tool call traces, and session recovery. |
+| **Pipelines** | Pipeline list, composer canvas, node inspectors, and live runner. |
+| **Gate** | Local task tracker over `.gate` state. |
+| **Knowledge** | Notes browser plus concept graph exploration. |
+| **Workflows** | Workflow library, metadata editor, draft bar, and step inspector. |
+| **Settings** | Agent catalog, MCP server list, maenifold runtime tuning, embeddings, and local preferences. |
 
-Automatic graph construction from WikiLinks with:
-- **384-dimensional embeddings** for semantic similarity
-- **Edge weights** that strengthen with repeated mentions
-- **Concept clustering** revealing emergent patterns
-- **Community detection** via Louvain algorithm identifies reasoning domains
-- **Decay weighting** (ACT-R power-law) biases concept rankings by recency
-- **Incremental sync** keeping the graph current
+#### Shared shell controls
 
-### Symbolic Communication
+| Control | What it does |
+|---------|--------------|
+| **Traffic monitor toggle** | Opens or closes the live diagnostic traffic panel. |
+| **Sidebar collapse and expand buttons** | Switch the session rail between full and compact modes. |
+| **Working directory display** | Shows the folder used for agent and pipeline operations. |
+| **Folder select button** | Opens the Electron folder picker so you can change the working directory. |
+| **Agent selector** | Chooses which configured ACP agent backs new sessions. |
+| **New session button** | Creates a new agent session using the selected agent and working directory. |
+| **Session list** | Lists saved sessions with titles and timestamps. |
+| **Resume session action** | Reopens a prior session in the main chat surface. |
+| **Delete session action** | Removes a saved session after confirmation. |
+| **Connection banner** | Surfaces disconnected or reconnecting daemon or agent state and exposes a cancel action when reconnection is in flight. |
+| **Resize handle** | Resizes left and right panels; double-click resets default proportions. |
+| **Shared empty states** | Every major view uses the same centered empty-state pattern with optional action buttons. |
+| **Command palette** | Opens with `Cmd+K` or `Ctrl+K`, filters commands live, and closes on `Escape` or outside click. |
+| **Toast notifications** | Shows success, error, warning, and info events with auto-dismiss plus manual close. |
 
-WikiLinks serve as an inter-agent communication protocol — **concept-as-protocol**:
+Keyboard conventions: the top tab bar supports Left, Right, Home, and End navigation; `Enter` activates the focused control; `Tab` and `Shift+Tab` move through focusable elements; and `Escape` closes menus and dialogs.
 
-```markdown
-# Agent prompt with symbolic references
-"Fix the [[authentication]] bug in [[session-management]]"
-```
+### Home
 
-When an agent writes `[[concept]]`, the system:
-1. Extracts WikiLinks via regex
-2. Calls `BuildContext` + `FindSimilarConcepts` for each
-3. Injects graph neighborhood as enriched context
-4. Receiving agent gets structured knowledge without manual curation
+![Home dashboard](ui-tour-screenshots/home-dashboard-clean.png)
 
-**Information Density**: A 14-byte `[[authentication]]` dereferences to megabytes of structured knowledge — far exceeding what fits in a prompt.
+The Home tab is the desktop launch surface. It gives you one-click entry into the major workspaces and a single prompt field for jumping straight into an agent session.
 
-**Storage vs Retrieval Strength** (New Theory of Disuse):
-- **WikiLinks** = storage strength (pointers persist, never decay)
-- **Decay weight** = retrieval strength (access recency determines surfacing priority)
+| Control | What it does |
+|---------|--------------|
+| **Agents tile** | Opens the Agents workspace. |
+| **Pipelines tile** | Opens the Pipelines workspace. |
+| **Gate tile** | Opens the Gate workspace. |
+| **Workflows tile** | Opens the Workflows workspace. |
+| **Knowledge tile** | Opens the Knowledge workspace. |
+| **Quick prompt input** | Lets you enter a prompt without opening the full Agents tab first. |
+| **Send button** | Submits the prompt, opens Agents, and clears the field. |
+| **Keyboard submit** | Press `Enter` in the prompt input to send; empty submissions are blocked. |
+| **Loading and error states** | The dashboard can surface fetch progress and failure states instead of blank content. |
 
-Forgetting is not loss of the pointer — it's reduced priority for retrieval. The knowledge remains; only its accessibility fades.
+### Agents
 
-### Reasoning Layer
+![Agents workspace](ui-tour-screenshots/agents-tab-current.png)
 
-Where test-time computation happens:
-- **Sequential Thinking**: State machine (`active` → `completed`/`cancelled`/`abandoned`) with revision, branching, and multi-agent sessions
-- **Workflow Orchestration**: Supervisor state machine managing 35+ methodologies; registers SequentialThinking as submachines, gates step advancement until completion
-- **Assumption Ledger**: Traceable skepticism — capture, validate, and track assumptions
-- **Multi-agent Coordination**: Wave-based execution with parallel agent dispatch
-- **Intelligent Method Selection**: Meta-cognitive system for optimal reasoning approach
-- **RTM Validation**: Requirements traceability for systematic development
-- **Quality Control**: Stop conditions, validation gates, and anti-slop controls
+The Agents workspace is the session-centric surface for direct ACP conversations.
 
-**Context Window Economics**: The PM (blue hat) uses sequential thinking to preserve expensive context while dispatching fresh agents for implementation. This allows complex projects without context exhaustion.
+#### Session rail
+
+| Control | What it does |
+|---------|--------------|
+| **Traffic monitor toggle** | Opens the live request or event stream without leaving the chat view. |
+| **Collapse or expand button** | Shrinks or restores the left rail. |
+| **Agent selector** | Chooses the ACP agent used for new sessions. |
+| **Health indicator and refresh action** | Shows whether the selected agent is reachable and lets you re-probe it. |
+| **Working directory label** | Displays the root folder used for new sessions. |
+| **Select folder button** | Changes the working directory via the folder picker. |
+| **New session button** | Starts a new conversation. |
+| **Session list** | Shows saved sessions, timestamps, and an empty state when none exist. |
+| **Resume action** | Restores a prior session into the main chat view. |
+| **Delete action** | Removes a saved session after confirmation. |
+| **Resize handle** | Adjusts the width of the session rail. |
+
+#### Chat surface
+
+| Control | What it does |
+|---------|--------------|
+| **Chat empty state** | Prompts you to select an agent and start a session when nothing is active. |
+| **Config option picker** | Opens runtime or model-specific options when exposed by the active agent. |
+| **Message textarea** | Main prompt editor for the session. |
+| **`Enter` and `Shift+Enter` behavior** | `Enter` sends in single-line mode; `Shift+Enter` inserts a newline. |
+| **Send button** | Sends the current message, clears the editor, and shows a sending state while in flight. |
+| **Embedded context button** | Opens the context selector for attaching structured context. |
+| **Image attachment button** | Opens the file picker for image attachments. |
+| **Audio attachment button** | Opens the file picker for audio attachments. |
+| **Attachment remove action** | Removes an attached image or audio item before sending. |
+| **Suggestion chips** | Sends precomposed starter prompts from the message list. |
+| **Cancel response button** | Stops a streaming response without ending the session. |
+| **Thought toggle** | Expands or collapses the model-thinking section on a message. |
+| **Tool call toggle** | Expands or collapses tool execution details on a message. |
+| **Tool call status indicator** | Shows running, completed, or failed state for each tool execution. |
+| **Markdown and code renderer** | Renders headings, lists, links, and syntax-highlighted code blocks inline. |
+| **Startup progress card** | Shows multi-step startup state with progress bar, status text, cancel action, and optional details panel. |
+
+### Pipelines
+
+![Pipelines workspace](ui-tour-screenshots/pipelines-tab-current.png)
+
+The Pipelines workspace is where you design, inspect, and execute multi-step DAGs built from prompts, workflows, tools, and sequential thinking.
+
+#### Bootstrap, list, and runner controls
+
+| Control | What it does |
+|---------|--------------|
+| **Prompt input** | Accepts a natural-language goal and starts pipeline design on `Enter`. |
+| **Starter chips** | Seeds the composer with starter patterns such as Research & Verify, Think & Critique, Draft & Refine, and Explore & Synthesize. |
+| **Flyout toggle** | Opens or closes the pipeline flyout. |
+| **New pipeline button** | Creates a new blank pipeline session. |
+| **Banner dismiss action** | Hides contextual notices at the top of the workspace. |
+| **Mobile sidebar toggle** | Opens or closes the sidebar on narrow layouts. |
+| **Graft button** | Opens the Graft Nodes dialog. |
+| **Join button** | Opens the Join Pipeline dialog. |
+| **Runner toggle** | Shows or hides the live execution runner. |
+| **Pipeline sidebar refresh** | Reloads saved pipelines. |
+| **Pipeline row selection** | Loads the chosen pipeline into the canvas. |
+| **Pipeline delete action** | Removes a pipeline after confirmation. |
+| **Flyout search and retry controls** | Filter flyout content and retry failed list operations. |
+
+#### Composer canvas
+
+| Control | What it does |
+|---------|--------------|
+| **Canvas pan and zoom** | Lets you move around large graphs with drag, scroll, or trackpad gestures. |
+| **Node selection and drag** | Selects a node, shows selection state, and repositions it on the canvas. |
+| **Node double-click** | Opens the node editor or config panel. |
+| **Edge selection and creation** | Lets you draw connections between node ports and remove selected edges. |
+| **Multi-select and box select** | Selects multiple nodes for batch operations. |
+| **Toolbar layout buttons** | Re-layout nodes left-to-right or top-to-bottom. |
+| **Toolbar delete button** | Deletes the current node selection. |
+| **Toolbar fit-view button** | Reframes the canvas around all visible nodes. |
+| **Toolbar palette toggle** | Opens or closes the node and tool palette. |
+| **Node cards** | Render prompt, sequential-thinking, workflow, and tool nodes with icon, label, and hover state. |
+| **Status badges** | Reflect pending, running, completed, or failed execution state. |
+| **Port handles** | Left and right connection points used to create or accept edges. |
+| **Design-mode context menu** | Right-click empty space or a node to Ask agent, Think through, Run workflow, Edit, Duplicate, Delete, or Disconnect edges. |
+| **Server-mode context menu** | On executed pipelines, exposes Restart, Rewind, Fork, Abandon, Run Pipeline, Graft, and Promote to Memory actions. |
+
+#### Inspectors and dialogs
+
+| Surface | What it contains |
+|---------|------------------|
+| **Semantic zoom overlay** | Focused node view with failure disclosure plus Fork, Restart, Rewind, Abandon, Graft, Promote, and reconnect actions. |
+| **Graft Nodes dialog** | Node type select, custom ID, connect-from, connect-to, edge-type, type-specific fields, Cancel, and Submit. |
+| **Join Pipeline dialog** | Source session ID input plus one or more edge-mapping rows with Add Edge, Remove Edge, Cancel, and Submit. |
+| **Promotion preview step** | Search input with Append, Update, Cancel, and Create new actions. |
+| **Promotion editor step** | Title, folder, tags, WikiLink-rich body, Back, Cancel, Retry, and Continue controls. |
+| **Promotion confirm step** | Back, Edit, Cancel, Retry, and Submit actions before creating or updating memory. |
+| **Edge mapping editor** | Parameter input, JSON-path input, Add mapping, and Remove mapping controls. |
+| **Design node config panel** | Label, role, color, perspective, CWD, and conditional-edge configuration fields. |
+| **Add node form** | Type selector plus per-type fields such as workflow ID, topic, mode, prompt template, total thoughts, and analysis type. |
+| **Tool palette** | Refresh, search, pin or unpin, quick-add, clear, and Add Tool controls. |
+| **Runner panel** | Real-time execution event log with scrollback and final status visibility. |
+
+### Gate
+
+![Gate workspace](ui-tour-screenshots/gate-tab-current.png)
+
+The Gate workspace is the read and inspect surface for local `.gate` task state.
+
+| Control | What it does |
+|---------|--------------|
+| **Workspace selector** | Chooses which gate root is active. |
+| **Browse button** | Opens the folder picker to add or switch a root. |
+| **Remove button** | Removes the selected root from the UI. |
+| **Refresh button** | Reloads task data from the selected root. |
+| **Todo, Done, and All tabs** | Changes which task subset is shown. |
+| **Filter tasks input** | Text-filters the task list. |
+| **Process selector** | Filters tasks by process. |
+| **State selector** | Filters tasks by current state. |
+| **Location selector** | Filters tasks by source location such as `todo` or `done`. |
+| **Issues-only checkbox** | Restricts the table to issue tasks. |
+| **Sortable column headers** | Re-sorts the table by Task ID, Task, Process, or Progress. |
+| **Task row selection** | Loads the selected task into the detail pane. |
+| **Table keyboard navigation** | Moves selection between rows with Up and Down arrows. |
+| **Detail close action** | Clears the selected task and closes the detail pane. |
+| **Metadata panel** | Shows the task's core metadata. |
+| **Stages panel** | Shows stage progression. |
+| **History panel** | Shows stage-change history. |
+| **Progress panel** | Shows progress notes and related status detail. |
+| **Loading and empty states** | Replace the table with clear feedback when data is still loading or nothing matches. |
+
+### Knowledge
+
+![Knowledge notes](ui-tour-screenshots/knowledge-notes-tab-current.png)
+
+![Knowledge graph](ui-tour-screenshots/knowledge-graph-tab-current.png)
+
+The Knowledge workspace has two modes: note browsing and graph exploration.
+
+#### Notes browser
+
+| Control | What it does |
+|---------|--------------|
+| **Notes and Graph tabs** | Switch between document browsing and graph exploration. |
+| **Search input** | Finds notes by query. |
+| **Search button and `Enter` submit** | Executes the search. |
+| **Clear search behavior** | Restores the full note tree after a query. |
+| **Refresh folders button** | Reloads the memory tree from disk or daemon data. |
+| **Folder toggles** | Expand or collapse nested folders in the tree. |
+| **File buttons** | Open the selected note in the renderer. |
+| **Note renderer** | Shows markdown headings, lists, code blocks, and other note content. |
+| **WikiLinks** | Open linked notes and can show preview or tooltip information on hover. |
+| **Broken-link handling** | Surfaces missing-note behavior without crashing the reader. |
+| **Results and empty states** | Show matching notes or no-results messaging. |
+
+#### Graph view
+
+| Control | What it does |
+|---------|--------------|
+| **Concept communities list** | Lists graph clusters and node counts for discovery. |
+| **Concept filter input** | Narrows visible concepts after a graph or community is loaded. |
+| **Concept buttons** | Select and highlight a concept. |
+| **Reset button** | Returns to the initial graph state. |
+| **Reload button** | Refetches graph data. |
+| **Graph canvas** | Supports pan and zoom. |
+| **Graph node click** | Opens node details and related concepts. |
+| **Related concepts panel** | Shows nearby concepts for the current selection. |
+
+### Workflows
+
+![Workflows workspace](ui-tour-screenshots/workflows-tab-current.png)
+
+The Workflows workspace is the library and authoring surface for reusable JSON workflow assets.
+
+| Control | What it does |
+|---------|--------------|
+| **Find workflow input** | Filters the workflow library by text. |
+| **Category chips** | Filter the library by All, Reasoning, Scientific, Multi-agent, DevOps, or Memory. |
+| **Workflow cards and list** | Select a workflow for inspection or editing. |
+| **New workflow button** | Creates a new workflow asset. |
+| **Import workflow button** | Opens the JSON import flow; invalid files surface validation. |
+| **Draft bar** | Exposes Cancel, Discard, and Save actions; Save disables when there are no edits. |
+| **Metadata form** | Edits name, emoji, description, triggers, category, and workflow toggles. |
+| **Step timeline controls** | Toggle all, export, save, and add step. |
+| **Export actions** | Emit supported export formats from the step timeline. |
+| **Step cards** | Expand or collapse, move up or down, remove, and drag to reorder where supported. |
+| **Step inspector** | Edits step name, description, sequential-thinking toggle, and low, medium, or high effort. |
+| **Conflict-resolution actions** | Resolve import or save conflicts when workflow state diverges. |
+| **Empty state** | Prompts selection when nothing is loaded. |
+
+### Settings
+
+The Settings workspace has five section tabs: **Agents**, **MCP servers**, **Maenifold**, **Embeddings**, and **Preferences**.
+
+#### Agents
+
+![Settings agents](ui-tour-screenshots/settings-agents-current.png)
+
+| Control | What it does |
+|---------|--------------|
+| **Refresh health** | Re-queries daemon status and agent capability health. |
+| **Daemon address display** | Shows the daemon endpoint currently backing the desktop settings API. |
+| **Copy button** | Copies the daemon address to the clipboard. |
+| **Agent health card** | Summarizes configured, ready, pending, offline, and error counts. |
+| **Add agent** | Opens the add-agent flow. |
+| **Agent rows** | Show agent name plus env-var and MCP-server counts. |
+| **Edit action** | Opens the selected agent for editing. |
+| **Delete action** | Removes an agent after confirmation. |
+| **Add or edit agent form** | Captures agent name, command, env vars, per-agent MCP server bindings, Save, and Cancel actions. |
+
+#### MCP servers
+
+![Settings MCP servers](ui-tour-screenshots/settings-mcp-servers-current.png)
+
+| Control | What it does |
+|---------|--------------|
+| **Add MCP server** | Opens the server-detail form. |
+| **MCP server table** | Lists global server name, transport type, and row actions. |
+| **Edit action** | Opens the selected server in the detail form. |
+| **Delete action** | Removes the selected server after confirmation. |
+| **Server-detail form** | Captures name, type, command, URL, args, Save, and Cancel actions. |
+
+#### Maenifold
+
+![Settings maenifold](ui-tour-screenshots/settings-maenifold-current.png)
+
+| Control group | What it configures |
+|---------------|--------------------|
+| **General** | Log rotation, debounce, auto-sync, sync logging, and session-cleanup behavior. |
+| **Database** | SQLite busy timeout, sync lease, watcher buffer, optimize cadence, and vacuum cadence. |
+| **Session** | Session abandon timeout, snippet length, sync role, and default-inheritance toggles. |
+| **Graph** | Decay, community-detection, vector, and embedding-related runtime tuning. |
+| **Workflows and Debug** | Trace logging, pipeline driver, and other workflow-runtime controls. |
+| **Save** | Persists the current maenifold runtime settings. |
+| **Reset to defaults** | Reverts the form to packaged defaults. |
+| **Validation on numeric fields** | Prevents invalid numeric values from being saved silently. |
+
+#### Embeddings
+
+![Settings embeddings](ui-tour-screenshots/settings-embeddings-current.png)
+
+| Control | What it does |
+|---------|--------------|
+| **Regenerate embeddings** | Starts a corpus-wide rebuild of vectors after confirmation. |
+| **Current model display** | Shows the active embedding model name, dimensions, and max token window. |
+| **Model rows or cards** | Display model name, size, dimensions, license, quality metrics, and current status. |
+| **Download action** | Installs a model that is not yet on disk. |
+| **Activate action** | Makes an installed model active. |
+| **Delete action** | Removes an installed non-active model. |
+| **MRL info action** | Explains Matryoshka Representation Learning where applicable. |
+| **Status badges** | Distinguish Active, Installed, and Not installed states. |
+| **Dimension-change warning** | Warns when switching to a differently sized model requires re-embedding the corpus. |
+| **Progress and error feedback** | Shows in-flight download, activate, delete, or regenerate status and surfaces recoverable errors. |
+
+#### Preferences
+
+![Settings preferences](ui-tour-screenshots/settings-preferences-current.png)
+
+| Control | What it does |
+|---------|--------------|
+| **Local only badge** | Marks the section as device-local rather than daemon-shared. |
+| **Text size selector** | Adjusts the global UI font scale. |
+| **Telemetry switch** | Enables or disables Application Insights initialization on launch. |
+| **Last working directory display** | Shows the folder that will be restored on the next launch when available. |
+| **Clear saved folder** | Removes the remembered working directory. |
+
+### Onboarding Permissions and Dialogs
+
+Not every control in the app is always visible. The following surfaces appear only on first launch or when a flow needs confirmation, authentication, or filesystem access.
+
+#### Onboarding wizard
+
+| Surface | What it does |
+|---------|--------------|
+| **Wizard lifecycle gate** | Blocks the main app on first launch until onboarding completes; clearing onboarding state re-shows it. |
+| **Step rail** | Shows the five onboarding steps: Welcome, Daemon, Agent, Model, and Finish. |
+| **Welcome step** | Introductory screen with a Continue button. |
+| **Daemon step** | Shows connection status, start command, copy action, re-check connection, Continue, Back, and auto-polling when disconnected. |
+| **Agent step** | Captures agent name and full shell command, validates duplicates or empties, supports existing-agent continuation, and provides Back navigation. |
+| **Model step** | Lists embedding models, active badge, selection state, Download button, Download later action, retry path, re-embedding warning, and Back navigation. |
+| **Finish step** | Shows a summary card, config path, documentation link, Start button, daemon-up check, and Back navigation. |
+
+#### Permission, auth, and filesystem dialogs
+
+| Surface | What it contains |
+|---------|------------------|
+| **Permission dialog** | Requested-permission list plus per-entry Select actions, Cancel, `Escape`, and backdrop-dismiss behavior. |
+| **Permission entry** | Permission name, scope, two option buttons, and per-entry cancel. |
+| **Auth method dialog** | Method-selection buttons, close action, Cancel, and keyboard navigation between auth options. |
+| **Tool auth setup dialog** | Provider-specific form fields with Confirm, Cancel, validation, and `Escape` close behavior. |
+| **Folder picker** | Path input, Use Path, Cancel, validation, and Electron-only filesystem selection semantics. |
+
+### Diagnostics Traffic and Cross-Cutting Behavior
+
+#### Traffic monitor
+
+| Control | What it does |
+|---------|--------------|
+| **Resize handle** | Changes monitor height or width depending on layout. |
+| **Pause and Resume** | Stops or restarts traffic capture. |
+| **Clear** | Removes the current traffic log from view. |
+| **Filter buttons** | Restrict entries by category. |
+| **Direction buttons** | Filter inbound versus outbound traffic. |
+| **Search input** | Text-filters the traffic log. |
+| **Clear search** | Resets the current traffic query. |
+| **Close** | Hides the monitor. |
+| **Traffic entry header** | Expands or collapses an individual record. |
+| **Copy action** | Copies the selected entry payload to the clipboard. |
+| **Entry metadata** | Shows timestamp, method, and direction. |
+
+#### Global interaction rules
+
+| Behavior | Product rule |
+|----------|--------------|
+| **Keyboard navigation** | Focus order is logical, `Shift+Tab` reverses it, and roving focus is used where lists or tabs need it. |
+| **Loading states** | Long-running fetches show visible loading feedback and disable unsafe repeat actions. |
+| **Error states** | Network, server, and validation failures surface inline messages plus retry affordances where recovery is possible. |
+| **Empty states** | Chat, pipelines, workflows, knowledge, and gate all use explicit empty-state messaging instead of blank panes. |
+| **Long-input boundaries** | Long text, large numbers, negative values, and long lists must clamp, scroll, or validate cleanly. |
+| **Responsive behavior** | Desktop layouts adapt down to narrower widths with sidebar collapse or overlay behavior. |
+| **Clipboard** | Copy buttons plus standard cut, copy, and paste shortcuts are supported across the app. |
+| **Undo and redo** | Text inputs support platform undo and redo shortcuts. |
+| **Design-system compliance** | Shared primitives, tokenized colors, tokenized radii and shadows, and sentence-case labeling are enforced throughout the UI. |
 
 ---
 
@@ -385,26 +751,6 @@ Where test-time computation happens:
 | **Roles** | 16 | Architect, PM, red-team, blue-team, researcher, writer, FinOps practitioner |
 | **Thinking Colors** | 7 | DeBono's Six Hats + Gray (skeptical inquiry) |
 | **Perspectives** | 12 | Native language modes for culturally-aware reasoning |
-
----
-
-## Key Capabilities
-
-- **Test-time Adaptive Reasoning**: Sequential thinking with revision, branching, and multi-agent collaboration
-- **Intelligent Workflow Selection**: Meta-cognitive system that analyzes problems and selects optimal reasoning approaches
-- **35+ Distinct Methodologies**: Complete taxonomy from deductive reasoning to design thinking
-- **Hybrid RRF Search**: Semantic + full-text fusion for optimal retrieval
-- **Lazy Graph Construction**: No schema, no ontology — structure emerges from WikiLink usage
-- **Neuroscience-Grounded Decay**: ACT-R power-law forgetting with tiered memory classes
-- **Autonomous Sleep Cycles**: Five-specialist maintenance runs unattended
-- **Symbolic Inter-Agent Protocol**: WikiLinks dereference to graph context
-- **Hierarchical State Machines**: Workflows supervise SequentialThinking submachines — gate step advancement, self-heal on missing sessions
-- **Quality-Gated Orchestration**: Multi-agent coordination with validation waves and RTM compliance
-- **Complete Transparency**: Every thought, revision, and decision visible in markdown files
-- **Multi-day Persistence**: Sessions maintain state across restarts
-- **Community Detection**: Louvain algorithm identifies reasoning domains during sync, enabling graph-of-thought priming
-- **Session Abandonment Detection**: 30-minute inactivity threshold marks active sessions as abandoned during sync
-- **Graph-of-Thought Priming**: Hook system queries community index to inject clustered concept maps at session start and task dispatch
 
 ---
 

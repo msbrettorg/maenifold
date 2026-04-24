@@ -97,7 +97,7 @@ function handleIntentInput(value: string): void {
         Configure an agent before creating a pipeline.
       </p>
       <Card class="w-full max-w-[800px] bg-transparent border-border-subtle/50">
-        <CardContent class="grid grid-cols-[repeat(auto-fit,minmax(180px,180px))] gap-3 justify-center">
+        <CardContent class="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <TemplateGalleryCard
             v-for="template in availableTemplates"
             :key="template.id"

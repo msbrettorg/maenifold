@@ -37,7 +37,7 @@ function normalizeAppUiRecord(value: unknown): McpAppUiMetadata | null {
   }
 
   const resourceUri = value.resourceUri;
-  if (typeof resourceUri !== 'string' || !resourceUri) {
+  if (typeof resourceUri !== 'string' || !resourceUri.startsWith('ui://')) {
     return null;
   }
 

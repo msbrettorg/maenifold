@@ -166,19 +166,21 @@ pub(crate) async fn handle_execute(
     let prompt_fut = conn_rc.prompt(acp::PromptRequest::new(session_id.clone(), blocks));
     tokio::pin!(prompt_fut);
 
-    let prompt_result: Result<Result<acp::PromptResponse, acp::Error>, &str> = loop {
+    let prompt_result: Result<Result<acp::PromptResponse, acp::Error>, String> = loop {
         tokio::select! {
             res = &mut prompt_fut => {
                 break Ok(res);
             }
             changed = health_rx.changed() => {
                 if changed.is_err() || !*health_rx.borrow() {
-                    break Err("agent process exited while prompt was in progress");
+                    break Err(format!(
+                        "Agent '{runtime_key}' exited: prompt was in progress when the process stopped"
+                    ));
                 }
             }
             _ = tokio::time::sleep(PROMPT_LIVENESS_INTERVAL) => {
                 if !*health_rx.borrow() {
-                    break Err("agent process is no longer alive");
+                    break Err(format!("Agent '{runtime_key}' exited: process is no longer alive"));
                 }
             }
         }
@@ -245,7 +247,7 @@ pub(crate) async fn handle_execute(
             if is_same {
                 CONN_MAP.with(|m| m.borrow_mut().remove(&key));
             }
-            let _ = result_tx.send(Err(reason.to_string()));
+            let _ = result_tx.send(Err(reason));
         }
     }
 }

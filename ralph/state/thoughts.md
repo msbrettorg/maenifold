@@ -52,14 +52,16 @@ Stuff you learn should go in ralph/state/learnings.md
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
 ## Next Actions (updated 2026-04-24)
-- T-203.4 SWE in-flight — ChatToolCallItem integration for McpAppFrame
-- T-203.3 DONE — McpAppFrame.vue + sandbox proxy shipped (3 red-team cycles)
-- T-204.8 DONE — regenerate embeddings fix shipped
-- T-204.9 DONE — delete flat models + path traversal protection shipped (3 red-team cycles)
-- T-204.10 DONE — activate flat models shipped
-- T-203.0 epic: 2 of 6 subtasks done (T-203.1, T-203.2, T-203.3), T-203.4 in-flight
+- T-203.0 epic: 5/6 subtasks done. T-203.6 (E2E) blocked on resource fetch wiring
+- T-203.3 DONE — McpAppFrame.vue + sandbox proxy
+- T-203.4 DONE — ChatToolCallItem integration
+- T-203.5 DONE — Security hardening (permission handler + tool guard)
+- T-204.8 DONE — regenerate embeddings fix
+- T-204.9 DONE — delete flat models + path traversal protection
+- T-204.10 DONE — activate flat models
+- **6 tasks shipped this iteration**
+- Next priority by sprint: T-203.6 blocked → T-203.7 (gate session bug) → T-204.x (Handy voice)
 - T-05.67 (P2) — vec0 wizard, deferred
-- Gate rapid-pass race condition recorded in learnings — always check status between passes
 
 ## T-203.2 Completed (2026-04-24)
 - MCP Apps _meta.ui parsing shipped through full SDD+red-team+blue-team pipeline

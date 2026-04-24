@@ -253,7 +253,7 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/r
 **Build-enforced rules** (automated in `npm run build`):
 
 - `vue-tsc --noEmit` — type safety.
-- `audit:components` — no raw HTML controls, no sibling .css files, no btn-* classnames, 300 LOC limit, max 15 CSS rules per `<style>` block. Exempt a line with `<!-- audit-ok: rule-name -->`.
+- `audit:components` — no raw HTML controls, no sibling .css files, no btn-* classnames, 300 LOC limit, no `<style>` blocks. **`audit-ok` is banned. Build fails if present.**
 - `lint:design` — no hex color literals, no component-local border declarations.
 
 **Layout z-index:** canvas base → backdrop `9` → inspector `10` → flyout `11` → context menu `60` → dialogs `1000`.

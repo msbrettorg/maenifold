@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
+import { Skeleton } from '@/components/ui/skeleton';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 import { Badge } from './ui/badge';
 
@@ -88,6 +89,10 @@ function badgeVariant(tone: DotTone): BadgeVariant {
   if (tone === 'active') return 'default';
   return 'outline';
 }
+
+function activeSkeletonWidth(label: string): string {
+  return `${Math.max(label.length + 2, 6)}ch`;
+}
 </script>
 
 <template>
@@ -96,18 +101,25 @@ function badgeVariant(tone: DotTone): BadgeVariant {
       class="flex flex-wrap items-center gap-1"
       :aria-label="`${task.taskId} progress`"
     >
-      <Badge
+      <template
         v-for="segment in segments"
         :key="`${task.taskId}-${segment.label}-${segment.tone}`"
-        :variant="badgeVariant(segment.tone)"
-        :class="[
-          segment.tone === 'active' ? 'animate-pulse' : '',
-          segment.tone === 'pending' ? 'opacity-60' : '',
-        ]"
-        :title="segment.label"
       >
-        {{ segment.label }}
-      </Badge>
+        <Skeleton
+          v-if="segment.tone === 'active'"
+          class="h-6 rounded-md"
+          :style="{ width: activeSkeletonWidth(segment.label) }"
+          :title="segment.label"
+        />
+        <Badge
+          v-else
+          :variant="badgeVariant(segment.tone)"
+          :class="segment.tone === 'pending' ? 'opacity-60' : ''"
+          :title="segment.label"
+        >
+          {{ segment.label }}
+        </Badge>
+      </template>
     </div>
     <span class="font-mono text-xs text-muted-foreground">{{ progressLabel }}</span>
   </div>

@@ -3,7 +3,29 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
-## 2026-04-24 — T-203.3/T-204.8/T-204.9/T-204.10 iteration
+## 2026-04-24 — T-203.7 / T-207.1 / T-204.x iteration (late session)
+
+### Gate MCP "Session not found" is upstream rmcp issue (T-203.7 cancelled)
+- Two fix attempts failed: (1) LocalSessionManager breaks stateless clients, (2) IgnoreSessionManager is non-functional because stateless POST doesn't consult SessionManager at all
+- The 404 likely comes from GET/SSE session path in rmcp, not the POST path where SessionManager is checked
+- **Lesson: Before implementing a fix, trace the EXACT error path in the upstream code. Both fixes addressed the wrong code path.**
+- CLI fallback (`gate sync --root . --rebuild`) remains reliable
+
+### Red-team catches real allocation DoS in stdio session (T-207.1)
+- First fix used `read_line` + post-read length check — red-team correctly identified allocation happens before the check
+- Second fix uses `fill_buf()`/`consume()` loop with pre-allocation bound — allocation capped before data enters memory
+- **Lesson: When fixing input validation issues, verify the CHECK happens BEFORE the allocation/processing, not after. Post-read guards are insufficient.**
+- Three remediation cycles needed (original, post-read guard, pre-read guard)
+
+### Parallel RALPH instances can merge worktrees unexpectedly
+- Another RALPH instance merged T-204.2 and T-207.5 worktrees while this instance was running
+- Blue-team agents dispatched for stale states returned confused results (e.g., "file not found" when the worktree was removed)
+- **Lesson: Always re-check worktree existence before acting on agent results. Use `git worktree list` to verify.**
+
+### SWEs duplicate code instead of modularizing
+- T-204.2 SWE created voice.ts AND inlined the same code in main.ts
+- Required a follow-up fix to remove the duplication
+- **Lesson: When spec says "create file X and import from Y", explicitly state "do NOT inline the code in Y"**
 
 ### Gate rapid-pass race condition STILL dangerous
 - T-203.3 (SLC pipeline): 4 rapid `gate pass` calls with `sleep 1` between them advanced the task from `spec` all the way to `done/`, skipping blue-team verification entirely.

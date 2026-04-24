@@ -217,11 +217,21 @@ pub(super) fn error_code_from_raw(raw: &str) -> String {
         || l.contains("too many requests")
     {
         "RATE_LIMITED".to_string()
-    } else if l.contains("epipe") || l.contains("broken pipe") || l.contains("transport closed") {
+    } else if l.contains("epipe")
+        || l.contains("broken pipe")
+        || l.contains("transport closed")
+        || (l.contains("agent '") && l.contains(" exited:"))
+        || l.contains("agent process exited")
+        || l.contains("no longer alive")
+    {
         "PROCESS_CRASHED".to_string()
     } else if l.contains("timeout") {
         "TIMEOUT".to_string()
-    } else if l.contains("binary not found") || l.contains("adapter unavailable") {
+    } else if l.contains("binary not found")
+        || l.contains("adapter unavailable")
+        || l.contains("not found in maenifold.json")
+        || l.contains("failed to start agent")
+    {
         "ADAPTER_UNAVAILABLE".to_string()
     } else if l.contains("missing --experimental-acp") {
         "INCOMPATIBLE_VERSION".to_string()

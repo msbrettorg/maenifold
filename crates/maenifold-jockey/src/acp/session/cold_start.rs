@@ -1,5 +1,6 @@
 use agent_client_protocol::{self as acp, Agent as _};
 use serde_json::{Value, json};
+use std::io::ErrorKind;
 use std::rc::Rc;
 use std::sync::atomic::Ordering;
 use std::sync::{Arc, Mutex};
@@ -49,7 +50,10 @@ pub(crate) async fn cold_start(
         cmd.env(k, v);
     }
 
-    let mut child = cmd.spawn().map_err(|e| e.to_string())?;
+    let mut child = cmd.spawn().map_err(|e| match e.kind() {
+        ErrorKind::NotFound => format!("Binary not found: {binary}"),
+        _ => format!("Failed to start agent '{runtime_key}': {e}"),
+    })?;
     if let Some(pid) = child.id() {
         register_child_pid(pid);
     }

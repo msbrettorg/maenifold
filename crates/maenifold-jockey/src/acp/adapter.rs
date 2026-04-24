@@ -171,24 +171,31 @@ pub(super) fn friendly_error_message(runtime: &str, raw: &str) -> String {
     {
         return format!("[{runtime}] Rate limit exceeded — please wait and retry.");
     }
-    if l.contains("epipe") || l.contains("broken pipe") || l.contains("transport closed") {
-        return format!(
-            "[{runtime}] Agent process exited unexpectedly. It will restart on next message."
-        );
-    }
     if l.contains("timeout") {
         return format!("[{runtime}] Operation timed out — please retry.");
     }
-    if l.contains("agent process exited") || l.contains("no longer alive") {
-        return format!(
-            "[{runtime}] Agent process exited unexpectedly. It will restart on next message."
-        );
+    if l.contains("not found in maenifold.json") {
+        return format!("[{runtime}] {raw}");
     }
-    if l.contains("binary not found")
-        || l.contains("adapter unavailable")
-        || l.contains("not found in maenifold.json")
+    if l.contains("binary not found") {
+        return format!("[{runtime}] {raw}");
+    }
+    if l.contains("failed to start agent") {
+        return format!("[{runtime}] {raw}");
+    }
+    if l.contains("agent process exited")
+        || l.contains("no longer alive")
+        || l.contains("transport closed")
+        || l.contains("broken pipe")
+        || l.contains("epipe")
     {
-        return format!("[{runtime}] Agent command not found. Check maenifold.json.");
+        if l.contains("agent '") && l.contains(" exited:") {
+            return format!("[{runtime}] {raw}");
+        }
+        return format!("[{runtime}] Agent '{runtime}' exited: {raw}");
+    }
+    if l.contains("adapter unavailable") {
+        return format!("[{runtime}] {raw}");
     }
     format!("[{runtime}] {raw}")
 }

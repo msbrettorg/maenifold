@@ -12,17 +12,17 @@ const props = defineProps<{
 }>();
 
 const NODE_TYPE_CLASSES: Record<string, string> = {
-  prompt: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
-  sequentialThinking: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
-  tool: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
-  workflow: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+  prompt: 'bg-node-prompt/15 text-node-prompt border-node-prompt/20',
+  sequentialThinking: 'bg-node-thinking/15 text-node-thinking border-node-thinking/20',
+  tool: 'bg-node-tool/15 text-node-tool border-node-tool/20',
+  workflow: 'bg-node-workflow/15 text-node-workflow border-node-workflow/20',
 };
 
 const STATUS_CLASSES: Record<string, string> = {
-  active: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
-  completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+  active: 'bg-status-active/15 text-status-active border-status-active/30',
+  completed: 'bg-status-completed/15 text-status-completed border-status-completed/30',
   abandoned: 'bg-destructive/10 text-destructive border-destructive/20',
-  ready: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+  ready: 'bg-status-ready/15 text-status-ready border-status-ready/30',
 };
 
 const nodeTypeClass = computed(

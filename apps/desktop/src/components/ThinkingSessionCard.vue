@@ -30,19 +30,19 @@ const statusMetaMap: Record<
   active: {
     label: 'Active',
     icon: RefreshCw,
-    className: 'bg-blue-500/10 text-blue-600 border-blue-500/30 dark:text-blue-400',
+    className: 'bg-status-active/15 text-status-active border-status-active/30',
     iconClass: 'animate-spin',
   },
   completed: {
     label: 'Completed',
     icon: CheckCircle,
-    className: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30 dark:text-emerald-400',
+    className: 'bg-status-completed/15 text-status-completed border-status-completed/30',
     iconClass: '',
   },
   abandoned: {
     label: 'Abandoned',
     icon: AlertTriangle,
-    className: 'bg-amber-500/10 text-amber-600 border-amber-500/30 dark:text-amber-400',
+    className: 'bg-status-abandoned/15 text-status-abandoned border-status-abandoned/45',
     iconClass: '',
   },
 };

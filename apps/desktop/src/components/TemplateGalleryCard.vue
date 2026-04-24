@@ -25,10 +25,10 @@ const iconMap: Record<string, Component> = {
 
 const accentBarClass: Record<string, string> = {
   'research-and-verify': 'bg-brand',
-  'think-and-critique': 'bg-purple-500',
-  'draft-and-refine': 'bg-amber-500',
-  'explore-and-synthesize': 'bg-emerald-500',
-  'deal-preparation': 'bg-amber-500',
+  'think-and-critique': 'bg-node-thinking',
+  'draft-and-refine': 'bg-status-active',
+  'explore-and-synthesize': 'bg-status-completed',
+  'deal-preparation': 'bg-status-active',
 };
 
 const accentClass = computed(() => accentBarClass[props.template.id] ?? 'bg-brand');

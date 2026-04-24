@@ -1,7 +1,13 @@
 import type { CommunityGraph, ConceptGraph, ForceEdge, ForceNode } from './graph-types';
 
-const PRIMARY_HEX = '#FFFFFF';
-const SECONDARY_HEX = '#A0AAB2';
+function readCssToken(token: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+  return value || fallback;
+}
+
+const PRIMARY_FALLBACK = '#FFFFFF';
+const SECONDARY_FALLBACK = '#A0AAB2';
 
 export function colorForCommunityIndex(index: number): string {
   const hue = (index * 137.508) % 360;
@@ -15,7 +21,7 @@ export function radiusForDegree(degree: number, maxDegree: number): number {
 }
 
 export function lumaForDegree(degree: number, maxDegree: number): string {
-  if (maxDegree <= 0) return SECONDARY_HEX;
+  if (maxDegree <= 0) return readCssToken('--color-text-secondary', SECONDARY_FALLBACK);
   const ratio = Math.max(0, Math.min(1, degree / maxDegree));
   const value = Math.round(160 + ratio * 80);
   const hex = value.toString(16).padStart(2, '0');
@@ -60,7 +66,7 @@ export function mapConceptGraph(graph: ConceptGraph | null): { nodes: ForceNode[
     label: node.name,
     radius: radiusForDegree(node.occurrences, maxOccurrences),
     color: node.name === graph.anchor
-      ? PRIMARY_HEX
+      ? readCssToken('--color-text-primary', PRIMARY_FALLBACK)
       : lumaForDegree(node.occurrences, maxOccurrences),
   }));
 

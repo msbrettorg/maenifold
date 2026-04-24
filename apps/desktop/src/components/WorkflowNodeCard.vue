@@ -57,10 +57,10 @@ const statusBadgeVariant = computed<'default' | 'secondary' | 'destructive' | 'o
 
 const progressBarClass = computed(() => {
   switch (props.node.status) {
-    case 'completed': return 'bg-emerald-500';
-    case 'abandoned': return 'bg-amber-500';
-    case 'active':    return 'bg-sky-500';
-    default:          return 'bg-sky-500';
+    case 'completed': return 'bg-status-completed';
+    case 'abandoned': return 'bg-status-abandoned';
+    case 'active':    return 'bg-status-active';
+    default:          return 'bg-status-active';
   }
 });
 

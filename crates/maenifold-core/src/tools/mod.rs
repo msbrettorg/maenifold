@@ -8,6 +8,7 @@ mod embedding_download;
 mod embedding_models;
 mod embedding_models_actions;
 mod embedding_models_detect;
+mod embedding_models_scan;
 mod recent_activity;
 mod recent_activity_collect;
 mod recent_activity_format;

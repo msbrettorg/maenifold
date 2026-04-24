@@ -1,6 +1,7 @@
 use rmcp::model::{CallToolResult, Content};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::path::Path;
+use std::sync::Arc;
 
 use crate::{
     acp_config::{AgentsConfig, McpServerEntry},
@@ -33,7 +34,6 @@ pub(super) async fn invoke_external_tool(
     require_tool_allowed(&namespaced_tool_name, allowed_tools)?;
     let server = resolve_server_entry(config, server_name, agent_name)?;
     let arguments = tool_arguments(tool_args)?;
-    let stdio_pool = super::current_stdio_pool();
 
     call_external_mcp_tool(
         context,
@@ -42,7 +42,7 @@ pub(super) async fn invoke_external_tool(
         remote_tool_name,
         arguments,
         cwd,
-        stdio_pool.as_deref(),
+        context.stdio_pool.clone(),
     )
     .await
 }
@@ -54,12 +54,12 @@ async fn call_external_mcp_tool(
     remote_tool_name: &str,
     arguments: Option<JsonMap<String, JsonValue>>,
     cwd: &Path,
-    stdio_pool: Option<&StdioPool>,
+    stdio_pool: Option<Arc<StdioPool>>,
 ) -> Result<String> {
     match &server {
         McpServerEntry::Stdio { command, args, .. } => {
             if let Some(pool) = stdio_pool {
-                invoke_via_stdio(server_name, remote_tool_name, arguments, pool).await
+                invoke_via_stdio_via_runtime(pool, server_name, remote_tool_name, arguments).await
             } else {
                 invoke_via_stdio_fallback(
                     server_name,
@@ -76,6 +76,45 @@ async fn call_external_mcp_tool(
             invoke_via_http(server_name, remote_tool_name, url, arguments).await
         }
     }
+}
+
+async fn invoke_via_stdio_via_runtime(
+    pool: Arc<StdioPool>,
+    server_name: &str,
+    remote_tool_name: &str,
+    arguments: Option<JsonMap<String, JsonValue>>,
+) -> Result<String> {
+    let server_name_owned = server_name.to_string();
+    let remote_tool_name_owned = remote_tool_name.to_string();
+    let task_server_name = server_name_owned.clone();
+    let task_tool_name = remote_tool_name_owned.clone();
+    tokio::task::spawn_blocking(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| {
+                MaenifoldError::Message(format!(
+                    "Failed to build runtime for external MCP tool '{}.{}': {error}",
+                    task_server_name, task_tool_name
+                ))
+            })?
+            .block_on(async {
+                invoke_via_stdio(
+                    &task_server_name,
+                    &task_tool_name,
+                    arguments,
+                    pool.as_ref(),
+                )
+                .await
+            })
+    })
+    .await
+    .map_err(|error| {
+        MaenifoldError::Message(format!(
+            "Failed to join external MCP tool task '{}.{}': {error}",
+            server_name_owned, remote_tool_name_owned
+        ))
+    })?
 }
 
 pub(super) fn require_tool_allowed(

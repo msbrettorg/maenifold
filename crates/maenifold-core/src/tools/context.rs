@@ -1,5 +1,8 @@
+use std::sync::Arc;
+
 use crate::config::Config;
 use crate::error::MaenifoldError;
+use crate::mcp::stdio_pool::StdioPool;
 use crate::util::json::{OutputFormat, failure};
 use serde_json::Value;
 use std::fs;
@@ -8,6 +11,7 @@ use std::path::Path;
 pub struct ToolContext {
     pub config: Config,
     pub output_format: OutputFormat,
+    pub stdio_pool: Option<Arc<StdioPool>>,
 }
 
 impl ToolContext {
@@ -15,7 +19,13 @@ impl ToolContext {
         Self {
             config,
             output_format,
+            stdio_pool: None,
         }
+    }
+
+    pub fn with_stdio_pool(mut self, stdio_pool: Option<Arc<StdioPool>>) -> Self {
+        self.stdio_pool = stdio_pool;
+        self
     }
 }
 

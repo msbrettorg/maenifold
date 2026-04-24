@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use tokio::sync::OwnedSemaphorePermit;
 use tokio::task::JoinSet;
@@ -6,6 +6,7 @@ use tokio_util::sync::CancellationToken;
 use tracing::{error, warn};
 
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::stdio_pool::StdioPool;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
@@ -45,6 +46,7 @@ pub(super) fn spawn_dispatched_node_task(
     event_tx: EventSender,
     output_config: crate::config::Config,
     output_format: OutputFormat,
+    output_stdio_pool: Option<Arc<StdioPool>>,
     timeout: Option<std::time::Duration>,
     timeout_kind: TimeoutResultKind,
     node_retry_policy: Option<RetryPolicy>,
@@ -58,8 +60,10 @@ pub(super) fn spawn_dispatched_node_task(
             let agent = agent.clone();
             let event_tx = event_tx.clone();
             let output_config = output_config.clone();
+            let output_stdio_pool = output_stdio_pool.clone();
             async move {
-                let context = ToolContext::new(output_config, output_format);
+                let context = ToolContext::new(output_config, output_format)
+                    .with_stdio_pool(output_stdio_pool);
                 let (timed_out, (_, result)) = match timeout {
                     Some(duration) => {
                         match tokio::time::timeout(

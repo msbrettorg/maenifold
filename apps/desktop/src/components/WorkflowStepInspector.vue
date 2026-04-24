@@ -155,17 +155,19 @@ function priorityVariant(
               </CardHeader>
               <CardContent>
                 <div v-if="toolHintEntries.length > 0" class="flex flex-wrap gap-2">
-                  <div
+                  <Card
                     v-for="entry in toolHintEntries"
                     :key="entry.name"
-                    class="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1"
+                    class="bg-muted/40"
                     :title="entry.reason"
                   >
-                    <span class="font-mono text-xs text-foreground">{{ entry.name }}</span>
-                    <Badge :variant="priorityVariant(entry.priority)" class="text-[10px] uppercase">
-                      {{ entry.priority }}
-                    </Badge>
-                  </div>
+                    <CardContent class="flex items-center gap-1.5 px-2 py-1">
+                      <span class="font-mono text-xs text-foreground">{{ entry.name }}</span>
+                      <Badge :variant="priorityVariant(entry.priority)" class="text-[10px] uppercase">
+                        {{ entry.priority }}
+                      </Badge>
+                    </CardContent>
+                  </Card>
                 </div>
                 <p v-else class="text-sm text-muted-foreground">
                   No tool hints declared for this step.

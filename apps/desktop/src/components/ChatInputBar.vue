@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
+import VoiceInputButton from './VoiceInputButton.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
 
 type PendingAttachmentView = {
@@ -147,6 +148,8 @@ function handleClose(): void {}
         @keydown="handleKeyDown"
       />
     </div>
+
+    <VoiceInputButton />
 
     <Button
       class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-medium cursor-pointer transition-colors duration-150 hover:not-disabled:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-[0.55]"

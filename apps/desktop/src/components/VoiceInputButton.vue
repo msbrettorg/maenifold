@@ -57,7 +57,7 @@ const tooltipText = computed(() => {
           <span
             v-if="running"
             aria-hidden="true"
-            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-[#0E9C57]"
+            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-success"
           />
         </Button>
       </TooltipTrigger>

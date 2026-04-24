@@ -150,7 +150,7 @@ const table = useVueTable<GateTask>({
             v-for="header in headerGroup.headers"
             :key="header.id"
             :aria-sort="sortAriaOrder(header.column.id as SortColumn)"
-            class="sticky top-0 z-10 bg-muted/40"
+            class="sticky top-0 z-10 bg-muted/40 text-text-primary font-medium"
           >
             <FlexRender
               v-if="!header.isPlaceholder"
@@ -166,15 +166,15 @@ const table = useVueTable<GateTask>({
           :key="row.id"
           :data-state="row.original.taskId === props.selectedTaskId ? 'selected' : undefined"
           :title="rowTitle(row.original)"
-          class="cursor-pointer"
+          class="cursor-pointer hover:bg-surface-high data-[state=selected]:bg-surface-high data-[state=selected]:text-text-primary"
           @click="emit('select', row.original)"
         >
-          <TableCell class="truncate font-mono text-xs text-muted-foreground">
+          <TableCell class="truncate font-mono text-xs text-text-secondary">
             {{ row.original.taskId }}
           </TableCell>
-          <TableCell class="truncate">
+          <TableCell class="truncate text-text-primary">
             <div class="flex min-w-0 items-center gap-2">
-              <span :title="row.original.title" class="min-w-0 flex-1 truncate">
+              <span :title="row.original.title" class="min-w-0 flex-1 truncate text-text-primary">
                 {{ row.original.title }}
               </span>
               <span
@@ -184,14 +184,14 @@ const table = useVueTable<GateTask>({
               />
             </div>
           </TableCell>
-          <TableCell class="truncate font-mono text-xs text-muted-foreground">
+          <TableCell class="truncate text-text-secondary">
             <span>{{ processLabel(row.original) }}</span>
             <TriangleAlert
               v-if="isTaskPipelineDigestStale(row.original)"
               role="img"
               aria-label="Pipeline definition has changed since this task was created"
               :title="pipelineStaleTitle(row.original)"
-              class="ml-1.5 inline h-3.5 w-3.5 cursor-help text-amber-500"
+              class="ml-1.5 inline h-3.5 w-3.5 cursor-help text-warning"
             />
           </TableCell>
           <TableCell>
@@ -201,7 +201,7 @@ const table = useVueTable<GateTask>({
           </TableCell>
         </TableRow>
         <TableRow v-if="!props.tasks.length" class="hover:bg-transparent">
-          <TableCell colspan="4" class="text-center text-muted-foreground">
+          <TableCell colspan="4" class="text-center text-text-secondary">
             No gate tasks match the current filters.
           </TableCell>
         </TableRow>

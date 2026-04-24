@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { Brain, Loader2, Lock, MessageSquare, Palette, Settings, Wrench } from 'lucide-vue-next';
+import {
+  Brain,
+  Loader2,
+  Lock,
+  MessageCircleMore,
+  MessageSquare,
+  Palette,
+  Settings,
+  Wrench,
+} from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component } from 'vue';
 
@@ -31,6 +40,9 @@ const nodeType = computed(() => getNodeType(node.value));
 const toolCategory = computed(() =>
   isToolNode(node.value) ? (getToolCategory(node.value.toolName)?.label ?? 'Tool') : null,
 );
+const isSessionNode = computed(
+  () => isPromptNode(node.value) && Boolean(node.value.sessionRef?.sessionId),
+);
 const accentBarClass = computed(() => {
   if (nodeType.value === 'prompt') return 'bg-node-prompt';
   if (nodeType.value === 'tool') return 'bg-node-tool';
@@ -48,7 +60,7 @@ const typeLabel = computed(() =>
 );
 const nodeIcon = computed((): Component => {
   if (isToolNode(node.value)) return Wrench;
-  if (isPromptNode(node.value)) return MessageSquare;
+  if (isPromptNode(node.value)) return node.value.sessionRef?.sessionId ? MessageCircleMore : MessageSquare;
   if (isSequentialThinkingNode(node.value)) return Brain;
   return Settings;
 });
@@ -84,6 +96,12 @@ const promptSessionBadge = computed(() => {
   }
   return shortenText(node.value.sessionRef.sessionId, 32);
 });
+const promptSessionTitle = computed(() => {
+  if (!isPromptNode(node.value) || !node.value.sessionRef?.sessionId) {
+    return '';
+  }
+  return `Session: ${node.value.sessionRef.sessionId}\nAgent: ${node.value.agent}`;
+});
 const workflowPreview = computed(() =>
   isWorkflowNode(node.value) && node.value.prompt ? shortenText(node.value.prompt, 120) : '',
 );
@@ -113,6 +131,7 @@ const failureSummary = computed(() => {
     size="sm"
     :class="[
       'relative min-w-[260px] max-w-[340px] gap-0 rounded-xl py-0 transition-shadow',
+      isSessionNode ? 'border-dashed border-node-prompt/40' : '',
       selected ? 'ring-2 ring-ring' : '',
       isActive ? 'shadow-lg' : '',
     ]"
@@ -170,7 +189,13 @@ const failureSummary = computed(() => {
       <template v-else-if="isPromptNode(node)">
         <div class="flex flex-wrap gap-1">
           <Badge variant="outline" class="font-normal">{{ node.agent }}</Badge>
-          <Badge v-if="promptSessionBadge" variant="outline" class="font-normal">
+          <Badge
+            v-if="promptSessionBadge"
+            variant="outline"
+            class="font-normal"
+            :title="promptSessionTitle"
+          >
+            <MessageCircleMore class="size-3" :stroke-width="1.5" />
             session: {{ promptSessionBadge }}
           </Badge>
           <Badge

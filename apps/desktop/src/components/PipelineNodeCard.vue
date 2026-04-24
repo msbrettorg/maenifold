@@ -78,6 +78,12 @@ const thoughtProgress = computed(() => {
 const promptPreview = computed(() =>
   isPromptNode(node.value) ? shortenText(node.value.prompt, 120) : '',
 );
+const promptSessionBadge = computed(() => {
+  if (!isPromptNode(node.value) || !node.value.sessionRef?.sessionId) {
+    return '';
+  }
+  return shortenText(node.value.sessionRef.sessionId, 32);
+});
 const workflowPreview = computed(() =>
   isWorkflowNode(node.value) && node.value.prompt ? shortenText(node.value.prompt, 120) : '',
 );
@@ -164,6 +170,9 @@ const failureSummary = computed(() => {
       <template v-else-if="isPromptNode(node)">
         <div class="flex flex-wrap gap-1">
           <Badge variant="outline" class="font-normal">{{ node.agent }}</Badge>
+          <Badge v-if="promptSessionBadge" variant="outline" class="font-normal">
+            session: {{ promptSessionBadge }}
+          </Badge>
           <Badge
             v-for="adoptValue in adoptSummary"
             :key="`prompt-adopt-${adoptValue}`"

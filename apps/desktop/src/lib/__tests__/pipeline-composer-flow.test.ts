@@ -183,6 +183,27 @@ describe('workflow agentConfig round-trip via flow (pipelineNodesToFlow → defi
     expect(result.agent).toBe('architect');
   });
 
+  it('preserves prompt sessionRef through the flow round-trip', () => {
+    const original = createNode('prompt', {
+      id: 'prompt-1',
+      prompt: 'resume work',
+      agent: 'architect',
+      sessionRef: {
+        agent: 'architect',
+        sessionId: 'session-123',
+      },
+    });
+
+    const flowNodes = makeFlowNodes([original]);
+    const { nodes } = definitionFromFlow(flowNodes, []);
+    const result = nodes[0] as Extract<PipelineNode, { type: 'prompt' }>;
+
+    expect(result.sessionRef).toEqual({
+      agent: 'architect',
+      sessionId: 'session-123',
+    });
+  });
+
   it('applies status shell classes and border styles to vue-flow wrappers from view-node status', () => {
     const original = createNode('tool', {
       id: 'tool-1',
@@ -294,5 +315,26 @@ describe('workflow agentConfig round-trip via toPipelineNodeFromViewNode', () =>
     expect(result.model).toBe('gpt-4');
     expect(result.prompt).toBe('do work');
     expect(result.agent).toBe('engineer');
+  });
+
+  it('preserves sessionRef on prompt view node conversion', () => {
+    const viewNode: ViewNode = {
+      nodeId: 'prompt-view-1',
+      sessionId: 'session-1',
+      status: 'pending',
+      attempts: 0,
+      type: 'prompt',
+      prompt: 'do work',
+      agent: 'engineer',
+      sessionRef: {
+        agent: 'engineer',
+        sessionId: 'session-xyz',
+      },
+    };
+    const result = toPipelineNodeFromViewNode(viewNode) as Extract<PipelineNode, { type: 'prompt' }>;
+    expect(result.sessionRef).toEqual({
+      agent: 'engineer',
+      sessionId: 'session-xyz',
+    });
   });
 });

@@ -7,6 +7,7 @@ import {
   cloneInputs,
   cloneNodeAdopt,
   cloneNodeProvenance,
+  cloneSessionRef,
   cloneToolProvenance,
 } from './pipeline-view-transforms-clone';
 
@@ -35,6 +36,9 @@ function normalizeViewNode(node: ViewNode): ViewNode {
   }
   if ('agentConfig' in normalized && normalized.agentConfig) {
     normalized.agentConfig = cloneAgentConfig(normalized.agentConfig);
+  }
+  if ('sessionRef' in normalized && normalized.sessionRef) {
+    normalized.sessionRef = cloneSessionRef(normalized.sessionRef);
   }
   if ('adopt' in normalized && normalized.adopt) {
     normalized.adopt = cloneNodeAdopt(normalized.adopt);

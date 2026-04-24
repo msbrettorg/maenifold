@@ -94,6 +94,20 @@ export function createNode(
       if (typeof f.agent !== 'string' || f.agent.length === 0) {
         throw new Error('Prompt nodes require agent');
       }
+      if (f.sessionRef) {
+        if (typeof f.sessionRef.agent !== 'string' || f.sessionRef.agent.length === 0) {
+          throw new Error('Prompt node sessionRef requires agent');
+        }
+        if (
+          typeof f.sessionRef.sessionId !== 'string'
+          || f.sessionRef.sessionId.length === 0
+        ) {
+          throw new Error('Prompt node sessionRef requires sessionId');
+        }
+        if (f.sessionRef.agent !== f.agent) {
+          throw new Error('Prompt node sessionRef.agent must match agent');
+        }
+      }
       const adopt = buildNodeAdopt(f.adopt);
       const requiresRole = normalizeOptionalText(f.requiresRole, 'requiresRole');
       return {
@@ -102,6 +116,9 @@ export function createNode(
         ...buildDisplayLabel(f.displayLabel),
         prompt: f.prompt,
         agent: f.agent,
+        sessionRef: f.sessionRef
+          ? { agent: f.sessionRef.agent, sessionId: f.sessionRef.sessionId }
+          : undefined,
         ...(adopt ? { adopt } : {}),
         ...(requiresRole ? { requiresRole } : {}),
         ...(typeof f.toolMode === 'string' && f.toolMode.length > 0

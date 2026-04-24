@@ -61,6 +61,14 @@ function cloneNodeWithNewId(node: PipelineNode): PipelineNode {
       ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
       prompt: node.prompt,
       agent: node.agent,
+      ...(node.sessionRef
+        ? {
+            sessionRef: {
+              agent: node.sessionRef.agent,
+              sessionId: node.sessionRef.sessionId,
+            },
+          }
+        : {}),
       ...(node.toolMode ? { toolMode: node.toolMode } : {}),
       ...cloneExecutionFields(node),
     });

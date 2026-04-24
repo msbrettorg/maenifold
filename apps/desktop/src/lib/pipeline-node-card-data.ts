@@ -3,6 +3,7 @@ import type {
   PipelineNode,
   PipelineNodeAdopt,
   PipelineStatus,
+  SessionRef,
 } from './pipeline-types';
 
 export type NodeCardData = {
@@ -18,6 +19,7 @@ export type NodeCardData = {
   type?: PipelineNode['type'];
   prompt?: string;
   agent?: string;
+  sessionRef?: SessionRef;
   topic?: string;
   totalThoughts?: number;
   thinkingTraceLength?: number;
@@ -64,6 +66,14 @@ export function inferPipelineNodeFromCardData(data: NodeCardData): PipelineNode 
       type: 'prompt',
       agent: data.agent ?? data.acpClient ?? 'agent',
       prompt: (data.prompt ?? preview) || data.displayLabel || data.nodeId,
+      ...(data.sessionRef
+        ? {
+            sessionRef: {
+              agent: data.sessionRef.agent,
+              sessionId: data.sessionRef.sessionId,
+            },
+          }
+        : {}),
       ...(data.adopt ? { adopt: data.adopt } : {}),
       ...(data.requiresRole ? { requiresRole: data.requiresRole } : {}),
     };

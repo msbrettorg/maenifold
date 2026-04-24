@@ -1,6 +1,7 @@
 import type { JsonSchema } from '@jsonforms/core';
 import type {
   PromptNode,
+  SessionRef,
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
@@ -13,7 +14,7 @@ export type ObjectSchema<PropertyKeys extends string> = JsonSchema & {
 };
 
 export type WorkflowSchemaKeys = keyof Pick<WorkflowNode, 'workflowId' | 'acpClient' | 'prompt'>;
-export type PromptSchemaKeys = keyof Pick<PromptNode, 'agent' | 'prompt'>;
+export type PromptSchemaKeys = keyof Pick<PromptNode, 'agent' | 'prompt' | 'sessionRef'>;
 export type SequentialThinkingSchemaKeys = keyof Pick<
   SequentialThinkingNode,
   'agent' | 'analysisType' | 'topic' | 'totalThoughts'
@@ -48,6 +49,15 @@ export const pipelineNodeSchemas: {
     properties: {
       agent: { title: 'Agent', type: 'string' },
       prompt: { title: 'Prompt template', type: 'string', format: 'textarea' },
+      sessionRef: {
+        title: 'Session reference',
+        type: 'object',
+        properties: {
+          agent: { title: 'Session agent', type: 'string' },
+          sessionId: { title: 'Session ID', type: 'string' },
+        },
+        required: ['agent', 'sessionId'],
+      },
     },
   },
   sequentialThinking: {
@@ -165,4 +175,31 @@ export function parseToolArgs(value: unknown): Record<string, unknown> | undefin
   }
 
   return parsed as Record<string, unknown>;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export function readOptionalSessionRef(value: unknown): SessionRef | undefined {
+  if (value == null) {
+    return undefined;
+  }
+
+  if (!isRecord(value)) {
+    throw new Error('Session reference must be an object.');
+  }
+
+  const agent = readOptionalString(value.agent);
+  const sessionId = readOptionalString(value.sessionId);
+
+  if (!agent && !sessionId) {
+    return undefined;
+  }
+
+  if (!agent || !sessionId) {
+    throw new Error('Session reference requires both agent and sessionId.');
+  }
+
+  return { agent, sessionId };
 }

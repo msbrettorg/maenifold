@@ -7,6 +7,7 @@ export type {
   PipelineNodeType,
   PipelineNodeAgentConfig,
   PipelineNodeAdopt,
+  SessionRef,
   WorkflowNode,
   PromptNode,
   SequentialThinkingNode,

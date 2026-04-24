@@ -24,6 +24,11 @@ export interface PipelineNodeAdopt {
   perspective?: string;
 }
 
+export interface SessionRef {
+  agent: string;
+  sessionId: string;
+}
+
 export interface WorkflowNode extends PipelineNodeBase {
   type?: "workflow";
   workflowId: string;
@@ -52,6 +57,7 @@ export interface PromptNode extends PipelineNodeBase {
   cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
+  sessionRef?: SessionRef;
 }
 
 export interface SequentialThinkingNode extends PipelineNodeBase {

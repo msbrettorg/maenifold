@@ -6,6 +6,7 @@ import type {
   PipelineNode,
   PipelineNodeType,
   PromptNode,
+  SessionRef,
   SequentialThinkingNode,
   ToolNode,
   WorkflowNode,
@@ -45,6 +46,7 @@ export interface PromptNodeInput extends PipelineNodeExecutionFields {
   displayLabel?: string;
   prompt: string;
   agent: string;
+  sessionRef?: SessionRef;
   adopt?: PipelineNodeAdopt;
   requiresRole?: string;
   toolMode?: string;

@@ -3,6 +3,7 @@
 import type {
   PipelineNodeAdopt,
   PipelineNodeAgentConfig,
+  SessionRef,
 } from "./pipeline-types-node";
 import type {
   NodeStatus,
@@ -93,6 +94,7 @@ export interface PromptViewNode extends ViewNodeBase {
   cwd?: string;
   timeout?: number;
   agentConfig?: PipelineNodeAgentConfig;
+  sessionRef?: SessionRef;
   assembled_prompt?: string | null;
 }
 

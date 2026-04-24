@@ -5,6 +5,7 @@ import type {
   PipelineInputs,
   PipelineNodeAdopt,
   PipelineNodeAgentConfig,
+  SessionRef,
   ToolProvenance,
 } from '../lib/pipeline-types';
 
@@ -44,6 +45,13 @@ export function cloneToolProvenance(toolProvenance: ToolProvenance): ToolProvena
     ...(toolProvenance.responseSummary != null
       ? { responseSummary: toolProvenance.responseSummary }
       : {}),
+  };
+}
+
+export function cloneSessionRef(sessionRef: SessionRef): SessionRef {
+  return {
+    agent: sessionRef.agent,
+    sessionId: sessionRef.sessionId,
   };
 }
 

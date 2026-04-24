@@ -10,6 +10,7 @@ import {
   cloneAndExtractAgentConfig,
   cloneInputs,
   cloneNodeAdopt,
+  cloneSessionRef,
   mergeLegacyExecutionFields,
 } from './pipeline-view-transforms-clone';
 
@@ -23,6 +24,7 @@ function toLocalNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
+        ...(node.sessionRef ? { sessionRef: cloneSessionRef(node.sessionRef) } : {}),
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
         ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
         ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
@@ -108,6 +110,7 @@ function serializeNode(node: PipelineNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
+        ...(node.sessionRef ? { sessionRef: cloneSessionRef(node.sessionRef) } : {}),
         ...(node.toolMode ? { toolMode: node.toolMode } : {}),
         ...(node.adopt ? { adopt: cloneNodeAdopt(node.adopt) } : {}),
         ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),

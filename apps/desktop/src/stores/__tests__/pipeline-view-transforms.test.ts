@@ -32,6 +32,7 @@ describe('pipeline view transforms', () => {
           model: 'legacy-prompt-model',
           thoughtLevel: 'medium',
           agentConfig: { mode: 'workflow', model: 'fresh-prompt-model' },
+          sessionRef: { agent: 'architect', sessionId: 'session-ref-1' },
         },
         {
           nodeId: 'thinking-1',
@@ -74,6 +75,7 @@ describe('pipeline view transforms', () => {
       },
       adopt: { role: 'architect' },
       requiresRole: 'architect',
+      sessionRef: { agent: 'architect', sessionId: 'session-ref-1' },
     });
     expect('model' in promptNode!).toBe(false);
     expect('thoughtLevel' in promptNode!).toBe(false);
@@ -113,6 +115,7 @@ describe('pipeline view transforms', () => {
           type: 'prompt',
           prompt: 'Investigate',
           agent: 'architect',
+          sessionRef: { agent: 'architect', sessionId: 'session-ref-2' },
           adopt: { perspective: 'critical-analyst' },
           requiresRole: 'architect',
           model: 'stale-prompt-model',
@@ -153,6 +156,7 @@ describe('pipeline view transforms', () => {
         model: 'fresh-prompt-model',
         thoughtLevel: 'medium',
       },
+      sessionRef: { agent: 'architect', sessionId: 'session-ref-2' },
       adopt: { perspective: 'critical-analyst' },
       requiresRole: 'architect',
     });

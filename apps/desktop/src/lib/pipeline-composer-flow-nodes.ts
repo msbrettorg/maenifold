@@ -5,6 +5,7 @@ import type {
   PipelineNodeAdopt,
   PipelineNodeAgentConfig,
   PipelineNodeType,
+  SessionRef,
   ToolProvenance,
   ViewNode,
 } from './pipeline-types';
@@ -31,6 +32,7 @@ export type FlowNodeData = {
   requiresRole?: string;
   prompt?: string;
   agent?: string;
+  sessionRef?: SessionRef;
   topic?: string;
   totalThoughts?: number;
   thinkingTraceLength?: number;
@@ -113,6 +115,14 @@ export function toFlowNodeData(
       ...base,
       agent: node.agent,
       prompt: node.prompt,
+      ...(node.sessionRef
+        ? {
+            sessionRef: {
+              agent: node.sessionRef.agent,
+              sessionId: node.sessionRef.sessionId,
+            },
+          }
+        : {}),
       ...(node.adopt ? { adopt: { ...node.adopt } } : {}),
       ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
     };
@@ -169,6 +179,14 @@ export function toPipelineNode(data: FlowNodeData): PipelineNode {
           : {}),
         prompt: data.prompt ?? '',
         agent: data.agent ?? '',
+        ...(data.sessionRef
+          ? {
+              sessionRef: {
+                agent: data.sessionRef.agent,
+                sessionId: data.sessionRef.sessionId,
+              },
+            }
+          : {}),
         ...(data.adopt ? { adopt: { ...data.adopt } } : {}),
         ...(data.requiresRole ? { requiresRole: data.requiresRole } : {}),
         ...(data.model ? { model: data.model } : {}),
@@ -224,6 +242,14 @@ export function toPipelineNodeFromViewNode(node: ViewNode): PipelineNode {
         ...(node.displayLabel ? { displayLabel: node.displayLabel } : {}),
         prompt: node.prompt,
         agent: node.agent,
+        ...(node.sessionRef
+          ? {
+              sessionRef: {
+                agent: node.sessionRef.agent,
+                sessionId: node.sessionRef.sessionId,
+              },
+            }
+          : {}),
         ...(node.adopt ? { adopt: { ...node.adopt } } : {}),
         ...(node.requiresRole ? { requiresRole: node.requiresRole } : {}),
         ...(node.agentConfig?.model ?? node.model ? { model: node.agentConfig?.model ?? node.model } : {}),

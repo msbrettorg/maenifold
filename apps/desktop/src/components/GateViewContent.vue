@@ -28,15 +28,17 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 min-h-0 lg:flex-row">
-    <GateTaskTable
-      :tasks="tasks"
-      :selected-task-id="selectedTaskId"
-      :sort-column="sortColumn"
-      :sort-direction="sortDirection"
-      @sort="$emit('sort', $event)"
-      @select="$emit('select', $event)"
-    />
+  <div class="flex flex-1 flex-col gap-4 min-h-0 lg:flex-row">
+    <div class="flex flex-1 min-h-0 lg:flex-[2]">
+      <GateTaskTable
+        :tasks="tasks"
+        :selected-task-id="selectedTaskId"
+        :sort-column="sortColumn"
+        :sort-direction="sortDirection"
+        @sort="$emit('sort', $event)"
+        @select="$emit('select', $event)"
+      />
+    </div>
     <GateTaskDetail
       :task="activeTask"
       :body="body"

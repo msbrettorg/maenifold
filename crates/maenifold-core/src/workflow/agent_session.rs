@@ -56,7 +56,7 @@ pub(crate) struct AgentSession {
     config_options: Vec<(String, String)>,
     auto_approve: bool,
     /// Optional ACP session ID to resume on the next prompt via `session/load`.
-    resume_session_id: Option<String>,
+    resume_session_id: std::sync::Mutex<Option<String>>,
     event_tx: jockey::EventSender,
     cleanup_on_drop: AtomicBool,
 }
@@ -112,7 +112,7 @@ pub(crate) async fn open_agent_session(
         role_mode: session_config.mode.clone(),
         config_options,
         auto_approve,
-        resume_session_id: session_config.resume_session_id.clone(),
+        resume_session_id: std::sync::Mutex::new(session_config.resume_session_id.clone()),
         event_tx: event_tx.clone(),
         cleanup_on_drop: AtomicBool::new(true),
     })
@@ -143,6 +143,11 @@ impl AgentSession {
             thought_level = ?self.thought_level,
             "sending prompt to ACP agent"
         );
+        let resume_id = self
+            .resume_session_id
+            .lock()
+            .ok()
+            .and_then(|mut guard| guard.take());
         let result = jockey::acp::execute_runtime(
             &self.runtime_kind,
             &self.agent_name,
@@ -156,9 +161,16 @@ impl AgentSession {
             self.config_options.clone(),
             None,
             &self.session_id,
-            self.resume_session_id.clone(),
+            resume_id.clone(),
         )
         .await;
+        if !result.ok {
+            if let Some(ref id) = resume_id {
+                if let Ok(mut guard) = self.resume_session_id.lock() {
+                    *guard = Some(id.clone());
+                }
+            }
+        }
         info!(
             agent = %self.agent_name,
             session_id = %self.session_id,

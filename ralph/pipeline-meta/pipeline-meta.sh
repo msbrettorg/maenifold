@@ -847,6 +847,12 @@ run_inner_loop() {
 }
 
 meta_outer_loop() {
+  # Delayed evaluation pattern:
+  # Each iteration scores the PREVIOUS iteration's mutation.
+  # Iteration 1: run original templates → establish baseline → meta proposes A (warm-up accept)
+  # Iteration 2: run with A → score evaluates A → meta proposes B → keep/discard B based on A's score
+  # Iteration N: score reflects mutation from N-1; keep/discard decision applies to N's proposal
+  # This is standard hill-climbing: accept next mutation if current mutation improved on baseline.
   local meta_iteration
   local snapshot_dir
   local verdict_iteration_dir
@@ -937,6 +943,8 @@ meta_outer_loop() {
       log "meta iteration ${meta_iteration}: missing verdict file; restoring snapshot"
     elif ! jq -e '.kept | type == "boolean"' "$verdict_file" >/dev/null 2>&1; then
       log "meta iteration ${meta_iteration}: malformed verdict file; restoring snapshot"
+    elif ! jq -e 'has("targetTemplate") and has("changeSummary") and has("rationale")' "$verdict_file" >/dev/null 2>&1; then
+      log "meta iteration ${meta_iteration}: verdict missing required fields (targetTemplate, changeSummary, rationale); restoring snapshot"
     elif [[ "$changed_count" -ne 1 ]]; then
       log "meta iteration ${meta_iteration}: expected exactly one changed template, found ${changed_count}; restoring snapshot"
     else

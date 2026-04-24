@@ -378,3 +378,56 @@ Edit two places consistently:
 - **Want to start over:** `rm -f ralph/state/converged ralph/state/meta-converged ralph/state/meta.lock ralph/state/meta-verdict.json`.
 
 We dogfood maenifold to build maenifold. Every MCP call RALPH makes IS a product validation. If a tool feels wrong from the agent's perspective — that's a bug. File it as a `todo/T-*.md` and let RALPH ship the fix.
+
+---
+
+## Live Monitoring
+
+If you want to watch a run while it's happening instead of reading artifacts after the fact, use the monitoring sidecars in `ralph/state/`.
+
+### Prerequisite
+
+Install `otel-tui` once:
+
+```bash
+brew install ymtdzzz/tap/otel-tui
+```
+
+### Quick start
+
+The fastest operator view is:
+
+```bash
+ralph/ralph-watch.sh
+```
+
+When `tmux` is available, `ralph-watch.sh` auto-splits panes so you can watch telemetry and logs in one place. Without `tmux`, it still gives you the core monitoring commands to run manually.
+
+### What to watch
+
+- `ralph/state/otel/*.jsonl` — OTEL traces emitted during the run: token usage, tool calls, model, cost, and duration.
+- `ralph/state/logs/iter-N.log` — raw Copilot CLI output for each iteration while it is in flight.
+- `ralph/state/sessions/iter-N.md` — full session dump written after the iteration completes.
+- `ralph/state/metrics.jsonl` — one JSON line per iteration summarizing outcome and aggregate metrics.
+
+### Manual usage
+
+If `ralph-watch.sh` is not enough, the underlying views are simple:
+
+```bash
+# Watch OTEL traces directly:
+otel-tui --from-json-file ralph/state/otel/latest.jsonl
+
+# Gate status:
+gate status --root .
+
+# Tail the latest log:
+tail -f ralph/state/logs/iter-*.log
+```
+
+Recommended workflow:
+
+1. Start `ralph/ralph-watch.sh` before launching `./ralph.sh` or `./meta.sh`.
+2. Keep an eye on `otel-tui` for model/tool/cost drift.
+3. Use the iteration log when an agent appears stuck or starts looping.
+4. After completion, read the matching session dump for the full transcript.

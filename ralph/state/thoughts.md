@@ -7,29 +7,27 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1450 — Epic Decomposition + Session-as-Node Launch
 
-### Shipped
-- **T-214.1** ✅ DONE — Spike: session/load RPC in executor. Finding: `resume_session_id=None` hardcoded in `execute.rs:65`. Fix is parameter threading through `AgentSessionConfig → WorkerMsg::Execute → cold_start()`. Infrastructure exists in `cold_start.rs:158-205`.
-- **T-214.2** ✅ DONE — SessionRef type + wire format. camelCase serde, agent validation, 10/10 tests pass. 1 remediation cycle (missing serde rename_all).
-- **T-209.4** ✅ DONE — pipeline-meta.sh inner loop. 572 LOC, 1 remediation cycle (path traversal, TOCTOU lock, failure propagation).
-- **T-210.1** ✅ DONE — Trouter protocol research. Full protocol documented in memory note.
+### Shipped (8 tasks)
+- **T-214.1** ✅ Spike: session/load RPC
+- **T-214.2** ✅ SessionRef type + wire format (1 remediation)
+- **T-214.3** ✅ Executor session dispatch — THE CORE FEATURE (1 remediation, dual red-team)
+- **T-214.4** ✅ MCP schema extension
+- **T-214.5** ✅ Session uniqueness constraint
+- **T-214.8** ✅ Session Browser Pinia store (1 remediation)
+- **T-209.4** ✅ pipeline-meta.sh inner loop (1 remediation)
+- **T-210.1** ✅ Trouter protocol research
 
-### Epic Decomposition (37 sub-tasks filed)
-- **T-214.0** → 12 sub-tasks (T-214.1-13): SessionRef types, executor dispatch, MCP schema, uniqueness constraint, serde tests, executor tests, Pinia store, browser panel, TS types, visuals, context menu, E2E
-- **T-210.0** → 11 sub-tasks (T-210.1-11): Trouter research, WS client, message handler, MCP tools, resources, ACP dispatch, Teams tab, settings, MSAL auth, tab badge, CDP verification
-- **T-211.0** → 11 sub-tasks (T-211.1-11): Scheduler research, config schema, cron parser, launchd, systemd, supervisor, MCP tools, resources, settings UI, overlap protection, CDP verification
-- **T-212.0** → 3 sub-tasks (T-212.1-3): ralph-watch.sh, OTEL wiring, monitoring docs
+### Session-as-Node Backend COMPLETE
+Types → Wire → Schema → Validation → Executor → Store all shipped.
+Remaining: frontend (T-214.9-13), deferred findings (T-214.14-15).
 
-### In-Flight
-- **T-214.4** — SWE dispatched (gpt-5.4), MCP schema extension, worktree `worktrees/T-214.4`
-- **T-214.5** — SWE dispatched (gpt-5.4), session uniqueness constraint, worktree `worktrees/T-214.5`
-
-### Process Violations
-- Researcher agent (T-214.1) ran `gate pass` on its own stage — agents should NOT touch gate state. Add explicit "do NOT run gate commands" to researcher prompts.
+### Filed from red-team findings
+- T-214.14 — resume_session_id single-use (clear after first prompt)
+- T-214.15 — resumed boolean in AcpPromptResult.meta
 
 ### Next Actions
-- After T-214.4 + T-214.5 land: dispatch T-214.3 (executor session dispatch — the BIG one)
-- T-214.6 (serde tests) — can dispatch after T-214.4/5 merge
-- T-214.8 (session browser store) — no backend dependency, frontend Pinia store
+- Dispatch T-214.9 (Session Browser panel) + T-214.10 (TS types) in parallel
+- T-214.6 (serde tests) ready to dispatch
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

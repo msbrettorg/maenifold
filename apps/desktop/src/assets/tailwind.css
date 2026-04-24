@@ -485,10 +485,6 @@ html.font-comfortable {
   fill: var(--foreground);
 }
 
-.vue-flow__minimap {
-  background-color: var(--background);
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;

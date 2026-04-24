@@ -3,7 +3,6 @@ import { computed, markRaw, nextTick, provide, ref, watch } from 'vue';
 import { VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
 import { Controls } from '@vue-flow/controls';
-import { MiniMap } from '@vue-flow/minimap';
 import { Button } from '@/components/ui/button';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,7 +11,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
 import '@vue-flow/controls/dist/style.css';
-import '@vue-flow/minimap/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
@@ -25,7 +23,6 @@ import { useComposerContextMenu } from '../composables/useComposerContextMenu';
 import { useMcpToolDiscovery } from '../composables/useMcpToolDiscovery';
 import type { PipelineDefinition, PipelineNodeType, PipelineView } from '../lib/pipeline-types';
 import { createNode, createNodeId, type PipelineNodeDraftByType, type PipelineNodeInputByType } from '../lib/pipeline-node-factory';
-import { NODE_TYPE_COLORS } from '../lib/pipeline-status-tokens';
 import { getBareToolName } from '../lib/tool-categories';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import { useConfigStore } from '../stores/config';
@@ -125,7 +122,6 @@ function maybeRefreshComposerCatalogs(): void {
 const edgeTypes = { smoothstep: markRaw(PipelineFlowEdge) };
 watch(() => props.designMode, maybeRefreshComposerCatalogs, { immediate: true });
 
-const miniMapNodeColor = (node: { data?: { type?: string } }) => NODE_TYPE_COLORS[node.data?.type ?? ''] ?? NODE_TYPE_COLORS.workflow;
 
 function submitNode<T extends PipelineNodeType>(type: T, fields: PipelineNodeDraftByType[T]): void {
   const node = store.addNode(createNode(type, { id: createNodeId(type), ...fields } as PipelineNodeInputByType[T]));
@@ -208,7 +204,6 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
             >
               <Background class="text-surface-high" />
               <Controls :show-interactive="designMode" />
-              <MiniMap :node-color="miniMapNodeColor" class="bg-bg-app/50" />
             </VueFlow>
 
             <div

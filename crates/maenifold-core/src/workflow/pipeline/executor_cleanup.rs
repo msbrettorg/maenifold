@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use chrono::Utc;
 use tracing::{debug, warn};
 
 use crate::markdown::read_markdown;
@@ -202,6 +203,7 @@ fn mark_pipeline_stuck(context: &ToolContext, session_id: &str) {
             state.status,
             NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Active | NodeStatus::Retrying
         ) {
+            state.completed_at = Some(Utc::now());
             state.status = NodeStatus::Stuck;
             if let Err(err) =
                 update_workflow_node_frontmatter(context, &state.session_id, "stuck", None)

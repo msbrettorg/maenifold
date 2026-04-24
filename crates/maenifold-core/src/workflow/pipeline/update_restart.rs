@@ -1,6 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
+use chrono::Utc;
 use serde_yaml::Value as YamlValue;
 
 use super::session_io::{
@@ -55,6 +56,7 @@ pub(super) fn restart_pipeline_node(
         }
 
         if state.attempts >= max_attempts {
+            state.completed_at = Some(Utc::now());
             state.status = NodeStatus::Stuck;
             persist_pipeline_state(
                 &mut frontmatter,

@@ -1,12 +1,8 @@
 #![allow(unused_imports, dead_code)]
-
 use std::collections::HashMap;
-
 use serial_test::serial;
-
 use crate::markdown::write_markdown;
 use crate::util::json::OutputFormat;
-
 use super::super::engine_ready::{compute_ready_set, has_remaining_work};
 use super::super::engine_status::compute_pipeline_status;
 use super::super::executor_nodes::{FailurePhase, NodeOutcome};
@@ -14,7 +10,6 @@ use super::super::session_read::{frontmatter_value, read_pipeline_session};
 use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
 use super::super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 use super::*;
-
 fn workflow_node(id: &str) -> PipelineNode {
     PipelineNode::Workflow {
         id: id.to_string(),
@@ -49,7 +44,6 @@ fn set_max_attempts(context: &crate::tools::ToolContext, session_id: &str, max_a
     write_markdown(&uri, Some(&frontmatter), &content, &context.config)
         .expect("write pipeline session");
 }
-
 #[test]
 #[serial]
 fn pre_exec_failure_transitions_to_retrying() {
@@ -83,7 +77,6 @@ fn pre_exec_failure_transitions_to_retrying() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     let mut counts = ExecutionCounts::default();
     apply_node_outcome(
         &context,
@@ -111,7 +104,6 @@ fn pre_exec_failure_transitions_to_retrying() {
     assert_ne!(state.session_id, original_session_id);
     assert_eq!(counts.abandoned, 0);
 }
-
 #[test]
 #[serial]
 fn post_exec_failure_stays_abandoned() {
@@ -144,7 +136,6 @@ fn post_exec_failure_stays_abandoned() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     let mut counts = ExecutionCounts::default();
     apply_node_outcome(
         &context,
@@ -172,7 +163,6 @@ fn post_exec_failure_stays_abandoned() {
     assert_eq!(state.failure_reason.as_deref(), Some("prompt failed"));
     assert_eq!(counts.abandoned, 1);
 }
-
 #[test]
 #[serial]
 fn max_attempts_exceeded_becomes_stuck() {
@@ -233,7 +223,6 @@ fn max_attempts_exceeded_becomes_stuck() {
     assert_eq!(state.status, NodeStatus::Stuck);
     assert_eq!(counts.abandoned, 0);
 }
-
 #[test]
 #[serial]
 fn retrying_node_state_has_retry_metadata() {
@@ -267,7 +256,6 @@ fn retrying_node_state_has_retry_metadata() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     let mut counts = ExecutionCounts::default();
     apply_node_outcome(
         &context,

@@ -19,7 +19,6 @@ use super::view::view_pipeline_session;
 use super::{
     NodeState, NodeStatus, PipelineDefinition, compute_ready_set, lease, validate_pipeline,
 };
-
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     let Some(definition_value) = payload.get("definition") else {
         return Err(MaenifoldError::Message(
@@ -96,7 +95,6 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
 }
-
 #[allow(clippy::too_many_lines)]
 pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
     let pipelines_dir = context.config.memory_path.join("pipelines");
@@ -169,7 +167,6 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
 }
-
 pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     lease::with_exclusive_session_lock(
         session_id,
@@ -224,7 +221,6 @@ pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result
         },
     )
 }
-
 pub(super) fn view_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     view_pipeline_session(context, session_id)
 }

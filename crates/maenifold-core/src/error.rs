@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use serde_json::Value;
+
 #[derive(Debug, thiserror::Error)]
 pub enum MaenifoldError {
     #[error("Unknown tool: {0}")]
@@ -30,6 +32,12 @@ pub enum MaenifoldError {
     MissingExecutableParent,
     #[error("Path is not valid UTF-8: {0:?}")]
     NonUtf8Path(PathBuf),
+    #[error("JSON-RPC error (code={code}, message={message}, data={data})")]
+    JsonRpc {
+        code: i64,
+        message: String,
+        data: Value,
+    },
     #[error("{0}")]
     Message(String),
     #[error("Agent setup failed: {0}")]

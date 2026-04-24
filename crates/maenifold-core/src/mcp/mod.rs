@@ -3,6 +3,7 @@
 pub mod http;
 pub mod resources;
 pub mod schema;
+pub mod stdio_session;
 pub(crate) mod tool_utils;
 pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};

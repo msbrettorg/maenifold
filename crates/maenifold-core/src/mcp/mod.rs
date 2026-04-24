@@ -46,9 +46,7 @@ use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
-use crate::util::json::OutputFormat;
-use crate::mcp::stdio_pool::StdioPool;
-use crate::mcp::tool_routing::ToolRoutingRegistry;
+use crate::{mcp::{stdio_pool::StdioPool, tool_routing::ToolRoutingRegistry}, util::json::OutputFormat};
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
     ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
@@ -232,14 +230,20 @@ impl ServerHandler for MaenifoldHandler {
                         let server_name = server_name.to_string();
                         let gateway_tool = tool_name.clone();
                         let handle = tokio::runtime::Handle::current();
-                        return tokio::task::spawn_blocking(move || {
+                        let gateway_result = tokio::task::spawn_blocking(move || {
+                            // rmcp requires a Send future here; bridge the current non-Send stdio
+                            // call through `spawn_blocking` + `block_on` until that layer is fixed.
                             handle.block_on(pool.call_tool(&server_name, &gateway_tool, arguments))
                         })
-                            .await
-                            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
-                            .map_err(|e| {
-                                rmcp::ErrorData::internal_error(format_tool_error(&tool_name, &e), None)
-                            });
+                        .await
+                        .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
+                        return match gateway_result {
+                            Ok(result) => Ok(result),
+                            Err(MaenifoldError::JsonRpc { code, message, data }) => Err(
+                                rmcp::ErrorData::new(rmcp::model::ErrorCode(code as i32), message, Some(data)),
+                            ),
+                            Err(err) => Err(rmcp::ErrorData::internal_error(format_tool_error(&tool_name, &err), None)),
+                        };
                     }
                     Ok(CallToolResult::error(vec![Content::text(format_tool_error(
                         &tool_name,

@@ -11,11 +11,10 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-213.1** ✅ DONE — Split 3 gate files (1 remediation: blue-team caught test import)
 - **T-213.2** ✅ DONE — Split embedding_models_detect.rs
 - **T-209.1** ✅ DONE — NodeState telemetry (1 remediation: Stuck timing + LOC splits)
+- **T-209.2** ✅ DONE — SDD pipeline template (sdd-v1.json)
+- **T-209.3** ✅ DONE — Lightweight + TDD pipeline templates
 - `make audit-crates` now passes clean (0 violations)
-
-### In-flight
-- **T-209.2** — SDD pipeline template (SWE dispatched, worktrees/T-209.2)
-- **T-209.3** — Lightweight + TDD templates (SWE dispatched, worktrees/T-209.3)
+- **5 tasks shipped this iteration**
 
 ### Session-as-Node Epic (T-214.0) — duo reviewed, updated
 - Both opus-4.7 and gpt-5.4 said REQUEST CHANGES (accepted)

@@ -206,6 +206,21 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
             )
         })?;
 
+    // Reject path traversal and degenerate model IDs
+    if model_id.is_empty()
+        || model_id == "."
+        || model_id.contains("..")
+        || model_id.contains('/')
+        || model_id.contains('\\')
+        || !model_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
+    {
+        return Err(crate::error::MaenifoldError::Message(format!(
+            "Invalid model ID: '{model_id}'"
+        )));
+    }
+
     let active_model = context.config.settings.vector.active_model.as_deref();
     if active_model == Some(model_id) {
         return Err(crate::error::MaenifoldError::Message(format!(
@@ -215,33 +230,45 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
 
     let models_dir = context.config.assets_path.join("models");
     let target_dir = models_dir.join(model_id);
+    let flat_path = models_dir.join(format!("{model_id}.onnx"));
 
     // T-202.9 remediation: when no active_model is configured, the runtime
     // falls back to scanning (`discovery.rs::discover_model`) and picks the
     // largest *.onnx — meaning any installed model could become the active
     // one on next restart. Refuse to delete in that ambiguous state and
     // require the user to explicitly pin an active model first.
-    if active_model.is_none() && target_dir.is_dir() {
+    let exists_subdir = target_dir.is_dir();
+    let exists_flat = flat_path.is_file();
+    if active_model.is_none() && (exists_subdir || exists_flat) {
         return Err(crate::error::MaenifoldError::Message(
             "Cannot delete while no active model is configured. Activate a different model first."
                 .to_string(),
         ));
     }
 
-    if !target_dir.exists() {
+    if exists_subdir {
+        std::fs::remove_dir_all(&target_dir).map_err(|e| {
+            crate::error::MaenifoldError::Message(format!(
+                "Failed to delete '{}': {}",
+                target_dir.display(),
+                e
+            ))
+        })?;
+    } else if exists_flat {
+        std::fs::remove_file(&flat_path).map_err(|e| {
+            crate::error::MaenifoldError::Message(format!(
+                "Failed to delete '{}': {}",
+                flat_path.display(),
+                e
+            ))
+        })?;
+    } else {
         return Err(crate::error::MaenifoldError::Message(format!(
-            "Model directory not found: {}",
-            target_dir.display()
+            "Model not found in either layout: '{}' or '{}'",
+            target_dir.display(),
+            flat_path.display()
         )));
     }
-
-    std::fs::remove_dir_all(&target_dir).map_err(|e| {
-        crate::error::MaenifoldError::Message(format!(
-            "Failed to delete '{}': {}",
-            target_dir.display(),
-            e
-        ))
-    })?;
 
     Ok(json!({
         "deleted": true,

@@ -1,3 +1,18 @@
+use std::{
+    collections::HashSet,
+    sync::{Arc, OnceLock, RwLock},
+    time::Duration,
+};
+
+use tracing::warn;
+
+use crate::{
+    acp_config::{AgentsConfig, McpServerEntry},
+    error::Result,
+    mcp::stdio_pool::{StdioPool, StdioServerConfig},
+    tools::ToolContext,
+};
+
 pub(super) mod circuit_breaker;
 mod dispatch;
 mod dispatch_non_workflow;
@@ -91,7 +106,7 @@ pub use engine_ready::{compute_ready_set, has_remaining_work};
 pub use engine_status::{
     compute_pipeline_status, compute_pipeline_status_with_definition, compute_terminal_node_ids,
 };
-pub use executor::{ExecutionResult, execute_pipeline};
+pub use executor::ExecutionResult;
 pub use executor_cleanup::{
     cancel_active_nodes, finalize_failed_pipeline_execution, recover_crashed_nodes,
 };
@@ -104,3 +119,109 @@ pub use types::{
 };
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;
+
+static PIPELINE_STDIO_POOL: OnceLock<RwLock<Option<Arc<StdioPool>>>> = OnceLock::new();
+
+pub async fn execute_pipeline(
+    context: &ToolContext,
+    session_id: &str,
+    prompt: &str,
+    cancel: tokio_util::sync::CancellationToken,
+) -> Result<ExecutionResult> {
+    let stdio_pool = default_stdio_pool().await;
+    let result = execute_pipeline_with_pool(context, session_id, prompt, cancel, stdio_pool.clone()).await;
+    if let Some(pool) = stdio_pool {
+        pool.shutdown().await;
+    }
+    result
+}
+
+pub async fn execute_pipeline_with_pool(
+    context: &ToolContext,
+    session_id: &str,
+    prompt: &str,
+    cancel: tokio_util::sync::CancellationToken,
+    stdio_pool: Option<Arc<StdioPool>>,
+) -> Result<ExecutionResult> {
+    let previous = replace_current_stdio_pool(stdio_pool);
+    let result = executor::execute_pipeline(context, session_id, prompt, cancel).await;
+    replace_current_stdio_pool(previous);
+    result
+}
+
+pub(super) fn current_stdio_pool() -> Option<Arc<StdioPool>> {
+    stdio_pool_slot()
+        .read()
+        .unwrap_or_else(|error| error.into_inner())
+        .clone()
+}
+
+fn stdio_pool_slot() -> &'static RwLock<Option<Arc<StdioPool>>> {
+    PIPELINE_STDIO_POOL.get_or_init(|| RwLock::new(None))
+}
+
+fn replace_current_stdio_pool(
+    stdio_pool: Option<Arc<StdioPool>>,
+) -> Option<Arc<StdioPool>> {
+    let mut slot = stdio_pool_slot()
+        .write()
+        .unwrap_or_else(|error| error.into_inner());
+    std::mem::replace(&mut *slot, stdio_pool)
+}
+
+async fn default_stdio_pool() -> Option<Arc<StdioPool>> {
+    let root = std::env::current_dir().ok()?;
+    let config = AgentsConfig::load(&root);
+    let servers = collect_stdio_servers(&config);
+    if servers.is_empty() {
+        return None;
+    }
+
+    match StdioPool::start(servers).await {
+        Ok(pool) => Some(Arc::new(pool)),
+        Err(error) => {
+            warn!(error = %error, root = %root.display(), "failed to start pipeline stdio MCP pool");
+            None
+        }
+    }
+}
+
+fn collect_stdio_servers(config: &AgentsConfig) -> Vec<StdioServerConfig> {
+    let mut servers = Vec::new();
+    let mut seen = HashSet::new();
+    collect_stdio_entries(&mut servers, &mut seen, &config.mcp_servers);
+    for agent in config.agents.values() {
+        collect_stdio_entries(&mut servers, &mut seen, &agent.mcp_servers);
+    }
+    servers
+}
+
+fn collect_stdio_entries(
+    servers: &mut Vec<StdioServerConfig>,
+    seen: &mut HashSet<String>,
+    entries: &[McpServerEntry],
+) {
+    for entry in entries {
+        let McpServerEntry::Stdio {
+            name,
+            command,
+            args,
+            timeout,
+            env,
+            ..
+        } = entry
+        else {
+            continue;
+        };
+        if !seen.insert(name.clone()) {
+            continue;
+        }
+        servers.push(StdioServerConfig {
+            name: name.clone(),
+            command: command.clone(),
+            args: args.clone(),
+            env: env.clone(),
+            timeout: timeout.map(Duration::from_secs),
+        });
+    }
+}

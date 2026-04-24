@@ -11,13 +11,49 @@ use tracing::{error, info};
 
 use crate::{
     error::{MaenifoldError, Result},
-    tools::ToolContext,
+    mcp::stdio_pool::StdioPool,
 };
 
 use super::external_mcp::finalize_external_tool_result;
 
 pub(super) async fn invoke_via_stdio(
-    _context: &ToolContext,
+    server_name: &str,
+    remote_tool_name: &str,
+    arguments: Option<JsonMap<String, JsonValue>>,
+    pool: &StdioPool,
+) -> Result<String> {
+    let arguments = arguments
+        .map(JsonValue::Object)
+        .unwrap_or_else(|| JsonValue::Object(JsonMap::new()));
+    info!(server_name, remote_tool_name, "calling external MCP tool");
+    let call_result = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current().block_on(
+            pool.call_tool(server_name, remote_tool_name, arguments),
+        )
+    })
+    .map_err(|error| {
+            error!(
+                server_name,
+                remote_tool_name,
+                error = %error,
+                "external MCP tool call failed"
+            );
+            MaenifoldError::Message(format!(
+                "Failed to invoke external MCP tool '{server_name}.{remote_tool_name}': {error}"
+            ))
+        });
+    if call_result.is_ok() {
+        info!(
+            server_name,
+            remote_tool_name,
+            "external MCP tool call succeeded"
+        );
+    }
+
+    finalize_external_tool_result(server_name, call_result, Ok(rmcp::service::QuitReason::Closed))
+}
+
+pub(super) async fn invoke_via_stdio_fallback(
     server_name: &str,
     remote_tool_name: &str,
     command: &str,

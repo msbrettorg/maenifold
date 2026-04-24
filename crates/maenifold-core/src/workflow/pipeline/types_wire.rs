@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy};
+use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy, SessionRef};
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -41,6 +41,12 @@ pub(super) struct PipelineNodeWire {
         skip_serializing_if = "Option::is_none"
     )]
     requires_role: Option<String>,
+    #[serde(
+        default,
+        rename = "sessionRef",
+        skip_serializing_if = "Option::is_none"
+    )]
+    session_ref: Option<SessionRef>,
     #[serde(
         default = "default_prompt_tool_mode",
         skip_serializing_if = "is_default_prompt_tool_mode"
@@ -143,22 +149,36 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 requires_role: wire.requires_role,
                 retry_policy,
             },
-            "prompt" => Self::Prompt {
-                id: wire.id,
-                display_label: wire.display_label,
-                prompt: required(wire.prompt, "prompt")?,
-                agent: required(wire.agent, "agent")?,
-                tool_mode: wire.tool_mode,
-                model: wire.model,
-                thought_level: wire.thought_level,
-                allowed_tools: wire.allowed_tools,
-                max_turns: wire.max_turns,
-                cwd: wire.cwd,
-                timeout: wire.timeout,
-                agent_config: wire.agent_config,
-                adopt: wire.adopt,
-                requires_role: wire.requires_role,
-                retry_policy,
+            "prompt" => {
+                let prompt = required(wire.prompt, "prompt")?;
+                let agent = required(wire.agent, "agent")?;
+                if let Some(session_ref) = &wire.session_ref
+                    && session_ref.agent != agent
+                {
+                    return Err(format!(
+                        "Node '{}': sessionRef.agent ('{}') must match node agent ('{}')",
+                        node_id, session_ref.agent, agent
+                    ));
+                }
+
+                Self::Prompt {
+                    id: wire.id,
+                    display_label: wire.display_label,
+                    prompt,
+                    agent,
+                    tool_mode: wire.tool_mode,
+                    model: wire.model,
+                    thought_level: wire.thought_level,
+                    allowed_tools: wire.allowed_tools,
+                    max_turns: wire.max_turns,
+                    cwd: wire.cwd,
+                    timeout: wire.timeout,
+                    agent_config: wire.agent_config,
+                    adopt: wire.adopt,
+                    requires_role: wire.requires_role,
+                    retry_policy,
+                    session_ref: wire.session_ref,
+                }
             },
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,

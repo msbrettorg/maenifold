@@ -195,6 +195,7 @@ process.on('unhandledRejection', (reason) => {
 });
 
 if (!app.requestSingleInstanceLock()) {
+  console.error('[maenifold] Another instance is already running — exiting. Kill the existing process first if you need to relaunch with --remote-debugging-port.');
   app.quit();
 } else {
   app.on('second-instance', () => {

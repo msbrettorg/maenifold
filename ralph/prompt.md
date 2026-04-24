@@ -137,15 +137,109 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 | `slc` | Cross-crate work, new capabilities, requires discovery + spec phases. |
 | `lightweight` | Mechanical changes (formatting, renames, file moves, LOC splits). Build verifies. |
 
-**Visual verification rule (MANDATORY for all UI work):**
-- ALL UI changes require visual verification by the user AND the architect duo before gate pass
-- "vue-tsc passes" and "npm run build succeeds" are NOT visual verification
-- Playwright screenshots or user confirmation are the ONLY acceptable evidence that UI work is done
-- No UI task may be passed to done without a human seeing the result
-- This rule exists because Sprint 201 shipped a completely broken UI that blocked 100% of users, and Sprint 178 replaced the home page with fake data — both passed typecheck
 | `gsd` | Unknown scope, exploratory. Forces research → plan → execute → verify. |
 
 Sub-tasks of an SLC epic inherit the parent's pipeline unless you explicitly justify the downgrade in the sub-task's spec.
+
+---
+
+## UI verification (MANDATORY — read this even if you skim everything else)
+
+**"vue-tsc passes" is NOT evidence. "npm run build succeeds" is NOT evidence. Screenshots of static pages are NOT evidence. The ONLY evidence is: I clicked the button and this happened.**
+
+Sprint 201 shipped a completely broken UI. Sprint 178 replaced the home page with fake data. Sprint 202 shipped non-functional model management. All passed typecheck. All had screenshots. None worked when a human clicked through. This section exists so you never repeat those failures.
+
+### Tooling: agent-browser only
+
+**No Python scripts. No Playwright. No hand-written WebSocket code. No Puppeteer.**
+
+`agent-browser` is the only permitted tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots with reliable `@eN` element refs, and dispatches real pointer events that work with Reka UI / shadcn-vue.
+
+Prerequisites (one-time):
+```
+npm i -g agent-browser@latest    # must be >= 0.26.0
+agent-browser install             # download Chrome for Testing
+```
+
+Before every UI test session:
+```
+agent-browser skills get electron   # load Electron-specific docs
+agent-browser skills get core       # load core workflow docs
+```
+
+### Launch sequence (TESTED — do not deviate)
+
+**CRITICAL: You CANNOT launch the Electron app with shell `&` backgrounding.** The process receives SIGHUP when the shell session ends and silently exits. The log will be empty. The CDP port will be dead. You will waste 20 minutes debugging a non-problem.
+
+**CRITICAL: You CANNOT use `open -a` with agent paths.** `open -a` expects an app name registered in /Applications or Spotlight, not a build output path.
+
+**Step 1: Kill any existing instance.** The app uses `requestSingleInstanceLock()` — a second launch silently exits with code 0. No error, no warning.
+
+```
+ps aux | grep "maenifold.app/Contents/MacOS/maenifold" | grep -v grep
+```
+
+If a PID appears, kill it: `kill <PID>`. Verify it's gone.
+
+**Step 2: Package the app.**
+
+```
+cd apps/desktop && npm run build && npm run package
+```
+
+**Step 3: Launch with setsid (fully detached process).**
+
+The correct way to launch is with `setsid` or equivalent process detachment that survives shell exit. In Copilot CLI, use `mode: "async"` with `detach: true`. In a regular terminal:
+
+```
+nohup ./out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
+  --remote-debugging-port=9222 > /tmp/mae-cdp.log 2>&1 &
+disown
+```
+
+**Step 4: Wait for startup, then verify CDP port.**
+
+```
+sleep 5
+curl -s http://127.0.0.1:9222/json | head -5
+```
+
+If this returns empty or connection refused — the app died. Check `/tmp/mae-cdp.log`. Common causes: SingletonLock (another instance), uncaught exception, missing daemon.
+
+**Step 5: Connect agent-browser (persistent daemon connection).**
+
+```
+agent-browser connect 9222
+```
+
+This is MANDATORY. It establishes a persistent connection. Without it, each `agent-browser` command opens a new CDP session that disconnects when done — and the Electron renderer self-terminates ~20 seconds after the last CDP client disconnects. This is Chromium behavior, not our bug.
+
+**Step 6: Test.**
+
+```
+agent-browser snapshot -i              # accessibility tree with @eN refs
+agent-browser click @e5                # click by ref
+agent-browser snapshot -i              # re-snapshot (refs are stale after changes)
+agent-browser screenshot evidence.png  # capture evidence
+```
+
+### Testing rules
+
+- **Click through every feature.** Navigate tabs, click buttons, open dialogs, submit forms. Do not just screenshot a static page.
+- **Re-snapshot after every interaction.** Element refs (`@e1`, `@e2`, ...) are assigned fresh on every snapshot and become stale after any DOM change.
+- **Verify results, not appearances.** "Dialog appeared" is not proof an action worked. Check the actual result — did the data change? Did the toast say success? Did the error surface?
+- **Do not cheat.** Never set Pinia store state directly. Never bypass the UI with curl. Never accept "it compiled" as evidence.
+- **File everything.** Any issue, no matter how small, gets a gate task. Triage happens later, not during testing.
+- **One agent per CDP session.** Visual audits are serial. Do not attempt parallel CDP connections.
+
+### What NOT to do
+
+1. **Never launch with `&`** — the app will exit silently when the shell dies.
+2. **Never use `element.click()` for Reka UI components** — synthetic clicks don't fire pointer events. Tabs won't switch. agent-browser dispatches real CDP `Input.dispatchMouseEvent` sequences.
+3. **Never use Playwright `connect_over_cdp`** — it creates additional browser contexts that destabilize the renderer.
+4. **Never set Pinia store state directly** — that proves nothing about whether the button works.
+5. **Never test via curl and claim the UI works** — backend working proves nothing about frontend.
+6. **Never skip `agent-browser connect`** — without the persistent connection, the renderer dies ~20s after each command finishes.
 
 ---
 

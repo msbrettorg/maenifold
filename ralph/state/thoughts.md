@@ -9,6 +9,9 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ### Shipped
 - **T-214.1** ✅ DONE — Spike: session/load RPC in executor. Finding: `resume_session_id=None` hardcoded in `execute.rs:65`. Fix is parameter threading through `AgentSessionConfig → WorkerMsg::Execute → cold_start()`. Infrastructure exists in `cold_start.rs:158-205`.
+- **T-214.2** ✅ DONE — SessionRef type + wire format. camelCase serde, agent validation, 10/10 tests pass. 1 remediation cycle (missing serde rename_all).
+- **T-209.4** ✅ DONE — pipeline-meta.sh inner loop. 572 LOC, 1 remediation cycle (path traversal, TOCTOU lock, failure propagation).
+- **T-210.1** ✅ DONE — Trouter protocol research. Full protocol documented in memory note.
 
 ### Epic Decomposition (37 sub-tasks filed)
 - **T-214.0** → 12 sub-tasks (T-214.1-13): SessionRef types, executor dispatch, MCP schema, uniqueness constraint, serde tests, executor tests, Pinia store, browser panel, TS types, visuals, context menu, E2E
@@ -17,18 +20,16 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-212.0** → 3 sub-tasks (T-212.1-3): ralph-watch.sh, OTEL wiring, monitoring docs
 
 ### In-Flight
-- **T-214.2** — SWE dispatched (gpt-5.4), SessionRef type + wire format, worktree `worktrees/T-214.2`
-- **T-209.4** — SWE dispatched (gpt-5.4), pipeline-meta.sh inner loop, worktree `worktrees/T-209.4`
+- **T-214.4** — SWE dispatched (gpt-5.4), MCP schema extension, worktree `worktrees/T-214.4`
+- **T-214.5** — SWE dispatched (gpt-5.4), session uniqueness constraint, worktree `worktrees/T-214.5`
 
 ### Process Violations
 - Researcher agent (T-214.1) ran `gate pass` on its own stage — agents should NOT touch gate state. Add explicit "do NOT run gate commands" to researcher prompts.
 
 ### Next Actions
-- Verify T-214.2 SWE work → red-team → blue-team → merge → done
-- Verify T-209.4 SWE work → red-team → blue-team → merge → done
-- After T-214.2 lands: dispatch T-214.4 (MCP schema) and T-214.5 (uniqueness constraint) in parallel
-- After T-214.2 lands: dispatch T-214.3 (executor session dispatch) — depends on T-214.2 types
-- T-214.6 (serde tests) can be dispatched after T-214.2 lands
+- After T-214.4 + T-214.5 land: dispatch T-214.3 (executor session dispatch — the BIG one)
+- T-214.6 (serde tests) — can dispatch after T-214.4/5 merge
+- T-214.8 (session browser store) — no backend dependency, frontend Pinia store
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

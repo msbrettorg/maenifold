@@ -13,10 +13,12 @@ PIPELINE_META_DIR="${PIPELINE_META_ROOT}/ralph/pipeline-meta"
 TEMPLATE_DIR="${PIPELINE_META_DIR}/templates"
 LOG_DIR="${PIPELINE_META_DIR}/logs"
 METRICS_DIR="${PIPELINE_META_DIR}/metrics"
+OTEL_DIR="${PIPELINE_META_DIR}/otel"
 LOCK_FILE="${PIPELINE_META_DIR}/.lock"
 WORKTREE_BASE_DIR="${PIPELINE_META_ROOT}/worktrees"
 RUN_TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
 LOG_FILE="${LOG_DIR}/${RUN_TIMESTAMP}.log"
+OTEL_FILE="${OTEL_DIR}/${RUN_TIMESTAMP}.jsonl"
 
 LOCK_FD=""
 LOCK_MODE="pid"
@@ -509,7 +511,8 @@ main() {
   local backlog_json
   local task_row
 
-  mkdir -p "$LOG_DIR" "$METRICS_DIR"
+  mkdir -p "$LOG_DIR" "$METRICS_DIR" "$OTEL_DIR"
+  export COPILOT_OTEL_FILE_EXPORTER_PATH="$OTEL_FILE"
   create_lock
 
   exec > >(tee -a "$LOG_FILE") 2>&1
@@ -531,6 +534,7 @@ main() {
   log "max_parallel=${PIPELINE_META_MAX_PARALLEL}"
   log "dry_run=${PIPELINE_META_DRY_RUN:+true}"
   log "log_file=${LOG_FILE}"
+  log "otel=${OTEL_FILE}"
 
   if ! backlog_json="$(gate status --root "$PIPELINE_META_ROOT" --json 2>/dev/null)"; then
     if [[ -n "$PIPELINE_META_DRY_RUN" ]]; then

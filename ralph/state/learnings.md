@@ -3,6 +3,25 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 1241 (gateway wave 2)
+
+### Parallel RALPH gate state drift
+- T-207.4 showed as "red-team in todo/" via gate MCP, but was actually in done/ (moved by another RALPH instance)
+- T-207.6 showed as "swe" but code changes weren't in main tree — gate file moved to done but worktree wasn't merged
+- **Lesson: Always verify with `ls done/ todo/` and `grep` for key features in source before trusting gate status. Gate DB can be stale across parallel RALPH instances.**
+- **Lesson: When another RALPH moves a task to done but doesn't merge the worktree, the code is lost. Always check main tree has the actual changes.**
+
+### T-207.6 merge conflict resolution
+- Aborted merge when conflicts arose because another RALPH had already applied T-207.6 changes (different implementation path)
+- The other instance used `gateway_error()` method + `GATEWAY_TIMEOUT_ERROR` constant instead of `MaenifoldError::Timeout` variant
+- **Lesson: Before merging a worktree, check if the target feature already exists in main. If yes, clean up worktree instead of merging conflicting implementations.**
+
+### T-207.8 red-team catches real concurrency issues
+- Global `OnceLock<RwLock<Option<Arc<StdioPool>>>>` for pipeline pool is a concurrency hazard
+- Concurrent pipelines overwrite each other's pool slot
+- `block_in_place` + `Handle::block_on` can panic on current-thread runtimes
+- **Lesson: Global state for request-scoped resources is always wrong. Pass via parameters.**
+
 ## 2026-04-24 — T-203.7 / T-207.1 / T-204.x iteration (late session)
 
 ### Gate MCP "Session not found" is upstream rmcp issue (T-203.7 cancelled)

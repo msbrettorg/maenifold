@@ -7,7 +7,7 @@
 #
 # Guards:
 #   - Lockfile prevents concurrent runs (macOS-compatible PID-based)
-#   - File-based snapshot/restore before each iteration enables shell-enforced revert
+#   - Revert uses git checkout (no file-based snapshots)
 #   - Verdict file (meta-verdict.json) is the structured contract — shell reverts
 #     if missing, malformed, or kept=false
 #   - Immutable file hashes verified after each iteration
@@ -38,15 +38,12 @@ NO_CUSTOM_INSTRUCTIONS=false
 NO_ASK_USER=true
 REASONING_SUMMARIES=true
 EXTRA_COPILOT_ARGS=()
-SNAPSHOT_ROOT="ralph/state/snapshots"
+
+OTEL_DIR="ralph/state/otel"
+METRICS_LOG="ralph/state/metrics.jsonl"
 
 # Files the meta-agent MUST NOT modify — verified by hash after each iteration
 IMMUTABLE_FILES=(
-  "ralph/meta-prompt.md"
-)
-
-SNAPSHOT_FILES=(
-  "ralph/prompt.md"
   "ralph/meta-prompt.md"
 )
 
@@ -80,27 +77,12 @@ require_command() {
   }
 }
 
-snapshot_iteration_state() {
-  local dir="$1"
-  local f
-
-  rm -rf "$dir"
-  mkdir -p "$dir/todo" "$dir/done"
-  for f in "${SNAPSHOT_FILES[@]}"; do
-    mkdir -p "$dir/$(dirname "$f")"
-    cp "$f" "$dir/$f"
-  done
+count_todo() {
+  find todo -maxdepth 1 -name 'T-*' 2>/dev/null | wc -l | tr -d ' '
 }
 
-restore_iteration_state() {
-  local dir="$1"
-  local f
-
-  for f in "${SNAPSHOT_FILES[@]}"; do
-    cp "$dir/$f" "$f"
-  done
-
-  gate sync --root . --rebuild >/dev/null 2>&1 || true
+count_done() {
+  find done -maxdepth 1 -name 'T-*' 2>/dev/null | wc -l | tr -d ' '
 }
 
 while [[ $# -gt 0 ]]; do
@@ -134,8 +116,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-mkdir -p ralph/state
-mkdir -p "$SNAPSHOT_ROOT"
+mkdir -p ralph/state "$OTEL_DIR"
 
 require_command copilot
 require_command jq
@@ -192,15 +173,15 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   echo "║  META iteration ${iteration}/${MAX_ITERATIONS}"
   echo "║  Meta:  model=${META_MODEL} effort=${META_REASONING_EFFORT} agent=${META_AGENT}"
   echo "║  Inner: ${INNER_ITERATIONS} RALPH iterations  model=${INNER_MODEL} effort=${INNER_REASONING_EFFORT} agent=${INNER_AGENT}"
+  echo "║  Gate:  todo=$(count_todo) done=$(count_done)"
   echo "║  Scope: crate=${CRATE:-all}  path=${SCOPE_PATH:-all}"
   echo "║  Consecutive reverts: ${consecutive_reverts}/3"
   echo "╚══════════════════════════════════════════════════════════════════╝"
   echo ""
 
-  SNAPSHOT_TAG="meta-snapshot-${iteration}-$(date +%s)"
-  SNAPSHOT_DIR="${SNAPSHOT_ROOT}/${SNAPSHOT_TAG}"
-  snapshot_iteration_state "$SNAPSHOT_DIR"
-  echo "Snapshot saved: $SNAPSHOT_DIR"
+  otel_file="${OTEL_DIR}/iter-${iteration}.jsonl"
+  todo_before=$(count_todo)
+  done_before=$(count_done)
 
   # Clear inner convergence marker and previous verdict
   rm -f ralph/state/converged
@@ -224,7 +205,6 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   export META_INNER_ITERATIONS="$INNER_ITERATIONS"
   export META_INNER_MODEL="$INNER_MODEL"
   export META_INNER_EFFORT="$INNER_REASONING_EFFORT"
-  export META_SNAPSHOT_TAG="$SNAPSHOT_TAG"
   export RALPH_TARGET_CRATE="$CRATE"
   export RALPH_TARGET_PATH="$SCOPE_PATH"
 
@@ -252,16 +232,32 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 
   inner_start="$(date +%s)"
   set +e
-  ./ralph.sh "${INNER_ARGS[@]}"
+  COPILOT_OTEL_FILE_EXPORTER_PATH="$otel_file" \
+    ./ralph.sh "${INNER_ARGS[@]}"
   inner_exit=$?
   set -e
   inner_end="$(date +%s)"
   inner_duration=$((inner_end - inner_start))
-  done_count_after=$(find done -maxdepth 1 -type f 2>/dev/null | wc -l | tr -d ' ')
-  echo "Phase 1 complete: ${inner_duration}s, done ${done_count_before}→${done_count_after}, exit=${inner_exit}"
-  export META_DONE_COUNT_AFTER="$done_count_after"
+  done_after=$(count_done)
+  todo_after=$(count_todo)
+  tasks_completed=$((done_after - done_before))
+  echo "Phase 1 complete: ${inner_duration}s, exit=${inner_exit}"
+  echo "  Gate delta: todo ${todo_before}→${todo_after}, done ${done_before}→${done_after} (+${tasks_completed})"
+  export META_DONE_COUNT_BEFORE="$done_before"
+  export META_DONE_COUNT_AFTER="$done_after"
   export META_INNER_DURATION="$inner_duration"
   export META_INNER_EXIT="$inner_exit"
+
+  # --- Extract OTEL metrics ---
+  otel_tokens=0
+  otel_tool_calls=0
+  otel_turns=0
+  if [[ -f "$otel_file" ]]; then
+    otel_tokens=$(jq -r 'select(.resourceSpans) | .resourceSpans[]?.scopeSpans[]?.spans[]?.attributes[]? | select(.key == "gen_ai.usage.output_tokens" or .key == "gen_ai.usage.input_tokens") | .value.intValue // 0' "$otel_file" 2>/dev/null | paste -sd+ - | bc 2>/dev/null || echo 0)
+    otel_tool_calls=$(jq -r 'select(.resourceSpans) | [.resourceSpans[]?.scopeSpans[]?.spans[]? | select(.name | startswith("execute_tool"))] | length' "$otel_file" 2>/dev/null | paste -sd+ - | bc 2>/dev/null || echo 0)
+    otel_turns=$(jq -r 'select(.resourceSpans) | [.resourceSpans[]?.scopeSpans[]?.spans[]? | select(.name | startswith("chat "))] | length' "$otel_file" 2>/dev/null | paste -sd+ - | bc 2>/dev/null || echo 0)
+  fi
+  echo "  OTEL: tokens=${otel_tokens} tools=${otel_tool_calls} turns=${otel_turns}"
 
   # --- PHASE 2: Meta-agent forensics + edit (short-lived) ---
   echo "Phase 2: Meta-agent forensics..."
@@ -331,7 +327,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   # --- Revert or keep ---
   if [[ "$should_revert" == "true" ]]; then
     echo "REVERTING iteration ${iteration}: ${revert_reason}"
-    restore_iteration_state "$SNAPSHOT_DIR"
+    git checkout -- . 2>/dev/null || true
     rm -f ralph/state/meta-verdict.json
     consecutive_reverts=$((consecutive_reverts + 1))
 
@@ -344,9 +340,43 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     consecutive_reverts=0
   fi
 
-  rm -rf "$SNAPSHOT_DIR"
+  # --- Record metrics ---
+  meta_end="$(date +%s)"
+  meta_duration=$((meta_end - meta_start))
 
-  echo "Meta iteration ${iteration} complete: duration=${duration}s revert=${should_revert}"
+  jq -n \
+    --argjson iter "$iteration" \
+    --argjson inner_exit "$inner_exit" \
+    --argjson inner_dur "$inner_duration" \
+    --argjson tasks "$tasks_completed" \
+    --argjson todo_before "$todo_before" \
+    --argjson todo_after "$todo_after" \
+    --argjson done_before "$done_before" \
+    --argjson done_after "$done_after" \
+    --argjson tokens "$otel_tokens" \
+    --argjson tools "$otel_tool_calls" \
+    --argjson turns "$otel_turns" \
+    --argjson meta_dur "$meta_duration" \
+    --arg reverted "$should_revert" \
+    --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    '{
+      timestamp: $ts,
+      iteration: $iter,
+      reverted: ($reverted == "true"),
+      inner_exit: $inner_exit,
+      inner_duration_s: $inner_dur,
+      meta_duration_s: $meta_dur,
+      tasks_completed: $tasks,
+      todo: { before: $todo_before, after: $todo_after },
+      done: { before: $done_before, after: $done_after },
+      otel: { total_tokens: $tokens, tool_calls: $tools, llm_turns: $turns }
+    }' >> "$METRICS_LOG"
+
+  # Clean up OTEL file (metrics extracted)
+  rm -f "$otel_file"
+
+  echo "Meta iteration ${iteration} complete: ${meta_duration}s revert=${should_revert}"
+  echo "────────────────────────────────────────────────────────────────────"
 
   if [[ -f "ralph/state/meta-converged" ]]; then
     echo "Meta-converged after iteration ${iteration}; exiting."
@@ -355,4 +385,18 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 done
 
 echo ""
-echo "Meta loop complete after ${iteration} iterations."
+echo "╔══════════════════════════════════════════════════════════════════╗"
+echo "║  META COMPLETE — ${iteration} iterations"
+echo "║  Gate: todo=$(count_todo) done=$(count_done)"
+echo "╚══════════════════════════════════════════════════════════════════╝"
+
+if [[ -f "$METRICS_LOG" ]]; then
+  echo ""
+  echo "Iteration metrics:"
+  jq -r '"\(.iteration): +\(.tasks_completed) tasks, \(.otel.total_tokens) tokens, \(.inner_duration_s)s \(if .reverted then "[REVERTED]" else "" end)"' "$METRICS_LOG" 2>/dev/null || true
+  echo ""
+  total_tasks=$(jq -s '[.[].tasks_completed] | add // 0' "$METRICS_LOG" 2>/dev/null || echo 0)
+  total_tokens=$(jq -s '[.[].otel.total_tokens] | add // 0' "$METRICS_LOG" 2>/dev/null || echo 0)
+  total_duration=$(jq -s '[.[].inner_duration_s] | add // 0' "$METRICS_LOG" 2>/dev/null || echo 0)
+  echo "Totals: ${total_tasks} tasks, ${total_tokens} tokens, ${total_duration}s"
+fi

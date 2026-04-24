@@ -86,8 +86,8 @@ export function createPipelineLifecycleActions({
     }
 
     await withError('cancel_pipeline', async () => {
-      await mcp.cancelPipeline(sessionId);
       stopCurrentPolling();
+      await mcp.cancelPipeline(sessionId);
       await refreshList();
       newPipeline();
       setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
@@ -102,11 +102,23 @@ export function createPipelineLifecycleActions({
 
   async function deletePipelineById(sessionId: string) {
     await withError('delete_pipeline', async () => {
-      if (currentPipelineId.value === sessionId) {
+      const isCurrentPipeline = currentPipelineId.value === sessionId;
+      let deleted = false;
+
+      if (isCurrentPipeline) {
         stopCurrentPolling();
       }
-      await mcp.deletePipeline(sessionId);
-      if (currentPipelineId.value === sessionId) {
+
+      try {
+        await mcp.deletePipeline(sessionId);
+        deleted = true;
+      } finally {
+        if (isCurrentPipeline && !deleted && currentPipelineId.value === sessionId) {
+          startViewPolling();
+        }
+      }
+
+      if (isCurrentPipeline && currentPipelineId.value === sessionId) {
         newPipeline();
       }
       await refreshList();

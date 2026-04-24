@@ -1,0 +1,47 @@
+[2026-04-24T22:06:55Z] pipeline-meta.sh starting
+[2026-04-24T22:06:55Z] root=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4
+[2026-04-24T22:06:55Z] max_parallel=1
+[2026-04-24T22:06:55Z] dry_run=true
+[2026-04-24T22:06:55Z] log_file=/Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/logs/20260424T220655Z.log
+[2026-04-24T22:06:55Z] WARN: gate status unavailable; using todo/ fallback backlog for dry-run
+[2026-04-24T22:06:55Z] Starting task T-05.67
+[2026-04-24T22:06:55Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-05.67 -b task/T-05.67
+[2026-04-24T22:06:55Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/sdd-v1.json
+[2026-04-24T22:06:55Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-05.67"
+[2026-04-24T22:06:55Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:06:56Z] Starting task T-207.7
+[2026-04-24T22:06:56Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-207.7 -b task/T-207.7
+[2026-04-24T22:06:56Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/lightweight-v1.json
+[2026-04-24T22:06:56Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-207.7"
+[2026-04-24T22:06:56Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:06:57Z] Starting task T-209.0
+[2026-04-24T22:06:57Z] WARN: unsupported pipeline 'slc' for T-209.0; skipping
+[2026-04-24T22:06:58Z] Starting task T-209.4
+[2026-04-24T22:06:58Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-209.4 -b task/T-209.4
+[2026-04-24T22:06:58Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/sdd-v1.json
+[2026-04-24T22:06:58Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-209.4"
+[2026-04-24T22:06:58Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:06:59Z] Starting task T-209.5
+[2026-04-24T22:06:59Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-209.5 -b task/T-209.5
+[2026-04-24T22:06:59Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/sdd-v1.json
+[2026-04-24T22:06:59Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-209.5"
+[2026-04-24T22:06:59Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:07:00Z] Starting task T-209.6
+[2026-04-24T22:07:00Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-209.6 -b task/T-209.6
+[2026-04-24T22:07:00Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/sdd-v1.json
+[2026-04-24T22:07:00Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-209.6"
+[2026-04-24T22:07:00Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:07:01Z] Starting task T-209.7
+[2026-04-24T22:07:01Z] [dry-run] Would create worktree: git worktree add /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/worktrees/T-209.7 -b task/T-209.7
+[2026-04-24T22:07:01Z] [dry-run] Would submit pipeline template: /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-209.4/ralph/pipeline-meta/templates/sdd-v1.json
+[2026-04-24T22:07:01Z] [dry-run] Would execute: maenifold-pipeline-driver <session-id> "Execute gate task T-209.7"
+[2026-04-24T22:07:01Z] [dry-run] Would preserve or merge worktree based on final pipeline status
+[2026-04-24T22:07:02Z] Starting task T-210.0
+[2026-04-24T22:07:02Z] WARN: unsupported pipeline 'slc' for T-210.0; skipping
+[2026-04-24T22:07:03Z] Starting task T-211.0
+[2026-04-24T22:07:03Z] WARN: unsupported pipeline 'slc' for T-211.0; skipping
+[2026-04-24T22:07:04Z] Starting task T-212.0
+[2026-04-24T22:07:04Z] WARN: unsupported pipeline 'slc' for T-212.0; skipping
+[2026-04-24T22:07:05Z] Starting task T-214.0
+[2026-04-24T22:07:05Z] WARN: unsupported pipeline 'slc' for T-214.0; skipping
+[2026-04-24T22:07:05Z] pipeline-meta.sh finished

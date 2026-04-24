@@ -100,6 +100,14 @@ function createHandlerHarness() {
     savedSessions,
     saveSessionsToStore: async () => {},
     cancelPermission: () => {},
+    resolveToolAppUi: (toolName) =>
+      toolName === 'Read file'
+        ? {
+            resourceUri: 'ui://filesystem/read-file.html',
+            csp: "default-src 'self'",
+            permissions: ['camera'],
+          }
+        : null,
   });
 
   return { handler, session, store, localId };
@@ -257,6 +265,11 @@ describe('useMessageHandler integration', () => {
       title: 'Read file',
       status: 'completed',
       kind: 'read',
+      appUi: {
+        resourceUri: 'ui://filesystem/read-file.html',
+        csp: "default-src 'self'",
+        permissions: ['camera'],
+      },
       rawOutput: { ok: true },
     });
     expect(assistantMessage?.toolCalls?.[0]?.content).toEqual([

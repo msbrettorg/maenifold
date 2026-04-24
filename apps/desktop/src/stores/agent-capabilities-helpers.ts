@@ -6,6 +6,7 @@ import {
   normalizeAgentProbeResult,
   type AgentProbeResult,
 } from '../lib/agent-probe-types';
+import type { McpAppUiMetadata } from '../lib/types';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 
 export const AGENT_PROBE_CACHE_TTL_MS = 5 * 60_000;
@@ -28,6 +29,37 @@ export interface ProbeAgentRecord {
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function normalizeAppUiRecord(value: unknown): McpAppUiMetadata | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const resourceUri = value.resourceUri;
+  if (typeof resourceUri !== 'string' || !resourceUri) {
+    return null;
+  }
+
+  return {
+    resourceUri,
+    csp: typeof value.csp === 'string' ? value.csp : undefined,
+    permissions: Array.isArray(value.permissions)
+      ? value.permissions.filter((permission): permission is string => typeof permission === 'string')
+      : undefined,
+  };
+}
+
+export function extractAppUiMetadata(raw: Record<string, unknown>): McpAppUiMetadata | null {
+  const directAppUi = normalizeAppUiRecord(raw.appUi);
+  if (directAppUi) {
+    return directAppUi;
+  }
+
+  const meta = raw._meta;
+  if (!isRecord(meta)) return null;
+  const ui = meta.ui;
+  return normalizeAppUiRecord(ui);
 }
 
 export function toProbeResult(record?: ProbeAgentRecord, error?: string): AgentProbeResult {

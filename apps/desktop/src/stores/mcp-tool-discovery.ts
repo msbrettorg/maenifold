@@ -8,6 +8,7 @@ import type {
   McpServerDiscoveryResult,
   ServerHealthStatus,
 } from '../lib/types';
+import { extractAppUiMetadata, isRecord } from './agent-capabilities-helpers';
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -51,6 +52,59 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       name: tool.name,
       description: tool.description,
       inputSchema: tool.inputSchema,
+      appUi: tool.appUi
+        ? {
+            resourceUri: tool.appUi.resourceUri,
+            csp: tool.appUi.csp,
+            permissions: tool.appUi.permissions ? [...tool.appUi.permissions] : undefined,
+          }
+        : null,
+    };
+  }
+
+  function normalizeTool(raw: unknown): McpDiscoveredTool | null {
+    if (!isRecord(raw)) {
+      return null;
+    }
+
+    const name = raw.name;
+    const inputSchema = raw.inputSchema;
+    if (typeof name !== 'string' || !isRecord(inputSchema)) {
+      return null;
+    }
+
+    return {
+      name,
+      description: typeof raw.description === 'string' ? raw.description : null,
+      inputSchema: { ...inputSchema },
+      appUi: extractAppUiMetadata(raw),
+    };
+  }
+
+  function normalizeResult(raw: unknown): McpServerDiscoveryResult | null {
+    if (!isRecord(raw)) {
+      return null;
+    }
+
+    const server = raw.server;
+    const type = raw.type;
+    const status = raw.status;
+    const tools = raw.tools;
+    if (
+      typeof server !== 'string' ||
+      typeof type !== 'string' ||
+      (status !== 'ok' && status !== 'error') ||
+      !Array.isArray(tools)
+    ) {
+      return null;
+    }
+
+    return {
+      server,
+      type,
+      status,
+      error: typeof raw.error === 'string' ? raw.error : null,
+      tools: tools.map(normalizeTool).filter((tool): tool is McpDiscoveredTool => tool !== null),
     };
   }
 
@@ -98,7 +152,12 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
         throw new Error(`Failed to discover MCP tools: HTTP ${response.status}`);
       }
 
-      const results = await response.json() as McpServerDiscoveryResult[];
+      const rawResults = await response.json() as unknown;
+      const results = Array.isArray(rawResults)
+        ? rawResults
+            .map(normalizeResult)
+            .filter((result): result is McpServerDiscoveryResult => result !== null)
+        : [];
       serverResults.value = mergeServerResults(results);
       hasLoadedCatalog.value = true;
       return serverResults.value;

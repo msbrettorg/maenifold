@@ -7,6 +7,7 @@ import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createSessionGetters } from './session-getters';
+import { resolveToolDefinition } from '../lib/tool-categories';
 import {
   applyConfigOptionsUpdate,
   requireActiveSessionContext,
@@ -18,11 +19,13 @@ import { useSessionPersistence } from '../composables/useSessionPersistence';
 import { usePermissions } from '../composables/usePermissions';
 import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
+import { useMcpToolDiscoveryStore } from './mcp-tool-discovery';
 
 // `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
 // for W3C trace context and must not be repurposed for custom ACP metadata.
 
 export const useSessionStore = defineStore('session', () => {
+  const mcpToolDiscoveryStore = useMcpToolDiscoveryStore();
   // ── Core multi-session state (owned by orchestrator) ──────────────
   const sessions = ref<Map<string, SessionState>>(new Map());
   const activeSessionId = ref<string | null>(null);
@@ -69,6 +72,8 @@ export const useSessionStore = defineStore('session', () => {
     savedSessions,
     saveSessionsToStore,
     cancelPermission,
+    resolveToolAppUi: (toolName) =>
+      resolveToolDefinition(mcpToolDiscoveryStore.allTools, toolName)?.appUi ?? null,
   });
 
   // ── Compose: lifecycle ────────────────────────────────────────────

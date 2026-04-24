@@ -31,6 +31,13 @@ export interface McpDiscoveredTool {
   name: string;
   description?: string | null;
   inputSchema: Record<string, unknown>;
+  appUi?: McpAppUiMetadata | null;
+}
+
+export interface McpAppUiMetadata {
+  resourceUri: string;
+  csp?: string;
+  permissions?: string[];
 }
 
 export type ServerHealthStatus = 'ready' | 'auth_required' | 'stale' | 'unavailable';
@@ -144,6 +151,7 @@ export interface ToolCallInfo extends AcpMetadataCarrier {
   title: string;
   kind: string;
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | 'cancelled';
+  appUi?: McpAppUiMetadata | null;
   locations?: { path: string; line?: number }[];
   content?: ToolCallContentBlock[];
   rawInput?: Record<string, unknown>;

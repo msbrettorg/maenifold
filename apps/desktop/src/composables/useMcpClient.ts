@@ -17,6 +17,7 @@ import type {
   ToolsListResult,
 } from './mcpTransport';
 import { getErrorMessage, parseJsonRpcResponse } from './mcpTransport';
+import { extractAppUiMetadata } from '../stores/agent-capabilities-helpers';
 
 function resolveMcpUrl(baseUrl?: string) {
   const resolvedBase = (baseUrl ?? getApiBase()) || DEFAULT_MCP_BASE_URL;
@@ -320,7 +321,13 @@ export function useMcpClient(baseUrl?: string) {
     await ensureConnectedSession();
   
     const { result } = await jsonRpc<ToolsListResult>('tools/list');
-    return result?.tools ?? [];
+    return (result?.tools ?? []).map((tool) => {
+      const rawTool = tool as unknown as Record<string, unknown>;
+      return {
+        ...tool,
+        appUi: extractAppUiMetadata(rawTool),
+      };
+    });
   }
 
   async function readResource(uri: string): Promise<ResourceContent> {

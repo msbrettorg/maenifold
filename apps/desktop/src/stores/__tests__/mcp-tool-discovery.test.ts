@@ -16,7 +16,24 @@ describe('useMcpToolDiscoveryStore', () => {
       .mockResolvedValueOnce({
         ok: true,
         json: async () => [
-          { server: 'filesystem', type: 'stdio', status: 'ok', tools: [{ name: 'filesystem.ReadFile', inputSchema: {} }] },
+          {
+            server: 'filesystem',
+            type: 'stdio',
+            status: 'ok',
+            tools: [
+              {
+                name: 'filesystem.ReadFile',
+                inputSchema: {},
+                _meta: {
+                  ui: {
+                    resourceUri: 'ui://filesystem/read-file.html',
+                    csp: "default-src 'self'",
+                    permissions: ['camera', 42],
+                  },
+                },
+              },
+            ],
+          },
           { server: 'msx-mcp', type: 'stdio', status: 'ok', tools: [{ name: 'msx-mcp.list_accounts', inputSchema: {} }] },
         ],
       })
@@ -44,5 +61,10 @@ describe('useMcpToolDiscoveryStore', () => {
       broken: 'unavailable',
     });
     expect(store.serverResults[0]?.tools[0]?.name).toBe('filesystem.ReadFile');
+    expect(store.serverResults[0]?.tools[0]?.appUi).toEqual({
+      resourceUri: 'ui://filesystem/read-file.html',
+      csp: "default-src 'self'",
+      permissions: ['camera'],
+    });
   });
 });

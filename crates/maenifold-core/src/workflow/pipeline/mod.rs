@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    sync::{Arc, OnceLock, RwLock},
+    sync::Arc,
     time::Duration,
 };
 
@@ -120,53 +120,59 @@ pub use types::{
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;
 
-static PIPELINE_STDIO_POOL: OnceLock<RwLock<Option<Arc<StdioPool>>>> = OnceLock::new();
+struct PoolGuard {
+    stdio_pool: Option<Arc<StdioPool>>,
+}
+
+impl PoolGuard {
+    fn new(stdio_pool: Arc<StdioPool>) -> Self {
+        Self {
+            stdio_pool: Some(stdio_pool),
+        }
+    }
+}
+
+impl Drop for PoolGuard {
+    fn drop(&mut self) {
+        let Some(stdio_pool) = self.stdio_pool.take() else {
+            return;
+        };
+        let _ = std::thread::Builder::new()
+            .name("pipeline-stdio-pool-shutdown".to_string())
+            .spawn(move || match tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
+                Ok(runtime) => {
+                    runtime.block_on(stdio_pool.shutdown());
+                }
+                Err(error) => {
+                    warn!(error = %error, "failed to build runtime for pipeline stdio pool shutdown");
+                }
+            });
+    }
+}
 
 pub async fn execute_pipeline(
     context: &ToolContext,
     session_id: &str,
     prompt: &str,
     cancel: tokio_util::sync::CancellationToken,
-) -> Result<ExecutionResult> {
-    let stdio_pool = default_stdio_pool().await;
-    let result = execute_pipeline_with_pool(context, session_id, prompt, cancel, stdio_pool.clone()).await;
-    if let Some(pool) = stdio_pool {
-        pool.shutdown().await;
-    }
-    result
-}
-
-pub async fn execute_pipeline_with_pool(
-    context: &ToolContext,
-    session_id: &str,
-    prompt: &str,
-    cancel: tokio_util::sync::CancellationToken,
     stdio_pool: Option<Arc<StdioPool>>,
 ) -> Result<ExecutionResult> {
-    let previous = replace_current_stdio_pool(stdio_pool);
-    let result = executor::execute_pipeline(context, session_id, prompt, cancel).await;
-    replace_current_stdio_pool(previous);
-    result
-}
-
-pub(super) fn current_stdio_pool() -> Option<Arc<StdioPool>> {
-    stdio_pool_slot()
-        .read()
-        .unwrap_or_else(|error| error.into_inner())
-        .clone()
-}
-
-fn stdio_pool_slot() -> &'static RwLock<Option<Arc<StdioPool>>> {
-    PIPELINE_STDIO_POOL.get_or_init(|| RwLock::new(None))
-}
-
-fn replace_current_stdio_pool(
-    stdio_pool: Option<Arc<StdioPool>>,
-) -> Option<Arc<StdioPool>> {
-    let mut slot = stdio_pool_slot()
-        .write()
-        .unwrap_or_else(|error| error.into_inner());
-    std::mem::replace(&mut *slot, stdio_pool)
+    let (stdio_pool, _guard) = match stdio_pool {
+        Some(stdio_pool) => (Some(stdio_pool), None),
+        None => match default_stdio_pool().await {
+            Some(stdio_pool) => (
+                Some(stdio_pool.clone()),
+                Some(PoolGuard::new(stdio_pool)),
+            ),
+            None => (None, None),
+        },
+    };
+    let execution_context =
+        ToolContext::new(context.config.clone(), context.output_format).with_stdio_pool(stdio_pool);
+    executor::execute_pipeline(&execution_context, session_id, prompt, cancel).await
 }
 
 async fn default_stdio_pool() -> Option<Arc<StdioPool>> {

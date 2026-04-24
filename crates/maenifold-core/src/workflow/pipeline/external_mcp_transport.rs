@@ -26,12 +26,10 @@ pub(super) async fn invoke_via_stdio(
         .map(JsonValue::Object)
         .unwrap_or_else(|| JsonValue::Object(JsonMap::new()));
     info!(server_name, remote_tool_name, "calling external MCP tool");
-    let call_result = tokio::task::block_in_place(|| {
-        tokio::runtime::Handle::current().block_on(
-            pool.call_tool(server_name, remote_tool_name, arguments),
-        )
-    })
-    .map_err(|error| {
+    let call_result = pool
+        .call_tool(server_name, remote_tool_name, arguments)
+        .await
+        .map_err(|error| {
             error!(
                 server_name,
                 remote_tool_name,

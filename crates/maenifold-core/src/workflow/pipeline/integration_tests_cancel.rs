@@ -58,7 +58,7 @@ async fn timeout_is_terminal_even_with_retry_policy_node_abandons_without_retryi
 
     let result = tokio::time::timeout(
         Duration::from_secs(4),
-        execute_pipeline(&context, session_id, "", CancellationToken::new()),
+        execute_pipeline(&context, session_id, "", CancellationToken::new(), None),
     )
     .await
     .expect("pipeline timeout test should finish quickly")
@@ -129,7 +129,7 @@ async fn cancel_during_active_execution_abandons_active_nodes_without_hanging() 
 
     let result = tokio::time::timeout(
         Duration::from_secs(4),
-        execute_pipeline(&context, session_id, "", cancel.clone()),
+        execute_pipeline(&context, session_id, "", cancel.clone(), None),
     )
     .await
     .expect("executor must stop promptly after cancellation")

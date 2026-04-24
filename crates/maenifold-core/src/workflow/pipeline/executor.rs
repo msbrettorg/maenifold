@@ -62,7 +62,8 @@ async fn execute_pipeline_inner(
     cancel: CancellationToken,
     event_tx: EventSender,
 ) -> Result<ExecutionResult> {
-    let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json);
+    let json_context = ToolContext::new(context.config.clone(), OutputFormat::Json)
+        .with_stdio_pool(context.stdio_pool.clone());
     let execution_config = load_execution_config(&json_context, session_id)?;
     let nodes_by_id = build_node_index(&execution_config.definition);
     let semaphore = Arc::new(Semaphore::new(execution_config.max_concurrency));
@@ -208,6 +209,7 @@ async fn schedule_dispatched_node(
     let initial_retry_attempts = extract_retry_count_from_state(node_states.get(&node_id));
     let output_config = output_context.config.clone();
     let output_format = output_context.output_format;
+    let output_stdio_pool = output_context.stdio_pool.clone();
     let timeout = extract_timeout(&execution);
     let timeout_kind = timeout_result_kind(&execution);
     strip_node_timeout(&mut execution);
@@ -220,6 +222,7 @@ async fn schedule_dispatched_node(
         event_tx,
         output_config,
         output_format,
+        output_stdio_pool,
         timeout,
         timeout_kind,
         node_retry_policy,

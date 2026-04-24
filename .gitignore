@@ -20,3 +20,7 @@ ralph/state/converged
 .mcp.json
 worktrees/
 ralph/**/snapshots/
+ralph/state/logs/
+ralph/state/sessions/
+ralph/state/otel/
+ralph/state/metrics.jsonl

@@ -171,6 +171,13 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
 
+  # --- Logging and session capture ---
+  LOG_DIR="ralph/state/logs"
+  SESSION_DIR="ralph/state/sessions"
+  mkdir -p "$LOG_DIR" "$SESSION_DIR"
+  iter_log="${LOG_DIR}/iter-${iteration}.log"
+  iter_session="${SESSION_DIR}/iter-${iteration}.md"
+
   # Build copilot args
   COPILOT_ARGS=(
     -p "$(build_copilot_prompt)"
@@ -180,6 +187,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     --model "$MODEL"
     --reasoning-effort "$REASONING_EFFORT"
     --enable-reasoning-summaries
+    --share "$iter_session"
   )
   [[ -n "$SESSION_NAME" ]] && COPILOT_ARGS+=(--name "${SESSION_NAME}-iter${iteration}")
   [[ "$NO_CUSTOM_INSTRUCTIONS" == "true" ]] && COPILOT_ARGS+=(--no-custom-instructions)
@@ -188,8 +196,8 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   COPILOT_ARGS+=("${EXTRA_COPILOT_ARGS[@]+"${EXTRA_COPILOT_ARGS[@]}"}")
 
   set +e
-  copilot "${COPILOT_ARGS[@]}"
-  exit_code=$?
+  copilot "${COPILOT_ARGS[@]}" 2>&1 | tee "$iter_log"
+  exit_code=${PIPESTATUS[0]}
   set -e
 
   end_epoch="$(date +%s)"

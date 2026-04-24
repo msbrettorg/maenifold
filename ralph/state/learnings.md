@@ -83,6 +83,14 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - **Fix: always re-sync with explicit root after worktree merges: `gate sync --root /abs/path --rebuild`**
 - **Prevention: SWE prompts should NOT include gate commands. SWEs should NOT touch gate state.**
 
+### macOS grep -P not supported — bash duplicate detection bug
+- Iteration 20260424-1400: bash script used `grep -oP` to extract task IDs — macOS grep doesn't support `-P` (PCRE)
+- Script silently fell through to a fallback `ls done/${id}-*` which matched false positives via glob expansion
+- **Result: 13 valid todo/ files were erroneously deleted** (T-05.67, T-207.7, T-209.0-7, T-210.0-212.0)
+- Files were recovered via `git checkout HEAD -- todo/T-*.md`
+- **Lesson: On macOS, use `sed` or `awk` instead of `grep -P` for regex extraction. ALWAYS test delete scripts with a dry run first.**
+- **Lesson: When bulk-deleting files, verify the deletion list manually before executing `rm`.**
+
 ### Stale component replacement specs
 - 6 of 8 lightweight tasks (T-05.73, T-05.74, T-05.75, T-05.76, T-05.77, T-05.79) found components already compliant
 - The audit that generated T-05.72–T-05.83 specs didn't account for work already completed in prior waves

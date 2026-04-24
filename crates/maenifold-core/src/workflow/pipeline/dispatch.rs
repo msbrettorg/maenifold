@@ -175,24 +175,44 @@ fn dispatch_node(
                 &node_session_id,
             )?;
             state.status = NodeStatus::Active;
+            state.started_at = Some(Utc::now());
+            state.completed_at = None;
+            state.input_tokens = None;
+            state.output_tokens = None;
+            state.model = None;
             Ok(activated.then_some(response))
         }
         PipelineNode::Prompt { .. } => {
             let response = build_prompt_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.started_at = Some(Utc::now());
+            state.completed_at = None;
+            state.input_tokens = None;
+            state.output_tokens = None;
+            state.model = None;
             Ok(activated.then_some(response))
         }
         PipelineNode::SequentialThinking { .. } => {
             let response = build_thinking_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.started_at = Some(Utc::now());
+            state.completed_at = None;
+            state.input_tokens = None;
+            state.output_tokens = None;
+            state.model = None;
             Ok(activated.then_some(response))
         }
         PipelineNode::Tool { .. } => {
             let response = build_tool_dispatch_response(node, &node_session_id)?;
             let activated = activate_non_workflow_node_session(context, &node_session_id)?;
             state.status = NodeStatus::Active;
+            state.started_at = Some(Utc::now());
+            state.completed_at = None;
+            state.input_tokens = None;
+            state.output_tokens = None;
+            state.model = None;
             Ok(activated.then_some(response))
         }
     }

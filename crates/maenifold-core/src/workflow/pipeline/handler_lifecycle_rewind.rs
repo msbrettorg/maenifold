@@ -79,10 +79,15 @@ fn rewind_pipeline(
         state.session_id = workflow_session_id.clone();
         state.status = NodeStatus::Pending;
         state.attempts = 0;
+        state.started_at = None;
+        state.completed_at = None;
         state.acp_session_id = None;
         state.output = None;
         state.thinking_session_id = None;
         state.tool_provenance = None;
+        state.input_tokens = None;
+        state.output_tokens = None;
+        state.model = None;
         state.failure_reason = None;
         state.retry_after = None;
         state.retry_count = None;

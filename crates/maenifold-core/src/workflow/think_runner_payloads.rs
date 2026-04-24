@@ -169,6 +169,9 @@ mod tests {
         let response = normalize_think_prompt_response(Ok(AgentResponse {
             text: "DONE final synthesis [[step]]".to_string(),
             error: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         }))
         .expect("success response should remain ok");
 
@@ -180,6 +183,9 @@ mod tests {
         let response = normalize_think_prompt_response(Ok(AgentResponse {
             text: String::new(),
             error: Some("max_turn_requests".to_string()),
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         }));
 
         assert!(

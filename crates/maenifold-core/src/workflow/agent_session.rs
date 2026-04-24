@@ -1,4 +1,5 @@
 use jockey::acp::AcpPromptResult;
+use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::{debug, info, warn};
 
@@ -12,6 +13,9 @@ use super::runner::AgentSessionConfig;
 pub(crate) struct AgentResponse {
     pub text: String,
     pub error: Option<String>,
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub model: Option<String>,
 }
 
 impl From<AcpPromptResult> for AgentResponse {
@@ -27,6 +31,13 @@ impl From<AcpPromptResult> for AgentResponse {
         Self {
             text: result.output,
             error,
+            input_tokens: result.meta.get("inputTokens").and_then(Value::as_u64),
+            output_tokens: result.meta.get("outputTokens").and_then(Value::as_u64),
+            model: result
+                .meta
+                .get("model")
+                .and_then(Value::as_str)
+                .map(str::to_string),
         }
     }
 }

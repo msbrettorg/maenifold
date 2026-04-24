@@ -100,6 +100,9 @@ fn classify_empty_response_is_post_prompt() {
         NodeTaskResult::Prompt(Ok(PromptExecutionResult {
             response: " \n\t ".to_string(),
             acp_session_id: Some("acp-prompt-empty".to_string()),
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         })),
     );
 

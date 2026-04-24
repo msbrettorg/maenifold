@@ -71,10 +71,15 @@ pub(super) fn restart_pipeline_node(
         state.session_id = allocate_node_session_id(context, node_id)?;
         state.status = NodeStatus::Pending;
         state.attempts += 1;
+        state.started_at = None;
+        state.completed_at = None;
         state.acp_session_id = None;
         state.output = None;
         state.thinking_session_id = None;
         state.tool_provenance = None;
+        state.input_tokens = None;
+        state.output_tokens = None;
+        state.model = None;
         state.failure_reason = None;
         state.retry_after = None;
         state.retry_count = None;

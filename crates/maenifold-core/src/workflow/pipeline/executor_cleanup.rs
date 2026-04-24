@@ -99,6 +99,9 @@ pub fn cancel_active_nodes(context: &ToolContext, session_id: &str) -> crate::er
             None,
             None,
             Some("pipeline cancelled by user"),
+            None,
+            None,
+            None,
         )?;
     }
 
@@ -131,6 +134,9 @@ pub fn recover_crashed_nodes(
             None,
             None,
             Some("driver crashed — use rewind to retry"),
+            None,
+            None,
+            None,
         )?;
     }
 

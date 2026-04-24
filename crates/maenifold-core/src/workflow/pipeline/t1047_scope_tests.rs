@@ -8,6 +8,9 @@ fn classify_node_result_rejects_empty_and_whitespace_only_prompt_output() {
             NodeTaskResult::Prompt(Ok(super::executor_run::PromptExecutionResult {
                 response: response.into(),
                 acp_session_id: Some("acp-prompt-scope".to_string()),
+                input_tokens: None,
+                output_tokens: None,
+                model: None,
             })),
         );
 

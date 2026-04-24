@@ -27,6 +27,9 @@ async fn transient_failure_recovers_within_retry_budget() {
                     acp_session_id: None,
                     thinking_session_id: None,
                     tool_provenance: None,
+                    input_tokens: None,
+                    output_tokens: None,
+                    model: None,
                     retry_attempts: 0,
                 })
             }

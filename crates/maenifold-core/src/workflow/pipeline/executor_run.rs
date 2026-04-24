@@ -33,6 +33,9 @@ pub(super) use executor_run_exec::{run_prompt_node, run_tool_node};
 pub(super) struct PromptExecutionResult {
     pub response: String,
     pub acp_session_id: Option<String>,
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +69,9 @@ pub(super) enum NodeOutcome {
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
         tool_provenance: Option<ToolProvenance>,
+        input_tokens: Option<u64>,
+        output_tokens: Option<u64>,
+        model: Option<String>,
         retry_attempts: u32,
     },
     Abandoned {
@@ -74,6 +80,9 @@ pub(super) enum NodeOutcome {
         transient_error_kind: Option<&'static str>,
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
+        input_tokens: Option<u64>,
+        output_tokens: Option<u64>,
+        model: Option<String>,
         retry_attempts: u32,
         is_outer_timeout: bool,
     },
@@ -217,6 +226,9 @@ mod tests {
             Ok(PromptExecutionResult {
                 response: "  \n\t  ".to_string(),
                 acp_session_id: Some("acp-prompt-1".to_string()),
+                input_tokens: None,
+                output_tokens: None,
+                model: None,
             }),
             None,
         );
@@ -236,6 +248,9 @@ mod tests {
             Ok(PromptExecutionResult {
                 response: "  kept  ".to_string(),
                 acp_session_id: Some("acp-prompt-2".to_string()),
+                input_tokens: None,
+                output_tokens: None,
+                model: None,
             }),
             None,
         );

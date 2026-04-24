@@ -236,6 +236,9 @@ mod tests {
         let response = normalize_workflow_prompt_response(Ok(AgentResponse {
             text: "Completed [[step]]".to_string(),
             error: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         }))
         .expect("success response should remain ok");
 
@@ -247,6 +250,9 @@ mod tests {
         let response = normalize_workflow_prompt_response(Ok(AgentResponse {
             text: String::new(),
             error: Some("refusal".to_string()),
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         }));
 
         assert!(

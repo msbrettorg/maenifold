@@ -25,17 +25,26 @@ pub(crate) async fn run_prompt_node(
                 Ok(PromptExecutionResult {
                     response: encode_prompt_failure(&error),
                     acp_session_id: Some(acp_session_id),
+                    input_tokens: response.input_tokens,
+                    output_tokens: response.output_tokens,
+                    model: response.model,
                 })
             } else {
                 Ok(PromptExecutionResult {
                     response: response.text.trim().to_string(),
                     acp_session_id: Some(acp_session_id),
+                    input_tokens: response.input_tokens,
+                    output_tokens: response.output_tokens,
+                    model: response.model,
                 })
             }
         }
         Err(error) => Ok(PromptExecutionResult {
             response: encode_prompt_failure(&error.to_string()),
             acp_session_id: Some(acp_session_id),
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
         }),
     };
     if keep_session_alive {
@@ -56,6 +65,9 @@ pub(crate) async fn run_prompt_node(
                 Ok(PromptExecutionResult {
                     response,
                     acp_session_id: value.acp_session_id,
+                    input_tokens: value.input_tokens,
+                    output_tokens: value.output_tokens,
+                    model: value.model,
                 })
             }
             (Err(error), Ok(())) => Err(error),

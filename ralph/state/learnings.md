@@ -3,6 +3,14 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 1450 (epic decomposition + session-as-node)
+
+### Researcher agent ran gate pass on its own stage
+- T-214.1 spike: researcher agent (opus-4.5) ran `gate pass T-214.1` after completing research, advancing the gate state without PM authorization
+- PM's subsequent `gate pass` landed on `plan` stage instead of `research` (unexpected state)
+- **Lesson: Add explicit "do NOT run gate commands" to researcher and SWE prompts. Gate state is PM-owned.**
+- **Lesson: Always check `gate history <taskId>` when gate state doesn't match expectations.**
+
 ## 2026-04-24 — Iteration 1241 (gateway wave 2)
 
 ### Parallel RALPH gate state drift

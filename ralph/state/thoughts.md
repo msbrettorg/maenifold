@@ -5,29 +5,30 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
-## Iteration 20260424-1400 — Quality + Pipeline Delivery
+## Iteration 20260424-1450 — Epic Decomposition + Session-as-Node Launch
 
 ### Shipped
-- **T-213.1** ✅ DONE — Split 3 gate files (1 remediation: blue-team caught test import)
-- **T-213.2** ✅ DONE — Split embedding_models_detect.rs
-- **T-209.1** ✅ DONE — NodeState telemetry (1 remediation: Stuck timing + LOC splits)
-- **T-209.2** ✅ DONE — SDD pipeline template (sdd-v1.json)
-- **T-209.3** ✅ DONE — Lightweight + TDD pipeline templates
-- `make audit-crates` now passes clean (0 violations)
-- **5 tasks shipped this iteration**
+- **T-214.1** ✅ DONE — Spike: session/load RPC in executor. Finding: `resume_session_id=None` hardcoded in `execute.rs:65`. Fix is parameter threading through `AgentSessionConfig → WorkerMsg::Execute → cold_start()`. Infrastructure exists in `cold_start.rs:158-205`.
 
-### Session-as-Node Epic (T-214.0) — duo reviewed, updated
-- Both opus-4.7 and gpt-5.4 said REQUEST CHANGES (accepted)
-- Key changes: Snapshot deferred to Phase 1.5, Query-only MVP
-- T-214.2 needs spike first (session/load RPC behavior in executor)
-- T-214.4 merged into T-214.1 (wire format coupled to types)
-- Missing tasks added: spike, locking, frontend TS propagation, split tests
+### Epic Decomposition (37 sub-tasks filed)
+- **T-214.0** → 12 sub-tasks (T-214.1-13): SessionRef types, executor dispatch, MCP schema, uniqueness constraint, serde tests, executor tests, Pinia store, browser panel, TS types, visuals, context menu, E2E
+- **T-210.0** → 11 sub-tasks (T-210.1-11): Trouter research, WS client, message handler, MCP tools, resources, ACP dispatch, Teams tab, settings, MSAL auth, tab badge, CDP verification
+- **T-211.0** → 11 sub-tasks (T-211.1-11): Scheduler research, config schema, cron parser, launchd, systemd, supervisor, MCP tools, resources, settings UI, overlap protection, CDP verification
+- **T-212.0** → 3 sub-tasks (T-212.1-3): ralph-watch.sh, OTEL wiring, monitoring docs
 
-### Next actions after T-209.1 lands
-- Merge T-209.1 worktree → blue-team → done
-- Dispatch T-209.2 (SDD pipeline template) or T-209.3 (lightweight+TDD templates)
-- Start Session-as-Node spike (T-214.S)
-- Decompose T-210.0 (Teams Monitor) sub-task files into todo/
+### In-Flight
+- **T-214.2** — SWE dispatched (gpt-5.4), SessionRef type + wire format, worktree `worktrees/T-214.2`
+- **T-209.4** — SWE dispatched (gpt-5.4), pipeline-meta.sh inner loop, worktree `worktrees/T-209.4`
+
+### Process Violations
+- Researcher agent (T-214.1) ran `gate pass` on its own stage — agents should NOT touch gate state. Add explicit "do NOT run gate commands" to researcher prompts.
+
+### Next Actions
+- Verify T-214.2 SWE work → red-team → blue-team → merge → done
+- Verify T-209.4 SWE work → red-team → blue-team → merge → done
+- After T-214.2 lands: dispatch T-214.4 (MCP schema) and T-214.5 (uniqueness constraint) in parallel
+- After T-214.2 lands: dispatch T-214.3 (executor session dispatch) — depends on T-214.2 types
+- T-214.6 (serde tests) can be dispatched after T-214.2 lands
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

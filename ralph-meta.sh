@@ -342,7 +342,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 
   # --- Record metrics ---
   meta_end="$(date +%s)"
-  meta_duration=$((meta_end - meta_start))
+  meta_duration=$((meta_end - start_epoch))
 
   jq -n \
     --argjson iter "$iteration" \

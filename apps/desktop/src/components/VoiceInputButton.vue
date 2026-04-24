@@ -12,7 +12,7 @@ import {
 import { useVoiceHandyStore } from '@/stores/voice-handy';
 
 const voiceHandyStore = useVoiceHandyStore();
-const { installed, running, installHint } = storeToRefs(voiceHandyStore);
+const { installed, running, installHint, enabled } = storeToRefs(voiceHandyStore);
 
 const isElectron = computed(() =>
   typeof window !== 'undefined'
@@ -40,7 +40,7 @@ const tooltipText = computed(() => {
 </script>
 
 <template>
-  <TooltipProvider v-if="isElectron" :delay-duration="150">
+  <TooltipProvider v-if="isElectron && enabled" :delay-duration="150">
     <Tooltip>
       <TooltipTrigger as-child>
         <Button
@@ -50,14 +50,18 @@ const tooltipText = computed(() => {
           class="relative h-8 w-8 rounded-[4px]"
           :class="{ 'opacity-40': installed === false }"
           :aria-label="tooltipText"
-          :aria-disabled="installed === false || undefined"
-          @click="voiceHandyStore.launch()"
+          :disabled="installed === false"
+          @click="installed !== false && voiceHandyStore.launch()"
         >
           <Mic class="h-4 w-4" />
           <span
             v-if="running"
             aria-hidden="true"
+<<<<<<< Updated upstream
             class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-success"
+=======
+            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-status-completed"
+>>>>>>> Stashed changes
           />
         </Button>
       </TooltipTrigger>

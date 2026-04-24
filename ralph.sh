@@ -13,16 +13,11 @@ NO_CUSTOM_INSTRUCTIONS=false
 NO_ASK_USER=false
 CONTINUE=false
 EXTRA_COPILOT_ARGS=()
-SNAPSHOT_ROOT="ralph/state/snapshots"
 
 # Files the agent MUST NOT modify — verified by hash after each iteration
 IMMUTABLE_FILES=(
   "ralph.sh"
 )
-
-SNAPSHOT_FILES=(
-  "ralph/prompt.md"
-  "ralph.sh"
 )
 
 usage() {
@@ -60,25 +55,6 @@ create_thinking_session() {
   echo "$session_id"
 }
 
-snapshot_iteration_state() {
-  local dir="$1"
-  local f
-  rm -rf "$dir"
-  mkdir -p "$dir"
-  for f in "${SNAPSHOT_FILES[@]}"; do
-    mkdir -p "$dir/$(dirname "$f")"
-    cp "$f" "$dir/$f"
-  done
-}
-
-restore_iteration_state() {
-  local dir="$1"
-  local f
-  for f in "${SNAPSHOT_FILES[@]}"; do
-    cp "$dir/$f" "$f"
-  done
-}
-
 build_copilot_prompt() {
   cat <<EOF
 Runtime facts from ralph.sh:
@@ -112,7 +88,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 mkdir -p ralph/state
-mkdir -p "$SNAPSHOT_ROOT"
 
 require_command copilot
 require_command jq
@@ -192,11 +167,6 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   echo "╚══════════════════════════════════════════════════════════════════╝"
   echo ""
 
-  SNAPSHOT_TAG="ralph-snapshot-${iteration}-$(date +%s)"
-  SNAPSHOT_DIR="${SNAPSHOT_ROOT}/${SNAPSHOT_TAG}"
-  snapshot_iteration_state "$SNAPSHOT_DIR"
-  echo "Snapshot saved: $SNAPSHOT_DIR"
-
   # Export iteration config
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
@@ -243,7 +213,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   # --- Revert or keep ---
   if [[ "$should_revert" == "true" ]]; then
     echo "REVERTING iteration ${iteration}: ${revert_reason}"
-    restore_iteration_state "$SNAPSHOT_DIR"
+    git checkout -- . 2>/dev/null || true
     consecutive_reverts=$((consecutive_reverts + 1))
 
     if [[ $consecutive_reverts -ge 3 ]]; then
@@ -254,8 +224,6 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     echo "KEEPING iteration ${iteration}: changes accepted"
     consecutive_reverts=0
   fi
-
-  rm -rf "$SNAPSHOT_DIR"
 
   echo "Ralph iteration ${iteration} complete: duration=${duration}s revert=${should_revert}"
 

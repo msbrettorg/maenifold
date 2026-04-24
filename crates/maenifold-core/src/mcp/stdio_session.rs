@@ -98,7 +98,7 @@ impl StdioSession {
     pub fn tools(&self) -> Arc<[Tool]> { Arc::clone(&self.tools) }
     pub fn is_usable(&self) -> bool { !self.is_poisoned() && self.refresh_liveness() }
     pub fn is_poisoned(&self) -> bool { self.poisoned.load(Ordering::SeqCst) }
-    pub async fn shutdown(self) {
+    pub async fn shutdown(&mut self) {
         let mut io = self.io.lock().await;
         let _ = io.0.shutdown().await;
         drop(io);

@@ -52,15 +52,14 @@ Stuff you learn should go in ralph/state/learnings.md
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
 ## Next Actions (updated 2026-04-24)
-- T-203.3 SWE in-flight — McpAppFrame.vue + sandbox proxy (opus-4.7 dispatch)
-- T-204.8 SWE in-flight — regenerate embeddings fix (delete metadata only, skip vec0 DROP)
-- T-204.9 red-team re-audit in-flight — third cycle after empty/dot bypass fix
-- T-204.10 CLOSED — activate flat models, shipped through full SDD pipeline
+- T-203.4 SWE in-flight — ChatToolCallItem integration for McpAppFrame
+- T-203.3 DONE — McpAppFrame.vue + sandbox proxy shipped (3 red-team cycles)
+- T-204.8 DONE — regenerate embeddings fix shipped
+- T-204.9 DONE — delete flat models + path traversal protection shipped (3 red-team cycles)
+- T-204.10 DONE — activate flat models shipped
+- T-203.0 epic: 2 of 6 subtasks done (T-203.1, T-203.2, T-203.3), T-203.4 in-flight
 - T-05.67 (P2) — vec0 wizard, deferred
-- Sprint 05 remaining: T-05.67 (P2 deferred)
-- Next after T-203.3: T-203.4 (ChatContentBlocks integration) depends on T-203.3
-- Cleaned 7 stale todo/done duplicates during bootstrap (T-05.87/92/94/95/96/97, T-203.2)
-- Blue-team noted 2 pre-existing test failures: throttle boundary + graph_params visualize schema — need triage tasks
+- Gate rapid-pass race condition recorded in learnings — always check status between passes
 
 ## T-203.2 Completed (2026-04-24)
 - MCP Apps _meta.ui parsing shipped through full SDD+red-team+blue-team pipeline

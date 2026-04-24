@@ -3,6 +3,34 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Sprint 05 component cleanup waves
+
+### Gate MCP database locking is severe
+- T-05.84 filed as P0: concurrent gate pass/fail/sync calls reliably hit `sqlite error: database is locked`
+- **Workaround: CLI `gate pass ... --root "$(pwd)"` with `sleep 1` between calls is more reliable than MCP**
+- MCP "database is locked" responses are intermittent — the operation sometimes succeeds silently, causing double-advance race conditions
+- T-05.75 jumped from pending to blue-team (skipping swe) due to lock-then-retry double-pass
+- Always verify `gate status` after MCP pass/fail calls, especially after "locked" errors
+
+### Gate root contamination from worktrees
+- SWE agents running in worktrees called gate MCP, which overwrote the stored root to the worktree path
+- Subsequent gate operations from PM operated on the worktree instead of main tree
+- T-05.70 appeared "done" in a worktree but was still in todo/ on main
+- **Fix: always re-sync with explicit root after worktree merges: `gate sync --root /abs/path --rebuild`**
+- **Prevention: SWE prompts should NOT include gate commands. SWEs should NOT touch gate state.**
+
+### Stale component replacement specs
+- 6 of 8 lightweight tasks (T-05.73, T-05.74, T-05.75, T-05.76, T-05.77, T-05.79) found components already compliant
+- The audit that generated T-05.72–T-05.83 specs didn't account for work already completed in prior waves
+- **Lesson: Run actual grep/verification before filing batch specs. A 30-second check saves 5 minutes of SWE dispatch overhead per false positive.**
+- SWEs handle "already compliant" gracefully — they report and skip without changes
+
+### Efficient patterns
+- CLI `gate pass` with `sleep 1` between calls avoids all MCP locking issues
+- Batch blue-team verification (5 tasks per agent) is efficient — one build verifies all
+- Wave pattern works: dispatch 5 SWEs → merge → batch blue-team → next wave
+- For "already compliant" tasks, passing through swe + blue-team takes ~60s total (fast-track)
+
 ## 2026-04-23 — T-03 Wave 4 (pipeline/graph CSS migration)
 
 ### Gate pass collision

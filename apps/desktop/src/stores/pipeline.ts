@@ -169,6 +169,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
   } = createPipelineLifecycleActions({
     mcp,
     currentPipelineId,
+    currentView,
     refreshView,
     refreshList,
     startViewPolling,

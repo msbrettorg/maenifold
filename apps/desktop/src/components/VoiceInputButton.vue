@@ -50,8 +50,7 @@ const tooltipText = computed(() => {
           class="relative h-8 w-8 rounded-[4px]"
           :class="{ 'opacity-40': installed === false }"
           :aria-label="tooltipText"
-          :disabled="installed === false"
-          @click="installed !== false && voiceHandyStore.launch()"
+          @click="installed !== false ? voiceHandyStore.launch() : undefined"
         >
           <Mic class="h-4 w-4" />
           <span

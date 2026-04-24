@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { BookOpenText } from 'lucide-vue-next';
+import { BookOpenText, FileText } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +42,13 @@ const { activeUri, activeNote, noteLoading, noteError } = storeToRefs(store);
           class="flex min-h-[18rem] items-center justify-center"
         >
           <EmptyState :icon="BookOpenText" title="Select a note" description="Choose a note from the tree to read its content." />
+        </div>
+
+        <div
+          v-else-if="!activeNote.content?.trim()"
+          class="flex min-h-[18rem] items-center justify-center"
+        >
+          <EmptyState :icon="FileText" title="Empty note" description="This note has no content yet." />
         </div>
 
         <article

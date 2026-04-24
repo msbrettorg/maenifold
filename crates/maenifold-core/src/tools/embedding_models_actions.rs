@@ -104,15 +104,21 @@ pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<
     }
 
     let models_dir = context.config.assets_path.join("models");
-    let installed_path = models_dir.join(model_id).join("model.onnx");
-    let installed = installed_path
+    let subdir_path = models_dir.join(model_id).join("model.onnx");
+    let flat_path = models_dir.join(format!("{model_id}.onnx"));
+    let installed = subdir_path
         .metadata()
         .map(|m| m.is_file() && m.len() > 0)
-        .unwrap_or(false);
+        .unwrap_or(false)
+        || flat_path
+            .metadata()
+            .map(|m| m.is_file() && m.len() > 0)
+            .unwrap_or(false);
     if !installed {
         return Err(MaenifoldError::Message(format!(
-            "Model '{model_id}' is not installed at {} — download it first.",
-            installed_path.display()
+            "Model '{model_id}' is not installed. Checked {} and {} — download it first.",
+            subdir_path.display(),
+            flat_path.display()
         )));
     }
 

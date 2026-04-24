@@ -5,6 +5,7 @@ pub mod resources;
 pub mod schema;
 pub mod stdio_pool;
 pub mod stdio_session;
+pub mod tool_routing;
 pub(crate) mod tool_utils;
 pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};

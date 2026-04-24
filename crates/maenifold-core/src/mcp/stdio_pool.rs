@@ -10,12 +10,11 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::task::JoinSet;
 use tracing::warn;
-
 pub struct StdioPool {
     servers: RwLock<HashMap<String, ManagedServer>>,
     tools: StdRwLock<Vec<Tool>>,
+    gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
 }
-
 #[derive(Debug, Clone)]
 pub struct StdioServerConfig {
     pub name: String,
@@ -24,12 +23,10 @@ pub struct StdioServerConfig {
     pub env: HashMap<String, String>,
     pub timeout: Option<Duration>,
 }
-
 struct ManagedServer {
     config: StdioServerConfig,
     session: Arc<StdioSession>,
 }
-
 impl StdioPool {
     pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
         let mut seen = HashSet::new();
@@ -41,7 +38,6 @@ impl StdioPool {
                 )));
             }
         }
-
         let mut tasks = JoinSet::new();
         for config in servers {
             tasks.spawn(async move {
@@ -49,7 +45,6 @@ impl StdioPool {
                 (name, config.clone(), start_session(&config).await)
             });
         }
-
         let mut started = HashMap::new();
         while let Some(joined) = tasks.join_next().await {
             match joined {
@@ -68,21 +63,19 @@ impl StdioPool {
                 Err(error) => warn!(error = %error, "stdio MCP startup task failed"),
             }
         }
-
-        let tools = match collect_tools(&started) {
-            Ok(tools) => tools,
+        let (tools, gateway_tools) = match collect_gateway_tools(&started) {
+            Ok(tool_state) => tool_state,
             Err(error) => {
                 shutdown_servers(started).await;
                 return Err(error);
             }
         };
-
         Ok(Self {
             servers: RwLock::new(started),
             tools: StdRwLock::new(tools),
+            gateway_tools: StdRwLock::new(gateway_tools),
         })
     }
-
     pub async fn call_tool(
         &self,
         server_name: &str,
@@ -103,10 +96,9 @@ impl StdioPool {
                 None
             }
         };
-
         match initial {
             Some(Ok(result)) => Ok(result),
-            Some(Err(MaenifoldError::SessionUnusable)) => {
+            Some(Err(error)) if is_prewrite_failure(&error) => {
                 self.restart_server(server_name).await?;
                 self.call_after_restart(server_name, tool_name, arguments).await
             }
@@ -117,11 +109,13 @@ impl StdioPool {
             }
         }
     }
-
-    pub fn all_tools(&self) -> Vec<Tool> {
-        lock_tools(&self.tools).clone()
+    pub fn all_tools(&self) -> Vec<Tool> { lock_tools(&self.tools).clone() }
+    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
+        self.gateway_tools
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
     }
-
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -131,19 +125,16 @@ impl StdioPool {
                 .collect::<Vec<_>>()
         };
         *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self.gateway_tools
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
         let mut shutdowns = FuturesUnordered::new();
         for session in sessions {
             shutdowns.push(async move { session.shutdown().await });
         }
         while shutdowns.next().await.is_some() {}
     }
-
-    async fn call_after_restart(
-        &self,
-        server_name: &str,
-        tool_name: &str,
-        arguments: Value,
-    ) -> Result<CallToolResult> {
+    async fn call_after_restart(&self, server_name: &str, tool_name: &str, arguments: Value) -> Result<CallToolResult> {
         let session = {
             let servers = self.servers.read().await;
             let server = servers
@@ -153,7 +144,6 @@ impl StdioPool {
         };
         session.call_tool(tool_name, arguments).await
     }
-
     async fn restart_server(&self, server_name: &str) -> Result<()> {
         let config = {
             let servers = self.servers.read().await;
@@ -165,13 +155,12 @@ impl StdioPool {
             }
             server.config.clone()
         };
-
         let mut replacement = Some(Arc::new(start_session(&config).await?));
         let outcome = {
             let mut servers = self.servers.write().await;
             match servers.get(server_name) {
                 None => Err(missing_server(server_name)),
-                Some(server) if server.session.is_usable() => Ok(None),
+                Some(server) if server.session.is_usable() => Ok((None, None)),
                 Some(_) => {
                     let Some(new_session) = replacement.as_ref() else {
                         return Err(MaenifoldError::Message(
@@ -192,14 +181,11 @@ impl StdioPool {
                             })?,
                         )
                     };
-                    *self.tools.write().unwrap_or_else(|error| error.into_inner()) =
-                        collect_tools(&servers)?;
-                    Ok(Some(old))
+                    Ok((Some(old), Some(collect_gateway_tools(&servers)?)))
                 }
             }
         };
-
-        let old_session = match outcome {
+        let (old_session, tool_state) = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
                 if let Some(session) = replacement {
@@ -208,7 +194,13 @@ impl StdioPool {
                 return Err(error);
             }
         };
-
+        if let Some((tools, gateway_tools)) = tool_state {
+            *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
+            *self
+                .gateway_tools
+                .write()
+                .unwrap_or_else(|error| error.into_inner()) = gateway_tools;
+        }
         if let Some(session) = replacement {
             session.shutdown().await;
         }
@@ -218,7 +210,6 @@ impl StdioPool {
         Ok(())
     }
 }
-
 async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
@@ -231,12 +222,14 @@ async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
         );
     StdioSession::start(&entry).await
 }
-
-fn collect_tools(servers: &HashMap<String, ManagedServer>) -> Result<Vec<Tool>> {
+fn collect_gateway_tools(servers: &HashMap<String, ManagedServer>) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
     let mut owners = HashMap::<String, String>::new();
     let mut tools = Vec::new();
+    let mut gateway_tools = Vec::new();
     for (server_name, server) in servers {
-        for tool in server.session.tools().iter() {
+        let mut server_tools = server.session.tools().iter().cloned().collect::<Vec<_>>();
+        server_tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
+        for tool in &server_tools {
             let tool_name = tool.name.to_string();
             if let Some(other) = owners.insert(tool_name.clone(), server_name.clone()) {
                 return Err(MaenifoldError::Message(format!(
@@ -245,10 +238,12 @@ fn collect_tools(servers: &HashMap<String, ManagedServer>) -> Result<Vec<Tool>> 
             }
             tools.push(tool.clone());
         }
+        gateway_tools.push((server_name.clone(), server_tools));
     }
-    Ok(tools)
+    gateway_tools.sort_by(|(left, _), (right, _)| left.cmp(right));
+    tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
+    Ok((tools, gateway_tools))
 }
-
 fn ensure_replacement_tools(
     servers: &HashMap<String, ManagedServer>,
     replaced_server: &str,
@@ -273,7 +268,6 @@ fn ensure_replacement_tools(
     }
     Ok(())
 }
-
 async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     let mut shutdowns = FuturesUnordered::new();
     for server in servers.into_values() {
@@ -281,11 +275,6 @@ async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     }
     while shutdowns.next().await.is_some() {}
 }
-
-fn missing_server(server_name: &str) -> MaenifoldError {
-    MaenifoldError::Message(format!("unknown MCP stdio server '{server_name}'"))
-}
-
-fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> {
-    tools.read().unwrap_or_else(|error| error.into_inner())
-}
+fn is_prewrite_failure(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable") }
+fn missing_server(server_name: &str) -> MaenifoldError { MaenifoldError::Message(format!("unknown MCP stdio server '{server_name}'")) }
+fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> { tools.read().unwrap_or_else(|error| error.into_inner()) }

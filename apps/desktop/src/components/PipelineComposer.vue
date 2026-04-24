@@ -2,7 +2,6 @@
 import { computed, markRaw, nextTick, provide, ref, watch } from 'vue';
 import { VueFlow } from '@vue-flow/core';
 import { Background } from '@vue-flow/background';
-import { Controls } from '@vue-flow/controls';
 import { Button } from '@/components/ui/button';
 import { ContextMenu, ContextMenuTrigger } from '@/components/ui/context-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -10,7 +9,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 
 import '@vue-flow/core/dist/style.css';
 import '@vue-flow/core/dist/theme-default.css';
-import '@vue-flow/controls/dist/style.css';
 
 import AddNodeForm from './AddNodeForm.vue';
 import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
@@ -203,7 +201,6 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
               class="w-full h-full min-h-0"
             >
               <Background class="text-surface-high" />
-              <Controls :show-interactive="designMode" />
             </VueFlow>
 
             <div

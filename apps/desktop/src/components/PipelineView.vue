@@ -57,9 +57,6 @@ watch(() => error.value, (message) => { if (message) runnerExpanded.value = true
 watch(() => String(currentView.value?.status ?? ''), (status) => {
   if (status === 'stuck' || status === 'abandoned') runnerExpanded.value = true;
 }, { immediate: true });
-watch(() => designMode.value && (localDefinition.value?.nodes?.length ?? 0) > 0, (hasContent) => {
-  if (hasContent) runnerExpanded.value = true;
-}, { immediate: true });
 watch(isNarrowViewport, (narrow) => { if (narrow) closeFlyout(); });
 watch(
   [() => provenance.pendingThinkingSessionId, currentView],

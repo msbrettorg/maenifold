@@ -7,25 +7,29 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1554 — Session-as-Node Final + Cleanup
 
-### Shipped
+### Shipped (7 tasks + 1 epic)
 - **T-214.11** ✅ Session node visual treatment (MessageCircleMore icon, tooltip, dashed border)
+- **T-214.14** ✅ resume_session_id single-use (1 remediation cycle)
+- **T-214.15** ✅ resumed boolean observability
 - **T-215.1** ✅ SessionPickerDialog raw button fix (unblocks npm run build)
-- **T-214.14** ⏳ blue-team in progress (resume_session_id single-use, 1 remediation cycle)
-- **T-214.15** ⏳ blue-team in progress (resumed boolean observability)
-- **T-212.1** ⏳ SWE in progress (ralph-watch.sh)
+- **T-212.1** ✅ ralph-watch.sh (OTEL monitoring)
+- **T-212.2** ✅ OTEL wiring in pipeline-meta.sh
+- **T-212.3** ✅ Monitoring docs in ralph/README.md
+- **T-212.0** ✅ EPIC CLOSED — ralph-console complete
 
-### T-214 Epic Status: 12/15 done
-- T-214.13 (E2E validation) is the only remaining task after T-214.14/15 ship
-- T-214.0 epic can close once T-214.13 completes
+### In Progress
+- **T-209.5** ⏳ Score function (SWE dispatched)
+- **T-210.2** ⏳ Trouter WebSocket client (SWE dispatched)
+
+### T-214 Epic: 14/15 done
+- T-214.13 (E2E validation) is the only remaining task
+- Requires running Electron app with ACP agents — complex validation
 
 ### Next Actions
-- Land T-214.14 and T-214.15 after blue-team passes
-- Dispatch T-214.13 (E2E validation) — requires running app + ACP agent
-- T-212.2 spec needs re-grounding — references `ralph.sh` which doesn't exist; actual script is `ralph/pipeline-meta/pipeline-meta.sh`
-- T-212.3 (monitoring docs) ready after T-212.1 ships
-
-### Filed
-- T-215.1 — SessionPickerDialog.vue raw `<button>` → shipped
+- Land T-209.5 and T-210.2 through full SDD pipeline
+- After T-209.5 ships, T-209.6 (meta outer loop) becomes unblocked
+- T-214.13 needs E2E testing infrastructure — may need to defer to a session with CDP access
+- T-212.2 spec was re-grounded from nonexistent ralph.sh → pipeline-meta.sh
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

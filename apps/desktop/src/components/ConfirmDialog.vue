@@ -2,14 +2,13 @@
 import { storeToRefs } from 'pinia';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from './ui/alert-dialog';
+import { Button } from './ui/button';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 
 const confirmDialogStore = useConfirmDialogStore();
@@ -21,7 +20,7 @@ const {
 </script>
 
 <template>
-  <AlertDialog :open="open" @update:open="(nextOpen) => !nextOpen && confirmDialogStore.handleCancel()">
+  <AlertDialog :open="open">
     <AlertDialogContent class="sm:max-w-[28rem]">
       <AlertDialogHeader>
         <AlertDialogTitle>{{ title }}</AlertDialogTitle>
@@ -30,12 +29,12 @@ const {
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel @click="confirmDialogStore.handleCancel()">
+        <Button variant="outline" @click="confirmDialogStore.handleCancel()">
           Cancel
-        </AlertDialogCancel>
-        <AlertDialogAction @click="confirmDialogStore.handleConfirm()">
+        </Button>
+        <Button @click="confirmDialogStore.handleConfirm()">
           Continue
-        </AlertDialogAction>
+        </Button>
       </AlertDialogFooter>
     </AlertDialogContent>
   </AlertDialog>

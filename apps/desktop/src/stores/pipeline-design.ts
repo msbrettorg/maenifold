@@ -171,6 +171,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     }
 
     const result = instantiateTemplate(template, agents);
+    newPipeline();
     localDefinition.value = withLocalMetadata(result.definition, { templateId: template.id });
     return true;
   }
@@ -185,6 +186,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
       return false;
     }
 
+    newPipeline();
     localDefinition.value = buildIntentDefinition(prompt, agent);
     return true;
   }

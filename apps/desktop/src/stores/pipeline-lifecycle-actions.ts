@@ -1,6 +1,6 @@
 import type { Ref } from 'vue';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
-import type { PipelineEdge, PipelineInputs, PipelineNode } from '../lib/pipeline-types';
+import type { PipelineEdge, PipelineInputs, PipelineNode, PipelineView } from '../lib/pipeline-types';
 
 type PipelineMcp = ReturnType<typeof usePipelineMcp>;
 type WithError = <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;
@@ -9,6 +9,7 @@ type RefreshView = (options?: { resetEventLog?: boolean }) => Promise<void>;
 interface PipelineLifecycleActionDependencies {
   mcp: PipelineMcp;
   currentPipelineId: Ref<string | null>;
+  currentView: Ref<PipelineView | null>;
   refreshView: RefreshView;
   refreshList: () => Promise<void>;
   startViewPolling: () => void;
@@ -22,6 +23,7 @@ interface PipelineLifecycleActionDependencies {
 export function createPipelineLifecycleActions({
   mcp,
   currentPipelineId,
+  currentView,
   refreshView,
   refreshList,
   startViewPolling,
@@ -68,13 +70,27 @@ export function createPipelineLifecycleActions({
   }
 
   async function cancelPipeline() {
-    await withCurrentPipeline('cancel_pipeline', async (sessionId) => {
+    const sessionId = currentPipelineId.value;
+    if (!sessionId) {
+      newPipeline();
+      return;
+    }
+
+    const shouldCancelRemote = currentView.value?.running === true || currentView.value?.status === 'active';
+
+    if (!shouldCancelRemote) {
+      stopCurrentPolling();
+      newPipeline();
+      setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
+      return;
+    }
+
+    await withError('cancel_pipeline', async () => {
       await mcp.cancelPipeline(sessionId);
-      // Start polling so the view updates when the backend commits the
-      // `cancelled` status.  `setView` will call `stopCurrentPolling`
-      // automatically once a terminal status is observed.
-      startViewPolling();
-      await refreshView();
+      stopCurrentPolling();
+      await refreshList();
+      newPipeline();
+      setSuccessMessage(`Cancelled pipeline ${sessionId}.`);
     });
   }
 
@@ -86,6 +102,9 @@ export function createPipelineLifecycleActions({
 
   async function deletePipelineById(sessionId: string) {
     await withError('delete_pipeline', async () => {
+      if (currentPipelineId.value === sessionId) {
+        stopCurrentPolling();
+      }
       await mcp.deletePipeline(sessionId);
       if (currentPipelineId.value === sessionId) {
         newPipeline();

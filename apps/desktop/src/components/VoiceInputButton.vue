@@ -57,11 +57,7 @@ const tooltipText = computed(() => {
           <span
             v-if="running"
             aria-hidden="true"
-<<<<<<< Updated upstream
             class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-success"
-=======
-            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-status-completed"
->>>>>>> Stashed changes
           />
         </Button>
       </TooltipTrigger>

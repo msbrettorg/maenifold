@@ -39,10 +39,10 @@ function statusIcon(status: string): Component {
 
 const borderClass = computed(() => {
   switch (props.node.status) {
-    case 'completed': return 'border-l-emerald-500';
-    case 'abandoned': return 'border-l-amber-500';
-    case 'active':    return 'border-l-sky-500';
-    default:          return 'border-l-sky-500';
+    case 'completed': return 'border-l-status-completed';
+    case 'abandoned': return 'border-l-status-abandoned';
+    case 'active':    return 'border-l-status-active';
+    default:          return 'border-l-status-active';
   }
 });
 

@@ -1,5 +1,7 @@
 pub(crate) mod dispatch;
 mod dispatch_helpers;
+#[cfg(test)]
+pub(crate) use dispatch_helpers::context_from_value;
 pub mod http;
 pub mod schema;
 

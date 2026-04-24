@@ -39,7 +39,7 @@ const modalDescription = computed(() =>
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('close')">
     <DialogContent
-      class="flex max-h-[90vh] w-[min(640px,92vw)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]"
+      class="flex max-h-[85vh] w-[80vw] max-w-[80vw] flex-col gap-0 overflow-hidden p-0"
       :show-close-button="false"
     >
       <DialogHeader class="flex flex-row items-center justify-between gap-4 border-b border-border-default px-4 py-3">

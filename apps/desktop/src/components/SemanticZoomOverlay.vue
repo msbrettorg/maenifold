@@ -210,7 +210,7 @@ watch(() => viewNode.value?.nodeId, () => {
   <Dialog :open="zoom.isInspecting && !!viewNode" @update:open="(open) => !open && zoom.back()">
     <DialogContent
       v-if="viewNode"
-      class="flex max-h-[80vh] w-[90vw] max-w-[720px] flex-col gap-0 overflow-hidden border border-border-subtle bg-card p-0 shadow-none"
+      class="flex max-h-[85vh] w-[80vw] max-w-[80vw] flex-col gap-0 overflow-hidden border border-border-subtle bg-card p-0 shadow-none"
       :show-close-button="false"
     >
       <DialogTitle class="sr-only">{{ displayLabel }}</DialogTitle>

@@ -2,6 +2,7 @@
 // and streaming session-update case processing.
 import type {
   ContentBlock,
+  McpAppUiMetadata,
   SessionState,
   ToolCallInfo,
 } from '../lib/types';
@@ -46,12 +47,28 @@ function normalizeToolCallPayload(
   return isRecord(payload) ? { ...payload } : undefined;
 }
 
-function createToolCallInfo(update: ToolCallUpdateSnapshot): ToolCallInfo {
+function cloneAppUiMetadata(appUi: McpAppUiMetadata | null | undefined): McpAppUiMetadata | null {
+  if (!appUi) {
+    return null;
+  }
+
+  return {
+    resourceUri: appUi.resourceUri,
+    csp: appUi.csp,
+    permissions: appUi.permissions ? [...appUi.permissions] : undefined,
+  };
+}
+
+function createToolCallInfo(
+  update: ToolCallUpdateSnapshot,
+  appUi: McpAppUiMetadata | null = null,
+): ToolCallInfo {
   return {
     toolCallId: update.toolCallId,
     title: update.title ?? '',
     kind: update.kind ?? 'other',
     status: update.status ?? 'pending',
+    appUi: cloneAppUiMetadata(appUi),
     locations: normalizeToolCallLocations(update.locations),
     content: normalizeToolCallContent(update.content),
     rawInput: normalizeToolCallPayload(update.rawInput),
@@ -177,8 +194,9 @@ export function handleAgentThoughtChunk(
 export function handleToolCall(
   session: SessionState,
   update: ToolCallUpdateSnapshot,
+  appUi: McpAppUiMetadata | null = null,
 ): void {
-  const toolCallInfo = createToolCallInfo(update);
+  const toolCallInfo = createToolCallInfo(update, appUi);
 
   // Add tool call to the current assistant message, synthesizing a
   // tool-only assistant turn when the agent emits tool activity before
@@ -207,6 +225,7 @@ export function handleToolCall(
 export function handleToolCallUpdate(
   session: SessionState,
   update: ToolCallUpdateSnapshot,
+  appUi: McpAppUiMetadata | null = null,
 ): void {
   const existing = session.toolCalls.get(update.toolCallId);
   if (!existing) return;
@@ -225,6 +244,9 @@ export function handleToolCallUpdate(
   }
   if (isRecord(update._meta)) {
     existing._meta = update._meta;
+  }
+  if (!existing.appUi && appUi) {
+    existing.appUi = cloneAppUiMetadata(appUi);
   }
 
   // Also update in the message's toolCalls array
@@ -245,6 +267,9 @@ export function handleToolCallUpdate(
       }
       if (isRecord(update._meta)) {
         tc._meta = update._meta;
+      }
+      if (!tc.appUi && appUi) {
+        tc.appUi = cloneAppUiMetadata(appUi);
       }
     }
   }

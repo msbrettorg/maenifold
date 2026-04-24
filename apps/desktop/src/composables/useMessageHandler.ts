@@ -3,6 +3,7 @@
 import type { Ref } from 'vue';
 import type {
   ContentBlock,
+  McpAppUiMetadata,
   SavedSession,
   SessionState,
   AvailableCommand,
@@ -37,6 +38,7 @@ interface UseMessageHandlerDeps {
   savedSessions: Ref<SavedSession[]>;
   saveSessionsToStore: () => Promise<void>;
   cancelPermission: () => void;
+  resolveToolAppUi?: (toolName: string | null | undefined) => McpAppUiMetadata | null | undefined;
 }
 
 export function useMessageHandler({
@@ -46,6 +48,7 @@ export function useMessageHandler({
   savedSessions,
   saveSessionsToStore,
   cancelPermission,
+  resolveToolAppUi,
 }: UseMessageHandlerDeps) {
   async function renameSessionFromFirstPrompt(session: SessionState, text: string): Promise<void> {
     if (!session.session || session.messages.some((message) => message.role === 'user')) {
@@ -129,11 +132,11 @@ export function useMessageHandler({
         break;
 
       case 'tool_call':
-        handleToolCall(session, update);
+        handleToolCall(session, update, resolveToolAppUi?.(update.title ?? null) ?? null);
         break;
 
       case 'tool_call_update':
-        handleToolCallUpdate(session, update);
+        handleToolCallUpdate(session, update, resolveToolAppUi?.(update.title ?? null) ?? null);
         break;
 
       case 'config_option_update':

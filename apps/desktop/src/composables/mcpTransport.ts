@@ -44,6 +44,8 @@ export interface ToolContent {
   text?: string;
 }
 
+import type { McpAppUiMetadata } from '../lib/types';
+
 export interface ToolCallResult {
   content?: ToolContent[];
   isError?: boolean;
@@ -53,6 +55,8 @@ export interface ToolDefinition {
   name: string;
   description?: string;
   inputSchema?: unknown;
+  appUi?: McpAppUiMetadata | null;
+  _meta?: Record<string, unknown>;
 }
 
 export interface ToolsListResult {

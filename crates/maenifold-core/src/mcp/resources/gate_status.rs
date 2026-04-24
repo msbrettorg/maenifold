@@ -41,8 +41,14 @@ pub(super) fn gate_status(root: &Path) -> Value {
 fn status_row_from_file(path: &Path, location: &str) -> Option<Value> {
     let markdown = fs::read_to_string(path).ok()?;
     let task_id = task_id_from_path(path)?;
-    let title = parse_title(&markdown).unwrap_or_else(|| task_id.clone());
     let frontmatter = parse_frontmatter(&markdown);
+    let title = frontmatter
+        .as_ref()
+        .and_then(|map| map.get("title"))
+        .and_then(Value::as_str)
+        .map(str::to_string)
+        .or_else(|| parse_title(&markdown))
+        .unwrap_or_else(|| task_id.clone());
     let pipeline = frontmatter
         .as_ref()
         .and_then(|map| map.get("pipeline"))

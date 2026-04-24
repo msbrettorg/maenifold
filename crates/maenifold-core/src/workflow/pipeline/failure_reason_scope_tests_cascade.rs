@@ -46,9 +46,14 @@ fn node_state(node_id: &str, status: NodeStatus) -> NodeState {
         session_id: format!("workflow-1735689609999-{node_id}"),
         status,
         attempts: 1,
+        started_at: None,
+        completed_at: None,
         acp_session_id: None,
         thinking_session_id: None,
         tool_provenance: None,
+        input_tokens: None,
+        output_tokens: None,
+        model: None,
         output: None,
         failure_reason: None,
         retry_after: None,
@@ -156,6 +161,9 @@ fn update_pipeline_node_status_cascades_abandon_only_over_success_edges_to_fixpo
         None,
         None,
         Some("root failed"),
+        None,
+        None,
+        None,
     )
     .expect("abandon root");
 

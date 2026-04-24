@@ -1,12 +1,9 @@
 #![allow(unused_imports, dead_code)]
-
 use std::collections::HashMap;
 
 use serde_json::json;
 use serial_test::serial;
-
 use crate::util::json::OutputFormat;
-
 use super::handler_lifecycle::handle_lifecycle_operation;
 use super::session_read::{frontmatter_value, read_pipeline_session};
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
@@ -46,16 +43,20 @@ fn node_state(node_id: &str, status: NodeStatus) -> NodeState {
         session_id: format!("workflow-1735689609999-{node_id}"),
         status,
         attempts: 1,
+        started_at: None,
+        completed_at: None,
         acp_session_id: None,
         thinking_session_id: None,
         tool_provenance: None,
+        input_tokens: None,
+        output_tokens: None,
+        model: None,
         output: None,
         failure_reason: None,
         retry_after: None,
         retry_count: None,
     }
 }
-
 #[test]
 #[serial]
 fn update_pipeline_node_status_persists_abandoned_failure_reason() {
@@ -73,9 +74,14 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
             session_id: "workflow-1735689600000-node".to_string(),
             status: NodeStatus::Active,
             attempts: 1,
+            started_at: None,
+            completed_at: None,
             acp_session_id: None,
             thinking_session_id: Some("session-1735689600000-node".to_string()),
             tool_provenance: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
             output: Some("stale output".to_string()),
             failure_reason: None,
             retry_after: None,
@@ -83,7 +89,6 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     update_pipeline_node_status(
         &context,
         session_id,
@@ -94,6 +99,9 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
         None,
         None,
         Some("agent refused prompt"),
+        None,
+        None,
+        None,
     )
     .expect("abandon node");
 
@@ -109,7 +117,6 @@ fn update_pipeline_node_status_persists_abandoned_failure_reason() {
     );
     assert_eq!(node_states["node"].output, None);
 }
-
 #[test]
 #[serial]
 fn update_pipeline_node_status_clears_failure_reason_when_completed() {
@@ -127,9 +134,14 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
             session_id: "workflow-1735689600001-node".to_string(),
             status: NodeStatus::Active,
             attempts: 1,
+            started_at: None,
+            completed_at: None,
             acp_session_id: None,
             thinking_session_id: None,
             tool_provenance: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
             output: None,
             failure_reason: Some("stale failure".to_string()),
             retry_after: None,
@@ -137,13 +149,15 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     update_pipeline_node_status(
         &context,
         session_id,
         "node",
         "completed",
         Some("done"),
+        None,
+        None,
+        None,
         None,
         None,
         None,
@@ -156,7 +170,6 @@ fn update_pipeline_node_status_clears_failure_reason_when_completed() {
     assert_eq!(node_states["node"].output.as_deref(), Some("done"));
     assert_eq!(node_states["node"].failure_reason, None);
 }
-
 #[test]
 #[serial]
 fn restart_pipeline_node_clears_failure_reason() {
@@ -174,9 +187,14 @@ fn restart_pipeline_node_clears_failure_reason() {
             session_id: "workflow-1735689600002-node".to_string(),
             status: NodeStatus::Abandoned,
             attempts: 1,
+            started_at: None,
+            completed_at: None,
             acp_session_id: None,
             thinking_session_id: Some("session-1735689600002-node".to_string()),
             tool_provenance: None,
+            input_tokens: None,
+            output_tokens: None,
+            model: None,
             output: Some("bad output".to_string()),
             failure_reason: Some("tool timeout".to_string()),
             retry_after: None,
@@ -184,9 +202,7 @@ fn restart_pipeline_node_clears_failure_reason() {
         },
     )]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     restart_pipeline_node(&context, session_id, "node").expect("restart node");
-
     let node_states = read_raw_node_states(&context, session_id);
     assert_eq!(node_states["node"].status, NodeStatus::Pending);
     assert_eq!(node_states["node"].attempts, 2);
@@ -194,7 +210,6 @@ fn restart_pipeline_node_clears_failure_reason() {
     assert_eq!(node_states["node"].thinking_session_id, None);
     assert_eq!(node_states["node"].failure_reason, None);
 }
-
 #[test]
 #[serial]
 fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
@@ -218,9 +233,14 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
                 session_id: "workflow-1735689600003-root".to_string(),
                 status: NodeStatus::Completed,
                 attempts: 3,
+                started_at: None,
+                completed_at: None,
                 acp_session_id: None,
                 thinking_session_id: Some("session-1735689600003-root".to_string()),
                 tool_provenance: None,
+                input_tokens: None,
+                output_tokens: None,
+                model: None,
                 output: Some("root output".to_string()),
                 failure_reason: Some("stale root failure".to_string()),
                 retry_after: None,
@@ -233,9 +253,14 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
                 session_id: "workflow-1735689600003-child".to_string(),
                 status: NodeStatus::Abandoned,
                 attempts: 2,
+                started_at: None,
+                completed_at: None,
                 acp_session_id: None,
                 thinking_session_id: Some("session-1735689600003-child".to_string()),
                 tool_provenance: None,
+                input_tokens: None,
+                output_tokens: None,
+                model: None,
                 output: Some("child output".to_string()),
                 failure_reason: Some("child failure".to_string()),
                 retry_after: None,
@@ -244,7 +269,6 @@ fn rewind_clears_failure_reason_for_selected_node_and_descendants() {
         ),
     ]);
     seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 2);
-
     handle_lifecycle_operation(
         &context,
         session_id,

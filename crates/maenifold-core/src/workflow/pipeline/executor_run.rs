@@ -33,6 +33,9 @@ pub(super) use executor_run_exec::{run_prompt_node, run_tool_node};
 pub(super) struct PromptExecutionResult {
     pub response: String,
     pub acp_session_id: Option<String>,
+    pub input_tokens: Option<u64>,
+    pub output_tokens: Option<u64>,
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,6 +69,9 @@ pub(super) enum NodeOutcome {
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
         tool_provenance: Option<ToolProvenance>,
+        input_tokens: Option<u64>,
+        output_tokens: Option<u64>,
+        model: Option<String>,
         retry_attempts: u32,
     },
     Abandoned {
@@ -74,6 +80,9 @@ pub(super) enum NodeOutcome {
         transient_error_kind: Option<&'static str>,
         acp_session_id: Option<String>,
         thinking_session_id: Option<String>,
+        input_tokens: Option<u64>,
+        output_tokens: Option<u64>,
+        model: Option<String>,
         retry_attempts: u32,
         is_outer_timeout: bool,
     },
@@ -207,90 +216,8 @@ fn decode_prompt_failure(response: &str) -> Option<String> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn classify_prompt_result_abandons_whitespace_only_output() {
-        let outcome = classify_prompt_result(
-            "prompt-node",
-            Ok(PromptExecutionResult {
-                response: "  \n\t  ".to_string(),
-                acp_session_id: Some("acp-prompt-1".to_string()),
-            }),
-            None,
-        );
-
-        match outcome {
-            NodeOutcome::Abandoned { reason, .. } => assert_eq!(reason, "empty response"),
-            NodeOutcome::Completed { .. } => {
-                panic!("whitespace-only prompt output should be abandoned")
-            }
-        }
-    }
-
-    #[test]
-    fn classify_prompt_result_completes_non_empty_output() {
-        let outcome = classify_prompt_result(
-            "prompt-node",
-            Ok(PromptExecutionResult {
-                response: "  kept  ".to_string(),
-                acp_session_id: Some("acp-prompt-2".to_string()),
-            }),
-            None,
-        );
-
-        match outcome {
-            NodeOutcome::Completed {
-                conclusion,
-                acp_session_id,
-                ..
-            } => {
-                assert_eq!(conclusion, "  kept  ");
-                assert_eq!(acp_session_id.as_deref(), Some("acp-prompt-2"));
-            }
-            NodeOutcome::Abandoned { reason, .. } => {
-                panic!("non-empty prompt output should complete, got: {reason}")
-            }
-        }
-    }
-
-    #[test]
-    fn classify_tool_result_records_structured_provenance() {
-        let outcome = classify_tool_result(
-            "tool-node",
-            Ok(ToolExecutionResult {
-                response: "{\"success\":true}".to_string(),
-                provenance: ToolProvenance {
-                    tool_name: "example.echo".to_string(),
-                    resolved_args: Some(serde_json::json!({ "value": 1 })),
-                    response_summary: "{\"success\":true}".to_string(),
-                },
-            }),
-        );
-
-        match outcome {
-            NodeOutcome::Completed {
-                conclusion,
-                tool_provenance,
-                ..
-            } => {
-                assert_eq!(conclusion, "{\"success\":true}");
-                let provenance = tool_provenance.expect("tool provenance should be captured");
-                assert_eq!(provenance.tool_name, "example.echo");
-                assert_eq!(
-                    provenance.resolved_args,
-                    Some(serde_json::json!({ "value": 1 }))
-                );
-                assert_eq!(provenance.response_summary, "{\"success\":true}");
-            }
-            NodeOutcome::Abandoned { reason, .. } => {
-                panic!("successful tool output should complete, got: {reason}")
-            }
-        }
-    }
-}
-
-#[cfg(test)]
 #[path = "failure_classification_tests.rs"]
 mod failure_classification_tests;
+#[cfg(test)]
+#[path = "executor_run_tests.rs"]
+mod tests;

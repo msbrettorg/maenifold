@@ -44,8 +44,23 @@ pub(super) fn pipeline_nodes_json(
                 if let Some(retry_after) = &state.retry_after {
                     node_object.insert("retryAfter".to_string(), json!(retry_after));
                 }
+                if let Some(started_at) = &state.started_at {
+                    node_object.insert("startedAt".to_string(), json!(started_at));
+                }
+                if let Some(completed_at) = &state.completed_at {
+                    node_object.insert("completedAt".to_string(), json!(completed_at));
+                }
                 if let Some(retry_count) = state.retry_count {
                     node_object.insert("retryCount".to_string(), json!(retry_count));
+                }
+                if let Some(input_tokens) = state.input_tokens {
+                    node_object.insert("inputTokens".to_string(), json!(input_tokens));
+                }
+                if let Some(output_tokens) = state.output_tokens {
+                    node_object.insert("outputTokens".to_string(), json!(output_tokens));
+                }
+                if let Some(model) = &state.model {
+                    node_object.insert("model".to_string(), json!(model));
                 }
                 if let Some(failure_reason) = &state.failure_reason {
                     node_object.insert("failureReason".to_string(), json!(failure_reason));

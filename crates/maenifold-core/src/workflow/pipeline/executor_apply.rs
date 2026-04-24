@@ -41,6 +41,9 @@ pub(super) fn apply_node_outcome(
             acp_session_id,
             thinking_session_id,
             tool_provenance,
+            input_tokens,
+            output_tokens,
+            model,
             retry_attempts,
         } => {
             increment_node_attempts(context, session_id, node_id, retry_attempts)?;
@@ -54,6 +57,9 @@ pub(super) fn apply_node_outcome(
                 thinking_session_id.as_deref(),
                 tool_provenance.as_ref(),
                 None,
+                input_tokens,
+                output_tokens,
+                model.as_deref(),
             )?;
             counts.completed += 1;
         }
@@ -64,6 +70,9 @@ pub(super) fn apply_node_outcome(
             retry_attempts,
             acp_session_id,
             thinking_session_id,
+            input_tokens,
+            output_tokens,
+            model,
             is_outer_timeout,
         } => {
             if phase.is_retryable() && !is_outer_timeout {
@@ -89,6 +98,9 @@ pub(super) fn apply_node_outcome(
                 thinking_session_id.as_deref(),
                 None,
                 Some(&reason),
+                input_tokens,
+                output_tokens,
+                model.as_deref(),
             )?;
             counts.abandoned += 1;
         }

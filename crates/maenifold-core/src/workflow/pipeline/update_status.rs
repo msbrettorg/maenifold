@@ -1,6 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
+use chrono::Utc;
 use serde_yaml::Value as YamlValue;
 
 use super::compute_blocked_cascade;
@@ -26,6 +27,9 @@ pub(super) fn update_pipeline_node_status(
     thinking_session_id: Option<&str>,
     tool_provenance: Option<&ToolProvenance>,
     failure_reason: Option<&str>,
+    input_tokens: Option<u64>,
+    output_tokens: Option<u64>,
+    model: Option<&str>,
 ) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
@@ -78,9 +82,13 @@ pub(super) fn update_pipeline_node_status(
                     ))
                 })?;
                 state.status = NodeStatus::Completed;
+                state.completed_at = Some(Utc::now());
                 state.acp_session_id = acp_session_id.map(str::to_string);
                 state.thinking_session_id = thinking_session_id.map(str::to_string);
                 state.tool_provenance = tool_provenance.cloned();
+                state.input_tokens = input_tokens;
+                state.output_tokens = output_tokens;
+                state.model = model.map(str::to_string);
                 state.output = Some(conclusion.to_string());
                 state.failure_reason = None;
             }
@@ -96,9 +104,13 @@ pub(super) fn update_pipeline_node_status(
                         ))
                     })?;
                 unreachable_state.status = NodeStatus::Abandoned;
+                unreachable_state.completed_at = Some(Utc::now());
                 unreachable_state.acp_session_id = None;
                 unreachable_state.thinking_session_id = None;
                 unreachable_state.tool_provenance = None;
+                unreachable_state.input_tokens = None;
+                unreachable_state.output_tokens = None;
+                unreachable_state.model = None;
                 unreachable_state.output = None;
                 unreachable_state.failure_reason =
                     Some("conditional predicate not satisfied".to_string());
@@ -112,9 +124,13 @@ pub(super) fn update_pipeline_node_status(
                     ))
                 })?;
                 cascaded_state.status = NodeStatus::Abandoned;
+                cascaded_state.completed_at = Some(Utc::now());
                 cascaded_state.acp_session_id = None;
                 cascaded_state.thinking_session_id = None;
                 cascaded_state.tool_provenance = None;
+                cascaded_state.input_tokens = None;
+                cascaded_state.output_tokens = None;
+                cascaded_state.model = None;
                 cascaded_state.output = None;
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
@@ -146,6 +162,7 @@ pub(super) fn update_pipeline_node_status(
                 ))
             })?;
             state.status = transitioned_status;
+            state.completed_at = Some(Utc::now());
             if let Some(acp_session_id) = acp_session_id {
                 state.acp_session_id = Some(acp_session_id.to_string());
             }
@@ -153,6 +170,9 @@ pub(super) fn update_pipeline_node_status(
                 state.thinking_session_id = Some(thinking_session_id.to_string());
             }
             state.tool_provenance = None;
+            state.input_tokens = input_tokens;
+            state.output_tokens = output_tokens;
+            state.model = model.map(str::to_string);
             state.output = None;
             state.failure_reason = failure_reason
                 .map(str::trim)
@@ -167,9 +187,13 @@ pub(super) fn update_pipeline_node_status(
                     ))
                 })?;
                 cascaded_state.status = NodeStatus::Abandoned;
+                cascaded_state.completed_at = Some(Utc::now());
                 cascaded_state.acp_session_id = None;
                 cascaded_state.thinking_session_id = None;
                 cascaded_state.tool_provenance = None;
+                cascaded_state.input_tokens = None;
+                cascaded_state.output_tokens = None;
+                cascaded_state.model = None;
                 cascaded_state.output = None;
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }

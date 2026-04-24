@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use petgraph::stable_graph::StableGraph;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
@@ -120,11 +121,21 @@ pub struct NodeState {
     pub status: NodeStatus,
     pub attempts: u32,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub started_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub completed_at: Option<DateTime<Utc>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub acp_session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub thinking_session_id: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub tool_provenance: Option<ToolProvenance>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub input_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub output_tokens: Option<u64>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -186,9 +197,14 @@ output: done
 
         assert_eq!(node_state.session_id, "workflow-node-1");
         assert_eq!(node_state.status, NodeStatus::Completed);
+        assert_eq!(node_state.started_at, None);
+        assert_eq!(node_state.completed_at, None);
         assert_eq!(node_state.acp_session_id, None);
         assert_eq!(node_state.thinking_session_id, None);
         assert_eq!(node_state.tool_provenance, None);
+        assert_eq!(node_state.input_tokens, None);
+        assert_eq!(node_state.output_tokens, None);
+        assert_eq!(node_state.model, None);
         assert_eq!(node_state.output.as_deref(), Some("done"));
     }
 }

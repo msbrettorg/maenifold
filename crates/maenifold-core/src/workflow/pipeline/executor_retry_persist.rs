@@ -85,6 +85,9 @@ pub(super) fn persist_retryable_failure(
             thinking_session_id,
             None,
             Some(&failure_reason),
+            None,
+            None,
+            None,
         )?;
         return Ok(());
     }
@@ -93,9 +96,14 @@ pub(super) fn persist_retryable_failure(
     state.session_id = next_session_id.clone();
     state.status = NodeStatus::Retrying;
     state.attempts = state.attempts.saturating_add(1);
+    state.started_at = None;
+    state.completed_at = None;
     state.acp_session_id = None;
     state.thinking_session_id = None;
     state.tool_provenance = None;
+    state.input_tokens = None;
+    state.output_tokens = None;
+    state.model = None;
     state.output = None;
     state.failure_reason = None;
     state.retry_after = Some((Utc::now() + Duration::seconds(1)).to_rfc3339());

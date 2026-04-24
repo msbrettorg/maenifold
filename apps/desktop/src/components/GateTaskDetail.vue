@@ -34,12 +34,6 @@ const pipelineStale = computed(() => Boolean(props.task && isTaskPipelineDigestS
 const detailTitleId = computed(() =>
   props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'
 );
-
-function renderMarkdown(content: string | null) {
-  if (!content) return '';
-  const parsed = marked.parse(content, { async: false });
-  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-}
 </script>
 
 <template>
@@ -93,10 +87,10 @@ function renderMarkdown(content: string | null) {
           >
             No task body content found.
           </p>
-          <div
+          <KnowledgeNoteRenderer
             v-else
-            class="text-sm text-foreground p-4 border border-border rounded-md bg-muted/30 [overflow-wrap:anywhere] [&_*]:mt-0 [&_p+p]:mt-3 [&_ul]:mt-3 [&_ol]:mt-3 [&_pre]:mt-3 [&_table]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:border-0 [&_pre_code]:p-0 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground"
-            v-html="renderMarkdown(body)"
+            :content="body"
+            class="p-4 border border-border rounded-md bg-muted/30"
           />
         </section>
 

@@ -10,13 +10,11 @@ use std::time::Duration;
 use tokio::sync::RwLock;
 use tokio::task::JoinSet;
 use tracing::warn;
-
 pub struct StdioPool {
     servers: RwLock<HashMap<String, ManagedServer>>,
     tools: StdRwLock<Vec<Tool>>,
     gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
 }
-
 #[derive(Debug, Clone)]
 pub struct StdioServerConfig {
     pub name: String,
@@ -25,12 +23,10 @@ pub struct StdioServerConfig {
     pub env: HashMap<String, String>,
     pub timeout: Option<Duration>,
 }
-
 struct ManagedServer {
     config: StdioServerConfig,
     session: Arc<StdioSession>,
 }
-
 impl StdioPool {
     pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
         let mut seen = HashSet::new();
@@ -42,7 +38,6 @@ impl StdioPool {
                 )));
             }
         }
-
         let mut tasks = JoinSet::new();
         for config in servers {
             tasks.spawn(async move {
@@ -50,7 +45,6 @@ impl StdioPool {
                 (name, config.clone(), start_session(&config).await)
             });
         }
-
         let mut started = HashMap::new();
         while let Some(joined) = tasks.join_next().await {
             match joined {
@@ -69,7 +63,6 @@ impl StdioPool {
                 Err(error) => warn!(error = %error, "stdio MCP startup task failed"),
             }
         }
-
         let (tools, gateway_tools) = match collect_gateway_tools(&started) {
             Ok(tool_state) => tool_state,
             Err(error) => {
@@ -77,14 +70,12 @@ impl StdioPool {
                 return Err(error);
             }
         };
-
         Ok(Self {
             servers: RwLock::new(started),
             tools: StdRwLock::new(tools),
             gateway_tools: StdRwLock::new(gateway_tools),
         })
     }
-
     pub async fn call_tool(
         &self,
         server_name: &str,
@@ -105,7 +96,6 @@ impl StdioPool {
                 None
             }
         };
-
         match initial {
             Some(Ok(result)) => Ok(result),
             Some(Err(error)) if is_prewrite_failure(&error) => {
@@ -119,18 +109,13 @@ impl StdioPool {
             }
         }
     }
-
-    pub fn all_tools(&self) -> Vec<Tool> {
-        lock_tools(&self.tools).clone()
-    }
-
+    pub fn all_tools(&self) -> Vec<Tool> { lock_tools(&self.tools).clone() }
     pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
         self.gateway_tools
             .read()
             .unwrap_or_else(|error| error.into_inner())
             .clone()
     }
-
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -149,13 +134,7 @@ impl StdioPool {
         }
         while shutdowns.next().await.is_some() {}
     }
-
-    async fn call_after_restart(
-        &self,
-        server_name: &str,
-        tool_name: &str,
-        arguments: Value,
-    ) -> Result<CallToolResult> {
+    async fn call_after_restart(&self, server_name: &str, tool_name: &str, arguments: Value) -> Result<CallToolResult> {
         let session = {
             let servers = self.servers.read().await;
             let server = servers
@@ -165,7 +144,6 @@ impl StdioPool {
         };
         session.call_tool(tool_name, arguments).await
     }
-
     async fn restart_server(&self, server_name: &str) -> Result<()> {
         let config = {
             let servers = self.servers.read().await;
@@ -177,7 +155,6 @@ impl StdioPool {
             }
             server.config.clone()
         };
-
         let mut replacement = Some(Arc::new(start_session(&config).await?));
         let outcome = {
             let mut servers = self.servers.write().await;
@@ -208,7 +185,6 @@ impl StdioPool {
                 }
             }
         };
-
         let (old_session, tool_state) = match outcome {
             Ok(outcome) => outcome,
             Err(error) => {
@@ -218,7 +194,6 @@ impl StdioPool {
                 return Err(error);
             }
         };
-
         if let Some((tools, gateway_tools)) = tool_state {
             *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
             *self
@@ -235,7 +210,6 @@ impl StdioPool {
         Ok(())
     }
 }
-
 async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
@@ -248,10 +222,7 @@ async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
         );
     StdioSession::start(&entry).await
 }
-
-fn collect_gateway_tools(
-    servers: &HashMap<String, ManagedServer>,
-) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
+fn collect_gateway_tools(servers: &HashMap<String, ManagedServer>) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
     let mut owners = HashMap::<String, String>::new();
     let mut tools = Vec::new();
     let mut gateway_tools = Vec::new();
@@ -273,7 +244,6 @@ fn collect_gateway_tools(
     tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
     Ok((tools, gateway_tools))
 }
-
 fn ensure_replacement_tools(
     servers: &HashMap<String, ManagedServer>,
     replaced_server: &str,
@@ -298,7 +268,6 @@ fn ensure_replacement_tools(
     }
     Ok(())
 }
-
 async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     let mut shutdowns = FuturesUnordered::new();
     for server in servers.into_values() {
@@ -306,15 +275,6 @@ async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     }
     while shutdowns.next().await.is_some() {}
 }
-
-fn is_prewrite_failure(error: &MaenifoldError) -> bool {
-    matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable")
-}
-
-fn missing_server(server_name: &str) -> MaenifoldError {
-    MaenifoldError::Message(format!("unknown MCP stdio server '{server_name}'"))
-}
-
-fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> {
-    tools.read().unwrap_or_else(|error| error.into_inner())
-}
+fn is_prewrite_failure(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable") }
+fn missing_server(server_name: &str) -> MaenifoldError { MaenifoldError::Message(format!("unknown MCP stdio server '{server_name}'")) }
+fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> { tools.read().unwrap_or_else(|error| error.into_inner()) }

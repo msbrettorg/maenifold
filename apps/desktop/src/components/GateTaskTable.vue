@@ -88,26 +88,43 @@ function SortableHeader(label: string, column: SortColumn) {
   );
 }
 
+function getColumnWidthStyle(columnId: SortColumn) {
+  const column = table.getColumn(columnId);
+  return column ? { width: `${column.getSize()}px` } : undefined;
+}
+
 const columns: ColumnDef<GateTask>[] = [
   {
     id: 'id',
     accessorKey: 'taskId',
     header: () => SortableHeader('Task ID', 'id'),
+    size: 120,
+    minSize: 100,
+    maxSize: 180,
   },
   {
     id: 'name',
     accessorKey: 'title',
     header: () => SortableHeader('Task', 'name'),
+    size: 320,
+    minSize: 180,
+    maxSize: 9999,
   },
   {
     id: 'process',
     accessorFn: (task) => getTaskPipelineLabel(task),
     header: () => SortableHeader('Process', 'process'),
+    size: 140,
+    minSize: 120,
+    maxSize: 220,
   },
   {
     id: 'progress',
     accessorKey: 'state',
     header: () => SortableHeader('Progress', 'progress'),
+    size: 160,
+    minSize: 140,
+    maxSize: 260,
   },
 ];
 
@@ -120,6 +137,8 @@ const table = useVueTable<GateTask>({
     return props.tasks;
   },
   columns,
+  enableColumnResizing: true,
+  columnResizeMode: 'onChange',
   state: {
     get sorting() {
       return sortingState.value;
@@ -134,13 +153,7 @@ const table = useVueTable<GateTask>({
 <template>
   <div class="flex h-full min-h-0 flex-col rounded-lg border bg-background">
     <ScrollArea class="h-full">
-      <Table class="w-full table-fixed">
-        <colgroup>
-          <col class="w-[100px]" />
-          <col />
-          <col class="w-20" />
-          <col class="w-[200px]" />
-        </colgroup>
+      <Table class="min-w-full table-fixed" :style="{ width: `${table.getTotalSize()}px` }">
         <TableHeader class="sticky top-0 z-10 bg-surface">
           <TableRow
             v-for="headerGroup in table.getHeaderGroups()"
@@ -150,12 +163,20 @@ const table = useVueTable<GateTask>({
               v-for="header in headerGroup.headers"
               :key="header.id"
               :aria-sort="sortAriaOrder(header.column.id as SortColumn)"
-              class="bg-surface text-text-primary font-medium"
+              :style="{ width: `${header.getSize()}px` }"
+              class="group relative bg-surface text-text-primary font-medium"
             >
               <FlexRender
                 v-if="!header.isPlaceholder"
                 :render="header.column.columnDef.header"
                 :props="header.getContext()"
+              />
+              <div
+                v-if="!header.isPlaceholder"
+                class="absolute right-0 top-0 h-full w-[3px] cursor-col-resize bg-border-subtle opacity-0 transition-opacity group-hover:opacity-100 hover:opacity-100 active:opacity-100 active:bg-brand"
+                :class="header.column.getIsResizing() ? 'bg-brand opacity-100' : undefined"
+                @mousedown.stop="header.getResizeHandler()($event)"
+                @touchstart.stop="header.getResizeHandler()($event)"
               />
             </TableHead>
           </TableRow>
@@ -169,10 +190,13 @@ const table = useVueTable<GateTask>({
             class="cursor-pointer hover:bg-surface-high data-[state=selected]:bg-surface-high data-[state=selected]:text-text-primary"
             @click="emit('select', row.original)"
           >
-            <TableCell class="truncate font-mono text-xs text-text-secondary">
+            <TableCell
+              :style="getColumnWidthStyle('id')"
+              class="truncate font-mono text-xs text-text-secondary"
+            >
               {{ row.original.taskId }}
             </TableCell>
-            <TableCell class="truncate text-text-primary">
+            <TableCell :style="getColumnWidthStyle('name')" class="truncate text-text-primary">
               <div class="flex min-w-0 items-center gap-2">
                 <span :title="row.original.title" class="min-w-0 flex-1 truncate text-text-primary">
                   {{ row.original.title }}
@@ -184,7 +208,7 @@ const table = useVueTable<GateTask>({
                 />
               </div>
             </TableCell>
-            <TableCell class="truncate text-text-secondary">
+            <TableCell :style="getColumnWidthStyle('process')" class="truncate text-text-secondary">
               <span>{{ processLabel(row.original) }}</span>
               <TriangleAlert
                 v-if="isTaskPipelineDigestStale(row.original)"
@@ -194,7 +218,7 @@ const table = useVueTable<GateTask>({
                 class="ml-1.5 inline h-3.5 w-3.5 cursor-help text-warning"
               />
             </TableCell>
-            <TableCell>
+            <TableCell :style="getColumnWidthStyle('progress')">
               <div class="flex flex-wrap gap-1">
                 <GateTaskProgress :task="row.original" />
               </div>

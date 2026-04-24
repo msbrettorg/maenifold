@@ -5,6 +5,30 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-1400 — Quality + Pipeline Delivery
+
+### In-flight SWEs (3 parallel worktrees)
+- **T-213.1** — Split 3 oversized gate files (lightweight, worktrees/T-213.1)
+- **T-213.2** — Split embedding_models_detect.rs (lightweight, worktrees/T-213.2)
+- **T-209.1** — NodeState telemetry (SDD, worktrees/T-209.1)
+
+### Backlog status
+- 13 tasks in todo/ (2 new LOC splits + 11 existing)
+- 3 SLC epics need decomposition: T-210.0 (Teams Monitor P1), T-211.0 (Scheduled Tasks P2), T-212.0 (Ralph Console P2)
+- T-209.0 already decomposed into T-209.1-7
+- T-05.67 (vec0 wizard) and T-207.7 (integration test) are standalone P2
+
+### Backlog hygiene done
+- Cleaned 16 stale todo/ duplicates from parallel RALPH instances
+- Removed stale worktree branch (task/T-204.3)
+- Fixed my own duplicate detection bug (macOS grep -P not supported, false positives)
+- Restored 13 wrongly deleted files
+
+### Product roadmap
+- Phase 1: Session-as-Node — spec exists in memory://, not yet filed as epic
+- Session infrastructure (list_sessions, load_session) already exists in backend
+- PipelineNode needs SessionRef extension for session-based prompt dispatch
+
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped
 - 90+ components migrated from `<style scoped>` to Tailwind

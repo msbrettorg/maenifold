@@ -16,7 +16,7 @@
  *   max-style-rules      <style> blocks with >15 CSS rules are too heavy
  *   max-loc              Components must be ≤300 lines
  *
- * Exemption: <!-- audit-ok: rule-name --> on the same line or the line above.
+ * audit-ok comments are banned. Any occurrence under src/ fails the audit.
  *
  * Usage:
  *   node scripts/audit-components.mjs          # changed files only
@@ -25,7 +25,7 @@
  * Exit code 0 = clean, 1 = violations found.
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -57,6 +57,10 @@ const MOCK_RE = /\b(vi\.fn|jest\.fn|vi\.mock|jest\.mock|vi\.spyOn|jest\.spyOn|si
 const mode = process.argv.includes('--all') ? 'all' : 'changed';
 const violations = [];
 
+for (const violation of findForbiddenAuditOkComments()) {
+  violations.push(violation);
+}
+
 // Collect .vue files to audit (skip ui/ and __tests__/)
 const vueFiles = mode === 'all'
   ? collectAllVueFiles()
@@ -69,8 +73,6 @@ const tsFiles = mode === 'all'
 
 // Check for sibling .css files (always scan all — they're few)
 for (const cssFile of collectSiblingCssFiles()) {
-  const cssSource = readFileSafe(path.join(APP_ROOT, cssFile)) ?? '';
-  if (cssSource.includes('audit-ok: no-sibling-css')) continue;
   violations.push({
     file: cssFile,
     line: 1,
@@ -88,7 +90,7 @@ for (const relPath of vueFiles) {
   const lines = source.split(/\r?\n/);
 
   // Rule: max-loc
-  if (lines.length > MAX_LOC && !source.includes('audit-ok: max-loc')) {
+  if (lines.length > MAX_LOC) {
     violations.push({
       file: relPath,
       line: lines.length,
@@ -100,14 +102,6 @@ for (const relPath of vueFiles) {
   // Rule: max-style-rules
   const styleRanges = findVueStyleRanges(lines);
   for (const range of styleRanges) {
-    // Check exemption on the style tag line and up to 5 lines above
-    let exemptCtx = '';
-    for (let back = 0; back <= 5; back++) {
-      const idx = range.start - 1 - back;
-      if (idx >= 0) exemptCtx += ' ' + (lines[idx] ?? '');
-    }
-    if (isExempt(exemptCtx, 'max-style-rules')) continue;
-
     let ruleCount = 0;
     for (let i = range.start - 1; i < range.end; i++) {
       if (/\{/.test(lines[i] ?? '')) ruleCount++;
@@ -132,12 +126,6 @@ for (const relPath of vueFiles) {
     const line = lines[i] ?? '';
     const lineNumber = i + 1;
 
-    // Check exemptions (same line or up to 5 lines above — covers multi-line element tags)
-    let exemptionSource = line;
-    for (let back = 1; back <= 5 && i - back >= 0; back++) {
-      exemptionSource += ' ' + (lines[i - back] ?? '');
-    }
-
     // Skip HTML comments and JS comments for element checks
     const inComment = isInRanges(lineNumber, commentRanges) || /^\s*(\/\/|\*)/.test(line);
     const inTemplate = isInRanges(lineNumber, templateRanges);
@@ -145,7 +133,7 @@ for (const relPath of vueFiles) {
     // Raw HTML element rules — only in <template>, skip comments
     if (inTemplate && !inComment) {
       for (const { rule, pattern, message } of RAW_ELEMENT_RULES) {
-        if (pattern.test(line) && !isExempt(exemptionSource, rule)) {
+        if (pattern.test(line)) {
           violations.push({ file: relPath, line: lineNumber, rule, message });
         }
       }
@@ -153,7 +141,7 @@ for (const relPath of vueFiles) {
 
     // btn-* classname rule — only flag on raw <button>, not shadcn <Button>
     // (shadcn Button components legitimately use CSS class hooks)
-    if (inTemplate && /class="[^"]*\bbtn[-\s]/.test(line) && /<button[\s>]/.test(line) && !isExempt(exemptionSource, 'no-btn-classname')) {
+    if (inTemplate && /class="[^"]*\bbtn[-\s]/.test(line) && /<button[\s>]/.test(line)) {
       violations.push({
         file: relPath,
         line: lineNumber,
@@ -163,7 +151,7 @@ for (const relPath of vueFiles) {
     }
 
     // no-console rule (skip comments)
-    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line) && !isExempt(exemptionSource, 'no-console')) {
+    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line)) {
       violations.push({
         file: relPath,
         line: lineNumber,
@@ -173,7 +161,7 @@ for (const relPath of vueFiles) {
     }
 
     // no-todo rule
-    if (TODO_RE.test(line) && !isExempt(exemptionSource, 'no-todo')) {
+    if (TODO_RE.test(line)) {
       violations.push({
         file: relPath,
         line: lineNumber,
@@ -183,7 +171,7 @@ for (const relPath of vueFiles) {
     }
 
     // no-mock rule
-    if (MOCK_RE.test(line) && !isExempt(exemptionSource, 'no-mock')) {
+    if (MOCK_RE.test(line)) {
       violations.push({
         file: relPath,
         line: lineNumber,
@@ -205,16 +193,14 @@ for (const relPath of tsFiles) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i] ?? '';
     const lineNumber = i + 1;
-    const prevLine = i > 0 ? (lines[i - 1] ?? '') : '';
-    const exemptionSource = line + ' ' + prevLine;
 
-    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line) && !isExempt(exemptionSource, 'no-console')) {
+    if (CONSOLE_RE.test(line) && !/^\s*(\/\/|\*)/.test(line)) {
       violations.push({ file: relPath, line: lineNumber, rule: 'no-console', message: 'console.log/debug/warn — remove or use a proper logger.' });
     }
-    if (TODO_RE.test(line) && !isExempt(exemptionSource, 'no-todo')) {
+    if (TODO_RE.test(line)) {
       violations.push({ file: relPath, line: lineNumber, rule: 'no-todo', message: 'TODO/FIXME/HACK — resolve or file a gate task.' });
     }
-    if (MOCK_RE.test(line) && !isExempt(exemptionSource, 'no-mock')) {
+    if (MOCK_RE.test(line)) {
       violations.push({ file: relPath, line: lineNumber, rule: 'no-mock', message: 'Mock/stub/fake — constitution forbids mocks.' });
     }
   }
@@ -238,8 +224,6 @@ if (violations.length > 0) {
     }
     console.error('');
   }
-
-  console.error('Exempt a line with: <!-- audit-ok: rule-name -->');
   console.error('Run with --all to scan every component.\n');
   process.exit(1);
 }
@@ -250,10 +234,6 @@ const scanned = mode === 'all'
 console.log(`✅ audit:components passed (${scanned}).`);
 
 // --- helpers ---
-
-function isExempt(text, rule) {
-  return text.includes(`audit-ok: ${rule}`) || text.includes('audit-ok: *');
-}
 
 function findVueStyleRanges(lines) {
   const ranges = [];
@@ -329,7 +309,7 @@ function walkDir(dir, results, ext = '.vue') {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
       walkDir(full, results, ext);
-    } else if (entry.isFile() && entry.name.endsWith(ext)) {
+    } else if (entry.isFile() && (ext == null || entry.name.endsWith(ext))) {
       results.push(full);
     }
   }
@@ -369,6 +349,31 @@ function collectSiblingCssFiles() {
       }
     }
   } catch { /* empty */ }
+  return results;
+}
+
+function findForbiddenAuditOkComments() {
+  const results = [];
+  const sourceFiles = [];
+  walkDir(path.join(APP_ROOT, 'src'), sourceFiles, null);
+
+  for (const filePath of sourceFiles) {
+    const source = readFileSafe(filePath);
+    if (source == null || !source.includes('audit-ok')) continue;
+
+    const relPath = path.relative(APP_ROOT, filePath).split(path.sep).join('/');
+    const lines = source.split(/\r?\n/);
+    for (let i = 0; i < lines.length; i++) {
+      if (!lines[i]?.includes('audit-ok')) continue;
+      results.push({
+        file: relPath,
+        line: i + 1,
+        rule: 'no-audit-ok',
+        message: 'audit-ok comments are banned. Remove the comment and fix the underlying audit violation.',
+      });
+    }
+  }
+
   return results;
 }
 

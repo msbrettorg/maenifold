@@ -6,8 +6,8 @@ function readCssToken(token: string, fallback: string): string {
   return value || fallback;
 }
 
-const PRIMARY_FALLBACK = '#FFFFFF';
-const SECONDARY_FALLBACK = '#A0AAB2';
+const PRIMARY_FALLBACK = 'rgb(255 255 255)';
+const SECONDARY_FALLBACK = 'rgb(160 170 178)';
 
 export function colorForCommunityIndex(index: number): string {
   const hue = (index * 137.508) % 360;

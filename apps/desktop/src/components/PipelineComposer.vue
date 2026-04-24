@@ -15,6 +15,7 @@ import PipelineComposerContextMenu from './PipelineComposerContextMenu.vue';
 import PipelineFlowEdge from './PipelineFlowEdge.vue';
 import PipelineStatusBadge from './PipelineStatusBadge.vue';
 import PipelineComposerToolbar from './PipelineComposerToolbar.vue';
+import SessionPickerDialog from './sessions/SessionPickerDialog.vue';
 import { useComposerCanvas } from '../composables/useComposerCanvas';
 import { useComposerPalette } from '../composables/useComposerPalette';
 import { useComposerContextMenu } from '../composables/useComposerContextMenu';
@@ -91,11 +92,12 @@ const hasCompletedNodesWithOutput = computed(() =>
 
 const {
   contextMenu, contextMenuEnabled, contextMenuNodeStatus, contextMenuNodeHasOutput,
-  closeContextMenu, handleComposerContextMenu, handleEditNode, handleDuplicateNode,
+  sessionPickerOpen, closeContextMenu, closeSessionPicker, addSessionNode,
+  handleComposerContextMenu, handleEditNode, handleDuplicateNode,
   handleDeleteNode, handleDisconnectEdges, handleServerNodeAction,
   handleCanvasRunPipeline, handleCanvasRewindAll, handleCanvasGraft, handleCanvasPromoteToMemory,
-  handleContextMenuOpenChange, createPromptNode, createThinkingNode, createToolNode, createWorkflowNode,
-} = useComposerContextMenu({
+  handleContextMenuOpenChange, openSessionPicker, createPromptNode, createThinkingNode, createToolNode, createWorkflowNode,
+  } = useComposerContextMenu({
   designMode: () => props.designMode,
   view: () => props.view,
   firstAgent,
@@ -210,6 +212,12 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
               <span>{{ designMode ? 'Add nodes using the form or right-click the canvas' : 'Add your first node' }}</span>
               <span v-if="!designMode" class="text-2xl leading-none text-text-secondary" aria-hidden="true">↖</span>
             </div>
+
+            <SessionPickerDialog
+              :open="sessionPickerOpen"
+              @cancel="closeSessionPicker"
+              @add="addSessionNode"
+            />
           </section>
         </ContextMenuTrigger>
 
@@ -229,6 +237,7 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
           :node-has-output="contextMenuNodeHasOutput"
           @close="closeContextMenu"
           @ask-agent="createPromptNode"
+          @add-session-node="openSessionPicker"
           @think-problem="createThinkingNode"
           @run-workflow="createWorkflowNode"
           @run-tool="createToolNode"

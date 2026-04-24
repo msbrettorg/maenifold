@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { MessageCircle } from 'lucide-vue-next'
 import {
   ContextMenuItem,
   ContextMenuSeparator,
@@ -29,6 +30,7 @@ defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'ask-agent'): void
+  (e: 'add-session-node'): void
   (e: 'think-problem'): void
   (e: 'run-workflow'): void
   (e: 'run-tool', toolName: string): void
@@ -52,6 +54,10 @@ function handleTool(toolName: string) {
 <template>
   <template v-if="target === 'canvas'">
     <ContextMenuItem :disabled="!canAskAgent" @select="handleAction(() => emit('ask-agent'))">Ask an agent…</ContextMenuItem>
+    <ContextMenuItem @select="handleAction(() => emit('add-session-node'))">
+      <MessageCircle />
+      Add session node
+    </ContextMenuItem>
     <ContextMenuSub>
       <ContextMenuSubTrigger :disabled="toolGroups.length === 0">
         <span>Run a tool…</span>

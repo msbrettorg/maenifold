@@ -37,6 +37,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'ask-agent'): void;
+  (e: 'add-session-node'): void;
   (e: 'think-problem'): void;
   (e: 'run-workflow'): void;
   (e: 'run-tool', toolName: string): void;
@@ -108,6 +109,7 @@ const showAbandon = computed(() => {
       :can-run-workflow="canRunWorkflow"
       @close="emit('close')"
       @ask-agent="emit('ask-agent')"
+      @add-session-node="emit('add-session-node')"
       @think-problem="emit('think-problem')"
       @run-workflow="emit('run-workflow')"
       @run-tool="emit('run-tool', $event)"
@@ -137,7 +139,7 @@ const showAbandon = computed(() => {
       @run-pipeline="emit('run-pipeline')"
       @rewind-all="emit('rewind-all')"
       @graft="emit('graft')"
-        @promote-to-memory="emit('promote-to-memory')"
-      />
+      @promote-to-memory="emit('promote-to-memory')"
+    />
   </ContextMenuContent>
 </template>

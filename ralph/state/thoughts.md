@@ -34,5 +34,11 @@ Stuff you learn should go in ralph/state/learnings.md
 - Removed Vue Flow MiniMap + Controls (unthemeable without custom CSS)
 - Pipeline modal dialogs widened to 80vw
 - Runner panel defaults collapsed
+- DONE: T-05.71 (shadcn imports 18 files), T-05.72 (AppSidebar ScrollArea), T-05.81 (Card containers 9 files), T-05.82 (ScrollArea 11 files)
+- IN-FLIGHT: T-05.69 (title parsing fix), T-05.70 (column widths fix), T-05.73-75 (SWE wave)
+- Red-team caught: empty title fallback (T-05.69), column width mismatch (T-05.70) — both in remediation
+- PENDING: T-05.66, T-05.67, T-05.76-80, T-05.83
+- OVERLAP WARNING: T-05.77 + T-05.80 share WorkflowStepDetail.vue; T-05.79 + T-05.80 share WorkflowStepProgress.vue — sequence these
 - NEED: build enforcement to PREVENT hand-rolled components from being introduced — audit-components.mjs needs `require-design-import` rule
 - NEED: the audit from codex should be turned into a build rule, not just a one-time scan
+- LEARNING: gate MCP "database is locked" errors are intermittent but may succeed — always verify status after. Double-pass race conditions have advanced tasks past intended stages.

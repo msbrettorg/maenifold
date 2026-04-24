@@ -92,9 +92,10 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         let gateway = build_gateway(&config).await;
+        let pool_for_api = gateway.as_ref().map(|(pool, _)| Arc::clone(pool));
         let router = router(
             service(shutdown_token.child_token(), gateway),
-            ApiState::new(config.clone()),
+            ApiState::new(config.clone(), pool_for_api),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
         // shared tool surface over HTTP.
@@ -150,7 +151,7 @@ mod tests {
         let config = Config::current();
         config.ensure_directories().expect("ensure directories");
         GraphDatabase::initialize_database(&config).expect("initialize database");
-        (temp, ApiState::new(config), ConfigResetGuard)
+        (temp, ApiState::new(config, None), ConfigResetGuard)
     }
 
     fn test_router(state: ApiState) -> axum::Router {

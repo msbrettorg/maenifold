@@ -13,6 +13,7 @@ use crate::api::{
     },
     routes_memory::{memory_read, memory_recent, memory_search},
 };
+use crate::mcp::stdio_pool::StdioPool;
 use crate::{Config, db};
 use axum::{
     Router,
@@ -32,11 +33,12 @@ pub struct ApiState {
     config: Arc<RwLock<Config>>,
     pub(super) config_manager: ConfigManager,
     pub(super) config_watch: ConfigWatchState,
+    pub(crate) gateway_pool: Option<Arc<StdioPool>>,
 }
 
 impl ApiState {
     #[must_use]
-    pub fn new(config: Config) -> Self {
+    pub fn new(config: Config, gateway_pool: Option<Arc<StdioPool>>) -> Self {
         let config = Arc::new(RwLock::new(config));
         let config_manager = {
             let config_guard = config.read();
@@ -47,6 +49,7 @@ impl ApiState {
             config,
             config_manager,
             config_watch,
+            gateway_pool,
         }
     }
 

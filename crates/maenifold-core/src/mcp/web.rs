@@ -17,7 +17,7 @@ impl super::MaenifoldMcpServer {
         let ct = tokio_util::sync::CancellationToken::new();
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let api_state = ApiState::new(config.clone());
+        let api_state = ApiState::new(config.clone(), None);
 
         // FR-32-SEC: restrict CORS to localhost origins only.
         let cors = super::localhost_cors();

@@ -2,6 +2,42 @@
 
 set -euo pipefail
 
+# --- Subcommand: ralph.sh watch ---
+if [[ "${1:-}" == "watch" ]]; then
+  shift
+  OTEL_FILE="ralph/state/otel/current.jsonl"
+  LOG_DIR="ralph/state/logs"
+  MODE="otel"
+  case "${1:-}" in
+    --log)  MODE="log" ;;
+    --both) MODE="both" ;;
+    -h|--help)
+      echo "Usage: $0 watch [--log | --both]"
+      echo "  (default)  Launch otel-tui to view traces/metrics/tokens"
+      echo "  --log      Tail the latest iteration log"
+      echo "  --both     tmux split: otel-tui top, log tail bottom"
+      exit 0 ;;
+  esac
+  if ! command -v otel-tui >/dev/null 2>&1; then
+    echo "otel-tui not found. Install: brew install ymtdzzz/tap/otel-tui"
+    exit 1
+  fi
+  latest_log() { ls -t "$LOG_DIR"/iter-*.log 2>/dev/null | head -1; }
+  case "$MODE" in
+    otel)
+      [[ ! -f "$OTEL_FILE" ]] && { echo "Waiting for $OTEL_FILE..."; while [[ ! -f "$OTEL_FILE" ]]; do sleep 2; done; }
+      exec otel-tui --from-json-file "$OTEL_FILE" ;;
+    log)
+      log=$(latest_log); [[ -z "$log" ]] && { echo "No logs yet."; exit 1; }
+      exec tail -f "$log" ;;
+    both)
+      command -v tmux >/dev/null 2>&1 || { echo "tmux required for --both"; exit 1; }
+      tmux new-session -d -s ralph-watch "otel-tui --from-json-file $OTEL_FILE" \; \
+        split-window -v "tail -f $(latest_log || echo /dev/null)" \; attach ;;
+  esac
+  exit 0
+fi
+
 MODEL="claude-opus-4.6-1m"
 REASONING_EFFORT="xhigh"
 MAX_ITERATIONS=50
@@ -24,7 +60,10 @@ IMMUTABLE_FILES=(
 
 usage() {
   cat <<EOF
-Usage: $0 [options]
+Usage: $0 [watch] [options]
+
+Subcommands:
+  watch [--log|--both]         Launch otel-tui live monitor (run in 2nd terminal)
 
 Options:
   --model <model>              Copilot model (default: claude-opus-4.6-1m)

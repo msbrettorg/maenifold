@@ -25,16 +25,27 @@ async function updateRendered(): Promise<void> {
     return;
   }
 
-  const md = await getMarkdownIt();
-  if (thisVersion !== renderVersion) return;
+  try {
+    const md = await getMarkdownIt();
+    if (thisVersion !== renderVersion) return;
 
-  const html = md.render(source);
-  const safe = DOMPurify.sanitize(html, {
-    ADD_ATTR: ['class', 'style'],
-  });
-  if (thisVersion !== renderVersion) return;
+    const html = md.render(source);
+    const safe = DOMPurify.sanitize(html, {
+      ADD_ATTR: ['class', 'style'],
+    });
+    if (thisVersion !== renderVersion) return;
 
-  rendered.value = safe;
+    rendered.value = safe;
+  } catch {
+    if (thisVersion !== renderVersion) return;
+    const escaped = source
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/\n/g, '<br>');
+    rendered.value = escaped;
+    return;
+  }
 
   await nextTick();
   if (thisVersion !== renderVersion) return;

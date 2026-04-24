@@ -6,6 +6,13 @@ use super::types::{AgentConfig, NodeAdopt, RetryPolicy};
 use super::types_wire::PipelineNodeWire;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct SessionRef {
+    pub agent: String,
+    pub session_id: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(try_from = "PipelineNodeWire", into = "PipelineNodeWire")]
 pub enum PipelineNode {
     Workflow {
@@ -37,6 +44,7 @@ pub enum PipelineNode {
         adopt: Option<NodeAdopt>,
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
+        session_ref: Option<SessionRef>,
     },
     SequentialThinking {
         id: String,

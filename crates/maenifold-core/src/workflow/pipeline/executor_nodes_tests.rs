@@ -45,6 +45,7 @@ fn timeout_seconds_is_extracted_from_prompt_node() {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        session_ref: None,
     };
     let dispatch = DispatchedNode {
         node_id: node.id().to_string(),
@@ -101,6 +102,7 @@ fn timeout_seconds_is_none_when_not_configured() {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        session_ref: None,
     };
     let dispatch = DispatchedNode {
         node_id: node.id().to_string(),
@@ -157,6 +159,7 @@ fn build_node_execution_request_propagates_node_session_id_into_session_config()
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        session_ref: None,
     };
     let dispatch = DispatchedNode {
         node_id: node.id().to_string(),

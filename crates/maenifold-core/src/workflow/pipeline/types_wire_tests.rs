@@ -1,6 +1,9 @@
 use serde_json::json;
 
-use super::{super::types::PipelineNode, PipelineNodeWire};
+use super::{
+    super::types::{PipelineNode, SessionRef},
+    PipelineNodeWire,
+};
 
 #[test]
 fn tool_node_deserialization_preserves_timeout() {
@@ -192,4 +195,55 @@ fn prompt_node_round_trips_adopt_and_requires_role() {
     assert_eq!(value["adopt"]["color"], json!("blue"));
     assert_eq!(value["adopt"]["perspective"], json!("systems"));
     assert_eq!(value["requiresRole"], json!("architect"));
+}
+
+#[test]
+fn prompt_node_round_trips_session_ref() {
+    let node: PipelineNode = serde_json::from_value(json!({
+        "id": "prompt",
+        "type": "prompt",
+        "prompt": "Say hi",
+        "agent": "agent",
+        "sessionRef": {
+            "agent": "agent",
+            "sessionId": "session-123"
+        }
+    }))
+    .expect("deserialize prompt node");
+
+    match &node {
+        PipelineNode::Prompt { session_ref, .. } => assert_eq!(
+            session_ref.as_ref(),
+            Some(&SessionRef {
+                agent: "agent".to_string(),
+                session_id: "session-123".to_string(),
+            })
+        ),
+        other => panic!("expected prompt node, got {other:?}"),
+    }
+
+    let value = serde_json::to_value(node).expect("serialize prompt node");
+    assert_eq!(value["sessionRef"]["agent"], json!("agent"));
+    assert_eq!(value["sessionRef"]["sessionId"], json!("session-123"));
+}
+
+#[test]
+fn prompt_node_rejects_session_ref_agent_mismatch() {
+    let error = serde_json::from_value::<PipelineNode>(json!({
+        "id": "prompt",
+        "type": "prompt",
+        "prompt": "Say hi",
+        "agent": "agent-a",
+        "sessionRef": {
+            "agent": "agent-b",
+            "sessionId": "session-123"
+        }
+    }))
+    .expect_err("sessionRef.agent mismatch should fail");
+
+    assert!(
+        error
+            .to_string()
+            .contains("sessionRef.agent ('agent-b') must match node agent ('agent-a')")
+    );
 }

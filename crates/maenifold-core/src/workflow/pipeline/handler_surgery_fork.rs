@@ -118,6 +118,7 @@ pub(super) fn fork_pipeline(
                     adopt,
                     requires_role,
                     retry_policy,
+                    session_ref,
                     ..
                 } => super::super::PipelineNode::Prompt {
                     id: node_id_map[node.id()].clone(),
@@ -135,6 +136,7 @@ pub(super) fn fork_pipeline(
                     adopt: adopt.clone(),
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
+                    session_ref: session_ref.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
                     display_label,

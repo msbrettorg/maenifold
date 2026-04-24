@@ -44,6 +44,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 adopt: None,
                 requires_role: None,
                 retry_policy: None,
+                session_ref: None,
             },
             PipelineNode::Tool {
                 id: "tool-without-agent".to_string(),

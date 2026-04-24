@@ -121,6 +121,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        session_ref: None,
     };
     let dispatch = DispatchedNode {
         node_id: prompt_node.id().to_string(),

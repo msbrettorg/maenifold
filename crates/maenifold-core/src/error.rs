@@ -2,6 +2,11 @@ use std::path::PathBuf;
 
 use serde_json::Value;
 
+pub const JSONRPC_METHOD_NOT_FOUND: i64 = -32601;
+pub const JSONRPC_INVALID_PARAMS: i64 = -32602;
+pub const JSONRPC_INTERNAL_ERROR: i64 = -32603;
+pub const GATEWAY_TIMEOUT_ERROR: i64 = -32001;
+
 #[derive(Debug, thiserror::Error)]
 pub enum MaenifoldError {
     #[error("Unknown tool: {0}")]

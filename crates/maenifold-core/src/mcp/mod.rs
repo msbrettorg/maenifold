@@ -1,28 +1,21 @@
-// T-12.0: RTM NFR-1 — consolidate MCP runtime into a directory module while preserving
-// the existing crate::mcp facade and resource entrypoints.
 pub mod http;
 pub mod resources;
 pub mod schema;
 pub mod stdio_pool;
 pub mod stdio_session;
 pub mod tool_routing;
+mod gateway_startup;
 pub(crate) mod tool_utils;
 pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 use tool_utils::{format_tool_error, with_lock_retry};
-
-// FR-32-SEC: Shared CORS factory restricting origins to local desktop/web
-// surfaces while keeping all methods and headers allowed for MCP transport.
 pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
     use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
-
     let origin_predicate = AllowOrigin::predicate(
         |origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts| {
             let Ok(s) = origin.to_str() else {
                 return false;
             };
-            // Packaged Electron loads the renderer from file://, which Chromium
-            // serializes as either `null` or `file://` in CORS requests.
             s == "null"
                 || s == "file://"
                 || s == "http://localhost"
@@ -33,7 +26,6 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
                 || s.starts_with("http://[::1]:")
         },
     );
-
     CorsLayer::new()
         .allow_origin(origin_predicate)
         .allow_methods(AllowMethods::any())
@@ -44,7 +36,10 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
-use crate::error::{MaenifoldError, Result};
+use crate::error::{
+    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_METHOD_NOT_FOUND, MaenifoldError,
+    Result,
+};
 use crate::registry::ToolRegistry;
 use crate::{mcp::{stdio_pool::StdioPool, tool_routing::ToolRoutingRegistry}, util::json::OutputFormat};
 use rmcp::model::{
@@ -56,10 +51,8 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-
+use tracing::{error, warn};
 pub struct MaenifoldMcpServer;
-
-// T-5.1: RTM FR-22.1 — rmcp-based async MCP handler.
 struct MaenifoldHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
@@ -68,11 +61,10 @@ struct MaenifoldHandler {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TransportKind {
+pub(super) enum TransportKind {
     Stdio,
     Http,
 }
-
 impl MaenifoldHandler {
     fn new(transport: TransportKind) -> Result<Self> {
         let mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
@@ -93,7 +85,6 @@ impl MaenifoldHandler {
             gateway_routing: None,
         })
     }
-
     fn set_gateway(&mut self, pool: Arc<StdioPool>, routing: Arc<ToolRoutingRegistry>) {
         self.gateway_pool = Some(pool);
         self.gateway_routing = Some(routing);
@@ -102,15 +93,11 @@ impl MaenifoldHandler {
 
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
-        // T-10.2: RTM FR-11 / RTM-068 — MCP initialize advertises native resources support.
-        // T-5.1: RTM FR-22.1 — server info returned during MCP initialize handshake.
         let capabilities = match self.transport {
             TransportKind::Stdio => ServerCapabilities::builder()
                 .enable_tools()
                 .enable_resources()
                 .enable_resources_subscribe()
-                // T-10.3: RTM FR-11 / RTM-071 — advertise MCP resource list change
-                // notifications so clients know to expect notifications/resources/list_changed.
                 .enable_resources_list_changed()
                 .build(),
             TransportKind::Http => ServerCapabilities::builder()
@@ -119,7 +106,6 @@ impl ServerHandler for MaenifoldHandler {
                 .enable_resources_subscribe()
                 .build(),
         };
-
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
             .with_instructions(
@@ -129,8 +115,6 @@ impl ServerHandler for MaenifoldHandler {
                  match each tool schema.",
             )
     }
-
-    // T-5.2: RTM FR-22.4 — tools/list returns all registered tool schemas.
     fn list_tools(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
@@ -138,17 +122,9 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
         let mut tools = self.tools.clone();
-        if let Some(routing) = &self.gateway_routing {
-            tools.extend_from_slice(routing.gateway_tools());
-        }
-        std::future::ready(Ok(ListToolsResult {
-            tools,
-            next_cursor: None,
-            meta: None,
-        }))
+        if let Some(routing) = &self.gateway_routing { tools.extend_from_slice(routing.gateway_tools()); }
+        std::future::ready(Ok(ListToolsResult { tools, next_cursor: None, meta: None }))
     }
-
-    // T-10.2: RTM FR-11 / RTM-069 — resources/list exposes discoverable asset URIs across all 4 types.
     async fn list_resources(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
@@ -159,8 +135,6 @@ impl ServerHandler for MaenifoldHandler {
             .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
             .map_err(self::resources::map_resource_error)
     }
-
-    // T-10.2: RTM FR-11 / RTM-070 — resources/read resolves asset://{type}/{id} URIs to JSON payloads.
     fn read_resource(
         &self,
         request: ReadResourceRequestParams,
@@ -168,7 +142,6 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
         let uri = request.uri.to_string();
-
         async move {
             tokio::task::spawn_blocking(move || {
                 with_lock_retry(|| self::resources::handle_read_resource(&uri))
@@ -195,7 +168,6 @@ impl ServerHandler for MaenifoldHandler {
         std::future::ready(self::resources::handle_unsubscribe(&request.uri, &context))
     }
 
-    // T-5.1: RTM FR-22.1 — tools/call dispatches through ToolRegistry.
     fn call_tool(
         &self,
         request: CallToolRequestParams,
@@ -230,27 +202,28 @@ impl ServerHandler for MaenifoldHandler {
                         let server_name = server_name.to_string();
                         let gateway_tool = tool_name.clone();
                         let handle = tokio::runtime::Handle::current();
+                        let call_server = server_name.clone();
                         let gateway_result = tokio::task::spawn_blocking(move || {
-                            // rmcp requires a Send future here; bridge the current non-Send stdio
-                            // call through `spawn_blocking` + `block_on` until that layer is fixed.
-                            handle.block_on(pool.call_tool(&server_name, &gateway_tool, arguments))
+                            handle.block_on(pool.call_tool(&call_server, &gateway_tool, arguments))
                         })
                         .await
                         .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
                         return match gateway_result {
                             Ok(result) => Ok(result),
-                            Err(MaenifoldError::JsonRpc { code, message, data }) => Err(
-                                rmcp::ErrorData::new(rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(-32603)), message, Some(data)),
-                            ),
-                            Err(err) => Err(rmcp::ErrorData::internal_error(format_tool_error(&tool_name, &err), None)),
+                            Err(err) => {
+                                log_gateway_error(Some(&server_name), &tool_name, &err);
+                                Err(map_gateway_error(&tool_name, err))
+                            }
                         };
                     }
-                    Ok(CallToolResult::error(vec![Content::text(format_tool_error(
-                        &tool_name,
-                        &MaenifoldError::UnknownTool(tool_name.clone()),
-                    ))]))
+                    let err = MaenifoldError::JsonRpc {
+                        code: JSONRPC_METHOD_NOT_FOUND,
+                        message: format!("Unknown tool: '{tool_name}'"),
+                        data: Value::Null,
+                    };
+                    log_gateway_error(None, &tool_name, &err);
+                    Err(map_gateway_error(&tool_name, err))
                 }
-                // T-11.6: RTM FR-11 preserves raw validation diagnostics while prefixing internal failures.
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(
                     &tool_name, &err,
                 ))])),
@@ -264,7 +237,6 @@ impl MaenifoldMcpServer {
         list_mcp_tools(ToolRegistry::global())
     }
 
-    // T-5.1: RTM FR-22.1 — serve MCP over stdio using rmcp transport.
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;
@@ -274,8 +246,6 @@ impl MaenifoldMcpServer {
             .serve(transport)
             .await
             .map_err(|e| MaenifoldError::Message(format!("MCP server init failed: {e}")))?;
-        // T-12.0: RTM FR-11 / RTM-071 — delegate asset-resource change watching to
-        // mcp/resources/ so mod.rs stays focused on MCP server lifecycle and tool dispatch.
         let asset_watcher = self::resources::start_asset_watcher(&config, service.peer().clone())?;
         let wait_result = tokio::select! {
             result = service.waiting() => {
@@ -296,4 +266,30 @@ pub fn initialize_runtime(config: &Config) -> Result<()> {
     AssetManager::initialize_assets(config)?;
     GraphDatabase::initialize_database(config)?;
     Ok(())
+}
+fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {
+    match err {
+        MaenifoldError::JsonRpc { code, message, data } => rmcp::ErrorData::new(
+            rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(JSONRPC_INTERNAL_ERROR as i32)),
+            message,
+            Some(data),
+        ),
+        _ => rmcp::ErrorData::internal_error(format_tool_error(tool, &err), None),
+    }
+}
+fn log_gateway_error(server: Option<&str>, tool: &str, err: &MaenifoldError) {
+    let server = server.unwrap_or("");
+    match err {
+        MaenifoldError::JsonRpc { code, message, data }
+            if *code == JSONRPC_INTERNAL_ERROR || *code == GATEWAY_TIMEOUT_ERROR =>
+        {
+            if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) { error!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed"); }
+            else { error!(server, tool, err = %message, code, "gateway tool call failed"); }
+        }
+        MaenifoldError::JsonRpc { code, message, data } => {
+            if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) { warn!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed"); }
+            else { warn!(server, tool, err = %message, code, "gateway tool call failed"); }
+        }
+        _ => warn!(server, tool, err = %err, "gateway tool call failed"),
+    }
 }

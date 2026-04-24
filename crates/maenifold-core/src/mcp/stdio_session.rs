@@ -1,4 +1,6 @@
-use crate::error::{MaenifoldError, Result};
+use crate::error::{
+    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result,
+};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::model::{CallToolResult, InitializeResult, ListToolsResult, Tool};
 use serde::de::DeserializeOwned;
@@ -14,7 +16,6 @@ use tokio::sync::Mutex;
 const MCP_PROTOCOL_VERSION: &str = "2025-03-26";
 const LEGACY_PROTOCOL_VERSION: &str = "2024-11-05";
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
-const CALL_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_FRAME_BYTES: usize = 16 * 1024 * 1024;
 const STDERR_LIMIT: usize = 4096;
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
@@ -23,19 +24,23 @@ const POLL_INTERVAL: Duration = Duration::from_millis(25);
 struct StartupState {
     io: (ChildStdin, BufReader<ChildStdout>),
     child: Child,
+    stderr: Arc<Mutex<String>>,
     stderr_task: tokio::task::JoinHandle<()>,
 }
 pub struct StdioSession {
     io: Mutex<(ChildStdin, BufReader<ChildStdout>)>,
     child: StdMutex<Option<Child>>,
     stderr_task: StdMutex<Option<tokio::task::JoinHandle<()>>>,
+    stderr: Arc<Mutex<String>>,
     tools: Arc<[Tool]>,
     next_id: AtomicU64,
+    call_timeout: Duration,
+    server_name: String,
     dead: AtomicBool,
     poisoned: AtomicBool,
 }
 impl StdioSession {
-    pub async fn start(entry: &McpServerStdioConfig) -> Result<Self> {
+    pub async fn start(entry: &McpServerStdioConfig, call_timeout: Duration) -> Result<Self> {
         let mut state = spawn(entry)?;
         let startup = async {
             match request::<InitializeResult>(
@@ -59,8 +64,11 @@ impl StdioSession {
             io: Mutex::new(state.io),
             child: StdMutex::new(Some(state.child)),
             stderr_task: StdMutex::new(Some(state.stderr_task)),
+            stderr: state.stderr,
             tools: tools.into(),
             next_id: AtomicU64::new(100),
+            call_timeout,
+            server_name: entry.name.to_string(),
             dead: AtomicBool::new(false),
             poisoned: AtomicBool::new(false),
         })
@@ -75,7 +83,7 @@ impl StdioSession {
             return Err(MaenifoldError::SessionUnusable);
         }
         let request = json!({"jsonrpc":"2.0","id":id,"method":"tools/call","params":{"name":name,"arguments":arguments}});
-        let response = match tokio::time::timeout(CALL_TIMEOUT, async {
+        let response = match tokio::time::timeout(self.call_timeout, async {
             send_message(&mut io.0, &request).await?;
             read_response(&mut io.1, id).await
         }).await {
@@ -83,14 +91,14 @@ impl StdioSession {
             Err(_) => {
                 let _ = send_message(&mut io.0, &json!({"jsonrpc":"2.0","method":"notifications/cancelled","params":{"requestId":id}})).await;
                 self.poisoned.store(true, Ordering::SeqCst);
-                return Err(MaenifoldError::Message(format!("timed out waiting for tools/call response for '{name}'")));
+                return Err(self.gateway_error(GATEWAY_TIMEOUT_ERROR, format!("Gateway: {} tool '{name}' timed out after {}s", self.server_name, self.call_timeout.as_secs())).await);
             }
         };
         match response {
             Ok(value) => parse_result(value),
             Err(error) if is_connection_error(&error) => {
                 self.dead.store(true, Ordering::SeqCst);
-                Err(error)
+                Err(self.gateway_error(JSONRPC_INTERNAL_ERROR, format!("Gateway: {} connection lost: {}", self.server_name, connection_detail(&error))).await)
             }
             Err(error) => Err(error),
         }
@@ -117,10 +125,19 @@ impl StdioSession {
             Some(Ok(Some(_))) | Some(Err(_)) | None => { self.dead.store(true, Ordering::SeqCst); false }
         }
     }
+    async fn gateway_error(&self, code: i64, message: String) -> MaenifoldError {
+        MaenifoldError::JsonRpc { code, message, data: stderr_data(&self.stderr).await }
+    }
 }
 fn lock_std<T>(mutex: &StdMutex<T>) -> MutexGuard<'_, T> { mutex.lock().unwrap_or_else(|error| error.into_inner()) }
 fn is_supported_version(version: &str) -> bool { matches!(version, MCP_PROTOCOL_VERSION | LEGACY_PROTOCOL_VERSION) }
 fn is_connection_error(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(msg) if msg.contains("connection error")) }
+fn connection_detail(error: &MaenifoldError) -> String {
+    match error {
+        MaenifoldError::Message(msg) => msg.strip_prefix("connection error: ").unwrap_or(msg).to_string(),
+        _ => error.to_string(),
+    }
+}
 fn spawn(entry: &McpServerStdioConfig) -> Result<StartupState> {
     let mut command = Command::new(&entry.command);
     command.args(&entry.args).stdin(std::process::Stdio::piped()).stdout(std::process::Stdio::piped()).stderr(std::process::Stdio::piped());
@@ -147,8 +164,9 @@ fn spawn(entry: &McpServerStdioConfig) -> Result<StartupState> {
         let _ = child.start_kill();
         MaenifoldError::Message("child stderr was not piped".to_string())
     })?;
-    let stderr_task = tokio::spawn(collect_stderr(stderr, Arc::new(Mutex::new(String::new()))));
-    Ok(StartupState { io: (stdin, stdout), child, stderr_task })
+    let stderr_sink = Arc::new(Mutex::new(String::new()));
+    let stderr_task = tokio::spawn(collect_stderr(stderr, Arc::clone(&stderr_sink)));
+    Ok(StartupState { io: (stdin, stdout), child, stderr: stderr_sink, stderr_task })
 }
 async fn collect_stderr(stderr: ChildStderr, sink: Arc<Mutex<String>>) {
     let mut reader = BufReader::new(stderr);
@@ -159,6 +177,15 @@ async fn collect_stderr(stderr: ChildStderr, sink: Arc<Mutex<String>>) {
             Ok(_) => { let mut sink = sink.lock().await; sink.push_str(&line); let overflow = sink.len().saturating_sub(STDERR_LIMIT); if overflow > 0 { sink.drain(..overflow); } }
         }
     }
+}
+async fn stderr_data(stderr: &Arc<Mutex<String>>) -> Value {
+    let stderr = stderr.lock().await;
+    let tail = tail_chars(stderr.trim(), 500);
+    if tail.is_empty() { Value::Null } else { json!({ "stderrTail": tail }) }
+}
+fn tail_chars(value: &str, max_chars: usize) -> String {
+    let len = value.chars().count();
+    if len <= max_chars { value.to_string() } else { value.chars().skip(len - max_chars).collect() }
 }
 async fn send_message(stdin: &mut ChildStdin, message: &Value) -> Result<()> {
     let mut body = serde_json::to_vec(message)?;

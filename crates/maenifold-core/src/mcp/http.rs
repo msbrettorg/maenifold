@@ -1,3 +1,4 @@
+use super::gateway_startup::build_gateway;
 use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
@@ -90,8 +91,9 @@ impl super::MaenifoldMcpServer {
     ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
+        let gateway = build_gateway(&config).await;
         let router = router(
-            service(shutdown_token.child_token(), None),
+            service(shutdown_token.child_token(), gateway),
             ApiState::new(config.clone()),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the

@@ -1,4 +1,4 @@
-use crate::error::{MaenifoldError, Result};
+use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
 use crate::mcp::stdio_session::StdioSession;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
@@ -220,7 +220,7 @@ async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
                 .map(|(name, value)| EnvVariable::new(name.clone(), value.clone()))
                 .collect(),
         );
-    StdioSession::start(&entry).await
+    StdioSession::start(&entry, config.timeout.unwrap_or(Duration::from_secs(60))).await
 }
 fn collect_gateway_tools(servers: &HashMap<String, ManagedServer>) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
     let mut owners = HashMap::<String, String>::new();
@@ -276,5 +276,11 @@ async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
     while shutdowns.next().await.is_some() {}
 }
 fn is_prewrite_failure(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable") }
-fn missing_server(server_name: &str) -> MaenifoldError { MaenifoldError::Message(format!("unknown MCP stdio server '{server_name}'")) }
+fn missing_server(server_name: &str) -> MaenifoldError {
+    MaenifoldError::JsonRpc {
+        code: JSONRPC_INVALID_PARAMS,
+        message: format!("Gateway: unknown server '{server_name}'"),
+        data: Value::Null,
+    }
+}
 fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> { tools.read().unwrap_or_else(|error| error.into_inner()) }

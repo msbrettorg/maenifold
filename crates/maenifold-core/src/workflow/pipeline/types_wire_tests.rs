@@ -206,7 +206,7 @@ fn prompt_node_round_trips_session_ref() {
         "agent": "agent",
         "sessionRef": {
             "agent": "agent",
-            "session_id": "session-123"
+            "sessionId": "session-123"
         }
     }))
     .expect("deserialize prompt node");
@@ -224,7 +224,7 @@ fn prompt_node_round_trips_session_ref() {
 
     let value = serde_json::to_value(node).expect("serialize prompt node");
     assert_eq!(value["sessionRef"]["agent"], json!("agent"));
-    assert_eq!(value["sessionRef"]["session_id"], json!("session-123"));
+    assert_eq!(value["sessionRef"]["sessionId"], json!("session-123"));
 }
 
 #[test]
@@ -236,7 +236,7 @@ fn prompt_node_rejects_session_ref_agent_mismatch() {
         "agent": "agent-a",
         "sessionRef": {
             "agent": "agent-b",
-            "session_id": "session-123"
+            "sessionId": "session-123"
         }
     }))
     .expect_err("sessionRef.agent mismatch should fail");

@@ -6,6 +6,7 @@ use super::types::{AgentConfig, NodeAdopt, RetryPolicy};
 use super::types_wire::PipelineNodeWire;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct SessionRef {
     pub agent: String,
     pub session_id: String,

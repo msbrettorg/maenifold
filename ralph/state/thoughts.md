@@ -5,29 +5,27 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
-## Iteration 20260424-1450 — Epic Decomposition + Session-as-Node Launch
+## Iteration 20260424-1554 — Session-as-Node Final + Cleanup
 
-### Shipped (8 tasks)
-- **T-214.1** ✅ Spike: session/load RPC
-- **T-214.2** ✅ SessionRef type + wire format (1 remediation)
-- **T-214.3** ✅ Executor session dispatch — THE CORE FEATURE (1 remediation, dual red-team)
-- **T-214.4** ✅ MCP schema extension
-- **T-214.5** ✅ Session uniqueness constraint
-- **T-214.8** ✅ Session Browser Pinia store (1 remediation)
-- **T-209.4** ✅ pipeline-meta.sh inner loop (1 remediation)
-- **T-210.1** ✅ Trouter protocol research
+### Shipped
+- **T-214.11** ✅ Session node visual treatment (MessageCircleMore icon, tooltip, dashed border)
+- **T-215.1** ✅ SessionPickerDialog raw button fix (unblocks npm run build)
+- **T-214.14** ⏳ blue-team in progress (resume_session_id single-use, 1 remediation cycle)
+- **T-214.15** ⏳ blue-team in progress (resumed boolean observability)
+- **T-212.1** ⏳ SWE in progress (ralph-watch.sh)
 
-### Session-as-Node Backend COMPLETE
-Types → Wire → Schema → Validation → Executor → Store all shipped.
-Remaining: frontend (T-214.9-13), deferred findings (T-214.14-15).
-
-### Filed from red-team findings
-- T-214.14 — resume_session_id single-use (clear after first prompt)
-- T-214.15 — resumed boolean in AcpPromptResult.meta
+### T-214 Epic Status: 12/15 done
+- T-214.13 (E2E validation) is the only remaining task after T-214.14/15 ship
+- T-214.0 epic can close once T-214.13 completes
 
 ### Next Actions
-- Dispatch T-214.9 (Session Browser panel) + T-214.10 (TS types) in parallel
-- T-214.6 (serde tests) ready to dispatch
+- Land T-214.14 and T-214.15 after blue-team passes
+- Dispatch T-214.13 (E2E validation) — requires running app + ACP agent
+- T-212.2 spec needs re-grounding — references `ralph.sh` which doesn't exist; actual script is `ralph/pipeline-meta/pipeline-meta.sh`
+- T-212.3 (monitoring docs) ready after T-212.1 ships
+
+### Filed
+- T-215.1 — SessionPickerDialog.vue raw `<button>` → shipped
 
 ## T-03 Zero Handrolled Epic — COMPLETE
 - T-03.0 epic: all 25 subtasks (T-03.1–T-03.25) shipped

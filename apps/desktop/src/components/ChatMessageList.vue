@@ -39,7 +39,7 @@ const starterChips: { icon: Component; label: string }[] = [
           v-for="chip in starterChips"
           :key="chip.label"
           variant="outline"
-          class="inline-flex items-center gap-1.5 px-3.5 py-2 border border-border-subtle rounded bg-[var(--surface-high)] text-text-primary font-[inherit] text-sm cursor-pointer transition-colors duration-150 hover:bg-[var(--surface-highest)]"
+          class="inline-flex items-center gap-1.5 px-3.5 py-2 border border-border-subtle rounded bg-surface-high text-text-primary font-[inherit] text-sm cursor-pointer transition-colors duration-150 hover:bg-surface-highest"
           @click="emit('prefill', chip.label)"
         >
           <span class="text-sm" aria-hidden="true"><component :is="chip.icon" class="size-4" :stroke-width="1.5" /></span>
@@ -60,12 +60,12 @@ const starterChips: { icon: Component; label: string }[] = [
       @toggle-tool-call="emit('toggle-tool-call', $event)"
     />
 
-    <div v-if="pendingPermissionCount > 0" class="mt-4 px-4 py-3 rounded bg-[var(--bg-warning)] border border-border-subtle text-text-primary">
+    <div v-if="pendingPermissionCount > 0" class="mt-4 px-4 py-3 rounded bg-bg-warning border border-border-subtle text-text-primary">
       {{ pendingPermissionCount }} permission request{{ pendingPermissionCount === 1 ? '' : 's' }} awaiting review.
     </div>
 
     <div v-if="isLoading" class="flex items-center gap-2 p-3 text-text-secondary">
-      <span class="inline-block w-4 h-4 border-2 border-border-subtle border-t-brand rounded-[var(--radius)] animate-spin"></span>
+      <span class="inline-block w-4 h-4 rounded-full border-2 border-border-subtle border-t-brand animate-spin"></span>
       <span>Thinking...</span>
       <Button variant="outline" size="sm" class="ml-auto px-2 py-1 border border-border-subtle rounded bg-transparent text-text-primary text-sm cursor-pointer" @click="emit('cancel')">Cancel</Button>
     </div>

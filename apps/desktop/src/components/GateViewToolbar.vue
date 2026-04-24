@@ -36,7 +36,7 @@ const currentWorkspaceLabel = computed(() => (
 
 <template>
   <header
-    class="flex items-center flex-wrap gap-4 justify-between px-4 py-[0.9rem] bg-[var(--surface)] rounded max-[1100px]:flex-col max-[1100px]:items-stretch"
+    class="flex items-center flex-wrap gap-4 justify-between px-4 py-[0.9rem] bg-surface rounded max-[1100px]:flex-col max-[1100px]:items-stretch"
     role="toolbar"
     aria-label="Gate actions"
   >
@@ -48,16 +48,16 @@ const currentWorkspaceLabel = computed(() => (
         </p>
       </div>
       <div v-if="props.hasGateRoot" class="flex items-center flex-wrap gap-2">
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--color-brand)]">{{ props.todoCount }} todo</span>
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--sage)]">{{ props.doneCount }} done</span>
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--outline-variant)]">{{ props.totalCount }} total</span>
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-brand">{{ props.todoCount }} todo</span>
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-success">{{ props.doneCount }} done</span>
+        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-surface-high">{{ props.totalCount }} total</span>
         <span
           v-if="props.shownCount !== props.totalCount"
-          class="px-[0.65rem] py-[0.28rem] font-mono text-[length:var(--text-tiny)] text-text-primary rounded-[4px] bg-[var(--amber)]"
+          class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-warning"
         >{{ props.shownCount }} shown</span>
         <span
           v-if="props.lastRefreshLabel"
-          class="text-text-secondary font-mono text-[length:var(--text-tiny)]"
+          class="text-text-secondary font-mono text-tiny"
         >{{ props.lastRefreshLabel }}</span>
       </div>
     </div>

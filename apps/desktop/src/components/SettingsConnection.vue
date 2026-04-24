@@ -1,4 +1,3 @@
-<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { AgentConfig, AgentsConfig, McpServerEntry } from '../lib/types';
@@ -7,6 +6,7 @@ import { useConfigStore } from '../stores/config';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import SettingsConnectionAgents from './SettingsConnectionAgents.vue';
 import SettingsConnectionDaemon from './SettingsConnectionDaemon.vue';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -194,6 +194,7 @@ async function handleDelete(name: string) {
 }
 
 const pendingDeleteAgent = ref<string | null>(null);
+const deleteError = ref('');
 const deleteDialogOpen = computed({
   get: () => pendingDeleteAgent.value !== null,
   set: (open: boolean) => {
@@ -214,8 +215,9 @@ async function confirmDeleteAgent() {
     if (editingAgent.value === name) {
       resetForm();
     }
+    deleteError.value = '';
   } catch (error) {
-    console.error('Failed to delete agent:', error);
+    deleteError.value = error instanceof Error ? error.message : String(error);
   }
 }
 
@@ -226,40 +228,49 @@ async function refreshHealth() {
 
 <template>
   <section class="flex flex-col gap-4">
-    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="flex justify-between gap-3 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary">
-        <div>
-          <h3 class="text-base font-semibold text-text-primary m-0">Connection settings</h3>
-          <p class="text-sm text-text-secondary m-0">Manage the configured ACP agents available in the application.</p>
-        </div>
-      </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>Connection settings</CardTitle>
+        <CardDescription>
+          Manage the configured ACP agents available in the application.
+        </CardDescription>
+      </CardHeader>
+      <CardContent class="flex flex-col gap-4">
+        <SettingsConnectionDaemon
+          :agents="agents"
+          :daemon-url="DAEMON_BASE_URL"
+          :is-refreshing="capabilitiesStore.probeStatus === 'probing'"
+          :get-probe="getProbe"
+          :on-refresh="refreshHealth"
+        />
 
-      <SettingsConnectionDaemon
-        :agents="agents"
-        :daemon-url="DAEMON_BASE_URL"
-        :is-refreshing="capabilitiesStore.probeStatus === 'probing'"
-        :get-probe="getProbe"
-        :on-refresh="refreshHealth"
-      />
+        <SettingsConnectionAgents
+          :agents="agents"
+          :editing-agent="editingAgent"
+          :form="form"
+          :get-probe="getProbe"
+          :is-submitting="isSubmitting"
+          :on-add-env-row="addEnvRow"
+          :on-add-mcp-server-row="addMcpServerRow"
+          :on-delete="handleDelete"
+          :on-remove-env-row="removeEnvRow"
+          :on-remove-mcp-server-row="removeMcpServerRow"
+          :on-reset-form="resetForm"
+          :on-start-add="startAdd"
+          :on-start-edit="startEdit"
+          :on-submit="handleSubmit"
+          :show-add-form="showAddForm"
+        />
 
-      <SettingsConnectionAgents
-        :agents="agents"
-        :editing-agent="editingAgent"
-        :form="form"
-        :get-probe="getProbe"
-        :is-submitting="isSubmitting"
-        :on-add-env-row="addEnvRow"
-        :on-add-mcp-server-row="addMcpServerRow"
-        :on-delete="handleDelete"
-        :on-remove-env-row="removeEnvRow"
-        :on-remove-mcp-server-row="removeMcpServerRow"
-        :on-reset-form="resetForm"
-        :on-start-add="startAdd"
-        :on-start-edit="startEdit"
-        :on-submit="handleSubmit"
-        :show-add-form="showAddForm"
-      />
-    </div>
+        <p
+          v-if="deleteError"
+          class="text-sm text-destructive"
+          role="alert"
+        >
+          {{ deleteError }}
+        </p>
+      </CardContent>
+    </Card>
 
     <AlertDialog v-model:open="deleteDialogOpen">
       <AlertDialogContent class="sm:max-w-[28rem]">

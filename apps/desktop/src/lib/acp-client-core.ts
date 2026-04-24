@@ -157,7 +157,6 @@ export class AcpClientBridgeCore {
     this.pendingMethods.set(id, method);
 
     if (import.meta.env.DEV) {
-      console.log('Sending request:', request); // audit-ok: no-console
     }
     const timeoutMs = this.getTimeoutForMethod(method);
 

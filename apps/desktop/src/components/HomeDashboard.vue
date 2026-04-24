@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
       <div
         role="status"
         :aria-label="daemonConnected ? 'Daemon status: Connected' : 'Daemon status: Not connected'"
-        class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
+        class="flex items-center gap-1.5 rounded-[4px] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
       >
         <span
           role="img"
@@ -155,7 +155,7 @@ onBeforeUnmount(() => {
         v-if="pendingGateTasks > 0"
         role="status"
         :aria-label="`${pendingGateTasks} pending gate ${pendingGateTasks === 1 ? 'task' : 'tasks'}`"
-        class="flex items-center gap-1.5 rounded-[var(--radius-4)] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
+        class="flex items-center gap-1.5 rounded-[4px] border border-border-subtle px-2.5 py-1 text-xs text-text-secondary"
       >
         <Shield class="size-3" :stroke-width="1.5" aria-hidden="true" />
         {{ pendingGateTasks }} pending
@@ -168,7 +168,7 @@ onBeforeUnmount(() => {
       Start the maenifold daemon or check Settings &gt; Connection
     </p>
 
-    <div class="w-full max-w-[800px] rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)]">
+    <div class="w-full max-w-[800px] rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-fluent-8">
       <form class="flex items-center gap-2" @submit.prevent="handleComposerSubmit">
         <Pencil class="size-4 shrink-0 text-text-tertiary" :stroke-width="1.5" />
         <Input
@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
           type="submit"
           variant="ghost"
           size="icon"
-          class="flex size-9 items-center justify-center rounded-[var(--radius-4)] text-text-tertiary transition-colors hover:text-text-primary"
+          class="flex size-9 items-center justify-center rounded-[4px] text-text-tertiary transition-colors hover:text-text-primary"
         >
           <Send class="size-4" :stroke-width="1.5" />
         </Button>

@@ -23,12 +23,12 @@ function handleOpenNote(uri: string) {
 </script>
 
 <template>
-  <Collapsible :open="node.open" class="rounded-[var(--radius-8)]" @update:open="handleOpenChange">
+  <Collapsible :open="node.open" class="rounded-md" @update:open="handleOpenChange">
     <CollapsibleTrigger as-child>
       <Button
         type="button"
         variant="ghost"
-        class="h-8 w-full justify-start gap-2 rounded-[var(--radius-8)] px-2 text-text-primary hover:bg-bg-surface-hover"
+        class="h-8 w-full justify-start gap-2 rounded-md px-2 text-text-primary hover:bg-bg-surface-hover"
       >
         <ChevronDown
           class="size-4 shrink-0 text-text-secondary transition-transform"
@@ -36,8 +36,8 @@ function handleOpenNote(uri: string) {
           aria-hidden="true"
         />
         <Folder class="size-4 shrink-0 text-brand" aria-hidden="true" />
-        <span class="truncate text-[var(--text-body-sm)] font-medium">{{ node.name }}</span>
-        <span class="ml-auto text-[var(--text-tiny)] text-text-tertiary">{{ node.fileCount }}</span>
+        <span class="truncate text-body-sm font-medium">{{ node.name }}</span>
+        <span class="ml-auto text-tiny text-text-tertiary">{{ node.fileCount }}</span>
       </Button>
     </CollapsibleTrigger>
 
@@ -48,8 +48,8 @@ function handleOpenNote(uri: string) {
         </Alert>
 
         <template v-else-if="node.loading">
-          <Skeleton class="h-7 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-7 rounded-[var(--radius-8)]" />
+          <Skeleton class="h-7 rounded-md" />
+          <Skeleton class="h-7 rounded-md" />
         </template>
 
         <template v-else>
@@ -58,12 +58,12 @@ function handleOpenNote(uri: string) {
             :key="file.uri"
             type="button"
             variant="ghost"
-            class="h-8 justify-start gap-2 rounded-[var(--radius-8)] px-2"
+            class="h-8 justify-start gap-2 rounded-md px-2"
             :class="activeUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
             @click="handleOpenNote(file.uri)"
           >
             <FileText class="size-4 shrink-0" aria-hidden="true" />
-            <span class="truncate text-[var(--text-body-sm)] font-medium">{{ file.name }}</span>
+            <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
           </Button>
 
           <KnowledgeSidebarNode

@@ -8,64 +8,36 @@ const props = defineProps<{
 
 const injectedDirection = inject('pipelineLayoutDirection', ref<'LR' | 'TB'>('LR'));
 const direction = computed<'LR' | 'TB'>(() => props.direction ?? injectedDirection.value);
+
+const baseHandleClasses =
+  '!w-3 !h-3 !border-2 !border-bg-app !bg-primary !rounded-full transition-opacity';
 </script>
 
 <template>
-  <div class="pipeline-node-ports">
+  <div class="contents">
     <Handle
       id="in-top"
       type="target"
       :position="Position.Top"
-      :class="['pipeline-port', { 'pipeline-port--inactive': direction !== 'TB' }]"
+      :class="[baseHandleClasses, '!-top-1.5', direction !== 'TB' ? 'opacity-0 pointer-events-none' : 'opacity-100']"
     />
     <Handle
       id="out-bottom"
       type="source"
       :position="Position.Bottom"
-      :class="['pipeline-port', { 'pipeline-port--inactive': direction !== 'TB' }]"
+      :class="[baseHandleClasses, '!-bottom-1.5', direction !== 'TB' ? 'opacity-0 pointer-events-none' : 'opacity-100']"
     />
     <Handle
       id="in-left"
       type="target"
       :position="Position.Left"
-      :class="['pipeline-port', { 'pipeline-port--inactive': direction !== 'LR' }]"
+      :class="[baseHandleClasses, '!-left-1.5', direction !== 'LR' ? 'opacity-0 pointer-events-none' : 'opacity-100']"
     />
     <Handle
       id="out-right"
       type="source"
       :position="Position.Right"
-      :class="['pipeline-port', { 'pipeline-port--inactive': direction !== 'LR' }]"
+      :class="[baseHandleClasses, '!-right-1.5', direction !== 'LR' ? 'opacity-0 pointer-events-none' : 'opacity-100']"
     />
   </div>
 </template>
-
-<!-- audit-ok: deep-third-party — :deep() rules restyle Vue Flow's internal handle markup; not expressible as Tailwind utilities applied to template elements. -->
-<style scoped>
-.pipeline-node-ports :deep(.vue-flow__handle) {
-  width: 12px;
-  height: 12px;
-  border: 2px solid var(--color-bg-app);
-  background: var(--node-accent);
-}
-
-.pipeline-node-ports :deep(.vue-flow__handle-left) {
-  left: -5px;
-}
-
-.pipeline-node-ports :deep(.vue-flow__handle-right) {
-  right: -5px;
-}
-
-.pipeline-node-ports :deep(.vue-flow__handle-top) {
-  top: -5px;
-}
-
-.pipeline-node-ports :deep(.vue-flow__handle-bottom) {
-  bottom: -5px;
-}
-
-.pipeline-node-ports :deep(.pipeline-port--inactive) {
-  opacity: 0;
-  pointer-events: none;
-}
-</style>

@@ -41,7 +41,7 @@ function updateType(event: Event) {
 </script>
 
 <template>
-  <div v-if="visible" class="p-4 rounded-[var(--radius)] bg-bg-elevated" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
+  <div v-if="visible" class="p-4 rounded bg-bg-elevated" role="group" :aria-label="editingServer ? `Edit MCP server ${editingServer}` : 'Add MCP server'">
     <h4 class="m-0 mb-3">{{ editingServer ? 'Edit MCP server' : 'Add new MCP server' }}</h4>
 
     <div class="block mb-3">
@@ -83,10 +83,10 @@ function updateType(event: Event) {
     <p v-if="formError" class="text-danger">{{ formError }}</p>
 
     <div class="flex justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
-      <Button class="px-3.5 py-2 rounded-[var(--radius)] cursor-pointer border-0 bg-brand text-text-primary" :disabled="isSubmitting" @click="emit('submit')">
+      <Button class="px-3.5 py-2 rounded cursor-pointer border-0 bg-brand text-text-primary" :disabled="isSubmitting" @click="emit('submit')">
         {{ isSubmitting ? 'Saving...' : 'Save' }}
       </Button>
-      <Button variant="outline" class="px-3.5 py-2 rounded-[var(--radius)] cursor-pointer border border-border-subtle bg-transparent text-inherit" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" class="px-3.5 py-2 rounded cursor-pointer border border-border-subtle bg-transparent text-inherit" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

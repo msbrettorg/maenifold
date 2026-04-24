@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { AlertTriangle } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import type { GateTask } from '../lib/gate';
 import { formatStageLabel, gateStageFamily, getTaskPathHint } from '../lib/gate-display';
 
@@ -10,66 +13,98 @@ const props = defineProps<{
 }>();
 
 const fileLabel = computed(() => getTaskPathHint(props.task.path));
-const stateTone = computed(() => gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state));
-const pipelineStaleTitle = computed(() => props.task.issue?.trim() || 'Pipeline definition has changed since this task was created.');
+const stateTone = computed(() =>
+  gateStageFamily(props.task.location === 'done' ? 'done' : props.task.state),
+);
+const stateLabel = computed(() =>
+  formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state),
+);
+const locationLabel = computed(() => formatStageLabel(props.task.location));
+const pipelineStaleTitle = computed(
+  () =>
+    props.task.issue?.trim() ||
+    'Pipeline definition has changed since this task was created.',
+);
 
-function badgeBg(tone: string): string {
-  if (tone === 'pending') return 'var(--text-secondary)';
-  if (tone === 'swe') return 'var(--color-brand)';
-  if (tone === 'red-team') return 'var(--amber)';
-  if (tone === 'blue-team' || tone === 'done') return 'var(--sage)';
-  if (tone === 'failed') return 'var(--terracotta)';
-  return 'var(--surface-highest)';
+function stateBadgeClass(tone: string): string {
+  switch (tone) {
+    case 'pending':
+      return 'bg-text-secondary text-text-primary';
+    case 'swe':
+      return 'bg-brand text-text-primary';
+    case 'red-team':
+      return 'bg-warning text-text-primary';
+    case 'blue-team':
+    case 'done':
+      return 'bg-success text-text-primary';
+    case 'failed':
+      return 'bg-danger text-text-primary';
+    default:
+      return 'bg-surface-highest text-text-primary';
+  }
 }
 </script>
 
 <template>
   <dl
-    class="grid gap-3 grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] items-start [&>div]:flex [&>div]:flex-col [&_dt]:text-[var(--color-text-secondary)] [&_dt]:text-[length:var(--text-tiny)] [&_dd]:flex [&_dd]:items-center [&_dd]:min-h-7 [&_dd]:mt-1 [&_dd]:break-words [&_dd]:font-mono [&_dd]:text-[length:var(--text-caption)]"
+    class="grid grid-cols-[repeat(auto-fit,minmax(8.5rem,1fr))] items-start gap-3"
     aria-label="Task metadata"
   >
-    <div>
-      <dt>Process</dt>
-      <dd>
-        <span
-          class="inline-flex items-center max-w-full px-[0.55rem] py-1 rounded-[4px] text-[var(--color-text-primary)] font-mono text-[length:var(--text-2xs)] font-[var(--weight-title)] leading-[1.4] bg-[var(--outline-variant)]"
-        >{{ processLabel }}</span>
+    <div class="flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">Process</dt>
+      <dd class="mt-1 flex min-h-7 items-center gap-2 break-words font-mono text-xs">
+        <Badge variant="secondary" class="font-mono">{{ processLabel }}</Badge>
         <span
           v-if="pipelineStale"
-          class="ml-[0.4rem] text-[length:var(--text-caption)] cursor-help text-[var(--amber,var(--terracotta))]"
           role="img"
           aria-label="Pipeline definition has changed since this task was created"
           :title="pipelineStaleTitle"
-        >⚠</span>
-      </dd>
-    </div>
-    <div>
-      <dt>State</dt>
-      <dd>
-        <!-- audit-ok: dynamic-binding (badge bg by stage family) -->
-        <span
-          class="inline-flex items-center max-w-full px-[0.55rem] py-1 rounded-[4px] text-[var(--color-text-primary)] font-mono text-[length:var(--text-2xs)] font-[var(--weight-title)] leading-[1.4]"
-          :style="{ background: badgeBg(stateTone) }"
+          class="inline-flex cursor-help items-center text-warning"
         >
-          {{ formatStageLabel(task.location === 'done' ? 'done' : task.state) }}
+          <AlertTriangle class="h-3.5 w-3.5" aria-hidden="true" />
         </span>
       </dd>
     </div>
-    <div>
-      <dt>Location</dt>
-      <dd>{{ formatStageLabel(task.location) }}</dd>
+
+    <div class="flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">State</dt>
+      <dd class="mt-1 flex min-h-7 items-center break-words font-mono text-xs">
+        <Badge :class="['font-mono', stateBadgeClass(stateTone)]">
+          {{ stateLabel }}
+        </Badge>
+      </dd>
     </div>
-    <div>
-      <dt>Attempts</dt>
-      <dd>{{ task.attempts }}</dd>
+
+    <div class="flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">Location</dt>
+      <dd class="mt-1 flex min-h-7 items-center break-words font-mono text-xs">
+        {{ locationLabel }}
+      </dd>
     </div>
-    <div>
-      <dt>Canonical ID</dt>
-      <dd>{{ task.canonicalTaskId || '—' }}</dd>
+
+    <div class="flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">Attempts</dt>
+      <dd class="mt-1 flex min-h-7 items-center break-words font-mono text-xs">
+        {{ task.attempts }}
+      </dd>
     </div>
-    <div class="col-[1/-1]">
-      <dt>File</dt>
-      <dd :title="fileLabel">{{ fileLabel }}</dd>
+
+    <div class="flex flex-col gap-1">
+      <dt class="text-xs text-text-secondary">Canonical ID</dt>
+      <dd class="mt-1 flex min-h-7 items-center break-words font-mono text-xs">
+        {{ task.canonicalTaskId || '—' }}
+      </dd>
+    </div>
+
+    <div class="col-[1/-1] flex flex-col gap-1">
+      <Separator class="mb-1" />
+      <dt class="text-xs text-text-secondary">File</dt>
+      <dd
+        :title="fileLabel"
+        class="mt-1 flex min-h-7 items-center break-words font-mono text-xs"
+      >
+        {{ fileLabel }}
+      </dd>
     </div>
   </dl>
 </template>

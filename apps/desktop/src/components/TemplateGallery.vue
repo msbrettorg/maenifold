@@ -90,7 +90,7 @@ function handleIntentInput(value: string): void {
       <div class="mt-6 mb-3 text-[11px] font-semibold tracking-wider text-text-tertiary">
         Or choose a template
       </div>
-      <p v-if="!hasIntentAgent" class="m-0 text-[0.75rem] text-[var(--terracotta)] text-center" role="alert">
+      <p v-if="!hasIntentAgent" class="m-0 text-[0.75rem] text-danger text-center" role="alert">
         Configure an agent before creating a pipeline.
       </p>
       <div class="grid grid-cols-[repeat(auto-fit,minmax(180px,180px))] gap-3 justify-center w-full max-w-[800px]">

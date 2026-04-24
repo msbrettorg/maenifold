@@ -3,6 +3,8 @@ import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
@@ -29,124 +31,97 @@ const processLabel = computed(() => {
 
 const pipelineStale = computed(() => Boolean(props.task && isTaskPipelineDigestStale(props.task)));
 
-const detailTitleId = computed(() => (props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'));
+const detailTitleId = computed(() =>
+  props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'
+);
 
 function renderMarkdown(content: string | null) {
   if (!content) return '';
   const parsed = marked.parse(content, { async: false });
   return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
 }
-
 </script>
 
 <template>
-  <aside
-    class="flex flex-col gap-4 flex-[3] min-w-0 min-h-0 overflow-hidden p-4 bg-bg-elevated border border-border-card rounded-lg"
+  <Card
+    as="aside"
+    class="flex flex-col gap-4 flex-[3] min-w-0 min-h-0 overflow-hidden p-4"
     role="article"
     :aria-labelledby="detailTitleId"
   >
-    <div class="flex justify-between items-start gap-3">
-      <div class="flex flex-col min-w-0 gap-2">
-        <p class="text-text-secondary text-[length:var(--text-tiny)]">Task detail</p>
-        <h3 :id="detailTitleId">{{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}</h3>
-        <GateTaskDetailMeta v-if="task" :task="task" :process-label="processLabel" :pipeline-stale="pipelineStale" />
-      </div>
-      <Button v-if="task" variant="ghost" @click="$emit('close')">Clear</Button>
-    </div>
-
-    <template v-if="task">
-      <div class="flex flex-col gap-4 min-h-0">
-        <div class="flex flex-col gap-4 min-h-0 max-h-[min(52vh,34rem)] pr-1 overflow-auto">
-          <section class="flex flex-col gap-3">
-            <p class="text-text-secondary text-[length:var(--text-tiny)] flex flex-col">Spec</p>
-            <p
-              v-if="bodyLoading"
-              class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
-            >Loading task detail…</p>
-            <p
-              v-else-if="bodyError"
-              class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
-            >{{ bodyError }}</p>
-            <p
-              v-else-if="!body.trim()"
-              class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
-            >No task body content found.</p>
-            <div
-              v-else
-              class="gate-detail__markdown text-text-primary [overflow-wrap:anywhere] p-[0.9rem] border border-border-subtle rounded bg-surface-container"
-              v-html="renderMarkdown(body)"
-            />
-          </section>
-
-          <GateTaskDetailStages :task="task" />
-          <p
-            v-if="task.issue"
-            class="p-3 border border-border-subtle rounded bg-surface-container text-[var(--color-status-abandoned)]"
-          >{{ task.issue }}</p>
+    <CardHeader class="p-0">
+      <div class="flex justify-between items-start gap-3">
+        <div class="flex flex-col min-w-0 gap-2">
+          <p class="text-xs text-muted-foreground uppercase tracking-wide">Task detail</p>
+          <h3 :id="detailTitleId" class="text-base font-semibold text-foreground truncate">
+            {{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}
+          </h3>
+          <GateTaskDetailMeta
+            v-if="task"
+            :task="task"
+            :process-label="processLabel"
+            :pipeline-stale="pipelineStale"
+          />
         </div>
-
-        <GateTaskDetailHistory
-          :history="history"
-          :history-loading="historyLoading"
-          :history-error="historyError"
-        />
+        <Button v-if="task" variant="ghost" size="sm" @click="$emit('close')">Clear</Button>
       </div>
-    </template>
+    </CardHeader>
 
-    <p
-      v-else
-      class="p-3 border border-border-subtle rounded bg-surface-container text-text-secondary"
-    >
-      Select a task from the table to inspect its gate history, path, and gate metadata.
-    </p>
-  </aside>
+    <Separator v-if="task" />
+
+    <CardContent v-if="task" class="p-0 flex flex-col gap-4 min-h-0 flex-1">
+      <div class="flex flex-col gap-4 min-h-0 max-h-[min(52vh,34rem)] pr-1 overflow-auto">
+        <section class="flex flex-col gap-3">
+          <p class="text-xs text-muted-foreground uppercase tracking-wide">Spec</p>
+
+          <p
+            v-if="bodyLoading"
+            class="p-3 border border-border rounded-md bg-muted/40 text-sm text-muted-foreground"
+          >
+            Loading task detail…
+          </p>
+          <p
+            v-else-if="bodyError"
+            class="p-3 border border-destructive/40 rounded-md bg-destructive/10 text-sm text-destructive"
+          >
+            {{ bodyError }}
+          </p>
+          <p
+            v-else-if="!body.trim()"
+            class="p-3 border border-border rounded-md bg-muted/40 text-sm text-muted-foreground"
+          >
+            No task body content found.
+          </p>
+          <div
+            v-else
+            class="text-sm text-foreground p-4 border border-border rounded-md bg-muted/30 [overflow-wrap:anywhere] [&_*]:mt-0 [&_p+p]:mt-3 [&_ul]:mt-3 [&_ol]:mt-3 [&_pre]:mt-3 [&_table]:mt-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ol]:list-decimal [&_ol]:pl-5 [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mt-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mt-4 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mt-3 [&_a]:text-primary [&_a]:underline [&_code]:rounded [&_code]:border [&_code]:border-border [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_pre]:overflow-x-auto [&_pre]:rounded-md [&_pre]:bg-muted [&_pre]:p-3 [&_pre_code]:bg-transparent [&_pre_code]:border-0 [&_pre_code]:p-0 [&_table]:w-full [&_table]:border-collapse [&_th]:border [&_th]:border-border [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:italic [&_blockquote]:text-muted-foreground"
+            v-html="renderMarkdown(body)"
+          />
+        </section>
+
+        <GateTaskDetailStages :task="task" />
+
+        <p
+          v-if="task.issue"
+          class="p-3 border border-destructive/40 rounded-md bg-destructive/10 text-sm text-destructive"
+        >
+          {{ task.issue }}
+        </p>
+      </div>
+
+      <Separator />
+
+      <GateTaskDetailHistory
+        :history="history"
+        :history-loading="historyLoading"
+        :history-error="historyError"
+      />
+    </CardContent>
+
+    <CardContent v-else class="p-0">
+      <p class="p-3 border border-border rounded-md bg-muted/40 text-sm text-muted-foreground">
+        Select a task from the table to inspect its gate history, path, and gate metadata.
+      </p>
+    </CardContent>
+  </Card>
 </template>
-
-<!-- audit-ok: deep-third-party — :deep() rules style sanitized markdown injected via v-html (paragraph/list/table/code spacing). Cross-scope :deep() targets cannot be expressed as Tailwind utilities. -->
-<style scoped>
-.gate-detail__markdown :deep(*) {
-  margin-top: 0;
-}
-
-.gate-detail__markdown :deep(p + p),
-.gate-detail__markdown :deep(ul),
-.gate-detail__markdown :deep(ol),
-.gate-detail__markdown :deep(pre),
-.gate-detail__markdown :deep(table) {
-  margin-top: 0.75rem;
-}
-
-.gate-detail__markdown :deep(code) {
-  padding: 0.1rem 0.3rem;
-  border-radius: var(--radius);
-  border: 1px solid color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
-  background: color-mix(in srgb, var(--color-bg-app) 75%, var(--color-bg-surface));
-  color: var(--color-text-primary);
-  font-family: var(--font-code);
-  font-size: var(--text-tiny);
-}
-
-.gate-detail__markdown :deep(pre) {
-  padding: 0.75rem;
-  border-radius: var(--radius-md);
-  background: var(--color-bg-surface);
-  overflow-x: auto;
-}
-
-.gate-detail__markdown :deep(pre code) {
-  padding: 0;
-  background: transparent;
-}
-
-.gate-detail__markdown :deep(table) {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.gate-detail__markdown :deep(th),
-.gate-detail__markdown :deep(td) {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  text-align: left;
-}
-</style>

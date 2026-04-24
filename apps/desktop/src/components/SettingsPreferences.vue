@@ -1,4 +1,3 @@
-<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { storeToRefs } from 'pinia';
@@ -7,8 +6,10 @@ import { readStorageValue, removeStorageValue, writeStorageValue } from '../lib/
 import { initTelemetry, setTelemetryEnabled } from '../lib/telemetry';
 import { type FontDensity, usePreferencesStore } from '../stores/preferences';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 
 const prefsStore = usePreferencesStore();
 const { fontDensity } = storeToRefs(prefsStore);
@@ -92,63 +93,89 @@ onMounted(async () => {
 
 <template>
   <section class="flex flex-col gap-4" role="form" aria-label="Preferences">
-    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="flex justify-between gap-4 mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary max-sm:flex-col max-sm:items-stretch">
-        <div>
-          <h3 class="m-0 font-display font-medium">Preferences</h3>
-          <p class="m-0 text-text-secondary">Persisted locally on this device.</p>
+    <Card>
+      <CardHeader class="flex flex-row items-start justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
+        <div class="flex flex-col gap-1">
+          <CardTitle>Preferences</CardTitle>
+          <CardDescription>Persisted locally on this device.</CardDescription>
         </div>
-        <span class="rounded-[var(--radius)] px-[0.6rem] py-[0.35rem] bg-bg-elevated text-[0.75rem]" :class="saving ? 'text-brand' : 'text-text-secondary'">
+        <span
+          class="self-start rounded-md px-2.5 py-1 text-xs font-medium"
+          :class="saving ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'"
+        >
           {{ saving ? 'Saving…' : 'Local only' }}
         </span>
-      </div>
+      </CardHeader>
 
-      <p v-if="error" class="m-0 text-danger">{{ error }}</p>
-      <p v-else-if="status" class="m-0 text-brand">{{ status }}</p>
+      <CardContent class="flex flex-col gap-4">
+        <p v-if="error" class="m-0 text-sm text-destructive">{{ error }}</p>
+        <p v-else-if="status" class="m-0 text-sm text-primary">{{ status }}</p>
 
-      <div v-if="loading" class="p-4 rounded-[var(--radius)] bg-bg-elevated">Loading saved preferences…</div>
+        <div v-if="loading" class="rounded-md border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Loading saved preferences…
+        </div>
 
-      <template v-else>
-        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated">
-          <div class="flex justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
-            <div>
-              <strong>Text size</strong>
-              <p class="m-0 text-text-secondary">Adjust the UI font scale across the entire application.</p>
+        <template v-else>
+          <div class="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
+            <div class="flex flex-col gap-1">
+              <Label for="font-density-select" class="text-sm font-semibold">Text size</Label>
+              <p class="m-0 text-sm text-muted-foreground">
+                Adjust the UI font scale across the entire application.
+              </p>
             </div>
-          </div>
-          <div class="flex gap-0 mt-3 border border-border-subtle rounded-[var(--radius)] overflow-hidden">
-            <Select :model-value="fontDensity" @update:model-value="(val) => handleDensityChange(val as FontDensity)">
-              <SelectTrigger :disabled="saving" class="w-full">
+            <Select
+              :model-value="fontDensity"
+              @update:model-value="(val) => handleDensityChange(val as FontDensity)"
+            >
+              <SelectTrigger id="font-density-select" :disabled="saving" class="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem v-for="opt in densityOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</SelectItem>
+                <SelectItem v-for="opt in densityOptions" :key="opt.value" :value="opt.value">
+                  {{ opt.label }}
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated flex justify-between gap-4 items-center max-sm:flex-col max-sm:items-stretch">
-          <div>
-            <strong>Telemetry</strong>
-            <p class="m-0 text-text-secondary">Allow the app to initialize Application Insights telemetry on launch.</p>
-          </div>
-          <Checkbox :checked="telemetryEnabled" :disabled="saving" @update:checked="(val: boolean) => { telemetryEnabled = val; handleTelemetryToggle() }" />
-        </div>
-
-        <div class="p-4 rounded-[var(--radius)] bg-bg-elevated">
-          <div class="flex justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
-            <div>
-              <strong>Last working directory</strong>
-              <p class="m-0 text-text-secondary">The app restores this folder on the next launch when available.</p>
+          <div class="flex items-center justify-between gap-4 rounded-md border bg-muted/40 p-4 max-sm:flex-col max-sm:items-stretch">
+            <div class="flex flex-col gap-1">
+              <Label for="telemetry-switch" class="text-sm font-semibold">Telemetry</Label>
+              <p class="m-0 text-sm text-muted-foreground">
+                Allow the app to initialize Application Insights telemetry on launch.
+              </p>
             </div>
-            <Button variant="outline" class="px-[0.85rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed" :disabled="saving || !lastCwd" @click="clearLastCwd">
-              Clear saved folder
-            </Button>
+            <Switch
+              id="telemetry-switch"
+              :model-value="telemetryEnabled"
+              :disabled="saving"
+              @update:model-value="(val: boolean) => { telemetryEnabled = val; handleTelemetryToggle(); }"
+            />
           </div>
-          <code class="block mt-3 m-0 break-all font-code text-[0.75rem] text-text-secondary">{{ displayCwd }}</code>
-        </div>
-      </template>
-    </div>
+
+          <div class="flex flex-col gap-3 rounded-md border bg-muted/40 p-4">
+            <div class="flex items-start justify-between gap-4 max-sm:flex-col max-sm:items-stretch">
+              <div class="flex flex-col gap-1">
+                <span class="text-sm font-semibold">Last working directory</span>
+                <p class="m-0 text-sm text-muted-foreground">
+                  The app restores this folder on the next launch when available.
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                :disabled="saving || !lastCwd"
+                @click="clearLastCwd"
+              >
+                Clear saved folder
+              </Button>
+            </div>
+            <code class="block break-all rounded bg-background px-2 py-1 font-mono text-xs text-muted-foreground">
+              {{ displayCwd }}
+            </code>
+          </div>
+        </template>
+      </CardContent>
+    </Card>
   </section>
 </template>

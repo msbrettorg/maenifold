@@ -41,7 +41,7 @@ function handleSelect(methodId: string) {
           <Button
             variant="ghost"
             size="icon-sm"
-            class="text-[length:var(--text-title)] text-text-secondary hover:text-text-primary p-1"
+            class="p-1 text-title text-text-secondary hover:text-text-primary"
             aria-label="Close authentication dialog"
           >✕</Button>
         </DialogClose>
@@ -57,12 +57,12 @@ function handleSelect(methodId: string) {
             @click="handleSelect(method.id)"
           >
             <div class="flex flex-col gap-1">
-              <span class="font-[var(--weight-display)] text-text-primary">{{ method.name }}</span>
+              <span class="font-medium text-text-primary">{{ method.name }}</span>
               <span v-if="method.description" class="text-xs text-text-secondary">
                 {{ method.description }}
               </span>
             </div>
-            <span class="text-[length:var(--text-title)] text-text-secondary group-hover:text-brand">→</span>
+            <span class="text-title text-text-secondary group-hover:text-brand">→</span>
           </Button>
         </div>
       </div>

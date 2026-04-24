@@ -39,29 +39,35 @@ defineExpose({ focusPipelineToggle });
 <template>
   <TooltipProvider v-if="!isNarrowViewport" :delay-duration="150">
     <nav
-      class="flex h-full w-full flex-col items-center gap-1.5 bg-[var(--color-bg-elevated)] p-1.5"
+      class="flex h-full w-full flex-col items-center gap-1.5 bg-bg-elevated p-1.5"
       aria-label="Pipeline navigation"
     >
       <Tooltip>
         <TooltipTrigger as-child>
-          <!-- audit-ok: dynamic-binding (active background uses color-mix() not expressible as a Tailwind utility) -->
           <Button
             ref="pipelineButtonRef"
             type="button"
-            class="relative h-9 w-9 text-[var(--color-text-primary)] transition-[background,color] duration-150 hover:bg-[var(--color-bg-surface)] focus-visible:bg-[var(--color-bg-surface)] focus-visible:outline-none before:content-[''] before:absolute before:-left-1.5 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-[var(--radius-4)] before:bg-transparent"
-            :class="isPipelineActive ? 'before:!bg-[var(--color-brand)]' : ''"
             variant="ghost"
             size="icon"
-            :style="isPipelineActive ? { background: 'color-mix(in srgb, var(--color-brand) 16%, var(--color-bg-elevated))' } : undefined"
+            class="relative h-9 w-9 text-text-primary transition-colors duration-150 hover:bg-bg-surface focus-visible:bg-bg-surface focus-visible:outline-none"
+            :class="isPipelineActive ? 'bg-brand/15' : ''"
             :aria-expanded="flyoutOpen"
             aria-controls="pipeline-flyout"
             :aria-label="flyoutOpen ? 'Close pipelines flyout' : 'Open pipelines flyout'"
             @click="emit('toggle-flyout')"
           >
+            <span
+              aria-hidden="true"
+              class="absolute -left-1.5 top-[7px] bottom-[7px] w-0.5 rounded-sm"
+              :class="isPipelineActive ? 'bg-brand' : 'bg-transparent'"
+            />
             <component :is="flyoutOpen ? PanelLeftClose : PanelLeftOpen" :size="18" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="max-w-[220px] rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
+        <TooltipContent
+          side="right"
+          class="max-w-[220px] rounded-sm bg-surface-highest text-text-primary"
+        >
           {{ pipelineTooltip }}
         </TooltipContent>
       </Tooltip>
@@ -70,16 +76,19 @@ defineExpose({ focusPipelineToggle });
         <TooltipTrigger as-child>
           <Button
             type="button"
-            class="relative h-9 w-9 text-[var(--color-text-primary)] transition-[background,color] duration-150 hover:bg-[var(--color-bg-surface)] focus-visible:bg-[var(--color-bg-surface)] focus-visible:outline-none before:content-[''] before:absolute before:-left-1.5 before:top-[7px] before:bottom-[7px] before:w-0.5 before:rounded-[var(--radius-4)] before:bg-transparent"
             variant="ghost"
             size="icon"
+            class="relative h-9 w-9 text-text-primary transition-colors duration-150 hover:bg-bg-surface focus-visible:bg-bg-surface focus-visible:outline-none"
             aria-label="Create new pipeline"
             @click="emit('new-pipeline')"
           >
             <Plus :size="18" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent side="right" class="rounded-[4px] bg-[var(--surface-highest)] text-[var(--color-text-primary)]">
+        <TooltipContent
+          side="right"
+          class="rounded-sm bg-surface-highest text-text-primary"
+        >
           Create new pipeline
         </TooltipContent>
       </Tooltip>

@@ -31,13 +31,13 @@ const queueHint = computed(() =>
 <template>
   <Dialog :open="true" @update:open="(open) => !open && emit('cancel')">
     <DialogContent class="permission-dialog dialog-content flex flex-col gap-0 p-0 sm:max-w-3xl w-[min(48rem,100%)] max-h-[min(42rem,calc(100vh-2rem))] overflow-hidden" :show-close-button="false">
-      <DialogHeader class="grid gap-2 items-start p-4 bg-[var(--color-bg-surface)]">
+      <DialogHeader class="grid gap-2 items-start p-4 bg-bg-surface">
         <div class="flex items-center gap-2">
-          <span class="text-[length:var(--text-title)]" aria-hidden="true">🔐</span>
+          <span class="text-title" aria-hidden="true">🔐</span>
           <DialogTitle>{{ titleText }}</DialogTitle>
-          <span v-if="pendingChip" class="ml-auto py-0.5 px-2 rounded-[var(--radius-xl)] bg-[var(--surface-high)] text-[var(--text-secondary)] text-[length:var(--text-tiny)]">{{ pendingChip }}</span>
+          <span v-if="pendingChip" class="ml-auto rounded-xl bg-surface-high px-2 py-0.5 text-text-secondary text-tiny">{{ pendingChip }}</span>
         </div>
-        <DialogDescription class="m-0 text-[length:var(--text-caption)] text-[var(--color-text-secondary)]">
+        <DialogDescription class="m-0 text-caption text-text-secondary">
           Review the pending permission request and choose how to respond.
           <template v-if="queueHint"> {{ queueHint }}</template>
         </DialogDescription>

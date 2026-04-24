@@ -220,7 +220,7 @@ function handleRewind(): Promise<void | undefined> {
 </script>
 
 <template>
-  <div v-if="actions.length > 0" class="flex flex-wrap items-center gap-2 ml-1 p-2 rounded-[var(--radius)] border border-[color-mix(in_srgb,var(--color-border-subtle)_82%,transparent)] bg-[var(--surface-container)] shadow-[var(--shadow-16)]" role="group" aria-label="Pipeline quick actions">
+  <div v-if="actions.length > 0" class="ml-1 flex flex-wrap items-center gap-2 rounded-lg border border-border-subtle/80 bg-surface-container p-2 shadow-fluent-16" role="group" aria-label="Pipeline quick actions">
     <Button
       v-for="action in actions"
       :key="action.key"

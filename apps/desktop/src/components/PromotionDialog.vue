@@ -229,19 +229,19 @@ function closeDialog(): void {
 
 <template>
   <Dialog :open="true" @update:open="(open) => !open && closeDialog()">
-    <DialogContent class="w-[min(64rem,100%)] max-h-[min(92vh,60rem)] gap-0 bg-[var(--surface-container)] p-0 sm:max-w-[64rem]" :show-close-button="false">
+    <DialogContent class="w-[min(64rem,100%)] max-h-[min(92vh,60rem)] gap-0 bg-surface-container p-0 sm:max-w-[64rem]" :show-close-button="false">
       <DialogHeader class="flex flex-row justify-between items-start gap-3 p-4 max-[720px]:flex-col">
         <div>
-          <DialogTitle id="promotion-dialog-title" class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Promote to memory</DialogTitle>
-          <DialogDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
+          <DialogTitle id="promotion-dialog-title" class="font-display text-title font-medium text-text-primary">Promote to memory</DialogTitle>
+          <DialogDescription class="text-body-sm text-text-secondary">Save this finished node output as a reusable note or add it to one you already have.</DialogDescription>
         </div>
         <Button type="button" variant="ghost" class="rounded-[4px]" :disabled="promotion.busy.value" @click="closeDialog">Close</Button>
       </DialogHeader>
       <ScrollArea class="max-h-[min(calc(92vh-6rem),54rem)]">
         <section v-if="promotion.writtenUri.value" class="grid gap-4 px-4 pb-4 pt-2" aria-live="polite">
-          <h4 class="m-0 font-display font-medium text-base text-[var(--color-text-primary)]">Saved</h4>
-          <p class="text-[var(--text-secondary)]">This output is now stored in memory.</p>
-          <code class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-all font-mono">{{ promotion.writtenUri.value }}</code>
+          <h4 class="m-0 font-display text-base font-medium text-text-primary">Saved</h4>
+          <p class="text-text-secondary">This output is now stored in memory.</p>
+          <code class="m-0 rounded-[4px] bg-surface p-3 font-mono whitespace-pre-wrap break-all">{{ promotion.writtenUri.value }}</code>
           <div class="flex flex-wrap items-center gap-3 [&>:first-child:not(:only-child)]:mr-auto">
             <Button type="button" class="rounded-[4px]" @click="closeDialog">Done</Button>
           </div>
@@ -253,4 +253,3 @@ function closeDialog(): void {
     </DialogContent>
   </Dialog>
 </template>
-

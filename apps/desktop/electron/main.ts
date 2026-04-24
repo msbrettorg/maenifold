@@ -1,5 +1,5 @@
-import { execSync } from 'node:child_process';
-import { appendFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { appendFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
@@ -12,6 +12,9 @@ const GATE_SERVICE = 'com.ma-collective.gate';
 const MAENIFOLD_HEALTH_URL = 'http://localhost:8080/api/config';
 const GATE_HEALTH_URL = 'http://localhost:8081/mcp';
 const moduleDir = dirname(fileURLToPath(import.meta.url));
+const launchctlDomain = process.platform === 'darwin' && typeof process.getuid === 'function'
+  ? `gui/${process.getuid()}`
+  : null;
 
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
@@ -27,11 +30,34 @@ async function isServiceHealthy(url: string): Promise<boolean> {
   }
 }
 
-function startLaunchctlService(label: string): void {
+function launchAgentPath(label: string): string {
+  return join(app.getPath('home'), 'Library', 'LaunchAgents', `${label}.plist`);
+}
+
+function isLaunchctlServiceLoaded(label: string): boolean {
+  if (!launchctlDomain) return false;
   try {
-    execSync(`launchctl start ${label}`, { timeout: 5_000 });
+    execFileSync('launchctl', ['print', `${launchctlDomain}/${label}`], { stdio: 'ignore', timeout: 5_000 });
+    return true;
   } catch {
-    console.error(`[maenifold] Failed to start ${label} via launchctl`);
+    return false;
+  }
+}
+
+function startLaunchctlService(label: string): void {
+  if (!launchctlDomain) return;
+  const plistPath = launchAgentPath(label);
+  try {
+    if (!isLaunchctlServiceLoaded(label)) {
+      if (!existsSync(plistPath)) {
+        console.error(`[maenifold] LaunchAgent missing for ${label}: ${plistPath}`);
+        return;
+      }
+      execFileSync('launchctl', ['bootstrap', launchctlDomain, plistPath], { timeout: 5_000 });
+    }
+    execFileSync('launchctl', ['kickstart', '-k', `${launchctlDomain}/${label}`], { timeout: 5_000 });
+  } catch (error) {
+    console.error(`[maenifold] Failed to start ${label} via launchctl`, error);
   }
 }
 

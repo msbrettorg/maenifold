@@ -2,6 +2,9 @@
 import { computed } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { User, Bot, Cog } from 'lucide-vue-next';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import ChatThoughtSection from './ChatThoughtSection.vue';
 import ChatToolCallList from './ChatToolCallList.vue';
@@ -34,24 +37,27 @@ const formattedTimestamp = computed(() => {
   const date = new Date(props.message.timestamp);
   return Number.isNaN(date.getTime()) ? 'unknown time' : date.toLocaleTimeString();
 });
-const messageAriaLabel = computed(() => `${senderLabel.value} message at ${formattedTimestamp.value}`);
+const messageAriaLabel = computed(
+  () => `${senderLabel.value} message at ${formattedTimestamp.value}`,
+);
 const legacyContentWithDOMPurify = computed(() =>
   props.message.content && !blocks.value.some((block) => block.type === 'text')
     ? renderMarkdown(props.message.content)
-    : null
+    : null,
 );
-const isToolOnlyAssistantMessage = computed(() =>
-  props.message.role === 'assistant' &&
-  !props.message.content &&
-  !blocks.value.length &&
-  toolCalls.value.length > 0
+const isToolOnlyAssistantMessage = computed(
+  () =>
+    props.message.role === 'assistant' &&
+    !props.message.content &&
+    !blocks.value.length &&
+    toolCalls.value.length > 0,
 );
+const isUser = computed(() => props.message.role === 'user');
+const isAssistant = computed(() => props.message.role === 'assistant');
 
 function renderMarkdown(content: string): string {
   const parsed = marked.parse(content, { async: false });
   const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-  // Guard: if markdown consumed the input into empty HTML structures
-  // (e.g. "\n\n4." → <ol><li></li></ol>), fall back to escaped plaintext.
   const visibleText = html.replace(/<[^>]*>/g, '').trim();
   if (visibleText.length === 0 && content.trim().length > 0) {
     const escaped = content
@@ -67,94 +73,59 @@ function renderMarkdown(content: string): string {
 
 <template>
   <div
-    class="mb-4 p-3 rounded"
-    :class="[
-      message.role === 'user' ? 'ml-auto max-w-[80%] bg-[var(--surface-high)]' : '',
-      message.role === 'assistant' ? 'bg-[var(--surface-container)]' : '',
-      isToolOnlyAssistantMessage ? 'pt-1.5 pb-1.5' : '',
-    ]"
+    class="mb-4 flex w-full gap-3"
+    :class="isUser ? 'justify-end' : 'justify-start'"
     role="article"
     :aria-label="messageAriaLabel"
   >
-    <div class="mb-2">
-      <span class="text-text-secondary text-sm font-[number:var(--weight-title)]">{{ senderLabel }}</span>
-    </div>
+    <Avatar v-if="!isUser" class="mt-1 shrink-0">
+      <AvatarFallback class="bg-surface-high text-text-primary">
+        <Bot v-if="isAssistant" class="size-4" aria-hidden="true" />
+        <Cog v-else class="size-4" aria-hidden="true" />
+      </AvatarFallback>
+    </Avatar>
 
-    <ChatThoughtSection
-      v-if="message.thought && message.role === 'assistant'"
-      :message-id="message.id"
-      :thought="message.thought"
-      :expanded="expandedThoughtIds.includes(message.id)"
-      @toggle="emit('toggle-thought', $event)"
-    />
+    <Card
+      class="max-w-[80%] gap-0 border-border-subtle py-0 shadow-none"
+      :class="[
+        isUser ? 'bg-surface-high' : 'bg-surface-container',
+        isToolOnlyAssistantMessage ? 'px-3 py-1.5' : 'px-3 py-3',
+      ]"
+    >
+      <CardHeader class="gap-0 border-b-0 px-0 py-0 pb-2">
+        <span class="text-sm font-semibold text-text-secondary">{{ senderLabel }}</span>
+      </CardHeader>
 
-    <ChatToolCallList
-      v-if="toolCalls.length"
-      :tool-calls="toolCalls"
-      :expanded-tool-call-ids="expandedToolCallIds"
-      @toggle-tool-call="emit('toggle-tool-call', $event)"
-    />
+      <CardContent class="flex flex-col gap-2 px-0 py-0">
+        <ChatThoughtSection
+          v-if="message.thought && isAssistant"
+          :message-id="message.id"
+          :thought="message.thought"
+          :expanded="expandedThoughtIds.includes(message.id)"
+          @toggle="emit('toggle-thought', $event)"
+        />
 
-    <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
-    <div v-if="legacyContentWithDOMPurify" class="message-content leading-[1.5] [overflow-wrap:break-word] [word-wrap:break-word]" v-html="legacyContentWithDOMPurify" />
+        <ChatToolCallList
+          v-if="toolCalls.length"
+          :tool-calls="toolCalls"
+          :expanded-tool-call-ids="expandedToolCallIds"
+          @toggle-tool-call="emit('toggle-tool-call', $event)"
+        />
+
+        <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
+
+        <div
+          v-if="legacyContentWithDOMPurify"
+          class="text-sm leading-relaxed break-words text-text-primary [&_code]:font-mono [&_code]:text-sm [&_h1]:mt-3 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:leading-tight [&_h3]:mt-3 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:leading-tight [&_h4]:mt-3 [&_h4]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:leading-tight [&_li]:my-1 [&_li]:text-sm [&_ol]:my-2 [&_ol]:pl-6 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-surface [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-text-secondary [&_pre_code]:text-sm [&_table]:my-3 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-border-subtle [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_td]:text-sm [&_th]:border [&_th]:border-border-subtle [&_th]:bg-surface-high [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_ul]:my-2 [&_ul]:pl-6"
+          v-html="legacyContentWithDOMPurify"
+        />
+      </CardContent>
+    </Card>
+
+    <Avatar v-if="isUser" class="mt-1 shrink-0">
+      <AvatarFallback class="bg-surface-high text-text-primary">
+        <User class="size-4" aria-hidden="true" />
+      </AvatarFallback>
+    </Avatar>
   </div>
 </template>
-
-<!-- audit-ok: max-style-rules — deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html (h1–h4, p, ul/ol, pre, code, table, th/td) inside .message-content; Tailwind utilities cannot reach this child markup across the scoped boundary. -->
-<style scoped>
-.message-content :deep(h1),
-.message-content :deep(h2),
-.message-content :deep(h3),
-.message-content :deep(h4) {
-  margin: 0.75rem 0 0.5rem;
-  font-weight: var(--weight-title);
-  line-height: 1.3;
-}
-.message-content :deep(h1) { font-size: var(--text-xl); }
-.message-content :deep(h2) { font-size: var(--text-lg); }
-.message-content :deep(h3) { font-size: var(--text-md); }
-.message-content :deep(h4) { font-size: var(--text-base); }
-.message-content :deep(p) {
-  margin: 0.5rem 0;
-  font-size: var(--text-sm);
-}
-.message-content :deep(ol),
-.message-content :deep(ul) { margin: 0.5rem 0; padding-left: 1.5rem; }
-.message-content :deep(li) {
-  margin: 0.25rem 0;
-  font-size: var(--text-sm);
-}
-.message-content :deep(pre) {
-  padding: 0.75rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  background: var(--color-bg-app);
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
-.message-content :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-.message-content :deep(pre code) { font-size: var(--text-sm); }
-.message-content :deep(table) {
-  display: block;
-  width: 100%;
-  margin: 0.75rem 0;
-  overflow-x: auto;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-.message-content :deep(th),
-.message-content :deep(td) {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  text-align: left;
-}
-.message-content :deep(th) {
-  background: var(--surface-high);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
-}
-.message-content :deep(td) { font-size: var(--text-sm); }
-</style>

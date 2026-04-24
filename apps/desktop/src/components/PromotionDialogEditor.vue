@@ -53,28 +53,28 @@ const description = {
   <section class="grid gap-4 px-4 pb-4">
     <div class="flex gap-3 max-[720px]:flex-col">
       <div>
-        <h4 class="m-0 font-display font-medium text-base text-[var(--color-text-primary)]">{{ heading }}</h4>
-        <p class="text-[var(--text-secondary)]">{{ description }}</p>
+        <h4 class="m-0 font-display text-base font-medium text-text-primary">{{ heading }}</h4>
+        <p class="text-text-secondary">{{ description }}</p>
       </div>
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('back')">Back</Button>
     </div>
 
     <div v-if="selectedAction === 'create'" class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(14rem,1fr))]">
-      <label class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+      <label class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
         <span>Title</span>
         <Input class="border-0" type="text" placeholder="Note title" :value="title" @input="emit('update:title', ($event.target as HTMLInputElement).value.trim())" />
       </label>
-      <label class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+      <label class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
         <span>Folder</span>
         <Input class="border-0" type="text" placeholder="Optional folder" :value="folder" @input="emit('update:folder', ($event.target as HTMLInputElement).value.trim())" />
       </label>
-      <label class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs col-[1/-1]">
+      <label class="col-[1/-1] grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
         <span>Tags</span>
         <Input class="border-0" type="text" placeholder="Optional tags, separated by commas" :value="tagsInput" @input="emit('update:tagsInput', ($event.target as HTMLInputElement).value.trim())" />
       </label>
     </div>
 
-    <label class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+    <label class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
       <span>Connections</span>
       <Textarea
         class="border-0"
@@ -83,26 +83,26 @@ const description = {
         :value="wikiLinkInput"
         @input="emit('update:wikiLinkInput', ($event.target as HTMLTextAreaElement).value)"
       />
-      <small class="text-[var(--text-secondary)]">Use plain topics or [[WikiLinks]]. We will format them for you.</small>
+      <small class="text-text-secondary">Use plain topics or [[WikiLinks]]. We will format them for you.</small>
     </label>
-    <p v-if="wikiLinkError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ wikiLinkError }}</p>
+    <p v-if="wikiLinkError" class="m-0 text-status-abandoned text-xs" role="alert">{{ wikiLinkError }}</p>
 
     <div v-if="selectedAction !== 'create'" class="grid gap-4">
-      <span class="text-[var(--color-text-primary)] text-xs">Current note</span>
-      <pre v-if="selectedMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ selectedMemory.content }}</pre>
-      <pre v-else-if="loadingMemory" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">Loading note…</pre>
-      <pre v-else-if="selectedResult" class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ selectedResult.uri }}</pre>
-      <pre v-else class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">Select a note to continue.</pre>
+      <span class="text-xs text-text-primary">Current note</span>
+      <pre v-if="selectedMemory" class="m-0 rounded-[4px] bg-surface p-3 font-[inherit] whitespace-pre-wrap break-words">{{ selectedMemory.content }}</pre>
+      <pre v-else-if="loadingMemory" class="m-0 rounded-[4px] bg-surface p-3 font-[inherit] whitespace-pre-wrap break-words">Loading note…</pre>
+      <pre v-else-if="selectedResult" class="m-0 rounded-[4px] bg-surface p-3 font-[inherit] whitespace-pre-wrap break-words">{{ selectedResult.uri }}</pre>
+      <pre v-else class="m-0 rounded-[4px] bg-surface p-3 font-[inherit] whitespace-pre-wrap break-words">Select a note to continue.</pre>
     </div>
 
-    <p v-if="selectedAction === 'update' && updateDisabledMessage" class="text-[var(--text-secondary)]">{{ updateDisabledMessage }}</p>
+    <p v-if="selectedAction === 'update' && updateDisabledMessage" class="text-text-secondary">{{ updateDisabledMessage }}</p>
 
     <div class="grid gap-4">
-      <span class="text-[var(--color-text-primary)] text-xs">What will be saved</span>
-      <pre class="m-0 p-3 rounded-[4px] bg-[var(--surface)] whitespace-pre-wrap break-words font-[inherit]">{{ nextPreview }}</pre>
+      <span class="text-xs text-text-primary">What will be saved</span>
+      <pre class="m-0 rounded-[4px] bg-surface p-3 font-[inherit] whitespace-pre-wrap break-words">{{ nextPreview }}</pre>
     </div>
 
-    <p v-if="formError" class="m-0 text-[var(--color-status-abandoned)] text-xs" role="alert">{{ formError }}</p>
+    <p v-if="formError" class="m-0 text-status-abandoned text-xs" role="alert">{{ formError }}</p>
 
     <div class="flex flex-wrap items-center gap-3 max-[720px]:justify-stretch [&>:first-child:not(:only-child)]:mr-auto">
       <Button type="button" variant="ghost" :disabled="busy" @click="emit('close')">Cancel</Button>

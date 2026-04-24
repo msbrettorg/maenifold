@@ -36,7 +36,7 @@ function stringModelValue(): string {
 </script>
 
 <template>
-  <div class="grid gap-1.5 rounded-[4px] p-3.5 bg-[color-mix(in_srgb,var(--color-bg-elevated)_88%,transparent)]">
+  <div class="grid gap-1.5 rounded-[4px] p-3.5 bg-surface-highest/90">
     <template v-if="field.kind === 'boolean'">
       <div class="flex items-center gap-2">
         <Switch
@@ -44,7 +44,7 @@ function stringModelValue(): string {
           :model-value="Boolean(value)"
           @update:model-value="emit('update', $event)"
         />
-        <Label :for="fieldId()" class="text-text-primary text-sm font-[var(--weight-body)]">
+        <Label :for="fieldId()" class="text-text-primary text-sm font-normal">
           {{ field.label }}
         </Label>
         <span v-if="field.required" class="text-brand text-xs">*</span>
@@ -52,7 +52,7 @@ function stringModelValue(): string {
     </template>
     <template v-else>
       <div class="flex items-center gap-2">
-        <Label :for="fieldId()" class="text-text-primary text-sm font-[var(--weight-title)]">
+        <Label :for="fieldId()" class="text-text-primary text-sm font-semibold">
           {{ field.label }}
         </Label>
         <span v-if="field.required" class="text-brand text-xs">*</span>

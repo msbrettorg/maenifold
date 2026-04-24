@@ -27,24 +27,24 @@ defineEmits<{
           <span
             class="status-bead inline-block w-[6px] h-[6px] rounded-[4px]"
             :class="{
-              'bg-[var(--sage)]': statusTone === 'ready',
-              'bg-[var(--amber)]': statusTone === 'offline',
-              'bg-[var(--terracotta)]': statusTone === 'error',
-              'bg-[var(--text-secondary)]': statusTone === 'pending' || statusTone === 'idle',
+              'bg-success': statusTone === 'ready',
+              'bg-warning': statusTone === 'offline',
+              'bg-danger': statusTone === 'error',
+              'bg-text-secondary': statusTone === 'pending' || statusTone === 'idle',
             }"
             aria-hidden="true"
           />
-          <span class="status-label text-[length:var(--text-tiny)] text-[var(--color-text-primary)]">{{ statusLabel }}</span>
+          <span class="status-label text-text-primary text-tiny">{{ statusLabel }}</span>
         </span>
         <span
           v-if="statusMessage"
-          class="status-message text-[length:var(--text-caption)] text-[var(--color-text-secondary)]"
+          class="status-message text-caption text-text-secondary"
         >{{ statusMessage }}</span>
       </div>
       <Button
         variant="outline"
         size="sm"
-        class="refresh-btn border-none rounded-[4px] bg-[var(--surface-container)] text-[var(--color-text-secondary)] cursor-pointer text-[length:var(--text-tiny)] font-normal px-[0.65rem] py-[0.35rem] whitespace-nowrap disabled:cursor-wait disabled:opacity-70 enabled:hover:bg-[var(--surface-high)]"
+        class="refresh-btn cursor-pointer rounded-[4px] border-none bg-surface-container px-[0.65rem] py-[0.35rem] text-text-secondary text-tiny font-normal whitespace-nowrap disabled:cursor-wait disabled:opacity-70 enabled:hover:bg-surface-high"
         :disabled="refreshDisabled"
         @click="$emit('refresh')"
       >
@@ -54,17 +54,17 @@ defineEmits<{
 
     <p
       v-if="warningMessage"
-      class="warning-note m-0 text-[length:var(--text-caption)] text-[var(--color-text-primary)] px-[0.65rem] py-[0.55rem] rounded-[4px] bg-[color-mix(in_srgb,var(--bg-warning)_20%,var(--surface-container))]"
+      class="warning-note m-0 rounded-[4px] bg-bg-warning/20 px-[0.65rem] py-[0.55rem] text-caption text-text-primary"
       role="status"
       aria-live="polite"
     >{{ warningMessage }}</p>
     <p
       v-if="degradedMessage"
-      class="degraded-note m-0 text-[length:var(--text-caption)] text-[var(--color-text-primary)]"
+      class="degraded-note m-0 text-caption text-text-primary"
     >{{ degradedMessage }}</p>
     <p
       v-if="technicalDetail"
-      class="technical-detail m-0 text-[length:var(--text-caption)] text-[var(--color-text-secondary)] break-words"
+      class="technical-detail m-0 break-words text-caption text-text-secondary"
     >{{ technicalDetail }}</p>
   </div>
 </template>

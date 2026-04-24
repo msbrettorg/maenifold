@@ -26,7 +26,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
 
 <template>
   <template v-if="nodeType === 'workflow'">
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-workflow-id">Workflow ID</Label>
       <Input
         id="graft-workflow-id"
@@ -40,7 +40,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
     <datalist :id="workflowListId">
       <option v-for="workflow in workflows" :key="workflow" :value="workflow" />
     </datalist>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-workflow-agent">Agent</Label>
       <Input
         id="graft-workflow-agent"
@@ -50,7 +50,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => workflowAgent = String(val).trim()"
       />
     </div>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm col-[1/-1]">
+    <div class="col-[1/-1] grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-workflow-prompt">Prompt</Label>
       <Textarea
         id="graft-workflow-prompt"
@@ -64,7 +64,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
   </template>
 
   <template v-else-if="nodeType === 'prompt'">
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-prompt-agent">Agent</Label>
       <Input
         id="graft-prompt-agent"
@@ -74,7 +74,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => promptAgent = String(val).trim()"
       />
     </div>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm col-[1/-1]">
+    <div class="col-[1/-1] grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-prompt-template">Prompt</Label>
       <Textarea
         id="graft-prompt-template"
@@ -88,7 +88,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
   </template>
 
   <template v-else-if="nodeType === 'sequentialThinking'">
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-thinking-topic">Topic</Label>
       <Input
         id="graft-thinking-topic"
@@ -98,7 +98,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => thinkingTopic = String(val).trim()"
       />
     </div>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-thinking-agent">Agent</Label>
       <Input
         id="graft-thinking-agent"
@@ -108,7 +108,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         @update:model-value="(val: string | number) => thinkingAgent = String(val).trim()"
       />
     </div>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-thinking-total-thoughts">Total thoughts</Label>
       <Input
         id="graft-thinking-total-thoughts"
@@ -119,7 +119,7 @@ const toolArgsValid = defineModel<boolean>('toolArgsValid', { required: true });
         placeholder="5"
       />
     </div>
-    <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-sm">
+    <div class="grid min-w-0 gap-[0.35rem] text-sm text-text-secondary">
       <Label for="graft-thinking-analysis-type">Analysis type</Label>
       <Input
         id="graft-thinking-analysis-type"

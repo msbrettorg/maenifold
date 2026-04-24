@@ -15,21 +15,21 @@ const { activeUri, activeNote, noteLoading, noteError } = storeToRefs(store);
 <template>
   <section class="flex min-h-0 flex-1 flex-col bg-bg-app" aria-label="Knowledge content">
     <header v-if="activeNote" class="border-b border-border-subtle px-5 py-3">
-      <p class="text-[var(--text-tiny)] uppercase tracking-[0.04em] text-text-tertiary">Selected note</p>
-      <h2 class="truncate text-[var(--text-title)] font-semibold text-text-primary">
+      <p class="text-tiny uppercase tracking-[0.04em] text-text-tertiary">Selected note</p>
+      <h2 class="truncate text-title font-semibold text-text-primary">
         {{ activeNote.title }}
       </h2>
-      <p v-if="activeUri" class="truncate text-[var(--text-body-sm)] text-text-secondary">{{ activeUri }}</p>
+      <p v-if="activeUri" class="truncate text-body-sm text-text-secondary">{{ activeUri }}</p>
     </header>
 
     <ScrollArea class="min-h-0 flex-1">
       <div class="mx-auto grid max-w-5xl gap-3 p-5">
         <template v-if="noteLoading">
-          <Skeleton class="h-5 w-3/5 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-4 w-full rounded-[var(--radius-8)]" />
-          <Skeleton class="h-4 w-5/6 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-4 w-11/12 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-48 w-full rounded-[var(--radius-8)]" />
+          <Skeleton class="h-5 w-3/5 rounded-md" />
+          <Skeleton class="h-4 w-full rounded-md" />
+          <Skeleton class="h-4 w-5/6 rounded-md" />
+          <Skeleton class="h-4 w-11/12 rounded-md" />
+          <Skeleton class="h-48 w-full rounded-md" />
         </template>
 
         <Alert v-else-if="noteError" variant="destructive" class="border-border-subtle bg-bg-surface">

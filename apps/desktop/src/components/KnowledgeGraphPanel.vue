@@ -1,4 +1,3 @@
-<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Search, RotateCcw, RefreshCw, Network, ArrowLeft, Loader2, Sparkles } from 'lucide-vue-next';
@@ -11,7 +10,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import GraphViewCanvas from './GraphViewCanvas.vue';
 import { useForceGraph } from '../composables/useForceGraph';
-import type { ForceEdge, ForceNode } from '../lib/graph-types';
+import type { ForceNode } from '../lib/graph-types';
+import { mapCommunityGraph, mapConceptGraph } from '../lib/knowledge-graph-mappers';
 import { useKnowledgeStore } from '../stores/knowledge';
 
 const conceptFilter = ref('');
@@ -49,93 +49,6 @@ const filteredConcepts = computed(() => {
   return base.filter((item) => item.name.toLowerCase().includes(query));
 });
 
-// Golden-angle HSL palette: desaturated, high-lightness, consistent with the
-// near-white aesthetic of mind.html. Generated on demand from the index.
-function colorForCommunityIndex(index: number): string {
-  const hue = (index * 137.508) % 360;
-  return `hsl(${hue.toFixed(2)}, 40%, 75%)`;
-}
-
-// sqrt scaling keeps the dynamic range tight so high-degree nodes stay readable
-// without dominating the canvas. Mirrors mind.html's 1.6 → 6.5 px range.
-function radiusForDegree(degree: number, maxDegree: number): number {
-  if (maxDegree <= 0) return 1.6;
-  const ratio = Math.max(0, Math.min(1, degree / maxDegree));
-  return 1.6 + 4.9 * Math.sqrt(ratio);
-}
-
-function readCssToken(token: string, fallback: string): string {
-  if (typeof window === 'undefined') return fallback;
-  const value = getComputedStyle(document.documentElement).getPropertyValue(token).trim();
-  return value || fallback;
-}
-
-// Map degree to luma — high-degree nodes brighter (#f0f0f0), low-degree dimmer (#a0a0a0).
-function lumaForDegree(degree: number, maxDegree: number): string {
-  if (maxDegree <= 0) return readCssToken('--color-text-secondary', '#A0AAB2');
-  const ratio = Math.max(0, Math.min(1, degree / maxDegree));
-  // 0xa0 (160) → 0xf0 (240)
-  const value = Math.round(160 + ratio * 80);
-  const hex = value.toString(16).padStart(2, '0');
-  return `#${hex}${hex}${hex}`; // audit-ok: dynamic-canvas-value
-}
-
-function mapCommunityGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
-  const graph = communityGraph.value;
-  if (!graph) {
-    return { nodes: [], edges: [] };
-  }
-
-  const maxSize = graph.nodes.reduce((max, n) => Math.max(max, n.size), 0);
-
-  const nodes = graph.nodes.map((node, index) => ({
-    id: `community-${node.id}`,
-    label: node.anchor,
-    radius: radiusForDegree(node.size, maxSize),
-    color: colorForCommunityIndex(index),
-  }));
-
-  const known = new Set(nodes.map((node) => node.id));
-  const edges = graph.edges
-    .filter((edge) => known.has(`community-${edge.source}`) && known.has(`community-${edge.target}`))
-    .map((edge) => ({
-      source: `community-${edge.source}`,
-      target: `community-${edge.target}`,
-      weight: edge.weight,
-    }));
-
-  return { nodes, edges };
-}
-
-function mapConceptGraph(): { nodes: ForceNode[]; edges: ForceEdge[] } {
-  const graph = conceptGraph.value;
-  if (!graph) {
-    return { nodes: [], edges: [] };
-  }
-
-  const maxOccurrences = graph.nodes.reduce((max, n) => Math.max(max, n.occurrences), 0);
-
-  const nodes = graph.nodes.map((node) => ({
-    id: node.name,
-    label: node.name,
-    radius: radiusForDegree(node.occurrences, maxOccurrences),
-    color: node.name === graph.anchor
-      ? readCssToken('--color-text-primary', '#FFFFFF')
-      : lumaForDegree(node.occurrences, maxOccurrences),
-  }));
-
-  const known = new Set(nodes.map((node) => node.id));
-  const edges = graph.edges
-    .filter((edge) => known.has(edge.source) && known.has(edge.target))
-    .map((edge) => ({
-      source: edge.source,
-      target: edge.target,
-      weight: edge.weight,
-    }));
-
-  return { nodes, edges };
-}
-
 function handleNodeClick(node: ForceNode) {
   if (viewLevel.value === 'communities') {
     const id = Number.parseInt(node.id.replace('community-', ''), 10);
@@ -151,7 +64,9 @@ function handleNodeClick(node: ForceNode) {
 const { start, stop, resetView } = useForceGraph(containerRef, undefined, handleNodeClick);
 
 async function redrawGraph() {
-  const mapped = viewLevel.value === 'communities' ? mapCommunityGraph() : mapConceptGraph();
+  const mapped = viewLevel.value === 'communities'
+    ? mapCommunityGraph(communityGraph.value)
+    : mapConceptGraph(conceptGraph.value);
   await nextTick();
   start(mapped.nodes, mapped.edges);
 }
@@ -203,7 +118,7 @@ onMounted(async () => {
     <aside class="flex min-h-0 w-80 shrink-0 flex-col border-r border-border-subtle bg-bg-sidebar">
       <div class="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
         <Network class="size-4 text-text-secondary" aria-hidden="true" />
-        <p class="truncate text-[var(--text-body-sm)] font-semibold text-text-primary">{{ activeCommunityTitle() }}</p>
+        <p class="truncate text-sm font-semibold text-text-primary">{{ activeCommunityTitle() }}</p>
         <Badge variant="secondary" class="ml-auto">{{ nodeCount }} nodes</Badge>
       </div>
 
@@ -224,7 +139,7 @@ onMounted(async () => {
           <Input
             v-model="conceptFilter"
             :disabled="viewLevel !== 'concepts'"
-            class="h-8 border-border-subtle bg-bg-surface pl-8 text-[var(--text-body-sm)] text-text-primary placeholder:text-text-secondary disabled:opacity-60"
+            class="h-8 border-border-subtle bg-bg-surface pl-8 text-sm text-text-primary placeholder:text-text-secondary disabled:opacity-60"
             placeholder="Filter concepts"
           />
         </div>
@@ -233,9 +148,9 @@ onMounted(async () => {
       <ScrollArea class="min-h-0 flex-1 px-2 py-2">
         <div class="grid gap-1">
           <template v-if="graphLoading && viewLevel === 'concepts'">
-            <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-            <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-            <Skeleton class="h-8 rounded-[var(--radius-8)]" />
+            <Skeleton class="h-8 rounded-lg" />
+            <Skeleton class="h-8 rounded-lg" />
+            <Skeleton class="h-8 rounded-lg" />
           </template>
           <template v-else-if="viewLevel === 'concepts'">
             <Button
@@ -243,18 +158,18 @@ onMounted(async () => {
               :key="concept.name"
               type="button"
               variant="ghost"
-              class="h-8 justify-start gap-2 rounded-[var(--radius-8)] px-2 text-left"
+              class="h-8 justify-start gap-2 rounded-lg px-2 text-left"
               :class="selectedConcept === concept.name ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
               @click="store.openConcept(concept.name)"
             >
-              <span class="truncate text-[var(--text-body-sm)]">{{ concept.name }}</span>
-              <span class="ml-auto text-[var(--text-tiny)] text-text-tertiary">{{ concept.edgeCount }}</span>
+              <span class="truncate text-sm">{{ concept.name }}</span>
+              <span class="ml-auto text-xs text-text-tertiary">{{ concept.edgeCount }}</span>
             </Button>
-            <p v-if="filteredConcepts.length === 0" class="px-2 py-3 text-[var(--text-body-sm)] text-text-secondary">
+            <p v-if="filteredConcepts.length === 0" class="px-2 py-3 text-sm text-text-secondary">
               No concepts match this filter.
             </p>
           </template>
-          <p v-else class="px-2 py-3 text-[var(--text-body-sm)] text-text-secondary">
+          <p v-else class="px-2 py-3 text-sm text-text-secondary">
             Select a community cluster in the graph to browse concepts.
           </p>
         </div>
@@ -263,7 +178,7 @@ onMounted(async () => {
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col">
       <div class="flex items-center justify-between gap-2 border-b border-border-subtle px-3 py-2">
-        <div class="inline-flex items-center gap-2 text-[var(--text-body-sm)] text-text-secondary">
+        <div class="inline-flex items-center gap-2 text-sm text-text-secondary">
           <span>{{ viewLevel === 'communities' ? 'Community map' : 'Concept map' }}</span>
           <span class="text-text-tertiary">·</span>
           <span class="text-text-tertiary">Click a node to open context</span>
@@ -300,9 +215,9 @@ onMounted(async () => {
     <aside class="flex min-h-0 w-72 shrink-0 flex-col border-l border-border-subtle bg-bg-sidebar">
       <div class="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
         <Sparkles class="size-4 text-text-secondary" aria-hidden="true" />
-        <p class="text-[var(--text-body-sm)] font-semibold text-text-primary">Related concepts</p>
+        <p class="text-sm font-semibold text-text-primary">Related concepts</p>
       </div>
-      <div class="border-b border-border-subtle px-3 py-2 text-[var(--text-tiny)] text-text-tertiary">
+      <div class="border-b border-border-subtle px-3 py-2 text-xs text-text-tertiary">
         {{ relatedConceptsSource ? `Seed: ${relatedConceptsSource}` : 'Open a note to load nearby concepts.' }}
       </div>
       <ScrollArea class="min-h-0 flex-1 px-2 py-2">
@@ -313,12 +228,12 @@ onMounted(async () => {
           </Alert>
 
           <template v-else-if="relatedConceptsLoading">
-            <div class="inline-flex items-center gap-2 px-2 py-1 text-[var(--text-body-sm)] text-text-secondary">
+            <div class="inline-flex items-center gap-2 px-2 py-1 text-sm text-text-secondary">
               <Loader2 class="size-4 animate-spin" aria-hidden="true" />
               Loading related concepts…
             </div>
-            <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-            <Skeleton class="h-8 rounded-[var(--radius-8)]" />
+            <Skeleton class="h-8 rounded-lg" />
+            <Skeleton class="h-8 rounded-lg" />
           </template>
 
           <template v-else-if="relatedConcepts.length > 0">
@@ -327,19 +242,19 @@ onMounted(async () => {
               :key="concept.name"
               type="button"
               variant="ghost"
-              class="h-auto justify-start rounded-[var(--radius-8)] px-2 py-2 text-left"
+              class="h-auto justify-start rounded-lg px-2 py-2 text-left"
               @click="store.openConcept(concept.name)"
             >
               <div class="grid min-w-0 gap-1">
-                <span class="truncate text-[var(--text-body-sm)] text-text-primary">{{ concept.name }}</span>
-                <span class="text-[var(--text-tiny)] text-text-tertiary">
+                <span class="truncate text-sm text-text-primary">{{ concept.name }}</span>
+                <span class="text-xs text-text-tertiary">
                   Similarity {{ concept.similarity.toFixed(3) }}
                 </span>
               </div>
             </Button>
           </template>
 
-          <p v-else class="px-2 py-3 text-[var(--text-body-sm)] text-text-secondary">
+          <p v-else class="px-2 py-3 text-sm text-text-secondary">
             No related concepts available for the selected note.
           </p>
         </div>
@@ -354,7 +269,7 @@ onMounted(async () => {
       </Alert>
       <div
         v-else-if="conceptContextLoading"
-        class="px-3 pb-3 text-[var(--text-tiny)] text-text-secondary"
+        class="px-3 pb-3 text-xs text-text-secondary"
       >
         Opening concept context…
       </div>

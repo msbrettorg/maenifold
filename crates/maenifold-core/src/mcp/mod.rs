@@ -8,8 +8,8 @@ pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 use tool_utils::{format_tool_error, with_lock_retry};
 
-// FR-32-SEC: Shared CORS factory restricting origins to localhost variants
-// while keeping all methods and headers allowed for MCP transport.
+// FR-32-SEC: Shared CORS factory restricting origins to local desktop/web
+// surfaces while keeping all methods and headers allowed for MCP transport.
 pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
     use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
 
@@ -18,7 +18,11 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
             let Ok(s) = origin.to_str() else {
                 return false;
             };
-            s == "http://localhost"
+            // Packaged Electron loads the renderer from file://, which Chromium
+            // serializes as either `null` or `file://` in CORS requests.
+            s == "null"
+                || s == "file://"
+                || s == "http://localhost"
                 || s.starts_with("http://localhost:")
                 || s == "http://127.0.0.1"
                 || s.starts_with("http://127.0.0.1:")

@@ -129,10 +129,6 @@ export function useSessionBootstrap({
         throw error;
       }
 
-      if (import.meta.env.DEV) {
-        console.log('Authentication required, available methods:', authMethods); // audit-ok: no-console
-      }
-
       const selectedMethodId = await promptForAuthMethod(
         localId,
         sessionState,
@@ -149,14 +145,7 @@ export function useSessionBootstrap({
         );
       }
 
-      if (import.meta.env.DEV) {
-        console.log('Authenticating with method:', selectedMethodId); // audit-ok: no-console
-      }
-
-      const authResponse = await bridge.authenticate({ methodId: selectedMethodId });
-      if (import.meta.env.DEV) {
-        console.log('Authentication successful:', authResponse); // audit-ok: no-console
-      }
+      await bridge.authenticate({ methodId: selectedMethodId });
 
       await ensureNotAborted(localId, () => bridge.disconnect());
       return operation();

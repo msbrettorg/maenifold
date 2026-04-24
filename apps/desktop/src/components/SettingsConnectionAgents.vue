@@ -74,13 +74,13 @@ function formatEnvCount(count: number) {
           <h4 class="m-0 text-sm font-medium text-text-secondary">Agents</h4>
           <p class="m-0 text-text-secondary">Add, edit, and remove ACP agent definitions.</p>
         </div>
-        <Button variant="outline" class="px-[0.9rem] py-2 rounded-[var(--radius)] cursor-pointer border border-border-subtle bg-transparent text-inherit" :disabled="showAddForm" @click="onStartAdd">+ Add agent</Button>
+        <Button variant="outline" class="px-[0.9rem] py-2 rounded cursor-pointer border border-border-subtle bg-transparent text-inherit" :disabled="showAddForm" @click="onStartAdd">+ Add agent</Button>
       </div>
 
-      <div v-if="showAddForm || editingAgent" class="p-4 rounded-[var(--radius)] bg-bg-elevated">
+      <div v-if="showAddForm || editingAgent" class="p-4 rounded bg-bg-elevated">
         <h5 class="m-0">{{ editingAgent ? 'Edit agent' : 'Add new agent' }}</h5>
 
-        <div class="grid gap-3 p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+        <div class="grid gap-3 p-[0.9rem] border border-border-subtle rounded bg-bg-app">
           <div class="flex flex-col gap-[0.45rem]">
             <Label>Name</Label>
             <Input v-model="form.name" type="text" placeholder="My Agent" :disabled="editingAgent !== null" />
@@ -102,10 +102,10 @@ function formatEnvCount(count: number) {
 
         <p v-if="form.error" class="text-danger">{{ form.error }}</p>
         <div class="flex justify-between gap-3 max-sm:flex-col max-sm:items-stretch">
-          <Button class="px-[0.9rem] py-2 rounded-[var(--radius)] cursor-pointer border-none bg-brand text-text-primary" :disabled="isSubmitting" @click="onSubmit">
+          <Button class="px-[0.9rem] py-2 rounded cursor-pointer border-none bg-brand text-text-primary" :disabled="isSubmitting" @click="onSubmit">
             {{ isSubmitting ? 'Saving...' : 'Save' }}
           </Button>
-          <Button variant="outline" class="px-[0.9rem] py-2 rounded-[var(--radius)] cursor-pointer border border-border-subtle bg-transparent text-inherit" @click="onResetForm">Cancel</Button>
+          <Button variant="outline" class="px-[0.9rem] py-2 rounded cursor-pointer border border-border-subtle bg-transparent text-inherit" @click="onResetForm">Cancel</Button>
         </div>
       </div>
 
@@ -113,7 +113,7 @@ function formatEnvCount(count: number) {
         <article
           v-for="agent in agents"
           :key="agent.name"
-          class="flex justify-between gap-3 items-start p-4 rounded-[var(--radius)] bg-bg-elevated hover:bg-bg-surface-hover transition-colors px-2 -mx-2 max-sm:flex-col max-sm:items-stretch"
+          class="flex justify-between gap-3 items-start p-4 rounded bg-bg-elevated hover:bg-bg-surface-hover transition-colors px-2 -mx-2 max-sm:flex-col max-sm:items-stretch"
         >
           <div class="grid gap-2 min-w-0">
             <div class="flex items-center gap-2">
@@ -127,12 +127,12 @@ function formatEnvCount(count: number) {
           <div class="flex justify-between gap-3 max-sm:justify-start">
             <Button
               variant="outline"
-              class="px-[0.9rem] py-2 rounded-[var(--radius)] cursor-pointer border border-border-subtle text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+              class="px-[0.9rem] py-2 rounded cursor-pointer border border-border-subtle text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
               @click="onStartEdit(agent)"
             >
               Edit
             </Button>
-            <Button variant="destructive" class="py-2 px-[0.6rem] rounded-[var(--radius)] cursor-pointer border border-danger bg-transparent text-danger" @click="onDelete(agent.name)">Delete</Button>
+            <Button variant="destructive" class="py-2 px-[0.6rem] rounded cursor-pointer border border-danger bg-transparent text-danger" @click="onDelete(agent.name)">Delete</Button>
           </div>
         </article>
         <p v-if="agents.length === 0" class="m-0 text-text-secondary">No agents configured yet. Add one to get started.</p>

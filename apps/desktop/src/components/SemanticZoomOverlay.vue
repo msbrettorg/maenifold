@@ -220,7 +220,7 @@ watch(() => viewNode.value?.nodeId, () => {
         :node-type="nodeType"
         :status-label="statusLabel"
       />
-      <div v-if="agentSummary" class="border-b border-border-subtle bg-accent px-4 py-2 font-display text-[var(--text-caption)] text-text-secondary">{{ agentSummary }}</div>
+      <div v-if="agentSummary" class="border-b border-border-subtle bg-accent px-4 py-2 font-display text-caption text-text-secondary">{{ agentSummary }}</div>
       <SemanticZoomOverlayFailure :failure-reason="failureReason" />
       <div class="flex-1 overflow-y-auto p-4">
         <SemanticZoomOverlayContent

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue';
+import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { useSessionStore } from '../stores/session';
 import { useAgentStore } from '../stores/agent';
 import type { SavedSession } from '../lib/types';
@@ -13,7 +16,7 @@ const emit = defineEmits<{
 const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
 
-const sessions = computed(() => 
+const sessions = computed(() =>
   [...sessionStore.savedSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
 );
 
@@ -147,87 +150,92 @@ async function handleDelete(session: SavedSession, event: Event) {
       Sessions
     </h3>
 
-    <ul class="m-0 p-0 list-none flex flex-col gap-1.5" role="list" aria-label="Sessions">
-      <li v-if="sessions.length === 0" class="p-8 text-muted-foreground text-center" role="listitem">
-        <p>No saved sessions yet.</p>
-        <p class="mt-2 text-caption">Create a new session to get started.</p>
-      </li>
-      <li
-        v-for="session in sessions"
-        :key="session.id"
-        role="listitem"
-        class="flex cursor-pointer items-center justify-between rounded-[6px] border border-border-card bg-bg-elevated p-2.5 transition-[background-color] duration-150 hover:bg-bg-surface-hover"
-        :class="{ 'cursor-default': isResumeUnavailable(session) }"
-        @click="handleResume(session)"
-      >
-        <div class="flex flex-1 flex-col gap-1 min-w-0 overflow-hidden">
-          <div class="flex items-center gap-1.5 min-w-0">
-            <span
-               class="block max-w-[200px] truncate text-sm font-medium text-text-primary"
-               :title="session.title"
-             >
-              {{ session.title }}
-            </span>
-            <span
-              v-if="isCurrentConnectedSession(session)"
-                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-success)]"
-              >
-                <span class="block size-1.5 rounded-[4px] bg-[var(--color-success)] [animation:pulse-dot_2s_ease-in-out_infinite]" aria-hidden="true" />Connected
-              </span>
-            <span
-              v-else-if="hasActiveAgentSession(session)"
-               class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-success)]"
-             >
-               <span class="block size-1.5 rounded-[4px] bg-[var(--color-success)] [animation:pulse-dot_2s_ease-in-out_infinite]" aria-hidden="true" />Active
-             </span>
-            <span
-              v-else-if="isCurrentConnectingSession(session)"
-                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-warning)]"
-             >
-               <span class="block size-1.5 rounded-[4px] bg-[var(--color-warning)] [animation:pulse-dot_1s_ease-in-out_infinite]" aria-hidden="true" />Connecting
-             </span>
-            <span
-              v-else-if="isResumeUnavailable(session)"
-               class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-[var(--color-text-secondary)]"
-             >
-               <span class="block size-1.5 rounded-[4px] bg-[var(--color-text-muted)]" aria-hidden="true" />Resume unavailable
-             </span>
-          </div>
-          <span class="text-tiny text-muted-foreground">
-            {{ session.agentName }}
-            <span
-              v-if="isAgentSession(session)"
-              class="inline-block ml-1.5 py-px px-1.5 rounded bg-muted text-muted-foreground text-tiny font-medium lowercase"
-            >
-              from agent
-            </span>
-          </span>
-          <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          class="py-1 px-2 border-none rounded-[4px] bg-transparent text-muted-foreground text-title cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,transparent)] hover:text-[var(--color-danger)]"
-          @click="(e: Event) => handleDelete(session, e)"
-          :title="getDeleteTitle(session)"
+    <ScrollArea class="max-h-[calc(100vh-12rem)]">
+      <ul class="m-0 p-0 list-none flex flex-col gap-1.5" role="list" aria-label="Sessions">
+        <li
+          v-if="sessions.length === 0"
+          class="p-8 text-muted-foreground text-center"
+          role="listitem"
         >
-          ×
-        </Button>
-      </li>
-    </ul>
+          <p>No saved sessions yet.</p>
+          <p class="mt-2 text-caption">Create a new session to get started.</p>
+        </li>
+        <li
+          v-for="session in sessions"
+          :key="session.id"
+          role="listitem"
+          class="flex cursor-pointer items-center justify-between rounded-md border border-border-card bg-bg-elevated p-2.5 transition-colors duration-150 hover:bg-bg-surface-hover"
+          :class="{ 'cursor-default': isResumeUnavailable(session) }"
+          @click="handleResume(session)"
+        >
+          <div class="flex flex-1 flex-col gap-1 min-w-0 overflow-hidden">
+            <div class="flex items-center gap-1.5 min-w-0">
+              <span
+                class="block max-w-[200px] truncate text-sm font-medium text-text-primary"
+                :title="session.title"
+              >
+                {{ session.title }}
+              </span>
+              <span
+                v-if="isCurrentConnectedSession(session)"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-success"
+              >
+                <span
+                  class="block size-1.5 rounded-sm bg-success animate-pulse"
+                  aria-hidden="true"
+                />Connected
+              </span>
+              <span
+                v-else-if="hasActiveAgentSession(session)"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-success"
+              >
+                <span
+                  class="block size-1.5 rounded-sm bg-success animate-pulse"
+                  aria-hidden="true"
+                />Active
+              </span>
+              <span
+                v-else-if="isCurrentConnectingSession(session)"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-warning"
+              >
+                <span
+                  class="block size-1.5 rounded-sm bg-warning animate-pulse"
+                  aria-hidden="true"
+                />Connecting
+              </span>
+              <span
+                v-else-if="isResumeUnavailable(session)"
+                class="inline-flex items-center gap-1 whitespace-nowrap text-tiny text-text-secondary"
+              >
+                <span
+                  class="block size-1.5 rounded-sm bg-text-muted"
+                  aria-hidden="true"
+                />Resume unavailable
+              </span>
+            </div>
+            <span class="text-tiny text-muted-foreground inline-flex items-center gap-1.5">
+              {{ session.agentName }}
+              <Badge
+                v-if="isAgentSession(session)"
+                variant="secondary"
+                class="lowercase"
+              >
+                from agent
+              </Badge>
+            </span>
+            <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="size-7 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+            :title="getDeleteTitle(session)"
+            @click="(e: Event) => handleDelete(session, e)"
+          >
+            <X class="size-4" />
+          </Button>
+        </li>
+      </ul>
+    </ScrollArea>
   </div>
 </template>
-
-<!-- audit-ok: keyframe-animation — @keyframes cannot be expressed as Tailwind utilities -->
-<style scoped>
-@keyframes pulse-dot {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.4;
-  }
-}
-</style>

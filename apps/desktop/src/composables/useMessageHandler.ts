@@ -209,7 +209,6 @@ export function useMessageHandler({
 
       default:
         if (import.meta.env.DEV) {
-          console.log('Unhandled session update:', update); // audit-ok: no-console
         }
     }
   }
@@ -246,7 +245,6 @@ export function useMessageHandler({
         });
 
         if (import.meta.env.DEV) {
-          console.log('Prompt completed:', response.stopReason); // audit-ok: no-console
         }
 
         switch (response.stopReason) {
@@ -277,7 +275,6 @@ export function useMessageHandler({
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (import.meta.env.DEV) {
-        console.error('sendPrompt failed:', err); // audit-ok: no-console
       }
       if (activeSession) {
         activeSession.error = errorMessage;

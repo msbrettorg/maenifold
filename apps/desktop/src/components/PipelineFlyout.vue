@@ -110,20 +110,20 @@ watch(
       id="pipeline-flyout"
       side="left"
       :show-close-button="false"
-      class="w-[min(320px,88vw)] border-0 bg-[var(--surface)] p-0 text-[var(--color-text-primary)] shadow-[var(--shadow-16)]"
+      class="w-[min(320px,88vw)] border-0 bg-surface p-0 text-text-primary shadow-fluent-16"
     >
       <div ref="flyoutRef" class="flex h-full flex-col" @keydown="handleKeydown">
         <SheetHeader class="gap-1 px-4 py-4 text-left">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">
-              <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--color-text-primary)]">Pipelines</SheetTitle>
-              <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">Browse, load, and create pipeline sessions.</SheetDescription>
+              <SheetTitle class="font-display text-title font-medium text-text-primary">Pipelines</SheetTitle>
+              <SheetDescription class="text-body-sm text-text-secondary">Browse, load, and create pipeline sessions.</SheetDescription>
             </div>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              class="rounded-[4px]"
+              class="rounded-sm"
               aria-label="Refresh pipelines"
               @click="handleRefresh"
             >
@@ -136,7 +136,7 @@ watch(
           <Input
             v-model="searchQuery"
             type="text"
-            class="border-0 bg-[var(--surface)] text-[var(--color-text-primary)]"
+            class="border-0 bg-surface text-text-primary"
             placeholder="Search pipelines…"
           />
         </div>
@@ -147,27 +147,27 @@ watch(
             class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
             aria-live="polite"
           >
-            <div class="skeleton-pulse h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
-            <div class="skeleton-pulse h-3.5 w-[min(28rem,90vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
-            <div class="skeleton-pulse h-3.5 w-[min(20rem,88vw)] justify-self-center rounded-[var(--radius-4)] bg-[var(--surface-high)]" />
+            <div class="h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
+            <div class="h-3.5 w-[min(28rem,90vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
+            <div class="h-3.5 w-[min(20rem,88vw)] justify-self-center rounded-sm bg-surface-high animate-pulse" />
           </div>
 
           <div
             v-else-if="showErrorState"
-            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center text-[var(--color-text-primary)]"
+            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center text-text-primary"
             role="alert"
           >
-            <p class="m-0 text-[length:var(--text-lg)] text-[var(--color-text-primary)]">Failed to load</p>
-            <p class="m-0 text-[length:var(--text-sm)] text-[var(--text-secondary)]">{{ connectionError }}</p>
-            <Button type="button" class="rounded-[4px]" @click="emit('retry')">Retry</Button>
+            <p class="m-0 text-lg text-text-primary">Failed to load</p>
+            <p class="m-0 text-sm text-text-secondary">{{ connectionError }}</p>
+            <Button type="button" class="rounded-sm" @click="emit('retry')">Retry</Button>
           </div>
 
           <div
             v-else-if="pipelines.length === 0"
             class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
           >
-            <p class="m-0 text-[length:var(--text-lg)] text-[var(--color-text-primary)]">No pipelines yet</p>
-            <Button type="button" class="rounded-[4px]" @click="emit('new-pipeline')">New pipeline</Button>
+            <p class="m-0 text-lg text-text-primary">No pipelines yet</p>
+            <Button type="button" class="rounded-sm" @click="emit('new-pipeline')">New pipeline</Button>
           </div>
 
           <PipelineSidebar
@@ -181,15 +181,3 @@ watch(
     </SheetContent>
   </Sheet>
 </template>
-
-<!-- audit-ok: keyframe-animation — @keyframes skeleton-pulse for skeleton loading states; not expressible as Tailwind utilities. -->
-<style scoped>
-.skeleton-pulse {
-  animation: skeleton-pulse 1.4s ease-in-out infinite;
-}
-
-@keyframes skeleton-pulse {
-  0%, 100% { background: var(--surface-high); }
-  50% { background: var(--surface-container); }
-}
-</style>

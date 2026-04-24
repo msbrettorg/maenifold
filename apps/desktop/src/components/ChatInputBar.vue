@@ -90,7 +90,7 @@ function handleClose(): void {}
 </script>
 
 <template>
-  <div class="relative flex items-end gap-2 px-4 py-3 bg-[var(--surface)]">
+  <div class="relative flex items-end gap-2 px-4 py-3 bg-surface">
     <CommandPalette
       ref="commandPaletteRef"
       :commands="availableCommands"
@@ -117,7 +117,7 @@ function handleClose(): void {}
         <Button
           variant="outline"
           size="sm"
-          class="px-3 py-[0.35rem] border border-border-subtle rounded bg-[var(--surface-high)] text-text-primary text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-[0.55]"
+          class="px-3 py-[0.35rem] border border-border-subtle rounded bg-surface-high text-text-primary text-sm cursor-pointer disabled:cursor-not-allowed disabled:opacity-[0.55]"
           :class="{ 'opacity-[0.55]': !supportsEmbeddedContext }"
           :disabled="disabled"
           :aria-disabled="!supportsEmbeddedContext || disabled"
@@ -135,7 +135,7 @@ function handleClose(): void {}
         {{ supportsEmbeddedContext ? 'Embed file context with @README.md or @"notes/file name.md".' : 'Embedded file context is unavailable for this agent.' }}
       </div>
 
-      <div v-if="attachmentError" class="text-[var(--terracotta)] text-sm">{{ attachmentError }}</div>
+      <div v-if="attachmentError" class="text-danger text-sm">{{ attachmentError }}</div>
 
       <Textarea
         v-model="text"
@@ -143,13 +143,13 @@ function handleClose(): void {}
         :disabled="disabled"
         rows="3"
         aria-label="Message input"
-        class="flex-1 p-3 border border-border-subtle rounded bg-[var(--surface)] text-text-primary resize-none font-[inherit] text-base transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary focus:outline-none focus:border-brand focus:shadow-none"
+        class="flex-1 p-3 border border-border-subtle rounded bg-surface text-text-primary resize-none font-[inherit] text-base transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary focus:outline-none focus:border-brand focus:shadow-none"
         @keydown="handleKeyDown"
       />
     </div>
 
     <Button
-      class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-[number:var(--weight-display)] cursor-pointer transition-colors duration-150 hover:not-disabled:bg-[var(--brand-hover)] disabled:cursor-not-allowed disabled:opacity-[0.55]"
+      class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-medium cursor-pointer transition-colors duration-150 hover:not-disabled:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-[0.55]"
       :disabled="!modelValue.trim() || disabled"
       @click="submit"
     >Send</Button>

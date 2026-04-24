@@ -1,0 +1,1780 @@
+[
+  {
+    "path": "apps/desktop/src/components/AddNodeForm.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  workflows: string[];\n  submitNode: SubmitNode;\n  hasSelection?: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  workflows: string[];\n  submitNode: SubmitNode;\n  hasSelection?: boolean;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/AgentProbePreviewCapabilities.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  compact: boolean;\n  fields: PreviewField[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  compact: boolean;\n  fields: PreviewField[];\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ 'update-field': [key: string, value: string] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ 'update-field': [key: string, value: string] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/AgentProbePreviewStatus.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  compact: boolean;\n  degradedMessage: string | null;\n  ready: boolean;\n  refreshDisabled: boolean;\n  refreshing: boolean;\n  statusLabel: string;\n  statusMessage: string;\n  statusTone: string;\n  technicalDetail: string | null;\n  warningMessage: string | null | undefined;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  compact: boolean;\n  degradedMessage: string | null;\n  ready: boolean;\n  refreshDisabled: boolean;\n  refreshing: boolean;\n  statusLabel: string;\n  statusMessage: string;\n  statusTone: string;\n  technicalDetail: string | null;\n  warningMessage: string | null | undefined;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  refresh: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  refresh: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/AgentSelector.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  select: [agentName: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  select: [agentName: string];\n}"
+    ],
+    "old_models": [
+      "'selected', { default: '' }"
+    ],
+    "new_models": [
+      "'selected', { default: '' }"
+    ]
+  },
+  {
+    "path": "apps/desktop/src/components/AppSidebar.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedCwd: string;\n  hasAgents: boolean;\n  isConnecting: boolean;\n  startupPhase: string;\n  startupLogs: string[];\n  startupElapsed: number;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedCwd: string;\n  hasAgents: boolean;\n  isConnecting: boolean;\n  startupPhase: string;\n  startupLogs: string[];\n  startupElapsed: number;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'agent-select': [agentName: string];\n  'select-folder': [];\n  'new-session': [];\n  'resume-session': [session: SavedSession];\n  'delete-session': [sessionId: string];\n  'cancel-connection': [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'agent-select': [agentName: string];\n  'select-folder': [];\n  'new-session': [];\n  'resume-session': [session: SavedSession];\n  'delete-session': [sessionId: string];\n  'cancel-connection': [];\n}"
+    ],
+    "old_models": [
+      "'visible', { required: true }",
+      "'selectedAgent', { required: true }",
+      "'showTrafficMonitor', { required: true }",
+      "'showStartupDetails', { required: true }"
+    ],
+    "new_models": [
+      "'visible', { required: true }",
+      "'selectedAgent', { required: true }",
+      "'showTrafficMonitor', { required: true }",
+      "'showStartupDetails', { required: true }"
+    ]
+  },
+  {
+    "path": "apps/desktop/src/components/AuthMethodDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  authMethods: AppAuthMethod[];\n  agentName: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  authMethods: AppAuthMethod[];\n  agentName: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'select', methodId: string): void;\n  (e: 'cancel'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'select', methodId: string): void;\n  (e: 'cancel'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatContentBlocks.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ blocks: ContentBlock[] }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ blocks: ContentBlock[] }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatInputBar.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  modelValue: string;\n  placeholder: string;\n  disabled: boolean;\n  availableCommands: AvailableCommand[];\n  supportsImageAttachments: boolean;\n  supportsAudioAttachments: boolean;\n  supportsEmbeddedContext: boolean;\n  imageAttachmentTooltip: string;\n  audioAttachmentTooltip: string;\n  embeddedContextTooltip: string;\n  pendingAttachments: PendingAttachmentView[];\n  attachmentError: string | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  modelValue: string;\n  placeholder: string;\n  disabled: boolean;\n  availableCommands: AvailableCommand[];\n  supportsImageAttachments: boolean;\n  supportsAudioAttachments: boolean;\n  supportsEmbeddedContext: boolean;\n  imageAttachmentTooltip: string;\n  audioAttachmentTooltip: string;\n  embeddedContextTooltip: string;\n  pendingAttachments: PendingAttachmentView[];\n  attachmentError: string | null;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'update:modelValue': [value: string];\n  send: [];\n  'select-command': [command: AvailableCommand];\n  'remove-attachment': [attachmentId: string];\n  'insert-embedded-context-hint': [];\n  'add-attachments': [attachments: PendingAttachmentView[]];\n  'attachment-error': [message: string | null];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'update:modelValue': [value: string];\n  send: [];\n  'select-command': [command: AvailableCommand];\n  'remove-attachment': [attachmentId: string];\n  'insert-embedded-context-hint': [];\n  'add-attachments': [attachments: PendingAttachmentView[]];\n  'attachment-error': [message: string | null];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatMessageItem.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  message: ChatMessage;\n  expandedThoughtIds: string[];\n  expandedToolCallIds: string[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  message: ChatMessage;\n  expandedThoughtIds: string[];\n  expandedToolCallIds: string[];\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'toggle-thought': [messageId: string];\n  'toggle-tool-call': [toolCallId: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'toggle-thought': [messageId: string];\n  'toggle-tool-call': [toolCallId: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatMessageList.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  messages: ChatMessage[];\n  currentPlan: PlanEntry[] | null;\n  expandedThoughtIds: string[];\n  expandedToolCallIds: string[];\n  pendingPermissionCount: number;\n  isLoading: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  messages: ChatMessage[];\n  currentPlan: PlanEntry[] | null;\n  expandedThoughtIds: string[];\n  expandedToolCallIds: string[];\n  pendingPermissionCount: number;\n  isLoading: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  cancel: [];\n  'toggle-thought': [messageId: string];\n  'toggle-tool-call': [toolCallId: string];\n  prefill: [text: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  cancel: [];\n  'toggle-thought': [messageId: string];\n  'toggle-tool-call': [toolCallId: string];\n  prefill: [text: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatThoughtSection.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  messageId: string;\n  thought: string;\n  expanded: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  messageId: string;\n  thought: string;\n  expanded: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ toggle: [messageId: string] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ toggle: [messageId: string] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatToolCallDetails.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  id?: string;\n  toolCall: ToolCallInfo;\n  expanded: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  id?: string;\n  toolCall: ToolCallInfo;\n  expanded: boolean;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatToolCallItem.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  toolCall: ToolCallInfo;\n  isExpanded: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  toolCall: ToolCallInfo;\n  isExpanded: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ toggle: [] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ toggle: [] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ChatView.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/CommandPalette.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  commands: AvailableCommand[];\n  filter: string;\n  visible: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  commands: AvailableCommand[];\n  filter: string;\n  visible: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  select: [command: AvailableCommand];\n  close: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  select: [command: AvailableCommand];\n  close: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ConfigOptionPicker.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  option: SessionConfigOption;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  option: SessionConfigOption;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  change: [configId: string, value: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  change: [configId: string, value: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/DesignNodeConfigAgent.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  node: PipelineNode;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  node: PipelineNode;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:node', next: PipelineNode): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:node', next: PipelineNode): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/DesignNodeConfigModal.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedNodeId: string | null;\n  selectedEdge: { source: string; target: string } | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedNodeId: string | null;\n  selectedEdge: { source: string; target: string } | null;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/EdgeMappingEditor.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  edge: PipelineEdge;\n  sourceNode: PipelineNode | null;\n  targetNode: PipelineNode | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  edge: PipelineEdge;\n  sourceNode: PipelineNode | null;\n  targetNode: PipelineNode | null;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskDetail.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  task: GateTask | null;\n  body: string;\n  history: GateTaskHistoryEntry[];\n  bodyLoading: boolean;\n  historyLoading: boolean;\n  bodyError: string;\n  historyError: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  task: GateTask | null;\n  body: string;\n  history: GateTaskHistoryEntry[];\n  bodyLoading: boolean;\n  historyLoading: boolean;\n  bodyError: string;\n  historyError: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ close: [] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ close: [] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskDetailHistory.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  history: GateTaskHistoryEntry[];\n  historyLoading: boolean;\n  historyError: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  history: GateTaskHistoryEntry[];\n  historyLoading: boolean;\n  historyError: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskDetailMeta.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  task: GateTask;\n  processLabel: string;\n  pipelineStale?: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  task: GateTask;\n  processLabel: string;\n  pipelineStale?: boolean;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskDetailStages.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ task: GateTask }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ task: GateTask }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskProgress.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ task: GateTask }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ task: GateTask }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateTaskTable.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  tasks: GateTask[];\n  selectedTaskId: string;\n  sortColumn: SortColumn;\n  sortDirection: SortDirection;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  tasks: GateTask[];\n  selectedTaskId: string;\n  sortColumn: SortColumn;\n  sortDirection: SortDirection;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  select: [task: GateTask];\n  sort: [column: SortColumn];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  select: [task: GateTask];\n  sort: [column: SortColumn];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateView.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ cwd: string }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ cwd: string }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateViewFilters.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  searchText: string;\n  selectedProcess: string;\n  selectedState: string;\n  selectedLocation: string;\n  issuesOnly: boolean;\n  processOptions: string[];\n  stateOptions: string[];\n  locationOptions: string[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  searchText: string;\n  selectedProcess: string;\n  selectedState: string;\n  selectedLocation: string;\n  issuesOnly: boolean;\n  processOptions: string[];\n  stateOptions: string[];\n  locationOptions: string[];\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'update:issuesOnly': [value: boolean];\n  'update:searchText': [value: string];\n  'update:selectedLocation': [value: string];\n  'update:selectedProcess': [value: string];\n  'update:selectedState': [value: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'update:issuesOnly': [value: boolean];\n  'update:searchText': [value: string];\n  'update:selectedLocation': [value: string];\n  'update:selectedProcess': [value: string];\n  'update:selectedState': [value: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateViewStatus.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  uiError: string;\n  hasGateRoot: boolean;\n  isLoading: boolean;\n  snapshot: GateSnapshot | null;\n  selectedGateRoot: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  uiError: string;\n  hasGateRoot: boolean;\n  isLoading: boolean;\n  snapshot: GateSnapshot | null;\n  selectedGateRoot: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GateViewToolbar.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  hasGateRoot: boolean;\n  todoCount: number;\n  doneCount: number;\n  totalCount: number;\n  shownCount: number;\n  lastRefreshLabel: string;\n  selectedGateRoot: string;\n  gateRoots: string[];\n  isReady: boolean;\n  isLoading: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  hasGateRoot: boolean;\n  todoCount: number;\n  doneCount: number;\n  totalCount: number;\n  shownCount: number;\n  lastRefreshLabel: string;\n  selectedGateRoot: string;\n  gateRoots: string[];\n  isReady: boolean;\n  isLoading: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  browse: [];\n  'change-root': [value: string];\n  refresh: [];\n  remove: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  browse: [];\n  'change-root': [value: string];\n  refresh: [];\n  remove: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GraftNodesDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  existingNodeIds: string[];\n  workflows: string[];\n  busy?: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  existingNodeIds: string[];\n  workflows: string[];\n  busy?: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'cancel'): void;\n  (e: 'submit', nodes: PipelineNode[], edges: PipelineEdge[]): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'cancel'): void;\n  (e: 'submit', nodes: PipelineNode[], edges: PipelineEdge[]): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/GraftNodesDialogTypeFields.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  nodeType: 'workflow' | 'prompt' | 'sequentialThinking' | 'tool';\n  workflows: string[];\n  workflowListId: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  nodeType: 'workflow' | 'prompt' | 'sequentialThinking' | 'tool';\n  workflows: string[];\n  workflowListId: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [
+      "'workflowId', { required: true }",
+      "'workflowAgent', { required: true }",
+      "'workflowPrompt', { required: true }",
+      "'promptAgent', { required: true }",
+      "'promptTemplate', { required: true }",
+      "'thinkingTopic', { required: true }",
+      "'thinkingAgent', { required: true }",
+      "'thinkingTotalThoughts', { required: true }",
+      "'thinkingAnalysisType', { required: true }",
+      "'toolName', { required: true }",
+      "'toolArgsValid', { required: true }"
+    ],
+    "new_models": [
+      "'workflowId', { required: true }",
+      "'workflowAgent', { required: true }",
+      "'workflowPrompt', { required: true }",
+      "'promptAgent', { required: true }",
+      "'promptTemplate', { required: true }",
+      "'thinkingTopic', { required: true }",
+      "'thinkingAgent', { required: true }",
+      "'thinkingTotalThoughts', { required: true }",
+      "'thinkingAnalysisType', { required: true }",
+      "'toolName', { required: true }",
+      "'toolArgsValid', { required: true }"
+    ]
+  },
+  {
+    "path": "apps/desktop/src/components/GraphViewCanvas.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  isLoading: boolean;\n  error: string;\n  nodeCount: number;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  isLoading: boolean;\n  error: string;\n  nodeCount: number;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ retry: [] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ retry: [] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/HomeDashboard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  hasAgents: boolean;\n  selectedCwd: string;\n  isConnected: boolean;\n  isConnecting: boolean;\n  recentSessions: SavedSession[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  hasAgents: boolean;\n  selectedCwd: string;\n  isConnected: boolean;\n  isConnecting: boolean;\n  recentSessions: SavedSession[];\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'agent-select': [agentName: string];\n  'select-folder': [];\n  'new-session': [];\n  'prompt-submit': [prompt: string];\n  'select-tab': [tab: AppShellTab];\n  'open-tab': [tab: AppShellTab];\n  'resume-session': [session: SavedSession];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'agent-select': [agentName: string];\n  'select-folder': [];\n  'new-session': [];\n  'prompt-submit': [prompt: string];\n  'select-tab': [tab: AppShellTab];\n  'open-tab': [tab: AppShellTab];\n  'resume-session': [session: SavedSession];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/JoinPipelineDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  busy?: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  busy?: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'cancel'): void;\n  (e: 'submit', sourceSessionId: string, edges: PipelineEdge[]): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'cancel'): void;\n  (e: 'submit', sourceSessionId: string, edges: PipelineEdge[]): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeContent.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeExplorer.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeGraphPanel.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeNoteRenderer.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n    content: string;\n    clamp?: boolean;\n  }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n    content: string;\n    clamp?: boolean;\n  }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeSidebar.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/KnowledgeSidebarNode.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  node: KnowledgeFolderNode;\n  activeUri: string | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  node: KnowledgeFolderNode;\n  activeUri: string | null;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PermissionDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ request: PermissionRequest; totalPending?: number }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ request: PermissionRequest; totalPending?: number }"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ select: [optionId: string]; cancel: [] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ select: [optionId: string]; cancel: [] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PermissionEntry.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ request: PermissionRequest }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ request: PermissionRequest }"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ select: [optionId: string]; cancel: [] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ select: [optionId: string]; cancel: [] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineActionBar.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineComposer.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ designMode: boolean; localDefinition?: PipelineDefinition; view?: PipelineView | null }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ designMode: boolean; localDefinition?: PipelineDefinition; view?: PipelineView | null }"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:localDefinition', value: PipelineDefinition): void;\n  (e: 'nodeSelected', nodeId: string | null): void;\n  (e: 'nodeDoubleClick', nodeId: string): void;\n  (e: 'edgeDoubleClick', value: { source: string; target: string }): void;\n  (e: 'edgeSelected', value: { source: string; target: string } | null): void;\n  (e: 'openGraft'): void;\n  (e: 'openPromotion'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:localDefinition', value: PipelineDefinition): void;\n  (e: 'nodeSelected', nodeId: string | null): void;\n  (e: 'nodeDoubleClick', nodeId: string): void;\n  (e: 'edgeDoubleClick', value: { source: string; target: string }): void;\n  (e: 'edgeSelected', value: { source: string; target: string } | null): void;\n  (e: 'openGraft'): void;\n  (e: 'openPromotion'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineComposerContextMenuDesign.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  target: 'canvas' | 'node'\n  toolGroups: ToolMenuGroup[]\n  canAskAgent: boolean\n  canThink: boolean\n  canRunWorkflow: boolean\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  target: 'canvas' | 'node'\n  toolGroups: ToolMenuGroup[]\n  canAskAgent: boolean\n  canThink: boolean\n  canRunWorkflow: boolean\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void\n  (e: 'ask-agent'): void\n  (e: 'think-problem'): void\n  (e: 'run-workflow'): void\n  (e: 'run-tool', toolName: string): void\n  (e: 'edit'): void\n  (e: 'duplicate'): void\n  (e: 'delete'): void\n  (e: 'disconnect-edges'): void\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void\n  (e: 'ask-agent'): void\n  (e: 'think-problem'): void\n  (e: 'run-workflow'): void\n  (e: 'run-tool', toolName: string): void\n  (e: 'edit'): void\n  (e: 'duplicate'): void\n  (e: 'delete'): void\n  (e: 'disconnect-edges'): void\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineFlowEdge.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineFlyout.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  connectionError: string;\n  showErrorState: boolean;\n  showLoadingState: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  connectionError: string;\n  showErrorState: boolean;\n  showLoadingState: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void;\n  (e: 'new-pipeline'): void;\n  (e: 'retry'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'close'): void;\n  (e: 'new-pipeline'): void;\n  (e: 'retry'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineIconRail.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  activePipelineLabel: string;\n  flyoutOpen: boolean;\n  isNarrowViewport: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  activePipelineLabel: string;\n  flyoutOpen: boolean;\n  isNarrowViewport: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'toggle-flyout'): void;\n  (e: 'new-pipeline'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'toggle-flyout'): void;\n  (e: 'new-pipeline'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineNodeCard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ id: string; data: NodeCardData; selected?: boolean }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ id: string; data: NodeCardData; selected?: boolean }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineNodeCardPorts.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  direction?: 'LR' | 'TB';\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  direction?: 'LR' | 'TB';\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineNodeCardStatus.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  displayLabel: string;\n  failureSummary?: string | null;\n  statusAppearance: string;\n  typeIcon: Component;\n  typeLabel: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  displayLabel: string;\n  failureSummary?: string | null;\n  statusAppearance: string;\n  typeIcon: Component;\n  typeLabel: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineRunner.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ collapsed?: boolean }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ collapsed?: boolean }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineSidebar.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  hideHeader?: boolean;\n  filterQuery?: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  hideHeader?: boolean;\n  filterQuery?: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'pipeline-selected', pipelineId: string): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'pipeline-selected', pipelineId: string): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PipelineView.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PlanView.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  entries: PlanEntry[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  entries: PlanEntry[];\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PromotionDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ node: ViewNode; pipelineId: string }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ node: ViewNode; pipelineId: string }"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{ (event: 'close'): void; (event: 'busy-change', busy: boolean): void }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ (event: 'close'): void; (event: 'busy-change', busy: boolean): void }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PromotionDialogConfirm.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedAction: PromotionAction | null;\n  selectedResult: NormalizedMemorySearchItem | null;\n  selectedMemory: NormalizedMemoryDocument | null;\n  title: string;\n  folder: string;\n  tags: string[];\n  nextPreview: string;\n  formError: string;\n  submitLabel: string;\n  busy: boolean;\n  canSubmitUpdate: boolean;\n  updateDisabledMessage: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedAction: PromotionAction | null;\n  selectedResult: NormalizedMemorySearchItem | null;\n  selectedMemory: NormalizedMemoryDocument | null;\n  title: string;\n  folder: string;\n  tags: string[];\n  nextPreview: string;\n  formError: string;\n  submitLabel: string;\n  busy: boolean;\n  canSubmitUpdate: boolean;\n  updateDisabledMessage: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (event: 'back'): void;\n  (event: 'submit'): void;\n  (event: 'retry'): void;\n  (event: 'close'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (event: 'back'): void;\n  (event: 'submit'): void;\n  (event: 'retry'): void;\n  (event: 'close'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PromotionDialogEditor.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedAction: PromotionAction;\n  selectedResult: NormalizedMemorySearchItem | null;\n  selectedMemory: NormalizedMemoryDocument | null;\n  loadingMemory: boolean;\n  title: string;\n  folder: string;\n  tagsInput: string;\n  wikiLinkInput: string;\n  wikiLinkError: string;\n  nextPreview: string;\n  formError: string;\n  updateDisabledMessage: string;\n  busy: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedAction: PromotionAction;\n  selectedResult: NormalizedMemorySearchItem | null;\n  selectedMemory: NormalizedMemoryDocument | null;\n  loadingMemory: boolean;\n  title: string;\n  folder: string;\n  tagsInput: string;\n  wikiLinkInput: string;\n  wikiLinkError: string;\n  nextPreview: string;\n  formError: string;\n  updateDisabledMessage: string;\n  busy: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (event: 'update:title', value: string): void;\n  (event: 'update:folder', value: string): void;\n  (event: 'update:tagsInput', value: string): void;\n  (event: 'update:wikiLinkInput', value: string): void;\n  (event: 'back'): void;\n  (event: 'continue'): void;\n  (event: 'retry'): void;\n  (event: 'close'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (event: 'update:title', value: string): void;\n  (event: 'update:folder', value: string): void;\n  (event: 'update:tagsInput', value: string): void;\n  (event: 'update:wikiLinkInput', value: string): void;\n  (event: 'back'): void;\n  (event: 'continue'): void;\n  (event: 'retry'): void;\n  (event: 'close'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PromotionDialogPreview.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  searchQuery: string;\n  searchResults: NormalizedMemorySearchItem[];\n  searching: boolean;\n  writing: boolean;\n  infoMessage: string;\n  formError: string;\n  promotionError: string | null;\n  busy: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  searchQuery: string;\n  searchResults: NormalizedMemorySearchItem[];\n  searching: boolean;\n  writing: boolean;\n  infoMessage: string;\n  formError: string;\n  promotionError: string | null;\n  busy: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (event: 'update:searchQuery', value: string): void;\n  (event: 'search'): void;\n  (event: 'select-action', action: PromotionAction, result?: NormalizedMemorySearchItem): void;\n  (event: 'close'): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (event: 'update:searchQuery', value: string): void;\n  (event: 'search'): void;\n  (event: 'select-action', action: PromotionAction, result?: NormalizedMemorySearchItem): void;\n  (event: 'close'): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/PromptAssemblyPreview.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  assembledPrompt: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  assembledPrompt: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ProvenanceBreadcrumbs.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  currentKind: ProvenanceKind;\n  currentId?: string | null;\n  currentLabel?: string;\n  links: ProvenanceLink[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  currentKind: ProvenanceKind;\n  currentId?: string | null;\n  currentLabel?: string;\n  links: ProvenanceLink[];\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SchemaFormField.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  field: SimpleField;\n  value: unknown;\n  error?: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  field: SimpleField;\n  value: unknown;\n  error?: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update', next: unknown): void;\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update', next: unknown): void;\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SchemaFormRawEditor.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  ariaLabel?: string;\n  'aria-label'?: string;\n  error: string;\n  message: string;\n  title: string;\n  value: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  ariaLabel?: string;\n  'aria-label'?: string;\n  error: string;\n  message: string;\n  title: string;\n  value: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  input: [value: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  input: [value: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SchemaFormRenderer.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  change: [event: { data: unknown; errors: unknown[] }];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  change: [event: { data: unknown; errors: unknown[] }];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SemanticZoomOverlay.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SemanticZoomOverlayContent.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  assembledPrompt: string | null;\n  nodeOutput: string | null;\n  thinkingTrace: ThinkingTraceEntry[] | null;\n  toolProvenance: ToolProvenance | null;\n  workflowSteps: WorkflowStepEntry[] | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  assembledPrompt: string | null;\n  nodeOutput: string | null;\n  thinkingTrace: ThinkingTraceEntry[] | null;\n  toolProvenance: ToolProvenance | null;\n  workflowSteps: WorkflowStepEntry[] | null;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SemanticZoomOverlayControls.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  busyAction: string | null;\n  canConnectLive: boolean;\n  canPromote: boolean;\n  canReconnect: boolean;\n  forkedSessionId: string | null;\n  graftSubmitting: boolean;\n  hasResults: boolean;\n  promotionBusy: boolean;\n  reconnectBusy: boolean;\n  reconnectSessionId: string | null;\n  viewNodeStatus: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  busyAction: string | null;\n  canConnectLive: boolean;\n  canPromote: boolean;\n  canReconnect: boolean;\n  forkedSessionId: string | null;\n  graftSubmitting: boolean;\n  hasResults: boolean;\n  promotionBusy: boolean;\n  reconnectBusy: boolean;\n  reconnectSessionId: string | null;\n  viewNodeStatus: string;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  abandon: [];\n  fork: [];\n  graft: [];\n  promote: [];\n  reconnect: [];\n  restart: [];\n  rewind: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  abandon: [];\n  fork: [];\n  graft: [];\n  promote: [];\n  reconnect: [];\n  restart: [];\n  rewind: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SemanticZoomOverlayFailure.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  failureReason: string | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  failureReason: string | null;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SemanticZoomOverlayHeader.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  displayLabel: string;\n  nodeType: string;\n  statusLabel: string;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  displayLabel: string;\n  nodeType: string;\n  statusLabel: string;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SessionList.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  resume: [session: SavedSession];\n  delete: [sessionId: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  resume: [session: SavedSession];\n  delete: [sessionId: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsConnection.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsConnectionAgents.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsConnectionDaemon.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsConnectionKeys.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsEmbeddings.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMaenifold.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMaenifoldGraph.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMaenifoldMemory.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMaenifoldWorkflows.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMcpServers.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMcpServersDetail.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  visible: boolean\n  editingServer: string | null\n  formName: string\n  formType: McpServerType\n  formCommand: string\n  formArgs: string\n  formUrl: string\n  formError: string\n  isSubmitting: boolean\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  visible: boolean\n  editingServer: string | null\n  formName: string\n  formType: McpServerType\n  formCommand: string\n  formArgs: string\n  formUrl: string\n  formError: string\n  isSubmitting: boolean\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:formName', value: string): void\n  (e: 'update:formType', value: McpServerType): void\n  (e: 'update:formCommand', value: string): void\n  (e: 'update:formArgs', value: string): void\n  (e: 'update:formUrl', value: string): void\n  (e: 'submit'): void\n  (e: 'cancel'): void\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:formName', value: string): void\n  (e: 'update:formType', value: McpServerType): void\n  (e: 'update:formCommand', value: string): void\n  (e: 'update:formArgs', value: string): void\n  (e: 'update:formUrl', value: string): void\n  (e: 'submit'): void\n  (e: 'cancel'): void\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsMcpServersList.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  mcpServers: McpServerEntry[]\n  showAddForm: boolean\n  editingServer: string | null\n  feedback: { type: 'success' | 'error'; message: string } | null\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  mcpServers: McpServerEntry[]\n  showAddForm: boolean\n  editingServer: string | null\n  feedback: { type: 'success' | 'error'; message: string } | null\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'add'): void\n  (e: 'edit', server: McpServerEntry): void\n  (e: 'delete', name: string): void\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'add'): void\n  (e: 'edit', server: McpServerEntry): void\n  (e: 'delete', name: string): void\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/SettingsPreferences.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/StartupProgress.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  agentName: string;\n  phase: string;\n  logs: string[];\n  elapsedSeconds: number;\n  showDetails: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  agentName: string;\n  phase: string;\n  logs: string[];\n  elapsedSeconds: number;\n  showDetails: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  cancel: [];\n  toggleDetails: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  cancel: [];\n  toggleDetails: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TemplateGallery.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TemplateGalleryCard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selected: boolean;\n  template: PipelineTemplate;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selected: boolean;\n  template: PipelineTemplate;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  select: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  select: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TemplateGalleryIntentForm.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  error: string;\n  hasIntentAgent: boolean;\n  modelValue: string;\n  submitting: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  error: string;\n  hasIntentAgent: boolean;\n  modelValue: string;\n  submitting: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  submit: [];\n  'update:modelValue': [value: string];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  submit: [];\n  'update:modelValue': [value: string];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TemplateGallerySelection.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  canCreate: boolean;\n  hasIntentAgent: boolean;\n  template: PipelineTemplate;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  canCreate: boolean;\n  hasIntentAgent: boolean;\n  template: PipelineTemplate;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  create: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  create: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ThinkingSessionCard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  node: ThinkingSession;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  node: ThinkingSession;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ThinkingThoughtItem.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  thought: Thought;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  thought: Thought;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ThinkingTraceView.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ToolAuthSetupDialog.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  action: AuthSetupAction;\n  server: string;\n  busy?: boolean;\n  error?: string | null;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  action: AuthSetupAction;\n  server: string;\n  busy?: boolean;\n  error?: string | null;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  close: [];\n  confirm: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  close: [];\n  confirm: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ToolNodeFields.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/ToolPaletteFields.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TrafficJsonPayload.vue",
+    "old_props": [
+      "",
+      "GENERIC:{ payload: unknown }"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{ payload: unknown }"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/TrafficMonitor.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [
+      "",
+      "GENERIC:{ close: []; resize: [height: number] }"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{ close: []; resize: [height: number] }"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowAuthoringPage.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowBrowser.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowBrowserFilters.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  chips: CategoryChip[]\n  searchQuery: string\n  categoryFilter: WorkflowCategory | 'all'\n  browserError: string | null\n  importError: string | null\n  importConflict: { id: string, json: string, name: string } | null\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  chips: CategoryChip[]\n  searchQuery: string\n  categoryFilter: WorkflowCategory | 'all'\n  browserError: string | null\n  importError: string | null\n  importConflict: { id: string, json: string, name: string } | null\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:searchQuery', value: string): void\n  (e: 'update:categoryFilter', value: WorkflowCategory | 'all'): void\n  (e: 'retry'): void\n  (e: 'resolve-conflict', resolution: 'overwrite' | 'copy'): void\n  (e: 'clear-import-state'): void\n  (e: 'dismiss-import-error'): void\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'update:searchQuery', value: string): void\n  (e: 'update:categoryFilter', value: WorkflowCategory | 'all'): void\n  (e: 'retry'): void\n  (e: 'resolve-conflict', resolution: 'overwrite' | 'copy'): void\n  (e: 'clear-import-state'): void\n  (e: 'dismiss-import-error'): void\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowBrowserList.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  (e: 'select', id: string): void\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  (e: 'select', id: string): void\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowDraftBar.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  hasPendingSelection: boolean\n  isDirty: boolean\n  origin: WorkflowOrigin | null\n  saveMessage: string | null\n  saveState: WorkflowSaveState\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  hasPendingSelection: boolean\n  isDirty: boolean\n  origin: WorkflowOrigin | null\n  saveMessage: string | null\n  saveState: WorkflowSaveState\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  discard: []\n  'cancel-pending': []\n  save: []\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  discard: []\n  'cancel-pending': []\n  save: []\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowMetadataForm.vue",
+    "old_props": [],
+    "new_props": [],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowNodeCard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  node: WorkflowSession;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  node: WorkflowSession;\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowStepCard.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  canRemove: boolean\n  canMoveDown: boolean\n  canMoveUp: boolean\n  expanded: boolean\n  referenceWarning: string | null\n  selected: boolean\n  step: WorkflowStepDefinition\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  canRemove: boolean\n  canMoveDown: boolean\n  canMoveUp: boolean\n  expanded: boolean\n  referenceWarning: string | null\n  selected: boolean\n  step: WorkflowStepDefinition\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'move-down': [stepId: string]\n  'move-up': [stepId: string]\n  remove: [stepId: string]\n  select: [stepId: string]\n  'toggle-expanded': [stepId: string]\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'move-down': [stepId: string]\n  'move-up': [stepId: string]\n  remove: [stepId: string]\n  select: [stepId: string]\n  'toggle-expanded': [stepId: string]\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowStepDetail.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  step: WorkflowStep;\n  expanded: boolean;\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  step: WorkflowStep;\n  expanded: boolean;\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  toggle: [];\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  toggle: [];\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowStepInspector.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedStepId: string | null\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedStepId: string | null\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowStepProgress.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  steps: WorkflowStepEntry[];\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  steps: WorkflowStepEntry[];\n}"
+    ],
+    "old_emits": [],
+    "new_emits": [],
+    "old_models": [],
+    "new_models": []
+  },
+  {
+    "path": "apps/desktop/src/components/WorkflowStepTimeline.vue",
+    "old_props": [
+      "",
+      "GENERIC:{\n  selectedStepId: string | null\n}"
+    ],
+    "new_props": [
+      "",
+      "GENERIC:{\n  selectedStepId: string | null\n}"
+    ],
+    "old_emits": [
+      "",
+      "GENERIC:{\n  'select-step': [stepId: string]\n  save: []\n  'add-step': []\n}"
+    ],
+    "new_emits": [
+      "",
+      "GENERIC:{\n  'select-step': [stepId: string]\n  save: []\n  'add-step': []\n}"
+    ],
+    "old_models": [],
+    "new_models": []
+  }
+]

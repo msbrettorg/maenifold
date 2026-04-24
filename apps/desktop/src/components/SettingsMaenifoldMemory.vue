@@ -29,7 +29,7 @@ defineProps<{
     role="group"
     aria-label="Maenifold memory settings"
   >
-    <AccordionItem value="general" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="general" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">General</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
@@ -50,14 +50,14 @@ defineProps<{
           <Label>Debounce ms</Label>
           <Input :model-value="form.debounceMs" type="number" min="0" step="1" @update:model-value="(val) => { form.debounceMs = Number(val) }" />
         </div>
-        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox :checked="form.autoSync" @update:checked="(val: boolean) => { form.autoSync = val }" /><Label>Auto sync</Label></div>
-        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox :checked="form.syncLogging" @update:checked="(val: boolean) => { form.syncLogging = val }" /><Label>Sync logging</Label></div>
-        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox :checked="form.sessionCleanup" @update:checked="(val: boolean) => { form.sessionCleanup = val }" /><Label>Session cleanup</Label></div>
+        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox :checked="form.autoSync" @update:checked="(val: boolean) => { form.autoSync = val }" /><Label>Auto sync</Label></div>
+        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox :checked="form.syncLogging" @update:checked="(val: boolean) => { form.syncLogging = val }" /><Label>Sync logging</Label></div>
+        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox :checked="form.sessionCleanup" @update:checked="(val: boolean) => { form.sessionCleanup = val }" /><Label>Session cleanup</Label></div>
       </div>
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="database" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="database" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Database</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
@@ -85,11 +85,11 @@ defineProps<{
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="session" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="session" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Session</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
-        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded bg-bg-app">
           <div class="flex flex-col gap-[0.45rem]">
             <Label>Session abandon minutes</Label>
             <Input
@@ -110,7 +110,7 @@ defineProps<{
           </div>
         </div>
 
-        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded bg-bg-app">
           <div class="flex flex-col gap-[0.45rem]">
             <Label>Snippet length</Label>
             <Input

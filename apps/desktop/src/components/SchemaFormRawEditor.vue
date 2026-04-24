@@ -21,13 +21,13 @@ function handleInput(event: Event): void {
 
 <template>
   <div
-    class="flex flex-col gap-4 p-4 border border-[var(--color-border-subtle)] rounded-lg bg-[var(--color-bg-elevated)]"
+    class="flex flex-col gap-4 rounded-lg border border-border-subtle bg-bg-elevated p-4"
     role="group"
     :aria-label="props.ariaLabel ?? props['aria-label']"
   >
     <div class="flex flex-col gap-1">
       <h3 class="text-sm font-semibold">{{ props.title }}</h3>
-      <p class="text-xs text-[var(--color-text-secondary)]">{{ props.message }}</p>
+      <p class="text-xs text-text-secondary">{{ props.message }}</p>
     </div>
     <Textarea
       class="min-h-64 font-mono"
@@ -36,6 +36,6 @@ function handleInput(event: Event): void {
       spellcheck="false"
       @input="handleInput"
     />
-    <p v-if="props.error" class="text-xs text-[var(--color-danger)]">{{ props.error }}</p>
+    <p v-if="props.error" class="text-xs text-danger">{{ props.error }}</p>
   </div>
 </template>

@@ -19,7 +19,7 @@ const emit = defineEmits<{
     <h3 class="text-lg font-semibold text-text-primary text-center mb-4">What would you like to do?</h3>
     <form class="w-full flex flex-col items-center gap-3" @submit.prevent="$emit('submit')">
       <div
-        class="rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-[var(--shadow-8)] w-full max-w-[800px]"
+        class="rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-fluent-8 w-full max-w-[800px]"
       >
         <Input
           id="pipeline-intent-input"
@@ -33,13 +33,13 @@ const emit = defineEmits<{
           @update:model-value="(val: string | number) => emit('update:modelValue', String(val))"
         />
       </div>
-      <p v-if="props.error" class="m-0 text-[0.75rem] text-center text-[var(--terracotta)]" role="alert">
+      <p v-if="props.error" class="m-0 text-[0.75rem] text-center text-danger" role="alert">
         {{ props.error }}
       </p>
-      <p class="m-0 text-[0.75rem] text-center text-[var(--text-secondary)]">
+      <p class="m-0 text-[0.75rem] text-center text-text-secondary">
         Press Enter to start designing your pipeline.
       </p>
-      <p v-if="!props.hasIntentAgent" class="m-0 text-[0.75rem] text-center text-[var(--terracotta)]" role="alert">
+      <p v-if="!props.hasIntentAgent" class="m-0 text-[0.75rem] text-center text-danger" role="alert">
         Configure an agent before creating a pipeline.
       </p>
     </form>

@@ -64,7 +64,6 @@ export function useSessionConnection({
     try {
       await bridge.disconnect();
     } catch (error) {
-      console.warn('Error disconnecting bridge after lifecycle teardown:', error); // audit-ok: no-console
     }
   }
   async function closeRemoteSession(session: SessionState, bridge: AcpClientBridge): Promise<void> {
@@ -72,7 +71,6 @@ export function useSessionConnection({
     try {
       await bridge.closeSession({ sessionId: session.session.sessionId });
     } catch (error) {
-      console.warn('Error closing ACP session during lifecycle teardown:', error); // audit-ok: no-console
     }
   }
   function bindPendingPermission(sessionId: string, bridge: AcpClientBridge): void {

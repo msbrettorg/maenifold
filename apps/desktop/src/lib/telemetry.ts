@@ -26,7 +26,6 @@ export async function initTelemetry(enabled: boolean = true) {
 
   if (!enabled) {
     if (import.meta.env.DEV) {
-      console.log('Telemetry disabled by user preference'); // audit-ok: no-console
     }
     return;
   }
@@ -35,7 +34,6 @@ export async function initTelemetry(enabled: boolean = true) {
     try {
       machineId = await fetchMachineId();
     } catch (e) {
-      console.warn('Failed to get machine ID:', e); // audit-ok: no-console
       machineId = null;
     }
 
@@ -59,10 +57,8 @@ export async function initTelemetry(enabled: boolean = true) {
     appInsights.trackPageView({ name: 'AppLaunch' });
 
     if (import.meta.env.DEV) {
-      console.log('Telemetry initialized', machineId ? `(machine: ${machineId.slice(0, 8)}...)` : ''); // audit-ok: no-console
     }
   } catch (e) {
-    console.warn('Failed to initialize telemetry:', e); // audit-ok: no-console
     appInsights = null;
   }
 }
@@ -76,7 +72,6 @@ export function trackEvent(name: string, properties?: Record<string, string>) {
   try {
     appInsights.trackEvent({ name }, properties);
   } catch (e) {
-    console.warn('Failed to track event:', e); // audit-ok: no-console
   }
 }
 
@@ -89,7 +84,6 @@ export function trackError(error: Error, properties?: Record<string, string>) {
   try {
     appInsights.trackException({ exception: error }, properties);
   } catch (e) {
-    console.warn('Failed to track error:', e); // audit-ok: no-console
   }
 }
 

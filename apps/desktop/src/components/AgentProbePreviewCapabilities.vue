@@ -43,7 +43,7 @@ function isGroup(
   >
     <div v-for="field in fields" :key="field.key" class="field-card grid gap-[0.35rem] min-w-0 p-0">
       <Label
-        class="field-label text-[length:var(--text-caption)] font-normal text-[var(--text-secondary)]"
+        class="field-label text-caption font-normal text-text-secondary"
         :for="`preview-${field.key}`"
       >{{ field.label }}</Label>
       <Select
@@ -52,7 +52,7 @@ function isGroup(
       >
         <SelectTrigger
           :id="`preview-${field.key}`"
-          class="preview-select w-full px-[0.55rem] py-[0.45rem] border-none rounded-[4px] bg-[var(--surface-container)] text-[var(--color-text-primary)] text-[length:var(--text-caption)]"
+          class="preview-select w-full rounded-[4px] border-none bg-surface-container px-[0.55rem] py-[0.45rem] text-caption text-text-primary"
         >
           <SelectValue :placeholder="field.emptyLabel" />
         </SelectTrigger>

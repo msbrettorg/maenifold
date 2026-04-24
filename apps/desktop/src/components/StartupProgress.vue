@@ -1,6 +1,23 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import {
+  Loader2,
+  Rocket,
+  Download,
+  Package,
+  Hammer,
+  Settings,
+  Link2,
+  CheckCircle2,
+  XCircle,
+  Hourglass,
+  ChevronDown,
+  ChevronUp,
+} from 'lucide-vue-next';
 
 const props = defineProps<{
   agentName: string;
@@ -15,18 +32,18 @@ const emit = defineEmits<{
   toggleDetails: [];
 }>();
 
-const phaseIcon = computed(() => {
+const phaseIconComponent = computed(() => {
   switch (props.phase) {
-    case 'starting': return '🚀';
-    case 'downloading': return '📥';
-    case 'installing': return '📦';
-    case 'building': return '🔨';
-    case 'initializing': return '⚙️';
-    case 'connecting': return '🔗';
-    case 'ready': return '✅';
+    case 'starting': return Rocket;
+    case 'downloading': return Download;
+    case 'installing': return Package;
+    case 'building': return Hammer;
+    case 'initializing': return Settings;
+    case 'connecting': return Link2;
+    case 'ready': return CheckCircle2;
     case 'agent_closed':
-    case 'error': return '❌';
-    default: return '⏳';
+    case 'error': return XCircle;
+    default: return Hourglass;
   }
 });
 
@@ -64,6 +81,7 @@ const formattedTime = computed(() => {
 });
 
 const isLongWait = computed(() => props.elapsedSeconds > 10);
+
 const progressValue = computed(() => {
   switch (props.phase) {
     case 'starting': return 10;
@@ -72,107 +90,123 @@ const progressValue = computed(() => {
     case 'building': return 70;
     case 'initializing': return 85;
     case 'connecting': return 95;
+    case 'ready': return 100;
     default: return 0;
   }
 });
 
-const phasePillBgClass = computed(() => {
+const isInProgress = computed(
+  () => status.value === 'spawning' || status.value === 'initializing',
+);
+
+const badgeClass = computed(() => {
   switch (status.value) {
-    case 'initializing': return 'bg-warning';
+    case 'ready':
+      return 'bg-success text-text-on-accent border-transparent';
+    case 'error':
+      return 'bg-danger text-text-on-accent border-transparent';
+    case 'initializing':
+      return 'bg-warning text-text-on-accent border-transparent';
+    default:
+      return 'bg-accent-prompt text-text-on-accent border-transparent';
+  }
+});
+
+const progressBarColorClass = computed(() => {
+  switch (status.value) {
     case 'ready': return 'bg-success';
     case 'error': return 'bg-danger';
-    default: return 'bg-[var(--accent-prompt)]';
+    case 'initializing': return 'bg-warning';
+    default: return 'bg-accent-prompt';
   }
 });
 </script>
 
 <template>
-  <section class="p-4 bg-surface-container rounded-sm mt-3">
-    <div class="flex justify-between items-center gap-2 mb-3">
-      <span class="font-[var(--weight-title)] text-text-text-primary">Connecting to {{ agentName }}...</span>
-      <div class="inline-flex items-center gap-2">
-        <span
+  <Card size="sm" class="mt-3">
+    <CardContent class="flex flex-col gap-3">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <Loader2
+            v-if="isInProgress"
+            class="size-4 shrink-0 text-text-secondary animate-spin"
+            aria-hidden="true"
+          />
+          <span class="font-semibold text-text-primary truncate">
+            Connecting to {{ agentName }}...
+          </span>
+        </div>
+        <div class="inline-flex items-center gap-2 shrink-0">
+          <Badge :class="badgeClass">{{ status }}</Badge>
+          <span class="text-xs text-text-secondary font-mono">{{ formattedTime }}</span>
+        </div>
+      </div>
+
+      <div
+        class="flex items-center gap-2 p-2 bg-surface-high rounded-md"
+      >
+        <component
+          :is="phaseIconComponent"
           :class="[
-            'inline-flex items-center py-0.5 px-2 rounded-xl text-tiny text-[var(--text)]',
-            phasePillBgClass,
+            'size-4 shrink-0 text-text-secondary',
+            isInProgress && phaseIconComponent === Loader2 ? 'animate-spin' : '',
           ]"
-        >{{ status }}</span>
-        <span class="text-[length:var(--text-caption)] text-text-text-secondary font-mono">{{ formattedTime }}</span>
+          aria-hidden="true"
+        />
+        <span class="text-text-secondary text-sm flex-1 truncate">{{ phaseText }}</span>
+        <Progress
+          :model-value="progressValue"
+          :indicator-class="progressBarColorClass"
+          :aria-label="`Startup progress: ${phaseText}`"
+          class="hidden sm:block w-24 h-1.5 bg-surface-container"
+        />
       </div>
-    </div>
 
-    <!-- audit-ok: no-raw-progress -->
-    <div
-      class="flex items-center gap-2 p-2 bg-surface-high rounded-sm mb-3"
-      role="progressbar"
-      aria-label="Startup progress"
-      :aria-valuemin="0"
-      :aria-valuemax="100"
-      :aria-valuenow="progressValue"
-      :aria-valuetext="phaseText"
-    >
-      <span class="text-[length:var(--text-title)]">{{ phaseIcon }}</span>
-      <span class="text-text-text-secondary text-[length:var(--text-body-sm)]">{{ phaseText }}</span>
-    </div>
-
-    <!-- audit-ok: dynamic-binding inline color-mix() blends bg-warning into surface-container for first-run hint background. -->
-    <div
-      v-if="isLongWait && !showDetails"
-      class="text-[length:var(--text-caption)] text-text-text-secondary italic mb-3 p-2 rounded-sm"
-      style="background: color-mix(in srgb, var(--bg-warning) 18%, var(--surface-container));"
-    >
-      First run may take longer while dependencies are installed.
-    </div>
-
-    <div class="flex gap-2 justify-between">
-      <Button
-        variant="ghost"
-        size="sm"
-        class="py-1.5 px-3 rounded-sm bg-surface-high text-text-text-secondary text-[length:var(--text-caption)] hover:bg-surface-highest"
-        @click="emit('toggleDetails')"
+      <div
+        v-if="isLongWait && !showDetails"
+        class="text-xs text-text-secondary italic p-2 rounded-md bg-warning/20"
       >
-        {{ showDetails ? 'Hide details ▲' : 'Show details ▼' }}
-      </Button>
-      <!-- audit-ok: dynamic-binding hover blends danger color into surface-high; cannot tokenize a hover-only blend without a custom variant. -->
-      <Button
-        variant="ghost"
-        size="sm"
-        class="py-1.5 px-3 rounded-sm bg-surface-high text-text-text-secondary text-[length:var(--text-caption)] hover:bg-[color-mix(in_srgb,var(--color-danger)_18%,var(--surface-high))] hover:text-danger"
-        @click="emit('cancel')"
-      >
-        Cancel
-      </Button>
-    </div>
+        First run may take longer while dependencies are installed.
+      </div>
 
-    <div v-if="showDetails" class="mt-3 rounded-sm overflow-hidden">
-      <div class="py-1.5 px-2 bg-surface-high text-tiny font-[var(--weight-title)] text-text-text-secondary">Output</div>
-      <div class="logs-content max-h-[150px] overflow-y-auto p-2 bg-surface-high font-mono text-tiny">
-        <div
-          v-for="(log, index) in logs.slice(-50)"
-          :key="index"
-          class="text-text-text-secondary whitespace-pre-wrap break-all leading-snug"
+      <div class="flex gap-2 justify-between">
+        <Button
+          variant="ghost"
+          size="sm"
+          class="text-xs text-text-secondary"
+          @click="emit('toggleDetails')"
         >
-          {{ log }}
+          <ChevronUp v-if="showDetails" class="size-3" aria-hidden="true" />
+          <ChevronDown v-else class="size-3" aria-hidden="true" />
+          {{ showDetails ? 'Hide details' : 'Show details' }}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="text-xs text-text-secondary hover:bg-destructive/20 hover:text-destructive"
+          @click="emit('cancel')"
+        >
+          Cancel
+        </Button>
+      </div>
+
+      <div v-if="showDetails" class="rounded-md overflow-hidden border border-border-subtle">
+        <div class="py-1.5 px-2 bg-surface-high text-xs font-semibold text-text-secondary">
+          Output
         </div>
-        <div v-if="logs.length === 0" class="text-text-text-secondary italic">
-          Waiting for output...
+        <div class="max-h-[150px] overflow-y-auto p-2 bg-surface-high font-mono text-xs">
+          <div
+            v-for="(log, index) in logs.slice(-50)"
+            :key="index"
+            class="text-text-secondary whitespace-pre-wrap break-all leading-snug"
+          >
+            {{ log }}
+          </div>
+          <div v-if="logs.length === 0" class="text-text-secondary italic">
+            Waiting for output...
+          </div>
         </div>
       </div>
-    </div>
-  </section>
+    </CardContent>
+  </Card>
 </template>
-
-<!-- audit-ok: max-style-rules ::-webkit-scrollbar pseudo-elements are not addressable via Tailwind utilities; scoped to .logs-content for the agent output panel. -->
-<style scoped>
-.logs-content {
-  scrollbar-width: thin;
-  scrollbar-color: var(--color-border-subtle) transparent;
-}
-.logs-content::-webkit-scrollbar { width: 8px; }
-.logs-content::-webkit-scrollbar-track { background: transparent; }
-.logs-content::-webkit-scrollbar-thumb {
-  background: var(--color-border-subtle);
-  border-radius: 4px;
-}
-.logs-content::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
-</style>

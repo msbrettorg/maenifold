@@ -138,13 +138,15 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
 </script>
 
 <template>
-  <div class="pipeline-composer relative w-full h-full min-h-[400px]" role="application" aria-label="Pipeline canvas" @keydown="handleFlowKeyDown">
-    <!-- audit-ok: dynamic-binding (computed grid layout based on resizable palette/inspector widths) -->
+  <div class="relative w-full h-full min-h-[400px]" role="application" aria-label="Pipeline canvas" @keydown="handleFlowKeyDown">
     <div class="grid w-full h-full min-h-0" :style="composerLayoutStyle">
       <section v-if="showPalettePanel" class="relative w-full h-full min-w-0 min-h-0">
         <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
-        <!-- audit-ok: dynamic-binding (resize handle position tracks palette width) -->
-        <div class="absolute top-0 bottom-0 w-[10px] -ml-[5px] cursor-col-resize z-[6]" :style="{ left: `${paletteResize.width.value}px` }" @mousedown="paletteResize.startResize($event, 'right')" />
+        <div
+          class="absolute top-0 bottom-0 w-[10px] -ml-[5px] cursor-col-resize z-[6]"
+          :style="{ left: `${paletteResize.width.value}px` }"
+          @mousedown="paletteResize.startResize($event, 'right')"
+        />
       </section>
 
       <ContextMenu @update:open="handleContextMenuOpenChange">
@@ -166,52 +168,55 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
             </PipelineComposerToolbar>
             <PipelineStatusBadge :status="view?.status ?? null" />
 
-              <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
-                <SheetContent
-                  v-if="paletteAsOverlay"
-                 side="left"
-                 :show-close-button="false"
-                  class="w-[min(360px,88vw)] border-0 p-0 sm:max-w-[360px] bg-[var(--surface)] text-[var(--text)] shadow-[var(--shadow-16)]"
-               >
-                  <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
-                    <SheetTitle class="font-display text-[var(--text-title)] font-medium text-[var(--text)]">Add node</SheetTitle>
-                   <Button type="button" variant="ghost" size="sm" class="h-8 rounded-[4px] px-2 text-xs" @click="closePalette">Close</Button>
-                 </SheetHeader>
-                 <ScrollArea class="h-[calc(100vh-4.5rem)]">
-                   <div class="min-h-0 pb-4">
-                     <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
-                   </div>
-                 </ScrollArea>
-               </SheetContent>
-             </Sheet>
+            <Sheet :open="paletteAsOverlay" @update:open="(open) => !open && closePalette()">
+              <SheetContent
+                v-if="paletteAsOverlay"
+                side="left"
+                :show-close-button="false"
+                class="w-[min(360px,88vw)] border-0 p-0 sm:max-w-[360px] bg-surface text-text-primary shadow-fluent-16"
+              >
+                <SheetHeader class="flex flex-row items-center justify-between gap-3 border-0 px-3 py-3">
+                  <SheetTitle class="font-display font-medium text-text-primary text-title">Add node</SheetTitle>
+                  <Button type="button" variant="ghost" size="sm" class="h-8 rounded-[4px] px-2 text-xs" @click="closePalette">Close</Button>
+                </SheetHeader>
+                <ScrollArea class="h-[calc(100vh-4.5rem)]">
+                  <div class="min-h-0 pb-4">
+                    <AddNodeForm :workflows="store.workflows" :submit-node="submitNode" />
+                  </div>
+                </ScrollArea>
+              </SheetContent>
+            </Sheet>
 
-             <VueFlow
-               v-model:nodes="nodes"
-               v-model:edges="edges"
+            <VueFlow
+              v-model:nodes="nodes"
+              v-model:edges="edges"
               :node-types="nodeTypes"
               :default-edge-options="defaultEdgeOptions"
               :default-viewport="{ zoom: 1, x: 0, y: 0 }"
               :min-zoom="0.2"
-               :max-zoom="2"
-               :snap-to-grid="true"
-               :snap-grid="[20, 20]"
-               :edge-types="edgeTypes"
-               :nodes-draggable="designMode"
-               :nodes-connectable="designMode"
+              :max-zoom="2"
+              :snap-to-grid="true"
+              :snap-grid="[20, 20]"
+              :edge-types="edgeTypes"
+              :nodes-draggable="designMode"
+              :nodes-connectable="designMode"
               :edges-updatable="designMode"
               :elements-selectable="true"
               :delete-key-code="designMode ? 'Backspace' : null"
               :fit-view-on-init="designMode"
               class="w-full h-full min-h-0"
             >
-               <Background :color="'var(--surface-high)'" />
+              <Background class="text-surface-high" />
               <Controls :show-interactive="designMode" />
-               <MiniMap :node-color="miniMapNodeColor" :mask-color="'color-mix(in srgb, var(--color-bg-app) 75%, transparent)'" />
+              <MiniMap :node-color="miniMapNodeColor" class="bg-bg-app/50" />
             </VueFlow>
 
-            <div v-if="showEmptyState" class="absolute inset-0 grid place-items-center content-center gap-1 p-4 text-[var(--color-text-secondary)] text-[length:var(--text-sm)] text-center pointer-events-none">
+            <div
+              v-if="showEmptyState"
+              class="absolute inset-0 grid place-items-center content-center gap-1 p-4 text-text-secondary text-sm text-center pointer-events-none"
+            >
               <span>{{ designMode ? 'Add nodes using the form or right-click the canvas' : 'Add your first node' }}</span>
-              <span v-if="!designMode" class="text-[length:var(--text-2xl)] leading-none text-[var(--color-text-secondary)]" aria-hidden="true">↖</span>
+              <span v-if="!designMode" class="text-2xl leading-none text-text-secondary" aria-hidden="true">↖</span>
             </div>
           </section>
         </ContextMenuTrigger>
@@ -252,12 +257,3 @@ function handleLayoutDirectionChange(direction: 'LR' | 'TB'): void {
     </div>
   </div>
 </template>
-
-<!-- audit-ok: deep-third-party — :deep() rules below restyle Vue Flow's internal Controls/MiniMap markup (rendered outside this template); not expressible as Tailwind utilities applied to template elements. -->
-<style scoped>
-.pipeline-composer :deep(.vue-flow__controls) { left: 0.75rem; right: auto; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
-.pipeline-composer :deep(.vue-flow__controls button) { background: transparent; color: var(--color-text-primary); border: none; }
-.pipeline-composer :deep(.vue-flow__controls button:hover) { background: var(--color-bg-surface); }
-.pipeline-composer :deep(.vue-flow__minimap) { left: auto; right: 0.75rem; bottom: 0.75rem; background: var(--surface-high); border-radius: var(--radius); }
-.pipeline-composer :deep(.vue-flow__minimap svg) { background: transparent; }
-</style>

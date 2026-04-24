@@ -90,7 +90,7 @@ const connectToValue = computed({
 
       <form class="grid gap-4 px-6 pb-6" @submit.prevent="handleSubmit">
         <div class="grid grid-cols-[repeat(auto-fit,minmax(12rem,1fr))] gap-3">
-          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
+          <div class="grid min-w-0 gap-[0.35rem] text-[0.75rem] text-text-secondary">
             <Label for="graft-node-type">Node type</Label>
             <Select v-model="nodeType">
               <SelectTrigger id="graft-node-type" class="w-full">
@@ -105,7 +105,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
+          <div class="grid min-w-0 gap-[0.35rem] text-[0.75rem] text-text-secondary">
             <Label for="graft-node-id">Node ID</Label>
             <Input
               id="graft-node-id"
@@ -116,7 +116,7 @@ const connectToValue = computed({
             />
           </div>
 
-          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
+          <div class="grid min-w-0 gap-[0.35rem] text-[0.75rem] text-text-secondary">
             <Label for="graft-connect-from">Run after</Label>
             <Select v-model="connectFromValue">
               <SelectTrigger id="graft-connect-from" class="w-full">
@@ -131,7 +131,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
+          <div class="grid min-w-0 gap-[0.35rem] text-[0.75rem] text-text-secondary">
             <Label for="graft-connect-to">Continue to</Label>
             <Select v-model="connectToValue">
               <SelectTrigger id="graft-connect-to" class="w-full">
@@ -146,7 +146,7 @@ const connectToValue = computed({
             </Select>
           </div>
 
-          <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-[0.75rem]">
+          <div class="grid min-w-0 gap-[0.35rem] text-[0.75rem] text-text-secondary">
             <Label for="graft-edge-type">Edge type</Label>
             <Select v-model="edgeType">
               <SelectTrigger id="graft-edge-type" class="w-full">
@@ -180,8 +180,8 @@ const connectToValue = computed({
           />
         </div>
 
-        <p class="m-0 text-[0.75rem] text-[var(--text-secondary)]"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
-        <p v-if="formError" class="m-0 text-[0.75rem] text-[var(--color-status-abandoned)]" role="alert">{{ formError }}</p>
+        <p class="m-0 text-[0.75rem] text-text-secondary"><strong>Existing node IDs:</strong> {{ existingNodeIds.join(', ') || 'No nodes available.' }}</p>
+        <p v-if="formError" class="m-0 text-[0.75rem] text-status-abandoned" role="alert">{{ formError }}</p>
 
         <DialogFooter class="pt-2">
           <DialogClose as-child>

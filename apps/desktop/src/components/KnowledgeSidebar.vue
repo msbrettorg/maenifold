@@ -27,7 +27,7 @@ const {
     <div class="flex items-center justify-between gap-2 border-b border-border-subtle px-3 py-3">
       <div class="inline-flex items-center gap-2">
         <Search class="size-4 text-text-secondary" aria-hidden="true" />
-        <h2 class="text-[var(--text-body-sm)] font-semibold text-text-primary">Notes</h2>
+        <h2 class="text-body-sm font-semibold text-text-primary">Notes</h2>
       </div>
       <Button
         type="button"
@@ -49,10 +49,10 @@ const {
         </Alert>
 
         <template v-else-if="foldersLoading">
-          <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-8 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-8 rounded-[var(--radius-8)]" />
+          <Skeleton class="h-8 rounded-md" />
+          <Skeleton class="h-8 rounded-md" />
+          <Skeleton class="h-8 rounded-md" />
+          <Skeleton class="h-8 rounded-md" />
         </template>
 
         <template v-else>
@@ -61,12 +61,12 @@ const {
             :key="file.uri"
             type="button"
             variant="ghost"
-            class="h-8 justify-start gap-2 rounded-[var(--radius-8)] px-2"
+            class="h-8 justify-start gap-2 rounded-md px-2"
             :class="activeUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
             @click="store.openNote(file.uri)"
           >
             <FileText class="size-4 shrink-0" aria-hidden="true" />
-            <span class="truncate text-[var(--text-body-sm)] font-medium">{{ file.name }}</span>
+            <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
           </Button>
 
           <KnowledgeSidebarNode
@@ -76,7 +76,7 @@ const {
             :active-uri="activeUri"
           />
 
-          <p v-if="!rootFiles.length && !folders.length" class="px-2 py-3 text-[var(--text-body-sm)] text-text-secondary">
+          <p v-if="!rootFiles.length && !folders.length" class="px-2 py-3 text-body-sm text-text-secondary">
             No memory folders were found.
           </p>
         </template>
@@ -86,15 +86,15 @@ const {
         v-if="searchQuery.trim().length > 0 || searchLoading || searchError || searchResults.length > 0"
         class="mt-4 grid gap-2 border-t border-border-subtle pt-3"
       >
-        <h3 class="px-2 text-[var(--text-tiny)] uppercase tracking-[0.04em] text-text-tertiary">Search results</h3>
+        <h3 class="px-2 text-tiny uppercase tracking-[0.04em] text-text-tertiary">Search results</h3>
 
         <Alert v-if="searchError" variant="destructive" class="border-border-subtle bg-bg-surface">
           <AlertDescription>{{ searchError }}</AlertDescription>
         </Alert>
 
         <template v-else-if="searchLoading">
-          <Skeleton class="h-9 rounded-[var(--radius-8)]" />
-          <Skeleton class="h-9 rounded-[var(--radius-8)]" />
+          <Skeleton class="h-9 rounded-md" />
+          <Skeleton class="h-9 rounded-md" />
         </template>
 
         <template v-else-if="searchResults.length > 0">
@@ -103,18 +103,18 @@ const {
             :key="result.uri"
             type="button"
             variant="ghost"
-            class="h-auto justify-start rounded-[var(--radius-8)] px-2 py-2 text-left"
+            class="h-auto justify-start rounded-md px-2 py-2 text-left"
             :class="activeUri === result.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
             @click="store.openNote(result.uri)"
           >
             <div class="grid min-w-0 gap-1">
-              <span class="truncate text-[var(--text-body-sm)] font-medium">{{ result.title }}</span>
-              <span class="line-clamp-2 text-[var(--text-tiny)] text-text-tertiary">{{ result.snippet || result.uri }}</span>
+              <span class="truncate text-body-sm font-medium">{{ result.title }}</span>
+              <span class="line-clamp-2 text-tiny text-text-tertiary">{{ result.snippet || result.uri }}</span>
             </div>
           </Button>
         </template>
 
-        <p v-else class="px-2 text-[var(--text-body-sm)] text-text-secondary">No notes matched this query.</p>
+        <p v-else class="px-2 text-body-sm text-text-secondary">No notes matched this query.</p>
       </div>
     </ScrollArea>
   </aside>

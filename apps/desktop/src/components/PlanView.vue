@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Ruler } from 'lucide-vue-next';
+import { ChevronDown, ChevronUp, Loader2, Ruler } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { PlanEntry } from '../lib/types';
 
 const props = defineProps<{
@@ -22,31 +25,13 @@ const statusLabelMap: Record<PlanEntry['status'], string> = {
   completed: 'Completed',
 };
 
-const statusIconMap: Record<PlanEntry['status'], string> = {
-  pending: '○',
-  in_progress: '◐',
-  completed: '✓',
-};
-
-const statusColorMap: Record<PlanEntry['status'], string> = {
-  pending: 'text-[var(--color-status-pending)]',
-  in_progress: 'text-[var(--color-status-active)] animate-plan-pulse',
-  completed: 'text-[var(--color-status-completed)]',
-};
-
-const priorityStyle: Record<string, Record<string, string>> = {
-  high: {
-    background: 'color-mix(in srgb, var(--color-status-abandoned) 12%, var(--color-bg-app))',
-    color: 'var(--color-danger)',
-  },
-  medium: {
-    background: 'color-mix(in srgb, var(--color-status-stuck) 16%, var(--color-bg-app))',
-    color: 'color-mix(in srgb, var(--color-status-stuck) 72%, var(--color-text-primary))',
-  },
-  low: {
-    background: 'color-mix(in srgb, var(--color-status-pending) 14%, var(--color-bg-app))',
-    color: 'var(--color-text-secondary)',
-  },
+const priorityVariantMap: Record<
+  PlanEntry['priority'],
+  'destructive' | 'secondary' | 'outline'
+> = {
+  high: 'destructive',
+  medium: 'secondary',
+  low: 'outline',
 };
 
 watch(
@@ -63,76 +48,72 @@ function toggleExpanded(): void {
 </script>
 
 <template>
-  <section class="mb-4 rounded-md border border-border-subtle bg-bg-surface overflow-hidden">
-    <Button
-      type="button"
-      variant="ghost"
-      class="flex items-center justify-between gap-3 w-full py-3.5 px-4 bg-transparent text-text-text-primary cursor-pointer text-left hover:bg-bg-surface h-auto"
-      :aria-expanded="isExpanded"
-      @click="toggleExpanded"
-    >
-      <div class="flex items-center gap-2.5 min-w-0">
-        <span class="shrink-0"><Ruler class="size-4" :stroke-width="1.5" /></span>
-        <span class="font-[var(--weight-title)]">Agent Plan</span>
-        <span class="text-text-secondary text-[length:var(--text-caption)]">
-          {{ completedCount }}/{{ entryCount }} completed
-        </span>
-      </div>
-      <span class="text-text-secondary text-[length:var(--text-caption)]">{{ isExpanded ? '▲' : '▼' }}</span>
-    </Button>
+  <Card class="mb-4 overflow-hidden">
+    <CardHeader class="p-0">
+      <Button
+        type="button"
+        variant="ghost"
+        class="flex h-auto w-full items-center justify-between gap-3 rounded-none px-4 py-3.5 text-left"
+        :aria-expanded="isExpanded"
+        @click="toggleExpanded"
+      >
+        <div class="flex min-w-0 items-center gap-2.5">
+          <Ruler class="size-4 shrink-0" :stroke-width="1.5" />
+          <span class="font-semibold">Agent Plan</span>
+          <span class="text-xs text-muted-foreground">
+            {{ completedCount }}/{{ entryCount }} completed
+          </span>
+        </div>
+        <component
+          :is="isExpanded ? ChevronUp : ChevronDown"
+          class="size-4 text-muted-foreground"
+          :stroke-width="1.5"
+        />
+      </Button>
+    </CardHeader>
 
-    <div v-if="isExpanded" class="border-t border-border-subtle pt-3 px-4 pb-4">
-      <ol class="flex flex-col gap-3 m-0 p-0 list-none">
+    <CardContent v-if="isExpanded" class="border-t px-4 py-3">
+      <ol class="m-0 flex list-none flex-col gap-3 p-0">
         <li
           v-for="(entry, index) in entries"
           :key="`${index}-${entry.content}`"
           class="flex items-start gap-3"
         >
-          <span
-            :class="[
-              'inline-flex items-center justify-center w-6 h-6 mt-0.5 rounded-sm bg-bg-surface text-[length:var(--text-body-sm)] font-[var(--weight-title)] shrink-0',
-              statusColorMap[entry.status],
-            ]"
-            :title="statusLabelMap[entry.status]"
-            :aria-label="statusLabelMap[entry.status]"
-          >
-            {{ statusIconMap[entry.status] }}
-          </span>
+          <div class="mt-0.5 flex size-6 shrink-0 items-center justify-center">
+            <Loader2
+              v-if="entry.status === 'in_progress'"
+              class="size-4 animate-spin text-primary"
+              :stroke-width="2"
+              :aria-label="statusLabelMap[entry.status]"
+            />
+            <Checkbox
+              v-else
+              :model-value="entry.status === 'completed'"
+              :disabled="true"
+              :aria-label="statusLabelMap[entry.status]"
+            />
+          </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 mb-1">
-              <!-- audit-ok: dynamic-binding inline color-mix() expressions for priority badge backgrounds; cannot tokenize per-priority blends -->
-              <span
-                class="inline-flex items-center py-0.5 px-2 rounded-sm text-tiny font-[var(--weight-title)]"
-                :style="priorityStyle[entry.priority]"
+            <div class="mb-1 flex items-center gap-2">
+              <Badge
+                :variant="priorityVariantMap[entry.priority]"
+                :class="entry.status === 'in_progress' ? 'animate-pulse' : ''"
               >
                 {{ entry.priority }}
-              </span>
-              <span class="text-text-secondary text-[length:var(--text-caption)]">
+              </Badge>
+              <span class="text-xs text-muted-foreground">
                 {{ statusLabelMap[entry.status] }}
               </span>
             </div>
-            <p class="m-0 text-text-text-primary leading-snug whitespace-pre-wrap">{{ entry.content }}</p>
+            <p
+              class="m-0 whitespace-pre-wrap leading-snug text-foreground"
+              :class="entry.status === 'completed' ? 'text-muted-foreground line-through' : ''"
+            >
+              {{ entry.content }}
+            </p>
           </div>
         </li>
       </ol>
-    </div>
-  </section>
+    </CardContent>
+  </Card>
 </template>
-
-<!-- audit-ok: keyframe-animation @keyframes pulse used by .animate-plan-pulse for in-progress status indicator. -->
-<style scoped>
-.animate-plan-pulse {
-  animation: pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.45;
-  }
-}
-</style>

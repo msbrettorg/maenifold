@@ -2,12 +2,20 @@
 import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
+import { Badge } from './ui/badge';
 
 const props = defineProps<{ task: GateTask }>();
 
 type DotTone = 'completed' | 'active' | 'failed' | 'pending';
+type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 
-function isFailedState(state: string) {
+interface Segment {
+  label: string;
+  family: string;
+  tone: DotTone;
+}
+
+function isFailedState(state: string): boolean {
   return state === 'error' || state === 'failed';
 }
 
@@ -37,70 +45,70 @@ function stageProgress(stage: string, task: GateTask): DotTone {
   return 'pending';
 }
 
-const segments = computed(() => {
+const segments = computed<Segment[]>(() => {
   if (!props.task.stages.length) {
+    const tone: DotTone = isFailedState(props.task.state)
+      ? 'failed'
+      : props.task.location === 'done'
+        ? 'completed'
+        : props.task.state === 'pending'
+          ? 'pending'
+          : 'active';
     return [{
       label: formatStageLabel(props.task.state),
       family: gateStageFamily(props.task.state),
-      tone: isFailedState(props.task.state)
-        ? 'failed'
-        : props.task.location === 'done'
-          ? 'completed'
-          : props.task.state === 'pending'
-            ? 'pending'
-            : 'active',
-      color: 'var(--text-secondary)',
+      tone,
     }];
   }
 
-  const items = props.task.stages.map((stage) => ({
+  const items: Segment[] = props.task.stages.map((stage) => ({
     label: formatStageLabel(stage),
     family: gateStageFamily(stage),
     tone: stageProgress(stage, props.task),
   }));
 
   if (isFailedState(props.task.state)) {
-    items.push({ label: formatStageLabel(props.task.state), family: 'failed', tone: 'failed' });
+    items.push({
+      label: formatStageLabel(props.task.state),
+      family: 'failed',
+      tone: 'failed',
+    });
   }
 
   return items;
 });
 
-const progressLabel = computed(() => formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state));
+const progressLabel = computed(() =>
+  formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state),
+);
 
-function segmentBg(family: string, tone: string): string {
-  if (tone === 'failed') return 'var(--terracotta)';
-  if (tone === 'pending') return 'var(--surface-highest)';
-  if (tone === 'completed') {
-    if (family === 'pending') return 'var(--text-secondary)';
-    if (family === 'swe') return 'color-mix(in srgb, var(--color-brand) 72%, var(--surface-highest))';
-    if (family === 'red-team') return 'color-mix(in srgb, var(--amber) 72%, var(--surface-highest))';
-    if (family === 'blue-team' || family === 'done') return 'color-mix(in srgb, var(--sage) 72%, var(--surface-highest))';
-    return 'var(--surface-highest)';
-  }
-  if (tone === 'active') {
-    if (family === 'pending') return 'var(--text-secondary)';
-    if (family === 'swe') return 'var(--color-brand)';
-    if (family === 'red-team') return 'var(--amber)';
-    if (family === 'blue-team' || family === 'done') return 'var(--sage)';
-    return 'var(--surface-highest)';
-  }
-  return 'var(--surface-highest)';
+function badgeVariant(tone: DotTone): BadgeVariant {
+  if (tone === 'failed') return 'destructive';
+  if (tone === 'completed') return 'default';
+  if (tone === 'active') return 'default';
+  return 'outline';
 }
 </script>
 
 <template>
-  <div class="flex flex-col items-start gap-[0.35rem]">
-    <div class="flex w-full min-w-[5.5rem] gap-[0.2rem]" :aria-label="`${task.taskId} progress`">
-      <!-- audit-ok: dynamic-binding (color-mix per stage tone/family) -->
-      <span
+  <div class="flex flex-col items-start gap-1.5">
+    <div
+      class="flex flex-wrap items-center gap-1"
+      :aria-label="`${task.taskId} progress`"
+    >
+      <Badge
         v-for="segment in segments"
         :key="`${task.taskId}-${segment.label}-${segment.tone}`"
-        class="flex-1 min-w-[0.6rem] h-[0.45rem] rounded-[4px]"
-        :style="{ background: segmentBg(segment.family, segment.tone) }"
+        :variant="badgeVariant(segment.tone)"
+        :class="[
+          segment.tone === 'active' ? 'animate-pulse' : '',
+          segment.tone === 'pending' ? 'opacity-60' : '',
+        ]"
         :title="segment.label"
-      />
+      >
+        {{ segment.label }}
+      </Badge>
     </div>
-    <span class="font-mono text-[length:var(--text-tiny)] text-[var(--color-text-secondary)]">{{ progressLabel }}</span>
+    <span class="font-mono text-xs text-muted-foreground">{{ progressLabel }}</span>
   </div>
 </template>

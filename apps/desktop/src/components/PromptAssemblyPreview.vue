@@ -2,7 +2,10 @@
 import { computed, ref } from 'vue';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+import { ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface PreviewSection {
   key: string;
@@ -75,56 +78,39 @@ const sections = computed<PreviewSection[]>(() => {
 </script>
 
 <template>
-  <section class="rounded-md bg-[var(--card,var(--color-bg-app))] border border-border-subtle">
-    <Button
-      variant="ghost"
-      class="w-full flex items-center justify-between gap-3 py-3 px-3.5 rounded-md bg-transparent text-text-primary font-[var(--weight-title)] hover:bg-[color-mix(in_srgb,var(--card,var(--color-bg-app))_88%,white_12%)] h-auto"
-      :aria-expanded="isExpanded"
-      @click="isExpanded = !isExpanded"
-    >
-      <span>Assembled Prompt</span>
-      <span class="text-text-secondary text-sm" aria-hidden="true">{{ isExpanded ? '▾' : '▸' }}</span>
-    </Button>
-
-    <div v-if="isExpanded" class="flex flex-col gap-3 px-3.5 pb-3.5">
-      <div
-        v-for="section in sections"
-        :key="section.key"
-        class="flex flex-col gap-1.5"
+  <Card class="bg-surface border-border-subtle">
+    <CardContent class="p-0">
+      <Button
+        variant="ghost"
+        class="w-full flex items-center justify-between gap-3 px-3.5 py-3 h-auto rounded-md text-text-primary font-semibold hover:bg-surface-hover"
+        :aria-expanded="isExpanded"
+        @click="isExpanded = !isExpanded"
       >
-        <div class="text-xs font-[var(--weight-title)] tracking-[0.02em] text-text-secondary">{{ section.label }}</div>
-        <div
-          class="assembly-preview__content m-0 max-h-48 overflow-auto p-3 rounded-md border border-border-subtle bg-bg-app text-text-primary font-mono text-sm leading-normal [overflow-wrap:anywhere]"
-          v-html="renderMarkdown(section.content)"
+        <span>Assembled Prompt</span>
+        <ChevronRight
+          class="h-4 w-4 text-text-secondary transition-transform"
+          :class="isExpanded ? 'rotate-90' : ''"
+          aria-hidden="true"
         />
+      </Button>
+
+      <div v-if="isExpanded" class="flex flex-col gap-3 px-3.5 pb-3.5">
+        <div
+          v-for="section in sections"
+          :key="section.key"
+          class="flex flex-col gap-1.5"
+        >
+          <div class="text-xs font-semibold tracking-wide text-text-secondary">
+            {{ section.label }}
+          </div>
+          <ScrollArea class="max-h-48 rounded-md border border-border-subtle bg-bg-app">
+            <div
+              class="p-3 text-text-primary font-mono text-sm leading-normal [overflow-wrap:anywhere] [&_*]:mt-0 [&_p:last-child]:mb-0 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-bg-app [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_pre]:mt-3 [&_pre]:mb-0 [&_pre]:p-3 [&_pre]:bg-bg-app [&_pre]:rounded [&_pre]:overflow-x-auto"
+              v-html="renderMarkdown(section.content)"
+            />
+          </ScrollArea>
+        </div>
       </div>
-    </div>
-  </section>
+    </CardContent>
+  </Card>
 </template>
-
-<!-- audit-ok: max-style-rules deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html inside .assembly-preview__content; Tailwind utilities cannot reach this child markup across the scoped boundary. -->
-<style scoped>
-.assembly-preview__content :deep(*) {
-  margin-top: 0;
-}
-
-.assembly-preview__content :deep(p:last-child) {
-  margin-bottom: 0;
-}
-
-.assembly-preview__content :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  background: var(--color-bg-app);
-  border-radius: var(--radius);
-  padding: 0.1rem 0.3rem;
-}
-
-.assembly-preview__content :deep(pre) {
-  margin: 0.75rem 0 0;
-  padding: 0.75rem;
-  background: var(--color-bg-app);
-  border-radius: var(--radius);
-  overflow-x: auto;
-}
-</style>

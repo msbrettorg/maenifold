@@ -27,11 +27,7 @@ defineEmits<{
 </script>
 
 <template>
-  <!-- audit-ok: dynamic-binding (color-mix blend of accent fallback chain not pre-baked as a token) -->
-  <footer
-    class="flex flex-col gap-[var(--space-3)] py-[var(--space-3)] px-[var(--space-4)] pb-[var(--space-4)] border-t border-[var(--color-border-subtle)]"
-    style="background: color-mix(in srgb, var(--accent, var(--surface-highest)) 55%, var(--card, var(--surface-container)));"
-  >
+  <footer class="flex flex-col gap-3 px-4 py-3 pb-4 border-t border-border-subtle bg-surface-highest/60">
     <div class="flex flex-wrap gap-3">
       <Button
         variant="ghost"
@@ -107,11 +103,11 @@ defineEmits<{
 
     <div
       v-if="forkedSessionId"
-      class="flex flex-col gap-1 p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)]"
+      class="flex flex-col gap-1 p-3 border border-border-subtle rounded-md bg-surface"
       role="status"
     >
-      <span class="text-text-secondary text-[length:var(--text-caption)]">Forked session</span>
-      <strong class="font-mono break-all">{{ forkedSessionId }}</strong>
+      <span class="text-xs text-text-secondary">Forked session</span>
+      <strong class="font-mono text-sm break-all">{{ forkedSessionId }}</strong>
     </div>
   </footer>
 </template>

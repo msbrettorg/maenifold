@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { X } from 'lucide-vue-next';
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import DesignNodeConfigPanel from './DesignNodeConfigPanel.vue';
@@ -36,43 +37,39 @@ const modalDescription = computed(() =>
 </script>
 
 <template>
-  <Sheet :open="true" @update:open="(open) => !open && emit('close')">
-    <SheetContent
-      side="right"
-      class="gap-0 p-0 text-[var(--color-text-primary)] sm:max-w-[360px] w-[min(360px,92vw)] max-h-screen flex flex-col bg-[var(--surface)] rounded-none overflow-hidden border-0 shadow-[var(--shadow-16)] config-panel"
+  <Dialog :open="true" @update:open="(open) => !open && emit('close')">
+    <DialogContent
+      class="flex max-h-[90vh] w-[min(640px,92vw)] flex-col gap-0 overflow-hidden p-0 sm:max-w-[640px]"
       :show-close-button="false"
     >
-      <SheetHeader class="flex flex-row items-center justify-between py-[var(--space-3)] px-[var(--space-4)] bg-[var(--surface)]">
+      <DialogHeader class="flex flex-row items-center justify-between gap-4 border-b border-border-default px-4 py-3">
         <div class="grid gap-1 text-left">
-          <SheetTitle class="font-[var(--font-display)] text-[length:var(--text-title)] font-medium text-[var(--color-text-primary)]">{{ modalTitle }}</SheetTitle>
-          <SheetDescription class="text-[var(--text-body-sm)] text-[var(--text-secondary)]">{{ modalDescription }}</SheetDescription>
+          <DialogTitle class="text-base font-medium text-text-primary">
+            {{ modalTitle }}
+          </DialogTitle>
+          <DialogDescription class="text-xs text-text-secondary">
+            {{ modalDescription }}
+          </DialogDescription>
         </div>
         <Button
-          class="rounded-[4px]"
           variant="ghost"
-          size="sm"
+          size="icon"
           type="button"
           aria-label="Close configuration"
+          class="h-8 w-8 shrink-0"
           @click="emit('close')"
         >
-          Close
+          <X class="h-4 w-4" />
         </Button>
-      </SheetHeader>
-      <ScrollArea class="config-body h-[calc(100vh-5rem)]">
-        <DesignNodeConfigPanel
-          :selected-node-id="selectedNodeId"
-          :selected-edge="selectedEdge"
-        />
+      </DialogHeader>
+      <ScrollArea class="flex-1 overflow-hidden">
+        <div class="px-4 py-3">
+          <DesignNodeConfigPanel
+            :selected-node-id="selectedNodeId"
+            :selected-edge="selectedEdge"
+          />
+        </div>
       </ScrollArea>
-    </SheetContent>
-  </Sheet>
+    </DialogContent>
+  </Dialog>
 </template>
-
-<!-- audit-ok: deep-third-party — :deep(.inspector) targets DesignNodeConfigPanel internal layout -->
-<style scoped>
-.config-body :deep(.inspector) {
-  border-left: none;
-  height: auto;
-  min-height: 100%;
-}
-</style>

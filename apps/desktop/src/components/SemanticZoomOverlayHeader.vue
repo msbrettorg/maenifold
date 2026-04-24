@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { X } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DialogClose } from '@/components/ui/dialog';
 
@@ -10,57 +11,41 @@ const props = defineProps<{
   statusLabel: string;
 }>();
 
-const NODE_TYPE_BG: Record<string, string> = {
-  prompt: 'var(--color-node-prompt-15)',
-  sequentialThinking: 'var(--color-node-thinking-15)',
-  tool: 'var(--color-node-tool-15)',
-  workflow: 'var(--color-node-workflow-15)',
+const NODE_TYPE_CLASSES: Record<string, string> = {
+  prompt: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
+  sequentialThinking: 'bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/20',
+  tool: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
+  workflow: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
 };
 
-const STATUS_BG: Record<string, string> = {
-  active: 'var(--color-status-active-15)',
-  completed: 'var(--color-status-completed-15)',
-  abandoned: 'var(--color-status-abandoned-15)',
-  ready: 'var(--color-status-ready-15)',
+const STATUS_CLASSES: Record<string, string> = {
+  active: 'bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/20',
+  completed: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/20',
+  abandoned: 'bg-destructive/10 text-destructive border-destructive/20',
+  ready: 'bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/20',
 };
 
-const STATUS_FG: Record<string, string> = {
-  active: 'var(--color-status-active)',
-  completed: 'var(--color-status-completed)',
-  abandoned: 'var(--color-status-abandoned)',
-  ready: 'var(--color-status-ready)',
-};
+const nodeTypeClass = computed(
+  () => NODE_TYPE_CLASSES[props.nodeType] ?? NODE_TYPE_CLASSES.workflow,
+);
 
-const pillStyle = computed(() => ({
-  background: NODE_TYPE_BG[props.nodeType] ?? 'var(--color-node-workflow-15)',
-}));
-
-const statusStyle = computed(() => ({
-  background: STATUS_BG[props.statusLabel] ?? 'var(--color-status-pending-15)',
-  color: STATUS_FG[props.statusLabel] ?? 'var(--color-text-secondary)',
-}));
+const statusClass = computed(
+  () => STATUS_CLASSES[props.statusLabel] ?? 'bg-muted text-muted-foreground border-border',
+);
 </script>
 
 <template>
-  <header class="flex items-center justify-between py-[var(--space-3)] px-[var(--space-4)] bg-[var(--accent,var(--surface-highest))]">
-    <div class="flex items-center gap-[var(--space-2)]">
-      <span class="font-mono text-[length:var(--text-caption)] font-[number:var(--weight-title)] text-text-primary">{{ displayLabel }}</span>
-      <!-- audit-ok: dynamic-binding (background tied to nodeType variant via color-mix tokens) -->
-      <span
-        class="rounded-[4px] text-[length:var(--text-tiny)] py-[2px] px-[8px] text-text-primary"
-        :style="pillStyle"
-      >{{ nodeType }}</span>
-      <!-- audit-ok: dynamic-binding (background and color tied to statusLabel variant via color-mix tokens) -->
-      <span
-        class="rounded-[4px] text-[length:var(--text-tiny)] py-[2px] px-[6px]"
-        :style="statusStyle"
-      >{{ statusLabel }}</span>
+  <header class="flex items-center justify-between py-3 px-4 bg-muted/40 border-b border-border">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-xs font-semibold text-foreground">{{ displayLabel }}</span>
+      <Badge variant="outline" :class="nodeTypeClass">{{ nodeType }}</Badge>
+      <Badge variant="outline" :class="statusClass">{{ statusLabel }}</Badge>
     </div>
     <DialogClose as-child>
       <Button
-        class="text-text-secondary p-[var(--space-1)] leading-none rounded-[var(--radius-sm)] hover:text-text-primary hover:bg-[var(--color-bg-surface)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--color-brand)] focus-visible:outline-offset-2"
         variant="ghost"
         size="icon"
+        class="size-7 text-muted-foreground hover:text-foreground"
         aria-label="Close inspection"
         title="Close (Esc)"
       >

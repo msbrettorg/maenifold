@@ -2,14 +2,13 @@
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
 import type { ContentBlock } from '../lib/types';
+import { Card, CardContent } from './ui/card';
 
 defineProps<{ blocks: ContentBlock[] }>();
 
 function renderMarkdown(content: string): string {
   const parsed = marked.parse(content, { async: false });
   const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-  // Guard: if markdown consumed the input into empty HTML structures
-  // (e.g. "\n\n4." → <ol><li></li></ol>), fall back to escaped plaintext.
   const visibleText = html.replace(/<[^>]*>/g, '').trim();
   if (visibleText.length === 0 && content.trim().length > 0) {
     const escaped = content
@@ -84,7 +83,6 @@ function sanitizeUri(uri: string | undefined): string | undefined {
     if (['http:', 'https:', 'memory:'].includes(url.protocol)) return uri;
     return undefined;
   } catch {
-    // Relative URIs or malformed — block them
     return undefined;
   }
 }
@@ -119,149 +117,59 @@ function getBlockAriaLabel(block: ContentBlock): string {
 </script>
 
 <template>
-  <div
+  <Card
     v-for="(block, index) in blocks"
     :key="`${block.type}-${index}`"
-    class="message-content-block [&+&]:mt-3"
+    class="border-border-subtle bg-bg-surface [&+&]:mt-3"
     role="region"
     :aria-label="getBlockAriaLabel(block)"
   >
-    <div v-if="block.type === 'text'" class="message-content leading-relaxed [overflow-wrap:break-word] [word-wrap:break-word]" v-html="renderMarkdown(block.text)" />
-    <img
-      v-else-if="block.type === 'image'"
-      class="block max-w-[min(100%,32rem)] max-h-96 border border-border-subtle rounded"
-      :src="getImageSrc(block)"
-      :alt="block.uri ?? 'Message image'"
-    />
-    <audio
-      v-else-if="block.type === 'audio'"
-      class="w-[min(100%,28rem)]"
-      controls
-      :src="getAudioSrc(block)"
-    />
-    <a
-      v-else-if="block.type === 'resource_link'"
-      class="resource-link-chip inline-flex items-start gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-bg-surface text-brand text-sm font-medium no-underline hover:underline"
-      :href="sanitizeUri(block.uri)"
-      target="_blank"
-      rel="noreferrer noopener"
-      :title="getResourceLinkTooltip(block) || undefined"
-      @click="onResourceLinkClick($event, block.uri)"
-    >
-      <span class="flex flex-col gap-0.5 min-w-0">
-        <span class="leading-tight">{{ getResourceLinkLabel(block) }}</span>
-        <span
-          v-if="getResourceLinkDescription(block) || getResourceLinkSizeLabel(block)"
-          class="inline-flex gap-1.5 text-text-secondary text-xs font-normal leading-tight"
-        >
+    <CardContent class="p-3">
+      <div
+        v-if="block.type === 'text'"
+        class="leading-relaxed text-sm text-text-primary [overflow-wrap:break-word] [word-wrap:break-word] [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:mt-3 [&_h4]:mb-2 [&_p]:my-2 [&_p]:text-sm [&_ul]:my-2 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:pl-6 [&_ol]:list-decimal [&_li]:my-1 [&_li]:text-sm [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:bg-bg-app [&_pre]:text-text-secondary [&_pre]:font-mono [&_pre]:text-sm [&_code]:font-mono [&_code]:text-sm [&_table]:block [&_table]:w-full [&_table]:my-3 [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm [&_th]:px-3 [&_th]:py-2 [&_th]:border [&_th]:border-border-subtle [&_th]:text-left [&_th]:bg-bg-app [&_th]:font-semibold [&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-border-subtle [&_td]:text-left [&_tr:nth-child(even)]:bg-bg-app/40 [&_tr:hover]:bg-bg-app [&_a]:text-brand [&_a]:underline"
+        v-html="renderMarkdown(block.text)"
+      />
+      <img
+        v-else-if="block.type === 'image'"
+        class="block max-w-[min(100%,32rem)] max-h-96 border border-border-subtle rounded"
+        :src="getImageSrc(block)"
+        :alt="block.uri ?? 'Message image'"
+      />
+      <audio
+        v-else-if="block.type === 'audio'"
+        class="w-[min(100%,28rem)]"
+        controls
+        :src="getAudioSrc(block)"
+      />
+      <a
+        v-else-if="block.type === 'resource_link'"
+        class="inline-flex items-start gap-1.5 px-3 py-1.5 border border-border-subtle rounded bg-bg-app text-brand text-sm font-medium no-underline hover:underline"
+        :href="sanitizeUri(block.uri)"
+        target="_blank"
+        rel="noreferrer noopener"
+        :title="getResourceLinkTooltip(block) || undefined"
+        @click="onResourceLinkClick($event, block.uri)"
+      >
+        <span class="flex flex-col gap-0.5 min-w-0">
+          <span class="leading-tight">{{ getResourceLinkLabel(block) }}</span>
           <span
-            v-if="getResourceLinkDescription(block)"
-            class="max-w-64 overflow-hidden whitespace-nowrap text-ellipsis"
-          >{{ getResourceLinkDescription(block) }}</span>
-          <span v-if="getResourceLinkSizeLabel(block)" class="whitespace-nowrap">{{ getResourceLinkSizeLabel(block) }}</span>
+            v-if="getResourceLinkDescription(block) || getResourceLinkSizeLabel(block)"
+            class="inline-flex gap-1.5 text-text-secondary text-xs font-normal leading-tight"
+          >
+            <span
+              v-if="getResourceLinkDescription(block)"
+              class="max-w-64 overflow-hidden whitespace-nowrap text-ellipsis"
+            >{{ getResourceLinkDescription(block) }}</span>
+            <span v-if="getResourceLinkSizeLabel(block)" class="whitespace-nowrap">{{ getResourceLinkSizeLabel(block) }}</span>
+          </span>
         </span>
-      </span>
-      <span class="max-w-72 overflow-hidden whitespace-nowrap text-ellipsis text-text-secondary font-normal">{{ block.uri }}</span>
-    </a>
-    <div v-else-if="block.type === 'resource'" class="flex flex-col gap-2">
-      <div class="text-text-secondary text-sm break-all">{{ getResourceUri(block) }}</div>
-      <pre class="m-0 p-3 rounded overflow-x-auto bg-bg-surface text-text-secondary font-mono"><code>{{ getResourceBody(block) }}</code></pre>
-    </div>
-  </div>
+        <span class="max-w-72 overflow-hidden whitespace-nowrap text-ellipsis text-text-secondary font-normal">{{ block.uri }}</span>
+      </a>
+      <div v-else-if="block.type === 'resource'" class="flex flex-col gap-2">
+        <div class="text-text-secondary text-sm break-all">{{ getResourceUri(block) }}</div>
+        <pre class="m-0 p-3 rounded overflow-x-auto bg-bg-app text-text-secondary font-mono text-sm"><code>{{ getResourceBody(block) }}</code></pre>
+      </div>
+    </CardContent>
+  </Card>
 </template>
-
-<!-- audit-ok: max-style-rules — deep-third-party: :deep() rules style sanitized markdown HTML rendered via v-html (h1–h4, p, ul/ol, pre, code, table, th/td, tr); these target child markup that Tailwind utilities cannot reach across the scoped boundary. -->
-<style scoped>
-.message-content :deep(h1),
-.message-content :deep(h2),
-.message-content :deep(h3),
-.message-content :deep(h4) {
-  margin: 0.75rem 0 0.5rem;
-  font-weight: var(--weight-title);
-  line-height: 1.3;
-}
-
-.message-content :deep(h1) {
-  font-size: var(--text-xl);
-}
-
-.message-content :deep(h2) {
-  font-size: var(--text-lg);
-}
-
-.message-content :deep(h3) {
-  font-size: var(--text-md);
-}
-
-.message-content :deep(h4) {
-  font-size: var(--text-base);
-}
-
-.message-content :deep(p) {
-  margin: 0.5rem 0;
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(ol),
-.message-content :deep(ul) {
-  margin: 0.5rem 0;
-  padding-left: 1.5rem;
-}
-
-.message-content :deep(li) {
-  margin: 0.25rem 0;
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(pre) {
-  padding: 0.75rem;
-  border-radius: 4px;
-  overflow-x: auto;
-  background: var(--color-bg-surface);
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-}
-
-.message-content :deep(code) {
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(pre code) {
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(table) {
-  display: block;
-  width: 100%;
-  margin: 0.75rem 0;
-  overflow-x: auto;
-  border-collapse: collapse;
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(th),
-.message-content :deep(td) {
-  padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  text-align: left;
-}
-
-.message-content :deep(th) {
-  background: var(--color-bg-surface);
-  font-size: var(--text-sm);
-  font-weight: var(--weight-title);
-}
-
-.message-content :deep(td) {
-  font-size: var(--text-sm);
-}
-
-.message-content :deep(tr:nth-child(even)) {
-  background: var(--color-bg-app);
-}
-
-.message-content :deep(tr:hover) {
-  background: var(--color-bg-surface);
-}
-</style>

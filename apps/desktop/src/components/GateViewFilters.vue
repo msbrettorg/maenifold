@@ -26,12 +26,12 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="grid gap-3 px-4 py-[0.9rem] bg-[var(--surface)] rounded grid-cols-[minmax(14rem,1.5fr)_repeat(3,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
+    class="grid gap-3 rounded bg-surface px-4 py-[0.9rem] grid-cols-[minmax(14rem,1.5fr)_repeat(3,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
     role="search"
     aria-label="Task filters"
   >
     <Input
-      class="border border-[var(--color-border-card)] bg-[var(--surface-container)] transition-[background,border-color,box-shadow] duration-150 ease-[ease] focus:border-[color-mix(in_srgb,var(--color-brand)_40%,transparent)] focus:bg-[var(--surface-high)] focus:shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-brand)_15%,transparent)]"
+      class="border border-border-card bg-surface-container transition-[background,border-color,box-shadow] duration-150 ease-[ease] focus:border-brand/40 focus:bg-surface-high focus-visible:ring-2 focus-visible:ring-brand/15"
       :model-value="props.searchText"
       type="search"
       placeholder="Filter tasks"
@@ -69,7 +69,7 @@ const emit = defineEmits<{
     </Select>
 
     <div
-      class="inline-flex items-center gap-2 min-h-10 px-3 whitespace-nowrap text-[length:var(--text-caption)] text-[var(--color-text-primary)] bg-[var(--surface-container)] border border-[var(--color-border-subtle)] rounded [&_input]:accent-[var(--color-brand)]"
+      class="inline-flex min-h-10 items-center gap-2 rounded border border-border-subtle bg-surface-container px-3 whitespace-nowrap text-caption text-text-primary [&_input]:accent-brand"
     >
       <Checkbox :checked="props.issuesOnly" @update:checked="(v: boolean | 'indeterminate') => emit('update:issuesOnly', v === true)" />
       <Label>Issues only</Label>

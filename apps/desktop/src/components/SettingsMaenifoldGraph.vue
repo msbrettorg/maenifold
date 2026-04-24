@@ -46,7 +46,7 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
     role="group"
     aria-label="Maenifold graph settings"
   >
-    <AccordionItem value="decay" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="decay" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Decay</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
@@ -107,7 +107,7 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="community" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="community" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Community Detection</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
@@ -173,7 +173,7 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
             @update:model-value="(val: string | number) => form.community.nmiThreshold = Number(val)"
           />
         </div>
-        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded bg-bg-app">
           <div class="flex flex-col gap-[0.45rem]">
             <Label>Recompute file threshold</Label>
             <Input
@@ -197,13 +197,13 @@ function emitCommunityDefaultToggle(checked: boolean | 'indeterminate') {
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="vector" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="vector" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Vector / Embedding</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
-        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox v-model="form.vector.embeddingLogs" /><span>Embedding logs</span></Label>
-        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox v-model="form.vector.vectorLogs" /><span>Vector logs</span></Label>
-        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app"><Checkbox v-model="form.vector.disableVector" /><span>Disable vector</span></Label>
+        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox v-model="form.vector.embeddingLogs" /><span>Embedding logs</span></Label>
+        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox v-model="form.vector.vectorLogs" /><span>Vector logs</span></Label>
+        <Label class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app"><Checkbox v-model="form.vector.disableVector" /><span>Disable vector</span></Label>
       </div>
       </AccordionContent>
     </AccordionItem>

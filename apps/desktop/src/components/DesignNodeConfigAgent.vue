@@ -95,10 +95,10 @@ function updateRequiresRole(value: unknown): void {
 </script>
 
 <template>
-  <Card class="border-border bg-[var(--surface-container)]">
+  <Card class="border-border bg-surface-container">
     <CardHeader class="space-y-1.5">
-      <CardTitle class="font-display text-[var(--text-sm)] text-[var(--color-text-primary)]">Adopt configuration</CardTitle>
-      <CardDescription class="text-[var(--text-xs)] text-[var(--color-text-secondary)]">
+      <CardTitle class="font-display text-sm text-text-primary">Adopt configuration</CardTitle>
+      <CardDescription class="text-xs text-text-secondary">
         Apply role, color, and perspective before node dispatch.
       </CardDescription>
     </CardHeader>

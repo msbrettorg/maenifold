@@ -4,6 +4,7 @@ import { DAEMON_BASE_URL } from '../lib/daemon-url';
 import type { AgentsConfig, MaenifoldSettings } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import SettingsMaenifoldGraph from './SettingsMaenifoldGraph.vue';
 import SettingsMaenifoldMemory from './SettingsMaenifoldMemory.vue';
 import SettingsMaenifoldWorkflows from './SettingsMaenifoldWorkflows.vue';
@@ -169,54 +170,59 @@ onMounted(loadSettings);
 
 <template>
   <section class="flex flex-col gap-4" role="form" aria-label="Maenifold settings">
-    <div class="rounded-[8px] border border-border-card bg-bg-elevated p-4">
-      <div class="mb-3 text-[11px] font-semibold tracking-[0.06em] text-text-tertiary">
-        <div>
-          <h3 class="m-0">Maenifold settings</h3>
-          <p class="m-0 text-text-secondary">Configure runtime behavior, persistence, graph tuning, and debug controls.</p>
+    <Card>
+      <CardHeader>
+        <CardTitle>Maenifold settings</CardTitle>
+        <CardDescription>
+          Configure runtime behavior, persistence, graph tuning, and debug controls.
+        </CardDescription>
+      </CardHeader>
+      <CardContent class="flex flex-col gap-4">
+        <div v-if="isLoading" class="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          Loading maenifold settings…
         </div>
-      </div>
 
-      <div v-if="isLoading" class="p-4 rounded-[var(--radius)] bg-bg-elevated text-text-secondary">Loading maenifold settings…</div>
+        <template v-else>
+          <div
+            v-if="feedback"
+            class="rounded-md border px-4 py-3 text-sm"
+            :class="feedback.type === 'success'
+              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
+              : 'border-destructive/40 bg-destructive/10 text-destructive'"
+            role="status"
+          >
+            {{ feedback.message }}
+          </div>
 
-      <template v-else>
-        <p
-          v-if="feedback"
-          class="m-0 px-3.5 py-3 rounded-[var(--radius)]"
-          :style="feedback.type === 'success'
-            ? 'background: color-mix(in srgb, var(--color-brand) 18%, transparent); color: var(--color-text-primary);'
-            : 'background: color-mix(in srgb, var(--color-danger) 18%, transparent); color: var(--color-danger);'"
-        >{{ feedback.message }}</p>
-        <!-- audit-ok: dynamic-binding -->
+          <SettingsMaenifoldMemory
+            :form="form"
+            :on-update-optional-number="updateOptionalNumber"
+            :on-update-sync-role="updateSyncRole"
+            :on-use-default-toggle="handleUseDefaultToggle"
+          />
 
-        <SettingsMaenifoldMemory
-          :form="form"
-          :on-update-optional-number="updateOptionalNumber"
-          :on-update-sync-role="updateSyncRole"
-          :on-use-default-toggle="handleUseDefaultToggle"
-        />
+          <SettingsMaenifoldGraph
+            :form="form"
+            :on-community-default-toggle="handleCommunityDefaultToggle"
+            :on-update-community-recompute="updateCommunityRecompute"
+          />
 
-        <SettingsMaenifoldGraph
-          :form="form"
-          :on-community-default-toggle="handleCommunityDefaultToggle"
-          :on-update-community-recompute="updateCommunityRecompute"
-        />
+          <SettingsMaenifoldWorkflows
+            :form="form"
+            :on-pipeline-driver-default-toggle="handlePipelineDriverDefaultToggle"
+            :on-update-pipeline-driver="updatePipelineDriver"
+          />
 
-        <SettingsMaenifoldWorkflows
-          :form="form"
-          :on-pipeline-driver-default-toggle="handlePipelineDriverDefaultToggle"
-          :on-update-pipeline-driver="updatePipelineDriver"
-        />
-
-        <div class="flex gap-[0.65rem] max-sm:flex-col">
-          <Button class="px-4 py-[0.55rem] rounded-[var(--radius)] cursor-pointer border-0 bg-brand text-text-primary" type="button" :disabled="isSubmitting" @click="handleSave">
-            {{ isSubmitting ? 'Saving…' : 'Save' }}
-          </Button>
-          <Button variant="destructive" class="px-4 py-[0.55rem] rounded-[var(--radius)] cursor-pointer border border-danger bg-transparent text-danger" type="button" :disabled="isSubmitting" @click="handleReset">
-            Reset to defaults
-          </Button>
-        </div>
-      </template>
-    </div>
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <Button type="button" :disabled="isSubmitting" @click="handleSave">
+              {{ isSubmitting ? 'Saving…' : 'Save' }}
+            </Button>
+            <Button type="button" variant="destructive" :disabled="isSubmitting" @click="handleReset">
+              Reset to defaults
+            </Button>
+          </div>
+        </template>
+      </CardContent>
+    </Card>
   </section>
 </template>

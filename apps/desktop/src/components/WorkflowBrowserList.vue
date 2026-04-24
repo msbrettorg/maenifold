@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { categorizeWorkflow, type WorkflowAssetSummary, type WorkflowCategory } from '../lib/workflow-asset-types'
 import { Brain, FlaskConical, Users, Cog, BookOpen, Lightbulb, AlertTriangle, type LucideIcon } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { categorizeWorkflow, type WorkflowAssetSummary, type WorkflowCategory } from '../lib/workflow-asset-types'
 
 defineProps<{
   currentId: string | null
@@ -47,39 +48,71 @@ function stepLabel(count?: number): string | null {
 </script>
 
 <template>
-  <ul class="flex-1 list-none m-0 p-0 px-2 pb-4 overflow-y-auto flex flex-col gap-1 [scrollbar-width:thin] [scrollbar-color:var(--color-bg-elevated)_transparent]" aria-label="Available workflows">
+  <ul
+    class="m-0 flex list-none flex-col gap-1 px-2 pb-4"
+    aria-label="Available workflows"
+  >
     <li
       v-for="wf in filteredWorkflows"
       :key="wf.id"
-      :class="[
-        'workflow-item flex items-center gap-2 p-2 border-l-[3px] border-l-transparent rounded-[8px] bg-[var(--color-bg-surface)] cursor-pointer transition-[background] duration-150',
-        {
-          'workflow-item--dirty': wf.id === currentId && isDirty,
-          'workflow-item--selected bg-[var(--color-bg-surface-hover)] border-l-[var(--color-brand)]': wf.id === currentId,
-        },
-      ]"
-      @click="emit('select', wf.id)"
+      class="group flex items-stretch rounded-lg border-l-[3px] bg-bg-surface transition-colors duration-150 hover:bg-bg-surface-hover"
+      :class="wf.id === currentId
+        ? 'border-l-brand bg-bg-surface-hover'
+        : 'border-l-transparent'"
     >
-      <component :is="iconForWorkflow(wf)" class="size-4 shrink-0 text-text-secondary" :stroke-width="1.5" />
-      <div class="flex flex-col gap-[1px] min-w-0">
-        <span class="text-[13px] [font-weight:500] leading-[1.4] text-[var(--color-text-primary)] whitespace-normal break-words">{{ humanizeName(wf.name, wf.id) }}</span>
-        <div class="flex items-center gap-[6px] flex-wrap">
-          <span class="text-[11px] leading-[1.4] text-[var(--color-text-secondary)]">{{ categoryLabel(categorizeWorkflow(wf)) }}</span>
-          <span v-if="stepLabel(stepCounts[wf.id])" class="text-[11px] leading-[1.4] [font-family:var(--font-body)] text-[var(--color-text-tertiary)]">{{ stepLabel(stepCounts[wf.id]) }}</span>
+      <Button
+        type="button"
+        variant="ghost"
+        class="flex h-auto w-full items-center justify-start gap-2 rounded-lg bg-transparent p-2 text-left font-normal hover:bg-transparent"
+        :data-workflow-id="wf.id"
+        :aria-current="wf.id === currentId ? 'page' : undefined"
+        @click="emit('select', wf.id)"
+      >
+        <component
+          :is="iconForWorkflow(wf)"
+          class="size-4 shrink-0 text-text-secondary"
+          :stroke-width="1.5"
+          aria-hidden="true"
+        />
+        <div class="flex min-w-0 flex-1 flex-col gap-px">
+          <span class="break-words text-sm font-medium leading-snug text-text-primary">
+            {{ humanizeName(wf.name, wf.id) }}
+          </span>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <span class="text-xs leading-snug text-text-secondary">
+              {{ categoryLabel(categorizeWorkflow(wf)) }}
+            </span>
+            <span
+              v-if="stepLabel(stepCounts[wf.id])"
+              class="text-xs leading-snug text-text-tertiary"
+            >
+              {{ stepLabel(stepCounts[wf.id]) }}
+            </span>
+          </div>
         </div>
-      </div>
+        <span
+          v-if="wf.id === currentId && isDirty"
+          class="ml-2 size-1.5 shrink-0 self-center rounded-full bg-brand"
+          aria-label="Unsaved changes"
+        />
+      </Button>
     </li>
 
-    <li v-if="filteredWorkflows.length === 0" class="flex flex-col items-center gap-2 py-8 px-4 text-center">
-      <AlertTriangle class="size-5 text-text-tertiary" :stroke-width="1.5" />
-      <span class="text-[13px] [font-weight:500] leading-[1.6] text-[var(--color-text-secondary)]">No matching workflows</span>
-      <span class="text-[11px] leading-[1.6] text-[var(--color-text-tertiary)]">Try a different search or filter</span>
+    <li
+      v-if="filteredWorkflows.length === 0"
+      class="flex flex-col items-center gap-2 px-4 py-8 text-center"
+    >
+      <AlertTriangle
+        class="size-5 text-text-tertiary"
+        :stroke-width="1.5"
+        aria-hidden="true"
+      />
+      <span class="text-sm font-medium leading-relaxed text-text-secondary">
+        No matching workflows
+      </span>
+      <span class="text-xs leading-relaxed text-text-tertiary">
+        Try a different search or filter
+      </span>
     </li>
   </ul>
 </template>
-
-<!-- audit-ok: dynamic-binding (dirty indicator ::before pseudo-element with dynamic content) -->
-<style scoped>
-.workflow-item:hover { background: var(--color-bg-surface-hover); }
-.workflow-item--dirty::before { content: ''; align-self: center; width: 4px; height: 4px; border-radius: 50%; background: var(--color-brand); margin-right: -4px; }
-</style>

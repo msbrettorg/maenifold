@@ -92,7 +92,7 @@ function formatAgentOptionLabel(agentName: string): string {
   <div class="flex flex-col gap-2">
     <Label
       for="agent-select"
-      class="text-[length:var(--text-tiny)] font-normal text-[var(--text-secondary)]"
+      class="text-tiny font-normal text-text-secondary"
     >
       Agent
     </Label>
@@ -121,7 +121,7 @@ function formatAgentOptionLabel(agentName: string): string {
 
     <div
       v-if="!hasAgents"
-      class="mt-2 p-3 bg-[var(--surface-container)] rounded text-xs text-[var(--color-text-secondary)]"
+      class="mt-2 rounded bg-surface-container p-3 text-xs text-text-secondary"
     >
       <p>No agents found. Add an agent in your config to get started.</p>
     </div>

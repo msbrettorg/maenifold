@@ -1,11 +1,12 @@
-<!-- audit-ok: max-loc -->
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Button } from '@/components/ui/button'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import WorkflowDraftBar from './WorkflowDraftBar.vue'
-import WorkflowStepCard from './WorkflowStepCard.vue'
+import WorkflowExportBar from './WorkflowExportBar.vue'
+import WorkflowStepTimelineEntry from './WorkflowStepTimelineEntry.vue'
+import WorkflowStepTimelineHeader from './WorkflowStepTimelineHeader.vue'
 
 const props = defineProps<{
   selectedStepId: string | null
@@ -29,8 +30,7 @@ const {
   pendingWorkflowId,
   saveError,
   saveState,
-} =
-  storeToRefs(store)
+} = storeToRefs(store)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
 
@@ -66,12 +66,6 @@ function toggleAllExpanded() {
   }
 }
 
-function handleSelectStep(stepId: string) {
-  // Selecting a step also expands it so the inspector context matches the timeline.
-  expandStep(stepId)
-  emit('select-step', stepId)
-}
-
 function expandStep(stepId: string) {
   if (expandedStepIds.value.has(stepId)) return
   const next = new Set(expandedStepIds.value)
@@ -79,12 +73,16 @@ function expandStep(stepId: string) {
   expandedStepIds.value = next
 }
 
+function handleSelectStep(stepId: string) {
+  expandStep(stepId)
+  emit('select-step', stepId)
+}
+
 watch(displayedDefinition, (def) => {
   if (!def) {
     expandedStepIds.value = new Set()
     return
   }
-  // Drop ids that no longer exist after edits.
   const stepIds = new Set(def.steps.map((step: { id: string }) => step.id))
   let changed = false
   const next = new Set<string>()
@@ -104,20 +102,16 @@ const saveButtonLabel = computed(() => {
   if (!isDirty.value) return 'Saved'
   return origin.value === 'packaged' ? 'Save Copy' : 'Save'
 })
+
 const exportPromptVisible = ref(false)
 const lastExportVersion = ref<'draft' | 'saved'>('draft')
 let exportFeedbackTimer: ReturnType<typeof setTimeout> | null = null
-
-function formatStepNumber(index: number): string {
-  return String(index + 1).padStart(2, '0')
-}
 
 function handleDiscard() {
   if (pendingWorkflowId.value) {
     void store.confirmDiscardAndContinue()
     return
   }
-
   store.discardDraft()
 }
 
@@ -134,14 +128,12 @@ watch(() => props.selectedStepId, (stepId) => {
 
 function getReferenceWarning(stepId: string) {
   if (!displayedDefinition.value) return null
-
   const references = displayedDefinition.value.steps
     .filter(
       (step: { id: string; metadata?: unknown }) =>
         step.id !== stepId && JSON.stringify(step.metadata ?? {}).includes(stepId),
     )
     .map((step: { name: string }) => step.name)
-
   return references.length > 0
     ? `Referenced in ${references.join(', ')} metadata.`
     : null
@@ -168,7 +160,6 @@ function handleExportClick() {
     exportPromptVisible.value = true
     return
   }
-
   void exportWorkflow('draft')
 }
 
@@ -181,7 +172,6 @@ watch(exportState, (state) => {
     clearTimeout(exportFeedbackTimer)
     exportFeedbackTimer = null
   }
-
   if (state === 'success') {
     exportFeedbackTimer = setTimeout(() => {
       exportState.value = 'idle'
@@ -196,7 +186,7 @@ watch(exportState, (state) => {
     v-if="definitionLoading"
     class="flex items-center justify-center h-full min-h-[200px] p-6"
   >
-    <span class="text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs leading-relaxed">Loading…</span>
+    <span class="text-text-secondary text-xs leading-relaxed">Loading…</span>
   </div>
 
   <div
@@ -204,160 +194,80 @@ watch(exportState, (state) => {
     class="flex items-center justify-center h-full min-h-[200px] p-6"
   >
     <div class="flex flex-col items-center gap-2 max-w-[340px] text-center">
-      <span class="text-[var(--color-text-primary)] font-[family-name:var(--font-display)] text-sm">Choose a workflow</span>
-      <span class="text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs leading-relaxed">Select a workflow from the browser to review its steps and edit its details.</span>
+      <span class="text-text-primary text-sm font-semibold">Choose a workflow</span>
+      <span class="text-text-secondary text-xs leading-relaxed">Select a workflow from the browser to review its steps and edit its details.</span>
     </div>
   </div>
 
   <section
     v-else
-    class="flex flex-col gap-3 p-4 bg-[var(--color-bg-app)] min-h-full overflow-y-auto"
+    class="flex flex-col gap-3 p-4 bg-bg-app min-h-full overflow-y-auto"
     aria-label="Workflow step timeline"
   >
-    <header class="flex items-start justify-between gap-4 pb-3 bg-[color-mix(in_srgb,var(--color-bg-elevated)_28%,var(--color-bg-app))] rounded-[var(--radius-sm)]">
-      <h1 class="m-0 font-[family-name:var(--font-display)] text-[length:var(--text-lg)] font-[number:var(--weight-title)] text-[var(--color-text-primary)] flex items-center gap-2 min-w-0 leading-tight">
-        {{ displayedDefinition.name }}
-      </h1>
-      <div class="flex items-center gap-2 shrink-0">
-        <Button
-          variant="outline"
-          class="text-[var(--color-text-secondary)] [&:not(:disabled):hover]:text-[var(--color-node-workflow)] [&:not(:disabled):hover]:border-[color-mix(in_srgb,var(--color-node-workflow)_40%,var(--color-border-subtle))]"
-          :disabled="!displayedDefinition || displayedDefinition.steps.length === 0"
-          @click="toggleAllExpanded"
-        >
-          {{ allExpanded ? 'Collapse all' : 'Expand all' }}
-        </Button>
-        <Button variant="outline" :disabled="exportState === 'exporting'" @click="handleExportClick">
-          {{ exportState === 'exporting' ? 'Exporting…' : 'Export' }}
-        </Button>
-        <Button
-          variant="outline"
-          :class="[
-            isDirty
-              ? 'text-[var(--color-status-active)] border-[var(--color-status-active)] bg-[color-mix(in_srgb,var(--color-status-active)_10%,transparent)] opacity-100 cursor-pointer hover:bg-[color-mix(in_srgb,var(--color-status-active)_18%,transparent)]'
-              : saveState === 'error'
-                ? 'text-[var(--color-status-abandoned)] border-[var(--color-status-abandoned)] bg-[color-mix(in_srgb,var(--color-status-abandoned)_10%,transparent)] opacity-100 cursor-pointer'
-                : 'text-[var(--color-text-secondary)] opacity-40 cursor-default',
-          ]"
-          :disabled="saveState === 'saving' || (!isDirty && saveState !== 'error')"
-          @click="emit('save')"
-        >
-          {{ saveButtonLabel }}
-        </Button>
+    <WorkflowStepTimelineHeader
+      :title="displayedDefinition.name"
+      :has-steps="displayedDefinition.steps.length > 0"
+      :all-expanded="allExpanded"
+      :export-state="exportState"
+      :is-dirty="isDirty"
+      :save-state="saveState"
+      :save-button-label="saveButtonLabel"
+      @toggle-all="toggleAllExpanded"
+      @export-click="handleExportClick"
+      @save="emit('save')"
+    />
 
-      </div>
-    </header>
-
-    <div
-      v-if="exportPromptVisible || exportState !== 'idle'"
-      class="flex items-center flex-wrap gap-2 text-[var(--color-text-secondary)] font-[family-name:var(--font-body)] text-xs font-[number:var(--weight-display)] leading-snug"
-      role="status"
-      aria-live="polite"
-    >
-      <template v-if="exportPromptVisible">
-        <span>Export draft or saved version?</span>
-        <Button
-          variant="outline"
-          size="xs"
-          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
-          type="button"
-          @click="exportWorkflow('draft')"
-        >Draft</Button>
-        <Button
-          variant="outline"
-          size="xs"
-          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
-          type="button"
-          @click="exportWorkflow('saved')"
-        >Saved</Button>
-        <Button
-          variant="ghost"
-          size="xs"
-          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
-          type="button"
-          @click="exportPromptVisible = false"
-        >Cancel</Button>
-      </template>
-      <template v-else-if="exportState === 'error'">
-        <span>{{ exportError ?? 'Export failed.' }}</span>
-        <Button
-          variant="outline"
-          size="xs"
-          class="min-h-[24px] px-2 border border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] bg-transparent text-inherit cursor-pointer hover:bg-[var(--color-bg-elevated)]"
-          type="button"
-          @click="exportWorkflow(lastExportVersion)"
-        >Retry</Button>
-      </template>
-      <template v-else-if="exportState === 'success'">
-        <span>Exported ✓</span>
-      </template>
-    </div>
+    <WorkflowExportBar
+      :export-prompt-visible="exportPromptVisible"
+      :export-state="exportState"
+      :export-error="exportError"
+      :last-export-version="lastExportVersion"
+      @export="exportWorkflow"
+      @cancel="exportPromptVisible = false"
+    />
 
     <p
       v-if="saveError"
-      class="m-0 text-[var(--color-status-abandoned)] font-[family-name:var(--font-body)] text-xs font-[number:var(--weight-display)] leading-snug"
+      class="m-0 text-status-abandoned text-xs leading-snug"
       role="alert"
     >{{ saveError }}</p>
 
-
-    <div class="flex items-center gap-3 flex-wrap font-[family-name:var(--font-code)] text-xs text-[var(--color-text-secondary)] tracking-[0.05em]">
+    <div class="flex items-center gap-3 flex-wrap font-mono text-xs text-text-secondary tracking-wider">
       <span>{{ displayedDefinition.steps.length }} steps</span>
       <span
         v-if="displayedDefinition.sequentialThinkingEnabled"
-        class="before:content-[''] before:inline-block before:w-px before:h-[0.75em] before:bg-[var(--color-border-subtle)] before:mr-3 before:align-middle"
+        class="pl-3 border-l border-border-subtle"
       >
         Sequential thinking
       </span>
     </div>
 
     <ol class="list-none m-0 p-0 flex flex-col gap-3">
-      <li
+      <WorkflowStepTimelineEntry
         v-for="(step, index) in displayedDefinition.steps"
         :key="step.id"
-        class="flex gap-3 items-stretch"
-      >
-        <div class="flex flex-col items-center w-10 shrink-0">
-          <span
-            :class="[
-              'flex items-center justify-center w-10 h-10 rounded-[var(--radius)] border bg-[var(--color-bg-elevated)] font-[family-name:var(--font-code)] text-xs font-[number:var(--weight-title)] shrink-0 transition-[border-color,color,background] duration-150',
-              props.selectedStepId === step.id
-                ? 'border-[var(--color-node-workflow)] text-[var(--color-node-workflow)] bg-[color-mix(in_srgb,var(--color-node-workflow)_10%,var(--color-bg-elevated))]'
-                : 'border-[var(--color-border-subtle)] text-[var(--color-text-secondary)]',
-            ]"
-          >
-            {{ formatStepNumber(index) }}
-          </span>
-          <span
-            v-if="index < displayedDefinition.steps.length - 1"
-            class="flex-1 w-px min-h-3 border-l-2 border-dashed border-[var(--color-border-subtle)]"
-          />
-        </div>
-
-        <WorkflowStepCard
-          :can-remove="displayedDefinition.steps.length > 1"
-          :can-move-down="index < displayedDefinition.steps.length - 1"
-          :can-move-up="index > 0"
-          :expanded="isExpanded(step.id)"
-          :reference-warning="getReferenceWarning(step.id)"
-          :selected="props.selectedStepId === step.id"
-          :step="step"
-          @move-down="handleMoveStepDown"
-          @move-up="handleMoveStepUp"
-          @remove="handleRemoveStep"
-          @select="handleSelectStep"
-          @toggle-expanded="toggleExpanded"
-        />
-      </li>
+        :step="step"
+        :index="index"
+        :total-steps="displayedDefinition.steps.length"
+        :selected-step-id="props.selectedStepId"
+        :expanded="isExpanded(step.id)"
+        :reference-warning="getReferenceWarning(step.id)"
+        @move-down="handleMoveStepDown"
+        @move-up="handleMoveStepUp"
+        @remove="handleRemoveStep"
+        @select="handleSelectStep"
+        @toggle-expanded="toggleExpanded"
+      />
     </ol>
 
     <div class="flex gap-3 items-center group">
       <div class="flex flex-col items-center w-10 shrink-0">
-        <span class="w-2 h-2 rounded-[var(--radius)] bg-[var(--color-text-secondary)] shrink-0 transition-colors duration-150 group-hover:bg-[var(--color-node-workflow)]" />
+        <span class="w-2 h-2 rounded bg-text-secondary shrink-0 transition-colors duration-150 group-hover:bg-node-workflow" />
       </div>
       <Button
         variant="ghost"
-        class="flex-1 flex items-center justify-center gap-2 w-full p-3 bg-transparent border border-dashed border-[var(--color-border-subtle)] rounded-[var(--radius-sm)] text-[var(--color-text-secondary)] font-[family-name:var(--font-code)] text-xs tracking-[0.05em] cursor-pointer transition-[border-color,color,background] duration-150 hover:border-[var(--color-node-workflow)] hover:text-[var(--color-node-workflow)] hover:bg-[color-mix(in_srgb,var(--color-node-workflow)_6%,transparent)]"
         type="button"
+        class="flex-1 flex items-center justify-center gap-2 w-full p-3 bg-transparent border border-dashed border-border-subtle rounded-sm text-text-secondary font-mono text-xs tracking-wider hover:border-node-workflow hover:text-node-workflow hover:bg-node-workflow/10"
         @click="handleAddStep"
       >
         ＋ Add new step
@@ -365,9 +275,9 @@ watch(exportState, (state) => {
     </div>
 
     <Transition
-      enter-active-class="transition-[transform,opacity] duration-[250ms] ease-[cubic-bezier(0.4,0,0.2,1)]"
+      enter-active-class="transition duration-[250ms] ease-out"
       enter-from-class="translate-y-full opacity-0"
-      leave-active-class="transition-[transform,opacity] duration-150 ease-[cubic-bezier(0.4,0,0.2,1)]"
+      leave-active-class="transition duration-150 ease-in"
       leave-to-class="translate-y-full opacity-0"
     >
       <WorkflowDraftBar

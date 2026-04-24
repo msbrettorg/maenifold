@@ -97,27 +97,27 @@ function handleSubmit() {
       </DialogHeader>
 
       <form class="grid gap-4 px-6 pb-6" @submit.prevent="handleSubmit">
-        <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+        <div class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
           <Label for="join-source-session-id">Source pipeline session ID</Label>
           <Input id="join-source-session-id" v-model="sourceSessionId" type="text" placeholder="session-abc123" />
         </div>
 
         <div class="grid gap-3">
           <div class="flex items-center justify-between gap-2">
-            <h4 class="m-0 text-xs text-[var(--text-secondary)]">Edge mappings</h4>
+            <h4 class="m-0 text-xs text-text-secondary">Edge mappings</h4>
             <Button type="button" variant="ghost" :disabled="busy" @click="addEdgeRow">Add Edge</Button>
           </div>
 
           <div v-for="(edge, index) in edgeRows" :key="`join-edge-${index}`" class="grid grid-cols-[repeat(auto-fit,minmax(10rem,1fr))_auto] gap-3 items-end">
-            <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+            <div class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
               <Label :for="`join-edge-source-${index}`">Source node ID</Label>
               <Input :id="`join-edge-source-${index}`" v-model="edge.source" type="text" placeholder="source-node-id" />
             </div>
-            <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+            <div class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
               <Label :for="`join-edge-target-${index}`">Target node ID</Label>
               <Input :id="`join-edge-target-${index}`" v-model="edge.target" type="text" placeholder="target-node-id" />
             </div>
-            <div class="grid gap-[0.35rem] min-w-0 text-[var(--text-secondary)] text-xs">
+            <div class="grid min-w-0 gap-[0.35rem] text-xs text-text-secondary">
               <Label :for="`join-edge-type-${index}`">Edge type</Label>
               <Select v-model="edge.type">
                 <SelectTrigger :id="`join-edge-type-${index}`" class="w-full">
@@ -135,7 +135,7 @@ function handleSubmit() {
           </div>
         </div>
 
-        <p v-if="formError" class="m-0 text-xs text-[var(--color-status-abandoned)]" role="alert">{{ formError }}</p>
+        <p v-if="formError" class="m-0 text-xs text-status-abandoned" role="alert">{{ formError }}</p>
 
         <DialogFooter class="pt-2">
           <DialogClose as-child>

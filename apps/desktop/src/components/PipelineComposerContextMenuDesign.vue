@@ -61,7 +61,7 @@ function handleTool(toolName: string) {
           <ContextMenuSub>
             <ContextMenuSubTrigger>
               <span class="flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{{ group.server }}</span>
-              <span class="shrink-0 px-[0.45rem] py-[0.1rem] rounded-[var(--radius-4)] bg-[var(--color-border-card)] text-[var(--text-secondary)] text-[length:var(--text-xs)] font-[var(--weight-display)] leading-[1.3]">{{ group.tools.length }}</span>
+              <span class="shrink-0 rounded-[4px] bg-border-card px-[0.45rem] py-[0.1rem] text-text-secondary text-xs font-medium leading-[1.3]">{{ group.tools.length }}</span>
             </ContextMenuSubTrigger>
             <ContextMenuSubContent>
               <ContextMenuItem

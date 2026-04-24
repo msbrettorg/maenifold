@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { Brain, FlaskConical, Search, Ruler, Settings, RefreshCw, AlertTriangle } from 'lucide-vue-next';
+import { Brain, FlaskConical, Search, Ruler, Settings, RefreshCw, AlertTriangle, CheckCircle2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 import type { WorkflowSession } from '../lib/workflow-types';
 import WorkflowStepDetail from './WorkflowStepDetail.vue';
+import { Card, CardContent, CardFooter, CardHeader } from './ui/card';
+import { Badge } from './ui/badge';
+import { Progress } from './ui/progress';
 
 const props = defineProps<{
   node: WorkflowSession;
@@ -28,17 +31,36 @@ function isStepExpanded(stepNumber: number): boolean {
 function statusIcon(status: string): Component {
   switch (status) {
     case 'abandoned': return AlertTriangle;
+    case 'completed': return CheckCircle2;
     case 'active': return RefreshCw;
     default: return RefreshCw;
   }
 }
 
-const borderColor = computed(() => {
+const borderClass = computed(() => {
   switch (props.node.status) {
-    case 'completed': return 'var(--color-status-completed)';
-    case 'abandoned': return 'var(--color-status-stuck)';
-    case 'active':    return 'var(--color-status-active)';
-    default:          return 'var(--color-status-active)';
+    case 'completed': return 'border-l-emerald-500';
+    case 'abandoned': return 'border-l-amber-500';
+    case 'active':    return 'border-l-sky-500';
+    default:          return 'border-l-sky-500';
+  }
+});
+
+const statusBadgeVariant = computed<'default' | 'secondary' | 'destructive' | 'outline'>(() => {
+  switch (props.node.status) {
+    case 'completed': return 'default';
+    case 'abandoned': return 'destructive';
+    case 'active':    return 'secondary';
+    default:          return 'outline';
+  }
+});
+
+const progressBarClass = computed(() => {
+  switch (props.node.status) {
+    case 'completed': return 'bg-emerald-500';
+    case 'abandoned': return 'bg-amber-500';
+    case 'active':    return 'bg-sky-500';
+    default:          return 'bg-sky-500';
   }
 });
 
@@ -111,89 +133,76 @@ function formatAbsolute(iso: string): string {
 </script>
 
 <template>
-  <!-- audit-ok: dynamic-binding (border color reflects node status) -->
-  <div
-    class="workflow-node-card w-80 rounded-[var(--radius)] border-l-[3px] border-l-[var(--color-status-active)] py-3.5 px-4 flex flex-col gap-2"
+  <Card
     role="listitem"
-    :style="{ borderLeftColor: borderColor }"
+    :class="['w-80 gap-2 py-3.5 border-l-[3px]', borderClass]"
   >
-    <!-- ── Header ── -->
-    <div class="flex items-center justify-between gap-2">
-      <div class="flex items-center gap-2 min-w-0">
-        <component :is="workflowIcon" class="workflow-emoji size-4 shrink-0" :stroke-width="1.5" />
-        <div class="flex flex-col min-w-0">
-          <span class="workflow-name [font-weight:var(--weight-title)] text-[length:var(--text-caption)] whitespace-nowrap overflow-hidden text-ellipsis">{{ node.workflowName || node.workflowId }}</span>
-          <span class="session-id [font-family:var(--font-code)] text-[length:var(--text-tiny)] whitespace-nowrap" :title="node.sessionId">{{ shortSessionId }}</span>
+    <CardHeader class="px-4 [.border-b]:pb-0">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2 min-w-0">
+          <component
+            :is="workflowIcon"
+            class="size-4 shrink-0 text-muted-foreground"
+            :stroke-width="1.5"
+          />
+          <div class="flex flex-col min-w-0">
+            <span class="text-xs font-semibold truncate text-foreground">
+              {{ node.workflowName || node.workflowId }}
+            </span>
+            <span
+              class="font-mono text-[10px] truncate text-muted-foreground"
+              :title="node.sessionId"
+            >
+              {{ shortSessionId }}
+            </span>
+          </div>
         </div>
+        <Badge :variant="statusBadgeVariant" class="gap-1">
+          <component
+            :is="statusIcon(node.status)"
+            class="size-3 shrink-0"
+            :class="node.status === 'active' ? 'animate-spin' : ''"
+            :stroke-width="2"
+          />
+          <span class="capitalize">{{ node.status }}</span>
+        </Badge>
       </div>
-      <component :is="statusIcon(node.status)" class="status-badge size-4 shrink-0" :stroke-width="1.5" :title="node.status" />
-    </div>
+    </CardHeader>
 
-    <!-- ── Progress bar ── -->
-    <div class="h-1 rounded bg-[color-mix(in_srgb,var(--color-bg-surface)_72%,var(--color-bg-app))] overflow-hidden" :title="`${completedSteps}/${totalSteps} steps`">
-      <!-- audit-ok: dynamic-binding (progress bar width computed from runtime state) -->
-      <div class="h-full bg-[var(--color-status-completed)] rounded transition-[width] duration-300 ease-in-out" :style="{ width: `${progressPercent}%` }" />
-    </div>
-    <div class="text-[length:var(--text-tiny)] text-right -mt-1">
-      {{ completedSteps }}/{{ totalSteps }} steps
-    </div>
-
-    <!-- ── Step list ── -->
-    <ul class="list-none p-0 m-0 flex flex-col gap-0">
-      <WorkflowStepDetail
-        v-for="step in node.steps"
-        :key="step.stepNumber"
-        :step="step"
-        :expanded="isStepExpanded(step.stepNumber)"
-        @toggle="toggleStep(step.stepNumber)"
+    <CardContent class="px-4 flex flex-col gap-2">
+      <!-- Progress bar -->
+      <Progress
+        :model-value="progressPercent"
+        :indicator-class="progressBarClass"
+        :title="`${completedSteps}/${totalSteps} steps`"
+        :aria-label="`${completedSteps} of ${totalSteps} steps complete`"
+        class="h-1 w-full"
       />
-    </ul>
+      <div class="text-[10px] text-right text-muted-foreground -mt-1">
+        {{ completedSteps }}/{{ totalSteps }} steps
+      </div>
 
-    <!-- ── Timing footer ── -->
-    <div class="flex gap-4 pt-1.5 border-t border-t-[var(--workflow-card-divider)]">
+      <!-- Step list -->
+      <ul class="list-none p-0 m-0 flex flex-col gap-0">
+        <WorkflowStepDetail
+          v-for="step in node.steps"
+          :key="step.stepNumber"
+          :step="step"
+          :expanded="isStepExpanded(step.stepNumber)"
+          @toggle="toggleStep(step.stepNumber)"
+        />
+      </ul>
+    </CardContent>
+
+    <CardFooter class="px-4 pt-1.5 border-t border-border/40 flex gap-4">
       <span class="flex flex-col gap-0.5">
-        <span class="text-[length:var(--text-tiny)] tracking-[0.05em]">Started</span>
-        <span class="text-[length:var(--text-tiny)]">{{ startedFormatted }}</span>
+        <span class="text-[10px] tracking-wider uppercase text-muted-foreground">Started</span>
+        <span class="text-[10px] text-foreground">{{ startedFormatted }}</span>
       </span>
       <span v-if="durationFormatted" class="flex flex-col gap-0.5">
-        <span class="text-[length:var(--text-tiny)] tracking-[0.05em]">Duration</span>
-        <span class="text-[length:var(--text-tiny)]">{{ durationFormatted }}</span>
+        <span class="text-[10px] tracking-wider uppercase text-muted-foreground">Duration</span>
+        <span class="text-[10px] text-foreground">{{ durationFormatted }}</span>
       </span>
-    </div>
-  </div>
+    </CardFooter>
+  </Card>
 </template>
-
-<!-- audit-ok: dynamic-binding (color-mix custom properties used throughout card) -->
-<style scoped>
-.workflow-node-card {
-  --workflow-card-text: color-mix(in srgb, var(--color-text-primary) 84%, var(--color-node-workflow));
-  --workflow-card-heading: color-mix(in srgb, var(--color-text-primary) 92%, var(--color-node-workflow));
-  --workflow-card-muted: color-mix(in srgb, var(--color-text-primary) 54%, var(--color-text-secondary));
-  --workflow-card-subtle: color-mix(in srgb, var(--color-text-primary) 40%, var(--color-text-secondary));
-  --workflow-card-divider: color-mix(in srgb, var(--color-border-subtle) 30%, var(--color-bg-surface));
-  background: color-mix(in srgb, var(--color-bg-surface) 88%, var(--color-bg-app));
-  color: var(--workflow-card-text);
-  box-shadow: var(--shadow-8);
-}
-
-.workflow-emoji {
-  color: var(--workflow-card-muted);
-}
-
-.workflow-name {
-  color: var(--workflow-card-heading);
-}
-
-.session-id,
-.status-badge {
-  color: var(--workflow-card-muted);
-}
-
-.card-footer .timing-label {
-  color: var(--workflow-card-subtle);
-}
-
-.card-footer .timing-value {
-  color: var(--workflow-card-muted);
-}
-</style>

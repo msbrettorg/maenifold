@@ -1,8 +1,10 @@
 <script setup lang="ts">
-import { Input } from '@/components/ui/input';
 import { storeToRefs } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { Button } from './ui/button'
+import { Download, Plus } from 'lucide-vue-next'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import WorkflowBrowserFilters from './WorkflowBrowserFilters.vue'
 import WorkflowBrowserList from './WorkflowBrowserList.vue'
 import type { WorkflowCategory } from '../lib/workflow-asset-types'
@@ -191,14 +193,21 @@ watch(
 </script>
 
 <template>
-  <aside class="w-[var(--sidebar-width)] min-w-[var(--sidebar-min-width)] max-w-[var(--sidebar-max-width)] h-full bg-[var(--surface)] flex flex-col overflow-hidden" role="region" aria-label="Workflow library">
+  <aside
+    class="flex h-full w-64 min-w-56 max-w-80 flex-col overflow-hidden bg-bg-sidebar"
+    role="region"
+    aria-label="Workflow library"
+  >
     <Input
       ref="importInputRef"
       class="hidden"
       type="file"
       accept=".json,application/json"
+      aria-hidden="true"
+      tabindex="-1"
       @change="handleImportSelection"
     />
+
     <WorkflowBrowserFilters
       :chips="chips"
       :search-query="searchQuery"
@@ -214,37 +223,36 @@ watch(
       @dismiss-import-error="importError = null"
     />
 
-    <WorkflowBrowserList
-      :current-id="currentId"
-      :filtered-workflows="filteredWorkflows"
-      :is-dirty="isDirty"
-      :step-counts="stepCounts"
-      @select="store.requestSelectWorkflow"
-    />
+    <ScrollArea class="min-h-0 flex-1">
+      <WorkflowBrowserList
+        :current-id="currentId"
+        :filtered-workflows="filteredWorkflows"
+        :is-dirty="isDirty"
+        :step-counts="stepCounts"
+        @select="store.requestSelectWorkflow"
+      />
+    </ScrollArea>
 
-    <div class="flex gap-2 px-4 py-3 pb-4 shrink-0">
-      <Button class="flex-1" type="button" @click="store.createNewWorkflow()">
-        + New workflow
+    <div class="flex shrink-0 gap-2 px-4 py-3 pb-4">
+      <Button
+        type="button"
+        class="flex-1 gap-1.5"
+        @click="store.createNewWorkflow()"
+      >
+        <Plus class="size-4" aria-hidden="true" />
+        <span>New workflow</span>
       </Button>
-      <!-- audit-ok: dynamic-binding (color-mix hover state cannot be expressed in Tailwind) -->
-      <Button 
-        variant="outline" 
-        class="btn-import grid place-items-center w-9 border border-[var(--color-border-subtle)] bg-transparent text-[var(--color-text-secondary)] min-h-9 rounded-[var(--radius-md)] cursor-pointer transition-[background,border-color,color,box-shadow] duration-[var(--transition-fast)]" 
-        type="button" 
-        title="Import workflow" 
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        class="size-9 text-text-secondary hover:text-text-primary"
+        title="Import workflow"
+        aria-label="Import workflow"
         @click="handleImportClick()"
       >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-          <polyline points="7 10 12 15 17 10" />
-          <line x1="12" y1="15" x2="12" y2="3" />
-        </svg>
+        <Download class="size-4" aria-hidden="true" />
       </Button>
     </div>
   </aside>
 </template>
-
-<!-- audit-ok: dynamic-binding (color-mix hover state) -->
-<style scoped>
-.btn-import:hover { background: var(--color-bg-elevated); border-color: color-mix(in srgb, var(--color-node-workflow) 24%, var(--color-border-subtle)); color: var(--color-text-primary); }
-</style>

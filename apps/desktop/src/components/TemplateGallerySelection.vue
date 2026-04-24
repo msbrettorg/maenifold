@@ -14,25 +14,25 @@ defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 p-4 w-[min(100%,720px)] border border-[var(--color-border-subtle)] rounded-[0.25rem] bg-[var(--surface)]">
+  <div class="flex flex-col gap-3 p-4 w-[min(100%,720px)] border border-border-subtle rounded-[0.25rem] bg-surface">
     <div v-if="template.runInputs.length > 0" class="flex flex-col gap-[0.4rem]">
-      <span class="text-[0.75rem] font-normal text-[var(--text-secondary)]">Run-time inputs</span>
+      <span class="text-[0.75rem] font-normal text-text-secondary">Run-time inputs</span>
       <ul class="m-0 pl-4 flex flex-col gap-1">
         <li
           v-for="input in template.runInputs"
           :key="input.key"
           class="text-text-primary text-[0.875rem]"
         >
-          <span class="font-[number:var(--weight-display)]">
+          <span class="font-medium">
             {{ input.label }}
-            <span v-if="input.required" class="text-[var(--terracotta)]">*</span>
+            <span v-if="input.required" class="text-danger">*</span>
           </span>
-          <span v-if="input.description" class="text-[var(--text-secondary)] text-[0.75rem]">
+          <span v-if="input.description" class="text-text-secondary text-[0.75rem]">
             {{ input.description }}
           </span>
         </li>
       </ul>
-      <p class="text-[var(--text-secondary)] text-[0.75rem]">
+      <p class="text-text-secondary text-[0.75rem]">
         These values are requested when you run the pipeline, not when you create it.
       </p>
     </div>

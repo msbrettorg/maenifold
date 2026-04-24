@@ -170,18 +170,18 @@ function removeManualRow(id: string): void {
 </script>
 
 <template>
-  <section class="flex flex-col gap-3 pt-2 border-t border-[var(--color-border-subtle)]" role="form" aria-label="Edge mapping">
+  <section class="flex flex-col gap-3 border-t border-border-subtle pt-2" role="form" aria-label="Edge mapping">
     <div class="flex flex-col gap-1">
-      <h3 class="text-[length:var(--text-base)] font-[var(--weight-title)]">Field Mapping</h3>
-      <p v-if="isToolTarget" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Map source output paths into tool input parameters.</p>
-      <p v-else class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Predecessor context is prepended automatically — mapping is optional for ACP nodes.</p>
+      <h3 class="text-base font-semibold">Field Mapping</h3>
+      <p v-if="isToolTarget" class="text-sm text-text-secondary">Map source output paths into tool input parameters.</p>
+      <p v-else class="text-sm text-text-secondary">Predecessor context is prepended automatically — mapping is optional for ACP nodes.</p>
     </div>
 
-    <p v-if="loadingSchemas" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Loading tool schemas...</p>
-    <p v-if="!hasSourceOutput" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Source output will be available after execution</p>
+    <p v-if="loadingSchemas" class="text-sm text-text-secondary">Loading tool schemas...</p>
+    <p v-if="!hasSourceOutput" class="text-sm text-text-secondary">Source output will be available after execution</p>
 
     <template v-if="isToolTarget && targetParams.length > 0">
-      <label v-for="param in targetParams" :key="param.name" class="flex flex-col gap-2 [&_small]:text-[var(--color-text-secondary)] [&_small]:text-[length:var(--text-sm)]">
+      <label v-for="param in targetParams" :key="param.name" class="flex flex-col gap-2 [&_small]:text-sm [&_small]:text-text-secondary">
         <span class="flex items-center gap-2 justify-between">
           <strong>{{ param.name }}</strong>
           <small>{{ param.required ? 'Required' : 'Optional' }}</small>
@@ -195,13 +195,13 @@ function removeManualRow(id: string): void {
         />
         <small v-if="param.description">{{ param.description }}</small>
       </label>
-      <p v-if="!hasMappings" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">No field mappings — edge carries topology only</p>
+      <p v-if="!hasMappings" class="text-sm text-text-secondary">No field mappings — edge carries topology only</p>
     </template>
 
     <template v-else>
-      <p v-if="isToolTarget && !loadingSchemas" class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">Tool schema unavailable — enter parameter names manually</p>
+      <p v-if="isToolTarget && !loadingSchemas" class="text-sm text-text-secondary">Tool schema unavailable — enter parameter names manually</p>
       <div v-if="manualRows.length > 0" class="flex flex-col gap-2">
-        <div v-for="row in manualRows" :key="row.id" class="flex items-stretch gap-2 justify-between p-3 border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)] max-[640px]:flex-col">
+        <div v-for="row in manualRows" :key="row.id" class="flex items-stretch justify-between gap-2 rounded border border-border-subtle bg-bg-app p-3 max-[640px]:flex-col">
           <Input
             v-model="row.param"
             class="flex-1"
@@ -220,7 +220,7 @@ function removeManualRow(id: string): void {
           <Button type="button" variant="ghost" @click="removeManualRow(row.id)">Remove</Button>
         </div>
       </div>
-      <p v-else class="text-[var(--color-text-secondary)] text-[length:var(--text-sm)]">
+      <p v-else class="text-sm text-text-secondary">
         {{ hasMappings ? `Mappings configured for target ${targetLabel}` : 'No field mappings — edge carries topology only' }}
       </p>
       <Button type="button" variant="ghost" @click="addManualRow">Add mapping</Button>

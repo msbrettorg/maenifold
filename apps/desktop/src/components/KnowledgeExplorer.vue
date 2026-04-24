@@ -64,11 +64,11 @@ onMounted(async () => {
         @update:model-value="mode = ($event as 'notes' | 'graph')"
       >
         <TabsList variant="line" class="bg-transparent p-0">
-          <TabsTrigger value="notes" class="h-8 rounded-[var(--radius-8)] px-2 py-1">
+          <TabsTrigger value="notes" class="h-8 rounded-md px-2 py-1">
             <BookOpenText class="size-4" aria-hidden="true" />
             Notes
           </TabsTrigger>
-          <TabsTrigger value="graph" class="h-8 rounded-[var(--radius-8)] px-2 py-1">
+          <TabsTrigger value="graph" class="h-8 rounded-md px-2 py-1">
             <Network class="size-4" aria-hidden="true" />
             Graph
           </TabsTrigger>

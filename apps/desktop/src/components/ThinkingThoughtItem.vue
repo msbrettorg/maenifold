@@ -1,5 +1,12 @@
 <script setup lang="ts">
+import { ChevronDown } from 'lucide-vue-next';
 import type { Thought } from '../lib/workflow-types';
+import { Badge } from './ui/badge';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from './ui/collapsible';
 import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 
 defineProps<{
@@ -34,44 +41,53 @@ function formatRelativeTime(iso: string): string {
 
 <template>
   <li>
-    <!-- audit-ok: dynamic-binding (color-mix locals consumed by descendants) -->
-    <article
-      class="thought-item relative grid grid-cols-[auto_1fr] gap-[0.65rem] items-start"
-      :style="{
-        '--thinking-thought-badge': 'color-mix(in srgb, var(--color-text-primary) 76%, var(--color-node-prompt))',
-        '--thinking-thought-muted': 'color-mix(in srgb, var(--color-text-primary) 56%, var(--color-text-secondary))',
-        '--thinking-thought-border': 'color-mix(in srgb, var(--color-border-subtle) 28%, var(--color-bg-surface))',
-        '--thinking-thought-shadow': 'color-mix(in srgb, var(--color-bg-surface) 76%, var(--color-bg-app))',
-        '--thinking-thought-text': 'color-mix(in srgb, var(--color-text-primary) 72%, var(--color-node-prompt))',
-      }"
+    <Collapsible
+      :default-open="true"
+      class="group/thought relative grid grid-cols-[auto_1fr] items-start gap-2.5"
       role="article"
       :aria-label="`Thought ${thought.number} of ${thought.totalThoughts}`"
     >
-      <div
-        class="thought-pill relative z-[1] min-w-[2.5rem] px-[0.45rem] py-[0.26rem] rounded-[4px] bg-[color-mix(in_srgb,var(--color-node-prompt)_18%,var(--color-bg-surface))] border border-[color-mix(in_srgb,var(--color-node-prompt)_28%,transparent)] text-[var(--thinking-thought-badge)] font-[var(--font-code)] text-[length:var(--text-tiny)] text-center shadow-[0_0_0_4px_var(--thinking-thought-shadow)]"
+      <Badge
+        variant="secondary"
+        class="mt-0.5 min-w-10 justify-center font-mono text-[10px] tabular-nums"
       >
         {{ thought.number }}/{{ thought.totalThoughts }}
-      </div>
+      </Badge>
 
-      <div
-        class="thought-entry bg-[color-mix(in_srgb,var(--color-bg-surface)_84%,var(--color-bg-app))] border border-[var(--thinking-thought-border)] rounded-[var(--radius)] px-[0.75rem] py-[0.65rem] min-w-0"
-      >
-        <div class="thought-meta flex items-center justify-between gap-[0.5rem] mb-[0.45rem]">
-          <span
+      <div class="min-w-0 rounded-md border border-border bg-card px-3 py-2.5">
+        <div class="mb-1.5 flex items-center justify-between gap-2">
+          <Badge
             v-if="thought.agent"
-            class="agent-badge inline-flex items-center gap-[0.3rem] rounded-[4px] px-[0.5rem] py-[0.2rem] text-[length:var(--text-tiny)] leading-[1.1] whitespace-nowrap bg-[color-mix(in_srgb,var(--color-bg-surface)_72%,var(--color-bg-app))] text-[var(--thinking-thought-text)] tracking-[0.04em]"
-          >{{ thought.agent }}</span>
-          <time
-            class="thought-timestamp text-[length:var(--text-tiny)] text-[var(--thinking-thought-muted)] whitespace-nowrap"
-            :datetime="thought.timestamp"
-            :title="thought.timestamp"
+            variant="outline"
+            class="text-[10px] font-normal tracking-wide text-muted-foreground"
           >
-            {{ formatRelativeTime(thought.timestamp) }}
-          </time>
+            {{ thought.agent }}
+          </Badge>
+          <span v-else />
+
+          <div class="flex items-center gap-2">
+            <time
+              class="whitespace-nowrap text-[10px] text-muted-foreground"
+              :datetime="thought.timestamp"
+              :title="thought.timestamp"
+            >
+              {{ formatRelativeTime(thought.timestamp) }}
+            </time>
+            <CollapsibleTrigger
+              :aria-label="`Toggle thought ${thought.number}`"
+              class="inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            >
+              <ChevronDown
+                class="h-3.5 w-3.5 transition-transform duration-200 group-data-[state=closed]/thought:-rotate-90"
+              />
+            </CollapsibleTrigger>
+          </div>
         </div>
 
-        <KnowledgeNoteRenderer :content="thought.content" clamp />
+        <CollapsibleContent>
+          <KnowledgeNoteRenderer :content="thought.content" clamp />
+        </CollapsibleContent>
       </div>
-    </article>
+    </Collapsible>
   </li>
 </template>

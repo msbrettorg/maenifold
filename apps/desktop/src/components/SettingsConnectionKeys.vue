@@ -44,7 +44,7 @@ function formatEnvCount(count: number) {
 
 <template>
   <Accordion type="multiple" :default-value="['env', 'mcp']">
-    <AccordionItem value="env" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+    <AccordionItem value="env" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded bg-bg-app">
       <AccordionTrigger>
         <div>
           <h5 class="m-0 text-sm font-medium text-text-secondary">Environment variables</h5>
@@ -58,14 +58,14 @@ function formatEnvCount(count: number) {
           <div v-for="(entry, index) in form.env" :key="`env-${index}`" class="flex justify-between gap-3 items-end max-sm:flex-col max-sm:items-stretch">
             <Input v-model="entry.key" type="text" placeholder="KEY" class="max-w-[14rem] max-sm:max-w-none" />
             <Input v-model="entry.value" type="text" placeholder="value" />
-            <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
+            <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
           </div>
-          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer" type="button" @click="onAddEnvRow">+ Add Variable</Button>
+          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded bg-transparent text-inherit cursor-pointer" type="button" @click="onAddEnvRow">+ Add Variable</Button>
         </div>
       </AccordionContent>
     </AccordionItem>
 
-    <AccordionItem value="mcp" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+    <AccordionItem value="mcp" class="flex flex-col gap-3 p-[0.9rem] border border-border-subtle rounded bg-bg-app">
       <AccordionTrigger>
         <div>
           <h5 class="m-0 text-sm font-medium text-text-secondary">Per-agent MCP servers</h5>
@@ -76,10 +76,10 @@ function formatEnvCount(count: number) {
       <AccordionContent>
         <div class="flex flex-col gap-3">
           <div v-if="form.mcpServers.length === 0" class="text-text-secondary text-[0.75rem]">No per-agent MCP servers configured.</div>
-          <div v-for="(server, index) in form.mcpServers" :key="`mcp-${index}`" class="flex flex-col gap-3 p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-elevated">
+          <div v-for="(server, index) in form.mcpServers" :key="`mcp-${index}`" class="flex flex-col gap-3 p-3 border border-border-subtle rounded bg-bg-elevated">
             <div class="flex justify-between gap-3 items-center">
               <strong>Server {{ index + 1 }}</strong>
-              <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
+              <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove MCP server" @click="onRemoveMcpServerRow(index)">
                 ×
               </Button>
             </div>
@@ -117,7 +117,7 @@ function formatEnvCount(count: number) {
             </div>
           </div>
 
-          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded-[var(--radius)] bg-transparent text-inherit cursor-pointer" type="button" @click="onAddMcpServerRow">+ Add MCP Server</Button>
+          <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded bg-transparent text-inherit cursor-pointer" type="button" @click="onAddMcpServerRow">+ Add MCP Server</Button>
         </div>
       </AccordionContent>
     </AccordionItem>

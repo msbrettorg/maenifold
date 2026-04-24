@@ -142,7 +142,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex h-full flex-col overflow-hidden bg-[var(--background)]">
+  <div class="flex h-full flex-col overflow-hidden bg-bg-app">
     <ProvenanceBreadcrumbs
       current-kind="pipeline"
       :current-id="currentPipelineLineageId"
@@ -152,24 +152,24 @@ onBeforeUnmount(() => {
     />
     <div
       v-if="successMessage"
-      class="flex shrink-0 items-center gap-2 px-4 py-3 text-[var(--foreground)] bg-[color-mix(in_srgb,var(--background)_84%,var(--sage)_16%)]"
+      class="flex shrink-0 items-center gap-2 bg-success/15 px-4 py-3 text-foreground"
       role="status"
     >
-      <span class="shrink-0 text-[var(--color-status-completed)]">✓</span>
+      <span class="shrink-0 text-status-completed">✓</span>
       <span class="min-w-0 flex-1">{{ successMessage }}</span>
       <Button type="button" variant="ghost" size="icon" aria-label="Dismiss success" @click="store.clearSuccess()">
         <X class="size-4" />
       </Button>
     </div>
     <div
-      class="relative min-h-0 flex-1 overflow-hidden bg-[var(--surface)] grid grid-cols-[48px_minmax(0,1fr)] [transition:grid-template-rows_0.25s_ease] max-[900px]:grid-cols-[minmax(0,1fr)]"
+      class="relative grid min-h-0 flex-1 grid-cols-[48px_minmax(0,1fr)] overflow-hidden bg-surface [transition:grid-template-rows_0.25s_ease] max-[900px]:grid-cols-[minmax(0,1fr)]"
       :class="[
         showTemplateGallery
           ? 'grid-rows-[minmax(0,1fr)] [grid-template-areas:\'rail_composer\'] max-[900px]:[grid-template-areas:\'composer\']'
           : 'grid-rows-[minmax(0,1fr)_auto] [grid-template-areas:\'rail_composer\'_\'rail_runner\'] max-[900px]:[grid-template-areas:\'composer\'_\'runner\']',
       ]"
     >
-      <section v-if="!isNarrowViewport" class="[grid-area:rail] relative z-[12] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section v-if="!isNarrowViewport" class="[grid-area:rail] relative z-[12] min-h-0 min-w-0 overflow-hidden bg-surface">
         <PipelineIconRail
           ref="iconRailRef"
           :active-pipeline-label="activePipelineLabel"
@@ -181,19 +181,19 @@ onBeforeUnmount(() => {
       </section>
       <section
         v-if="isNarrowViewport"
-        class="[grid-area:rail] min-h-0 min-w-0 overflow-hidden bg-[var(--surface)] max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:right-auto max-[900px]:w-[min(var(--sidebar-width),88vw)] max-[900px]:[transition:transform_0.2s_ease] max-[900px]:shadow-[var(--shadow-16)] max-[900px]:z-20"
+        class="[grid-area:rail] min-h-0 min-w-0 overflow-hidden bg-surface max-[900px]:absolute max-[900px]:inset-y-0 max-[900px]:left-0 max-[900px]:right-auto max-[900px]:w-[min(20rem,88vw)] max-[900px]:z-20 max-[900px]:shadow-fluent-16 max-[900px]:[transition:transform_0.2s_ease]"
         :class="mobileSidebarOpen ? 'max-[900px]:[transform:translateX(0)]' : 'max-[900px]:[transform:translateX(-100%)]'"
       >
         <PipelineSidebar />
       </section>
-      <section class="[grid-area:composer] relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)]">
+      <section class="[grid-area:composer] relative min-h-0 min-w-0 overflow-hidden bg-surface">
         <div v-if="isNarrowViewport" class="pointer-events-none absolute left-3 right-3 top-3 z-[8] flex gap-2">
-          <Button type="button" variant="outline" size="sm" class="pointer-events-auto min-h-11 min-w-11 cursor-pointer rounded-[var(--radius-4)] bg-[var(--surface-container)] px-3.5 py-2 text-[var(--text)] text-[length:var(--text-sm)] shadow-[var(--shadow-16)] disabled:cursor-not-allowed disabled:opacity-50" @click="toggleMobileSidebar">
+          <Button type="button" variant="outline" size="sm" class="pointer-events-auto min-h-11 min-w-11 cursor-pointer rounded bg-surface-container px-3.5 py-2 text-foreground text-sm shadow-fluent-16 disabled:cursor-not-allowed disabled:opacity-50" @click="toggleMobileSidebar">
             {{ mobileSidebarOpen ? 'Close Sidebar' : 'Open Sidebar' }}
           </Button>
         </div>
         <div v-if="showTemplateGallery" class="flex h-full min-h-0 flex-col gap-3 px-4 pb-3 pt-4">
-          <Button v-if="showBrowseExistingEntry" type="button" variant="ghost" class="h-8 self-start rounded-[var(--radius-4)]" @click="handleTogglePipelineFlyout">
+          <Button v-if="showBrowseExistingEntry" type="button" variant="ghost" class="h-8 self-start rounded" @click="handleTogglePipelineFlyout">
             Browse existing pipelines
           </Button>
           <TemplateGallery />
@@ -230,7 +230,7 @@ onBeforeUnmount(() => {
       </section>
       <section
         v-if="!showTemplateGallery"
-        class="[grid-area:runner] relative min-h-0 min-w-0 overflow-hidden bg-[var(--surface)] [transition:max-height_0.25s_ease]"
+        class="[grid-area:runner] relative min-h-0 min-w-0 overflow-hidden bg-surface [transition:max-height_0.25s_ease]"
         :class="runnerExpanded ? 'max-h-[50vh]' : 'max-h-9'"
       >
         <div class="absolute right-3 top-3 z-[5] flex items-center gap-2">
@@ -240,7 +240,7 @@ onBeforeUnmount(() => {
           <Button v-if="hasLoadedPipeline && runnerExpanded" type="button" variant="ghost" :disabled="joinSubmitting" @click="joinDialogOpen = true">
             Join pipeline
           </Button>
-          <Button type="button" variant="ghost" aria-label="Toggle runner" :aria-expanded="runnerExpanded" :title="runnerExpanded ? 'Hide runner' : 'Show runner'" class="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded-[var(--radius-4)] border-0 bg-[var(--surface-high)] px-2.5 text-[var(--text)] text-[length:var(--text-xs)] hover:bg-[var(--surface-highest)]" @click="runnerExpanded = !runnerExpanded" @keydown="handleRunnerToggleKeydown">
+          <Button type="button" variant="ghost" aria-label="Toggle runner" :aria-expanded="runnerExpanded" :title="runnerExpanded ? 'Hide runner' : 'Show runner'" class="inline-flex min-h-8 cursor-pointer items-center gap-1.5 rounded border-0 bg-surface-high px-2.5 text-foreground text-xs hover:bg-surface-highest" @click="runnerExpanded = !runnerExpanded" @keydown="handleRunnerToggleKeydown">
             <span>Runner</span>
             <ChevronDown v-if="runnerExpanded" aria-hidden="true" class="size-4" />
             <ChevronUp v-else aria-hidden="true" class="size-4" />
@@ -248,7 +248,7 @@ onBeforeUnmount(() => {
         </div>
         <PipelineRunner :collapsed="!runnerExpanded" />
       </section>
-      <Button v-if="isNarrowViewport && mobileSidebarOpen" variant="ghost" type="button" aria-label="Close sidebar" class="absolute inset-0 z-[18] cursor-pointer border-0 bg-[color-mix(in_srgb,var(--background)_40%,transparent)]" @click="mobileSidebarOpen = false" />
+      <Button v-if="isNarrowViewport && mobileSidebarOpen" variant="ghost" type="button" aria-label="Close sidebar" class="absolute inset-0 z-[18] cursor-pointer border-0 bg-background/40" @click="mobileSidebarOpen = false" />
     </div>
     <GraftNodesDialog
       v-if="graftDialogOpen && currentView"

@@ -25,16 +25,16 @@ defineProps<{
     role="group"
     aria-label="Maenifold workflow settings"
   >
-    <AccordionItem value="workflows-debug" class="p-4 rounded-[var(--radius)] bg-bg-elevated border border-border-subtle">
+    <AccordionItem value="workflows-debug" class="p-4 rounded bg-bg-elevated border border-border-subtle">
       <AccordionTrigger><h4 class="m-0">Workflows &amp; Debug</h4></AccordionTrigger>
       <AccordionContent>
         <div class="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-[0.9rem]">
-        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded-[var(--radius)] bg-bg-app">
+        <div class="flex gap-[0.65rem] items-center min-h-[42px] p-3 border border-border-subtle rounded bg-bg-app">
           <Checkbox :checked="form.debug.trace" @update:checked="(val: boolean) => { form.debug.trace = val }" />
           <Label>Trace logging</Label>
         </div>
 
-        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded-[var(--radius)] bg-bg-app col-span-full">
+        <div class="flex flex-col gap-[0.45rem] p-[0.9rem] border border-border-subtle rounded bg-bg-app col-span-full">
           <div class="flex flex-col gap-[0.45rem]">
             <Label>Pipeline driver</Label>
             <Input

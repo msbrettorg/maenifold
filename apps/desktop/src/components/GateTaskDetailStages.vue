@@ -3,6 +3,11 @@ import { computed } from 'vue';
 import { CheckCircle } from 'lucide-vue-next';
 import type { GateTask } from '../lib/gate';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
+import {
+  Stepper,
+  StepperItem,
+  StepperIndicator,
+} from '@/components/ui/stepper';
 
 const props = defineProps<{ task: GateTask }>();
 
@@ -14,70 +19,110 @@ const currentStageIndex = computed(() => {
 
 const stagesLabelId = computed(() => `gate-task-stages-${props.task.taskId}`);
 
-function stageState(index: number): 'completed' | 'current' | 'upcoming' {
+type StageState = 'completed' | 'current' | 'upcoming';
+
+function stageState(index: number): StageState {
   if (currentStageIndex.value < 0) return 'upcoming';
   if (index < currentStageIndex.value) return 'completed';
   if (index === currentStageIndex.value) return 'current';
   return 'upcoming';
 }
 
-function itemBg(state: string): string {
-  if (state === 'completed') return 'color-mix(in srgb, var(--sage) 8%, var(--surface-container))';
-  if (state === 'current') return 'var(--surface-high)';
-  return 'var(--surface-container)';
+function itemClass(state: StageState): string {
+  if (state === 'completed') return 'bg-success/10';
+  if (state === 'current') return 'bg-surface-high';
+  return 'bg-surface-container';
 }
 
-function trackBg(state: string): string {
-  if (state === 'completed') return 'var(--sage)';
-  if (state === 'current') return 'var(--color-brand)';
-  return 'var(--surface-highest)';
+function trackClass(state: StageState): string {
+  if (state === 'completed') return 'bg-success';
+  if (state === 'current') return 'bg-brand';
+  return 'bg-surface-highest';
 }
 
-function chipBg(family: string): string {
-  if (family === 'swe') return 'var(--color-brand)';
-  if (family === 'red-team') return 'var(--amber)';
-  if (family === 'blue-team' || family === 'done') return 'var(--sage)';
-  if (family === 'failed') return 'var(--terracotta)';
-  if (family === 'pending') return 'var(--text-secondary)';
-  return 'var(--surface-highest)';
+function indicatorClass(state: StageState): string {
+  if (state === 'completed') return 'bg-success text-white';
+  if (state === 'current') return 'bg-brand text-white';
+  return 'bg-surface-highest text-text-secondary';
+}
+
+function chipClass(family: string): string {
+  if (family === 'swe') return 'bg-brand';
+  if (family === 'red-team') return 'bg-warning';
+  if (family === 'blue-team' || family === 'done') return 'bg-success';
+  if (family === 'failed') return 'bg-danger';
+  if (family === 'pending') return 'bg-text-secondary';
+  return 'bg-surface-highest';
 }
 </script>
 
 <template>
-  <section v-if="task.stages.length" class="flex flex-col gap-3" :aria-labelledby="stagesLabelId">
-    <p :id="stagesLabelId" class="text-text-secondary text-[length:var(--text-tiny)]">Stage progress</p>
-    <ol class="flex flex-col gap-3 m-0 p-0 list-none">
-      <!-- audit-ok: dynamic-binding (item background varies by completion state, including color-mix) -->
-      <li
+  <section
+    v-if="task.stages.length"
+    class="flex flex-col gap-3"
+    :aria-labelledby="stagesLabelId"
+  >
+    <p :id="stagesLabelId" class="text-text-secondary text-xs">
+      Stage progress
+    </p>
+    <Stepper
+      :model-value="currentStageIndex + 1"
+      orientation="vertical"
+      class="flex-col gap-2 w-full"
+    >
+      <StepperItem
         v-for="(stage, index) in task.stages"
         :key="stage"
-        class="relative grid grid-cols-[auto_auto_1fr] items-center gap-[0.65rem] px-[0.9rem] py-[0.8rem] rounded"
-        :style="{ background: itemBg(stageState(index)) }"
+        :step="index + 1"
+        :class="[
+          'relative !flex-row items-stretch gap-3 rounded-md pl-2 pr-3 py-2.5 w-full overflow-hidden',
+          itemClass(stageState(index)),
+        ]"
       >
-        <!-- audit-ok: dynamic-binding (track color varies by completion state) -->
         <span
-          class="w-1 self-stretch rounded"
           aria-hidden="true"
-          :style="{ background: trackBg(stageState(index)) }"
-        ></span>
-        <span class="inline-flex items-center justify-center w-[1.4rem] h-[1.4rem] rounded-[4px] bg-surface-highest text-[length:var(--text-tiny)]">{{ index + 1 }}</span>
-        <div class="flex flex-col gap-[0.3rem]">
-          <!-- audit-ok: dynamic-binding (chip color varies by stage family) -->
-          <span
-            class="inline-flex self-start px-[0.55rem] py-[0.2rem] rounded-[4px] text-text-primary font-mono text-[length:var(--text-tiny)]"
-            :style="{ background: chipBg(gateStageFamily(stage)) }"
-          >{{ formatStageLabel(stage) }}</span>
+          :class="['w-1 self-stretch rounded shrink-0', trackClass(stageState(index))]"
+        />
+        <StepperIndicator
+          :class="[
+            'rounded-md w-7 h-7 shrink-0 self-center',
+            indicatorClass(stageState(index)),
+          ]"
+        >
+          <CheckCircle
+            v-if="stageState(index) === 'completed'"
+            class="size-4"
+            :stroke-width="1.75"
+            aria-hidden="true"
+          />
+          <span v-else class="text-xs font-medium">{{ index + 1 }}</span>
+        </StepperIndicator>
+        <div class="flex flex-col gap-1 flex-1 min-w-0 self-center">
           <span
             :class="[
-              'text-text-secondary text-[length:var(--text-tiny)]',
-              stageState(index) === 'current' ? 'text-brand font-semibold' : '',
+              'inline-flex self-start px-2 py-0.5 rounded text-xs font-mono text-text-primary',
+              chipClass(gateStageFamily(stage)),
+            ]"
+          >
+            {{ formatStageLabel(stage) }}
+          </span>
+          <span
+            :class="[
+              'text-xs inline-flex items-center gap-1',
+              stageState(index) === 'current'
+                ? 'text-brand font-semibold'
+                : 'text-text-secondary',
             ]"
           >
             <template v-if="stageState(index) === 'current'">
               Current stage
             </template>
             <template v-else-if="stageState(index) === 'completed'">
-              <CheckCircle class="inline size-3.5 text-success" :stroke-width="1.5" />
+              <CheckCircle
+                class="inline size-3.5 text-success"
+                :stroke-width="1.5"
+                aria-hidden="true"
+              />
               Complete
             </template>
             <template v-else>
@@ -85,7 +130,7 @@ function chipBg(family: string): string {
             </template>
           </span>
         </div>
-      </li>
-    </ol>
+      </StepperItem>
+    </Stepper>
   </section>
 </template>

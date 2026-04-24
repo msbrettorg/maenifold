@@ -44,28 +44,28 @@ function statusIcon(status: string): Component {
 
 function statusColorClass(status: string): string {
   switch (status) {
-    case 'in_progress': return 'text-[var(--amber)]';
-    case 'completed': return 'text-[var(--sage)]';
-    case 'failed': return 'text-[var(--terracotta)]';
+    case 'in_progress': return 'text-warning';
+    case 'completed': return 'text-success';
+    case 'failed': return 'text-danger';
     case 'pending':
     case 'cancelled':
-    default: return 'text-[var(--text-secondary)]';
+    default: return 'text-text-secondary';
   }
 }
 </script>
 
 <template>
-  <div class="flex flex-col rounded text-sm bg-[var(--surface-high)] overflow-hidden" role="article" :aria-label="toolCallAriaLabel">
+  <div class="flex flex-col overflow-hidden rounded bg-surface-high text-sm" role="article" :aria-label="toolCallAriaLabel">
     <Button
       variant="ghost"
       class="flex items-center gap-2 w-full px-2 py-1 border-none bg-transparent text-inherit font-[inherit] text-left"
-      :class="hasDetails(toolCall) ? 'cursor-pointer hover:bg-[var(--surface-highest)]' : ''"
+      :class="hasDetails(toolCall) ? 'cursor-pointer hover:bg-surface-highest' : ''"
       :aria-expanded="hasDetails(toolCall) ? isExpanded : undefined"
       :aria-controls="hasDetails(toolCall) ? detailsId : undefined"
       @click="hasDetails(toolCall) && emit('toggle')"
     >
       <span class="text-sm"><component :is="toolIcon(toolCall.kind)" class="size-4" :stroke-width="1.5" /></span>
-      <span class="font-[number:var(--weight-display)] text-text-primary">{{ toolCall.title }}</span>
+      <span class="font-medium text-text-primary">{{ toolCall.title }}</span>
       <span v-if="locationLabel(toolCall)" class="flex-1 text-text-secondary text-xs whitespace-nowrap overflow-hidden text-ellipsis">{{ locationLabel(toolCall) }}</span>
       <span :class="['text-xs', statusColorClass(toolCall.status)]"><component :is="statusIcon(toolCall.status)" class="size-4" :stroke-width="1.5" /></span>
       <span v-if="hasDetails(toolCall)" class="text-text-secondary text-xs">{{ isExpanded ? '▲' : '▼' }}</span>

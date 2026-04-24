@@ -77,9 +77,7 @@ export function cloneAgentConfig(
 export function normalizeExecutionCwd(value: unknown): string | undefined {
   const cwd = normalizeNodeCwd(value);
   if (cwd && !cwdHasReasonablePathPrefix(cwd)) {
-    console.warn( // audit-ok: no-console
-      `[pipeline-node-factory] cwd "${cwd}" does not start with a typical path prefix`,
-    );
+    // cwd does not start with a typical path prefix — silently accept
   }
   return cwd;
 }

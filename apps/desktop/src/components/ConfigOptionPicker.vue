@@ -78,20 +78,20 @@ onUnmounted(() => {
     <Button
       variant="outline"
       size="sm"
-      class="flex items-center gap-1.5 px-2.5 py-1.5 max-w-[200px] border border-[var(--color-border-subtle)] rounded-[var(--radius)] bg-[var(--color-bg-app)] text-[var(--color-text-primary)] text-xs cursor-pointer transition-all duration-150 ease-in-out hover:bg-[var(--color-bg-surface)] hover:border-[var(--color-brand)]"
+      class="flex items-center gap-1.5 px-2.5 py-1.5 max-w-[200px] border border-border-subtle rounded-lg bg-bg-app text-text-primary text-xs cursor-pointer transition-all duration-150 ease-in-out hover:bg-bg-surface hover:border-brand"
       :aria-controls="listboxId"
       :aria-expanded="isOpen"
       :aria-haspopup="'listbox'"
       :aria-label="optionPickerLabel"
       @click.stop="toggleDropdown"
     >
-      <span class="text-[length:var(--text-body-sm)] shrink-0">
+      <span class="text-body-sm shrink-0">
         {{ getOptionIcon(option.currentValue, option.category) }}
       </span>
-      <span class="font-[number:var(--weight-display)] whitespace-nowrap overflow-hidden text-ellipsis">
+      <span class="font-medium whitespace-nowrap overflow-hidden text-ellipsis">
         {{ currentOption?.name || option.currentValue || option.name }}
       </span>
-      <span class="text-xs text-[var(--color-text-secondary)] ml-1 shrink-0">{{ isOpen ? '▲' : '▼' }}</span>
+      <span class="ml-1 shrink-0 text-xs text-text-secondary">{{ isOpen ? '▲' : '▼' }}</span>
     </Button>
 
     <Transition
@@ -103,7 +103,7 @@ onUnmounted(() => {
       <div
         v-if="isOpen"
         :id="listboxId"
-        class="absolute top-[calc(100%+4px)] right-0 min-w-[280px] max-w-[360px] max-h-[320px] overflow-y-auto bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] rounded-[var(--radius)] shadow-[var(--shadow-8)] z-[100]"
+        class="absolute top-[calc(100%+4px)] right-0 z-[100] min-w-[280px] max-w-[360px] max-h-[320px] overflow-y-auto rounded-lg border border-border-subtle bg-bg-app shadow-fluent-8"
         role="listbox"
         :aria-label="optionPickerLabel"
         @click.stop
@@ -114,69 +114,69 @@ onUnmounted(() => {
         >
           <div
             v-if="isGroup(entry)"
-            class="[&:not(:first-child)]:border-t [&:not(:first-child)]:border-[var(--color-border-subtle)]"
+            class="[&:not(:first-child)]:border-t [&:not(:first-child)]:border-border-subtle"
             role="group"
             :aria-label="entry.name"
           >
-            <div class="px-3 py-2 text-xs font-[number:var(--weight-title)] text-[var(--color-text-secondary)] tracking-[0.04em]">
+            <div class="px-3 py-2 text-xs font-semibold tracking-[0.04em] text-text-secondary">
               {{ entry.name }}
             </div>
             <div
               v-for="(groupOption, groupIndex) in entry.options"
               :key="groupOption.value"
               :class="[
-                'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-[var(--color-bg-surface)]',
-                groupIndex > 0 && 'border-t border-[var(--color-border-subtle)]',
-                groupOption.value === option.currentValue && 'bg-[color-mix(in_srgb,var(--color-brand)_24%,var(--color-bg-elevated))]',
+                'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-bg-surface',
+                groupIndex > 0 && 'border-t border-border-subtle',
+                groupOption.value === option.currentValue && 'bg-brand/25',
               ]"
               role="option"
               :aria-selected="groupOption.value === option.currentValue"
               @click="selectOption(groupOption.value)"
             >
-              <span class="text-[length:var(--text-body-sm)] shrink-0 mt-0.5">
+              <span class="mt-0.5 shrink-0 text-body-sm">
                 {{ getOptionIcon(groupOption.value, option.category) }}
               </span>
               <div class="flex-1 min-w-0">
-                <span class="block font-[number:var(--weight-display)] text-[var(--color-text-primary)] text-xs">{{ groupOption.name }}</span>
+                <span class="block text-xs font-medium text-text-primary">{{ groupOption.name }}</span>
                 <span
                   v-if="groupOption.description"
-                  class="block text-xs text-[var(--color-text-secondary)] mt-0.5 leading-snug"
+                  class="mt-0.5 block text-xs leading-snug text-text-secondary"
                 >
                   {{ groupOption.description }}
                 </span>
               </div>
               <span
                 v-if="groupOption.value === option.currentValue"
-                class="text-[var(--color-brand)] font-[number:var(--weight-title)] ml-auto shrink-0"
+                class="ml-auto shrink-0 font-semibold text-brand"
               >✓</span>
             </div>
           </div>
           <div
             v-else
             :class="[
-              'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-[var(--color-bg-surface)]',
-              entryIndex > 0 && 'border-t border-[var(--color-border-subtle)]',
-              entry.value === option.currentValue && 'bg-[color-mix(in_srgb,var(--color-brand)_24%,var(--color-bg-elevated))]',
+              'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-bg-surface',
+              entryIndex > 0 && 'border-t border-border-subtle',
+              entry.value === option.currentValue && 'bg-brand/25',
             ]"
             role="option"
             :aria-selected="entry.value === option.currentValue"
             @click="selectOption(entry.value)"
           >
-            <span class="text-[length:var(--text-body-sm)] shrink-0 mt-0.5">
+            <span class="mt-0.5 shrink-0 text-body-sm">
               {{ getOptionIcon(entry.value, option.category) }}
             </span>
             <div class="flex-1 min-w-0">
-              <span class="block font-[number:var(--weight-display)] text-[var(--color-text-primary)] text-xs">{{ entry.name }}</span>
+              <span class="block text-xs font-medium text-text-primary">{{ entry.name }}</span>
               <span
                 v-if="entry.description"
-                class="block text-xs text-[var(--color-text-secondary)] mt-0.5 leading-snug"
+                class="mt-0.5 block text-xs leading-snug text-text-secondary"
               >
                 {{ entry.description }}
               </span>
             </div>
             <span
               v-if="entry.value === option.currentValue"
-              class="text-[var(--color-brand)] font-[number:var(--weight-title)] ml-auto shrink-0"
+              class="ml-auto shrink-0 font-semibold text-brand"
             >✓</span>
           </div>
         </template>

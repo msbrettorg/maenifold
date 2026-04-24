@@ -28,17 +28,17 @@ const emit = defineEmits<{
   <Dialog :open="true" @update:open="(open) => !open && emit('close')">
     <DialogContent class="sm:max-w-lg w-[min(28rem,100%)] grid gap-4" :show-close-button="false">
       <DialogHeader class="flex flex-row items-start gap-3">
-        <span class="text-[length:var(--text-title)] leading-none" aria-hidden="true">🔑</span>
+        <span class="text-title leading-none" aria-hidden="true">🔑</span>
         <div class="grid gap-1 text-left">
           <DialogTitle>{{ action.label }}</DialogTitle>
           <DialogDescription>{{ action.description }}</DialogDescription>
         </div>
       </DialogHeader>
 
-      <p class="m-0 text-[var(--text-secondary)] text-[0.75rem]">
+      <p class="m-0 text-[0.75rem] text-text-secondary">
         {{ server }} needs setup before this tool can be used from the palette.
       </p>
-      <p v-if="error" class="m-0 text-[var(--color-status-abandoned)] text-[0.75rem]" role="alert">{{ error }}</p>
+      <p v-if="error" class="m-0 text-[0.75rem] text-status-abandoned" role="alert">{{ error }}</p>
 
       <DialogFooter class="flex flex-row gap-3 justify-between">
         <DialogClose as-child>

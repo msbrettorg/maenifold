@@ -91,10 +91,10 @@ function renderContentBlock(block: ToolCallContentBlock): ContentBlockView {
 
 function optionClasses(kind: string): string {
   if (kind === 'allow_once' || kind === 'allow_always') {
-    return 'bg-[var(--color-status-completed)] text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-status-completed)_88%,var(--color-bg-app))]';
+    return 'bg-status-completed text-text-primary hover:bg-status-completed/90';
   }
   if (kind === 'reject_once' || kind === 'reject_always') {
-    return 'bg-[var(--color-danger)] text-[var(--color-text-primary)] hover:bg-[color-mix(in_srgb,var(--color-danger)_88%,var(--color-bg-app))]';
+    return 'bg-danger text-text-primary hover:bg-danger/90';
   }
   return '';
 }
@@ -124,63 +124,63 @@ const rawOutputJson = computed(() => prettyJson(toolCall.value.rawOutput));
 <template>
   <div class="entry-details flex flex-col gap-3 min-h-0" role="listitem">
     <div class="flex flex-col gap-1">
-      <span class="text-[length:var(--text-body-sm)] font-[var(--weight-title)]">{{ request.toolCall.title }}</span>
-      <span class="text-[var(--color-text-secondary)] text-[length:var(--text-caption)]">{{ request.toolCall.kind }}</span>
+      <span class="text-body-sm font-semibold">{{ request.toolCall.title }}</span>
+      <span class="text-caption text-text-secondary">{{ request.toolCall.kind }}</span>
     </div>
 
     <div class="flex flex-col gap-3 flex-1 min-h-0 overflow-y-auto [overscroll-behavior:contain] pr-1">
       <section v-if="contextRows.length">
-        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Requested action</h4>
+        <h4 class="m-0 mb-2 text-title">Requested action</h4>
         <dl class="grid grid-cols-[minmax(110px,auto)_1fr] gap-y-2 gap-x-3 m-0">
           <template v-for="row in contextRows" :key="row.label">
-            <dt class="text-[var(--color-text-secondary)] font-[var(--weight-title)]">{{ row.label }}</dt>
-            <dd class="m-0 min-w-0 text-[var(--color-text-primary)] break-words [overflow-wrap:anywhere]">{{ row.value }}</dd>
+            <dt class="font-semibold text-text-secondary">{{ row.label }}</dt>
+            <dd class="m-0 min-w-0 break-words text-text-primary [overflow-wrap:anywhere]">{{ row.value }}</dd>
           </template>
         </dl>
       </section>
 
-      <section v-if="request.toolCall.locations?.length" class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full py-2 px-3">
-        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Locations</h4>
-        <div v-for="(location, index) in request.toolCall.locations" :key="index" class="text-[var(--color-text-primary)] font-[var(--font-code)] text-[length:var(--text-caption)] py-0.5 break-all">
+      <section v-if="request.toolCall.locations?.length" class="max-w-full rounded-[4px] border border-border-subtle bg-bg-surface px-3 py-2">
+        <h4 class="m-0 mb-2 text-title">Locations</h4>
+        <div v-for="(location, index) in request.toolCall.locations" :key="index" class="break-all py-0.5 font-mono text-caption text-text-primary">
           📁 {{ location.path }}
         </div>
       </section>
 
       <section v-if="renderedBlocks.length">
-        <h4 class="m-0 mb-2 text-[length:var(--text-title)]">Tool content</h4>
+        <h4 class="m-0 mb-2 text-title">Tool content</h4>
         <div v-for="(block, index) in renderedBlocks" :key="`${block.label}-${index}`" class="min-w-0 [&+&]:mt-3">
-          <div class="mb-1 text-[var(--color-text-secondary)] text-[length:var(--text-caption)] font-[var(--weight-title)] tracking-[0.04em]">{{ block.label }}</div>
-          <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ block.body }}</pre>
+          <div class="mb-1 text-caption font-semibold tracking-[0.04em] text-text-secondary">{{ block.label }}</div>
+          <pre class="m-0 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-[4px] border border-border-subtle bg-bg-surface p-3 font-mono text-caption leading-[1.4] [overflow-wrap:anywhere]">{{ block.body }}</pre>
         </div>
       </section>
 
       <Accordion v-if="rawInputJson || rawOutputJson" type="multiple">
         <AccordionItem v-if="rawInputJson" value="input" class="min-w-0 mt-3">
-          <AccordionTrigger class="font-[var(--weight-title)] cursor-pointer">Raw tool input</AccordionTrigger>
+          <AccordionTrigger class="cursor-pointer font-semibold">Raw tool input</AccordionTrigger>
           <AccordionContent>
-            <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ rawInputJson }}</pre>
+            <pre class="m-0 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-[4px] border border-border-subtle bg-bg-surface p-3 font-mono text-caption leading-[1.4] [overflow-wrap:anywhere]">{{ rawInputJson }}</pre>
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem v-if="rawOutputJson" value="output" class="min-w-0 mt-3">
-          <AccordionTrigger class="font-[var(--weight-title)] cursor-pointer">Raw tool output</AccordionTrigger>
+          <AccordionTrigger class="cursor-pointer font-semibold">Raw tool output</AccordionTrigger>
           <AccordionContent>
-            <pre class="bg-[var(--color-bg-surface)] border border-[var(--color-border-subtle)] rounded-[4px] max-w-full m-0 p-3 font-[var(--font-code)] text-[length:var(--text-caption)] leading-[1.4] whitespace-pre-wrap break-words [overflow-wrap:anywhere] overflow-auto">{{ rawOutputJson }}</pre>
+            <pre class="m-0 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-[4px] border border-border-subtle bg-bg-surface p-3 font-mono text-caption leading-[1.4] [overflow-wrap:anywhere]">{{ rawOutputJson }}</pre>
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
 
-    <div class="dialog-actions flex flex-wrap gap-2 mt-1 pt-4 border-t border-[var(--color-border-subtle)] bg-[var(--color-bg-app)]">
+    <div class="dialog-actions mt-1 flex flex-wrap gap-2 border-t border-border-subtle bg-bg-app pt-4">
       <Button
         v-for="option in request.options"
         :key="option.optionId"
-        :class="[`option-${option.kind}`, 'flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer border-none font-[var(--weight-display)] transition-[background] duration-150', optionClasses(option.kind)]"
+        :class="[`option-${option.kind}`, 'flex-1 min-w-[120px] cursor-pointer rounded-[4px] border-none px-4 py-2.5 text-body-sm font-medium transition-[background] duration-150', optionClasses(option.kind)]"
         @click="emit('select', option.optionId)"
       >
         {{ option.name }}
       </Button>
-      <Button variant="outline" class="cancel-btn flex-1 min-w-[120px] py-2.5 px-4 rounded-[4px] text-[length:var(--text-body-sm)] cursor-pointer bg-[var(--color-bg-app)] border border-[var(--color-border-subtle)] hover:bg-[var(--color-bg-surface)]" @click="emit('cancel')">Cancel</Button>
+      <Button variant="outline" class="cancel-btn flex-1 min-w-[120px] cursor-pointer rounded-[4px] border border-border-subtle bg-bg-app px-4 py-2.5 text-body-sm hover:bg-bg-surface" @click="emit('cancel')">Cancel</Button>
     </div>
   </div>
 </template>

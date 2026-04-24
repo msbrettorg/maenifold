@@ -173,7 +173,6 @@ async function confirmDeleteServer() {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     feedback.value = { type: 'error', message };
-    console.error('Failed to delete MCP server:', error);
   }
 }
 </script>

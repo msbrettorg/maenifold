@@ -119,10 +119,10 @@ function formatLogEntry(entry: LogEntry) {
 
 <template>
   <section
-    class="flex flex-col bg-[var(--surface)]"
+    class="flex flex-col bg-surface"
     :class="props.collapsed ? 'min-h-0' : 'min-h-[260px]'"
   >
-    <div class="flex items-center gap-2 px-4 py-3 bg-[var(--surface-container)] text-[var(--text-secondary)] text-[length:var(--text-base)]">
+    <div class="flex items-center gap-2 bg-surface-container px-4 py-3 text-base text-text-secondary">
       <component
         :is="iconFor(currentView?.status ?? 'pending')"
         class="size-3.5"
@@ -133,13 +133,13 @@ function formatLogEntry(entry: LogEntry) {
 
     <ScrollArea
       v-show="!props.collapsed"
-      class="flex-1 min-h-0 bg-[var(--surface-container)]"
+      class="flex-1 min-h-0 bg-surface-container"
       aria-live="polite"
       aria-label="Event log"
     >
       <div class="min-h-full p-4">
-        <p v-if="formattedLog.length === 0" class="text-[var(--text-secondary)]">No events yet.</p>
-        <pre v-else class="m-0 whitespace-pre-wrap break-words [font-family:var(--font-code)] text-[length:var(--text-sm)] text-[var(--text)]"><code>{{ formattedLog.join('\n') }}</code></pre>
+        <p v-if="formattedLog.length === 0" class="text-text-secondary">No events yet.</p>
+        <pre v-else class="m-0 whitespace-pre-wrap break-words font-mono text-sm text-text-primary"><code>{{ formattedLog.join('\n') }}</code></pre>
         <div ref="logAnchor" />
       </div>
     </ScrollArea>

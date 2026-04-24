@@ -92,11 +92,9 @@ export const useConfigStore = defineStore('config', () => {
         configPath.value = payload.path ?? configPath.value;
         error.value = null;
         if (import.meta.env.DEV) {
-          console.log('Config hot-reloaded:', payload.config); // audit-ok: no-console
         }
       } catch (e) {
         if (import.meta.env.DEV) {
-          console.error('Failed to parse config-changed payload:', e); // audit-ok: no-console
         }
         return;
       }
@@ -109,7 +107,6 @@ export const useConfigStore = defineStore('config', () => {
         toast.warning(message);
       } catch (e) {
         if (import.meta.env.DEV) {
-          console.error('Failed to parse config-error payload:', e); // audit-ok: no-console
         }
         return;
       }
@@ -122,7 +119,6 @@ export const useConfigStore = defineStore('config', () => {
         toast.warning(message);
       } catch (e) {
         if (import.meta.env.DEV) {
-          console.error('Failed to parse watch-error payload:', e); // audit-ok: no-console
         }
         return;
       }

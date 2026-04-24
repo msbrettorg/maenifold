@@ -157,39 +157,56 @@ Emoji icons are intentional and canonical for top-level category recognition.
 
 ## 10) Component Conventions — ZERO HAND-ROLLED COMPONENTS
 
-**No `<style>` blocks. No companion CSS files. No inline styles (except dynamic bindings). No exceptions. No `audit-ok` waivers.**
+**No \`<style>\` blocks. No companion CSS files. No inline styles (except dynamic bindings). No exceptions. No \`audit-ok\` waivers. No custom animations. No custom CSS of any kind.**
 
-Every component is `<template>` + `<script setup>` + Tailwind utility classes. Period.
+Every component is \`<template>\` + \`<script setup>\` + Tailwind utility classes. Period.
 
 ### What this means
 
-- **All visual styling uses Tailwind classes** referencing tokens defined in `@theme` in `tailwind.css`.
-- **No CSS rules in `<style>` blocks.** If Tailwind can’t express it, the token layer is broken — fix the tokens, don’t work around them.
-- **No companion `.css` files.** Delete them. Migrate to Tailwind classes.
-- **No `color-mix()` in components.** Pre-compute all mix variants as `@theme` tokens (e.g., `--color-node-accent-10`). Components use `bg-node-accent-10`.
-- **No `var()` in components.** Every CSS custom property must have a corresponding Tailwind utility via `@theme`. If it doesn’t, add it to `@theme`.
-- **Dynamic values** (computed widths, positions, transforms) use `:style` bindings with a `<- Cleaned up temporary codex command files audit-ok: dynamic-binding -->` comment explaining why. These are the ONLY permitted inline styles.
+- **All visual styling uses Tailwind classes** referencing tokens defined in \`@theme\` in \`tailwind.css\`.
+- **No CSS rules in \`<style>\` blocks.** Not scoped. Not unscoped. Not one line. NONE.
+- **No companion \`.css\` files.** Delete them. Migrate to Tailwind classes.
+- **No \`color-mix()\` in components.** Pre-compute all mix variants as \`@theme\` tokens (e.g., \`--color-node-accent-10\`). Components use \`bg-node-accent-10\`.
+- **No \`var()\` in components.** Every CSS custom property must have a corresponding Tailwind utility via \`@theme\`. If it doesn’t, add it to \`@theme\`.
+- **No \`@keyframes\` in components.** Use Tailwind built-in animations (\`animate-spin\`, \`animate-pulse\`, \`animate-ping\`, \`animate-bounce\`) or \`tw-animate-css\` classes. Custom keyframes are banned.
+- **No \`:deep()\` selectors.** If you need to style third-party or v-html content, move the styles to \`tailwind.css\` global layer, or replace the third-party component, or stop using v-html.
+- **No \`audit-ok\` comments.** This escape hatch is permanently banned. The audit script does not recognize it. Build fails if present.
+- **No \`console.log\` / \`console.warn\` / \`console.error\`.** Use a structured logger or remove.
+- **Dynamic values** (computed widths, positions, transforms) use \`:style\` bindings. These are the ONLY permitted inline styles.
 
-### Allowed in `tailwind.css` only
+### All UI controls come from the design library
 
-- `@theme` definitions (token → utility mapping)
-- `@layer base` resets
-- `@layer components` for shadcn-vue component overrides
-- `color-mix()` expressions inside `@theme` to pre-compute variants
+- **shadcn-vue** — Button, Card, Badge, Input, Textarea, Select, Checkbox, Switch, Dialog, Sheet, Tabs, Accordion, Table, ScrollArea, Tooltip, Popover, DropdownMenu, ContextMenu, Separator, Skeleton, Progress, Avatar, HoverCard, Collapsible, Label, RadioGroup, Resizable
+- **Reka UI** — only via shadcn-vue wrappers
+- **lucide-vue-next** — all icons
+- **No raw HTML controls.** No \`<button>\`, \`<input>\`, \`<select>\`, \`<table>\`, \`<progress>\`. Use the shadcn-vue equivalent.
+- **No hand-rolled components for anything shadcn-vue provides.** If shadcn has it, use it. If shadcn doesn’t have it, find an ecosystem package. If no ecosystem package exists, escalate to PM.
+
+### Allowed in \`tailwind.css\` only
+
+- \`@theme\` definitions (token → utility mapping)
+- \`@layer base\` resets
+- \`@layer components\` for shadcn-vue component overrides
+- \`color-mix()\` expressions inside \`@theme\` to pre-compute variants
+- Global styles for third-party rendered content (v-html, markdown-it output)
+- \`@keyframes\` ONLY in \`tailwind.css\` global scope, NEVER in components
 
 ### Build enforcement
 
-- `audit:components` rejects any `.vue` file with a `<style>` block (zero tolerance)
-- `audit:components` rejects any companion `.css` file imported by a component
-- `lint:design` rejects hex color literals and component-local border declarations
+- \`audit:components\` rejects any \`.vue\` file with a \`<style>\` block (zero tolerance)
+- \`audit:components\` rejects any companion \`.css\` file imported by a component
+- \`audit:components\` rejects any \`audit-ok\` comment (banned escape hatch)
+- \`lint:design\` rejects hex color literals and component-local border declarations
+- Build fails if \`grep -r 'audit-ok' apps/desktop/src/\` finds anything
 
 ### If you can’t express it in Tailwind
 
-The answer is NEVER “add a `<style>` block.” The answer is ALWAYS:
-1. Add the missing token to `@theme` in `tailwind.css`
+The answer is NEVER "add a \`<style>\` block." The answer is NEVER "add an \`audit-ok\` comment." The answer is ALWAYS:
+1. Add the missing token to \`@theme\` in \`tailwind.css\`
 2. Use an existing shadcn-vue component
-3. Create a shared component in `components/ui/` that encapsulates the pattern
-4. Escalate to PM — the design system has a gap that needs fixing
+3. Find an ecosystem package (npm)
+4. Move the style to \`tailwind.css\` global layer
+5. Escalate to PM — the design system has a gap that needs fixing
 
 ---
 

@@ -49,7 +49,10 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
 </script>
 
 <template>
-  <form class="composer-toolbar grid gap-4 content-start h-full p-4 bg-surface overflow-y-auto" @submit.prevent="handleSubmit">
+  <form
+    class="grid gap-4 content-start h-full p-4 bg-surface overflow-y-auto"
+    @submit.prevent="handleSubmit"
+  >
     <AddNodeFormTypeSelector
       v-model="nodeType"
       :can-add="canAdd"
@@ -100,85 +103,3 @@ const addButtonLabel = computed(() => (nodeType.value === 'tool' ? 'Add Tool' : 
     />
   </form>
 </template>
-
-<!-- audit-ok: max-style-rules deep-third-party: :deep() rules style child form components (AddNodeFormFields/AddNodeFormTypeSelector) whose markup is rendered inside the scoped boundary; Tailwind utilities cannot reach this child markup. -->
-<style scoped>
-.composer-toolbar :deep(.toolbar-row) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: flex-end;
-}
-
-.composer-toolbar :deep(.toolbar-type-field) {
-  min-width: 12rem;
-}
-
-.composer-toolbar :deep(.toolbar-actions) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.composer-toolbar :deep(.toolbar-section) {
-  display: grid;
-  gap: 0.8rem;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
-}
-
-.composer-toolbar :deep(label) {
-  display: grid;
-  gap: 0.35rem;
-  min-width: 0;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-}
-
-.composer-toolbar :deep(.field-wide) {
-  grid-column: 1 / -1;
-}
-
-.composer-toolbar :deep(.agent-capabilities),
-.composer-toolbar :deep(.agent-mode-badges) {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.composer-toolbar :deep(.agent-capability),
-.composer-toolbar :deep(.mode-badge) {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.15rem 0.45rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
-  font-size: var(--text-xs);
-}
-
-.composer-toolbar :deep(.agent-config-panel) {
-  display: grid;
-  gap: 0.65rem;
-  padding: 0.75rem;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius);
-  background: var(--surface);
-}
-
-.composer-toolbar :deep(.agent-config-grid) {
-  display: grid;
-  gap: 0.65rem;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-}
-
-.composer-toolbar :deep(.mode-badge) {
-  background: var(--color-bg-app);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-}
-
-.composer-toolbar :deep(.mode-badge.selected) {
-  border-color: var(--color-brand);
-  color: var(--color-text-primary);
-  background: color-mix(in srgb, var(--color-brand) 45%, transparent);
-}
-</style>

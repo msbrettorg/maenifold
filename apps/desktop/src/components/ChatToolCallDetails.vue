@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
+import { ChevronDown, ChevronRight } from 'lucide-vue-next';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion';
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
@@ -20,21 +22,8 @@ defineProps<{
   expanded: boolean;
 }>();
 
-const rawInputExpanded = ref(false);
-const rawOutputExpanded = ref(false);
-
-const rawPayloadOpenSections = computed<string[]>({
-  get() {
-    const open: string[] = [];
-    if (rawInputExpanded.value) open.push('input');
-    if (rawOutputExpanded.value) open.push('output');
-    return open;
-  },
-  set(values: string[]) {
-    rawInputExpanded.value = values.includes('input');
-    rawOutputExpanded.value = values.includes('output');
-  },
-});
+const rawInputOpen = ref(false);
+const rawOutputOpen = ref(false);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
@@ -102,8 +91,18 @@ function getUnifiedDiffLines(block: Extract<ToolCallContentBlock, { type: 'diff'
   ];
 }
 
-function getDiffLineClass(line: DiffLine): string {
-  return `diff-line-${line.kind}`;
+function getDiffLineClass(kind: DiffLine['kind']): string {
+  switch (kind) {
+    case 'header':
+      return 'text-sky-600 dark:text-sky-400';
+    case 'add':
+      return 'text-emerald-600 dark:text-emerald-400';
+    case 'remove':
+      return 'text-red-600 dark:text-red-400';
+    case 'context':
+    default:
+      return 'text-text-secondary';
+  }
 }
 
 function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
@@ -114,67 +113,134 @@ function getTerminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'te
   if (exitCode != null) return `exit ${exitCode}`;
   return block.released === true ? 'released' : null;
 }
+
+function getTerminalBadgeVariant(
+  block: Extract<ToolCallContentBlock, { type: 'terminal' }>
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  const exitStatus = isRecord(block.exitStatus) ? block.exitStatus : null;
+  const exitCode = typeof exitStatus?.exitCode === 'number' ? exitStatus.exitCode : null;
+  const signal = typeof exitStatus?.signal === 'string' && exitStatus.signal.length > 0 ? exitStatus.signal : null;
+  if (signal) return 'destructive';
+  if (exitCode != null && exitCode !== 0) return 'destructive';
+  if (exitCode === 0) return 'secondary';
+  return 'outline';
+}
+
+const hasRawPayload = computed(() => true);
 </script>
 
 <template>
-  <div :id="id" class="flex flex-col gap-[0.625rem] px-[0.625rem] pb-[0.625rem]" role="region" :aria-expanded="expanded">
-    <div v-if="toolCall.content?.length" class="flex flex-col gap-[0.625rem]">
-      <div v-for="(block, blockIndex) in toolCall.content" :key="`${toolCall.toolCallId}-content-${blockIndex}`" class="tool-content-block p-[0.625rem] rounded-[var(--radius)] bg-bg-elevated">
-        <ChatContentBlocks v-if="isContentToolCallContentBlock(block)" :blocks="[block.content]" />
-        <div v-else-if="isDiffToolCallContentBlock(block)">
-          <div class="mb-1.5 text-text-secondary text-xs font-[number:var(--weight-title)]">{{ block.path }}</div>
-          <pre class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm"><span
+  <div
+    :id="id"
+    class="flex flex-col gap-2.5 px-2.5 pb-2.5"
+    role="region"
+    :aria-expanded="expanded"
+  >
+    <div v-if="toolCall.content?.length" class="flex flex-col gap-2.5">
+      <div
+        v-for="(block, blockIndex) in toolCall.content"
+        :key="`${toolCall.toolCallId}-content-${blockIndex}`"
+        class="rounded border border-border-subtle bg-surface-container p-2.5"
+      >
+        <ChatContentBlocks
+          v-if="isContentToolCallContentBlock(block)"
+          :blocks="[block.content]"
+        />
+
+        <div v-else-if="isDiffToolCallContentBlock(block)" class="flex flex-col gap-1.5">
+          <Badge variant="outline" class="self-start font-mono text-xs">
+            {{ block.path }}
+          </Badge>
+          <pre class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"><code class="font-mono"><span
             v-for="(line, lineIndex) in getUnifiedDiffLines(block)"
             :key="`${toolCall.toolCallId}-diff-${blockIndex}-${lineIndex}`"
-            :class="['block whitespace-pre', getDiffLineClass(line)]"
+            :class="['block whitespace-pre', getDiffLineClass(line.kind)]"
           >{{ line.text }}
 </span></code></pre>
         </div>
-        <div v-else-if="isTerminalToolCallContentBlock(block)">
-          <div class="mb-1.5 text-text-secondary text-xs font-[number:var(--weight-title)]">
-            Terminal {{ block.terminalId }}
-            <span v-if="getTerminalStatusLabel(block)" class="font-[number:var(--weight-display)]">· {{ getTerminalStatusLabel(block) }}</span>
+
+        <div v-else-if="isTerminalToolCallContentBlock(block)" class="flex flex-col gap-1.5">
+          <div class="flex items-center gap-2">
+            <Badge variant="outline" class="font-mono text-xs">
+              Terminal {{ block.terminalId }}
+            </Badge>
+            <Badge
+              v-if="getTerminalStatusLabel(block)"
+              :variant="getTerminalBadgeVariant(block)"
+              class="text-xs"
+            >
+              {{ getTerminalStatusLabel(block) }}
+            </Badge>
           </div>
-          <pre v-if="typeof block.output === 'string' && block.output.length > 0" class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ block.output }}</code></pre>
-          <p v-else class="m-0 text-text-secondary">Live terminal output will appear here once terminal rendering lands.</p>
-          <p v-if="block.truncated === true" class="m-0 text-text-secondary">Output truncated by the terminal byte limit.</p>
+          <pre
+            v-if="typeof block.output === 'string' && block.output.length > 0"
+            class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"
+          ><code class="font-mono">{{ block.output }}</code></pre>
+          <div v-else class="flex flex-col gap-2">
+            <Skeleton class="h-4 w-3/4 rounded" />
+            <Skeleton class="h-4 w-2/3 rounded" />
+            <p class="m-0 text-xs italic text-text-secondary">
+              Live terminal output will appear here once terminal rendering lands.
+            </p>
+          </div>
+          <p v-if="block.truncated === true" class="m-0 text-xs italic text-text-secondary">
+            Output truncated by the terminal byte limit.
+          </p>
         </div>
-        <pre v-else class="m-0 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(block, null, 2) }}</code></pre>
+
+        <pre
+          v-else
+          class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"
+        ><code class="font-mono">{{ JSON.stringify(block, null, 2) }}</code></pre>
       </div>
     </div>
 
-    <Accordion
-      v-if="toolCall.rawInput || toolCall.rawOutput"
-      v-model="rawPayloadOpenSections"
-      type="multiple"
-    >
-      <AccordionItem v-if="toolCall.rawInput" value="input" class="tool-call-payload rounded-[var(--radius)] bg-bg-elevated">
-        <AccordionTrigger>Raw input</AccordionTrigger>
-        <AccordionContent>
-          <pre class="m-0 mx-3 mb-3 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
-        </AccordionContent>
-      </AccordionItem>
+    <div v-if="hasRawPayload && (toolCall.rawInput || toolCall.rawOutput)" class="flex flex-col gap-2">
+      <Collapsible
+        v-if="toolCall.rawInput"
+        v-model:open="rawInputOpen"
+        class="overflow-hidden rounded border border-border-subtle bg-surface-container"
+      >
+        <CollapsibleTrigger
+          as-child
+          :aria-controls="`${toolCall.toolCallId}-raw-input`"
+        >
+          <Badge
+            variant="ghost"
+            class="flex w-full cursor-pointer items-center justify-start gap-2 rounded-none border-none px-3 py-2 text-left text-xs font-medium text-text-secondary"
+          >
+            <ChevronDown v-if="rawInputOpen" class="h-3 w-3" />
+            <ChevronRight v-else class="h-3 w-3" />
+            <span class="flex-1">Raw input</span>
+          </Badge>
+        </CollapsibleTrigger>
+        <CollapsibleContent :id="`${toolCall.toolCallId}-raw-input`">
+          <pre class="m-0 mx-3 mb-3 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"><code class="font-mono">{{ JSON.stringify(toolCall.rawInput, null, 2) }}</code></pre>
+        </CollapsibleContent>
+      </Collapsible>
 
-      <AccordionItem v-if="toolCall.rawOutput" value="output" class="tool-call-payload rounded-[var(--radius)] bg-bg-elevated">
-        <AccordionTrigger>Raw output</AccordionTrigger>
-        <AccordionContent>
-          <pre class="m-0 mx-3 mb-3 p-3 overflow-x-auto rounded-[var(--radius)] bg-bg-surface text-text-secondary font-[var(--font-mono)]"><code class="font-[var(--font-mono)] text-sm">{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
+      <Collapsible
+        v-if="toolCall.rawOutput"
+        v-model:open="rawOutputOpen"
+        class="overflow-hidden rounded border border-border-subtle bg-surface-container"
+      >
+        <CollapsibleTrigger
+          as-child
+          :aria-controls="`${toolCall.toolCallId}-raw-output`"
+        >
+          <Badge
+            variant="ghost"
+            class="flex w-full cursor-pointer items-center justify-start gap-2 rounded-none border-none px-3 py-2 text-left text-xs font-medium text-text-secondary"
+          >
+            <ChevronDown v-if="rawOutputOpen" class="h-3 w-3" />
+            <ChevronRight v-else class="h-3 w-3" />
+            <span class="flex-1">Raw output</span>
+          </Badge>
+        </CollapsibleTrigger>
+        <CollapsibleContent :id="`${toolCall.toolCallId}-raw-output`">
+          <pre class="m-0 mx-3 mb-3 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"><code class="font-mono">{{ JSON.stringify(toolCall.rawOutput, null, 2) }}</code></pre>
+        </CollapsibleContent>
+      </Collapsible>
+    </div>
   </div>
 </template>
-
-<!-- audit-ok: max-style-rules — color-mix() borders and diff-line accent colors are static design tokens (theme-aware blends of text + status colors) that Tailwind utilities cannot express; rules limited to color-mix() declarations. -->
-<style scoped>
-.tool-content-block {
-  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 25%, transparent);
-}
-.tool-call-payload {
-  border: 1px solid color-mix(in srgb, var(--color-text-secondary) 35%, transparent);
-}
-.diff-line-header { color: color-mix(in srgb, var(--color-text-primary) 72%, var(--color-status-active)); }
-.diff-line-context { color: inherit; }
-.diff-line-add { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-status-completed)); }
-.diff-line-remove { color: color-mix(in srgb, var(--color-text-primary) 68%, var(--color-danger)); }
-</style>

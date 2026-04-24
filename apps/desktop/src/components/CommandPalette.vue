@@ -121,7 +121,7 @@ function handleSelectionChange(value: unknown) {
     >
       <div class="flex items-center py-2.5 px-4 text-text-secondary">
         <Input
-          class="w-full bg-transparent text-text-text-primary text-[length:var(--text-body-sm)] border-0 shadow-none ring-0 focus-visible:border-transparent focus-visible:ring-0 focus:outline-none h-auto px-0 py-0 rounded-none font-inherit"
+          class="h-auto w-full rounded-none border-0 bg-transparent px-0 py-0 text-body-sm text-text-text-primary shadow-none ring-0 font-inherit focus:outline-none focus-visible:border-transparent focus-visible:ring-0"
           type="text"
           role="combobox"
           aria-label="Command palette"
@@ -135,7 +135,7 @@ function handleSelectionChange(value: unknown) {
       </div>
 
       <CommandList :id="commandListId" class="max-h-80 overflow-y-auto px-2 pb-2">
-        <div v-if="filteredCommands.length === 0" class="p-4 text-text-secondary text-[length:var(--text-body-sm)] text-center">
+        <div v-if="filteredCommands.length === 0" class="p-4 text-center text-body-sm text-text-secondary">
           No matching commands.
         </div>
         <CommandItem
@@ -148,9 +148,9 @@ function handleSelectionChange(value: unknown) {
           @select="selectCommand(cmd)"
         >
           <div class="flex items-center w-full gap-3">
-            <span class="text-text-text-primary text-[length:var(--text-body-sm)] min-w-[120px] font-[var(--weight-title)] shrink-0 whitespace-nowrap overflow-hidden text-ellipsis">{{ formatCommandName(cmd.name) }}</span>
-            <span class="text-text-secondary text-[length:var(--text-body-sm)] flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{ cmd.description }}</span>
-            <span v-if="cmd.input?.hint" class="text-text-secondary font-mono text-[length:var(--text-caption)] whitespace-nowrap">{{ cmd.input.hint }}</span>
+            <span class="min-w-[120px] shrink-0 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm font-semibold text-text-text-primary">{{ formatCommandName(cmd.name) }}</span>
+            <span class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis text-body-sm text-text-secondary">{{ cmd.description }}</span>
+            <span v-if="cmd.input?.hint" class="whitespace-nowrap font-mono text-caption text-text-secondary">{{ cmd.input.hint }}</span>
           </div>
         </CommandItem>
       </CommandList>
@@ -158,7 +158,7 @@ function handleSelectionChange(value: unknown) {
 
     <div
       v-if="selectedCommand?.description"
-      class="absolute left-[calc(100%+8px)] top-0 w-[220px] bg-surface-container text-text-text-primary rounded-md shadow-fluent-16 py-2 px-3 text-[length:var(--text-body-sm)] whitespace-normal z-[200] break-words border border-border-subtle"
+      class="absolute left-[calc(100%+8px)] top-0 z-[200] w-[220px] break-words rounded-md border border-border-subtle bg-surface-container px-3 py-2 text-body-sm text-text-text-primary shadow-fluent-16 whitespace-normal"
     >
       {{ selectedCommand.description }}
     </div>

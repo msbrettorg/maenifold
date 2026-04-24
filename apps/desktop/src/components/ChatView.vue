@@ -8,6 +8,8 @@ import { getDaemonUrl } from '../lib/daemon-url';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
+import { ScrollArea } from './ui/scroll-area';
+import { Card } from './ui/card';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
 
 type PendingAttachment = { id: string; kind: 'image' | 'audio'; label: string; block: ContentBlock };
@@ -18,6 +20,7 @@ const agentStore = useAgentStore();
 const { renderMermaidBlocks } = useMermaid();
 const inputText = ref('');
 const activeCommandHint = ref<string | null>(null);
+const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
 const pendingAttachments = ref<PendingAttachment[]>([]);
 const attachmentError = ref<string | null>(null);
@@ -57,11 +60,19 @@ const agentSessionStatusLabel = computed(() => {
 });
 const expandedThoughtIds = computed(() => Array.from(expandedThoughts.value));
 const expandedToolCallIds = computed(() => Array.from(expandedToolCalls.value));
+
+function resolveScrollViewport(): HTMLElement | null {
+  const root = (scrollAreaRef.value as unknown as { $el?: HTMLElement } | null)?.$el ?? null;
+  if (!root) return null;
+  const viewport = root.querySelector('[data-reka-scroll-area-viewport]') as HTMLElement | null;
+  return viewport ?? root;
+}
+
 watch(messages, async () => {
   await nextTick();
-  if (!messagesContainer.value) return;
-  messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
-  if (!isLoading.value) await renderMermaidBlocks(messagesContainer.value);
+  const viewport = resolveScrollViewport();
+  if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
 }, { deep: true });
 onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); });
 onMounted(() => {
@@ -96,7 +107,6 @@ async function handleSend(): Promise<void> {
     }
   } catch (error) {
     attachmentError.value = error instanceof Error ? error.message : 'Failed to send prompt.';
-    console.error('Failed to send prompt:', error);
   }
 }
 function handleCommandSelect(command: AvailableCommand): void {
@@ -117,7 +127,11 @@ function handleCommandSelect(command: AvailableCommand): void {
 }
 function handleCancel(): void { sessionStore.cancelOperation(); }
 async function handleConfigOptionChange(configId: string, value: string): Promise<void> {
-  try { await sessionStore.setConfigOption(configId, value); } catch (error) { console.error('Failed to change config option:', error); }
+  try {
+    await sessionStore.setConfigOption(configId, value);
+  } catch {
+    attachmentError.value = 'Failed to change config option.';
+  }
 }
 async function rerenderExpandedMarkdown(): Promise<void> {
   await nextTick();
@@ -199,9 +213,11 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-bg-app" role="region" aria-label="Chat">
-    <div class="flex items-center justify-between gap-4 px-4 py-3 bg-[var(--surface)]">
-      <h2 class="m-0 overflow-hidden whitespace-nowrap text-ellipsis text-md font-[number:var(--weight-display)]">{{ currentSession?.title || 'Chat' }}</h2>
+  <Card class="flex flex-col h-full rounded-none border-0 bg-bg-app shadow-none gap-0 py-0" role="region" aria-label="Chat">
+    <div class="flex items-center justify-between gap-4 px-4 py-3 bg-surface border-b border-border-subtle">
+      <h2 class="m-0 overflow-hidden whitespace-nowrap text-ellipsis text-md font-semibold text-text-primary">
+        {{ currentSession?.title || 'Chat' }}
+      </h2>
       <div class="flex flex-wrap items-center justify-end gap-3">
         <ConfigOptionPicker
           v-for="option in configOptions"
@@ -216,20 +232,22 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       </div>
     </div>
 
-    <div ref="messagesContainer" class="messages-container flex-1 overflow-y-auto p-4 [scrollbar-width:thin] [scrollbar-color:var(--color-border-subtle)_transparent]">
-      <ChatMessageList
-        :messages="messages"
-        :current-plan="currentPlan"
-        :expanded-thought-ids="expandedThoughtIds"
-        :expanded-tool-call-ids="expandedToolCallIds"
-        :pending-permission-count="pendingPermissionCount"
-        :is-loading="isLoading"
-        @toggle-thought="toggleThought"
-        @toggle-tool-call="toggleToolCall"
-        @cancel="handleCancel"
-        @prefill="setInputText"
-      />
-    </div>
+    <ScrollArea ref="scrollAreaRef" class="flex-1 min-h-0">
+      <div ref="messagesContainer" class="p-4">
+        <ChatMessageList
+          :messages="messages"
+          :current-plan="currentPlan"
+          :expanded-thought-ids="expandedThoughtIds"
+          :expanded-tool-call-ids="expandedToolCallIds"
+          :pending-permission-count="pendingPermissionCount"
+          :is-loading="isLoading"
+          @toggle-thought="toggleThought"
+          @toggle-tool-call="toggleToolCall"
+          @cancel="handleCancel"
+          @prefill="setInputText"
+        />
+      </div>
+    </ScrollArea>
 
     <ChatInputBar
       :model-value="inputText"
@@ -252,17 +270,5 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       @remove-attachment="removePendingAttachment"
       @insert-embedded-context-hint="insertEmbeddedContextHint"
     />
-  </div>
+  </Card>
 </template>
-
-<!-- audit-ok: max-style-rules — pseudo-element + deep-third-party: ::-webkit-scrollbar pseudo-elements style the native scrollbar (no Tailwind utility); :deep(.mermaid-rendered) rules style SVG content rendered by Mermaid into the messages container, which Tailwind utilities cannot reach across the scoped boundary. color-mix() blends are static design tokens not expressible in Tailwind. -->
-<style scoped>
-.messages-container::-webkit-scrollbar { width: 8px; }
-.messages-container::-webkit-scrollbar-track { background: transparent; }
-.messages-container::-webkit-scrollbar-thumb { background: var(--color-border-subtle); border-radius: 4px; }
-.messages-container::-webkit-scrollbar-thumb:hover { background: var(--color-text-secondary); }
-.messages-container :deep(.mermaid-rendered) { margin: 0.75rem 0; }
-.messages-container :deep(.mermaid-rendered svg) { display: block; max-width: 100%; border-radius: var(--radius); }
-.messages-container :deep(pre.mermaid-error) { border: 1px solid color-mix(in srgb, var(--border-error) 45%, transparent); }
-.messages-container :deep(.mermaid-error-message) { margin-top: 0.5rem; color: color-mix(in srgb, var(--color-text-primary) 76%, var(--color-danger)); font-size: var(--text-sm); }
-</style>

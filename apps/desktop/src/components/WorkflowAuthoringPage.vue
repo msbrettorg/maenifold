@@ -69,7 +69,7 @@ onMounted(async () => {
         :max-size="30"
         :order="1"
       >
-        <WorkflowBrowser class="h-full overflow-y-auto bg-[var(--surface)]" />
+        <WorkflowBrowser class="h-full overflow-y-auto bg-surface" />
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel
@@ -90,7 +90,7 @@ onMounted(async () => {
         </div>
         <WorkflowStepTimeline
           v-else
-          class="h-full overflow-y-auto bg-[var(--color-bg-app)]"
+          class="h-full overflow-y-auto bg-bg-app"
           :selected-step-id="selectedStepId"
           @save="handleSave"
           @select-step="handleSelectStep"
@@ -105,7 +105,7 @@ onMounted(async () => {
           :order="3"
         >
           <WorkflowStepInspector
-            class="h-full overflow-y-auto bg-[var(--surface)]"
+            class="h-full overflow-y-auto bg-surface"
             :selected-step-id="selectedStepId"
           />
         </ResizablePanel>

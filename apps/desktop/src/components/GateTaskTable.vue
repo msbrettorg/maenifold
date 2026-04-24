@@ -123,7 +123,7 @@ function headerLabel(columnId: string) {
 
 <template>
   <div
-    class="flex-[2] min-h-96 overflow-auto rounded-lg border border-[var(--color-border-card)] bg-[var(--color-bg-app)] p-2"
+    class="flex-[2] min-h-96 overflow-auto rounded-lg border border-border-card bg-bg-app p-2"
   >
     <Table class="border-separate" style="border-spacing: 0 2px">
       <TableHeader>
@@ -136,15 +136,15 @@ function headerLabel(columnId: string) {
             v-for="header in headerGroup.headers"
             :key="header.id"
             :aria-sort="sortOrder(header.column.id as SortColumn)"
-            class="sticky top-0 z-[1] bg-[var(--surface)] p-0"
+            class="sticky top-0 z-[1] bg-surface p-0"
           >
             <Button
               variant="ghost"
-              class="flex h-auto w-full items-center justify-start gap-1.5 rounded-none px-4 py-3 text-left font-medium hover:bg-transparent hover:text-[var(--color-text-primary)]"
+              class="flex h-auto w-full items-center justify-start gap-1.5 rounded-none px-4 py-3 text-left font-medium hover:bg-transparent hover:text-text-primary"
               @click="emit('sort', header.column.id as SortColumn)"
             >
               <span>{{ headerLabel(header.column.id) }}</span>
-              <span class="font-mono text-[var(--text-tiny)] text-[var(--color-text-secondary)]">{{
+              <span class="font-mono text-tiny text-text-secondary">{{
                 sortIndicator(header.column.id as SortColumn)
               }}</span>
             </Button>
@@ -156,7 +156,7 @@ function headerLabel(columnId: string) {
           v-for="row in table.getRowModel().rows"
           :key="row.id"
           :class="[
-            'cursor-pointer transition-colors hover:bg-[var(--bg-surface-hover)] [&>td]:bg-[var(--surface)] [&>td]:transition-colors',
+            'cursor-pointer transition-colors hover:bg-bg-surface-hover [&>td]:bg-surface [&>td]:transition-colors',
             row.original.taskId === props.selectedTaskId
               ? 'border-l-2 border-brand bg-brand/10 [&>td]:bg-brand/10 [&>td:first-child]:border-l-2 [&>td:first-child]:border-brand'
               : '',
@@ -164,7 +164,7 @@ function headerLabel(columnId: string) {
           :title="rowTitle(row.original)"
           @click="emit('select', row.original)"
         >
-          <TableCell class="rounded-l px-5 py-3.5 font-mono text-[var(--text-tiny)] text-[var(--color-text-secondary)]">
+          <TableCell class="rounded-l px-5 py-3.5 font-mono text-tiny text-text-secondary">
             {{ row.original.taskId }}
           </TableCell>
           <TableCell class="px-4 py-3.5">
@@ -172,7 +172,7 @@ function headerLabel(columnId: string) {
               <span
                 :class="[
                   'min-w-0 break-words font-normal line-clamp-2',
-                  row.original.issue ? 'text-[var(--color-text-primary)]' : '',
+                  row.original.issue ? 'text-text-primary' : '',
                 ]"
               >
                 {{ row.original.title }}
@@ -180,12 +180,12 @@ function headerLabel(columnId: string) {
               <span
                 v-if="row.original.issue"
                 aria-hidden="true"
-                class="h-1.5 w-1.5 shrink-0 rounded bg-[var(--terracotta)]"
+                class="h-1.5 w-1.5 shrink-0 rounded bg-danger"
               />
             </div>
           </TableCell>
           <TableCell class="px-4 py-3.5">
-            <span class="font-mono text-[var(--text-tiny)] text-[var(--color-text-secondary)]">
+            <span class="font-mono text-tiny text-text-secondary">
               {{ processLabel(row.original) }}
             </span>
             <span
@@ -193,7 +193,7 @@ function headerLabel(columnId: string) {
               role="img"
               aria-label="Pipeline definition has changed since this task was created"
               :title="pipelineStaleTitle(row.original)"
-              class="ml-1.5 cursor-help text-[var(--text-tiny)] text-[var(--amber,var(--terracotta))]"
+              class="ml-1.5 cursor-help text-tiny text-warning"
             >
               ⚠
             </span>
@@ -206,7 +206,7 @@ function headerLabel(columnId: string) {
     </Table>
     <p
       v-if="!props.tasks.length"
-      class="p-4 text-[var(--color-text-secondary)]"
+      class="p-4 text-text-secondary"
     >
       No gate tasks match the current filters.
     </p>

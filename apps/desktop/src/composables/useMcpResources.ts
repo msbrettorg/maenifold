@@ -70,7 +70,6 @@ export function useMcpResources(baseUrl?: string): McpResourcesClient {
 
     const handlers = handlersByUri.get(uri);
     if (!handlers || handlers.size === 0) {
-      console.debug('[useMcpResources] Dropping resource update for unsubscribed uri', uri); // audit-ok: no-console
       return;
     }
 

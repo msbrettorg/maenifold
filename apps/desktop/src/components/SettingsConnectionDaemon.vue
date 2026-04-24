@@ -72,7 +72,7 @@ async function copyAddress() {
 
       <div class="flex items-center gap-2 mt-3">
         <code class="font-code text-[0.75rem]">{{ displayAddress }}</code>
-        <Button variant="ghost" class="px-2 py-[0.2rem] border-none rounded bg-[var(--surface-high)] text-text-secondary cursor-pointer text-[0.6875rem] hover:bg-[var(--surface-highest)]" type="button" size="sm" @click="copyAddress">
+        <Button variant="ghost" class="px-2 py-[0.2rem] border-none rounded bg-surface-high text-text-secondary cursor-pointer text-tiny hover:bg-surface-highest" type="button" size="sm" @click="copyAddress">
           {{ copied ? '✓' : 'Copy' }}
         </Button>
       </div>
@@ -83,11 +83,11 @@ async function copyAddress() {
       <p class="m-0 text-text-secondary">Live capability probing tracks whether configured agents are reachable and ready.</p>
 
       <div class="grid gap-4 grid-cols-[repeat(auto-fit,minmax(100px,1fr))] mt-[0.9rem]">
-        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem]">{{ stats.total }}</strong><span class="text-text-secondary">Configured</span></div>
-        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-brand">{{ stats.ready }}</strong><span class="text-text-secondary">Ready</span></div>
-        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-text-primary">{{ stats.pending }}</strong><span class="text-text-secondary">Pending</span></div>
-        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem] text-text-secondary">{{ stats.offline }}</strong><span class="text-text-secondary">Offline</span></div>
-        <div class="grid gap-[0.2rem] p-3 rounded bg-[var(--surface)]"><strong class="text-[0.9375rem]" :class="stats.error > 0 ? 'text-danger' : 'text-text-secondary'">{{ stats.error }}</strong><span class="text-text-secondary">Errors</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-surface"><strong class="text-[0.9375rem]">{{ stats.total }}</strong><span class="text-text-secondary">Configured</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-surface"><strong class="text-[0.9375rem] text-brand">{{ stats.ready }}</strong><span class="text-text-secondary">Ready</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-surface"><strong class="text-[0.9375rem] text-text-primary">{{ stats.pending }}</strong><span class="text-text-secondary">Pending</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-surface"><strong class="text-[0.9375rem] text-text-secondary">{{ stats.offline }}</strong><span class="text-text-secondary">Offline</span></div>
+        <div class="grid gap-[0.2rem] p-3 rounded bg-surface"><strong class="text-[0.9375rem]" :class="stats.error > 0 ? 'text-danger' : 'text-text-secondary'">{{ stats.error }}</strong><span class="text-text-secondary">Errors</span></div>
       </div>
     </article>
   </section>

@@ -124,11 +124,12 @@ impl super::MaenifoldMcpServer {
 mod tests {
     use super::{router, service};
     use crate::api::routes::ApiState;
+    use crate::mcp::localhost_cors;
     use crate::test_util::ConfigResetGuard;
     use crate::{Config, GraphDatabase};
     use axum::{
         body::{Body, to_bytes},
-        http::{Request, StatusCode},
+        http::{Request, StatusCode, header},
     };
     use tempfile::TempDir;
     use tower::ServiceExt;
@@ -143,11 +144,16 @@ mod tests {
         (temp, ApiState::new(config), ConfigResetGuard)
     }
 
+    fn test_router(state: ApiState) -> axum::Router {
+        router(service(tokio_util::sync::CancellationToken::new()), state)
+            .layer(localhost_cors())
+    }
+
     #[tokio::test]
     #[serial_test::serial]
     async fn router_serves_endophasia_frontend() {
         let (_temp, state, _guard) = test_state();
-        let response = router(service(tokio_util::sync::CancellationToken::new()), state)
+        let response = test_router(state)
             .oneshot(
                 Request::builder()
                     .uri("/endophasia")
@@ -173,7 +179,7 @@ mod tests {
     #[serial_test::serial]
     async fn router_serves_endophasia_communities_json() {
         let (_temp, state, _guard) = test_state();
-        let response = router(service(tokio_util::sync::CancellationToken::new()), state)
+        let response = test_router(state)
             .oneshot(
                 Request::builder()
                     .uri("/api/endophasia/communities")
@@ -191,5 +197,49 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&body).expect("json");
         assert_eq!(json["communities"], serde_json::json!([]));
         assert_eq!(json["edges"], serde_json::json!([]));
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn router_allows_packaged_electron_null_origin() {
+        let (_temp, state, _guard) = test_state();
+        let response = test_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/config")
+                    .header(header::ORIGIN, "null")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
+            "null"
+        );
+    }
+
+    #[tokio::test]
+    #[serial_test::serial]
+    async fn router_allows_packaged_electron_file_origin() {
+        let (_temp, state, _guard) = test_state();
+        let response = test_router(state)
+            .oneshot(
+                Request::builder()
+                    .uri("/api/config")
+                    .header(header::ORIGIN, "file://")
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("response");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
+            "file://"
+        );
     }
 }

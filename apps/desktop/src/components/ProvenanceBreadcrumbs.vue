@@ -47,19 +47,19 @@ const hasContent = computed(() => {
 </script>
 
 <template>
-  <div v-if="hasContent" class="rounded-[var(--radius-8)] border border-border-subtle bg-bg-surface px-3 py-2">
+  <div v-if="hasContent" class="rounded-[8px] border border-border-subtle bg-bg-surface px-3 py-2">
     <Breadcrumb>
-      <BreadcrumbList class="text-[var(--text-body-sm)]">
+      <BreadcrumbList class="text-body-sm">
         <template v-for="(link, index) in normalizedLinks" :key="`${link.kind}:${link.id}`">
           <BreadcrumbSeparator v-if="index > 0" />
           <BreadcrumbItem>
             <BreadcrumbLink
               as="button"
-              class="inline-flex items-center gap-1 rounded-[var(--radius-6)] px-1 py-0.5 text-text-secondary hover:text-text-primary"
+              class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-secondary hover:text-text-primary"
               @click="$emit('navigate', link)"
             >
               <span class="text-text-tertiary">{{ provenanceKindLabel(link.kind) }}</span>
-              <span class="font-[var(--font-code)] text-[var(--text-tiny)]">
+              <span class="font-mono text-tiny">
                 {{ link.label ?? compactProvenanceId(link.id) }}
               </span>
             </BreadcrumbLink>
@@ -67,9 +67,9 @@ const hasContent = computed(() => {
         </template>
         <BreadcrumbSeparator v-if="normalizedLinks.length > 0" />
         <BreadcrumbItem>
-          <BreadcrumbPage class="inline-flex items-center gap-1 rounded-[var(--radius-6)] px-1 py-0.5 text-text-primary">
+          <BreadcrumbPage class="inline-flex items-center gap-1 rounded-[6px] px-1 py-0.5 text-text-primary">
             <span>{{ provenanceKindLabel(props.currentKind) }}</span>
-            <span class="font-[var(--font-code)] text-[var(--text-tiny)]">{{ currentText }}</span>
+            <span class="font-mono text-tiny">{{ currentText }}</span>
           </BreadcrumbPage>
         </BreadcrumbItem>
       </BreadcrumbList>

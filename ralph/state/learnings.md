@@ -3,7 +3,25 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
-## 2026-04-24 — Sprint 05 component cleanup waves
+## 2026-04-24 — T-203.3/T-204.8/T-204.9/T-204.10 iteration
+
+### Gate rapid-pass race condition STILL dangerous
+- T-203.3 (SLC pipeline): 4 rapid `gate pass` calls with `sleep 1` between them advanced the task from `spec` all the way to `done/`, skipping blue-team verification entirely.
+- **Root cause**: SLC pipeline has transitions that chain: spec→swe→red-team→blue-team→done. Each `gate pass` immediately advances to the next state. Four passes = four transitions = done.
+- **But I only intended 3 transitions** (spec→swe, swe→red-team, red-team→blue-team). The fourth pass was from agent "red-team" but gate doesn't validate agent names — any agent can pass any stage.
+- **Lesson: ALWAYS check `gate status` between passes.** The `sleep 1 && gate pass` pattern is NOT safe for multi-stage advancement. Use individual commands with status checks.
+- **Mitigation applied**: ran manual blue-team verification after the fact.
+
+### Red-team catches real security issues
+- T-204.9: Three audit cycles. Found path traversal (empty/dot modelId bypass), shared tokenizer deletion. All fixed.
+- T-203.3: Two audit cycles. Found CSP injection via unsanitized connectDomains, missing disposed guards, missing scheme check on onopenlink. All fixed.
+- **Pattern**: gpt-5.3-codex red-team is particularly good at finding input validation bypasses and async lifecycle race conditions.
+
+### Embedding model flat-layout pattern
+- Three related bugs (T-204.8/9/10) all stemmed from assuming subdirectory model layout
+- Models can be stored as `models/<id>/model.onnx` (subdir) OR `models/<id>.onnx` (flat)
+- All three handlers needed dual-layout detection
+- T-204.8 had an additional issue: vec0 extension not loaded in tool context, only in daemon sync
 
 ### Gate MCP database locking is severe
 - T-05.84 filed as P0: concurrent gate pass/fail/sync calls reliably hit `sqlite error: database is locked`

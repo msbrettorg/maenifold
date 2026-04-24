@@ -52,14 +52,15 @@ Stuff you learn should go in ralph/state/learnings.md
 - Gate column resize regressed from T-05.70 rebuild → T-05.97 filed
 
 ## Next Actions (updated 2026-04-24)
-- T-05.96 (lightweight) in-flight — shiki JS engine fix
-- T-05.97 (P2) — gate column resize, ready for dispatch
+- T-203.3 SWE in-flight — McpAppFrame.vue + sandbox proxy (opus-4.7 dispatch)
+- T-204.8 SWE in-flight — regenerate embeddings fix (delete metadata only, skip vec0 DROP)
+- T-204.9 red-team re-audit in-flight — third cycle after empty/dot bypass fix
+- T-204.10 CLOSED — activate flat models, shipped through full SDD pipeline
 - T-05.67 (P2) — vec0 wizard, deferred
-- T-05.92 CLOSED — cargo vuln fixed, npm vulns documented as mermaid accepted risk
-- T-05.87 CLOSED — 4/5 UAT fixes verified, 1 regression filed (T-05.97)
-- T-05.94 CLOSED — empty note display fix shipped
-- Sprint 05 remaining: T-05.67 (P2), T-05.96 (in-flight), T-05.97 (P2)
-- Next sprint priority: T-203.0 (MCP Apps epic, SLC discovery)
+- Sprint 05 remaining: T-05.67 (P2 deferred)
+- Next after T-203.3: T-203.4 (ChatContentBlocks integration) depends on T-203.3
+- Cleaned 7 stale todo/done duplicates during bootstrap (T-05.87/92/94/95/96/97, T-203.2)
+- Blue-team noted 2 pre-existing test failures: throttle boundary + graph_params visualize schema — need triage tasks
 
 ## T-203.2 Completed (2026-04-24)
 - MCP Apps _meta.ui parsing shipped through full SDD+red-team+blue-team pipeline

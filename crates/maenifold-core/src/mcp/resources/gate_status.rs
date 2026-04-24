@@ -46,6 +46,8 @@ fn status_row_from_file(path: &Path, location: &str) -> Option<Value> {
         .as_ref()
         .and_then(|map| map.get("title"))
         .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|title| !title.is_empty())
         .map(str::to_string)
         .or_else(|| parse_title(&markdown))
         .unwrap_or_else(|| task_id.clone());

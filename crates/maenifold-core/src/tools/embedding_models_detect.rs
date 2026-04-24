@@ -276,9 +276,10 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
     }))
 }
 
-/// T-202.9 remediation: drop vec0 virtual tables and clear the recorded
-/// embedding dimensions so the next sync rebuilds embeddings from scratch
-/// against the currently-active model. Does not change the active model.
+/// T-202.9 remediation: clear the recorded embedding dimensions so the next
+/// sync (running in the daemon with vec0 loaded) can rebuild embeddings from
+/// scratch against the currently-active model. Does not change the active
+/// model.
 pub(super) fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Result<Value> {
     let conn = db::open_connection(&context.config.database_path).map_err(|e| {
         crate::error::MaenifoldError::Message(format!(
@@ -287,17 +288,21 @@ pub(super) fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Resu
         ))
     })?;
 
-    let sql = "DROP TABLE IF EXISTS vec_concepts; \
-               DROP TABLE IF EXISTS vec_memory_files; \
-               DELETE FROM model_metadata WHERE key = 'embedding_dimensions';";
-    conn.execute_batch(sql).map_err(|e| {
-        crate::error::MaenifoldError::Message(format!("Failed to clear embeddings: {e}"))
+    // Idempotent: table may not exist on first run before any sync
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS model_metadata (key TEXT PRIMARY KEY, value TEXT); \
+         DELETE FROM model_metadata WHERE key = 'embedding_dimensions';",
+    )
+    .map_err(|e| {
+        crate::error::MaenifoldError::Message(format!("Failed to clear embedding metadata: {e}"))
     })?;
 
-    tracing::info!("Embeddings cleared via regenerate action; vectors will rebuild on next sync.");
+    tracing::info!(
+        "Embedding metadata cleared via regenerate action; vectors will rebuild on next sync."
+    );
 
     Ok(json!({
         "regenerated": true,
-        "message": "Embeddings cleared. Run sync to rebuild.",
+        "message": "Embedding metadata cleared. Vectors will rebuild on next sync.",
     }))
 }

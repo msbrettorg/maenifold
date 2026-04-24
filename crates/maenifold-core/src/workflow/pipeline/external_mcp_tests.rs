@@ -64,6 +64,7 @@ fn resolve_server_entry_prefers_global_over_agent() {
         args: vec![],
         timeout: None,
         env: HashMap::new(),
+        gateway: false,
     };
     let config =
         config_with_global_and_agents(vec![global.clone()], [("agent-a", vec![agent_local])]);
@@ -82,6 +83,7 @@ fn resolve_server_entry_falls_back_to_agent_server() {
         args: vec![],
         timeout: None,
         env: HashMap::new(),
+        gateway: false,
     };
     let config = config_with_global_and_agents(vec![], [("agent-a", vec![agent_server.clone()])]);
 

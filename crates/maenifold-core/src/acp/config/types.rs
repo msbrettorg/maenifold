@@ -22,6 +22,8 @@ pub enum McpServerEntry {
         timeout: Option<u64>,
         #[serde(default, skip_serializing_if = "HashMap::is_empty")]
         env: HashMap<String, String>,
+        #[serde(default)]
+        gateway: bool,
     },
     #[serde(rename = "http")]
     Http { name: String, url: String },
@@ -31,6 +33,15 @@ impl McpServerEntry {
     pub fn name(&self) -> &str {
         match self {
             McpServerEntry::Stdio { name, .. } | McpServerEntry::Http { name, .. } => name,
+        }
+    }
+
+    #[allow(dead_code)]
+    /// Returns true if this server should expose its tools through the HTTP gateway.
+    pub fn is_gateway(&self) -> bool {
+        match self {
+            McpServerEntry::Stdio { gateway, .. } => *gateway,
+            McpServerEntry::Http { .. } => false,
         }
     }
 

@@ -1,6 +1,7 @@
 import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import { app, ipcMain } from 'electron';
 
@@ -41,7 +42,8 @@ export interface Vec0Status {
   downloadProgress: Vec0DownloadProgress | null;
 }
 
-const RELEASE_URL = 'https://api.github.com/repos/asg017/sqlite-vec/releases/latest';
+const VEC0_VERSION = 'v0.1.9'; // Pin to tested version
+const RELEASE_URL = `https://api.github.com/repos/asg017/sqlite-vec/releases/tags/${VEC0_VERSION}`;
 const ALLOWED_DOWNLOAD_HOSTS = [
   'github.com',
   'objects.githubusercontent.com',
@@ -55,6 +57,13 @@ const MAPPINGS: Vec0Mapping[] = [
   { platform: 'linux', arch: 'x64', assetPattern: 'sqlite-vec-*-loadable-linux-x86_64.tar.gz', platformDir: 'linux-x64', filename: 'vec0.so' },
   { platform: 'win32', arch: 'x64', assetPattern: 'sqlite-vec-*-loadable-windows-x86_64.tar.gz', platformDir: 'win-x64', filename: 'vec0.dll' },
 ];
+const KNOWN_HASHES: Record<string, string | null> = {
+  'darwin-arm64': null, // Set after first verified download
+  'darwin-x64': null,
+  'linux-arm64': null,
+  'linux-x64': null,
+  'win32-x64': null,
+};
 
 let activeProgress: Vec0DownloadProgress | null = null;
 
@@ -164,6 +173,25 @@ async function downloadArchive(url: string, filename: string): Promise<Buffer> {
   return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
 }
 
+function verifyArchiveIntegrity(archive: Buffer, mapping: Vec0Mapping): void {
+  const hash = createHash('sha256').update(archive).digest('hex');
+  const key = `${mapping.platform}-${mapping.arch}`;
+  const expected = KNOWN_HASHES[key];
+  if (expected === undefined) {
+    console.warn(`[vec0] No pinned SHA-256 for ${key}. Computed SHA-256: ${hash}.`);
+    return;
+  }
+  if (expected === null) {
+    console.warn(`[vec0] First download for ${key}. SHA-256: ${hash}. Pin this hash in KNOWN_HASHES.`);
+    return;
+  }
+  if (hash !== expected) {
+    throw new Error(
+      `Vec0 archive integrity check failed: expected ${expected}, got ${hash}`,
+    );
+  }
+}
+
 function parseOctal(raw: Buffer): number {
   const value = raw.toString('utf8').replace(/\0/g, '').trim();
   return value ? Number.parseInt(value, 8) : 0;
@@ -229,6 +257,7 @@ async function downloadVec0(): Promise<Vec0Status> {
 
   const asset = await fetchLatestAsset(mapping);
   const archive = await downloadArchive(asset.browser_download_url, asset.name);
+  verifyArchiveIntegrity(archive, mapping);
 
   try {
     const extracted = extractTarEntry(gunzipSync(archive), mapping.filename);

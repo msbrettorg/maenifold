@@ -14,6 +14,7 @@ mod recent_activity_collect;
 mod recent_activity_format;
 mod recent_activity_render;
 mod response;
+mod schedule;
 mod sessions;
 mod sessions_query;
 mod teams_monitor;
@@ -33,6 +34,7 @@ pub use recent_activity_format::{
 };
 pub use recent_activity_render::recent_activity_extract_snippet;
 pub use sessions::list_sessions;
+pub use schedule::schedule;
 pub use teams_monitor::teams_monitor;
 // T-13.5: RTM FR-8 — ToolResponse helpers ported from C# Utils/ToolResponse.cs
 pub use response::{with_hint, with_next_steps};

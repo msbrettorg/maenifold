@@ -21,7 +21,7 @@ const FALLBACK_CONTAINER_WIDTH = 1200;
 
 defineProps<{
   tasks: GateTask[];
-  selectedTaskId: string;
+  selectedTaskKey: string;
   sortColumn: SortColumn;
   sortDirection: SortDirection;
   activeTask: GateTask | null;
@@ -140,7 +140,7 @@ onBeforeUnmount(() => {
         <div class="flex h-full min-h-0 min-w-0">
           <GateTaskTable
             :tasks="tasks"
-            :selected-task-id="selectedTaskId"
+            :selected-task-key="selectedTaskKey"
             :sort-column="sortColumn"
             :sort-direction="sortDirection"
             @sort="$emit('sort', $event)"

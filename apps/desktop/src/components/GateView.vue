@@ -82,7 +82,7 @@ async function refreshSnapshot(background = false) {
     lastRefreshLabel.value = formatRefreshTime();
     if (!detail.selectedTaskId.value) return;
     await detail.loadTaskDetail(
-      nextSnapshot.tasks.find((task) => task.taskId === detail.selectedTaskId.value) ?? null,
+      detail.activeTask.value,
       { preserveExisting: background, showLoading: !background },
     );
   } catch (loadError) {
@@ -125,6 +125,7 @@ async function handleRemoveCurrentGate() {
 
 watch(gateRoot, async (root) => {
   detail.selectedTaskId.value = '';
+  detail.selectedTaskKey.value = '';
   await refreshSnapshot();
   await startStatusWatch(root);
 }, { immediate: true });
@@ -206,7 +207,7 @@ onBeforeUnmount(() => {
       <GateViewContent
         v-else
         :tasks="filtering.visibleTasks.value"
-        :selected-task-id="detail.selectedTaskId.value"
+        :selected-task-key="detail.selectedTaskKey.value"
         :sort-column="filtering.sortColumn.value"
         :sort-direction="filtering.sortDirection.value"
         :active-task="detail.activeTask.value"

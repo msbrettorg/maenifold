@@ -41,10 +41,15 @@ export function findTaskByLineageId(tasks: GateTask[], lineageId: string): GateT
     || task.taskId === lineageId) ?? null;
 }
 
+export function gateTaskSelectionKey(task: GateTask): string {
+  return task.path || `${task.location}:${task.taskId}`;
+}
+
 export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   const { snapshot, gateRoot, resources, provenance } = options;
 
   const selectedTaskId = ref('');
+  const selectedTaskKey = ref('');
   const selectedTaskBody = ref('');
   const selectedTaskHistory = ref<GateTaskHistoryEntry[]>([]);
   const detailBodyLoading = ref(false);
@@ -56,8 +61,12 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   let stopTaskBodySubscription: (() => void) | null = null;
   let stopTaskHistorySubscription: (() => void) | null = null;
 
-  const activeTask = computed(() =>
-    snapshot.value?.tasks.find((task) => task.taskId === selectedTaskId.value) ?? null);
+  const activeTask = computed(() => {
+    const tasks = snapshot.value?.tasks ?? [];
+    return tasks.find((task) => gateTaskSelectionKey(task) === selectedTaskKey.value)
+      ?? tasks.find((task) => task.taskId === selectedTaskId.value)
+      ?? null;
+  });
 
   const currentGateLineageId = computed(() =>
     firstNonEmptyId(
@@ -100,6 +109,7 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   function clearSelection() {
     detailRequestToken += 1;
     selectedTaskId.value = '';
+    selectedTaskKey.value = '';
     selectedTaskBody.value = '';
     selectedTaskHistory.value = [];
     detailBodyLoading.value = false;
@@ -139,7 +149,10 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
       detailHistoryLoading.value = true;
     }
 
-    const isCurrentRequest = () => requestId === detailRequestToken && selectedTaskId.value === task.taskId;
+    const taskSelectionKey = gateTaskSelectionKey(task);
+    const isCurrentRequest = () =>
+      requestId === detailRequestToken
+      && selectedTaskKey.value === taskSelectionKey;
     const root = gateRoot.value;
     stopTaskDetailWatchers();
 
@@ -195,11 +208,13 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
 
   async function selectTask(task: GateTask) {
     selectedTaskId.value = task.taskId;
+    selectedTaskKey.value = gateTaskSelectionKey(task);
     await loadTaskDetail(task, { showLoading: true });
   }
 
   return {
     selectedTaskId,
+    selectedTaskKey,
     selectedTaskBody,
     selectedTaskHistory,
     detailBodyLoading,

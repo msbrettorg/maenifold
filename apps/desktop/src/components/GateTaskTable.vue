@@ -21,6 +21,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskProgress from './GateTaskProgress.vue';
 import type { GateTask } from '../lib/gate';
+import { gateTaskSelectionKey } from '../composables/useGateTaskDetail';
 import {
   getTaskPathHint,
   getTaskPipelineLabel,
@@ -32,7 +33,7 @@ type SortDirection = 'asc' | 'desc';
 
 const props = defineProps<{
   tasks: GateTask[];
-  selectedTaskId: string;
+  selectedTaskKey: string;
   sortColumn: SortColumn;
   sortDirection: SortDirection;
 }>();
@@ -145,7 +146,7 @@ const table = useVueTable<GateTask>({
     },
   },
   manualSorting: true,
-  getRowId: (row) => row.taskId,
+  getRowId: gateTaskSelectionKey,
   getCoreRowModel: getCoreRowModel(),
 });
 </script>
@@ -185,7 +186,7 @@ const table = useVueTable<GateTask>({
           <TableRow
             v-for="row in table.getRowModel().rows"
             :key="row.id"
-            :data-state="row.original.taskId === props.selectedTaskId ? 'selected' : undefined"
+            :data-state="gateTaskSelectionKey(row.original) === props.selectedTaskKey ? 'selected' : undefined"
             :title="rowTitle(row.original)"
             class="cursor-pointer hover:bg-surface-high data-[state=selected]:bg-surface-high data-[state=selected]:text-text-primary"
             @click="emit('select', row.original)"

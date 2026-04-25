@@ -154,7 +154,7 @@ const table = useVueTable<GateTask>({
 <template>
   <div class="flex h-full min-h-0 flex-col rounded-lg border bg-background">
     <ScrollArea class="h-full">
-      <Table class="min-w-full table-fixed" :style="{ width: `${table.getTotalSize()}px` }">
+      <Table class="w-full table-fixed">
         <TableHeader class="sticky top-0 z-10 bg-surface">
           <TableRow
             v-for="headerGroup in table.getHeaderGroups()"

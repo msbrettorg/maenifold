@@ -14,8 +14,6 @@ path = "src/lib.rs"
 agent-client-protocol.workspace = true
 async-trait = "0.1"
 dashmap = "6"
-dirs = "6"
-futures = "0.3"
 libc = "0.2"
 rusqlite = { version = "0.38", features = ["bundled"] }
 serde = { version = "1", features = ["derive"] }
@@ -23,7 +21,6 @@ serde_json = "1"
 tokio = { version = "1", features = ["fs", "io-util", "macros", "net", "process", "sync", "time", "rt"] }
 tokio-util = { version = "0.7", features = ["compat"] }
 uuid = { version = "1", features = ["v4", "serde"] }
-which = "7"
 
 [lints]
 workspace = true

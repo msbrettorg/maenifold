@@ -225,6 +225,11 @@ audit_file() {
           continue
         }
         predecessor = idx - 1
+        if (idx < last_idx) {
+          for (j = idx + 1; j <= 4; j++) {
+            seen[j] = 0
+          }
+        }
         if (!seen[predecessor]) {
           violation(stage, lines[i],
             "stage out of expected order for " pipeline ": " stage " appears before " expected_stage(pipeline, predecessor))

@@ -24,3 +24,5 @@ ralph/state/logs/
 ralph/state/sessions/
 ralph/state/otel/
 ralph/state/metrics.jsonl
+poc/copilotkit/*/node_modules/
+poc/copilotkit/app/dist/

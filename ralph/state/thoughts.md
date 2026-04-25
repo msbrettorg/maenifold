@@ -5,6 +5,35 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260425-0609 — Pipeline Advancement + CDP Verification
+
+### Shipped
+- **T-218.13** ✅ Blue-team evidence matrix format + audit script (SDD, 2 red-team cycles)
+- **T-218.15** ✅ Stage actor/transition integrity audit (SDD, 3 SWE cycles, 3 red-team, 2 blue-team)
+
+### In Progress
+- **T-219.1** ⏳ Gate Done tab row click bug fix (SWE running)
+
+### CDP Verification Observations
+- Gate Done tab row click confirmed broken: first click updates detail panel, subsequent clicks do not
+- Knowledge tab note selection also may have similar issue — breadcrumb didn't update on second click
+- Todo tab row clicks work correctly
+- Teams tab renders (no blank page) ✓
+- Settings/Schedules tab renders correctly ✓
+- Agents tab renders with sessions ✓
+- All main tabs accessible and rendering ✓
+
+### Process Notes
+- Red-team count-only evidence matching (T-218.13) accepted as informational — lint script, not formal verifier
+- Red-team newline-in-filename (T-218.15) accepted as informational — PM-generated filenames never contain newlines
+- Blue-team "manual pipeline" documentation gap (T-218.15) — no "manual" pipeline exists in gate
+- Knowledge tab selection may share root cause with Gate Done tab bug — investigate after T-219.1 ships
+
+### Next Actions
+- After T-219.1 ships: dispatch T-218.40 (gate progress badges, has duo approval)
+- Backend tasks T-218.19-39 need duo review before dispatch
+- CDP verification tasks T-218.5-8, 10, 11 need the packaged app rebuilt with T-219.1 fix before full testing
+
 ## Iteration 20260424-2132 — Gate Audit + Schedule CLI + Process Hardening
 
 ### Shipped (3 tasks + 1 epic closed)

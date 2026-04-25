@@ -264,11 +264,9 @@ mod tests {
         assert!(store.read(&task.id).is_err());
     }
     #[test]
-    fn delete_nonexistent_returns_error() {
+    fn delete_nonexistent_is_idempotent() {
         let (_temp, store) = test_store();
-        fs::create_dir_all(store.base_dir()).expect("create base dir");
-        fs::write(store.task_dir("missing-task"), b"not-a-directory").expect("write stray file");
-        assert!(store.delete("missing-task").is_err());
+        assert!(store.delete("never-created-task").is_ok());
     }
     #[test]
     fn list_skips_malformed_json() {

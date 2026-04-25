@@ -32,6 +32,7 @@ use serde_json::json;
 
 pub(crate) use params::{
     AcpExecContextBlock, AcpExecImageContext, AcpExecResourceContext, AcpExecTextContext,
+    EmbeddingModelsAction, EmbeddingModelsParams,
 };
 
 pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition> {

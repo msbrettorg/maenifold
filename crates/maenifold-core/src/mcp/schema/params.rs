@@ -57,6 +57,7 @@ pub(super) fn default_prompt_mode() -> Option<String> {
 }
 
 pub use super::assumption_params::*;
+pub use super::embedding_models_params::*;
 pub use super::graph_params::*;
 pub use super::memory_params::*;
 pub use super::pipeline_params::*;

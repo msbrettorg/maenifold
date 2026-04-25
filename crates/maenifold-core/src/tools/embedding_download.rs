@@ -3,11 +3,14 @@
 //! Downloads ONNX + tokenizer assets to a staging directory, then performs
 //! an atomic rename into the final model directory under `{models_dir}/{model_id}/`.
 
+use super::embedding_models::{CatalogFile, CatalogModel};
+use hf_hub::{Repo, RepoType};
 use hf_hub::api::tokio::{Api, Progress};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
-use tokio::fs;
+use tokio::{fs, io::AsyncReadExt};
 
 /// Snapshot of an in-flight download, exposed to the catalog `list` handler so
 /// the desktop UI can render progress beside the "Downloading…" button. Bytes
@@ -74,18 +77,13 @@ impl Progress for DownloadTracker {
 /// Files are written to a hidden staging directory and atomically renamed
 /// into place on success. A pre-existing install short-circuits with an error.
 pub async fn download_model(
-    model_id: &str,
-    hf_repo: &str,
-    onnx_repo: Option<&str>,
+    model: &CatalogModel,
     models_dir: &Path,
 ) -> Result<PathBuf, String> {
+    let model_id = model.id.as_str();
     let final_dir = models_dir.join(model_id);
     if final_dir.exists() {
-        return Err(format!(
-            "Model {} already installed at {}",
-            model_id,
-            final_dir.display()
-        ));
+        return Err(format!("Model {model_id} is already installed"));
     }
 
     // T-202.9 remediation: refuse to download into the catalog layout when a
@@ -96,10 +94,11 @@ pub async fn download_model(
     let legacy_flat = models_dir.join(format!("{model_id}.onnx"));
     if legacy_flat.is_file() {
         return Err(format!(
-            "Legacy model exists at {}, remove it first before downloading the catalog version.",
-            legacy_flat.display()
+            "Legacy model exists for {model_id}; remove it first before downloading the catalog version."
         ));
     }
+
+    validate_catalog_entry(model)?;
 
     let staging = models_dir.join(format!(".{}.downloading", model_id));
     let _ = fs::remove_dir_all(&staging).await; // clean any prior failed attempt
@@ -110,8 +109,18 @@ pub async fn download_model(
     let api = Api::new().map_err(|e| e.to_string())?;
 
     // ONNX files from onnx_repo (or hf_repo if no override)
-    let onnx_source = onnx_repo.unwrap_or(hf_repo);
-    let onnx_api = api.model(onnx_source.to_string());
+    let onnx_source = model.onnx_repo.as_deref().unwrap_or(&model.huggingface_repo);
+    let onnx_revision = model.onnx_revision.as_deref().unwrap_or(&model.revision);
+    let onnx_api = api.repo(Repo::with_revision(
+        onnx_source.to_string(),
+        RepoType::Model,
+        onnx_revision.to_string(),
+    ));
+    let tok_api = api.repo(Repo::with_revision(
+        model.huggingface_repo.clone(),
+        RepoType::Model,
+        model.revision.clone(),
+    ));
 
     // T-202.39: report progress on the large ONNX files only — the tokenizer/
     // config files below are tiny and not worth wiring through the tracker.
@@ -119,23 +128,32 @@ pub async fn download_model(
         model_id: model_id.to_string(),
     };
 
-    // Download model.onnx with progress reporting.
-    let onnx_path = onnx_api
-        .download_with_progress("onnx/model.onnx", tracker.clone())
-        .await
-        .map_err(|e| format!("ONNX download failed: {e}"))?;
-    fs::copy(&onnx_path, staging.join("model.onnx"))
-        .await
-        .map_err(|e| e.to_string())?;
-
-    // Try model.onnx_data (external data file — some models have it).
-    if let Ok(data_path) = onnx_api
-        .download_with_progress("onnx/model.onnx_data", tracker.clone())
-        .await
-    {
-        fs::copy(&data_path, staging.join("model.onnx_data"))
-            .await
-            .map_err(|e| e.to_string())?;
+    for file in &model.files {
+        let api = match file.source.as_str() {
+            "onnx" => &onnx_api,
+            "hf" => &tok_api,
+            other => return Err(format!("Unknown file source '{other}' for {}", file.name)),
+        };
+        let source = if file.source == "onnx" {
+            api.download_with_progress(&file.source_path, tracker.clone())
+                .await
+        } else {
+            api.get(&file.source_path).await
+        };
+        match source {
+            Ok(path) => {
+                let staged = staging.join(&file.name);
+                fs::copy(&path, &staged).await.map_err(|e| e.to_string())?;
+                verify_sha256(&staged, file).await?;
+            }
+            Err(e) if file.optional => {
+                tracing::warn!(
+                    "Optional file {} was not available for embedding model {model_id}: {e}",
+                    file.name
+                );
+            }
+            Err(e) => return Err(format!("Failed to download {}: {e}", file.name)),
+        }
     }
 
     // Ensure the progress entry is cleared even if `download_with_progress`
@@ -145,24 +163,65 @@ pub async fn download_model(
         map.remove(model_id);
     }
 
-    // Tokenizer files from the original repo (not onnx_repo)
-    let tok_api = api.model(hf_repo.to_string());
-    for filename in ["tokenizer.json", "tokenizer_config.json", "config.json"] {
-        match tok_api.get(filename).await {
-            Ok(path) => {
-                fs::copy(&path, staging.join(filename))
-                    .await
-                    .map_err(|e| e.to_string())?;
-            }
-            Err(_) if filename == "config.json" => {} // optional
-            Err(e) => return Err(format!("Failed to download {filename}: {e}")),
-        }
-    }
-
     // Atomic rename: staging → final
     fs::rename(&staging, &final_dir)
         .await
         .map_err(|e| format!("Failed to finalize: {e}"))?;
 
     Ok(final_dir)
+}
+
+fn validate_catalog_entry(model: &CatalogModel) -> Result<(), String> {
+    if model.revision.trim().is_empty() {
+        return Err(format!("Model {} is missing immutable revision", model.id));
+    }
+    if model.files.is_empty() {
+        return Err(format!("Model {} has no verified files in catalog", model.id));
+    }
+    if !model
+        .files
+        .iter()
+        .any(|file| file.name == "model.onnx" && !file.optional)
+    {
+        return Err(format!("Model {} is missing required model.onnx", model.id));
+    }
+    for file in &model.files {
+        if file.name.trim().is_empty()
+            || file.source_path.trim().is_empty()
+            || file.sha256.trim().is_empty()
+        {
+            return Err(format!(
+                "Model {} has incomplete verification metadata for a catalog file",
+                model.id
+            ));
+        }
+        if file.sha256.len() != 64 || !file.sha256.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(format!(
+                "Model {} has invalid SHA-256 metadata for {}",
+                model.id, file.name
+            ));
+        }
+    }
+    Ok(())
+}
+
+async fn verify_sha256(path: &Path, file: &CatalogFile) -> Result<(), String> {
+    let mut input = fs::File::open(path).await.map_err(|e| e.to_string())?;
+    let mut hasher = Sha256::new();
+    let mut buffer = [0_u8; 64 * 1024];
+    loop {
+        let read = input.read(&mut buffer).await.map_err(|e| e.to_string())?;
+        if read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..read]);
+    }
+    let actual = format!("{:x}", hasher.finalize());
+    if actual != file.sha256.to_ascii_lowercase() {
+        return Err(format!(
+            "SHA-256 verification failed for {}: expected {}, got {}",
+            file.name, file.sha256, actual
+        ));
+    }
+    Ok(())
 }

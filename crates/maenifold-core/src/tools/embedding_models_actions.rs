@@ -1,21 +1,28 @@
 use super::context::ToolContext;
-use super::embedding_models::load_catalog;
+use super::embedding_models::{CatalogModel, load_catalog_with_external_trust};
 use crate::acp_config::{AgentsConfig, MaenifoldSettings};
 use crate::db;
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::schema::EmbeddingModelsParams;
 use crate::vector;
 use serde_json::{Value, json};
 use std::path::Path;
 
-pub(super) fn handle_download(context: &ToolContext, payload: &Value) -> Result<Value> {
-    let model_id = payload
-        .get("modelId")
-        .and_then(Value::as_str)
+pub(super) fn handle_download(
+    context: &ToolContext,
+    params: &EmbeddingModelsParams,
+) -> Result<Value> {
+    let model_id = params
+        .model_id
+        .as_deref()
         .ok_or_else(|| {
             MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
         })?;
 
-    let catalog = load_catalog(&context.config.assets_path);
+    let catalog = load_catalog_with_external_trust(
+        &context.config.assets_path,
+        params.trust_external_catalog,
+    );
     let entry = catalog
         .iter()
         .find(|m| m.id == model_id)
@@ -23,9 +30,8 @@ pub(super) fn handle_download(context: &ToolContext, payload: &Value) -> Result<
 
     let models_dir = context.config.assets_path.join("models");
 
-    let id = model_id.to_string();
-    let repo = entry.huggingface_repo.clone();
-    let onnx = entry.onnx_repo.clone();
+    require_license_opt_in(entry, params.allow_restricted_license)?;
+    let model = entry.clone();
     let dir = models_dir.clone();
 
     // T-202.37 P0: previously this used `tokio::spawn` fire-and-forget, which
@@ -36,7 +42,7 @@ pub(super) fn handle_download(context: &ToolContext, payload: &Value) -> Result<
     // success/failure flows back to the MCP response and the frontend's poll
     // observes installed=true (or surfaces the error in its catch block).
     let download_future = async move {
-        super::embedding_download::download_model(&id, &repo, onnx.as_deref(), &dir).await
+        super::embedding_download::download_model(&model, &dir).await
     };
 
     let result = match tokio::runtime::Handle::try_current() {
@@ -65,12 +71,12 @@ pub(super) fn handle_download(context: &ToolContext, payload: &Value) -> Result<
     };
 
     match result {
-        Ok(path) => {
-            tracing::info!("Downloaded {model_id} to {}", path.display());
+        Ok(_path) => {
+            tracing::info!("Downloaded embedding model {model_id}");
             Ok(json!({
                 "downloaded": true,
                 "modelId": model_id,
-                "path": path.display().to_string(),
+                "installLayout": "subdir",
             }))
         }
         Err(e) => {
@@ -86,22 +92,28 @@ pub(super) fn handle_download(context: &ToolContext, payload: &Value) -> Result<
 /// Verifies the model is present in the catalog and installed under
 /// `{models_dir}/{model_id}/model.onnx` (subdirectory layout) before writing.
 /// Daemon restart + sync is required for the change to take effect.
-pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<Value> {
-    let model_id = payload
-        .get("modelId")
-        .and_then(Value::as_str)
+pub(super) fn handle_activate(
+    context: &ToolContext,
+    params: &EmbeddingModelsParams,
+) -> Result<Value> {
+    let model_id = params
+        .model_id
+        .as_deref()
         .ok_or_else(|| {
             MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
         })?;
 
-    if !load_catalog(&context.config.assets_path)
-        .iter()
-        .any(|m| m.id == model_id)
-    {
+    let catalog = load_catalog_with_external_trust(
+        &context.config.assets_path,
+        params.trust_external_catalog,
+    );
+    let entry = catalog.iter().find(|m| m.id == model_id);
+    let Some(entry) = entry else {
         return Err(MaenifoldError::Message(format!(
             "Unknown model: {model_id}"
         )));
-    }
+    };
+    require_license_opt_in(entry, params.allow_restricted_license)?;
 
     let models_dir = context.config.assets_path.join("models");
     let subdir_path = models_dir.join(model_id).join("model.onnx");
@@ -116,9 +128,7 @@ pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<
             .unwrap_or(false);
     if !installed {
         return Err(MaenifoldError::Message(format!(
-            "Model '{model_id}' is not installed. Checked {} and {} — download it first.",
-            subdir_path.display(),
-            flat_path.display()
+            "Model '{model_id}' is not installed in a supported layout — download it first."
         )));
     }
 
@@ -139,10 +149,7 @@ pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<
     // The daemon's existing sync logic will rebuild vec_concepts/vec_memory_files
     // on the next sync once the new model is loaded (handled by
     // `db::ensure_vec0_tables` + `sync::vector_embeddings`).
-    let new_dims = load_catalog(&context.config.assets_path)
-        .iter()
-        .find(|m| m.id == model_id)
-        .map(|m| m.dimensions);
+    let new_dims = Some(entry.dimensions);
     let current_dims = vector::embedding_dimensions().or_else(|| {
         db::open_connection(&context.config.database_path)
             .ok()
@@ -236,6 +243,33 @@ pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<
     }))
 }
 
+fn require_license_opt_in(model: &CatalogModel, allow_restricted_license: bool) -> Result<()> {
+    if is_permissive_license(&model.license) {
+        return Ok(());
+    }
+
+    if allow_restricted_license {
+        tracing::warn!(
+            "Restricted embedding model license explicitly allowed for model {} with license {}",
+            model.id,
+            model.license
+        );
+        return Ok(());
+    }
+
+    Err(MaenifoldError::Message(format!(
+        "Model '{}' has license '{}'. Downloads or activation for non-MIT/Apache licenses require allowRestrictedLicense=true.",
+        model.id, model.license
+    )))
+}
+
+fn is_permissive_license(license: &str) -> bool {
+    matches!(
+        license.trim().to_ascii_lowercase().as_str(),
+        "mit" | "apache-2.0" | "apache 2.0" | "apache2"
+    )
+}
+
 /// T-202.9a: write the agents config to `{root}/maenifold.json`.
 /// Mirrors the formatting/path semantics of `api::config_manager::save_config`
 /// without taking an HTTP-layer dependency.
@@ -244,15 +278,12 @@ fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
             MaenifoldError::Message(format!(
-                "Failed to ensure config directory '{}': {}",
-                parent.display(),
-                e
+                "Failed to ensure config directory: {e}"
             ))
         })?;
     }
     let content = serde_json::to_string_pretty(config)
         .map_err(|e| MaenifoldError::Message(format!("Failed to serialize config: {e}")))?;
-    std::fs::write(&path, content).map_err(|e| {
-        MaenifoldError::Message(format!("Failed to write '{}': {}", path.display(), e))
-    })
+    std::fs::write(&path, content)
+        .map_err(|e| MaenifoldError::Message(format!("Failed to write config: {e}")))
 }

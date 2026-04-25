@@ -11,7 +11,7 @@ import { useMcpResources } from '../composables/useMcpResources';
 import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
-import { findTaskByLineageId, useGateTaskDetail } from '../composables/useGateTaskDetail';
+import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
 import { gateResourceUri, parseResourcePayload } from '../lib/gate-resources';
 import type { GateSnapshot, GateTask } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
@@ -81,8 +81,10 @@ async function refreshSnapshot(background = false) {
     snapshot.value = nextSnapshot;
     lastRefreshLabel.value = formatRefreshTime();
     if (!detail.selectedTaskId.value) return;
+    const resolved = detail.activeTask.value;
+    if (resolved) detail.selectedTaskKey.value = gateTaskSelectionKey(resolved);
     await detail.loadTaskDetail(
-      nextSnapshot.tasks.find((task) => task.taskId === detail.selectedTaskId.value) ?? null,
+      resolved,
       { preserveExisting: background, showLoading: !background },
     );
   } catch (loadError) {
@@ -125,6 +127,7 @@ async function handleRemoveCurrentGate() {
 
 watch(gateRoot, async (root) => {
   detail.selectedTaskId.value = '';
+  detail.selectedTaskKey.value = '';
   await refreshSnapshot();
   await startStatusWatch(root);
 }, { immediate: true });
@@ -206,7 +209,7 @@ onBeforeUnmount(() => {
       <GateViewContent
         v-else
         :tasks="filtering.visibleTasks.value"
-        :selected-task-id="detail.selectedTaskId.value"
+        :selected-task-key="detail.selectedTaskKey.value"
         :sort-column="filtering.sortColumn.value"
         :sort-direction="filtering.sortDirection.value"
         :active-task="detail.activeTask.value"

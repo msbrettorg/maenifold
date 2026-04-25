@@ -3,6 +3,7 @@ import { appendFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
+import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
@@ -191,10 +192,14 @@ window.parent.postMessage({jsonrpc:"2.0",method:"ui/notifications/sandbox-proxy-
 }
 function registerIpcHandlers(): void {
   ipcMain.handle('dialog:open-directory', async () => {
-    const result = await dialog.showOpenDialog(mainWindow ?? undefined, { properties: ['openDirectory'] });
+    const ownerWindow = mainWindow ?? BrowserWindow.getFocusedWindow();
+    const result = ownerWindow
+      ? await dialog.showOpenDialog(ownerWindow, { properties: ['openDirectory'] })
+      : await dialog.showOpenDialog({ properties: ['openDirectory'] });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
   ipcMain.handle('app:get-version', () => app.getVersion());
+  registerVec0Handlers();
   registerVoiceHandlers();
 }
 app.on('render-process-gone', async (_event, _webContents, details) => {

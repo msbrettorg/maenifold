@@ -27,8 +27,27 @@ type ElectronVoiceLaunchResult = {
 type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
+  vec0Status?: () => Promise<Vec0Status>;
+  vec0Download?: () => Promise<Vec0Status>;
   voiceCheck?: () => Promise<ElectronVoiceCheckResult>;
   voiceLaunch?: () => Promise<ElectronVoiceLaunchResult>;
+};
+
+type Vec0DownloadProgress = {
+  current: number;
+  total: number;
+  filename?: string;
+};
+
+type Vec0Status = {
+  platform: string;
+  arch: string;
+  supported: boolean;
+  installed: boolean;
+  fileSizeBytes: number;
+  assetPattern: string | null;
+  targetPath: string | null;
+  downloadProgress: Vec0DownloadProgress | null;
 };
 
 interface Window {

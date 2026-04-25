@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, provide, ref, type Component } from 'vue';
+import { computed, onMounted, provide, ref, type Component } from 'vue';
+import { Loader2 } from 'lucide-vue-next';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -12,14 +13,34 @@ import {
   StepperTrigger,
 } from '@/components/ui/stepper';
 
-import { useOnboarding, type OnboardingStepId } from '../composables/useOnboarding';
+import {
+  DEFAULT_ONBOARDING_STEPS,
+  useOnboarding,
+  type OnboardingStepId,
+} from '../composables/useOnboarding';
+import { useOnboardingVec0Download } from '../composables/useOnboardingVec0Download';
 import OnboardingStepAgent from './OnboardingStepAgent.vue';
 import OnboardingStepDaemon from './OnboardingStepDaemon.vue';
 import OnboardingStepDone from './OnboardingStepDone.vue';
 import OnboardingStepModel from './OnboardingStepModel.vue';
+import OnboardingStepVec0 from './OnboardingStepVec0.vue';
 import OnboardingStepWelcome from './OnboardingStepWelcome.vue';
 
 const emit = defineEmits<{ complete: [] }>();
+
+interface StepConfig {
+  id: OnboardingStepId;
+  label: string;
+  component: Component;
+}
+
+const vec0 = useOnboardingVec0Download();
+
+const stepIds = computed<readonly OnboardingStepId[]>(() =>
+  vec0.needsDownload.value
+    ? ['welcome', 'daemon', 'agent', 'model', 'vec0', 'done']
+    : DEFAULT_ONBOARDING_STEPS,
+);
 
 const {
   step,
@@ -29,28 +50,26 @@ const {
   goToStep,
   goBack,
   markComplete,
-} = useOnboarding();
+} = useOnboarding(stepIds);
 
-interface StepConfig {
-  id: OnboardingStepId;
-  label: string;
-  component: Component;
-}
+const allSteps: Record<OnboardingStepId, StepConfig> = {
+  welcome: { id: 'welcome', label: 'Welcome', component: OnboardingStepWelcome },
+  daemon: { id: 'daemon', label: 'Daemon', component: OnboardingStepDaemon },
+  agent: { id: 'agent', label: 'Agent', component: OnboardingStepAgent },
+  model: { id: 'model', label: 'Model', component: OnboardingStepModel },
+  vec0: { id: 'vec0', label: 'Vec0', component: OnboardingStepVec0 },
+  done: { id: 'done', label: 'Finish', component: OnboardingStepDone },
+};
 
-const steps: StepConfig[] = [
-  { id: 'welcome', label: 'Welcome', component: OnboardingStepWelcome },
-  { id: 'daemon', label: 'Daemon', component: OnboardingStepDaemon },
-  { id: 'agent', label: 'Agent', component: OnboardingStepAgent },
-  { id: 'model', label: 'Model', component: OnboardingStepModel },
-  { id: 'done', label: 'Finish', component: OnboardingStepDone },
-];
+const steps = computed<StepConfig[]>(() => stepIds.value.map((id) => allSteps[id]));
+const wizardReady = computed<boolean>(() => !vec0.loading.value || !!vec0.loadError.value);
 
 // Stepper expects 1-based modelValue; useOnboarding stores a 0-based step index.
 const stepIndex = computed<number>(() => step.value + 1);
 
 const activeStepComponent = computed<Component>(() => {
   return (
-    steps.find((s) => s.id === currentStepId.value)?.component ??
+    steps.value.find((s) => s.id === currentStepId.value)?.component ??
     OnboardingStepWelcome
   );
 });
@@ -74,6 +93,11 @@ function handleStepTrigger(target: number): void {
 provide('onboarding-advance', advance);
 provide('onboarding-go-back', goBack);
 provide('onboarding-mark-complete', handleMarkComplete);
+provide('onboarding-vec0', vec0);
+
+onMounted(() => {
+  void vec0.loadStatus();
+});
 </script>
 
 <template>
@@ -88,7 +112,16 @@ provide('onboarding-mark-complete', handleMarkComplete);
       <DialogTitle class="sr-only">Onboarding</DialogTitle>
       <ScrollArea class="h-full w-full">
         <div class="flex flex-col items-center justify-start min-h-screen p-8">
+          <div
+            v-if="!wizardReady"
+            class="flex min-h-[50vh] w-full max-w-2xl flex-col items-center justify-center gap-3"
+          >
+            <Loader2 class="h-6 w-6 animate-spin text-brand" />
+            <p class="text-sm text-text-secondary">Preparing onboarding…</p>
+          </div>
+
           <Stepper
+            v-else
             :model-value="stepIndex"
             :linear="false"
             class="w-full max-w-2xl mb-8 flex items-start justify-between gap-2"
@@ -111,7 +144,7 @@ provide('onboarding-mark-complete', handleMarkComplete);
             </StepperItem>
           </Stepper>
 
-          <div class="w-full max-w-2xl">
+          <div v-if="wizardReady" class="w-full max-w-2xl">
             <component :is="activeStepComponent" :key="currentStepId" />
           </div>
         </div>

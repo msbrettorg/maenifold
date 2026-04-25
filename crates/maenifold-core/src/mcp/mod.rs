@@ -1,6 +1,8 @@
 pub mod http;
 pub mod resources;
 pub mod schema;
+mod stdio_pool_health;
+mod stdio_pool_tools;
 pub mod stdio_pool;
 pub mod stdio_session;
 pub mod tool_routing;

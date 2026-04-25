@@ -38,3 +38,19 @@ This isn't a work log, it's a place for ideas that aren't yet ready to be implem
 - Gate Done tab click properly updates detail panel (T-219.1 fix confirmed)
 - Schedules settings renders with table and empty state
 - Image/Audio buttons disabled (expected — need model support)
+
+## Iteration 20260425-0837
+
+### In-Flight
+- **T-220.16** ✅ SWE done, ✅ red-team PASS, 🔄 blue-team running
+- **T-220.7** ✅ SWE done, ❌ red-team FAIL (null hashes), ✅ remediated with real hashes, 🔄 red-team re-audit running
+- **T-220.24** ✅ SWE done, 🔄 red-team running
+- **T-220.10** ❌ SWE failed (ort link error without download-binaries). Needs research into ort load-dynamic feature or feature-gating entire vector module.
+
+### Grooming
+- T-218.19 deprioritized to P2 (unreachable code path per duo review)
+
+### T-220.10 research needed
+- `ort` crate's `download-binaries` is required for build on machines without system ONNX Runtime
+- Possible approaches: (1) `ort/load-dynamic` feature for runtime dlopen, (2) feature-gate entire vector module, (3) accept status quo and document
+- Should probably change pipeline from SDD to GSD since this needs research first

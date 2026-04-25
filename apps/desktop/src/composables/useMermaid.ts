@@ -1,5 +1,6 @@
 import type mermaidType from 'mermaid';
 import type { Ref } from 'vue';
+import DOMPurify from 'dompurify';
 
 let mermaidPromise: Promise<typeof mermaidType> | null = null;
 let mermaidRenderSequence = 0;
@@ -26,18 +27,22 @@ async function getMermaid(): Promise<typeof mermaidType> {
   return mermaid;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll('\'', '&#39;');
+function sanitizeMermaidSvg(svg: string): string {
+  return DOMPurify.sanitize(svg, {
+    USE_PROFILES: { svg: true, svgFilters: true },
+  });
 }
 
-function renderErrorMessageHtml(error: unknown): string {
+function appendMermaidErrorMessage(preBlock: Element, error: unknown): void {
+  if (preBlock.querySelector('.mermaid-error-message')) {
+    return;
+  }
+
   const message = error instanceof Error ? error.message : 'Unknown error';
-  return `<div class="mermaid-error-message">Unable to render Mermaid diagram: ${escapeHtml(message)}</div>`;
+  const errorElement = document.createElement('div');
+  errorElement.className = 'mermaid-error-message';
+  errorElement.textContent = `Unable to render Mermaid diagram: ${message}`;
+  preBlock.append(errorElement);
 }
 
 function resolveContainer(
@@ -74,21 +79,21 @@ export function useMermaid() {
       const definition = codeBlock.textContent?.trim();
       if (!definition) {
         preBlock.classList.add('mermaid-error');
-        if (!preBlock.querySelector('.mermaid-error-message')) {
-          preBlock.insertAdjacentHTML('beforeend', renderErrorMessageHtml(new Error('Empty Mermaid definition.')));
-        }
+        appendMermaidErrorMessage(preBlock, new Error('Empty Mermaid definition.'));
         continue;
       }
 
       try {
         const renderId = `mermaid-diagram-${mermaidRenderSequence++}`;
         const { svg } = await mermaid.render(renderId, definition);
-        preBlock.outerHTML = `<div class="mermaid-rendered">${svg}</div>`;
+        const sanitizedSvg = sanitizeMermaidSvg(svg);
+        const renderedContainer = document.createElement('div');
+        renderedContainer.className = 'mermaid-rendered';
+        renderedContainer.innerHTML = sanitizedSvg;
+        preBlock.replaceWith(renderedContainer);
       } catch (error) {
         preBlock.classList.add('mermaid-error');
-        if (!preBlock.querySelector('.mermaid-error-message')) {
-          preBlock.insertAdjacentHTML('beforeend', renderErrorMessageHtml(error));
-        }
+        appendMermaidErrorMessage(preBlock, error);
       }
     }
   }

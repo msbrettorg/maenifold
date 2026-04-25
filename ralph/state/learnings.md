@@ -3,6 +3,25 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 2132 (Gate Audit + Schedule CLI)
+
+### Shell scripts: never use eval with interpolated paths
+- T-218.15 red-team caught `eval "$file_command"` where `done_dir` was interpolated into a shell command string
+- Paths containing `$()` or backticks enable arbitrary command execution
+- **Lesson: NEVER construct shell commands as strings + eval. Use direct commands with proper quoting.**
+
+### Gate Done tab row click does not update detail panel
+- CDP testing revealed clicking Done tab rows doesn't update the task detail panel
+- Only Todo tab row clicks work — Done tab clicks are silently ignored
+- Filed as T-219.1 with CDP evidence
+- **Lesson: Always test BOTH todo and done views during Gate UI verification**
+
+### PM can apply trivial red-team fixes directly
+- T-218.33 had a 1-line fix (allow_hyphen_values attribute) — PM applied directly instead of re-dispatching SWE
+- T-218.12 had a 1-line awk pattern fix — PM applied directly
+- Saves ~3-5 minutes per trivial fix vs full SWE re-dispatch
+- **Lesson: For sub-5-line fixes where the PM understands the change, apply directly. For anything larger, re-dispatch.**
+
 ## 2026-04-24 — Iteration 1953 (Test Coverage + Gateway + Vec0)
 
 ### Gate red-team fail resets to pending — re-audit needs full re-traversal

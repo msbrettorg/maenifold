@@ -1,46 +1,5 @@
 [
   {
-    "taskId": "T-209.0",
-    "canonicalTaskId": "T-209.0",
-    "title": "Epic: Pipeline-driven delivery — replace PM-as-agent with PM-as-DAG",
-    "pipeline": "slc",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "discovery",
-      "spec",
-      "swe",
-      "red-team",
-      "remediate",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.0-epic-pipeline-driven-delivery.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.7",
-    "canonicalTaskId": "T-209.7",
-    "title": "Validate pipeline-driven delivery on real T-02.x gate tasks",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.7-validate-on-real-tasks.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
     "taskId": "T-218.5",
     "canonicalTaskId": "T-218.5",
     "title": "Packaged Electron CDP click-through matrix for recent desktop fixes",
@@ -174,30 +133,11 @@
     "issue": ""
   },
   {
-    "taskId": "T-218.12",
-    "canonicalTaskId": "T-218.12",
-    "title": "Gate audit: enforce epic child-closure invariant",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-218.12-gate-epic-child-closure-audit.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
     "taskId": "T-218.13",
     "canonicalTaskId": "T-218.13",
     "title": "Require acceptance-criteria evidence matrix in blue-team notes",
     "pipeline": "sdd",
-    "state": "pending",
+    "state": "red-team",
     "stages": [
       "pending",
       "swe",
@@ -205,7 +145,7 @@
       "blue-team",
       "done"
     ],
-    "attempts": 0,
+    "attempts": 1,
     "location": "todo",
     "path": "./todo/T-218.13-blue-team-acceptance-evidence-matrix.md",
     "linked": false,
@@ -235,7 +175,7 @@
     "canonicalTaskId": "T-218.15",
     "title": "Gate stage actor and transition integrity audit",
     "pipeline": "sdd",
-    "state": "pending",
+    "state": "blue-team",
     "stages": [
       "pending",
       "swe",
@@ -243,7 +183,7 @@
       "blue-team",
       "done"
     ],
-    "attempts": 0,
+    "attempts": 2,
     "location": "todo",
     "path": "./todo/T-218.15-stage-actor-transition-integrity-audit.md",
     "linked": false,
@@ -284,24 +224,6 @@
     "attempts": 0,
     "location": "todo",
     "path": "./todo/T-218.17-integration-risk-coverage-expansion.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-218.18",
-    "canonicalTaskId": "T-218.18",
-    "title": "Gate cancel taxonomy and unresolved-risk linking",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-218.18-cancel-taxonomy-unresolved-risk-linking.md",
     "linked": false,
     "issue": ""
   },
@@ -572,25 +494,6 @@
     "issue": ""
   },
   {
-    "taskId": "T-218.33",
-    "canonicalTaskId": "T-218.33",
-    "title": "Scheduler generated launchd/systemd commands must match real CLI",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-218.33-scheduler-generated-command-mismatch.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
     "taskId": "T-218.34",
     "canonicalTaskId": "T-218.34",
     "title": "Schedule create/update/delete transactionality with OS scheduler install",
@@ -701,6 +604,63 @@
     "attempts": 0,
     "location": "todo",
     "path": "./todo/T-218.39-voice-handy-error-visibility-platform-truth.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.40",
+    "canonicalTaskId": "T-218.40",
+    "title": "Gate progress column badges have poor contrast and must use design tokens",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 1,
+    "location": "todo",
+    "path": "./todo/T-218.40-gate-progress-column-design-token-contrast.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.41",
+    "canonicalTaskId": "T-218.41",
+    "title": "Audit and remediate desktop contrast and design-token drift",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.41-desktop-design-token-contrast-audit.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-219.1",
+    "canonicalTaskId": "T-219.1",
+    "title": "Gate Done tab row click does not update detail panel",
+    "pipeline": "sdd",
+    "state": "swe",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-219.1-gate-done-tab-row-click-detail-panel.md",
     "linked": false,
     "issue": ""
   }

@@ -120,21 +120,22 @@ function handleAdd(): void {
                 :key="session.sessionId"
                 variant="ghost"
                 type="button"
-                class="flex h-auto w-full flex-col items-start gap-2 rounded-2xl border px-3 py-3 text-left"
+                class="flex h-auto w-full min-w-0 flex-col items-start gap-2 overflow-hidden rounded-2xl border px-3 py-3 text-left"
                 :class="selectedKey === sessionKey(group.agent, session.sessionId)
                   ? 'border-primary bg-accent'
                   : 'border-border bg-background hover:bg-muted/50'"
-                @click="selectedKey = sessionKey(group.agent, session.sessionId)"
+                @pointerdown.stop
+                @click.stop="selectedKey = sessionKey(group.agent, session.sessionId)"
               >
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="text-sm font-medium text-foreground">{{ group.agent }}</span>
+                <div class="flex w-full min-w-0 flex-wrap items-center gap-2">
+                  <span class="min-w-0 break-all text-sm font-medium text-foreground">{{ group.agent }}</span>
                   <code class="font-mono text-xs text-muted-foreground">{{ shortSessionId(session.sessionId) }}</code>
                   <Badge variant="outline">{{ formatStatus(session.status) }}</Badge>
                   <Badge v-if="isResumableSession(session)" variant="outline" class="bg-success/15 text-success">
                     Resumable
                   </Badge>
                 </div>
-                <p v-if="session.title" class="text-xs text-muted-foreground">
+                <p v-if="session.title" class="w-full min-w-0 break-words text-xs text-muted-foreground">
                   {{ session.title }}
                 </p>
               </Button>

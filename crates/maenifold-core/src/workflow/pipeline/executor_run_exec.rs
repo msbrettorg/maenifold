@@ -109,7 +109,7 @@ pub(crate) async fn run_tool_node(
             if server_name == "maenifold" {
                 Ok(invoke_local_tool(remote_tool_name, &arguments)?)
             } else {
-                let agents_config = AgentsConfig::load(cwd);
+                let agents_config = AgentsConfig::load(&context.config.maenifold_root)?;
                 invoke_external_tool(
                     context,
                     &agents_config,

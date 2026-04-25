@@ -213,7 +213,7 @@ fn agents_config_includes_settings() {
 fn test_real_maenifold_json_core() {
     let home = std::env::var("HOME").expect("HOME should be set");
     let root = std::path::Path::new(&home).join("maenifold");
-    let config = AgentsConfig::load(&root);
+    let config = AgentsConfig::load(&root).expect("real maenifold config should load");
 
     assert!(
         !config.mcp_servers.is_empty(),
@@ -241,4 +241,29 @@ fn agents_config_settings_optional() {
     assert_eq!(agent.command, "/bin/echo --plan");
     assert!(agent.env.is_empty());
     assert!(agent.mcp_servers.is_empty());
+}
+
+#[test]
+fn agents_config_load_errors_when_config_missing() {
+    let root = tempfile::tempdir().expect("create temp root");
+    let error = AgentsConfig::load(root.path()).expect_err("missing config should error");
+
+    assert!(
+        error.to_string().contains("not found"),
+        "unexpected error: {error}"
+    );
+}
+
+#[test]
+fn agents_config_load_errors_when_config_unparsable() {
+    let root = tempfile::tempdir().expect("create temp root");
+    std::fs::write(root.path().join("maenifold.json"), "{ invalid json")
+        .expect("write invalid config");
+
+    let error = AgentsConfig::load(root.path()).expect_err("invalid config should error");
+
+    assert!(
+        error.to_string().contains("failed to parse agents config"),
+        "unexpected error: {error}"
+    );
 }

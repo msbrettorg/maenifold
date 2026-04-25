@@ -10,10 +10,14 @@ use rmcp::model::Tool;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-pub(super) async fn build_gateway(
-    config: &Config,
-) -> Option<Arc<GatewayState>> {
-    let agents_config = AgentsConfig::load(&config.maenifold_root);
+pub(super) async fn build_gateway(config: &Config) -> Option<Arc<GatewayState>> {
+    let agents_config = match AgentsConfig::load(&config.maenifold_root) {
+        Ok(config) => config,
+        Err(error) => {
+            tracing::error!(err = %error, "gateway config load failed, starting without gateway");
+            return None;
+        }
+    };
     let gateway_servers: Vec<_> = agents_config
         .mcp_servers
         .iter()

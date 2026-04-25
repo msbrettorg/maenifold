@@ -130,7 +130,7 @@ pub(super) fn handle_activate(context: &ToolContext, payload: &Value) -> Result<
     let model_changing = previous_model_id.as_deref() != Some(model_id);
 
     let root = &context.config.maenifold_root;
-    let mut config = AgentsConfig::load(root);
+    let mut config = AgentsConfig::load(root)?;
     let mut settings = config.settings.unwrap_or_else(MaenifoldSettings::default);
     settings.vector.active_model = Some(model_id.to_string());
     config.settings = Some(settings);

@@ -9,6 +9,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 use tracing::{info, warn};
 
+use crate::error::{MaenifoldError, Result};
+
 use super::settings::MaenifoldSettings;
 use super::types::{AgentEntry, McpServerEntry};
 
@@ -24,23 +26,16 @@ pub struct AgentsConfig {
 }
 
 impl AgentsConfig {
-    pub fn load(root: &Path) -> AgentsConfig {
+    pub fn load(root: &Path) -> Result<AgentsConfig> {
         let config_path = root.join("maenifold.json");
-        let Some(contents) = read_config_contents(&config_path) else {
-            return Self::default();
-        };
+        let contents = read_config_contents(&config_path)?;
 
-        let parsed: AgentsConfig = match serde_json::from_str(&contents) {
-            Ok(config) => config,
-            Err(error) => {
-                warn!(
-                    path = %config_path.display(),
-                    error = %error,
-                    "failed to parse agents config"
-                );
-                return Self::default();
-            }
-        };
+        let parsed: AgentsConfig = serde_json::from_str(&contents).map_err(|error| {
+            MaenifoldError::AgentSetup(format!(
+                "failed to parse agents config '{}': {error}",
+                config_path.display()
+            ))
+        })?;
 
         let mut agents = HashMap::new();
         for (name, entry) in parsed.agents {
@@ -49,29 +44,40 @@ impl AgentsConfig {
             }
         }
 
-        Self {
+        Ok(Self {
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,
+        })
+    }
+
+    pub fn load_or_default(root: &Path) -> AgentsConfig {
+        match Self::load(root) {
+            Ok(config) => config,
+            Err(error) => {
+                warn!(root = %root.display(), error = %error, "using default agents config");
+                Self::default()
+            }
         }
     }
 }
 
-fn read_config_contents(config_path: &Path) -> Option<String> {
+fn read_config_contents(config_path: &Path) -> Result<String> {
     match fs::read_to_string(config_path) {
         Ok(contents) => {
             info!(path = %config_path.display(), "loaded agents config file");
-            Some(contents)
+            Ok(contents)
         }
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
-        Err(error) => {
-            warn!(
-                path = %config_path.display(),
-                error = %error,
-                "failed to read agents config"
-            );
-            None
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+            Err(MaenifoldError::AgentSetup(format!(
+                "agents config '{}' not found",
+                config_path.display()
+            )))
         }
+        Err(error) => Err(MaenifoldError::AgentSetup(format!(
+            "failed to read agents config '{}': {error}",
+            config_path.display()
+        ))),
     }
 }
 

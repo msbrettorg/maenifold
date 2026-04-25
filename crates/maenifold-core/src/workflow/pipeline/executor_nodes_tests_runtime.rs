@@ -221,7 +221,7 @@ fn resolve_node_cwd_file_not_dir_errors() {
 
 #[test]
 #[serial]
-fn resolve_node_cwd_relative_traversal_resolves() {
+fn resolve_node_cwd_relative_traversal_escape_errors() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let sibling = context
         .config
@@ -230,8 +230,31 @@ fn resolve_node_cwd_relative_traversal_resolves() {
         .expect("root parent")
         .join("sibling-project");
     fs::create_dir_all(&sibling).expect("create sibling dir");
-    let result =
-        resolve_node_cwd(&context, Some(Path::new("../sibling-project"))).expect("should resolve");
-    let expected = sibling.canonicalize().unwrap();
-    assert_eq!(result, expected);
+    let err = resolve_node_cwd(&context, Some(Path::new("../sibling-project")))
+        .expect_err("relative traversal outside root should fail");
+    assert!(
+        err.to_string().contains("escapes maenifold root"),
+        "unexpected error: {err}"
+    );
+}
+
+#[test]
+#[serial]
+fn resolve_node_cwd_absolute_escape_errors() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let escaped = context
+        .config
+        .maenifold_root
+        .parent()
+        .expect("root parent")
+        .join("absolute-escape");
+    fs::create_dir_all(&escaped).expect("create escaped dir");
+
+    let err = resolve_node_cwd(&context, Some(escaped.as_path()))
+        .expect_err("absolute cwd outside root should fail");
+
+    assert!(
+        err.to_string().contains("escapes maenifold root"),
+        "unexpected error: {err}"
+    );
 }

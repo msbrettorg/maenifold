@@ -1,8 +1,4 @@
-use std::{
-    collections::HashSet,
-    sync::Arc,
-    time::Duration,
-};
+use std::{collections::HashSet, sync::Arc, time::Duration};
 
 use tracing::warn;
 
@@ -163,10 +159,7 @@ pub async fn execute_pipeline(
     let (stdio_pool, _guard) = match stdio_pool {
         Some(stdio_pool) => (Some(stdio_pool), None),
         None => match default_stdio_pool().await {
-            Some(stdio_pool) => (
-                Some(stdio_pool.clone()),
-                Some(PoolGuard::new(stdio_pool)),
-            ),
+            Some(stdio_pool) => (Some(stdio_pool.clone()), Some(PoolGuard::new(stdio_pool))),
             None => (None, None),
         },
     };
@@ -176,8 +169,8 @@ pub async fn execute_pipeline(
 }
 
 async fn default_stdio_pool() -> Option<Arc<StdioPool>> {
-    let root = std::env::current_dir().ok()?;
-    let config = AgentsConfig::load(&root);
+    let root = crate::config::Config::current().maenifold_root;
+    let config = AgentsConfig::load(&root).ok()?;
     let servers = collect_stdio_servers(&config);
     if servers.is_empty() {
         return None;

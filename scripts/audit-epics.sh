@@ -100,10 +100,8 @@ is_epic() {
 
 task_prefix() {
   local id="$1"
-  if [[ "$id" == *.* ]]; then
+  if [[ "$id" == *.0 ]]; then
     printf '%s\n' "${id%.*}"
-  else
-    printf '%s\n' "$id"
   fi
 }
 
@@ -125,12 +123,13 @@ child_matches_epic() {
   [[ -n "$child_id" ]] || return 1
   [[ "$child_id" != "$epic_id" ]] || return 1
 
-  if [[ "$child_id" == "$prefix".* ]]; then
+  if [[ -n "$prefix" && "$child_id" == "$prefix".* ]]; then
     return 0
   fi
   if references_task "$file" "parent" "$epic_id"; then
     return 0
   fi
+  [[ -n "$prefix" ]] || return 1
   if references_task "$file" "depends_on" "$epic_id"; then
     return 0
   fi
@@ -154,6 +153,14 @@ close_notes() {
 close_note_body() {
   local file="$1"
   close_notes "$file" | grep -Ev '^##[[:space:]]+' || true
+}
+
+close_notes_without_fenced_code() {
+  local file="$1"
+  close_notes "$file" | awk '
+    /^```/ { in_fence = !in_fence; next }
+    !in_fence { print }
+  '
 }
 
 exception_kind() {
@@ -186,7 +193,7 @@ exception_kind() {
 
 suspicious_close_lines() {
   local file="$1"
-  close_notes "$file" | grep -Ein 'blocked|partial|deferred|skipped|in flight|backlog' || true
+  close_notes_without_fenced_code "$file" | grep -Ein 'blocked|partial|deferred|skipped|in flight|backlog' || true
 }
 
 record_issue() {

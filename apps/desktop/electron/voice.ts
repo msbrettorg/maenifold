@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { ipcMain } from 'electron';
 
 type VoiceCheckResult = {
@@ -16,12 +17,18 @@ type VoiceLaunchResult = {
   pid?: number;
 };
 
+const WINDOWS_SYSTEM32 = 'C:\\Windows\\System32';
+const WINDOWS_TASKLIST = `${WINDOWS_SYSTEM32}\\tasklist.exe`;
+const MACOS_OPEN = '/usr/bin/open';
+const POSIX_PGREP = '/usr/bin/pgrep';
+
 function findHandyPath(): string | null {
+  const windowsHome = process.platform === 'win32' ? homedir() : '';
   const candidates = process.platform === 'win32'
     ? [
-        `${process.env.LOCALAPPDATA || ''}\\Programs\\Handy\\Handy.exe`,
-        `${process.env.LOCALAPPDATA || ''}\\Handy\\handy.exe`,
-        `${process.env.PROGRAMFILES || ''}\\Handy\\Handy.exe`,
+        windowsHome ? `${windowsHome}\\AppData\\Local\\Programs\\Handy\\Handy.exe` : '',
+        windowsHome ? `${windowsHome}\\AppData\\Local\\Handy\\handy.exe` : '',
+        'C:\\Program Files\\Handy\\Handy.exe',
       ]
     : process.platform === 'darwin'
       ? ['/Applications/Handy.app/Contents/MacOS/Handy']
@@ -40,19 +47,28 @@ function isHandyRunning(): boolean {
   try {
     if (process.platform === 'win32') {
       const result = spawnSync(
-        'tasklist',
+        WINDOWS_TASKLIST,
         ['/FI', 'IMAGENAME eq handy.exe', '/NH'],
         { encoding: 'utf8', timeout: 3_000 },
       );
       return /handy\.exe/i.test(result.stdout || '');
     }
 
-    const result = spawnSync(
-      'sh',
-      ['-c', 'pgrep -x Handy || pgrep -x handy'],
+    const handyResult = spawnSync(
+      POSIX_PGREP,
+      ['-x', 'Handy'],
       { encoding: 'utf8', timeout: 3_000 },
     );
-    return result.status === 0;
+    if (handyResult.status === 0) {
+      return true;
+    }
+
+    const lowerCaseResult = spawnSync(
+      POSIX_PGREP,
+      ['-x', 'handy'],
+      { encoding: 'utf8', timeout: 3_000 },
+    );
+    return lowerCaseResult.status === 0;
   } catch {
     return false;
   }
@@ -85,7 +101,7 @@ export function registerVoiceHandlers(): void {
       if (isHandyRunning()) {
         if (process.platform === 'darwin') {
           try {
-            spawnSync('open', ['-a', 'Handy'], { timeout: 3_000 });
+            spawnSync(MACOS_OPEN, ['-a', 'Handy'], { timeout: 3_000 });
           } catch {
             /* best effort */
           }
@@ -97,8 +113,8 @@ export function registerVoiceHandlers(): void {
       const child = spawn(exePath, [], { detached: true, stdio: 'ignore' });
       child.unref();
       return { ok: true, pid: child.pid };
-    } catch (error: unknown) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) };
+    } catch {
+      return { ok: false, error: 'Failed to launch Handy.' };
     }
   });
 }

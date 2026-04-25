@@ -75,6 +75,10 @@ similar-asserts.workspace = true
 tower = "0.5"
 filetime = "0.2.25"
 
+[[test]]
+name = "gateway_integration"
+path = "tests/gateway_integration.rs"
+
 
 
 

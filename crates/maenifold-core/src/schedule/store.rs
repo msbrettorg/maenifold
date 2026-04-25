@@ -128,7 +128,7 @@ impl ScheduleStore {
 
 }
 
-fn validate_schedule_id(id: &str) -> Result<()> {
+pub(crate) fn validate_schedule_id(id: &str) -> Result<()> {
     if id.is_empty() || id.len() > 64 {
         bail!("schedule id must be between 1 and 64 characters");
     }

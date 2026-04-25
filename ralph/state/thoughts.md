@@ -54,3 +54,18 @@ This isn't a work log, it's a place for ideas that aren't yet ready to be implem
 - `ort` crate's `download-binaries` is required for build on machines without system ONNX Runtime
 - Possible approaches: (1) `ort/load-dynamic` feature for runtime dlopen, (2) feature-gate entire vector module, (3) accept status quo and document
 - Should probably change pipeline from SDD to GSD since this needs research first
+
+### Wave 2 dispatched
+- **T-218.27** — Stdio MCP server-to-client request compliance (maenifold-core, SDD)
+  - Found the gap: server requests (method + id) silently dropped in read_response loop
+  - Fix: detect and respond with JSON-RPC -32601 method-not-found
+
+### Grooming done
+- T-218.39 partially superseded by T-220.24 (lastError store ref), remaining: UI display + CDP smoke
+- T-218.19 confirmed P2 (unreachable code path)
+- Created T-222.1 follow-up for voice companion absolute path hardening
+
+### Iteration stats so far
+- 3 shipped: T-220.16, T-220.7, T-220.24
+- 1 failed: T-220.10 (ort link error, needs research)
+- 1 in-flight: T-218.27 (SWE running)

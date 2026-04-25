@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { reactive } from 'vue'
+import { Eye, EyeOff } from 'lucide-vue-next'
 import {
   Accordion,
   AccordionContent,
@@ -22,7 +24,13 @@ interface McpServerFormRow {
   args: string;
 }
 
-defineProps<{
+const {
+  form,
+  onAddEnvRow,
+  onRemoveEnvRow,
+  onAddMcpServerRow,
+  onRemoveMcpServerRow,
+} = defineProps<{
   form: {
     env: EnvVarRow[];
     mcpServers: McpServerFormRow[];
@@ -32,6 +40,42 @@ defineProps<{
   onAddMcpServerRow: () => void;
   onRemoveMcpServerRow: (index: number) => void;
 }>();
+
+const revealedEnvValues = reactive<Record<string, boolean>>({});
+
+function isSecretEnvKey(key: string) {
+  return /TOKEN|KEY|SECRET|PASSWORD/i.test(key);
+}
+
+function getEnvRevealKey(entry: EnvVarRow) {
+  return entry.key;
+}
+
+function isEnvValueRevealed(entry: EnvVarRow) {
+  return Boolean(revealedEnvValues[getEnvRevealKey(entry)]);
+}
+
+function getEnvValueInputType(entry: EnvVarRow) {
+  if (!isSecretEnvKey(entry.key)) {
+    return 'text';
+  }
+
+  return isEnvValueRevealed(entry) ? 'text' : 'password';
+}
+
+function toggleEnvValueReveal(entry: EnvVarRow) {
+  const revealKey = getEnvRevealKey(entry);
+  revealedEnvValues[revealKey] = !revealedEnvValues[revealKey];
+}
+
+function removeEnvRow(index: number) {
+  const entry = form.env[index];
+  if (entry) {
+    delete revealedEnvValues[getEnvRevealKey(entry)];
+  }
+
+  onRemoveEnvRow(index);
+}
 
 function formatServerCount(count: number) {
   return `${count} MCP server${count === 1 ? '' : 's'}`;
@@ -57,8 +101,27 @@ function formatEnvCount(count: number) {
           <div v-if="form.env.length === 0" class="text-text-secondary text-[0.75rem]">No environment variables configured.</div>
           <div v-for="(entry, index) in form.env" :key="`env-${index}`" class="flex justify-between gap-3 items-end max-sm:flex-col max-sm:items-stretch">
             <Input v-model="entry.key" type="text" placeholder="KEY" class="max-w-[14rem] max-sm:max-w-none" />
-            <Input v-model="entry.value" type="text" placeholder="value" />
-            <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove variable" @click="onRemoveEnvRow(index)">×</Button>
+            <div class="flex flex-1 gap-2 items-center w-full">
+              <Input
+                v-model="entry.value"
+                :type="getEnvValueInputType(entry)"
+                placeholder="value"
+              />
+              <Button
+                v-if="isSecretEnvKey(entry.key)"
+                variant="ghost"
+                size="icon"
+                class="w-8 h-8 p-0 shrink-0 border border-border-subtle rounded bg-transparent text-inherit cursor-pointer"
+                type="button"
+                :aria-label="isEnvValueRevealed(entry) ? 'Hide variable value' : 'Reveal variable value'"
+                :aria-pressed="isEnvValueRevealed(entry)"
+                @click="toggleEnvValueReveal(entry)"
+              >
+                <EyeOff v-if="isEnvValueRevealed(entry)" class="w-4 h-4" aria-hidden="true" />
+                <Eye v-else class="w-4 h-4" aria-hidden="true" />
+              </Button>
+            </div>
+            <Button variant="ghost" size="icon" class="w-8 h-8 p-0 self-end border border-border-subtle rounded bg-transparent text-inherit cursor-pointer text-[0.9375rem] leading-none max-sm:self-start" type="button" aria-label="Remove variable" @click="removeEnvRow(index)">×</Button>
           </div>
           <Button variant="outline" class="px-[0.9rem] py-2 border border-border-subtle rounded bg-transparent text-inherit cursor-pointer" type="button" @click="onAddEnvRow">+ Add Variable</Button>
         </div>

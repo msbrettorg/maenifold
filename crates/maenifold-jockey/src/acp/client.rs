@@ -211,7 +211,10 @@ impl acp::Client for JockeyUiClient {
                     .map(|c| serde_json::to_value(c).unwrap_or(json!({})))
                     .collect(),
             },
-            _ => return Ok(()),
+            other => {
+                tracing::warn!(variant = ?other, "unknown SessionUpdate variant from upstream agent");
+                return Ok(());
+            }
         };
         if let Ok(guard) = self.delta_slot.lock() {
             if let Some(tx) = guard.as_ref() {

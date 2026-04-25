@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, useId } from 'vue';
+import { computed, nextTick, onMounted, onUnmounted, ref, useId } from 'vue';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import type {
   SessionConfigOption,
   SessionConfigSelectGroup,
@@ -19,6 +18,8 @@ const emit = defineEmits<{
 
 const isOpen = ref(false);
 const pickerRef = ref<HTMLElement | null>(null);
+const listboxRef = ref<HTMLElement | null>(null);
+const optionRefs = new Map<string, HTMLElement>();
 const listboxId = useId();
 
 function isGroup(
@@ -37,27 +38,121 @@ const currentOption = computed(() =>
   flatOptions.value.find((entry) => entry.value === props.option.currentValue)
 );
 
+const activeValue = ref<string | null>(null);
+
+const activeOptionId = computed(() =>
+  activeValue.value ? optionElementId(activeValue.value) : undefined
+);
+
 const optionPickerLabel = computed(() =>
   props.option.description
     ? `${props.option.name}: ${props.option.description}`
     : `${props.option.name} options`
 );
 
+function optionElementId(value: string) {
+  const index = flatOptions.value.findIndex((entry) => entry.value === value);
+  return index >= 0 ? `${listboxId}-option-${index}` : undefined;
+}
+
+function setOptionRef(value: string, element: unknown) {
+  if (element instanceof HTMLElement) {
+    optionRefs.set(value, element);
+  } else {
+    optionRefs.delete(value);
+  }
+}
+
+function setActiveValue(value: string | null) {
+  activeValue.value = value;
+  if (value) {
+    nextTick(() => {
+      optionRefs.get(value)?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+}
+
+function getInitialActiveValue() {
+  return currentOption.value?.value ?? flatOptions.value[0]?.value ?? null;
+}
+
+function openDropdown() {
+  if (isOpen.value) return;
+  optionRefs.clear();
+  isOpen.value = true;
+
+  nextTick(() => {
+    setActiveValue(getInitialActiveValue());
+    listboxRef.value?.focus();
+  });
+}
+
+function closeDropdown() {
+  isOpen.value = false;
+}
+
 function toggleDropdown() {
-  isOpen.value = !isOpen.value;
+  if (isOpen.value) {
+    closeDropdown();
+  } else {
+    openDropdown();
+  }
 }
 
 function selectOption(value: string) {
   if (value !== props.option.currentValue) {
     emit('change', props.option.id, value);
   }
-  isOpen.value = false;
+  closeDropdown();
+}
+
+function moveActiveValue(delta: number) {
+  if (flatOptions.value.length === 0) return;
+  const currentIndex = activeValue.value
+    ? flatOptions.value.findIndex((entry) => entry.value === activeValue.value)
+    : -1;
+  const nextIndex = currentIndex < 0
+    ? 0
+    : Math.min(Math.max(currentIndex + delta, 0), flatOptions.value.length - 1);
+  setActiveValue(flatOptions.value[nextIndex]?.value ?? null);
+}
+
+function handleListboxKeydown(event: KeyboardEvent) {
+  switch (event.key) {
+    case 'ArrowDown':
+      event.preventDefault();
+      moveActiveValue(1);
+      break;
+    case 'ArrowUp':
+      event.preventDefault();
+      moveActiveValue(-1);
+      break;
+    case 'Home':
+      event.preventDefault();
+      setActiveValue(flatOptions.value[0]?.value ?? null);
+      break;
+    case 'End':
+      event.preventDefault();
+      setActiveValue(flatOptions.value.at(-1)?.value ?? null);
+      break;
+    case 'Enter':
+    case ' ':
+      if (activeValue.value) {
+        event.preventDefault();
+        selectOption(activeValue.value);
+      }
+      break;
+    case 'Escape':
+      event.preventDefault();
+      closeDropdown();
+      break;
+  }
 }
 
 function handleClickOutside(event: MouseEvent) {
   const target = event.target as Node | null;
   if (target && pickerRef.value && !pickerRef.value.contains(target)) {
-    isOpen.value = false;
+    closeDropdown();
   }
 }
 
@@ -104,12 +199,15 @@ onUnmounted(() => {
       <div
         v-if="isOpen"
         :id="listboxId"
-        class="absolute top-[calc(100%+4px)] right-0 z-[100] min-w-[280px] max-w-[360px] rounded-lg border border-border-subtle bg-bg-app shadow-fluent-8"
+        ref="listboxRef"
+        class="absolute top-[calc(100%+4px)] right-0 z-[100] max-h-[min(320px,calc(100vh-6rem))] min-w-[280px] max-w-[360px] overflow-y-auto overscroll-contain rounded-lg border border-border-subtle bg-bg-app shadow-fluent-8 outline-none"
         role="listbox"
+        tabindex="0"
         :aria-label="optionPickerLabel"
+        :aria-activedescendant="activeOptionId"
         @click.stop
+        @keydown="handleListboxKeydown"
       >
-        <ScrollArea class="max-h-[320px]">
         <template
           v-for="(entry, entryIndex) in option.options"
           :key="isGroup(entry) ? entry.group : entry.value"
@@ -126,10 +224,13 @@ onUnmounted(() => {
             <div
               v-for="(groupOption, groupIndex) in entry.options"
               :key="groupOption.value"
+              :id="optionElementId(groupOption.value)"
+              :ref="(element) => setOptionRef(groupOption.value, element)"
               :class="[
                 'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-bg-surface',
                 groupIndex > 0 && 'border-t border-border-subtle',
                 groupOption.value === option.currentValue && 'bg-brand/25',
+                groupOption.value === activeValue && 'outline outline-1 outline-brand/60',
               ]"
               role="option"
               :aria-selected="groupOption.value === option.currentValue"
@@ -155,10 +256,13 @@ onUnmounted(() => {
           </div>
           <div
             v-else
+            :id="optionElementId(entry.value)"
+            :ref="(element) => setOptionRef(entry.value, element)"
             :class="[
               'flex items-start gap-2 px-3 py-2.5 cursor-pointer transition-colors duration-100 ease-in-out hover:bg-bg-surface',
               entryIndex > 0 && 'border-t border-border-subtle',
               entry.value === option.currentValue && 'bg-brand/25',
+              entry.value === activeValue && 'outline outline-1 outline-brand/60',
             ]"
             role="option"
             :aria-selected="entry.value === option.currentValue"
@@ -182,7 +286,6 @@ onUnmounted(() => {
             >✓</span>
           </div>
         </template>
-        </ScrollArea>
       </div>
     </Transition>
   </div>

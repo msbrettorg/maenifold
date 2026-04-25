@@ -11,9 +11,10 @@ set -u
 # Usage:
 #   scripts/audit-stage-integrity.sh
 #   scripts/audit-stage-integrity.sh --recent 25
+#   scripts/audit-stage-integrity.sh done/T-1.2*.md
 
 usage() {
-  printf 'Usage: %s [--recent N]\n' "$0" >&2
+  printf 'Usage: %s [--recent N] [file ...]\n' "$0" >&2
 }
 
 die() {
@@ -22,6 +23,8 @@ die() {
 }
 
 recent_limit=""
+positional_files=()
+positional_count=0
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --recent)
@@ -37,17 +40,23 @@ while [ "$#" -gt 0 ]; do
       usage
       exit 0
       ;;
-    *)
-      usage
-      die "unknown argument: $1"
-      ;;
+    -*) usage; die "unknown argument: $1" ;;
+    *) positional_files+=("$1"); positional_count=$((positional_count + 1)); shift ;;
   esac
 done
+
+[ -z "$recent_limit" ] || [ "$positional_count" -eq 0 ] || { usage; die "--recent cannot be combined with positional file arguments"; }
 
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 done_dir="$repo_root/done"
 
 [ -d "$done_dir" ] || die "done/ directory not found at $done_dir"
+
+if [ "$positional_count" -gt 0 ]; then
+  for task_file in "${positional_files[@]}"; do
+    [ -e "$task_file" ] && [ -f "$task_file" ] && [ -r "$task_file" ] || die "file not found or unreadable: $task_file"
+  done
+fi
 
 audit_file() {
   awk '
@@ -262,7 +271,9 @@ while IFS= read -r task_file; do
     violations_found=1
   fi
 done < <(
-  if [ -n "$recent_limit" ]; then
+  if [ "$positional_count" -gt 0 ]; then
+    printf '%s\n' "${positional_files[@]}"
+  elif [ -n "$recent_limit" ]; then
     find "$done_dir" -maxdepth 1 -type f -name '*.md' -print0 |
       xargs -0 ls -t 2>/dev/null |
       head -n "$recent_limit"

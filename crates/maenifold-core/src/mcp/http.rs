@@ -90,7 +90,7 @@ impl super::MaenifoldMcpServer {
     ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let gateway = build_gateway(&config).await;
+        let gateway = build_gateway(&config).await?;
         let pool_for_api = gateway.as_ref().map(|gateway| gateway.pool());
         let router = router(
             service(shutdown_token.child_token(), gateway),
@@ -158,7 +158,7 @@ mod tests {
             service(tokio_util::sync::CancellationToken::new(), None),
             state,
         )
-            .layer(localhost_cors())
+        .layer(localhost_cors())
     }
 
     #[tokio::test]

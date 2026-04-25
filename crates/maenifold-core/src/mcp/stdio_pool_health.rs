@@ -58,7 +58,10 @@ impl RestartState {
     pub(crate) fn backoff_error(&self, server_name: &str) -> Option<String> {
         let until = self.backoff_until?;
         let remaining = until.checked_duration_since(Instant::now())?;
-        let last_error = self.last_error.as_deref().unwrap_or("unknown start failure");
+        let last_error = self
+            .last_error
+            .as_deref()
+            .unwrap_or("unknown start failure");
         Some(format!(
             "Gateway: server '{server_name}' restart backoff active for {}s after previous start failure: {last_error}",
             remaining.as_secs().max(1)
@@ -73,7 +76,10 @@ impl StdioPool {
             .values()
             .map(|server| {
                 let state = lock_state(&server.restart_state).clone();
-                let running = server.session.as_ref().is_some_and(|session| session.is_usable());
+                let running = server
+                    .session
+                    .as_ref()
+                    .is_some_and(|session| session.is_usable());
                 StdioServerHealth {
                     name: server.config.name.clone(),
                     configured: true,
@@ -82,7 +88,10 @@ impl StdioPool {
                     degraded: !running || state.last_error.is_some(),
                     last_start_error: state.last_error,
                     last_restart: state.last_restart,
-                    tool_count: server.session.as_ref().map_or(0, |session| session.tools().len()),
+                    tool_count: server
+                        .session
+                        .as_ref()
+                        .map_or(0, |session| session.tools().len()),
                     env_keys: redacted_env_keys(&server.config.env),
                 }
             })

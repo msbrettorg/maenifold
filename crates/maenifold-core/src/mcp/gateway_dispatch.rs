@@ -40,10 +40,12 @@ pub fn dispatch_facade_call(
     ))
 }
 
-fn dispatch_learn(server: &ConsolidatedServerTool, command: Option<&str>) -> Result<DispatchResult> {
+fn dispatch_learn(
+    server: &ConsolidatedServerTool,
+    command: Option<&str>,
+) -> Result<DispatchResult> {
     if let Some(command) = command.filter(|value| !value.trim().is_empty()) {
-        let tool = find_tool(server, command)
-            .ok_or_else(|| unknown_command(server, command))?;
+        let tool = find_tool(server, command).ok_or_else(|| unknown_command(server, command))?;
         return Ok(DispatchResult::LearnSchema(Value::Object(
             (*tool.input_schema).clone(),
         )));
@@ -67,8 +69,7 @@ fn dispatch_command(
     command: &str,
     parameters: Value,
 ) -> Result<DispatchResult> {
-    let tool = find_tool(server, command)
-        .ok_or_else(|| unknown_command(server, command))?;
+    let tool = find_tool(server, command).ok_or_else(|| unknown_command(server, command))?;
 
     Ok(DispatchResult::CallTool {
         server_name: server.server_name.clone(),

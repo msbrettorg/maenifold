@@ -30,8 +30,15 @@ pub(super) async fn read_response<W: AsyncWrite + Unpin, R: AsyncRead + Unpin>(
         let mut line = Vec::new();
         loop {
             let chunk = reader.fill_buf().await.map_err(connection_error)?;
-            if chunk.is_empty() { return Err(MaenifoldError::Message("connection error: unexpected EOF while reading MCP response".to_string())); }
-            let take = chunk.iter().position(|&byte| byte == b'\n').map_or(chunk.len(), |idx| idx + 1);
+            if chunk.is_empty() {
+                return Err(MaenifoldError::Message(
+                    "connection error: unexpected EOF while reading MCP response".to_string(),
+                ));
+            }
+            let take = chunk
+                .iter()
+                .position(|&byte| byte == b'\n')
+                .map_or(chunk.len(), |idx| idx + 1);
             if line.len() + take > MAX_FRAME_BYTES {
                 return Err(MaenifoldError::Message(format!(
                     "connection error: MCP response exceeded max frame size of {MAX_FRAME_BYTES} bytes"
@@ -49,8 +56,15 @@ pub(super) async fn read_response<W: AsyncWrite + Unpin, R: AsyncRead + Unpin>(
         }
         if message.get("method").is_some() && message.get("id").is_some() {
             let request_id = message.get("id").cloned().unwrap_or(Value::Null);
-            let method = message.get("method").and_then(Value::as_str).unwrap_or("unknown");
-            tracing::warn!(server_name, server_method = method, "upstream server sent unsupported request, responding with method-not-found");
+            let method = message
+                .get("method")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown");
+            tracing::warn!(
+                server_name,
+                server_method = method,
+                "upstream server sent unsupported request, responding with method-not-found"
+            );
             let error_response = json!({
                 "jsonrpc": "2.0",
                 "id": request_id,
@@ -66,10 +80,19 @@ pub(super) async fn read_response<W: AsyncWrite + Unpin, R: AsyncRead + Unpin>(
             continue;
         }
         if let Some(error) = message.get("error").filter(|error| !error.is_null()) {
-            let code = error.get("code").and_then(Value::as_i64).ok_or_else(|| MaenifoldError::Message(format!("JSON-RPC error missing integer code: {error}")))?;
-            let message = error.get("message").and_then(Value::as_str).unwrap_or("unknown JSON-RPC error");
+            let code = error.get("code").and_then(Value::as_i64).ok_or_else(|| {
+                MaenifoldError::Message(format!("JSON-RPC error missing integer code: {error}"))
+            })?;
+            let message = error
+                .get("message")
+                .and_then(Value::as_str)
+                .unwrap_or("unknown JSON-RPC error");
             let data = error.get("data").cloned().unwrap_or(Value::Null);
-            return Err(MaenifoldError::JsonRpc { code, message: message.to_string(), data });
+            return Err(MaenifoldError::JsonRpc {
+                code,
+                message: message.to_string(),
+                data,
+            });
         }
         return Ok(message["result"].clone());
     }
@@ -91,7 +114,9 @@ pub(super) async fn wait_for_exit(child: &mut Child, timeout: Duration) -> bool 
             Ok(None) => {}
             Err(_) => return false,
         }
-        if tokio::time::Instant::now() >= deadline { return false; }
+        if tokio::time::Instant::now() >= deadline {
+            return false;
+        }
         tokio::time::sleep(POLL_INTERVAL).await;
     }
 }

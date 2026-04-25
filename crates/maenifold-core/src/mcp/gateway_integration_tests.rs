@@ -31,7 +31,11 @@ fn tool(name: &str, description: &str, schema_fields: &[&str]) -> Tool {
 fn billing_gateway_tools() -> Vec<Tool> {
     vec![
         tool("account_get", "Get account details", &["accountId"]),
-        tool("account_update", "Update account settings", &["accountId", "displayName"]),
+        tool(
+            "account_update",
+            "Update account settings",
+            &["accountId", "displayName"],
+        ),
         tool("alerts_list", "List billing alerts", &["accountId"]),
         tool("budget_set", "Set account budget", &["accountId", "amount"]),
         tool("invoice_get", "Get invoice by id", &["invoiceId"]),
@@ -43,7 +47,11 @@ fn billing_gateway_tools() -> Vec<Tool> {
             "List subscriptions for an account",
             &["accountId"],
         ),
-        tool("usage_export", "Export usage report", &["accountId", "format"]),
+        tool(
+            "usage_export",
+            "Export usage report",
+            &["accountId", "format"],
+        ),
     ]
 }
 
@@ -64,7 +72,10 @@ fn dispatch(
     parameters: Value,
 ) -> DispatchResult {
     let (server, passthrough) = build_billing_gateway();
-    assert!(passthrough.is_empty(), "large gateway should not passthrough tools");
+    assert!(
+        passthrough.is_empty(),
+        "large gateway should not passthrough tools"
+    );
     dispatch_facade_call(&server, intent, command, learn, parameters)
         .expect("dispatch should succeed")
 }
@@ -76,7 +87,10 @@ fn tool_count_reduction_builds_single_facade() {
     assert_eq!(server.server_name, "Billing Gateway");
     assert_eq!(server.tool_catalog.len(), 10);
     assert!(passthrough.is_empty());
-    assert_eq!(server.facade_tool.name.to_string(), "gateway_billing_gateway");
+    assert_eq!(
+        server.facade_tool.name.to_string(),
+        "gateway_billing_gateway"
+    );
 }
 
 #[test]

@@ -1,8 +1,7 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
-use crate::mcp::stdio_pool_health::{lock_state, RestartState};
-use crate::mcp::stdio_pool_tools::{
-    collect_gateway_tools, ensure_replacement_tools, shutdown_servers,
-};
+use crate::mcp::stdio_pool_health::{RestartState, lock_state};
+pub use crate::mcp::stdio_pool_health::{StdioPoolHealth, StdioServerHealth};
+use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
 use crate::mcp::stdio_session::StdioSession;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
@@ -14,11 +13,10 @@ use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinSet;
 use tracing::warn;
-pub use crate::mcp::stdio_pool_health::{StdioPoolHealth, StdioServerHealth};
 pub struct StdioPool {
     pub(super) servers: RwLock<HashMap<String, ManagedServer>>,
-    tools: StdRwLock<Vec<Tool>>,
-    gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
+    pub(super) tools: StdRwLock<Vec<Tool>>,
+    pub(super) gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
 }
 #[derive(Debug, Clone)]
 pub struct StdioServerConfig {
@@ -112,16 +110,20 @@ impl StdioPool {
             let t = t.clone();
             let a = arguments.clone();
             Box::pin(async move { s.call_tool(&t, a).await })
-        }).await
+        })
+        .await
     }
     pub async fn read_resource(&self, server_name: &str, uri: &str) -> Result<ReadResourceResult> {
         let u = uri.to_string();
         self.with_restart(server_name, move |s| {
             let u = u.clone();
             Box::pin(async move { s.read_resource(&u).await })
-        }).await
+        })
+        .await
     }
-    pub fn all_tools(&self) -> Vec<Tool> { lock_tools(&self.tools).clone() }
+    pub fn all_tools(&self) -> Vec<Tool> {
+        lock_tools(&self.tools).clone()
+    }
     pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
         self.gateway_tools
             .read()
@@ -136,8 +138,12 @@ impl StdioPool {
                 .filter_map(|server| server.session)
                 .collect::<Vec<_>>()
         };
-        *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self.gateway_tools
+        *self
+            .tools
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self
+            .gateway_tools
             .write()
             .unwrap_or_else(|error| error.into_inner()) = Vec::new();
         let mut shutdowns = FuturesUnordered::new();
@@ -149,7 +155,9 @@ impl StdioPool {
     async fn with_restart<T: Send>(
         &self,
         server_name: &str,
-        f: impl Fn(Arc<StdioSession>) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send>>,
+        f: impl Fn(
+            Arc<StdioSession>,
+        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<T>> + Send>>,
     ) -> Result<T> {
         let session = {
             let servers = self.servers.read().await;
@@ -183,94 +191,8 @@ impl StdioPool {
         };
         f(session).await
     }
-    async fn restart_server(&self, server_name: &str) -> Result<()> {
-        let (config, restart_lock, restart_state) = {
-            let servers = self.servers.read().await;
-            let server = servers
-                .get(server_name)
-                .ok_or_else(|| missing_server(server_name))?;
-            (
-                server.config.clone(),
-                server.restart_lock.clone(),
-                server.restart_state.clone(),
-            )
-        };
-        let _guard = restart_lock.lock().await;
-        {
-            let servers = self.servers.read().await;
-            let server = servers.get(server_name).ok_or_else(|| missing_server(server_name))?;
-            if server.session.as_ref().is_some_and(|session| session.is_usable()) {
-                return Ok(());
-            }
-        }
-        if let Some(message) = lock_state(&restart_state).backoff_error(server_name) {
-            return Err(MaenifoldError::Message(message));
-        }
-        let mut replacement = match start_session(&config).await {
-            Ok(session) => Some(Arc::new(session)),
-            Err(error) => {
-                lock_state(&restart_state).record_failure(error.to_string());
-                return Err(error);
-            }
-        };
-        lock_state(&restart_state).record_success();
-        let outcome = {
-            let mut servers = self.servers.write().await;
-            match servers.get(server_name) {
-                None => Err(missing_server(server_name)),
-                Some(server)
-                    if server.session.as_ref().is_some_and(|session| session.is_usable()) =>
-                {
-                    Ok((None, None))
-                }
-                Some(_) => {
-                    let Some(new_session) = replacement.as_ref() else {
-                        return Err(MaenifoldError::Message(
-                            "replacement stdio session missing".to_string(),
-                        ));
-                    };
-                    ensure_replacement_tools(&servers, server_name, new_session.tools().as_ref())?;
-                    let old = {
-                        let server = servers
-                            .get_mut(server_name)
-                            .ok_or_else(|| missing_server(server_name))?;
-                        std::mem::replace(&mut server.session, Some(replacement.take().ok_or_else(|| {
-                                 MaenifoldError::Message(
-                                     "replacement stdio session missing".to_string(),
-                                 )
-                             })?))
-                    };
-                    Ok((Some(old), Some(collect_gateway_tools(&servers)?)))
-                }
-            }
-        };
-        let (old_session, tool_state) = match outcome {
-            Ok(outcome) => outcome,
-            Err(error) => {
-                if let Some(session) = replacement {
-                    session.shutdown().await;
-                }
-                lock_state(&restart_state).record_failure(error.to_string());
-                return Err(error);
-            }
-        };
-        if let Some((tools, gateway_tools)) = tool_state {
-            *self.tools.write().unwrap_or_else(|error| error.into_inner()) = tools;
-            *self
-                .gateway_tools
-                .write()
-                .unwrap_or_else(|error| error.into_inner()) = gateway_tools;
-        }
-        if let Some(session) = replacement {
-            session.shutdown().await;
-        }
-        if let Some(Some(session)) = old_session {
-            session.shutdown().await;
-        }
-        Ok(())
-    }
 }
-async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
+pub(super) async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
         .env(
@@ -292,5 +214,9 @@ fn missing_server(server_name: &str) -> MaenifoldError {
         data: Value::Null,
     }
 }
-fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> { tools.read().unwrap_or_else(|error| error.into_inner()) }
-#[cfg(test)] #[path = "stdio_pool_tests.rs"] mod tests;
+fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> {
+    tools.read().unwrap_or_else(|error| error.into_inner())
+}
+#[cfg(test)]
+#[path = "stdio_pool_tests.rs"]
+mod tests;

@@ -1,4 +1,4 @@
-use super::{ConsolidatedServerTool, build_consolidated_tools, gateway_tool_counts};
+use super::{ConsolidatedServerTool, build_consolidated_tools};
 use rmcp::model::Tool;
 use serde_json::{Map, Value};
 use std::sync::Arc;
@@ -34,7 +34,8 @@ fn tool_names(tools: &[Tool]) -> Vec<String> {
 }
 
 fn facade_names(tools: &[ConsolidatedServerTool]) -> Vec<String> {
-    tools.iter()
+    tools
+        .iter()
         .map(|tool| tool.facade_tool.name.to_string())
         .collect()
 }
@@ -124,7 +125,10 @@ fn empty_servers_are_filtered_out() {
     let (consolidated, passthrough) = build_consolidated_tools(
         vec![
             ("Empty".to_string(), vec![]),
-            ("Large".to_string(), vec![tool("one"), tool("two"), tool("three"), tool("four")]),
+            (
+                "Large".to_string(),
+                vec![tool("one"), tool("two"), tool("three"), tool("four")],
+            ),
         ],
         4,
     )
@@ -207,17 +211,21 @@ fn description_is_deterministic_and_bounded() {
     let left = &forward.0[0].facade_tool;
     let right = &reverse.0[0].facade_tool;
     assert_eq!(left.description, right.description);
-    assert!(left.description.as_ref().expect("description").chars().count() <= 200);
+    assert!(
+        left.description
+            .as_ref()
+            .expect("description")
+            .chars()
+            .count()
+            <= 200
+    );
     assert!(learnless_description(left).chars().count() < 200);
 }
 
 #[test]
 fn empty_server_name_returns_error() {
     let result = build_consolidated_tools(
-        vec![(
-            "".to_string(),
-            vec![tool("t1"), tool("t2"), tool("t3")],
-        )],
+        vec![("".to_string(), vec![tool("t1"), tool("t2"), tool("t3")])],
         2,
     );
 
@@ -247,8 +255,19 @@ fn description_ends_with_learn_hint() {
 fn consolidated_catalogs_and_facades_have_stable_ordering() {
     let (consolidated, passthrough) = build_consolidated_tools(
         vec![
-            ("Zulu".to_string(), vec![tool("zeta"), tool("alpha"), tool("beta"), tool("delta")]),
-            ("Able".to_string(), vec![tool("tool_b"), tool("tool_a"), tool("tool_d"), tool("tool_c")]),
+            (
+                "Zulu".to_string(),
+                vec![tool("zeta"), tool("alpha"), tool("beta"), tool("delta")],
+            ),
+            (
+                "Able".to_string(),
+                vec![
+                    tool("tool_b"),
+                    tool("tool_a"),
+                    tool("tool_d"),
+                    tool("tool_c"),
+                ],
+            ),
             ("Tiny".to_string(), vec![tool("tiny_b"), tool("tiny_a")]),
         ],
         4,
@@ -270,26 +289,4 @@ fn consolidated_catalogs_and_facades_have_stable_ordering() {
         vec!["gateway_able", "gateway_zulu"]
     );
     assert_eq!(tool_names(&passthrough), vec!["tiny_a", "tiny_b"]);
-}
-
-#[test]
-fn gateway_tool_counts_include_native_facades_and_passthrough() {
-    let (consolidated, passthrough) = build_consolidated_tools(
-        vec![
-            ("Facade".to_string(), vec![tool("a"), tool("b"), tool("c"), tool("d")]),
-            ("Flat".to_string(), vec![tool("x"), tool("y")]),
-        ],
-        4,
-    )
-    .expect("builder should succeed");
-    let native_tools = vec![tool("native_one"), tool("native_two"), tool("native_three")];
-
-    assert_eq!(
-        gateway_tool_counts(&consolidated, &passthrough, &native_tools),
-        super::GatewayToolCounts {
-            total: 6,
-            facades: 1,
-            passthrough: 2,
-        }
-    );
 }

@@ -122,6 +122,37 @@ pub struct ListSessionsParams {
     pub learn: bool,
 }
 
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum TeamsMonitorAction {
+    Enable,
+    Disable,
+    Status,
+    Configure,
+}
+
+#[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct TeamsMonitorParams {
+    /// Teams monitor operation to perform
+    pub action: TeamsMonitorAction,
+    /// Keywords that trigger a monitor match during configure
+    #[serde(default)]
+    pub keywords: Option<Vec<String>>,
+    /// Optional sender allow-list to require for matches during configure. Pass null to clear.
+    #[serde(default)]
+    pub sender_allow_list: Option<Vec<String>>,
+    /// Optional sender deny-list to reject during configure. Pass null to clear.
+    #[serde(default)]
+    pub sender_deny_list: Option<Vec<String>>,
+    /// Per-conversation cooldown in seconds during configure
+    #[serde(default)]
+    pub cooldown_seconds: Option<u64>,
+    /// ACP agent to dispatch when a match occurs during configure. Pass null to clear.
+    #[serde(default)]
+    pub dispatch_agent: Option<String>,
+}
+
 /// Additional content blocks included alongside an ACP prompt request.
 #[derive(Deserialize, JsonSchema)]
 #[serde(tag = "type", rename_all = "lowercase")]

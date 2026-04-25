@@ -3,6 +3,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::teams::MessageHandlerConfig;
+
 pub(super) fn default_true() -> bool {
     true
 }
@@ -127,6 +129,8 @@ pub struct MaenifoldSettings {
     pub vector: VectorSettings,
     #[serde(default)]
     pub debug: DebugSettings,
+    #[serde(default)]
+    pub teams_monitor: TeamsMonitorConfig,
     #[serde(default, rename = "envPassthrough")]
     pub env_passthrough: Vec<String>,
 }
@@ -152,9 +156,21 @@ impl Default for MaenifoldSettings {
             community: CommunitySettings::default(),
             vector: VectorSettings::default(),
             debug: DebugSettings::default(),
+            teams_monitor: TeamsMonitorConfig::default(),
             env_passthrough: Vec::new(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamsMonitorConfig {
+    #[serde(default)]
+    pub enabled: bool,
+    #[serde(default)]
+    pub handler: MessageHandlerConfig,
+    #[serde(default)]
+    pub dispatch_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

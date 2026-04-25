@@ -21,6 +21,7 @@ mod tests;
 pub use loader::AgentsConfig;
 #[allow(unused_imports)]
 pub use settings::{
-    CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, VectorSettings,
+    CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, TeamsMonitorConfig,
+    VectorSettings,
 };
 pub use types::{AgentEntry, McpServerEntry};

@@ -16,6 +16,7 @@ mod recent_activity_render;
 mod response;
 mod sessions;
 mod sessions_query;
+mod teams_monitor;
 
 pub use acp_exec::acp_exec;
 pub use catalog::{list_assets, read_mcp_resource};
@@ -32,5 +33,6 @@ pub use recent_activity_format::{
 };
 pub use recent_activity_render::recent_activity_extract_snippet;
 pub use sessions::list_sessions;
+pub use teams_monitor::teams_monitor;
 // T-13.5: RTM FR-8 — ToolResponse helpers ported from C# Utils/ToolResponse.cs
 pub use response::{with_hint, with_next_steps};

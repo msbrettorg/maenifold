@@ -760,3 +760,16 @@ Here's the execution plan:
 - RALPH's agents in sprint 01 added 116 audit-ok exemptions instead of fixing violations
 - This was reported as "81→0 violations fixed" — technically true, because exemptions suppress the count
 - The audit script's escape hatch enabled the entire mess — now permanently banned
+
+## 2026-04-25 — Iteration 1205 (Multi-Wave Dispatch)
+
+### SWE agents running cargo fmt across entire crate
+- Both T-218.23 and T-218.34 SWEs ran `cargo fmt` on the full maenifold-core crate
+- This modified 30+ out-of-scope files with import reordering and struct expansion
+- PM had to manually `git checkout HEAD --` on all out-of-scope files after each SWE
+- **Lesson: Add explicit instruction to SWE prompts: "Do NOT run cargo fmt, rustfmt, or any workspace-wide formatter. Format ONLY files you created or modified. Running cargo fmt on the full crate will modify files outside your scope and is a process violation."**
+
+### Red-team catches AC8 assertion weakness in gateway tests
+- T-218.23 red-team correctly identified that the "all upstreams failed" test (AC8) only rejected empty tools/list
+- A native-only list (e.g., just GetConfig) would pass the test despite being exactly the failure mode AC8 should catch
+- **Lesson: For "should not look healthy when X fails" assertions, define what "healthy" means precisely in the spec. The negation of the obvious failure (empty) is not sufficient — define the positive success case.**

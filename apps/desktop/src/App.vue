@@ -13,6 +13,7 @@ import AppTabBar from './components/AppTabBar.vue';
 import ChatView from './components/ChatView.vue';
 import HomeDashboard from './components/HomeDashboard.vue';
 import KnowledgeExplorer from './components/KnowledgeExplorer.vue';
+import TeamsTab from './components/teams/TeamsTab.vue';
 import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
@@ -24,7 +25,7 @@ import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import { MessageSquare } from 'lucide-vue-next';
+import { MessagesSquare, MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
 import type { AppShellTab } from './stores/app-shell';
 
@@ -179,12 +180,6 @@ function onOnboardingComplete(): void {
           :key="sessionStore.activeSessionId ?? 'active-session'"
         />
 
-        <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
-          <div class="flex flex-1 overflow-auto p-4">
-            <WorkflowAuthoringPage />
-          </div>
-        </div>
-
         <div v-if="visitedTabs.has('pipelines')" v-show="!showHome && activeTab === 'pipelines'" class="flex flex-1 flex-col overflow-hidden">
           <PipelineView />
         </div>
@@ -195,6 +190,16 @@ function onOnboardingComplete(): void {
 
         <div v-if="visitedTabs.has('knowledge')" v-show="!showHome && activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
           <KnowledgeExplorer />
+        </div>
+
+        <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">
+          <TeamsTab :empty-icon="MessagesSquare" />
+        </div>
+
+        <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
+          <div class="flex flex-1 overflow-auto p-4">
+            <WorkflowAuthoringPage />
+          </div>
         </div>
 
         <div v-if="visitedTabs.has('settings')" v-show="!showHome && activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">

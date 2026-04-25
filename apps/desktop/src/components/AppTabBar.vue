@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Brain, GitBranch, Home, MessageSquare, Settings, ShieldCheck, Workflow } from 'lucide-vue-next';
+import { Brain, GitBranch, Home, MessagesSquare, MessageSquare, Settings, ShieldCheck, Workflow } from 'lucide-vue-next';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TAB_ORDER } from '@/composables/useAppShell';
 import type { AppShellTab } from '@/stores/app-shell';
@@ -18,6 +18,7 @@ const ICONS = {
   GitBranch,
   ShieldCheck,
   Brain,
+  MessagesSquare,
   Workflow,
   Settings,
 } as const;

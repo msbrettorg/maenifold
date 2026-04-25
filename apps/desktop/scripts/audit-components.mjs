@@ -27,15 +27,7 @@ const MAX_LOC = 300;
 // DESIGN.md says no <style> blocks. Keep this empty unless PM approves a named migration exception.
 const STYLE_EXCEPTIONS = new Set([]);
 
-const RAW_CONTROL_EXCEPTIONS = new Map([
-  [
-    'src/components/ChatAttachmentBar.vue',
-    new Set([
-      // TODO(T-220): migrate hidden native file pickers to a sanctioned shadcn-vue primitive/adapter.
-      'no-dynamic-raw-input',
-    ]),
-  ],
-]);
+const RAW_CONTROL_EXCEPTIONS = new Map([]);
 
 const RAW_CONTROL_RULES = [
   ['button', 'no-raw-button', 'Raw <button> — use shadcn <Button> from @/components/ui/button.'],
@@ -106,7 +98,7 @@ function auditTemplateTag(relPath, tag) {
   const tagName = tag.name;
   const lowerTagName = tagName.toLowerCase();
   const isNativeTag = tagName === lowerTagName;
-  const rawRule = isNativeTag ? RAW_CONTROL_BY_TAG.get(lowerTagName) : null;
+  const rawRule = isNativeTag && !isSanctionedFileInput(tag) ? RAW_CONTROL_BY_TAG.get(lowerTagName) : null;
   if (rawRule) addViolation(relPath, tag.line, rawRule.rule, rawRule.message);
 
   const role = findStaticAttr(tag.text, 'role')?.toLowerCase();
@@ -122,6 +114,14 @@ function auditTemplateTag(relPath, tag) {
   if (tagName === 'button' && /\bclass\s*=\s*"[^"]*\bbtn[-\s]/.test(tag.text)) {
     addViolation(relPath, tag.line, 'no-btn-classname', 'btn-* classname bypasses Button variant props — use variant/size props instead.');
   }
+}
+
+function isSanctionedFileInput(tag) {
+  if (tag.name !== 'input') return false;
+  const type = findStaticAttr(tag.text, 'type')?.toLowerCase();
+  if (type !== 'file') return false;
+  const className = findStaticAttr(tag.text, 'class') ?? '';
+  return className.split(/\s+/).includes('sr-only');
 }
 
 function findDynamicRawControls(tagText) {

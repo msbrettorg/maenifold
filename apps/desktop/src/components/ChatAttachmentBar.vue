@@ -128,24 +128,28 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
 
 <template>
   <div class="flex flex-col gap-2">
-    <component
-      :is="'input'"
-      ref="imageInputRef"
-      class="hidden"
-      type="file"
-      accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.ico,.tif,.tiff,image/*"
-      multiple
-      @change="handleSelection($event, 'image')"
-    />
-    <component
-      :is="'input'"
-      ref="audioInputRef"
-      class="hidden"
-      type="file"
-      accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,audio/*"
-      multiple
-      @change="handleSelection($event, 'audio')"
-    />
+    <label class="sr-only">
+      Image attachment
+      <input
+        ref="imageInputRef"
+        class="sr-only"
+        type="file"
+        accept=".png,.jpg,.jpeg,.gif,.webp,.svg,.bmp,.ico,.tif,.tiff,image/*"
+        multiple
+        @change="handleSelection($event, 'image')"
+      />
+    </label>
+    <label class="sr-only">
+      Audio attachment
+      <input
+        ref="audioInputRef"
+        class="sr-only"
+        type="file"
+        accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,audio/*"
+        multiple
+        @change="handleSelection($event, 'audio')"
+      />
+    </label>
     <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Attachments">
       <span class="inline-flex" :title="imageTooltip">
         <Button

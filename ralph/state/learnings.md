@@ -3,6 +3,28 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 0609 (Pipeline Advancement + CDP)
+
+### CDP verification catches what blue-team misses
+- T-219.1 passed blue-team (code review + typecheck) but failed CDP interactive testing
+- First Done tab click worked, subsequent clicks didn't — subscription callback race
+- **Lesson: For UI bugs, always rebuild the packaged app and CDP-verify after the full SDD pipeline. Blue-team code review alone is insufficient for reactive/async behavior.**
+
+### Subscription callback races in Vue composables
+- Resource subscription callbacks captured stale task objects via closure
+- When subscription fired between clicks, it incremented `detailRequestToken`, invalidating the new click
+- **Lesson: Always guard subscription callbacks with staleness checks. After `await subscribeResource()`, re-check before storing the handle. Tear down stale subscriptions immediately.**
+
+### Duo review prevents wasted SWE cycles
+- T-218.19 duo review found the 404 path is unreachable in current stateless gate config
+- Without duo review, a SWE would have spent a full cycle discovering this (same failure as cancelled T-203.7)
+- **Lesson: Duo review is expensive but pays for itself on complex backend tasks. Skip it for mechanical/lightweight tasks, always run it for tasks referencing protocol surfaces or prior cancelled work.**
+
+### Red-team informational findings vs blocking
+- PM can accept red-team findings as informational when: (1) the finding is correct but the attack scenario is unrealistic in context, (2) the fix would add fragile complexity that creates more bugs than it prevents, (3) the component is a lint/audit script not a security boundary
+- Examples: count-only evidence matching (T-218.13), newline-in-filename (T-218.15)
+- **Lesson: Document the PM judgment explicitly in gate notes — why the finding is valid but accepted as informational.**
+
 ## 2026-04-24 — Iteration 2132 (Gate Audit + Schedule CLI)
 
 ### Shell scripts: never use eval with interpolated paths

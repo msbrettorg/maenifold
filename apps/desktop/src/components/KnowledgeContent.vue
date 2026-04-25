@@ -13,7 +13,7 @@ const { activeUri, activeNote, noteLoading, noteError } = storeToRefs(store);
 </script>
 
 <template>
-  <section class="flex min-h-0 flex-1 flex-col bg-bg-app" aria-label="Knowledge content">
+  <section class="flex min-h-0 min-w-0 flex-1 flex-col bg-bg-app" aria-label="Knowledge content">
     <header v-if="activeNote" class="border-b border-border-subtle px-5 py-3">
       <p class="text-tiny uppercase tracking-[0.04em] text-text-tertiary">Selected note</p>
       <h2 class="truncate text-title font-semibold text-text-primary">
@@ -23,7 +23,7 @@ const { activeUri, activeNote, noteLoading, noteError } = storeToRefs(store);
     </header>
 
     <ScrollArea class="min-h-0 flex-1">
-      <div class="mx-auto grid max-w-5xl gap-3 p-5">
+      <div class="mx-auto grid min-w-0 max-w-5xl gap-3 p-5">
         <template v-if="noteLoading">
           <Skeleton class="h-5 w-3/5 rounded-md" />
           <Skeleton class="h-4 w-full rounded-md" />
@@ -53,7 +53,7 @@ const { activeUri, activeNote, noteLoading, noteError } = storeToRefs(store);
 
         <article
           v-else
-          class="bg-bg-surface rounded-[8px] p-4"
+          class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4"
         >
           <KnowledgeNoteRenderer :content="activeNote.content" />
         </article>

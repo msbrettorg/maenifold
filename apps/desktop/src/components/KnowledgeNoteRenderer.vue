@@ -61,7 +61,7 @@ watch(() => props.content, updateRendered, { immediate: true });
 <template>
   <article
     ref="containerRef"
-    class="prose prose-sm max-w-none dark:prose-invert"
+    class="prose prose-sm min-w-0 max-w-full break-words dark:prose-invert"
     :class="clamp ? 'line-clamp-6' : ''"
     v-html="rendered"
   />

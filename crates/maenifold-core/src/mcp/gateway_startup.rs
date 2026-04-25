@@ -11,12 +11,18 @@ use rmcp::model::Tool;
 use std::sync::Arc;
 use tracing::{info, warn};
 
-pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayState>>> {
+pub(super) enum GatewayStartup {
+    Disabled,
+    Ready(Arc<GatewayState>),
+    Failed(String),
+}
+
+pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
             tracing::error!(err = %error, "gateway config load failed, starting without gateway");
-            return Ok(None);
+            return Ok(GatewayStartup::Disabled);
         }
     };
     let gateway_servers: Vec<_> = agents_config
@@ -25,7 +31,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return Ok(None);
+        return Ok(GatewayStartup::Disabled);
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -50,6 +56,15 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
         .collect();
 
     match StdioPool::start(configs).await {
+        Ok(pool) if pool.all_gateway_tools().is_empty() => {
+            let message = format!(
+                "all {} configured gateway server(s) started degraded or exposed no tools",
+                gateway_servers.len()
+            );
+            tracing::error!(err = %message, "gateway startup produced no upstream tools");
+            pool.shutdown().await;
+            Ok(GatewayStartup::Failed(message))
+        }
         Ok(pool) => match tool_registry_tools() {
             Ok(native_tools) => match build_consolidated_tools(pool.all_gateway_tools(), 4) {
                 Ok((consolidated_tools, passthrough_tools)) => {
@@ -72,7 +87,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
                                     "Gateway exposes {total} tools — consider consolidation threshold"
                                 );
                             }
-                            Ok(Some(Arc::new(GatewayState::new(
+                            Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
                                 Arc::new(pool),
                                 Arc::new(registry),
                                 Arc::new(resource_routing),
@@ -85,7 +100,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
                                 err = %error,
                                 "gateway tool routing failed, starting without gateway"
                             );
-                            Ok(None)
+                            Ok(GatewayStartup::Failed(error.to_string()))
                         }
                     }
                 }
@@ -94,7 +109,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
                         err = %error,
                         "gateway consolidation failed, starting without gateway"
                     );
-                    Ok(None)
+                    Ok(GatewayStartup::Failed(error.to_string()))
                 }
             },
             Err(error) => {
@@ -102,7 +117,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
                     err = %error,
                     "native tool registry load failed, starting without gateway"
                 );
-                Ok(None)
+                Ok(GatewayStartup::Failed(error.to_string()))
             }
         },
         Err(error) => {
@@ -110,7 +125,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<Option<Arc<GatewayS
                 err = %error,
                 "gateway pool startup failed, starting without gateway"
             );
-            Ok(None)
+            Ok(GatewayStartup::Failed(error.to_string()))
         }
     }
 }

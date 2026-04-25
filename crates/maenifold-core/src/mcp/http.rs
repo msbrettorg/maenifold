@@ -1,4 +1,4 @@
-use super::gateway_startup::build_gateway;
+use super::gateway_startup::{GatewayStartup, build_gateway};
 use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
@@ -35,6 +35,7 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
     gateway: Option<Arc<GatewayState>>,
+    gateway_startup_error: Option<String>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
@@ -44,6 +45,9 @@ pub(super) fn service(
                 .map_err(|e| std::io::Error::other(e.to_string()))?;
             if let Some(gateway) = gateway.as_ref() {
                 handler.set_gateway(gateway.clone());
+            }
+            if let Some(error) = gateway_startup_error.as_ref() {
+                handler.set_gateway_startup_error(error.clone());
             }
             Ok(handler)
         },
@@ -84,16 +88,25 @@ impl super::MaenifoldMcpServer {
         .await
     }
 
-    async fn serve_http_listener_with_shutdown(
+    /// Serve Streamable HTTP MCP on an already-bound listener.
+    ///
+    /// This is primarily public for integration tests that need an ephemeral
+    /// port while exercising the real HTTP transport stack end-to-end.
+    pub async fn serve_http_listener_with_shutdown(
         tcp_listener: tokio::net::TcpListener,
         shutdown_token: tokio_util::sync::CancellationToken,
     ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let gateway = build_gateway(&config).await?;
+        let gateway_startup = build_gateway(&config).await?;
+        let (gateway, gateway_startup_error) = match gateway_startup {
+            GatewayStartup::Disabled => (None, None),
+            GatewayStartup::Ready(gateway) => (Some(gateway), None),
+            GatewayStartup::Failed(error) => (None, Some(error)),
+        };
         let pool_for_api = gateway.as_ref().map(|gateway| gateway.pool());
         let router = router(
-            service(shutdown_token.child_token(), gateway),
+            service(shutdown_token.child_token(), gateway, gateway_startup_error),
             ApiState::new(config.clone(), pool_for_api),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
@@ -155,7 +168,7 @@ mod tests {
 
     fn test_router(state: ApiState) -> axum::Router {
         router(
-            service(tokio_util::sync::CancellationToken::new(), None),
+            service(tokio_util::sync::CancellationToken::new(), None, None),
             state,
         )
         .layer(localhost_cors())

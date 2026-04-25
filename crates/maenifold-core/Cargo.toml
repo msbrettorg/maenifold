@@ -72,6 +72,14 @@ tower = "0.5"
 name = "gateway_integration"
 path = "tests/gateway_integration.rs"
 
+[[test]]
+name = "gateway_streamable_http"
+path = "tests/gateway_streamable_http.rs"
+
+[[test]]
+name = "gateway_streamable_http_cors"
+path = "tests/gateway_streamable_http_cors.rs"
+
 
 
 

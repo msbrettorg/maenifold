@@ -64,6 +64,7 @@ struct MaenifoldHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
     gateway: Option<Arc<GatewayState>>,
+    gateway_startup_error: Option<String>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -87,10 +88,14 @@ impl MaenifoldHandler {
             transport,
             tools,
             gateway: None,
+            gateway_startup_error: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
         self.gateway = Some(gateway);
+    }
+    fn set_gateway_startup_error(&mut self, error: String) {
+        self.gateway_startup_error = Some(error);
     }
 }
 impl ServerHandler for MaenifoldHandler {
@@ -123,6 +128,12 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
+        if let Some(error) = &self.gateway_startup_error {
+            return std::future::ready(Err(rmcp::ErrorData::internal_error(
+                format!("Gateway startup failed: {error}"),
+                None,
+            )));
+        }
         let mut tools = self.tools.clone();
         if let Some(gateway) = &self.gateway {
             tools.extend(gateway.list_tools());

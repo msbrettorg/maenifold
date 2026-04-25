@@ -87,7 +87,10 @@ fn facade_name(server_name: &str) -> String {
 fn facade_description(server_name: &str, tools: &[Tool]) -> String {
     const LEARN_HINT: &str = " Use learn=true to discover available commands.";
     let summary = capability_summary(tools);
-    let base = truncate(&format!("{server_name} — {summary}."), 200);
+    let base = truncate(
+        &format!("{server_name} — {summary}."),
+        200usize.saturating_sub(LEARN_HINT.chars().count()),
+    );
     format!("{base}{LEARN_HINT}")
 }
 

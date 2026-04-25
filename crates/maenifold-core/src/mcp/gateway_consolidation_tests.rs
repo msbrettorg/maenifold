@@ -30,6 +30,12 @@ fn learnless_description(tool: &Tool) -> String {
 }
 
 #[test]
+#[should_panic]
+fn build_panics_on_min_below_two() {
+    build_consolidated_tools(vec![], 1).unwrap();
+}
+
+#[test]
 fn server_with_many_tools_produces_facade() {
     let tools = (0..10)
         .map(|index| tool(&format!("alpha_tool_{index}")))
@@ -164,7 +170,40 @@ fn description_is_deterministic_and_bounded() {
     let left = &forward.0[0].facade_tool;
     let right = &reverse.0[0].facade_tool;
     assert_eq!(left.description, right.description);
-    assert!(learnless_description(left).chars().count() <= 200);
+    assert!(left.description.as_ref().expect("description").chars().count() <= 200);
+    assert!(learnless_description(left).chars().count() < 200);
+}
+
+#[test]
+fn empty_server_name_returns_error() {
+    let result = build_consolidated_tools(
+        vec![(
+            "".to_string(),
+            vec![tool("t1"), tool("t2"), tool("t3")],
+        )],
+        2,
+    );
+
+    assert!(result.is_err());
+}
+
+#[test]
+fn description_ends_with_learn_hint() {
+    let (consolidated, _) = build_consolidated_tools(
+        vec![(
+            "Learnable".to_string(),
+            vec![tool("one"), tool("two"), tool("three"), tool("four")],
+        )],
+        4,
+    )
+    .expect("builder should succeed");
+
+    let description = consolidated[0]
+        .facade_tool
+        .description
+        .as_ref()
+        .expect("facade should have description");
+    assert!(description.ends_with(" Use learn=true to discover available commands."));
 }
 
 #[test]

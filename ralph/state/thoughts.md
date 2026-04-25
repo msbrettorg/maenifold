@@ -7,7 +7,7 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1637 — Multi-Track Dispatch
 
-### Shipped This Iteration (8 tasks)
+### Shipped This Iteration (10 tasks)
 - **T-211.1** ✅ Scheduler research (GSD)
 - **T-210.3** ✅ Teams message handler (SDD, 1 remediation)
 - **T-209.6** ✅ Pipeline meta outer loop (SDD, 1 remediation)
@@ -16,13 +16,14 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-210.4** ✅ TeamsMonitor MCP tools (SDD, 1 remediation)
 - **T-211.4** ✅ launchd plist writer (SDD, 1 remediation)
 - **T-210.5** ✅ Teams MCP resources (SDD, 0 remediation)
+- **T-210.6** ✅ ACP dispatch on match (SDD, 1 remediation)
+- **T-211.5** ✅ systemd timer writer (SDD, 1 remediation)
 
 ### Next Actions
-- T-211.4 (launchd plist writer) is next unblocked in T-211 series
-- T-210.5 (MCP resources teams://status, teams://config) is unblocked by T-210.4
-- T-209.7 (validate pipeline delivery) is unblocked by T-209.6
-- T-214.13 (E2E validation) at research stage — needs CDP testing
-- T-211.3 spec updated: croner over cron crate per research
+- T-211.6 (supervisor script) unblocked
+- T-210.7 (Teams tab Vue) needs backend wiring complete
+- T-209.7 (validate pipeline delivery) unblocked by T-209.6
+- T-214.13 (E2E validation) at research stage
 
 ### Process Notes
 - Researcher ran gate pass on T-211.1 — known process violation, added explicit warning to future researcher prompts

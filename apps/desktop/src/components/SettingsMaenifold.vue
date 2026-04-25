@@ -187,7 +187,7 @@ onMounted(loadSettings);
             v-if="feedback"
             class="rounded-md border px-4 py-3 text-sm"
             :class="feedback.type === 'success'
-              ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
+              ? 'border-success/40 bg-success/10 text-success'
               : 'border-destructive/40 bg-destructive/10 text-destructive'"
             role="status"
           >

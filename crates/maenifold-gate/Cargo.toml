@@ -29,7 +29,7 @@ tokio-util.workspace = true
 thiserror.workspace = true
 tracing.workspace = true
 tower-http.workspace = true
-tray-icon = "0.21"
+tray-icon.workspace = true
 walkdir.workspace = true
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 

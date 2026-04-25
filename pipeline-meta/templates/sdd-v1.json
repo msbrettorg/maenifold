@@ -9,6 +9,18 @@
   },
   "nodes": [
     {
+      "type": "tool",
+      "id": "gate_start_swe",
+      "displayLabel": "Gate START SWE",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline dispatch starting SDD SWE stage for {{inputs.taskId}}."
+      }
+    },
+    {
       "type": "prompt",
       "id": "swe",
       "displayLabel": "SWE implementation",
@@ -24,6 +36,7 @@
       "id": "red_team",
       "displayLabel": "Red-team audit",
       "agent": "red-team",
+      "model": "gpt-5.5",
       "prompt": "You are the red-team audit stage for gate task {{inputs.taskId}}.\n\nWorktree: {{inputs.worktreePath}}\nCrate: {{inputs.crate}}\nScoped files: {{inputs.filePaths}}\n\nTask spec:\n{{inputs.taskSpec}}\n\nAudit only the implemented delta in the worktree. Look for material correctness, security, spec-compliance, error-handling, and regression risks. Cite concrete file/line evidence for every finding. Return ONLY valid JSON with this shape:\n{\n  \"verdict\": \"PASS\" | \"FAIL\",\n  \"summary\": \"short summary\",\n  \"findings\": [\n    {\n      \"severity\": \"high\" | \"medium\" | \"low\",\n      \"file\": \"path/to/file\",\n      \"line\": 123,\n      \"issue\": \"what is wrong\",\n      \"fix\": \"how to remediate\"\n    }\n  ]\n}\nUse an empty findings array when verdict is PASS.",
       "toolMode": "auto",
       "maxTurns": 25,
@@ -34,6 +47,7 @@
       "id": "blue_team",
       "displayLabel": "Blue-team verification",
       "agent": "blue-team",
+      "model": "gpt-5.5",
       "prompt": "You are the blue-team verification stage for gate task {{inputs.taskId}}.\n\nWorktree: {{inputs.worktreePath}}\nCrate: {{inputs.crate}}\nScoped files: {{inputs.filePaths}}\n\nTask spec:\n{{inputs.taskSpec}}\n\nRun focused build/test verification for the changed area and confirm the task is actually complete. Be strict about failing verifications or unmet acceptance expectations. Return ONLY valid JSON with this shape:\n{\n  \"verdict\": \"PASS\" | \"FAIL\",\n  \"summary\": \"short summary\",\n  \"commands\": [\"command 1\", \"command 2\"],\n  \"findings\": [\n    {\n      \"severity\": \"high\" | \"medium\" | \"low\",\n      \"issue\": \"what failed or remains missing\",\n      \"evidence\": \"command output, file path, or acceptance gap\"\n    }\n  ]\n}\nUse an empty findings array when verdict is PASS.",
       "toolMode": "auto",
       "maxTurns": 25,
@@ -55,6 +69,7 @@
       "id": "red_team_reaudit",
       "displayLabel": "Red-team re-audit",
       "agent": "red-team",
+      "model": "gpt-5.5",
       "prompt": "You are the red-team re-audit stage for gate task {{inputs.taskId}}.\n\nWorktree: {{inputs.worktreePath}}\nCrate: {{inputs.crate}}\nScoped files: {{inputs.filePaths}}\n\nTask spec:\n{{inputs.taskSpec}}\n\nUse the predecessor context from remediation and the original findings to decide whether the issues were fully resolved. Audit only the remaining delta and unresolved risk. Return ONLY valid JSON with this shape:\n{\n  \"verdict\": \"PASS\" | \"FAIL\",\n  \"summary\": \"short summary\",\n  \"findings\": [\n    {\n      \"severity\": \"high\" | \"medium\" | \"low\",\n      \"file\": \"path/to/file\",\n      \"line\": 123,\n      \"issue\": \"what is still wrong\",\n      \"fix\": \"how to remediate\"\n    }\n  ]\n}\nUse an empty findings array when verdict is PASS.",
       "toolMode": "auto",
       "maxTurns": 25,
@@ -65,6 +80,7 @@
       "id": "blue_team_after_fix",
       "displayLabel": "Blue-team verification after fix",
       "agent": "blue-team",
+      "model": "gpt-5.5",
       "prompt": "You are the final blue-team verification stage for gate task {{inputs.taskId}}.\n\nWorktree: {{inputs.worktreePath}}\nCrate: {{inputs.crate}}\nScoped files: {{inputs.filePaths}}\n\nTask spec:\n{{inputs.taskSpec}}\n\nVerify the remediated implementation with focused build/test checks. Fail if any required verification still does not pass or if the task remains incomplete. Return ONLY valid JSON with this shape:\n{\n  \"verdict\": \"PASS\" | \"FAIL\",\n  \"summary\": \"short summary\",\n  \"commands\": [\"command 1\", \"command 2\"],\n  \"findings\": [\n    {\n      \"severity\": \"high\" | \"medium\" | \"low\",\n      \"issue\": \"what failed or remains missing\",\n      \"evidence\": \"command output, file path, or acceptance gap\"\n    }\n  ]\n}\nUse an empty findings array when verdict is PASS.",
       "toolMode": "auto",
       "maxTurns": 25,
@@ -78,8 +94,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "swe",
-        "notes": "Pipeline SWE stage passed for {{inputs.taskId}} in {{inputs.worktreePath}}."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SWE stage passed for {{inputs.taskId}} in {{inputs.worktreePath}}."
       }
     },
     {
@@ -90,8 +106,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Pipeline red-team audit passed for {{inputs.taskId}}."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team audit passed for {{inputs.taskId}}."
       }
     },
     {
@@ -102,8 +118,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Pipeline red-team re-audit passed for {{inputs.taskId}} after remediation."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit passed for {{inputs.taskId}} after remediation."
       }
     },
     {
@@ -114,8 +130,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Pipeline blue-team verification passed for {{inputs.taskId}}."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification passed for {{inputs.taskId}}."
       }
     },
     {
@@ -126,8 +142,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Pipeline blue-team verification passed for {{inputs.taskId}} after remediation."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification passed for {{inputs.taskId}} after remediation."
       }
     },
     {
@@ -138,8 +154,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Pipeline red-team re-audit failed for {{inputs.taskId}} after the bounded remediation cycle."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit failed for {{inputs.taskId}} after the bounded remediation cycle."
       }
     },
     {
@@ -150,8 +166,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Pipeline blue-team verification failed for {{inputs.taskId}}."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification failed for {{inputs.taskId}}."
       }
     },
     {
@@ -162,8 +178,8 @@
       "toolArgs": {
         "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Pipeline blue-team verification failed for {{inputs.taskId}} after remediation."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification failed for {{inputs.taskId}} after remediation."
       }
     },
     {
@@ -180,6 +196,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "gate_start_swe",
+      "target": "swe",
+      "type": "success"
+    },
     {
       "source": "swe",
       "target": "gate_pass_swe",

@@ -9,9 +9,21 @@
   },
   "nodes": [
     {
+      "id": "gate_start_swe",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline dispatch starting lightweight SWE stage for {{inputs.taskId}}."
+      }
+    },
+    {
       "id": "swe",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Implement the assigned task in {{inputs.worktreePath}}.\\nTask ID: {{inputs.taskId}}\\nSpecification:\\n{{inputs.taskSpec}}\\nScope hints:\\n- Crate: {{inputs.crate}}\\n- Relevant files: {{inputs.filePaths}}\\nRequirements:\\n- Keep changes focused and production-ready.\\n- Follow existing codebase patterns.\\n- Run only scoped verification needed for implementation confidence.\\n- Do not touch git.\\nWhen finished, summarize what changed and what you verified.",
       "toolMode": "auto",
@@ -22,15 +34,17 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "swe",
-        "notes": "SWE implementation complete for lightweight-v1; ready for blue-team verification."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SWE stage passed for {{inputs.taskId}}; ready for blue-team verification."
       }
     },
     {
       "id": "blue_team",
       "type": "prompt",
       "agent": "blue-team",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Review the predecessor context and the current worktree for task {{inputs.taskId}}.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nRun focused build/test verification for the implemented change.\\nReturn ONLY valid JSON in this shape:\\n{\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"],\"commands\":[\"...\"]}\\nMark PASS only when scoped verification succeeds and no blocking defects remain.",
       "toolMode": "auto",
@@ -40,6 +54,7 @@
       "id": "remediate",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Use the predecessor context from blue-team to fix the reported issues for task {{inputs.taskId}}.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nAddress every blocking finding, keep the fix minimal, run scoped verification, and summarize the remediation work.\\nDo not touch git.",
       "toolMode": "auto",
@@ -49,6 +64,7 @@
       "id": "blue_team_recheck",
       "type": "prompt",
       "agent": "blue-team",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Re-verify the remediated implementation for task {{inputs.taskId}} using predecessor context and the current worktree.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nRun focused build/test verification again.\\nReturn ONLY valid JSON in this shape:\\n{\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"],\"commands\":[\"...\"]}",
       "toolMode": "auto",
@@ -59,9 +75,10 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Blue-team verification PASS in lightweight-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification passed for {{inputs.taskId}}."
       }
     },
     {
@@ -69,9 +86,10 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Blue-team recheck PASS after remediation in lightweight-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team recheck passed for {{inputs.taskId}} after remediation."
       }
     },
     {
@@ -79,15 +97,17 @@
       "type": "tool",
       "toolName": "gate.fail",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Blue-team recheck failed after bounded remediation in lightweight-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team recheck failed for {{inputs.taskId}} after bounded remediation."
       }
     },
     {
       "id": "cleanup",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Perform terminal cleanup for task {{inputs.taskId}} in {{inputs.worktreePath}} using predecessor context.\\nEnsure the worktree is left in a usable state, do not touch git metadata, and provide a concise terminal summary.",
       "toolMode": "auto",
@@ -95,6 +115,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "gate_start_swe",
+      "target": "swe",
+      "type": "success"
+    },
     {
       "source": "swe",
       "target": "gate_pass_swe",

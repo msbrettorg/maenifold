@@ -1,0 +1,262 @@
+{
+  "templateId": "slc-v1",
+  "inputs": {
+    "taskId": "",
+    "taskSpec": "",
+    "worktreePath": "",
+    "crate": "",
+    "filePaths": ""
+  },
+  "nodes": [
+    {
+      "id": "gate_start_discovery",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline dispatch starting SLC discovery stage for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "discovery",
+      "type": "prompt",
+      "agent": "researcher",
+      "model": "claude-opus-4.6",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are the discovery stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nInvestigate the actual code and design-system surfaces needed for this task. Do not modify files. Return concise discovery notes with concrete file paths and implementation constraints."
+    },
+    {
+      "id": "gate_pass_discovery",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled discovery stage completed for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "spec",
+      "type": "prompt",
+      "agent": "product-manager",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are the SLC spec stage for gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nUse predecessor discovery context to refine the task file if required. Keep the scope precise, include implementation constraints, and ensure acceptance criteria are testable. Do not implement product code."
+    },
+    {
+      "id": "duo_review_opus",
+      "type": "prompt",
+      "agent": "swe",
+      "model": "claude-opus-4.7",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are one half of the architect duo reviewing the SLC spec for {{inputs.taskId}}. Do not edit files. Review predecessor context and the task file for feasibility, scope safety, design-system fit, and verification quality. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"]}."
+    },
+    {
+      "id": "duo_review_gpt",
+      "type": "prompt",
+      "agent": "swe",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are one half of the architect duo reviewing the SLC spec for {{inputs.taskId}}. Do not edit files. Review predecessor context and the task file for hidden coupling, missing acceptance criteria, and implementation hazards. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"]}."
+    },
+    {
+      "id": "gate_pass_spec",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SLC spec stage passed for {{inputs.taskId}} after duo review."
+      }
+    },
+    {
+      "id": "gate_fail_spec",
+      "type": "tool",
+      "toolName": "gate.fail",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SLC spec review failed for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "swe",
+      "type": "prompt",
+      "agent": "swe",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are the SWE implementation stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nImplement the approved spec exactly. Keep the delta scoped, follow existing patterns, do not touch git, and run focused verification for the touched area. Return a concise implementation summary."
+    },
+    {
+      "id": "gate_pass_swe",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SWE implementation stage passed for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "red_team",
+      "type": "prompt",
+      "agent": "red-team",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are the red-team audit stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nAudit only the implemented delta. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"file\":\"path\",\"line\":1,\"issue\":\"...\",\"fix\":\"...\"}]}."
+    },
+    {
+      "id": "remediate_red",
+      "type": "prompt",
+      "agent": "swe",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "Use predecessor red-team findings to remediate task {{inputs.taskId}}. Keep fixes scoped, do not touch git, rerun focused verification, and summarize the changes."
+    },
+    {
+      "id": "red_team_reaudit",
+      "type": "prompt",
+      "agent": "red-team",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "Re-audit the remediated SLC work for task {{inputs.taskId}}. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"file\":\"path\",\"line\":1,\"issue\":\"...\",\"fix\":\"...\"}]}."
+    },
+    {
+      "id": "gate_pass_red",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team audit passed for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "gate_pass_red_2",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit passed for {{inputs.taskId}} after remediation."
+      }
+    },
+    {
+      "id": "gate_fail_red",
+      "type": "tool",
+      "toolName": "gate.fail",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit failed for {{inputs.taskId}} after bounded remediation."
+      }
+    },
+    {
+      "id": "blue_team",
+      "type": "prompt",
+      "agent": "blue-team",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "You are the blue-team verification stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nRun focused verification for the implemented change. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"commands\":[\"...\"],\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"issue\":\"...\",\"evidence\":\"...\"}]}."
+    },
+    {
+      "id": "remediate_blue",
+      "type": "prompt",
+      "agent": "swe",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "Use predecessor blue-team findings to remediate task {{inputs.taskId}}. Keep fixes scoped, do not touch git, rerun focused verification, and summarize the changes."
+    },
+    {
+      "id": "blue_team_recheck",
+      "type": "prompt",
+      "agent": "blue-team",
+      "model": "gpt-5.5",
+      "cwd": "{{inputs.worktreePath}}",
+      "prompt": "Re-run focused verification for remediated task {{inputs.taskId}}. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"commands\":[\"...\"],\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"issue\":\"...\",\"evidence\":\"...\"}]}."
+    },
+    {
+      "id": "gate_pass_blue",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team verification passed for {{inputs.taskId}}."
+      }
+    },
+    {
+      "id": "gate_pass_blue_2",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team recheck passed for {{inputs.taskId}} after remediation."
+      }
+    },
+    {
+      "id": "gate_fail_blue",
+      "type": "tool",
+      "toolName": "gate.fail",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team recheck failed for {{inputs.taskId}} after bounded remediation."
+      }
+    },
+    {
+      "id": "cleanup",
+      "type": "tool",
+      "toolName": "gate.append",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline terminal cleanup reached for {{inputs.taskId}} in {{inputs.worktreePath}}."
+      }
+    }
+  ],
+  "edges": [
+    { "source": "gate_start_discovery", "target": "discovery", "type": "success" },
+    { "source": "discovery", "target": "gate_pass_discovery", "type": "success" },
+    { "source": "gate_pass_discovery", "target": "spec", "type": "success" },
+    { "source": "spec", "target": "duo_review_opus", "type": "success" },
+    { "source": "duo_review_opus", "target": "duo_review_gpt", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "duo_review_opus", "target": "gate_fail_spec", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "duo_review_gpt", "target": "gate_pass_spec", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "duo_review_gpt", "target": "gate_fail_spec", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "gate_pass_spec", "target": "swe", "type": "success" },
+    { "source": "swe", "target": "gate_pass_swe", "type": "success" },
+    { "source": "gate_pass_swe", "target": "red_team", "type": "success" },
+    { "source": "red_team", "target": "gate_pass_red", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "red_team", "target": "remediate_red", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "remediate_red", "target": "red_team_reaudit", "type": "success" },
+    { "source": "red_team_reaudit", "target": "gate_pass_red_2", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "red_team_reaudit", "target": "gate_fail_red", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "gate_pass_red", "target": "blue_team", "type": "success" },
+    { "source": "gate_pass_red_2", "target": "blue_team", "type": "success" },
+    { "source": "blue_team", "target": "gate_pass_blue", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "blue_team", "target": "remediate_blue", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "remediate_blue", "target": "blue_team_recheck", "type": "success" },
+    { "source": "blue_team_recheck", "target": "gate_pass_blue_2", "type": "conditional", "path": "verdict", "equals": "PASS" },
+    { "source": "blue_team_recheck", "target": "gate_fail_blue", "type": "conditional", "path": "verdict", "equals": "FAIL" },
+    { "source": "gate_pass_blue", "target": "cleanup", "type": "always" },
+    { "source": "gate_pass_blue_2", "target": "cleanup", "type": "always" },
+    { "source": "gate_fail_spec", "target": "cleanup", "type": "always" },
+    { "source": "gate_fail_red", "target": "cleanup", "type": "always" },
+    { "source": "gate_fail_blue", "target": "cleanup", "type": "always" }
+  ]
+}

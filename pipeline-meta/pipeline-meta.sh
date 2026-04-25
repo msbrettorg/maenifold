@@ -3,11 +3,10 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-DEFAULT_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
+DEFAULT_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "${BASH_SOURCE[0]}")"
 
 PIPELINE_META_ROOT="${PIPELINE_META_ROOT:-$DEFAULT_ROOT}"
-PIPELINE_META_ROOT="$(git -C "$PIPELINE_META_ROOT" rev-parse --show-toplevel)"
 PIPELINE_META_MAX_PARALLEL="${PIPELINE_META_MAX_PARALLEL:-1}"
 PIPELINE_META_INNER_ITERATIONS="${PIPELINE_META_INNER_ITERATIONS:-1}"
 PIPELINE_META_MAX_META_ITERATIONS="${PIPELINE_META_MAX_META_ITERATIONS:-5}"
@@ -15,22 +14,25 @@ PIPELINE_META_META_AGENT="${PIPELINE_META_META_AGENT:-Copilot}"
 PIPELINE_META_META_THRESHOLD="${PIPELINE_META_META_THRESHOLD:-0.5}"
 PIPELINE_META_META_TIMEOUT_SECONDS="${PIPELINE_META_META_TIMEOUT_SECONDS:-600}"
 PIPELINE_META_DRY_RUN="${PIPELINE_META_DRY_RUN:-}"
+PIPELINE_META_TASK_ID="${PIPELINE_META_TASK_ID:-}"
+PIPELINE_META_LIMIT="${PIPELINE_META_LIMIT:-}"
+PIPELINE_META_PIPELINE="${PIPELINE_META_PIPELINE:-}"
 
-PIPELINE_META_DIR="${PIPELINE_META_ROOT}/ralph/pipeline-meta"
-TEMPLATE_DIR="${PIPELINE_META_DIR}/templates"
-LOG_DIR="${PIPELINE_META_DIR}/logs"
-METRICS_DIR="${PIPELINE_META_DIR}/metrics"
-OTEL_DIR="${PIPELINE_META_DIR}/otel"
-META_DIR="${PIPELINE_META_DIR}/meta"
-META_SNAPSHOT_DIR="${META_DIR}/snapshots"
-META_VERDICT_DIR="${META_DIR}/verdicts"
-META_METRICS_ARCHIVE_DIR="${META_DIR}/metrics"
-META_BASELINE_FILE="${META_DIR}/baseline-summary.json"
-LOCK_FILE="${PIPELINE_META_DIR}/.lock"
-WORKTREE_BASE_DIR="${PIPELINE_META_ROOT}/worktrees"
+PIPELINE_META_DIR=""
+TEMPLATE_DIR=""
+LOG_DIR=""
+METRICS_DIR=""
+OTEL_DIR=""
+META_DIR=""
+META_SNAPSHOT_DIR=""
+META_VERDICT_DIR=""
+META_METRICS_ARCHIVE_DIR=""
+META_BASELINE_FILE=""
+LOCK_FILE=""
+WORKTREE_BASE_DIR=""
 RUN_TIMESTAMP="$(date -u +"%Y%m%dT%H%M%SZ")"
-LOG_FILE="${LOG_DIR}/${RUN_TIMESTAMP}.log"
-OTEL_FILE="${OTEL_DIR}/${RUN_TIMESTAMP}.jsonl"
+LOG_FILE=""
+OTEL_FILE=""
 
 LOCK_FD=""
 LOCK_MODE="pid"
@@ -52,11 +54,16 @@ log() {
 
 usage() {
   cat <<EOF
-Usage: $(basename "$0") [--meta]
+Usage: $(basename "$0") [options]
 
 Options:
-  --meta      Run the meta-optimization outer loop.
-  -h, --help  Show this help text.
+  --meta                 Run the meta-optimization outer loop.
+  --dry-run              Render and plan work without creating pipelines/worktrees.
+  --task <T-id>          Run only one task, e.g. T-218.42.
+  --limit <n>            Run at most n matching tasks.
+  --pipeline <name>      Run only tasks using sdd, tdd, or lightweight.
+  --root <path>          Repository root override.
+  -h, --help             Show this help text.
 EOF
 }
 
@@ -66,6 +73,26 @@ parse_args() {
       --meta)
         PIPELINE_META_ENABLE_META=true
         shift
+        ;;
+      --dry-run)
+        PIPELINE_META_DRY_RUN=1
+        shift
+        ;;
+      --task)
+        PIPELINE_META_TASK_ID="${2:-}"
+        shift 2
+        ;;
+      --limit)
+        PIPELINE_META_LIMIT="${2:-}"
+        shift 2
+        ;;
+      --pipeline)
+        PIPELINE_META_PIPELINE="${2:-}"
+        shift 2
+        ;;
+      --root)
+        PIPELINE_META_ROOT="${2:-}"
+        shift 2
         ;;
       -h|--help)
         usage
@@ -78,6 +105,24 @@ parse_args() {
         ;;
     esac
   done
+}
+
+configure_paths() {
+  PIPELINE_META_ROOT="$(git -C "$PIPELINE_META_ROOT" rev-parse --show-toplevel)"
+  PIPELINE_META_DIR="${PIPELINE_META_ROOT}/pipeline-meta"
+  TEMPLATE_DIR="${PIPELINE_META_DIR}/templates"
+  LOG_DIR="${PIPELINE_META_DIR}/logs"
+  METRICS_DIR="${PIPELINE_META_DIR}/metrics"
+  OTEL_DIR="${PIPELINE_META_DIR}/otel"
+  META_DIR="${PIPELINE_META_DIR}/meta"
+  META_SNAPSHOT_DIR="${META_DIR}/snapshots"
+  META_VERDICT_DIR="${META_DIR}/verdicts"
+  META_METRICS_ARCHIVE_DIR="${META_DIR}/metrics"
+  META_BASELINE_FILE="${META_DIR}/baseline-summary.json"
+  LOCK_FILE="${PIPELINE_META_DIR}/.lock"
+  WORKTREE_BASE_DIR="${PIPELINE_META_ROOT}/worktrees"
+  LOG_FILE="${LOG_DIR}/${RUN_TIMESTAMP}.log"
+  OTEL_FILE="${OTEL_DIR}/${RUN_TIMESTAMP}.jsonl"
 }
 
 trim() {
@@ -129,12 +174,21 @@ frontmatter_value() {
 }
 
 template_for_pipeline() {
+  local template_path
   case "$1" in
-    sdd) printf '%s\n' "${TEMPLATE_DIR}/sdd-v1.json" ;;
-    tdd) printf '%s\n' "${TEMPLATE_DIR}/tdd-v1.json" ;;
-    lightweight) printf '%s\n' "${TEMPLATE_DIR}/lightweight-v1.json" ;;
+    sdd) template_path="${TEMPLATE_DIR}/sdd-v1.json" ;;
+    slc) template_path="${TEMPLATE_DIR}/slc-v1.json" ;;
+    tdd) template_path="${TEMPLATE_DIR}/tdd-v1.json" ;;
+    lightweight) template_path="${TEMPLATE_DIR}/lightweight-v1.json" ;;
     *) return 1 ;;
   esac
+
+  if [[ ! -f "$template_path" ]]; then
+    log "ERROR: missing template for pipeline '$1': ${template_path}"
+    return 1
+  fi
+
+  printf '%s\n' "$template_path"
 }
 
 render_template_definition() {
@@ -146,28 +200,31 @@ render_template_definition() {
   local file_paths="$6"
   local rendered
 
-  rendered="$(
-    jq \
-      --arg taskId "$task_id" \
-      --arg taskSpec "$task_spec" \
-      --arg worktreePath "$worktree_path" \
-      --arg crate "$crate" \
-      --arg filePaths "$file_paths" \
-      '
-      def replace_inputs:
-        if type == "string" then
-          gsub("\\{\\{inputs\\.taskId\\}\\}"; $taskId)
-          | gsub("\\{\\{inputs\\.taskSpec\\}\\}"; $taskSpec)
-          | gsub("\\{\\{inputs\\.worktreePath\\}\\}"; $worktreePath)
-          | gsub("\\{\\{inputs\\.crate\\}\\}"; $crate)
-          | gsub("\\{\\{inputs\\.filePaths\\}\\}"; $filePaths)
-        else
-          .
-        end;
-      walk(replace_inputs)
-      ' \
-      "$template_path"
-  )"
+  if ! rendered="$(
+      jq \
+        --arg taskId "$task_id" \
+        --arg taskSpec "$task_spec" \
+        --arg worktreePath "$worktree_path" \
+        --arg crate "$crate" \
+        --arg filePaths "$file_paths" \
+        '
+        def replace_inputs:
+          if type == "string" then
+            gsub("\\{\\{inputs\\.taskId\\}\\}"; $taskId)
+            | gsub("\\{\\{inputs\\.taskSpec\\}\\}"; $taskSpec)
+            | gsub("\\{\\{inputs\\.worktreePath\\}\\}"; $worktreePath)
+            | gsub("\\{\\{inputs\\.crate\\}\\}"; $crate)
+            | gsub("\\{\\{inputs\\.filePaths\\}\\}"; $filePaths)
+          else
+            .
+          end;
+        walk(replace_inputs)
+        ' \
+        "$template_path"
+    )"; then
+    log "ERROR: failed to render template ${template_path}"
+    return 1
+  fi
 
   if printf '%s' "$rendered" | jq -e '.. | strings | select(test("\\{\\{inputs\\."))' >/dev/null 2>&1; then
     log "ERROR: unresolved template placeholders remain in ${template_path}"
@@ -707,6 +764,7 @@ process_task() {
 
   if [[ -n "$PIPELINE_META_DRY_RUN" ]]; then
     log "[dry-run] Would create worktree: git worktree add ${worktree_path} -b ${branch_name}"
+    log "[dry-run] Would sync gate cache in worktree: gate sync --root ${worktree_path}"
     log "[dry-run] Would submit pipeline template: ${template_path}"
     log "[dry-run] Would execute: maenifold-pipeline-driver <session-id> \"${ambient_prompt}\""
     log "[dry-run] Would preserve or merge worktree based on final pipeline status"
@@ -727,6 +785,15 @@ process_task() {
     end_epoch="$(date +%s)"
     wall_clock_seconds=$((end_epoch - start_epoch))
     record_metrics "$task_id" "$gate_pipeline" "$template_id" "" "$wall_clock_seconds" "failed" false 0
+    return 1
+  fi
+
+  if ! gate sync --root "$worktree_path"; then
+    log "ERROR: failed to sync gate cache in worktree for ${task_id}"
+    end_epoch="$(date +%s)"
+    wall_clock_seconds=$((end_epoch - start_epoch))
+    record_metrics "$task_id" "$gate_pipeline" "$template_id" "" "$wall_clock_seconds" "failed" false 0
+    log "FAILED: worktree preserved at ${worktree_path}"
     return 1
   fi
 
@@ -803,10 +870,15 @@ process_task() {
 run_inner_loop() {
   local backlog_json
   local task_row
+  local limit_json="null"
 
   FAILURES=0
   JOB_PIDS=()
   CHILD_PIDS=()
+
+  if [[ -n "$PIPELINE_META_LIMIT" ]]; then
+    limit_json="$PIPELINE_META_LIMIT"
+  fi
 
   if ! backlog_json="$(gate status --root "$PIPELINE_META_ROOT" --json 2>/dev/null)"; then
     if [[ -n "$PIPELINE_META_DRY_RUN" ]]; then
@@ -825,14 +897,20 @@ run_inner_loop() {
     JOB_PIDS+=("$!")
     CHILD_PIDS+=("$!")
   done < <(
-    printf '%s' "$backlog_json" | jq -c '
+    printf '%s' "$backlog_json" | jq -c \
+      --arg taskId "$PIPELINE_META_TASK_ID" \
+      --arg pipeline "$PIPELINE_META_PIPELINE" \
+      --argjson limit "$limit_json" '
       def numeric_parts:
         (.taskId // "")
         | ltrimstr("T-")
         | split(".")
         | map(tonumber? // 0);
       map(select((.state // "") == "pending" and (.location // "") == "todo"))
+      | if $taskId != "" then map(select((.taskId // "") == $taskId)) else . end
+      | if $pipeline != "" then map(select((.pipeline // "") == $pipeline)) else . end
       | sort_by((numeric_parts[0] // 0), (numeric_parts[1] // 0), (.taskId // ""))
+      | if $limit != null then .[:$limit] else . end
       | .[]
     '
   )
@@ -978,6 +1056,7 @@ meta_outer_loop() {
 
 main() {
   parse_args "$@"
+  configure_paths
 
   mkdir -p "$LOG_DIR" "$METRICS_DIR" "$OTEL_DIR"
   export COPILOT_OTEL_FILE_EXPORTER_PATH="$OTEL_FILE"
@@ -993,6 +1072,17 @@ main() {
   require_command maenifold-pipeline-driver
   require_command shasum
 
+  if [[ -n "$PIPELINE_META_TASK_ID" ]] && ! validate_task_id "$PIPELINE_META_TASK_ID"; then
+    exit 1
+  fi
+  if [[ -n "$PIPELINE_META_LIMIT" ]] && ! [[ "$PIPELINE_META_LIMIT" =~ ^[1-9][0-9]*$ ]]; then
+    log "ERROR: PIPELINE_META_LIMIT/--limit must be a positive integer"
+    exit 1
+  fi
+  if [[ -n "$PIPELINE_META_PIPELINE" && ! "$PIPELINE_META_PIPELINE" =~ ^(sdd|slc|tdd|lightweight)$ ]]; then
+    log "ERROR: PIPELINE_META_PIPELINE/--pipeline must be one of: sdd, slc, tdd, lightweight"
+    exit 1
+  fi
   if ! [[ "$PIPELINE_META_MAX_PARALLEL" =~ ^[1-9][0-9]*$ ]]; then
     log "ERROR: PIPELINE_META_MAX_PARALLEL must be a positive integer"
     exit 1
@@ -1012,6 +1102,9 @@ main() {
   log "inner_iterations=${PIPELINE_META_INNER_ITERATIONS}"
   log "meta_enabled=${PIPELINE_META_ENABLE_META}"
   log "max_meta_iterations=${PIPELINE_META_MAX_META_ITERATIONS}"
+  log "task_filter=${PIPELINE_META_TASK_ID:-all}"
+  log "pipeline_filter=${PIPELINE_META_PIPELINE:-all}"
+  log "limit=${PIPELINE_META_LIMIT:-all}"
   log "dry_run=${PIPELINE_META_DRY_RUN:+true}"
   log "log_file=${LOG_FILE}"
   log "otel=${OTEL_FILE}"

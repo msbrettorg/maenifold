@@ -9,9 +9,21 @@
   },
   "nodes": [
     {
+      "id": "gate_start_blue_tests",
+      "type": "tool",
+      "toolName": "gate.pass",
+      "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
+        "taskId": "{{inputs.taskId}}",
+        "agent": "pipeline-meta",
+        "notes": "Pipeline dispatch starting TDD blue-team test-authoring stage for {{inputs.taskId}}."
+      }
+    },
+    {
       "id": "blue_team_tests",
       "type": "prompt",
       "agent": "blue-team",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Create or update focused tests first for task {{inputs.taskId}} in {{inputs.worktreePath}}.\\nSpecification:\\n{{inputs.taskSpec}}\\nScope hints:\\n- Crate: {{inputs.crate}}\\n- Relevant files: {{inputs.filePaths}}\\nAdd the minimum test coverage needed to define the expected behavior before implementation, keep changes scoped, and summarize what the tests cover.\\nDo not touch git.",
       "toolMode": "auto",
@@ -22,15 +34,17 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "blue-team",
-        "notes": "Blue-team test-authoring stage complete for tdd-v1; ready for SWE implementation."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled blue-team test-authoring stage passed for {{inputs.taskId}}; ready for SWE implementation."
       }
     },
     {
       "id": "swe",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Implement task {{inputs.taskId}} in {{inputs.worktreePath}} so the newly authored tests pass.\\nSpecification:\\n{{inputs.taskSpec}}\\nScope hints:\\n- Crate: {{inputs.crate}}\\n- Relevant files: {{inputs.filePaths}}\\nUse predecessor context from the test-authoring stage, keep the implementation focused, run scoped tests, and summarize the changes plus verification performed.\\nDo not touch git.",
       "toolMode": "auto",
@@ -41,15 +55,17 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "swe",
-        "notes": "SWE implementation complete for tdd-v1; ready for red-team audit."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled SWE implementation stage passed for {{inputs.taskId}}; ready for red-team audit."
       }
     },
     {
       "id": "red_team",
       "type": "prompt",
       "agent": "red-team",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Perform an adversarial audit of task {{inputs.taskId}} using predecessor context and the current worktree.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nCheck for logic flaws, spec gaps, security issues, and whether the implementation genuinely satisfies the tests-first intent.\\nReturn ONLY valid JSON in this shape:\\n{\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"],\"commands\":[\"...\"]}",
       "toolMode": "auto",
@@ -59,6 +75,7 @@
       "id": "remediate",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Use predecessor context from red-team to fix the reported findings for task {{inputs.taskId}}.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nAddress all blocking issues, preserve the tests-first intent, run scoped verification, and summarize the remediation.\\nDo not touch git.",
       "toolMode": "auto",
@@ -68,6 +85,7 @@
       "id": "red_team_reaudit",
       "type": "prompt",
       "agent": "red-team",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Re-audit the remediated work for task {{inputs.taskId}} using predecessor context and the current worktree.\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nRelevant files: {{inputs.filePaths}}\\nReturn ONLY valid JSON in this shape:\\n{\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"],\"commands\":[\"...\"]}",
       "toolMode": "auto",
@@ -78,9 +96,10 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Red-team audit PASS in tdd-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team audit passed for {{inputs.taskId}} in tdd-v1."
       }
     },
     {
@@ -88,9 +107,10 @@
       "type": "tool",
       "toolName": "gate.pass",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Red-team re-audit PASS after remediation in tdd-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit passed for {{inputs.taskId}} after remediation in tdd-v1."
       }
     },
     {
@@ -98,15 +118,17 @@
       "type": "tool",
       "toolName": "gate.fail",
       "toolArgs": {
+        "root": "{{inputs.worktreePath}}",
         "taskId": "{{inputs.taskId}}",
-        "agent": "red-team",
-        "notes": "Red-team re-audit failed after bounded remediation in tdd-v1."
+        "agent": "pipeline-meta",
+        "notes": "Pipeline-controlled red-team re-audit failed for {{inputs.taskId}} after bounded remediation in tdd-v1."
       }
     },
     {
       "id": "cleanup",
       "type": "prompt",
       "agent": "swe",
+      "model": "gpt-5.5",
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Perform terminal cleanup for task {{inputs.taskId}} in {{inputs.worktreePath}} using predecessor context.\\nEnsure the worktree is left in a usable state, do not touch git metadata, and provide a concise terminal summary.",
       "toolMode": "auto",
@@ -114,6 +136,11 @@
     }
   ],
   "edges": [
+    {
+      "source": "gate_start_blue_tests",
+      "target": "blue_team_tests",
+      "type": "success"
+    },
     {
       "source": "blue_team_tests",
       "target": "gate_pass_blue_tests",

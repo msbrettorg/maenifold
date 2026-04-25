@@ -86,6 +86,7 @@ pub(crate) async fn cold_start(
         JockeyUiClient {
             delta_slot: delta_slot.clone(),
             auto_approve,
+            workspace_root: std::path::PathBuf::from(abs_cwd),
         },
         stdin.compat_write(),
         stdout.compat(),

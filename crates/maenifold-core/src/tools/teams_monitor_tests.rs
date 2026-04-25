@@ -11,6 +11,11 @@ static TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 fn with_context(test: impl FnOnce(&ToolContext)) {
     let _lock = TEST_LOCK.lock().expect("test lock");
     let tmp = TempDir::new().expect("temp dir");
+    std::fs::write(
+        tmp.path().join("maenifold.json"),
+        r#"{"agents":{},"settings":{}}"#,
+    )
+    .expect("write minimal maenifold config");
     Config::override_root(tmp.path());
     Config::set_database_path(tmp.path().join("memory.db"));
     let config = Config::current();
@@ -45,7 +50,10 @@ fn status_action_returns_current_config_state() {
 #[test]
 fn configure_with_keywords_updates_status() {
     with_context(|context| {
-        run(context, json!({"action":"configure","keywords":["alpha","beta"]}));
+        run(
+            context,
+            json!({"action":"configure","keywords":["alpha","beta"]}),
+        );
         assert_eq!(
             run(context, json!({"action":"status"}))["config"]["keywords"],
             json!(["alpha", "beta"])
@@ -67,8 +75,11 @@ fn unknown_action_returns_valid_action_list() {
 #[test]
 fn authenticate_requires_client_id() {
     with_context(|context| {
-        let error = teams_monitor(context, &json!({"action":"authenticate","tenantId":"tenant"}))
-            .expect_err("missing clientId");
+        let error = teams_monitor(
+            context,
+            &json!({"action":"authenticate","tenantId":"tenant"}),
+        )
+        .expect_err("missing clientId");
         assert_eq!(
             error.to_string(),
             "Required property 'clientId' is missing from payload."
@@ -88,8 +99,11 @@ fn invalid_dispatch_agent_type_returns_type_error() {
 #[test]
 fn invalid_cooldown_seconds_type_returns_type_error() {
     with_context(|context| {
-        let error = teams_monitor(context, &json!({"action":"configure","cooldownSeconds":"soon"}))
-            .expect_err("cooldownSeconds type error");
+        let error = teams_monitor(
+            context,
+            &json!({"action":"configure","cooldownSeconds":"soon"}),
+        )
+        .expect_err("cooldownSeconds type error");
         assert_eq!(error.to_string(), "'cooldownSeconds' must be an integer");
     });
 }

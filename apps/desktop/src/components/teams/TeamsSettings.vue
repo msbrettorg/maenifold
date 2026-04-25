@@ -15,10 +15,15 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { useMcpClient } from '@/composables/useMcpClient';
+import {
+  formatTeamsConnectionState,
+  parseTeamsStatusPayload,
+  type TeamsConnectionState,
+  type TeamsStatus,
+} from '@/composables/useTeamsStatus';
 import { useConfigStore } from '@/stores/config';
-interface TeamsMonitorStatus {
-  enabled: boolean;
-  connectionState: string;
+
+interface TeamsMonitorStatus extends Partial<TeamsStatus> {
   config?: {
     keywords?: string[];
     senderAllowList?: string[] | null;
@@ -38,7 +43,7 @@ const isToggling = ref(false);
 const error = ref('');
 const statusMessage = ref('');
 const enabled = ref(false);
-const connectionState = ref('disabled');
+const connectionState = ref<TeamsConnectionState>('disabled');
 const keywordsInput = ref('');
 const dispatchAgent = ref('');
 const cooldownSeconds = ref('300');
@@ -46,7 +51,7 @@ const senderAllowList = ref('');
 const senderDenyList = ref('');
 const keywordTags = computed(() => parseCommaSeparated(keywordsInput.value));
 const dispatchAgentValue = computed(() => dispatchAgent.value || NO_AGENT_VALUE);
-const connectionStatusLabel = computed(() => formatConnectionState(connectionState.value));
+const connectionStatusLabel = computed(() => formatTeamsConnectionState(connectionState.value));
 function parseCommaSeparated(value: string): string[] {
   return Array.from(new Set(
     value
@@ -63,14 +68,6 @@ function parseLineSeparated(value: string): string[] {
       .filter(Boolean),
   ));
 }
-function formatConnectionState(value: unknown): string {
-  if (typeof value !== 'string' || !value) return 'Unknown';
-  return value
-    .split('_')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
-}
 function toStringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 }
@@ -82,11 +79,12 @@ function getStatusMessage(data: unknown): string {
 function applyStatus(data: unknown): void {
   if (!data || typeof data !== 'object') return;
   const obj = data as Record<string, unknown>;
+  const runtimeStatus = parseTeamsStatusPayload(data);
   const config = obj.config && typeof obj.config === 'object'
     ? obj.config as Record<string, unknown>
     : null;
-  enabled.value = typeof obj.enabled === 'boolean' ? obj.enabled : false;
-  connectionState.value = typeof obj.connectionState === 'string' ? obj.connectionState : 'unknown';
+  enabled.value = runtimeStatus.enabled;
+  connectionState.value = runtimeStatus.connectionState;
   keywordsInput.value = toStringArray(config?.keywords).join(', ');
   dispatchAgent.value = typeof config?.dispatchAgent === 'string' ? config.dispatchAgent : '';
   cooldownSeconds.value = typeof config?.cooldownSeconds === 'number'

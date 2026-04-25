@@ -5,16 +5,10 @@ import { toast } from 'vue-sonner';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { McpCapabilityUnsupportedError, useMcpResources } from '@/composables/useMcpResources';
+import { TEAMS_STATUS_URI, parseTeamsStatusResource } from '@/composables/useTeamsStatus';
 import { TAB_ORDER } from '@/composables/useAppShell';
 import type { AppShellTab } from '@/stores/app-shell';
 
-interface TeamsStatusPayload {
-  unreadCount?: unknown;
-  unread_count?: unknown;
-  matchCount?: unknown;
-}
-
-const TEAMS_STATUS_URI = 'teams://status';
 const props = defineProps<{
   modelValue: AppShellTab;
 }>();
@@ -49,21 +43,10 @@ const visibleTeamsUnreadCount = computed(() => {
   return Math.max(teamsUnreadCount.value - dismissedTeamsUnreadCount.value, 0);
 });
 
-function parseUnreadCount(text?: string): number {
-  if (typeof text !== 'string' || text.length === 0) {
-    throw new Error('Teams status resource did not include JSON text.');
-  }
-
-  const payload = JSON.parse(text) as TeamsStatusPayload;
-  const rawCount = [payload.unreadCount, payload.unread_count, payload.matchCount]
-    .find((value) => typeof value === 'number');
-  return typeof rawCount === 'number' && Number.isFinite(rawCount) && rawCount > 0 ? rawCount : 0;
-}
-
 async function refreshTeamsStatus(): Promise<void> {
   try {
     const resource = await mcpResources.readResource(TEAMS_STATUS_URI);
-    teamsUnreadCount.value = parseUnreadCount(resource.text);
+    teamsUnreadCount.value = parseTeamsStatusResource(resource).matchCount;
   } catch (error) {
     teamsUnreadCount.value = null;
     console.error('[teams] Failed to refresh unread status:', error);

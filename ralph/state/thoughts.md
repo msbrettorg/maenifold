@@ -14,11 +14,15 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-220.3** ✅ Contain pipeline cwd + config loading (SDD, 0 remediation)
 - **T-220.4** ✅ Normalize ACP cancellation results (SDD, 1 remediation: LOC split)
 - **T-220.6** ✅ Make telemetry explicit opt-in (SDD, 0 remediation)
+- **T-220.9** ✅ Require explicit active ONNX model (SDD, 1 remediation: catalog + dirs)
 - **T-220.11** ✅ Sanitize Mermaid SVG output (SDD, 0 remediation)
+- **T-220.12** ✅ Resolve Mermaid uuid vulnerability (SDD, 0 remediation)
 - **T-220.13** ✅ Preserve home prompt on failure (SDD, 1 remediation: dual instance fix)
+- **T-220.15** ✅ Constrain ACP filesystem paths (SDD, 1 remediation: path normalization)
 - **T-220.17** ✅ Fix Rust audit hygiene (SDD, 2 remediation: chrono LocalResult API)
+- **T-220.22** ✅ Mask environment secret values (SDD, 1 remediation: index-based reveal)
 
-### Stats: 488→497 done (+9 shipped), 53 todo remaining
+### Stats: 488→501 done (+13 shipped), 40 todo remaining, 53 todo remaining
 
 ## Iteration 20260425-0609 — Pipeline Advancement + CDP Verification
 

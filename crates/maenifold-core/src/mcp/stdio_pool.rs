@@ -1,17 +1,22 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
+use crate::mcp::stdio_pool_health::{lock_state, RestartState};
+use crate::mcp::stdio_pool_tools::{
+    collect_gateway_tools, ensure_replacement_tools, shutdown_servers,
+};
 use crate::mcp::stdio_session::StdioSession;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
 use serde_json::Value;
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, RwLock as StdRwLock, RwLockReadGuard};
+use std::sync::{Arc, Mutex as StdMutex, RwLock as StdRwLock, RwLockReadGuard};
 use std::time::Duration;
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 use tokio::task::JoinSet;
 use tracing::warn;
+pub use crate::mcp::stdio_pool_health::{StdioPoolHealth, StdioServerHealth};
 pub struct StdioPool {
-    servers: RwLock<HashMap<String, ManagedServer>>,
+    pub(super) servers: RwLock<HashMap<String, ManagedServer>>,
     tools: StdRwLock<Vec<Tool>>,
     gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
 }
@@ -23,9 +28,34 @@ pub struct StdioServerConfig {
     pub env: HashMap<String, String>,
     pub timeout: Option<Duration>,
 }
-struct ManagedServer {
-    config: StdioServerConfig,
-    session: Arc<StdioSession>,
+pub(super) struct ManagedServer {
+    pub(super) config: StdioServerConfig,
+    pub(super) session: Option<Arc<StdioSession>>,
+    pub(super) restart_lock: Arc<Mutex<()>>,
+    pub(super) restart_state: Arc<StdMutex<RestartState>>,
+}
+impl ManagedServer {
+    fn running(config: StdioServerConfig, session: StdioSession) -> Self {
+        Self {
+            config,
+            session: Some(Arc::new(session)),
+            restart_lock: Arc::new(Mutex::new(())),
+            restart_state: Arc::new(StdMutex::new(RestartState::new())),
+        }
+    }
+    fn degraded(config: StdioServerConfig, error: String) -> Self {
+        let server = Self::configured(config);
+        lock_state(&server.restart_state).record_failure(error);
+        server
+    }
+    fn configured(config: StdioServerConfig) -> Self {
+        Self {
+            config,
+            session: None,
+            restart_lock: Arc::new(Mutex::new(())),
+            restart_state: Arc::new(StdMutex::new(RestartState::new())),
+        }
+    }
 }
 impl StdioPool {
     pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
@@ -49,16 +79,11 @@ impl StdioPool {
         while let Some(joined) = tasks.join_next().await {
             match joined {
                 Ok((_, config, Ok(session))) => {
-                    started.insert(
-                        config.name.clone(),
-                        ManagedServer {
-                            config,
-                            session: Arc::new(session),
-                        },
-                    );
+                    started.insert(config.name.clone(), ManagedServer::running(config, session));
                 }
-                Ok((name, _, Err(error))) => {
+                Ok((name, config, Err(error))) => {
                     warn!(server = %name, error = %error, "failed to start stdio MCP server");
+                    started.insert(name, ManagedServer::degraded(config, error.to_string()));
                 }
                 Err(error) => warn!(error = %error, "stdio MCP startup task failed"),
             }
@@ -108,7 +133,7 @@ impl StdioPool {
             let mut servers = self.servers.write().await;
             std::mem::take(&mut *servers)
                 .into_values()
-                .map(|server| server.session)
+                .filter_map(|server| server.session)
                 .collect::<Vec<_>>()
         };
         *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
@@ -128,9 +153,17 @@ impl StdioPool {
     ) -> Result<T> {
         let session = {
             let servers = self.servers.read().await;
-            servers.get(server_name).ok_or_else(|| missing_server(server_name))?.session.clone()
+            servers
+                .get(server_name)
+                .ok_or_else(|| missing_server(server_name))?
+                .session
+                .clone()
         };
-        let initial = if session.is_usable() { Some(f(session).await) } else { None };
+        let initial = if let Some(session) = session.filter(|session| session.is_usable()) {
+            Some(f(session).await)
+        } else {
+            None
+        };
         if let Some(result) = initial {
             match result {
                 Ok(value) => return Ok(value),
@@ -141,27 +174,55 @@ impl StdioPool {
         self.restart_server(server_name).await?;
         let session = {
             let servers = self.servers.read().await;
-            servers.get(server_name).ok_or_else(|| missing_server(server_name))?.session.clone()
+            servers
+                .get(server_name)
+                .ok_or_else(|| missing_server(server_name))?
+                .session
+                .clone()
+                .ok_or_else(|| MaenifoldError::SessionUnusable)?
         };
         f(session).await
     }
     async fn restart_server(&self, server_name: &str) -> Result<()> {
-        let config = {
+        let (config, restart_lock, restart_state) = {
             let servers = self.servers.read().await;
             let server = servers
                 .get(server_name)
                 .ok_or_else(|| missing_server(server_name))?;
-            if server.session.is_usable() {
+            (
+                server.config.clone(),
+                server.restart_lock.clone(),
+                server.restart_state.clone(),
+            )
+        };
+        let _guard = restart_lock.lock().await;
+        {
+            let servers = self.servers.read().await;
+            let server = servers.get(server_name).ok_or_else(|| missing_server(server_name))?;
+            if server.session.as_ref().is_some_and(|session| session.is_usable()) {
                 return Ok(());
             }
-            server.config.clone()
+        }
+        if let Some(message) = lock_state(&restart_state).backoff_error(server_name) {
+            return Err(MaenifoldError::Message(message));
+        }
+        let mut replacement = match start_session(&config).await {
+            Ok(session) => Some(Arc::new(session)),
+            Err(error) => {
+                lock_state(&restart_state).record_failure(error.to_string());
+                return Err(error);
+            }
         };
-        let mut replacement = Some(Arc::new(start_session(&config).await?));
+        lock_state(&restart_state).record_success();
         let outcome = {
             let mut servers = self.servers.write().await;
             match servers.get(server_name) {
                 None => Err(missing_server(server_name)),
-                Some(server) if server.session.is_usable() => Ok((None, None)),
+                Some(server)
+                    if server.session.as_ref().is_some_and(|session| session.is_usable()) =>
+                {
+                    Ok((None, None))
+                }
                 Some(_) => {
                     let Some(new_session) = replacement.as_ref() else {
                         return Err(MaenifoldError::Message(
@@ -173,14 +234,11 @@ impl StdioPool {
                         let server = servers
                             .get_mut(server_name)
                             .ok_or_else(|| missing_server(server_name))?;
-                        std::mem::replace(
-                            &mut server.session,
-                            replacement.take().ok_or_else(|| {
-                                MaenifoldError::Message(
-                                    "replacement stdio session missing".to_string(),
-                                )
-                            })?,
-                        )
+                        std::mem::replace(&mut server.session, Some(replacement.take().ok_or_else(|| {
+                                 MaenifoldError::Message(
+                                     "replacement stdio session missing".to_string(),
+                                 )
+                             })?))
                     };
                     Ok((Some(old), Some(collect_gateway_tools(&servers)?)))
                 }
@@ -192,6 +250,7 @@ impl StdioPool {
                 if let Some(session) = replacement {
                     session.shutdown().await;
                 }
+                lock_state(&restart_state).record_failure(error.to_string());
                 return Err(error);
             }
         };
@@ -205,7 +264,7 @@ impl StdioPool {
         if let Some(session) = replacement {
             session.shutdown().await;
         }
-        if let Some(session) = old_session {
+        if let Some(Some(session)) = old_session {
             session.shutdown().await;
         }
         Ok(())
@@ -223,60 +282,9 @@ async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
         );
     StdioSession::start(&entry, config.timeout.unwrap_or(Duration::from_secs(60))).await
 }
-fn collect_gateway_tools(servers: &HashMap<String, ManagedServer>) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
-    let mut owners = HashMap::<String, String>::new();
-    let mut tools = Vec::new();
-    let mut gateway_tools = Vec::new();
-    for (server_name, server) in servers {
-        let mut server_tools = server.session.tools().iter().cloned().collect::<Vec<_>>();
-        server_tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
-        for tool in &server_tools {
-            let tool_name = tool.name.to_string();
-            if let Some(other) = owners.insert(tool_name.clone(), server_name.clone()) {
-                return Err(MaenifoldError::Message(format!(
-                    "MCP tool name collision: '{tool_name}' provided by both '{other}' and '{server_name}'"
-                )));
-            }
-            tools.push(tool.clone());
-        }
-        gateway_tools.push((server_name.clone(), server_tools));
-    }
-    gateway_tools.sort_by(|(left, _), (right, _)| left.cmp(right));
-    tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
-    Ok((tools, gateway_tools))
+fn is_prewrite_failure(error: &MaenifoldError) -> bool {
+    matches!(error, MaenifoldError::SessionUnusable)
 }
-fn ensure_replacement_tools(
-    servers: &HashMap<String, ManagedServer>,
-    replaced_server: &str,
-    replacement_tools: &[Tool],
-) -> Result<()> {
-    let mut owners = HashMap::<String, String>::new();
-    for (server_name, server) in servers {
-        if server_name == replaced_server {
-            continue;
-        }
-        for tool in server.session.tools().iter() {
-            owners.insert(tool.name.to_string(), server_name.clone());
-        }
-    }
-    for tool in replacement_tools {
-        let tool_name = tool.name.to_string();
-        if let Some(other) = owners.insert(tool_name.clone(), replaced_server.to_string()) {
-            return Err(MaenifoldError::Message(format!(
-                "MCP tool name collision: '{tool_name}' provided by both '{other}' and '{replaced_server}'"
-            )));
-        }
-    }
-    Ok(())
-}
-async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {
-    let mut shutdowns = FuturesUnordered::new();
-    for server in servers.into_values() {
-        shutdowns.push(async move { server.session.shutdown().await });
-    }
-    while shutdowns.next().await.is_some() {}
-}
-fn is_prewrite_failure(error: &MaenifoldError) -> bool { matches!(error, MaenifoldError::Message(message) if message == "MCP stdio session is not usable") }
 fn missing_server(server_name: &str) -> MaenifoldError {
     MaenifoldError::JsonRpc {
         code: JSONRPC_INVALID_PARAMS,

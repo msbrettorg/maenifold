@@ -168,6 +168,10 @@ pub struct TeamsMonitorConfig {
     #[serde(default)]
     pub enabled: bool,
     #[serde(default)]
+    pub client_id: Option<String>,
+    #[serde(default)]
+    pub tenant_id: Option<String>,
+    #[serde(default)]
     pub handler: MessageHandlerConfig,
     #[serde(default)]
     pub dispatch_agent: Option<String>,

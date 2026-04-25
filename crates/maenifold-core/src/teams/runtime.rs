@@ -64,6 +64,28 @@ pub fn set_teams_connecting() {
     });
 }
 
+pub fn set_teams_pending_auth() {
+    update_teams_runtime_state(|state| {
+        state.connection_state = "pending_auth".to_string();
+        state.last_error = None;
+    });
+}
+
+pub fn set_teams_authenticated() {
+    update_teams_runtime_state(|state| {
+        state.connection_state = "authenticated".to_string();
+        state.last_error = None;
+    });
+}
+
+pub fn set_teams_unauthenticated() {
+    update_teams_runtime_state(|state| {
+        state.connection_state = "unauthenticated".to_string();
+        state.active_dispatches = 0;
+        state.last_error = None;
+    });
+}
+
 pub fn set_teams_disabled() {
     update_teams_runtime_state(|state| {
         state.connection_state = "disabled".to_string();

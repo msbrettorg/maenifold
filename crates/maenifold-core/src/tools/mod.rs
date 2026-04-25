@@ -19,6 +19,7 @@ mod schedule;
 mod schedule_logs;
 mod sessions;
 mod sessions_query;
+mod teams_monitor_auth;
 mod teams_monitor;
 mod teams_monitor_helpers;
 

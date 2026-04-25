@@ -5,6 +5,12 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
 ## 2026-04-24 — Iteration 1637 (multi-track dispatch)
 
+### SWE ran `cargo fmt --all` — worktree discarded
+- T-210.5 SWE ran `cargo fmt --all` before committing, reformatting 23 files across 3 crates
+- git diff showed 667 insertions / 192 deletions — vs expected ~50 lines for 2 resource files
+- Worktree was discarded entirely and task re-dispatched with explicit "NEVER run cargo fmt" instruction
+- **Lesson: Every SWE prompt must include "NEVER run cargo fmt" as a top-level rule. This is now the third time a SWE violated the "no workspace-wide formatters" rule.**
+
 ### Researcher gate pass violation REPEATED
 - T-211.1: researcher (opus-4.5) ran `gate pass` on its own stage AGAIN, same pattern as T-214.1
 - **Lesson: The researcher prompt template needs explicit "do NOT run gate commands" instruction. This is now a recurring pattern.**

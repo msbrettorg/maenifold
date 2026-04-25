@@ -1,6 +1,7 @@
 use super::context::{ToolContext, load_help_doc, render};
 use super::embedding_models_actions::{handle_activate, handle_download};
 use super::embedding_models_detect::{handle_delete, handle_list, handle_regenerate};
+use super::embedding_models_scan::active_model_status;
 use crate::error::Result;
 use crate::util::json::{OutputFormat, success};
 use crate::vector;
@@ -244,7 +245,7 @@ pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String
         ))?;
 
     let response = match action {
-        "status" => handle_status(),
+        "status" => handle_status(context),
         "list" => handle_list(context),
         "download" => handle_download(context, payload)?,
         "activate" => handle_activate(context, payload)?,
@@ -260,14 +261,24 @@ pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String
     Ok(render(context.output_format, response))
 }
 
-fn handle_status() -> Value {
+fn handle_status(context: &ToolContext) -> Value {
+    let catalog = load_catalog(&context.config.assets_path);
+    let active_status = active_model_status(context, &catalog);
+    let active_model_id = active_status.model_id.clone();
+    let active_model_status = active_status.to_json();
     let loaded = vector::is_initialized();
     if !loaded {
-        return json!({ "loaded": false });
+        return json!({
+            "loaded": false,
+            "activeModelId": active_model_id,
+            "activeModelStatus": active_model_status,
+        });
     }
 
     json!({
         "loaded": true,
+        "activeModelId": active_model_id,
+        "activeModelStatus": active_model_status,
         "model": {
             "filename": vector::model_filename().unwrap_or_default(),
             "dimensions": vector::embedding_dimensions().unwrap_or(vector::DEFAULT_EMBEDDING_DIMENSIONS),

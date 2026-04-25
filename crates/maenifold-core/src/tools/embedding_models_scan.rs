@@ -1,15 +1,16 @@
 use super::context::ToolContext;
 use super::embedding_models::CatalogModel;
-use crate::vector;
-use std::path::Path;
+use crate::vector::model_candidate_dirs;
+use serde_json::{Value, json};
+use std::path::{Path, PathBuf};
 
 /// T-202.9 P0 (Bug 1): detect whether a model is installed and which on-disk
 /// layout it uses.
 ///
 /// - `Some("subdir")` — `{models_dir}/{model_id}/*.onnx` (catalog-managed
 ///   layout used by the download flow).
-/// - `Some("flat")` — `{models_dir}/{model_id}.onnx` (legacy layout that the
-///   runtime still discovers via `discovery.rs::discover_model`).
+/// - `Some("flat")` — `{models_dir}/{model_id}.onnx` (legacy layout that can
+///   still be selected explicitly via `settings.vector.active_model`).
 /// - `None` — no installed ONNX file found in either layout.
 ///
 /// `activate`/`delete` continue to operate only on the subdir layout (see
@@ -43,89 +44,114 @@ pub(super) fn installed_layout(models_dir: &Path, model_id: &str) -> Option<&'st
     None
 }
 
-/// T-202.9 P0 (Bug 3): determine the catalog id of the model that is (or would
-/// become) active. Resolution order mirrors `discovery.rs::find_model_path`:
-///
-/// 1. If an ONNX session is already loaded, derive the id from its on-disk
-///    path (works for both subdir and flat layouts).
-/// 2. Otherwise, honor an explicit `settings.vector.active_model` pin.
-/// 3. Otherwise, replicate `discover_model`: pick the largest installed
-///    `*.onnx` (flat layout) under `{assets_path}/models` and strip the
-///    extension. Subdir-only installs without an explicit pin remain
-///    ambiguous and return `None`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum ActiveModelState {
+    Available,
+    NoActiveModel,
+    InvalidModel,
+    UnavailableModel,
+}
+
+impl ActiveModelState {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Available => "available",
+            Self::NoActiveModel => "noActiveModel",
+            Self::InvalidModel => "invalidModel",
+            Self::UnavailableModel => "unavailableModel",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct ActiveModelStatus {
+    pub model_id: Option<String>,
+    pub state: ActiveModelState,
+    pub installed_layout: Option<&'static str>,
+    pub message: String,
+}
+
+impl ActiveModelStatus {
+    pub fn to_json(&self) -> Value {
+        json!({
+            "state": self.state.as_str(),
+            "modelId": self.model_id.as_deref(),
+            "installedLayout": self.installed_layout,
+            "message": self.message.as_str(),
+        })
+    }
+}
+
+/// Determine the configured active model status for UI surfaces. Runtime model
+/// discovery now requires an explicit `settings.vector.active_model`; this
+/// helper deliberately does not infer an active model from installed ONNX files.
+pub(super) fn active_model_status(
+    context: &ToolContext,
+    catalog: &[CatalogModel],
+) -> ActiveModelStatus {
+    let configured = context
+        .config
+        .settings
+        .vector
+        .active_model
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty());
+
+    let Some(model_id) = configured else {
+        return ActiveModelStatus {
+            model_id: None,
+            state: ActiveModelState::NoActiveModel,
+            installed_layout: None,
+            message: "No active embedding model is configured.".to_string(),
+        };
+    };
+
+    if !catalog.iter().any(|model| model.id == model_id) {
+        return ActiveModelStatus {
+            model_id: Some(model_id.to_string()),
+            state: ActiveModelState::InvalidModel,
+            installed_layout: None,
+            message: format!(
+                "Configured active embedding model '{model_id}' is not in the catalog."
+            ),
+        };
+    }
+
+    let layout = model_candidate_dirs(&context.config)
+        .ok()
+        .and_then(|dirs| installed_layout_in_candidates(&dirs, model_id));
+    if layout.is_none() {
+        return ActiveModelStatus {
+            model_id: Some(model_id.to_string()),
+            state: ActiveModelState::UnavailableModel,
+            installed_layout: None,
+            message: format!("Configured active embedding model '{model_id}' is not installed."),
+        };
+    }
+
+    ActiveModelStatus {
+        model_id: Some(model_id.to_string()),
+        state: ActiveModelState::Available,
+        installed_layout: layout,
+        message: format!("Configured active embedding model '{model_id}' is available."),
+    }
+}
+
+/// T-202.9 P0 (Bug 3): determine the explicitly configured active catalog id.
+/// No implicit "largest installed ONNX file" fallback is allowed.
 pub(super) fn effective_active_model_id(
     context: &ToolContext,
     catalog: &[CatalogModel],
 ) -> Option<String> {
-    if let Some(path) = vector::model_path() {
-        for model in catalog {
-            if is_active_model(&path, &model.id) {
-                return Some(model.id.clone());
-            }
-        }
-    }
-
-    if let Some(id) = context.config.settings.vector.active_model.as_deref()
-        && !id.is_empty()
-    {
-        return Some(id.to_string());
-    }
-
-    let models_dir = context.config.assets_path.join("models");
-    largest_flat_onnx_id(&models_dir)
+    active_model_status(context, catalog).model_id
 }
 
-/// Scan `models_dir` for top-level `*.onnx` files (legacy flat layout) and
-/// return the id (filename without extension) of the largest one. Mirrors
-/// `discovery.rs::discover_model` so `effective_active_model_id` reports what
-/// the daemon would actually load on next start when no `active_model` pin
-/// exists.
-fn largest_flat_onnx_id(models_dir: &Path) -> Option<String> {
-    let mut candidates: Vec<(u64, String)> = std::fs::read_dir(models_dir)
-        .ok()?
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            let extension = path.extension()?.to_str()?;
-            if !extension.eq_ignore_ascii_case("onnx") {
-                return None;
-            }
-            let metadata = entry.metadata().ok()?;
-            if !metadata.is_file() || metadata.len() == 0 {
-                return None;
-            }
-            let stem = path.file_stem()?.to_str()?.to_string();
-            Some((metadata.len(), stem))
-        })
-        .collect();
-    candidates.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
-    candidates.into_iter().next().map(|(_, stem)| stem)
-}
-
-/// Check if a loaded model path matches a catalog model ID.
-fn is_active_model(model_path: &Path, model_id: &str) -> bool {
-    let filename = model_path
-        .file_name()
-        .and_then(|f| f.to_str())
-        .unwrap_or("");
-    let without_ext = filename.strip_suffix(".onnx").unwrap_or(filename);
-
-    // Direct match: "all-MiniLM-L6-v2.onnx" matches "all-MiniLM-L6-v2"
-    if without_ext == model_id {
-        return true;
-    }
-
-    // Subdirectory match: "models/bge-small-en-v1.5/model.onnx"
-    // Check if parent directory name matches model_id
-    if filename == "model.onnx" {
-        if let Some(parent) = model_path
-            .parent()
-            .and_then(|p| p.file_name())
-            .and_then(|n| n.to_str())
-        {
-            return parent == model_id;
-        }
-    }
-
-    false
+fn installed_layout_in_candidates(
+    candidate_dirs: &[PathBuf],
+    model_id: &str,
+) -> Option<&'static str> {
+    candidate_dirs
+        .iter()
+        .find_map(|models_dir| installed_layout(models_dir, model_id))
 }

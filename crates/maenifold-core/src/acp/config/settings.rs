@@ -243,8 +243,8 @@ pub struct VectorSettings {
     #[serde(default)]
     pub disable_vector: bool,
     /// T-202.9a: explicit active embedding model ID (e.g. "bge-small-en-v1.5").
-    /// When set, [[discover_model]] resolves `{models_dir}/{active_model}/model.onnx`
-    /// before falling back to directory scanning.
+    /// Runtime vector discovery requires this value and resolves the configured
+    /// model from supported model layouts without falling back to directory scanning.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub active_model: Option<String>,
 }

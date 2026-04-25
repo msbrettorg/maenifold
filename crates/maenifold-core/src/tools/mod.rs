@@ -5,7 +5,7 @@ mod catalog;
 mod context;
 mod diagnostics;
 mod embedding_download;
-mod embedding_models;
+pub(crate) mod embedding_models;
 mod embedding_models_actions;
 mod embedding_models_detect;
 mod embedding_models_scan;

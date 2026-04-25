@@ -3,10 +3,10 @@ use super::tokenizer::load_tokenizer_assets;
 use super::{ModelState, model_state};
 use crate::Config;
 use crate::error::{MaenifoldError, Result};
+use crate::tools::embedding_models::load_catalog;
 use ort::session::Session;
 use std::env;
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 /// Load/initialize the model (called lazily on first use)
 pub fn load_model() -> Result<()> {
@@ -61,7 +61,7 @@ pub fn is_initialized() -> bool {
         .unwrap_or(false)
 }
 
-fn find_model_path() -> Result<PathBuf> {
+pub(crate) fn model_candidate_dirs(config: &Config) -> Result<Vec<PathBuf>> {
     // T-20.5: RTM FR-7 / RTM-147 — canonicalize the executable path first so
     // symlinked installs (for example `/usr/local/bin/maenifold`) still resolve
     // executable-adjacent assets from the real binary location.
@@ -71,9 +71,8 @@ fn find_model_path() -> Result<PathBuf> {
         .ok_or(MaenifoldError::MissingExecutableParent)?;
 
     // T-202.9a: collect candidate model directories in priority order so we can
-    // both (a) probe an explicitly-configured `active_model` and (b) fall back
-    // to legacy directory scanning against the same candidate set.
-    let config = Config::current();
+    // resolve the explicitly-configured `active_model` across release, dev, and
+    // shared runtime layouts.
     let mut candidate_dirs: Vec<PathBuf> = Vec::new();
     candidate_dirs.push(base_dir.join("assets").join("models"));
     for ancestor in base_dir.ancestors() {
@@ -84,69 +83,81 @@ fn find_model_path() -> Result<PathBuf> {
     // T-20.5: RTM FR-7 / RTM-148 — also check the shared runtime root used by
     // the C# runtime: `~/maenifold/assets/models`.
     candidate_dirs.push(config.assets_path.join("models"));
+    Ok(candidate_dirs)
+}
 
-    // T-202.9: when an explicit `active_model` is configured, require that it exists.
-    // Do NOT silently fall back to scanning; a missing configured model is a fatal error.
-    if let Some(active_id) = config.settings.vector.active_model.as_deref()
-        && !active_id.is_empty()
-    {
-        for dir in &candidate_dirs {
-            let candidate = dir.join(active_id).join("model.onnx");
-            if let Ok(metadata) = candidate.metadata()
-                && metadata.is_file()
-                && metadata.len() > 0
-            {
-                return Ok(candidate);
-            }
-        }
-        // T-202.9: Configured model not found — fail fatally rather than silently
-        // falling back to scanning. This prevents silent corruption from loading
-        // the wrong model.
+fn find_model_path() -> Result<PathBuf> {
+    let config = Config::current();
+    let candidate_dirs = model_candidate_dirs(&config)?;
+
+    // T-220.9: require explicit runtime model selection. Do NOT silently scan
+    // for a fallback model; choosing the largest top-level ONNX file can load a
+    // different vector space than the one used to create existing embeddings.
+    let active_id = config
+        .settings
+        .vector
+        .active_model
+        .as_deref()
+        .map(str::trim)
+        .filter(|id| !id.is_empty())
+        .ok_or_else(|| {
+            MaenifoldError::Message(
+                "No active embedding model configured. Set settings.vector.active_model \
+                 (serialized as settings.vector.activeModel) by running EmbeddingModels \
+                 activate for an installed catalog model."
+                    .to_string(),
+            )
+        })?;
+
+    if !is_valid_model_id(active_id) {
         return Err(MaenifoldError::Message(format!(
-            "Active model '{}' not found in any candidate directory. \
-             Refusing to start. Please activate a different model or download it first.",
-            active_id
+            "Invalid active embedding model id '{active_id}'. Configure a catalog model id \
+             containing only ASCII letters, digits, '.', '_' or '-'."
         )));
     }
 
-    // Fall-through scanning when no active model is explicitly configured.
+    if !load_catalog(&config.assets_path)
+        .iter()
+        .any(|model| model.id == active_id)
+    {
+        return Err(MaenifoldError::Message(format!(
+            "Configured model '{active_id}' is not in the curated catalog. Use EmbeddingModels activate to select an installed catalog model."
+        )));
+    }
+
     for dir in &candidate_dirs {
-        if let Some(model_path) = discover_model(dir) {
-            return Ok(model_path);
+        let subdir_model = dir.join(active_id).join("model.onnx");
+        if let Ok(metadata) = subdir_model.metadata()
+            && metadata.is_file()
+            && metadata.len() > 0
+        {
+            return Ok(subdir_model);
+        }
+
+        let flat_model = dir.join(format!("{active_id}.onnx"));
+        if let Ok(metadata) = flat_model.metadata()
+            && metadata.is_file()
+            && metadata.len() > 0
+        {
+            return Ok(flat_model);
         }
     }
 
-    // T-9.1: RTM FR-7 — removed compile-time CARGO_MANIFEST_DIR fallback that baked
-    // the build-machine path into the binary. The two strategies above (exe-adjacent +
-    // Cargo.toml walk-up) already cover release installs and dev-mode builds.
-    Err(MaenifoldError::Message(
-        "embedding model not found: expected a non-empty *.onnx file under assets/models"
-            .to_string(),
-    ))
+    Err(MaenifoldError::Message(format!(
+        "Active embedding model '{active_id}' is not installed or unavailable in any \
+         candidate models directory. Download it or activate a different installed model."
+    )))
 }
 
-fn discover_model(models_dir: &Path) -> Option<PathBuf> {
-    let mut candidates = fs::read_dir(models_dir)
-        .ok()?
-        .filter_map(|entry| {
-            let entry = entry.ok()?;
-            let path = entry.path();
-            let extension = path.extension()?.to_str()?;
-            if !extension.eq_ignore_ascii_case("onnx") {
-                return None;
-            }
-
-            let metadata = entry.metadata().ok()?;
-            if !metadata.is_file() || metadata.len() == 0 {
-                return None;
-            }
-
-            Some((metadata.len(), path))
-        })
-        .collect::<Vec<_>>();
-
-    candidates.sort_by(|left, right| right.0.cmp(&left.0).then_with(|| left.1.cmp(&right.1)));
-    candidates.into_iter().next().map(|(_, path)| path)
+fn is_valid_model_id(model_id: &str) -> bool {
+    !model_id.is_empty()
+        && model_id != "."
+        && !model_id.contains("..")
+        && !model_id.contains('/')
+        && !model_id.contains('\\')
+        && model_id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
 }
 
 fn discover_embedding_dimensions(session: &Session) -> Result<usize> {

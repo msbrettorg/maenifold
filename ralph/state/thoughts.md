@@ -5,6 +5,42 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-2132 — Gate Audit + Schedule CLI + Process Hardening
+
+### Shipped (3 tasks + 1 epic closed)
+- **T-218.33** ✅ Schedule CLI `schedule run` subcommand (SDD, 1 remediation)
+- **T-218.12** ✅ Epic audit script audit-epics.sh (SDD, 2 remediation cycles)
+- **T-218.18** ✅ Cancel taxonomy docs (lightweight, 0 remediation)
+- **T-209.0** ✅ EPIC CLOSED — Pipeline-driven delivery (7/7 children resolved)
+
+### In Progress
+- **T-218.15** ⏳ Stage actor audit script (SWE dispatched)
+- **T-218.13** ⏳ Blue-team evidence matrix format (SWE dispatched)
+
+### CDP Verification Observations
+- Gate tab: 478 done rows render, row click updates detail, splitter works
+- Gate Done tab: clicking rows does NOT update detail panel — potential bug, needs investigation
+- Teams tab: renders header + settings, no blank page
+- Knowledge tab: folder tree + note content working
+- Settings/Schedules: empty state + create dialog validation working
+- Pipelines tab: templates + text input rendering
+- ALL tabs render without console errors visible in accessibility tree
+
+### Stats: 479→482 done
+
+### Remaining Backlog (33 tasks)
+- T-218.5-8, T-218.10-11 — CDP verification tasks (PM-owned)
+- T-218.9 — Frontend markdown unification
+- T-218.13-17 — Process/audit tasks (T-218.13/15 dispatched)
+- T-218.19-39 — Backend hardening (33 tasks across gate, gateway, ACP, teams, schedule)
+- T-218.40 — Gate progress column badge contrast (auto-filed from CDP)
+
+### Process Notes
+- Red-team on T-218.12 found real prefix-matching bug for non-.0 epics — good catch
+- Red-team on T-218.33 found leading-hyphen task ID edge case — trivial 1-line fix
+- PM applied both fixes directly rather than re-dispatching SWEs — faster for small fixes
+- Gate Done tab row click not updating detail panel — investigate or file as bug
+
 ## Iteration 20260424-2053 — Multi-Wave Dispatch
 
 ### Shipped (9 tasks + 2 epics closed)

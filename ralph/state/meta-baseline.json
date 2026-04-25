@@ -1,23 +1,5 @@
 [
   {
-    "taskId": "T-207.7",
-    "canonicalTaskId": "T-207.7",
-    "title": "Rust integration test + dashboard demo page",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.7-integration-test-demo.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
     "taskId": "T-209.0",
     "canonicalTaskId": "T-209.0",
     "title": "Epic: Pipeline-driven delivery — replace PM-as-agent with PM-as-DAG",
@@ -59,31 +41,9 @@
     "issue": ""
   },
   {
-    "taskId": "T-210.0",
-    "canonicalTaskId": "T-210.0",
-    "title": "Epic: Teams Monitor — real-time Teams notifications with ACP agent dispatch",
-    "pipeline": "slc",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "discovery",
-      "spec",
-      "swe",
-      "red-team",
-      "remediate",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-210.0-epic-teams-monitor.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-210.9",
-    "canonicalTaskId": "T-210.9",
-    "title": "Auth: MSAL device code flow for Teams token",
+    "taskId": "T-218.5",
+    "canonicalTaskId": "T-218.5",
+    "title": "Packaged Electron CDP click-through matrix for recent desktop fixes",
     "pipeline": "sdd",
     "state": "pending",
     "stages": [
@@ -95,54 +55,14 @@
     ],
     "attempts": 0,
     "location": "todo",
-    "path": "./todo/T-210.9-msal-auth.md",
+    "path": "./todo/T-218.5-packaged-electron-cdp-click-through-matrix.md",
     "linked": false,
     "issue": ""
   },
   {
-    "taskId": "T-210.11",
-    "canonicalTaskId": "T-210.11",
-    "title": "CDP visual verification: full Teams tab walkthrough",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-210.11-teams-cdp-verification.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-211.0",
-    "canonicalTaskId": "T-211.0",
-    "title": "Epic: Scheduled tasks — OS-native recurring agent dispatch",
-    "pipeline": "slc",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "discovery",
-      "spec",
-      "swe",
-      "red-team",
-      "remediate",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-211.0-epic-scheduled-tasks.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-211.9",
-    "canonicalTaskId": "T-211.9",
-    "title": "UI: Schedules section in Settings tab",
+    "taskId": "T-218.6",
+    "canonicalTaskId": "T-218.6",
+    "title": "Teams tab packaged Electron regression and status parsing verification",
     "pipeline": "sdd",
     "state": "pending",
     "stages": [
@@ -154,14 +74,223 @@
     ],
     "attempts": 0,
     "location": "todo",
-    "path": "./todo/T-211.9-schedules-settings-ui.md",
+    "path": "./todo/T-218.6-teams-tab-status-regression.md",
     "linked": false,
     "issue": ""
   },
   {
-    "taskId": "T-211.11",
-    "canonicalTaskId": "T-211.11",
-    "title": "CDP visual verification: Schedules settings walkthrough",
+    "taskId": "T-218.7",
+    "canonicalTaskId": "T-218.7",
+    "title": "MCP Apps interactive E2E: iframe resource and same-server tool callback",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.7-mcp-apps-interactive-e2e.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.8",
+    "canonicalTaskId": "T-218.8",
+    "title": "Gate task table packaged Electron layout-resilience verification",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.8-gate-table-layout-resilience-cdp.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.9",
+    "canonicalTaskId": "T-218.9",
+    "title": "Unify chat legacy markdown rendering and verify markdown layout resilience",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.9-unify-chat-markdown-rendering.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.10",
+    "canonicalTaskId": "T-218.10",
+    "title": "Schedules Settings packaged Electron click-through and layout verification",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.10-schedules-settings-cdp-clickthrough.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.11",
+    "canonicalTaskId": "T-218.11",
+    "title": "Session node context-menu flow packaged Electron verification",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.11-session-node-context-menu-cdp.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.12",
+    "canonicalTaskId": "T-218.12",
+    "title": "Gate audit: enforce epic child-closure invariant",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.12-gate-epic-child-closure-audit.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.13",
+    "canonicalTaskId": "T-218.13",
+    "title": "Require acceptance-criteria evidence matrix in blue-team notes",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.13-blue-team-acceptance-evidence-matrix.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.14",
+    "canonicalTaskId": "T-218.14",
+    "title": "Sprint signoff evidence pack for visual and CDP work",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.14-sprint-signoff-evidence-pack.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.15",
+    "canonicalTaskId": "T-218.15",
+    "title": "Gate stage actor and transition integrity audit",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.15-stage-actor-transition-integrity-audit.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.16",
+    "canonicalTaskId": "T-218.16",
+    "title": "Reopen incomplete e2e verification paths from recent done tasks",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.16-reopen-incomplete-e2e-verification.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.17",
+    "canonicalTaskId": "T-218.17",
+    "title": "Expand coverage sprint from unit checks to integration risk coverage",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.17-integration-risk-coverage-expansion.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.18",
+    "canonicalTaskId": "T-218.18",
+    "title": "Gate cancel taxonomy and unresolved-risk linking",
     "pipeline": "lightweight",
     "state": "pending",
     "stages": [
@@ -172,7 +301,406 @@
     ],
     "attempts": 0,
     "location": "todo",
-    "path": "./todo/T-211.11-schedules-cdp-verification.md",
+    "path": "./todo/T-218.18-cancel-taxonomy-unresolved-risk-linking.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.19",
+    "canonicalTaskId": "T-218.19",
+    "title": "Gate HTTP MCP stale-session recovery contract",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.19-gate-http-mcp-stale-session-recovery.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.20",
+    "canonicalTaskId": "T-218.20",
+    "title": "Gateway resource registry and resources/read/list parity",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.20-gateway-resource-routing-registry.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.21",
+    "canonicalTaskId": "T-218.21",
+    "title": "StdioPool single-flight restart, backoff, and degraded health",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.21-stdio-pool-single-flight-health.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.22",
+    "canonicalTaskId": "T-218.22",
+    "title": "Gateway facade schema validation and drift detection",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.22-gateway-facade-schema-validation.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.23",
+    "canonicalTaskId": "T-218.23",
+    "title": "Full Streamable HTTP MCP gateway integration suite",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.23-streamable-http-gateway-integration-suite.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.24",
+    "canonicalTaskId": "T-218.24",
+    "title": "ACP resume state-machine hardening",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.24-acp-resume-state-machine-hardening.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.25",
+    "canonicalTaskId": "T-218.25",
+    "title": "Durable pipeline retry budget across crash and restart",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.25-durable-pipeline-retry-budget.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.26",
+    "canonicalTaskId": "T-218.26",
+    "title": "Gate MCP read/write consistency and cross-process lock hardening",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.26-gate-mcp-cross-process-locking.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.27",
+    "canonicalTaskId": "T-218.27",
+    "title": "Stdio MCP server-to-client request compliance",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.27-stdio-mcp-server-client-requests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.28",
+    "canonicalTaskId": "T-218.28",
+    "title": "Teams ACP dispatch prompt-injection regression suite",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.28-teams-acp-prompt-injection-regression.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.29",
+    "canonicalTaskId": "T-218.29",
+    "title": "Schedule MCP resource and tool consistency matrix",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.29-schedule-mcp-consistency-matrix.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.30",
+    "canonicalTaskId": "T-218.30",
+    "title": "Teams auth lifecycle: secure token storage, refresh, and sign-out",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.30-teams-auth-lifecycle-secure-storage.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.31",
+    "canonicalTaskId": "T-218.31",
+    "title": "Teams Monitor enable/status backed by real running monitor state",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.31-teams-monitor-runtime-state.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.32",
+    "canonicalTaskId": "T-218.32",
+    "title": "Teams-originated sessions use metadata-backed filtering",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.32-teams-session-origin-metadata.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.33",
+    "canonicalTaskId": "T-218.33",
+    "title": "Scheduler generated launchd/systemd commands must match real CLI",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.33-scheduler-generated-command-mismatch.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.34",
+    "canonicalTaskId": "T-218.34",
+    "title": "Schedule create/update/delete transactionality with OS scheduler install",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.34-schedule-os-install-transactionality.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.35",
+    "canonicalTaskId": "T-218.35",
+    "title": "Scheduled ACP execution permission model",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.35-scheduled-acp-permission-model.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.36",
+    "canonicalTaskId": "T-218.36",
+    "title": "Dynamic MCP resource subscriptions emit real updates or stop advertising live behavior",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.36-dynamic-mcp-resource-subscriptions.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.37",
+    "canonicalTaskId": "T-218.37",
+    "title": "Gateway consolidation startup diagnostics and per-server degraded mode",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.37-gateway-consolidation-startup-diagnostics.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.38",
+    "canonicalTaskId": "T-218.38",
+    "title": "Vec0 Electron download must be verified through Rust daemon load and sync path",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.38-vec0-rust-side-load-verification.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-218.39",
+    "canonicalTaskId": "T-218.39",
+    "title": "Voice/Handy error visibility and platform truthfulness",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-218.39-voice-handy-error-visibility-platform-truth.md",
     "linked": false,
     "issue": ""
   }

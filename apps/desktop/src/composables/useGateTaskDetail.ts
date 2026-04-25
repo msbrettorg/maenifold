@@ -18,6 +18,8 @@ interface UseGateTaskDetailOptions {
 interface LoadOptions {
   preserveExisting?: boolean;
   showLoading?: boolean;
+  requestId?: number;
+  stopExistingWatchers?: boolean;
 }
 
 function firstNonEmptyId(...values: Array<string | null | undefined>): string | null {
@@ -120,9 +122,10 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   }
 
   async function loadTaskDetail(task: GateTask | null, loadOptions: LoadOptions = {}) {
-    const requestId = ++detailRequestToken;
+    const requestId = loadOptions.requestId ?? ++detailRequestToken;
     const preserveExisting = loadOptions.preserveExisting ?? false;
     const showLoading = loadOptions.showLoading ?? false;
+    const stopExistingWatchers = loadOptions.stopExistingWatchers ?? true;
 
     if (!task) {
       selectedTaskBody.value = '';
@@ -151,10 +154,9 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
 
     const taskSelectionKey = gateTaskSelectionKey(task);
     const isCurrentRequest = () =>
-      requestId === detailRequestToken
-      && selectedTaskKey.value === taskSelectionKey;
+      requestId === detailRequestToken && selectedTaskKey.value === taskSelectionKey;
     const root = gateRoot.value;
-    stopTaskDetailWatchers();
+    if (stopExistingWatchers) stopTaskDetailWatchers();
 
     const bodyUri = gateResourceUri(`task/${encodeURIComponent(task.taskId)}`, root);
     const historyUri = gateResourceUri(`history/${encodeURIComponent(task.taskId)}`, root);
@@ -220,9 +222,15 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   }
 
   async function selectTask(task: GateTask) {
+    const requestId = ++detailRequestToken;
+    stopTaskDetailWatchers();
     selectedTaskId.value = task.taskId;
     selectedTaskKey.value = gateTaskSelectionKey(task);
-    await loadTaskDetail(task, { showLoading: true });
+    await loadTaskDetail(task, {
+      showLoading: true,
+      requestId,
+      stopExistingWatchers: false,
+    });
   }
 
   return {

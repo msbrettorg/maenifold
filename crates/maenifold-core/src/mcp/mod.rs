@@ -6,6 +6,7 @@ pub mod stdio_session;
 pub mod tool_routing;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
+mod gateway_handler;
 mod gateway_startup;
 pub(crate) mod tool_utils;
 pub use resources::*;
@@ -38,12 +39,9 @@ pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
-use crate::error::{
-    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_METHOD_NOT_FOUND, MaenifoldError,
-    Result,
-};
+use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError, Result};
 use crate::registry::ToolRegistry;
-use crate::{mcp::{stdio_pool::StdioPool, tool_routing::ToolRoutingRegistry}, util::json::OutputFormat};
+use crate::{mcp::gateway_handler::GatewayState, util::json::OutputFormat};
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
     ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
@@ -53,13 +51,11 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-use tracing::{error, warn};
 pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
-    gateway_pool: Option<Arc<StdioPool>>,
-    gateway_routing: Option<Arc<ToolRoutingRegistry>>,
+    gateway: Option<Arc<GatewayState>>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -82,13 +78,11 @@ impl MaenifoldHandler {
         Ok(Self {
             transport,
             tools,
-            gateway_pool: None,
-            gateway_routing: None,
+            gateway: None,
         })
     }
-    fn set_gateway(&mut self, pool: Arc<StdioPool>, routing: Arc<ToolRoutingRegistry>) {
-        self.gateway_pool = Some(pool);
-        self.gateway_routing = Some(routing);
+    fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
+        self.gateway = Some(gateway);
     }
 }
 impl ServerHandler for MaenifoldHandler {
@@ -115,7 +109,9 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
         let mut tools = self.tools.clone();
-        if let Some(routing) = &self.gateway_routing { tools.extend_from_slice(routing.gateway_tools()); }
+        if let Some(gateway) = &self.gateway {
+            tools.extend(gateway.list_tools());
+        }
         std::future::ready(Ok(ListToolsResult { tools, next_cursor: None, meta: None }))
     }
     async fn list_resources(
@@ -135,12 +131,10 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
     {
         let uri = request.uri.to_string();
-        let gateway_pool = self.gateway_pool.clone();
+        let gateway = self.gateway.clone();
         async move {
-            if uri.starts_with("ui://")
-                && self.gateway_routing.is_some()
-                && let Some(pool) = gateway_pool
-            {
+            if uri.starts_with("ui://") && let Some(gateway) = gateway {
+                let pool = gateway.pool();
                 let mut last_err = None;
                 for (server_name, _) in pool.all_gateway_tools() {
                     match pool.read_resource(&server_name, &uri).await {
@@ -206,26 +200,22 @@ impl ServerHandler for MaenifoldHandler {
             match result {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
                 Err(MaenifoldError::UnknownTool(_)) => {
-                    if let (Some(pool), Some(routing)) = (self.gateway_pool.clone(), self.gateway_routing.clone())
-                        && let Some(server_name) = routing.lookup(&tool_name)
+                    if let Some(gateway) = self.gateway.clone()
+                        && let Some(gateway_result) =
+                            gateway.handle_tool_call(&tool_name, arguments).await?
                     {
-                        let server_name = server_name.to_string();
-                        let gateway_result = pool.call_tool(&server_name, &tool_name, arguments).await;
-                        return match gateway_result {
-                            Ok(result) => Ok(result),
-                            Err(err) => {
-                                log_gateway_error(Some(&server_name), &tool_name, &err);
-                                Err(map_gateway_error(&tool_name, err))
-                            }
-                        };
+                        return Ok(gateway_result);
                     }
                     let err = MaenifoldError::JsonRpc {
                         code: JSONRPC_METHOD_NOT_FOUND,
                         message: format!("Unknown tool: '{tool_name}'"),
                         data: Value::Null,
                     };
-                    log_gateway_error(None, &tool_name, &err);
-                    Err(map_gateway_error(&tool_name, err))
+                    Err(rmcp::ErrorData::new(
+                        rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32),
+                        err.to_string(),
+                        Some(Value::Null),
+                    ))
                 }
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(
                     &tool_name, &err,
@@ -269,30 +259,4 @@ pub fn initialize_runtime(config: &Config) -> Result<()> {
     AssetManager::initialize_assets(config)?;
     GraphDatabase::initialize_database(config)?;
     Ok(())
-}
-fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {
-    match err {
-        MaenifoldError::JsonRpc { code, message, data } => rmcp::ErrorData::new(
-            rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(JSONRPC_INTERNAL_ERROR as i32)),
-            message,
-            Some(data),
-        ),
-        _ => rmcp::ErrorData::internal_error(format_tool_error(tool, &err), None),
-    }
-}
-fn log_gateway_error(server: Option<&str>, tool: &str, err: &MaenifoldError) {
-    let server = server.unwrap_or("");
-    match err {
-        MaenifoldError::JsonRpc { code, message, data }
-            if *code == JSONRPC_INTERNAL_ERROR || *code == GATEWAY_TIMEOUT_ERROR =>
-        {
-            if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) { error!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed"); }
-            else { error!(server, tool, err = %message, code, "gateway tool call failed"); }
-        }
-        MaenifoldError::JsonRpc { code, message, data } => {
-            if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) { warn!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed"); }
-            else { warn!(server, tool, err = %message, code, "gateway tool call failed"); }
-        }
-        _ => warn!(server, tool, err = %err, "gateway tool call failed"),
-    }
 }

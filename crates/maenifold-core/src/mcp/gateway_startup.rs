@@ -2,6 +2,8 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::acp_config::{AgentsConfig, McpServerEntry};
 use crate::config::Config;
 use crate::error::Result;
+use crate::mcp::gateway_consolidation::build_consolidated_tools;
+use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use rmcp::model::Tool;
@@ -10,7 +12,7 @@ use tracing::info;
 
 pub(super) async fn build_gateway(
     config: &Config,
-) -> Option<(Arc<StdioPool>, Arc<ToolRoutingRegistry>)> {
+) -> Option<Arc<GatewayState>> {
     let agents_config = AgentsConfig::load(&config.maenifold_root);
     let gateway_servers: Vec<_> = agents_config
         .mcp_servers
@@ -44,15 +46,36 @@ pub(super) async fn build_gateway(
 
     match StdioPool::start(configs).await {
         Ok(pool) => match tool_registry_tools() {
-            Ok(native_tools) => match ToolRoutingRegistry::build(&native_tools, &pool) {
-                Ok(registry) => {
-                    info!(count = pool.all_tools().len(), "gateway started with tools");
-                    Some((Arc::new(pool), Arc::new(registry)))
+            Ok(native_tools) => match build_consolidated_tools(pool.all_gateway_tools(), 4) {
+                Ok((consolidated_tools, passthrough_tools)) => {
+                    match ToolRoutingRegistry::build(&native_tools, &pool) {
+                        Ok(registry) => {
+                            info!(
+                                upstream = pool.all_tools().len(),
+                                facades = consolidated_tools.len(),
+                                passthrough = passthrough_tools.len(),
+                                "gateway started with consolidated tools"
+                            );
+                            Some(Arc::new(GatewayState::new(
+                                Arc::new(pool),
+                                Arc::new(registry),
+                                consolidated_tools,
+                                passthrough_tools,
+                            )))
+                        }
+                        Err(error) => {
+                            tracing::error!(
+                                err = %error,
+                                "gateway tool routing failed, starting without gateway"
+                            );
+                            None
+                        }
+                    }
                 }
                 Err(error) => {
                     tracing::error!(
                         err = %error,
-                        "gateway tool routing failed, starting without gateway"
+                        "gateway consolidation failed, starting without gateway"
                     );
                     None
                 }

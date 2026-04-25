@@ -7,6 +7,7 @@ pub(super) fn usage() -> String {
         "  HTTP Server mode:  maenifold --http [--port <PORT>]",
         "  App mode:          maenifold --app [--port <PORT>]",
         "  Tool mode:         maenifold tool <name> '<json-payload>' [--json]",
+        "  Schedule mode:     maenifold schedule run <task-id>",
         "",
         "  ACP operations are available only through the MCP AcpExec tool.",
         "  The prompt, think, and workflow CLI aliases have been removed.",

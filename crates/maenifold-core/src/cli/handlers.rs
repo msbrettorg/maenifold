@@ -1,6 +1,7 @@
 use crate::config::Config;
 use crate::error::MaenifoldError;
 use crate::mcp::{self, MaenifoldMcpServer};
+use crate::schedule::{ScheduleStore, Supervisor};
 use crate::sync::watchers;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
@@ -90,6 +91,36 @@ pub(super) fn run_tool_command(
         Err((output, code)) => {
             println!("{output}");
             code
+        }
+    }
+}
+
+pub(super) fn run_schedule_run(task_id: String) -> i32 {
+    let config = Config::current();
+    let store = ScheduleStore::new(config.maenifold_root.join("schedules"));
+    let maenifold_bin = match std::env::current_exe() {
+        Ok(path) => path,
+        Err(err) => {
+            eprintln!("Error resolving current executable: {err}");
+            return 1;
+        }
+    };
+
+    let supervisor = Supervisor::new(store, maenifold_bin);
+    match supervisor.run(&task_id) {
+        Ok(record) => match serde_json::to_string(&record) {
+            Ok(output) => {
+                println!("{output}");
+                0
+            }
+            Err(err) => {
+                eprintln!("Error serializing scheduled task run: {err}");
+                1
+            }
+        },
+        Err(err) => {
+            eprintln!("Error running scheduled task '{task_id}': {err}");
+            1
         }
     }
 }

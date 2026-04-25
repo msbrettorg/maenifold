@@ -10,7 +10,7 @@ use crate::mcp;
 use crate::registry::ToolRegistry;
 use crate::util::json::{OutputFormat, failure, from_str_safe, success};
 use clap::{Parser, Subcommand};
-use handlers::{run_http, run_mcp, run_tool_command};
+use handlers::{run_http, run_mcp, run_schedule_run, run_tool_command};
 use parse::{ParsedCli, parse_cli, render_clap_error, render_error, validate_cli};
 use serde_json::Value;
 use usage::usage;
@@ -51,6 +51,20 @@ pub enum CliCommand {
         payload: Option<String>,
         #[arg(long)]
         json: bool,
+    },
+    /// Scheduled task supervisor operations
+    Schedule {
+        #[command(subcommand)]
+        command: ScheduleCommand,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+pub enum ScheduleCommand {
+    /// Run a scheduled task by id
+    Run {
+        #[arg(allow_hyphen_values = true)]
+        task_id: String,
     },
 }
 
@@ -132,6 +146,9 @@ impl CliApp {
                 payload,
                 json,
             }) => run_tool_command(name, payload, json, warn_deprecated_tool),
+            Some(CliCommand::Schedule {
+                command: ScheduleCommand::Run { task_id },
+            }) => run_schedule_run(task_id),
             None => {
                 println!("{}", usage());
                 1

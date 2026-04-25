@@ -13,6 +13,7 @@ pub mod graph;
 pub mod pipeline;
 pub mod subscription;
 mod subscription_worker;
+pub mod teams;
 pub mod throttle;
 pub mod workflow;
 
@@ -25,6 +26,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(gate::list_resources());
     resources.extend(graph::list_resources());
     resources.extend(pipeline::list_resources()?);
+    resources.extend(teams::list_resources());
     resources.extend(workflow::list_resources());
     Ok(ListResourcesResult {
         resources,
@@ -58,6 +60,8 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
         graph::handle_read_resource(uri)
     } else if pipeline::is_pipeline_uri(uri) {
         pipeline::handle_read_resource(uri)
+    } else if uri.starts_with("teams://") {
+        teams::handle_read_resource(uri)
     } else {
         asset::handle_read_resource(uri)
     }

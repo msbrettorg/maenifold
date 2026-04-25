@@ -1,5 +1,5 @@
-use super::{RunRecord, RunStatus, ScheduleStore, ScheduledTask};
-use anyhow::{Context, Result, bail};
+use super::{LockGuard, RunRecord, RunStatus, ScheduleStore, ScheduledTask};
+use anyhow::{Context, Result};
 use chrono::Utc;
 use serde_json::json;
 use std::fs::{self, OpenOptions};
@@ -10,6 +10,8 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
+use tracing::info;
+
 pub struct Supervisor {
     store: ScheduleStore,
     maenifold_bin: PathBuf,
@@ -27,7 +29,7 @@ impl Supervisor {
             }
         };
         Self {
-            lock_dir: store.base_dir().to_path_buf(),
+            lock_dir: store.base_dir().join("locks"),
             store,
             maenifold_bin,
         }
@@ -37,15 +39,18 @@ impl Supervisor {
         let mut task = self.store.read(task_id)?;
         let started_at = Utc::now();
         let started = Instant::now();
-        let _lock = match self.acquire_lock(task_id) {
+        let _guard = match LockGuard::try_acquire(&self.lock_dir, task_id) {
             Ok(lock) => Some(lock),
             Err(error) if is_already_running(&error) => {
-                let status = if task.skip_if_running {
-                    RunStatus::Skipped
-                } else {
-                    RunStatus::Failed
-                };
-                let record = self.record(&mut task, status, Some(error.to_string()), started_at, started)?;
+                let message = error.to_string();
+                info!(task_id, error = %message, "skipping overlapping scheduled task");
+                let record = self.record(
+                    &mut task,
+                    RunStatus::Skipped,
+                    Some(message),
+                    started_at,
+                    started,
+                )?;
                 return Ok(record);
             }
             Err(error) => return Err(error),
@@ -58,6 +63,7 @@ impl Supervisor {
         };
         self.record(&mut task, status, error, started_at, started)
     }
+
     fn record(&self, task: &mut ScheduledTask, status: RunStatus, error: Option<String>, timestamp: chrono::DateTime<Utc>, started: Instant) -> Result<RunRecord> {
         let record = RunRecord {
             status,
@@ -69,48 +75,13 @@ impl Supervisor {
         self.store.update(task)?;
         Ok(record)
     }
-    fn acquire_lock(&self, task_id: &str) -> Result<LockGuard> {
-        let lock_path = self.lock_path(task_id);
-        fs::create_dir_all(lock_path.parent().unwrap_or_else(|| Path::new(".")))
-            .with_context(|| format!("failed to create lock directory '{}'", lock_path.display()))?;
-        for _ in 0..8 {
-            match OpenOptions::new().write(true).create_new(true).open(&lock_path) {
-                Ok(mut file) => {
-                    write!(file, "{}", std::process::id())
-                        .with_context(|| format!("failed to write lock '{}'", lock_path.display()))?;
-                    file.sync_all().with_context(|| {
-                        format!("failed to sync lock file '{}'", lock_path.display())
-                    })?;
-                    return Ok(LockGuard { path: lock_path });
-                }
-                Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                    if let Some(pid) = read_lock_pid(&lock_path)? {
-                        if pid_is_alive(pid) {
-                            bail!("scheduled task '{}' is already running (pid {})", task_id, pid);
-                        }
-                    }
-                    match fs::remove_file(&lock_path) {
-                        Ok(()) => {}
-                        Err(remove_error)
-                            if remove_error.kind() == std::io::ErrorKind::NotFound => {}
-                        Err(remove_error) => {
-                            return Err(remove_error).with_context(|| {
-                                format!("failed to remove stale lock '{}'", lock_path.display())
-                            });
-                        }
-                    }
-                }
-                Err(error) => {
-                    return Err(error)
-                        .with_context(|| format!("failed to create lock '{}'", lock_path.display()));
-                }
-            }
-        }
-        bail!("failed to acquire lock '{}'", lock_path.display())
-    }
+
     fn execute_with_timeout(&self, task: &ScheduledTask) -> Result<(RunStatus, Option<String>)> {
         let log_path = self.log_path(&task.id);
-        fs::create_dir_all(log_path.parent().unwrap_or_else(|| Path::new(".")))
+        let log_dir = log_path
+            .parent()
+            .context("scheduled task log path has no parent directory")?;
+        fs::create_dir_all(log_dir)
             .with_context(|| format!("failed to create log directory '{}'", log_path.display()))?;
         let mut log_file = OpenOptions::new()
             .write(true)
@@ -194,22 +165,13 @@ impl Supervisor {
             }
         }
     }
-    fn lock_path(&self, task_id: &str) -> PathBuf {
-        self.lock_dir.join(task_id).join(".lock")
-    }
+
     fn log_path(&self, task_id: &str) -> PathBuf {
         let timestamp = Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
         self.store.task_dir(task_id).join("logs").join(format!("{timestamp}.log"))
     }
 }
-struct LockGuard {
-    path: PathBuf,
-}
-impl Drop for LockGuard {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.path);
-    }
-}
+
 fn build_payload(task: &ScheduledTask, workdir: Option<&Path>) -> Result<String> {
     let mut payload = json!({
         "agent": &task.agent,
@@ -224,20 +186,9 @@ fn build_payload(task: &ScheduledTask, workdir: Option<&Path>) -> Result<String>
     serde_json::to_string(&payload).context("failed to serialize AcpExec payload")
 }
 fn is_already_running(error: &anyhow::Error) -> bool {
-    error.to_string().contains("is already running (pid ")
+    error.to_string().contains("already running (PID ")
 }
-fn read_lock_pid(lock_path: &Path) -> Result<Option<i32>> {
-    let content = match fs::read_to_string(lock_path) {
-        Ok(content) => content,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(error) => {
-            return Err(error)
-                .with_context(|| format!("failed to read lock '{}'", lock_path.display()));
-        }
-    };
-    let trimmed = content.trim();
-    Ok(if trimmed.is_empty() { None } else { trimmed.parse::<i32>().ok() })
-}
+
 #[cfg(unix)]
 fn configure_command(command: &mut Command) {
     unsafe {
@@ -252,15 +203,7 @@ fn configure_command(command: &mut Command) {
 }
 #[cfg(not(unix))]
 fn configure_command(_command: &mut Command) {}
-#[cfg(unix)]
-fn pid_is_alive(pid: i32) -> bool {
-    let result = unsafe { libc::kill(pid, 0) };
-    result == 0 || matches!(std::io::Error::last_os_error().raw_os_error(), Some(libc::EPERM))
-}
-#[cfg(not(unix))]
-fn pid_is_alive(_pid: i32) -> bool {
-    false
-}
+
 fn terminate_child(child: &mut Child) -> Result<()> {
     #[cfg(unix)]
     if let Ok(pid) = i32::try_from(child.id()) {

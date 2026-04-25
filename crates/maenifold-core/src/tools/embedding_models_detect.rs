@@ -1,32 +1,39 @@
 use super::context::ToolContext;
 use super::embedding_models::load_catalog;
-use super::embedding_models_scan::{effective_active_model_id, installed_layout};
+use super::embedding_models_scan::{
+    active_model_status, effective_active_model_id, installed_layout,
+};
 use crate::db;
 use crate::error::Result;
 use crate::vector;
+use crate::vector::model_candidate_dirs;
 use serde_json::{Value, json};
 
 pub(super) fn handle_list(context: &ToolContext) -> Value {
     let models_dir = context.config.assets_path.join("models");
+    let candidate_dirs = model_candidate_dirs(&context.config).unwrap_or_else(|e| {
+        tracing::warn!("Failed to resolve runtime model candidate directories: {e}");
+        vec![models_dir.clone()]
+    });
 
     let catalog = load_catalog(&context.config.assets_path);
     // T-202.9 P0 (Bug 3): determine the effective active model id once, so the
     // UI can render the "Active" badge regardless of layout (subdir/flat) and
     // regardless of whether the ONNX session has been lazily loaded yet.
     let active_id = effective_active_model_id(context, &catalog);
+    let active_status = active_model_status(context, &catalog);
 
     let models: Vec<Value> = catalog
         .iter()
         .map(|model| {
-            let layout = installed_layout(&models_dir, &model.id);
+            let layout = candidate_dirs
+                .iter()
+                .find_map(|models_dir| installed_layout(models_dir, &model.id));
             let is_active = active_id.as_deref() == Some(model.id.as_str());
             // T-202.9 P0 (Bug 1): a legacy flat install ({models_dir}/{id}.onnx)
             // counts as installed even though catalog tooling normally manages
-            // only the subdir layout. If the model is the currently-active one
-            // (e.g. discovered by runtime scan), surface it as installed too so
-            // the UI doesn't show "Download" next to a model that's already in
-            // use.
-            let installed = layout.is_some() || is_active;
+            // only the subdir layout.
+            let installed = layout.is_some();
 
             // T-202.39: surface in-flight download progress so the desktop
             // UI can render byte counts beside the "Downloading…" button.
@@ -66,6 +73,7 @@ pub(super) fn handle_list(context: &ToolContext) -> Value {
         "models": models,
         "currentDimensions": current_dims,
         "activeModelId": active_id,
+        "activeModelStatus": active_status.to_json(),
     })
 }
 
@@ -108,19 +116,8 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
     let target_dir = models_dir.join(model_id);
     let flat_path = models_dir.join(format!("{model_id}.onnx"));
 
-    // T-202.9 remediation: when no active_model is configured, the runtime
-    // falls back to scanning (`discovery.rs::discover_model`) and picks the
-    // largest *.onnx — meaning any installed model could become the active
-    // one on next restart. Refuse to delete in that ambiguous state and
-    // require the user to explicitly pin an active model first.
     let exists_subdir = target_dir.is_dir();
     let exists_flat = flat_path.is_file();
-    if active_model.is_none() && (exists_subdir || exists_flat) {
-        return Err(crate::error::MaenifoldError::Message(
-            "Cannot delete while no active model is configured. Activate a different model first."
-                .to_string(),
-        ));
-    }
 
     if exists_subdir {
         std::fs::remove_dir_all(&target_dir).map_err(|e| {

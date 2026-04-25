@@ -9,6 +9,7 @@ mod inference;
 mod output;
 mod tokenizer;
 
+pub(crate) use discovery::model_candidate_dirs;
 pub use discovery::{cleanup, is_initialized, load_model};
 pub use inference::{
     decode_base64_embedding, generate_embedding, generate_embedding_base64, generate_embeddings,

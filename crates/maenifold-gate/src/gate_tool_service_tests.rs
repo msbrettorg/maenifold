@@ -2,11 +2,15 @@ use std::fs;
 #[cfg(unix)]
 use std::os::unix::fs as unix_fs;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::sync::{Arc, Barrier};
+use std::thread;
 
 use tempfile::TempDir;
 
 use crate::cli::{GateContext, HistoryArgs, OutcomeArgs, StatusArgs, TaskBodyArgs};
 use crate::status_filter::StatusFilter;
+use crate::sync_command::sync_gate;
 
 use super::GateToolService;
 
@@ -168,12 +172,100 @@ fn history_rejects_symlinked_task_path() {
     assert!(error.to_string().contains("through a symlink"));
 }
 
+#[test]
+fn concurrent_mcp_fail_and_cli_pass_do_not_record_same_stage_conflict() {
+    let root = new_pipeline_root();
+    write_blue_team_task(root.path(), "T-3.1");
+    sync_gate(crate::cli::SyncArgs {
+        context: GateContext {
+            root: root.path().to_path_buf(),
+            requested_pipeline_name: None,
+            json_output: false,
+        },
+        rebuild: true,
+    })
+    .expect("initial sync should succeed");
+
+    let barrier = Arc::new(Barrier::new(2));
+    let cli_root = root.path().to_path_buf();
+    let cli_barrier = Arc::clone(&barrier);
+    let cli_pass = thread::spawn(move || {
+        cli_barrier.wait();
+        Command::new(gate_bin())
+            .args(["pass", "T-3.1", "--root"])
+            .arg(&cli_root)
+            .args(["--agent", "cli", "--notes", "cli pass"])
+            .output()
+            .expect("run gate pass")
+    });
+
+    barrier.wait();
+    let _ = GateToolService::fail(OutcomeArgs {
+        context: GateContext {
+            root: root.path().to_path_buf(),
+            requested_pipeline_name: None,
+            json_output: false,
+        },
+        task_id: "T-3.1".to_string(),
+        agent: "mcp".to_string(),
+        notes: "mcp fail".to_string(),
+        model: None,
+    });
+    let _ = cli_pass.join().expect("cli pass thread should join");
+
+    let task_text = fs::read_to_string(root.path().join("todo").join("T-3.1.md"))
+        .or_else(|_| fs::read_to_string(root.path().join("done").join("T-3.1.md")))
+        .expect("task should remain in todo or done");
+    let blue_pass = task_text.matches("- Stage ID: blue-team").count();
+    assert_eq!(
+        blue_pass, 1,
+        "only one blue-team outcome should be recorded: {task_text}"
+    );
+}
+
+#[test]
+fn sync_rebuild_recovers_terminal_todo_task_after_crash_window() {
+    let root = new_pipeline_root();
+    let path = root.path().join("todo").join("T-4.1.md");
+    fs::write(
+        &path,
+        "# T-4.1 — Crash recovery\n\n**Pipeline**: sdd\n\n## Acceptance Criteria\n\n1. recover terminal task\n\n## Pending\n\n- Stage ID: pending\n- Record Kind: outcome\n- Agent: pm\n- Recorded At: 2026-01-01T00:00:00Z\n- Outcome: PASS\n- Notes: dispatch\n\n## SWE\n\n- Stage ID: swe\n- Record Kind: outcome\n- Agent: swe\n- Recorded At: 2026-01-01T00:00:01Z\n- Outcome: PASS\n- Notes: built\n\n## Red-Team\n\n- Stage ID: red-team\n- Record Kind: outcome\n- Agent: red\n- Recorded At: 2026-01-01T00:00:02Z\n- Outcome: PASS\n- Notes: audited\n\n## Blue-Team\n\n- Stage ID: blue-team\n- Record Kind: outcome\n- Agent: blue\n- Recorded At: 2026-01-01T00:00:03Z\n- Outcome: PASS\n- Notes: verified\n",
+    )
+    .expect("write terminal task stranded in todo");
+
+    sync_gate(crate::cli::SyncArgs {
+        context: GateContext {
+            root: root.path().to_path_buf(),
+            requested_pipeline_name: None,
+            json_output: false,
+        },
+        rebuild: true,
+    })
+    .expect("rebuild should recover stranded terminal task");
+
+    assert!(!path.exists(), "stranded terminal task should leave todo/");
+    assert!(
+        root.path().join("done").join("T-4.1.md").exists(),
+        "terminal task should be recovered into done/"
+    );
+}
+
 fn new_pipeline_root() -> TempDir {
     let temp = tempfile::tempdir().expect("create temp pipeline root");
     let root = temp.path();
     fs::create_dir_all(root.join("todo")).expect("create todo");
     fs::create_dir_all(root.join("done")).expect("create done");
     temp
+}
+
+fn gate_bin() -> PathBuf {
+    std::env::current_exe()
+        .expect("current test binary path")
+        .parent()
+        .expect("deps directory")
+        .parent()
+        .expect("debug directory")
+        .join("gate")
 }
 
 fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
@@ -185,5 +277,17 @@ fn write_pending_task(root: &Path, task_id: &str) -> PathBuf {
         ),
     )
     .expect("write task");
+    path
+}
+
+fn write_blue_team_task(root: &Path, task_id: &str) -> PathBuf {
+    let path = root.join("todo").join(format!("{task_id}.md"));
+    fs::write(
+        &path,
+        format!(
+            "# {task_id} — Ready for final pass\n\n**Pipeline**: sdd\n\n## Acceptance Criteria\n\n1. final pass moves to done\n\n## Pending\n\n- Stage ID: pending\n- Record Kind: outcome\n- Agent: pm\n- Recorded At: 2026-01-01T00:00:00Z\n- Outcome: PASS\n- Notes: dispatch\n\n## SWE\n\n- Stage ID: swe\n- Record Kind: outcome\n- Agent: swe\n- Recorded At: 2026-01-01T00:00:01Z\n- Outcome: PASS\n- Notes: built\n\n## Red-Team\n\n- Stage ID: red-team\n- Record Kind: outcome\n- Agent: red\n- Recorded At: 2026-01-01T00:00:02Z\n- Outcome: PASS\n- Notes: audited\n"
+        ),
+    )
+    .expect("write blue-team task");
     path
 }

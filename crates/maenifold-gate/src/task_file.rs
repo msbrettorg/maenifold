@@ -53,6 +53,11 @@ pub struct TaskFileLock {
     file: fs::File,
 }
 
+#[derive(Debug)]
+pub struct GateProjectLock {
+    file: fs::File,
+}
+
 impl TaskFileLock {
     pub fn acquire(root: &Path, task_id: &str) -> Result<Self, GateError> {
         let lock_path = lock_path(root, task_id);
@@ -71,7 +76,27 @@ impl TaskFileLock {
     }
 }
 
+impl GateProjectLock {
+    pub fn acquire_shared(root: &Path) -> Result<Self, GateError> {
+        let file = open_project_lock(root)?;
+        lock_shared(&file)?;
+        Ok(Self { file })
+    }
+
+    pub fn acquire_exclusive(root: &Path) -> Result<Self, GateError> {
+        let file = open_project_lock(root)?;
+        lock_exclusive(&file)?;
+        Ok(Self { file })
+    }
+}
+
 impl Drop for TaskFileLock {
+    fn drop(&mut self) {
+        let _ = unlock(&self.file);
+    }
+}
+
+impl Drop for GateProjectLock {
     fn drop(&mut self) {
         let _ = unlock(&self.file);
     }
@@ -81,6 +106,29 @@ fn lock_path(root: &Path, task_id: &str) -> PathBuf {
     root.join(".gate")
         .join("locks")
         .join(format!("{task_id}.lock"))
+}
+
+fn project_lock_path(root: &Path) -> PathBuf {
+    root.join(".gate").join("gate.lock")
+}
+
+fn open_project_lock(root: &Path) -> Result<fs::File, GateError> {
+    let lock_path = project_lock_path(root);
+    let lock_dir = lock_path
+        .parent()
+        .ok_or_else(|| GateError::MissingTaskPath(lock_path.clone()))?;
+    fs::create_dir_all(lock_dir).map_err(|error| {
+        GateError::Cli(format!(
+            "cannot create gate lock directory '{}': {error}; ensure the project root is writable or pass --root <writable-path>",
+            lock_dir.display()
+        ))
+    })?;
+    Ok(OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(lock_path)?)
 }
 
 fn write_atomically(path: &Path, text: &str) -> Result<(), GateError> {
@@ -159,8 +207,23 @@ fn lock_exclusive(file: &fs::File) -> Result<(), GateError> {
     }
 }
 
+#[cfg(unix)]
+fn lock_shared(file: &fs::File) -> Result<(), GateError> {
+    let result = unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_SH) };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err(std::io::Error::last_os_error().into())
+    }
+}
+
 #[cfg(not(unix))]
 fn lock_exclusive(_file: &fs::File) -> Result<(), GateError> {
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn lock_shared(_file: &fs::File) -> Result<(), GateError> {
     Ok(())
 }
 

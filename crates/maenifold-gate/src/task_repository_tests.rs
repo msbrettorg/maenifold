@@ -124,6 +124,36 @@ fn canonical_task_markdown_path_rejects_symlinked_task_inside_root() {
 
 #[cfg(unix)]
 #[test]
+fn move_to_done_rejects_symlinked_done_directory() {
+    let temp = tempdir().expect("create temp root");
+    let root = temp.path().join("project");
+    fs::create_dir_all(root.join("todo")).expect("create todo");
+    let escaped_done = temp.path().join("escaped-done");
+    fs::create_dir_all(&escaped_done).expect("create escaped done");
+    unix_fs::symlink(&escaped_done, root.join("done")).expect("create done symlink");
+
+    let task_path = root.join("todo").join("T-1.1.md");
+    fs::write(&task_path, "# T-1.1\n").expect("write task");
+    let error = TaskRepository::move_to_done(
+        &root,
+        &TaskPathSet {
+            task_id: "T-1.1".to_string(),
+            path: task_path.clone(),
+            location: "todo".to_string(),
+        },
+    )
+    .expect_err("symlinked done directory should be rejected");
+
+    assert!(error.to_string().contains("through a symlink"));
+    assert!(task_path.exists(), "task should remain in todo/");
+    assert!(
+        !escaped_done.join("T-1.1.md").exists(),
+        "task must not be moved through symlinked done/"
+    );
+}
+
+#[cfg(unix)]
+#[test]
 fn list_tasks_does_not_parse_frontmatter_from_symlink_target() {
     let temp = tempdir().expect("create temp root");
     let root = temp.path();

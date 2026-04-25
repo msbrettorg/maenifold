@@ -1,0 +1,89 @@
+:root {
+  --bg-0: #09090b;
+  --bg-1: #111113;
+  --bg-2: #1a1a1f;
+  --ink-0: #e8edf6;
+  --ink-1: #9aa6c2;
+  --ink-2: #5b6788;
+  --accent: #6cf;
+  --border: rgba(255, 255, 255, 0.08);
+  --mono: 'JetBrains Mono', 'Menlo', 'Consolas', monospace;
+  --sans: 'Inter', 'Segoe UI', system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg-0);
+  color: var(--ink-0);
+  font-family: var(--sans);
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+}
+
+.brand .name {
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-0);
+}
+
+.brand .label {
+  font-size: 11px;
+  color: var(--ink-2);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chat-container {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* Override CopilotKit styles for dark theme */
+.copilot-chat {
+  flex: 1;
+  height: 100%;
+}
+
+/* CopilotKit dark theme overrides */
+:root {
+  --copilot-kit-background-color: var(--bg-1);
+  --copilot-kit-secondary-color: var(--bg-2);
+  --copilot-kit-primary-color: var(--accent);
+  --copilot-kit-contrast-color: var(--ink-0);
+  --copilot-kit-secondary-contrast-color: var(--ink-1);
+  --copilot-kit-separator-color: var(--border);
+  --copilot-kit-response-button-background-color: var(--bg-2);
+  --copilot-kit-response-button-color: var(--ink-1);
+}

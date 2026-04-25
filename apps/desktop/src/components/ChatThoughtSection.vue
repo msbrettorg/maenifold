@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
 import { ChevronDown, ChevronUp } from 'lucide-vue-next';
 import {
   Collapsible,
@@ -9,6 +7,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Badge } from '@/components/ui/badge';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 
 const props = defineProps<{
   messageId: string;
@@ -18,9 +17,6 @@ const props = defineProps<{
 
 const emit = defineEmits<{ toggle: [messageId: string] }>();
 
-const renderedThought = computed(() =>
-  DOMPurify.sanitize(marked.parse(props.thought, { async: false }) as string)
-);
 const contentId = computed(() => `thought-content-${props.messageId}`);
 
 function handleUpdate(open: boolean) {
@@ -56,7 +52,7 @@ function handleUpdate(open: boolean) {
       :id="contentId"
       class="bg-surface-container py-3 pl-5 pr-4 text-base italic leading-relaxed text-text-secondary"
     >
-      <div class="prose prose-sm max-w-none" v-html="renderedThought" />
+      <KnowledgeNoteRenderer :content="thought" class="text-text-secondary italic" />
     </CollapsibleContent>
   </Collapsible>
 </template>

@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import {
   Table,
   TableBody,
@@ -10,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import type { GateTaskHistoryEntry } from '../lib/gate';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 
@@ -22,12 +21,6 @@ const props = defineProps<{
 const historySummaryId = computed(
   () => `gate-detail-history-summary-${props.history.length > 0 ? 'loaded' : 'empty'}`,
 );
-
-function renderMarkdown(content: string | null) {
-  if (!content) return '';
-  const parsed = marked.parse(content, { async: false });
-  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-}
 
 function formatTimestamp(timestamp: string | null) {
   if (!timestamp) return 'Unknown time';
@@ -119,10 +112,10 @@ function stageAccentClass(family: string): string {
             </time>
           </TableCell>
           <TableCell class="text-text-primary text-sm [overflow-wrap:anywhere]">
-            <div
+            <KnowledgeNoteRenderer
               v-if="entry.notes"
-              class="space-y-2"
-              v-html="renderMarkdown(entry.notes)"
+              :content="entry.notes"
+              class="text-text-primary"
             />
             <span v-else class="text-text-secondary">—</span>
           </TableCell>

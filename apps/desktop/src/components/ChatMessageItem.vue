@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import { User, Bot, Cog } from 'lucide-vue-next';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import ChatContentBlocks from './ChatContentBlocks.vue';
 import ChatThoughtSection from './ChatThoughtSection.vue';
 import ChatToolCallList from './ChatToolCallList.vue';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import type { ChatMessage } from '../lib/types';
 
 const props = defineProps<{
@@ -40,10 +39,10 @@ const formattedTimestamp = computed(() => {
 const messageAriaLabel = computed(
   () => `${senderLabel.value} message at ${formattedTimestamp.value}`,
 );
-const legacyContentWithDOMPurify = computed(() =>
+const markdownContent = computed(() =>
   props.message.content && !blocks.value.some((block) => block.type === 'text')
-    ? renderMarkdown(props.message.content)
-    : null,
+    ? props.message.content
+    : '',
 );
 const isToolOnlyAssistantMessage = computed(
   () =>
@@ -54,21 +53,6 @@ const isToolOnlyAssistantMessage = computed(
 );
 const isUser = computed(() => props.message.role === 'user');
 const isAssistant = computed(() => props.message.role === 'assistant');
-
-function renderMarkdown(content: string): string {
-  const parsed = marked.parse(content, { async: false });
-  const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-  const visibleText = html.replace(/<[^>]*>/g, '').trim();
-  if (visibleText.length === 0 && content.trim().length > 0) {
-    const escaped = content
-      .trim()
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    return `<p>${escaped}</p>`;
-  }
-  return html;
-}
 </script>
 
 <template>
@@ -86,7 +70,7 @@ function renderMarkdown(content: string): string {
     </Avatar>
 
     <Card
-      class="max-w-[80%] gap-0 border-border-subtle py-0 shadow-none"
+      class="min-w-0 max-w-[80%] gap-0 border-border-subtle py-0 shadow-none"
       :class="[
         isUser ? 'bg-surface-high' : 'bg-surface-container',
         isToolOnlyAssistantMessage ? 'px-3 py-1.5' : 'px-3 py-3',
@@ -96,7 +80,7 @@ function renderMarkdown(content: string): string {
         <span class="text-sm font-semibold text-text-secondary">{{ senderLabel }}</span>
       </CardHeader>
 
-      <CardContent class="flex flex-col gap-2 px-0 py-0">
+      <CardContent class="flex min-w-0 flex-col gap-2 px-0 py-0">
         <ChatThoughtSection
           v-if="message.thought && isAssistant"
           :message-id="message.id"
@@ -114,10 +98,10 @@ function renderMarkdown(content: string): string {
 
         <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
 
-        <div
-          v-if="legacyContentWithDOMPurify"
-          class="text-sm leading-relaxed break-words text-text-primary [&_code]:font-mono [&_code]:text-sm [&_h1]:mt-3 [&_h1]:mb-2 [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:leading-tight [&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:leading-tight [&_h3]:mt-3 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:leading-tight [&_h4]:mt-3 [&_h4]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:leading-tight [&_li]:my-1 [&_li]:text-sm [&_ol]:my-2 [&_ol]:pl-6 [&_p]:my-2 [&_pre]:my-2 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-surface [&_pre]:p-3 [&_pre]:font-mono [&_pre]:text-text-secondary [&_pre_code]:text-sm [&_table]:my-3 [&_table]:block [&_table]:w-full [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm [&_td]:border [&_td]:border-border-subtle [&_td]:px-3 [&_td]:py-2 [&_td]:text-left [&_td]:text-sm [&_th]:border [&_th]:border-border-subtle [&_th]:bg-surface-high [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:text-sm [&_th]:font-semibold [&_ul]:my-2 [&_ul]:pl-6"
-          v-html="legacyContentWithDOMPurify"
+        <KnowledgeNoteRenderer
+          v-if="markdownContent"
+          :content="markdownContent"
+          class="text-text-primary"
         />
       </CardContent>
     </Card>

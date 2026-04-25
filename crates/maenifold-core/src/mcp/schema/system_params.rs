@@ -129,6 +129,7 @@ pub enum TeamsMonitorAction {
     Disable,
     Status,
     Configure,
+    Authenticate,
 }
 
 #[derive(Deserialize, JsonSchema)]
@@ -136,9 +137,18 @@ pub enum TeamsMonitorAction {
 pub struct TeamsMonitorParams {
     /// Teams monitor operation to perform
     pub action: TeamsMonitorAction,
+    /// Azure AD application client ID for device code authentication
+    #[serde(default)]
+    pub client_id: Option<String>,
+    /// Azure AD tenant ID or tenant name for device code authentication
+    #[serde(default)]
+    pub tenant_id: Option<String>,
     /// Keywords that trigger a monitor match during configure
     #[serde(default)]
     pub keywords: Option<Vec<String>>,
+    /// Optional OAuth scopes for device code authentication
+    #[serde(default)]
+    pub scopes: Option<Vec<String>>,
     /// Optional sender allow-list to require for matches during configure. Pass null to clear.
     #[serde(default)]
     pub sender_allow_list: Option<Vec<String>>,

@@ -185,4 +185,35 @@ mod tests {
         let error = parse_schedule("daily at 25:00").expect_err("invalid time should fail");
         assert!(error.to_string().contains("invalid cron"));
     }
+
+    #[test]
+    fn rejects_empty_schedule_string() {
+        let error = parse_schedule("").expect_err("empty schedule should fail");
+        assert!(error.to_string().contains("cannot be empty"));
+    }
+
+    #[test]
+    fn rejects_invalid_natural_language_schedule() {
+        let error = parse_schedule("every blursday").expect_err("invalid natural language should fail");
+        assert!(error.to_string().contains("invalid cron"));
+    }
+
+    #[test]
+    fn rejects_bad_meridiem_time_format() {
+        let error = parse_schedule("every day at 13pm").expect_err("invalid meridiem time should fail");
+        assert!(error.to_string().contains("invalid cron"));
+    }
+
+    #[test]
+    fn rejects_raw_cron_with_too_few_fields() {
+        let error = parse_schedule("* * *").expect_err("short cron should fail");
+        assert!(error.to_string().contains("invalid cron"));
+    }
+
+    #[test]
+    fn rejects_raw_cron_with_out_of_range_values() {
+        let error =
+            parse_schedule("61 25 32 13 8").expect_err("out-of-range cron values should fail");
+        assert!(error.to_string().contains("invalid cron"));
+    }
 }

@@ -6,7 +6,12 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::embedding_models::load_catalog;
 use ort::session::Session;
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
+
+static ORT_INITIALIZED: OnceLock<std::result::Result<(), String>> = OnceLock::new();
+const ORT_RUNTIME_NOT_FOUND_MESSAGE: &str =
+    "ONNX Runtime library not found. Set ORT_DYLIB_PATH or place the library in the assets/lib directory.";
 
 /// Load/initialize the model (called lazily on first use)
 pub fn load_model() -> Result<()> {
@@ -20,14 +25,15 @@ pub fn load_model() -> Result<()> {
     }
 
     let model_path = find_model_path()?;
+    let model_dir = model_path.parent().ok_or_else(|| {
+        MaenifoldError::Message("embedding model has no parent directory".to_string())
+    })?;
+    init_ort_runtime(model_dir)?;
     let session = Session::builder()
         .map_err(map_ort_error)?
         .commit_from_file(&model_path)
         .map_err(map_ort_error)?;
     let embedding_dims = discover_embedding_dimensions(&session)?;
-    let model_dir = model_path.parent().ok_or_else(|| {
-        MaenifoldError::Message("embedding model has no parent directory".to_string())
-    })?;
     let (tokenizer, max_tokens) = load_tokenizer_assets(model_dir)?;
     let model_filename = model_path
         .file_name()
@@ -44,6 +50,72 @@ pub fn load_model() -> Result<()> {
         model_path: model_path.clone(),
     });
     Ok(())
+}
+
+fn init_ort_runtime(model_dir: &Path) -> Result<()> {
+    let init_result = ORT_INITIALIZED.get_or_init(|| init_ort_runtime_once(model_dir));
+
+    match init_result {
+        Ok(()) => Ok(()),
+        Err(message) => Err(MaenifoldError::Message(message.clone())),
+    }
+}
+
+fn init_ort_runtime_once(model_dir: &Path) -> std::result::Result<(), String> {
+    let dylib_path = resolve_ort_dylib_path(model_dir)?;
+    ort::init_from(dylib_path)
+        .map_err(|_| ORT_RUNTIME_NOT_FOUND_MESSAGE.to_string())?
+        .commit();
+    Ok(())
+}
+
+fn resolve_ort_dylib_path(model_dir: &Path) -> std::result::Result<PathBuf, String> {
+    if let Ok(path) = env::var("ORT_DYLIB_PATH") {
+        let trimmed = path.trim();
+        let dylib_path = PathBuf::from(trimmed);
+        if !trimmed.is_empty() && dylib_path.is_file() {
+            return Ok(dylib_path);
+        }
+    }
+
+    let dylib_filename = ort_dylib_filename();
+    let adjacent = model_dir.join(dylib_filename);
+    if adjacent.is_file() {
+        return Ok(adjacent);
+    }
+
+    let config = Config::current();
+    let asset_lib = config.assets_path.join("lib").join(dylib_filename);
+    if asset_lib.is_file() {
+        return Ok(asset_lib);
+    }
+
+    Err(ORT_RUNTIME_NOT_FOUND_MESSAGE.to_string())
+}
+
+fn ort_dylib_filename() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        "onnxruntime.dll"
+    }
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    {
+        "libonnxruntime.so"
+    }
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    {
+        "libonnxruntime.dylib"
+    }
+    #[cfg(not(any(
+        target_os = "windows",
+        target_os = "linux",
+        target_os = "android",
+        target_os = "macos",
+        target_os = "ios"
+    )))]
+    {
+        "libonnxruntime.so"
+    }
 }
 
 /// Cleanup/release model resources

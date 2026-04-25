@@ -157,7 +157,28 @@ pub(crate) fn decode_le_f32_bytes(bytes: &[u8]) -> std::result::Result<Vec<f32>,
 }
 
 pub(crate) fn map_ort_error(error: ort::Error) -> MaenifoldError {
-    MaenifoldError::Message(format!("onnx runtime error: {error}"))
+    let message = error.to_string();
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("onnx runtime dylib") || lower.contains("failed to load from") {
+        return MaenifoldError::Message(
+            "ONNX Runtime library not found. Set ORT_DYLIB_PATH or place the library in the assets/lib directory."
+                .to_string(),
+        );
+    }
+
+    if contains_absolute_path(&message) {
+        return MaenifoldError::Message("onnx runtime error: ort_operation_failed".to_string());
+    }
+
+    MaenifoldError::Message(format!("onnx runtime error: {message}"))
+}
+
+fn contains_absolute_path(message: &str) -> bool {
+    message.starts_with('/')
+        || message.contains(" /")
+        || message.contains("`/")
+        || message.contains(":\\")
+        || message.contains("`\\\\")
 }
 
 fn choose_output<T, FName, FDims>(

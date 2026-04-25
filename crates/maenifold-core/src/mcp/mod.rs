@@ -6,6 +6,8 @@ pub mod stdio_session;
 pub mod tool_routing;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
+#[cfg(test)]
+mod gateway_integration_tests;
 mod gateway_handler;
 mod gateway_startup;
 pub(crate) mod tool_utils;

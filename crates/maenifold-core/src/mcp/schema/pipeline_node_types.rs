@@ -48,7 +48,7 @@ pub struct PipelineWorkflowNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
-    /// Optional maximum transient retry attempts. 0 means no retry.
+    /// Optional maximum transient retries after the initial attempt. 0 means no retry.
     #[serde(default)]
     pub retry_max_attempts: Option<u32>,
     /// Optional minimum backoff delay in milliseconds.
@@ -116,7 +116,7 @@ pub struct PipelinePromptNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
-    /// Optional maximum transient retry attempts. 0 means no retry.
+    /// Optional maximum transient retries after the initial attempt. 0 means no retry.
     #[serde(default)]
     pub retry_max_attempts: Option<u32>,
     /// Optional minimum backoff delay in milliseconds.
@@ -186,7 +186,7 @@ pub struct PipelineSequentialThinkingNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
-    /// Optional maximum transient retry attempts. 0 means no retry.
+    /// Optional maximum transient retries after the initial attempt. 0 means no retry.
     #[serde(default)]
     pub retry_max_attempts: Option<u32>,
     /// Optional minimum backoff delay in milliseconds.
@@ -243,7 +243,7 @@ pub struct PipelineToolNodeSchema {
     /// Optional timeout in seconds
     #[serde(default)]
     pub timeout: Option<u32>,
-    /// Optional maximum transient retry attempts. 0 means no retry.
+    /// Optional maximum transient retries after the initial attempt. 0 means no retry.
     #[serde(default)]
     pub retry_max_attempts: Option<u32>,
     /// Optional minimum backoff delay in milliseconds.

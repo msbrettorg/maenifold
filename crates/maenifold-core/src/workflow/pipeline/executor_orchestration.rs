@@ -14,7 +14,7 @@ use super::executor_helpers::load_pipeline_node_states;
 use super::executor_nodes::{
     NodeExecutionRequest, NodeOutcome, classify_node_result, execute_node_request,
 };
-use super::executor_retry::{RetryExecutionError, execute_with_retry_policy, with_retry_attempts};
+use super::executor_retry::{RetryExecutionError, with_retry_attempts};
 use super::executor_timeout::{TimeoutResultKind, timeout_result_for_kind};
 use super::{NodeStatus, PipelineDefinition, PipelineNode, RetryPolicy};
 use jockey::EventSender;
@@ -134,10 +134,24 @@ pub(super) fn spawn_dispatched_node_task(
         };
 
         let (outcome, retry_attempts) = match node_retry_policy {
-            Some(retry_policy) if retry_policy.max_attempts > 0 => {
-                execute_with_retry_policy(&node_id, retry_policy, initial_retry_attempts, run_once)
-                    .await
-            }
+            Some(retry_policy) if retry_policy.max_attempts > 0 => match run_once().await {
+                Ok(outcome) => (outcome, initial_retry_attempts),
+                Err(error) => (
+                    NodeOutcome::Abandoned {
+                        reason: error.reason,
+                        phase: super::executor_run::FailurePhase::PreExecution,
+                        transient_error_kind: Some(error.kind),
+                        acp_session_id: None,
+                        thinking_session_id: None,
+                        input_tokens: None,
+                        output_tokens: None,
+                        model: None,
+                        retry_attempts: initial_retry_attempts,
+                        is_outer_timeout: false,
+                    },
+                    initial_retry_attempts,
+                ),
+            },
             _ => match run_once().await {
                 Ok(outcome) => (outcome, initial_retry_attempts),
                 Err(error) => (

@@ -124,8 +124,8 @@ pub(super) fn require_tool_allowed(
     match allowed_tools {
         None => Ok(()),
         Some(tools) if tools.iter().any(|allowed| allowed == tool_name) => Ok(()),
-        Some(_) => Err(MaenifoldError::AgentSetup(format!(
-            "External MCP tool '{tool_name}' is not in the explicit allowed_tools list"
+        Some(tools) => Err(MaenifoldError::AgentSetup(format!(
+            "Tool '{tool_name}' is not in the explicit allowed_tools list: {tools:?}"
         ))),
     }
 }

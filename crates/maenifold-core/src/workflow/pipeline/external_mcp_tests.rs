@@ -125,6 +125,36 @@ fn require_tool_allowed_rejects_unlisted_tool() {
 }
 
 #[test]
+fn require_tool_allowed_permits_local_tool_when_listed() {
+    let allowed = vec!["maenifold.WriteMemory".to_string()];
+    require_tool_allowed("maenifold.WriteMemory", Some(&allowed))
+        .expect("explicitly listed local tool is allowed");
+}
+
+#[test]
+fn require_tool_allowed_rejects_local_tool_when_unlisted() {
+    let allowed = vec!["gate.status".to_string()];
+    let error = require_tool_allowed("maenifold.WriteMemory", Some(&allowed))
+        .expect_err("unlisted local tool should be rejected");
+    let message = error.to_string();
+    assert!(
+        message.contains("maenifold.WriteMemory"),
+        "error should name blocked tool: {message}"
+    );
+    assert!(
+        message.contains("gate.status"),
+        "error should name allowed set: {message}"
+    );
+    assert!(message.contains("not in the explicit allowed_tools"));
+}
+
+#[test]
+fn require_tool_allowed_permits_all_local_tools_when_none() {
+    require_tool_allowed("maenifold.WriteMemory", None)
+        .expect("None means all local tools are allowed");
+}
+
+#[test]
 fn tool_arguments_rejects_non_object_values() {
     let error = tool_arguments(Some(&serde_json::json!("string")))
         .expect_err("non-object arguments should be rejected");
@@ -143,7 +173,7 @@ fn require_tool_allowed_rejects_banned_tool_against_allow_list() {
 
     assert_eq!(
         error.to_string(),
-        "Agent setup failed: External MCP tool 'banned_tool' is not in the explicit allowed_tools list"
+        "Agent setup failed: Tool 'banned_tool' is not in the explicit allowed_tools list: [\"good_tool\"]"
     );
 }
 

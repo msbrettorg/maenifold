@@ -1,4 +1,5 @@
 use super::*;
+use super::super::external_mcp::require_tool_allowed;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_prompt_node(
@@ -107,6 +108,7 @@ pub(crate) async fn run_tool_node(
     let response = async {
         if let Some((server_name, remote_tool_name)) = split_namespaced_tool_name(tool_name) {
             if server_name == "maenifold" {
+                require_tool_allowed(tool_name, allowed_tools)?;
                 Ok(invoke_local_tool(remote_tool_name, &arguments)?)
             } else {
                 let agents_config = AgentsConfig::load(&context.config.maenifold_root)?;
@@ -123,6 +125,7 @@ pub(crate) async fn run_tool_node(
                 .await
             }
         } else {
+            require_tool_allowed(tool_name, allowed_tools)?;
             Ok(invoke_local_tool(tool_name, &arguments)?)
         }
     }

@@ -283,3 +283,7 @@ mod types_wire_from;
 #[cfg(test)]
 #[path = "types_wire_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "types_wire_edge_tests.rs"]
+mod edge_tests;

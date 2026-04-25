@@ -95,16 +95,18 @@ The task ID for gate commands is the full filename stem (e.g., `T-205.1-uat-home
 
 ## Step 4: Verdict
 
+Append your recommendation for the PM. Do **not** advance gate state from this tester.
+
 - **PASS** — expected behavior observed AND no design violations **on the component under test**. Note any known global issues observed but do NOT fail for them:
-  `gate pass <full-task-id> --root . --agent tester --notes "PASS: <what was seen>. Checks: caps✓ shadows✓ borders✓ font✓. Known global: <any known issues observed>"`
+  `gate append <full-task-id> --root . --agent tester --notes "PASS RECOMMENDATION: <what was seen>. Checks: caps✓ shadows✓ borders✓ font✓. Known global: <any known issues observed>"`
 
 - **FAIL** — behavior wrong, element broken, OR design violation observed:
-  `gate fail <full-task-id> --root . --agent tester --notes "FAIL: <what went wrong>"`
+  `gate append <full-task-id> --root . --agent tester --notes "FAIL RECOMMENDATION: <what went wrong>"`
 
 - **CDP-UNTESTABLE** — element unreachable via CDP (native dialogs, drag operations):
-  `gate fail <full-task-id> --root . --agent tester --notes "CDP-UNTESTABLE: <reason>"`
+  `gate append <full-task-id> --root . --agent tester --notes "CDP-UNTESTABLE RECOMMENDATION: <reason>"`
 
-**Gate DB lock warning:** `gate pass`/`gate fail` may print `database is locked` even when the operation **succeeded**. Do NOT retry blindly. Verify with `ls done/ | grep <task-id>` — if the file moved, you are done. Only retry if the file is still in `todo/` after a 5-second wait.
+**State-transition rule:** Do NOT use `gate pass` or `gate fail` from this tester. The PM reviews your appended verdict and performs the actual stage transition.
 
 ---
 
@@ -134,7 +136,7 @@ You are done. Do not pick another task. Do not loop. Do not continue. EXIT NOW.
 
 - **ONE task per invocation.** Test it, verdict it, write learnings, exit.
 - **CDP ONLY.** Your job is clicking buttons and checking screenshots. Do NOT use LSP, grep, code search, file reading of source code, findReferences, goToDefinition, workspaceSymbol, or any code navigation tools. You are a tester, not a developer. If something looks wrong, FAIL it and move on — do not investigate why.
-- **Do NOT create, delete, or move task files.** Only `gate pass` / `gate fail` moves files.
+- **Do NOT create, delete, or move task files.** Only the PM may use `gate pass` / `gate fail` to move files.
 - **Do NOT edit any file EXCEPT `ralph/uat/learnings.md`** (append only).
 - **Do NOT run git commands that modify anything.**
 - **Do NOT pass tests you did not execute via CDP.**

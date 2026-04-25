@@ -1,6 +1,6 @@
 # RALPH Learnings
 
-Record things you discover in this file.
+Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
 ## 2026-04-25 — Iteration 0713 (Security Audit Wave)
@@ -9,7 +9,7 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - T-220.4 and T-220.11 SWEs ran `gate pass` themselves, advancing tasks past SWE stage
 - T-220.11 red-team agent also ran `gate pass`, advancing to blue-team
 - Result: T-220.11 went from red-team to done when PM passed, skipping blue-team verification
-- **Lesson: Add explicit "Do NOT run gate pass/fail/append" to SWE prompts. The gate MCP tool is accessible in worktrees (they contain todo/) — need to either remove gate from SWE tool access or add stronger instruction.**
+- **Lesson: Add explicit "Do NOT run gate pass/fail; use gate append only when you are asked to record notes" to SWE/red-team/blue-team/tester prompts. The gate MCP tool is accessible in worktrees (they contain todo/) — keep the PM-only state-transition boundary explicit in every agent instruction set.**
 
 ### audit-crates.sh doesn't exempt #[cfg(test)] blocks in non-test-named files
 - `store.rs` has `#[cfg(test)] mod tests` but audit-crates.sh flagged `.unwrap()` inside it

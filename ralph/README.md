@@ -67,9 +67,10 @@ The shells live one level up at the repo root: **`/ralph.sh`** and **`/meta.sh`*
 4. States its scope (`RALPH_TARGET_CRATE` / `RALPH_TARGET_PATH`).
 5. Searches the knowledge graph for prior work on whatever it's about to touch.
 6. Picks the next pending gate task from `todo/`.
-7. Does **one** of: groom, decompose epic, write spec, dispatch SWE/red-team/blue-team agent, run gate pass/fail, or hygiene work.
+7. Does **one** of: groom, decompose epic, write spec, dispatch SWE/red-team/blue-team agent, run PM-owned gate pass/fail, or hygiene work.
 8. Builds + tests for its scope. On success: commits + `gate pass` + writes a memory note. On failure: records via `gate fail`, appends pattern to `learnings.md`.
-9. Loops until `state/converged` exists OR max iterations reached.
+9. Dispatched agents do **not** advance gate state themselves. They record findings with `gate append`, then RALPH decides whether to `gate pass` or `gate fail`.
+10. Loops until `state/converged` exists OR max iterations reached.
 
 **Stop it:** `Ctrl+C`, or `touch ralph/state/converged` from another terminal (loop checks before each iteration).
 

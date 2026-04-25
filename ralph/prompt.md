@@ -101,6 +101,7 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 ### E. Ship the work (gate ops)
 - Drive tasks through their pipeline stages: SWE → red-team → blue-team → done.
 - The PM relays real agent verdicts. The PM does **not** author notes for another role's stage. **Files move through gate, never via `mv`.** This is sacrosanct.
+- Subagents may record their findings with `gate append`, but only the PM may run `gate pass` or `gate fail`.
 
 ### F. Hygiene
 - Write memory notes for non-trivial decisions with `[[WikiLinks]]`.

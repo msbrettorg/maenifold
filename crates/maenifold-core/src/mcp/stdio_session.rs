@@ -295,3 +295,4 @@ async fn shutdown_startup(mut state: StartupState) {
     }
     let _ = state.stderr_task.await;
 }
+#[cfg(test)] #[path = "stdio_session_tests.rs"] mod tests;

@@ -7,7 +7,7 @@ use super::super::adapter::{acp_log, clip};
 use super::super::runtime_state::{
     remember_runtime_available_commands, remember_runtime_config_options,
 };
-use super::super::worker::AcpEvent;
+use super::super::worker::{AcpEvent, AcpExecuteError, AcpExecuteResult};
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -29,13 +29,14 @@ pub(super) struct AcpStreamPayload<'a> {
 
 pub(super) async fn run_delta_loop(
     mut delta_rx: mpsc::Receiver<AcpEvent>,
-    mut result_rx: oneshot::Receiver<Result<(String, String), String>>,
+    mut result_rx: oneshot::Receiver<AcpExecuteResult>,
     event_tx: &crate::EventSender,
     runtime_key: &str,
     role_name: &str,
     app_session_id: &str,
     prompt: &str,
-) -> (Result<(String, String), String>, String, usize) {
+    requested_resume: bool,
+) -> (AcpExecuteResult, String, usize) {
     let mut full_output = String::new();
     let mut delta_count = 0usize;
     let mut delta_batch: String = String::new();
@@ -192,7 +193,12 @@ pub(super) async fn run_delta_loop(
                     );
                     delta_batch.clear();
                 }
-                let r = res.unwrap_or_else(|_| Err("worker disconnected".to_string()));
+                let r = res.unwrap_or_else(|_| Err(AcpExecuteError {
+                    message: "worker disconnected".to_string(),
+                    requested_resume,
+                    resumed: false,
+                    resume_failure_kind: requested_resume.then(|| "startup".to_string()),
+                }));
                 acp_log("execute.result", json!({
                     "runtime": runtime_key,
                     "role": role_name,
@@ -237,5 +243,38 @@ pub(super) fn error_code_from_raw(raw: &str) -> String {
         "INCOMPATIBLE_VERSION".to_string()
     } else {
         "ACP_ERROR".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn worker_disconnected_fallback_preserves_requested_resume() {
+        let (_delta_tx, delta_rx) = mpsc::channel(1);
+        let (result_tx, result_rx) = oneshot::channel();
+        drop(result_tx);
+        let (event_tx, _event_rx) = tokio::sync::broadcast::channel(1);
+
+        let (result, output, delta_count) = run_delta_loop(
+            delta_rx,
+            result_rx,
+            &event_tx,
+            "runtime",
+            "role",
+            "app-session",
+            "prompt",
+            true,
+        )
+        .await;
+
+        let err = result.expect_err("dropped worker result sender should fail");
+        assert_eq!(err.message, "worker disconnected");
+        assert!(err.requested_resume);
+        assert!(!err.resumed);
+        assert_eq!(err.resume_failure_kind, Some("startup".to_string()));
+        assert!(output.is_empty());
+        assert_eq!(delta_count, 0);
     }
 }

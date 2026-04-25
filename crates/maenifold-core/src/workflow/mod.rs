@@ -1,6 +1,7 @@
 mod adoption;
 mod agent_session;
 mod agent_session_config;
+mod agent_session_resume;
 mod handler;
 mod handler_helpers;
 mod handler_session;

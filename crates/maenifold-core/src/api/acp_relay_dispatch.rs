@@ -17,7 +17,7 @@ pub(super) async fn handle_incoming(
     session: &mut Option<RelaySession>,
     pending_prompt: &mut Option<PendingPrompt>,
     delta_rx: &mut Option<mpsc::Receiver<jockey::acp::AcpEvent>>,
-    result_rx: &mut Option<oneshot::Receiver<Result<(String, String), String>>>,
+    result_rx: &mut Option<oneshot::Receiver<jockey::acp::AcpExecuteResult>>,
     permission_ids: &mut HashMap<u64, String>,
     next_permission_id: &mut u64,
 ) -> bool {

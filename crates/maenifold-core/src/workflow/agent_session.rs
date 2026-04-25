@@ -8,6 +8,7 @@ use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 
 use super::agent_session_config::build_role_config_options;
+use super::agent_session_resume::{PromptGate, ResumeState, prompt_result_is_failed_resume};
 use super::runner::AgentSessionConfig;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -57,7 +58,8 @@ pub(crate) struct AgentSession {
     config_options: Vec<(String, String)>,
     auto_approve: bool,
     /// Optional ACP session ID to resume on the next prompt via `session/load`.
-    resume_session_id: std::sync::Mutex<Option<String>>,
+    resume_state: ResumeState,
+    prompt_gate: PromptGate,
     event_tx: jockey::EventSender,
     cleanup_on_drop: AtomicBool,
 }
@@ -114,7 +116,8 @@ pub(crate) async fn open_agent_session(
         role_mode: session_config.mode.clone(),
         config_options,
         auto_approve,
-        resume_session_id: std::sync::Mutex::new(session_config.resume_session_id.clone()),
+        resume_state: ResumeState::new(session_config.resume_session_id.clone()),
+        prompt_gate: PromptGate::new(),
         event_tx: event_tx.clone(),
         cleanup_on_drop: AtomicBool::new(true),
     })
@@ -124,11 +127,17 @@ impl AgentSession {
     /// Returns the real ACP session ID if captured from a prompt response,
     /// otherwise falls back to the internal pool key.
     pub(crate) fn remote_id(&self) -> String {
-        self.real_acp_session_id
-            .lock()
-            .ok()
-            .and_then(|guard| guard.clone())
-            .unwrap_or_else(|| self.session_id.clone())
+        match self.real_acp_session_id.lock() {
+            Ok(guard) => guard.clone().unwrap_or_else(|| self.session_id.clone()),
+            Err(_) => {
+                warn!(
+                    agent = %self.agent_name,
+                    session_id = %self.session_id,
+                    "real ACP session id lock was poisoned; using internal session id"
+                );
+                self.session_id.clone()
+            }
+        }
     }
 
     pub(crate) fn keep_alive(&self) {
@@ -136,6 +145,7 @@ impl AgentSession {
     }
 
     pub(crate) async fn prompt(&self, prompt: &str) -> Result<AgentResponse> {
+        let _prompt_guard = self.prompt_gate.lock().await;
         info!(
             agent = %self.agent_name,
             session_id = %self.session_id,
@@ -145,11 +155,7 @@ impl AgentSession {
             thought_level = ?self.thought_level,
             "sending prompt to ACP agent"
         );
-        let resume_id = self
-            .resume_session_id
-            .lock()
-            .ok()
-            .and_then(|mut guard| guard.take());
+        let resume_id = self.resume_state.take_next()?;
         let result = jockey::acp::execute_runtime(
             &self.runtime_kind,
             &self.agent_name,
@@ -166,10 +172,15 @@ impl AgentSession {
             resume_id.clone(),
         )
         .await;
-        if !result.ok {
-            if let Some(ref id) = resume_id {
-                if let Ok(mut guard) = self.resume_session_id.lock() {
-                    *guard = Some(id.clone());
+        if !result.ok && prompt_result_is_failed_resume(&result.meta) {
+            if let Some(id) = resume_id.clone() {
+                let restored = self.resume_state.restore_after_failed_resume(id)?;
+                if !restored {
+                    warn!(
+                        agent = %self.agent_name,
+                        session_id = %self.session_id,
+                        "resume session id was already restored before failed resume handling"
+                    );
                 }
             }
         }
@@ -191,9 +202,12 @@ impl AgentSession {
 
         // Capture the real ACP session ID from the worker's response metadata.
         if let Some(sid) = result.meta.get("sessionId").and_then(|v| v.as_str()) {
-            if let Ok(mut guard) = self.real_acp_session_id.lock() {
-                *guard = Some(sid.to_string());
-            }
+            let mut guard = self.real_acp_session_id.lock().map_err(|_| {
+                MaenifoldError::Message(
+                    "internal error: real ACP session id lock was poisoned".to_string(),
+                )
+            })?;
+            *guard = Some(sid.to_string());
         }
 
         Ok(result.into())

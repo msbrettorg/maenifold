@@ -9,7 +9,7 @@ pub(super) fn handle_prompt(
     session: &Option<RelaySession>,
     pending_prompt: &mut Option<PendingPrompt>,
     delta_rx: &mut Option<mpsc::Receiver<jockey::acp::AcpEvent>>,
-    result_rx: &mut Option<oneshot::Receiver<Result<(String, String), String>>>,
+    result_rx: &mut Option<oneshot::Receiver<jockey::acp::AcpExecuteResult>>,
     params: Value,
     request_id: Value,
 ) -> Result<(), Value> {

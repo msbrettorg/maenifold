@@ -13,7 +13,10 @@ use super::handler_config::{
 };
 use super::handlers::{ensure_connection, evict_if_cwd_changed};
 use super::pool::{CANCEL_HANDLES, CONN_MAP, CancelHandle, PROMPT_LOCKS};
-use super::types::{AcpEvent, ConnectionDeathEvent};
+use super::resume_execute::{
+    generic_error, normalize_prompt_result_after_cancel, prompt_error, resume_start_error,
+};
+use super::types::{AcpEvent, AcpExecuteError, AcpExecuteSuccess, ConnectionDeathEvent};
 
 const PROMPT_LIVENESS_INTERVAL: std::time::Duration = std::time::Duration::from_secs(2);
 
@@ -31,13 +34,21 @@ pub(crate) async fn handle_execute(
     context: Vec<(String, String)>,
     cwd: String,
     delta_tx: mpsc::Sender<AcpEvent>,
-    result_tx: oneshot::Sender<Result<(String, String), String>>,
+    result_tx: oneshot::Sender<Result<AcpExecuteSuccess, AcpExecuteError>>,
     auto_approve: bool,
     mcp_servers: Vec<acp::McpServer>,
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     resume_session_id: Option<String>,
 ) {
+    let prompt_lock = PROMPT_LOCKS.with(|m| {
+        let mut map = m.borrow_mut();
+        map.entry(key.clone())
+            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
+    });
+    let prompt_guard = prompt_lock.lock().await;
+    let requested_resume = resume_session_id.is_some();
     let resolved = resolve_cwd(&cwd);
 
     evict_if_cwd_changed(&key, &resolved, runtime_key, &role_name);
@@ -67,16 +78,16 @@ pub(crate) async fn handle_execute(
     {
         Ok(cold) => cold,
         Err(e) => {
-            let _ = result_tx.send(Err(e));
+            let _ = result_tx.send(Err(resume_start_error(e, requested_resume)));
             return;
         }
     };
 
-    let session_id = CONN_MAP.with(|m| {
+    let (session_id, resumed) = CONN_MAP.with(|m| {
         m.borrow()
             .get(&key)
-            .map(|c| c.session_id.clone())
-            .unwrap_or_else(|| acp::SessionId::from(String::new()))
+            .map(|c| (c.session_id.clone(), c.resumed))
+            .unwrap_or_else(|| (acp::SessionId::from(String::new()), false))
     });
     let delta_slot = CONN_MAP.with(|m| {
         m.borrow()
@@ -95,7 +106,8 @@ pub(crate) async fn handle_execute(
 
     let (Some(conn_rc), Some(mut health_rx), Some(instance_id)) = (conn_rc, health_rx, instance_id)
     else {
-        let _ = result_tx.send(Err("connection disappeared after cold start".to_string()));
+        let message = "connection disappeared after cold start".to_string();
+        let _ = result_tx.send(Err(prompt_error(message, requested_resume, resumed)));
         return;
     };
 
@@ -111,7 +123,7 @@ pub(crate) async fn handle_execute(
         )
         .await
         {
-            let _ = result_tx.send(Err(e));
+            let _ = result_tx.send(Err(generic_error(e, requested_resume, resumed)));
             return;
         }
 
@@ -138,7 +150,7 @@ pub(crate) async fn handle_execute(
         )
         .await
         {
-            let _ = result_tx.send(Err(e));
+            let _ = result_tx.send(Err(generic_error(e, requested_resume, resumed)));
             return;
         }
     }
@@ -158,14 +170,6 @@ pub(crate) async fn handle_execute(
             },
         );
     });
-
-    let prompt_lock = PROMPT_LOCKS.with(|m| {
-        let mut map = m.borrow_mut();
-        map.entry(key.clone())
-            .or_insert_with(|| std::sync::Arc::new(tokio::sync::Mutex::new(())))
-            .clone()
-    });
-    let prompt_guard = prompt_lock.lock().await;
 
     let prompt_started = Instant::now();
     let prompt_fut = conn_rc.prompt(acp::PromptRequest::new(session_id.clone(), blocks));
@@ -213,9 +217,14 @@ pub(crate) async fn handle_execute(
                 }),
             );
             let _ = result_tx.send(normalize_prompt_result_after_cancel(
-                Ok((String::new(), session_id.to_string())),
+                Ok(AcpExecuteSuccess {
+                    output: String::new(),
+                    session_id: session_id.to_string(),
+                    resumed,
+                }),
                 was_cancelled,
                 &session_id,
+                resumed,
             ));
         }
         Ok(Err(e)) => {
@@ -234,9 +243,10 @@ pub(crate) async fn handle_execute(
                 CONN_MAP.with(|m| m.borrow_mut().remove(&key));
             }
             let _ = result_tx.send(normalize_prompt_result_after_cancel(
-                Err(e.to_string()),
+                Err(prompt_error(e.to_string(), requested_resume, resumed)),
                 was_cancelled,
                 &session_id,
+                resumed,
             ));
         }
         Err(reason) => {
@@ -262,26 +272,11 @@ pub(crate) async fn handle_execute(
                 CONN_MAP.with(|m| m.borrow_mut().remove(&key));
             }
             let _ = result_tx.send(normalize_prompt_result_after_cancel(
-                Err(reason),
+                Err(prompt_error(reason, requested_resume, resumed)),
                 was_cancelled,
                 &session_id,
+                resumed,
             ));
         }
     }
 }
-
-fn normalize_prompt_result_after_cancel(
-    result: Result<(String, String), String>,
-    was_cancelled: bool,
-    session_id: &acp::SessionId,
-) -> Result<(String, String), String> {
-    if was_cancelled {
-        Ok((String::new(), session_id.to_string()))
-    } else {
-        result
-    }
-}
-
-#[cfg(test)]
-#[path = "handler_execute_tests.rs"]
-mod handler_execute_tests;

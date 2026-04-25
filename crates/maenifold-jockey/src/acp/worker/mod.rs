@@ -5,11 +5,15 @@ mod handlers;
 mod notify;
 mod permission;
 mod pool;
+mod resume_execute;
 mod types;
 
 pub use notify::{set_death_event_sender, set_prewarm_event_sender};
 pub use permission::respond_to_permission;
-pub use types::{AcpEvent, AcpPromptResult, ConnectionDeathEvent, PrewarmEvent, WorkerMsg};
+pub use types::{
+    AcpEvent, AcpExecuteError, AcpExecuteResult, AcpExecuteSuccess, AcpPromptResult,
+    ConnectionDeathEvent, PrewarmEvent, WorkerMsg,
+};
 
 use handlers::{
     handle_execute, handle_prewarm, reconnect_worker_session, reset_worker_session,

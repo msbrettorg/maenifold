@@ -4,9 +4,10 @@ use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
 
 use super::super::adapter::{acp_log, build_stdio_adapter, friendly_error_message};
-use super::super::worker::{AcpEvent, AcpPromptResult, WorkerMsg, worker_tx};
+use super::super::worker::{AcpEvent, AcpExecuteError, AcpPromptResult, WorkerMsg, worker_tx};
 use super::cold_start::default_client_capabilities;
 use super::execute_stream::{error_code_from_raw, run_delta_loop};
+use super::resume::sanitized_resume_failure_kind;
 
 pub async fn execute_runtime(
     runtime_kind: &str,
@@ -24,49 +25,79 @@ pub async fn execute_runtime(
     resume_session_id: Option<String>,
 ) -> AcpPromptResult {
     let normalized = runtime_kind.trim().to_ascii_lowercase();
+    let requested_resume = resume_session_id.is_some();
 
     if normalized.is_empty() {
+        let output =
+            "ACP runtime_kind is required; mock or empty runtimes are not allowed in production"
+                .to_string();
         return AcpPromptResult {
             ok: false,
-            output:
-                "ACP runtime_kind is required; mock or empty runtimes are not allowed in production"
-                    .to_string(),
+            output: output.clone(),
             error_code: Some("INVALID_RUNTIME".to_string()),
             deltas: vec![],
-            meta: json!({ "mode": "invalid-runtime", "runtime": runtime_kind }),
+            meta: json!({
+                "mode": "invalid-runtime",
+                "runtime": runtime_kind,
+                "requestedResume": requested_resume,
+                "resumed": false,
+                "resumeFailureKind": sanitized_resume_failure_kind(&output)
+            }),
         };
     }
 
     if normalized == "mock" {
+        let output =
+            "ACP runtime_kind 'mock' is not allowed in production; configure a real ACP runtime"
+                .to_string();
         return AcpPromptResult {
             ok: false,
-            output:
-                "ACP runtime_kind 'mock' is not allowed in production; configure a real ACP runtime"
-                    .to_string(),
+            output: output.clone(),
             error_code: Some("INVALID_RUNTIME".to_string()),
             deltas: vec![],
-            meta: json!({ "mode": "invalid-runtime", "runtime": normalized }),
+            meta: json!({
+                "mode": "invalid-runtime",
+                "runtime": normalized,
+                "requestedResume": requested_resume,
+                "resumed": false,
+                "resumeFailureKind": sanitized_resume_failure_kind(&output)
+            }),
         };
     }
 
     let adapter = match build_stdio_adapter(&normalized) {
         Ok(Some(a)) => a,
         Ok(None) => {
+            let output = format!("unsupported runtime kind: {}", normalized);
             return AcpPromptResult {
                 ok: false,
-                output: format!("unsupported runtime kind: {}", normalized),
+                output: output.clone(),
                 error_code: Some("UNSUPPORTED_RUNTIME".to_string()),
                 deltas: vec![],
-                meta: json!({ "mode": "unsupported-runtime", "runtime": normalized }),
+                meta: json!({
+                    "mode": "unsupported-runtime",
+                    "runtime": normalized,
+                    "requestedResume": requested_resume,
+                    "resumed": false,
+                    "resumeFailureKind": sanitized_resume_failure_kind(&output)
+                }),
             };
         }
         Err(e) => {
+            let friendly = friendly_error_message(&normalized, &e);
             return AcpPromptResult {
                 ok: false,
-                output: friendly_error_message(&normalized, &e),
+                output: friendly.clone(),
                 error_code: Some("ADAPTER_UNAVAILABLE".to_string()),
                 deltas: vec![],
-                meta: json!({ "mode": "adapter-unavailable", "runtime": normalized, "error": e }),
+                meta: json!({
+                    "mode": "adapter-unavailable",
+                    "runtime": normalized,
+                    "error": e,
+                    "requestedResume": requested_resume,
+                    "resumed": false,
+                    "resumeFailureKind": sanitized_resume_failure_kind(&friendly)
+                }),
             };
         }
     };
@@ -83,7 +114,6 @@ pub async fn execute_runtime(
         }),
     );
 
-    let requested_resume = resume_session_id.is_some();
     let resume_session_id = resume_session_id;
     let app_session_scope = if app_session_id.trim().is_empty() {
         uuid::Uuid::new_v4().to_string()
@@ -97,7 +127,7 @@ pub async fn execute_runtime(
 
     let app_session_id_owned = app_session_scope.clone();
 
-    let _ = worker_tx().send(WorkerMsg::Execute {
+    if worker_tx().send(WorkerMsg::Execute {
         runtime_key: runtime_key.clone(),
         binary: adapter.binary.clone(),
         args: adapter.args.clone(),
@@ -115,7 +145,26 @@ pub async fn execute_runtime(
         role_mode,
         role_config_options,
         resume_session_id,
-    });
+    })
+    .is_err()
+    {
+        let message = "ACP worker unavailable".to_string();
+        return AcpPromptResult {
+            ok: false,
+            output: message.clone(),
+            error_code: Some("ADAPTER_UNAVAILABLE".to_string()),
+            deltas: vec![],
+            meta: json!({
+                "mode": "acp-error",
+                "runtime": runtime_key,
+                "error": message,
+                "friendlyMessage": "ACP worker unavailable",
+                "requestedResume": requested_resume,
+                "resumed": false,
+                "resumeFailureKind": requested_resume.then(|| "startup")
+            }),
+        };
+    }
 
     let (result, full_output, delta_count) = run_delta_loop(
         delta_rx,
@@ -125,23 +174,14 @@ pub async fn execute_runtime(
         role_name,
         &app_session_id_owned,
         prompt,
+        requested_resume,
     )
     .await;
 
     match result {
-        Ok((_output, session_id)) => {
-            let resumed = if requested_resume {
-                let (tx, rx) = oneshot::channel();
-                let _ = worker_tx().send(WorkerMsg::GetResumeState {
-                    runtime_key: runtime_key.clone(),
-                    role_name: role_name.to_string(),
-                    app_session_id: app_session_id_owned.clone(),
-                    result_tx: tx,
-                });
-                rx.await.unwrap_or(false)
-            } else {
-                false
-            };
+        Ok(success) => {
+            let resumed = success.resumed;
+            let session_id = success.session_id;
             let output = if full_output.is_empty() {
                 if prompt.starts_with('/') {
                     format!(
@@ -154,7 +194,11 @@ pub async fn execute_runtime(
                     String::new()
                 }
             } else {
-                full_output
+                if success.output.is_empty() {
+                    full_output
+                } else {
+                    success.output
+                }
             };
 
             acp_log(
@@ -184,14 +228,39 @@ pub async fn execute_runtime(
             }
         }
         Err(e) => {
-            let friendly = friendly_error_message(&runtime_key, &e);
-            let code = error_code_from_raw(&e);
+            let friendly = friendly_error_message(&runtime_key, &e.message);
+            let code = error_code_from_raw(&e.message);
+            let AcpExecuteError {
+                message,
+                requested_resume,
+                resumed,
+                resume_failure_kind,
+            } = e;
+            let meta = match resume_failure_kind {
+                Some(kind) => json!({
+                    "mode": "acp-error",
+                    "runtime": runtime_key,
+                    "error": message,
+                    "friendlyMessage": friendly,
+                    "requestedResume": requested_resume,
+                    "resumed": resumed,
+                    "resumeFailureKind": kind
+                }),
+                None => json!({
+                    "mode": "acp-error",
+                    "runtime": runtime_key,
+                    "error": message,
+                    "friendlyMessage": friendly,
+                    "requestedResume": requested_resume,
+                    "resumed": resumed
+                }),
+            };
             AcpPromptResult {
                 ok: false,
                 output: friendly.clone(),
                 error_code: Some(code),
                 deltas: vec![],
-                meta: json!({ "mode": "acp-error", "runtime": runtime_key, "error": e, "friendlyMessage": friendly }),
+                meta,
             }
         }
     }

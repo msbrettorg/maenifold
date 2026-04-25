@@ -12,15 +12,13 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-220.1** ✅ P0: Remove production ACP mock runtime (SDD, 0 remediation)
 - **T-220.2** ✅ Reject client-injected ACP MCP servers (SDD, 0 remediation)
 - **T-220.3** ✅ Contain pipeline cwd + config loading (SDD, 0 remediation)
+- **T-220.4** ✅ Normalize ACP cancellation results (SDD, 1 remediation: LOC split)
 - **T-220.6** ✅ Make telemetry explicit opt-in (SDD, 0 remediation)
 - **T-220.11** ✅ Sanitize Mermaid SVG output (SDD, 0 remediation)
+- **T-220.13** ✅ Preserve home prompt on failure (SDD, 1 remediation: dual instance fix)
 - **T-220.17** ✅ Fix Rust audit hygiene (SDD, 2 remediation: chrono LocalResult API)
 
-### In Progress
-- **T-220.4** ⏳ Normalize ACP cancellation (SWE remediation: handler_execute.rs 312→split)
-- **T-220.13** ⏳ Preserve home prompt on failure (blue-team verifying after remediation)
-
-### Stats: 488→495 done (+7 shipped)
+### Stats: 488→497 done (+9 shipped), 53 todo remaining
 
 ## Iteration 20260425-0609 — Pipeline Advancement + CDP Verification
 

@@ -13,7 +13,8 @@ use crate::error::GateError;
 use crate::fail_command::fail_task;
 use crate::pass_command::pass_task;
 use crate::status_filter::StatusFilter;
-use crate::sync_command::sync_gate;
+use crate::sync_command::sync_gate_unlocked;
+use crate::task_file::GateProjectLock;
 use crate::task_repository::TaskRepository;
 
 #[derive(Debug, Clone)]
@@ -21,43 +22,50 @@ pub struct GateToolService;
 
 impl GateToolService {
     pub fn status(args: StatusArgs) -> Result<Value, GateError> {
+        ensure_existing_read_model(&GateCacheDb::path_for_root(&args.context.root))?;
+        let _lock = GateProjectLock::acquire_shared(&args.context.root)?;
         status_from_existing_read_model(&args.context, &args.filter)
     }
 
     pub fn append(args: AppendArgs) -> Result<Value, GateError> {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
+        let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
         append_task(args)?;
-        refresh_read_model(&context)?;
-        task_status_from_read_model(&context, &task_id)
+        refresh_read_model_unlocked(&context)?;
+        task_status_from_read_model_unlocked(&context, &task_id)
     }
 
     pub fn pass(args: OutcomeArgs) -> Result<Value, GateError> {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
+        let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
         pass_task(args)?;
-        refresh_read_model(&context)?;
-        task_status_from_read_model(&context, &task_id)
+        refresh_read_model_unlocked(&context)?;
+        task_status_from_read_model_unlocked(&context, &task_id)
     }
 
     pub fn fail(args: OutcomeArgs) -> Result<Value, GateError> {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
+        let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
         fail_task(args)?;
-        refresh_read_model(&context)?;
-        task_status_from_read_model(&context, &task_id)
+        refresh_read_model_unlocked(&context)?;
+        task_status_from_read_model_unlocked(&context, &task_id)
     }
 
     pub fn cancel(args: OutcomeArgs) -> Result<Value, GateError> {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
+        let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
         cancel_task(args)?;
-        refresh_read_model(&context)?;
-        task_status_from_read_model(&context, &task_id)
+        refresh_read_model_unlocked(&context)?;
+        task_status_from_read_model_unlocked(&context, &task_id)
     }
 
     pub fn history(args: HistoryArgs) -> Result<Value, GateError> {
         let root = args.context.root;
+        let _lock = GateProjectLock::acquire_shared(&root)?;
         let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
         let document = TaskRepository::read_task_document(&root, &task)?;
         Ok(Value::Array(
@@ -80,6 +88,7 @@ impl GateToolService {
 
     pub fn task_body(args: TaskBodyArgs) -> Result<Value, GateError> {
         let root = args.context.root;
+        let _lock = GateProjectLock::acquire_shared(&root)?;
         let task = TaskRepository::find_task(root.clone(), &args.task_id)?;
         let path = TaskRepository::canonical_task_markdown_path(&root, &task)?;
         let markdown = fs::read_to_string(&path)?;
@@ -94,13 +103,9 @@ impl GateToolService {
         let root = args.context.root.clone();
         let requested_pipeline = args.context.requested_pipeline_name.clone();
         let rebuild = args.rebuild;
-        sync_gate(args)?;
-        let task_count = status_rows(&GateContext {
-            root: root.clone(),
-            requested_pipeline_name: None,
-            json_output: false,
-        })?
-        .len();
+        let _lock = GateProjectLock::acquire_exclusive(&root)?;
+        sync_gate_unlocked(args)?;
+        let task_count = TaskRepository::list_tasks(root.clone())?.len();
         Ok(json!({
             "root": root,
             "pipeline": requested_pipeline,
@@ -110,7 +115,10 @@ impl GateToolService {
     }
 }
 
-fn task_status_from_read_model(context: &GateContext, task_id: &str) -> Result<Value, GateError> {
+fn task_status_from_read_model_unlocked(
+    context: &GateContext,
+    task_id: &str,
+) -> Result<Value, GateError> {
     let rows = status_rows(context)?;
     rows.into_iter()
         .find(|row| row["taskId"].as_str() == Some(task_id))
@@ -141,7 +149,7 @@ fn status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
     match load_status_rows(context) {
         Ok(rows) => Ok(rows),
         Err(err) if cache_refreshable(&err) => {
-            rebuild_read_model(context)?;
+            rebuild_read_model_unlocked(context)?;
             load_status_rows(context)
         }
         Err(err) => Err(err),
@@ -155,7 +163,7 @@ fn load_status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
 
 fn ensure_read_model_ready(context: &GateContext) -> Result<(), GateError> {
     if !GateCacheDb::path_for_root(&context.root).exists() {
-        refresh_read_model(context)?;
+        refresh_read_model_unlocked(context)?;
     }
     Ok(())
 }
@@ -171,8 +179,8 @@ fn ensure_existing_read_model(db_path: &Path) -> Result<(), GateError> {
     }
 }
 
-fn refresh_read_model(context: &GateContext) -> Result<(), GateError> {
-    sync_gate(SyncArgs {
+fn refresh_read_model_unlocked(context: &GateContext) -> Result<(), GateError> {
+    sync_gate_unlocked(SyncArgs {
         context: GateContext {
             root: context.root.clone(),
             requested_pipeline_name: None,
@@ -182,8 +190,8 @@ fn refresh_read_model(context: &GateContext) -> Result<(), GateError> {
     })
 }
 
-fn rebuild_read_model(context: &GateContext) -> Result<(), GateError> {
-    sync_gate(SyncArgs {
+fn rebuild_read_model_unlocked(context: &GateContext) -> Result<(), GateError> {
+    sync_gate_unlocked(SyncArgs {
         context: GateContext {
             root: context.root.clone(),
             requested_pipeline_name: None,

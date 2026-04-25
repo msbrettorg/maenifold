@@ -50,6 +50,13 @@ This document is the authoritative implementation spec for `gate`.
 - Every successful mutating command must refresh `gate.db` before returning to the caller
 - Long-lived runtimes must reconcile out-of-band file changes through a debounced watcher on `todo/` and `done/`
 - Cache refresh must preserve the existing `gate.db` file and SQLite WAL/SHM sidecars; destructive unlink-and-recreate is forbidden
+- All reusable command paths must coordinate through `.gate/gate.lock` using OS-level advisory locks:
+  - read-only operations (`status`, `history`, `task_body`) take a shared lock
+  - mutating/cache-refresh operations (`append`, `pass`, `fail`, `cancel`, `sync`) take an exclusive lock
+  - CLI, MCP stdio, MCP HTTP, and file-watcher reconciliation must share the same lock file
+- Per-task lock files under `.gate/locks/` may additionally serialize same-task mutators, but they do not replace the project-level lock
+- Final archive moves must use same-filesystem `rename` from `todo/` to `done/` and fsync the containing directories after the rename
+- `sync --rebuild` must recover a task left in `todo/` with a terminal stage record by moving it to `done/` before rebuilding `gate.db`
 - Command business logic must be reusable by CLI and MCP transports
 - MCP tool execution must call the same business logic as CLI commands
 - Tray/runtime code must not duplicate gate command logic

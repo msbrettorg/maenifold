@@ -4,7 +4,10 @@ use std::path::Path;
 use crate::cache_db::GateCacheDb;
 use crate::cli::SyncArgs;
 use crate::error::GateError;
+use crate::gate_catalog::GateDefinitionCatalog;
 use crate::gate_tool_service::GateToolService;
+use crate::state_machine::StateMachine;
+use crate::task_file::{GateProjectLock, TaskDocument};
 use crate::task_repository::TaskRepository;
 
 #[derive(Debug, Clone)]
@@ -18,7 +21,13 @@ impl SyncCommand {
 }
 
 pub(crate) fn sync_gate(args: SyncArgs) -> Result<(), GateError> {
+    let _lock = GateProjectLock::acquire_exclusive(&args.context.root)?;
+    sync_gate_unlocked(args)
+}
+
+pub(crate) fn sync_gate_unlocked(args: SyncArgs) -> Result<(), GateError> {
     ensure_gate_gitignore_entry(&args.context.root)?;
+    recover_terminal_todo_tasks(&args)?;
     let tasks = TaskRepository::list_tasks(args.context.root.clone())?;
 
     if args.rebuild {
@@ -28,6 +37,98 @@ pub(crate) fn sync_gate(args: SyncArgs) -> Result<(), GateError> {
     }
 
     Ok(())
+}
+
+fn recover_terminal_todo_tasks(args: &SyncArgs) -> Result<(), GateError> {
+    let mut tasks = TaskRepository::list_tasks(args.context.root.clone())?;
+    for task in tasks.iter_mut().filter(|task| task.location == "todo") {
+        let document = match TaskRepository::read_task_document(&args.context.root, task) {
+            Ok(document) => document,
+            Err(_) => continue,
+        };
+        let definition = match GateDefinitionCatalog::resolve_for_task(
+            &args.context.root,
+            &document.metadata,
+            args.context.requested_pipeline_name.as_deref(),
+        ) {
+            Ok(definition) => definition,
+            Err(_) => continue,
+        };
+        let state = match derive_state_without_location_check(&document, &definition) {
+            Ok(state) => state,
+            Err(_) => continue,
+        };
+        if definition
+            .find_state(&state)
+            .is_some_and(|state_definition| state_definition.terminal)
+        {
+            TaskRepository::move_to_done(&args.context.root, task)?;
+        }
+    }
+    Ok(())
+}
+
+fn derive_state_without_location_check(
+    document: &TaskDocument,
+    definition: &crate::gate_definition::GateDefinition,
+) -> Result<String, GateError> {
+    let initial = definition.initial_state()?.to_string();
+    let mut state = if document.records.is_empty() {
+        document
+            .metadata
+            .state
+            .clone()
+            .unwrap_or_else(|| initial.clone())
+    } else {
+        initial.clone()
+    };
+    for record in &document.records {
+        match record.record_kind.as_str() {
+            "append" => {}
+            "cancel" => state = "cancelled".to_string(),
+            "outcome" => {
+                let outcome = record.outcome.as_deref().ok_or_else(|| {
+                    GateError::TaskMetadataParse("outcome record missing Outcome".to_string())
+                })?;
+                let current = definition
+                    .find_state(&state)
+                    .ok_or_else(|| GateError::UnknownState(state.clone()))?;
+                if current.terminal {
+                    if outcome != "fail" || record.stage != state {
+                        return Err(GateError::IllegalTransition {
+                            state,
+                            outcome: outcome.to_string(),
+                        });
+                    }
+                    state = initial.clone();
+                    continue;
+                }
+                let transition = match outcome {
+                    "pass" => StateMachine::next_on_pass(&state, definition)?,
+                    "fail" => StateMachine::next_on_fail(&state, definition)?,
+                    other => {
+                        return Err(GateError::IllegalTransition {
+                            state,
+                            outcome: other.to_string(),
+                        });
+                    }
+                };
+                if transition.acting_stage != record.stage {
+                    return Err(GateError::IllegalTransition {
+                        state,
+                        outcome: outcome.to_string(),
+                    });
+                }
+                state = transition.next_state;
+            }
+            other => {
+                return Err(GateError::TaskMetadataParse(format!(
+                    "unknown record kind: {other}"
+                )));
+            }
+        }
+    }
+    Ok(state)
 }
 
 fn ensure_gate_gitignore_entry(root: &Path) -> Result<(), GateError> {

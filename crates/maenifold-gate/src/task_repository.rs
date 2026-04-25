@@ -179,7 +179,43 @@ impl TaskRepository {
     fn move_to_location(root: &Path, task: &TaskPathSet, location: &str) -> Result<(), GateError> {
         let source = Self::canonical_task_markdown_path(root, task)?;
         let destination = root.join(location).join(format!("{}.md", task.task_id));
-        fs::rename(source, destination)?;
+        let source_parent = source
+            .parent()
+            .ok_or_else(|| GateError::MissingTaskPath(source.clone()))?;
+        let destination_parent = destination
+            .parent()
+            .ok_or_else(|| GateError::MissingTaskPath(destination.clone()))?;
+        fs::create_dir_all(destination_parent)?;
+        Self::validate_destination_directory(root, destination_parent, task)?;
+        if fs::symlink_metadata(&destination).is_ok() {
+            return Err(GateError::Cli(format!(
+                "refusing to overwrite existing destination for task '{}': {}",
+                task.task_id,
+                destination.display()
+            )));
+        }
+        fs::rename(&source, &destination)?;
+        sync_directory(source_parent)?;
+        sync_directory(destination_parent)?;
+        Ok(())
+    }
+
+    fn validate_destination_directory(
+        root: &Path,
+        destination_parent: &Path,
+        task: &TaskPathSet,
+    ) -> Result<(), GateError> {
+        let metadata = fs::symlink_metadata(destination_parent)?;
+        if metadata.file_type().is_symlink() {
+            return Err(Self::invalid_gate_task_path(task));
+        }
+
+        let canonical_root = fs::canonicalize(root)?;
+        let canonical_destination_parent = fs::canonicalize(destination_parent)?;
+        if !canonical_destination_parent.starts_with(&canonical_root) {
+            return Err(Self::invalid_gate_task_path(task));
+        }
+
         Ok(())
     }
 
@@ -198,6 +234,12 @@ impl TaskRepository {
             .collect::<Vec<_>>()
             .join(", ")
     }
+}
+
+fn sync_directory(path: &Path) -> Result<(), GateError> {
+    let directory = fs::File::open(path)?;
+    directory.sync_all()?;
+    Ok(())
 }
 
 #[cfg(test)]

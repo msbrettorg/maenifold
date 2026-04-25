@@ -18,10 +18,9 @@ pub(crate) fn load_tokenizer_assets(model_dir: &Path) -> Result<(TokenizerAssets
 
     let tokenizer_json = model_dir.join(TOKENIZER_JSON_FILENAME);
     if !tokenizer_json.is_file() {
-        return Err(MaenifoldError::Message(format!(
-            "Model at {} is missing tokenizer.json. Curated models must include tokenizer.json — re-download the model or select a curated model.",
-            model_dir.display()
-        )));
+        return Err(MaenifoldError::Message(
+            "Active embedding model is missing tokenizer.json. Re-download the model or select a curated model.".to_string()
+        ));
     }
     let mut tokenizer = Tokenizer::from_file(&tokenizer_json)
         .map_err(|error| MaenifoldError::Message(format!("tokenizer.json load failed: {error}")))?;
@@ -37,10 +36,9 @@ pub(crate) fn load_tokenizer_assets(model_dir: &Path) -> Result<(TokenizerAssets
         .or_else(|| tokenizer.token_to_id(&pad_token))
         .or_else(|| tokenizer.token_to_id("<pad>"))
         .ok_or_else(|| {
-            MaenifoldError::Message(format!(
-                "missing tokenizer pad token id for tokenizer in {}",
-                model_dir.display()
-            ))
+            MaenifoldError::Message(
+                "Active embedding model tokenizer has no pad token id. Re-download the model or select a curated model.".to_string()
+            )
         })?;
 
     tokenizer

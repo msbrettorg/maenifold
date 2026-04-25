@@ -84,7 +84,7 @@ pub fn list_sessions(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 fn list_sessions_value(root: &Path) -> Result<ListedAgentSessions> {
-    let config = AgentsConfig::load(root);
+    let config = AgentsConfig::load(root)?;
     let mut agent_names = config.agents.keys().cloned().collect::<Vec<_>>();
     agent_names.sort_unstable();
     jockey::acp::set_config_root(root.to_path_buf());

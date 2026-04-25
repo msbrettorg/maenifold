@@ -133,7 +133,7 @@ struct ResolvedAgent {
 }
 
 fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
-    let config = AgentsConfig::load(root);
+    let config = AgentsConfig::load(root)?;
     let entry = config.agents.get(agent).ok_or_else(|| {
         MaenifoldError::AgentSetup(format!("agent '{agent}' not configured in maenifold.json"))
     })?;

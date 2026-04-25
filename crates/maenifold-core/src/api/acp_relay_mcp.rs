@@ -140,7 +140,13 @@ fn normalize_role_config_option(key: &str, value: Value) -> Result<Value, String
 /// Load configured MCP servers (global + per-agent) from maenifold.json,
 /// deduplicated by name (case-insensitive), and converted to ACP schema.
 pub(super) fn load_configured_mcp_servers(root: &Path, agent_name: &str) -> Vec<acp::McpServer> {
-    let config = AgentsConfig::load(root);
+    let config = match AgentsConfig::load(root) {
+        Ok(config) => config,
+        Err(error) => {
+            tracing::warn!(root = %root.display(), error = %error, "no configured MCP servers loaded");
+            return Vec::new();
+        }
+    };
     let agent_servers = config
         .agents
         .get(agent_name)

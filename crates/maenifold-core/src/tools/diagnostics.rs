@@ -26,7 +26,7 @@ pub fn get_config(context: &ToolContext, payload: &Value) -> Result<String> {
     }
 
     // T-172.0: Load full maenifold.json to expose agents, MCP servers, and settings.
-    let agents_config = AgentsConfig::load(&context.config.maenifold_root);
+    let agents_config = AgentsConfig::load(&context.config.maenifold_root)?;
     let response = build_config_value(context, &agents_config);
 
     Ok(render(context.output_format, response))

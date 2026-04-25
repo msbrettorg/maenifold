@@ -15,6 +15,23 @@ pub(super) fn resolve_node_cwd(context: &ToolContext, cwd: Option<&Path>) -> Res
             resolved.display()
         ))
     })?;
+    let root = context
+        .config
+        .maenifold_root
+        .canonicalize()
+        .map_err(|error| {
+            MaenifoldError::Message(format!(
+                "ERROR: Maenifold root '{}' could not be resolved: {error}",
+                context.config.maenifold_root.display()
+            ))
+        })?;
+    if !canonical.starts_with(&root) {
+        return Err(MaenifoldError::Message(format!(
+            "ERROR: Pipeline node cwd '{}' escapes maenifold root '{}'",
+            canonical.display(),
+            root.display()
+        )));
+    }
     if !canonical.is_dir() {
         return Err(MaenifoldError::Message(format!(
             "ERROR: Pipeline node cwd '{}' is not a directory",

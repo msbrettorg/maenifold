@@ -16,7 +16,9 @@ pub(crate) struct ConfigManager {
 impl ConfigManager {
     pub(crate) fn new(config: &Config) -> Self {
         Self {
-            config: Arc::new(RwLock::new(AgentsConfig::load(&config.maenifold_root))),
+            config: Arc::new(RwLock::new(AgentsConfig::load_or_default(
+                &config.maenifold_root,
+            ))),
             config_path: config.maenifold_root.join("maenifold.json"),
         }
     }

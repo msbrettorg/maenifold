@@ -43,7 +43,7 @@ impl Config {
         let assets_path = maenifold_root.join("assets");
         let thinking_path = memory_path.join("thinking");
         let sequential_path = thinking_path.join("sequential");
-        let settings = AgentsConfig::load(&maenifold_root)
+        let settings = AgentsConfig::load_or_default(&maenifold_root)
             .settings
             .unwrap_or_default();
         Self {

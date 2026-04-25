@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use tracing::{debug, info, warn};
 
 use crate::acp_config::AgentsConfig;
+use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 
 use super::agent_session_config::build_role_config_options;
@@ -67,7 +68,8 @@ pub(crate) async fn open_agent_session(
     event_tx: &jockey::EventSender,
 ) -> Result<AgentSession> {
     let cwd_str = session_config.cwd.to_string_lossy().to_string();
-    let runtime_kind = resolve_runtime_kind(agent_name, &cwd_str)?;
+    let trusted_root = Config::current().maenifold_root;
+    let runtime_kind = resolve_runtime_kind(agent_name, &trusted_root)?;
     let auto_approve = session_config.auto_approve;
     let (_config_options, _modes) =
         jockey::acp::prewarm_role_for_config(&runtime_kind, agent_name, &cwd_str, None).await;
@@ -256,8 +258,8 @@ impl Drop for AgentSession {
     }
 }
 
-fn resolve_runtime_kind(agent_name: &str, cwd: &str) -> Result<String> {
-    let config = AgentsConfig::load(std::path::Path::new(cwd));
+fn resolve_runtime_kind(agent_name: &str, config_root: &std::path::Path) -> Result<String> {
+    let config = AgentsConfig::load(config_root)?;
     config.agents.get(agent_name).ok_or_else(|| {
         MaenifoldError::AgentSetup(format!(
             "agent '{agent_name}' not configured in maenifold.json"

@@ -36,7 +36,7 @@ pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
 
 fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
     let root = &context.config.maenifold_root;
-    let mut config = AgentsConfig::load(root);
+    let mut config = AgentsConfig::load(root)?;
     let mut settings = config
         .settings
         .clone()
@@ -61,7 +61,7 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
 }
 
 fn monitor_status(context: &ToolContext) -> Result<String> {
-    let monitor = load_monitor_config(&context.config.maenifold_root);
+    let monitor = load_monitor_config(&context.config.maenifold_root)?;
     Ok(render(
         context.output_format,
         status_value(
@@ -75,7 +75,7 @@ fn monitor_status(context: &ToolContext) -> Result<String> {
 
 fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let root = &context.config.maenifold_root;
-    let mut config = AgentsConfig::load(root);
+    let mut config = AgentsConfig::load(root)?;
     let mut settings = config
         .settings
         .clone()
@@ -117,9 +117,17 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
 fn authenticate_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let client_id = required_string(payload, "clientId")?.to_string();
     let tenant_id = required_string(payload, "tenantId")?.to_string();
-    let scopes = optional_string_vec(payload, "scopes")?
-        .unwrap_or_else(|| DEFAULT_TEAMS_SCOPES.iter().map(|scope| (*scope).to_string()).collect());
-    if scopes.is_empty() || scopes.iter().any(|scope| !DEFAULT_TEAMS_SCOPES.contains(&scope.as_str())) {
+    let scopes = optional_string_vec(payload, "scopes")?.unwrap_or_else(|| {
+        DEFAULT_TEAMS_SCOPES
+            .iter()
+            .map(|scope| (*scope).to_string())
+            .collect()
+    });
+    if scopes.is_empty()
+        || scopes
+            .iter()
+            .any(|scope| !DEFAULT_TEAMS_SCOPES.contains(&scope.as_str()))
+    {
         return Err(MaenifoldError::InvalidArgument(format!(
             "'scopes' must be omitted or limited to: {}",
             DEFAULT_TEAMS_SCOPES.join(", ")
@@ -144,11 +152,11 @@ fn authenticate_monitor(context: &ToolContext, payload: &Value) -> Result<String
     ))
 }
 
-fn load_monitor_config(root: &Path) -> TeamsMonitorConfig {
-    AgentsConfig::load(root)
+fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
+    Ok(AgentsConfig::load(root)?
         .settings
         .unwrap_or_else(MaenifoldSettings::default)
-        .teams_monitor
+        .teams_monitor)
 }
 
 fn status_value(
@@ -211,10 +219,7 @@ fn optional_nullable_string_vec(
     optional_string_vec(payload, key).map(|value| value.map(Some))
 }
 
-fn optional_nullable_string(
-    payload: &Value,
-    key: &'static str,
-) -> Result<Option<Option<String>>> {
+fn optional_nullable_string(payload: &Value, key: &'static str) -> Result<Option<Option<String>>> {
     let Some(value) = payload.get(key) else {
         return Ok(None);
     };
@@ -287,11 +292,7 @@ fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
     let temp_path = path.with_extension("json.tmp");
     fs::write(&temp_path, content)?;
     fs::rename(&temp_path, &path).map_err(|error| {
-        MaenifoldError::Message(format!(
-            "Failed to replace '{}': {}",
-            path.display(),
-            error
-        ))
+        MaenifoldError::Message(format!("Failed to replace '{}': {}", path.display(), error))
     })
 }
 

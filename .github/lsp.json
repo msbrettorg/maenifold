@@ -3,6 +3,7 @@
     "rust-analyzer": {
       "command": "rust-analyzer",
       "args": [],
+      "initializationTimeoutMs": 180000,
       "fileExtensions": {
         ".rs": "rust"
       }

@@ -70,16 +70,16 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     if let Some(keywords) = optional_string_vec(payload, "keywords")? {
         monitor.handler.keywords = keywords;
     }
-    if let Some(sender_allow_list) = optional_nullable_string_vec(payload, "sender_allow_list")? {
+    if let Some(sender_allow_list) = optional_nullable_string_vec(payload, "senderAllowList")? {
         monitor.handler.sender_allow_list = sender_allow_list;
     }
-    if let Some(sender_deny_list) = optional_nullable_string_vec(payload, "sender_deny_list")? {
+    if let Some(sender_deny_list) = optional_nullable_string_vec(payload, "senderDenyList")? {
         monitor.handler.sender_deny_list = sender_deny_list;
     }
-    if let Some(cooldown_seconds) = optional_u64(payload, "cooldown_seconds")? {
+    if let Some(cooldown_seconds) = optional_u64(payload, "cooldownSeconds")? {
         monitor.handler.cooldown_seconds = cooldown_seconds;
     }
-    if let Some(dispatch_agent) = optional_nullable_string(payload, "dispatch_agent")? {
+    if let Some(dispatch_agent) = optional_nullable_string(payload, "dispatchAgent")? {
         validate_dispatch_agent(&config, dispatch_agent.as_deref())?;
         monitor.dispatch_agent = dispatch_agent;
     }

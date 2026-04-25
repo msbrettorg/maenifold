@@ -6,7 +6,7 @@ This isn't a work log, it's a place for ideas that aren't yet ready to be implem
 
 ## Iteration 20260425-0759
 
-### Shipped (7 tasks)
+### Shipped (9 tasks)
 - **T-220.29** ✅ Align tray-icon workspace version (SDD, 0 remediation)
 - **T-220.23** ✅ Replace window.confirm with AlertDialog (SDD, 0 remediation)
 - **T-220.25** ✅ Remove manual tokenizer fallback (SDD, 1 remediation: path leak)
@@ -14,8 +14,10 @@ This isn't a work log, it's a place for ideas that aren't yet ready to be implem
 - **T-218.5** ✅ CDP click-through matrix (SDD, 9/10 items PASS)
 - **T-220.19** ✅ Harden design-system audit enforcement (SDD, 0 remediation)
 - **T-220.21** ✅ Update UAT and tab tests for Teams (SDD, 0 remediation)
+- **T-220.20** ✅ Sanction file input wrapper (SDD, 0 remediation)
+- **T-220.18** ✅ Surface Teams unread errors (SDD, 0 remediation)
 
-### Stats: 504→511 done (+7 shipped)
+### Stats: 504→513 done (+9 shipped)
 
 ### T-220.27 (serde_yaml) needs epic decomposition
 - serde_yaml has 80+ usage sites across core, gate, pipeline-driver

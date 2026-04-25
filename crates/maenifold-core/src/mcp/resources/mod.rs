@@ -11,6 +11,7 @@ pub mod gate_status;
 pub mod gate_task;
 pub mod graph;
 pub mod pipeline;
+pub mod schedule;
 pub mod subscription;
 mod subscription_worker;
 pub mod teams;
@@ -26,6 +27,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(gate::list_resources());
     resources.extend(graph::list_resources());
     resources.extend(pipeline::list_resources()?);
+    resources.extend(schedule::list_resources());
     resources.extend(teams::list_resources());
     resources.extend(workflow::list_resources());
     Ok(ListResourcesResult {
@@ -40,6 +42,7 @@ pub fn handle_list_resource_templates() -> Result<ListResourceTemplatesResult> {
     resource_templates.extend(agent::list_resource_templates());
     resource_templates.extend(gate::list_resource_templates());
     resource_templates.extend(pipeline::list_resource_templates());
+    resource_templates.extend(schedule::list_resource_templates());
     resource_templates.extend(workflow::list_resource_templates());
     Ok(ListResourceTemplatesResult {
         resource_templates,
@@ -60,6 +63,8 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
         graph::handle_read_resource(uri)
     } else if pipeline::is_pipeline_uri(uri) {
         pipeline::handle_read_resource(uri)
+    } else if schedule::is_schedule_uri(uri) {
+        schedule::handle_read_resource(uri)
     } else if uri.starts_with("teams://") {
         teams::handle_read_resource(uri)
     } else {

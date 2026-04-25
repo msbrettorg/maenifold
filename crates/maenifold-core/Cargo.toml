@@ -25,6 +25,7 @@ parking_lot.workspace = true
 petgraph = { version = "0.8", features = ["stable_graph", "serde-1"] }
 pulldown-cmark.workspace = true
 regex.workspace = true
+croner = "3.0.1"
 rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true

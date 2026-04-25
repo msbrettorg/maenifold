@@ -36,7 +36,7 @@ const {
   jobs,
   isLoading,
   isSubmitting,
-  actionJobId,
+  isActionInProgress,
   error,
   statusMessage,
   dialogOpen,
@@ -113,16 +113,16 @@ const {
             <TableCell class="text-sm text-muted-foreground">{{ formatLastRun(job.last_run?.timestamp) }}</TableCell>
             <TableCell>
               <div class="flex flex-wrap justify-end gap-2">
-                <Button type="button" variant="outline" size="sm" :disabled="actionJobId === job.id || isSubmitting" @click="openEditDialog(job)">
+                <Button type="button" variant="outline" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="openEditDialog(job)">
                   <Pencil class="h-3.5 w-3.5" />
                   Edit
                 </Button>
-                <Button type="button" variant="outline" size="sm" :disabled="actionJobId === job.id || isSubmitting" @click="runSchedule(job)">
-                  <Loader2 v-if="actionJobId === job.id" class="h-3.5 w-3.5 animate-spin" />
+                <Button type="button" variant="outline" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="runSchedule(job)">
+                  <Loader2 v-if="isActionInProgress(job.id)" class="h-3.5 w-3.5 animate-spin" />
                   <Play v-else class="h-3.5 w-3.5" />
                   Run now
                 </Button>
-                <Button type="button" variant="destructive" size="sm" :disabled="actionJobId === job.id || isSubmitting" @click="deleteSchedule(job)">
+                <Button type="button" variant="destructive" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="deleteSchedule(job)">
                   <Trash2 class="h-3.5 w-3.5" />
                   Delete
                 </Button>

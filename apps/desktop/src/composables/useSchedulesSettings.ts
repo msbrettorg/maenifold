@@ -33,7 +33,7 @@ export function useSchedulesSettings() {
   const jobs = ref<ScheduleJob[]>([]);
   const isLoading = ref(true);
   const isSubmitting = ref(false);
-  const actionJobId = ref('');
+  const actionJobIds = ref(new Set<string>());
   const error = ref('');
   const statusMessage = ref('');
   const dialogOpen = ref(false);
@@ -124,7 +124,7 @@ export function useSchedulesSettings() {
   function openEditDialog(job: ScheduleJob): void {
     dialogMode.value = 'edit';
     form.id = job.id;
-    form.schedule = job.schedule_human?.trim() || job.schedule;
+    form.schedule = job.schedule || job.schedule_human || '';
     form.agent = job.agent;
     form.prompt = job.prompt;
     form.description = job.description && job.description !== job.id ? job.description : '';
@@ -133,7 +133,12 @@ export function useSchedulesSettings() {
     dialogOpen.value = true;
   }
 
+  function isActionInProgress(id: string): boolean {
+    return actionJobIds.value.has(id);
+  }
+
   async function saveSchedule(): Promise<void> {
+    if (!canSubmit.value) return;
     isSubmitting.value = true;
     error.value = '';
     statusMessage.value = '';
@@ -161,7 +166,7 @@ export function useSchedulesSettings() {
   }
 
   async function runSchedule(job: ScheduleJob): Promise<void> {
-    actionJobId.value = job.id;
+    actionJobIds.value.add(job.id);
     error.value = '';
     statusMessage.value = '';
     try {
@@ -172,13 +177,13 @@ export function useSchedulesSettings() {
     } catch (runError) {
       error.value = runError instanceof Error ? runError.message : String(runError);
     } finally {
-      actionJobId.value = '';
+      actionJobIds.value.delete(job.id);
     }
   }
 
   async function deleteSchedule(job: ScheduleJob): Promise<void> {
     if (!window.confirm(`Delete schedule "${job.id}"?`)) return;
-    actionJobId.value = job.id;
+    actionJobIds.value.add(job.id);
     error.value = '';
     statusMessage.value = '';
     try {
@@ -189,7 +194,7 @@ export function useSchedulesSettings() {
     } catch (deleteError) {
       error.value = deleteError instanceof Error ? deleteError.message : String(deleteError);
     } finally {
-      actionJobId.value = '';
+      actionJobIds.value.delete(job.id);
     }
   }
 
@@ -203,7 +208,7 @@ export function useSchedulesSettings() {
     jobs,
     isLoading,
     isSubmitting,
-    actionJobId,
+    isActionInProgress,
     error,
     statusMessage,
     dialogOpen,

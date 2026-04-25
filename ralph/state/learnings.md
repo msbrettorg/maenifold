@@ -773,3 +773,30 @@ Here's the execution plan:
 - T-218.23 red-team correctly identified that the "all upstreams failed" test (AC8) only rejected empty tools/list
 - A native-only list (e.g., just GetConfig) would pass the test despite being exactly the failure mode AC8 should catch
 - **Lesson: For "should not look healthy when X fails" assertions, define what "healthy" means precisely in the spec. The negation of the obvious failure (empty) is not sufficient — define the positive success case.**
+
+## 2026-04-25 — Iteration 1459 (7 Tasks Shipped)
+
+### Red-team catches path disclosure consistently
+- T-218.38: `extensionPath` used `.display()` to expose absolute paths in MCP status output
+- T-220.10: bare `PathBuf::from(dylib_filename)` fallback enabled DLL search-order hijacking
+- T-223.2: `console.warn` logged full unknown ACP variant payloads, potentially including secrets
+- **Lesson: Add "Do NOT use .display() or expose filesystem paths in status/error output" to ALL SWE prompts. Add "fail closed when no trusted path resolves" for any native library loading.**
+
+### Empty-response detection needs blocks check
+- T-223.2: Initial implementation only checked `message.content?.trim()` but ACP agents can produce visible output via `message.blocks` (images, resources)
+- **Lesson: When checking for "no visible output" in chat UIs, always check BOTH text content AND content blocks.**
+
+### Pre-existing test failures should not block delta-scoped tasks
+- T-218.45 blue-team FAIL because 5 unrelated tests failed (throttle, graph params, executor nodes missing fixtures)
+- T-218.38 blue-team FAIL because no vec0-specific tests exist (pre-existing gap)
+- **Lesson: Blue-team prompts should explicitly scope test runs to changed code. When no delta-specific tests exist, build-only verification is acceptable with a waiver note.**
+
+### POC node_modules must be gitignored immediately
+- poc/copilotkit/app/node_modules and bridge/node_modules were not gitignored, causing massive CRLF warnings during git add
+- **Lesson: When creating POC directories with npm dependencies, add node_modules to .gitignore in the same commit.**
+
+### Duo review catches grounding issues early
+- T-218.44: Dependencies T-218.45/46/47 were falsely claimed as done in memory notes
+- T-218.48: Per-server degraded startup already existed — spec incorrectly claimed to introduce it
+- T-220.14: Existing MCP graph resources had wrong shape for UI needs — spec assumed interchangeability
+- **Lesson: Never trust memory notes about completion status. Always verify via gate status + filesystem. Duo review is the primary defense against hallucinated specs.**

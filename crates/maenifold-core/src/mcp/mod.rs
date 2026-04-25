@@ -65,6 +65,7 @@ struct MaenifoldHandler {
     transport: TransportKind,
     tools: Vec<Tool>,
     gateway: Option<Arc<GatewayState>>,
+    gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
     gateway_startup_error: Option<String>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -89,11 +90,15 @@ impl MaenifoldHandler {
             transport,
             tools,
             gateway: None,
+            gateway_diagnostics: None,
             gateway_startup_error: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
         self.gateway = Some(gateway);
+    }
+    fn set_gateway_diagnostics(&mut self, diagnostics: Arc<crate::mcp::stdio_pool::StdioPool>) {
+        self.gateway_diagnostics = Some(diagnostics);
     }
     fn set_gateway_startup_error(&mut self, error: String) {
         self.gateway_startup_error = Some(error);
@@ -168,7 +173,13 @@ impl ServerHandler for MaenifoldHandler {
     {
         let uri = request.uri.to_string();
         let gateway = self.gateway.clone();
+        let gateway_diagnostics = self.gateway_diagnostics.clone();
         async move {
+            if self::resources::is_gateway_uri(&uri) {
+                return self::resources::handle_gateway_read_resource(&uri, gateway_diagnostics)
+                    .await
+                    .map_err(self::resources::map_resource_error);
+            }
             if uri.starts_with("ui://")
                 && let Some(gateway) = gateway
             {

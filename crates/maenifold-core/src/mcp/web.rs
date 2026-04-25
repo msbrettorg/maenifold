@@ -27,7 +27,7 @@ impl super::MaenifoldMcpServer {
             .fallback(static_handler);
 
         let router = axum::Router::new()
-            .nest_service("/mcp", super::http::service(ct.child_token()))
+            .nest_service("/mcp", super::http::service(ct.child_token(), None, None, None))
             .merge(api)
             .layer(cors);
 

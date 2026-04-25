@@ -1,7 +1,9 @@
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::stdio_pool::StdioPool;
 use rmcp::RoleServer;
 use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
 use rmcp::service::RequestContext;
+use std::sync::Arc;
 
 pub mod agent;
 mod asset;
@@ -9,6 +11,7 @@ pub mod gate;
 pub mod gate_history;
 pub mod gate_status;
 pub mod gate_task;
+mod gateway;
 pub mod graph;
 pub mod pipeline;
 pub mod schedule;
@@ -24,6 +27,7 @@ pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_w
 pub fn handle_list_resources() -> Result<ListResourcesResult> {
     let mut resources = asset::list_resources()?;
     resources.extend(agent::list_resources());
+    resources.extend(gateway::list_resources());
     resources.extend(gate::list_resources());
     resources.extend(graph::list_resources());
     resources.extend(pipeline::list_resources()?);
@@ -70,6 +74,17 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     } else {
         asset::handle_read_resource(uri)
     }
+}
+
+pub fn is_gateway_uri(uri: &str) -> bool {
+    gateway::is_gateway_uri(uri)
+}
+
+pub async fn handle_gateway_read_resource(
+    uri: &str,
+    diagnostics: Option<Arc<StdioPool>>,
+) -> Result<ReadResourceResult> {
+    gateway::handle_read_resource(uri, diagnostics).await
 }
 
 pub fn handle_subscribe(

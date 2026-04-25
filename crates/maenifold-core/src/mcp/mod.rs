@@ -5,6 +5,7 @@ pub mod stdio_pool;
 pub mod stdio_session;
 pub mod tool_routing;
 pub mod gateway_consolidation;
+pub mod gateway_dispatch;
 mod gateway_startup;
 pub(crate) mod tool_utils;
 pub use resources::*;

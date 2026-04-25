@@ -17,10 +17,14 @@ const configStore = useConfigStore();
 const discoveryStore = useMcpToolDiscoveryStore();
 const { agentNames } = storeToRefs(configStore);
 
+type TemplateGalleryIntentFormExpose = { focusIntentInput: () => void };
+
+const intentFormRef = ref<TemplateGalleryIntentFormExpose | null>(null);
 const selectedTemplateId = ref<string | null>(null);
 const intentDraft = ref('');
 const intentError = ref('');
 const intentSubmitting = ref(false);
+const creationNoticeVisible = ref(false);
 
 const discoveredToolNames = computed<ReadonlySet<string>>(
   () => new Set(discoveryStore.allTools.map((tool) => tool.name)),
@@ -39,6 +43,7 @@ const canInstantiate = computed(() => selectedTemplate.value !== null);
 
 function selectTemplate(template: PipelineTemplate): void {
   selectedTemplateId.value = template.id;
+  creationNoticeVisible.value = false;
 }
 
 async function handleInstantiate(): Promise<void> {
@@ -64,6 +69,7 @@ async function handleIntentSubmit(): Promise<void> {
     }
 
     intentDraft.value = '';
+    creationNoticeVisible.value = false;
   } finally {
     intentSubmitting.value = false;
   }
@@ -74,13 +80,24 @@ function handleIntentInput(value: string): void {
   if (intentError.value) {
     intentError.value = '';
   }
+  creationNoticeVisible.value = false;
 }
+
+function resetForNewPipeline(): void {
+  selectedTemplateId.value = null;
+  intentError.value = '';
+  creationNoticeVisible.value = true;
+  intentFormRef.value?.focusIntentInput();
+}
+
+defineExpose({ resetForNewPipeline });
 </script>
 
 <template>
   <ScrollArea class="flex-1 h-full">
   <div class="flex flex-col items-center gap-6 px-8 py-6">
     <TemplateGalleryIntentForm
+      ref="intentFormRef"
       :error="intentError"
       :has-intent-agent="hasIntentAgent"
       :model-value="intentDraft"
@@ -88,6 +105,13 @@ function handleIntentInput(value: string): void {
       @submit="handleIntentSubmit"
       @update:model-value="handleIntentInput"
     />
+    <p
+      v-if="creationNoticeVisible"
+      class="m-0 -mt-4 text-[0.75rem] font-medium text-brand"
+      role="status"
+    >
+      Ready to create a new pipeline.
+    </p>
 
     <section class="flex flex-col items-center gap-3 w-full text-center">
       <div class="mt-6 mb-3 text-[11px] font-semibold tracking-wider text-text-tertiary">

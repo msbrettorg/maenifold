@@ -5,6 +5,8 @@ mod embedding_models_tools;
 mod graph_params;
 #[cfg(test)]
 mod graph_params_tests;
+#[cfg(test)]
+mod generic_tool_tests;
 mod graph_tools;
 mod memory_params;
 mod memory_tools;
@@ -24,15 +26,16 @@ mod thinking_tools;
 mod thinking_workflow_params;
 mod workflow_tools;
 
-use crate::error::{MaenifoldError, Result};
+use crate::error::Result;
 use crate::mcp::McpToolDefinition;
+use serde_json::json;
 
 pub(crate) use params::{
     AcpExecContextBlock, AcpExecImageContext, AcpExecResourceContext, AcpExecTextContext,
 };
 
 pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpToolDefinition> {
-    memory_tools::tool(registry_name)
+    Ok(memory_tools::tool(registry_name)
         .or_else(|| graph_tools::tool(registry_name))
         .or_else(|| thinking_tools::tool(registry_name))
         .or_else(|| pipeline_tools::tool(registry_name))
@@ -40,9 +43,13 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
         .or_else(|| assumption_tools::tool(registry_name))
         .or_else(|| system_tools::tool(registry_name))
         .or_else(|| embedding_models_tools::tool(registry_name))
-        .ok_or_else(|| {
-            MaenifoldError::Message(format!(
-                "Missing MCP tool schema mapping for registry tool {registry_name}"
-            ))
+        .unwrap_or_else(|| {
+            tracing::warn!("No schema mapping for tool {registry_name}, using generic schema");
+            McpToolDefinition {
+                name: registry_name.to_string(),
+                description: "Gateway tool (use learn=true for details)".to_string(),
+                input_schema: json!({ "type": "object" }),
+            }
         })
+    )
 }

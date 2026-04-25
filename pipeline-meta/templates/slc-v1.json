@@ -24,6 +24,8 @@
       "type": "prompt",
       "agent": "researcher",
       "model": "claude-opus-4.6",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are the discovery stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nInvestigate the actual code and design-system surfaces needed for this task. Do not modify files. Return concise discovery notes with concrete file paths and implementation constraints."
     },
@@ -43,6 +45,8 @@
       "type": "prompt",
       "agent": "product-manager",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are the SLC spec stage for gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nUse predecessor discovery context to refine the task file if required. Keep the scope precise, include implementation constraints, and ensure acceptance criteria are testable. Do not implement product code."
     },
@@ -51,6 +55,8 @@
       "type": "prompt",
       "agent": "swe",
       "model": "claude-opus-4.7",
+      "toolMode": "auto",
+      "maxTurns": 10,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are one half of the architect duo reviewing the SLC spec for {{inputs.taskId}}. Do not edit files. Review predecessor context and the task file for feasibility, scope safety, design-system fit, and verification quality. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"]}."
     },
@@ -59,6 +65,8 @@
       "type": "prompt",
       "agent": "swe",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 10,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are one half of the architect duo reviewing the SLC spec for {{inputs.taskId}}. Do not edit files. Review predecessor context and the task file for hidden coupling, missing acceptance criteria, and implementation hazards. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[\"...\"]}."
     },
@@ -89,6 +97,8 @@
       "type": "prompt",
       "agent": "swe",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 25,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are the SWE implementation stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nImplement the approved spec exactly. Keep the delta scoped, follow existing patterns, do not touch git, and run focused verification for the touched area. Return a concise implementation summary."
     },
@@ -108,6 +118,8 @@
       "type": "prompt",
       "agent": "red-team",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are the red-team audit stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nAudit only the implemented delta. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"file\":\"path\",\"line\":1,\"issue\":\"...\",\"fix\":\"...\"}]}."
     },
@@ -116,6 +128,8 @@
       "type": "prompt",
       "agent": "swe",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Use predecessor red-team findings to remediate task {{inputs.taskId}}. Keep fixes scoped, do not touch git, rerun focused verification, and summarize the changes."
     },
@@ -124,6 +138,8 @@
       "type": "prompt",
       "agent": "red-team",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Re-audit the remediated SLC work for task {{inputs.taskId}}. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"file\":\"path\",\"line\":1,\"issue\":\"...\",\"fix\":\"...\"}]}."
     },
@@ -165,6 +181,8 @@
       "type": "prompt",
       "agent": "blue-team",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "You are the blue-team verification stage for SLC gate task {{inputs.taskId}}.\\n\\nWorktree: {{inputs.worktreePath}}\\nCrate: {{inputs.crate}}\\nScoped files: {{inputs.filePaths}}\\n\\nTask spec:\\n{{inputs.taskSpec}}\\n\\nRun focused verification for the implemented change. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"commands\":[\"...\"],\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"issue\":\"...\",\"evidence\":\"...\"}]}."
     },
@@ -173,6 +191,8 @@
       "type": "prompt",
       "agent": "swe",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Use predecessor blue-team findings to remediate task {{inputs.taskId}}. Keep fixes scoped, do not touch git, rerun focused verification, and summarize the changes."
     },
@@ -181,6 +201,8 @@
       "type": "prompt",
       "agent": "blue-team",
       "model": "gpt-5.5",
+      "toolMode": "auto",
+      "maxTurns": 20,
       "cwd": "{{inputs.worktreePath}}",
       "prompt": "Re-run focused verification for remediated task {{inputs.taskId}}. Return ONLY valid JSON: {\"verdict\":\"PASS\"|\"FAIL\",\"summary\":\"...\",\"commands\":[\"...\"],\"findings\":[{\"severity\":\"high\"|\"medium\"|\"low\",\"issue\":\"...\",\"evidence\":\"...\"}]}."
     },

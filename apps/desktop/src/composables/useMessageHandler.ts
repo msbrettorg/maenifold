@@ -211,8 +211,9 @@ export function useMessageHandler({
       }
 
       default:
-        if (import.meta.env.DEV) {
-        }
+        trackEvent('UnknownAcpSessionUpdate', {
+          sessionUpdate: String((update as Record<string, unknown>).sessionUpdate ?? 'unknown'),
+        });
     }
   }
 
@@ -264,6 +265,18 @@ export function useMessageHandler({
           case 'cancelled':
           default:
             break;
+        }
+
+        const lastMsg = session.messages[session.messages.length - 1];
+        const hasVisibleOutput = lastMsg?.role === 'assistant' && (
+          Boolean(lastMsg.content?.trim()) ||
+          Boolean(lastMsg.blocks?.length)
+        );
+        if (response.stopReason === 'end_turn' && !hasVisibleOutput) {
+          pushSystemMessage(
+            session,
+            'Agent completed but returned no visible output. This may indicate the agent does not stream content via ACP session updates.',
+          );
         }
 
         // Track prompt sent

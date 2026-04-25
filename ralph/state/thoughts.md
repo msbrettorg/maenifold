@@ -7,7 +7,7 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1637 — Multi-Track Dispatch
 
-### Shipped This Iteration (10 tasks)
+### Shipped This Iteration (11 tasks)
 - **T-211.1** ✅ Scheduler research (GSD)
 - **T-210.3** ✅ Teams message handler (SDD, 1 remediation)
 - **T-209.6** ✅ Pipeline meta outer loop (SDD, 1 remediation)
@@ -18,6 +18,9 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-210.5** ✅ Teams MCP resources (SDD, 0 remediation)
 - **T-210.6** ✅ ACP dispatch on match (SDD, 1 remediation)
 - **T-211.5** ✅ systemd timer writer (SDD, 1 remediation)
+- **T-211.6** ✅ Supervisor script (SDD, 0 remediation)
+
+### Stats: 427→438 done, 29→18 todo
 
 ### Next Actions
 - T-211.6 (supervisor script) unblocked

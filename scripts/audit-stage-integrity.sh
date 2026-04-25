@@ -183,12 +183,12 @@ audit_file() {
             "transition-note language in " stages[i] " stage: " trim(notes[i]))
         }
 
-        if (stages[i] == "red-team" && agents[i] !~ /red-team/) {
+        if (stages[i] == "red-team" && agents[i] !~ /^(red-team|red_team)$/) {
           violation(stages[i], lines[i],
             "agent/role mismatch: red-team stage recorded by agent " agents[i])
         }
 
-        if (stages[i] == "blue-team" && agents[i] !~ /blue-team/) {
+        if (stages[i] == "blue-team" && agents[i] !~ /^(blue-team|blue_team)$/) {
           violation(stages[i], lines[i],
             "agent/role mismatch: blue-team stage recorded by agent " agents[i])
         }
@@ -196,32 +196,48 @@ audit_file() {
       if (pipeline == "gsd") {
         exit violations ? 1 : 0
       }
-      previous = -1
+      known_pipeline = pipeline == "sdd" || pipeline == "tdd" || pipeline == "lightweight"
+      for (i = 0; i <= 4; i++) {
+        seen[i] = 0
+      }
+      last_idx = -1
+      cancelled_seen = 0
       for (i = 1; i <= count; i++) {
         stage = stages[i]
         if (stage == "cancelled") {
-          previous = -1
+          cancelled_seen = 1
           continue
         }
         idx = expect_idx(pipeline, stage)
         if (idx < 0) {
+          if (known_pipeline) {
+            violation(stage, lines[i],
+              "unexpected stage " stage " for pipeline " pipeline)
+          }
           continue
         }
-        if (stage == "pending") {
-          previous = idx
+        if (idx == 0) {
+          for (j = 0; j <= 4; j++) {
+            seen[j] = 0
+          }
+          seen[0] = 1
+          last_idx = idx
           continue
         }
-        if (previous < 0 && idx != 0) {
+        predecessor = idx - 1
+        if (!seen[predecessor]) {
           violation(stage, lines[i],
-            "stage out of expected order for " pipeline ": " stage " appears before pending")
-        } else if (idx < previous) {
-          violation(stage, lines[i],
-            "stage out of expected order for " pipeline ": " stage " follows " expected_stage(pipeline, previous))
-        } else if (idx > previous + 1) {
-          violation(stage, lines[i],
-            "stage out of expected order for " pipeline ": " stage " appears before " expected_stage(pipeline, previous + 1))
+            "stage out of expected order for " pipeline ": " stage " appears before " expected_stage(pipeline, predecessor))
         }
-        previous = idx
+        seen[idx] = 1
+        last_idx = idx
+      }
+      if (known_pipeline && !cancelled_seen) {
+        terminal_idx = pipeline == "lightweight" ? 3 : 4
+        if (last_idx != terminal_idx) {
+          violation("done", FNR,
+            "missing terminal stage for " pipeline ": expected " expected_stage(pipeline, terminal_idx))
+        }
       }
       exit violations ? 1 : 0
     }
@@ -230,12 +246,6 @@ audit_file() {
 
 files_checked=0
 violations_found=0
-
-if [ -n "$recent_limit" ]; then
-  file_command="ls -1t \"$done_dir\"/*.md 2>/dev/null | head -n $recent_limit"
-else
-  file_command="find \"$done_dir\" -maxdepth 1 -type f -name '*.md' | sort"
-fi
 
 while IFS= read -r task_file; do
   [ -n "$task_file" ] || continue
@@ -246,9 +256,15 @@ while IFS= read -r task_file; do
     printf '%s\n' "$findings"
     violations_found=1
   fi
-done <<EOF
-$(eval "$file_command")
-EOF
+done < <(
+  if [ -n "$recent_limit" ]; then
+    find "$done_dir" -maxdepth 1 -type f -name '*.md' -print0 |
+      xargs -0 ls -t 2>/dev/null |
+      head -n "$recent_limit"
+  else
+    find "$done_dir" -maxdepth 1 -type f -name '*.md' | sort
+  fi
+)
 
 if [ "$files_checked" -eq 0 ]; then
   printf 'No done/ task files found.\n'

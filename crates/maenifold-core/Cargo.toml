@@ -46,7 +46,6 @@ agent-client-protocol-schema = { workspace = true }
 async-trait = { workspace = true }
 rmcp = { workspace = true, features = ["client", "reqwest", "transport-child-process", "transport-streamable-http-client-reqwest", "transport-streamable-http-server"] }
 reqwest.workspace = true
-sacp.workspace = true
 tokio-tungstenite = { version = "0.29", features = ["rustls-tls-webpki-roots"] }
 tower-http.workspace = true
 uuid.workspace = true
@@ -57,7 +56,6 @@ fd-lock.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
 hf-hub.workspace = true
-ndarray = "0.16"
 # T-29.2: RTM FR-35 — system tray icon for --web/--http modes on macOS.
 tray-icon.workspace = true
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
@@ -66,14 +64,9 @@ winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 objc2-core-foundation = { version = "0.3", default-features = false, features = ["std", "CFRunLoop"] }
 
 [dev-dependencies]
-assert_cmd.workspace = true
-ctor = "0.4"
-predicates.workspace = true
 reqwest.workspace = true
 serial_test = "3"
-similar-asserts.workspace = true
 tower = "0.5"
-filetime = "0.2.25"
 
 [[test]]
 name = "gateway_integration"

@@ -30,8 +30,6 @@ parking_lot = "0.12.5"
 reqwest = { version = "0.13", features = ["json"] }
 regex = "1.12.2"
 rmcp = { version = "1.5.0", features = ["server", "transport-io", "macros", "schemars"] }
-sacp = "11.0.0"
-sacp-derive = "11.0.0"
 schemars = "0.8"
 rusqlite = { version = "0.38.0", features = ["bundled", "functions", "load_extension", "modern_sqlite"] }
 serde = { version = "1.0.228", features = ["derive"] }
@@ -69,7 +67,3 @@ hf-hub = { version = "0.5", default-features = false, features = ["tokio", "rust
 
 [workspace.lints.rust]
 warnings = "deny"
-
-[patch.crates-io]
-sacp = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }
-sacp-derive = { git = "https://github.com/agentclientprotocol/symposium-acp.git", rev = "14086c9" }

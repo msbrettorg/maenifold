@@ -1,7 +1,7 @@
 use super::acp_relay::{RelayConfig, RelaySession, SessionLoadParams, SessionSetupParams};
 use super::acp_relay_dispatch::forward_event;
 use super::acp_relay_helpers::{build_modes, resolve_session_cwd, rpc_error};
-use super::acp_relay_mcp::{merge_mcp_servers, prewarm_session, reset_session_connection};
+use super::acp_relay_mcp::{prewarm_session, reset_session_connection};
 use agent_client_protocol as acp;
 use axum::extract::ws::{Message, WebSocket};
 use serde_json::{Value, json};
@@ -80,13 +80,14 @@ pub(super) async fn handle_session_new(
     };
     let app_session_id = active.app_session_id.clone();
     let client_capabilities = active.client_capabilities.clone();
+    reject_client_mcp_servers(&params, request_id.clone(), "session/new")?;
     let request: SessionSetupParams = serde_json::from_value(params)
         .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
+    let _ = request.mcp_servers.len();
     let cwd = resolve_session_cwd(request.cwd, &relay.default_cwd)
         .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
-    let mcp_servers = merge_mcp_servers(&relay.configured_mcp_servers, request.mcp_servers);
-    let session_config_options = request.config_options;
+    let mcp_servers = relay.configured_mcp_servers.clone();
     let (config_options, modes, session_id) = prewarm_session(
         relay,
         &app_session_id,
@@ -94,7 +95,7 @@ pub(super) async fn handle_session_new(
         mcp_servers.clone(),
         client_capabilities,
         None,
-        session_config_options,
+        request.config_options,
         request_id.clone(),
     )
     .await?;
@@ -143,8 +144,10 @@ pub(super) async fn handle_session_load(
             "initialize must be called before session/load",
         )
     })?;
+    reject_client_mcp_servers(&params, request_id.clone(), "session/load")?;
     let request: SessionLoadParams = serde_json::from_value(params)
         .map_err(|error| rpc_error(request_id.clone(), -32602, error.to_string()))?;
+    let _ = request.mcp_servers.len();
     let requested_session_id = request.session_id;
     let app_session_id = active.app_session_id.clone();
     let client_capabilities = active.client_capabilities.clone();
@@ -157,7 +160,7 @@ pub(super) async fn handle_session_load(
         })
         .transpose()?
         .unwrap_or(previous_cwd);
-    let mcp_servers = merge_mcp_servers(&relay.configured_mcp_servers, request.mcp_servers);
+    let mcp_servers = relay.configured_mcp_servers.clone();
 
     // Reset the current connection so the pool key is free for re-prewarm
     reset_session_connection(relay, &app_session_id, request_id.clone()).await?;
@@ -174,7 +177,7 @@ pub(super) async fn handle_session_load(
             role_name: relay.agent_name.clone(),
             app_session_id: app_session_id.clone(),
             cwd: cwd.clone(),
-            auto_approve: true,
+            auto_approve: false,
             mcp_servers: mcp_servers.clone(),
             role_mode: None,
             role_config_options: vec![],
@@ -251,4 +254,47 @@ pub(super) async fn handle_session_load(
         ),
         "modes": modes,
     }))
+}
+
+fn reject_client_mcp_servers(params: &Value, request_id: Value, method: &str) -> Result<(), Value> {
+    let Some(mcp_servers) = params.get("mcpServers") else {
+        return Ok(());
+    };
+    if mcp_servers.as_array().is_none_or(Vec::is_empty) {
+        return Ok(());
+    }
+    Err(rpc_error(
+        request_id,
+        -32602,
+        format!("{method} does not accept client-provided mcpServers"),
+    ))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn rejects_session_new_and_load_client_mcp_server_injection() {
+        for (method, request_id) in [("session/new", json!(7)), ("session/load", json!("load"))] {
+            let error = reject_client_mcp_servers(
+                &json!({
+                    "sessionId": "session-1",
+                    "mcpServers": [{
+                        "type": "stdio",
+                        "name": "evil",
+                        "command": "malicious"
+                    }]
+                }),
+                request_id.clone(),
+                method,
+            )
+            .expect_err("client mcpServers must be rejected");
+            assert_eq!(error["id"], request_id);
+            assert_eq!(error["error"]["code"], json!(-32602));
+            assert_eq!(
+                error["error"]["message"],
+                format!("{method} does not accept client-provided mcpServers")
+            );
+        }
+    }
 }

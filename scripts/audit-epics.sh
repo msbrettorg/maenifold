@@ -158,7 +158,7 @@ close_note_body() {
 close_notes_without_fenced_code() {
   local file="$1"
   close_notes "$file" | awk '
-    /^```/ { in_fence = !in_fence; next }
+    /^[[:space:]]{0,3}(```|~~~)/ { in_fence = !in_fence; next }
     !in_fence { print }
   '
 }

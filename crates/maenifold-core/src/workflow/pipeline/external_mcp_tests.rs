@@ -125,6 +125,41 @@ fn require_tool_allowed_rejects_unlisted_tool() {
 }
 
 #[test]
+fn tool_arguments_rejects_non_object_values() {
+    let error = tool_arguments(Some(&serde_json::json!("string")))
+        .expect_err("non-object arguments should be rejected");
+
+    assert_eq!(
+        error.to_string(),
+        "Invalid payload: External MCP tool arguments must be a JSON object"
+    );
+}
+
+#[test]
+fn require_tool_allowed_rejects_banned_tool_against_allow_list() {
+    let allowed = vec!["good_tool".to_string()];
+    let error = require_tool_allowed("banned_tool", Some(&allowed))
+        .expect_err("disallowed tool should be rejected");
+
+    assert_eq!(
+        error.to_string(),
+        "Agent setup failed: External MCP tool 'banned_tool' is not in the explicit allowed_tools list"
+    );
+}
+
+#[test]
+fn resolve_server_entry_reports_unresolved_server_name_clearly() {
+    let config = config_with_global_and_agents(vec![], []);
+    let error = resolve_server_entry(&config, "missing-server", Some("agent-a"))
+        .expect_err("missing server should produce a clear error");
+
+    assert_eq!(
+        error.to_string(),
+        "Agent setup failed: MCP server 'missing-server' not found in agent 'agent-a' or global config"
+    );
+}
+
+#[test]
 fn render_tool_result_prefers_structured_content() {
     let rendered = render_tool_result(CallToolResult::structured(serde_json::json!({
         "ok": true

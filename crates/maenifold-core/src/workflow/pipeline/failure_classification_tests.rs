@@ -114,3 +114,23 @@ fn classify_empty_response_is_post_prompt() {
         NodeOutcome::Completed { .. } => panic!("empty prompt output should abandon the node"),
     }
 }
+
+#[test]
+fn classify_retryable_error_marks_timeouts_retryable() {
+    let error = MaenifoldError::Message("request timed out while waiting for MCP".to_string());
+
+    let (phase, transient_error_kind) = classify_retryable_error(&error, &error.to_string());
+
+    assert_eq!(phase, FailurePhase::PreExecution);
+    assert_eq!(transient_error_kind, Some("timeout"));
+}
+
+#[test]
+fn classify_retryable_error_marks_cancellations_non_retryable() {
+    let error = MaenifoldError::Message("request canceled by user".to_string());
+
+    let (phase, transient_error_kind) = classify_retryable_error(&error, &error.to_string());
+
+    assert_eq!(phase, FailurePhase::PostPrompt);
+    assert_eq!(transient_error_kind, None);
+}

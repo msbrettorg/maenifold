@@ -3,6 +3,20 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 1745 (Teams UI + Schedule Tools)
+
+### LOC limit + red-team remediation = file split
+- T-211.7 schedule.rs was 288 LOC after SWE (under 300 limit)
+- Red-team found unbounded log reads, remediation added ~63 lines → 351 LOC (over limit)
+- Blue-team correctly caught the LOC violation
+- Had to split into schedule.rs (243) + schedule_logs.rs (114) = 3rd remediation cycle
+- **Lesson: When authoring specs near the 300 LOC limit, budget ~50 LOC headroom for red-team remediation. Target 250 LOC max in initial SWE output.**
+
+### Blue-team catches what PM misses
+- PM knew about the LOC risk (flagged in blue-team prompt) but didn't preemptively split before dispatching blue-team
+- Split SWE added a 3rd remediation cycle that could have been avoided
+- **Lesson: If you know a file will exceed LOC after remediation, split BEFORE dispatching blue-team, not after it fails.**
+
 ## 2026-04-24 — Iteration 1637 (multi-track dispatch)
 
 ### SWE ran `cargo fmt --all` — worktree discarded

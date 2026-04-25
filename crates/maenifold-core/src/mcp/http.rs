@@ -4,6 +4,7 @@ use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::stdio_pool::StdioPool;
 use axum::Router;
 use axum::routing::get;
 use rmcp::transport::streamable_http_server::{
@@ -35,6 +36,7 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
     gateway: Option<Arc<GatewayState>>,
+    gateway_diagnostics: Option<Arc<StdioPool>>,
     gateway_startup_error: Option<String>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
@@ -45,6 +47,9 @@ pub(super) fn service(
                 .map_err(|e| std::io::Error::other(e.to_string()))?;
             if let Some(gateway) = gateway.as_ref() {
                 handler.set_gateway(gateway.clone());
+            }
+            if let Some(diagnostics) = gateway_diagnostics.as_ref() {
+                handler.set_gateway_diagnostics(diagnostics.clone());
             }
             if let Some(error) = gateway_startup_error.as_ref() {
                 handler.set_gateway_startup_error(error.clone());
@@ -108,7 +113,12 @@ impl super::MaenifoldMcpServer {
             GatewayStartup::Failed { error, diagnostics } => (None, Some(error), diagnostics),
         };
         let router = router(
-            service(shutdown_token.child_token(), gateway, gateway_startup_error),
+            service(
+                shutdown_token.child_token(),
+                gateway,
+                pool_for_api.clone(),
+                gateway_startup_error,
+            ),
             ApiState::new(config.clone(), pool_for_api),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
@@ -170,7 +180,7 @@ mod tests {
 
     fn test_router(state: ApiState) -> axum::Router {
         router(
-            service(tokio_util::sync::CancellationToken::new(), None, None),
+            service(tokio_util::sync::CancellationToken::new(), None, None, None),
             state,
         )
         .layer(localhost_cors())

@@ -175,6 +175,16 @@
   --color-border-subtle-65: color-mix(in srgb, var(--color-border-subtle) 65%, transparent);
   --color-border-subtle-75: color-mix(in srgb, var(--color-border-subtle) 75%, transparent);
   --color-border-subtle-80: color-mix(in srgb, var(--color-border-subtle) 80%, transparent);
+
+  /* Gate table progress chips — neutral metadata badges with AA contrast */
+  --color-gate-progress-chip-bg: var(--color-bg-elevated);
+  --color-gate-progress-chip-fg: var(--color-text-text-secondary);
+  --color-gate-progress-chip-hover-bg: var(--color-bg-surface-hover);
+  --color-gate-progress-chip-active-bg: var(--color-bg-surface-hover);
+  --color-gate-progress-chip-active-fg: var(--color-text-text-primary);
+  --color-gate-progress-chip-border: var(--color-border-subtle-75);
+  --color-gate-progress-chip-active-border: var(--color-brand);
+  --color-gate-progress-chip-failed-border: var(--color-danger);
 }
 
 @theme inline {

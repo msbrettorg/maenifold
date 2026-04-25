@@ -800,3 +800,10 @@ Here's the execution plan:
 - T-218.48: Per-server degraded startup already existed — spec incorrectly claimed to introduce it
 - T-220.14: Existing MCP graph resources had wrong shape for UI needs — spec assumed interchangeability
 - **Lesson: Never trust memory notes about completion status. Always verify via gate status + filesystem. Duo review is the primary defense against hallucinated specs.**
+
+### Path sanitization is the #1 red-team finding this iteration
+- T-218.38: extensionPath exposed via .display()
+- T-220.10: bare dylib filename fallback (DLL hijacking)
+- T-223.2: console.warn logged full unknown ACP payloads
+- T-218.48: stderr_tail returned raw unsanitized lines, sanitize_error() missed = and : as path boundaries
+- **Pattern: Every task that adds diagnostic/error output to MCP tools gets caught leaking paths. Add a "sanitize all user-facing strings" step to SWE prompts.**

@@ -16,6 +16,14 @@ impl ScheduleStore {
         Self { base_dir }
     }
 
+    pub(crate) fn base_dir(&self) -> &Path {
+        &self.base_dir
+    }
+
+    pub(crate) fn task_dir(&self, id: &str) -> PathBuf {
+        self.base_dir.join(id)
+    }
+
     pub fn create(&self, task: &ScheduledTask) -> Result<()> {
         validate_schedule_id(&task.id)?;
         if self.exists(&task.id) {
@@ -118,9 +126,6 @@ impl ScheduleStore {
         self.base_dir.join(format!("{id}.json"))
     }
 
-    fn task_dir(&self, id: &str) -> PathBuf {
-        self.base_dir.join(id)
-    }
 }
 
 fn validate_schedule_id(id: &str) -> Result<()> {

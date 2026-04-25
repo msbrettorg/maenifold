@@ -157,6 +157,12 @@ fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
 
 fn infer_runtime_kind(entry: &AgentEntry) -> Result<String> {
     let (binary, args) = entry.command_parts();
+    if binary.trim().is_empty() {
+        return Err(MaenifoldError::AgentSetup(
+            "agent command is empty; configure a real ACP runtime command".to_string(),
+        ));
+    }
+
     let binary_name = Path::new(binary)
         .file_name()
         .and_then(|name| name.to_str())
@@ -165,6 +171,12 @@ fn infer_runtime_kind(entry: &AgentEntry) -> Result<String> {
 
     for candidate in std::iter::once(binary_name.as_str()).chain(args.into_iter()) {
         let normalized = candidate.to_ascii_lowercase();
+        if normalized == "mock" {
+            return Err(MaenifoldError::AgentSetup(
+                "agent command maps to disallowed ACP runtime 'mock'; configure a real ACP runtime"
+                    .to_string(),
+            ));
+        }
         if normalized.contains("claude") {
             return Ok("claude-code".to_string());
         }
@@ -173,9 +185,6 @@ fn infer_runtime_kind(entry: &AgentEntry) -> Result<String> {
         }
         if normalized.contains("gemini") {
             return Ok("gemini-cli".to_string());
-        }
-        if normalized == "mock" {
-            return Ok("mock".to_string());
         }
     }
 
@@ -244,6 +253,36 @@ mod tests {
         assert_eq!(
             infer_runtime_kind(&entry).expect("runtime kind"),
             "claude-code"
+        );
+    }
+
+    #[test]
+    fn infer_runtime_kind_rejects_empty_command() {
+        let entry = AgentEntry {
+            command: "  ".to_string(),
+            env: HashMap::new(),
+            mcp_servers: vec![],
+        };
+
+        let err = infer_runtime_kind(&entry).expect_err("empty command should be rejected");
+        assert!(
+            err.to_string().contains("agent command is empty"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn infer_runtime_kind_rejects_mock_runtime() {
+        let entry = AgentEntry {
+            command: "mock".to_string(),
+            env: HashMap::new(),
+            mcp_servers: vec![],
+        };
+
+        let err = infer_runtime_kind(&entry).expect_err("mock runtime should be rejected");
+        assert!(
+            err.to_string().contains("disallowed ACP runtime 'mock'"),
+            "unexpected error: {err}"
         );
     }
 }

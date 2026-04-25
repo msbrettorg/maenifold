@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, oneshot};
 use super::super::adapter::{acp_log, build_stdio_adapter, friendly_error_message};
 use super::super::worker::{AcpEvent, AcpPromptResult, WorkerMsg, worker_tx};
 use super::cold_start::default_client_capabilities;
-use super::execute_stream::{error_code_from_raw, mock_execute, run_delta_loop};
+use super::execute_stream::{error_code_from_raw, run_delta_loop};
 
 pub async fn execute_runtime(
     runtime_kind: &str,
@@ -25,8 +25,28 @@ pub async fn execute_runtime(
 ) -> AcpPromptResult {
     let normalized = runtime_kind.trim().to_ascii_lowercase();
 
-    if normalized.is_empty() || normalized == "mock" {
-        return mock_execute(role_name, prompt, context);
+    if normalized.is_empty() {
+        return AcpPromptResult {
+            ok: false,
+            output:
+                "ACP runtime_kind is required; mock or empty runtimes are not allowed in production"
+                    .to_string(),
+            error_code: Some("INVALID_RUNTIME".to_string()),
+            deltas: vec![],
+            meta: json!({ "mode": "invalid-runtime", "runtime": runtime_kind }),
+        };
+    }
+
+    if normalized == "mock" {
+        return AcpPromptResult {
+            ok: false,
+            output:
+                "ACP runtime_kind 'mock' is not allowed in production; configure a real ACP runtime"
+                    .to_string(),
+            error_code: Some("INVALID_RUNTIME".to_string()),
+            deltas: vec![],
+            meta: json!({ "mode": "invalid-runtime", "runtime": normalized }),
+        };
     }
 
     let adapter = match build_stdio_adapter(&normalized) {

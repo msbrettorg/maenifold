@@ -7,7 +7,7 @@ use super::super::adapter::{acp_log, clip};
 use super::super::runtime_state::{
     remember_runtime_available_commands, remember_runtime_config_options,
 };
-use super::super::worker::{AcpEvent, AcpPromptResult};
+use super::super::worker::AcpEvent;
 
 #[derive(Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -237,25 +237,5 @@ pub(super) fn error_code_from_raw(raw: &str) -> String {
         "INCOMPATIBLE_VERSION".to_string()
     } else {
         "ACP_ERROR".to_string()
-    }
-}
-
-pub(super) fn mock_execute(role: &str, prompt: &str, ctx: &[(String, String)]) -> AcpPromptResult {
-    let snap = ctx
-        .iter()
-        .map(|(k, v)| format!("{k}={v}"))
-        .collect::<Vec<_>>()
-        .join("; ");
-    let out = format!("{role} prompt: {prompt}. Context: {snap}.");
-    AcpPromptResult {
-        ok: true,
-        output: out.clone(),
-        error_code: None,
-        deltas: out
-            .as_bytes()
-            .chunks(28)
-            .map(|c| String::from_utf8_lossy(c).to_string())
-            .collect(),
-        meta: json!({ "mode": "mock", "agentKind": "mock", "runtimeKey": "mock" }),
     }
 }

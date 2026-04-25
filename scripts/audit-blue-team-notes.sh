@@ -112,16 +112,17 @@ task_id_for_file() {
 acceptance_criteria_section() {
   local file="$1"
   awk '
-    BEGIN { in_section = 0 }
-    /^##[[:space:]]+/ {
-      title = $0
-      sub(/^##[[:space:]]+/, "", title)
-      lower = tolower(title)
-      if (lower ~ /^acceptance criteria[[:space:]]*$/) {
+    BEGIN { in_section = 0; ac_level = 0 }
+    /^#{2,6}[[:space:]]+/ {
+      heading = $0
+      sub(/[[:space:]].*$/, "", heading)
+      level = length(heading)
+      if ($0 ~ /^#{2,6}[[:space:]]+[Aa]cceptance [Cc]riteria/) {
         in_section = 1
+        ac_level = level
         next
       }
-      if (in_section) {
+      if (in_section && level <= ac_level) {
         exit
       }
     }
@@ -198,7 +199,7 @@ for file in "${files[@]}"; do
     fi
   fi
 
-  if (( ac_count > 1 && evidence_rows < ac_count )); then
+  if (( ac_count > 0 && evidence_rows < ac_count )); then
     echo "$task_id: missing per-criterion blue-team evidence in $rel"
     echo "  acceptance criteria: $ac_count; evidence rows with PASS/FAIL/BLOCKED: $evidence_rows"
     ((violations+=1))

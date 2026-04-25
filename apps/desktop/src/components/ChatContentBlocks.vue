@@ -1,25 +1,9 @@
 <script setup lang="ts">
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import type { ContentBlock } from '../lib/types';
+import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import { Card, CardContent } from './ui/card';
 
 defineProps<{ blocks: ContentBlock[] }>();
-
-function renderMarkdown(content: string): string {
-  const parsed = marked.parse(content, { async: false });
-  const html = DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-  const visibleText = html.replace(/<[^>]*>/g, '').trim();
-  if (visibleText.length === 0 && content.trim().length > 0) {
-    const escaped = content
-      .trim()
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-    return `<p>${escaped}</p>`;
-  }
-  return html;
-}
 
 function getImageSrc(block: ContentBlock): string {
   return block.type === 'image' ? `data:${block.mimeType};base64,${block.data}` : '';
@@ -120,15 +104,15 @@ function getBlockAriaLabel(block: ContentBlock): string {
   <Card
     v-for="(block, index) in blocks"
     :key="`${block.type}-${index}`"
-    class="border-border-subtle bg-bg-surface [&+&]:mt-3"
+    class="min-w-0 max-w-full border-border-subtle bg-bg-surface [&+&]:mt-3"
     role="region"
     :aria-label="getBlockAriaLabel(block)"
   >
-    <CardContent class="p-3">
-      <div
+    <CardContent class="min-w-0 p-3">
+      <KnowledgeNoteRenderer
         v-if="block.type === 'text'"
-        class="leading-relaxed text-sm text-text-primary [overflow-wrap:break-word] [word-wrap:break-word] [&_h1]:text-xl [&_h1]:font-semibold [&_h1]:mt-3 [&_h1]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_h3]:mt-3 [&_h3]:mb-2 [&_h4]:text-sm [&_h4]:font-semibold [&_h4]:mt-3 [&_h4]:mb-2 [&_p]:my-2 [&_p]:text-sm [&_ul]:my-2 [&_ul]:pl-6 [&_ul]:list-disc [&_ol]:my-2 [&_ol]:pl-6 [&_ol]:list-decimal [&_li]:my-1 [&_li]:text-sm [&_pre]:p-3 [&_pre]:rounded [&_pre]:overflow-x-auto [&_pre]:bg-bg-app [&_pre]:text-text-secondary [&_pre]:font-mono [&_pre]:text-sm [&_code]:font-mono [&_code]:text-sm [&_table]:block [&_table]:w-full [&_table]:my-3 [&_table]:overflow-x-auto [&_table]:border-collapse [&_table]:text-sm [&_th]:px-3 [&_th]:py-2 [&_th]:border [&_th]:border-border-subtle [&_th]:text-left [&_th]:bg-bg-app [&_th]:font-semibold [&_td]:px-3 [&_td]:py-2 [&_td]:border [&_td]:border-border-subtle [&_td]:text-left [&_tr:nth-child(even)]:bg-bg-app/40 [&_tr:hover]:bg-bg-app [&_a]:text-brand [&_a]:underline"
-        v-html="renderMarkdown(block.text)"
+        :content="block.text"
+        class="text-text-primary"
       />
       <img
         v-else-if="block.type === 'image'"

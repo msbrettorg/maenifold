@@ -1,4 +1,4 @@
-import { mkdir, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
 import { DatabaseSync } from 'node:sqlite';
@@ -42,6 +42,11 @@ export interface Vec0Status {
 }
 
 const RELEASE_URL = 'https://api.github.com/repos/asg017/sqlite-vec/releases/latest';
+const ALLOWED_DOWNLOAD_HOSTS = [
+  'github.com',
+  'objects.githubusercontent.com',
+  'github-releases.githubusercontent.com',
+] as const;
 const MAPPINGS: Vec0Mapping[] = [
   { platform: 'darwin', arch: 'arm64', assetPattern: 'sqlite-vec-*-loadable-macos-aarch64.tar.gz', platformDir: 'osx-arm64', filename: 'vec0.dylib' },
   { platform: 'darwin', arch: 'x64', assetPattern: 'sqlite-vec-*-loadable-macos-x86_64.tar.gz', platformDir: 'osx-x64', filename: 'vec0.dylib' },
@@ -64,6 +69,10 @@ function maenifoldRoot(): string {
 
 function targetPathFor(mapping: Vec0Mapping): string {
   return join(maenifoldRoot(), 'assets', 'native', mapping.platformDir, mapping.filename);
+}
+
+function tempPathFor(targetPath: string): string {
+  return `${targetPath}.tmp`;
 }
 
 async function statFileSize(path: string): Promise<number> {
@@ -96,6 +105,16 @@ function wildcardToRegExp(pattern: string): RegExp {
   return new RegExp(`^${escaped}$`);
 }
 
+function validateDownloadUrl(url: string): void {
+  const parsed = new URL(url);
+  if (parsed.protocol !== 'https:') {
+    throw new Error(`Unsafe download protocol: ${parsed.protocol}`);
+  }
+  if (!ALLOWED_DOWNLOAD_HOSTS.includes(parsed.hostname as (typeof ALLOWED_DOWNLOAD_HOSTS)[number])) {
+    throw new Error(`Untrusted download host: ${parsed.hostname}`);
+  }
+}
+
 async function fetchLatestAsset(mapping: Vec0Mapping): Promise<GitHubReleaseAsset> {
   const response = await fetch(RELEASE_URL, {
     headers: {
@@ -117,6 +136,7 @@ async function fetchLatestAsset(mapping: Vec0Mapping): Promise<GitHubReleaseAsse
 }
 
 async function downloadArchive(url: string, filename: string): Promise<Buffer> {
+  validateDownloadUrl(url);
   const response = await fetch(url, {
     headers: { 'User-Agent': 'maenifold-desktop' },
   });
@@ -198,6 +218,8 @@ async function downloadVec0(): Promise<Vec0Status> {
   }
 
   const targetPath = targetPathFor(mapping);
+  const targetDir = join(maenifoldRoot(), 'assets', 'native', mapping.platformDir);
+  const tempPath = tempPathFor(targetPath);
   const existingSize = await statFileSize(targetPath);
   if (existingSize > 0) {
     return getStatus();
@@ -208,10 +230,15 @@ async function downloadVec0(): Promise<Vec0Status> {
 
   try {
     const extracted = extractTarEntry(gunzipSync(archive), mapping.filename);
-    await mkdir(join(maenifoldRoot(), 'assets', 'native', mapping.platformDir), { recursive: true });
-    await writeFile(targetPath, extracted);
-    verifyLoadable(targetPath);
+    await mkdir(targetDir, { recursive: true });
+    await rm(tempPath, { force: true });
+    await writeFile(tempPath, extracted);
+    verifyLoadable(tempPath);
+    await rename(tempPath, targetPath);
     return await getStatus();
+  } catch (error) {
+    await rm(tempPath, { force: true });
+    throw error;
   } finally {
     activeProgress = null;
   }

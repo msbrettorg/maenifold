@@ -260,26 +260,31 @@ mod tests {
     #[test]
     fn applies_cooldown_per_conversation() {
         let mut handler = MessageHandler::new(config());
-        let conversation_id = "cooldown";
-        let message = message(conversation_id, "help please", "alice");
+        let conversation_id = "conv1";
+        let first_message = message(conversation_id, "help please", "alice");
+        let other_conversation_message = message("conv2", "help please", "alice");
 
-        assert!(handler.handle(&message).is_some());
-        assert!(handler.handle(&message).is_none());
+        assert!(handler.handle(&first_message).is_some());
+        assert!(handler.handle(&first_message).is_none());
+        assert!(handler.handle(&other_conversation_message).is_some());
 
         handler.last_match_by_conversation.insert(
             conversation_id.into(),
             Instant::now() - Duration::from_secs(61),
         );
 
-        assert!(handler.handle(&message).is_some());
+        assert!(handler.handle(&first_message).is_some());
     }
 
     #[test]
     fn strips_html_before_matching() {
-        let mut handler = MessageHandler::new(config());
+        let mut handler = MessageHandler::new(MessageHandlerConfig {
+            keywords: vec!["help me".into()],
+            ..Default::default()
+        });
         let message = message("html", "<b>help</b> me", "alice");
 
         assert_eq!(strip_html(&message.content), "help me");
-        assert!(handler.handle(&message).is_some());
+        assert_eq!(handler.handle(&message).unwrap().matched_keyword, "help me");
     }
 }

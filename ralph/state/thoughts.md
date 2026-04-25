@@ -5,6 +5,38 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-1953 — Test Coverage + Gateway + Vec0
+
+### Shipped
+- **T-05.67** ✅ Vec0 download wizard (SDD, 3 red-team cycles: URL validation, atomic write, redirect host)
+- **T-217.1** ✅ StdioPool error path tests (SDD, 0 remediation)
+- **T-217.3** ✅ Schedule store CRUD tests (SDD, 1 remediation: delete nonexistent fix)
+- **T-217.4** ✅ Cron/launchd edge tests (SDD, 0 remediation)
+- **T-217.5** ✅ Teams handler tests (SDD, 1 remediation: cooldown + HTML stripping)
+- **T-217.7** ✅ Pipeline MCP error tests (SDD, 0 remediation)
+- **T-214.13** ✅ E2E validation (GSD, closed with CDP findings)
+- **T-214.0** ✅ EPIC CLOSED — Session-as-Node Phase 1 (15/15 sub-tasks)
+- **P0 fix** ✅ Missing teams_monitor field in test fixture
+
+### In Progress
+- **T-216.1** ⏳ Gateway consolidation builder (at red-team)
+- **T-217.2** ⏳ Tool routing edge tests (SWE)
+- **T-217.6** ⏳ Teams monitor tool tests (SWE)
+- **T-217.8** ⏳ Pipeline wire validation tests (SWE)
+
+### Stats: 444→452 done
+
+### Key Decisions
+- T-216.1 spec updated per duo review (opus-4.7 + gpt-5.4): added facade naming, schema precedence, edge cases
+- T-05.67 security: URL host allowlist + redirect validation + atomic write. Accepted "no checksum verification" as informational for P2 (sqlite-vec has no checksums, loadability check provides defense-in-depth)
+- T-214.13 closed with known limitation: agent-browser can't right-click for context menu testing
+
+### Next Actions
+- Land T-216.1 through red-team → blue-team → done, then dispatch T-216.2
+- Finish T-217.2/6/8 test tasks
+- T-217.0 epic can close after T-217.2/6/8 ship
+- T-216.0 epic blocked on T-216.1-6 completion
+
 ## Iteration 20260424-1745 — Teams UI + Schedule Tools
 
 ### Shipped

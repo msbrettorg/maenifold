@@ -350,6 +350,17 @@ Manifest/license observations:
 - [x] Avoided recommending micro-dependencies for trivial helpers.
 - [x] Preferred language standard library or existing dependencies before new dependencies.
 
+### Context7 / docs verification note
+
+Context7 lookup was attempted for DOMPurify, JSON Forms, VueUse, the MCP TypeScript SDK, the ACP TypeScript SDK, `rmcp`, `tempfile`, and `fd-lock`, but Context7 returned "Monthly quota exceeded" for each request. The recommendations in this report are therefore **not Context7-backed**. They are grounded in current package metadata, OSV/registry checks, docs.rs, and first-party project documentation fetched directly.
+
+Important feasibility qualifiers:
+
+- `@modelcontextprotocol/sdk` replacement work must target installed v1.x APIs. The main repository README currently describes v2 as pre-alpha and says v1.x remains recommended for production.
+- JSON Forms Vue support exists for Vue 3, but official docs describe the integration as preview. Treat the schema-form replacement as a spike, not a guaranteed drop-in.
+- `fd-lock` provides advisory locks for cooperating processes; it should consolidate existing file locking, not be treated as an access-control boundary.
+- Mermaid is already at the latest observed version while the transitive `uuid` remains below the fixed major. Do not assume a Mermaid upgrade alone fixes the advisory until upstream releases or an override is compatibility-tested.
+
 ### Grounding
 
 - Current repository manifests: `Cargo.toml`, crate-level `Cargo.toml` files, and `apps/desktop/package.json`.

@@ -85,5 +85,8 @@
     "vite-plugin-electron-renderer": "^0.14.6",
     "vitest": "^4.1.4",
     "vue-tsc": "^3.2.7"
+  },
+  "overrides": {
+    "uuid": "^14.0.0"
   }
 }

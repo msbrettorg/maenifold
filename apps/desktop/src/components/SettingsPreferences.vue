@@ -201,6 +201,10 @@ onMounted(async () => {
               <span v-else class="text-muted-foreground">Checking...</span>
             </div>
 
+            <span v-if="voiceStore.lastError" class="text-danger">
+              ⚠ {{ voiceStore.lastError }}
+            </span>
+
             <Button
               v-if="voiceStore.installed"
               variant="outline"

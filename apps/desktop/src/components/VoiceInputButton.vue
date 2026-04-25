@@ -12,7 +12,7 @@ import {
 import { useVoiceHandyStore } from '@/stores/voice-handy';
 
 const voiceHandyStore = useVoiceHandyStore();
-const { installed, running, installHint, enabled } = storeToRefs(voiceHandyStore);
+const { installed, running, installHint, enabled, lastError } = storeToRefs(voiceHandyStore);
 
 const isElectron = computed(() =>
   typeof window !== 'undefined'
@@ -27,6 +27,10 @@ onMounted(() => {
 });
 
 const tooltipText = computed(() => {
+  if (lastError.value) {
+    return `Voice error: ${lastError.value}`;
+  }
+
   if (installed.value === false) {
     return `Install Handy: ${installHint.value}`;
   }
@@ -54,9 +58,10 @@ const tooltipText = computed(() => {
         >
           <Mic class="h-4 w-4" />
           <span
-            v-if="running"
+            v-if="lastError || running"
             aria-hidden="true"
-            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full bg-success"
+            class="absolute bottom-0 right-0 h-1.5 w-1.5 rounded-full"
+            :class="lastError ? 'bg-danger' : 'bg-success'"
           />
         </Button>
       </TooltipTrigger>

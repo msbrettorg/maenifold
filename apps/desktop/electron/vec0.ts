@@ -57,12 +57,12 @@ const MAPPINGS: Vec0Mapping[] = [
   { platform: 'linux', arch: 'x64', assetPattern: 'sqlite-vec-*-loadable-linux-x86_64.tar.gz', platformDir: 'linux-x64', filename: 'vec0.so' },
   { platform: 'win32', arch: 'x64', assetPattern: 'sqlite-vec-*-loadable-windows-x86_64.tar.gz', platformDir: 'win-x64', filename: 'vec0.dll' },
 ];
-const KNOWN_HASHES: Record<string, string | null> = {
-  'darwin-arm64': null, // Set after first verified download
-  'darwin-x64': null,
-  'linux-arm64': null,
-  'linux-x64': null,
-  'win32-x64': null,
+const KNOWN_HASHES: Record<string, string> = {
+  'darwin-arm64': '8282126333399ddfe98bbbcc7a1936e7252625aac49df056a98be602e46bfd29',
+  'darwin-x64': '53ad76e400786515e2edcaed2f01271dda846316390b761fadbd2dcf56aa4713',
+  'linux-arm64': 'ea03d39541e478fab5974253c461e1cb5d77742f69e40cf96e3fad5bc309a37c',
+  'linux-x64': 'b959baa1d8dc88861b1edb337b8587178cdcb12d60b4998f9d10b6a82052d5d7',
+  'win32-x64': '51581189d52066b4dfc6631f6d7a3eab7dedc2260656ab09ca97ab3fb8165983',
 };
 
 let activeProgress: Vec0DownloadProgress | null = null;
@@ -177,13 +177,8 @@ function verifyArchiveIntegrity(archive: Buffer, mapping: Vec0Mapping): void {
   const hash = createHash('sha256').update(archive).digest('hex');
   const key = `${mapping.platform}-${mapping.arch}`;
   const expected = KNOWN_HASHES[key];
-  if (expected === undefined) {
-    console.warn(`[vec0] No pinned SHA-256 for ${key}. Computed SHA-256: ${hash}.`);
-    return;
-  }
-  if (expected === null) {
-    console.warn(`[vec0] First download for ${key}. SHA-256: ${hash}. Pin this hash in KNOWN_HASHES.`);
-    return;
+  if (!expected) {
+    throw new Error(`No pinned SHA-256 for vec0 artifact ${key}. Cannot verify integrity.`);
   }
   if (hash !== expected) {
     throw new Error(

@@ -7,17 +7,15 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1637 — Multi-Track Dispatch
 
-### In Flight
-- **T-210.4** — TeamsMonitor MCP tools (SWE running)
-- **T-211.3** — Cron expression parser (SWE running)
-
-### Shipped This Iteration (6 tasks)
-- **T-211.1** ✅ Scheduler research (GSD, memory note written to tech/scheduling/)
+### Shipped This Iteration (8 tasks)
+- **T-211.1** ✅ Scheduler research (GSD)
 - **T-210.3** ✅ Teams message handler (SDD, 1 remediation)
 - **T-209.6** ✅ Pipeline meta outer loop (SDD, 1 remediation)
 - **T-211.2** ✅ Schedule config schema + storage (SDD, 1 remediation)
-- **T-211.3** ✅ Cron expression parser (SDD, 0 remediation — clean first pass!)
+- **T-211.3** ✅ Cron expression parser (SDD, 0 remediation)
 - **T-210.4** ✅ TeamsMonitor MCP tools (SDD, 1 remediation)
+- **T-211.4** ✅ launchd plist writer (SDD, 1 remediation)
+- **T-210.5** ✅ Teams MCP resources (SDD, 0 remediation)
 
 ### Next Actions
 - T-211.4 (launchd plist writer) is next unblocked in T-211 series

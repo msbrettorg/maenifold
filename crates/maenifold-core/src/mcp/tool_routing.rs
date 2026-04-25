@@ -68,9 +68,40 @@ fn collision(tool: &str, server_a: &str, server_b: &str) -> MaenifoldError {
 #[cfg(test)]
 mod tests {
     use super::ToolRoutingRegistry;
+    use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
     use rmcp::model::Tool;
     use serde_json::{Map, Value};
+    use std::collections::HashMap;
     use std::sync::Arc;
+    use std::time::Duration;
+
+    const PYTHON: &str = "/usr/bin/python3";
+    const GOOD_SERVER: &str = r#"
+import json, sys
+tool_name = sys.argv[1]
+def read_message():
+    while True:
+        line = sys.stdin.readline()
+        if line == "": return None
+        line = line.strip()
+        if line: return json.loads(line)
+def write_message(message):
+    sys.stdout.write(json.dumps(message, separators=(",", ":")) + "\n")
+    sys.stdout.flush()
+while True:
+    message = read_message()
+    if message is None: break
+    method = message.get("method")
+    msg_id = message.get("id")
+    if method == "initialize":
+        write_message({"jsonrpc":"2.0","id":msg_id,"result":{"protocolVersion":"2024-11-05","capabilities":{"tools":{}},"serverInfo":{"name":"test","version":"0.0.1"}}})
+    elif method == "notifications/initialized":
+        continue
+    elif method == "tools/list":
+        write_message({"jsonrpc":"2.0","id":msg_id,"result":{"tools":[{"name":tool_name,"description":"desc","inputSchema":{"type":"object"}}]}})
+    else:
+        write_message({"jsonrpc":"2.0","id":msg_id,"error":{"code":-32601,"message":"unknown method"}})
+"#;
 
     fn tool(name: &str) -> Tool {
         Tool::new(
@@ -78,6 +109,25 @@ mod tests {
             format!("{name} description"),
             Arc::new(Map::<String, Value>::new()),
         )
+    }
+
+    fn server_config(name: &str, tool_name: &str) -> StdioServerConfig {
+        StdioServerConfig {
+            name: name.to_string(),
+            command: PYTHON.to_string(),
+            args: vec!["-u".to_string(), "-c".to_string(), GOOD_SERVER.to_string(), tool_name.to_string()],
+            env: HashMap::new(),
+            timeout: Some(Duration::from_secs(2)),
+        }
+    }
+
+    #[test]
+    fn empty_sources_return_empty_registry_and_missing_lookup() {
+        let registry = ToolRoutingRegistry::build_from_sources(&[], Vec::<(String, Vec<Tool>)>::new())
+            .expect("empty sources should build");
+
+        assert_eq!(registry.lookup("missing-tool"), None);
+        assert!(registry.gateway_tools().is_empty());
     }
 
     #[test]
@@ -135,5 +185,55 @@ mod tests {
             error.to_string(),
             "Tool name collision: 'shared-tool' is provided by both 'server-a' and 'server-b'"
         );
+    }
+
+    #[test]
+    fn gateway_tools_returns_only_gateway_tools() {
+        let registry = ToolRoutingRegistry::build_from_sources(
+            &[tool("native-a"), tool("native-b")],
+            vec![(
+                "server-a".to_string(),
+                vec![tool("gateway-a"), tool("gateway-b")],
+            )],
+        )
+        .expect("registry should build");
+
+        assert_eq!(
+            registry
+                .gateway_tools()
+                .iter()
+                .map(|tool| tool.name.to_string())
+                .collect::<Vec<_>>(),
+            vec!["gateway-a".to_string(), "gateway-b".to_string()]
+        );
+    }
+
+    #[tokio::test]
+    async fn build_delegates_to_build_from_sources() {
+        let native_tools = vec![tool("native-tool")];
+        let pool = StdioPool::start(vec![server_config("server-a", "gateway-a")])
+            .await
+            .expect("pool should start");
+
+        let from_build = ToolRoutingRegistry::build(&native_tools, &pool).expect("build should succeed");
+        let from_sources = ToolRoutingRegistry::build_from_sources(&native_tools, pool.all_gateway_tools())
+            .expect("build_from_sources should succeed");
+
+        assert_eq!(from_build.lookup("native-tool"), from_sources.lookup("native-tool"));
+        assert_eq!(from_build.lookup("gateway-a"), from_sources.lookup("gateway-a"));
+        assert_eq!(
+            from_build
+                .gateway_tools()
+                .iter()
+                .map(|tool| tool.name.to_string())
+                .collect::<Vec<_>>(),
+            from_sources
+                .gateway_tools()
+                .iter()
+                .map(|tool| tool.name.to_string())
+                .collect::<Vec<_>>()
+        );
+
+        pool.shutdown().await;
     }
 }

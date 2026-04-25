@@ -28,6 +28,7 @@ import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 type PipelineIconRailExpose = { focusPipelineToggle: () => void };
+type TemplateGalleryExpose = { resetForNewPipeline: () => void };
 const store = usePipelineStore();
 const provenance = useProvenanceStore();
 const zoomStore = useSemanticZoomStore();
@@ -35,6 +36,7 @@ const { navigateTo } = useProvenanceNavigation();
 const { currentPipelineId, currentView, designMode, error, localDefinition, successMessage, workflows } = storeToRefs(store);
 const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
+const templateGalleryRef = ref<TemplateGalleryExpose | null>(null);
 const { connectionError, showLoadingState, showErrorState, handleRetryLoad } = usePipelineLoading();
 const { isNarrowViewport, mobileSidebarOpen, toggleMobileSidebar } = usePipelineMobile();
 const { graftDialogOpen, graftSubmitting, joinDialogOpen, joinSubmitting, handleGraftSubmit, handleJoinSubmit } = usePipelineDialogs();
@@ -100,9 +102,12 @@ function handlePipelineSelected() {
 function handleNewPipeline() {
   clearInspectorSelection();
   closeConfigModal();
+  store.clearError();
+  store.clearSuccess();
   store.newPipeline();
   closePipelineFlyout();
   if (isNarrowViewport.value) mobileSidebarOpen.value = false;
+  nextTick(() => templateGalleryRef.value?.resetForNewPipeline());
 }
 function handleRunnerToggleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') event.stopPropagation();
@@ -191,7 +196,7 @@ onBeforeUnmount(() => {
             >
               Browse existing pipelines
             </Button>
-            <TemplateGallery />
+            <TemplateGallery ref="templateGalleryRef" />
           </div>
           <template v-else>
             <PipelineComposer

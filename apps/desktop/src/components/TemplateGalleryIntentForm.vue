@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Input } from '@/components/ui/input';
 
 const props = defineProps<{
@@ -12,6 +13,21 @@ const emit = defineEmits<{
   submit: [];
   'update:modelValue': [value: string];
 }>();
+
+const intentInputRef = ref<HTMLElement | { $el?: HTMLElement } | null>(null);
+
+function focusIntentInput(): void {
+  if (intentInputRef.value instanceof HTMLElement) {
+    intentInputRef.value.focus();
+    return;
+  }
+  const inputElement = intentInputRef.value?.$el instanceof HTMLElement
+    ? intentInputRef.value.$el
+    : document.getElementById('pipeline-intent-input');
+  inputElement?.focus();
+}
+
+defineExpose({ focusIntentInput });
 </script>
 
 <template>
@@ -22,6 +38,7 @@ const emit = defineEmits<{
         class="rounded-xl border border-border-card bg-bg-elevated px-4 py-3 shadow-fluent-8 w-full max-w-[800px]"
       >
         <Input
+          ref="intentInputRef"
           id="pipeline-intent-input"
           :model-value="props.modelValue"
           type="text"

@@ -5,6 +5,26 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-1745 — Teams UI + Schedule Tools
+
+### Shipped
+- **T-210.7** ✅ Teams tab Vue (SDD, 0 remediation)
+- **T-210.8** ✅ Teams settings (SDD, 1 remediation: MCP response validation)
+- **T-211.7** ⏳ Schedule MCP tools (SDD, 2 remediation: unbounded log reads + LOC split)
+- **T-210.10** ⏳ Tab badge (lightweight, in blue-team)
+
+### Stats: 438→440+ done (pending blue-team on 2)
+
+### Key Findings
+- T-214.13 CDP testing: Pipeline palette has NO Session node type. Session-as-node may only be accessible via right-click context menu (T-214.8). agent-browser can't right-click — needs tooling fix or manual testing.
+- schedule.rs hit 300 LOC limit after red-team remediation (288 + 63 = 351). Had to split into schedule.rs (243) + schedule_logs.rs (114). Lesson: budget for red-team fixes when authoring specs near LOC limit.
+
+### Next Actions
+- T-211.8 (schedule MCP resources) unblocked after T-211.7 ships
+- T-211.10 (overlap protection) unblocked, P2
+- T-210.9 (MSAL auth) P1, complex, needs research
+- T-214.13 needs manual CDP right-click testing or agent-browser enhancement
+
 ## Iteration 20260424-1637 — Multi-Track Dispatch
 
 ### Shipped This Iteration (11 tasks)

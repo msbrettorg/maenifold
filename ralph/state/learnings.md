@@ -3,6 +3,23 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 0759 (Dependency Hygiene + CDP)
+
+### Red-team catches path leaks that SWEs miss
+- T-220.25 SWE used `model_dir.display()` in error messages despite the spec saying "don't leak internal paths"
+- Red-team correctly flagged it as FAIL
+- PM applied 2-line fix directly (sub-5-line fix rule) and re-audited
+- **Lesson: Always include "Do NOT use .display() or expose filesystem paths in error messages" in SWE prompts for error-handling tasks**
+
+### cargo-machete false positives are rare for direct deps
+- T-220.26 removed all 11 reported deps and all builds passed
+- `sacp` was genuinely unused (previously needed, no longer)
+- **Lesson: For cargo-machete findings, trust-but-verify with grep. Most reports are accurate.**
+
+### serde_yaml removal is epic-scale (80+ usage sites)
+- T-220.27 looks like a simple dep task but serde_yaml is embedded in core frontmatter parsing
+- **Lesson: Always grep for usage count before dispatching dep removal tasks. >20 usages = likely epic.**
+
 ## 2026-04-25 — Iteration 0713 (Security Audit Wave)
 
 ### SWE agents running gate ops is a process violation that cascades

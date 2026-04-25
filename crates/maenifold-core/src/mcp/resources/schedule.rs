@@ -10,6 +10,10 @@ use std::fs;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 
+#[cfg(test)]
+#[path = "schedule_consistency_tests.rs"]
+mod schedule_consistency_tests;
+
 const JOBS_URI: &str = "schedule://jobs";
 const JOB_TEMPLATE_URI: &str = "schedule://job/{id}";
 const LOGS_TEMPLATE_URI: &str = "schedule://logs/{id}";

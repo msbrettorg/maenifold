@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 
 use super::EventMessage;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct MessageHandlerConfig {
     #[serde(default)]
     pub keywords: Vec<String>,
@@ -18,6 +18,17 @@ pub struct MessageHandlerConfig {
     pub sender_deny_list: Option<Vec<String>>,
     #[serde(default = "default_cooldown_seconds")]
     pub cooldown_seconds: u64,
+}
+
+impl Default for MessageHandlerConfig {
+    fn default() -> Self {
+        Self {
+            keywords: Vec::new(),
+            sender_allow_list: None,
+            sender_deny_list: None,
+            cooldown_seconds: default_cooldown_seconds(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

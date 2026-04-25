@@ -1,14 +1,45 @@
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::gateway_schema_validation::{compile_validator, compute_schema_hash};
 use rmcp::model::Tool;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
+use std::fmt;
 use std::sync::Arc;
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct ConsolidatedServerTool {
     pub server_name: String,
     pub tool_catalog: Vec<Tool>,
+    pub tool_validators: HashMap<String, CachedToolValidator>,
     pub facade_tool: Tool,
+}
+
+#[derive(Clone)]
+pub struct CachedToolValidator {
+    pub schema_hash: String,
+    pub validator: Option<Arc<jsonschema::Validator>>,
+}
+
+impl fmt::Debug for ConsolidatedServerTool {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("ConsolidatedServerTool")
+            .field("server_name", &self.server_name)
+            .field("tool_catalog", &self.tool_catalog)
+            .field("tool_validators", &self.tool_validators)
+            .field("facade_tool", &self.facade_tool)
+            .finish()
+    }
+}
+
+impl fmt::Debug for CachedToolValidator {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("CachedToolValidator")
+            .field("schema_hash", &self.schema_hash)
+            .field("has_validator", &self.validator.is_some())
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -53,6 +84,7 @@ pub fn build_consolidated_tools(
 
         consolidated.push(ConsolidatedServerTool {
             server_name: server_name.clone(),
+            tool_validators: cached_tool_validators(&tools),
             tool_catalog: tools.clone(),
             facade_tool: Tool::new(
                 facade_name,
@@ -211,6 +243,22 @@ fn schema_property(type_name: &str, description: &str) -> Value {
 
 fn should_passthrough_server(tools: &[Tool], min_tools_for_consolidation: usize) -> bool {
     tools.len() < min_tools_for_consolidation || tools.iter().any(is_hierarchical_tool)
+}
+
+fn cached_tool_validators(tools: &[Tool]) -> HashMap<String, CachedToolValidator> {
+    tools
+        .iter()
+        .map(|tool| {
+            let schema = Value::Object((*tool.input_schema).clone());
+            (
+                tool_name(tool),
+                CachedToolValidator {
+                    schema_hash: compute_schema_hash(&schema),
+                    validator: compile_validator(&schema),
+                },
+            )
+        })
+        .collect()
 }
 
 fn is_hierarchical_tool(tool: &Tool) -> bool {

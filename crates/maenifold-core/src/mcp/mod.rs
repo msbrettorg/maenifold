@@ -3,6 +3,7 @@ pub mod gateway_dispatch;
 mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
+mod gateway_schema_validation;
 mod gateway_startup;
 pub mod http;
 mod resource_routing;
@@ -128,6 +129,12 @@ impl ServerHandler for MaenifoldHandler {
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
     {
+        if let Some(error) = &self.gateway_startup_error {
+            return std::future::ready(Err(rmcp::ErrorData::internal_error(
+                format!("Gateway startup failed: {error}"),
+                None,
+            )));
+        }
         let mut tools = self.tools.clone();
         if let Some(gateway) = &self.gateway {
             tools.extend(gateway.list_tools());

@@ -2,12 +2,14 @@ use super::{DispatchResult, dispatch_facade_call};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 fn server_with_tools(tools: Vec<Tool>) -> ConsolidatedServerTool {
     ConsolidatedServerTool {
         server_name: "Gateway Server".to_string(),
         tool_catalog: tools.clone(),
+        tool_validators: HashMap::new(),
         facade_tool: Tool::new(
             "gateway_server".to_string(),
             "Gateway facade".to_string(),

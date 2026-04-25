@@ -46,6 +46,7 @@ const ALLOWED_DOWNLOAD_HOSTS = [
   'github.com',
   'objects.githubusercontent.com',
   'github-releases.githubusercontent.com',
+  'release-assets.githubusercontent.com',
 ] as const;
 const MAPPINGS: Vec0Mapping[] = [
   { platform: 'darwin', arch: 'arm64', assetPattern: 'sqlite-vec-*-loadable-macos-aarch64.tar.gz', platformDir: 'osx-arm64', filename: 'vec0.dylib' },
@@ -140,6 +141,7 @@ async function downloadArchive(url: string, filename: string): Promise<Buffer> {
   const response = await fetch(url, {
     headers: { 'User-Agent': 'maenifold-desktop' },
   });
+  validateDownloadUrl(response.url);
   if (!response.ok || !response.body) {
     throw new Error(`Vec0 download failed (${response.status})`);
   }

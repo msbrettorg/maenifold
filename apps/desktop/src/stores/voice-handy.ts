@@ -12,7 +12,8 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
   const running = ref(false);
   const path = ref<string | null>(null);
   const installHint = ref('');
-  const enabled = ref(readStorageValue<boolean>(STORE_NS, ENABLED_KEY) ?? true);
+  const enabled = ref(readStorageValue<boolean>(STORE_NS, ENABLED_KEY) ?? false);
+  const lastError = ref<string | null>(null);
 
   const hasElectronApi = typeof window !== 'undefined'
     && window.electronAPI
@@ -36,8 +37,9 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
       running.value = result.running;
       path.value = result.path;
       installHint.value = result.installHint;
-    } catch {
-      // Silently fail — don't crash the app if IPC is unavailable
+      lastError.value = null;
+    } catch (error: unknown) {
+      lastError.value = error instanceof Error ? error.message : String(error);
     }
   }
 
@@ -49,14 +51,16 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
     try {
       const result = await window.electronAPI.voiceLaunch();
       if (!result.ok) {
+        lastError.value = result.error ?? 'Voice launch failed';
         return;
       }
 
+      lastError.value = null;
       setTimeout(() => {
         void check();
       }, LAUNCH_RECHECK_DELAY_MS);
-    } catch {
-      // Silently fail
+    } catch (error: unknown) {
+      lastError.value = error instanceof Error ? error.message : String(error);
     }
   }
 
@@ -101,6 +105,7 @@ export const useVoiceHandyStore = defineStore('voice-handy', () => {
     path,
     installHint,
     enabled,
+    lastError,
     check,
     launch,
     setEnabled,

@@ -17,16 +17,6 @@ type VoiceLaunchResult = {
 };
 
 function findHandyPath(): string | null {
-  try {
-    const resolver = process.platform === 'win32' ? 'where' : 'which';
-    const result = spawnSync(resolver, ['handy'], { encoding: 'utf8', timeout: 3_000 });
-    if (result.status === 0 && result.stdout.trim()) {
-      return result.stdout.trim().split(/\r?\n/)[0] ?? null;
-    }
-  } catch {
-    /* not in PATH */
-  }
-
   const candidates = process.platform === 'win32'
     ? [
         `${process.env.LOCALAPPDATA || ''}\\Programs\\Handy\\Handy.exe`,

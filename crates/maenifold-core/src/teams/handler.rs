@@ -190,3 +190,96 @@ fn decode_html_entities(text: &str) -> String {
         .replace("&gt;", ">")
         .replace("&amp;", "&")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn config() -> MessageHandlerConfig {
+        MessageHandlerConfig {
+            keywords: vec!["help".into()],
+            cooldown_seconds: 60,
+            ..Default::default()
+        }
+    }
+
+    fn message(conversation_id: &str, content: &str, sender_name: &str) -> EventMessage {
+        EventMessage {
+            message_id: format!("msg-{conversation_id}"),
+            conversation_id: conversation_id.into(),
+            content: content.into(),
+            sender_mri: sender_name.into(),
+            sender_name: sender_name.into(),
+            compose_time: "2026-04-21T00:00:00Z".into(),
+            resource_type: "NewMessage".into(),
+        }
+    }
+
+    #[test]
+    fn matches_keywords_case_insensitively() {
+        let mut handler = MessageHandler::new(config());
+        let result = handler.handle(&message("case-insensitive", "Help me", "alice"));
+
+        assert_eq!(result.unwrap().matched_keyword, "help");
+    }
+
+    #[test]
+    fn returns_none_when_no_keyword_matches() {
+        let mut handler = MessageHandler::new(config());
+
+        assert!(handler.handle(&message("no-match", "hello world", "alice")).is_none());
+    }
+
+    #[test]
+    fn enforces_sender_allow_list() {
+        let mut handler = MessageHandler::new(MessageHandlerConfig {
+            sender_allow_list: Some(vec!["allowed-user".into()]),
+            ..config()
+        });
+
+        assert!(handler
+            .handle(&message("allowed", "help please", "allowed-user"))
+            .is_some());
+        assert!(handler
+            .handle(&message("blocked", "help please", "unknown-user"))
+            .is_none());
+    }
+
+    #[test]
+    fn rejects_denied_sender_even_when_keyword_matches() {
+        let mut handler = MessageHandler::new(MessageHandlerConfig {
+            sender_deny_list: Some(vec!["blocked-user".into()]),
+            ..config()
+        });
+
+        assert!(handler
+            .handle(&message("deny-list", "help please", "blocked-user"))
+            .is_none());
+    }
+
+    #[test]
+    fn applies_cooldown_per_conversation() {
+        let mut handler = MessageHandler::new(config());
+        let conversation_id = "cooldown";
+        let message = message(conversation_id, "help please", "alice");
+
+        assert!(handler.handle(&message).is_some());
+        assert!(handler.handle(&message).is_none());
+
+        handler.last_match_by_conversation.insert(
+            conversation_id.into(),
+            Instant::now() - Duration::from_secs(61),
+        );
+
+        assert!(handler.handle(&message).is_some());
+    }
+
+    #[test]
+    fn strips_html_before_matching() {
+        let mut handler = MessageHandler::new(config());
+        let message = message("html", "<b>help</b> me", "alice");
+
+        assert_eq!(strip_html(&message.content), "help me");
+        assert!(handler.handle(&message).is_some());
+    }
+}

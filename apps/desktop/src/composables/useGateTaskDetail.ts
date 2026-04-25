@@ -194,12 +194,25 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
 
     if (isCurrentRequest()) {
       try {
-        stopTaskBodySubscription = await resources.subscribeResource(bodyUri, () => {
+        const bodySubscription = await resources.subscribeResource(bodyUri, () => {
+          if (!isCurrentRequest()) return;
           void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
         });
-        stopTaskHistorySubscription = await resources.subscribeResource(historyUri, () => {
+        if (!isCurrentRequest()) {
+          bodySubscription();
+          return;
+        }
+        stopTaskBodySubscription = bodySubscription;
+
+        const historySubscription = await resources.subscribeResource(historyUri, () => {
+          if (!isCurrentRequest()) return;
           void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
         });
+        if (!isCurrentRequest()) {
+          historySubscription();
+          return;
+        }
+        stopTaskHistorySubscription = historySubscription;
       } catch {
         // Resource subscriptions are best-effort; manual refresh still works.
       }

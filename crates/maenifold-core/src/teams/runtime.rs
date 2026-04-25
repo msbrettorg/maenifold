@@ -23,6 +23,9 @@ static TEAMS_RUNTIME_STATE: LazyLock<Arc<RwLock<TeamsRuntimeState>>> =
 pub struct TeamsRuntimeState {
     #[serde(rename = "connectionState")]
     pub connection_state: String,
+    pub auth_state: String,
+    pub expires_at: Option<String>,
+    pub last_auth_error: Option<String>,
     pub last_message_at: Option<String>,
     pub last_match_at: Option<String>,
     pub match_count: u32,
@@ -34,6 +37,9 @@ impl Default for TeamsRuntimeState {
     fn default() -> Self {
         Self {
             connection_state: "disabled".to_string(),
+            auth_state: "unauthenticated".to_string(),
+            expires_at: None,
+            last_auth_error: None,
             last_message_at: None,
             last_match_at: None,
             match_count: 0,
@@ -46,6 +52,42 @@ impl Default for TeamsRuntimeState {
 impl TeamsRuntimeState {
     pub fn enabled(&self) -> bool {
         self.connection_state != "disabled"
+    }
+
+    pub fn mark_auth_pending(&mut self) {
+        self.auth_state = "pending".to_string();
+        self.expires_at = None;
+        self.last_auth_error = None;
+    }
+
+    pub fn mark_authenticated(&mut self, expires_at: Option<String>) {
+        self.auth_state = "authenticated".to_string();
+        self.expires_at = expires_at;
+        self.last_auth_error = None;
+    }
+
+    pub fn mark_unauthenticated(&mut self) {
+        self.auth_state = "unauthenticated".to_string();
+        self.expires_at = None;
+        self.last_auth_error = None;
+    }
+
+    pub fn mark_auth_expired(&mut self, message: impl AsRef<str>) {
+        self.auth_state = "expired".to_string();
+        self.expires_at = None;
+        self.last_auth_error = Some(sanitize_auth_error(message.as_ref()));
+    }
+
+    pub fn mark_auth_error(&mut self, message: impl AsRef<str>) {
+        self.auth_state = "error".to_string();
+        self.expires_at = None;
+        self.last_auth_error = Some(sanitize_auth_error(message.as_ref()));
+    }
+
+    pub fn status_expires_at(&self) -> Option<&str> {
+        (self.auth_state == "authenticated")
+            .then_some(self.expires_at.as_deref())
+            .flatten()
     }
 }
 
@@ -67,13 +109,19 @@ pub fn set_teams_connecting() {
 pub fn set_teams_pending_auth() {
     update_teams_runtime_state(|state| {
         state.connection_state = "pending_auth".to_string();
+        state.mark_auth_pending();
         state.last_error = None;
     });
 }
 
 pub fn set_teams_authenticated() {
+    set_teams_authenticated_until(None);
+}
+
+pub fn set_teams_authenticated_until(expires_at: Option<String>) {
     update_teams_runtime_state(|state| {
         state.connection_state = "authenticated".to_string();
+        state.mark_authenticated(expires_at);
         state.last_error = None;
     });
 }
@@ -81,6 +129,7 @@ pub fn set_teams_authenticated() {
 pub fn set_teams_unauthenticated() {
     update_teams_runtime_state(|state| {
         state.connection_state = "unauthenticated".to_string();
+        state.mark_unauthenticated();
         state.active_dispatches = 0;
         state.last_error = None;
     });
@@ -89,15 +138,26 @@ pub fn set_teams_unauthenticated() {
 pub fn set_teams_disabled() {
     update_teams_runtime_state(|state| {
         state.connection_state = "disabled".to_string();
+        state.mark_unauthenticated();
         state.active_dispatches = 0;
         state.last_error = None;
     });
 }
 
+pub fn set_teams_auth_expired(message: impl Into<String>) {
+    update_teams_runtime_state(|state| {
+        state.connection_state = "unauthenticated".to_string();
+        state.mark_auth_expired(message.into());
+        state.active_dispatches = 0;
+    });
+}
+
 pub fn set_teams_error(message: impl Into<String>) {
     update_teams_runtime_state(|state| {
+        let message = message.into();
         state.connection_state = "error".to_string();
-        state.last_error = Some(message.into());
+        state.mark_auth_error(&message);
+        state.last_error = Some(message);
         state.active_dispatches = 0;
     });
 }
@@ -128,5 +188,33 @@ fn emit_teams_status_updated() {
         runtime.block_on(async {
             notify_resource_updated(TEAMS_STATUS_URI).await;
         });
+    }
+}
+
+fn sanitize_auth_error(message: &str) -> String {
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("expired") {
+        "expired".to_string()
+    } else if lower.contains("authorization_pending") || lower.contains("pending") {
+        "authorization_pending".to_string()
+    } else if lower.contains("access_denied") || lower.contains("denied") {
+        "access_denied".to_string()
+    } else if lower.contains("credential") || lower.contains("keyring") {
+        "credential_store_error".to_string()
+    } else if lower.contains("runtime") || lower.contains("tokio") {
+        "runtime_error".to_string()
+    } else if lower.contains("timeout")
+        || lower.contains("connect")
+        || lower.contains("http")
+        || lower.contains("network")
+        || lower.contains("request")
+    {
+        "network_error".to_string()
+    } else if lower.contains("json") || lower.contains("parse") {
+        "response_parse_error".to_string()
+    } else if lower.contains("auth") || lower.contains("oauth") || lower.contains("token") {
+        "authentication_error".to_string()
+    } else {
+        "unknown_error".to_string()
     }
 }

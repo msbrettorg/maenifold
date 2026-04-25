@@ -1,16 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
-import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
-import { Badge } from './ui/badge';
+import { formatStageLabel } from '../lib/gate-display';
 
 const props = defineProps<{ task: GateTask }>();
 
-type DotTone = 'completed' | 'active' | 'failed' | 'pending';
+type DotTone = 'completed' | 'active' | 'pending';
 
 interface Segment {
   label: string;
-  family: string;
   tone: DotTone;
 }
 
@@ -33,7 +31,7 @@ function stageProgress(stage: string, task: GateTask): DotTone {
     }
     if (failedIndex < 0) return 'pending';
     if (stageIndex < failedIndex) return 'completed';
-    if (stageIndex === failedIndex) return 'failed';
+    if (stageIndex === failedIndex) return 'active';
     return 'pending';
   }
 
@@ -47,7 +45,7 @@ function stageProgress(stage: string, task: GateTask): DotTone {
 const segments = computed<Segment[]>(() => {
   if (!props.task.stages.length) {
     const tone: DotTone = isFailedState(props.task.state)
-      ? 'failed'
+      ? 'active'
       : props.task.location === 'done'
         ? 'completed'
         : props.task.state === 'pending'
@@ -55,67 +53,47 @@ const segments = computed<Segment[]>(() => {
           : 'active';
     return [{
       label: formatStageLabel(props.task.state),
-      family: gateStageFamily(props.task.state),
       tone,
     }];
   }
 
   const items: Segment[] = props.task.stages.map((stage) => ({
     label: formatStageLabel(stage),
-    family: gateStageFamily(stage),
     tone: stageProgress(stage, props.task),
   }));
-
-  if (isFailedState(props.task.state)) {
-    items.push({
-      label: formatStageLabel(props.task.state),
-      family: 'failed',
-      tone: 'failed',
-    });
-  }
 
   return items;
 });
 
-const progressLabel = computed(() =>
-  formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state),
-);
-
-function badgeClass(tone: DotTone): string {
-  const interactive =
-    'hover:bg-gate-progress-chip-hover-bg focus-visible:border-gate-progress-chip-active-border focus-visible:text-gate-progress-chip-active-fg';
-
-  if (tone === 'active') {
-    return `${interactive} border-gate-progress-chip-active-border bg-gate-progress-chip-active-bg text-gate-progress-chip-active-fg`;
-  }
-
-  if (tone === 'failed') {
-    return `${interactive} border-gate-progress-chip-failed-border bg-gate-progress-chip-bg text-gate-progress-chip-active-fg`;
-  }
-
-  return `${interactive} border-gate-progress-chip-border bg-gate-progress-chip-bg text-gate-progress-chip-fg`;
+function dotClass(tone: DotTone): string {
+  if (tone === 'completed') return 'bg-status-completed';
+  if (tone === 'active') return 'bg-status-active';
+  return 'bg-status-pending';
 }
 </script>
 
 <template>
   <div class="flex flex-col items-start gap-1.5">
     <div
-      class="flex flex-wrap items-center gap-1"
+      class="flex flex-wrap items-start gap-1.5"
       :aria-label="`${task.taskId} progress`"
     >
-      <template
+      <div
         v-for="segment in segments"
         :key="`${task.taskId}-${segment.label}-${segment.tone}`"
+        class="flex min-w-3 flex-col items-center gap-1"
       >
-        <Badge
-          variant="outline"
-          :class="badgeClass(segment.tone)"
+        <span
+          class="h-1.5 w-1.5 rounded-full"
+          :class="[dotClass(segment.tone), segment.tone === 'active' ? 'animate-pulse' : '']"
           :title="segment.label"
-        >
-          {{ segment.label }}
-        </Badge>
-      </template>
+          aria-hidden="true"
+        />
+        <span
+          v-if="segment.tone === 'active'"
+          class="whitespace-nowrap font-mono text-[10px] leading-none text-muted-foreground"
+        >{{ segment.label }}</span>
+      </div>
     </div>
-    <span class="font-mono text-xs text-muted-foreground">{{ progressLabel }}</span>
   </div>
 </template>

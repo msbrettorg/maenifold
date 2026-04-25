@@ -190,3 +190,111 @@ fn create_sidecar_path(path: &Path, suffix: &str) -> PathBuf {
 fn sync_directory(path: &Path) {
     let _ = fs::File::open(path).and_then(|file| file.sync_all());
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::TimeZone;
+    use tempfile::TempDir;
+
+    fn test_store() -> (TempDir, ScheduleStore) {
+        let temp = TempDir::new().expect("temp dir");
+        let store = ScheduleStore::new(temp.path().join("schedules"));
+        (temp, store)
+    }
+
+    fn test_task(id: &str) -> ScheduledTask {
+        ScheduledTask {
+            id: id.to_owned(),
+            name: format!("task-{id}"),
+            schedule: "0 * * * *".to_owned(),
+            schedule_human: Some("hourly".to_owned()),
+            agent: "swe".to_owned(),
+            prompt: format!("run {id}"),
+            workdir: Some(PathBuf::from("/tmp/workdir")),
+            timeout_seconds: 900,
+            skip_if_running: true,
+            enabled: true,
+            created_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).unwrap(),
+            updated_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).unwrap(),
+            last_run: None,
+        }
+    }
+
+    #[test]
+    fn create_and_read_round_trip() {
+        let (_temp, store) = test_store();
+        let task = test_task("round-trip");
+        store.create(&task).expect("create task");
+        let saved = store.read(&task.id).expect("read task");
+        assert_eq!(
+            serde_json::to_value(&saved).expect("serialize saved"),
+            serde_json::to_value(&task).expect("serialize task")
+        );
+    }
+    #[test]
+    fn duplicate_create_returns_error() {
+        let (_temp, store) = test_store();
+        let task = test_task("duplicate");
+        store.create(&task).expect("initial create");
+        assert!(store.create(&task).is_err());
+    }
+    #[test]
+    fn update_existing_persists_changes() {
+        let (_temp, store) = test_store();
+        let mut task = test_task("update");
+        store.create(&task).expect("create task");
+        let original_updated_at = task.updated_at;
+        task.name = "updated-name".to_owned();
+        task.prompt = "updated prompt".to_owned();
+        task.enabled = false;
+        store.update(&task).expect("update task");
+        let saved = store.read(&task.id).expect("read updated task");
+        assert_eq!(saved.name, "updated-name");
+        assert_eq!(saved.prompt, "updated prompt");
+        assert!(!saved.enabled);
+        assert!(saved.updated_at > original_updated_at);
+    }
+    #[test]
+    fn delete_existing_removes_task() {
+        let (_temp, store) = test_store();
+        let task = test_task("delete-existing");
+        store.create(&task).expect("create task");
+        store.delete(&task.id).expect("delete task");
+        assert!(store.read(&task.id).is_err());
+    }
+    #[test]
+    fn delete_nonexistent_returns_error() {
+        let (_temp, store) = test_store();
+        fs::create_dir_all(store.base_dir()).expect("create base dir");
+        fs::write(store.task_dir("missing-task"), b"not-a-directory").expect("write stray file");
+        assert!(store.delete("missing-task").is_err());
+    }
+    #[test]
+    fn list_skips_malformed_json() {
+        let (_temp, store) = test_store();
+        let alpha = test_task("alpha");
+        let beta = test_task("beta");
+        store.create(&alpha).expect("create alpha");
+        store.create(&beta).expect("create beta");
+        fs::write(store.base_dir().join("malformed.json"), b"{not-json").expect("write malformed");
+        let tasks = store.list().expect("list tasks");
+        assert_eq!(tasks.into_iter().map(|task| task.id).collect::<Vec<_>>(), vec!["alpha", "beta"]);
+    }
+    #[test]
+    fn invalid_schedule_ids_are_rejected() {
+        let (_temp, store) = test_store();
+        assert!(store.create(&test_task("../foo")).is_err());
+        assert!(store.create(&test_task("bad$id")).is_err());
+    }
+    #[test]
+    fn exists_reflects_create_and_delete() {
+        let (_temp, store) = test_store();
+        let task = test_task("exists");
+        assert!(!store.exists(&task.id));
+        store.create(&task).expect("create task");
+        assert!(store.exists(&task.id));
+        store.delete(&task.id).expect("delete task");
+        assert!(!store.exists(&task.id));
+    }
+}

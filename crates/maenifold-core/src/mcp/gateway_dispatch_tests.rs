@@ -176,6 +176,22 @@ fn zero_match_intent_suggests_learn_mode() {
 }
 
 #[test]
+fn overly_broad_intent_returns_error() {
+    let server = server_with_tools(vec![
+        tool("list_users", "List users", json!({"type":"object"})),
+        tool("list_roles", "List roles", json!({"type":"object"})),
+        tool("list_groups", "List groups", json!({"type":"object"})),
+        tool("list_orgs", "List orgs", json!({"type":"object"})),
+        tool("list_teams", "List teams", json!({"type":"object"})),
+        tool("list_repos", "List repos", json!({"type":"object"})),
+    ]);
+    let error = dispatch_facade_call(&server, Some("list"), None, false, json!({}))
+        .expect_err("broad intent should fail");
+
+    assert!(error.to_string().contains("learn=true"));
+}
+
+#[test]
 fn empty_args_return_error() {
     let error = dispatch_facade_call(&sample_server(), None, None, false, json!({}))
         .expect_err("empty args should fail");

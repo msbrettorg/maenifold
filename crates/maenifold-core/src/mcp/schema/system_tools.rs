@@ -47,7 +47,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         ),
         "TeamsMonitor" => derived_tool_definition::<TeamsMonitorParams>(
             registry_name,
-            "Controls the Teams monitor by enabling, disabling, reporting status, or updating monitor configuration.",
+            "Controls the Teams monitor by enabling, disabling, reporting status, updating monitor configuration, or starting device code authentication.",
         ),
         "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,

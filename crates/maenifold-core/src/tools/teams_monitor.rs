@@ -1,9 +1,23 @@
 use super::context::{ToolContext, render, required_string};
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
+use crate::teams::TeamsAuth;
 use serde_json::{Value, json};
 use std::fs;
+use std::future::Future;
 use std::path::Path;
+use std::sync::LazyLock;
+use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
+use tokio::task;
+
+static TEAMS_AUTH_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
+    Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .map_err(|error| format!("Failed to build Teams auth runtime: {error}"))
+});
+const DEFAULT_TEAMS_SCOPES: &[&str] = &["https://api.spaces.skype.com/.default"];
 
 pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let action = required_string(payload, "action")?;
@@ -12,8 +26,9 @@ pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         "disable" => set_enabled(context, false),
         "status" => monitor_status(context),
         "configure" => configure_monitor(context, payload),
+        "authenticate" => authenticate_monitor(context, payload),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: enable, disable, status, configure",
+            "unknown action '{}'. Available: enable, disable, status, configure, authenticate",
             action
         ))),
     }
@@ -96,6 +111,36 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
             monitor_connection_state(&monitor),
             "Teams monitor configuration updated in maenifold.json.",
         ),
+    ))
+}
+
+fn authenticate_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
+    let client_id = required_string(payload, "clientId")?.to_string();
+    let tenant_id = required_string(payload, "tenantId")?.to_string();
+    let scopes = optional_string_vec(payload, "scopes")?
+        .unwrap_or_else(|| DEFAULT_TEAMS_SCOPES.iter().map(|scope| (*scope).to_string()).collect());
+    if scopes.is_empty() || scopes.iter().any(|scope| !DEFAULT_TEAMS_SCOPES.contains(&scope.as_str())) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "'scopes' must be omitted or limited to: {}",
+            DEFAULT_TEAMS_SCOPES.join(", ")
+        )));
+    }
+    let scope_refs = scopes.iter().map(String::as_str).collect::<Vec<_>>();
+    let auth = TeamsAuth::new(client_id.clone(), tenant_id.clone());
+    let info = run_teams_future(auth.initiate_device_code(&scope_refs))
+        .map_err(MaenifoldError::Message)?;
+    Ok(render(
+        context.output_format,
+        json!({
+            "action": "authenticate",
+            "clientId": client_id,
+            "tenantId": tenant_id,
+            "scopes": scopes,
+            "userCode": info.user_code,
+            "verificationUri": info.verification_uri,
+            "expiresIn": info.expires_in,
+            "message": info.message,
+        }),
     ))
 }
 
@@ -192,6 +237,32 @@ fn optional_u64(payload: &Value, key: &'static str) -> Result<Option<u64>> {
         .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be an integer")))
 }
 
+fn run_teams_future<F, T>(future: F) -> std::result::Result<T, String>
+where
+    F: Future<Output = Result<T>>,
+{
+    match Handle::try_current() {
+        Ok(handle) => {
+            if !matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) {
+                return Err(
+                    "Teams authentication requires a multi-thread Tokio runtime when invoked from async context"
+                        .to_string(),
+                );
+            }
+            task::block_in_place(|| handle.block_on(future)).map_err(|error| error.to_string())
+        }
+        Err(_) => teams_auth_runtime()?
+            .block_on(future)
+            .map_err(|error| error.to_string()),
+    }
+}
+
+fn teams_auth_runtime() -> std::result::Result<&'static Runtime, String> {
+    TEAMS_AUTH_RUNTIME
+        .as_ref()
+        .map_err(|message| message.clone())
+}
+
 fn validate_dispatch_agent(config: &AgentsConfig, dispatch_agent: Option<&str>) -> Result<()> {
     let Some(dispatch_agent) = dispatch_agent else {
         return Ok(());
@@ -225,73 +296,5 @@ fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::config::Config;
-    use crate::test_util::ConfigResetGuard;
-    use crate::util::json::OutputFormat;
-    use std::sync::{LazyLock, Mutex};
-    use tempfile::TempDir;
-
-    static TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
-    fn with_context(test: impl FnOnce(&ToolContext)) {
-        let _lock = TEST_LOCK.lock().expect("test lock");
-        let tmp = TempDir::new().expect("temp dir");
-        Config::override_root(tmp.path());
-        Config::set_database_path(tmp.path().join("memory.db"));
-        let config = Config::current();
-        config.ensure_directories().expect("ensure directories");
-        let _guard = ConfigResetGuard;
-        test(&ToolContext::new(config, OutputFormat::Json));
-    }
-
-    fn run(context: &ToolContext, payload: Value) -> Value {
-        serde_json::from_str(&teams_monitor(context, &payload).expect("teams monitor response"))
-            .expect("json response")
-    }
-
-    #[test]
-    fn enable_action_returns_success_with_enabled_true() {
-        with_context(|context| assert_eq!(run(context, json!({"action":"enable"}))["enabled"], true));
-    }
-    #[test]
-    fn disable_action_returns_success_with_enabled_false() {
-        with_context(|context| assert_eq!(run(context, json!({"action":"disable"}))["enabled"], false));
-    }
-    #[test]
-    fn status_action_returns_current_config_state() {
-        with_context(|context| {
-            run(context, json!({"action":"enable"}));
-            assert_eq!(run(context, json!({"action":"status"}))["enabled"], true);
-        });
-    }
-    #[test]
-    fn configure_with_keywords_updates_status() {
-        with_context(|context| {
-            run(context, json!({"action":"configure","keywords":["alpha","beta"]}));
-            assert_eq!(run(context, json!({"action":"status"}))["config"]["keywords"], json!(["alpha", "beta"]));
-        });
-    }
-    #[test]
-    fn unknown_action_returns_valid_action_list() {
-        with_context(|context| {
-            let error = teams_monitor(context, &json!({"action":"bogus"})).expect_err("unknown action");
-            assert_eq!(error.to_string(), "unknown action 'bogus'. Available: enable, disable, status, configure");
-        });
-    }
-    #[test]
-    fn invalid_dispatch_agent_type_returns_type_error() {
-        with_context(|context| {
-            let error = teams_monitor(context, &json!({"action":"configure","dispatchAgent":true})).expect_err("dispatchAgent type error");
-            assert_eq!(error.to_string(), "'dispatchAgent' must be a string");
-        });
-    }
-    #[test]
-    fn invalid_cooldown_seconds_type_returns_type_error() {
-        with_context(|context| {
-            let error = teams_monitor(context, &json!({"action":"configure","cooldownSeconds":"soon"})).expect_err("cooldownSeconds type error");
-            assert_eq!(error.to_string(), "'cooldownSeconds' must be an integer");
-        });
-    }
-}
+#[path = "teams_monitor_tests.rs"]
+mod tests;

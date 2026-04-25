@@ -8,6 +8,9 @@ pub(super) const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::fro
 pub(super) static LIVE_CONNECTION_SEQ: AtomicU64 = AtomicU64::new(1);
 
 pub(crate) fn default_client_capabilities() -> acp::ClientCapabilities {
+    // Filesystem methods are advertised by default, but JockeyUiClient enforces
+    // absolute paths, canonical workspace containment, and explicit parent
+    // directory creation for every fs request.
     acp::ClientCapabilities::new()
         .fs(acp::FileSystemCapabilities::new()
             .read_text_file(true)

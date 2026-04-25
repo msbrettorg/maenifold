@@ -1,5 +1,6 @@
 use agent_client_protocol::{self as acp};
 use serde_json::{Value, json};
+use std::path::PathBuf;
 
 pub(super) use super::client_terminal::shutdown_terminals;
 use super::worker::{AcpEvent, DeltaSlot, permission_requests};
@@ -16,9 +17,14 @@ fn cap_raw(v: Option<Value>) -> Option<Value> {
     }
 }
 
+#[cfg(test)]
+#[path = "client_tests.rs"]
+mod tests;
+
 pub(super) struct JockeyUiClient {
     pub(super) delta_slot: DeltaSlot,
     pub(super) auto_approve: bool,
+    pub(super) workspace_root: PathBuf,
 }
 
 #[async_trait::async_trait(?Send)]
@@ -226,41 +232,14 @@ impl acp::Client for JockeyUiClient {
         &self,
         args: acp::ReadTextFileRequest,
     ) -> acp::Result<acp::ReadTextFileResponse> {
-        let path = args.path;
-        let full = tokio::fs::read_to_string(&path)
-            .await
-            .map_err(|e| acp::Error::new(acp::ErrorCode::InternalError.into(), e.to_string()))?;
-
-        // Apply optional line/limit slicing (1-based per spec)
-        let content = match (args.line, args.limit) {
-            (None, None) => full,
-            (start, limit) => {
-                let start_idx = start.map(|l| l.saturating_sub(1) as usize).unwrap_or(0);
-                let lines: Vec<&str> = full.lines().collect();
-                let slice = &lines[start_idx.min(lines.len())..];
-                let slice = if let Some(n) = limit {
-                    &slice[..n.min(slice.len() as u32) as usize]
-                } else {
-                    slice
-                };
-                slice.join("\n")
-            }
-        };
-
-        Ok(acp::ReadTextFileResponse::new(content))
+        super::client_fs::read_text_file(&self.workspace_root, args).await
     }
 
     async fn write_text_file(
         &self,
         args: acp::WriteTextFileRequest,
     ) -> acp::Result<acp::WriteTextFileResponse> {
-        if let Some(parent) = args.path.parent() {
-            let _ = tokio::fs::create_dir_all(parent).await;
-        }
-        tokio::fs::write(&args.path, &args.content)
-            .await
-            .map_err(|e| acp::Error::new(acp::ErrorCode::InternalError.into(), e.to_string()))?;
-        Ok(acp::WriteTextFileResponse::new())
+        super::client_fs::write_text_file(&self.workspace_root, args).await
     }
 
     async fn create_terminal(

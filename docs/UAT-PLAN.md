@@ -3,7 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-04-19  
 **Status:** Draft  
-**Total Test Cases:** 659
+**Total Test Cases:** 666
 
 ---
 
@@ -48,6 +48,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-004 | Shell | AppTabBar | Pipelines tab | Click tab | Pipeline view displays, tab shows active state | Both |
 | TC-005 | Shell | AppTabBar | Gate tab | Click tab | Gate view displays, tab shows active state | Both |
 | TC-006 | Shell | AppTabBar | Knowledge tab | Click tab | Knowledge explorer displays, tab shows active state | Both |
+| TC-660 | Shell | AppTabBar | Teams tab | Click tab | Teams view displays between Knowledge and Workflows, tab shows active state | Both |
 | TC-007 | Shell | AppTabBar | Workflows tab | Click tab | Workflow authoring page displays, tab shows active state | Both |
 | TC-008 | Shell | AppTabBar | Settings tab | Click tab | Settings view displays, tab shows active state | Both |
 | TC-009 | Shell | AppTabBar | Tab bar | Press Right Arrow on focused tab | Focus moves to next tab | Both |
@@ -764,15 +765,30 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
-## I. Workflow Authoring
+## I. Teams
 
-### I.1 Workflow Authoring Page
+### I.1 Teams Monitor Tab
+
+| TC-ID | Screen | Component | Element | Action | Expected Result | Context |
+|-------|--------|-----------|---------|--------|-----------------|---------|
+| TC-661 | Teams | TeamsTab | Container | Open Teams tab | Teams tab renders without a blank page; Teams Monitor heading is visible | Both |
+| TC-662 | Teams | TeamsTab | Status badge | Observe connected status | Connected state displays with connected label and detail text | Both |
+| TC-663 | Teams | TeamsTab | Status badge | Observe disconnected status | Disconnected state displays with disconnected label and configuration guidance | Both |
+| TC-664 | Teams | TeamsTab | Status badge | Observe error state | Error state displays non-blank recovery detail without crashing the app | Both |
+| TC-665 | Teams | TeamsTab | Open Settings button | Click from empty/unavailable state | Navigates to Settings > Schedules so Teams monitor configuration can be managed | Both |
+| TC-666 | Teams | AppTabBar | Unread badge | Receive unread Teams count > 0, then activate Teams tab | Badge appears only while unread count is greater than 0 and clears when Teams tab activates | Both |
+
+---
+
+## J. Workflow Authoring
+
+### J.1 Workflow Authoring Page
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-392 | Workflows | WorkflowAuthoringPage | Container | Observe | Browser, Tree, Inspector, DraftBar render | Both |
 
-### I.2 Workflow Browser
+### J.2 Workflow Browser
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -781,14 +797,14 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-395 | Workflows | WorkflowBrowser | Import file input | Select JSON file | Workflow imported | Both |
 | TC-396 | Workflows | WorkflowBrowser | Import file input | Select invalid file | Validation error | Both |
 
-### I.3 Workflow Browser List
+### J.3 Workflow Browser List
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-397 | Workflows | WorkflowBrowserList | Workflow select button | Click | Workflow selected, details shown | Both |
 | TC-398 | Workflows | WorkflowBrowserList | Workflow list | Scroll | All workflows accessible | Both |
 
-### I.4 Workflow Browser Filters
+### J.4 Workflow Browser Filters
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -797,7 +813,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-401 | Workflows | WorkflowBrowserFilters | Retry button | Click | Refresh after error | Both |
 | TC-402 | Workflows | WorkflowBrowserFilters | Conflict resolution buttons | Click | Conflict resolved | Both |
 
-### I.5 Workflow Draft Bar
+### J.5 Workflow Draft Bar
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -807,7 +823,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-406 | Workflows | WorkflowDraftBar | Save button | Click | Workflow saved | Both |
 | TC-407 | Workflows | WorkflowDraftBar | Save button | Observe when clean | Button disabled | Both |
 
-### I.6 Workflow Metadata Form
+### J.6 Workflow Metadata Form
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -820,7 +836,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-414 | Workflows | WorkflowMetadataForm | Toggle 1 | Toggle on/off | State changes | Both |
 | TC-415 | Workflows | WorkflowMetadataForm | Toggle 2 | Toggle on/off | State changes | Both |
 
-### I.7 Workflow Step Timeline
+### J.7 Workflow Step Timeline
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -830,7 +846,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-419 | Workflows | WorkflowStepTimeline | Save button | Click | Steps saved | Both |
 | TC-420 | Workflows | WorkflowStepTimeline | Add step button | Click | New step added | Both |
 
-### I.8 Workflow Step Card
+### J.8 Workflow Step Card
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -845,7 +861,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-429 | Workflows | WorkflowStepCard | Confirm remove Remove | Click | Step removed 🔴 | Both |
 | TC-430 | Workflows | WorkflowStepCard | Card | Drag | Card repositions (if drag enabled) | Both |
 
-### I.9 Workflow Step Inspector
+### J.9 Workflow Step Inspector
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -859,9 +875,9 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
-## J. Agents & Templates
+## K. Agents & Templates
 
-### J.1 Agent Selector
+### K.1 Agent Selector
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -870,14 +886,14 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-440 | Various | AgentSelector | Dropdown | Press Escape | Closes without selecting | Both |
 | TC-441 | Various | AgentSelector | Dropdown | Arrow keys | Navigate options | Both |
 
-### J.2 Agent Probe Capabilities
+### K.2 Agent Probe Capabilities
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-442 | Agents | AgentProbeCapabilities | Capability select | Select capability | Capability selected | Both |
 | TC-443 | Agents | AgentProbeCapabilities | Multiple capabilities | Select several | All selections shown | Both |
 
-### J.3 Agent Probe Status
+### K.3 Agent Probe Status
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -885,21 +901,21 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-445 | Agents | AgentProbeStatus | Status | Observe connected | Green/connected style | Both |
 | TC-446 | Agents | AgentProbeStatus | Status | Observe disconnected | Red/disconnected style | Both |
 
-### J.4 Template Gallery Card
+### K.4 Template Gallery Card
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-447 | Templates | TemplateGalleryCard | Select button | Click | Template selected | Both |
 | TC-448 | Templates | TemplateGalleryCard | Card | Observe | Title, description visible | Both |
 
-### J.5 Template Gallery Selection
+### K.5 Template Gallery Selection
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-449 | Templates | TemplateGallerySelection | Create button | Click | Template applied | Both |
 | TC-450 | Templates | TemplateGallerySelection | Selection | Observe | Selected template highlighted | Both |
 
-### J.6 Template Gallery Intent Form
+### K.6 Template Gallery Intent Form
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -909,9 +925,9 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
-## K. Settings
+## L. Settings
 
-### K.1 Settings View
+### L.1 Settings View
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -920,7 +936,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-456 | Settings | SettingsView | Section nav button 3 | Click | Section 3 scrolls into view | Both |
 | TC-457 | Settings | SettingsView | All sections | Scroll | All sections accessible | Both |
 
-### K.2 Settings Auth Identity
+### L.2 Settings Auth Identity
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -940,7 +956,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-471 | Settings | SettingsAuthIdentity | Sign out confirm | Confirm | Signed out, session cleared 🔴 | Both |
 | TC-472 | Settings | SettingsAuthIdentity | Mark reconnected | Click | Connection marked | Both |
 
-### K.3 Settings Connection Agents
+### L.3 Settings Connection Agents
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -952,7 +968,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-478 | Settings | SettingsConnectionAgents | Edit button | Click | Row enters edit mode | Both |
 | TC-479 | Settings | SettingsConnectionAgents | Delete button | Click | Agent deleted 🔴 | Both |
 
-### K.4 Settings Connection Daemon
+### L.4 Settings Connection Daemon
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -961,7 +977,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-482 | Settings | SettingsConnectionDaemon | Status | Observe running | Running indicator | Both |
 | TC-483 | Settings | SettingsConnectionDaemon | Status | Observe stopped | Stopped indicator | Both |
 
-### K.5 Settings Connection Keys
+### L.5 Settings Connection Keys
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -977,7 +993,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-493 | Settings | SettingsConnectionKeys | MCP args input | Type args | Value captured | Both |
 | TC-494 | Settings | SettingsConnectionKeys | Add MCP Server button | Click | New server row added | Both |
 
-### K.6 Settings Maenifold
+### L.6 Settings Maenifold
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -988,7 +1004,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-499 | Settings | SettingsMaenifold | Checkbox | Check/uncheck | State toggles | Both |
 | TC-500 | Settings | SettingsMaenifold | Select | Select option | Option set | Both |
 
-### K.7 Settings MCP Servers List
+### L.7 Settings MCP Servers List
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -996,7 +1012,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-502 | Settings | SettingsMcpServersList | Edit button | Click | Server detail form opens with data | Both |
 | TC-503 | Settings | SettingsMcpServersList | Delete button | Click | Server deleted 🔴 | Both |
 
-### K.8 Settings MCP Servers Detail
+### L.8 Settings MCP Servers Detail
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1009,7 +1025,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-510 | Settings | SettingsMcpServersDetail | Save button | Click with invalid | Validation errors | Both |
 | TC-511 | Settings | SettingsMcpServersDetail | Cancel button | Click | Form closes, no save | Both |
 
-### K.9 Settings Preferences
+### L.9 Settings Preferences
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1017,7 +1033,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-513 | Settings | SettingsPreferences | Telemetry checkbox | Uncheck | Telemetry disabled | Both |
 | TC-514 | Settings | SettingsPreferences | Clear last cwd button | Click | CWD cleared | Both |
 
-### K.10 Settings Models
+### L.10 Settings Models
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1032,9 +1048,9 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
-## L. Diagnostics & Traffic
+## M. Diagnostics & Traffic
 
-### L.1 Traffic Monitor
+### M.1 Traffic Monitor
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1050,7 +1066,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-524 | Traffic | TrafficMonitor | Clear search button | Click | Search cleared | Both |
 | TC-525 | Traffic | TrafficMonitor | Close button | Click | Traffic monitor closes | Both |
 
-### L.2 Traffic Entry
+### M.2 Traffic Entry
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1061,9 +1077,9 @@ Test cases are organized by screen/feature area and cover every interactive elem
 
 ---
 
-## M. Cross-Cutting & Edge Cases
+## N. Cross-Cutting & Edge Cases
 
-### M.1 Keyboard Navigation
+### N.1 Keyboard Navigation
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1072,7 +1088,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-532 | All | All | Focus indicator | Tab to element | Visible focus ring/outline | Both |
 | TC-533 | All | All | Skip links | Tab from top | Skip to main content available | Both |
 
-### M.2 Loading States
+### N.2 Loading States
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1080,7 +1096,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-535 | All | Various | Loading state | Observe completion | Loading indicator disappears | Both |
 | TC-536 | All | Various | Buttons during load | Observe | Buttons disabled during operation | Both |
 
-### M.3 Error States
+### N.3 Error States
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1089,7 +1105,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-539 | All | Various | Validation error | Submit invalid data | Field-level errors shown | Both |
 | TC-540 | All | Various | Retry button | Click after error | Operation retried | Both |
 
-### M.4 Empty States
+### N.4 Empty States
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1098,7 +1114,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-543 | Workflows | WorkflowBrowser | No workflows | Observe | "Create a workflow" prompt | Both |
 | TC-544 | Chat | ChatView | No messages | Observe | Welcome/starter prompt | Both |
 
-### M.5 Max Length & Boundary Conditions
+### N.5 Max Length & Boundary Conditions
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1107,7 +1123,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-547 | Various | Inputs | Number input | Enter negative number | Validation if not allowed | Both |
 | TC-548 | Various | Lists | Long list | 1000+ items | Virtualizes or paginates | Both |
 
-### M.6 Visual Design Tokens
+### N.6 Visual Design Tokens
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1117,7 +1133,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-552 | All | All | Shadows | Observe | Consistent elevation/shadows | Both |
 | TC-553 | All | All | Border radius | Observe | Consistent corner rounding | Both |
 
-### M.7 Z-Index Layering
+### N.7 Z-Index Layering
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1127,7 +1143,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-557 | All | Context menus | Right-click menu | Open menu | Menu above all content | Both |
 | TC-558 | All | Command palette | Palette | Open Cmd+K | Palette above all content | Both |
 
-### M.8 Overflow & Clipping
+### N.8 Overflow & Clipping
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1135,7 +1151,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-560 | All | Lists | Overflow | Many items | Scroll appears, no clipping | Both |
 | TC-561 | All | Cards | Content overflow | Long content | Card expands or scrolls | Both |
 
-### M.9 Responsive Behavior
+### N.9 Responsive Behavior
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1144,7 +1160,7 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-564 | All | Layout | Window | Resize to 768px | Mobile/tablet adaptations | Both |
 | TC-565 | All | Sidebar | Sidebar | At narrow width | Collapses or overlays | Both |
 
-### M.10 Clipboard Operations
+### N.10 Clipboard Operations
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1153,14 +1169,14 @@ Test cases are organized by screen/feature area and cover every interactive elem
 | TC-568 | Various | Inputs | Any input | Cmd+C / Ctrl+C | Selected content copies | Both |
 | TC-569 | Various | Inputs | Any input | Cmd+X / Ctrl+X | Selected content cuts | Both |
 
-### M.11 Undo/Redo
+### N.11 Undo/Redo
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
 | TC-570 | Various | Inputs | Text input | Cmd+Z / Ctrl+Z | Last input undone | Both |
 | TC-571 | Various | Inputs | Text input | Cmd+Shift+Z / Ctrl+Y | Redo works | Both |
 
-### M.12 Design System Primitives (cross-cutting)
+### N.12 Design System Primitives (cross-cutting)
 
 These tests apply to **every** screen/component in the app. Inspect the rendered DOM and Tailwind classes — any violation is a failure regardless of visual appearance. See `apps/desktop/DESIGN.md` for the authoritative spec.
 
@@ -1275,9 +1291,9 @@ These tests apply to **every** screen/component in the app. Inspect the rendered
 
 ---
 
-## N. Context-Specific Tests (Cowork iframe)
+## P. Context-Specific Tests (Cowork iframe)
 
-### N.1 Iframe Limitations
+### P.1 Iframe Limitations
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1286,7 +1302,7 @@ These tests apply to **every** screen/component in the app. Inspect the rendered
 | TC-574 | Settings | SettingsConnectionDaemon | Copy address | Click | Clipboard API works | Cowork iframe |
 | TC-575 | All | Links | External links | Click | Opens in new tab (not iframe) | Cowork iframe |
 
-### N.2 Iframe Communication
+### P.2 Iframe Communication
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|
@@ -1339,7 +1355,7 @@ For each test case, record:
 
 | Category | Count |
 |----------|-------|
-| A. Application Shell | 75 |
+| A. Application Shell | 76 |
 | B. Permissions & Auth Dialogs | 27 |
 | C. Chat Surface | 56 |
 | D. Pipeline View & Composer | 76 |
@@ -1347,21 +1363,22 @@ For each test case, record:
 | F. Thinking/Cognitive Trace | 8 |
 | G. Gate | 29 |
 | H. Knowledge | 24 |
-| I. Workflow Authoring | 46 |
-| J. Agents & Templates | 17 |
-| K. Settings | 69 |
-| L. Diagnostics & Traffic | 15 |
-| M. Cross-Cutting & Edge Cases | 50 |
-| N. Context-Specific (iframe) | 7 |
+| I. Teams | 6 |
+| J. Workflow Authoring | 46 |
+| K. Agents & Templates | 17 |
+| L. Settings | 69 |
+| M. Diagnostics & Traffic | 15 |
+| N. Cross-Cutting & Edge Cases | 50 |
 | O. Onboarding Wizard | 54 |
-| **Total** | **759** |
+| P. Context-Specific (iframe) | 7 |
+| **Total** | **766** |
 
 ---
 
 *Document generated by QA Architect*  
 *Last updated: 2026-04-19*
 
-### K.11 Settings Embeddings (Additional)
+### L.11 Settings Embeddings (Additional)
 
 | TC-ID | Screen | Component | Element | Action | Expected Result | Context |
 |-------|--------|-----------|---------|--------|-----------------|---------|

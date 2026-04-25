@@ -11,6 +11,7 @@ import { useMcpClient } from '@/composables/useMcpClient';
 import { useMcpToolDiscoveryStore } from '@/stores/mcp-tool-discovery';
 import type { ToolCallInfo } from '@/lib/types';
 import type { ToolCallResult } from '@/composables/mcpTransport';
+import { trackEvent } from '@/lib/telemetry';
 
 const props = defineProps<{
   toolCall: ToolCallInfo;
@@ -48,8 +49,8 @@ function unavailableToolError(): ToolCallResult {
   return toolError(toolUnavailableMessage);
 }
 
-function logToolScopeDenied(reason: string, details: Record<string, unknown>): void {
-  console.warn('[McpAppFrame] Denied MCP App tool callback', { reason, ...details });
+function logToolScopeDenied(reason: string, _details: Record<string, unknown>): void {
+  trackEvent('McpAppToolScopeDenied', { reason });
 }
 
 function getToolsForServer(serverName: string) {

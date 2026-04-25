@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, type Component } from 'vue';
-import { storeToRefs } from 'pinia';
 import { MessagesSquare } from 'lucide-vue-next';
 import EmptyState from '@/components/EmptyState.vue';
 import ChatView from '@/components/ChatView.vue';
@@ -37,7 +36,8 @@ const props = withDefaults(defineProps<{
 const mcpResources = useMcpResources();
 const appShellStore = useAppShellStore();
 const sessionStore = useSessionStore();
-const { currentSession, savedSessions } = storeToRefs(sessionStore);
+const currentSession = computed(() => sessionStore.currentSession);
+const savedSessions = computed(() => sessionStore.savedSessions);
 const status = ref<TeamsMonitorStatus>({
   state: 'disconnected',
   label: 'Disconnected',

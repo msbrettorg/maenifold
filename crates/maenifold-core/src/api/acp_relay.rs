@@ -142,7 +142,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
     let mut session: Option<RelaySession> = None;
     let mut pending_prompt: Option<PendingPrompt> = None;
     let mut delta_rx: Option<mpsc::Receiver<jockey::acp::AcpEvent>> = None;
-    let mut result_rx: Option<oneshot::Receiver<Result<(String, String), String>>> = None;
+    let mut result_rx: Option<oneshot::Receiver<jockey::acp::AcpExecuteResult>> = None;
     // NOTE: Permission forwarding infrastructure is dormant while auto_approve is true.
     // The code is retained for future multi-user support but is currently unreachable.
     let mut permission_ids: HashMap<u64, String> = HashMap::new();
@@ -182,7 +182,12 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                 }
             }
             result = async { result_rx.as_mut().expect("result_rx checked by select! guard").await }, if result_rx.is_some() => {
-                let result = result.unwrap_or_else(|_| Err("worker disconnected".to_string()));
+                let result = result.unwrap_or_else(|_| Err(jockey::acp::AcpExecuteError {
+                    message: "worker disconnected".to_string(),
+                    requested_resume: false,
+                    resumed: false,
+                    resume_failure_kind: None,
+                }));
                 if let Some(session_id) = session.as_ref().map(|active| active.session_id.clone()) {
                     while let Some(event) = delta_rx.as_mut().and_then(|rx| rx.try_recv().ok()) {
                         if let Some(active_mut) = session.as_mut() {
@@ -225,7 +230,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
 
 fn prompt_result_payload(
     request_id: Value,
-    result: Result<(String, String), String>,
+    result: jockey::acp::AcpExecuteResult,
     cancelled: bool,
 ) -> Value {
     if cancelled {
@@ -234,47 +239,10 @@ fn prompt_result_payload(
 
     match result {
         Ok(_) => rpc_ok(request_id, json!({"stopReason": "end_turn"})),
-        Err(error) => rpc_error(request_id, -32000, error),
+        Err(error) => rpc_error(request_id, -32000, error.message),
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn cancelled_worker_error_returns_cancelled_stop_reason() {
-        let payload = prompt_result_payload(
-            json!(7),
-            Err("worker disconnected after cancellation".to_string()),
-            true,
-        );
-
-        assert_eq!(payload["jsonrpc"], "2.0");
-        assert_eq!(payload["id"], 7);
-        assert_eq!(payload["result"]["stopReason"], "cancelled");
-        assert!(payload.get("error").is_none());
-    }
-
-    #[test]
-    fn cancelled_worker_success_returns_cancelled_stop_reason() {
-        let payload =
-            prompt_result_payload(json!(8), Ok((String::new(), "session-1".to_string())), true);
-
-        assert_eq!(payload["jsonrpc"], "2.0");
-        assert_eq!(payload["id"], 8);
-        assert_eq!(payload["result"]["stopReason"], "cancelled");
-        assert!(payload.get("error").is_none());
-    }
-
-    #[test]
-    fn non_cancelled_worker_error_returns_json_rpc_error() {
-        let payload = prompt_result_payload(json!(9), Err("agent failed".to_string()), false);
-
-        assert_eq!(payload["jsonrpc"], "2.0");
-        assert_eq!(payload["id"], 9);
-        assert_eq!(payload["error"]["code"], -32000);
-        assert_eq!(payload["error"]["message"], "agent failed");
-        assert!(payload.get("result").is_none());
-    }
-}
+#[path = "acp_relay_tests.rs"]
+mod tests;

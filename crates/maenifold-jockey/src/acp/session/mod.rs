@@ -4,6 +4,7 @@ mod execute;
 mod execute_stream;
 mod mcp;
 mod prewarm;
+pub(crate) mod resume;
 mod session_cmds;
 
 // cold_start is called by worker/handlers.rs via super::super::session::cold_start

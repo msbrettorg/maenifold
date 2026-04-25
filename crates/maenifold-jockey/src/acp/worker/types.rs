@@ -40,6 +40,23 @@ pub struct AcpPromptResult {
     pub meta: Value,
 }
 
+#[derive(Debug)]
+pub struct AcpExecuteSuccess {
+    pub output: String,
+    pub session_id: String,
+    pub resumed: bool,
+}
+
+#[derive(Debug)]
+pub struct AcpExecuteError {
+    pub message: String,
+    pub requested_resume: bool,
+    pub resumed: bool,
+    pub resume_failure_kind: Option<String>,
+}
+
+pub type AcpExecuteResult = Result<AcpExecuteSuccess, AcpExecuteError>;
+
 #[derive(Clone, Serialize)]
 #[serde(
     tag = "kind",
@@ -125,7 +142,7 @@ pub enum WorkerMsg {
         context: Vec<(String, String)>,
         cwd: String,
         delta_tx: mpsc::Sender<AcpEvent>,
-        result_tx: oneshot::Sender<Result<(String, String), String>>,
+        result_tx: oneshot::Sender<AcpExecuteResult>,
         auto_approve: bool,
         mcp_servers: Vec<acp::McpServer>,
         role_mode: Option<String>,

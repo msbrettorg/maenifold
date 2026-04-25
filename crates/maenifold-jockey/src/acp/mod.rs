@@ -20,6 +20,7 @@ pub use session::{
     set_config_option, set_mode,
 };
 pub use worker::{
-    AcpEvent, AcpPromptResult, ConnectionDeathEvent, PrewarmEvent, WorkerMsg,
-    respond_to_permission, set_death_event_sender, set_prewarm_event_sender, shutdown, worker_tx,
+    AcpEvent, AcpExecuteError, AcpExecuteResult, AcpExecuteSuccess, AcpPromptResult,
+    ConnectionDeathEvent, PrewarmEvent, WorkerMsg, respond_to_permission, set_death_event_sender,
+    set_prewarm_event_sender, shutdown, worker_tx,
 };

@@ -101,6 +101,10 @@ Prefer MCP when healthy. Don't retry more than once — switch to CLI.
 
 **The PM operates autonomously.** The PM owns the backlog, dispatches SWEs, advances gate stages, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects. Never stop voluntarily — groom, decompose, dispatch, ship, loop.
 
+**The PM never idles.** After dispatching agents, the PM continues working: grooming the next wave, writing specs for upcoming tasks, running `gate status` to find newly-ready items, or advancing gate stages for completed work. "Waiting for agents to finish" is not a valid PM state — there is always grooming, spec-writing, or gate bookkeeping to do while agents execute.
+
+**Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for immediate dispatch. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get dispatched or triaged, never ignored.
+
 ### SWE Verification Requirements
 
 SWE agents are unreliable narrators. These requirements exist because SWEs have:
@@ -142,12 +146,34 @@ Build passing is necessary but not sufficient.
 - **SWE:** The task is the task. Adjacent problems → report, don't fix.
 - **Sub-PMs:** Max 2 remediation cycles. Unrelated breakage → escalate immediately.
 
-### Parallelization
+### Parallelization — Maximum Throughput Is Mandatory
 
+**The PM's job is to keep agents working.** An idle agent while work remains is a PM failure. Gate is a kanban board — if there is no dependency between two tasks, they run in parallel. Period.
+
+**Dispatch rules:**
+
+- **Lowest task ID first.** When selecting tasks to dispatch, always start from the lowest-numbered pending task and work up. T-05.67 ships before T-217.1. Old backlog items don't get to age indefinitely while new work jumps the queue. The only exception is explicit user prioritization.
+- **Saturate the pipeline.** Every pending task whose dependencies are met MUST be dispatched immediately. Do not wait for one task to complete before starting the next. Use `gate status` to find all ready tasks, dispatch them all.
+- **Wave-based execution.** Group independent tasks into waves. Dispatch the entire wave in one response using parallel `task` calls. Wait for the wave to complete. Dispatch the next wave.
 - **Per-agent build isolation.** Every dispatched SWE MUST run `cargo` with `CARGO_TARGET_DIR=target/agents/<task-id>` (set by the dispatching PM in the task prompt). Workspace-global `target/` is reserved for blue-team and the human. This is the rule that makes parallel SWEs across different crates actually work — without it, cargo's workspace lock silently serializes builds.
 - **Same file is still forbidden.** Different crates → fully parallel. Same file → edit conflict, not a build conflict; still forbidden.
-- Blue-team verification runs against the workspace-global `target/` after the SWE wave completes.
-- One agent per CDP session. Visual audits are serial.
+- **Cross-crate parallelism is the default.** If two tasks touch different crates, they run simultaneously. The PM must explicitly justify serial execution — "I chose not to parallelize because X" — not the reverse.
+- **Red-team parallelism.** After a SWE wave completes, dispatch ALL red-team audits in parallel (one per task). Red-team agents only read code — no conflicts.
+- **Blue-team batching.** After red-team wave completes, dispatch blue-team verification. Blue-team runs against workspace-global `target/`, so batch per-crate to avoid lock contention.
+- **One agent per CDP session.** Visual audits are serial — this is the only exception to the parallelism mandate.
+
+**Throughput targets:**
+
+- Sprint with 6 independent tasks across 3 crates → 2 SWE agents running simultaneously minimum.
+- Sprint with 8 test-only tasks → 4 SWE agents running simultaneously (tests don't conflict across files).
+- If only 1 agent is running at any time during a multi-task sprint, the PM is failing.
+
+**Anti-patterns the PM must not exhibit:**
+
+- Dispatching one task, waiting for completion, dispatching the next. This is serial execution with extra steps.
+- "I'll start with T-X and then do T-Y" when X and Y have no dependency. Start both.
+- Waiting for user confirmation between independent tasks. The PM operates autonomously.
+- Running `gate status` and finding 5 pending tasks but only dispatching 1.
 
 ### Formatting
 

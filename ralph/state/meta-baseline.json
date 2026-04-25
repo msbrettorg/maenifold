@@ -19,348 +19,6 @@
     "issue": ""
   },
   {
-    "taskId": "T-203.0",
-    "canonicalTaskId": "T-203.0",
-    "title": "Epic: MCP Apps host support — inline interactive UIs in chat",
-    "pipeline": "slc",
-    "state": "discovery",
-    "stages": [
-      "pending",
-      "discovery",
-      "spec",
-      "swe",
-      "red-team",
-      "remediate",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-203.0-epic-mcp-apps-host-support.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-203.6",
-    "canonicalTaskId": "T-203.6",
-    "title": "E2E validation — MCP Apps rendering with official example server",
-    "pipeline": "slc",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "discovery",
-      "spec",
-      "swe",
-      "red-team",
-      "remediate",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-203.6-e2e-validation-official-example.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-203.7",
-    "canonicalTaskId": "T-203.7",
-    "title": "Gate MCP server returns 'Session not found' on first call after idle",
-    "pipeline": "sdd",
-    "state": "swe",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-203.7-gate-mcp-session-not-found.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.0",
-    "canonicalTaskId": "T-204.0",
-    "title": "Epic: Adopt Handy speech-to-text companion app",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.0-epic-handy-speech-to-text.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.1",
-    "canonicalTaskId": "T-204.1",
-    "title": "Spike: verify spawn-detached launch from Electron main process",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.1-spike-spawn-detached-electron.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.2",
-    "canonicalTaskId": "T-204.2",
-    "title": "IPC handlers: voice:check + voice:launch in main.ts + preload",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.2-ipc-voice-check-launch.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.3",
-    "canonicalTaskId": "T-204.3",
-    "title": "Pinia store voice-handy.ts with poll-while-focused",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.3-pinia-store-voice-handy.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.4",
-    "canonicalTaskId": "T-204.4",
-    "title": "VoiceInputButton.vue component (DESIGN.md compliant)",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.4-voice-input-button-component.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.5",
-    "canonicalTaskId": "T-204.5",
-    "title": "Wire VoiceInputButton into ChatInputBar.vue toolbar",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.5-wire-into-chat-input-bar.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.6",
-    "canonicalTaskId": "T-204.6",
-    "title": "SettingsPreferences.vue Voice input section + platform hints",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.6-settings-voice-input-section.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-204.7",
-    "canonicalTaskId": "T-204.7",
-    "title": "Platform validation: macOS smoke + Windows/Linux notes",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-204.7-platform-validation.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.0",
-    "canonicalTaskId": "T-207.0",
-    "title": "Epic: MCP Tool Gateway — expose stdio MCP servers through Streamable HTTP",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.0-epic-mcp-gateway.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.1",
-    "canonicalTaskId": "T-207.1",
-    "title": "StdioSession: single-server stdio MCP client with lifecycle",
-    "pipeline": "sdd",
-    "state": "swe",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.1-stdio-session.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.2",
-    "canonicalTaskId": "T-207.2",
-    "title": "StdioPool: server pool manager with eager init and crash recovery",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.2-stdio-pool.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.3",
-    "canonicalTaskId": "T-207.3",
-    "title": "ToolRoutingRegistry: tool name to server name mapping",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.3-tool-routing-registry.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.4",
-    "canonicalTaskId": "T-207.4",
-    "title": "Extend MaenifoldHandler: delegate call_tool and list_tools",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.4-handler-delegation.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.5",
-    "canonicalTaskId": "T-207.5",
-    "title": "Config: gateway opt-in on McpServerEntry::Stdio",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.5-config-gateway-optin.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.6",
-    "canonicalTaskId": "T-207.6",
-    "title": "Error semantics: JSON-RPC errors, timeouts, cancellation",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.6-error-semantics.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
     "taskId": "T-207.7",
     "canonicalTaskId": "T-207.7",
     "title": "Rust integration test + dashboard demo page",
@@ -375,43 +33,6 @@
     "attempts": 0,
     "location": "todo",
     "path": "./todo/T-207.7-integration-test-demo.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.8",
-    "canonicalTaskId": "T-207.8",
-    "title": "Migrate pipeline driver external_mcp.rs to use StdioPool",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.8-pipeline-driver-migration.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-207.9",
-    "canonicalTaskId": "T-207.9",
-    "title": "Migrate /api/discovery/mcp-tools to use StdioPool cache",
-    "pipeline": "lightweight",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-207.9-discovery-pool-cache.md",
     "linked": false,
     "issue": ""
   },
@@ -434,120 +55,6 @@
     "attempts": 0,
     "location": "todo",
     "path": "./todo/T-209.0-epic-pipeline-driven-delivery.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.1",
-    "canonicalTaskId": "T-209.1",
-    "title": "Extend NodeState with startedAt/completedAt/token telemetry",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.1-nodestate-telemetry.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.2",
-    "canonicalTaskId": "T-209.2",
-    "title": "Author SDD pipeline template (sdd-v1.json)",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.2-sdd-pipeline-template.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.3",
-    "canonicalTaskId": "T-209.3",
-    "title": "Author lightweight and TDD pipeline templates",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.3-lightweight-tdd-templates.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.4",
-    "canonicalTaskId": "T-209.4",
-    "title": "Write pipeline-meta.sh inner execution loop",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.4-pipeline-meta-inner-loop.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.5",
-    "canonicalTaskId": "T-209.5",
-    "title": "Pipeline score function and metrics aggregation",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.5-score-function-metrics.md",
-    "linked": false,
-    "issue": ""
-  },
-  {
-    "taskId": "T-209.6",
-    "canonicalTaskId": "T-209.6",
-    "title": "Pipeline meta-agent outer optimization loop",
-    "pipeline": "sdd",
-    "state": "pending",
-    "stages": [
-      "pending",
-      "swe",
-      "red-team",
-      "blue-team",
-      "done"
-    ],
-    "attempts": 0,
-    "location": "todo",
-    "path": "./todo/T-209.6-meta-outer-loop.md",
     "linked": false,
     "issue": ""
   },
@@ -593,6 +100,43 @@
     "issue": ""
   },
   {
+    "taskId": "T-210.9",
+    "canonicalTaskId": "T-210.9",
+    "title": "Auth: MSAL device code flow for Teams token",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-210.9-msal-auth.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-210.11",
+    "canonicalTaskId": "T-210.11",
+    "title": "CDP visual verification: full Teams tab walkthrough",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-210.11-teams-cdp-verification.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
     "taskId": "T-211.0",
     "canonicalTaskId": "T-211.0",
     "title": "Epic: Scheduled tasks — OS-native recurring agent dispatch",
@@ -615,9 +159,46 @@
     "issue": ""
   },
   {
-    "taskId": "T-212.0-epic-ralph-console",
-    "canonicalTaskId": null,
-    "title": "T-212.0 Epic: ralph-console — live monitoring for RALPH loop",
+    "taskId": "T-211.9",
+    "canonicalTaskId": "T-211.9",
+    "title": "UI: Schedules section in Settings tab",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-211.9-schedules-settings-ui.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-211.11",
+    "canonicalTaskId": "T-211.11",
+    "title": "CDP visual verification: Schedules settings walkthrough",
+    "pipeline": "lightweight",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-211.11-schedules-cdp-verification.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-214.0",
+    "canonicalTaskId": "T-214.0",
+    "title": "Epic: Session-as-Node Phase 1 — Browse and Wire",
     "pipeline": "slc",
     "state": "pending",
     "stages": [
@@ -632,7 +213,331 @@
     ],
     "attempts": 0,
     "location": "todo",
-    "path": "./todo/T-212.0-epic-ralph-console.md",
+    "path": "./todo/T-214.0-epic-session-as-node-phase1.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-214.13",
+    "canonicalTaskId": "T-214.13",
+    "title": "End-to-end validation — session-as-node pipeline execution",
+    "pipeline": "gsd",
+    "state": "execute",
+    "stages": [
+      "pending",
+      "research",
+      "plan",
+      "execute",
+      "verify",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-214.13-e2e-validation.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.0-gateway-consolidation-epic",
+    "canonicalTaskId": null,
+    "title": "T-216.0 — Intent-Based Gateway Consolidation Epic",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.0-gateway-consolidation-epic.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.1-consolidated-tool-builder",
+    "canonicalTaskId": null,
+    "title": "T-216.1 — ConsolidatedServerTool Builder",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.1-consolidated-tool-builder.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.2-intent-matching-learn-dispatch",
+    "canonicalTaskId": null,
+    "title": "T-216.2 — Intent Matching and Learn Dispatch",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.2-intent-matching-learn-dispatch.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.3-handler-integration",
+    "canonicalTaskId": null,
+    "title": "T-216.3 — MaenifoldHandler Integration",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.3-handler-integration.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.4-auto-description-generation",
+    "canonicalTaskId": null,
+    "title": "T-216.4 — Auto-Description Generation",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.4-auto-description-generation.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.5-small-server-passthrough",
+    "canonicalTaskId": null,
+    "title": "T-216.5 — Small-Server Passthrough",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.5-small-server-passthrough.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-216.6-integration-test",
+    "canonicalTaskId": null,
+    "title": "T-216.6 — Gateway Consolidation Integration Test",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-216.6-integration-test.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.0-test-coverage-sprint",
+    "canonicalTaskId": null,
+    "title": "T-217.0 — Test Coverage Sprint for Recent Changes",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.0-test-coverage-sprint.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.1-stdio-pool-error-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.1 — StdioPool + StdioSession Error Path Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.1-stdio-pool-error-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.2-tool-routing-edge-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.2 — ToolRouting Edge Case Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.2-tool-routing-edge-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.3-schedule-store-crud-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.3 — Schedule Store CRUD Lifecycle Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.3-schedule-store-crud-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.4-cron-launchd-edge-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.4 — Cron Parser + Platform Writer Edge Cases",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.4-cron-launchd-edge-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.5-teams-handler-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.5 — Teams Handler Keyword Matching + Cooldown Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.5-teams-handler-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.6-teams-monitor-tool-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.6 — Teams Monitor Tool Action Dispatch Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.6-teams-monitor-tool-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.7-pipeline-mcp-error-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.7 — Pipeline External MCP Error Path Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.7-pipeline-mcp-error-tests.md",
+    "linked": false,
+    "issue": ""
+  },
+  {
+    "taskId": "T-217.8-pipeline-wire-validation-tests",
+    "canonicalTaskId": null,
+    "title": "T-217.8 — Pipeline Wire Type Validation Tests",
+    "pipeline": "sdd",
+    "state": "pending",
+    "stages": [
+      "pending",
+      "swe",
+      "red-team",
+      "blue-team",
+      "done"
+    ],
+    "attempts": 0,
+    "location": "todo",
+    "path": "./todo/T-217.8-pipeline-wire-validation-tests.md",
     "linked": false,
     "issue": ""
   }

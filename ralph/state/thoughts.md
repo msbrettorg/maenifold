@@ -10,10 +10,12 @@ Stuff you learn should go in ralph/state/learnings.md
 ### Shipped
 - **T-210.7** ✅ Teams tab Vue (SDD, 0 remediation)
 - **T-210.8** ✅ Teams settings (SDD, 1 remediation: MCP response validation)
-- **T-211.7** ⏳ Schedule MCP tools (SDD, 2 remediation: unbounded log reads + LOC split)
-- **T-210.10** ⏳ Tab badge (lightweight, in blue-team)
+- **T-211.7** ✅ Schedule MCP tools (SDD, 2 remediation: unbounded log reads + LOC split)
+- **T-210.10** ✅ Tab badge (lightweight, 0 remediation)
+- **T-211.8** ✅ Schedule MCP resources (SDD, 1 remediation: error semantics)
+- **T-211.10** ✅ Overlap protection (SDD, 1 remediation: path traversal)
 
-### Stats: 438→440+ done (pending blue-team on 2)
+### Stats: 438→444 done
 
 ### Key Findings
 - T-214.13 CDP testing: Pipeline palette has NO Session node type. Session-as-node may only be accessible via right-click context menu (T-214.8). agent-browser can't right-click — needs tooling fix or manual testing.

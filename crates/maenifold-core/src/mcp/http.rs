@@ -3,8 +3,7 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::stdio_pool::StdioPool;
-use crate::mcp::tool_routing::ToolRoutingRegistry;
+use crate::mcp::gateway_handler::GatewayState;
 use axum::Router;
 use axum::routing::get;
 use rmcp::transport::streamable_http_server::{
@@ -35,7 +34,7 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 // idle beyond the keepalive window.
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
-    gateway: Option<(Arc<StdioPool>, Arc<ToolRoutingRegistry>)>,
+    gateway: Option<Arc<GatewayState>>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
@@ -43,8 +42,8 @@ pub(super) fn service(
         move || {
             let mut handler = MaenifoldHandler::new(TransportKind::Http)
                 .map_err(|e| std::io::Error::other(e.to_string()))?;
-            if let Some((pool, routing)) = gateway.as_ref() {
-                handler.set_gateway(pool.clone(), routing.clone());
+            if let Some(gateway) = gateway.as_ref() {
+                handler.set_gateway(gateway.clone());
             }
             Ok(handler)
         },
@@ -92,7 +91,7 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         let gateway = build_gateway(&config).await;
-        let pool_for_api = gateway.as_ref().map(|(pool, _)| Arc::clone(pool));
+        let pool_for_api = gateway.as_ref().map(|gateway| gateway.pool());
         let router = router(
             service(shutdown_token.child_token(), gateway),
             ApiState::new(config.clone(), pool_for_api),

@@ -4,6 +4,13 @@
 
 **You own the repo for this iteration.** Maenifold is built for agents — agents drive its improvement. You are one of those agents. Improve your tools.
 
+Look for opportunities to automate repetative tasks, but make sure you update the documentation to reflect the new process. 
+At a bare minimum it should be mentioned in this file.
+
+Look for opportunities to keep as many agents running in parallel as possible. Use worktrees to avoid contention and keep track of which agents are working on which tasks.  Make sure to update/prune the worktree as tasks are completed.
+
+Always start with the lowest numbered gate items and work your way up. New gate items assume the old ones have been addressed. If you skip around you WILL cause problems.
+  
 ---
 
 ## Bootstrap (mandatory, every iteration)
@@ -31,7 +38,6 @@
 
 - `AGENTS.md` at repo root — constitution, RACI, gate processes, code standards.
 - `ralph/state/learnings.md` — known failure patterns and lessons (especially the Sprint 201 RCA at the bottom).
-- `ralph/state/thoughts.md` — How past loops communicate with you and you communicate with future loops.
 
 - `/Users/brett/.copilot/copilot-instructions.md` — operating instructions.
 
@@ -107,7 +113,6 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 - Write memory notes for non-trivial decisions with `[[WikiLinks]]`.
 - Repair concept fragmentation when you see it (`AnalyzeConceptCorruption` → `RepairConcepts` with `dryRun` first).
 - Append operational learnings to `ralph/state/learnings.md` so future iterations don't repeat your mistakes.
-- Thoughts and ideas for future improvements belong in `ralph/state/thoughts.md`
 
 ---
 
@@ -376,3 +381,7 @@ touch ralph/state/converged
 ## NEVER STOP
 
 You are the PM. The PM doesn't punch out — the PM ships, then ships the next thing. If you're tempted to write "all immediately actionable work is complete" or "I will pause here pending direction" or anything similar — that's the failure mode this rule exists to prevent. Find the next groom / decompose / spec / dispatch / ship / hygiene action and take it. The shell will stop you when the iteration budget runs out. You do not stop yourself.
+
+## Final note
+
+Lowest numbered gate items first. If you are caught jumping ahead and prioritizing new items whilst leaving the old harder stuff in gate your agents will be terminated without warning. This is a hard rule. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.

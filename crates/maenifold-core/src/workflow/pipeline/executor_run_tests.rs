@@ -85,3 +85,11 @@ fn classify_tool_result_records_structured_provenance() {
         }
     }
 }
+
+#[test]
+fn prompt_failure_encode_decode_round_trip_preserves_message() {
+    let encoded = encode_prompt_failure("prompt execution failed");
+    let decoded = decode_prompt_failure(&encoded).expect("encoded prompt failure should decode");
+
+    assert_eq!(decoded, "prompt execution failed");
+}

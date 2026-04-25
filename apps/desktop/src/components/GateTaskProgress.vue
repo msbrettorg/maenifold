@@ -1,14 +1,12 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { GateTask } from '../lib/gate';
-import { Skeleton } from '@/components/ui/skeleton';
 import { formatStageLabel, gateStageFamily } from '../lib/gate-display';
 import { Badge } from './ui/badge';
 
 const props = defineProps<{ task: GateTask }>();
 
 type DotTone = 'completed' | 'active' | 'failed' | 'pending';
-type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline';
 
 interface Segment {
   label: string;
@@ -83,15 +81,19 @@ const progressLabel = computed(() =>
   formatStageLabel(props.task.location === 'done' ? 'done' : props.task.state),
 );
 
-function badgeVariant(tone: DotTone): BadgeVariant {
-  if (tone === 'failed') return 'destructive';
-  if (tone === 'completed') return 'default';
-  if (tone === 'active') return 'default';
-  return 'outline';
-}
+function badgeClass(tone: DotTone): string {
+  const interactive =
+    'hover:bg-gate-progress-chip-hover-bg focus-visible:border-gate-progress-chip-active-border focus-visible:text-gate-progress-chip-active-fg';
 
-function activeSkeletonWidth(label: string): string {
-  return `${Math.max(label.length + 2, 6)}ch`;
+  if (tone === 'active') {
+    return `${interactive} border-gate-progress-chip-active-border bg-gate-progress-chip-active-bg text-gate-progress-chip-active-fg`;
+  }
+
+  if (tone === 'failed') {
+    return `${interactive} border-gate-progress-chip-failed-border bg-gate-progress-chip-bg text-gate-progress-chip-active-fg`;
+  }
+
+  return `${interactive} border-gate-progress-chip-border bg-gate-progress-chip-bg text-gate-progress-chip-fg`;
 }
 </script>
 
@@ -105,16 +107,9 @@ function activeSkeletonWidth(label: string): string {
         v-for="segment in segments"
         :key="`${task.taskId}-${segment.label}-${segment.tone}`"
       >
-        <Skeleton
-          v-if="segment.tone === 'active'"
-          class="h-6 rounded-md"
-          :style="{ width: activeSkeletonWidth(segment.label) }"
-          :title="segment.label"
-        />
         <Badge
-          v-else
-          :variant="badgeVariant(segment.tone)"
-          :class="segment.tone === 'pending' ? 'opacity-60' : ''"
+          variant="outline"
+          :class="badgeClass(segment.tone)"
           :title="segment.label"
         >
           {{ segment.label }}

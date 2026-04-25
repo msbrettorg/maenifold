@@ -4,7 +4,10 @@ use serde_json::Value;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{
+    Arc, Mutex, OnceLock,
+    atomic::{AtomicBool, Ordering},
+};
 use tokio::sync::{Mutex as AsyncMutex, mpsc};
 
 use super::types::AcpEvent;
@@ -69,6 +72,13 @@ unsafe impl Sync for LiveConnection {}
 pub(crate) struct CancelHandle {
     pub(crate) conn: Rc<acp::ClientSideConnection>,
     pub(crate) session_id: acp::SessionId,
+    pub(crate) cancelled: Arc<AtomicBool>,
+}
+
+impl CancelHandle {
+    pub(crate) fn mark_cancelled(&self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+    }
 }
 
 // ── Thread-local connection map (worker-thread only) ──────────────────────────

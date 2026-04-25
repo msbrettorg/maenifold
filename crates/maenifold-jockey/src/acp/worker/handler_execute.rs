@@ -1,6 +1,9 @@
 use agent_client_protocol::{self as acp, Agent as _};
 use serde_json::json;
-use std::sync::{Arc, Mutex};
+use std::sync::{
+    Arc, Mutex,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::Instant;
 use tokio::sync::{mpsc, oneshot};
 
@@ -144,12 +147,14 @@ pub(crate) async fn handle_execute(
 
     // Install cancel handle so the Cancel message handler can send ACP cancel
     // without touching CONN_MAP.
+    let cancelled = Arc::new(AtomicBool::new(false));
     CANCEL_HANDLES.with(|m| {
         m.borrow_mut().insert(
             key.clone(),
             CancelHandle {
                 conn: conn_rc.clone(),
                 session_id: session_id.clone(),
+                cancelled: cancelled.clone(),
             },
         );
     });
@@ -195,6 +200,7 @@ pub(crate) async fn handle_execute(
         *slot_guard = None;
     }
 
+    let was_cancelled = cancelled.load(Ordering::SeqCst);
     match prompt_result {
         Ok(Ok(resp)) => {
             acp_log(
@@ -206,7 +212,11 @@ pub(crate) async fn handle_execute(
                     "stopReason": format!("{:?}", resp.stop_reason)
                 }),
             );
-            let _ = result_tx.send(Ok((String::new(), session_id.to_string())));
+            let _ = result_tx.send(normalize_prompt_result_after_cancel(
+                Ok((String::new(), session_id.to_string())),
+                was_cancelled,
+                &session_id,
+            ));
         }
         Ok(Err(e)) => {
             acp_log(
@@ -223,7 +233,11 @@ pub(crate) async fn handle_execute(
             if is_same {
                 CONN_MAP.with(|m| m.borrow_mut().remove(&key));
             }
-            let _ = result_tx.send(Err(e.to_string()));
+            let _ = result_tx.send(normalize_prompt_result_after_cancel(
+                Err(e.to_string()),
+                was_cancelled,
+                &session_id,
+            ));
         }
         Err(reason) => {
             acp_log(
@@ -247,7 +261,27 @@ pub(crate) async fn handle_execute(
             if is_same {
                 CONN_MAP.with(|m| m.borrow_mut().remove(&key));
             }
-            let _ = result_tx.send(Err(reason));
+            let _ = result_tx.send(normalize_prompt_result_after_cancel(
+                Err(reason),
+                was_cancelled,
+                &session_id,
+            ));
         }
     }
 }
+
+fn normalize_prompt_result_after_cancel(
+    result: Result<(String, String), String>,
+    was_cancelled: bool,
+    session_id: &acp::SessionId,
+) -> Result<(String, String), String> {
+    if was_cancelled {
+        Ok((String::new(), session_id.to_string()))
+    } else {
+        result
+    }
+}
+
+#[cfg(test)]
+#[path = "handler_execute_tests.rs"]
+mod handler_execute_tests;

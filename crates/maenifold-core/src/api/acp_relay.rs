@@ -204,13 +204,7 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                 delta_rx = None;
                 result_rx = None;
                 if let Some(id) = request_id {
-                    let payload = match result {
-                        Ok(_) => rpc_ok(
-                            id,
-                            json!({"stopReason": if cancelled { "cancelled" } else { "end_turn" }}),
-                        ),
-                        Err(error) => rpc_error(id, -32000, error),
-                    };
+                    let payload = prompt_result_payload(id, result, cancelled);
                     if !send_json(&mut sender, payload).await {
                         break;
                     }
@@ -227,4 +221,60 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
         });
     }
     cancel_permissions(permission_ids);
+}
+
+fn prompt_result_payload(
+    request_id: Value,
+    result: Result<(String, String), String>,
+    cancelled: bool,
+) -> Value {
+    if cancelled {
+        return rpc_ok(request_id, json!({"stopReason": "cancelled"}));
+    }
+
+    match result {
+        Ok(_) => rpc_ok(request_id, json!({"stopReason": "end_turn"})),
+        Err(error) => rpc_error(request_id, -32000, error),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cancelled_worker_error_returns_cancelled_stop_reason() {
+        let payload = prompt_result_payload(
+            json!(7),
+            Err("worker disconnected after cancellation".to_string()),
+            true,
+        );
+
+        assert_eq!(payload["jsonrpc"], "2.0");
+        assert_eq!(payload["id"], 7);
+        assert_eq!(payload["result"]["stopReason"], "cancelled");
+        assert!(payload.get("error").is_none());
+    }
+
+    #[test]
+    fn cancelled_worker_success_returns_cancelled_stop_reason() {
+        let payload =
+            prompt_result_payload(json!(8), Ok((String::new(), "session-1".to_string())), true);
+
+        assert_eq!(payload["jsonrpc"], "2.0");
+        assert_eq!(payload["id"], 8);
+        assert_eq!(payload["result"]["stopReason"], "cancelled");
+        assert!(payload.get("error").is_none());
+    }
+
+    #[test]
+    fn non_cancelled_worker_error_returns_json_rpc_error() {
+        let payload = prompt_result_payload(json!(9), Err("agent failed".to_string()), false);
+
+        assert_eq!(payload["jsonrpc"], "2.0");
+        assert_eq!(payload["id"], 9);
+        assert_eq!(payload["error"]["code"], -32000);
+        assert_eq!(payload["error"]["message"], "agent failed");
+        assert!(payload.get("result").is_none());
+    }
 }

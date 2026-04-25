@@ -152,9 +152,10 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 let handle = CANCEL_HANDLES.with(|m| {
-                    m.borrow()
-                        .get(&key)
-                        .map(|h| (h.conn.clone(), h.session_id.clone()))
+                    m.borrow().get(&key).map(|h| {
+                        h.mark_cancelled();
+                        (h.conn.clone(), h.session_id.clone())
+                    })
                 });
                 if let Some((conn, session_id)) = handle {
                     acp_log(
@@ -206,7 +207,10 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
                     let resumed = CONN_MAP.with(|m| {
-                        m.borrow().get(&key).map(|live| live.resumed).unwrap_or(false)
+                        m.borrow()
+                            .get(&key)
+                            .map(|live| live.resumed)
+                            .unwrap_or(false)
                     });
                     let _ = result_tx.send(resumed);
                 });

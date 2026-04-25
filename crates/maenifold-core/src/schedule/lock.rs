@@ -1,3 +1,4 @@
+use super::store::validate_schedule_id;
 use anyhow::{Context, Result, bail};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
@@ -11,6 +12,7 @@ impl LockGuard {
     /// Try to acquire lock for a task. Returns Ok(guard) if acquired,
     /// or Err with message if another process holds it.
     pub fn try_acquire(locks_dir: &Path, task_id: &str) -> Result<Self> {
+        validate_schedule_id(task_id)?;
         fs::create_dir_all(locks_dir).with_context(|| {
             format!("failed to create lock directory '{}'", locks_dir.display())
         })?;

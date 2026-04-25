@@ -7,35 +7,35 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1953 — Test Coverage + Gateway + Vec0
 
-### Shipped
+### Shipped (14 items)
 - **T-05.67** ✅ Vec0 download wizard (SDD, 3 red-team cycles: URL validation, atomic write, redirect host)
+- **T-216.1** ✅ Gateway consolidation builder (SDD, 1 remediation: description truncation + edge tests)
+- **T-217.0** ✅ EPIC CLOSED — Test Coverage Sprint (8/8 sub-tasks)
 - **T-217.1** ✅ StdioPool error path tests (SDD, 0 remediation)
+- **T-217.2** ✅ Tool routing edge tests (SDD, 0 remediation)
 - **T-217.3** ✅ Schedule store CRUD tests (SDD, 1 remediation: delete nonexistent fix)
 - **T-217.4** ✅ Cron/launchd edge tests (SDD, 0 remediation)
 - **T-217.5** ✅ Teams handler tests (SDD, 1 remediation: cooldown + HTML stripping)
+- **T-217.6** ✅ Teams monitor tool tests (SDD, 0 remediation)
 - **T-217.7** ✅ Pipeline MCP error tests (SDD, 0 remediation)
+- **T-217.8** ✅ Pipeline wire validation tests (SDD, 0 remediation, 1 test skipped)
 - **T-214.13** ✅ E2E validation (GSD, closed with CDP findings)
 - **T-214.0** ✅ EPIC CLOSED — Session-as-Node Phase 1 (15/15 sub-tasks)
 - **P0 fix** ✅ Missing teams_monitor field in test fixture
 
-### In Progress
-- **T-216.1** ⏳ Gateway consolidation builder (at red-team)
-- **T-217.2** ⏳ Tool routing edge tests (SWE)
-- **T-217.6** ⏳ Teams monitor tool tests (SWE)
-- **T-217.8** ⏳ Pipeline wire validation tests (SWE)
-
-### Stats: 444→452 done
+### Stats: 444→457 done
 
 ### Key Decisions
 - T-216.1 spec updated per duo review (opus-4.7 + gpt-5.4): added facade naming, schema precedence, edge cases
-- T-05.67 security: URL host allowlist + redirect validation + atomic write. Accepted "no checksum verification" as informational for P2 (sqlite-vec has no checksums, loadability check provides defense-in-depth)
+- T-05.67 security: URL host allowlist + redirect validation + atomic write. Accepted "no checksum verification" as informational for P2
 - T-214.13 closed with known limitation: agent-browser can't right-click for context menu testing
 
 ### Next Actions
-- Land T-216.1 through red-team → blue-team → done, then dispatch T-216.2
-- Finish T-217.2/6/8 test tasks
-- T-217.0 epic can close after T-217.2/6/8 ship
-- T-216.0 epic blocked on T-216.1-6 completion
+- T-216.2 (intent matching) unblocked by T-216.1 — next P1 for gateway consolidation
+- T-216.3-6 sequential dependency chain
+- T-209.7 stale — references done T-02.x tasks, needs spec update or cancel
+- T-210.9 MSAL auth (P1, complex, needs research spike)
+- T-211.9 schedules UI (P2, depends on T-211.8 which is done)
 
 ## Iteration 20260424-1745 — Teams UI + Schedule Tools
 

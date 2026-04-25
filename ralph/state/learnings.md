@@ -3,6 +3,29 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-24 — Iteration 1953 (Test Coverage + Gateway + Vec0)
+
+### Gate red-team fail resets to pending — re-audit needs full re-traversal
+- When red-team fails in SDD pipeline, gate state goes back to `pending` (not `swe`)
+- After remediation, PM must re-pass through ALL stages: pending → swe → red-team → blue-team → done
+- Simply doing `gate pass red-team` after remediation actually advances from `pending → swe`, NOT from `red-team → blue-team`
+- **Lesson: After a red-team fail + remediation, track the actual gate stage. Count the passes needed: pending→swe→red→blue→done = 4 passes from pending.**
+
+### SWE test specs: use cargo test -p maenifold-core, not maenifold-cli
+- All T-217.x SWEs reported "0 tests matched" with `cargo test -p maenifold-cli -- <filter>` 
+- Tests are in maenifold-core, not maenifold-cli. The CLI binary doesn't contain unit tests.
+- **Lesson: Test specs for maenifold-core code must use `cargo test -p maenifold-core` not `cargo test -p maenifold-cli`**
+
+### P0 compile errors can be pre-existing and affect all parallel worktrees
+- teams_monitor field missing in config/tests.rs broke `cargo test --no-run` for ALL agents
+- 4 out of 6 SWEs independently discovered and fixed the same issue
+- PM also fixed it in main tree, creating merge conflicts on the fix line
+- **Lesson: Run `cargo test -p <crate> --no-run` in main tree BEFORE dispatching SWEs. Fix P0s first.**
+
+### types_wire_tests.rs was already over 300 LOC limit
+- Pre-existing 354 LOC file required SWE to refactor tests into a new file
+- **Lesson: Check target file LOC before dispatching test tasks. If near 300, spec the split upfront.**
+
 ## 2026-04-24 — Iteration 1745 (Teams UI + Schedule Tools)
 
 ### LOC limit + red-team remediation = file split

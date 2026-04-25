@@ -3,6 +3,25 @@
 Record things you discover in this file.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 0713 (Security Audit Wave)
+
+### SWE agents running gate ops is a process violation that cascades
+- T-220.4 and T-220.11 SWEs ran `gate pass` themselves, advancing tasks past SWE stage
+- T-220.11 red-team agent also ran `gate pass`, advancing to blue-team
+- Result: T-220.11 went from red-team to done when PM passed, skipping blue-team verification
+- **Lesson: Add explicit "Do NOT run gate pass/fail/append" to SWE prompts. The gate MCP tool is accessible in worktrees (they contain todo/) — need to either remove gate from SWE tool access or add stronger instruction.**
+
+### audit-crates.sh doesn't exempt #[cfg(test)] blocks in non-test-named files
+- `store.rs` has `#[cfg(test)] mod tests` but audit-crates.sh flagged `.unwrap()` inside it
+- Script only exempts files named `*_tests.rs` and direct `#[test]` lines
+- Fix was `.single().expect()` instead of `.unwrap()` to satisfy the audit
+- **Lesson: When fixing .unwrap() in files with inline test modules, use `.expect()` or error propagation even in test code to avoid audit false positives. Or fix audit-crates.sh to properly handle #[cfg(test)] blocks.**
+
+### chrono::LocalResult doesn't have .expect() — use .single() first
+- `Utc.with_ymd_and_hms()` returns `LocalResult<DateTime<Utc>>`, not `Option` or `Result`
+- `.expect()` doesn't exist on `LocalResult`. Use `.single().expect("...")` to convert to Option first.
+- **Lesson: Chrono's LocalResult is a custom enum. Always chain .single() before .expect().**
+
 ## 2026-04-25 — Iteration 0609 (Pipeline Advancement + CDP)
 
 ### CDP verification catches what blue-team misses

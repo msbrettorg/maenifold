@@ -5,6 +5,23 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260425-0713 — Security Audit Wave
+
+### Shipped
+- **T-219.3** ✅ Gate Done tab subscription race fix (SDD, 0 remediation)
+- **T-220.1** ✅ P0: Remove production ACP mock runtime (SDD, 0 remediation)
+- **T-220.2** ✅ Reject client-injected ACP MCP servers (SDD, 0 remediation)
+- **T-220.3** ✅ Contain pipeline cwd + config loading (SDD, 0 remediation)
+- **T-220.6** ✅ Make telemetry explicit opt-in (SDD, 0 remediation)
+- **T-220.11** ✅ Sanitize Mermaid SVG output (SDD, 0 remediation)
+- **T-220.17** ✅ Fix Rust audit hygiene (SDD, 2 remediation: chrono LocalResult API)
+
+### In Progress
+- **T-220.4** ⏳ Normalize ACP cancellation (SWE remediation: handler_execute.rs 312→split)
+- **T-220.13** ⏳ Preserve home prompt on failure (blue-team verifying after remediation)
+
+### Stats: 488→495 done (+7 shipped)
+
 ## Iteration 20260425-0609 — Pipeline Advancement + CDP Verification
 
 ### Shipped

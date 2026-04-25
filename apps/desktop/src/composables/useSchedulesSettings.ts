@@ -2,6 +2,7 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useMcpClient } from '@/composables/useMcpClient';
 import { useConfigStore } from '@/stores/config';
+import { useConfirmDialogStore } from '@/stores/confirm-dialog';
 
 interface ScheduleRun {
   status: string;
@@ -28,6 +29,7 @@ const timestampFormatter = new Intl.DateTimeFormat(undefined, {
 
 export function useSchedulesSettings() {
   const configStore = useConfigStore();
+  const confirmDialogStore = useConfirmDialogStore();
   const { agentNames } = storeToRefs(configStore);
   const { callTool, connect, connected } = useMcpClient();
   const jobs = ref<ScheduleJob[]>([]);
@@ -182,7 +184,12 @@ export function useSchedulesSettings() {
   }
 
   async function deleteSchedule(job: ScheduleJob): Promise<void> {
-    if (!window.confirm(`Delete schedule "${job.id}"?`)) return;
+    const confirmed = await confirmDialogStore.confirm(
+      `Delete schedule "${job.id}"?`,
+      `This will permanently delete the "${job.id}" schedule. This action cannot be undone.`,
+    );
+    if (!confirmed) return;
+
     actionJobIds.value.add(job.id);
     error.value = '';
     statusMessage.value = '';

@@ -1,0 +1,19 @@
+[2026-04-25T16:44:45Z] pipeline-meta.sh starting
+[2026-04-25T16:44:45Z] root=/Users/brett/src/ma-collective/maenifold-rs
+[2026-04-25T16:44:45Z] max_parallel=1
+[2026-04-25T16:44:45Z] inner_iterations=1
+[2026-04-25T16:44:45Z] meta_enabled=false
+[2026-04-25T16:44:45Z] max_meta_iterations=5
+[2026-04-25T16:44:45Z] task_filter=T-218.43
+[2026-04-25T16:44:45Z] pipeline_filter=all
+[2026-04-25T16:44:45Z] limit=all
+[2026-04-25T16:44:45Z] dry_run=
+[2026-04-25T16:44:45Z] log_file=/Users/brett/src/ma-collective/maenifold-rs/pipeline-meta/logs/20260425T164445Z.log
+[2026-04-25T16:44:45Z] otel=/Users/brett/src/ma-collective/maenifold-rs/pipeline-meta/otel/20260425T164445Z.jsonl
+[2026-04-25T16:44:45Z] Starting task T-218.43
+Preparing worktree (new branch 'task/T-218.43')
+HEAD is now at 4ffa729a1 Fix SLC pipeline prompt execution controls
+[2026-04-25T16:44:49Z] WARN: maenifold-pipeline-driver exited non-zero for T-218.43 (status=1)
+[2026-04-25T16:44:49Z] FAILED: task T-218.43 finished with pipeline status=stuck, allPass=true
+[2026-04-25T16:44:49Z] FAILED: worktree preserved at /Users/brett/src/ma-collective/maenifold-rs/worktrees/T-218.43
+[2026-04-25T16:44:49Z] WARN: 1 task(s) failed

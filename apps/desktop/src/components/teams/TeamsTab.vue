@@ -111,10 +111,13 @@ function parseStatusPayload(text?: string): TeamsMonitorStatus {
     }
   } catch {
     const normalized = text.trim().toLowerCase();
-    if (normalized.includes('connected')) {
+    if (normalized === 'connected') {
       return defaultStatus('connected');
     }
-    if (normalized.includes('error')) {
+    if (normalized === 'disconnected') {
+      return defaultStatus('disconnected');
+    }
+    if (normalized === 'error' || normalized.includes('error')) {
       return defaultStatus('error', text.trim());
     }
   }

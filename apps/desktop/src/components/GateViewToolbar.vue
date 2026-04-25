@@ -12,6 +12,7 @@ const props = defineProps<{
   shownCount: number;
   lastRefreshLabel: string;
   selectedGateRoot: string;
+  selectedLocation: string;
   gateRoots: string[];
   isReady: boolean;
   isLoading: boolean;
@@ -22,6 +23,7 @@ const emit = defineEmits<{
   'change-root': [value: string];
   refresh: [];
   remove: [];
+  'update:selectedLocation': [value: string];
 }>();
 
 const workspaceOptions = computed(() => props.gateRoots.map((root) => ({
@@ -32,6 +34,19 @@ const workspaceOptions = computed(() => props.gateRoots.map((root) => ({
 const currentWorkspaceLabel = computed(() => (
   props.selectedGateRoot ? getWorkspaceLabel(props.selectedGateRoot) : 'No workspace selected'
 ));
+
+function setLocation(location: 'todo' | 'done' | 'all') {
+  if (props.selectedLocation === location) return;
+  emit('update:selectedLocation', location);
+}
+
+function chipClass(location: 'todo' | 'done' | 'all', baseClass: string) {
+  return [
+    'px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] transition-[box-shadow,opacity] duration-150',
+    baseClass,
+    props.selectedLocation === location ? 'ring-2 ring-primary ring-offset-1 ring-offset-surface' : 'opacity-80 hover:opacity-100',
+  ];
+}
 </script>
 
 <template>
@@ -48,9 +63,33 @@ const currentWorkspaceLabel = computed(() => (
         </p>
       </div>
       <div v-if="props.hasGateRoot" class="flex items-center flex-wrap gap-2">
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-brand">{{ props.todoCount }} todo</span>
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-success">{{ props.doneCount }} done</span>
-        <span class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-surface-high">{{ props.totalCount }} total</span>
+        <Button
+          type="button"
+          variant="ghost"
+          :class="chipClass('todo', 'bg-brand')"
+          :aria-pressed="props.selectedLocation === 'todo'"
+          @click="setLocation('todo')"
+        >
+          {{ props.todoCount }} todo
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          :class="chipClass('done', 'bg-success')"
+          :aria-pressed="props.selectedLocation === 'done'"
+          @click="setLocation('done')"
+        >
+          {{ props.doneCount }} done
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          :class="chipClass('all', 'bg-surface-high')"
+          :aria-pressed="props.selectedLocation === 'all'"
+          @click="setLocation('all')"
+        >
+          {{ props.totalCount }} total
+        </Button>
         <span
           v-if="props.shownCount !== props.totalCount"
           class="px-[0.65rem] py-[0.28rem] font-mono text-tiny text-text-primary rounded-[4px] bg-warning"

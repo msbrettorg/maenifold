@@ -8,17 +8,14 @@ const props = defineProps<{
   searchText: string;
   selectedProcess: string;
   selectedState: string;
-  selectedLocation: string;
   issuesOnly: boolean;
   processOptions: string[];
   stateOptions: string[];
-  locationOptions: string[];
 }>();
 
 const emit = defineEmits<{
   'update:issuesOnly': [value: boolean];
   'update:searchText': [value: string];
-  'update:selectedLocation': [value: string];
   'update:selectedProcess': [value: string];
   'update:selectedState': [value: string];
 }>();
@@ -26,7 +23,7 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="grid gap-3 rounded bg-surface px-4 py-[0.9rem] grid-cols-[minmax(14rem,1.5fr)_repeat(3,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
+    class="grid gap-3 rounded bg-surface px-4 py-[0.9rem] grid-cols-[minmax(14rem,1.5fr)_repeat(2,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
     role="search"
     aria-label="Task filters"
   >
@@ -55,16 +52,6 @@ const emit = defineEmits<{
       <SelectContent>
         <SelectItem value="all">All states</SelectItem>
         <SelectItem v-for="value in props.stateOptions" :key="value" :value="value">{{ value }}</SelectItem>
-      </SelectContent>
-    </Select>
-
-    <Select :model-value="props.selectedLocation" @update:model-value="(v) => emit('update:selectedLocation', String(v))">
-      <SelectTrigger>
-        <SelectValue placeholder="All locations" />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="all">All locations</SelectItem>
-        <SelectItem v-for="value in props.locationOptions" :key="value" :value="value">{{ value }}</SelectItem>
       </SelectContent>
     </Select>
 

@@ -1,5 +1,5 @@
 use super::ScheduledTask;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -347,6 +347,8 @@ mod tests {
             agent: "agent".into(),
             prompt: "prompt".into(),
             workdir: None,
+            auto_grant_permissions: false,
+            allowed_tools: Vec::new(),
             timeout_seconds: 300,
             skip_if_running: true,
             enabled: true,
@@ -358,7 +360,10 @@ mod tests {
     #[test]
     fn omits_wildcards() {
         let xml = cron_to_start_calendar_interval_xml("15 9 * * *").expect("cron should render");
-        assert_eq!(xml, "<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>15</integer></dict>");
+        assert_eq!(
+            xml,
+            "<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>15</integer></dict>"
+        );
     }
     #[test]
     fn expands_multi_value_fields() {
@@ -374,12 +379,14 @@ mod tests {
             .expect("weekday plist should render");
         let file = tempfile::NamedTempFile::new().expect("temp file should exist");
         std::fs::write(file.path(), &plist).expect("plist should write");
-        assert!(std::process::Command::new("plutil")
-            .args(["-lint", file.path().to_str().expect("utf-8 path")])
-            .output()
-            .expect("plutil should run")
-            .status
-            .success());
+        assert!(
+            std::process::Command::new("plutil")
+                .args(["-lint", file.path().to_str().expect("utf-8 path")])
+                .output()
+                .expect("plutil should run")
+                .status
+                .success()
+        );
         assert_eq!(plist.matches("<key>Weekday</key>").count(), 5);
         for day in 1..=5 {
             assert!(plist.contains(&format!("<key>Weekday</key><integer>{day}</integer>")));

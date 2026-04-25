@@ -12,6 +12,10 @@ use std::thread;
 use std::time::{Duration, Instant};
 use tracing::info;
 
+#[cfg(test)]
+#[path = "supervisor_tests.rs"]
+mod supervisor_tests;
+
 pub struct Supervisor {
     store: ScheduleStore,
     maenifold_bin: PathBuf,
@@ -64,7 +68,14 @@ impl Supervisor {
         self.record(&mut task, status, error, started_at, started)
     }
 
-    fn record(&self, task: &mut ScheduledTask, status: RunStatus, error: Option<String>, timestamp: chrono::DateTime<Utc>, started: Instant) -> Result<RunRecord> {
+    fn record(
+        &self,
+        task: &mut ScheduledTask,
+        status: RunStatus,
+        error: Option<String>,
+        timestamp: chrono::DateTime<Utc>,
+        started: Instant,
+    ) -> Result<RunRecord> {
         let record = RunRecord {
             status,
             timestamp,
@@ -141,14 +152,20 @@ impl Supervisor {
         let timeout = Duration::from_secs(u64::from(task.timeout_seconds));
         let started = Instant::now();
         loop {
-            match child.try_wait().context("failed to poll scheduled task child")? {
+            match child
+                .try_wait()
+                .context("failed to poll scheduled task child")?
+            {
                 Some(status) if status.success() => return Ok((RunStatus::Success, None)),
                 Some(status) => {
                     let detail = match status.code() {
                         Some(code) => format!("exit code: {code}"),
                         None => "process terminated by signal".to_string(),
                     };
-                    return Ok((RunStatus::Failed, Some(format!("{detail} (log: {})", log_path.display()))));
+                    return Ok((
+                        RunStatus::Failed,
+                        Some(format!("{detail} (log: {})", log_path.display())),
+                    ));
                 }
                 None if started.elapsed() > timeout => {
                     terminate_child(&mut child)?;
@@ -168,7 +185,10 @@ impl Supervisor {
 
     fn log_path(&self, task_id: &str) -> PathBuf {
         let timestamp = Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-        self.store.task_dir(task_id).join("logs").join(format!("{timestamp}.log"))
+        self.store
+            .task_dir(task_id)
+            .join("logs")
+            .join(format!("{timestamp}.log"))
     }
 }
 
@@ -177,9 +197,12 @@ fn build_payload(task: &ScheduledTask, workdir: Option<&Path>) -> Result<String>
         "agent": &task.agent,
         "prompt": &task.prompt,
         "mode": "prompt",
-        "autoGrantPermissions": true,
+        "autoGrantPermissions": task.auto_grant_permissions,
         "timeoutSeconds": task.timeout_seconds,
     });
+    if !task.allowed_tools.is_empty() {
+        payload["allowedTools"] = json!(&task.allowed_tools);
+    }
     if let Some(dir) = workdir {
         payload["cwd"] = json!(dir.display().to_string());
     }
@@ -216,7 +239,9 @@ fn terminate_child(child: &mut Child) -> Result<()> {
         return Ok(());
     }
 
-    child.kill().context("failed to kill timed out scheduled task child")?;
+    child
+        .kill()
+        .context("failed to kill timed out scheduled task child")?;
     let _ = child.wait();
     Ok(())
 }

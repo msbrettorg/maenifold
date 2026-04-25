@@ -13,6 +13,10 @@ pub struct ScheduledTask {
     pub prompt: String,
     #[serde(default)]
     pub workdir: Option<PathBuf>,
+    #[serde(default)]
+    pub auto_grant_permissions: bool,
+    #[serde(default)]
+    pub allowed_tools: Vec<String>,
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u32,
     #[serde(default = "default_true")]
@@ -49,4 +53,27 @@ fn default_timeout() -> u32 {
 
 fn default_true() -> bool {
     true
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ScheduledTask;
+    use serde_json::json;
+
+    #[test]
+    fn missing_permission_fields_default_to_safe_values() {
+        let task = serde_json::from_value::<ScheduledTask>(json!({
+            "id": "legacy",
+            "name": "Legacy task",
+            "schedule": "0 9 * * *",
+            "agent": "swe",
+            "prompt": "run legacy task",
+            "created_at": "2026-04-21T07:00:00Z",
+            "updated_at": "2026-04-21T07:00:00Z"
+        }))
+        .expect("legacy task should deserialize");
+
+        assert!(!task.auto_grant_permissions);
+        assert!(task.allowed_tools.is_empty());
+    }
 }

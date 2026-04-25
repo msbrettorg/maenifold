@@ -1,9 +1,9 @@
-use super::context::{render, required_string, ToolContext};
+use super::context::{ToolContext, render, required_string};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{parse_schedule, ScheduleStore, ScheduledTask, Supervisor};
+use crate::schedule::{ScheduleStore, ScheduledTask, Supervisor, parse_schedule};
 use chrono::Utc;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
@@ -48,6 +48,8 @@ fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> R
         agent: required_string(payload, "agent")?.to_string(),
         prompt: required_string(payload, "prompt")?.to_string(),
         workdir: None,
+        auto_grant_permissions: optional_bool(payload, "auto_grant_permissions")?.unwrap_or(false),
+        allowed_tools: optional_string_array(payload, "allowed_tools")?.unwrap_or_default(),
         timeout_seconds: 300,
         skip_if_running: true,
         enabled: optional_bool(payload, "enabled")?.unwrap_or(true),
@@ -102,6 +104,12 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     }
     if let Some(enabled) = optional_bool(payload, "enabled")? {
         task.enabled = enabled;
+    }
+    if let Some(auto_grant_permissions) = optional_bool(payload, "auto_grant_permissions")? {
+        task.auto_grant_permissions = auto_grant_permissions;
+    }
+    if let Some(allowed_tools) = optional_string_array(payload, "allowed_tools")? {
+        task.allowed_tools = allowed_tools;
     }
     if let Some(description) = optional_string(payload, "description")? {
         task.name = description;
@@ -199,6 +207,8 @@ fn task_value(task: &ScheduledTask) -> Value {
         "agent": task.agent,
         "prompt": task.prompt,
         "enabled": task.enabled,
+        "auto_grant_permissions": task.auto_grant_permissions,
+        "allowed_tools": task.allowed_tools,
         "created_at": task.created_at,
         "updated_at": task.updated_at,
         "last_run": task.last_run,
@@ -229,4 +239,22 @@ fn optional_bool(payload: &Value, key: &'static str) -> Result<Option<bool>> {
         .as_bool()
         .map(Some)
         .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be a boolean")))
+}
+
+fn optional_string_array(payload: &Value, key: &'static str) -> Result<Option<Vec<String>>> {
+    let Some(value) = payload.get(key) else {
+        return Ok(None);
+    };
+    let values = value
+        .as_array()
+        .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be an array")))?;
+    values
+        .iter()
+        .map(|value| {
+            value.as_str().map(str::to_string).ok_or_else(|| {
+                MaenifoldError::InvalidArgument(format!("'{key}' entries must be strings"))
+            })
+        })
+        .collect::<Result<Vec<_>>>()
+        .map(Some)
 }

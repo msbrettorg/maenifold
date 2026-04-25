@@ -1,12 +1,15 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useMcpClient } from '@/composables/useMcpClient';
+import { allowedToolsLabel, parseAllowedTools, permissionLabel, permissionVariant } from '@/composables/useSchedulePermissions';
+import { detectSchedulePlatform } from '@/composables/useSchedulePlatform';
 import { useConfigStore } from '@/stores/config';
 import { useConfirmDialogStore } from '@/stores/confirm-dialog';
 
 interface ScheduleRun {
   status: string;
   timestamp: string;
+  error?: string | null;
 }
 
 export interface ScheduleJob {
@@ -17,66 +20,17 @@ export interface ScheduleJob {
   agent: string;
   prompt: string;
   enabled: boolean;
+  auto_grant_permissions: boolean;
+  allowed_tools: string[];
   last_run?: ScheduleRun | null;
 }
 
 type DialogMode = 'create' | 'edit';
 
-type SchedulePlatformSupport = {
-  platform: 'macos' | 'linux' | 'windows' | 'unknown';
-  label: string;
-  scheduler: string;
-  supportsEnabledSchedules: boolean;
-  description: string;
-  unsupportedEnabledMessage: string;
-};
-
 const timestampFormatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 });
-
-function detectSchedulePlatform(): SchedulePlatformSupport {
-  const userAgent = navigator.userAgent.toLowerCase();
-  if (userAgent.includes('mac os') || userAgent.includes('macintosh')) {
-    return {
-      platform: 'macos',
-      label: 'macOS supported',
-      scheduler: 'launchd LaunchAgents',
-      supportsEnabledSchedules: true,
-      description: 'Enabled schedules install macOS launchd LaunchAgents.',
-      unsupportedEnabledMessage: '',
-    };
-  }
-  if (userAgent.includes('linux')) {
-    return {
-      platform: 'linux',
-      label: 'Linux supported',
-      scheduler: 'systemd user timers',
-      supportsEnabledSchedules: true,
-      description: 'Enabled schedules install Linux systemd user timers.',
-      unsupportedEnabledMessage: '',
-    };
-  }
-  if (userAgent.includes('windows')) {
-    return {
-      platform: 'windows',
-      label: 'Windows unsupported',
-      scheduler: 'not implemented',
-      supportsEnabledSchedules: false,
-      description: 'Enabled schedules are currently blocked because Windows scheduler integration is not implemented.',
-      unsupportedEnabledMessage: 'Windows scheduler integration is not implemented. You can save schedules only while paused.',
-    };
-  }
-  return {
-    platform: 'unknown',
-    label: 'Platform unsupported',
-    scheduler: 'not implemented',
-    supportsEnabledSchedules: false,
-    description: 'Enabled schedules are available on macOS launchd and Linux systemd user timers only.',
-    unsupportedEnabledMessage: 'Enabled schedules require macOS launchd or Linux systemd user timers. You can save schedules only while paused.',
-  };
-}
 
 export function useSchedulesSettings() {
   const configStore = useConfigStore();
@@ -99,6 +53,8 @@ export function useSchedulesSettings() {
     prompt: '',
     description: '',
     enabled: true,
+    autoGrantPermissions: false,
+    allowedTools: '',
   });
 
   const dialogTitle = computed(() => dialogMode.value === 'create' ? 'Create schedule' : 'Edit schedule');
@@ -122,6 +78,8 @@ export function useSchedulesSettings() {
     form.prompt = '';
     form.description = '';
     form.enabled = schedulePlatform.supportsEnabledSchedules;
+    form.autoGrantPermissions = false;
+    form.allowedTools = '';
   }
 
   function ensureDialogAgent(): void {
@@ -184,6 +142,8 @@ export function useSchedulesSettings() {
     form.prompt = job.prompt;
     form.description = job.description && job.description !== job.id ? job.description : '';
     form.enabled = schedulePlatform.supportsEnabledSchedules ? job.enabled : false;
+    form.autoGrantPermissions = Boolean(job.auto_grant_permissions);
+    form.allowedTools = job.allowed_tools?.join(', ') ?? '';
     ensureDialogAgent();
     dialogOpen.value = true;
   }
@@ -206,6 +166,8 @@ export function useSchedulesSettings() {
         agent: form.agent,
         prompt: form.prompt.trim(),
         enabled: form.enabled,
+        auto_grant_permissions: form.autoGrantPermissions,
+        allowed_tools: parseAllowedTools(form.allowedTools),
       };
       const description = form.description.trim();
       if (description) payload.description = description;
@@ -280,6 +242,9 @@ export function useSchedulesSettings() {
     schedulePlatform,
     scheduleLabel,
     statusFor,
+    permissionLabel,
+    permissionVariant,
+    allowedToolsLabel,
     formatLastRun,
     loadSchedules,
     openCreateDialog,

@@ -17,6 +17,8 @@ fn test_task(id: &str) -> ScheduledTask {
         agent: "swe".to_owned(),
         prompt: format!("run {id}"),
         workdir: Some(PathBuf::from("/tmp/workdir")),
+        auto_grant_permissions: false,
+        allowed_tools: Vec::new(),
         timeout_seconds: 900,
         skip_if_running: true,
         enabled: true,

@@ -52,6 +52,43 @@ fn create_enabled_os_install_failure_leaves_no_persisted_schedule() {
     );
 }
 
+#[test]
+fn create_defaults_to_no_auto_grant_permissions() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let payload = create_payload("safe-default", false);
+    let fake_bin = PathBuf::from("/nonexistent/binary");
+
+    create_task_with_bin(&context, &payload, &fake_bin).expect("create paused schedule");
+
+    let persisted = schedule_store(&context)
+        .read("safe-default")
+        .expect("read schedule");
+    assert!(!persisted.auto_grant_permissions);
+    assert!(persisted.allowed_tools.is_empty());
+}
+
+#[test]
+fn create_accepts_explicit_permission_allowlist() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let mut payload = create_payload("explicit-permissions", false);
+    payload["auto_grant_permissions"] = json!(true);
+    payload["allowed_tools"] = json!(["ReadMemory", "SearchMemories"]);
+    let fake_bin = PathBuf::from("/nonexistent/binary");
+
+    create_task_with_bin(&context, &payload, &fake_bin).expect("create paused schedule");
+
+    let persisted = schedule_store(&context)
+        .read("explicit-permissions")
+        .expect("read schedule");
+    assert!(persisted.auto_grant_permissions);
+    assert_eq!(
+        persisted.allowed_tools,
+        vec!["ReadMemory", "SearchMemories"]
+    );
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 #[test]
 fn create_enabled_unsupported_platform_is_blocked_before_persisting() {

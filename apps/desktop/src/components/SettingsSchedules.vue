@@ -48,6 +48,9 @@ const {
   schedulePlatform,
   scheduleLabel,
   statusFor,
+  permissionLabel,
+  permissionVariant,
+  allowedToolsLabel,
   formatLastRun,
   loadSchedules,
   openCreateDialog,
@@ -103,6 +106,7 @@ const {
             <TableHead>Name</TableHead>
             <TableHead>Schedule</TableHead>
             <TableHead>Agent</TableHead>
+            <TableHead>Permissions</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Last run</TableHead>
             <TableHead class="text-right">Actions</TableHead>
@@ -110,7 +114,7 @@ const {
         </TableHeader>
         <TableBody>
           <TableRow v-if="jobs.length === 0">
-            <TableCell colspan="6" class="py-8 text-center text-sm text-muted-foreground">
+            <TableCell colspan="7" class="py-8 text-center text-sm text-muted-foreground">
               No schedules configured yet.
             </TableCell>
           </TableRow>
@@ -118,8 +122,17 @@ const {
             <TableCell class="font-medium text-text-primary">{{ job.id }}</TableCell>
             <TableCell class="max-w-[18rem] text-sm text-muted-foreground">{{ scheduleLabel(job) }}</TableCell>
             <TableCell>{{ job.agent }}</TableCell>
+            <TableCell>
+              <div class="flex flex-col gap-1">
+                <Badge :variant="permissionVariant(job)">{{ permissionLabel(job) }}</Badge>
+                <span class="text-xs text-muted-foreground">{{ allowedToolsLabel(job) }}</span>
+              </div>
+            </TableCell>
             <TableCell><Badge :variant="statusFor(job).variant">{{ statusFor(job).label }}</Badge></TableCell>
-            <TableCell class="text-sm text-muted-foreground">{{ formatLastRun(job.last_run?.timestamp) }}</TableCell>
+            <TableCell class="max-w-[18rem] text-sm text-muted-foreground">
+              <div>{{ formatLastRun(job.last_run?.timestamp) }}</div>
+              <p v-if="job.last_run?.error" class="mt-1 text-xs text-destructive">{{ job.last_run.error }}</p>
+            </TableCell>
             <TableCell>
               <div class="flex flex-wrap justify-end gap-2">
                 <Button type="button" variant="outline" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="openEditDialog(job)">
@@ -176,6 +189,32 @@ const {
           <div class="grid gap-2">
             <Label for="schedule-description">Description</Label>
             <Input id="schedule-description" v-model="form.description" :disabled="isSubmitting" placeholder="Optional description" />
+          </div>
+          <div class="flex items-center justify-between rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3">
+            <div class="flex flex-col gap-1">
+              <Label for="schedule-auto-grant">Automatic permissions</Label>
+              <p class="text-sm text-muted-foreground">
+                Off by default. Turn on only for trusted prompts that may approve sensitive ACP tool requests unattended.
+              </p>
+            </div>
+            <Switch
+              id="schedule-auto-grant"
+              :model-value="form.autoGrantPermissions"
+              :disabled="isSubmitting"
+              @update:model-value="(value: boolean) => { form.autoGrantPermissions = value; }"
+            />
+          </div>
+          <div class="grid gap-2">
+            <Label for="schedule-allowed-tools">Allowed tools</Label>
+            <Textarea
+              id="schedule-allowed-tools"
+              v-model="form.allowedTools"
+              :disabled="isSubmitting"
+              placeholder="Optional comma- or newline-separated tool names, e.g. ReadMemory, SearchMemories"
+            />
+            <p class="text-sm text-muted-foreground">
+              Threaded to ACP as <code>allowedTools</code>; leave blank for no per-schedule allowlist.
+            </p>
           </div>
           <div class="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-3">
             <div class="flex flex-col gap-1">

@@ -9,6 +9,7 @@ use crate::mcp::tool_utils::format_tool_error;
 use rmcp::model::{CallToolResult, Content, Tool};
 use serde::Deserialize;
 use serde_json::{Map, Value};
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use tracing::{error, warn};
 
@@ -18,6 +19,8 @@ pub(crate) struct GatewayState {
     routing: Arc<ToolRoutingRegistry>,
     consolidated_tools: Vec<ConsolidatedServerTool>,
     passthrough_tools: Vec<Tool>,
+    passthrough_names: HashSet<String>,
+    hidden_tool_facades: HashMap<String, String>,
 }
 
 impl GatewayState {
@@ -27,11 +30,27 @@ impl GatewayState {
         consolidated_tools: Vec<ConsolidatedServerTool>,
         passthrough_tools: Vec<Tool>,
     ) -> Self {
+        let passthrough_names = passthrough_tools
+            .iter()
+            .map(|tool| tool.name.to_string())
+            .collect();
+        let hidden_tool_facades = consolidated_tools
+            .iter()
+            .flat_map(|server| {
+                let facade_name = server.facade_tool.name.to_string();
+                server
+                    .tool_catalog
+                    .iter()
+                    .map(move |tool| (tool.name.to_string(), facade_name.clone()))
+            })
+            .collect();
         Self {
             pool,
             routing,
             consolidated_tools,
             passthrough_tools,
+            passthrough_names,
+            hidden_tool_facades,
         }
     }
 
@@ -61,7 +80,9 @@ impl GatewayState {
                 .map(Some);
         }
 
-        if let Some(server_name) = self.routing.lookup(tool_name).map(str::to_string) {
+        if self.passthrough_names.contains(tool_name)
+            && let Some(server_name) = self.routing.lookup(tool_name).map(str::to_string)
+        {
             let gateway_result = self.pool.call_tool(&server_name, tool_name, arguments).await;
             return match gateway_result {
                 Ok(result) => Ok(Some(result)),
@@ -70,6 +91,15 @@ impl GatewayState {
                     Err(map_gateway_error(tool_name, err))
                 }
             };
+        }
+
+        if let Some(facade_name) = self.hidden_tool_facades.get(tool_name) {
+            return Err(rmcp::ErrorData::invalid_params(
+                format!(
+                    "Tool '{tool_name}' is available through the '{facade_name}' gateway. Use command='{tool_name}' to invoke it."
+                ),
+                None,
+            ));
         }
 
         Ok(None)

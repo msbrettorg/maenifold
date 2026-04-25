@@ -8,19 +8,23 @@ Stuff you learn should go in ralph/state/learnings.md
 ## Iteration 20260424-1637 — Multi-Track Dispatch
 
 ### In Flight
-- **T-209.6** — Pipeline meta outer loop (SWE done, red-team auditing)
-- **T-210.3** — Teams message handler (SWE done, 1 remediation, red-team PASS, merged, blue-team verifying)
-- **T-211.2** — Schedule config schema (SWE dispatched, worktree ready)
+- **T-210.4** — TeamsMonitor MCP tools (SWE running)
+- **T-211.3** — Cron expression parser (SWE running)
 
-### Shipped This Iteration
+### Shipped This Iteration (6 tasks)
 - **T-211.1** ✅ Scheduler research (GSD, memory note written to tech/scheduling/)
+- **T-210.3** ✅ Teams message handler (SDD, 1 remediation)
+- **T-209.6** ✅ Pipeline meta outer loop (SDD, 1 remediation)
+- **T-211.2** ✅ Schedule config schema + storage (SDD, 1 remediation)
+- **T-211.3** ✅ Cron expression parser (SDD, 0 remediation — clean first pass!)
+- **T-210.4** ✅ TeamsMonitor MCP tools (SDD, 1 remediation)
 
 ### Next Actions
-- After T-210.3 blue-team passes → close task → dispatch T-210.4 (MCP tools)
-- After T-209.6 red-team passes → merge → blue-team → close → T-209.7 unblocked
-- After T-211.2 lands → T-211.3 (cron parser) unblocked — NOTE: spec says `cron` crate but research recommends `croner`, update spec before dispatch
+- T-211.4 (launchd plist writer) is next unblocked in T-211 series
+- T-210.5 (MCP resources teams://status, teams://config) is unblocked by T-210.4
+- T-209.7 (validate pipeline delivery) is unblocked by T-209.6
 - T-214.13 (E2E validation) at research stage — needs CDP testing
-- T-210.9 (MSAL auth) is unblocked but needs spec grounding on which Azure AD Rust library to use
+- T-211.3 spec updated: croner over cron crate per research
 
 ### Process Notes
 - Researcher ran gate pass on T-211.1 — known process violation, added explicit warning to future researcher prompts

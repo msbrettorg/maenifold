@@ -188,7 +188,13 @@ fn expand_field(expr: &str, min: u32, max: u32, normalize_sunday: bool) -> Resul
     let mut values = Vec::new();
     for segment in expr.split(',') {
         let (base, step) = match segment.split_once('/') {
-            Some((base, step)) => (base, parse_number(step, min, max)?),
+            Some((base, step)) => {
+                let step = parse_number(step, min, max)?;
+                if step == 0 {
+                    bail!("cron step value cannot be zero in '{segment}'");
+                }
+                (base, step)
+            }
             None => (segment, 1),
         };
         let (start, end) = if base == "*" {

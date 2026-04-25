@@ -3,6 +3,19 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1052 (Multi-Wave Dispatch)
+
+### LOC violations cascade: budget 250 LOC per file in specs, not 300
+- T-218.20 gateway resource registry SWE pushed stdio_pool.rs to 325 LOC and consolidation_tests to 317 LOC
+- Required 2 remediation cycles (stdio_session.rs split first, then stdio_pool.rs + tests split)
+- Original stdio_session.rs was 246 LOC in main — adding resource routing pushed it to 367
+- **Lesson: When spec touches files above 200 LOC, explicitly note current LOC and budget headroom. Check ALL modified files, not just the primary target.**
+
+### Blue-team false positive on gate append task file changes
+- T-218.11 blue-team FAIL because `todo/T-218.11*.md` appeared in delta
+- This is expected from SWE's `gate append` call — not a code scope violation
+- **Lesson: Blue-team prompts should note that task markdown changes from gate append are expected and not scope violations.**
+
 ## 2026-04-25 — Iteration 1016 (CDP Verification + Voice Hardening)
 
 ### Substring matching bugs in status parsing

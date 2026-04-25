@@ -49,7 +49,8 @@ function unavailableToolError(): ToolCallResult {
 }
 
 function logToolScopeDenied(reason: string, details: Record<string, unknown>): void {
-  console.warn('[McpAppFrame] Denied MCP App tool callback', { reason, ...details });
+  void reason;
+  void details;
 }
 
 function getToolsForServer(serverName: string) {

@@ -5,7 +5,6 @@ import GateViewFilters from './GateViewFilters.vue';
 import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
-import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { useMcpResources } from '../composables/useMcpResources';
 import { useGateRegistry } from '../composables/useGateRegistry';
@@ -164,39 +163,23 @@ onBeforeUnmount(() => {
         :shown-count="shownCount"
         :last-refresh-label="lastRefreshLabel"
         :selected-gate-root="gateRoot"
+        :selected-location="filtering.selectedLocation.value"
         :gate-roots="registry.gateRoots.value"
         :is-ready="registry.isReady.value"
         :is-loading="isLoading"
+        @update:selected-location="(value) => { filtering.selectedLocation.value = value; }"
         @change-root="handleGateRootChange"
         @browse="registry.browseForRoot"
         @remove="handleRemoveCurrentGate"
         @refresh="() => refreshSnapshot()"
       />
-      <Tabs v-model="filtering.selectedLocation.value" class="w-full">
-        <TabsList>
-          <TabsTrigger value="todo">
-            Todo
-            <span class="ml-2 text-xs opacity-70">{{ todoCount }}</span>
-          </TabsTrigger>
-          <TabsTrigger value="done">
-            Done
-            <span class="ml-2 text-xs opacity-70">{{ doneCount }}</span>
-          </TabsTrigger>
-          <TabsTrigger value="all">
-            All
-            <span class="ml-2 text-xs opacity-70">{{ totalCount }}</span>
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
       <GateViewFilters
         v-model:searchText="filtering.searchText.value"
         v-model:selectedProcess="filtering.selectedProcess.value"
         v-model:selectedState="filtering.selectedState.value"
-        v-model:selectedLocation="filtering.selectedLocation.value"
         v-model:issuesOnly="filtering.issuesOnly.value"
         :process-options="filtering.processOptions.value"
         :state-options="filtering.stateOptions.value"
-        :location-options="filtering.locationOptions.value"
       />
       <GateViewStatus
         v-if="showStatus"

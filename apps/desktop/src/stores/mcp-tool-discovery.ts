@@ -55,6 +55,7 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
       appUi: tool.appUi
         ? {
             resourceUri: tool.appUi.resourceUri,
+            originatingServer: tool.appUi.originatingServer,
             csp: tool.appUi.csp,
             permissions: tool.appUi.permissions ? [...tool.appUi.permissions] : undefined,
           }

@@ -36,6 +36,7 @@ export interface McpDiscoveredTool {
 
 export interface McpAppUiMetadata {
   resourceUri: string;
+  originatingServer?: string;
   csp?: string;
   permissions?: string[];
 }

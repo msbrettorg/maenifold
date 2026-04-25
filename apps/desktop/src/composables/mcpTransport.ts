@@ -42,13 +42,17 @@ export interface JsonRpcNotification {
 export interface ToolContent {
   type?: string;
   text?: string;
+  [key: string]: unknown;
 }
 
 import type { McpAppUiMetadata } from '../lib/types';
 
 export interface ToolCallResult {
   content?: ToolContent[];
+  structuredContent?: Record<string, unknown>;
   isError?: boolean;
+  _meta?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface ToolDefinition {

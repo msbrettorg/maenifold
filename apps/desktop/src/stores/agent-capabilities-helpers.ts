@@ -43,6 +43,7 @@ function normalizeAppUiRecord(value: unknown): McpAppUiMetadata | null {
 
   return {
     resourceUri,
+    originatingServer: typeof value.originatingServer === 'string' ? value.originatingServer : undefined,
     csp: typeof value.csp === 'string' ? value.csp : undefined,
     permissions: Array.isArray(value.permissions)
       ? value.permissions.filter((permission): permission is string => typeof permission === 'string')

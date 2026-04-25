@@ -54,6 +54,7 @@ function cloneAppUiMetadata(appUi: McpAppUiMetadata | null | undefined): McpAppU
 
   return {
     resourceUri: appUi.resourceUri,
+    originatingServer: appUi.originatingServer,
     csp: appUi.csp,
     permissions: appUi.permissions ? [...appUi.permissions] : undefined,
   };

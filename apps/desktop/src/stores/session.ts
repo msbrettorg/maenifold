@@ -7,7 +7,6 @@ import type { SavedSession, SessionState } from '../lib/types';
 import { generateSessionId, createEmptySessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createSessionGetters } from './session-getters';
-import { resolveToolDefinition } from '../lib/tool-categories';
 import {
   applyConfigOptionsUpdate,
   requireActiveSessionContext,
@@ -20,6 +19,7 @@ import { usePermissions } from '../composables/usePermissions';
 import { useMessageHandler } from '../composables/useMessageHandler';
 import { useSessionLifecycle } from '../composables/useSessionLifecycle';
 import { useMcpToolDiscoveryStore } from './mcp-tool-discovery';
+import type { McpAppUiMetadata } from '../lib/types';
 
 // `_meta.traceparent`, `_meta.tracestate`, and `_meta.baggage` are reserved
 // for W3C trace context and must not be repurposed for custom ACP metadata.
@@ -58,6 +58,29 @@ export const useSessionStore = defineStore('session', () => {
     cancelAuthResolver,
   } = usePermissions({ sessions, bridges, activeSessionId });
 
+  function resolveToolAppUi(toolName: string | null | undefined): McpAppUiMetadata | null {
+    if (!toolName) return null;
+    for (const result of mcpToolDiscoveryStore.serverResults) {
+      if (result.status !== 'ok') continue;
+      const bareName = toolName.includes('.') ? toolName.split('.').pop() ?? toolName : toolName;
+      const qualifiedName = `${result.server}.${bareName}`;
+      const tool = result.tools.find((candidate) =>
+        candidate.name === toolName ||
+        candidate.name === bareName ||
+        candidate.name === qualifiedName ||
+        candidate.name.endsWith(`.${bareName}`)
+      );
+      if (tool?.appUi) {
+        return {
+          ...tool.appUi,
+          originatingServer: result.server,
+          permissions: tool.appUi.permissions ? [...tool.appUi.permissions] : undefined,
+        };
+      }
+    }
+    return null;
+  }
+
   // ── Compose: message handler ──────────────────────────────────────
   const {
     handleSessionUpdate,
@@ -72,8 +95,7 @@ export const useSessionStore = defineStore('session', () => {
     savedSessions,
     saveSessionsToStore,
     cancelPermission,
-    resolveToolAppUi: (toolName) =>
-      resolveToolDefinition(mcpToolDiscoveryStore.allTools, toolName)?.appUi ?? null,
+    resolveToolAppUi,
   });
 
   // ── Compose: lifecycle ────────────────────────────────────────────

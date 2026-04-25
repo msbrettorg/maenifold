@@ -291,13 +291,8 @@ export function useMcpClient(baseUrl?: string) {
   async function callTool<T = unknown>(name: string, args: Record<string, unknown> = {}): Promise<T> {
     error.value = null;
     await ensureConnectedSession();
- 
-    const { result } = await jsonRpc<ToolCallResult>('tools/call', {
-      name,
-      arguments: args,
-    });
 
-    const toolResult = result ?? {};
+    const toolResult = await callToolRaw(name, args);
     const rawText = toolResult.content?.[0]?.text;
 
     if (toolResult.isError) {
@@ -314,6 +309,20 @@ export function useMcpClient(baseUrl?: string) {
     } catch {
       return rawText as T;
     }
+  }
+
+  async function callToolRaw(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult> {
+    // TODO(T-218 follow-up): split this composable; it intentionally exceeds the
+    // preferred LOC limit until MCP client transport helpers are extracted.
+    error.value = null;
+    await ensureConnectedSession();
+
+    const { result } = await jsonRpc<ToolCallResult>('tools/call', {
+      name,
+      arguments: args,
+    });
+
+    return result ?? { content: [] };
   }
 
   async function listTools(): Promise<ToolDefinition[]> {
@@ -391,6 +400,7 @@ export function useMcpClient(baseUrl?: string) {
     connect,
     disconnect,
     callTool,
+    callToolRaw,
     listTools,
     readResource,
     subscribeResource,

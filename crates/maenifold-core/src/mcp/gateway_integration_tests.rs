@@ -138,6 +138,49 @@ fn direct_command_dispatch_targets_upstream_tool() {
 }
 
 #[test]
+fn invalid_parameters_fail_local_validation_without_values() {
+    let (server, _) = build_billing_gateway();
+    let error = dispatch_facade_call(
+        &server,
+        None,
+        Some("budget_set"),
+        false,
+        json!({"accountId":"secret-account-token"}),
+    )
+    .expect_err("missing amount should fail locally");
+
+    let text = error.to_string();
+    assert_eq!(
+        text,
+        "gateway validation failed for 'budget_set': /amount: required"
+    );
+    assert!(!text.contains("secret-account-token"));
+}
+
+#[test]
+fn unsupported_schemas_skip_local_validation() {
+    let schema = json!({"properties":{"accountId":{"type":"string"}}});
+    let tool = Tool::new(
+        "loose_tool".to_string(),
+        "Schema has no object type".to_string(),
+        Arc::new(schema.as_object().cloned().unwrap_or_default()),
+    );
+    let (mut consolidated, _) =
+        build_consolidated_tools(vec![("Loose Gateway".to_string(), vec![tool; 4])], 4)
+            .expect("gateway should consolidate");
+    let result = dispatch_facade_call(
+        &consolidated.remove(0),
+        None,
+        Some("loose_tool"),
+        false,
+        json!({}),
+    )
+    .expect("unsupported schema should pass through");
+
+    assert!(matches!(result, DispatchResult::CallTool { .. }));
+}
+
+#[test]
 fn intent_matching_dispatches_unambiguous_command() {
     let parameters = json!({"accountId":"acct_123"});
     let result = dispatch(Some("list subscriptions"), None, false, parameters.clone());

@@ -1,4 +1,6 @@
-use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result};
+use crate::error::{
+    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_INVALID_PARAMS, MaenifoldError, Result,
+};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::{DispatchResult, dispatch_facade_call};
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
@@ -248,6 +250,11 @@ fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {
             rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(JSONRPC_INTERNAL_ERROR as i32)),
             message,
             Some(data),
+        ),
+        MaenifoldError::GatewayInvalidParams(message) => rmcp::ErrorData::new(
+            rmcp::model::ErrorCode(JSONRPC_INVALID_PARAMS as i32),
+            message,
+            Some(Value::Null),
         ),
         _ => rmcp::ErrorData::internal_error(format_tool_error(tool, &err), None),
     }

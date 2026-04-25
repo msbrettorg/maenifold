@@ -43,6 +43,8 @@ pub enum MaenifoldError {
         message: String,
         data: Value,
     },
+    #[error("{0}")]
+    GatewayInvalidParams(String),
     #[error("MCP stdio session is not usable")]
     SessionUnusable,
     #[error("{0}")]

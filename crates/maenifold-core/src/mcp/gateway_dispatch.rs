@@ -1,5 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
+use crate::mcp::gateway_schema_validation::validate_with_validator;
 use rmcp::model::Tool;
 use serde_json::Value;
 use std::collections::HashSet;
@@ -70,6 +71,7 @@ fn dispatch_command(
     parameters: Value,
 ) -> Result<DispatchResult> {
     let tool = find_tool(server, command).ok_or_else(|| unknown_command(server, command))?;
+    validate_dispatch_parameters(server, &tool.name.to_string(), &parameters)?;
 
     Ok(DispatchResult::CallTool {
         server_name: server.server_name.clone(),
@@ -103,11 +105,15 @@ fn dispatch_intent(
         0 => Err(MaenifoldError::Message(format!(
             "No gateway commands matched intent '{intent}'. Use learn=true to inspect available commands."
         ))),
-        1 => Ok(DispatchResult::CallTool {
-            server_name: server.server_name.clone(),
-            tool_name: matches[0].1.name.to_string(),
-            parameters,
-        }),
+        1 => {
+            let tool_name = matches[0].1.name.to_string();
+            validate_dispatch_parameters(server, &tool_name, &parameters)?;
+            Ok(DispatchResult::CallTool {
+                server_name: server.server_name.clone(),
+                tool_name,
+                parameters,
+            })
+        }
         2..=5 => Ok(DispatchResult::Candidates(
             matches
                 .into_iter()
@@ -118,6 +124,22 @@ fn dispatch_intent(
             "Intent '{intent}' matched too many gateway commands. Be more specific or use learn=true."
         ))),
     }
+}
+
+fn validate_dispatch_parameters(
+    server: &ConsolidatedServerTool,
+    tool_name: &str,
+    parameters: &Value,
+) -> Result<()> {
+    let Some(validator) = server
+        .tool_validators
+        .get(tool_name)
+        .and_then(|cached| cached.validator.as_deref())
+    else {
+        return Ok(());
+    };
+    validate_with_validator(tool_name, parameters, validator)
+        .map_err(|error| MaenifoldError::GatewayInvalidParams(error.to_string()))
 }
 
 fn intent_match_score(tool: &Tool, intent: &str) -> usize {

@@ -1,4 +1,6 @@
+use crate::mcp::gateway_schema_validation::compute_schema_hash;
 use crate::mcp::stdio_pool::StdioPool;
+use serde_json::Value;
 use std::sync::{Mutex as StdMutex, MutexGuard};
 use std::time::{Duration, Instant, SystemTime};
 
@@ -22,6 +24,7 @@ pub struct StdioServerHealth {
     pub stderr_tail: Vec<String>,
     pub last_restart: Option<SystemTime>,
     pub tool_count: usize,
+    pub tool_schema_hashes: Vec<(String, String)>,
     pub env_keys: Vec<String>,
 }
 
@@ -110,6 +113,18 @@ impl StdioPool {
                         .session
                         .as_ref()
                         .map_or(0, |session| session.tools().len()),
+                    tool_schema_hashes: server.session.as_ref().map_or_else(Vec::new, |session| {
+                        let mut hashes = session
+                            .tools()
+                            .iter()
+                            .map(|tool| {
+                                let schema = Value::Object((*tool.input_schema).clone());
+                                (tool.name.to_string(), compute_schema_hash(&schema))
+                            })
+                            .collect::<Vec<_>>();
+                        hashes.sort_by(|left, right| left.0.cmp(&right.0));
+                        hashes
+                    }),
                     env_keys: redacted_env_keys(&server.config.env),
                 }
             })

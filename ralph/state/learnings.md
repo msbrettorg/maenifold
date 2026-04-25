@@ -3,6 +3,24 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1053 (Sprint 06 UI Triage + Backlog Advancement)
+
+### Gate resource path produces different stage data than tool path
+- T-06.2: `gate://status` resource (maenifold-core gate_status.rs) uses `parse_stage_headings()` which extracts ALL `## heading` sections from task markdown as stages
+- The gate MCP tool path (maenifold-gate) correctly uses `ordered_stage_ids()` from the pipeline definition
+- `useGateMcp.ts` had `normalizeTaskStages()` filtering but `GateView.vue` bypassed it by using the resource path
+- **Lesson: When two paths produce the same data type, verify they go through the same normalization. The resource path was a blind spot because it was added independently of the tool path.**
+
+### SWE agents make out-of-scope changes to fix build issues in worktrees
+- T-06.3 SWE fixed `.at(-1)` calls in 3 unrelated files because `npm install --package-lock=false` in the worktree installed different dependency versions causing TS target compat issues
+- T-218.22 SWE modified `schedule_consistency_tests.rs` formatting, pushing it to 316 LOC
+- **Lesson: Explicitly instruct SWEs not to modify files outside the task scope. If the build fails due to worktree env issues, report the failure instead of making out-of-scope fixes. PM should revert out-of-scope changes before merging.**
+
+### Gate state gets stuck when gate pass is never called after agent work
+- T-220.10 had full SWE + red-team + remediation work recorded via `gate append` but gate state was stuck at "pending" because `gate pass` was never called
+- The work was already merged in main tree but gate didn't know
+- **Lesson: After each agent completes, the PM MUST call `gate pass` to advance the state machine. `gate append` records notes but does NOT advance state. This is by design — the PM owns state transitions.**
+
 ## 2026-04-25 — Iteration 1052 (Multi-Wave Dispatch)
 
 ### LOC violations cascade: budget 250 LOC per file in specs, not 300

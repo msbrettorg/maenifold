@@ -215,8 +215,8 @@ mod tests {
             timeout_seconds: 900,
             skip_if_running: true,
             enabled: true,
-            created_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).unwrap(),
-            updated_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).unwrap(),
+            created_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).single().expect("valid test timestamp"),
+            updated_at: Utc.with_ymd_and_hms(2026, 4, 21, 7, 0, 0).single().expect("valid test timestamp"),
             last_run: None,
         }
     }

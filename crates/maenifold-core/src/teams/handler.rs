@@ -220,7 +220,10 @@ mod tests {
         let mut handler = MessageHandler::new(config());
         let result = handler.handle(&message("case-insensitive", "Help me", "alice"));
 
-        assert_eq!(result.unwrap().matched_keyword, "help");
+        assert_eq!(
+            result.expect("case-insensitive keyword should match").matched_keyword,
+            "help"
+        );
     }
 
     #[test]
@@ -285,6 +288,12 @@ mod tests {
         let message = message("html", "<b>help</b> me", "alice");
 
         assert_eq!(strip_html(&message.content), "help me");
-        assert_eq!(handler.handle(&message).unwrap().matched_keyword, "help me");
+        assert_eq!(
+            handler
+                .handle(&message)
+                .expect("HTML-stripped keyword should match")
+                .matched_keyword,
+            "help me"
+        );
     }
 }

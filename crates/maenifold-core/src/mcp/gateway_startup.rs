@@ -2,13 +2,13 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::acp_config::{AgentsConfig, McpServerEntry};
 use crate::config::Config;
 use crate::error::Result;
-use crate::mcp::gateway_consolidation::build_consolidated_tools;
+use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use rmcp::model::Tool;
 use std::sync::Arc;
-use tracing::info;
+use tracing::{info, warn};
 
 pub(super) async fn build_gateway(
     config: &Config,
@@ -50,12 +50,22 @@ pub(super) async fn build_gateway(
                 Ok((consolidated_tools, passthrough_tools)) => {
                     match ToolRoutingRegistry::build(&native_tools, &pool) {
                         Ok(registry) => {
-                            info!(
-                                upstream = pool.all_tools().len(),
-                                facades = consolidated_tools.len(),
-                                passthrough = passthrough_tools.len(),
-                                "gateway started with consolidated tools"
+                            let counts = gateway_tool_counts(
+                                &consolidated_tools,
+                                &passthrough_tools,
+                                &native_tools,
                             );
+                            let total = counts.total;
+                            let facades = counts.facades;
+                            let passthrough = counts.passthrough;
+                            info!(
+                                "Gateway tools: {total} total ({facades} facades, {passthrough} passthrough)"
+                            );
+                            if total > 50 {
+                                warn!(
+                                    "Gateway exposes {total} tools — consider consolidation threshold"
+                                );
+                            }
                             Some(Arc::new(GatewayState::new(
                                 Arc::new(pool),
                                 Arc::new(registry),

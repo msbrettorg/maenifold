@@ -1,4 +1,4 @@
-use super::{ConsolidatedServerTool, build_consolidated_tools};
+use super::{ConsolidatedServerTool, build_consolidated_tools, gateway_tool_counts};
 use rmcp::model::Tool;
 use serde_json::{Map, Value};
 use std::sync::Arc;
@@ -8,6 +8,24 @@ fn tool(name: &str) -> Tool {
         name.to_string(),
         format!("{name} description"),
         Arc::new(Map::<String, Value>::new()),
+    )
+}
+
+fn tool_with_schema_properties(name: &str, properties: &[&str]) -> Tool {
+    let schema_properties = properties
+        .iter()
+        .map(|property| {
+            let mut schema = Map::new();
+            schema.insert("type".to_string(), Value::String("string".to_string()));
+            (property.to_string(), Value::Object(schema))
+        })
+        .collect();
+    let mut schema = Map::new();
+    schema.insert("properties".to_string(), Value::Object(schema_properties));
+    Tool::new(
+        name.to_string(),
+        format!("{name} description"),
+        Arc::new(schema),
     )
 }
 
@@ -80,6 +98,25 @@ fn small_servers_pass_through_flat_tools() {
 
     assert!(consolidated.is_empty());
     assert_eq!(tool_names(&passthrough), vec!["alpha", "beta"]);
+}
+
+#[test]
+fn already_hierarchical_servers_pass_through_flat_tools() {
+    let tools = vec![
+        tool_with_schema_properties("hierarchical", &["command", "parameters"]),
+        tool("nested"),
+        tool("wrapped"),
+        tool("other"),
+    ];
+    let (consolidated, passthrough) =
+        build_consolidated_tools(vec![("Azure".to_string(), tools)], 4)
+            .expect("builder should succeed");
+
+    assert!(consolidated.is_empty());
+    assert_eq!(
+        tool_names(&passthrough),
+        vec!["hierarchical", "nested", "other", "wrapped"]
+    );
 }
 
 #[test]
@@ -233,4 +270,26 @@ fn consolidated_catalogs_and_facades_have_stable_ordering() {
         vec!["gateway_able", "gateway_zulu"]
     );
     assert_eq!(tool_names(&passthrough), vec!["tiny_a", "tiny_b"]);
+}
+
+#[test]
+fn gateway_tool_counts_include_native_facades_and_passthrough() {
+    let (consolidated, passthrough) = build_consolidated_tools(
+        vec![
+            ("Facade".to_string(), vec![tool("a"), tool("b"), tool("c"), tool("d")]),
+            ("Flat".to_string(), vec![tool("x"), tool("y")]),
+        ],
+        4,
+    )
+    .expect("builder should succeed");
+    let native_tools = vec![tool("native_one"), tool("native_two"), tool("native_three")];
+
+    assert_eq!(
+        gateway_tool_counts(&consolidated, &passthrough, &native_tools),
+        super::GatewayToolCounts {
+            total: 6,
+            facades: 1,
+            passthrough: 2,
+        }
+    );
 }

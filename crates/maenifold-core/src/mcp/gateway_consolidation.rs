@@ -11,6 +11,13 @@ pub struct ConsolidatedServerTool {
     pub facade_tool: Tool,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) struct GatewayToolCounts {
+    pub total: usize,
+    pub facades: usize,
+    pub passthrough: usize,
+}
+
 pub fn build_consolidated_tools(
     gateway_sources: Vec<(String, Vec<Tool>)>,
     min_tools_for_consolidation: usize,
@@ -32,7 +39,7 @@ pub fn build_consolidated_tools(
 
         tools.sort_by(|left, right| tool_name(left).cmp(&tool_name(right)));
 
-        if tools.len() < min_tools_for_consolidation {
+        if should_passthrough_server(&tools, min_tools_for_consolidation) {
             passthrough.extend(tools);
             continue;
         }
@@ -58,6 +65,18 @@ pub fn build_consolidated_tools(
     consolidated.sort_by(|left, right| left.server_name.cmp(&right.server_name));
     passthrough.sort_by(|left, right| tool_name(left).cmp(&tool_name(right)));
     Ok((consolidated, passthrough))
+}
+
+pub(super) fn gateway_tool_counts(
+    consolidated: &[ConsolidatedServerTool],
+    passthrough: &[Tool],
+    native_tools: &[Tool],
+) -> GatewayToolCounts {
+    GatewayToolCounts {
+        total: consolidated.len() + passthrough.len() + native_tools.len(),
+        facades: consolidated.len(),
+        passthrough: passthrough.len(),
+    }
 }
 
 fn validate_server_name(server_name: &str) -> Result<()> {
@@ -186,6 +205,21 @@ fn schema_property(type_name: &str, description: &str) -> Value {
         Value::String(description.to_string()),
     );
     Value::Object(property)
+}
+
+fn should_passthrough_server(tools: &[Tool], min_tools_for_consolidation: usize) -> bool {
+    tools.len() < min_tools_for_consolidation || tools.iter().any(is_hierarchical_tool)
+}
+
+fn is_hierarchical_tool(tool: &Tool) -> bool {
+    tool.input_schema
+        .get("properties")
+        .and_then(Value::as_object)
+        .is_some_and(|properties| {
+            ["command", "learn", "intent"]
+                .iter()
+                .any(|name| properties.contains_key(*name))
+        })
 }
 
 fn tool_name(tool: &Tool) -> String {

@@ -1,5 +1,5 @@
 use super::ScheduledTask;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -24,7 +24,10 @@ impl LaunchdManager {
                 .join(maenifold_bin)
         };
         if !maenifold_bin.exists() {
-            bail!("maenifold binary does not exist: {}", maenifold_bin.display());
+            bail!(
+                "maenifold binary does not exist: {}",
+                maenifold_bin.display()
+            );
         }
         Ok(Self {
             agents_dir: PathBuf::from(home).join("Library/LaunchAgents"),
@@ -35,11 +38,18 @@ impl LaunchdManager {
     pub fn install(&self, task: &ScheduledTask) -> Result<()> {
         validate_schedule_id(&task.id)?;
         fs::create_dir_all(&self.agents_dir).with_context(|| {
-            format!("failed to create launch agents directory '{}'", self.agents_dir.display())
+            format!(
+                "failed to create launch agents directory '{}'",
+                self.agents_dir.display()
+            )
         })?;
         let plist_path = self.plist_path(&task.id);
         if plist_path.exists() {
-            let _ = launchctl_unload(&plist_path);
+            match launchctl_unload(&plist_path) {
+                Ok(()) => {}
+                Err(error) if is_not_loaded_or_not_found(&error) => {}
+                Err(error) => return Err(error),
+            }
         }
         fs::write(&plist_path, render_plist(task, &self.maenifold_bin)?)
             .with_context(|| format!("failed to write plist '{}'", plist_path.display()))?;
@@ -50,7 +60,7 @@ impl LaunchdManager {
         validate_schedule_id(task_id)?;
         let plist_path = self.plist_path(task_id);
         if plist_path.exists() {
-            let _ = launchctl_unload(&plist_path);
+            launchctl_unload(&plist_path)?;
             fs::remove_file(&plist_path)
                 .with_context(|| format!("failed to remove plist '{}'", plist_path.display()))?;
         }
@@ -80,7 +90,8 @@ impl LaunchdManager {
     }
 
     fn plist_path(&self, task_id: &str) -> PathBuf {
-        self.agents_dir.join(format!("{LABEL_PREFIX}{task_id}.plist"))
+        self.agents_dir
+            .join(format!("{LABEL_PREFIX}{task_id}.plist"))
     }
 }
 
@@ -139,36 +150,48 @@ fn default_log_path(task_id: &str) -> Result<PathBuf> {
 fn cron_to_start_calendar_interval_xml(cron: &str) -> Result<String> {
     let mut parts = cron.split_whitespace();
     let fields = [
-        parts.next().context("cron expression is missing minute field")?,
-        parts.next().context("cron expression is missing hour field")?,
-        parts.next().context("cron expression is missing day-of-month field")?,
-        parts.next().context("cron expression is missing month field")?,
-        parts.next().context("cron expression is missing day-of-week field")?,
+        parts
+            .next()
+            .context("cron expression is missing minute field")?,
+        parts
+            .next()
+            .context("cron expression is missing hour field")?,
+        parts
+            .next()
+            .context("cron expression is missing day-of-month field")?,
+        parts
+            .next()
+            .context("cron expression is missing month field")?,
+        parts
+            .next()
+            .context("cron expression is missing day-of-week field")?,
     ];
     if parts.next().is_some() {
         bail!("launchd requires 5-field cron expressions");
     }
-        let expanded = [
-            ("Minute", expand_field(fields[0], 0, 59, false)?),
-            ("Hour", expand_field(fields[1], 0, 23, false)?),
-            ("Day", expand_field(fields[2], 1, 31, false)?),
-            ("Month", expand_field(fields[3], 1, 12, false)?),
-            ("Weekday", expand_field(fields[4], 0, 7, true)?),
-        ];
-        let schedules = expanded.iter().fold(vec![BTreeMap::new()], |acc, (key, values)| {
+    let expanded = [
+        ("Minute", expand_field(fields[0], 0, 59, false)?),
+        ("Hour", expand_field(fields[1], 0, 23, false)?),
+        ("Day", expand_field(fields[2], 1, 31, false)?),
+        ("Month", expand_field(fields[3], 1, 12, false)?),
+        ("Weekday", expand_field(fields[4], 0, 7, true)?),
+    ];
+    let schedules = expanded
+        .iter()
+        .fold(vec![BTreeMap::new()], |acc, (key, values)| {
             if values.is_empty() {
                 return acc;
-        }
-        acc.into_iter()
-            .flat_map(|base| {
-                values.iter().map(move |value| {
-                    let mut next = base.clone();
-                    next.insert(*key, *value);
-                    next
+            }
+            acc.into_iter()
+                .flat_map(|base| {
+                    values.iter().map(move |value| {
+                        let mut next = base.clone();
+                        next.insert(*key, *value);
+                        next
+                    })
                 })
-            })
-            .collect::<Vec<_>>()
-    });
+                .collect::<Vec<_>>()
+        });
 
     if schedules.is_empty() {
         bail!("cron expression produced no launchd calendar intervals");
@@ -176,7 +199,10 @@ fn cron_to_start_calendar_interval_xml(cron: &str) -> Result<String> {
     Ok(if schedules.len() == 1 {
         render_calendar_dict(&schedules[0])
     } else {
-        let body = schedules.iter().map(render_calendar_dict).collect::<String>();
+        let body = schedules
+            .iter()
+            .map(render_calendar_dict)
+            .collect::<String>();
         format!("<array>{body}</array>")
     })
 }
@@ -212,7 +238,11 @@ fn expand_field(expr: &str, min: u32, max: u32, normalize_sunday: bool) -> Resul
         };
         let mut value = start;
         while value <= end {
-            let normalized = if normalize_sunday && value == 7 { 0 } else { value };
+            let normalized = if normalize_sunday && value == 7 {
+                0
+            } else {
+                value
+            };
             if !values.contains(&normalized) {
                 values.push(normalized);
             }
@@ -268,7 +298,10 @@ fn launchctl_load(plist_path: &Path) -> Result<()> {
         .output()
         .context("failed to run launchctl load")?;
     if !output.status.success() {
-        bail!("launchctl load failed: {}", String::from_utf8_lossy(&output.stderr));
+        bail!(
+            "launchctl load failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
     Ok(())
 }
@@ -280,9 +313,24 @@ fn launchctl_unload(plist_path: &Path) -> Result<()> {
         .output()
         .context("failed to run launchctl unload")?;
     if !output.status.success() {
-        bail!("launchctl unload failed: {}", String::from_utf8_lossy(&output.stderr));
+        bail!(
+            "launchctl unload failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
     Ok(())
+}
+
+fn is_not_loaded_or_not_found(error: &anyhow::Error) -> bool {
+    let message = error.to_string().to_ascii_lowercase();
+    [
+        "launchctl unload failed: unload failed: 5: input/output error",
+        "launchctl unload failed: could not find specified service",
+        "launchctl unload failed: no such process",
+        "launchctl unload failed: not loaded",
+    ]
+    .iter()
+    .any(|needle| message.contains(needle))
 }
 
 #[cfg(test)]
@@ -290,10 +338,68 @@ mod tests {
     use super::{cron_to_start_calendar_interval_xml, render_plist};
     use crate::schedule::ScheduledTask;
     use chrono::Utc;
-    fn task(schedule: &str) -> ScheduledTask { ScheduledTask { id: "weekday-job".into(), name: "Weekday job".into(), schedule: schedule.into(), schedule_human: None, agent: "agent".into(), prompt: "prompt".into(), workdir: None, timeout_seconds: 300, skip_if_running: true, enabled: true, created_at: Utc::now(), updated_at: Utc::now(), last_run: None } }
-    #[test] fn omits_wildcards() { let xml = cron_to_start_calendar_interval_xml("15 9 * * *").expect("cron should render"); assert_eq!(xml, "<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>15</integer></dict>"); }
-    #[test] fn expands_multi_value_fields() { let xml = cron_to_start_calendar_interval_xml("0 9,17 * * 1,5").expect("cron should render"); assert!(xml.starts_with("<array>")); assert!(xml.contains("<key>Weekday</key><integer>1</integer>")); assert!(xml.contains("<key>Weekday</key><integer>5</integer>")); }
-    #[test] fn renders_valid_weekday_plist_xml() { let plist = render_plist(&task("0 9 * * 1-5"), std::path::Path::new("/bin/maenifold")).expect("weekday plist should render"); let file = tempfile::NamedTempFile::new().expect("temp file should exist"); std::fs::write(file.path(), &plist).expect("plist should write"); assert!(std::process::Command::new("plutil").args(["-lint", file.path().to_str().expect("utf-8 path")]).output().expect("plutil should run").status.success()); assert_eq!(plist.matches("<key>Weekday</key>").count(), 5); for day in 1..=5 { assert!(plist.contains(&format!("<key>Weekday</key><integer>{day}</integer>"))); } }
-    #[test] fn expands_wildcard_steps_into_minutes() { let xml = cron_to_start_calendar_interval_xml("*/15 * * * *").expect("stepped cron should render"); assert!(xml.starts_with("<array>")); assert_eq!(xml.matches("<key>Minute</key>").count(), 4); for minute in [0, 15, 30, 45] { assert!(xml.contains(&format!("<key>Minute</key><integer>{minute}</integer>"))); } assert!(!xml.contains("<key>Hour</key>")); }
-    #[test] fn rejects_invalid_cron_for_plist_generation() { let error = render_plist(&task("* * *"), std::path::Path::new("/bin/maenifold")).expect_err("invalid cron should fail"); assert!(error.to_string().contains("missing")); }
+    fn task(schedule: &str) -> ScheduledTask {
+        ScheduledTask {
+            id: "weekday-job".into(),
+            name: "Weekday job".into(),
+            schedule: schedule.into(),
+            schedule_human: None,
+            agent: "agent".into(),
+            prompt: "prompt".into(),
+            workdir: None,
+            timeout_seconds: 300,
+            skip_if_running: true,
+            enabled: true,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            last_run: None,
+        }
+    }
+    #[test]
+    fn omits_wildcards() {
+        let xml = cron_to_start_calendar_interval_xml("15 9 * * *").expect("cron should render");
+        assert_eq!(xml, "<dict><key>Hour</key><integer>9</integer><key>Minute</key><integer>15</integer></dict>");
+    }
+    #[test]
+    fn expands_multi_value_fields() {
+        let xml =
+            cron_to_start_calendar_interval_xml("0 9,17 * * 1,5").expect("cron should render");
+        assert!(xml.starts_with("<array>"));
+        assert!(xml.contains("<key>Weekday</key><integer>1</integer>"));
+        assert!(xml.contains("<key>Weekday</key><integer>5</integer>"));
+    }
+    #[test]
+    fn renders_valid_weekday_plist_xml() {
+        let plist = render_plist(&task("0 9 * * 1-5"), std::path::Path::new("/bin/maenifold"))
+            .expect("weekday plist should render");
+        let file = tempfile::NamedTempFile::new().expect("temp file should exist");
+        std::fs::write(file.path(), &plist).expect("plist should write");
+        assert!(std::process::Command::new("plutil")
+            .args(["-lint", file.path().to_str().expect("utf-8 path")])
+            .output()
+            .expect("plutil should run")
+            .status
+            .success());
+        assert_eq!(plist.matches("<key>Weekday</key>").count(), 5);
+        for day in 1..=5 {
+            assert!(plist.contains(&format!("<key>Weekday</key><integer>{day}</integer>")));
+        }
+    }
+    #[test]
+    fn expands_wildcard_steps_into_minutes() {
+        let xml = cron_to_start_calendar_interval_xml("*/15 * * * *")
+            .expect("stepped cron should render");
+        assert!(xml.starts_with("<array>"));
+        assert_eq!(xml.matches("<key>Minute</key>").count(), 4);
+        for minute in [0, 15, 30, 45] {
+            assert!(xml.contains(&format!("<key>Minute</key><integer>{minute}</integer>")));
+        }
+        assert!(!xml.contains("<key>Hour</key>"));
+    }
+    #[test]
+    fn rejects_invalid_cron_for_plist_generation() {
+        let error = render_plist(&task("* * *"), std::path::Path::new("/bin/maenifold"))
+            .expect_err("invalid cron should fail");
+        assert!(error.to_string().contains("missing"));
+    }
 }

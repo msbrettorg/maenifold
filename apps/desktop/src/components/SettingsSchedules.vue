@@ -45,6 +45,7 @@ const {
   dialogDescription,
   canSubmit,
   form,
+  schedulePlatform,
   scheduleLabel,
   statusFor,
   formatLastRun,
@@ -81,6 +82,14 @@ const {
       <Button type="button" variant="outline" size="sm" @click="loadSchedules">Retry</Button>
     </div>
     <p v-else-if="statusMessage" class="text-sm text-primary" role="status">{{ statusMessage }}</p>
+
+    <div class="rounded-md border px-4 py-3 text-sm" :class="schedulePlatform.supportsEnabledSchedules ? 'border-primary/30 bg-primary/5 text-text-primary' : 'border-destructive/30 bg-destructive/10 text-destructive'">
+      <div class="font-medium">{{ schedulePlatform.label }}</div>
+      <p class="mt-1">
+        {{ schedulePlatform.description }}
+        <span class="text-muted-foreground">Supported backends: macOS launchd, Linux systemd user timers. Windows is unsupported.</span>
+      </p>
+    </div>
 
     <div v-if="isLoading" class="flex items-center gap-2 rounded-md border bg-muted/40 px-4 py-6 text-sm text-muted-foreground">
       <Loader2 class="h-4 w-4 animate-spin" />
@@ -171,9 +180,21 @@ const {
           <div class="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-3">
             <div class="flex flex-col gap-1">
               <Label for="schedule-enabled">Enabled</Label>
-              <p class="text-sm text-muted-foreground">Pause the schedule without deleting its configuration.</p>
+              <p class="text-sm text-muted-foreground">
+                <template v-if="schedulePlatform.supportsEnabledSchedules">
+                  Install this schedule with {{ schedulePlatform.scheduler }}, or pause it without deleting its configuration.
+                </template>
+                <template v-else>
+                  {{ schedulePlatform.unsupportedEnabledMessage }}
+                </template>
+              </p>
             </div>
-            <Switch id="schedule-enabled" :model-value="form.enabled" :disabled="isSubmitting" @update:model-value="(value: boolean) => { form.enabled = value; }" />
+            <Switch
+              id="schedule-enabled"
+              :model-value="form.enabled"
+              :disabled="isSubmitting || !schedulePlatform.supportsEnabledSchedules"
+              @update:model-value="(value: boolean) => { form.enabled = value; }"
+            />
           </div>
 
           <DialogFooter>

@@ -15,6 +15,7 @@ pub struct TeamsSessionMetadata {
     pub source: String,
     pub conversation_id: String,
     pub message_id: String,
+    pub sender_mri: String,
     pub sender_name: String,
     pub matched_keyword: String,
 }
@@ -23,8 +24,9 @@ impl TeamsDispatchRequest {
     /// Build a dispatch request from a match result and agent name.
     pub fn from_match(result: &MatchResult, agent: &str) -> Self {
         let prompt = format!(
-            "Teams message from {} matched keyword '{}'.\n\nMessage content:\n{}\n\nConversation: {}\nTime: {}",
+            "Teams message from {} (sender MRI: {}) matched keyword '{}'.\n\nMessage content:\n{}\n\nConversation: {}\nTime: {}",
             result.message.sender_name,
+            result.message.sender_mri,
             result.matched_keyword,
             result.message.content,
             result.message.conversation_id,
@@ -38,6 +40,7 @@ impl TeamsDispatchRequest {
                 source: "teams".to_string(),
                 conversation_id: result.message.conversation_id.clone(),
                 message_id: result.message.message_id.clone(),
+                sender_mri: result.message.sender_mri.clone(),
                 sender_name: result.message.sender_name.clone(),
                 matched_keyword: result.matched_keyword.clone(),
             },
@@ -49,7 +52,7 @@ impl TeamsDispatchRequest {
         json!({
             "agent": self.agent,
             "prompt": self.prompt,
-            "autoGrantPermissions": true,
+            "autoGrantPermissions": false,
             "mode": "prompt",
             "metadata": self.metadata,
         })
@@ -81,7 +84,9 @@ mod tests {
         let request = TeamsDispatchRequest::from_match(&result, "copilot");
 
         assert_eq!(request.agent, "copilot");
-        assert!(request.prompt.contains("Teams message from Brett matched keyword 'keyword'."));
+        assert!(request
+            .prompt
+            .contains("Teams message from Brett (sender MRI: 8:orgid:user) matched keyword 'keyword'."));
         assert!(request.prompt.contains("Message content:\nhello from Teams"));
         assert_eq!(
             request.metadata,
@@ -89,6 +94,7 @@ mod tests {
                 source: "teams".to_string(),
                 conversation_id: "conversation-456".to_string(),
                 message_id: "message-123".to_string(),
+                sender_mri: "8:orgid:user".to_string(),
                 sender_name: "Brett".to_string(),
                 matched_keyword: "keyword".to_string(),
             }
@@ -104,6 +110,7 @@ mod tests {
                 source: "teams".to_string(),
                 conversation_id: "conversation-456".to_string(),
                 message_id: "message-123".to_string(),
+                sender_mri: "8:orgid:user".to_string(),
                 sender_name: "Brett".to_string(),
                 matched_keyword: "keyword".to_string(),
             },
@@ -113,9 +120,10 @@ mod tests {
 
         assert_eq!(payload["agent"], "copilot");
         assert_eq!(payload["prompt"], "prompt");
-        assert_eq!(payload["autoGrantPermissions"], true);
+        assert_eq!(payload["autoGrantPermissions"], false);
         assert_eq!(payload["mode"], "prompt");
         assert_eq!(payload["metadata"]["source"], "teams");
         assert_eq!(payload["metadata"]["message_id"], "message-123");
+        assert_eq!(payload["metadata"]["sender_mri"], "8:orgid:user");
     }
 }

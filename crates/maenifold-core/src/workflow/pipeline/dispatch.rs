@@ -11,9 +11,12 @@ use super::dispatch_prompt::build_prompt_dispatch_response;
 use super::dispatch_thinking::build_thinking_dispatch_response;
 use super::dispatch_tool::build_tool_dispatch_response;
 use super::dispatch_workflow::{activate_workflow_node_session, build_workflow_dispatch_response};
+use crate::markdown::file_exists;
+use crate::sessions::workflow_session_uri;
 use super::session_io::{
-    derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
-    update_workflow_node_frontmatter,
+    NodeFile, derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
+    read_pipeline_session, update_workflow_node_frontmatter,
+    write_workflow_node_session_with_status,
 };
 use super::view::node_ids_with_status;
 use super::{
@@ -28,9 +31,9 @@ use super::{
 pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
-    let mut node_states =
-        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
-    release_retrying_nodes(context, &mut node_states)?;
+    let mut node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
+    release_retrying_nodes(context, session_id, &definition, &mut node_states)?;
+    let mut node_states = derive_pipeline_node_states(context, &node_states)?;
     let max_concurrency = frontmatter
         .get("maxConcurrency")
         .and_then(YamlValue::as_u64)
@@ -110,6 +113,8 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
 
 fn release_retrying_nodes(
     context: &ToolContext,
+    session_id: &str,
+    definition: &PipelineDefinition,
     node_states: &mut HashMap<String, NodeState>,
 ) -> Result<()> {
     let now = Utc::now();
@@ -117,6 +122,7 @@ fn release_retrying_nodes(
         if state.status != NodeStatus::Retrying {
             continue;
         }
+        ensure_retry_workflow_session(context, session_id, definition, node_id, state)?;
         let Some(retry_after) = state.retry_after.as_deref() else {
             state.status = NodeStatus::Pending;
             state.retry_after = None;
@@ -143,6 +149,35 @@ fn release_retrying_nodes(
         update_workflow_node_frontmatter(context, &state.session_id, "pending", None)?;
     }
     Ok(())
+}
+
+fn ensure_retry_workflow_session(
+    context: &ToolContext,
+    session_id: &str,
+    definition: &PipelineDefinition,
+    node_id: &str,
+    state: &NodeState,
+) -> Result<()> {
+    let workflow_uri = workflow_session_uri(&state.session_id);
+    if file_exists(&workflow_uri, &context.config)? {
+        return Ok(());
+    }
+
+    let node = definition
+        .nodes
+        .iter()
+        .find(|node| node.id() == node_id)
+        .ok_or_else(|| missing_definition_node(node_id))?;
+    write_workflow_node_session_with_status(
+        context,
+        session_id,
+        &NodeFile {
+            session_id: state.session_id.clone(),
+            node_id: node_id.to_string(),
+            workflow_id: node.effective_workflow_id(),
+        },
+        "retrying",
+    )
 }
 
 fn dispatch_node(

@@ -44,6 +44,10 @@ pub struct NodeAdopt {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct RetryPolicy {
+    /// Maximum transient retries after the initial attempt.
+    ///
+    /// This budget does not include the first execution attempt. For example,
+    /// `max_attempts = 2` permits the initial attempt plus two retries.
     pub max_attempts: u32,
     pub backoff_min_ms: u64,
     pub backoff_max_ms: u64,

@@ -1,9 +1,8 @@
-//! ## Known Limitations
+//! Retry helpers for pipeline node execution.
 //!
-//! - **Retry budget is per-process-lifetime, not per-pipeline-lifetime.**
-//!   If the pipeline driver crashes mid-retry and restarts, the retry counter
-//!   resets. This means a node can exceed its declared `max_retries` across
-//!   restarts. A durability fix is planned but not yet implemented.
+//! Durable pipeline execution persists retry counters and `retry_after` before
+//! scheduling each retry. `RetryPolicy::max_attempts` is a retry budget only:
+//! the initial execution attempt is not counted against it.
 
 use std::time::Duration as StdDuration;
 
@@ -58,6 +57,7 @@ impl std::fmt::Display for RetryExecutionError {
 
 impl std::error::Error for RetryExecutionError {}
 
+#[allow(dead_code)]
 pub(super) async fn execute_with_retry_policy<F, Fut>(
     node_id: &str,
     retry_policy: RetryPolicy,

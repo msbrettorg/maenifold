@@ -11,7 +11,7 @@ use super::session_io::{
     persist_pipeline_state, read_pipeline_session, write_workflow_node_session_with_status,
 };
 use super::update::update_pipeline_node_status;
-use super::{NodeStatus, PipelineDefinition};
+use super::{NodeStatus, PipelineDefinition, RetryPolicy};
 
 use super::executor_retry::extract_retry_count_from_state;
 
@@ -30,12 +30,12 @@ pub(super) fn persist_retryable_failure(
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let mut node_states =
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
-    let max_attempts = frontmatter
+    let fallback_max_attempts = frontmatter
         .get("maxAttempts")
         .and_then(serde_yaml::Value::as_u64)
         .unwrap_or(3) as u32;
     let prior_retry_count = extract_retry_count_from_state(node_states.get(node_id));
-    let retry_count = retry_attempts.max(prior_retry_count).max(1);
+    let retry_count = retry_attempts.max(prior_retry_count);
     let node = definition
         .nodes
         .iter()
@@ -63,7 +63,11 @@ pub(super) fn persist_retryable_failure(
         state.attempts = state.attempts.saturating_add(retry_attempts);
     }
 
-    if state.attempts >= max_attempts {
+    let retry_policy = node.retry_policy();
+    let retry_budget_exhausted = retry_policy
+        .map(|policy| retry_count >= policy.max_attempts)
+        .unwrap_or(state.attempts >= fallback_max_attempts);
+    if retry_budget_exhausted {
         persist_workflow_retry_count(context, &state.session_id, retry_count)?;
         persist_pipeline_state(
             &mut frontmatter,
@@ -92,6 +96,7 @@ pub(super) fn persist_retryable_failure(
         return Ok(());
     }
 
+    let next_retry_count = retry_count.saturating_add(1);
     let next_session_id = allocate_node_session_id(context, node_id)?;
     state.session_id = next_session_id.clone();
     state.status = NodeStatus::Retrying;
@@ -106,7 +111,8 @@ pub(super) fn persist_retryable_failure(
     state.model = None;
     state.output = None;
     state.failure_reason = None;
-    state.retry_after = Some((Utc::now() + Duration::seconds(1)).to_rfc3339());
+    state.retry_count = Some(next_retry_count);
+    state.retry_after = Some(next_retry_after(retry_policy, next_retry_count));
 
     persist_pipeline_state(
         &mut frontmatter,
@@ -125,8 +131,39 @@ pub(super) fn persist_retryable_failure(
     let persisted_retry_count = node_states
         .get(node_id)
         .and_then(|state| state.retry_count)
-        .unwrap_or(retry_count);
+        .unwrap_or(next_retry_count);
     persist_workflow_retry_count(context, &node_file.session_id, persisted_retry_count)
+}
+
+fn next_retry_after(policy: Option<&RetryPolicy>, retry_count: u32) -> String {
+    let delay = policy
+        .map(|policy| retry_delay(policy, retry_count))
+        .unwrap_or_else(|| Duration::seconds(1));
+    (Utc::now() + delay).to_rfc3339()
+}
+
+fn retry_delay(policy: &RetryPolicy, retry_count: u32) -> Duration {
+    let exponent = retry_count.saturating_sub(1).min(31);
+    let multiplier = 1u64.checked_shl(exponent).unwrap_or(u64::MAX);
+    let delay_ms = policy
+        .backoff_min_ms
+        .saturating_mul(multiplier)
+        .min(policy.backoff_max_ms);
+    let delay_ms = if policy.jitter {
+        deterministic_jitter_ms(delay_ms, retry_count)
+    } else {
+        delay_ms
+    };
+    Duration::milliseconds(i64::try_from(delay_ms).unwrap_or(i64::MAX))
+}
+
+fn deterministic_jitter_ms(delay_ms: u64, retry_count: u32) -> u64 {
+    if delay_ms <= 1 {
+        return delay_ms;
+    }
+    let spread = delay_ms / 2;
+    let offset = (u64::from(retry_count).saturating_mul(1_103_515_245) % spread.max(1)) + 1;
+    delay_ms.saturating_sub(offset)
 }
 
 pub(super) fn persist_workflow_retry_count(

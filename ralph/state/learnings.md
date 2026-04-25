@@ -3,6 +3,29 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1016 (CDP Verification + Voice Hardening)
+
+### Substring matching bugs in status parsing
+- T-218.6: `"disconnected".includes("connected")` returns true in JavaScript
+- TeamsTab.vue parseStatusPayload catch block used `includes()` for status text matching
+- Fix: exact match (`===`) for "connected"/"disconnected", substring match only for "error" (multi-word error messages)
+- **Lesson: Never use substring matching for status enumeration values. Use exact match or check more specific values first.**
+
+### Verification-only tasks don't need full SDD pipeline
+- T-218.8 and T-218.10 were verification-only tasks specced as SDD but had no code changes
+- Had to pass through all 4 stages (pending→swe→red-team→blue-team→done) with "no delta" notes
+- **Lesson: Spec verification-only tasks as `lightweight` or create a dedicated `verification` pipeline. SDD overhead is wasted on tasks with no code delta.**
+
+### Meta-tasks get superseded by real work
+- T-218.14 (sprint signoff template) and T-218.16 (reopen e2e paths) were both superseded
+- T-218.14's process already codified in ralph/prompt.md. T-218.16's criteria all covered by existing tasks.
+- **Lesson: Groom meta-tasks aggressively. If the meta-task creates tasks, check if those tasks already exist before keeping the meta-task alive.**
+
+### hf-hub 0.5.0 is latest — no reqwest 0.13 path
+- T-220.28 cannot be fixed by simple upgrade — hf-hub 0.5.0 still uses reqwest 0.12
+- Only fix is feature-gating hf-hub or waiting for a new release
+- **Lesson: Before dispatching dep-alignment tasks, check if the upstream dep has a compatible version available. If not, the task needs research (GSD) not implementation (SDD).**
+
 ## 2026-04-25 — Iteration 0759 (Dependency Hygiene + CDP)
 
 ### Red-team catches path leaks that SWEs miss

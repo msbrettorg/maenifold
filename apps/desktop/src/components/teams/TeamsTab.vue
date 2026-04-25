@@ -7,27 +7,17 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { McpCapabilityUnsupportedError, useMcpResources } from '@/composables/useMcpResources';
+import {
+  TEAMS_STATUS_URI,
+  defaultTeamsStatus,
+  formatTeamsConnectionState,
+  parseTeamsStatusResource,
+  type TeamsStatus,
+} from '@/composables/useTeamsStatus';
 import type { SavedSession } from '@/lib/types';
 import { useAppShellStore } from '@/stores/app-shell';
 import { useSessionStore } from '@/stores/session';
 
-type TeamsMonitorState = 'connected' | 'disconnected' | 'error';
-
-interface TeamsMonitorStatus {
-  state: TeamsMonitorState;
-  label: string;
-  detail: string;
-}
-
-interface TeamsStatusPayload {
-  status?: unknown;
-  connected?: unknown;
-  error?: unknown;
-  detail?: unknown;
-  message?: unknown;
-}
-
-const STATUS_URI = 'teams://status';
 const props = withDefaults(defineProps<{
   emptyIcon?: Component;
 }>(), {
@@ -38,11 +28,7 @@ const appShellStore = useAppShellStore();
 const sessionStore = useSessionStore();
 const currentSession = computed(() => sessionStore.currentSession);
 const savedSessions = computed(() => sessionStore.savedSessions);
-const status = ref<TeamsMonitorStatus>({
-  state: 'disconnected',
-  label: 'Disconnected',
-  detail: 'Open Settings to configure Teams monitor access.',
-});
+const status = ref<TeamsStatus>(defaultTeamsStatus());
 const isRefreshingStatus = ref(false);
 const resumingSessionId = ref<string | null>(null);
 let unsubscribeStatusUpdates: (() => void) | null = null;
@@ -58,83 +44,17 @@ function isTeamsSession(session: SavedSession | null): session is SavedSession {
   return searchTerms.some((value) => value.includes('teams'));
 }
 
-function defaultStatus(state: TeamsMonitorState, detail?: string): TeamsMonitorStatus {
-  if (state === 'connected') {
-    return {
-      state,
-      label: 'Connected',
-      detail: detail ?? 'Teams monitor is connected and ready to surface chat sessions.',
-    };
-  }
-
-  if (state === 'error') {
-    return {
-      state,
-      label: 'Error',
-      detail: detail ?? 'Unable to read Teams monitor status right now.',
-    };
-  }
-
-  return {
-    state,
-    label: 'Disconnected',
-    detail: detail ?? 'Open Settings to configure Teams monitor access.',
-  };
-}
-
-function parseStatusPayload(text?: string): TeamsMonitorStatus {
-  if (!text) {
-    return defaultStatus('disconnected');
-  }
-
-  try {
-    const payload = JSON.parse(text) as TeamsStatusPayload;
-    const explicitStatus = typeof payload.status === 'string' ? payload.status.toLowerCase() : null;
-    const detail = typeof payload.detail === 'string'
-      ? payload.detail
-      : typeof payload.message === 'string'
-        ? payload.message
-        : typeof payload.error === 'string'
-          ? payload.error
-          : undefined;
-
-    if (explicitStatus === 'connected' || payload.connected === true) {
-      return defaultStatus('connected', detail);
-    }
-
-    if (explicitStatus === 'error' || typeof payload.error === 'string') {
-      return defaultStatus('error', detail);
-    }
-
-    if (explicitStatus === 'disconnected' || payload.connected === false) {
-      return defaultStatus('disconnected', detail);
-    }
-  } catch {
-    const normalized = text.trim().toLowerCase();
-    if (normalized === 'connected') {
-      return defaultStatus('connected');
-    }
-    if (normalized === 'disconnected') {
-      return defaultStatus('disconnected');
-    }
-    if (normalized === 'error' || normalized.includes('error')) {
-      return defaultStatus('error', text.trim());
-    }
-  }
-
-  return defaultStatus('disconnected');
-}
-
 async function refreshStatus(): Promise<void> {
   isRefreshingStatus.value = true;
   try {
-    const resource = await mcpResources.readResource(STATUS_URI);
-    status.value = parseStatusPayload(resource.text);
+    const resource = await mcpResources.readResource(TEAMS_STATUS_URI);
+    status.value = parseTeamsStatusResource(resource);
   } catch (error) {
-    status.value = defaultStatus(
-      'error',
-      error instanceof Error ? error.message : 'Unable to read Teams monitor status.',
-    );
+    status.value = defaultTeamsStatus({
+      enabled: true,
+      connectionState: 'error',
+      lastError: error instanceof Error ? error.message : 'Unable to read Teams monitor status.',
+    });
   } finally {
     isRefreshingStatus.value = false;
   }
@@ -148,11 +68,29 @@ const teamsSessions = computed(() =>
 
 const activeTeamsSession = computed(() => isTeamsSession(currentSession.value) ? currentSession.value : null);
 
+const statusLabel = computed(() => formatTeamsConnectionState(status.value.connectionState));
+
+const statusDetail = computed(() => {
+  if (status.value.connectionState === 'connected') {
+    return 'Teams monitor is connected and ready to surface chat sessions.';
+  }
+  if (status.value.connectionState === 'connecting') {
+    return 'Teams monitor is starting and waiting for a runtime connection.';
+  }
+  if (status.value.connectionState === 'reconnecting') {
+    return 'Teams monitor is reconnecting to Teams.';
+  }
+  if (status.value.connectionState === 'error') {
+    return status.value.lastError ?? 'Unable to read Teams monitor status right now.';
+  }
+  return 'Open Settings to configure Teams monitor access.';
+});
+
 const statusDotClass = computed(() => {
-  if (status.value.state === 'connected') {
+  if (status.value.connectionState === 'connected') {
     return 'bg-brand';
   }
-  if (status.value.state === 'error') {
+  if (status.value.connectionState === 'error') {
     return 'bg-danger';
   }
   return 'bg-text-tertiary';
@@ -180,7 +118,7 @@ async function resumeTeamsSession(session: SavedSession): Promise<void> {
 
 onMounted(() => {
   void refreshStatus();
-  void mcpResources.subscribeResource(STATUS_URI, () => {
+  void mcpResources.subscribeResource(TEAMS_STATUS_URI, () => {
     void refreshStatus();
   }).then((unsubscribe) => {
     unsubscribeStatusUpdates = unsubscribe;
@@ -188,10 +126,11 @@ onMounted(() => {
     if (error instanceof McpCapabilityUnsupportedError) {
       return;
     }
-    status.value = defaultStatus(
-      'error',
-      error instanceof Error ? error.message : 'Unable to subscribe to Teams monitor updates.',
-    );
+    status.value = defaultTeamsStatus({
+      enabled: true,
+      connectionState: 'error',
+      lastError: error instanceof Error ? error.message : 'Unable to subscribe to Teams monitor updates.',
+    });
   });
 });
 
@@ -206,11 +145,11 @@ onBeforeUnmount(() => {
     <div class="flex items-start justify-between gap-4 px-4 py-4">
       <div class="grid gap-1">
         <h2 class="text-md font-semibold text-text-primary">Teams Monitor</h2>
-        <p class="text-sm text-text-secondary">{{ status.detail }}</p>
+        <p class="text-sm text-text-secondary">{{ statusDetail }}</p>
       </div>
       <Badge variant="outline" class="border-border-subtle bg-bg-app text-text-primary">
         <span class="mr-2 inline-flex size-2 rounded-full" :class="statusDotClass" />
-        {{ isRefreshingStatus ? 'Refreshing…' : status.label }}
+        {{ isRefreshingStatus ? 'Refreshing…' : statusLabel }}
       </Badge>
     </div>
 
@@ -250,8 +189,8 @@ onBeforeUnmount(() => {
     <div v-else class="flex min-h-0 flex-1 items-center justify-center px-6 pb-6">
       <EmptyState
         :icon="props.emptyIcon"
-        :title="status.state === 'connected' ? 'No Teams conversations yet' : 'Teams monitor unavailable'"
-        :description="status.state === 'connected'
+        :title="status.connectionState === 'connected' ? 'No Teams conversations yet' : 'Teams monitor unavailable'"
+        :description="status.connectionState === 'connected'
           ? 'Teams-originated sessions will appear here after the monitor captures activity.'
           : 'Open Settings to configure Teams monitor access and start collecting conversations.'"
         action-label="Open Settings"

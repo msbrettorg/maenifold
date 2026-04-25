@@ -1,7 +1,10 @@
 use super::context::{ToolContext, render, required_string};
+use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
-use crate::teams::TeamsAuth;
+use crate::teams::{
+    TeamsAuth, set_teams_connecting, set_teams_disabled, set_teams_error, teams_runtime_snapshot,
+};
 use serde_json::{Value, json};
 use std::fs;
 use std::future::Future;
@@ -45,14 +48,21 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
     let monitor = settings.teams_monitor.clone();
     config.settings = Some(settings);
     write_agents_config(root, &config)?;
+    if enabled {
+        set_teams_connecting();
+        set_teams_error("authentication required: no Teams token is available");
+    } else {
+        set_teams_disabled();
+    }
+    let runtime = teams_runtime_snapshot();
     Ok(render(
         context.output_format,
         status_value(
             if enabled { "enable" } else { "disable" },
             &monitor,
-            monitor_connection_state(&monitor),
+            &runtime,
             if enabled {
-                "Teams monitor enabled in maenifold.json."
+                "Teams monitor enabled in maenifold.json; authentication is required before connecting."
             } else {
                 "Teams monitor disabled in maenifold.json."
             },
@@ -62,12 +72,13 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
 
 fn monitor_status(context: &ToolContext) -> Result<String> {
     let monitor = load_monitor_config(&context.config.maenifold_root)?;
+    let runtime = teams_runtime_snapshot();
     Ok(render(
         context.output_format,
         status_value(
             "status",
             &monitor,
-            monitor_connection_state(&monitor),
+            &runtime,
             "Teams monitor configuration loaded from maenifold.json.",
         ),
     ))
@@ -108,7 +119,7 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         status_value(
             "configure",
             &monitor,
-            monitor_connection_state(&monitor),
+            &teams_runtime_snapshot(),
             "Teams monitor configuration updated in maenifold.json.",
         ),
     ))
@@ -157,35 +168,6 @@ fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
         .settings
         .unwrap_or_else(MaenifoldSettings::default)
         .teams_monitor)
-}
-
-fn status_value(
-    action: &str,
-    monitor: &TeamsMonitorConfig,
-    connection_state: &'static str,
-    message: &str,
-) -> Value {
-    json!({
-        "action": action,
-        "enabled": monitor.enabled,
-        "connectionState": connection_state,
-        "config": {
-            "keywords": monitor.handler.keywords,
-            "senderAllowList": monitor.handler.sender_allow_list,
-            "senderDenyList": monitor.handler.sender_deny_list,
-            "cooldownSeconds": monitor.handler.cooldown_seconds,
-            "dispatchAgent": monitor.dispatch_agent,
-        },
-        "message": message,
-    })
-}
-
-fn monitor_connection_state(config: &TeamsMonitorConfig) -> &'static str {
-    if !config.enabled {
-        "disabled"
-    } else {
-        "not_connected"
-    }
 }
 
 fn optional_string_vec(payload: &Value, key: &'static str) -> Result<Option<Vec<String>>> {

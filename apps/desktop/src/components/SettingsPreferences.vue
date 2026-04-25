@@ -28,7 +28,7 @@ function handleDensityChange(density: FontDensity) {
   status.value = 'Preferences saved.';
 }
 
-const telemetryEnabled = ref(true);
+const telemetryEnabled = ref(false);
 const lastCwd = ref('');
 const loading = ref(true);
 
@@ -84,7 +84,7 @@ async function clearLastCwd() {
 
 onMounted(async () => {
   try {
-    telemetryEnabled.value = readStorageValue<boolean>(PREFS_STORE_PATH, 'telemetryEnabled') ?? true;
+    telemetryEnabled.value = readStorageValue<boolean>(PREFS_STORE_PATH, 'telemetryEnabled') ?? false;
     lastCwd.value = readStorageValue<string>(PREFS_STORE_PATH, 'lastCwd') ?? '';
   } catch (loadError) {
     error.value = loadError instanceof Error ? loadError.message : String(loadError);
@@ -145,7 +145,7 @@ onMounted(async () => {
             <div class="flex flex-col gap-1">
               <Label for="telemetry-switch" class="text-sm font-semibold">Telemetry</Label>
               <p class="m-0 text-sm text-muted-foreground">
-                Allow the app to initialize Application Insights telemetry on launch.
+                Off by default. Turn on to allow Application Insights telemetry on launch.
               </p>
             </div>
             <Switch

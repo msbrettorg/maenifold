@@ -116,7 +116,7 @@ export function useAppSession({
   });
 
   onMounted(async () => {
-    const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? true;
+    const telemetryEnabled = await prefsStore.get<boolean>('telemetryEnabled') ?? false;
     await initTelemetry(telemetryEnabled);
     await configStore.loadConfig();
     await configStore.setupHotReload();

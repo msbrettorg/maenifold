@@ -39,7 +39,7 @@ function createDefaultState(): UiPreferencesSettingsState {
     theme: 'dark',
     fontScale: 'default',
     denseMode: false,
-    telemetryEnabled: true,
+    telemetryEnabled: false,
     restoreLastWorkingDirectory: true,
   };
 }

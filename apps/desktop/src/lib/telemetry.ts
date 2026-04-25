@@ -3,7 +3,7 @@ import { ApplicationInsights } from '@microsoft/applicationinsights-web';
 import { DAEMON_BASE_URL } from './daemon-url';
 
 let appInsights: ApplicationInsights | null = null;
-let isEnabled = true;
+let isEnabled = false;
 let machineId: string | null = null;
 
 const CONNECTION_STRING = 'InstrumentationKey=70b098b2-fcae-4834-867f-69554662910c;IngestionEndpoint=https://eastus-8.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=d2f5a78f-257e-4748-bd25-509258a27bd2';
@@ -21,12 +21,11 @@ async function fetchMachineId(): Promise<string> {
  * Initialize Application Insights telemetry
  * @param enabled Whether telemetry is enabled (respects user preference)
  */
-export async function initTelemetry(enabled: boolean = true) {
+export async function initTelemetry(enabled: boolean = false) {
   isEnabled = enabled;
 
   if (!enabled) {
-    if (import.meta.env.DEV) {
-    }
+    clearTelemetryContext();
     return;
   }
 
@@ -35,6 +34,11 @@ export async function initTelemetry(enabled: boolean = true) {
       machineId = await fetchMachineId();
     } catch (e) {
       machineId = null;
+    }
+
+    if (!isEnabled) {
+      clearTelemetryContext();
+      return;
     }
 
     appInsights = new ApplicationInsights({
@@ -49,6 +53,11 @@ export async function initTelemetry(enabled: boolean = true) {
     });
 
     appInsights.loadAppInsights();
+
+    if (!isEnabled) {
+      clearTelemetryContext();
+      return;
+    }
 
     if (machineId) {
       appInsights.setAuthenticatedUserContext(machineId);
@@ -92,7 +101,18 @@ export function trackError(error: Error, properties?: Record<string, string>) {
  */
 export function setTelemetryEnabled(enabled: boolean) {
   isEnabled = enabled;
-  if (!enabled && appInsights) {
+  if (!enabled) {
+    clearTelemetryContext();
+  }
+}
+
+function clearTelemetryContext() {
+  machineId = null;
+  if (!appInsights) return;
+
+  try {
+    appInsights.clearAuthenticatedUserContext();
     appInsights.flush();
+  } catch (e) {
   }
 }

@@ -69,32 +69,29 @@ function handleOpenTab(tab: AppShellTab): void {
 // Lazy-mount tabs on first visit, then keep them alive via v-show so we avoid
 // repeated mount/unmount churn (which previously caused GPU context thrash and
 // crashes when WebGL-backed views were destroyed). Home is always pre-mounted
-// because it is the default landing tab and is also rendered in the
-// "showHome" overlay state regardless of activeTab.
+// because it is the default landing tab and must preserve composer state across
+// session lifecycle changes.
 const visitedTabs = reactive(new Set<AppShellTab>(['home']));
 
 watch(activeTab, (tab) => {
   visitedTabs.add(tab);
 }, { immediate: true });
 
-async function handlePromptSubmit(prompt: string): Promise<void> {
+async function handlePromptSubmit(prompt: string): Promise<boolean> {
   const trimmedPrompt = prompt.trim();
   if (!trimmedPrompt) {
-    return;
+    return false;
   }
 
   if (!sessionStore.isConnected && !sessionStore.isConnecting) {
     await handleNewSession();
   }
 
-  if (sessionStore.isConnected) {
-    const success = await sessionStore.sendPrompt(trimmedPrompt);
-    if (!success) {
-      // Surface failure to caller so post-send cleanup (e.g., clearing the
-      // composer input) is skipped and the user can retry without losing input.
-      return;
-    }
+  if (!sessionStore.isConnected) {
+    return false;
   }
+
+  return sessionStore.sendPrompt(trimmedPrompt);
 }
 
 const { isFirstRun, checkFirstRun } = useOnboarding();
@@ -141,7 +138,7 @@ function onOnboardingComplete(): void {
       <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
         <HomeDashboard
-          v-show="showHome"
+          v-show="activeTab === 'home'"
           key="home"
           v-model:selected-agent="selectedAgent"
           :has-agents="hasAgents"
@@ -149,27 +146,10 @@ function onOnboardingComplete(): void {
           :is-connected="isConnected"
           :is-connecting="isConnecting"
           :recent-sessions="sessionStore.savedSessions"
+          :submit-prompt="handlePromptSubmit"
           @agent-select="handleAgentSelect"
           @select-folder="handleSelectFolder"
           @new-session="handleNewSession"
-          @prompt-submit="handlePromptSubmit"
-          @open-tab="handleOpenTab"
-          @resume-session="handleResumeSession"
-        />
-
-        <HomeDashboard
-          v-show="!showHome && activeTab === 'home'"
-          key="home-with-active-session"
-          v-model:selected-agent="selectedAgent"
-          :has-agents="hasAgents"
-          :selected-cwd="selectedCwd"
-          :is-connected="isConnected"
-          :is-connecting="isConnecting"
-          :recent-sessions="sessionStore.savedSessions"
-          @agent-select="handleAgentSelect"
-          @select-folder="handleSelectFolder"
-          @new-session="handleNewSession"
-          @prompt-submit="handlePromptSubmit"
           @open-tab="handleOpenTab"
           @resume-session="handleResumeSession"
         />

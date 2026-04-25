@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { Brain, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,13 +24,13 @@ const props = defineProps<{
   isConnected: boolean;
   isConnecting: boolean;
   recentSessions: SavedSession[];
+  submitPrompt: (prompt: string) => Promise<boolean>;
 }>();
 
 const emit = defineEmits<{
   'agent-select': [agentName: string];
   'select-folder': [];
   'new-session': [];
-  'prompt-submit': [prompt: string];
   'select-tab': [tab: AppShellTab];
   'open-tab': [tab: AppShellTab];
   'resume-session': [session: SavedSession];
@@ -38,6 +38,8 @@ const emit = defineEmits<{
 
 const pipelineStore = usePipelineStore();
 const composerInput = ref('');
+const composerError = ref('');
+const isSubmittingPrompt = ref(false);
 
 const categories: HomeTile[] = [
   { key: 'agents', title: 'Agents', description: 'Start or resume sessions', icon: '💬', accentClass: 'text-brand', tab: 'agents' },
@@ -58,14 +60,37 @@ function handleTileSelect(tile: HomeTile) {
   }
 }
 
-function handleComposerSubmit() {
+async function handleComposerSubmit() {
   const trimmedPrompt = composerInput.value.trim();
   if (!trimmedPrompt) return;
-  emit('prompt-submit', trimmedPrompt);
+  if (isSubmittingPrompt.value) return;
+
+  composerError.value = '';
+  isSubmittingPrompt.value = true;
+
+  try {
+    const sent = await props.submitPrompt(trimmedPrompt);
+    if (!sent) {
+      composerError.value = 'Unable to send your prompt. Check the session connection and try again.';
+      return;
+    }
+  } catch {
+    composerError.value = 'Unable to send your prompt. Check the session connection and try again.';
+    return;
+  } finally {
+    isSubmittingPrompt.value = false;
+  }
+
   emit('select-tab', 'agents');
   emit('open-tab', 'agents');
   composerInput.value = '';
 }
+
+watch(composerInput, () => {
+  if (composerError.value) {
+    composerError.value = '';
+  }
+});
 
 onMounted(async () => {
   await pipelineStore.refreshList();
@@ -103,17 +128,27 @@ onMounted(async () => {
             v-model="composerInput"
             type="text"
             placeholder="Ask me anything..."
+            :aria-invalid="composerError ? 'true' : 'false'"
+            aria-describedby="home-composer-error"
             class="flex-1 border-0 bg-transparent text-sm text-text-primary shadow-none outline-none ring-0 placeholder:text-text-tertiary focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
           />
           <Button
             type="submit"
             variant="ghost"
             size="icon"
+            :disabled="isSubmittingPrompt"
             class="flex size-9 items-center justify-center rounded-[4px] text-text-tertiary transition-colors hover:text-text-primary"
           >
             <Send class="size-4" :stroke-width="1.5" />
           </Button>
         </form>
+        <p
+          v-if="composerError"
+          id="home-composer-error"
+          class="mt-2 text-xs text-danger"
+        >
+          {{ composerError }}
+        </p>
       </CardContent>
     </Card>
   </div>

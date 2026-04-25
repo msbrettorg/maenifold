@@ -4,6 +4,32 @@ Thoughts and ideas for future improvements belong here.
 Stuff you learn should go in ralph/state/learnings.md
 This isn't a work log, it's a place for ideas that aren't yet ready to be implemented but are worth remembering and revisiting later.
 
+## Iteration 20260425-1016
+
+### Shipped (5 tasks)
+- **T-222.1** ✅ Voice companion absolute path hardening (SDD, 0 remediation)
+- **T-218.6** ✅ Teams status parsing substring bug fix (SDD, 0 remediation)
+- **T-218.8** ✅ Gate table layout CDP verification (SDD, 0 remediation, no code changes)
+- **T-218.10** ✅ Schedules Settings CDP verification (SDD, 0 remediation, no code changes)
+- **T-218.42** ✅ Wire Teams settings tab into SettingsView (lightweight)
+
+### CDP observations
+- Teams tab: parseStatusPayload had substring matching bug — "disconnected".includes("connected") → true
+- Gate table: 48 todo + 512 done render correctly, Done tab row click updates detail (T-219.1 fix holds)
+- Schedules: empty state, table headers, Create dialog all render correctly
+- Settings: no Teams tab existed — T-218.42 adds it
+
+### Grooming
+- T-218.16 fully superseded by T-218.7, T-218.11, T-218.39, T-218.41 — recommend cancellation
+- T-218.14 process meta-task — sprint signoff process codified in ralph/prompt.md — recommend cancellation
+- hf-hub 0.5.0 is latest, still uses reqwest 0.12 — T-220.28 cannot be fixed by upgrade alone
+
+### Backlog shape
+- 48 → 43 pending after this iteration
+- Most remaining T-218.x tasks are verification-only or complex multi-crate
+- T-221.x (ACP gateway epic) is fully decomposed into 9 sub-tasks
+- T-220.27 (serde_yaml) needs epic decomposition (80+ usage sites)
+
 ## Iteration 20260425-0759
 
 ### Shipped (9 tasks)

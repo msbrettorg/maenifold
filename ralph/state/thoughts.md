@@ -7,33 +7,21 @@ Stuff you learn should go in ralph/state/learnings.md
 
 ## Iteration 20260424-1953 — Test Coverage + Gateway + Vec0
 
-### Shipped (16 items)
-- **T-05.67** ✅ Vec0 download wizard (SDD, 3 red-team cycles)
-- **T-216.1** ✅ Gateway consolidation builder (SDD, 1 remediation)
-- **T-216.2** ✅ Intent matching + learn dispatch (SDD, 1 remediation)
-- **T-216.4** ✅ Auto-description (closed — covered by T-216.1)
+### Shipped (21 items)
+- **T-05.67** ✅ Vec0 download wizard (3 red-team cycles)
+- **T-06.1** ✅ P0 gateway crash fix (0 remediation)
+- **T-216.0** ✅ EPIC CLOSED — Gateway Consolidation (6/6)
+- **T-216.1-6** ✅ All 6 gateway consolidation subtasks
 - **T-217.0** ✅ EPIC CLOSED — Test Coverage Sprint (8/8)
-- **T-217.1-8** ✅ All 8 test coverage tasks shipped
-- **T-214.13** ✅ E2E validation closed with CDP findings
+- **T-217.1-8** ✅ All 8 test coverage tasks
 - **T-214.0** ✅ EPIC CLOSED — Session-as-Node Phase 1 (15/15)
+- **T-214.13** ✅ E2E validation closed
 - **P0 fix** ✅ Missing teams_monitor field in test fixture
 
-### In Progress
-- **T-06.1** ⏳ P0 gateway crash on unknown tools (SWE)
-- **T-216.3** ⏳ Handler integration (SWE)
+### Stats: 444→464 done, 3 epics closed
 
-### Stats: 444→459 done
-
-### Key Decisions
-- T-216.1 spec updated per duo review (opus-4.7 + gpt-5.4): added facade naming, schema precedence, edge cases
-- T-05.67 security: URL host allowlist + redirect validation + atomic write
-- T-214.13 closed with known limitation: agent-browser can't right-click
-- T-216.4 closed as duplicate — description generation already in T-216.1
-
-### Next Actions
-- Land T-06.1 P0 fix urgently
-- Land T-216.3 handler integration → T-216.5 passthrough → T-216.6 integration test
-- T-216.0 epic close after remaining sub-tasks
+### Remaining Backlog (9 tasks)
+- T-207.7 (P2 integration test), T-209.0/7 (pipeline-meta), T-210.0/9/11 (Teams), T-211.0/9/11 (Schedules)
 
 ## Iteration 20260424-1745 — Teams UI + Schedule Tools
 

@@ -15,6 +15,7 @@ mod recent_activity_format;
 mod recent_activity_render;
 mod response;
 mod schedule;
+mod schedule_logs;
 mod sessions;
 mod sessions_query;
 mod teams_monitor;

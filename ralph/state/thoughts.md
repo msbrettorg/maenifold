@@ -16,19 +16,12 @@ Stuff you learn should go in ralph/state/learnings.md
 - **T-218.15** ✅ Stage actor/transition integrity audit (SDD, 3 SWE cycles, 3 red-team, 2 blue-team)
 - **T-218.40** ✅ Gate progress badges design-token contrast fix (SDD, 0 remediation)
 - **T-219.1** ✅ Gate Done tab row click + subscription race fix (SDD, 2 SWE cycles, 2 red-team, 2 blue-team)
+- **T-218.9** ✅ Unified chat/gate-history markdown onto shared renderer (SDD, 0 remediation, net -43 lines)
 
 ### Duo Review
 - **T-218.19** FAIL (both opus-4.7 + gpt-5.5) — 404 path unreachable in stateless gate. Deprioritized P2.
 
-### CDP Verification
-- Gate Done tab: fixed and CDP-verified with rebuilt packaged app
-- Todo tab clicks: confirmed working
-- Teams tab: renders correctly (no blank page)
-- Settings/Schedules: renders with table + "New schedule" button
-- Agents tab: renders with sessions
-- Knowledge tab note selection: may have similar root cause to original Done tab bug — investigate
-
-### Stats: 484→487 done (+4 shipped, -1 reopened/reshipped)
+### Stats: 484→488 done (+5 shipped, -1 reopened/reshipped)
 
 ## Iteration 20260424-2132 — Gate Audit + Schedule CLI + Process Hardening
 

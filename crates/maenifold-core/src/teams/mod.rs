@@ -1,4 +1,5 @@
 mod auth;
+pub mod credential_store;
 mod dispatch;
 mod handler;
 mod runtime;

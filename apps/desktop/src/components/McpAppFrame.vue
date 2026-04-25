@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue';
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from 'vue';
 import {
   AppBridge,
   PostMessageTransport,
@@ -8,7 +8,9 @@ import {
 import type { McpUiResourcePermissions } from '@modelcontextprotocol/ext-apps/app-bridge';
 import { Skeleton } from './ui/skeleton';
 import { useMcpClient } from '@/composables/useMcpClient';
+import { useMcpToolDiscoveryStore } from '@/stores/mcp-tool-discovery';
 import type { ToolCallInfo } from '@/lib/types';
+import type { ToolCallResult } from '@/composables/mcpTransport';
 
 const props = defineProps<{
   toolCall: ToolCallInfo;
@@ -19,10 +21,13 @@ const bridge = shallowRef<AppBridge | null>(null);
 const ready = ref(false);
 const errorMessage = ref<string | null>(null);
 const sandboxHeight = ref<number>(420);
-const { readResource } = useMcpClient();
+const mcpToolDiscovery = useMcpToolDiscoveryStore();
+const { readResource, callToolRaw } = useMcpClient();
 let disposed = false;
 
 const appUi = computed(() => props.toolCall.appUi ?? null);
+const toolUnavailableMessage =
+  'Tool is not available to this app. Apps may only call tools advertised by their originating MCP server.';
 
 const permissions = computed<McpUiResourcePermissions | undefined>(() => {
   const list = appUi.value?.permissions;
@@ -31,6 +36,46 @@ const permissions = computed<McpUiResourcePermissions | undefined>(() => {
 });
 
 const allowAttr = computed(() => buildAllowAttribute(permissions.value));
+
+function toolError(message: string): ToolCallResult {
+  return {
+    content: [{ type: 'text', text: message }],
+    isError: true,
+  };
+}
+
+function unavailableToolError(): ToolCallResult {
+  return toolError(toolUnavailableMessage);
+}
+
+function logToolScopeDenied(reason: string, details: Record<string, unknown>): void {
+  console.warn('[McpAppFrame] Denied MCP App tool callback', { reason, ...details });
+}
+
+function getToolsForServer(serverName: string) {
+  return mcpToolDiscovery.serverResults.find(
+    (result) => result.status === 'ok' && result.server === serverName,
+  )?.tools ?? [];
+}
+
+function resolveOriginToolName(toolName: string, serverName: string): string | null {
+  const bareName = toolName.includes('.') ? toolName.split('.').pop() ?? toolName : toolName;
+  const ownerTools = getToolsForServer(serverName);
+  const qualifiedName = `${serverName}.${bareName}`;
+
+  return ownerTools.find((tool) =>
+    tool.name === bareName ||
+    tool.name === toolName ||
+    tool.name === qualifiedName ||
+    tool.name.endsWith(`.${bareName}`)
+  )?.name ?? null;
+}
+
+async function ensureToolDiscoveryLoaded(): Promise<void> {
+  if (!mcpToolDiscovery.hasLoadedCatalog) {
+    await mcpToolDiscovery.refreshTools();
+  }
+}
 
 const sandboxSrc = computed(() => {
   if (!appUi.value) return '';
@@ -119,15 +164,56 @@ async function initBridge() {
       return {};
     };
 
-    ab.oncalltool = async (_params) => {
-      // Tool call scope restriction: only allow calls to the originating server
-      // Full proxying will be wired in a future task when useMcpClient exposes
-      // raw CallToolResult shape. For now, return an error indicating tool calls
-      // are not yet supported.
-      return {
-        content: [{ type: 'text', text: 'Tool calls from MCP Apps are not yet supported.' }],
-        isError: true,
-      } as any;
+    ab.oncalltool = async (params) => {
+      if (disposed) return toolError('MCP App tool call was cancelled because the frame was disposed.') as any;
+
+      const resourceUri = appUi.value?.resourceUri;
+      if (!resourceUri) {
+        logToolScopeDenied('resource uri missing', { requestedTool: params?.name });
+        return unavailableToolError() as any;
+      }
+
+      if (!params?.name || typeof params.name !== 'string') {
+        logToolScopeDenied('invalid tool call params', { resourceUri, params });
+        return unavailableToolError() as any;
+      }
+
+      try {
+        await ensureToolDiscoveryLoaded();
+      } catch (err) {
+        logToolScopeDenied('tool discovery failed', {
+          resourceUri,
+          requestedTool: params.name,
+          error: (err as Error).message,
+        });
+        return unavailableToolError() as any;
+      }
+
+      const resourceServer = appUi.value?.originatingServer;
+      if (!resourceServer) {
+        logToolScopeDenied('originating server not found', {
+          resourceUri,
+          originatingTool: props.toolCall.title,
+          requestedTool: params.name,
+        });
+        return unavailableToolError() as any;
+      }
+
+      const resolvedToolName = resolveOriginToolName(params.name, resourceServer);
+      if (!resolvedToolName) {
+        logToolScopeDenied('requested tool not advertised by originating server', {
+          resourceUri,
+          originatingServer: resourceServer,
+          requestedTool: params.name,
+        });
+        return unavailableToolError() as any;
+      }
+
+      try {
+        return await callToolRaw(resolvedToolName, params.arguments ?? {}) as any;
+      } catch (err) {
+        return toolError(`MCP App tool call '${params.name}' failed: ${(err as Error).message}`) as any;
+      }
     };
 
     await ab.connect(transport);
@@ -155,10 +241,6 @@ async function teardown() {
     ready.value = false;
   }
 }
-
-onMounted(() => {
-  // initBridge runs once iframe load fires
-});
 
 onBeforeUnmount(() => {
   disposed = true;

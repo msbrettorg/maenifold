@@ -67,7 +67,7 @@ fn unknown_action_returns_valid_action_list() {
         let error = teams_monitor(context, &json!({"action":"bogus"})).expect_err("unknown action");
         assert_eq!(
             error.to_string(),
-            "unknown action 'bogus'. Available: enable, disable, status, configure, authenticate"
+            "unknown action 'bogus'. Available: enable, disable, status, configure, authenticate, authenticate_start, authenticate_complete, refresh, sign_out"
         );
     });
 }

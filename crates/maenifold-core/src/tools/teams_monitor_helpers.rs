@@ -18,6 +18,8 @@ pub(super) fn status_value(
         "activeDispatches": runtime.active_dispatches,
         "lastError": runtime.last_error.as_deref(),
         "config": {
+            "clientId": monitor.client_id,
+            "tenantId": monitor.tenant_id,
             "keywords": monitor.handler.keywords,
             "senderAllowList": monitor.handler.sender_allow_list,
             "senderDenyList": monitor.handler.sender_deny_list,

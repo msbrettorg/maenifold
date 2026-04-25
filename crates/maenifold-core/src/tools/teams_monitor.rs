@@ -1,26 +1,14 @@
 use super::context::{ToolContext, render, required_string};
+use super::teams_monitor_auth::{
+    authenticate_complete, authenticate_start, refresh, restore_on_enable, sign_out,
+};
 use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
-use crate::teams::{
-    TeamsAuth, set_teams_connecting, set_teams_disabled, set_teams_error, teams_runtime_snapshot,
-};
-use serde_json::{Value, json};
+use crate::teams::{set_teams_disabled, set_teams_error, teams_runtime_snapshot};
+use serde_json::Value;
 use std::fs;
-use std::future::Future;
 use std::path::Path;
-use std::sync::LazyLock;
-use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
-use tokio::task;
-
-static TEAMS_AUTH_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
-    Builder::new_multi_thread()
-        .worker_threads(2)
-        .enable_all()
-        .build()
-        .map_err(|error| format!("Failed to build Teams auth runtime: {error}"))
-});
-const DEFAULT_TEAMS_SCOPES: &[&str] = &["https://api.spaces.skype.com/.default"];
 
 pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let action = required_string(payload, "action")?;
@@ -29,9 +17,12 @@ pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         "disable" => set_enabled(context, false),
         "status" => monitor_status(context),
         "configure" => configure_monitor(context, payload),
-        "authenticate" => authenticate_monitor(context, payload),
+        "authenticate" | "authenticate_start" => authenticate_start(context, payload),
+        "authenticate_complete" => authenticate_complete(context),
+        "refresh" => refresh(context),
+        "sign_out" => sign_out(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: enable, disable, status, configure, authenticate",
+            "unknown action '{}'. Available: enable, disable, status, configure, authenticate, authenticate_start, authenticate_complete, refresh, sign_out",
             action
         ))),
     }
@@ -49,8 +40,9 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
     config.settings = Some(settings);
     write_agents_config(root, &config)?;
     if enabled {
-        set_teams_connecting();
-        set_teams_error("authentication required: no Teams token is available");
+        if let Err(error) = restore_on_enable(&monitor) {
+            set_teams_error(error.to_string());
+        }
     } else {
         set_teams_disabled();
     }
@@ -62,7 +54,7 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
             &monitor,
             &runtime,
             if enabled {
-                "Teams monitor enabled in maenifold.json; authentication is required before connecting."
+                "Teams monitor enabled in maenifold.json; stored Teams credentials were restored when available."
             } else {
                 "Teams monitor disabled in maenifold.json."
             },
@@ -125,52 +117,17 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
-fn authenticate_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
-    let client_id = required_string(payload, "clientId")?.to_string();
-    let tenant_id = required_string(payload, "tenantId")?.to_string();
-    let scopes = optional_string_vec(payload, "scopes")?.unwrap_or_else(|| {
-        DEFAULT_TEAMS_SCOPES
-            .iter()
-            .map(|scope| (*scope).to_string())
-            .collect()
-    });
-    if scopes.is_empty()
-        || scopes
-            .iter()
-            .any(|scope| !DEFAULT_TEAMS_SCOPES.contains(&scope.as_str()))
-    {
-        return Err(MaenifoldError::InvalidArgument(format!(
-            "'scopes' must be omitted or limited to: {}",
-            DEFAULT_TEAMS_SCOPES.join(", ")
-        )));
-    }
-    let scope_refs = scopes.iter().map(String::as_str).collect::<Vec<_>>();
-    let auth = TeamsAuth::new(client_id.clone(), tenant_id.clone());
-    let info = run_teams_future(auth.initiate_device_code(&scope_refs))
-        .map_err(MaenifoldError::Message)?;
-    Ok(render(
-        context.output_format,
-        json!({
-            "action": "authenticate",
-            "clientId": client_id,
-            "tenantId": tenant_id,
-            "scopes": scopes,
-            "userCode": info.user_code,
-            "verificationUri": info.verification_uri,
-            "expiresIn": info.expires_in,
-            "message": info.message,
-        }),
-    ))
-}
-
-fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
+pub(super) fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
     Ok(AgentsConfig::load(root)?
         .settings
         .unwrap_or_else(MaenifoldSettings::default)
         .teams_monitor)
 }
 
-fn optional_string_vec(payload: &Value, key: &'static str) -> Result<Option<Vec<String>>> {
+pub(super) fn optional_string_vec(
+    payload: &Value,
+    key: &'static str,
+) -> Result<Option<Vec<String>>> {
     let Some(value) = payload.get(key) else {
         return Ok(None);
     };
@@ -224,32 +181,6 @@ fn optional_u64(payload: &Value, key: &'static str) -> Result<Option<u64>> {
         .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be an integer")))
 }
 
-fn run_teams_future<F, T>(future: F) -> std::result::Result<T, String>
-where
-    F: Future<Output = Result<T>>,
-{
-    match Handle::try_current() {
-        Ok(handle) => {
-            if !matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) {
-                return Err(
-                    "Teams authentication requires a multi-thread Tokio runtime when invoked from async context"
-                        .to_string(),
-                );
-            }
-            task::block_in_place(|| handle.block_on(future)).map_err(|error| error.to_string())
-        }
-        Err(_) => teams_auth_runtime()?
-            .block_on(future)
-            .map_err(|error| error.to_string()),
-    }
-}
-
-fn teams_auth_runtime() -> std::result::Result<&'static Runtime, String> {
-    TEAMS_AUTH_RUNTIME
-        .as_ref()
-        .map_err(|message| message.clone())
-}
-
 fn validate_dispatch_agent(config: &AgentsConfig, dispatch_agent: Option<&str>) -> Result<()> {
     let Some(dispatch_agent) = dispatch_agent else {
         return Ok(());
@@ -264,7 +195,7 @@ fn validate_dispatch_agent(config: &AgentsConfig, dispatch_agent: Option<&str>) 
     }
 }
 
-fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
+pub(super) fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
     let path = root.join("maenifold.json");
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;

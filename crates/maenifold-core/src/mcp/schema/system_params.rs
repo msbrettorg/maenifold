@@ -130,6 +130,13 @@ pub enum TeamsMonitorAction {
     Status,
     Configure,
     Authenticate,
+    #[serde(rename = "authenticate_start")]
+    AuthenticateStart,
+    #[serde(rename = "authenticate_complete")]
+    AuthenticateComplete,
+    Refresh,
+    #[serde(rename = "sign_out")]
+    SignOut,
 }
 
 #[derive(Deserialize, JsonSchema)]

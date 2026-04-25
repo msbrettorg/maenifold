@@ -78,23 +78,33 @@ fn list_jobs_payload() -> Result<Value> {
 }
 
 fn read_job_payload(id: &str) -> Result<Value> {
-    let job = schedule_store()
+    let store = schedule_store();
+    if !store.exists(id) {
+        return Err(schedule_not_found(id));
+    }
+
+    let job = store
         .read(id)
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+        .map_err(|_| MaenifoldError::Message(format!("failed to read scheduled task '{id}'")))?;
     Ok(serde_json::to_value(job)?)
 }
 
 fn read_logs_payload(id: &str) -> Result<Value> {
     let store = schedule_store();
-    store
-        .read(id)
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    if !store.exists(id) {
+        return Err(schedule_not_found(id));
+    }
+
     let logs = read_recent_logs(&store.task_dir(id).join("logs"), 10)?;
     Ok(json!(logs))
 }
 
 fn schedule_store() -> ScheduleStore {
     ScheduleStore::new(Config::current().maenifold_root.join("schedules"))
+}
+
+fn schedule_not_found(id: &str) -> MaenifoldError {
+    MaenifoldError::AssetNotFound("scheduled-task".to_string(), id.to_string())
 }
 
 fn parse_id(uri: &str, prefix: &str, template: &str) -> Result<String> {

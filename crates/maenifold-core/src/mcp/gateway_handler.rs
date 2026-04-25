@@ -2,7 +2,7 @@ use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::{DispatchResult, dispatch_facade_call};
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
-use crate::mcp::stdio_pool::StdioPool;
+use crate::mcp::stdio_pool::{StdioPool, StdioPoolHealth};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use crate::mcp::tool_utils::format_tool_error;
 use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
@@ -58,6 +58,11 @@ impl GatewayState {
 
     pub(crate) fn pool(&self) -> Arc<StdioPool> {
         Arc::clone(&self.pool)
+    }
+
+    #[allow(dead_code)]
+    pub(crate) async fn startup_diagnostics(&self) -> StdioPoolHealth {
+        self.pool.health().await
     }
 
     pub(crate) fn list_tools(&self) -> Vec<Tool> {

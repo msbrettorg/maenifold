@@ -1,4 +1,6 @@
-use super::{ManagedServer, StdioPool, StdioServerConfig, collect_gateway_tools};
+use super::{
+    ManagedServer, ServerStartupStatus, StdioPool, StdioServerConfig, collect_gateway_tools,
+};
 use crate::mcp::stdio_session::StdioSession;
 use serde_json::json;
 use std::collections::HashMap;
@@ -150,7 +152,7 @@ async fn stdio_pool_partial_startup_keeps_survivors_usable() {
     bad.args = vec![
         "-u".to_string(),
         "-c".to_string(),
-        "import sys; sys.exit(1)".to_string(),
+        "import sys; print('startup stderr line', file=sys.stderr); sys.exit(1)".to_string(),
     ];
     let pool = StdioPool::start(vec![server_config("good", "survivor"), bad])
         .await
@@ -189,7 +191,9 @@ async fn stdio_pool_partial_startup_keeps_survivors_usable() {
     assert!(broken.enabled);
     assert!(broken.degraded);
     assert!(!broken.running);
+    assert_eq!(broken.status, ServerStartupStatus::Failed);
     assert_eq!(broken.tool_count, 0);
+    assert_eq!(broken.stderr_tail, vec!["startup stderr line".to_string()]);
     assert!(
         broken
             .last_start_error
@@ -260,6 +264,7 @@ async fn stdio_pool_dead_server_restart_is_single_flight() {
         .find(|server| server.name == "counting")
         .expect("counting health should exist");
     assert!(server.running);
+    assert_eq!(server.status, ServerStartupStatus::Started);
     assert_eq!(
         server.env_keys,
         vec!["COUNT_DIR".to_string(), "SECRET_TOKEN".to_string()]

@@ -18,6 +18,27 @@ const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
 const STDERR_LIMIT: usize = 4096;
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 const TERM_WAIT: Duration = Duration::from_secs(1);
+
+#[derive(Debug)]
+pub struct StdioStartupError {
+    pub error: MaenifoldError,
+    pub stderr: Option<String>,
+}
+
+impl StdioStartupError {
+    fn new(error: MaenifoldError, stderr: Option<String>) -> Self {
+        Self { error, stderr }
+    }
+}
+
+impl std::fmt::Display for StdioStartupError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.error.fmt(formatter)
+    }
+}
+
+impl std::error::Error for StdioStartupError {}
+
 struct StartupState {
     io: (ChildStdin, BufReader<ChildStdout>),
     child: Child,
@@ -37,8 +58,11 @@ pub struct StdioSession {
     pub(super) poisoned: AtomicBool,
 }
 impl StdioSession {
-    pub async fn start(entry: &McpServerStdioConfig, call_timeout: Duration) -> Result<Self> {
-        let mut state = spawn(entry)?;
+    pub async fn start(
+        entry: &McpServerStdioConfig,
+        call_timeout: Duration,
+    ) -> std::result::Result<Self, StdioStartupError> {
+        let mut state = spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async {
             match request::<InitializeResult>(
                 &mut state.io,
@@ -60,13 +84,14 @@ impl StdioSession {
         let tools = match tokio::time::timeout(STARTUP_TIMEOUT, startup).await {
             Ok(Ok(tools)) => tools,
             Ok(Err(error)) => {
-                shutdown_startup(state).await;
-                return Err(error);
+                let stderr = shutdown_startup(state).await;
+                return Err(StdioStartupError::new(error, stderr));
             }
             Err(_) => {
-                shutdown_startup(state).await;
-                return Err(MaenifoldError::Message(
-                    "MCP server startup timed out after 60s".to_string(),
+                let stderr = shutdown_startup(state).await;
+                return Err(StdioStartupError::new(
+                    MaenifoldError::Message("MCP server startup timed out after 60s".to_string()),
+                    stderr,
                 ));
             }
         };
@@ -254,12 +279,18 @@ async fn terminate_child(child: &mut Child) {
     let _ = child.start_kill();
     let _ = wait_for_exit(child, TERM_WAIT).await;
 }
-async fn shutdown_startup(mut state: StartupState) {
+async fn shutdown_startup(mut state: StartupState) -> Option<String> {
     let _ = state.io.0.shutdown().await;
     if !wait_for_exit(&mut state.child, SHUTDOWN_WAIT).await {
         terminate_child(&mut state.child).await;
     }
     let _ = state.stderr_task.await;
+    let stderr = state.stderr.lock().await.trim().to_string();
+    if stderr.is_empty() {
+        None
+    } else {
+        Some(stderr)
+    }
 }
 #[cfg(test)]
 #[path = "stdio_session_tests.rs"]

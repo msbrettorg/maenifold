@@ -99,12 +99,14 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         let gateway_startup = build_gateway(&config).await?;
-        let (gateway, gateway_startup_error) = match gateway_startup {
-            GatewayStartup::Disabled => (None, None),
-            GatewayStartup::Ready(gateway) => (Some(gateway), None),
-            GatewayStartup::Failed(error) => (None, Some(error)),
+        let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
+            GatewayStartup::Disabled => (None, None, None),
+            GatewayStartup::Ready(gateway) => {
+                let diagnostics_pool = Some(gateway.pool());
+                (Some(gateway), None, diagnostics_pool)
+            }
+            GatewayStartup::Failed { error, diagnostics } => (None, Some(error), diagnostics),
         };
-        let pool_for_api = gateway.as_ref().map(|gateway| gateway.pool());
         let router = router(
             service(shutdown_token.child_token(), gateway, gateway_startup_error),
             ApiState::new(config.clone(), pool_for_api),

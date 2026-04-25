@@ -3,6 +3,7 @@ pub mod resources;
 pub mod schema;
 mod stdio_pool_health;
 mod stdio_pool_tools;
+mod stdio_io;
 pub mod stdio_pool;
 pub mod stdio_session;
 pub mod tool_routing;

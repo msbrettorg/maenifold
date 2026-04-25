@@ -1,6 +1,7 @@
 use crate::error::{
     GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result,
 };
+use super::stdio_io::{parse_result, read_response, send_message, wait_for_exit};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::model::{CallToolResult, InitializeResult, ListToolsResult, ReadResourceResult, Tool};
 use serde::de::DeserializeOwned;
@@ -10,17 +11,15 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Mutex as StdMutex, MutexGuard};
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, ChildStderr, ChildStdin, ChildStdout, Command};
 use tokio::sync::Mutex;
 const MCP_PROTOCOL_VERSION: &str = "2025-03-26";
 const LEGACY_PROTOCOL_VERSION: &str = "2024-11-05";
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
-const MAX_FRAME_BYTES: usize = 16 * 1024 * 1024;
 const STDERR_LIMIT: usize = 4096;
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 const TERM_WAIT: Duration = Duration::from_secs(1);
-const POLL_INTERVAL: Duration = Duration::from_millis(25);
 struct StartupState {
     io: (ChildStdin, BufReader<ChildStdout>),
     child: Child,
@@ -47,13 +46,14 @@ impl StdioSession {
                 &mut state.io,
                 1,
                 json!({"protocolVersion":MCP_PROTOCOL_VERSION,"capabilities":{},"clientInfo":{"name":"maenifold-core","version":"0.1.0"}}),
+                &entry.name,
             )
             .await? {
                 result if is_supported_version(&result.protocol_version.to_string()) => {}
                 result => return Err(MaenifoldError::Message(format!("unsupported MCP protocol version '{}'", result.protocol_version))),
             }
             send_message(&mut state.io.0, &json!({"jsonrpc":"2.0","method":"notifications/initialized"})).await?;
-            list_tools(&mut state.io, 2).await
+            list_tools(&mut state.io, 2, &entry.name).await
         };
         let tools = match tokio::time::timeout(STARTUP_TIMEOUT, startup).await {
             Ok(Ok(tools)) => tools,
@@ -91,7 +91,8 @@ impl StdioSession {
         let request = json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let response = match tokio::time::timeout(self.call_timeout, async {
             send_message(&mut io.0, &request).await?;
-            read_response(&mut io.1, id).await
+            let (writer, reader) = &mut *io;
+            read_response(writer, reader, id, &self.server_name).await
         }).await {
             Ok(result) => result,
             Err(_) => {
@@ -195,18 +196,12 @@ fn tail_chars(value: &str, max_chars: usize) -> String {
     let len = value.chars().count();
     if len <= max_chars { value.to_string() } else { value.chars().skip(len - max_chars).collect() }
 }
-async fn send_message(stdin: &mut ChildStdin, message: &Value) -> Result<()> {
-    let mut body = serde_json::to_vec(message)?;
-    body.push(b'\n');
-    stdin.write_all(&body).await.map_err(connection_error)?;
-    stdin.flush().await.map_err(connection_error)?;
-    Ok(())
-}
-async fn request<T: DeserializeOwned>(io: &mut (ChildStdin, BufReader<ChildStdout>), id: u64, params: Value) -> Result<T> {
+async fn request<T: DeserializeOwned>(io: &mut (ChildStdin, BufReader<ChildStdout>), id: u64, params: Value, server_name: &str) -> Result<T> {
     send_message(&mut io.0, &json!({"jsonrpc":"2.0","id":id,"method":"initialize","params":params})).await?;
-    parse_result(read_response(&mut io.1, id).await?)
+    let (writer, reader) = io;
+    parse_result(read_response(writer, reader, id, server_name).await?)
 }
-async fn list_tools(io: &mut (ChildStdin, BufReader<ChildStdout>), mut id: u64) -> Result<Vec<Tool>> {
+async fn list_tools(io: &mut (ChildStdin, BufReader<ChildStdout>), mut id: u64, server_name: &str) -> Result<Vec<Tool>> {
     let mut tools = Vec::new();
     let mut cursor: Option<String> = None;
     loop {
@@ -216,7 +211,8 @@ async fn list_tools(io: &mut (ChildStdin, BufReader<ChildStdout>), mut id: u64) 
             None => json!({"jsonrpc":"2.0","id":id,"method":"tools/list"}),
         };
         send_message(&mut io.0, &message).await?;
-        let result: ListToolsResult = parse_result(read_response(&mut io.1, id).await?)?;
+        let (writer, reader) = &mut *io;
+        let result: ListToolsResult = parse_result(read_response(writer, reader, id, server_name).await?)?;
         tools.extend(result.tools);
         if let Some(next) = result.next_cursor {
             cursor = Some(next);
@@ -224,54 +220,6 @@ async fn list_tools(io: &mut (ChildStdin, BufReader<ChildStdout>), mut id: u64) 
         } else {
             return Ok(tools);
         }
-    }
-}
-async fn read_response<R: AsyncRead + Unpin>(reader: &mut BufReader<R>, id: u64) -> Result<Value> {
-    loop {
-        let mut line = Vec::new();
-        loop {
-            let chunk = reader.fill_buf().await.map_err(connection_error)?;
-            if chunk.is_empty() { return Err(MaenifoldError::Message("connection error: unexpected EOF while reading MCP response".to_string())); }
-            let take = chunk.iter().position(|&byte| byte == b'\n').map_or(chunk.len(), |idx| idx + 1);
-            if line.len() + take > MAX_FRAME_BYTES {
-                return Err(MaenifoldError::Message(format!(
-                    "connection error: MCP response exceeded max frame size of {MAX_FRAME_BYTES} bytes"
-                )));
-            }
-            line.extend_from_slice(&chunk[..take]);
-            reader.consume(take);
-            if line.last() == Some(&b'\n') {
-                break;
-            }
-        }
-        let message: Value = serde_json::from_slice(&line)?;
-        if message.get("method").is_some() && message.get("id").is_none() {
-            continue;
-        }
-        if message.get("id").and_then(Value::as_u64) != Some(id) {
-            continue;
-        }
-        if let Some(error) = message.get("error").filter(|error| !error.is_null()) {
-            let code = error.get("code").and_then(Value::as_i64).ok_or_else(|| MaenifoldError::Message(format!("JSON-RPC error missing integer code: {error}")))?;
-            let message = error.get("message").and_then(Value::as_str).unwrap_or("unknown JSON-RPC error");
-            let data = error.get("data").cloned().unwrap_or(Value::Null);
-            return Err(MaenifoldError::JsonRpc { code, message: message.to_string(), data });
-        }
-        return Ok(message["result"].clone());
-    }
-}
-fn parse_result<T: DeserializeOwned>(value: Value) -> Result<T> { serde_json::from_value(value).map_err(Into::into) }
-fn connection_error(error: io::Error) -> MaenifoldError { MaenifoldError::Message(format!("connection error: {error}")) }
-async fn wait_for_exit(child: &mut Child, timeout: Duration) -> bool {
-    let deadline = tokio::time::Instant::now() + timeout;
-    loop {
-        match child.try_wait() {
-            Ok(Some(_)) => return true,
-            Ok(None) => {}
-            Err(_) => return false,
-        }
-        if tokio::time::Instant::now() >= deadline { return false; }
-        tokio::time::sleep(POLL_INTERVAL).await;
     }
 }
 async fn terminate_child(child: &mut Child) {

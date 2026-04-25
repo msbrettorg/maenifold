@@ -99,14 +99,16 @@ impl SystemdManager {
     }
 }
 fn render_timer(task: &ScheduledTask) -> Result<String> {
+    let safe_name = sanitize_unit_value(&task.name);
     Ok(format!(
         "[Unit]\nDescription=Maenifold scheduled task: {}\n\n[Timer]\nOnCalendar={}\nPersistent=true\n\n[Install]\nWantedBy=timers.target\n",
-        task.name,
+        safe_name,
         cron_to_oncalendar(&task.schedule)?
     ))
 }
 
 fn render_service(task: &ScheduledTask, maenifold_bin: &Path) -> Result<String> {
+    let safe_name = sanitize_unit_value(&task.name);
     let log_path = default_log_path(&task.id)?;
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)
@@ -114,13 +116,16 @@ fn render_service(task: &ScheduledTask, maenifold_bin: &Path) -> Result<String> 
     }
     Ok(format!(
         "[Unit]\nDescription=Maenifold scheduled task: {}\n\n[Service]\nType=oneshot\nExecStart={} schedule run {}\nStandardOutput=append:{}\nStandardError=append:{}\nEnvironment=PATH={}\n",
-        task.name,
+        safe_name,
         maenifold_bin.display(),
         task.id,
         log_path.display(),
         log_path.display(),
         DEFAULT_PATH
     ))
+}
+fn sanitize_unit_value(s: &str) -> String {
+    s.chars().filter(|c| !c.is_control()).collect()
 }
 fn default_log_path(task_id: &str) -> Result<PathBuf> {
     let home = std::env::var_os("HOME").context("HOME is not set")?;

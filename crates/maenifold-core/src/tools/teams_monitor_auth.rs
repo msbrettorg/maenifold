@@ -5,8 +5,8 @@ use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
 use crate::teams::credential_store::{delete_token, retrieve_token, store_token};
 use crate::teams::{
-    TeamsAuth, TokenInfo, set_teams_authenticated, set_teams_pending_auth,
-    set_teams_unauthenticated, teams_runtime_snapshot,
+    TeamsAuth, TokenInfo, set_teams_auth_expired, set_teams_authenticated_until,
+    set_teams_error, set_teams_pending_auth, set_teams_unauthenticated, teams_runtime_snapshot,
 };
 use parking_lot::RwLock;
 use serde_json::{Value, json};
@@ -88,7 +88,10 @@ pub(super) fn authenticate_complete(context: &ToolContext) -> Result<String> {
 
     let token = run_teams_future(pending.auth.acquire_token(&pending.user_code))
         .map_err(MaenifoldError::Message);
-    let token = token?;
+    let token = match token { Ok(token) => token, Err(error) => {
+        set_teams_error(error.to_string());
+        return Err(error);
+    } };
     let _auth_guard = PENDING_DEVICE_CODE.write();
     if !pending_can_store_token(&pending) {
         return Ok(status_response(
@@ -97,8 +100,10 @@ pub(super) fn authenticate_complete(context: &ToolContext) -> Result<String> {
             "Teams authentication completed after sign_out; credentials were not stored.",
         )?);
     }
-    store_token(&pending.client_id, &pending.tenant_id, &token)?;
-    set_teams_authenticated();
+    if let Err(error) = store_token(&pending.client_id, &pending.tenant_id, &token) {
+        set_teams_error(error.to_string()); return Err(error);
+    }
+    set_teams_authenticated_until(Some(token.expires_at.to_rfc3339()));
 
     Ok(status_response(
         context,
@@ -123,10 +128,10 @@ pub(super) fn refresh(context: &ToolContext) -> Result<String> {
     };
 
     match refresh_if_needed(&client_id, &tenant_id, token) {
-        Ok(_) => set_teams_authenticated(),
+        Ok(token) => set_teams_authenticated_until(Some(token.expires_at.to_rfc3339())),
         Err(error) => {
             delete_token(&client_id, &tenant_id)?;
-            set_teams_unauthenticated();
+            record_auth_failure(&error);
             return Err(error);
         }
     }
@@ -165,15 +170,11 @@ pub(super) fn restore_on_enable(monitor: &TeamsMonitorConfig) -> Result<()> {
         return Ok(());
     };
     match refresh_if_needed(&client_id, &tenant_id, token) {
-        Ok(_) => {
-            set_teams_authenticated();
+        Ok(token) => {
+            set_teams_authenticated_until(Some(token.expires_at.to_rfc3339()));
             Ok(())
         }
-        Err(_) => {
-            delete_token(&client_id, &tenant_id)?;
-            set_teams_unauthenticated();
-            Ok(())
-        }
+        Err(error) => { delete_token(&client_id, &tenant_id)?; record_auth_failure(&error); Ok(()) }
     }
 }
 
@@ -204,6 +205,13 @@ fn refresh_if_needed(client_id: &str, tenant_id: &str, token: TokenInfo) -> Resu
         run_teams_future(auth.refresh_token(refresh_token)).map_err(MaenifoldError::Message)?;
     store_token(client_id, tenant_id, &refreshed)?;
     Ok(refreshed)
+}
+
+fn record_auth_failure(error: &MaenifoldError) {
+    let message = error.to_string();
+    if message.to_ascii_lowercase().contains("expired") {
+        set_teams_auth_expired(message);
+    } else { set_teams_error(message); }
 }
 
 fn validated_scopes(payload: &Value) -> Result<Vec<String>> {

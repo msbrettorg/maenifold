@@ -27,12 +27,15 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
             let state = teams_runtime_snapshot();
             json!({
                 "enabled": state.enabled(),
-                "connectionState": state.connection_state,
-                "lastMessageAt": state.last_message_at,
-                "lastMatchAt": state.last_match_at,
+                "connectionState": state.connection_state.as_str(),
+                "authState": state.auth_state.as_str(),
+                "expiresAt": state.status_expires_at(),
+                "lastAuthError": state.last_auth_error.as_deref(),
+                "lastMessageAt": state.last_message_at.as_deref(),
+                "lastMatchAt": state.last_match_at.as_deref(),
                 "matchCount": state.match_count,
                 "activeDispatches": state.active_dispatches,
-                "lastError": state.last_error,
+                "lastError": state.last_error.as_deref(),
             })
         }
         TEAMS_CONFIG_URI => {

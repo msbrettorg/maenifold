@@ -50,11 +50,7 @@ pub(super) async fn prewarm_session(
             role_name: relay.agent_name.clone(),
             app_session_id: app_session_id.to_string(),
             cwd,
-            // Design decision: auto_approve is always true for the single-user desktop app.
-            // The user is the operator — click-through permissions on every fs/write would
-            // make pipelines unusable. When multi-user support is needed, this should be
-            // configurable via relay settings.
-            auto_approve: true,
+            auto_approve: false,
             mcp_servers,
             role_mode: None,
             role_config_options,
@@ -160,37 +156,4 @@ pub(super) fn load_configured_mcp_servers(root: &Path, agent_name: &str) -> Vec<
         }
     }
     servers
-}
-
-/// Merge configured MCP servers with client-provided ones.
-/// Configured servers take precedence — client-provided servers are only
-/// added when no configured server with the same name exists.
-pub(super) fn merge_mcp_servers(
-    configured: &[acp::McpServer],
-    client_provided: Vec<acp::McpServer>,
-) -> Vec<acp::McpServer> {
-    let mut servers = configured.to_vec();
-    let existing: HashSet<String> = servers
-        .iter()
-        .filter_map(mcp_server_name)
-        .map(|name| name.to_ascii_lowercase())
-        .collect();
-    for server in client_provided {
-        let dominated = mcp_server_name(&server)
-            .map(|name| existing.contains(&name.to_ascii_lowercase()))
-            .unwrap_or(false);
-        if !dominated {
-            servers.push(server);
-        }
-    }
-    servers
-}
-
-fn mcp_server_name(server: &acp::McpServer) -> Option<&str> {
-    match server {
-        acp::McpServer::Http(s) => Some(s.name.as_str()),
-        acp::McpServer::Sse(s) => Some(s.name.as_str()),
-        acp::McpServer::Stdio(s) => Some(s.name.as_str()),
-        _ => None,
-    }
 }

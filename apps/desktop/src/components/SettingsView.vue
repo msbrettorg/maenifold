@@ -5,6 +5,7 @@ import SettingsMaenifold from './SettingsMaenifold.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
+import SettingsSchedules from './SettingsSchedules.vue';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 const sections = [
@@ -12,6 +13,7 @@ const sections = [
   { id: 'mcp-servers', label: 'MCP servers', description: 'Configure global MCP server connections.' },
   { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
   { id: 'embeddings', label: 'Embeddings', description: 'Manage embedding models and vector index.' },
+  { id: 'schedules', label: 'Schedules', description: 'Manage recurring agent tasks and automations.' },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
 </script>
@@ -41,6 +43,7 @@ const sections = [
         <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
         <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
         <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
+        <TabsContent value="schedules"><SettingsSchedules /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
       </ScrollArea>
     </Tabs>

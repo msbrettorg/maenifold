@@ -17,8 +17,7 @@ static TEAMS_AUTH_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = Lazy
         .build()
         .map_err(|error| format!("Failed to build Teams auth runtime: {error}"))
 });
-
-const DEFAULT_TEAMS_SCOPE: &str = "https://api.spaces.skype.com/.default";
+const DEFAULT_TEAMS_SCOPES: &[&str] = &["https://api.spaces.skype.com/.default"];
 
 pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let action = required_string(payload, "action")?;
@@ -119,8 +118,13 @@ fn authenticate_monitor(context: &ToolContext, payload: &Value) -> Result<String
     let client_id = required_string(payload, "clientId")?.to_string();
     let tenant_id = required_string(payload, "tenantId")?.to_string();
     let scopes = optional_string_vec(payload, "scopes")?
-        .filter(|scopes| !scopes.is_empty())
-        .unwrap_or_else(|| vec![DEFAULT_TEAMS_SCOPE.to_string()]);
+        .unwrap_or_else(|| DEFAULT_TEAMS_SCOPES.iter().map(|scope| (*scope).to_string()).collect());
+    if scopes.is_empty() || scopes.iter().any(|scope| !DEFAULT_TEAMS_SCOPES.contains(&scope.as_str())) {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "'scopes' must be omitted or limited to: {}",
+            DEFAULT_TEAMS_SCOPES.join(", ")
+        )));
+    }
     let scope_refs = scopes.iter().map(String::as_str).collect::<Vec<_>>();
     let auth = TeamsAuth::new(client_id.clone(), tenant_id.clone());
     let info = run_teams_future(auth.initiate_device_code(&scope_refs))

@@ -4,29 +4,24 @@ use std::time::Duration;
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
 use parking_lot::Mutex;
 use serde::Deserialize;
-
 use crate::error::{MaenifoldError, Result};
-
 pub struct TeamsAuth {
     client: reqwest::Client,
     client_id: String,
     tenant_id: String,
     pending_flows: Mutex<HashMap<String, PendingDeviceFlow>>,
 }
-
 pub struct DeviceCodeInfo {
     pub user_code: String,
     pub verification_uri: String,
     pub message: String,
     pub expires_in: u64,
 }
-
 pub struct TokenInfo {
     pub access_token: String,
     pub expires_at: DateTime<Utc>,
     pub refresh_token: Option<String>,
 }
-
 #[derive(Clone)]
 struct PendingDeviceFlow {
     device_code: String,
@@ -34,7 +29,6 @@ struct PendingDeviceFlow {
     interval: Duration,
     expires_at: DateTime<Utc>,
 }
-
 #[derive(Deserialize)]
 struct DeviceCodeResponse {
     device_code: String,
@@ -45,7 +39,6 @@ struct DeviceCodeResponse {
     #[serde(default = "default_poll_interval")]
     interval: u64,
 }
-
 #[derive(Deserialize)]
 struct TokenResponse {
     access_token: String,
@@ -53,7 +46,6 @@ struct TokenResponse {
     #[serde(default)]
     refresh_token: Option<String>,
 }
-
 #[derive(Deserialize)]
 struct OAuthErrorResponse {
     #[serde(default)]
@@ -61,7 +53,6 @@ struct OAuthErrorResponse {
     #[serde(default)]
     error_description: String,
 }
-
 enum PollState {
     Pending,
     SlowDown,
@@ -71,7 +62,7 @@ enum PollState {
 impl TeamsAuth {
     pub fn new(client_id: String, tenant_id: String) -> Self {
         Self {
-            client: reqwest::Client::new(),
+            client: reqwest::Client::builder().timeout(Duration::from_secs(30)).connect_timeout(Duration::from_secs(10)).build().expect("failed to build HTTP client"),
             client_id,
             tenant_id,
             pending_flows: Mutex::new(HashMap::new()),
@@ -81,14 +72,14 @@ impl TeamsAuth {
     pub async fn initiate_device_code(&self, scopes: &[&str]) -> Result<DeviceCodeInfo> {
         let scope = join_scopes(scopes)?;
         let url = self.device_code_endpoint();
-        let body = self
+        let (status, body) = self
             .post_form(
                 &url,
                 &[("client_id", self.client_id.as_str()), ("scope", scope.as_str())],
                 "device code request",
             )
             .await?;
-        let response: DeviceCodeResponse = parse_json(&body, "device code response")?;
+        let response: DeviceCodeResponse = parse_json(&body, "device code response", status)?;
         let pending = PendingDeviceFlow {
             device_code: response.device_code.clone(),
             user_code: response.user_code.clone(),
@@ -108,12 +99,7 @@ impl TeamsAuth {
         let flow = self.pending_flow(device_code)?;
         let mut poll_interval = flow.interval;
         loop {
-            if Utc::now() >= flow.expires_at {
-                self.clear_pending_flow(&flow);
-                return Err(MaenifoldError::Message(
-                    "device code expired before authorization completed".to_string(),
-                ));
-            }
+            if Utc::now() >= flow.expires_at { self.clear_pending_flow(&flow); return Err(MaenifoldError::Message("device code expired before authorization completed".to_string())); }
             match self.poll_device_token(&flow.device_code).await? {
                 Ok(token) => {
                     self.clear_pending_flow(&flow);
@@ -134,7 +120,7 @@ impl TeamsAuth {
 
     pub async fn refresh_token(&self, refresh_token: &str) -> Result<TokenInfo> {
         let url = self.token_endpoint();
-        let body = self
+        let (status, body) = self
             .post_form(
                 &url,
                 &[
@@ -145,7 +131,7 @@ impl TeamsAuth {
                 "token refresh",
             )
             .await?;
-        parse_token_info(&body, "token refresh response")
+        parse_token_info(&body, "token refresh response", status)
     }
 
     pub fn is_token_valid(token: &TokenInfo) -> bool {
@@ -165,29 +151,25 @@ impl TeamsAuth {
             ]))
             .send()
             .await
-            .map_err(|error| {
-                MaenifoldError::Message(format!("device code token request failed: {error}"))
-            })?;
+            .map_err(|error| MaenifoldError::Message(format!("device code token request failed: {error}")))?;
         let status = response.status();
-        let body = response.text().await.map_err(|error| {
-            MaenifoldError::Message(format!("device code token response read failed: {error}"))
-        })?;
+        let body = response.text().await.map_err(|error| MaenifoldError::Message(format!("device code token response read failed: {error}")))?;
         if status.is_success() {
-            return parse_token_info(&body, "device code token response").map(Ok);
+            return parse_token_info(&body, "device code token response", status).map(Ok);
         }
-        let error: OAuthErrorResponse = parse_json(&body, "device code token error")?;
-        let message = oauth_message(&error);
-        let state = match error.error.as_str() {
-            "authorization_pending" => PollState::Pending,
-            "slow_down" => PollState::SlowDown,
-            "expired_token" => PollState::Failed(format!("device code expired: {message}")),
-            "access_denied" => PollState::Failed(format!("device code authorization denied: {message}")),
-            other => PollState::Failed(format!("device code token request failed with {status}: {other}: {message}")),
+        let message = summarize_oauth_error(&body, status);
+        let error = serde_json::from_str::<OAuthErrorResponse>(&body).ok();
+        let state = match error.as_ref().map(|error| error.error.as_str()) {
+            Some("authorization_pending") => PollState::Pending,
+            Some("slow_down") => PollState::SlowDown,
+            Some("expired_token") => PollState::Failed(format!("device code expired: {message}")),
+            Some("access_denied") => PollState::Failed(format!("device code authorization denied: {message}")),
+            Some(other) => PollState::Failed(format!("device code token request failed with {status}: {other}: {message}")),
+            None => PollState::Failed(format!("device code token request failed with {status}: {message}")),
         };
         Ok(Err(state))
     }
-
-    async fn post_form(&self, url: &str, form: &[(&str, &str)], context: &str) -> Result<String> {
+    async fn post_form(&self, url: &str, form: &[(&str, &str)], context: &str) -> Result<(reqwest::StatusCode, String)> {
         let response = self
             .client
             .post(url)
@@ -202,11 +184,9 @@ impl TeamsAuth {
             .await
             .map_err(|error| MaenifoldError::Message(format!("{context} response read failed: {error}")))?;
         if status.is_success() {
-            Ok(body)
+            Ok((status, body))
         } else {
-            let details = parse_json::<OAuthErrorResponse>(&body, context)
-                .map(|error| oauth_message(&error))
-                .unwrap_or_else(|_| body.clone());
+            let details = summarize_oauth_error(&body, status);
             Err(MaenifoldError::Message(format!(
                 "{context} failed with {status}: {details}"
             )))
@@ -242,38 +222,31 @@ impl TeamsAuth {
         pending.remove(&flow.user_code);
     }
 }
-
 fn join_scopes(scopes: &[&str]) -> Result<String> {
-    if scopes.is_empty() {
-        Err(MaenifoldError::InvalidArgument("at least one Teams auth scope is required".to_string()))
-    } else {
-        Ok(scopes.join(" "))
-    }
+    if scopes.is_empty() { Err(MaenifoldError::InvalidArgument("at least one Teams auth scope is required".to_string())) } else { Ok(scopes.join(" ")) }
 }
-
-fn parse_token_info(body: &str, context: &str) -> Result<TokenInfo> {
-    let response: TokenResponse = parse_json(body, context)?;
+fn parse_token_info(body: &str, context: &str, status: reqwest::StatusCode) -> Result<TokenInfo> {
+    let response: TokenResponse = parse_json(body, context, status)?;
     Ok(TokenInfo {
         access_token: response.access_token,
         expires_at: Utc::now() + seconds_to_duration(response.expires_in),
         refresh_token: response.refresh_token,
     })
 }
-
-fn parse_json<T: for<'de> Deserialize<'de>>(body: &str, context: &str) -> Result<T> {
-    serde_json::from_str(body).map_err(|error| {
-        MaenifoldError::Message(format!("failed to parse {context}: {error}; body={body}"))
-    })
+fn parse_json<T: for<'de> Deserialize<'de>>(body: &str, context: &str, status: reqwest::StatusCode) -> Result<T> {
+    serde_json::from_str(body).map_err(|error| MaenifoldError::Message(format!("failed to parse {context} (status {status}): {error}")))
 }
-
 fn oauth_message(error: &OAuthErrorResponse) -> String {
     if error.error_description.trim().is_empty() { error.error.clone() } else { error.error_description.replace('\r', " ").replace('\n', " ") }
 }
-
+fn summarize_oauth_error(body: &str, status: reqwest::StatusCode) -> String {
+    serde_json::from_str::<OAuthErrorResponse>(body)
+        .map(|error| oauth_message(&error))
+        .unwrap_or_else(|_| format!("unparseable error response (status {status})"))
+}
 fn seconds_to_duration(seconds: u64) -> ChronoDuration {
     ChronoDuration::seconds(seconds.min(i64::MAX as u64) as i64)
 }
-
 fn urlencode_form(form: &[(&str, &str)]) -> String {
     form.iter()
         .map(|(key, value)| {
@@ -286,7 +259,6 @@ fn urlencode_form(form: &[(&str, &str)]) -> String {
         .collect::<Vec<_>>()
         .join("&")
 }
-
 const fn default_poll_interval() -> u64 {
     5
 }

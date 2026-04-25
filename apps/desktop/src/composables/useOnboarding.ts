@@ -1,9 +1,10 @@
-import { computed, type ComputedRef, ref, type Ref } from 'vue';
+import { computed, toValue, type ComputedRef, ref, type MaybeRefOrGetter, type Ref } from 'vue';
 
 import { PREFS_STORE_PATH } from '../lib/constants';
 import { readStorageValue, writeStorageValue } from '../lib/local-storage';
 
-export const ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'done'] as const;
+export const ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'vec0', 'done'] as const;
+export const DEFAULT_ONBOARDING_STEPS = ['welcome', 'daemon', 'agent', 'model', 'done'] as const;
 export type OnboardingStepId = (typeof ONBOARDING_STEPS)[number];
 
 const ONBOARDING_KEY = 'onboarding';
@@ -22,7 +23,7 @@ export interface UseOnboardingReturn {
   currentStepId: ComputedRef<OnboardingStepId>;
   canGoBack: ComputedRef<boolean>;
   canGoForward: ComputedRef<boolean>;
-  ONBOARDING_STEPS: typeof ONBOARDING_STEPS;
+  steps: ComputedRef<readonly OnboardingStepId[]>;
   checkFirstRun: () => boolean;
   advance: () => void;
   goToStep: (target: number) => void;
@@ -34,16 +35,22 @@ function readOnboardingState(): OnboardingState | null {
   return readStorageValue<OnboardingState>(PREFS_STORE_PATH, ONBOARDING_KEY);
 }
 
-export function useOnboarding(): UseOnboardingReturn {
+export function useOnboarding(
+  stepSource: MaybeRefOrGetter<readonly OnboardingStepId[]> = DEFAULT_ONBOARDING_STEPS,
+): UseOnboardingReturn {
   const isFirstRun = ref<boolean>(true);
   const step = ref<number>(0);
   const highWaterStep = ref<number>(0);
 
-  const lastIndex = ONBOARDING_STEPS.length - 1;
+  const steps = computed<readonly OnboardingStepId[]>(() => {
+    const resolved = toValue(stepSource);
+    return resolved.length > 0 ? resolved : DEFAULT_ONBOARDING_STEPS;
+  });
+  const lastIndex = computed<number>(() => steps.value.length - 1);
 
   const currentStepId = computed<OnboardingStepId>(() => {
-    const idx = Math.min(Math.max(step.value, 0), lastIndex);
-    return ONBOARDING_STEPS[idx];
+    const idx = Math.min(Math.max(step.value, 0), lastIndex.value);
+    return steps.value[idx] ?? 'done';
   });
 
   const canGoBack = computed<boolean>(() => step.value > 0);
@@ -60,7 +67,7 @@ export function useOnboarding(): UseOnboardingReturn {
   }
 
   function advance(): void {
-    const nextStep = Math.min(step.value + 1, lastIndex);
+    const nextStep = Math.min(step.value + 1, lastIndex.value);
     if (nextStep === step.value) {
       return;
     }
@@ -104,7 +111,7 @@ export function useOnboarding(): UseOnboardingReturn {
     currentStepId,
     canGoBack,
     canGoForward,
-    ONBOARDING_STEPS,
+    steps,
     checkFirstRun,
     advance,
     goToStep,

@@ -1,5 +1,5 @@
 use super::ScheduledTask;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -22,7 +22,10 @@ impl SystemdManager {
                 .join(maenifold_bin)
         };
         if !maenifold_bin.exists() {
-            bail!("maenifold binary does not exist: {}", maenifold_bin.display());
+            bail!(
+                "maenifold binary does not exist: {}",
+                maenifold_bin.display()
+            );
         }
         Ok(Self {
             units_dir: PathBuf::from(home).join(".config/systemd/user"),
@@ -38,9 +41,16 @@ impl SystemdManager {
                 self.units_dir.display()
             )
         })?;
-        let _ = systemctl_disable(&timer_unit_name(&task.id));
-        fs::write(self.service_path(&task.id), render_service(task, &self.maenifold_bin)?)
-            .with_context(|| format!("failed to write service unit for '{}'", task.id))?;
+        match systemctl_disable(&timer_unit_name(&task.id)) {
+            Ok(()) => {}
+            Err(error) if is_unit_not_found(&error) => {}
+            Err(error) => return Err(error),
+        }
+        fs::write(
+            self.service_path(&task.id),
+            render_service(task, &self.maenifold_bin)?,
+        )
+        .with_context(|| format!("failed to write service unit for '{}'", task.id))?;
         fs::write(self.timer_path(&task.id), render_timer(task)?)
             .with_context(|| format!("failed to write timer unit for '{}'", task.id))?;
         systemctl_daemon_reload()?;
@@ -49,14 +59,17 @@ impl SystemdManager {
 
     pub fn uninstall(&self, task_id: &str) -> Result<()> {
         validate_schedule_id(task_id)?;
-        let _ = systemctl_disable(&timer_unit_name(task_id));
         let timer_path = self.timer_path(task_id);
+        let service_path = self.service_path(task_id);
+        if !timer_path.exists() && !service_path.exists() {
+            return Ok(());
+        }
+        systemctl_disable(&timer_unit_name(task_id))?;
         if timer_path.exists() {
             fs::remove_file(&timer_path).with_context(|| {
                 format!("failed to remove timer unit '{}'", timer_path.display())
             })?;
         }
-        let service_path = self.service_path(task_id);
         if service_path.exists() {
             fs::remove_file(&service_path).with_context(|| {
                 format!("failed to remove service unit '{}'", service_path.display())
@@ -133,12 +146,18 @@ fn default_log_path(task_id: &str) -> Result<PathBuf> {
 }
 fn cron_to_oncalendar(cron: &str) -> Result<String> {
     let mut parts = cron.split_whitespace();
-    let minute = parts.next().context("cron expression is missing minute field")?;
-    let hour = parts.next().context("cron expression is missing hour field")?;
+    let minute = parts
+        .next()
+        .context("cron expression is missing minute field")?;
+    let hour = parts
+        .next()
+        .context("cron expression is missing hour field")?;
     let day = parts
         .next()
         .context("cron expression is missing day-of-month field")?;
-    let month = parts.next().context("cron expression is missing month field")?;
+    let month = parts
+        .next()
+        .context("cron expression is missing month field")?;
     let weekday = parts
         .next()
         .context("cron expression is missing day-of-week field")?;
@@ -267,6 +286,17 @@ fn run_systemctl<const N: usize>(args: [&str; N], action: &str) -> Result<()> {
         bail!("systemctl {action} failed: {detail}");
     }
     Ok(())
+}
+fn is_unit_not_found(error: &anyhow::Error) -> bool {
+    let message = error.to_string().to_ascii_lowercase();
+    [
+        "systemctl disable failed: unit file maenifold-schedule-",
+        "systemctl disable failed: unit maenifold-schedule-",
+        "systemctl disable failed: not loaded",
+        "systemctl disable failed: not found",
+    ]
+    .iter()
+    .any(|needle| message.contains(needle))
 }
 fn timer_unit_name(task_id: &str) -> String {
     format!("{UNIT_PREFIX}{task_id}.timer")

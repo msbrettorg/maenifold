@@ -1,14 +1,18 @@
-use super::context::{ToolContext, render, required_string};
+use super::context::{render, required_string, ToolContext};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{ScheduleStore, ScheduledTask, Supervisor, parse_schedule};
-#[cfg(target_os = "macos")]
-use crate::schedule::LaunchdManager;
-#[cfg(target_os = "linux")]
-use crate::schedule::SystemdManager;
+use crate::schedule::{parse_schedule, ScheduleStore, ScheduledTask, Supervisor};
 use chrono::Utc;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
+use tracing::warn;
+
+#[path = "schedule_os.rs"]
+mod schedule_os;
+#[cfg(test)]
+#[path = "schedule_tests.rs"]
+mod schedule_tests;
+use schedule_os::{is_not_installed_scheduler_error, sync_os_scheduler, uninstall_os_scheduler};
 
 pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
     let action = required_string(payload, "action")?;
@@ -28,6 +32,11 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
+    let bin = resolve_maenifold_bin()?;
+    create_task_with_bin(context, payload, &bin)
+}
+
+fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> Result<String> {
     let id = required_string(payload, "id")?;
     let parsed = parse_schedule(required_string(payload, "schedule")?)
         .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
@@ -47,10 +56,25 @@ fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
         last_run: None,
     };
     let store = schedule_store(context);
-    store
-        .create(&task)
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    sync_os_scheduler(&task, &resolve_maenifold_bin()?)?;
+    if store.exists(id) {
+        return Err(MaenifoldError::Message(format!(
+            "scheduled task '{id}' already exists"
+        )));
+    }
+    if task.enabled {
+        sync_os_scheduler(&task, bin)?;
+    }
+    if let Err(error) = store.create(&task) {
+        if task.enabled {
+            if let Err(rollback_error) = uninstall_os_scheduler(&task.id, bin) {
+                return Err(MaenifoldError::Message(format!(
+                    "failed to persist scheduled task '{}' after OS scheduler install; rollback uninstall also failed: {}; original store error: {}",
+                    task.id, rollback_error, error
+                )));
+            }
+        }
+        return Err(MaenifoldError::Message(error.to_string()));
+    }
     Ok(render(
         context.output_format,
         json!({"action":"create","task":task_value(&task),"message":format!("Scheduled task '{}' created.", id)}),
@@ -60,9 +84,10 @@ fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
 fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     let id = required_string(payload, "id")?;
     let store = schedule_store(context);
-    let mut task = store
+    let original = store
         .read(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let mut task = original.clone();
     if let Some(schedule_input) = optional_string(payload, "schedule")? {
         let parsed = parse_schedule(&schedule_input)
             .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
@@ -84,7 +109,22 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     store
         .update(&task)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    sync_os_scheduler(&task, &resolve_maenifold_bin()?)?;
+    let task = store
+        .read(id)
+        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let bin = resolve_maenifold_bin()?;
+    if let Err(error) = sync_os_scheduler(&task, &bin) {
+        // CAS-style rollback: restore only if the file still contains the failed update.
+        // If another writer changed the task after our failed OS sync, avoid clobbering it.
+        if let Err(rollback_error) = store.restore_snapshot_if_current(&original, &task) {
+            warn!(
+                task_id = id,
+                error = %rollback_error,
+                "failed to restore schedule config after OS scheduler update failed"
+            );
+        }
+        return Err(error);
+    }
     Ok(render(
         context.output_format,
         json!({"action":"update","task":task_value(&task),"message":format!("Scheduled task '{}' updated.", id)}),
@@ -97,13 +137,22 @@ fn delete_task(context: &ToolContext, payload: &Value) -> Result<String> {
     store
         .read(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    uninstall_os_scheduler(id, &resolve_maenifold_bin()?)?;
+    match resolve_maenifold_bin().and_then(|bin| uninstall_os_scheduler(id, &bin)) {
+        Ok(()) => {}
+        Err(error) if is_not_installed_scheduler_error(&error) => {}
+        Err(error) => {
+            return Err(MaenifoldError::Message(format!(
+                "failed to uninstall OS scheduler entry for '{id}'; schedule config was not deleted to avoid orphaning scheduler state: {error}"
+            )));
+        }
+    };
     store
         .delete(id)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
+    let message = format!("Scheduled task '{id}' deleted.");
     Ok(render(
         context.output_format,
-        json!({"action":"delete","id":id,"message":format!("Scheduled task '{}' deleted.", id)}),
+        json!({"action":"delete","id":id,"message":message}),
     ))
 }
 
@@ -160,66 +209,6 @@ fn resolve_maenifold_bin() -> Result<PathBuf> {
     std::env::current_exe().map_err(|error| {
         MaenifoldError::Message(format!("failed to resolve current executable: {error}"))
     })
-}
-
-#[cfg(target_os = "macos")]
-fn sync_os_scheduler(task: &ScheduledTask, bin: &Path) -> Result<()> {
-    let manager = LaunchdManager::new(bin.to_path_buf())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    if task.enabled {
-        manager
-            .install(task)
-            .map_err(|error| MaenifoldError::Message(error.to_string()))
-    } else {
-        manager
-            .uninstall(&task.id)
-            .map_err(|error| MaenifoldError::Message(error.to_string()))
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn sync_os_scheduler(task: &ScheduledTask, bin: &Path) -> Result<()> {
-    let manager = SystemdManager::new(bin.to_path_buf())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?;
-    if task.enabled {
-        manager
-            .install(task)
-            .map_err(|error| MaenifoldError::Message(error.to_string()))
-    } else {
-        manager
-            .uninstall(&task.id)
-            .map_err(|error| MaenifoldError::Message(error.to_string()))
-    }
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn sync_os_scheduler(_task: &ScheduledTask, _bin: &Path) -> Result<()> {
-    Err(MaenifoldError::Message(
-        "schedule tools are only supported on macOS and Linux".to_string(),
-    ))
-}
-
-#[cfg(target_os = "macos")]
-fn uninstall_os_scheduler(task_id: &str, bin: &Path) -> Result<()> {
-    LaunchdManager::new(bin.to_path_buf())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?
-        .uninstall(task_id)
-        .map_err(|error| MaenifoldError::Message(error.to_string()))
-}
-
-#[cfg(target_os = "linux")]
-fn uninstall_os_scheduler(task_id: &str, bin: &Path) -> Result<()> {
-    SystemdManager::new(bin.to_path_buf())
-        .map_err(|error| MaenifoldError::Message(error.to_string()))?
-        .uninstall(task_id)
-        .map_err(|error| MaenifoldError::Message(error.to_string()))
-}
-
-#[cfg(not(any(target_os = "macos", target_os = "linux")))]
-fn uninstall_os_scheduler(_task_id: &str, _bin: &Path) -> Result<()> {
-    Err(MaenifoldError::Message(
-        "schedule tools are only supported on macOS and Linux".to_string(),
-    ))
 }
 
 fn optional_string(payload: &Value, key: &'static str) -> Result<Option<String>> {

@@ -1,18 +1,21 @@
-pub mod http;
-pub mod resources;
-pub mod schema;
-mod stdio_pool_health;
-mod stdio_pool_tools;
-mod stdio_io;
-pub mod stdio_pool;
-pub mod stdio_session;
-pub mod tool_routing;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
+mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
-mod gateway_handler;
 mod gateway_startup;
+pub mod http;
+mod resource_routing;
+pub mod resources;
+pub mod schema;
+mod stdio_io;
+pub mod stdio_pool;
+mod stdio_pool_health;
+mod stdio_pool_lifecycle;
+mod stdio_pool_tools;
+mod stdio_resource_reader;
+pub mod stdio_session;
+pub mod tool_routing;
 pub(crate) mod tool_utils;
 pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};
@@ -93,10 +96,17 @@ impl MaenifoldHandler {
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio => ServerCapabilities::builder().enable_tools().enable_resources()
-                .enable_resources_subscribe().enable_resources_list_changed().build(),
-            TransportKind::Http => ServerCapabilities::builder().enable_tools().enable_resources()
-                .enable_resources_subscribe().build(),
+            TransportKind::Stdio => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .enable_resources_list_changed()
+                .build(),
+            TransportKind::Http => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .build(),
         };
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -117,17 +127,26 @@ impl ServerHandler for MaenifoldHandler {
         if let Some(gateway) = &self.gateway {
             tools.extend(gateway.list_tools());
         }
-        std::future::ready(Ok(ListToolsResult { tools, next_cursor: None, meta: None }))
+        std::future::ready(Ok(ListToolsResult {
+            tools,
+            next_cursor: None,
+            meta: None,
+        }))
     }
     async fn list_resources(
         &self,
         _request: Option<rmcp::model::PaginatedRequestParams>,
         _context: rmcp::service::RequestContext<rmcp::RoleServer>,
     ) -> std::result::Result<ListResourcesResult, rmcp::ErrorData> {
-        tokio::task::spawn_blocking(|| with_lock_retry(self::resources::handle_list_resources))
-            .await
-            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
-            .map_err(self::resources::map_resource_error)
+        let mut result =
+            tokio::task::spawn_blocking(|| with_lock_retry(self::resources::handle_list_resources))
+                .await
+                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+                .map_err(self::resources::map_resource_error)?;
+        if let Some(gateway) = &self.gateway {
+            result.resources.extend(gateway.list_resources());
+        }
+        Ok(result)
     }
     fn read_resource(
         &self,
@@ -138,20 +157,10 @@ impl ServerHandler for MaenifoldHandler {
         let uri = request.uri.to_string();
         let gateway = self.gateway.clone();
         async move {
-            if uri.starts_with("ui://") && let Some(gateway) = gateway {
-                let pool = gateway.pool();
-                let mut last_err = None;
-                for (server_name, _) in pool.all_gateway_tools() {
-                    match pool.read_resource(&server_name, &uri).await {
-                        Ok(result) => return Ok(result),
-                        Err(e) => { last_err = Some(e); }
-                    }
-                }
-                return Err(match last_err {
-                    Some(MaenifoldError::JsonRpc { code, message, .. }) if code == -32002 => rmcp::ErrorData::resource_not_found(message, None),
-                    Some(err) => rmcp::ErrorData::internal_error(format!("Gateway resource fetch failed for '{uri}': {err}"), None),
-                    None => rmcp::ErrorData::resource_not_found(format!("No gateway server configured for '{uri}'"), None),
-                });
+            if uri.starts_with("ui://")
+                && let Some(gateway) = gateway
+            {
+                return gateway.read_resource(&uri).await;
             }
             tokio::task::spawn_blocking(move || {
                 with_lock_retry(|| self::resources::handle_read_resource(&uri))
@@ -222,9 +231,9 @@ impl ServerHandler for MaenifoldHandler {
                         Some(Value::Null),
                     ))
                 }
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(
-                    &tool_name, &err,
-                ))])),
+                Err(err) => Ok(CallToolResult::error(vec![Content::text(
+                    format_tool_error(&tool_name, &err),
+                )])),
             }
         }
     }

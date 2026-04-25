@@ -18,11 +18,7 @@ fn server_with_tools(tools: Vec<Tool>) -> ConsolidatedServerTool {
 
 fn tool(name: &str, description: &str, schema: Value) -> Tool {
     let schema = schema.as_object().cloned().unwrap_or_default();
-    Tool::new(
-        name.to_string(),
-        description.to_string(),
-        Arc::new(schema),
-    )
+    Tool::new(name.to_string(), description.to_string(), Arc::new(schema))
 }
 
 fn sample_server() -> ConsolidatedServerTool {
@@ -65,14 +61,8 @@ fn learn_mode_returns_catalog() {
 
 #[test]
 fn learn_mode_with_command_returns_schema() {
-    let result = dispatch_facade_call(
-        &sample_server(),
-        None,
-        Some("delete_user"),
-        true,
-        json!({}),
-    )
-    .expect("learn schema should succeed");
+    let result = dispatch_facade_call(&sample_server(), None, Some("delete_user"), true, json!({}))
+        .expect("learn schema should succeed");
 
     assert_eq!(
         result,
@@ -143,20 +133,20 @@ fn unambiguous_intent_dispatches_matching_tool() {
 
 #[test]
 fn ambiguous_intent_returns_candidates() {
-    let result = dispatch_facade_call(
-        &sample_server(),
-        Some("search"),
-        None,
-        false,
-        json!({}),
-    )
-    .expect("ambiguous intent should return candidates");
+    let result = dispatch_facade_call(&sample_server(), Some("search"), None, false, json!({}))
+        .expect("ambiguous intent should return candidates");
 
     assert_eq!(
         result,
         DispatchResult::Candidates(vec![
-            ("search_projects".to_string(), "Search projects by name".to_string()),
-            ("search_users".to_string(), "Search user profiles".to_string()),
+            (
+                "search_projects".to_string(),
+                "Search projects by name".to_string()
+            ),
+            (
+                "search_users".to_string(),
+                "Search user profiles".to_string()
+            ),
         ])
     );
 }

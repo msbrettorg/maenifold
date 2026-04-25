@@ -3,8 +3,8 @@ use crate::error::{GATEWAY_TIMEOUT_ERROR, MaenifoldError};
 use crate::mcp::stdio_io::read_response;
 use agent_client_protocol_schema::McpServerStdio;
 use serde_json::json;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use std::time::Duration;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 
 const PYTHON: &str = "/usr/bin/python3";
 const TIMEOUT_SERVER: &str = r#"
@@ -36,19 +36,30 @@ while True:
 #[tokio::test]
 async fn stdio_session_timeout_poisoning_blocks_followup_calls() {
     let session = StdioSession::start(
-        &McpServerStdio::new("slow-server".to_string(), PYTHON.to_string())
-            .args(vec!["-u".to_string(), "-c".to_string(), TIMEOUT_SERVER.to_string()]),
+        &McpServerStdio::new("slow-server".to_string(), PYTHON.to_string()).args(vec![
+            "-u".to_string(),
+            "-c".to_string(),
+            TIMEOUT_SERVER.to_string(),
+        ]),
         Duration::from_millis(100),
     )
     .await
     .expect("session should start");
 
-    match session.call_tool("slow", json!({})).await.expect_err("call should time out") {
+    match session
+        .call_tool("slow", json!({}))
+        .await
+        .expect_err("call should time out")
+    {
         MaenifoldError::JsonRpc { code, .. } => assert_eq!(code, GATEWAY_TIMEOUT_ERROR),
         other => panic!("unexpected error: {other}"),
     }
     assert!(session.is_poisoned());
-    match session.call_tool("slow", json!({})).await.expect_err("poisoned session should reject follow-up calls") {
+    match session
+        .call_tool("slow", json!({}))
+        .await
+        .expect_err("poisoned session should reject follow-up calls")
+    {
         MaenifoldError::SessionUnusable => {}
         other => panic!("unexpected error: {other}"),
     }
@@ -63,7 +74,10 @@ async fn stdio_session_reports_json_rpc_error_without_code_field() {
         .write_all(br#"{"jsonrpc":"2.0","id":1,"error":{"message":"fail"}}"#)
         .await
         .expect("write payload");
-    server_stdout_writer.write_all(b"\n").await.expect("write newline");
+    server_stdout_writer
+        .write_all(b"\n")
+        .await
+        .expect("write newline");
     drop(server_stdout_writer);
 
     let mut reader = BufReader::new(server_stdout_reader);
@@ -85,17 +99,26 @@ async fn stdio_session_replies_method_not_found_to_server_requests_and_skips_not
         .write_all(br#"{"jsonrpc":"2.0","method":"notifications/progress","params":{"message":"skip me"}}"#)
         .await
         .expect("write notification");
-    server_stdout_writer.write_all(b"\n").await.expect("write notification newline");
+    server_stdout_writer
+        .write_all(b"\n")
+        .await
+        .expect("write notification newline");
     server_stdout_writer
         .write_all(br#"{"jsonrpc":"2.0","id":99,"method":"roots/list","params":{}}"#)
         .await
         .expect("write server request");
-    server_stdout_writer.write_all(b"\n").await.expect("write server request newline");
+    server_stdout_writer
+        .write_all(b"\n")
+        .await
+        .expect("write server request newline");
     server_stdout_writer
         .write_all(br#"{"jsonrpc":"2.0","id":1,"result":{"ok":true}}"#)
         .await
         .expect("write matching response");
-    server_stdout_writer.write_all(b"\n").await.expect("write matching response newline");
+    server_stdout_writer
+        .write_all(b"\n")
+        .await
+        .expect("write matching response newline");
 
     let mut reader = BufReader::new(server_stdout_reader);
     let result = read_response(&mut client_writer, &mut reader, 1, "test-server")
@@ -109,7 +132,8 @@ async fn stdio_session_replies_method_not_found_to_server_requests_and_skips_not
         .read_line(&mut response_line)
         .await
         .expect("read method-not-found response");
-    let response: serde_json::Value = serde_json::from_str(response_line.trim()).expect("parse response");
+    let response: serde_json::Value =
+        serde_json::from_str(response_line.trim()).expect("parse response");
     assert_eq!(response["jsonrpc"], "2.0");
     assert_eq!(response["id"], 99);
     assert_eq!(response["error"]["code"], -32601);

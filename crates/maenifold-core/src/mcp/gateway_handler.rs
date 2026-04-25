@@ -1,12 +1,11 @@
-use crate::error::{
-    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result,
-};
+use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError, Result};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::{DispatchResult, dispatch_facade_call};
+use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
 use crate::mcp::stdio_pool::StdioPool;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use crate::mcp::tool_utils::format_tool_error;
-use rmcp::model::{CallToolResult, Content, Tool};
+use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
 use serde::Deserialize;
 use serde_json::{Map, Value};
 use std::collections::{HashMap, HashSet};
@@ -17,6 +16,7 @@ use tracing::{error, warn};
 pub(crate) struct GatewayState {
     pool: Arc<StdioPool>,
     routing: Arc<ToolRoutingRegistry>,
+    resource_routing: Arc<ResourceRoutingRegistry>,
     consolidated_tools: Vec<ConsolidatedServerTool>,
     passthrough_tools: Vec<Tool>,
     passthrough_names: HashSet<String>,
@@ -27,6 +27,7 @@ impl GatewayState {
     pub(crate) fn new(
         pool: Arc<StdioPool>,
         routing: Arc<ToolRoutingRegistry>,
+        resource_routing: Arc<ResourceRoutingRegistry>,
         consolidated_tools: Vec<ConsolidatedServerTool>,
         passthrough_tools: Vec<Tool>,
     ) -> Self {
@@ -47,6 +48,7 @@ impl GatewayState {
         Self {
             pool,
             routing,
+            resource_routing,
             consolidated_tools,
             passthrough_tools,
             passthrough_names,
@@ -68,6 +70,26 @@ impl GatewayState {
         tools
     }
 
+    pub(crate) fn list_resources(&self) -> Vec<Resource> {
+        self.resource_routing.gateway_resources().to_vec()
+    }
+
+    pub(crate) async fn read_resource(
+        &self,
+        uri: &str,
+    ) -> std::result::Result<ReadResourceResult, rmcp::ErrorData> {
+        let Some(server_name) = self.resource_routing.lookup(uri).map(str::to_string) else {
+            return Err(rmcp::ErrorData::resource_not_found(
+                format!("No gateway resource owner found for '{uri}'"),
+                None,
+            ));
+        };
+        self.pool
+            .read_resource(&server_name, uri)
+            .await
+            .map_err(|err| map_gateway_resource_error(&server_name, uri, err))
+    }
+
     pub(crate) async fn handle_tool_call(
         &self,
         tool_name: &str,
@@ -83,7 +105,10 @@ impl GatewayState {
         if self.passthrough_names.contains(tool_name)
             && let Some(server_name) = self.routing.lookup(tool_name).map(str::to_string)
         {
-            let gateway_result = self.pool.call_tool(&server_name, tool_name, arguments).await;
+            let gateway_result = self
+                .pool
+                .call_tool(&server_name, tool_name, arguments)
+                .await;
             return match gateway_result {
                 Ok(result) => Ok(Some(result)),
                 Err(err) => {
@@ -134,7 +159,10 @@ impl GatewayState {
                 tool_name,
                 parameters,
             } => {
-                let gateway_result = self.pool.call_tool(&server_name, &tool_name, parameters).await;
+                let gateway_result = self
+                    .pool
+                    .call_tool(&server_name, &tool_name, parameters)
+                    .await;
                 match gateway_result {
                     Ok(result) => Ok(result),
                     Err(err) => {
@@ -143,13 +171,19 @@ impl GatewayState {
                     }
                 }
             }
-            DispatchResult::LearnCatalog(text) => Ok(CallToolResult::success(vec![Content::text(text)])),
-            DispatchResult::LearnSchema(schema) => Ok(CallToolResult::success(vec![Content::text(
-                render_json(schema),
-            )])),
-            DispatchResult::Candidates(candidates) => Ok(CallToolResult::success(vec![Content::text(
-                render_candidates(candidates),
-            )])),
+            DispatchResult::LearnCatalog(text) => {
+                Ok(CallToolResult::success(vec![Content::text(text)]))
+            }
+            DispatchResult::LearnSchema(schema) => {
+                Ok(CallToolResult::success(vec![Content::text(render_json(
+                    schema,
+                ))]))
+            }
+            DispatchResult::Candidates(candidates) => {
+                Ok(CallToolResult::success(vec![Content::text(
+                    render_candidates(candidates),
+                )]))
+            }
         }
     }
 }
@@ -201,7 +235,11 @@ fn render_json(value: Value) -> String {
 
 fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {
     match err {
-        MaenifoldError::JsonRpc { code, message, data } => rmcp::ErrorData::new(
+        MaenifoldError::JsonRpc {
+            code,
+            message,
+            data,
+        } => rmcp::ErrorData::new(
             rmcp::model::ErrorCode(i32::try_from(code).unwrap_or(JSONRPC_INTERNAL_ERROR as i32)),
             message,
             Some(data),
@@ -213,16 +251,22 @@ fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {
 fn log_gateway_error(server: Option<&str>, tool: &str, err: &MaenifoldError) {
     let server = server.unwrap_or("");
     match err {
-        MaenifoldError::JsonRpc { code, message, data }
-            if *code == JSONRPC_INTERNAL_ERROR || *code == GATEWAY_TIMEOUT_ERROR =>
-        {
+        MaenifoldError::JsonRpc {
+            code,
+            message,
+            data,
+        } if *code == JSONRPC_INTERNAL_ERROR || *code == GATEWAY_TIMEOUT_ERROR => {
             if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) {
                 error!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed");
             } else {
                 error!(server, tool, err = %message, code, "gateway tool call failed");
             }
         }
-        MaenifoldError::JsonRpc { code, message, data } => {
+        MaenifoldError::JsonRpc {
+            code,
+            message,
+            data,
+        } => {
             if let Some(stderr_tail) = data.get("stderrTail").and_then(Value::as_str) {
                 warn!(server, tool, err = %message, code, stderr_tail, "gateway tool call failed");
             } else {

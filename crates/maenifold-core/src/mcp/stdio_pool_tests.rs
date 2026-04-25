@@ -74,7 +74,12 @@ fn server_config(name: &str, tool_name: &str) -> StdioServerConfig {
     StdioServerConfig {
         name: name.to_string(),
         command: PYTHON.to_string(),
-        args: vec!["-u".to_string(), "-c".to_string(), GOOD_SERVER.to_string(), tool_name.to_string()],
+        args: vec![
+            "-u".to_string(),
+            "-c".to_string(),
+            GOOD_SERVER.to_string(),
+            tool_name.to_string(),
+        ],
         env: HashMap::new(),
         timeout: Some(Duration::from_secs(2)),
     }
@@ -84,8 +89,16 @@ async fn started_server(name: &str, tool_name: &str) -> ManagedServer {
     ManagedServer::running(
         server_config(name, tool_name),
         StdioSession::start(
-            &agent_client_protocol_schema::McpServerStdio::new(name.to_string(), PYTHON.to_string())
-                .args(vec!["-u".to_string(), "-c".to_string(), GOOD_SERVER.to_string(), tool_name.to_string()]),
+            &agent_client_protocol_schema::McpServerStdio::new(
+                name.to_string(),
+                PYTHON.to_string(),
+            )
+            .args(vec![
+                "-u".to_string(),
+                "-c".to_string(),
+                GOOD_SERVER.to_string(),
+                tool_name.to_string(),
+            ]),
             Duration::from_secs(2),
         )
         .await
@@ -95,7 +108,12 @@ async fn started_server(name: &str, tool_name: &str) -> ManagedServer {
 
 #[tokio::test]
 async fn stdio_pool_duplicate_server_name_rejected() {
-    let error = match StdioPool::start(vec![server_config("dup", "tool-a"), server_config("dup", "tool-b")]).await {
+    let error = match StdioPool::start(vec![
+        server_config("dup", "tool-a"),
+        server_config("dup", "tool-b"),
+    ])
+    .await
+    {
         Ok(_) => panic!("duplicate server names should fail"),
         Err(error) => error,
     };
@@ -129,7 +147,11 @@ async fn stdio_pool_build_rejects_tool_collisions() {
 #[tokio::test]
 async fn stdio_pool_partial_startup_keeps_survivors_usable() {
     let mut bad = server_config("broken", "unused");
-    bad.args = vec!["-u".to_string(), "-c".to_string(), "import sys; sys.exit(1)".to_string()];
+    bad.args = vec![
+        "-u".to_string(),
+        "-c".to_string(),
+        "import sys; sys.exit(1)".to_string(),
+    ];
     let pool = StdioPool::start(vec![server_config("good", "survivor"), bad])
         .await
         .expect("pool should start with surviving servers");
@@ -137,12 +159,21 @@ async fn stdio_pool_partial_startup_keeps_survivors_usable() {
     assert_eq!(
         pool.all_gateway_tools()
             .into_iter()
-            .map(|(server, tools)| (server, tools.into_iter().map(|tool| tool.name.to_string()).collect::<Vec<_>>() ))
+            .map(|(server, tools)| (
+                server,
+                tools
+                    .into_iter()
+                    .map(|tool| tool.name.to_string())
+                    .collect::<Vec<_>>()
+            ))
             .collect::<Vec<_>>(),
         vec![("good".to_string(), vec!["survivor".to_string()])]
     );
     assert_eq!(
-        pool.all_tools().into_iter().map(|tool| tool.name.to_string()).collect::<Vec<_>>(),
+        pool.all_tools()
+            .into_iter()
+            .map(|tool| tool.name.to_string())
+            .collect::<Vec<_>>(),
         vec!["survivor".to_string()]
     );
     pool.call_tool("good", "survivor", json!({}))
@@ -159,7 +190,13 @@ async fn stdio_pool_partial_startup_keeps_survivors_usable() {
     assert!(broken.degraded);
     assert!(!broken.running);
     assert_eq!(broken.tool_count, 0);
-    assert!(broken.last_start_error.as_deref().unwrap_or("").contains("connection"));
+    assert!(
+        broken
+            .last_start_error
+            .as_deref()
+            .unwrap_or("")
+            .contains("connection")
+    );
 
     let error = pool
         .call_tool("broken", "survivor", json!({}))
@@ -183,10 +220,14 @@ async fn stdio_pool_dead_server_restart_is_single_flight() {
         "COUNT_DIR".to_string(),
         dir.path().to_string_lossy().to_string(),
     );
-    config.env.insert("SECRET_TOKEN".to_string(), "redacted-value".to_string());
-    let pool = Arc::new(StdioPool::start(vec![config])
-        .await
-        .expect("pool should start"));
+    config
+        .env
+        .insert("SECRET_TOKEN".to_string(), "redacted-value".to_string());
+    let pool = Arc::new(
+        StdioPool::start(vec![config])
+            .await
+            .expect("pool should start"),
+    );
 
     let original = {
         let servers = pool.servers.read().await;
@@ -200,9 +241,7 @@ async fn stdio_pool_dead_server_restart_is_single_flight() {
     let mut calls = JoinSet::new();
     for _ in 0..16 {
         let pool = Arc::clone(&pool);
-        calls.spawn(async move {
-            pool.call_tool("counting", "single-flight", json!({})).await
-        });
+        calls.spawn(async move { pool.call_tool("counting", "single-flight", json!({})).await });
     }
     while let Some(result) = calls.join_next().await {
         result
@@ -221,7 +260,10 @@ async fn stdio_pool_dead_server_restart_is_single_flight() {
         .find(|server| server.name == "counting")
         .expect("counting health should exist");
     assert!(server.running);
-    assert_eq!(server.env_keys, vec!["COUNT_DIR".to_string(), "SECRET_TOKEN".to_string()]);
+    assert_eq!(
+        server.env_keys,
+        vec!["COUNT_DIR".to_string(), "SECRET_TOKEN".to_string()]
+    );
     assert!(server.last_start_error.is_none());
     pool.shutdown().await;
 }

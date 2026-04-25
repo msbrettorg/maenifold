@@ -163,7 +163,9 @@ fn split_name(name: &str) -> Vec<String> {
 }
 
 fn truncate(text: &str, max_chars: usize) -> String {
-    text.chars().take(max_chars).collect::<String>()
+    text.chars()
+        .take(max_chars)
+        .collect::<String>()
         .trim_end_matches([' ', ',', ';', ':'])
         .to_string()
 }
@@ -229,3 +231,7 @@ fn tool_name(tool: &Tool) -> String {
 #[cfg(test)]
 #[path = "gateway_consolidation_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "gateway_consolidation_counts_tests.rs"]
+mod counts_tests;

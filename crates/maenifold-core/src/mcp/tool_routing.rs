@@ -115,7 +115,12 @@ while True:
         StdioServerConfig {
             name: name.to_string(),
             command: PYTHON.to_string(),
-            args: vec!["-u".to_string(), "-c".to_string(), GOOD_SERVER.to_string(), tool_name.to_string()],
+            args: vec![
+                "-u".to_string(),
+                "-c".to_string(),
+                GOOD_SERVER.to_string(),
+                tool_name.to_string(),
+            ],
             env: HashMap::new(),
             timeout: Some(Duration::from_secs(2)),
         }
@@ -123,8 +128,9 @@ while True:
 
     #[test]
     fn empty_sources_return_empty_registry_and_missing_lookup() {
-        let registry = ToolRoutingRegistry::build_from_sources(&[], Vec::<(String, Vec<Tool>)>::new())
-            .expect("empty sources should build");
+        let registry =
+            ToolRoutingRegistry::build_from_sources(&[], Vec::<(String, Vec<Tool>)>::new())
+                .expect("empty sources should build");
 
         assert_eq!(registry.lookup("missing-tool"), None);
         assert!(registry.gateway_tools().is_empty());
@@ -215,12 +221,20 @@ while True:
             .await
             .expect("pool should start");
 
-        let from_build = ToolRoutingRegistry::build(&native_tools, &pool).expect("build should succeed");
-        let from_sources = ToolRoutingRegistry::build_from_sources(&native_tools, pool.all_gateway_tools())
-            .expect("build_from_sources should succeed");
+        let from_build =
+            ToolRoutingRegistry::build(&native_tools, &pool).expect("build should succeed");
+        let from_sources =
+            ToolRoutingRegistry::build_from_sources(&native_tools, pool.all_gateway_tools())
+                .expect("build_from_sources should succeed");
 
-        assert_eq!(from_build.lookup("native-tool"), from_sources.lookup("native-tool"));
-        assert_eq!(from_build.lookup("gateway-a"), from_sources.lookup("gateway-a"));
+        assert_eq!(
+            from_build.lookup("native-tool"),
+            from_sources.lookup("native-tool")
+        );
+        assert_eq!(
+            from_build.lookup("gateway-a"),
+            from_sources.lookup("gateway-a")
+        );
         assert_eq!(
             from_build
                 .gateway_tools()

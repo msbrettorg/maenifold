@@ -2,11 +2,11 @@ mod assumption_params;
 mod assumption_tools;
 mod embedding_models_params;
 mod embedding_models_tools;
+#[cfg(test)]
+mod generic_tool_tests;
 mod graph_params;
 #[cfg(test)]
 mod graph_params_tests;
-#[cfg(test)]
-mod generic_tool_tests;
 mod graph_tools;
 mod memory_params;
 mod memory_tools;
@@ -50,6 +50,5 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
                 description: "Gateway tool (use learn=true for details)".to_string(),
                 input_schema: json!({ "type": "object" }),
             }
-        })
-    )
+        }))
 }

@@ -5,6 +5,27 @@ Thoughts and ideas for future improvements belong here.
 Clear items as you complete them.
 Stuff you learn should go in ralph/state/learnings.md
 
+## Iteration 20260424-2053 — Multi-Wave Dispatch
+
+### Shipped
+- **T-207.7** ✅ Gateway integration tests (lightweight, 0 remediation)
+- **T-211.9** ✅ Schedules settings UI (SDD, 1 remediation: edit form schedule field, canSubmit guard, action race)
+
+### In-Flight
+- **T-210.9** SDD — MSAL auth remediation (sanitize errors, HTTP timeout, scope allowlist), re-audit pending
+- **T-218.4** SDD — Teams tab blank page fix (SWE investigating)
+- **T-218.1** SDD — Knowledge text overflow fix (SWE dispatched)
+- **T-218.2** SDD — Gate tab resizable splitter (SWE dispatched)
+
+### Findings
+- **Teams tab renders blank** — TeamsTab.vue component silently crashes during mount. DOM shows `<!---->` (empty render). Console: `TypeError: Cannot read properties of null (reading 'effect')`. Filed T-218.4.
+- **T-209.7 validation targets exhausted** — all T-02.x tasks in done/. Flagged for user decision (re-scope or cancel).
+- **teams_monitor.rs at exactly 300 LOC** — no headroom for future changes. May need preemptive split.
+
+### Remaining Backlog
+- T-209.0/7 (pipeline-meta epic), T-210.0/11 (Teams epic/CDP), T-211.0/11 (Schedules epic/CDP)
+- T-218.3 (Knowledge splitter — blocked on T-218.1 completion to avoid file conflicts)
+
 ## Iteration 20260424-1953 — Test Coverage + Gateway + Vec0
 
 ### Shipped (21 items)

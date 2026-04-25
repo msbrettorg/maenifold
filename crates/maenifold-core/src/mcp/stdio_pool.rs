@@ -1,8 +1,8 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
 use crate::mcp::stdio_pool_health::{RestartState, lock_state};
-pub use crate::mcp::stdio_pool_health::{StdioPoolHealth, StdioServerHealth};
+pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
-use crate::mcp::stdio_session::StdioSession;
+use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
@@ -41,9 +41,9 @@ impl ManagedServer {
             restart_state: Arc::new(StdMutex::new(RestartState::new())),
         }
     }
-    fn degraded(config: StdioServerConfig, error: String) -> Self {
+    fn degraded(config: StdioServerConfig, error: String, stderr: Option<String>) -> Self {
         let server = Self::configured(config);
-        lock_state(&server.restart_state).record_failure(error);
+        lock_state(&server.restart_state).record_failure(error, stderr);
         server
     }
     fn configured(config: StdioServerConfig) -> Self {
@@ -80,8 +80,11 @@ impl StdioPool {
                     started.insert(config.name.clone(), ManagedServer::running(config, session));
                 }
                 Ok((name, config, Err(error))) => {
-                    warn!(server = %name, error = %error, "failed to start stdio MCP server");
-                    started.insert(name, ManagedServer::degraded(config, error.to_string()));
+                    warn!(server = %name, error = %error.error, "failed to start stdio MCP server");
+                    started.insert(
+                        name,
+                        ManagedServer::degraded(config, error.error.to_string(), error.stderr),
+                    );
                 }
                 Err(error) => warn!(error = %error, "stdio MCP startup task failed"),
             }
@@ -192,7 +195,9 @@ impl StdioPool {
         f(session).await
     }
 }
-pub(super) async fn start_session(config: &StdioServerConfig) -> Result<StdioSession> {
+pub(super) async fn start_session(
+    config: &StdioServerConfig,
+) -> std::result::Result<StdioSession, StdioStartupError> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
         .env(

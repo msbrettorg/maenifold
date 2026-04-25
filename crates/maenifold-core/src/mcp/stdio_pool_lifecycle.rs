@@ -38,8 +38,8 @@ impl StdioPool {
         let mut replacement = match start_session(&config).await {
             Ok(session) => Some(Arc::new(session)),
             Err(error) => {
-                lock_state(&restart_state).record_failure(error.to_string());
-                return Err(error);
+                lock_state(&restart_state).record_failure(error.error.to_string(), error.stderr);
+                return Err(error.error);
             }
         };
         lock_state(&restart_state).record_success();
@@ -85,7 +85,7 @@ impl StdioPool {
                 if let Some(session) = replacement {
                     session.shutdown().await;
                 }
-                lock_state(&restart_state).record_failure(error.to_string());
+                lock_state(&restart_state).record_failure(error.to_string(), None);
                 return Err(error);
             }
         };

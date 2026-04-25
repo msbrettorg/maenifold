@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, State},
     response::{IntoResponse, Json},
 };
+use jockey::acp::clear_adapter_cache;
 use serde::{Deserialize, Serialize};
 
 #[derive(Deserialize)]
@@ -179,6 +180,7 @@ pub(super) async fn add_agent_handler(
         .config_manager
         .add_agent(request.name, request.config)
         .map_err(ApiError::internal)?;
+    clear_adapter_cache();
     Ok(Json(config))
 }
 
@@ -191,6 +193,7 @@ pub(super) async fn update_agent_handler(
         .config_manager
         .update_agent(name, payload.into_entry())
         .map_err(not_found_or_internal)?;
+    clear_adapter_cache();
     Ok(Json(config))
 }
 
@@ -202,6 +205,7 @@ pub(super) async fn delete_agent_handler(
         .config_manager
         .remove_agent(&name)
         .map_err(ApiError::internal)?;
+    clear_adapter_cache();
     Ok(Json(config))
 }
 

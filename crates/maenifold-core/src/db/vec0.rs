@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::vector;
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::path::{Path, PathBuf};
 
 const MODEL_METADATA_TABLE_SQL: &str = r#"
@@ -14,6 +14,11 @@ const MODEL_METADATA_TABLE_SQL: &str = r#"
 // [[vec0]] SQLite extension binary under `assets/native/{platform}/vec0.{ext}`.
 // Previously duplicated in `search/vector.rs` and `sync/vector_embeddings.rs`.
 pub(crate) fn vec0_extension_path(assets_path: &Path) -> Option<PathBuf> {
+    let path = vec0_extension_target_path(assets_path)?;
+    path.exists().then_some(path)
+}
+
+fn vec0_extension_target_path(assets_path: &Path) -> Option<PathBuf> {
     let (platform_dir, filename) = match (std::env::consts::OS, std::env::consts::ARCH) {
         ("macos", "aarch64") => ("osx-arm64", "vec0.dylib"),
         ("macos", "x86_64") => ("osx-x64", "vec0.dylib"),
@@ -22,8 +27,17 @@ pub(crate) fn vec0_extension_path(assets_path: &Path) -> Option<PathBuf> {
         ("windows", "x86_64") => ("win-x64", "vec0.dll"),
         _ => return None,
     };
-    let path = assets_path.join("native").join(platform_dir).join(filename);
-    path.exists().then_some(path)
+    Some(assets_path.join("native").join(platform_dir).join(filename))
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct Vec0LoadVerification {
+    pub extension_path: Option<PathBuf>,
+    pub installed: bool,
+    pub load_success: bool,
+    pub load_error: Option<String>,
+    pub table_probe_success: bool,
+    pub table_probe_error: Option<String>,
 }
 
 // T-9.2 / T-3.1: RTM FR-8, FR-6 — shared helper that loads the [[vec0]] extension into
@@ -41,6 +55,61 @@ pub(crate) fn load_vec0_extension(conn: &Connection, assets_path: &Path) -> Resu
         Err(MaenifoldError::InvalidArgument(
             "vec0 extension not found in assets directory".to_string(),
         ))
+    }
+}
+
+/// Verify the Rust/rusqlite vec0 load path and prove virtual table creation works.
+///
+/// This intentionally calls `load_vec0_extension` so the status endpoint exercises
+/// the same extension-loading path used by sync/search rather than Electron's
+/// separate Node-side sqlite loader.
+pub(crate) fn verify_vec0_load(conn: &Connection, assets_path: &Path) -> Vec0LoadVerification {
+    let extension_path = vec0_extension_target_path(assets_path);
+    let installed = extension_path
+        .as_ref()
+        .map(|path| path.exists())
+        .unwrap_or(false);
+    let mut verification = Vec0LoadVerification {
+        extension_path,
+        installed,
+        load_success: false,
+        load_error: None,
+        table_probe_success: false,
+        table_probe_error: None,
+    };
+
+    if let Err(error) = load_vec0_extension(conn, assets_path) {
+        verification.load_error = Some(sanitize_vec0_error(&error.to_string()).to_string());
+        return verification;
+    }
+
+    verification.load_success = true;
+    match conn.execute_batch(
+        "DROP TABLE IF EXISTS temp.vec0_rust_verify;
+         CREATE VIRTUAL TABLE temp.vec0_rust_verify USING vec0(
+             rowid TEXT PRIMARY KEY,
+             embedding FLOAT[1]
+         );
+         DROP TABLE temp.vec0_rust_verify;",
+    ) {
+        Ok(()) => verification.table_probe_success = true,
+        Err(error) => {
+            verification.table_probe_error =
+                Some(sanitize_vec0_error(&error.to_string()).to_string());
+        }
+    }
+
+    verification
+}
+
+fn sanitize_vec0_error(error: &str) -> &'static str {
+    let lower = error.to_ascii_lowercase();
+    if lower.contains("not found") || lower.contains("no such file") {
+        "extension_not_found"
+    } else if lower.contains("load") {
+        "extension_load_failed"
+    } else {
+        "verification_failed"
     }
 }
 

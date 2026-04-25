@@ -94,11 +94,11 @@ function getUnifiedDiffLines(block: Extract<ToolCallContentBlock, { type: 'diff'
 function getDiffLineClass(kind: DiffLine['kind']): string {
   switch (kind) {
     case 'header':
-      return 'text-sky-600 dark:text-sky-400';
+      return 'text-brand';
     case 'add':
-      return 'text-emerald-600 dark:text-emerald-400';
+      return 'text-success';
     case 'remove':
-      return 'text-red-600 dark:text-red-400';
+      return 'text-danger';
     case 'context':
     default:
       return 'text-text-secondary';

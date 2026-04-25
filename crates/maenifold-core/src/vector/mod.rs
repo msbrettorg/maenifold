@@ -22,7 +22,6 @@ pub const DEFAULT_MAX_TOKENS: usize = 512;
 pub const EMBEDDING_DIMENSIONS: usize = DEFAULT_EMBEDDING_DIMENSIONS;
 
 pub(crate) const DEFAULT_MAX_BATCH: usize = 32;
-pub(crate) const VOCAB_FILENAME: &str = "vocab.txt";
 pub(crate) const TOKENIZER_CONFIG_FILENAME: &str = "tokenizer_config.json";
 pub(crate) const TOKENIZER_JSON_FILENAME: &str = "tokenizer.json";
 pub(crate) const OUTPUT_NAME_PREFERENCES: [&str; 6] = [
@@ -54,18 +53,7 @@ pub(crate) struct TokenizerAssets {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub(crate) struct BertTokenizerConfig {
-    pub(crate) tokenizer_class: Option<String>,
-    pub(crate) do_lower_case: Option<bool>,
-    pub(crate) unk_token: Option<String>,
-    pub(crate) sep_token: Option<String>,
     pub(crate) pad_token: Option<String>,
-    pub(crate) cls_token: Option<String>,
-    pub(crate) mask_token: Option<String>,
-    #[serde(default = "default_true")]
-    pub(crate) tokenize_chinese_chars: bool,
-    pub(crate) strip_accents: Option<bool>,
-    #[serde(default = "default_true")]
-    pub(crate) do_basic_tokenize: bool,
     #[serde(default = "default_model_max_length")]
     pub(crate) model_max_length: usize,
 }
@@ -137,10 +125,6 @@ pub(crate) fn model_state() -> &'static Mutex<Option<ModelState>> {
 
 pub(crate) fn zero_embedding_vector() -> Vec<f32> {
     vec![0.0; embedding_dimensions().unwrap_or(DEFAULT_EMBEDDING_DIMENSIONS)]
-}
-
-pub(crate) const fn default_true() -> bool {
-    true
 }
 
 pub(crate) const fn default_model_max_length() -> usize {

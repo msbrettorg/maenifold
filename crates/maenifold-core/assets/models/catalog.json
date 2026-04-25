@@ -8,9 +8,17 @@
     "license": "Apache-2.0",
     "huggingfaceRepo": "sentence-transformers/all-MiniLM-L6-v2",
     "onnxRepo": null,
+    "revision": "c9745ed1d9f207416be6d2e6f8de32d1f16199bf",
+    "onnxRevision": null,
     "released": "2021-08",
     "mrlDimensions": null,
-    "mtebRetrieval": 41.9
+    "mtebRetrieval": 41.9,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "6fd5d72fe4589f189f8ebc006442dbb529bb7ce38f8082112682524616046452", "sizeBytes": 90405214 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "be50c3628f2bf5bb5e3a7f17b1f74611b2561a3a27eeab05e5aa30f411572037", "sizeBytes": 466247 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "acb92769e8195aabd29b7b2137a9e6d6e25c476a4f15aa4355c233426c61576b", "sizeBytes": 350 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "953f9c0d463486b10a6871cc2fd59f223b2c70184f49815e7efbcab5d8908b41", "sizeBytes": 612, "optional": true }
+    ]
   },
   {
     "id": "bge-small-en-v1.5",
@@ -21,9 +29,17 @@
     "license": "MIT",
     "huggingfaceRepo": "BAAI/bge-small-en-v1.5",
     "onnxRepo": null,
+    "revision": "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a",
+    "onnxRevision": null,
     "released": "2023-09",
     "mrlDimensions": null,
-    "mtebRetrieval": 51.7
+    "mtebRetrieval": 51.7,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "828e1496d7fabb79cfa4dcd84fa38625c0d3d21da474a00f08db0f559940cf35", "sizeBytes": 133093490 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66", "sizeBytes": 711396 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3", "sizeBytes": 366 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "094f8e891b932f2000c92cfc663bac4c62069f5d8af5b5278c4306aef3084750", "sizeBytes": 743, "optional": true }
+    ]
   },
   {
     "id": "snowflake-arctic-embed-m-v2.0",
@@ -34,9 +50,17 @@
     "license": "Apache-2.0",
     "huggingfaceRepo": "Snowflake/snowflake-arctic-embed-m-v2.0",
     "onnxRepo": null,
+    "revision": "95c2741480856aa9666782eb4afe11959938017f",
+    "onnxRevision": null,
     "released": "2024-12",
     "mrlDimensions": [256, 512, 768],
-    "mtebRetrieval": 55.4
+    "mtebRetrieval": 55.4,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "c0c53d7f49a2db60761b92b7bbf5be87a7b3cf5d92dbbd7f1b5028bd5a40aa39", "sizeBytes": 1226099913 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "f1cc44ad7faaeec47241864835473fd5403f2da94673f3f764a77ebcb0a803ec", "sizeBytes": 17083009 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "6f00514620aff01ba8b7291b2394e98daca5be264cb743805232d9ae27494b2a", "sizeBytes": 1340 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "2e0b386e7a826903b06c301f8d4dde2ac6279f7ccd3ea11f3911019a1ee0bc05", "sizeBytes": 971, "optional": true }
+    ]
   },
   {
     "id": "mxbai-embed-large-v1",
@@ -47,9 +71,17 @@
     "license": "Apache-2.0",
     "huggingfaceRepo": "mixedbread-ai/mxbai-embed-large-v1",
     "onnxRepo": null,
+    "revision": "b33106f585b9ce46904ad7443a3b52b7a63e231c",
+    "onnxRevision": null,
     "released": "2024-03",
     "mrlDimensions": [256, 512, 768, 1024],
-    "mtebRetrieval": 54.4
+    "mtebRetrieval": 54.4,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "adb53ed475faa339bfad3bd2bdb7e6a30b4f47280ade9811f81bef7953f9ab77", "sizeBytes": 1336854282 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66", "sizeBytes": 711396 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "0b29c7bfc889e53b36d9dd3e686dd4300f6525110eaa98c76a5dafceb2029f53", "sizeBytes": 1242 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "ce13f118fc183c005236901d2662ced752de632ebb161e6af800aadda2d176f7", "sizeBytes": 677, "optional": true }
+    ]
   },
   {
     "id": "nomic-embed-text-v1.5",
@@ -60,9 +92,17 @@
     "license": "Apache-2.0",
     "huggingfaceRepo": "nomic-ai/nomic-embed-text-v1.5",
     "onnxRepo": null,
+    "revision": "e9b6763023c676ca8431644204f50c2b100d9aab",
+    "onnxRevision": null,
     "released": "2024-02",
     "mrlDimensions": [64, 128, 256, 512, 768],
-    "mtebRetrieval": 53.0
+    "mtebRetrieval": 53.0,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "147d5aa88c2101237358e17796cf3a227cead1ec304ec34b465bb08e9d952965", "sizeBytes": 547310275 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66", "sizeBytes": 711396 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "d7e0000bcc80134debd2222220427e6bf5fa20a669f40a0d0d1409cc18e0a9bc", "sizeBytes": 1191 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "9ab00bd92cee80a569f708140b7b6c1661a65891ff3765b1519e181ba2f2c92b", "sizeBytes": 2538, "optional": true }
+    ]
   },
   {
     "id": "jina-embeddings-v3",
@@ -73,9 +113,18 @@
     "license": "CC-BY-NC-4.0",
     "huggingfaceRepo": "jinaai/jina-embeddings-v3",
     "onnxRepo": null,
+    "revision": "ab036b023d30b4d1138c4c3bfa9f0c445ab455d6",
+    "onnxRevision": null,
     "released": "2024-09",
     "mrlDimensions": [32, 64, 128, 256, 512, 768, 1024],
-    "mtebRetrieval": 55.8
+    "mtebRetrieval": 55.8,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "836322cc5d78f0047dbb336d0049b087fd81e164505c347a313cd44a772f34cc", "sizeBytes": 1513159 },
+      { "name": "model.onnx_data", "sourcePath": "onnx/model.onnx_data", "source": "onnx", "sha256": "022b369faa8015add1d036a72927ed64f8c8196435bc37a4fc9d36fc8ebc5cc2", "sizeBytes": 2291339168, "optional": true },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "f59925fcb90c92b894cb93e51bb9b4a6105c5c249fe54ce1c704420ac39b81af", "sizeBytes": 17082756 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "e1bc77da5b90ba65b47aa8bd776c6317f47d50dc6717e92b10177686b3b8f161", "sizeBytes": 1148 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "556941599709401b3dc94acf775526f1c4670abe5e123cb53cca8eb5250b0cb5", "sizeBytes": 1799, "optional": true }
+    ]
   },
   {
     "id": "qwen3-embedding-0.6b",
@@ -86,9 +135,18 @@
     "license": "Apache-2.0",
     "huggingfaceRepo": "Qwen/Qwen3-Embedding-0.6B",
     "onnxRepo": "onnx-community/Qwen3-Embedding-0.6B-ONNX",
+    "revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+    "onnxRevision": "c25a394dd583836952667c12f008335071b3f43d",
     "released": "2025-06",
     "mrlDimensions": [32, 64, 128, 256, 512, 768, 1024],
-    "mtebRetrieval": 64.3
+    "mtebRetrieval": 64.3,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "bf27b2f3f9ef9c32ca337d75b361fa99439deaeaefe82e4701b2dbd8439197cc", "sizeBytes": 307161415 },
+      { "name": "model.onnx_data", "sourcePath": "onnx/model.onnx_data", "source": "onnx", "sha256": "f0a61604465929a27e68aa6217c8c89ec6186572f0209fdb7711adda48a9b9a9", "sizeBytes": 2093436928, "optional": true },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a", "sizeBytes": 11423705 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "253153d0738ceb4c668d2eff957714dd2bea0b56de772a9fdccd96cbf517e6a0", "sizeBytes": 9706 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "b5bf1f51fc45be473a54718cef92448d90a1be001bf9b9a44b8c7f10a19feaa9", "sizeBytes": 727, "optional": true }
+    ]
   },
   {
     "id": "bge-large-en-v1.5",
@@ -99,8 +157,16 @@
     "license": "MIT",
     "huggingfaceRepo": "BAAI/bge-large-en-v1.5",
     "onnxRepo": null,
+    "revision": "d4aa6901d3a41ba39fb536a557fa166f842b0e09",
+    "onnxRevision": null,
     "released": "2023-09",
     "mrlDimensions": null,
-    "mtebRetrieval": 54.3
+    "mtebRetrieval": 54.3,
+    "files": [
+      { "name": "model.onnx", "sourcePath": "onnx/model.onnx", "source": "onnx", "sha256": "69ed3f810d3b6d13f70dff9ca89966f39c0a0e877fb88211be7bcc070df2a2ce", "sizeBytes": 1336854281 },
+      { "name": "tokenizer.json", "sourcePath": "tokenizer.json", "source": "hf", "sha256": "d241a60d5e8f04cc1b2b3e9ef7a4921b27bf526d9f6050ab90f9267a1f9e5c66", "sizeBytes": 711396 },
+      { "name": "tokenizer_config.json", "sourcePath": "tokenizer_config.json", "source": "hf", "sha256": "9261e7d79b44c8195c1cada2b453e55b00aeb81e907a6664974b4d7776172ab3", "sizeBytes": 366 },
+      { "name": "config.json", "sourcePath": "config.json", "source": "hf", "sha256": "446712fac367857b4b1302762fe1cd7bfa8b3c4b77b4dc5d77c4025407660896", "sizeBytes": 779, "optional": true }
+    ]
   }
 ]

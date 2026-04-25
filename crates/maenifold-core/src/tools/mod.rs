@@ -4,6 +4,7 @@ mod acp_exec_payload;
 mod catalog;
 mod context;
 mod diagnostics;
+mod embedding_catalog;
 mod embedding_download;
 pub(crate) mod embedding_models;
 mod embedding_models_actions;

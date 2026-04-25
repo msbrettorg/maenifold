@@ -30,6 +30,12 @@ pub struct EmbeddingModelsParams {
     /// Model identifier (catalog ID, e.g. "bge-small-en-v1.5"). Required for activate/delete.
     #[serde(default)]
     pub model_id: Option<String>,
+    /// Explicitly trust and use an external `{assets_path}/models/catalog.json` override.
+    #[serde(default)]
+    pub trust_external_catalog: bool,
+    /// Explicitly allow downloads/activation for non-MIT/Apache model licenses.
+    #[serde(default)]
+    pub allow_restricted_license: bool,
     /// Return help documentation instead of executing
     #[serde(default)]
     pub learn: bool,

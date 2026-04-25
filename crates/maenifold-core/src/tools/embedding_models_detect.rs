@@ -1,22 +1,26 @@
 use super::context::ToolContext;
-use super::embedding_models::load_catalog;
+use super::embedding_models::load_catalog_with_external_trust;
 use super::embedding_models_scan::{
     active_model_status, effective_active_model_id, installed_layout,
 };
 use crate::db;
 use crate::error::Result;
+use crate::mcp::schema::EmbeddingModelsParams;
 use crate::vector;
 use crate::vector::model_candidate_dirs;
 use serde_json::{Value, json};
 
-pub(super) fn handle_list(context: &ToolContext) -> Value {
+pub(super) fn handle_list(context: &ToolContext, params: &EmbeddingModelsParams) -> Value {
     let models_dir = context.config.assets_path.join("models");
     let candidate_dirs = model_candidate_dirs(&context.config).unwrap_or_else(|e| {
         tracing::warn!("Failed to resolve runtime model candidate directories: {e}");
         vec![models_dir.clone()]
     });
 
-    let catalog = load_catalog(&context.config.assets_path);
+    let catalog = load_catalog_with_external_trust(
+        &context.config.assets_path,
+        params.trust_external_catalog,
+    );
     // T-202.9 P0 (Bug 3): determine the effective active model id once, so the
     // UI can render the "Active" badge regardless of layout (subdir/flat) and
     // regardless of whether the ONNX session has been lazily loaded yet.
@@ -122,24 +126,18 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
     if exists_subdir {
         std::fs::remove_dir_all(&target_dir).map_err(|e| {
             crate::error::MaenifoldError::Message(format!(
-                "Failed to delete '{}': {}",
-                target_dir.display(),
-                e
+                "Failed to delete model directory: {e}"
             ))
         })?;
     } else if exists_flat {
         std::fs::remove_file(&flat_path).map_err(|e| {
             crate::error::MaenifoldError::Message(format!(
-                "Failed to delete '{}': {}",
-                flat_path.display(),
-                e
+                "Failed to delete legacy model file: {e}"
             ))
         })?;
     } else {
         return Err(crate::error::MaenifoldError::Message(format!(
-            "Model not found in either layout: '{}' or '{}'",
-            target_dir.display(),
-            flat_path.display()
+            "Model '{model_id}' was not found in any supported layout"
         )));
     }
 
@@ -156,8 +154,7 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
 pub(super) fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Result<Value> {
     let conn = db::open_connection(&context.config.database_path).map_err(|e| {
         crate::error::MaenifoldError::Message(format!(
-            "Failed to open database at '{}': {e}",
-            context.config.database_path.display()
+            "Failed to open database: {e}"
         ))
     })?;
 

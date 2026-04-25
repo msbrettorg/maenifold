@@ -285,3 +285,4 @@ fn missing_server(server_name: &str) -> MaenifoldError {
     }
 }
 fn lock_tools(tools: &StdRwLock<Vec<Tool>>) -> RwLockReadGuard<'_, Vec<Tool>> { tools.read().unwrap_or_else(|error| error.into_inner()) }
+#[cfg(test)] #[path = "stdio_pool_tests.rs"] mod tests;

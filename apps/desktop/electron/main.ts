@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
+import { lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
@@ -208,15 +208,35 @@ function registerIpcHandlers(): void {
     return (await readFile(tokenPath, 'utf8')).trim();
   });
   ipcMain.handle('read-wallpaper-image', async (_event, filePath: string) => {
-    const resolvedPath = resolve(filePath);
+    const requestedPath = resolve(filePath);
     const wallpaperDir = resolve(maenifoldRoot(), 'memory', '.cache', 'wallpaper');
-    if (!resolvedPath.startsWith(`${wallpaperDir}${sep}`)) {
+
+    let realWallpaperDir: string;
+    try {
+      realWallpaperDir = await realpath(wallpaperDir);
+    } catch {
+      throw new Error('Wallpaper cache directory does not exist');
+    }
+
+    let realRequestedPath: string;
+    try {
+      realRequestedPath = await realpath(requestedPath);
+    } catch {
+      throw new Error('Wallpaper image not found');
+    }
+
+    if (!realRequestedPath.startsWith(`${realWallpaperDir}${sep}`)) {
       throw new Error('Path outside wallpaper cache');
     }
-    if (extname(resolvedPath).toLowerCase() !== '.png') {
+    if (extname(realRequestedPath).toLowerCase() !== '.png') {
       throw new Error('Only PNG wallpaper images allowed');
     }
-    const data = await readFile(resolvedPath);
+    const stat = await lstat(requestedPath);
+    if (stat.isSymbolicLink()) {
+      throw new Error('Symlink wallpaper images are not allowed');
+    }
+
+    const data = await readFile(realRequestedPath);
     return `data:image/png;base64,${data.toString('base64')}`;
   });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {

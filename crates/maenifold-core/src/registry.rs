@@ -4,7 +4,6 @@ use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::graph;
 use crate::graph::analyzer;
-use crate::mcp::config_tools;
 use crate::memory;
 use crate::repair;
 use crate::search;
@@ -28,6 +27,9 @@ pub struct ToolDescriptor {
     pub invoke: ToolFn,
 }
 
+#[path = "registry_config_descriptors.rs"]
+mod registry_config_descriptors;
+
 pub struct ToolRegistry {
     descriptors: BTreeMap<String, ToolDescriptor>,
 }
@@ -47,7 +49,7 @@ impl ToolRegistry {
 
     pub fn new() -> Self {
         let mut descriptors = BTreeMap::new();
-        for descriptor in DESCRIPTORS {
+        for descriptor in all_descriptors() {
             descriptors.insert(descriptor.name.to_ascii_lowercase(), *descriptor);
             for alias in descriptor.aliases {
                 descriptors.insert(alias.to_ascii_lowercase(), *descriptor);
@@ -77,8 +79,14 @@ impl ToolRegistry {
     }
 
     pub fn canonical_names(&self) -> Vec<&'static str> {
-        DESCRIPTORS.iter().map(|d| d.name).collect()
+        all_descriptors().map(|d| d.name).collect()
     }
+}
+
+fn all_descriptors() -> impl Iterator<Item = &'static ToolDescriptor> {
+    DESCRIPTORS
+        .iter()
+        .chain(registry_config_descriptors::DESCRIPTORS.iter())
 }
 
 const DESCRIPTORS: &[ToolDescriptor] = &[
@@ -261,45 +269,5 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         name: "Schedule",
         aliases: &["schedule", "scheduled_tasks"],
         invoke: tools::schedule,
-    },
-    ToolDescriptor {
-        name: "ReloadConfig",
-        aliases: &["reloadconfig", "reload_config"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "UpdateSettings",
-        aliases: &["updatesettings", "update_settings"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "AddAgent",
-        aliases: &["addagent", "add_agent"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "UpdateAgent",
-        aliases: &["updateagent", "update_agent"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "DeleteAgent",
-        aliases: &["deleteagent", "delete_agent"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "AddMcpServer",
-        aliases: &["addmcpserver", "add_mcp_server"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "UpdateMcpServer",
-        aliases: &["updatemcpserver", "update_mcp_server"],
-        invoke: config_tools::registry_invocation_unavailable,
-    },
-    ToolDescriptor {
-        name: "DeleteMcpServer",
-        aliases: &["deletemcpserver", "delete_mcp_server"],
-        invoke: config_tools::registry_invocation_unavailable,
     },
 ];

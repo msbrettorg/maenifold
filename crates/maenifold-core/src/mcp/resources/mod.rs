@@ -2,7 +2,10 @@ use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::stdio_pool::StdioPool;
 use rmcp::RoleServer;
-use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
+use rmcp::model::{
+    AnnotateAble, ListResourceTemplatesResult, ListResourcesResult, RawResource,
+    ReadResourceResult, Resource,
+};
 use rmcp::service::RequestContext;
 use std::sync::{Arc, RwLock};
 
@@ -19,6 +22,10 @@ pub mod throttle;
 pub mod workflow;
 
 pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_watcher};
+
+pub const CONFIG_SETTINGS_URI: &str = "config://settings";
+pub const CONFIG_AGENTS_URI: &str = "config://agents";
+pub const CONFIG_MCP_SERVERS_URI: &str = "config://mcp-servers";
 
 static GATEWAY_CATALOG: RwLock<Option<Arc<GatewayCatalog>>> = RwLock::new(None);
 
@@ -42,6 +49,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(schedule::list_resources());
     resources.extend(teams::list_resources());
     resources.extend(workflow::list_resources());
+    resources.extend(config_resources());
     Ok(ListResourcesResult {
         resources,
         next_cursor: None,
@@ -146,6 +154,35 @@ fn uri_matches_template(uri: &str, uri_template: &str) -> bool {
     }
 
     uri == uri_template
+}
+
+fn config_resources() -> Vec<Resource> {
+    vec![
+        config_resource(
+            CONFIG_SETTINGS_URI,
+            "Config Settings",
+            "Current maenifold runtime settings. Read fresh state with GetConfig.",
+        ),
+        config_resource(
+            CONFIG_AGENTS_URI,
+            "Config Agents",
+            "Configured ACP agents. Read fresh state with GetConfig.",
+        ),
+        config_resource(
+            CONFIG_MCP_SERVERS_URI,
+            "Config MCP Servers",
+            "Configured MCP servers. Read fresh state with GetConfig.",
+        ),
+    ]
+}
+
+fn config_resource(uri: &str, name: &str, description: &str) -> Resource {
+    let mut resource = RawResource::new(uri, name)
+        .with_mime_type("application/json")
+        .optional_annotate(None);
+    resource.title = Some(name.to_string());
+    resource.description = Some(description.to_string());
+    resource
 }
 
 pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {

@@ -17,7 +17,7 @@ use super::subscription_worker::{AssetWatcherSignal, spawn_asset_watcher_worker}
 pub const MAX_SUBSCRIPTIONS_PER_SESSION: usize = 100;
 const SESSION_CAP_ERROR: &str = "subscription limit exceeded (max 100 per session)";
 const HEADER_SESSION_ID: &str = "mcp-session-id";
-const SUBSCRIBABLE_PREFIXES: &[&str] = &["asset://", "pipeline://", "workflow://"];
+const SUBSCRIBABLE_PREFIXES: &[&str] = &["asset://", "config://", "pipeline://", "workflow://"];
 const SUBSCRIBABLE_EXACT: &[&str] = &["teams://status", "agent://sessions"];
 
 #[derive(Clone)]

@@ -91,6 +91,7 @@ fn expected_settings() -> MaenifoldSettings {
             pipeline_driver: Some("inline".to_string()),
         },
         teams_monitor: TeamsMonitorConfig::default(),
+        gateway: GatewaySettings::default(),
         env_passthrough: Vec::new(),
     }
 }

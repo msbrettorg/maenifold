@@ -11,6 +11,7 @@ use tracing::{info, warn};
 
 use crate::error::{MaenifoldError, Result};
 
+use super::gateway_settings::IntentResolverSettings;
 use super::settings::MaenifoldSettings;
 use super::types::{AgentEntry, McpServerEntry};
 
@@ -44,11 +45,17 @@ impl AgentsConfig {
             }
         }
 
-        Ok(Self {
+        let config = Self {
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,
-        })
+        };
+
+        if let Some(settings) = config.settings.as_ref() {
+            validate_intent_resolver_config(&settings.gateway.intent_resolver, &config)?;
+        }
+
+        Ok(config)
     }
 
     pub fn load_or_default(root: &Path) -> AgentsConfig {
@@ -81,7 +88,37 @@ fn read_config_contents(config_path: &Path) -> Result<String> {
     }
 }
 
-fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
+pub(crate) fn validate_intent_resolver_config(intent_resolver: &IntentResolverSettings, agents_config: &AgentsConfig) -> Result<()> {
+    if !(0.0..=1.0).contains(&intent_resolver.auto_execute_confidence_threshold) {
+        return Err(MaenifoldError::AgentSetup("gateway intent resolver autoExecuteConfidenceThreshold must be between 0.0 and 1.0".to_string()));
+    }
+    if intent_resolver.timeout_seconds == Some(0) {
+        return Err(MaenifoldError::AgentSetup("gateway intent resolver timeoutSeconds must be greater than 0".to_string()));
+    }
+    if intent_resolver.max_candidates == Some(0) {
+        return Err(MaenifoldError::AgentSetup("gateway intent resolver maxCandidates must be greater than 0".to_string()));
+    }
+    if let Some(level) = intent_resolver.effective_thought_level()
+        && !matches!(level, "low" | "medium" | "high" | "xhigh")
+    {
+        return Err(MaenifoldError::AgentSetup(format!(
+            "gateway intent resolver thoughtLevel '{level}' is unsupported; expected none, low, medium, high, or xhigh"
+        )));
+    }
+    if !intent_resolver.enabled {
+        return Ok(());
+    }
+    let agent = match intent_resolver.agent.as_deref().filter(|agent| !agent.trim().is_empty()) {
+        Some(agent) => agent,
+        None => return Err(MaenifoldError::AgentSetup("gateway intent resolver enabled=true requires a non-empty agent".to_string())),
+    };
+    if agents_config.agents.contains_key(agent) {
+        return Ok(());
+    }
+    Err(MaenifoldError::AgentSetup(format!("gateway intent resolver agent '{agent}' is not configured or is not executable")))
+}
+
+pub(crate) fn validate_agent_entry(name: &str, entry: &AgentEntry) -> bool {
     let (command_path, _) = entry.command_parts();
     if command_path.is_empty() {
         warn!(agent = name, "excluding agent: command must not be empty");

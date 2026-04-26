@@ -9,15 +9,22 @@
 
 #[path = "config/loader.rs"]
 mod loader;
+#[path = "config/gateway_settings.rs"]
+mod gateway_settings;
 #[path = "config/settings.rs"]
 mod settings;
 #[path = "config/types.rs"]
 mod types;
 
 #[cfg(test)]
+#[path = "config/gateway_settings_tests.rs"]
+mod gateway_settings_tests;
+#[cfg(test)]
 #[path = "config/tests.rs"]
 mod tests;
 
+#[allow(unused_imports)]
+pub use gateway_settings::*;
 pub use loader::AgentsConfig;
 #[allow(unused_imports)]
 pub use settings::{

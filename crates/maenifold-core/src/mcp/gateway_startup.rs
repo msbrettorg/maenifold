@@ -101,12 +101,12 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                                         "Gateway exposes {total} tools — consider consolidation threshold"
                                     );
                                 }
-                                 Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
-                                     Arc::clone(&pool),
-                                     Arc::new(resource_routing),
-                                     catalog,
-                                     consolidated_tools,
-                                 ))))
+                                Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+                                    Arc::clone(&pool),
+                                    Arc::new(resource_routing),
+                                    catalog,
+                                    consolidated_tools,
+                                ))))
                             }
                             Err(error) => {
                                 tracing::error!(

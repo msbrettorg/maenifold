@@ -7,7 +7,7 @@ use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
 use crate::mcp::schema::gateway_tools::{
-    GatewayExecuteParams, GatewayIndexParams, gateway_execute_tool, gateway_index_tool,
+    GatewayExecuteParams, GatewayIndexParams, gateway_batch_tool, gateway_execute_tool, gateway_index_tool,
 };
 use crate::mcp::stdio_pool::{StdioPool, StdioPoolHealth};
 use crate::mcp::tool_utils::format_tool_error;
@@ -23,9 +23,10 @@ use tracing::{error, warn};
 pub(crate) struct GatewayState {
     pool: Arc<StdioPool>,
     resource_routing: Arc<ResourceRoutingRegistry>,
-    catalog: GatewayCatalog,
+    pub(crate) catalog: GatewayCatalog,
     consolidated_tools: Vec<ConsolidatedServerTool>,
     hidden_tool_domains: HashMap<String, String>,
+    batch_state: crate::mcp::gateway_batch_types::BatchState,
 }
 
 impl GatewayState {
@@ -48,6 +49,7 @@ impl GatewayState {
             catalog,
             consolidated_tools,
             hidden_tool_domains,
+            batch_state: crate::mcp::gateway_batch_types::BatchState::new(),
         }
     }
 
@@ -69,6 +71,7 @@ impl GatewayState {
         vec![
             tool_from_definition(gateway_index_tool()),
             tool_from_definition(gateway_execute_tool()),
+            tool_from_definition(gateway_batch_tool()),
         ]
     }
 
@@ -103,6 +106,7 @@ impl GatewayState {
         if tool_name == "GatewayExecute" {
             return self.handle_gateway_execute(arguments).await.map(Some);
         }
+        if tool_name == "GatewayBatch" { return crate::mcp::gateway_batch::handle_gateway_batch_arguments(self, &self.batch_state, arguments).await.map(Some); }
 
         if let Some(domain) = domain_mapping::tool_domain(tool_name) {
             return Err(rmcp::ErrorData::invalid_params(
@@ -138,7 +142,7 @@ impl GatewayState {
         Ok(CallToolResult::success(vec![Content::text(render_json(index))]))
     }
 
-    async fn handle_gateway_execute(
+    pub(crate) async fn handle_gateway_execute(
         &self,
         arguments: Value,
     ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
@@ -172,7 +176,7 @@ impl GatewayState {
         }
     }
 
-    fn consolidated_server(
+    pub(crate) fn consolidated_server(
         &self,
         server_name: &str,
     ) -> std::result::Result<&ConsolidatedServerTool, rmcp::ErrorData> {

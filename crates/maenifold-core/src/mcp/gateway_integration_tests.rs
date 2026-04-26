@@ -177,40 +177,6 @@ fn unsupported_schemas_skip_local_validation() {
 }
 
 #[test]
-fn intent_matching_dispatches_unambiguous_command() {
-    let parameters = json!({"accountId":"acct_123"});
-    let result = dispatch(Some("list subscriptions"), None, false, parameters.clone());
-
-    assert_eq!(
-        result,
-        DispatchResult::CallTool {
-            server_name: "Billing Gateway".to_string(),
-            tool_name: "subscription_list".to_string(),
-            parameters,
-        }
-    );
-}
-
-#[test]
-fn ambiguous_intent_returns_candidates() {
-    let result = dispatch(Some("list"), None, false, json!({}));
-
-    assert_eq!(
-        result,
-        DispatchResult::Candidates(vec![
-            ("alerts_list".to_string(), "List billing alerts".to_string()),
-            ("list_accounts".to_string(), "List accounts".to_string()),
-            ("list_invoices".to_string(), "List invoices".to_string()),
-            ("list_regions".to_string(), "List regions".to_string()),
-            (
-                "subscription_list".to_string(),
-                "List subscriptions for an account".to_string(),
-            ),
-        ])
-    );
-}
-
-#[test]
 fn unknown_command_returns_helpful_error() {
     let (server, passthrough) = build_billing_gateway();
     assert!(passthrough.is_empty());

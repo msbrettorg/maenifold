@@ -40,6 +40,13 @@ pub(crate) struct BatchItemParams {
     pub idempotency_key: Option<String>,
 }
 
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub(crate) struct GatewayIntentParams {
+    pub intent: String,
+    pub domain_hints: Option<Vec<String>>,
+}
+
 pub(crate) fn gateway_index_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayIndexParams>(
         "GatewayIndex",
@@ -58,5 +65,12 @@ pub(crate) fn gateway_batch_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayBatchParams>(
         "GatewayBatch",
         "Submits multiple exact gateway commands sequentially or reads bounded in-memory batch status.",
+    )
+}
+
+pub(crate) fn gateway_intent_tool() -> McpToolDefinition {
+    derived_tool_definition::<GatewayIntentParams>(
+        "GatewayIntent",
+        "Resolves natural language to deterministic gateway candidates, auto-executing only safe single read operations when configured.",
     )
 }

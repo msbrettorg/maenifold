@@ -1,9 +1,11 @@
 use super::*;
+use crate::acp_config::IntentResolverSettings;
 use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::stdio_pool::StdioPool;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use serde_json::{Value, json};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 async fn state() -> GatewayState {
@@ -11,7 +13,14 @@ async fn state() -> GatewayState {
     let routing = ToolRoutingRegistry::build(&[], pool.as_ref()).expect("routing");
     let catalog = GatewayCatalog::build(&[], &[], &routing).expect("catalog");
     let resources = Arc::new(ResourceRoutingRegistry::build(pool.as_ref()).expect("resources"));
-    GatewayState::new(pool, resources, catalog, vec![])
+    GatewayState::new(
+        pool,
+        resources,
+        catalog,
+        vec![],
+        IntentResolverSettings::default(),
+        PathBuf::from("."),
+    )
 }
 
 fn item(domain: &str, command: &str, parameters: Value) -> BatchItemParams {
@@ -33,7 +42,12 @@ fn params(items: Vec<BatchItemParams>, continue_on_error: bool) -> GatewayBatchP
 }
 
 fn text(result: &CallToolResult) -> String {
-    result.content[0].raw.as_text().expect("text content").text.clone()
+    result.content[0]
+        .raw
+        .as_text()
+        .expect("text content")
+        .text
+        .clone()
 }
 
 #[tokio::test]
@@ -86,12 +100,24 @@ fn batch_state_eviction_removes_oldest_after_cap() {
 #[tokio::test]
 async fn gateway_batch_continue_on_error_false_skips_remaining_items() {
     let state = state().await;
-    let first = item("maenifold.memory", "MoveMemory", json!({ "source": "__missing__", "destination": "unused.md" }));
-    let second = item("maenifold.memory", "ReadMemory", json!({ "identifier": "__also_missing__" }));
+    let first = item(
+        "maenifold.memory",
+        "MoveMemory",
+        json!({ "source": "__missing__", "destination": "unused.md" }),
+    );
+    let second = item(
+        "maenifold.memory",
+        "ReadMemory",
+        json!({ "identifier": "__also_missing__" }),
+    );
 
-    let result = handle_gateway_batch(&state, &BatchState::new(), params(vec![first, second], false))
-        .await
-        .expect("batch should complete with failed item result");
+    let result = handle_gateway_batch(
+        &state,
+        &BatchState::new(),
+        params(vec![first, second], false),
+    )
+    .await
+    .expect("batch should complete with failed item result");
     let rendered: Value = serde_json::from_str(&text(&result)).expect("batch json");
 
     assert_eq!(rendered["status"], "failed");

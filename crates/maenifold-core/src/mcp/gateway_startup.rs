@@ -36,7 +36,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway().await;
+        return native_only_gateway(config).await;
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -108,6 +108,8 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                                     Arc::new(resource_routing),
                                     catalog,
                                     consolidated_tools,
+                                    config.settings.gateway.intent_resolver.clone(),
+                                    config.maenifold_root.clone(),
                                 ))))
                             }
                             Err(error) => {
@@ -158,7 +160,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
     }
 }
 
-async fn native_only_gateway() -> Result<GatewayStartup> {
+async fn native_only_gateway(config: &Config) -> Result<GatewayStartup> {
     let pool = Arc::new(StdioPool::start(Vec::new()).await?);
     let native_tools = tool_registry_tools()?;
     let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
@@ -174,6 +176,8 @@ async fn native_only_gateway() -> Result<GatewayStartup> {
         Arc::new(resource_routing),
         catalog,
         Vec::new(),
+        config.settings.gateway.intent_resolver.clone(),
+        config.maenifold_root.clone(),
     ))))
 }
 

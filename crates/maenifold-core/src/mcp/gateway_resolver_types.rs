@@ -56,7 +56,10 @@ impl fmt::Display for ResolverError {
                 write!(f, "gateway intent resolver timed out after {seconds}s")
             }
             Self::Malformed { message, .. } => {
-                write!(f, "gateway intent resolver returned invalid output: {message}")
+                write!(
+                    f,
+                    "gateway intent resolver returned invalid output: {message}"
+                )
             }
             Self::AcpError { message, .. } => {
                 write!(f, "gateway intent resolver ACP execution failed: {message}")

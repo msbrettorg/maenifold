@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
+import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { registerVec0Handlers } from './vec0.js';
@@ -206,6 +206,18 @@ function registerIpcHandlers(): void {
   ipcMain.handle('get-auth-token', async () => {
     const tokenPath = join(maenifoldRoot(), 'auth', 'localhost.token');
     return (await readFile(tokenPath, 'utf8')).trim();
+  });
+  ipcMain.handle('read-wallpaper-image', async (_event, filePath: string) => {
+    const resolvedPath = resolve(filePath);
+    const wallpaperDir = resolve(maenifoldRoot(), 'memory', '.cache', 'wallpaper');
+    if (!resolvedPath.startsWith(`${wallpaperDir}${sep}`)) {
+      throw new Error('Path outside wallpaper cache');
+    }
+    if (extname(resolvedPath).toLowerCase() !== '.png') {
+      throw new Error('Only PNG wallpaper images allowed');
+    }
+    const data = await readFile(resolvedPath);
+    return `data:image/png;base64,${data.toString('base64')}`;
   });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};

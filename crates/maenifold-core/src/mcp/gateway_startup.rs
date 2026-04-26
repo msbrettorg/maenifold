@@ -2,6 +2,7 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::acp_config::{AgentsConfig, McpServerEntry};
 use crate::config::Config;
 use crate::error::Result;
+use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
@@ -79,6 +80,11 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                             Ok(registry) => {
                                 let resource_routing =
                                     ResourceRoutingRegistry::build(pool.as_ref())?;
+                                let catalog = GatewayCatalog::build(
+                                    &consolidated_tools,
+                                    &passthrough_tools,
+                                    &registry,
+                                )?;
                                 let counts = gateway_tool_counts(
                                     &consolidated_tools,
                                     &passthrough_tools,
@@ -95,13 +101,12 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                                         "Gateway exposes {total} tools — consider consolidation threshold"
                                     );
                                 }
-                                Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
-                                    Arc::clone(&pool),
-                                    Arc::new(registry),
-                                    Arc::new(resource_routing),
-                                    consolidated_tools,
-                                    passthrough_tools,
-                                ))))
+                                 Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+                                     Arc::clone(&pool),
+                                     Arc::new(resource_routing),
+                                     catalog,
+                                     consolidated_tools,
+                                 ))))
                             }
                             Err(error) => {
                                 tracing::error!(

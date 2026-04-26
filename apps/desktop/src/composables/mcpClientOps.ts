@@ -167,6 +167,36 @@ export function createMcpClientOps(options: {
     return isSessionExpiredError(err) || isSessionExpiredError(getErrorCause(err));
   }
 
+  function formatToolCallResultContent(result: ToolCallResult): string {
+    const contentText = result.content
+      ?.map((item) => {
+        if (typeof item.text === 'string') {
+          return item.text;
+        }
+        try {
+          return JSON.stringify(item);
+        } catch {
+          return String(item);
+        }
+      })
+      .filter((item) => item.length > 0)
+      .join('; ');
+
+    if (contentText) {
+      return contentText;
+    }
+
+    if (result.structuredContent) {
+      try {
+        return JSON.stringify(result.structuredContent);
+      } catch {
+        return String(result.structuredContent);
+      }
+    }
+
+    return 'Unknown GatewayIndex tool error';
+  }
+
   async function readGatewayIndex(
     client: SdkClient,
     args: Record<string, unknown>,
@@ -180,6 +210,13 @@ export function createMcpClientOps(options: {
       })) as ToolCallResult;
     } catch (err: unknown) {
       throw createGatewayIndexError(`GatewayIndex failed while loading ${context}`, 'call', err);
+    }
+
+    if (indexResult.isError) {
+      throw createGatewayIndexError(
+        `GatewayIndex returned MCP tool error while loading ${context}: ${formatToolCallResultContent(indexResult)}`,
+        'call',
+      );
     }
 
     const indexContent = indexResult.content?.[0]?.text;
@@ -339,6 +376,12 @@ export function createMcpClientOps(options: {
           name: 'GatewayExecute',
           arguments: { domain, command: name, parameters: args },
         })) as ToolCallResult;
+      }
+      if (!gatewayPassthroughTools.has(name) && !directMcpFallbackTools.has(name)) {
+        throw createGatewayIndexError(
+          `GatewayIndex domain map does not include a route for ${name}; refusing direct MCP fallback without allowlist proof`,
+          'schema',
+        );
       }
       return (await client.callTool({ name, arguments: args })) as ToolCallResult;
     });

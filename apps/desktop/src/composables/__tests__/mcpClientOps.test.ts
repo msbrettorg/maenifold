@@ -9,6 +9,13 @@ function toolText(payload: unknown): ToolCallResult {
   };
 }
 
+function toolErrorText(text: string): ToolCallResult {
+  return {
+    content: [{ type: 'text', text }],
+    isError: true,
+  };
+}
+
 function createMockClient(
   callToolImpl: (request: { name: string; arguments?: Record<string, unknown> }) => Promise<ToolCallResult>,
 ): SdkClient & { callTool: ReturnType<typeof vi.fn> } {
@@ -171,6 +178,34 @@ describe('createMcpClientOps gateway routing', () => {
     });
   });
 
+  it('allows status direct fallback after a successful map build that does not include status', async () => {
+    const client = createMockClient(async ({ name, arguments: args = {} }) => {
+      if (name === 'GatewayIndex' && !('domain' in args)) {
+        return toolText({ domains: [] });
+      }
+
+      if (name === 'status') {
+        return toolText({ name, args });
+      }
+
+      throw new Error(`Unexpected direct call for ${name}`);
+    });
+
+    const ops = createOps(() => client);
+
+    await expect(ops.callTool('status', { verbose: false })).resolves.toEqual({
+      name: 'status',
+      args: { verbose: false },
+    });
+    expect(client.callTool.mock.calls.filter(([request]) => request.name === 'GatewayIndex')).toEqual([
+      [{ name: 'GatewayIndex', arguments: {} }],
+    ]);
+    expect(client.callTool).toHaveBeenLastCalledWith({
+      name: 'status',
+      arguments: { verbose: false },
+    });
+  });
+
   it('does not make hidden gateway tools direct-callable when GatewayIndex is unavailable', async () => {
     const client = createMockClient(async ({ name }) => {
       if (name === 'GatewayIndex') {
@@ -244,6 +279,56 @@ describe('createMcpClientOps gateway routing', () => {
 
   it.each([
     {
+      label: 'plain text',
+      errorText: 'GatewayIndex unavailable from MCP tool result',
+    },
+    {
+      label: 'JSON-shaped text',
+      errorText: '{"domains":[]}',
+    },
+  ])('treats GatewayIndex isError content as failure: $label', async ({ errorText }) => {
+    const client = createMockClient(async ({ name }) => {
+      if (name === 'GatewayIndex') {
+        return toolErrorText(errorText);
+      }
+
+      if (name === 'GetConfig') {
+        throw new Error('GetConfig should not be called directly after GatewayIndex isError');
+      }
+
+      if (name === 'GatewayExecute') {
+        throw new Error('GatewayExecute should not be called after GatewayIndex isError');
+      }
+
+      throw new Error(`Unexpected direct call for ${name}`);
+    });
+
+    const ops = createOps(() => client);
+
+    let thrown: unknown;
+    try {
+      await ops.callTool('GetConfig');
+    } catch (err: unknown) {
+      thrown = err;
+    }
+
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toContain('GatewayIndex returned MCP tool error');
+    expect((thrown as Error).message).toContain(errorText);
+    expect(client.callTool.mock.calls.some(([request]) => request.name === 'GetConfig')).toBe(false);
+    expect(client.callTool.mock.calls.some(([request]) => request.name === 'GatewayExecute')).toBe(false);
+    expect(client.callTool.mock.calls.filter(([request]) => request.name === 'GatewayIndex')).toHaveLength(1);
+  });
+
+  it.each([
+    {
+      label: 'root domains array is empty',
+      toolName: 'GetConfig',
+      args: {},
+      rootIndex: { domains: [] },
+      domainResponses: {},
+    },
+    {
       label: 'top-level empty object',
       toolName: 'GetConfig',
       args: {},
@@ -271,6 +356,15 @@ describe('createMcpClientOps gateway routing', () => {
       rootIndex: { domains: [{ name: 'maenifold.system' }] },
       domainResponses: {
         'maenifold.system': {},
+      },
+    },
+    {
+      label: 'domain detail commands array is empty',
+      toolName: 'Pipeline',
+      args: { workflowId: 'wf-empty' },
+      rootIndex: { domains: [{ name: 'maenifold.workflow' }] },
+      domainResponses: {
+        'maenifold.workflow': { commands: [] },
       },
     },
     {
@@ -310,6 +404,15 @@ describe('createMcpClientOps gateway routing', () => {
         'maenifold.memory': { commands: [{}] },
       },
     },
+    {
+      label: 'known routed tool missing from otherwise successful map',
+      toolName: 'ListMemories',
+      args: { path: 'memory://projects' },
+      rootIndex: { domains: [{ name: 'maenifold.system' }] },
+      domainResponses: {
+        'maenifold.system': { commands: [{ name: 'GetConfig' }] },
+      },
+    },
   ])('fails closed for schema-malformed GatewayIndex: $label', async ({
     toolName,
     args,
@@ -340,6 +443,7 @@ describe('createMcpClientOps gateway routing', () => {
 
     await expect(ops.callTool(toolName, args)).rejects.toThrow(/GatewayIndex|gateway|domain|command|directly/i);
     expect(client.callTool.mock.calls.some(([request]) => request.name === toolName)).toBe(false);
+    expect(client.callTool.mock.calls.some(([request]) => request.name === 'GatewayExecute')).toBe(false);
   });
 
   it('does not direct-call a previously discovered SearchMemories command after rebuild failure', async () => {

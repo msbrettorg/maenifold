@@ -3,6 +3,26 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 2577 (MCP SDK Migration Wave)
+
+### rmcp migration loses process group cleanup
+- T-226.2: SWE replaced custom stdio with rmcp TokioChildProcess, but rmcp only kills the leader process, not the process group
+- Old code used explicit killpg() after setsid() — rmcp doesn't replicate this
+- Red-team correctly caught it as a resource safety regression
+- Fix: new stdio_process_group.rs helper with killpg() in all cleanup paths
+- **Lesson: When replacing custom process management with a library, audit ALL lifecycle edges. Libraries often handle the happy path but miss cleanup of child process groups, signal forwarding, and orphan prevention.**
+
+### SWEs increase LOC past limits during refactors
+- T-226.2: stdio_session.rs went from 297 to 374 LOC during rmcp migration
+- T-226.3: useMcpClient.ts went from 414 (already over) to 352 (still over) during SDK migration
+- Both required remediation cycles to split files
+- **Lesson: When dispatching SWEs for refactors that add code (new imports, adapter layers), explicitly state the current LOC and remaining budget in the spec. "File is at 297 LOC, budget is 3 lines" prevents the violation.**
+
+### Zero new deps when promoting transitive to direct
+- T-226.1 research found @modelcontextprotocol/sdk was already fully resolved in package-lock.json via @agentclientprotocol/sdk
+- Prior audit claimed "17 new deps" but those were already satisfied transitively
+- **Lesson: Before citing dependency impact numbers from prior audits, verify against current package-lock.json. Transitive dep trees evolve between audits.**
+
 ## 2026-04-25 — Iteration 2111 (5 Tasks Shipped)
 
 ### Double gate-pass sends files to done/ without blue-team

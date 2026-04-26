@@ -227,6 +227,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::read_mcp_resource,
     },
     ToolDescriptor {
+        name: "ReadTextFile",
+        aliases: &["readtextfile", "read_text_file", "read-text-file"],
+        invoke: tools::read_text_file,
+    },
+    ToolDescriptor {
         name: "ListSessions",
         aliases: &["listsessions", "list_sessions"],
         invoke: tools::list_sessions,

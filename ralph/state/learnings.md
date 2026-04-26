@@ -3,6 +3,29 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1911 (Multi-Spec Wave + T-225.1 Shipped)
+
+### Reuse idle duo agents with write_agent instead of creating new ones
+- R2/R3 reviews can be sent to the SAME agent that did R1 via write_agent
+- Saves agent creation overhead and lets the agent carry forward R1 context
+- **Lesson: For iterative spec reviews, always write_agent to the existing duo agents. They remember their prior findings and can verify fixes directly.**
+
+### Duo reviews catch real path errors at scale
+- T-225.5 R1: `src/tools/workflow/pipeline/` doesn't exist — actual path is `src/workflow/pipeline/`
+- T-225.6 R1: `src/tools/workflow/` doesn't exist — actual path is `src/workflow/`
+- Same wrong prefix appeared in BOTH specs because the researcher's baseline used that path
+- **Lesson: If a researcher reports a path, the PM should verify it before embedding in specs. Wrong paths from researchers propagate to every downstream spec.**
+
+### Native tool count drifted from planning baseline (29 → 32)
+- T-221.1 SWE counted actual DESCRIPTORS and found 32, not 29 as planned
+- 3 tools were added between planning and execution (Schedule, TeamsMonitor, ReadTextFile)
+- **Lesson: Always re-count the actual codebase during discovery/SWE, don't trust planning baselines. Code changes faster than specs.**
+
+### Pipeline mutation paths are NOT a single chokepoint
+- T-225.5 R2 GPT found: create uses write_pipeline_session (not persist functions), fork creates via different path, delete removes files, cancel sends SIGTERM
+- The "persist functions cover everything" claim was wrong — needed two-level instrumentation strategy
+- **Lesson: For emitter/notification tasks, trace ALL mutation paths via LSP before claiming a single chokepoint. The obvious persist function often doesn't cover create/delete/fork.**
+
 ## 2026-04-25 — Iteration 1054 (4 Tasks Shipped — Simplification Wave)
 
 ### Blue-team grep patterns must account for substring matches

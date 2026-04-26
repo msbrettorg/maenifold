@@ -1,5 +1,6 @@
 pub(crate) mod config_tools;
 mod cors;
+pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
@@ -76,7 +77,8 @@ pub(super) enum TransportKind {
 }
 impl MaenifoldHandler {
     fn new(transport: TransportKind) -> Result<Self> {
-        let mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
+        let mut mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
+        mcp_tools.push(schema::discovery_tools::discover_mcp_tools_tool());
         let tools = mcp_tools
             .into_iter()
             .map(|t| {
@@ -153,6 +155,7 @@ impl ServerHandler for MaenifoldHandler {
                     tool.name == "GetHelp"
                         || tool.name == "ReadMcpResource"
                         || self::config_tools::is_config_mutation_tool(tool.name.as_ref())
+                        || self::discovery_tools::is_discovery_tool(tool.name.as_ref())
                 })
                 .cloned()
                 .collect();

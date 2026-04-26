@@ -1,6 +1,6 @@
 use super::config_tools::ConfigMutationState;
 use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError};
-use crate::mcp::{config_tools, gateway_handler::GatewayState};
+use crate::mcp::{config_tools, discovery_tools, gateway_handler::GatewayState};
 use crate::registry::ToolRegistry;
 use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content};
@@ -20,6 +20,15 @@ pub(crate) async fn handle_tool_call(
             ))]));
         };
         return config_tools::handle_tool_call(state, &tool_name, arguments).await;
+    }
+    if discovery_tools::is_discovery_tool(&tool_name) {
+        let Some(state) = config_mutation else {
+            return Ok(CallToolResult::error(vec![Content::text(format!(
+                "Discovery tool '{tool_name}' requires HTTP daemon config state"
+            ))]));
+        };
+        return discovery_tools::handle_tool_call(state, gateway.clone(), &tool_name, arguments)
+            .await;
     }
     if let Some(gateway) = gateway
         && tool_name != "GetHelp"

@@ -34,6 +34,7 @@ pub mod sync;
 pub mod teams;
 pub mod thinking;
 pub mod tools;
+pub mod wallpaper;
 // T-29.2: RTM FR-35 — system tray icon for --http mode.
 #[cfg(feature = "app")]
 pub mod tray;

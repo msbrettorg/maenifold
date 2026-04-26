@@ -4,13 +4,15 @@ import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { useMcpClient } from '../composables/useMcpClient';
 import { unwrapToolData } from '../composables/pipeline-mcp-transport';
-import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
 
-interface ConfigChangedEventPayload {
-  path?: string;
-  config: AgentsConfig;
-}
+const CONFIG_RESOURCE_URIS = [
+  'config://settings',
+  'config://agents',
+  'config://mcp-servers',
+] as const;
+
+type ConfigResourceUri = typeof CONFIG_RESOURCE_URIS[number];
 
 interface ReloadConfigResponse {
   config: AgentsConfig;
@@ -38,6 +40,10 @@ function getErrorMessage(error: unknown): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isConfigResourceUri(uri: string): uri is ConfigResourceUri {
+  return CONFIG_RESOURCE_URIS.includes(uri as ConfigResourceUri);
 }
 
 function normalizeAgentCommand(command: unknown, args: unknown): string {
@@ -137,7 +143,8 @@ export const useConfigStore = defineStore('config', () => {
   const configPath = ref<string>('');
   const loading = ref(false);
   const error = ref<string | null>(null);
-  const configWatch = ref<EventSource | null>(null);
+  let unsubscribeConfigNotifications: (() => void) | null = null;
+  const subscribedConfigResources = new Set<ConfigResourceUri>();
 
   const agentNames = computed(() => Object.keys(config.value.agents));
   const hasAgents = computed(() => agentNames.value.length > 0);
@@ -184,53 +191,38 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   async function setupHotReload() {
-    configWatch.value?.close();
+    await teardown();
 
-    const source = new EventSource(`${DAEMON_BASE_URL}/api/config/watch`);
-    source.addEventListener('config-changed', (event) => {
-      try {
-        const payload = JSON.parse((event as MessageEvent<string>).data) as ConfigChangedEventPayload;
-        config.value = payload.config;
-        configPath.value = payload.path ?? configPath.value;
-        error.value = null;
-        if (import.meta.env.DEV) {
-        }
-      } catch (e) {
-        if (import.meta.env.DEV) {
-        }
-        return;
+    try {
+      if (!mcp.connected.value) {
+        await mcp.connect();
       }
-    });
-    source.addEventListener('config-error', (event) => {
-      try {
-        const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-        const message = payload.message ?? 'Config reload failed';
-        error.value = message;
-        toast.warning(message);
-      } catch (e) {
-        if (import.meta.env.DEV) {
+
+      unsubscribeConfigNotifications = mcp.onNotification((notification) => {
+        if (notification.method !== 'notifications/resources/updated') {
+          return;
         }
-        return;
-      }
-    });
-    source.addEventListener('watch-error', (event) => {
-      try {
-        const payload = JSON.parse((event as MessageEvent<string>).data) as { message?: string };
-        const message = payload.message ?? 'Config watch failed';
-        error.value = message;
-        toast.warning(message);
-      } catch (e) {
-        if (import.meta.env.DEV) {
+
+        const uri = isRecord(notification.params) && typeof notification.params.uri === 'string'
+          ? notification.params.uri
+          : null;
+        if (!uri || !isConfigResourceUri(uri)) {
+          return;
         }
-        return;
+
+        void loadConfig();
+      });
+
+      for (const uri of CONFIG_RESOURCE_URIS) {
+        await mcp.subscribeResource(uri);
+        subscribedConfigResources.add(uri);
       }
-    });
-    source.onerror = () => {
-      const message = error.value ?? 'Config watch connection lost';
+    } catch (e) {
+      await teardown();
+      const message = `Config resource subscription failed: ${getErrorMessage(e)}`;
       error.value = message;
       toast.warning(message);
-    };
-    configWatch.value = source;
+    }
   }
 
   function updateFromEvent(newConfig: AgentsConfig) {
@@ -241,9 +233,26 @@ export const useConfigStore = defineStore('config', () => {
     error.value = null;
   }
 
-  function teardown() {
-    configWatch.value?.close();
-    configWatch.value = null;
+  async function teardown() {
+    unsubscribeConfigNotifications?.();
+    unsubscribeConfigNotifications = null;
+
+    const resourcesToUnsubscribe = Array.from(subscribedConfigResources);
+    subscribedConfigResources.clear();
+
+    if (!mcp.connected.value) {
+      return;
+    }
+
+    await Promise.all(
+      resourcesToUnsubscribe.map(async (uri) => {
+        try {
+          await mcp.unsubscribeResource(uri);
+        } catch {
+          // Best-effort cleanup: a dropped session has already discarded server-side subscriptions.
+        }
+      }),
+    );
   }
 
   async function addAgent(name: string, agent: AgentConfig): Promise<void> {

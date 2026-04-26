@@ -12,6 +12,7 @@ Context engineering infrastructure for AI agents. Point it at any domain's liter
 
 - [Product Overview](#product-overview)
   - [Runtime Surfaces](#runtime-surfaces)
+  - [Scriptable UI](#scriptable-ui)
   - [Persistent State](#persistent-state)
   - [Operator Workflows](#operator-workflows)
 - [Theoretical Foundations](#theoretical-foundations)
@@ -61,6 +62,26 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 | **HTTP daemon** | `maenifold --http` | Long-running local control plane used by the desktop app and any HTTP-based integrations. |
 | **CLI** | `maenifold --tool ... --payload ...` | One-shot automation, scripting, debugging, and reproducible direct tool invocation. |
 | **Cognitive assets** | `assets/` plus memory-root assets | Reusable workflows, roles, perspectives, colors, and prompt scaffolds that shape reasoning. |
+
+### Scriptable UI
+
+**Target Architecture:** the desktop app is a first-class MCP client. Every product panel fetches data through MCP tools, using the same tool surface available to agents and other MCP clients. The UI is therefore one frontend among many: scripts, agent clients, and alternate consoles can do the same work by calling the backing tools directly. Some infrastructure endpoints, such as health checks and machine identity, remain REST.
+
+Status: ✅ exists and UI uses it today; 🔜 being added by sprint 229.
+
+| UI Screen | MCP Tools | Status |
+|-----------|-----------|--------|
+| Home | `RecentActivity`, `MemoryStatus` | ✅ |
+| Agents | ACP session via `AcpExec` | ✅ |
+| Pipelines | `Pipeline` | ✅ |
+| Gate | `gate-sync`, `gate-status`, `gate-history`, `gate-task_body` from the gate MCP server | ✅ |
+| Knowledge | `SearchMemories`, `ReadMemory`, `BuildContext`, `Visualize`, `FindSimilarConcepts` | ✅ |
+| Workflows | `Workflow`, `ListAssets` | ✅ |
+| Settings (read) | `GetConfig` | 🔜 T-229.3 |
+| Settings (write) | `UpdateSettings`, `ReloadConfig` | 🔜 T-229.4 |
+| Settings (agents) | `AddAgent`, `UpdateAgent`, `DeleteAgent` | 🔜 T-229.5 |
+| Settings (MCP servers) | `AddMcpServer`, `UpdateMcpServer`, `DeleteMcpServer` | 🔜 T-229.6 |
+| Tool Discovery | `DiscoverMcpTools` | 🔜 T-229.9 |
 
 ### Persistent State
 

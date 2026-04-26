@@ -3,18 +3,18 @@ pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
-#[cfg(test)]
-mod gateway_catalog_domain_tests;
+#[cfg(test)] mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
+#[cfg(test)] mod gateway_experiment;
+#[cfg(test)] mod gateway_experiment_fixtures;
+#[cfg(test)] mod gateway_experiment_tests;
 mod gateway_handler;
 mod gateway_resolver;
 mod gateway_resolver_types;
-#[cfg(test)]
-mod gateway_resolver_tests;
-#[cfg(test)]
-mod gateway_integration_tests;
+#[cfg(test)] mod gateway_resolver_tests;
+#[cfg(test)] mod gateway_integration_tests;
 mod gateway_schema_validation;
 mod gateway_startup;
 pub mod http;
@@ -250,7 +250,6 @@ impl ServerHandler for MaenifoldHandler {
         }
     }
 }
-
 fn unknown_tool_error(tool_name: &str) -> rmcp::ErrorData {
     rmcp::ErrorData::new(rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32), format!("Unknown tool: '{tool_name}'"), Some(Value::Null))
 }

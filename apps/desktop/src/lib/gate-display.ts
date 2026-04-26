@@ -17,19 +17,6 @@ export function formatStageLabel(value: string) {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
-/**
- * Returns true when a stage slug corresponds to a known pipeline stage
- * (pending/swe/red-team/blue-team/done or recognized aliases) rather than
- * an arbitrary markdown heading harvested from the task body (e.g.
- * "problem", "acceptance", "found-during"). The Gate backend currently
- * derives `task.stages` from every `## heading` in the task markdown, so
- * the UI must filter out non-pipeline headings before rendering stage
- * progress indicators.
- */
-export function isPipelineStage(value: string): boolean {
-  return gateStageFamily(value) !== 'neutral';
-}
-
 export function gateStageFamily(value: string): GateStageFamily {
   const normalized = value.trim().toLowerCase();
 

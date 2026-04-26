@@ -6,7 +6,6 @@ import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
-import { useMcpResources } from '../composables/useMcpResources';
 import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
@@ -17,7 +16,6 @@ import { createGateSnapshot } from '../lib/gate';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
-const resources = useMcpResources();
 const gateMcp = useGateMcp();
 const provenance = useProvenanceStore();
 const { navigateTo } = useProvenanceNavigation();
@@ -30,7 +28,7 @@ const lastRefreshLabel = ref('');
 const gateRoot = computed(() => registry.selectedGateRoot.value);
 
 const filtering = useGateTaskFiltering(snapshot);
-const detail = useGateTaskDetail({ snapshot, gateRoot, resources, provenance });
+const detail = useGateTaskDetail({ snapshot, gateRoot, gateMcp, provenance });
 
 let snapshotRequestToken = 0;
 let stopStatusSubscription: (() => void) | null = null;
@@ -130,7 +128,6 @@ watch([() => provenance.pendingGateTaskId, snapshot], async ([pendingTaskId]) =>
 
 onBeforeUnmount(() => {
   stopStatusWatch();
-  detail.stopTaskDetailWatchers();
 });
 </script>
 

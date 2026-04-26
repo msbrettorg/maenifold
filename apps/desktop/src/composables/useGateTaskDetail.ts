@@ -1,17 +1,16 @@
 import { computed, ref, type Ref } from 'vue';
 import type { GateSnapshot, GateTask, GateTaskBody, GateTaskHistoryEntry } from '../lib/gate';
 import { parseGateTaskBodyContent } from '../lib/gate-task-body';
-import { gateResourceUri, parseResourcePayload } from '../lib/gate-resources';
-import type { useMcpResources } from './useMcpResources';
+import type { useGateMcp } from './useGateMcp';
 import type { useProvenanceStore } from '../stores/provenance';
 
-type McpResources = ReturnType<typeof useMcpResources>;
+type GateMcp = ReturnType<typeof useGateMcp>;
 type ProvenanceStore = ReturnType<typeof useProvenanceStore>;
 
 interface UseGateTaskDetailOptions {
   snapshot: Ref<GateSnapshot | null>;
   gateRoot: Ref<string>;
-  resources: McpResources;
+  gateMcp: GateMcp;
   provenance: ProvenanceStore;
 }
 
@@ -19,7 +18,6 @@ interface LoadOptions {
   preserveExisting?: boolean;
   showLoading?: boolean;
   requestId?: number;
-  stopExistingWatchers?: boolean;
 }
 
 function firstNonEmptyId(...values: Array<string | null | undefined>): string | null {
@@ -48,7 +46,7 @@ export function gateTaskSelectionKey(task: GateTask): string {
 }
 
 export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
-  const { snapshot, gateRoot, resources, provenance } = options;
+  const { snapshot, gateRoot, gateMcp, provenance } = options;
 
   const selectedTaskId = ref('');
   const selectedTaskKey = ref('');
@@ -60,8 +58,6 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
   const detailHistoryError = ref('');
 
   let detailRequestToken = 0;
-  let stopTaskBodySubscription: (() => void) | null = null;
-  let stopTaskHistorySubscription: (() => void) | null = null;
 
   const activeTask = computed(() => {
     const tasks = snapshot.value?.tasks ?? [];
@@ -101,13 +97,6 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
     activeTaskLineageLinks.value
       .filter((link) => link.kind !== 'gate' && link.id !== currentGateLineageId.value));
 
-  function stopTaskDetailWatchers() {
-    stopTaskBodySubscription?.();
-    stopTaskBodySubscription = null;
-    stopTaskHistorySubscription?.();
-    stopTaskHistorySubscription = null;
-  }
-
   function clearSelection() {
     detailRequestToken += 1;
     selectedTaskId.value = '';
@@ -118,14 +107,12 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
     detailHistoryLoading.value = false;
     detailBodyError.value = '';
     detailHistoryError.value = '';
-    stopTaskDetailWatchers();
   }
 
   async function loadTaskDetail(task: GateTask | null, loadOptions: LoadOptions = {}) {
     const requestId = loadOptions.requestId ?? ++detailRequestToken;
     const preserveExisting = loadOptions.preserveExisting ?? false;
     const showLoading = loadOptions.showLoading ?? false;
-    const stopExistingWatchers = loadOptions.stopExistingWatchers ?? true;
 
     if (!task) {
       selectedTaskBody.value = '';
@@ -156,15 +143,10 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
     const isCurrentRequest = () =>
       requestId === detailRequestToken && selectedTaskKey.value === taskSelectionKey;
     const root = gateRoot.value;
-    if (stopExistingWatchers) stopTaskDetailWatchers();
 
-    const bodyUri = gateResourceUri(`task/${encodeURIComponent(task.taskId)}`, root);
-    const historyUri = gateResourceUri(`history/${encodeURIComponent(task.taskId)}`, root);
-
-    const bodyRequest = resources.readResource(bodyUri)
-      .then((resource) => {
+    const bodyRequest = gateMcp.readTaskBody(task.taskId, root)
+      .then((taskBody) => {
         if (!isCurrentRequest()) return;
-        const taskBody = parseResourcePayload<GateTaskBody>(resource);
         selectedTaskBody.value = resolveTaskBodyContent(taskBody);
         detailBodyError.value = '';
       })
@@ -177,10 +159,10 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
         if (isCurrentRequest()) detailBodyLoading.value = false;
       });
 
-    const historyRequest = resources.readResource(historyUri)
-      .then((resource) => {
+    const historyRequest = gateMcp.readTaskHistory(task.taskId, root)
+      .then((history) => {
         if (!isCurrentRequest()) return;
-        selectedTaskHistory.value = parseResourcePayload<GateTaskHistoryEntry[]>(resource);
+        selectedTaskHistory.value = history;
         detailHistoryError.value = '';
       })
       .catch((loadError) => {
@@ -193,43 +175,15 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
       });
 
     await Promise.allSettled([bodyRequest, historyRequest]);
-
-    if (isCurrentRequest()) {
-      try {
-        const bodySubscription = await resources.subscribeResource(bodyUri, () => {
-          if (!isCurrentRequest()) return;
-          void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
-        });
-        if (!isCurrentRequest()) {
-          bodySubscription();
-          return;
-        }
-        stopTaskBodySubscription = bodySubscription;
-
-        const historySubscription = await resources.subscribeResource(historyUri, () => {
-          if (!isCurrentRequest()) return;
-          void loadTaskDetail(task, { preserveExisting: true, showLoading: false });
-        });
-        if (!isCurrentRequest()) {
-          historySubscription();
-          return;
-        }
-        stopTaskHistorySubscription = historySubscription;
-      } catch {
-        // Resource subscriptions are best-effort; manual refresh still works.
-      }
-    }
   }
 
   async function selectTask(task: GateTask) {
     const requestId = ++detailRequestToken;
-    stopTaskDetailWatchers();
     selectedTaskId.value = task.taskId;
     selectedTaskKey.value = gateTaskSelectionKey(task);
     await loadTaskDetail(task, {
       showLoading: true,
       requestId,
-      stopExistingWatchers: false,
     });
   }
 
@@ -248,6 +202,5 @@ export function useGateTaskDetail(options: UseGateTaskDetailOptions) {
     selectTask,
     loadTaskDetail,
     clearSelection,
-    stopTaskDetailWatchers,
   };
 }

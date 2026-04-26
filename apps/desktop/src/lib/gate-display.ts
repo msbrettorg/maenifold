@@ -37,9 +37,16 @@ export function gateStageFamily(value: string): GateStageFamily {
   if (['done', 'completed'].includes(normalized)) return 'done';
   if (['blue-team', 'verify'].includes(normalized)) return 'blue-team';
   if (['red-team', 'review'].includes(normalized)) return 'red-team';
-  if (['swe', 'execute'].includes(normalized)) return 'swe';
+  if (['swe', 'execute', 'remediate'].includes(normalized)) return 'swe';
   if (['pending', 'todo', 'discovery', 'spec', 'research', 'plan'].includes(normalized)) return 'pending';
   if (['failed', 'error', 'abandoned', 'cancelled', 'stuck'].includes(normalized)) return 'failed';
+  // Confession stages map to their parent role
+  if (normalized.endsWith('-confess')) return 'pending';
+  if (normalized === 'red-team-audit') return 'red-team';
+  // MDD stages
+  if (['opus-plan', 'opus-acceptance'].includes(normalized)) return 'pending';
+  if (normalized.startsWith('goldeneye-')) return 'red-team';
+  if (normalized.startsWith('gpt-5.4-')) return 'swe';
 
   return 'neutral';
 }

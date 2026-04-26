@@ -11,7 +11,6 @@ import {
   type GateTask,
   type GateTaskHistoryEntry,
 } from '../lib/gate';
-import { isPipelineStage } from '../lib/gate-display';
 import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
@@ -102,9 +101,7 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
   }
 
   function normalizeTaskStages(task: GateTask): GateTask {
-    const filtered = Array.isArray(task.stages)
-      ? task.stages.filter(isPipelineStage)
-      : [];
+    const filtered = Array.isArray(task.stages) ? task.stages : [];
     return { ...task, stages: filtered };
   }
 

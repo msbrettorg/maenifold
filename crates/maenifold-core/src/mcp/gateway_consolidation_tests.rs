@@ -68,7 +68,10 @@ fn small_servers_are_indexed_not_passthrough() {
 
     assert_eq!(consolidated.len(), 1);
     assert!(passthrough.is_empty());
-    assert_eq!(tool_names(&consolidated[0].tool_catalog), vec!["alpha", "beta"]);
+    assert_eq!(
+        tool_names(&consolidated[0].tool_catalog),
+        vec!["alpha", "beta"]
+    );
 }
 
 #[test]
@@ -141,7 +144,10 @@ fn duplicate_legacy_facade_names_do_not_collide() {
     )
     .expect("catalog-only consolidation should not create facade collisions");
 
-    assert_eq!(server_names(&consolidated), vec!["Alpha-Beta", "Alpha_Beta"]);
+    assert_eq!(
+        server_names(&consolidated),
+        vec!["Alpha-Beta", "Alpha_Beta"]
+    );
     assert!(passthrough.is_empty());
 }
 

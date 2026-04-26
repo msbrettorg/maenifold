@@ -1,6 +1,9 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::stdio_pool::{ServerStartupStatus, StdioPool};
-use rmcp::model::{AnnotateAble, RawResource, RawResourceTemplate, ReadResourceResult, Resource, ResourceContents, ResourceTemplate};
+use rmcp::model::{
+    AnnotateAble, RawResource, RawResourceTemplate, ReadResourceResult, Resource, ResourceContents,
+    ResourceTemplate,
+};
 use serde_json::json;
 use std::sync::Arc;
 
@@ -31,9 +34,21 @@ pub(super) fn list_resources() -> Vec<Resource> {
 
 pub(super) fn list_resource_templates() -> Vec<ResourceTemplate> {
     vec![
-        template("gateway://domains/{domain}", "Gateway domain", "Gateway domain detail."),
-        template("gateway://domains/{domain}/commands", "Gateway domain commands", "Commands available in a gateway domain."),
-        template("gateway://domains/{domain}/commands/{command}", "Gateway command", "Gateway command detail and JSON schema."),
+        template(
+            "gateway://domains/{domain}",
+            "Gateway domain",
+            "Gateway domain detail.",
+        ),
+        template(
+            "gateway://domains/{domain}/commands",
+            "Gateway domain commands",
+            "Commands available in a gateway domain.",
+        ),
+        template(
+            "gateway://domains/{domain}/commands/{command}",
+            "Gateway command",
+            "Gateway command detail and JSON schema.",
+        ),
     ]
 }
 
@@ -108,22 +123,32 @@ fn handle_catalog_read(uri: &str) -> Result<ReadResourceResult> {
 }
 
 fn parse_command_uri(uri: &str) -> Result<Option<(&str, &str)>> {
-    let Some(rest) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else { return Ok(None); };
-    let Some((domain, command)) = rest.split_once("/commands/") else { return Ok(None); };
+    let Some(rest) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else {
+        return Ok(None);
+    };
+    let Some((domain, command)) = rest.split_once("/commands/") else {
+        return Ok(None);
+    };
     validate_component("domain", domain)?;
     validate_component("command", command)?;
     Ok(Some((domain, command)))
 }
 
 fn parse_domain_commands_uri(uri: &str) -> Result<Option<&str>> {
-    let Some(rest) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else { return Ok(None); };
-    let Some(domain) = rest.strip_suffix("/commands") else { return Ok(None); };
+    let Some(rest) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else {
+        return Ok(None);
+    };
+    let Some(domain) = rest.strip_suffix("/commands") else {
+        return Ok(None);
+    };
     validate_component("domain", domain)?;
     Ok(Some(domain))
 }
 
 fn parse_domain_uri(uri: &str) -> Result<Option<&str>> {
-    let Some(domain) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else { return Ok(None); };
+    let Some(domain) = uri.strip_prefix(GATEWAY_DOMAIN_PREFIX) else {
+        return Ok(None);
+    };
     validate_component("domain", domain)?;
     if domain.contains('/') {
         return Ok(None);

@@ -50,8 +50,6 @@ fn parse_community_id(uri: &str) -> Result<i64> {
     }
 
     id.parse::<i64>().map_err(|error| {
-        MaenifoldError::InvalidResourceUri(format!(
-            "{uri}. invalid community id '{id}': {error}"
-        ))
+        MaenifoldError::InvalidResourceUri(format!("{uri}. invalid community id '{id}': {error}"))
     })
 }

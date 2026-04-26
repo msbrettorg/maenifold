@@ -42,7 +42,10 @@ impl GatewayState {
     ) -> Self {
         let mut hidden_tool_domains = HashMap::new();
         for server in &consolidated_tools {
-            hidden_tool_domains.insert(legacy_facade_name(&server.server_name), server.server_name.clone());
+            hidden_tool_domains.insert(
+                legacy_facade_name(&server.server_name),
+                server.server_name.clone(),
+            );
             for tool in &server.tool_catalog {
                 hidden_tool_domains.insert(tool.name.to_string(), server.server_name.clone());
             }
@@ -59,14 +62,22 @@ impl GatewayState {
         }
     }
 
-    pub(crate) fn pool(&self) -> Arc<StdioPool> { Arc::clone(&self.pool) }
+    pub(crate) fn pool(&self) -> Arc<StdioPool> {
+        Arc::clone(&self.pool)
+    }
 
     #[allow(dead_code)]
-    pub(crate) fn catalog(&self) -> &GatewayCatalog { &self.catalog }
+    pub(crate) fn catalog(&self) -> &GatewayCatalog {
+        &self.catalog
+    }
 
-    pub(crate) fn intent_settings(&self) -> &IntentResolverSettings { &self.intent_settings }
+    pub(crate) fn intent_settings(&self) -> &IntentResolverSettings {
+        &self.intent_settings
+    }
 
-    pub(crate) fn workspace_root(&self) -> &Path { &self.workspace_root }
+    pub(crate) fn workspace_root(&self) -> &Path {
+        &self.workspace_root
+    }
 
     pub(crate) fn list_tools(&self) -> Vec<Tool> {
         let mut tools = vec![
@@ -111,9 +122,19 @@ impl GatewayState {
         if tool_name == "GatewayExecute" {
             return self.handle_gateway_execute(arguments).await.map(Some);
         }
-        if tool_name == "GatewayBatch" { return crate::mcp::gateway_batch::handle_gateway_batch_arguments(self, &self.batch_state, arguments).await.map(Some); }
+        if tool_name == "GatewayBatch" {
+            return crate::mcp::gateway_batch::handle_gateway_batch_arguments(
+                self,
+                &self.batch_state,
+                arguments,
+            )
+            .await
+            .map(Some);
+        }
         if tool_name == "GatewayIntent" {
-            return crate::mcp::gateway_intent::handle_gateway_intent(self, arguments).await.map(Some);
+            return crate::mcp::gateway_intent::handle_gateway_intent(self, arguments)
+                .await
+                .map(Some);
         }
 
         if let Some(domain) = domain_mapping::tool_domain(tool_name) {
@@ -147,7 +168,9 @@ impl GatewayState {
                 args.include_examples.unwrap_or(false),
             )
             .map_err(|err| map_gateway_error("GatewayIndex", err))?;
-        Ok(CallToolResult::success(vec![Content::text(render_json(index))]))
+        Ok(CallToolResult::success(vec![Content::text(render_json(
+            index,
+        ))]))
     }
 
     pub(crate) async fn handle_gateway_execute(
@@ -190,21 +213,34 @@ impl GatewayState {
         &self,
         server_name: &str,
     ) -> std::result::Result<&ConsolidatedServerTool, rmcp::ErrorData> {
-        self.consolidated_tools.iter().find(|server| server.server_name == server_name).ok_or_else(|| {
-            rmcp::ErrorData::internal_error(format!("Gateway catalog resolved missing server '{server_name}'"), None)
-        })
+        self.consolidated_tools
+            .iter()
+            .find(|server| server.server_name == server_name)
+            .ok_or_else(|| {
+                rmcp::ErrorData::internal_error(
+                    format!("Gateway catalog resolved missing server '{server_name}'"),
+                    None,
+                )
+            })
     }
 }
 
 fn intent_enabled(settings: &IntentResolverSettings) -> bool {
-    settings.enabled && settings.agent.as_deref().is_some_and(|agent| !agent.trim().is_empty())
+    settings.enabled
+        && settings
+            .agent
+            .as_deref()
+            .is_some_and(|agent| !agent.trim().is_empty())
 }
 
 fn render_json(value: Value) -> String {
     serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
 }
 
-async fn invoke_native(tool_name: String, parameters: Value) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
+async fn invoke_native(
+    tool_name: String,
+    parameters: Value,
+) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     let display_name = tool_name.clone();
     let result = tokio::task::spawn_blocking(move || {
         ToolRegistry::global().try_invoke(&tool_name, &parameters, OutputFormat::Json)
@@ -213,7 +249,9 @@ async fn invoke_native(tool_name: String, parameters: Value) -> std::result::Res
     .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))?;
     match result {
         Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
-        Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(&display_name, &err))])),
+        Err(err) => Ok(CallToolResult::error(vec![Content::text(
+            format_tool_error(&display_name, &err),
+        )])),
     }
 }
 

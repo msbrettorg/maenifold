@@ -57,6 +57,14 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("ReadTextFile", "maenifold.system"),
     ("Schedule", "maenifold.system"),
     ("RecentActivity", "maenifold.system"),
+    ("ReloadConfig", "maenifold.config"),
+    ("UpdateSettings", "maenifold.config"),
+    ("AddAgent", "maenifold.config"),
+    ("UpdateAgent", "maenifold.config"),
+    ("DeleteAgent", "maenifold.config"),
+    ("AddMcpServer", "maenifold.config"),
+    ("UpdateMcpServer", "maenifold.config"),
+    ("DeleteMcpServer", "maenifold.config"),
 ];
 
 pub(crate) fn tool_domain(tool_name: &str) -> Option<&'static str> {
@@ -67,18 +75,31 @@ pub(crate) fn tool_domain(tool_name: &str) -> Option<&'static str> {
 
 pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
     match tool_name {
-        "ReadMemory" | "SearchMemories" | "ListMemories" | "ExtractConceptsFromFile"
-        | "BuildContext" | "Visualize" | "FindSimilarConcepts" | "AnalyzeConceptCorruption"
-        | "MemoryStatus" | "GetConfig" | "RunFullBenchmark" | "Adopt" | "ListAssets"
-        | "ReadMcpResource" | "ListSessions" | "ReadTextFile" | "RecentActivity" => {
-            SafetyClass::Read
-        }
+        "ReadMemory"
+        | "SearchMemories"
+        | "ListMemories"
+        | "ExtractConceptsFromFile"
+        | "BuildContext"
+        | "Visualize"
+        | "FindSimilarConcepts"
+        | "AnalyzeConceptCorruption"
+        | "MemoryStatus"
+        | "GetConfig"
+        | "RunFullBenchmark"
+        | "Adopt"
+        | "ListAssets"
+        | "ReadMcpResource"
+        | "ListSessions"
+        | "ReadTextFile"
+        | "RecentActivity" => SafetyClass::Read,
         "WriteMemory" => SafetyClass::Write,
         "DeleteMemory" => SafetyClass::Destructive,
         "Workflow" | "Pipeline" | "SequentialThinking" | "AssumptionLedger" | "AcpExec"
         | "Schedule" => SafetyClass::Orchestration,
         "EditMemory" | "MoveMemory" | "Sync" | "RepairConcepts" | "UpdateAssets"
-        | "TeamsMonitor" | "EmbeddingModels" => SafetyClass::Mutate,
+        | "TeamsMonitor" | "EmbeddingModels" | "ReloadConfig" | "UpdateSettings" | "AddAgent"
+        | "UpdateAgent" | "AddMcpServer" | "UpdateMcpServer" => SafetyClass::Mutate,
+        "DeleteAgent" | "DeleteMcpServer" => SafetyClass::Destructive,
         _ => SafetyClass::Mutate,
     }
 }

@@ -40,8 +40,14 @@ fn test_context() -> (TempDir, ToolContext, ConfigResetGuard) {
         database_path: root.join("memory.db"),
         settings: MaenifoldSettings::default(),
     };
-    config.ensure_directories().expect("ensure test directories");
-    (temp, ToolContext::new(config, OutputFormat::Json), ConfigResetGuard)
+    config
+        .ensure_directories()
+        .expect("ensure test directories");
+    (
+        temp,
+        ToolContext::new(config, OutputFormat::Json),
+        ConfigResetGuard,
+    )
 }
 
 fn call_schedule(context: &ToolContext, payload: Value) -> Value {
@@ -143,7 +149,9 @@ fn set_enabled_with_store(context: &ToolContext, id: &str, enabled: bool) {
     let schedule_store = store(context);
     let mut task = schedule_store.read(id).expect("read task before update");
     task.enabled = enabled;
-    schedule_store.update(&task).expect("store enabled mutation");
+    schedule_store
+        .update(&task)
+        .expect("store enabled mutation");
 }
 
 fn update_fields_with_store(context: &ToolContext, id: &str) {
@@ -208,13 +216,16 @@ fn schedule_tool_and_resources_match_after_mutation_matrix() {
     assert_eq!(run_now["id"], id);
     let tool_after_run = call_schedule(&context, json!({"action": "get", "id": id}));
     let resource_after_run = resource_json(&format!("schedule://job/{id}"));
-    let (tool_last_run, resource_last_run) = (&tool_after_run["last_run"], &resource_after_run["last_run"]);
+    let (tool_last_run, resource_last_run) =
+        (&tool_after_run["last_run"], &resource_after_run["last_run"]);
     assert!(!tool_last_run.is_null() && !tool_last_run.as_str().is_some_and(str::is_empty));
     assert!(!resource_last_run.is_null() && !resource_last_run.as_str().is_some_and(str::is_empty));
     assert!(!assert_all_surfaces_agree(&context, id).enabled);
 
     let schedule_store = store(&context);
-    schedule_store.delete(id).expect("delete without OS scheduler");
+    schedule_store
+        .delete(id)
+        .expect("delete without OS scheduler");
     let tool_get_error = schedule_tool(&context, &json!({"action": "get", "id": id}))
         .expect_err("tool get after delete fails");
     assert!(tool_get_error.to_string().contains("scheduled task"));
@@ -274,8 +285,11 @@ fn write_large_logs(task: &ScheduledTask) {
     fs::create_dir_all(&log_dir).expect("create log dir");
     let content = "x".repeat(MAX_LOG_BYTES_PER_FILE + 8 * 1024);
     for index in 0..6 {
-        fs::write(log_dir.join(format!("20260422T120{index}00Z.log")), &content)
-            .expect("write log file");
+        fs::write(
+            log_dir.join(format!("20260422T120{index}00Z.log")),
+            &content,
+        )
+        .expect("write log file");
     }
 }
 
@@ -294,5 +308,9 @@ fn assert_logs_within_bounds(logs: &Value) {
     }
     assert!(total <= MAX_TOTAL_LOG_BYTES);
     assert!(largest_retained_log >= MAX_LOG_BYTES_PER_FILE - 1024);
-    assert!(entries.iter().any(|entry| entry["content"].as_str() == Some(TRUNCATED)));
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry["content"].as_str() == Some(TRUNCATED))
+    );
 }

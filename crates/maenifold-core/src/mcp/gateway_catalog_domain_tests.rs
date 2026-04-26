@@ -17,7 +17,10 @@ use std::sync::Arc;
 
 #[test]
 fn forward_mapping_targets_existing_registry_tools_by_domain() {
-    let canonical: HashSet<_> = ToolRegistry::global().canonical_names().into_iter().collect();
+    let canonical: HashSet<_> = ToolRegistry::global()
+        .canonical_names()
+        .into_iter()
+        .collect();
     let mut by_domain = BTreeMap::<&str, Vec<&str>>::new();
     for &(tool, domain) in TOOL_DOMAINS {
         by_domain.entry(domain).or_default().push(tool);
@@ -32,7 +35,10 @@ fn forward_mapping_targets_existing_registry_tools_by_domain() {
         let tools = by_domain.get(domain).expect("domain should have tools");
         assert!(!tools.is_empty(), "{domain} should route at least one tool");
         for tool in tools {
-            assert!(canonical.contains(tool), "{tool} in {domain} missing registry handler");
+            assert!(
+                canonical.contains(tool),
+                "{tool} in {domain} missing registry handler"
+            );
         }
     }
 }
@@ -40,7 +46,10 @@ fn forward_mapping_targets_existing_registry_tools_by_domain() {
 #[test]
 fn reverse_mapping_exhaustively_covers_canonical_native_tools() {
     for name in ToolRegistry::global().canonical_names() {
-        assert!(name == "GetHelp" || tool_domain(name).is_some(), "{name} missing gateway domain");
+        assert!(
+            name == "GetHelp" || tool_domain(name).is_some(),
+            "{name} missing gateway domain"
+        );
     }
 }
 
@@ -57,7 +66,9 @@ async fn routed_command_schemas_match_native_mcp_schemas() {
         let native = mcp_tool_from_registry_name(tool).expect("native schema should exist");
         assert_eq!(command.schema, native.input_schema, "{tool} schema drifted");
         assert_eq!(
-            catalog.resolve(domain, tool).expect("command should resolve"),
+            catalog
+                .resolve(domain, tool)
+                .expect("command should resolve"),
             CommandTarget::Native {
                 tool_name: tool.to_string()
             }
@@ -77,14 +88,28 @@ async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
     let gateway_tools = empty_gateway_tools().await;
     let mut exposed = exposed_native_tools(&handler);
     exposed.extend(gateway_tools.into_iter().map(|tool| tool.name.to_string()));
-    assert_eq!(exposed, vec!["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"]);
+    assert_eq!(
+        exposed,
+        vec![
+            "GetHelp",
+            "ReadMcpResource",
+            "GatewayIndex",
+            "GatewayExecute",
+            "GatewayBatch"
+        ]
+    );
 }
 
 #[tokio::test]
 async fn flat_native_tools_are_hidden_when_gateway_is_active() {
     let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
     let mut exposed = exposed_native_tools(&handler);
-    exposed.extend(empty_gateway_tools().await.into_iter().map(|tool| tool.name.to_string()));
+    exposed.extend(
+        empty_gateway_tools()
+            .await
+            .into_iter()
+            .map(|tool| tool.name.to_string()),
+    );
     assert!(!exposed.iter().any(|name| name == "ReadMemory"));
     assert!(!exposed.iter().any(|name| name == "WriteMemory"));
     assert!(exposed.iter().any(|name| name == "GetHelp"));
@@ -96,7 +121,13 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
     let baseline = exposed_gateway_surface(IntentResolverSettings::default()).await;
     assert_eq!(
         baseline,
-        vec!["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"]
+        vec![
+            "GetHelp",
+            "ReadMcpResource",
+            "GatewayIndex",
+            "GatewayExecute",
+            "GatewayBatch"
+        ]
     );
 
     let mut settings = IntentResolverSettings::default();
@@ -137,9 +168,21 @@ async fn gate_upstream_catalog_entries_are_annotated_when_available() {
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     let catalog = GatewayCatalog::build(&consolidated, &passthrough, &routing).expect("catalog");
     let commands = catalog.commands("gate").expect("gate domain");
-    assert!(commands.iter().any(|command| command.name == "status" && command.safety_class == "read"));
-    assert!(commands.iter().any(|command| command.name == "append" && command.safety_class == "mutate"));
-    assert!(commands.iter().any(|command| command.name == "cancel" && command.safety_class == "destructive"));
+    assert!(
+        commands
+            .iter()
+            .any(|command| command.name == "status" && command.safety_class == "read")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command.name == "append" && command.safety_class == "mutate")
+    );
+    assert!(
+        commands
+            .iter()
+            .any(|command| command.name == "cancel" && command.safety_class == "destructive")
+    );
 }
 
 async fn native_catalog() -> GatewayCatalog {
@@ -170,7 +213,12 @@ async fn gateway_tools(settings: IntentResolverSettings) -> Vec<Tool> {
 async fn exposed_gateway_surface(settings: IntentResolverSettings) -> Vec<String> {
     let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
     let mut exposed = exposed_native_tools(&handler);
-    exposed.extend(gateway_tools(settings).await.into_iter().map(|tool| tool.name.to_string()));
+    exposed.extend(
+        gateway_tools(settings)
+            .await
+            .into_iter()
+            .map(|tool| tool.name.to_string()),
+    );
     exposed
 }
 
@@ -184,5 +232,9 @@ fn exposed_native_tools(handler: &MaenifoldHandler) -> Vec<String> {
 }
 
 fn tool(name: &str) -> Tool {
-    Tool::new(name.to_string(), format!("{name} description"), Arc::new(Map::<String, Value>::new()))
+    Tool::new(
+        name.to_string(),
+        format!("{name} description"),
+        Arc::new(Map::<String, Value>::new()),
+    )
 }

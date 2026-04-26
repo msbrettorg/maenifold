@@ -89,7 +89,11 @@ impl GatewayCatalog {
 
     pub(crate) fn commands(&self, domain: &str) -> Result<Vec<CommandEntry>> {
         let domain = self.domain(domain)?;
-        Ok(domain.commands.values().map(|cmd| cmd.entry.clone()).collect())
+        Ok(domain
+            .commands
+            .values()
+            .map(|cmd| cmd.entry.clone())
+            .collect())
     }
 
     pub(crate) fn resolve(&self, domain: &str, command: &str) -> Result<CommandTarget> {

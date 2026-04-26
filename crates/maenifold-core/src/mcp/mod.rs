@@ -1,21 +1,29 @@
+pub(crate) mod config_tools;
 mod cors;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
-#[cfg(test)] mod gateway_catalog_domain_tests;
+#[cfg(test)]
+mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
-#[cfg(test)] mod gateway_experiment;
-#[cfg(test)] mod gateway_experiment_fixtures;
-#[cfg(test)] mod gateway_experiment_tests;
+#[cfg(test)]
+mod gateway_experiment;
+#[cfg(test)]
+mod gateway_experiment_fixtures;
+#[cfg(test)]
+mod gateway_experiment_tests;
 mod gateway_handler;
-#[cfg(test)] mod gateway_integration_tests;
+#[cfg(test)]
+mod gateway_integration_tests;
 mod gateway_intent;
-#[cfg(test)] mod gateway_intent_tests;
+#[cfg(test)]
+mod gateway_intent_tests;
 mod gateway_resolver;
-#[cfg(test)] mod gateway_resolver_tests;
+#[cfg(test)]
+mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_schema_validation;
 mod gateway_startup;
@@ -58,6 +66,7 @@ struct MaenifoldHandler {
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
     gateway_startup_error: Option<String>,
+    config_mutation: Option<config_tools::ConfigMutationState>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -83,6 +92,7 @@ impl MaenifoldHandler {
             gateway: None,
             gateway_diagnostics: None,
             gateway_startup_error: None,
+            config_mutation: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
@@ -94,12 +104,24 @@ impl MaenifoldHandler {
     fn set_gateway_startup_error(&mut self, error: String) {
         self.gateway_startup_error = Some(error);
     }
+    fn set_config_mutation(&mut self, state: config_tools::ConfigMutationState) {
+        self.config_mutation = Some(state);
+    }
 }
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().enable_resources_list_changed().build(),
-            TransportKind::Http => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().build(),
+            TransportKind::Stdio => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .enable_resources_list_changed()
+                .build(),
+            TransportKind::Http => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .build(),
         };
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -126,7 +148,11 @@ impl ServerHandler for MaenifoldHandler {
             let mut tools: Vec<Tool> = self
                 .tools
                 .iter()
-                .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
+                .filter(|tool| {
+                    tool.name == "GetHelp"
+                        || tool.name == "ReadMcpResource"
+                        || self::config_tools::is_config_mutation_tool(tool.name.as_ref())
+                })
                 .cloned()
                 .collect();
             tools.extend(gateway.list_tools());
@@ -155,9 +181,16 @@ impl ServerHandler for MaenifoldHandler {
         }
         Ok(result)
     }
-    fn list_resource_templates(&self, _request: Option<rmcp::model::PaginatedRequestParams>, _context: rmcp::service::RequestContext<rmcp::RoleServer>) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>> + Send + '_ {
+    fn list_resource_templates(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>>
+    + Send
+    + '_ {
         std::future::ready(
-            self::resources::handle_list_resource_templates().map_err(self::resources::map_resource_error),
+            self::resources::handle_list_resource_templates()
+                .map_err(self::resources::map_resource_error),
         )
     }
     fn read_resource(
@@ -213,7 +246,16 @@ impl ServerHandler for MaenifoldHandler {
             Some(map) => Value::Object(map),
             None => json!({}),
         };
+        let config_mutation = self.config_mutation.clone();
         async move {
+            if self::config_tools::is_config_mutation_tool(&tool_name) {
+                let Some(state) = config_mutation else {
+                    return Ok(CallToolResult::error(vec![Content::text(format!(
+                        "Config mutation tool '{tool_name}' requires HTTP daemon config state"
+                    ))]));
+                };
+                return self::config_tools::handle_tool_call(state, &tool_name, arguments).await;
+            }
             if let Some(gateway) = self.gateway.clone() {
                 if tool_name != "GetHelp" && tool_name != "ReadMcpResource" {
                     if let Some(gateway_result) =

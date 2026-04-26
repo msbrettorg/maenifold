@@ -1,7 +1,9 @@
 use super::domain_mapping::SafetyClass;
 use super::gateway_catalog::GatewayCatalog;
 use super::gateway_consolidation::ConsolidatedServerTool;
-use super::gateway_experiment::{LEVELS, ExperimentReport, LevelReport, score_fixture, write_report};
+use super::gateway_experiment::{
+    ExperimentReport, LEVELS, LevelReport, score_fixture, write_report,
+};
 use super::gateway_experiment_fixtures::{FIXTURES, FixtureCategory};
 use super::gateway_resolver_types::{ResolverCandidate, ResolverOutput};
 use super::stdio_pool::StdioPool;
@@ -23,16 +25,27 @@ fn fixture_set_has_required_shape() {
         (FixtureCategory::MalformedParams, 3),
         (FixtureCategory::Adversarial, 5),
     ] {
-        assert_eq!(FIXTURES.iter().filter(|f| f.category == category).count(), expected);
+        assert_eq!(
+            FIXTURES.iter().filter(|f| f.category == category).count(),
+            expected
+        );
     }
 }
 
 #[test]
 fn scoring_separates_route_accuracy_from_mutation_safety() {
-    let fixture = FIXTURES.iter().find(|f| f.category == FixtureCategory::Adversarial).unwrap();
+    let fixture = FIXTURES
+        .iter()
+        .find(|f| f.category == FixtureCategory::Adversarial)
+        .unwrap();
     let output = ResolverOutput {
         intent_summary: "unsafe".to_string(),
-        candidates: vec![candidate("maenifold.memory", "WriteMemory", SafetyClass::Write, 0.99)],
+        candidates: vec![candidate(
+            "maenifold.memory",
+            "WriteMemory",
+            SafetyClass::Write,
+            0.99,
+        )],
     };
     let scored = score_fixture(fixture, "medium", Ok(output), 7);
     assert!(!scored.route_correct);
@@ -75,31 +88,51 @@ fn report_writer_uses_sprint_output_directory() {
         levels: Vec::new(),
     };
     let path = write_report(root.path(), &report).expect("report writes");
-    assert!(path.to_string_lossy().contains("outputs/intent-resolver/sprint-221/experiment-"));
+    assert!(
+        path.to_string_lossy()
+            .contains("outputs/intent-resolver/sprint-221/experiment-")
+    );
     assert!(path.exists());
 }
 
 #[tokio::test]
 #[ignore = "requires configured ACP resolver agent; run with --ignored --nocapture"]
 async fn live_reasoning_level_experiment_writes_report() {
-    let root = std::env::var("MAENIFOLD_ROOT").map(std::path::PathBuf::from).unwrap_or_else(|_| std::env::current_dir().unwrap());
+    let root = std::env::var("MAENIFOLD_ROOT")
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(|_| std::env::current_dir().unwrap());
     let catalog = experiment_catalog().await;
     let settings = IntentResolverSettings {
         enabled: true,
-        agent: Some(std::env::var("MAENIFOLD_RESOLVER_AGENT").unwrap_or_else(|_| "resolver".to_string())),
+        agent: Some(
+            std::env::var("MAENIFOLD_RESOLVER_AGENT").unwrap_or_else(|_| "resolver".to_string()),
+        ),
         max_candidates: Some(5),
         timeout_seconds: Some(60),
         ..IntentResolverSettings::default()
     };
-    let report = super::gateway_experiment::run_experiment(&catalog, &settings, &root, LEVELS).await;
+    let report =
+        super::gateway_experiment::run_experiment(&catalog, &settings, &root, LEVELS).await;
     let path = write_report(&root, &report).expect("report writes");
     println!("{}", path.display());
     assert_eq!(report.fixture_count, FIXTURES.len());
 }
 
-fn candidate(domain: &str, command: &str, safety_class: SafetyClass, confidence: f64) -> ResolverCandidate {
-    ResolverCandidate { domain: domain.to_string(), command: command.to_string(), confidence, reason: "test".to_string(),
-        safety_class, requires_exact_execute: safety_class != SafetyClass::Read, parameters_draft: Map::new() }
+fn candidate(
+    domain: &str,
+    command: &str,
+    safety_class: SafetyClass,
+    confidence: f64,
+) -> ResolverCandidate {
+    ResolverCandidate {
+        domain: domain.to_string(),
+        command: command.to_string(),
+        confidence,
+        reason: "test".to_string(),
+        safety_class,
+        requires_exact_execute: safety_class != SafetyClass::Read,
+        parameters_draft: Map::new(),
+    }
 }
 
 async fn experiment_catalog() -> GatewayCatalog {
@@ -107,7 +140,13 @@ async fn experiment_catalog() -> GatewayCatalog {
         server_name: "gate".to_string(),
         tool_catalog: ["status", "history", "task_body", "append", "sync"]
             .iter()
-            .map(|name| Tool::new((*name).to_string(), format!("gate {name}"), Arc::new(Map::new())))
+            .map(|name| {
+                Tool::new(
+                    (*name).to_string(),
+                    format!("gate {name}"),
+                    Arc::new(Map::new()),
+                )
+            })
             .collect(),
         tool_validators: HashMap::new(),
     }];

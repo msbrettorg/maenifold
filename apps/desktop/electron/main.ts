@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
@@ -29,6 +30,9 @@ async function isServiceHealthy(url: string): Promise<boolean> {
 }
 function launchAgentPath(label: string): string {
   return join(app.getPath('home'), 'Library', 'LaunchAgents', `${label}.plist`);
+}
+function maenifoldRoot(): string {
+  return process.env.MAENIFOLD_ROOT || join(app.getPath('home'), 'maenifold');
 }
 function isLaunchctlServiceLoaded(label: string): boolean {
   if (!launchctlDomain) return false;
@@ -199,6 +203,10 @@ function registerIpcHandlers(): void {
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
   ipcMain.handle('app:get-version', () => app.getVersion());
+  ipcMain.handle('get-auth-token', async () => {
+    const tokenPath = join(maenifoldRoot(), 'auth', 'localhost.token');
+    return (await readFile(tokenPath, 'utf8')).trim();
+  });
   registerVec0Handlers();
   registerVoiceHandlers();
 }

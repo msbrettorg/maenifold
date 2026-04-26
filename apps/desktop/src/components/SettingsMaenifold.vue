@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import type { AgentsConfig, MaenifoldSettings } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 import { Button } from '@/components/ui/button';
@@ -134,7 +134,7 @@ async function saveSettings(settings: MaenifoldSettings, successMessage: string)
   feedback.value = null;
 
   try {
-    const response = await fetch(`${DAEMON_BASE_URL}/api/config/settings`, {
+    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ settings: cloneSettings(settings) }),

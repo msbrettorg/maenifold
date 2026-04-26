@@ -27,6 +27,7 @@ type ElectronVoiceLaunchResult = {
 type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
+  getAuthToken?: () => Promise<string>;
   vec0Status?: () => Promise<Vec0Status>;
   vec0Download?: () => Promise<Vec0Status>;
   voiceCheck?: () => Promise<ElectronVoiceCheckResult>;

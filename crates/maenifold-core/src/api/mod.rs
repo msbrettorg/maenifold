@@ -1,3 +1,4 @@
+pub mod auth;
 pub mod acp_relay;
 pub(crate) mod acp_relay_dispatch;
 pub(crate) mod acp_relay_helpers;

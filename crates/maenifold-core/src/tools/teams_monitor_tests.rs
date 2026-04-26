@@ -30,8 +30,13 @@ fn run(context: &ToolContext, payload: Value) -> Value {
 }
 
 #[test]
-fn enable_action_returns_success_with_enabled_true() {
-    with_context(|context| assert_eq!(run(context, json!({"action":"enable"}))["enabled"], true));
+fn enable_without_credentials_returns_auth_error() {
+    with_context(|context| {
+        let result = teams_monitor(context, &json!({"action": "enable"}));
+        assert!(result.is_err());
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("authentication required"));
+    });
 }
 
 #[test]
@@ -42,8 +47,7 @@ fn disable_action_returns_success_with_enabled_false() {
 #[test]
 fn status_action_returns_current_config_state() {
     with_context(|context| {
-        run(context, json!({"action":"enable"}));
-        assert_eq!(run(context, json!({"action":"status"}))["enabled"], true);
+        assert_eq!(run(context, json!({"action":"status"}))["enabled"], false);
     });
 }
 

@@ -396,6 +396,15 @@ background falloff. Epic scale.
 }
 ```
 
+### Prompt neutrality — mandatory preview
+
+**Agents MUST preview the prompt to the user before calling the API.** Show the exact prompt text and all parameters (size, quality, n). Wait for approval. Do not inject style biases, aesthetic nudges, or creative direction that the user didn't ask for. The model's thinking mode will make its own creative decisions — your job is to faithfully translate the user's intent, not art-direct on their behalf.
+
+Bad: User says "visual endophasia" → agent adds "hieroglyphic narrative, ancient Egyptian symbols, glowing luminous imagery"
+Good: User says "visual endophasia" → agent writes "A visual representation of interconnected thought clusters, rendered as imagery rather than text" and lets the model decide the style.
+
+If the user provides style direction ("like hieroglyphs", "cyberpunk", "watercolor"), include it verbatim. If they don't, don't invent it.
+
 ### Typography-specific tips
 
 - **Quote the text:** `hand-lettered text reads "OPEN AT 7"` — quoting locks in the literal characters.
@@ -445,86 +454,57 @@ background falloff. Epic scale.
 
 ---
 
-## Recipe — bash (one-shot generate + save)
+## generate.sh — the script
+
+A batteries-included script lives alongside this SKILL.md at `generate.sh`. It handles API key loading, JSON assembly, the API call, 429 rate-limit retries with `Retry-After` header parsing, connection timeout retries, base64 decoding, file saving, and optional Preview.app launch.
+
+**Quick examples:**
 
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
+# Simple generation
+./generate.sh "A chalkboard reading OPEN AT 7" --open
 
-# Ensure API key is loaded
-if [ -z "${AZURE_OPENAI_API_KEY:-}" ]; then
-  export AZURE_OPENAI_API_KEY="$(cat "$HOME/.secrets/azure_openai_api_key")"
-fi
+# 4K high quality (needs longer timeout — generation takes 2-5 min)
+./generate.sh "Epic landscape" --size 3840x2160 --quality high --timeout 600 --label hero --open
 
-ENDPOINT="${AZURE_OPENAI_ENDPOINT:-https://foundy1125.openai.azure.com}"
-DEPLOYMENT="gpt-image-2"
-API_VERSION="2025-04-01-preview"
-URL="${ENDPOINT}/openai/deployments/${DEPLOYMENT}/images/generations?api-version=${API_VERSION}"
-OUTPUT_DIR="./output"
-mkdir -p "$OUTPUT_DIR"
+# Read prompt from file
+./generate.sh @prompt.txt --size 1536x1024 --quality medium --open
 
-cat > /tmp/gpt2_body.json << 'ENDJSON'
-{
-  "prompt": "A vintage diner chalkboard, hand-lettered: TODAY SPECIAL — Lobster Roll $24",
-  "size": "1536x1024",
-  "quality": "medium",
-  "n": 1,
-  "output_format": "png"
-}
-ENDJSON
+# Multiple variants
+./generate.sh "Product shot of a coffee mug" --n 4 --label mug --open
 
-curl -s -X POST "$URL" \
-  -H "api-key: $AZURE_OPENAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d @/tmp/gpt2_body.json \
-  | python3 -c "
-import sys, json, base64, time
-data = json.load(sys.stdin)
-if 'error' in data:
-    print(f'Error: {data[\"error\"]}', file=sys.stderr)
-    sys.exit(1)
-ts = int(time.time() * 1000)
-for i, img in enumerate(data['data']):
-    suffix = f'_{i+1}' if len(data['data']) > 1 else ''
-    fp = f'$OUTPUT_DIR/generated_{ts}{suffix}.png'
-    with open(fp, 'wb') as f:
-        f.write(base64.b64decode(img['b64_json']))
-    print(f'Saved: {fp}')
-"
+# Transparent background
+./generate.sh "Robot mascot" --transparent --open
+
+# Custom output dir
+./generate.sh "Poster art" --output-dir ~/Desktop/images --label poster
 ```
 
-### bash — image edit
+**All flags:**
 
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--size WxH` | `1536x1024` | Output dimensions (multiples of 16) |
+| `--quality` | `medium` | `low`, `medium`, `high` |
+| `--format` | `png` | `png`, `jpeg` |
+| `--n` | `1` | Number of images (1-10) |
+| `--label` | `gpt2` | Filename prefix |
+| `--output-dir` | `./output` | Where to save |
+| `--timeout` | `300` | Curl timeout in seconds. **Use 600 for 4K high.** |
+| `--retries` | `5` | Max retry attempts on 429 / timeout |
+| `--dry-run` | off | Preview prompt and params without calling the API. **Agents must use this first.** |
+| `--transparent` | off | Sets `background: transparent` + forces PNG |
+| `--open` | off | Open in Preview.app after saving (macOS) |
+| `@file.txt` | — | Read prompt from a file |
+
+**Retry behavior:**
+- **HTTP 429 (rate limited):** Reads `Retry-After` header for wait time. Falls back to `15s × attempt` if header missing. Retries up to `--retries` times.
+- **Connection timeout (HTTP 000):** Retries with `10s × attempt` backoff. Common with 4K + high quality which can take 2-5 minutes server-side.
+- **Other HTTP errors:** Fails immediately with the error body.
+
+**Agents: use the script, don't roll your own curl.** The script path is available at the skill symlink:
 ```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-if [ -z "${AZURE_OPENAI_API_KEY:-}" ]; then
-  export AZURE_OPENAI_API_KEY="$(cat "$HOME/.secrets/azure_openai_api_key")"
-fi
-
-ENDPOINT="${AZURE_OPENAI_ENDPOINT:-https://foundy1125.openai.azure.com}"
-URL="${ENDPOINT}/openai/deployments/gpt-image-2/images/edits?api-version=2025-04-01-preview"
-
-curl -s -X POST "$URL" \
-  -H "api-key: $AZURE_OPENAI_API_KEY" \
-  -F "image[]=@input.png" \
-  -F 'prompt=Same workers on the beam — but they are all on phones now' \
-  -F "size=1024x1024" \
-  -F "quality=medium" \
-  -F "n=1" \
-  | python3 -c "
-import sys, json, base64
-data = json.load(sys.stdin)
-if 'error' in data:
-    print(f'Error: {data[\"error\"]}', file=sys.stderr)
-    sys.exit(1)
-for i, img in enumerate(data['data']):
-    fp = f'edited_{i+1}.png'
-    with open(fp, 'wb') as f:
-        f.write(base64.b64decode(img['b64_json']))
-    print(f'Saved: {fp}')
-"
+~/.copilot/skills/image-gen/generate.sh "your prompt" --open
 ```
 
 ---
@@ -739,7 +719,8 @@ Azure OpenAI image generation is token-based. Per the Microsoft Foundry announce
 ## Notes / gotchas
 
 - **Thinking mode is always-on.** There is no API toggle. The model reasons before rendering. Structured prompts and explicit constraints help it reason more effectively.
-- **Sync API** — single POST returns base64 image data inline. No polling needed. Takes 10-30s depending on complexity, size, and quality.
+- **Sync API** — single POST returns base64 image data inline. No polling needed. Takes 10-30s for standard sizes; **2-5 minutes for 4K + high quality**. Use `--timeout 600` in generate.sh.
+- **429 rate limiting** — Azure enforces 5 images/min default quota. The generate.sh script auto-retries with `Retry-After` header parsing. If you're calling the API directly, check for 429 and back off.
 - **Auth header is `api-key`** — Azure-specific. Not `Bearer`, not `Authorization: Key`.
 - **Response is `b64_json`, not a URL.** Decode base64 and write to disk. No expiring URLs.
 - **Up to 10 images per call** via `n`. Cost scales linearly.

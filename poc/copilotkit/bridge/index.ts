@@ -172,9 +172,18 @@ app.post("/", async (req, res) => {
   const promptText = extractLatestUserText(body);
   console.log("[bridge] Incoming request", { method: raw.method, threadId, promptText: promptText.slice(0, 80) });
 
-  // info and connect requests are handshakes — respond without opening an ACP session
-  if (raw.method === "info" || raw.method === "agent/connect") {
+  // info requests are just capability probes — respond with agent registry
+  if (raw.method === "info") {
     res.json(AGENT_INFO_RESPONSE);
+    return;
+  }
+
+  // agent/connect establishes the SSE stream — respond with a connected handshake
+  if (raw.method === "agent/connect") {
+    prepareSse(res);
+    sendEvent(res, { type: "RUN_STARTED", threadId, runId });
+    sendEvent(res, { type: "RUN_FINISHED", threadId, runId });
+    res.end();
     return;
   }
 

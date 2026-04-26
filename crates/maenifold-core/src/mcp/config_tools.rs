@@ -10,6 +10,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 
+use crate::mcp::resources::{
+    CONFIG_AGENTS_URI, CONFIG_MCP_SERVERS_URI, CONFIG_SETTINGS_URI, notify_resource_updated,
+};
+
 const CONFIG_MUTATION_TOOLS: &[&str] = &[
     "ReloadConfig",
     "UpdateSettings",
@@ -47,11 +51,10 @@ impl ConfigMutationState {
         self.runtime_config.write().settings = agents_config.settings.clone().unwrap_or_default();
     }
 
-    async fn emit_resource_notifications(&self) {
-        crate::mcp::resources::notify_resource_updated(
-            crate::mcp::resources::agent::AGENT_SESSIONS_URI,
-        )
-        .await;
+    async fn emit_resource_notifications(&self, uris: &[&str]) {
+        for uri in uris {
+            notify_resource_updated(uri).await;
+        }
     }
 }
 
@@ -123,8 +126,20 @@ pub(crate) async fn handle_tool_call(
             None,
         )),
     }?;
-    state.emit_resource_notifications().await;
+    state
+        .emit_resource_notifications(notification_uris(tool_name))
+        .await;
     Ok(CallToolResult::success(vec![Content::text(result)]))
+}
+
+fn notification_uris(tool_name: &str) -> &'static [&'static str] {
+    match tool_name {
+        "ReloadConfig" => &[CONFIG_SETTINGS_URI, CONFIG_AGENTS_URI, CONFIG_MCP_SERVERS_URI],
+        "UpdateSettings" => &[CONFIG_SETTINGS_URI],
+        "AddAgent" | "UpdateAgent" | "DeleteAgent" => &[CONFIG_AGENTS_URI],
+        "AddMcpServer" | "UpdateMcpServer" | "DeleteMcpServer" => &[CONFIG_MCP_SERVERS_URI],
+        _ => &[],
+    }
 }
 
 pub(crate) fn registry_invocation_unavailable(

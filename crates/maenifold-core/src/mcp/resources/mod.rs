@@ -7,10 +7,6 @@ use std::sync::Arc;
 
 pub mod agent;
 mod asset;
-pub mod gate;
-pub mod gate_history;
-pub mod gate_status;
-pub mod gate_task;
 mod gateway;
 pub mod graph;
 pub mod pipeline;
@@ -28,7 +24,6 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     let mut resources = asset::list_resources()?;
     resources.extend(agent::list_resources());
     resources.extend(gateway::list_resources());
-    resources.extend(gate::list_resources());
     resources.extend(graph::list_resources());
     resources.extend(pipeline::list_resources()?);
     resources.extend(schedule::list_resources());
@@ -44,7 +39,6 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
 pub fn handle_list_resource_templates() -> Result<ListResourceTemplatesResult> {
     let mut resource_templates = graph::list_resource_templates();
     resource_templates.extend(agent::list_resource_templates());
-    resource_templates.extend(gate::list_resource_templates());
     resource_templates.extend(pipeline::list_resource_templates());
     resource_templates.extend(schedule::list_resource_templates());
     resource_templates.extend(workflow::list_resource_templates());
@@ -59,8 +53,6 @@ pub fn handle_list_resource_templates() -> Result<ListResourceTemplatesResult> {
 pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     if agent::is_agent_uri(uri) {
         agent::handle_read_resource(uri)
-    } else if uri.starts_with("gate://") {
-        gate::handle_read_resource(uri)
     } else if workflow::is_workflow_uri(uri) {
         workflow::handle_read_resource(uri)
     } else if graph::is_graph_uri(uri) {

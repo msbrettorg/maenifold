@@ -42,7 +42,7 @@ Anthropic describes the shift from pre-computed retrieval to runtime exploration
 These are pointers into the graph, not the content itself. When needed, `BuildContext` retrieves the relevant neighborhood:
 
 ```bash
-maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2,"maxEntities":10}'
+maenifold tool BuildContext '{"conceptName":"authentication","depth":2,"maxEntities":10}'
 ```
 
 **PreToolUse hook for automatic injection:**
@@ -69,7 +69,7 @@ Anthropic notes:
 
 **Semantic discovery:**
 ```bash
-maenifold --tool FindSimilarConcepts --payload '{"conceptName":"authentication","maxResults":10}'
+maenifold tool FindSimilarConcepts '{"conceptName":"authentication","maxResults":10}'
 ```
 
 Returns concepts by embedding similarity, enabling discovery of related concepts the agent didn't know to ask for.

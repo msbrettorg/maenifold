@@ -60,7 +60,7 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 | **Desktop app** | Packaged Electron app or `npm run dev:electron` | Human operator console for agents (with inline MCP Apps), pipelines, gate tasks, knowledge exploration, workflow authoring, and local settings. |
 | **MCP server** | `maenifold --mcp` | Native tool surface for Codex, Claude Code, Continue, Cline, and other MCP-capable clients. |
 | **HTTP daemon** | `maenifold --http` | Long-running local control plane used by the desktop app and any HTTP-based integrations. |
-| **CLI** | `maenifold --tool ... --payload ...` | One-shot automation, scripting, debugging, and reproducible direct tool invocation. |
+| **CLI** | `maenifold tool <name> '<payload>' [--json]` | One-shot automation, scripting, debugging, and reproducible direct tool invocation. |
 | **Cognitive assets** | `assets/` plus memory-root assets | Reusable workflows, roles, perspectives, colors, and prompt scaffolds that shape reasoning. |
 
 ### Scriptable UI
@@ -360,15 +360,15 @@ env = { MAENIFOLD_ROOT = "~/maenifold" }
 
 **CLI** (macOS/Linux):
 ```bash
-maenifold --tool WriteMemory --payload '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
-maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid"}'
-maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'
-maenifold --tool Sync --payload '{}'
+maenifold tool WriteMemory '{"title":"Auth Decision","content":"Using [[OAuth2]] for [[authentication]]"}'
+maenifold tool SearchMemories '{"query":"authentication","mode":"Hybrid"}'
+maenifold tool BuildContext '{"conceptName":"authentication","depth":2}'
+maenifold tool Sync '{}'
 ```
 
 **CLI** (Windows PowerShell):
 ```powershell
-maenifold --tool WriteMemory --payload '{\"title\":\"Auth Decision\",\"content\":\"Using [[OAuth2]] for [[authentication]]\"}'
+maenifold tool WriteMemory '{\"title\":\"Auth Decision\",\"content\":\"Using [[OAuth2]] for [[authentication]]\"}'
 ```
 
 **MCP vs CLI**:
@@ -830,7 +830,7 @@ Following the **NO FAKE TESTS** principle:
 
 *Decay affects search ranking only. Files are never deleted.*
 
-*Local-only, single-user, no authentication. Memory files (markdown) are the source of truth; the SQLite database is a regenerable cache (`maenifold --tool Sync`). Version control memory with git to track changes alongside code. Set `MAENIFOLD_ROOT` to store memory in your repository for atomic commits of code + reasoning.*
+*Local-only, single-user, no authentication. Memory files (markdown) are the source of truth; the SQLite database is a regenerable cache (`maenifold tool Sync '{}'`). Version control memory with git to track changes alongside code. Set `MAENIFOLD_ROOT` to store memory in your repository for atomic commits of code + reasoning.*
 
 ---
 

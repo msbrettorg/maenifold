@@ -35,17 +35,17 @@ Start by writing what you already know. Every `[[WikiLink]]` becomes a graph nod
 
 ```bash
 # Write initial knowledge
-maenifold --tool WriteMemory --payload '{
+maenifold tool WriteMemory '{
   "title": "Infrastructure Overview",
   "content": "Our [[microservices]] run on [[kubernetes]] with [[istio]] for [[service-mesh]]. We use [[golang]] for backend services and [[postgresql]] for persistence.",
   "folder": "architecture"
 }'
 
 # Sync to build the graph
-maenifold --tool Sync --payload '{}'
+maenifold tool Sync '{}'
 
 # Verify the graph is growing
-maenifold --tool BuildContext --payload '{"conceptName":"kubernetes","depth":1}'
+maenifold tool BuildContext '{"conceptName":"kubernetes","depth":1}'
 ```
 
 **Tips**:
@@ -95,7 +95,7 @@ For more control, use `sequential-thinking` directly:
 
 ```bash
 # Start a thinking session
-maenifold --tool SequentialThinking --payload '{
+maenifold tool SequentialThinking '{
   "response": "Investigating [[kubernetes]] [[network-policies]] for [[multi-tenant]] isolation. First, I need to understand the threat model...",
   "thoughtNumber": 0,
   "totalThoughts": 5,
@@ -144,7 +144,7 @@ Output: A JSON role file at `assets/roles/kubernetes-architect.json`
 
 ```bash
 # CLI
-maenifold --tool Adopt --payload '{"type":"role","identifier":"kubernetes-architect"}'
+maenifold tool Adopt '{"type":"role","identifier":"kubernetes-architect"}'
 
 # Or in AI assistant
 Adopt the kubernetes-architect role
@@ -217,13 +217,13 @@ Before any task, build context:
 
 ```bash
 # What do we know about this concept?
-maenifold --tool BuildContext --payload '{"conceptName":"auth-service","depth":2}'
+maenifold tool BuildContext '{"conceptName":"auth-service","depth":2}'
 
 # What's related?
-maenifold --tool FindSimilarConcepts --payload '{"conceptName":"auth-service","maxResults":10}'
+maenifold tool FindSimilarConcepts '{"conceptName":"auth-service","maxResults":10}'
 
 # Search for specific patterns
-maenifold --tool SearchMemories --payload '{"query":"auth-service incident","mode":"Hybrid"}'
+maenifold tool SearchMemories '{"query":"auth-service incident","mode":"Hybrid"}'
 ```
 
 ### Pattern: Workflow-Driven Tasks
@@ -247,7 +247,7 @@ The workflow:
 Every insight should become a memory:
 
 ```bash
-maenifold --tool WriteMemory --payload '{
+maenifold tool WriteMemory '{
   "title": "Auth Service Rollback Procedure",
   "content": "When [[auth-service]] fails [[health-checks]] after [[deployment]], execute [[rollback]] via...",
   "folder": "runbooks"
@@ -317,19 +317,19 @@ The graph becomes your second brain for the domain—one that remembers, forgets
 
 ```bash
 # Memory
-maenifold --tool WriteMemory --payload '{"title":"...","content":"...","folder":"..."}'
-maenifold --tool SearchMemories --payload '{"query":"...","mode":"Hybrid"}'
-maenifold --tool ReadMemory --payload '{"identifier":"memory://..."}'
+maenifold tool WriteMemory '{"title":"...","content":"...","folder":"..."}'
+maenifold tool SearchMemories '{"query":"...","mode":"Hybrid"}'
+maenifold tool ReadMemory '{"identifier":"memory://..."}'
 
 # Graph
-maenifold --tool Sync --payload '{}'
-maenifold --tool BuildContext --payload '{"conceptName":"...","depth":2}'
-maenifold --tool FindSimilarConcepts --payload '{"conceptName":"...","maxResults":10}'
+maenifold tool Sync '{}'
+maenifold tool BuildContext '{"conceptName":"...","depth":2}'
+maenifold tool FindSimilarConcepts '{"conceptName":"...","maxResults":10}'
 
 # Reasoning
-maenifold --tool SequentialThinking --payload '{"response":"...with [[WikiLinks]]...","thoughtNumber":0,"totalThoughts":5,"nextThoughtNeeded":true}'
-maenifold --tool Adopt --payload '{"type":"role","identifier":"..."}'
-maenifold --tool Workflow --payload '{"workflowId":"..."}'
+maenifold tool SequentialThinking '{"response":"...with [[WikiLinks]]...","thoughtNumber":0,"totalThoughts":5,"nextThoughtNeeded":true}'
+maenifold tool Adopt '{"type":"role","identifier":"..."}'
+maenifold tool Workflow '{"workflowId":"..."}'
 ```
 
 ### Key Workflows

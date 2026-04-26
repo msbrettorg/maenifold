@@ -180,7 +180,7 @@ export MAENIFOLD_ROOT=/tmp/maenifold-cli-demo
 mkdir -p "$MAENIFOLD_ROOT"
 
 # Helper for readable JSON payloads
-run() { maenifold --tool "$1" --payload "$2"; }
+run() { maenifold tool "$1" "$2"; }
 ```
 
 ### 5.1. Pattern: Graph-Augmented Search
@@ -189,18 +189,18 @@ Combine search with concept-level context expansion:
 
 ```bash
 # Search + context expansion
-RESULTS=$(maenifold --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid","pageSize":20}')
+RESULTS=$(maenifold tool SearchMemories '{"query":"authentication","mode":"Hybrid","pageSize":20}')
 
 # Extract memory URIs from the search results
 FILES=$(echo "$RESULTS" | grep -oE "memory://[^)]*")
 
 # Extract concepts from those files and build context around them
 for URI in $FILES; do
-	CONCEPTS=$(maenifold --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$URI\"}" | \
+	CONCEPTS=$(maenifold tool ExtractConceptsFromFile "{\"identifier\":\"$URI\"}" | \
 		grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/')
 
 	for CONCEPT in $CONCEPTS; do
-		maenifold --tool BuildContext --payload "{\"conceptName\":\"$CONCEPT\",\"depth\":1}"
+		maenifold tool BuildContext "{\"conceptName\":\"$CONCEPT\",\"depth\":1}"
 	done
 done
 ```
@@ -216,8 +216,8 @@ Build a concept neighborhood and visualize it via graph tools:
 
 ```bash
 # Build context + visualize
-maenifold --tool BuildContext --payload '{"conceptName":"maenifold","depth":2}' | \
-	maenifold --tool Visualize --payload '{"conceptName":"maenifold"}'
+maenifold tool BuildContext '{"conceptName":"maenifold","depth":2}' | \
+	maenifold tool Visualize '{"conceptName":"maenifold"}'
 ```
 
 ### 5.3. Pattern: Batch Processing with Filtering
@@ -225,7 +225,7 @@ maenifold --tool BuildContext --payload '{"conceptName":"maenifold","depth":2}' 
 Process recent work and filter locally:
 
 ```bash
-maenifold --tool RecentActivity --payload '{"limit":50}' | \
+maenifold tool RecentActivity '{"limit":50}' | \
 	grep '\[\[authentication\]\]' | \
 	head -10
 ```
@@ -236,7 +236,7 @@ Hybrid search output includes a breakdown of scores that can be filtered with `a
 
 ```bash
 # Filter hybrid results by semantic score > 0.7
-maenifold --tool SearchMemories --payload '{"query":"auth","mode":"Hybrid","pageSize":50}' | \
+maenifold tool SearchMemories '{"query":"auth","mode":"Hybrid","pageSize":50}' | \
 	awk '
 		/^📄 / { title = $0; next }
 		/Scores - Fused:/ {
@@ -263,12 +263,12 @@ Discover conceptual neighborhoods and architecture layers:
 
 ```bash
 # 1. Search for files
-FILES=$(maenifold --tool SearchMemories --payload '{"query":"maenifold","pageSize":20}' | \
+FILES=$(maenifold tool SearchMemories '{"query":"maenifold","pageSize":20}' | \
 	grep -oE "memory://[^)]*")
 
 # 2. Extract concepts from each file and count frequency
 for file in $FILES; do
-	maenifold --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$file\"}" | \
+	maenifold tool ExtractConceptsFromFile "{\"identifier\":\"$file\"}" | \
 		grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/'
 done | \
 	sort | uniq -c | sort -rn
@@ -288,7 +288,7 @@ Use `BuildContext` depth parameter for multi-hop graph exploration:
 
 ```bash
 # Breadth-first multi-hop discovery
-maenifold --tool BuildContext --payload '{"conceptName":"authentication","depth":2}'
+maenifold tool BuildContext '{"conceptName":"authentication","depth":2}'
 ```
 
 Empirical behavior:
@@ -307,7 +307,7 @@ ROLE="mcp-specialist"
 TASK="analyze implementation patterns"
 
 # 1. Build graph context
-CONTEXT=$(maenifold --tool BuildContext --payload "{\"conceptName\":\"$CONCEPT\",\"depth\":2,\"maxEntities\":10}")
+CONTEXT=$(maenifold tool BuildContext "{\"conceptName\":\"$CONCEPT\",\"depth\":2,\"maxEntities\":10}")
 
 # 2. Extract related concepts
 RELATED=$(echo "$CONTEXT" | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | sort -u)
@@ -320,7 +320,7 @@ Role: $ROLE
 "
 
 # 4. Spawn subagent with this prompt (pseudo-call)
-# maenifold --tool Task --payload "{\"prompt\":\"$BOOTSTRAP_PROMPT\"}"
+# maenifold tool Task "{\"prompt\":\"$BOOTSTRAP_PROMPT\"}"
 ```
 
 Result:
@@ -420,39 +420,39 @@ Use `maenifold` CLI; assumes `BIN=maenifold` is on PATH (prod root).
 
 **Classic RAG (Semantic)**
 ```bash
-$BIN --tool SearchMemories --payload '{"query":"authentication","mode":"Semantic","pageSize":20}'
+$BIN tool SearchMemories '{"query":"authentication","mode":"Semantic","pageSize":20}'
 ```
 
 **Knowledge Graph RAG (Search + BuildContext)**
 ```bash
-TOP=$( $BIN --tool SearchMemories --payload '{"query":"authentication","mode":"Hybrid","pageSize":5}' \
+TOP=$( $BIN tool SearchMemories '{"query":"authentication","mode":"Hybrid","pageSize":5}' \
   | grep -oE "memory://[^)]*" | head -1 )
-CONCEPTS=$( $BIN --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$TOP\"}" \
+CONCEPTS=$( $BIN tool ExtractConceptsFromFile "{\"identifier\":\"$TOP\"}" \
   | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | head -3 )
 for C in $CONCEPTS; do
-  $BIN --tool BuildContext --payload "{\"conceptName\":\"$C\",\"depth\":1}"
+  $BIN tool BuildContext "{\"conceptName\":\"$C\",\"depth\":1}"
 done
 ```
 
 **Multi-Hop Traversal**
 ```bash
-$BIN --tool BuildContext --payload '{"conceptName":"maenifold","depth":2}'
+$BIN tool BuildContext '{"conceptName":"maenifold","depth":2}'
 ```
 
 **Reranking (Hybrid/RRF)**
 ```bash
-$BIN --tool SearchMemories --payload '{"query":"recency decay","mode":"Hybrid","pageSize":10}'
+$BIN tool SearchMemories '{"query":"recency decay","mode":"Hybrid","pageSize":10}'
 # Use fused/text/semantic scores from output to filter locally if needed
 ```
 
 **Query Expansion (FindSimilarConcepts)**
 ```bash
-$BIN --tool FindSimilarConcepts --payload '{"conceptName":"recency","limit":10}'
+$BIN tool FindSimilarConcepts '{"conceptName":"recency","limit":10}'
 ```
 
 **RAG with Memory (RecentActivity)**
 ```bash
-$BIN --tool RecentActivity --payload '{"limit":20}' | head -50
+$BIN tool RecentActivity '{"limit":20}' | head -50
 ```
 
 **Adaptive/Self-RAG (workflow/agent-driven)**
@@ -460,71 +460,71 @@ $BIN --tool RecentActivity --payload '{"limit":20}' | head -50
 
 **Agentic Retrieval (multi-tool)**
 ```bash
-RES=$( $BIN --tool SearchMemories --payload '{"query":"workflow","mode":"Hybrid","pageSize":5}' )
+RES=$( $BIN tool SearchMemories '{"query":"workflow","mode":"Hybrid","pageSize":5}' )
 URIS=$(echo "$RES" | grep -oE "memory://[^)]*")
-for U in $URIS; do $BIN --tool ReadMemory --payload "{\"identifier\":\"$U\"}" | head -40; done
+for U in $URIS; do $BIN tool ReadMemory "{\"identifier\":\"$U\"}" | head -40; done
 ```
 
 **Self-RAG/Reflective (SequentialThinking + AssumptionLedger)**
 ```bash
-$BIN --tool SequentialThinking --payload '{"response":"Investigating [[rag-fusion]] gaps","thoughtNumber":1,"totalThoughts":2,"nextThoughtNeeded":true}'
-$BIN --tool AssumptionLedger --payload '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"record"}'
+$BIN tool SequentialThinking '{"response":"Investigating [[rag-fusion]] gaps","thoughtNumber":1,"totalThoughts":2,"nextThoughtNeeded":true}'
+$BIN tool AssumptionLedger '{"assumption":"RRF k=60 is adequate for [[rag-fusion]]","action":"record"}'
 ```
 
 **Routing (Workflow)**
 ```bash
-$BIN --tool Workflow --payload '{"workflowId":"agentic-research","response":"[[rag-fusion]] parameter tuning"}'
+$BIN tool Workflow '{"workflowId":"agentic-research","response":"[[rag-fusion]] parameter tuning"}'
 ```
 
 **DSP / Few-shot via memories**
 ```bash
-$BIN --tool SearchMemories --payload '{"query":"example","mode":"Hybrid","pageSize":5}'
+$BIN tool SearchMemories '{"query":"example","mode":"Hybrid","pageSize":5}'
 ```
 
 **FLARE-style proactive context**
 ```bash
-$BIN --tool RecentActivity --payload '{"limit":20}' \
+$BIN tool RecentActivity '{"limit":20}' \
   | grep -oE "\[\[[^]]+\]\]" | sed 's/\[\[\(.*\)\]\]/\1/' | sort -u | head -5 \
-  | while read C; do $BIN --tool BuildContext --payload "{\"conceptName\":\"$C\",\"depth\":1}"; done
+  | while read C; do $BIN tool BuildContext "{\"conceptName\":\"$C\",\"depth\":1}"; done
 ```
 
 **Multi-step RAG loop (simple)**
 ```bash
 QUERY="authentication retry"
-RES=$($BIN --tool SearchMemories --payload "{\"query\":\"$QUERY\",\"mode\":\"Hybrid\",\"pageSize\":5}")
+RES=$($BIN tool SearchMemories "{\"query\":\"$QUERY\",\"mode\":\"Hybrid\",\"pageSize\":5}")
 URIS=$(echo "$RES" | grep -oE "memory://[^)]*")
 for U in $URIS; do
-  $BIN --tool ExtractConceptsFromFile --payload "{\"identifier\":\"$U\"}" | grep -oE "\[\[[^]]+\]\]"
+  $BIN tool ExtractConceptsFromFile "{\"identifier\":\"$U\"}" | grep -oE "\[\[[^]]+\]\]"
 done | sort -u | head -5 | while read C; do
-  $BIN --tool BuildContext --payload "{\"conceptName\":\"${C//[\[\]]/}\",\"depth\":1}"
+  $BIN tool BuildContext "{\"conceptName\":\"${C//[\[\]]/}\",\"depth\":1}"
 done
 ```
 
 **HYDE (hypothetical doc then search)**
 ```bash
 HYPOTHESIS="Hypothetical [[zero-downtime]] deployment doc for [[authentication]] service."
-$BIN --tool WriteMemory --payload "{\"title\":\"Hyde Note\",\"content\":\"$HYPOTHESIS\"}"
-$BIN --tool Sync --payload '{}'
-$BIN --tool SearchMemories --payload '{"query":"zero-downtime authentication","mode":"Hybrid","pageSize":10}'
+$BIN tool WriteMemory "{\"title\":\"Hyde Note\",\"content\":\"$HYPOTHESIS\"}"
+$BIN tool Sync '{}'
+$BIN tool SearchMemories '{"query":"zero-downtime authentication","mode":"Hybrid","pageSize":10}'
 ```
 
 **RAG-Fusion (parallel queries + dedupe)**
 ```bash
 for Q in "authentication timeout" "authentication retry" "authentication backoff"; do
-  $BIN --tool SearchMemories --payload "{\"query\":\"$Q\",\"mode\":\"Hybrid\",\"pageSize\":10}"
+  $BIN tool SearchMemories "{\"query\":\"$Q\",\"mode\":\"Hybrid\",\"pageSize\":10}"
 done | grep -oE "memory://[^)]*" | sort -u
 ```
 
 **Iterative (ITER-RETGEN)**
 ```bash
 for i in 1 2 3; do
-  $BIN --tool SearchMemories --payload "{\"query\":\"authentication iteration $i\",\"mode\":\"Hybrid\",\"pageSize\":5}"
+  $BIN tool SearchMemories "{\"query\":\"authentication iteration $i\",\"mode\":\"Hybrid\",\"pageSize\":5}"
 done
 ```
 
 **CRAG-style corrective loop (manual)**
 ```bash
-RAW=$($BIN --tool SearchMemories --payload '{"query":"authentication errors","mode":"Hybrid","pageSize":20}')
+RAW=$($BIN tool SearchMemories '{"query":"authentication errors","mode":"Hybrid","pageSize":20}')
 echo "$RAW" | awk '/Semantic:/ { sem=$NF+0; if (sem>0.5) keep=1; else keep=0 } /^📄/ {if(keep) print prev; prev=$0}'
 ```
 
@@ -533,7 +533,7 @@ echo "$RAW" | awk '/Semantic:/ { sem=$NF+0; if (sem>0.5) keep=1; else keep=0 } /
 
 **FiD (retrieve only)**
 ```bash
-$BIN --tool SearchMemories --payload '{"query":"fuse context","mode":"Hybrid","pageSize":10}'
+$BIN tool SearchMemories '{"query":"fuse context","mode":"Hybrid","pageSize":10}'
 # Fusion is performed by your model; CLI retrieves.
 ```
 

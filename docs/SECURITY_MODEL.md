@@ -17,7 +17,7 @@ External Entities                             maenifold Process                 
 
 [MCP Client] ─────► JSON-RPC via stdio ────► [MCP Server] ──┐
                                                             │
-[CLI User]   ─────► --tool --payload ──────► [CLI Parser] ──┤
+[CLI User]   ─────► tool <name> <payload> ──────► [CLI Parser] ──┤
                                                             ▼
 [Env Vars    ─────► paths, config (no ──► (consumed by process; no validation
  MAENIFOLD_*]       validation beyond     beyond type-safe parsing)
@@ -91,7 +91,7 @@ flowchart TB
         direction TB
 
         MCPS["MCP Server\n(stdio JSON-RPC)"]:::process
-        CLIP["CLI Parser\n(--tool --payload)"]:::process
+        CLIP["CLI Parser\n(tool <name> <payload>)"]:::process
         TREG["ToolRegistry\n(28 tools, dispatch)"]:::process
         MDIO["MarkdownIO\n(read/write + path validation)"]:::process
         ISYNC["IncrementalSync\n(FileSystem watcher)"]:::process
@@ -118,7 +118,7 @@ flowchart TB
     %% ── Environment Flows ──────────────────────────────────
     ENVV -->|"paths, config\n(no validation beyond\ntype-safe parsing)"| proc
     MCPC -->|"JSON-RPC\nvia stdio"| MCPS
-    CLIU -->|"--tool --payload\nargs"| CLIP
+    CLIU -->|"tool <name> <payload>\nargs"| CLIP
 
     %% ── Internal Process Flows ─────────────────────────────
     MCPS --> TREG

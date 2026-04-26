@@ -132,11 +132,11 @@ maenifold --mcp
 Run a single tool directly:
 
 ```bash
-maenifold --tool <name> --payload '<json>'
+maenifold tool <name> '<json>'
 ```
 
 Request JSON output when needed:
 
 ```bash
-maenifold --tool <name> --payload '<json>' --json
+maenifold tool <name> '<json>' --json
 ```

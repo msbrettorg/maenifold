@@ -70,6 +70,7 @@ mod mapping_predecessor;
 mod mapping_resolve;
 #[cfg(test)]
 mod orphan_cascade_tests;
+mod resource_notifications;
 mod session_io;
 mod session_read;
 mod session_write;

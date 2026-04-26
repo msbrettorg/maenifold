@@ -14,6 +14,10 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
 use super::session_write::DeletePipelineSessionFilesResult;
+use super::resource_notifications::{
+    clear_pipeline_resource_state, emit_pipeline_resource_updated,
+    emit_pipeline_sessions_resource_updated,
+};
 use super::{NodeState, PipelineDefinition};
 
 pub(super) fn delete_pipeline_session_files(
@@ -130,6 +134,8 @@ pub(super) fn delete_pipeline_session_files(
 
     delete_file(&pipeline_session_uri(pipeline_session_id), &context.config)?;
     cleaned_up_files += 1;
+    clear_pipeline_resource_state(pipeline_session_id);
+    emit_pipeline_sessions_resource_updated();
 
     Ok(DeletePipelineSessionFilesResult {
         cleaned_up_files,
@@ -207,7 +213,9 @@ pub(super) fn write_pipeline_session(
         Some(&frontmatter),
         "# Pipeline Session\n",
         &context.config,
-    )
+    )?;
+    emit_pipeline_resource_updated(pipeline_id);
+    Ok(())
 }
 
 pub(super) fn persist_pipeline_runtime_context(
@@ -253,5 +261,6 @@ pub(super) fn persist_pipeline_runtime_context(
     }
 
     write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    emit_pipeline_resource_updated(session_id);
     Ok(prompt)
 }

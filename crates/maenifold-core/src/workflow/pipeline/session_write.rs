@@ -10,6 +10,7 @@ use std::collections::HashMap;
 use super::{
     NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status,
     compute_pipeline_status_with_definition,
+    resource_notifications::emit_pipeline_resource_updated,
 };
 
 pub(super) struct NodeFile {
@@ -103,7 +104,15 @@ pub(super) fn persist_pipeline_state_with_status(
     };
 
     frontmatter.insert("status".to_string(), YamlValue::String(status));
-    write_markdown(uri, Some(frontmatter), pipeline_content, &context.config)
+    let session_id = frontmatter
+        .get("permalink")
+        .and_then(YamlValue::as_str)
+        .map(str::to_owned);
+    write_markdown(uri, Some(frontmatter), pipeline_content, &context.config)?;
+    if let Some(session_id) = session_id {
+        emit_pipeline_resource_updated(&session_id);
+    }
+    Ok(())
 }
 
 pub(super) fn update_workflow_node_frontmatter(

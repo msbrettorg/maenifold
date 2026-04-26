@@ -5,10 +5,28 @@ use super::teams_monitor_auth::{
 use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
-use crate::teams::{set_teams_disabled, set_teams_error, teams_runtime_snapshot};
+use crate::teams::{
+    set_teams_disabled, set_teams_error,
+    supervisor::{TrouterSupervisor, default_dispatch_fn},
+    teams_runtime_snapshot,
+};
 use serde_json::Value;
+use std::future::Future;
 use std::fs;
 use std::path::Path;
+use std::sync::{LazyLock, Mutex};
+use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
+use tokio::task;
+
+static SUPERVISOR: LazyLock<Mutex<Option<TrouterSupervisor>>> =
+    LazyLock::new(|| Mutex::new(None));
+static SUPERVISOR_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
+    Builder::new_multi_thread()
+        .worker_threads(2)
+        .enable_all()
+        .build()
+        .map_err(|error| format!("Failed to build Teams monitor supervisor runtime: {error}"))
+});
 
 pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     let action = required_string(payload, "action")?;
@@ -42,9 +60,10 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
     if enabled {
         if let Err(error) = restore_on_enable(&monitor) {
             set_teams_error(error.to_string());
+            return Err(error);
         }
     } else {
-        set_teams_disabled();
+        stop_monitor_supervisor()?;
     }
     let runtime = teams_runtime_snapshot();
     Ok(render(
@@ -60,6 +79,70 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
             },
         ),
     ))
+}
+
+pub(super) fn start_monitor_supervisor(
+    monitor: &TeamsMonitorConfig,
+    token: String,
+) -> Result<()> {
+    if let Some(mut supervisor) = take_supervisor()? {
+        run_on_supervisor_runtime(supervisor.stop())?;
+    }
+
+    let handler_config = monitor.handler.clone();
+    let dispatch_agent = monitor.dispatch_agent.clone();
+    let supervisor = run_on_supervisor_runtime(async move {
+        TrouterSupervisor::start(
+            token,
+            handler_config,
+            dispatch_agent,
+            default_dispatch_fn(),
+        )
+    })?;
+    *SUPERVISOR
+        .lock()
+        .map_err(|_| MaenifoldError::Message("Teams supervisor lock poisoned".to_string()))? =
+        Some(supervisor);
+    Ok(())
+}
+
+fn stop_monitor_supervisor() -> Result<()> {
+    if let Some(mut supervisor) = take_supervisor()? {
+        run_on_supervisor_runtime(supervisor.stop())?;
+    }
+    set_teams_disabled();
+    Ok(())
+}
+
+fn take_supervisor() -> Result<Option<TrouterSupervisor>> {
+    Ok(SUPERVISOR
+        .lock()
+        .map_err(|_| MaenifoldError::Message("Teams supervisor lock poisoned".to_string()))?
+        .take())
+}
+
+fn supervisor_runtime() -> Result<&'static Runtime> {
+    SUPERVISOR_RUNTIME
+        .as_ref()
+        .map_err(|message| MaenifoldError::Message(message.clone()))
+}
+
+fn run_on_supervisor_runtime<F, T>(future: F) -> Result<T>
+where
+    F: Future<Output = T>,
+{
+    match Handle::try_current() {
+        Ok(handle) => {
+            if !matches!(handle.runtime_flavor(), RuntimeFlavor::MultiThread) {
+                return Err(MaenifoldError::Message(
+                    "Teams supervisor requires a multi-thread Tokio runtime when invoked from async context"
+                        .to_string(),
+                ));
+            }
+            task::block_in_place(|| supervisor_runtime().map(|runtime| runtime.block_on(future)))
+        }
+        Err(_) => Ok(supervisor_runtime()?.block_on(future)),
+    }
 }
 
 fn monitor_status(context: &ToolContext) -> Result<String> {

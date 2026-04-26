@@ -1,5 +1,5 @@
 use super::context::{ToolContext, render, required_string};
-use super::teams_monitor::{load_monitor_config, optional_string_vec, write_agents_config};
+use super::teams_monitor::{load_monitor_config, optional_string_vec, start_monitor_supervisor, write_agents_config};
 use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
@@ -162,16 +162,17 @@ pub(super) fn restore_on_enable(monitor: &TeamsMonitorConfig) -> Result<()> {
         Ok(ids) => ids,
         Err(_) => {
             set_teams_unauthenticated();
-            return Ok(());
+            return Err(MaenifoldError::Message("authentication required — run authenticate_start first".to_string()));
         }
     };
     let Some(token) = retrieve_token(&client_id, &tenant_id)? else {
         set_teams_unauthenticated();
-        return Ok(());
+        return Err(MaenifoldError::Message("authentication required — run authenticate_start first".to_string()));
     };
     match refresh_if_needed(&client_id, &tenant_id, token) {
         Ok(token) => {
             set_teams_authenticated_until(Some(token.expires_at.to_rfc3339()));
+            start_monitor_supervisor(monitor, token.access_token)?;
             Ok(())
         }
         Err(error) => { delete_token(&client_id, &tenant_id)?; record_auth_failure(&error); Ok(()) }

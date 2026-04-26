@@ -96,6 +96,17 @@ impl GatewayCatalog {
         Ok(self.command_record(domain, command)?.target.clone())
     }
 
+    #[allow(dead_code)]
+    pub(crate) fn validate_candidate(
+        &self,
+        domain: &str,
+        command: &str,
+        safety_class: &str,
+    ) -> Result<bool> {
+        let record = self.command_record(domain, command)?;
+        Ok(record.entry.safety_class == safety_class)
+    }
+
     pub(crate) fn render_index(
         &self,
         domain: Option<&str>,

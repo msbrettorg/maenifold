@@ -71,7 +71,9 @@ onMounted(async () => {
       >
         <WorkflowBrowser class="h-full overflow-y-auto bg-surface" />
       </ResizablePanel>
-      <ResizableHandle />
+      <ResizableHandle
+        class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"
+      />
       <ResizablePanel
         id="middle"
         :default-size="isInspectorVisible ? 50 : 80"
@@ -97,7 +99,9 @@ onMounted(async () => {
         />
       </ResizablePanel>
       <template v-if="isWorkflowSelected && isInspectorVisible">
-        <ResizableHandle />
+        <ResizableHandle
+          class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"
+        />
         <ResizablePanel
           id="inspector"
           :default-size="30"

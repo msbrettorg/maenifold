@@ -210,7 +210,18 @@ The answer is NEVER "add a \`<style>\` block." The answer is NEVER "add an \`aud
 
 ---
 
-## 11) What Changed from Obsidian Engine
+## 11) Split-Pane Layout
+
+Column pages use the shadcn-vue `Resizable` wrappers over Reka UI splitters.
+
+- Persist layouts with `auto-save-id` on `ResizablePanelGroup`; do not add manual `localStorage` ratio keys or `@layout` persistence handlers.
+- Panel children must fill their allocated pane: use `h-full w-full min-w-0` on direct content wrappers, and include `min-h-0` when the child contains scrollable flex content.
+- Use the canonical horizontal handle styling: `w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent`.
+- Express minimum pane sizes as percentage `min-size` props on `ResizablePanel` (for example, `15` for navigation/list panes and `30` for primary detail/content panes). Do not calculate pixel widths with `ResizeObserver`.
+
+---
+
+## 12) What Changed from Obsidian Engine
 
 | Obsidian Engine (old) | [[Fluent 2]] dark (new) |
 |---|---|
@@ -225,7 +236,7 @@ This is a deliberate product alignment pivot, not a partial theme tweak.
 
 ---
 
-## 12) Source / Provenance
+## 13) Source / Provenance
 
 - Primary canonical tokens: `/Users/brett/src/agency-cowork/ui/src/App.jsx` lines `10–45`.
 - Supporting implementation references:

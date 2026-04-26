@@ -51,9 +51,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
 
     let list = rpc(&server, "tools/list", Value::Null, None).await;
     let names = tool_names(&list);
-    assert!(names.iter().any(|name| name == "GetConfig"));
+    assert!(names.iter().any(|name| name == "GetHelp"));
     assert!(names.iter().any(|name| name == "GatewayIndex"));
     assert!(names.iter().any(|name| name == "GatewayExecute"));
+    assert!(!names.iter().any(|name| name == "GetConfig"));
     assert!(!names.iter().any(|name| name == "gateway_big_server"));
     assert!(!names.iter().any(|name| name == "small_ping"));
     assert!(!names.iter().any(|name| name == "small_fail"));
@@ -63,7 +64,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     let native = rpc(
         &server,
         "tools/call",
-        json!({"name":"GetConfig","arguments":{}}),
+        json!({
+            "name":"GatewayExecute",
+            "arguments":{"domain":"maenifold.system","command":"GetConfig","parameters":{}}
+        }),
         None,
     )
     .await;

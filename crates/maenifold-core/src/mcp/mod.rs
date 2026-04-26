@@ -6,6 +6,10 @@ mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_handler;
+mod gateway_resolver;
+mod gateway_resolver_types;
+#[cfg(test)]
+mod gateway_resolver_tests;
 #[cfg(test)]
 mod gateway_integration_tests;
 mod gateway_schema_validation;

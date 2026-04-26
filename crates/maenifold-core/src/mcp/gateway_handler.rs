@@ -56,6 +56,11 @@ impl GatewayState {
     }
 
     #[allow(dead_code)]
+    pub(crate) fn catalog(&self) -> &GatewayCatalog {
+        &self.catalog
+    }
+
+    #[allow(dead_code)]
     pub(crate) async fn startup_diagnostics(&self) -> StdioPoolHealth {
         self.pool.health().await
     }

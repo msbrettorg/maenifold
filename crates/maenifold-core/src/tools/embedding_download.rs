@@ -3,14 +3,23 @@
 //! Downloads ONNX + tokenizer assets to a staging directory, then performs
 //! an atomic rename into the final model directory under `{models_dir}/{model_id}/`.
 
-use super::embedding_models::{CatalogFile, CatalogModel};
-use hf_hub::{Repo, RepoType};
+#[cfg(feature = "model-download")]
+use super::embedding_models::CatalogFile;
+use super::embedding_models::CatalogModel;
+#[cfg(feature = "model-download")]
 use hf_hub::api::tokio::{Api, Progress};
+#[cfg(feature = "model-download")]
+use hf_hub::{Repo, RepoType};
+#[cfg(feature = "model-download")]
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
+#[cfg(feature = "model-download")]
 use tokio::{fs, io::AsyncReadExt};
+
+#[allow(dead_code)]
+pub const MODEL_DOWNLOAD_FEATURE_ERROR: &str = "Model download requires the `model-download` feature. Rebuild with `cargo build --features model-download`.";
 
 /// Snapshot of an in-flight download, exposed to the catalog `list` handler so
 /// the desktop UI can render progress beside the "Downloading…" button. Bytes
@@ -36,11 +45,13 @@ pub fn get_download_progress(model_id: &str) -> Option<ProgressSnapshot> {
     progress_map().lock().ok()?.get(model_id).cloned()
 }
 
+#[cfg(feature = "model-download")]
 #[derive(Clone)]
 struct DownloadTracker {
     model_id: String,
 }
 
+#[cfg(feature = "model-download")]
 impl Progress for DownloadTracker {
     async fn init(&mut self, size: usize, filename: &str) {
         let snap = ProgressSnapshot {
@@ -76,6 +87,7 @@ impl Progress for DownloadTracker {
 ///
 /// Files are written to a hidden staging directory and atomically renamed
 /// into place on success. A pre-existing install short-circuits with an error.
+#[cfg(feature = "model-download")]
 pub async fn download_model(
     model: &CatalogModel,
     models_dir: &Path,
@@ -171,6 +183,16 @@ pub async fn download_model(
     Ok(final_dir)
 }
 
+#[cfg(not(feature = "model-download"))]
+#[allow(dead_code)]
+pub async fn download_model(
+    _model: &CatalogModel,
+    _models_dir: &Path,
+) -> Result<PathBuf, String> {
+    Err(MODEL_DOWNLOAD_FEATURE_ERROR.to_string())
+}
+
+#[cfg(feature = "model-download")]
 fn validate_catalog_entry(model: &CatalogModel) -> Result<(), String> {
     if model.revision.trim().is_empty() {
         return Err(format!("Model {} is missing immutable revision", model.id));
@@ -205,6 +227,7 @@ fn validate_catalog_entry(model: &CatalogModel) -> Result<(), String> {
     Ok(())
 }
 
+#[cfg(feature = "model-download")]
 async fn verify_sha256(path: &Path, file: &CatalogFile) -> Result<(), String> {
     let mut input = fs::File::open(path).await.map_err(|e| e.to_string())?;
     let mut hasher = Sha256::new();

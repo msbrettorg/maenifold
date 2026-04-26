@@ -8,6 +8,7 @@ use crate::vector;
 use serde_json::{Value, json};
 use std::path::Path;
 
+#[cfg(feature = "model-download")]
 pub(super) fn handle_download(
     context: &ToolContext,
     params: &EmbeddingModelsParams,
@@ -86,6 +87,16 @@ pub(super) fn handle_download(
             )))
         }
     }
+}
+
+#[cfg(not(feature = "model-download"))]
+pub(super) fn handle_download(
+    _context: &ToolContext,
+    _params: &EmbeddingModelsParams,
+) -> Result<Value> {
+    Err(MaenifoldError::Message(
+        super::embedding_download::MODEL_DOWNLOAD_FEATURE_ERROR.to_string(),
+    ))
 }
 
 /// T-202.9a: persist `active_model` selection into the on-disk maenifold.json.

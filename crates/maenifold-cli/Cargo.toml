@@ -8,7 +8,7 @@ name = "maenifold"
 path = "src/main.rs"
 
 [dependencies]
-maenifold-core = { path = "../maenifold-core" }
+maenifold-core = { path = "../maenifold-core", features = ["model-download"] }
 maenifold-jockey = { path = "../maenifold-jockey" }
 
 [lints]

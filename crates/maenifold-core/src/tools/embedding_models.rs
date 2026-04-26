@@ -1,7 +1,9 @@
 use super::context::{load_help_doc, render, ToolContext};
 pub(crate) use super::embedding_catalog::{
-    load_catalog, load_catalog_with_external_trust, CatalogFile, CatalogModel,
+    load_catalog, load_catalog_with_external_trust, CatalogModel,
 };
+#[cfg(feature = "model-download")]
+pub(crate) use super::embedding_catalog::CatalogFile;
 use super::embedding_models_actions::{handle_activate, handle_download};
 use super::embedding_models_detect::{handle_delete, handle_list, handle_regenerate};
 use super::embedding_models_scan::active_model_status;

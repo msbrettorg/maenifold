@@ -3,8 +3,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useSessionStore } from '../stores/session';
 import { useAgentStore } from '../stores/agent';
 import { useMermaid } from '../composables/useMermaid';
+import { useMcpClient } from '../composables/useMcpClient';
 import { isAbsolutePath } from '../lib/acp-meta';
-import { getDaemonUrl } from '../lib/daemon-url';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
@@ -18,6 +18,7 @@ const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
 const { renderMermaidBlocks } = useMermaid();
+const mcpClient = useMcpClient();
 const inputText = ref('');
 const activeCommandHint = ref<string | null>(null);
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
@@ -79,6 +80,7 @@ onMounted(() => {
   void agentStore.start();
 });
 onBeforeUnmount(() => {
+  void mcpClient.disconnect();
   void agentStore.stop();
 });
 watch(
@@ -168,12 +170,10 @@ function isPathLikeMention(candidate: string): boolean {
 function normalizeMentionPath(candidate: string): string { return candidate.trim().replace(/[),.;!?]+$/, ''); }
 
 async function fetchEmbeddedContextFile(path: string, cwd?: string): Promise<FileTextResponse> {
-  const response = await fetch(getDaemonUrl('/api/files/text', { path, cwd }));
-  if (!response.ok) {
-    throw new Error((await response.text()) || `Unable to read ${getFileLabel(path)} (${response.status}).`);
+  if (!mcpClient.connected.value) {
+    await mcpClient.connect();
   }
-
-  return await response.json() as FileTextResponse;
+  return await mcpClient.callTool<FileTextResponse>('ReadTextFile', { path, cwd });
 }
 
 async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlock[]> {

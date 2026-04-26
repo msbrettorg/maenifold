@@ -14,6 +14,7 @@ mod recent_activity;
 mod recent_activity_collect;
 mod recent_activity_format;
 mod recent_activity_render;
+mod read_text_file;
 mod response;
 mod schedule;
 mod schedule_logs;
@@ -37,6 +38,7 @@ pub use recent_activity_format::{
     recent_activity_extract_session_id,
 };
 pub use recent_activity_render::recent_activity_extract_snippet;
+pub use read_text_file::read_text_file;
 pub use schedule::schedule;
 pub use sessions::list_sessions;
 pub use teams_monitor::teams_monitor;

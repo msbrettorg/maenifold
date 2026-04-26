@@ -46,7 +46,7 @@ pub(super) struct FileTextResponse {
     content: String,
 }
 
-fn resolve_requested_file_path(path: &str, cwd: Option<&str>) -> ApiResult<PathBuf> {
+pub(crate) fn resolve_requested_file_path(path: &str, cwd: Option<&str>) -> ApiResult<PathBuf> {
     let requested = PathBuf::from(path);
 
     if requested.is_absolute() {

@@ -104,6 +104,36 @@ fn rejects_invalid_numeric_and_thought_level_settings() {
 }
 
 #[test]
+fn threshold_boundaries_validate() {
+    let mut s = IntentResolverSettings { auto_execute_confidence_threshold: -0.1, ..IntentResolverSettings::default() };
+    assert!(validation_error(s.clone()).contains("between 0.0 and 1.0"));
+    s.auto_execute_confidence_threshold = 0.0;
+    validate_intent_resolver_config(&s, &AgentsConfig::default()).expect("0.0 threshold should validate");
+    s.auto_execute_confidence_threshold = 1.0;
+    validate_intent_resolver_config(&s, &AgentsConfig::default()).expect("1.0 threshold should validate");
+}
+
+#[test]
+fn gateway_settings_roundtrip_uses_camel_case() {
+    let settings = GatewaySettings { intent_resolver: IntentResolverSettings {
+        enabled: true, agent: Some("resolver".to_string()), model: "gpt-5.4".to_string(),
+        thought_level: Some("low".to_string()), timeout_seconds: Some(5), max_candidates: Some(3),
+        auto_execute_read_safe: true, auto_execute_confidence_threshold: 0.5,
+        max_catalog_characters: 1234,
+        mcp_servers: vec![McpServerEntry::Http { name: "m".to_string(), url: "http://localhost".to_string() }],
+    } };
+    let value = serde_json::to_value(&settings).expect("gateway settings should serialize");
+    let resolver = &value["intentResolver"];
+    for key in ["thoughtLevel", "timeoutSeconds", "maxCandidates", "autoExecuteReadSafe",
+        "autoExecuteConfidenceThreshold", "maxCatalogCharacters", "mcpServers"] {
+        assert!(resolver.get(key).is_some(), "missing {key}");
+    }
+    assert!(value.get("intentResolver").is_some());
+    let reparsed: GatewaySettings = serde_json::from_value(value).expect("gateway settings should deserialize");
+    assert_eq!(reparsed, settings);
+}
+
+#[test]
 fn existing_configs_without_gateway_section_parse() {
     let cfg: AgentsConfig = serde_json::from_value(json!({
         "mcpServers": [], "agents": {}, "settings": {"logRotation": "hourly"}

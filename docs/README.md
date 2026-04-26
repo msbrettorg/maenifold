@@ -65,23 +65,24 @@ maenifold is a local-first product composed of a shared markdown memory corpus, 
 
 ### Scriptable UI
 
-**Target Architecture:** the desktop app is a first-class MCP client. Every product panel fetches data through MCP tools, using the same tool surface available to agents and other MCP clients. The UI is therefore one frontend among many: scripts, agent clients, and alternate consoles can do the same work by calling the backing tools directly. Some infrastructure endpoints, such as health checks and machine identity, remain REST.
+**Current Architecture:** the desktop app is a first-class MCP client. Product panels perform data operations through the shared `callTool()` frontend helper, which uses native maenifold MCP tools directly in normal mode and transparently routes through `GatewayExecute({domain, command, parameters})` when gateway mode is active. MCP is the universal interface for scriptable product data access; the UI does not use raw REST calls for data operations. Some non-data infrastructure endpoints, such as health checks and machine identity, remain REST.
 
-Status: ✅ exists and UI uses it today; 🔜 being added by sprint 229.
+Status: ✅ current and wired through the MCP-first data layer; 🔜 target or planned work.
 
-| UI Screen | MCP Tools | Status |
-|-----------|-----------|--------|
-| Home | `RecentActivity`, `MemoryStatus` | ✅ |
-| Agents | ACP session via `AcpExec` | ✅ |
+| UI Screen | MCP Tools / Interface | Status |
+|-----------|-----------------------|--------|
+| Config/Settings | `GetConfig`, `ReloadConfig`, `UpdateSettings` | ✅ |
+| Agent Management | `AddAgent`, `UpdateAgent`, `DeleteAgent` | ✅ |
+| MCP Server Management | `AddMcpServer`, `UpdateMcpServer`, `DeleteMcpServer` | ✅ |
+| Tool Discovery | `DiscoverMcpTools` | ✅ |
+| Config Watch | `config://` resource subscriptions | ✅ |
+| Memory | `WriteMemory`, `ReadMemory`, `EditMemory`, `DeleteMemory`, `MoveMemory`, `SearchMemories`, `ListMemories` | ✅ |
+| Graph | `BuildContext`, `Visualize`, `FindSimilarConcepts`, `Sync`, `RepairConcepts`, `AnalyzeConceptCorruption` | ✅ |
+| Workflows | `Workflow` | ✅ |
 | Pipelines | `Pipeline` | ✅ |
-| Gate | `gate-sync`, `gate-status`, `gate-history`, `gate-task_body` from the gate MCP server | ✅ |
-| Knowledge | `SearchMemories`, `ReadMemory`, `BuildContext`, `Visualize`, `FindSimilarConcepts` | ✅ |
-| Workflows | `Workflow`, `ListAssets` | ✅ |
-| Settings (read) | `GetConfig` | 🔜 T-229.3 |
-| Settings (write) | `UpdateSettings`, `ReloadConfig` | 🔜 T-229.4 |
-| Settings (agents) | `AddAgent`, `UpdateAgent`, `DeleteAgent` | 🔜 T-229.5 |
-| Settings (MCP servers) | `AddMcpServer`, `UpdateMcpServer`, `DeleteMcpServer` | 🔜 T-229.6 |
-| Tool Discovery | `DiscoverMcpTools` | 🔜 T-229.9 |
+| Thinking | `SequentialThinking`, `AssumptionLedger` | ✅ |
+| System | `MemoryStatus`, `GetConfig`, `UpdateAssets`, `Adopt`, `ListAssets`, `RecentActivity` | ✅ |
+| Gate | Gate task tools are provided by the upstream gate MCP server, not by maenifold's native tool set. | ✅ |
 
 ### Persistent State
 

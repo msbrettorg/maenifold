@@ -14,6 +14,8 @@ interface ConfigChangedEventPayload {
 
 interface ReloadConfigResponse {
   config: AgentsConfig;
+  reloaded?: unknown[];
+  requires_restart?: unknown[];
 }
 
 interface GetConfigPaths {
@@ -163,14 +165,10 @@ export const useConfigStore = defineStore('config', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/reload`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to reload config: HTTP ${response.status}`);
+      if (!mcp.connected.value) {
+        await mcp.connect();
       }
-
-      const payload = await response.json() as ReloadConfigResponse;
+      const payload = unwrapToolData<ReloadConfigResponse>(await mcp.callTool('ReloadConfig', {}));
       config.value = payload.config;
     } catch (e) {
       const message = getErrorMessage(e);

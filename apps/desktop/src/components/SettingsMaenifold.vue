@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from 'vue';
-import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
+import { useMcpClient } from '../composables/useMcpClient';
+import { unwrapToolData } from '../composables/pipeline-mcp-transport';
 import type { AgentsConfig, MaenifoldSettings } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 import { Button } from '@/components/ui/button';
@@ -53,6 +54,7 @@ const DEFAULT_SETTINGS: MaenifoldSettings = {
 type OptionalNumberField = 'sessionAbandonMinutes' | 'snippetLength';
 
 const configStore = useConfigStore();
+const mcp = useMcpClient();
 const form = reactive<MaenifoldSettings>(cloneSettings(DEFAULT_SETTINGS));
 const isLoading = ref(true);
 const isSubmitting = ref(false);
@@ -112,13 +114,14 @@ async function loadSettings() {
   feedback.value = null;
 
   try {
-    const response = await fetch(`${DAEMON_BASE_URL}/api/config`);
-    if (!response.ok) {
-      throw new Error(`Failed to load maenifold settings: HTTP ${response.status}`);
+    if (!configStore.config.settings) {
+      await configStore.loadConfig();
+      if (configStore.error) {
+        throw new Error(configStore.error);
+      }
     }
 
-    const config = (await response.json()) as AgentsConfig;
-    applySettings(config.settings ?? DEFAULT_SETTINGS);
+    applySettings(configStore.config.settings ?? DEFAULT_SETTINGS);
   } catch (error) {
     feedback.value = {
       type: 'error',
@@ -134,16 +137,13 @@ async function saveSettings(settings: MaenifoldSettings, successMessage: string)
   feedback.value = null;
 
   try {
-    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/settings`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ settings: cloneSettings(settings) }),
-    });
-    if (!response.ok) {
-      throw new Error(`Failed to save maenifold settings: HTTP ${response.status}`);
+    if (!mcp.connected.value) {
+      await mcp.connect();
     }
 
-    const nextConfig = (await response.json()) as AgentsConfig;
+    const nextConfig = unwrapToolData<AgentsConfig>(
+      await mcp.callTool('UpdateSettings', { settings: cloneSettings(settings) }),
+    );
     configStore.updateFromEvent(nextConfig);
     applySettings(nextConfig.settings ?? settings);
     feedback.value = { type: 'success', message: successMessage };

@@ -17,6 +17,8 @@ use super::subscription_worker::{AssetWatcherSignal, spawn_asset_watcher_worker}
 pub const MAX_SUBSCRIPTIONS_PER_SESSION: usize = 100;
 const SESSION_CAP_ERROR: &str = "subscription limit exceeded (max 100 per session)";
 const HEADER_SESSION_ID: &str = "mcp-session-id";
+const SUBSCRIBABLE_PREFIXES: &[&str] = &["asset://", "pipeline://", "workflow://"];
+const SUBSCRIBABLE_EXACT: &[&str] = &["teams://status", "agent://sessions"];
 
 #[derive(Clone)]
 struct SessionSubscription {
@@ -91,10 +93,27 @@ fn map_notify_error(error: notify::Error) -> MaenifoldError {
     MaenifoldError::Message(format!("Asset watcher failed: {error}"))
 }
 
+fn is_subscribable(uri: &str) -> bool {
+    SUBSCRIBABLE_EXACT.contains(&uri)
+        || SUBSCRIBABLE_PREFIXES
+            .iter()
+            .any(|prefix| uri.starts_with(prefix))
+}
+
 pub fn subscribe(
     uri: &str,
     context: &RequestContext<RoleServer>,
 ) -> std::result::Result<(), rmcp::ErrorData> {
+    if !is_subscribable(uri) {
+        return Err(rmcp::ErrorData::invalid_params(
+            format!(
+                "resource URI is not subscribable; available subscribable prefixes: {}",
+                SUBSCRIBABLE_PREFIXES.join(", ")
+            ),
+            None,
+        ));
+    }
+
     let session_key = subscribe_session_key(context);
     let mut guard = SUBSCRIPTIONS.lock().expect("subscription registry lock");
     prune_closed_subscriptions_locked(&mut guard);

@@ -7,10 +7,10 @@
 // non-mod.rs submodule directory resolution interacts with that mount in a
 // way that differs from the conventional `<stem>/` lookup.
 
-#[path = "config/loader.rs"]
-mod loader;
 #[path = "config/gateway_settings.rs"]
 mod gateway_settings;
+#[path = "config/loader.rs"]
+mod loader;
 #[path = "config/settings.rs"]
 mod settings;
 #[path = "config/types.rs"]
@@ -19,6 +19,9 @@ mod types;
 #[cfg(test)]
 #[path = "config/gateway_settings_tests.rs"]
 mod gateway_settings_tests;
+#[cfg(test)]
+#[path = "config/loader_tests.rs"]
+mod loader_tests;
 #[cfg(test)]
 #[path = "config/tests.rs"]
 mod tests;

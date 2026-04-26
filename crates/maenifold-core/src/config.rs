@@ -5,6 +5,7 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
+use tracing::error;
 
 #[derive(Debug, Clone, Default)]
 struct Overrides {
@@ -43,9 +44,13 @@ impl Config {
         let assets_path = maenifold_root.join("assets");
         let thinking_path = memory_path.join("thinking");
         let sequential_path = thinking_path.join("sequential");
-        let settings = AgentsConfig::load_or_default(&maenifold_root)
-            .settings
-            .unwrap_or_default();
+        let settings = match AgentsConfig::load_or_default(&maenifold_root) {
+            Ok(config) => config.settings.unwrap_or_default(),
+            Err(error) => {
+                error!(error = %error, "fatal configuration error — cannot start with invalid config");
+                std::process::exit(1);
+            }
+        };
         Self {
             maenifold_root,
             memory_path,

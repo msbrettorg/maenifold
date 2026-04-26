@@ -3,6 +3,24 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-26 — Iteration (GatewayExecute Fix + Config Mutation Pipeline)
+
+### Handler-intercepted tools should NOT be in TOOL_DOMAINS
+- T-229.2: SWE added config mutation tools to `maenifold.config` domain in domain_mapping.rs
+- Red-team correctly caught: GatewayExecute resolves them as CommandTarget::Native but invoke_native() goes through ToolRegistry which lacks ConfigMutationState
+- Result: tools advertised in GatewayIndex but fail when called through GatewayExecute
+- **Lesson: Handler-intercepted tools bypass ToolRegistry for execution but if they're in TOOL_DOMAINS, the gateway catalog will advertise them as executable through GatewayExecute. If a tool is intercepted in call_tool() before gateway dispatch, do NOT add it to TOOL_DOMAINS. Instead, add it to the tools/list allowlist for visibility.**
+
+### Concurrent lazy initialization needs a shared promise guard
+- T-230.1: Red-team caught that multiple concurrent callToolRaw() calls could race on buildDomainMap(), causing domainMap.clear() to wipe another call's populated data
+- Fix: shared domainMapBuildPromise with .finally() cleanup + atomic map swap via nextMap
+- **Lesson: Any lazy async initialization pattern needs a shared promise guard. The pattern: `if (!promise) { promise = build().finally(() => promise = null); } await promise;`**
+
+### SWE formatting churn inflates LOC
+- T-229.2: SWE ran rustfmt on unrelated test/fixture files, adding 300+ lines of formatting changes
+- This pushed gateway_experiment_fixtures.rs over 300 LOC from pure formatting
+- **Lesson: SWE dispatch should explicitly state "do NOT run workspace-wide formatters. Only format files you created or modified."**
+
 ## 2026-04-26 — Iteration (Scriptable UI Spec + Decomposition)
 
 ### Duo review finds real architectural gaps — 5 rounds of substantive findings

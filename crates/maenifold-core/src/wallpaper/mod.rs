@@ -2,6 +2,7 @@ pub mod cache;
 pub mod endophasia;
 pub mod image_client;
 pub mod service;
+pub mod zeitgeist;
 
 use once_cell::sync::Lazy;
 use parking_lot::RwLock;

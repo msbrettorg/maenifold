@@ -6,7 +6,7 @@ use parking_lot::RwLock;
 use tokio_util::sync::CancellationToken;
 
 use crate::config::Config;
-use crate::wallpaper::{endophasia, service_state};
+use crate::wallpaper::{endophasia, service_state, zeitgeist};
 
 pub async fn wallpaper_service(config: Arc<RwLock<Config>>, shutdown: CancellationToken) {
     loop {
@@ -31,6 +31,20 @@ pub async fn wallpaper_service(config: Arc<RwLock<Config>>, shutdown: Cancellati
                 Err(error) => {
                     let message = error.to_string();
                     tracing::warn!(error = %message, "endophasia wallpaper generation failed");
+                    service_state().write().error = Some(message);
+                    Duration::from_secs(60)
+                }
+            },
+            "zeitgeist" => match zeitgeist::generate_zeitgeist_wallpapers(&cfg).await {
+                Ok(_paths) => {
+                    let mut state = service_state().write();
+                    state.last_generated = Some(Utc::now());
+                    state.error = None;
+                    Duration::from_secs(u64::from(wallpaper.rotate_minutes) * 60)
+                }
+                Err(error) => {
+                    let message = error.to_string();
+                    tracing::warn!(error = %message, "zeitgeist wallpaper generation failed");
                     service_state().write().error = Some(message);
                     Duration::from_secs(60)
                 }

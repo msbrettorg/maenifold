@@ -2,8 +2,8 @@
 import { computed, ref } from 'vue';
 import SettingsMcpServersDetail from './SettingsMcpServersDetail.vue';
 import SettingsMcpServersList from './SettingsMcpServersList.vue';
-import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import type { AgentsConfig, McpServerEntry } from '../lib/types';
+import { useMcpClient } from '../composables/useMcpClient';
 import { useConfigStore } from '../stores/config';
 import {
   AlertDialog,
@@ -19,6 +19,7 @@ import {
 type McpServerType = McpServerEntry['type'];
 
 const configStore = useConfigStore();
+const { callTool, connect, connected } = useMcpClient();
 const mcpServers = computed(() => configStore.config.mcpServers ?? []);
 
 const showAddForm = ref(false);
@@ -31,13 +32,6 @@ const formUrl = ref('');
 const formError = ref('');
 const isSubmitting = ref(false);
 const feedback = ref<{ type: 'success' | 'error'; message: string } | null>(null);
-
-async function parseConfigResponse(response: Response, action: string): Promise<AgentsConfig> {
-  if (!response.ok) {
-    throw new Error(`${action} failed: HTTP ${response.status}`);
-  }
-  return response.json() as Promise<AgentsConfig>;
-}
 
 function resetForm() {
   showAddForm.value = false;
@@ -117,18 +111,13 @@ async function handleSubmit() {
 
   try {
     const entry = buildEntry();
-    const response = editingServer.value
-      ? await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(editingServer.value)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ entry }),
-        })
-      : await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ entry }),
-        });
-    configStore.updateFromEvent(await parseConfigResponse(response, editingServer.value ? 'Update MCP server' : 'Add MCP server'));
+    if (!connected.value) {
+      await connect();
+    }
+    const updatedConfig = editingServer.value
+      ? await callTool<AgentsConfig>('UpdateMcpServer', { name: editingServer.value, entry })
+      : await callTool<AgentsConfig>('AddMcpServer', { entry });
+    configStore.updateFromEvent(updatedConfig);
     feedback.value = {
       type: 'success',
       message: editingServer.value ? `Updated MCP server "${entry.name}".` : `Added MCP server "${entry.name}".`,
@@ -161,10 +150,10 @@ async function confirmDeleteServer() {
 
   try {
     feedback.value = null;
-    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(name)}`, {
-      method: 'DELETE',
-    });
-    configStore.updateFromEvent(await parseConfigResponse(response, 'Delete MCP server'));
+    if (!connected.value) {
+      await connect();
+    }
+    configStore.updateFromEvent(await callTool<AgentsConfig>('DeleteMcpServer', { name }));
     await configStore.loadConfig();
     if (editingServer.value === name) {
       resetForm();

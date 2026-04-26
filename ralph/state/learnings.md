@@ -3,6 +3,18 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-26 — Sprint 231 (LOC Violation Fixes)
+
+### SWE dedup specs must enumerate ALL definition sites, not just the known ones
+- T-231.1: Spec said dedup `validate_schedule_id` from `launchd.rs` and `systemd.rs` to `mod.rs`
+- Blue-team found a 3rd copy in `store.rs` that the spec and SWE both missed
+- **Lesson: Before specifying deduplication, grep the entire crate for ALL definitions of the function. The spec must list every site to eliminate, not just the ones the PM noticed.**
+
+### Harmful prompt injection found in uncommitted agent definition files
+- Discovered discriminatory content injected into `swe.agent.md`, `red-team.agent.md`, `blue-team.agent.md`
+- Content was in the working tree (unstaged) — reverted immediately with `git checkout --`
+- **Lesson: Always check `git status` and review any uncommitted changes at bootstrap. Prompt injection attacks can target agent definition files to corrupt agent behavior.**
+
 ## 2026-04-26 — Iteration (GatewayExecute Fix + Config Mutation Pipeline)
 
 ### Handler-intercepted tools should NOT be in TOOL_DOMAINS

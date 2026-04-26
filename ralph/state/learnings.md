@@ -24,6 +24,10 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - ReadMcpResource is sync but gateway resources need async — fundamental plumbing gap.
 - **Lesson: Before specifying URI aliases, verify the canonical URI actually exists in the target subsystem (resources vs tools). They are different dispatch paths.**
 
+### SWE test verification must compile the full crate, not just filtered tests
+- T-221.6: SWE changed GatewayState::new() signature (4→6 args) but only ran `cargo test -- gateway_intent`. Existing test at gateway_catalog_domain_tests.rs:137 still used old 4-arg constructor → compile regression.
+- **Lesson: SWE dispatch must require `cargo test -p <crate> --no-run` (compile all tests) before claiming verification. Filtered test runs hide compile failures in sibling test modules.**
+
 ## 2026-04-25 — Iteration 1956 (T-221.2/T-221.4 Spec Advancement)
 
 ### Gateway tools that need async pool access cannot be ToolRegistry native tools

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { Search, X, BookOpenText, Network } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,18 +20,9 @@ import { useProvenanceStore } from '../stores/provenance';
 const store = useKnowledgeStore();
 const provenance = useProvenanceStore();
 const { navigateTo } = useProvenanceNavigation();
-const KNOWLEDGE_SPLITTER_RATIO_KEY = 'knowledge-splitter-ratio';
-const DEFAULT_SIDEBAR_RATIO = 0.3;
-const MIN_SIDEBAR_WIDTH = 200;
-const MIN_CONTENT_WIDTH = 400;
-const MIN_TOTAL_WIDTH = MIN_SIDEBAR_WIDTH + MIN_CONTENT_WIDTH;
-const FALLBACK_CONTAINER_WIDTH = 1200;
 
 const query = ref(store.searchQuery);
 const mode = ref<'notes' | 'graph'>('notes');
-const notesContainerEl = ref<HTMLElement | null>(null);
-const notesContainerWidth = ref(FALLBACK_CONTAINER_WIDTH);
-const storedSidebarRatio = ref(readStoredRatio());
 const currentKnowledgeLineageId = computed(() => store.activeUri);
 const currentKnowledgeTitle = computed(() => store.activeNote?.title);
 const activeNoteLineageLinks = computed(() =>
@@ -48,68 +39,6 @@ const provenanceLinks = computed(() =>
   activeNoteLineageLinks.value
     .filter((link) => link.kind !== 'knowledge' && link.id !== currentKnowledgeLineageId.value));
 
-let resizeObserver: ResizeObserver | null = null;
-
-const effectiveContainerWidth = computed(() =>
-  Math.max(notesContainerWidth.value, MIN_TOTAL_WIDTH)
-);
-const minSidebarSize = computed(() => (MIN_SIDEBAR_WIDTH / effectiveContainerWidth.value) * 100);
-const minContentSize = computed(() => (MIN_CONTENT_WIDTH / effectiveContainerWidth.value) * 100);
-const maxSidebarSize = computed(() => 100 - minContentSize.value);
-const defaultSidebarSize = computed(() =>
-  clamp(storedSidebarRatio.value * 100, minSidebarSize.value, maxSidebarSize.value)
-);
-const defaultContentSize = computed(() => 100 - defaultSidebarSize.value);
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function readStoredRatio() {
-  if (typeof window === 'undefined') {
-    return DEFAULT_SIDEBAR_RATIO;
-  }
-
-  const raw = window.localStorage.getItem(KNOWLEDGE_SPLITTER_RATIO_KEY);
-  if (raw === null) {
-    return DEFAULT_SIDEBAR_RATIO;
-  }
-
-  try {
-    const parsed = JSON.parse(raw) as number;
-    return Number.isFinite(parsed) ? clamp(parsed, 0, 1) : DEFAULT_SIDEBAR_RATIO;
-  } catch {
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) ? clamp(parsed, 0, 1) : DEFAULT_SIDEBAR_RATIO;
-  }
-}
-
-function writeStoredRatio(value: number) {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  window.localStorage.setItem(KNOWLEDGE_SPLITTER_RATIO_KEY, JSON.stringify(clamp(value, 0, 1)));
-}
-
-function updateContainerWidth() {
-  const nextWidth = notesContainerEl.value?.clientWidth ?? 0;
-  if (nextWidth > 0) {
-    notesContainerWidth.value = nextWidth;
-  }
-}
-
-function handleNotesLayout(layout: number[]) {
-  const [sidebarSize] = layout;
-  if (typeof sidebarSize !== 'number' || Number.isNaN(sidebarSize)) {
-    return;
-  }
-
-  const nextRatio = clamp(sidebarSize / 100, 0, 1);
-  storedSidebarRatio.value = nextRatio;
-  writeStoredRatio(nextRatio);
-}
-
 async function handleSearch() {
   await store.search(query.value);
 }
@@ -120,20 +49,7 @@ async function clearSearch() {
 }
 
 onMounted(async () => {
-  updateContainerWidth();
-  if (typeof ResizeObserver !== 'undefined' && notesContainerEl.value) {
-    resizeObserver = new ResizeObserver(() => {
-      updateContainerWidth();
-    });
-    resizeObserver.observe(notesContainerEl.value);
-  }
-
   await store.loadRootFolders();
-});
-
-onBeforeUnmount(() => {
-  resizeObserver?.disconnect();
-  resizeObserver = null;
 });
 </script>
 
@@ -188,20 +104,19 @@ onBeforeUnmount(() => {
       </Button>
     </header>
 
-    <div v-if="mode === 'notes'" ref="notesContainerEl" class="flex min-h-0 flex-1">
+    <div v-if="mode === 'notes'" class="flex min-h-0 flex-1">
       <ResizablePanelGroup
         direction="horizontal"
+        auto-save-id="knowledge-layout"
         class="h-full w-full"
-        @layout="handleNotesLayout"
       >
         <ResizablePanel
           id="knowledge-sidebar"
-          :default-size="defaultSidebarSize"
-          :min-size="minSidebarSize"
-          :max-size="maxSidebarSize"
+          :default-size="30"
+          :min-size="15"
           :order="1"
         >
-          <div class="flex h-full min-h-0 min-w-0">
+          <div class="flex h-full w-full min-h-0 min-w-0">
             <KnowledgeSidebar />
           </div>
         </ResizablePanel>
@@ -210,11 +125,11 @@ onBeforeUnmount(() => {
         />
         <ResizablePanel
           id="knowledge-content"
-          :default-size="defaultContentSize"
-          :min-size="minContentSize"
+          :default-size="70"
+          :min-size="30"
           :order="2"
         >
-          <div class="flex h-full min-h-0 min-w-0">
+          <div class="flex h-full w-full min-h-0 min-w-0">
             <KnowledgeContent />
           </div>
         </ResizablePanel>

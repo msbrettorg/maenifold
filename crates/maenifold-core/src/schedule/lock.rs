@@ -1,4 +1,4 @@
-use super::store::validate_schedule_id;
+use super::validate_schedule_id;
 use anyhow::{bail, Context, Result};
 use std::fs::{self, OpenOptions};
 use std::io::Write;

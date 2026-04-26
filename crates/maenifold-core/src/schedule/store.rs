@@ -1,4 +1,4 @@
-use super::ScheduledTask;
+use super::{ScheduledTask, validate_schedule_id};
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::Utc;
 use std::fs;
@@ -158,16 +158,6 @@ impl ScheduleStore {
     fn task_path(&self, id: &str) -> PathBuf {
         self.base_dir.join(format!("{id}.json"))
     }
-}
-
-pub(crate) fn validate_schedule_id(id: &str) -> Result<()> {
-    if id.is_empty() || id.len() > 64 {
-        bail!("schedule id must be between 1 and 64 characters");
-    }
-    if !id.chars().all(|ch| ch.is_ascii_alphanumeric() || ch == '-') {
-        bail!("schedule id must contain only alphanumeric characters or hyphens");
-    }
-    Ok(())
 }
 
 fn write_atomically(path: &Path, content: &[u8]) -> Result<()> {

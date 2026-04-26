@@ -7,17 +7,18 @@ import GateViewToolbar from './GateViewToolbar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { useMcpResources } from '../composables/useMcpResources';
+import { useGateMcp } from '../composables/useGateMcp';
 import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
 import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
-import { gateResourceUri, parseResourcePayload } from '../lib/gate-resources';
-import type { GateSnapshot, GateTask } from '../lib/gate';
+import type { GateSnapshot } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
 
 const props = defineProps<{ cwd: string }>();
 const registry = useGateRegistry(() => props.cwd);
 const resources = useMcpResources();
+const gateMcp = useGateMcp();
 const provenance = useProvenanceStore();
 const { navigateTo } = useProvenanceNavigation();
 
@@ -72,16 +73,8 @@ async function refreshSnapshot(background = false) {
   error.value = '';
 
   try {
-    const resource = await resources.readResource(gateResourceUri('status', root));
-    const statusPayload = parseResourcePayload<GateTask[] | { tasks?: GateTask[] }>(resource);
-    const tasks = Array.isArray(statusPayload) ? statusPayload : statusPayload.tasks ?? [];
-    const normalizedTasks = tasks.map((task) => ({
-      ...task,
-      stages: Array.isArray(task.stages)
-        ? task.stages
-        : [],
-    }));
-    const nextSnapshot = createGateSnapshot(root, normalizedTasks);
+    const tasks = await gateMcp.status({ root, includeDone: true });
+    const nextSnapshot = createGateSnapshot(root, Array.isArray(tasks) ? tasks : []);
     if (requestId !== snapshotRequestToken || gateRoot.value !== root) return;
     snapshot.value = nextSnapshot;
     lastRefreshLabel.value = formatRefreshTime();
@@ -105,19 +98,8 @@ async function refreshSnapshot(background = false) {
 async function startStatusWatch(root: string) {
   stopStatusWatch();
   if (!root || gateRoot.value !== root) return;
-  const statusUri = gateResourceUri('status', root);
-  try {
-    const subscription = await resources.subscribeResource(statusUri, () => {
-      void refreshSnapshot(true);
-    });
-    if (gateRoot.value !== root) {
-      subscription();
-      return;
-    }
-    stopStatusSubscription = subscription;
-  } catch {
-    // Resource subscriptions are best-effort; manual refresh still works.
-  }
+  gateMcp.startPolling(root, () => refreshSnapshot(true));
+  stopStatusSubscription = () => gateMcp.stopPolling();
 }
 
 async function handleGateRootChange(root: string) {

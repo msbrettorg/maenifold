@@ -4,27 +4,21 @@ mod cache_task_row;
 mod cancel_command;
 mod cli;
 mod cli_parser;
-mod error;
 mod fail_command;
 mod file_watcher;
 mod gate_catalog;
-mod gate_definition;
 mod gate_tool_service;
 mod history_command;
 mod json_output;
 mod mcp;
 mod pass_command;
 mod section_factory;
-mod state_machine;
 mod status_command;
 mod status_filter;
 mod sync_command;
 mod task_file;
-mod task_id;
-mod task_metadata;
 mod task_repository;
 mod task_sections;
-mod task_status;
 mod tray;
 mod tray_lifecycle;
 mod tray_menu;
@@ -35,6 +29,36 @@ mod ui_window;
 mod ui_window_detail;
 
 use std::process::ExitCode;
+
+pub use maenifold_gate_core::{
+    error, gate_definition, state_machine, task_id, task_metadata, task_status,
+};
+
+impl task_status::TaskStageRecordLike for task_sections::TaskStageRecord {
+    fn stage(&self) -> &str {
+        &self.stage
+    }
+
+    fn record_kind(&self) -> &str {
+        &self.record_kind
+    }
+
+    fn outcome(&self) -> Option<&str> {
+        self.outcome.as_deref()
+    }
+}
+
+impl task_status::TaskDocumentLike for task_file::TaskDocument {
+    type Record = task_sections::TaskStageRecord;
+
+    fn metadata_state(&self) -> Option<&str> {
+        self.metadata.state.as_deref()
+    }
+
+    fn records(&self) -> &[Self::Record] {
+        &self.records
+    }
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();

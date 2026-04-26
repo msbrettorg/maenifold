@@ -3489,6 +3489,7 @@ dependencies = [
  "indexmap",
  "libc",
  "maenifold-core",
+ "maenifold-gate-core",
  "notify",
  "objc2-core-foundation",
  "predicates",
@@ -3507,6 +3508,19 @@ dependencies = [
  "tracing",
  "tray-icon",
  "winit",
+]
+
+[[package]]
+name = "maenifold-gate-core"
+version = "0.1.0"
+dependencies = [
+ "indexmap",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "serde_yml",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

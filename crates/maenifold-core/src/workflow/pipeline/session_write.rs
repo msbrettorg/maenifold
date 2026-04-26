@@ -4,7 +4,7 @@ use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::workflow::initial_workflow_frontmatter;
 use chrono::Utc;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
 use super::{
@@ -87,7 +87,7 @@ pub(super) fn persist_pipeline_state_with_status(
     pipeline_content: &str,
     context: &ToolContext,
 ) -> Result<()> {
-    frontmatter.insert("nodeStates".to_string(), serde_yaml::to_value(node_states)?);
+    frontmatter.insert("nodeStates".to_string(), serde_yml::to_value(node_states)?);
 
     // Compute the status to persist: explicit override wins; otherwise use
     // terminal-node-aware derivation when a definition is present in frontmatter.
@@ -95,7 +95,7 @@ pub(super) fn persist_pipeline_state_with_status(
         s.to_string()
     } else if let Some(def) = frontmatter
         .get("definition")
-        .and_then(|v| serde_yaml::from_value::<PipelineDefinition>(v.clone()).ok())
+        .and_then(|v| serde_yml::from_value::<PipelineDefinition>(v.clone()).ok())
     {
         compute_pipeline_status_with_definition(&def, node_states).to_string()
     } else {

@@ -34,7 +34,7 @@ schemars = "0.8"
 rusqlite = { version = "0.38.0", features = ["bundled", "functions", "load_extension", "modern_sqlite"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.145", features = ["preserve_order"] }
-serde_yaml = "0.9.34"
+serde_yml = "0.0.12"
 slug = "0.1.6"
 thiserror = "2.0.17"
 tracing = "0.1"

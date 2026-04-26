@@ -4,7 +4,7 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use petgraph::Direction::Outgoing;
 use petgraph::algo::is_cyclic_directed;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashSet;
 
 use super::super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
@@ -69,7 +69,7 @@ pub(super) fn graft_pipeline(
 
     frontmatter.insert(
         "definition".to_string(),
-        serde_yaml::to_value(&merged_definition)?,
+        serde_yml::to_value(&merged_definition)?,
     );
     let status_override = match pipeline_status.as_str() {
         "paused" | "cancelled" => Some(pipeline_status.as_str()),

@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use super::session_io::{
     NodeFile, allocate_node_session_id, derive_pipeline_node_states, frontmatter_value,

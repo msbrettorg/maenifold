@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use crate::error::Result;
 use crate::tools::ToolContext;
@@ -111,7 +111,7 @@ fn read_gate_task_state(path: &Path) -> Result<Option<String>> {
     let Some(yaml) = yaml else {
         return Ok(None);
     };
-    let parsed = serde_yaml::from_str::<serde_yaml::Mapping>(&yaml)?;
+    let parsed = serde_yml::from_str::<serde_yml::Mapping>(&yaml)?;
     Ok(parsed
         .get(&YamlValue::String("state".to_string()))
         .and_then(YamlValue::as_str)

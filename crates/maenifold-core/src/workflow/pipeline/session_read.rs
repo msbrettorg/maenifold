@@ -3,7 +3,7 @@ use crate::markdown::{Frontmatter, file_exists, read_markdown};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use serde::de::DeserializeOwned;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
 use super::{NodeState, NodeStatus};
@@ -115,7 +115,7 @@ where
             "ERROR: Pipeline session missing frontmatter '{key}'"
         ))
     })?;
-    serde_yaml::from_value(value).map_err(Into::into)
+    serde_yml::from_value(value).map_err(Into::into)
 }
 
 pub(super) fn optional_frontmatter_value<T>(
@@ -128,7 +128,7 @@ where
     frontmatter
         .get(key)
         .cloned()
-        .map(serde_yaml::from_value)
+        .map(serde_yml::from_value)
         .transpose()
         .map_err(Into::into)
 }

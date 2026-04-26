@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{Frontmatter, path_to_uri, read_markdown};
 use crate::search::text::{build_snippet, slugify_query, tokenize_query};
 use crate::tools::ToolContext;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;

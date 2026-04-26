@@ -79,7 +79,7 @@ fn set_retry_after(
         .retry_after = Some(retry_after.to_string());
     frontmatter.insert(
         "nodeStates".to_string(),
-        serde_yaml::to_value(node_states).expect("serialize node states"),
+        serde_yml::to_value(node_states).expect("serialize node states"),
     );
     write_markdown(&uri, Some(&frontmatter), &content, &context.config)
         .expect("write pipeline session");

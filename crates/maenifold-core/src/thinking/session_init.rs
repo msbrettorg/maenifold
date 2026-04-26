@@ -6,7 +6,7 @@ use crate::error::Result;
 use crate::markdown::{Frontmatter, read_markdown, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 
 pub(crate) fn initialize_session(

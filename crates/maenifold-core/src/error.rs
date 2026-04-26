@@ -32,7 +32,7 @@ pub enum MaenifoldError {
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("YAML error: {0}")]
-    Yaml(#[from] serde_yaml::Error),
+    Yaml(#[from] serde_yml::Error),
     #[error("Current executable has no parent directory")]
     MissingExecutableParent,
     #[error("Path is not valid UTF-8: {0:?}")]

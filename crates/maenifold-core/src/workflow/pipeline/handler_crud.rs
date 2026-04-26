@@ -6,7 +6,7 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use serde_json::{Map as JsonMap, Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
@@ -63,7 +63,7 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
             retry_count: None,
         };
         node_states.insert(node.id().to_string(), state.clone());
-        node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
+        node_states_frontmatter.insert(node.id().to_string(), serde_yml::to_value(&state)?);
         node_files.push(workflow_node_file(node, session_id.clone()));
         response_nodes.push(json!({
             "nodeId": node.id(),
@@ -125,7 +125,7 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
             let node_states = frontmatter
                 .get("nodeStates")
                 .and_then(|value| {
-                    serde_yaml::from_value::<HashMap<String, NodeState>>(value.clone()).ok()
+                    serde_yml::from_value::<HashMap<String, NodeState>>(value.clone()).ok()
                 })
                 .unwrap_or_default();
             let completed_count = node_states
@@ -139,7 +139,7 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
                 .unwrap_or_else(|| super::compute_pipeline_status(&node_states).to_string());
             let node_count = frontmatter
                 .get("definition")
-                .and_then(|value| serde_yaml::from_value::<PipelineDefinition>(value.clone()).ok())
+                .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value.clone()).ok())
                 .map(|definition| definition.nodes.len())
                 .unwrap_or(0);
 

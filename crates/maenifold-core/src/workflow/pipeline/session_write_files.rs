@@ -9,7 +9,7 @@ use crate::sessions::{
 use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
 use serde_json::{Map as JsonMap, Value as JsonValue};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
@@ -173,13 +173,13 @@ pub(super) fn write_pipeline_session(
         "status".to_string(),
         YamlValue::String("active".to_string()),
     );
-    frontmatter.insert("definition".to_string(), serde_yaml::to_value(definition)?);
+    frontmatter.insert("definition".to_string(), serde_yml::to_value(definition)?);
     if let Some(inputs) = definition
         .inputs
         .as_ref()
         .filter(|inputs| !inputs.is_empty())
     {
-        frontmatter.insert("inputs".to_string(), serde_yaml::to_value(inputs)?);
+        frontmatter.insert("inputs".to_string(), serde_yml::to_value(inputs)?);
     }
     frontmatter.insert(
         "nodeStates".to_string(),
@@ -192,12 +192,12 @@ pub(super) fn write_pipeline_session(
     );
     frontmatter.insert(
         "maxConcurrency".to_string(),
-        serde_yaml::to_value(max_concurrency)?,
+        serde_yml::to_value(max_concurrency)?,
     );
-    frontmatter.insert("first".to_string(), serde_yaml::to_value(0u64)?);
-    frontmatter.insert("last".to_string(), serde_yaml::to_value(0u64)?);
+    frontmatter.insert("first".to_string(), serde_yml::to_value(0u64)?);
+    frontmatter.insert("last".to_string(), serde_yml::to_value(0u64)?);
     // T-93.4: cursor tracks completed dispatch cycles for crash-recovery continuity.
-    frontmatter.insert("cursor".to_string(), serde_yaml::to_value(0u64)?);
+    frontmatter.insert("cursor".to_string(), serde_yml::to_value(0u64)?);
     if let Some(prompt) = prompt.map(str::trim).filter(|prompt| !prompt.is_empty()) {
         frontmatter.insert("prompt".to_string(), YamlValue::String(prompt.to_string()));
     }
@@ -232,7 +232,7 @@ pub(super) fn persist_pipeline_runtime_context(
     if inputs.is_empty() {
         frontmatter.remove("inputs");
     } else {
-        frontmatter.insert("inputs".to_string(), serde_yaml::to_value(&inputs)?);
+        frontmatter.insert("inputs".to_string(), serde_yml::to_value(&inputs)?);
     }
 
     let prompt = prompt_override

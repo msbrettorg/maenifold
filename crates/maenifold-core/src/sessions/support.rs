@@ -1,6 +1,6 @@
 use crate::markdown::Frontmatter;
 use chrono::{DateTime, Datelike, TimeZone, Utc};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::fs;
 use std::path::Path;
 

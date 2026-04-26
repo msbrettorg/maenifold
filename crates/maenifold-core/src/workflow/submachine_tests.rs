@@ -11,7 +11,7 @@ use crate::sessions::frontmatter_string;
 use crate::test_util::ConfigResetGuard;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 use tempfile::TempDir;
 

@@ -9,7 +9,7 @@ mod tests {
     use crate::tools::ToolContext;
     use crate::util::json::OutputFormat;
     use serde_json::json;
-    use serde_yaml::Value as YamlValue;
+    use serde_yml::Value as YamlValue;
     use std::collections::BTreeMap;
     use tempfile::TempDir;
 

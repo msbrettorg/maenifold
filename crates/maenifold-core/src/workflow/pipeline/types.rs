@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn node_state_deserializes_without_optional_provenance_fields() {
-        let node_state: NodeState = serde_yaml::from_str(
+        let node_state: NodeState = serde_yml::from_str(
             r#"
 sessionId: workflow-node-1
 status: completed

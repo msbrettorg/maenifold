@@ -7,7 +7,7 @@ use crate::sessions::{
 use crate::tools::ToolContext;
 use crate::workflow::clear_submachine_frontmatter;
 use chrono::Utc;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::fs;
 use std::path::Path;
 use uuid::Uuid;
@@ -188,7 +188,7 @@ pub(crate) fn finalize_session(
     frontmatter.insert("status".to_string(), YamlValue::String(status.to_string()));
     frontmatter.insert(
         "thoughtCount".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(thought_number + 1)),
+        YamlValue::Number(serde_yml::Number::from(thought_number + 1)),
     );
     if status == "completed" {
         frontmatter.insert(

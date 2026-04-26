@@ -7,7 +7,7 @@ use crate::workflow::{
 };
 use chrono::Utc;
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 
 // T-12.0: RTM NFR-1 keeps workflow session creation, queue persistence, and frontmatter parsing in a focused submodule.
@@ -224,11 +224,11 @@ pub(crate) fn initial_workflow_frontmatter(
     );
     frontmatter.insert(
         "currentWorkflow".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(0)),
+        YamlValue::Number(serde_yml::Number::from(0)),
     );
     frontmatter.insert(
         "currentStep".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(0)),
+        YamlValue::Number(serde_yml::Number::from(0)),
     );
     frontmatter.insert(
         "phase".to_string(),

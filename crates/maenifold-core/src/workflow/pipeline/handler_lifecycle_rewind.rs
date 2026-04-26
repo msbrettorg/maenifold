@@ -5,7 +5,7 @@ use crate::util::json::{OutputFormat, success};
 use petgraph::Direction::Outgoing;
 use serde::Deserialize;
 use serde_json::Value;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{HashSet, VecDeque};
 
 use super::super::handler_validation::workflow_node_file;

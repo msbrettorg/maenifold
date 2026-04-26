@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{read_markdown, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 pub(super) fn activate_non_workflow_node_session(
     context: &ToolContext,

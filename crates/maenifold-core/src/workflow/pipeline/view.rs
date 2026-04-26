@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
 use super::lease;

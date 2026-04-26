@@ -39,7 +39,7 @@ fn set_max_attempts(context: &crate::tools::ToolContext, session_id: &str, max_a
         read_pipeline_session(context, session_id).expect("read pipeline");
     frontmatter.insert(
         "maxAttempts".to_string(),
-        serde_yaml::to_value(max_attempts).expect("serialize max attempts"),
+        serde_yml::to_value(max_attempts).expect("serialize max attempts"),
     );
     write_markdown(&uri, Some(&frontmatter), &content, &context.config)
         .expect("write pipeline session");

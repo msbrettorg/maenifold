@@ -4,7 +4,7 @@ use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::workflow::{format_workflow_step, read_workflow_definition, workflow_steps};
 use serde_json::json;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use super::{PipelineNode, workflow_id_for_node};
 

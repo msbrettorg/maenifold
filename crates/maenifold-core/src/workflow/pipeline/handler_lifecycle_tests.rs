@@ -123,11 +123,11 @@ fn run_pipeline_persists_merged_inputs_before_driver_spawn() {
         .expect("read pipeline session");
     let frontmatter = frontmatter.expect("frontmatter");
     let inputs: serde_json::Map<String, serde_json::Value> =
-        serde_yaml::from_value(frontmatter["inputs"].clone()).expect("inputs");
+        serde_yml::from_value(frontmatter["inputs"].clone()).expect("inputs");
     assert_eq!(
         frontmatter
             .get("prompt")
-            .and_then(serde_yaml::Value::as_str),
+            .and_then(serde_yml::Value::as_str),
         Some("hello {{inputs.runtime}}")
     );
     assert_eq!(

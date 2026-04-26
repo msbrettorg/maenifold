@@ -4,7 +4,7 @@ use crate::sessions::now_iso8601_roundtrip;
 use crate::tools::ToolContext;
 use crate::workflow::{format_workflow_step, read_workflow_definition, workflow_steps};
 use serde_json::json;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 // T-12.0: RTM NFR-1 keeps workflow completion/cancellation transitions isolated from session bootstrap helpers.
 
@@ -84,11 +84,11 @@ pub(crate) fn transition_to_next_workflow(
 ) -> Result<String> {
     frontmatter.insert(
         "currentWorkflow".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(current_workflow_index as i64)),
+        YamlValue::Number(serde_yml::Number::from(current_workflow_index as i64)),
     );
     frontmatter.insert(
         "currentStep".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(0)),
+        YamlValue::Number(serde_yml::Number::from(0)),
     );
     write_markdown(
         workflow_uri,
@@ -167,6 +167,6 @@ fn finalize_frontmatter_status(
     );
     frontmatter.insert(
         "stepCount".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(current_step as i64)),
+        YamlValue::Number(serde_yml::Number::from(current_step as i64)),
     );
 }

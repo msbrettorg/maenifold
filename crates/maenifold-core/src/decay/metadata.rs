@@ -4,7 +4,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{Frontmatter, uri_to_path};
 use chrono::{DateTime, NaiveDateTime, Utc};
 use rusqlite::{Connection, OptionalExtension, params};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -30,7 +30,7 @@ fn parse_frontmatter_map(full_text: &str) -> Result<(Option<Frontmatter>, String
         let content = rest[index + 5..]
             .trim_start_matches(['\r', '\n'])
             .to_string();
-        let frontmatter: Frontmatter = serde_yaml::from_str(yaml_text)?;
+        let frontmatter: Frontmatter = serde_yml::from_str(yaml_text)?;
         return Ok((Some(frontmatter), content));
     }
     Ok((None, full_text.to_string()))

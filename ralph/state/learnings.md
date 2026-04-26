@@ -3,6 +3,29 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-26 — Iteration (Scriptable UI Spec + Decomposition)
+
+### Duo review finds real architectural gaps — 5 rounds of substantive findings
+- T-221.12 spec went through Opus 4.7 (PASS R2) + GPT 5.5 (5 rounds to PASS R5)
+- GPT caught 13 unique findings: ConfigManager state access, schema registration, frontend transport auth, response shape inaccuracies, partial-update merge semantics, tool advertisement via list_tools, DiscoverMcpTools state needs, resource_exists() subscription gate, construction file scope
+- **Lesson: GPT 5.5 is a more rigorous spec reviewer than Opus 4.7 for implementation-level architectural details. It traces the actual code paths and catches state-access/scope gaps that conceptual review misses. Use GPT for the blocking-finding pass and Opus for advisory/strategic feedback.**
+
+### Handler-intercepted tools need three concerns addressed, not just execution
+- Config mutation tools bypass ToolRegistry::try_invoke() but still need: (1) execution interception in call_tool(), (2) schema registration in mcp/schema/ for list_tools visibility, (3) addition to list_tools() gateway-mode native allowlist
+- Each concern was a separate duo finding — should have been anticipated
+- **Lesson: When designing handler-intercepted tools, explicitly address all three: execution dispatch, schema/advertisement, and gateway-mode allowlist. These are always coupled.**
+
+### Shared daemon state must be constructed once and passed to both REST and MCP
+- REST's ApiState and MCP's MaenifoldHandler are constructed independently in http.rs
+- Config mutation via MCP requires the same ConfigManager and Arc<RwLock<Config>> as REST
+- Without shared construction, mutations persist but don't update runtime state
+- **Lesson: When adding MCP tools that mirror REST endpoints, the shared-state construction change (where both services receive the same state instance) is always in scope. Don't spec the tool implementation without specifying the state plumbing.**
+
+### node_modules missing in worktrees — use npm ci, not symlinks, for vue-tsc
+- Symlinked node_modules from main tree failed because npm ci hadn't been run in main
+- SWE for T-229.1 ran npm ci successfully in its worktree
+- **Lesson: Before creating frontend worktrees, ensure `npm ci` has been run in the main tree. Symlinks only work if the target exists and is complete. Run `npm ci` in the main tree before dispatching frontend SWEs.**
+
 ## 2026-04-25 — Iteration 2577 (MCP SDK Migration Wave)
 
 ### rmcp migration loses process group cleanup

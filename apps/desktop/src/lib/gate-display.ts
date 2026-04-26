@@ -41,7 +41,10 @@ export function gateStageFamily(value: string): GateStageFamily {
   if (['pending', 'todo', 'discovery', 'spec', 'research', 'plan'].includes(normalized)) return 'pending';
   if (['failed', 'error', 'abandoned', 'cancelled', 'stuck'].includes(normalized)) return 'failed';
   // Confession stages map to their parent role
-  if (normalized.endsWith('-confess')) return 'pending';
+  if (normalized === 'swe-confess') return 'swe';
+  if (normalized === 'red-team-confess') return 'red-team';
+  if (normalized === 'blue-team-confess') return 'blue-team';
+  if (normalized === 'pm-confess') return 'pending';
   if (normalized === 'red-team-audit') return 'red-team';
   // MDD stages
   if (['opus-plan', 'opus-acceptance'].includes(normalized)) return 'pending';

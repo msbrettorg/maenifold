@@ -6,7 +6,6 @@ edition = "2024"
 [dependencies]
 indexmap = { version = "2", features = ["serde"] }
 regex.workspace = true
-rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yml.workspace = true

@@ -9,8 +9,12 @@ pub fn cache_dir(memory_path: &Path) -> PathBuf {
 }
 
 pub fn save_image(cache_dir: &Path, mode: &str, label: &str, data: &[u8]) -> Result<PathBuf> {
-    fs::create_dir_all(cache_dir)
-        .with_context(|| format!("failed to create wallpaper cache dir {}", cache_dir.display()))?;
+    fs::create_dir_all(cache_dir).with_context(|| {
+        format!(
+            "failed to create wallpaper cache dir {}",
+            cache_dir.display()
+        )
+    })?;
     let timestamp = Utc::now().format("%Y%m%d%H%M%S%3f");
     let filename = format!(
         "{}_{}_{}.png",
@@ -26,6 +30,22 @@ pub fn save_image(cache_dir: &Path, mode: &str, label: &str, data: &[u8]) -> Res
 
 pub fn latest_image(cache_dir: &Path, mode: &str) -> Option<PathBuf> {
     list_images(cache_dir, mode).pop()
+}
+
+pub fn latest_image_for(cache_dir: &Path, mode: &str, label: &str) -> Option<PathBuf> {
+    let prefix = format!(
+        "{}_{}_",
+        sanitize_filename_part(mode),
+        sanitize_filename_part(label)
+    );
+    list_images(cache_dir, mode)
+        .into_iter()
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(&prefix))
+        })
+        .last()
 }
 
 pub fn list_images(cache_dir: &Path, mode: &str) -> Vec<PathBuf> {
@@ -58,8 +78,9 @@ pub fn clear_cache(cache_dir: &Path, mode: Option<&str>) -> Result<()> {
             .as_ref()
             .map_or_else(|| is_png(&path), |prefix| is_mode_image(&path, prefix));
         if should_remove {
-            fs::remove_file(&path)
-                .with_context(|| format!("failed to remove wallpaper cache file {}", path.display()))?;
+            fs::remove_file(&path).with_context(|| {
+                format!("failed to remove wallpaper cache file {}", path.display())
+            })?;
         }
     }
 

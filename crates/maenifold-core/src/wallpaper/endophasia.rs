@@ -13,14 +13,30 @@ pub async fn generate_endophasia_wallpaper(config: &Config) -> Result<PathBuf> {
     let prompt = format!("{}\n\n{report}", wallpaper.prompt);
 
     let client = ImageClient::from_config(wallpaper)?;
-    let image_data = client
-        .generate(&prompt, &wallpaper.size, &wallpaper.quality)
-        .await?;
+    let cache_dir = cache::cache_dir(&config.memory_path);
+    let image_data = if wallpaper.continuity {
+        if let Some(prev) = cache::latest_image(&cache_dir, "endophasia") {
+            let prev_bytes = std::fs::read(&prev)?;
+            let edit_prompt = format!("Update this image to reflect the latest state: {prompt}");
+            client
+                .edit(
+                    &edit_prompt,
+                    &prev_bytes,
+                    &wallpaper.size,
+                    &wallpaper.quality,
+                    &wallpaper.input_fidelity,
+                )
+                .await?
+        } else {
+            client
+                .generate(&prompt, &wallpaper.size, &wallpaper.quality)
+                .await?
+        }
+    } else {
+        client
+            .generate(&prompt, &wallpaper.size, &wallpaper.quality)
+            .await?
+    };
 
-    cache::save_image(
-        &cache::cache_dir(&config.memory_path),
-        "endophasia",
-        "recent",
-        &image_data,
-    )
+    cache::save_image(&cache_dir, "endophasia", "recent", &image_data)
 }

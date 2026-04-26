@@ -6,10 +6,13 @@ use serde_json::{Value, json};
 pub fn wallpaper_status(context: &ToolContext, _payload: &Value) -> Result<String> {
     let wallpaper = &context.config.settings.easter_eggs.wallpaper;
     let state = service_state().read();
-    let images = cache::list_images(&cache::cache_dir(&context.config.memory_path), &wallpaper.mode)
-        .into_iter()
-        .map(|path| path.to_string_lossy().to_string())
-        .collect::<Vec<_>>();
+    let images = cache::list_images(
+        &cache::cache_dir(&context.config.memory_path),
+        &wallpaper.mode,
+    )
+    .into_iter()
+    .map(|path| path.to_string_lossy().to_string())
+    .collect::<Vec<_>>();
 
     let status = json!({
         "enabled": wallpaper.enabled,

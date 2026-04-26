@@ -17,9 +17,12 @@ pub async fn generate_zeitgeist_wallpapers(config: &Config) -> Result<Vec<PathBu
         return Ok(vec![]);
     }
 
-    graph
-        .nodes
-        .sort_by(|left, right| right.size.cmp(&left.size).then_with(|| left.id.cmp(&right.id)));
+    graph.nodes.sort_by(|left, right| {
+        right
+            .size
+            .cmp(&left.size)
+            .then_with(|| left.id.cmp(&right.id))
+    });
 
     let communities = graph
         .nodes
@@ -44,9 +47,30 @@ pub async fn generate_zeitgeist_wallpapers(config: &Config) -> Result<Vec<PathBu
         }
 
         let prompt = format!("{}\n\n{concept_prompt}", wallpaper.prompt);
-        let data = client
-            .generate(&prompt, &wallpaper.size, &wallpaper.quality)
-            .await?;
+        let data = if wallpaper.continuity {
+            if let Some(prev) = cache::latest_image_for(&cache_dir, "zeitgeist", &node.anchor) {
+                let prev_bytes = std::fs::read(&prev)?;
+                let edit_prompt =
+                    format!("Update this image to reflect the latest state: {prompt}");
+                client
+                    .edit(
+                        &edit_prompt,
+                        &prev_bytes,
+                        &wallpaper.size,
+                        &wallpaper.quality,
+                        &wallpaper.input_fidelity,
+                    )
+                    .await?
+            } else {
+                client
+                    .generate(&prompt, &wallpaper.size, &wallpaper.quality)
+                    .await?
+            }
+        } else {
+            client
+                .generate(&prompt, &wallpaper.size, &wallpaper.quality)
+                .await?
+        };
         let path = cache::save_image(&cache_dir, "zeitgeist", &node.anchor, &data)?;
         paths.push(path);
 

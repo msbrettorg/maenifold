@@ -1,4 +1,5 @@
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::domain_mapping;
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::list_mcp_tools;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
@@ -7,8 +8,6 @@ use rmcp::model::Tool;
 use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-
-const NATIVE_DOMAIN: &str = "maenifold";
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct DomainEntry {
@@ -130,16 +129,16 @@ impl GatewayCatalog {
 
     fn add_native_tools(&mut self) -> Result<()> {
         let tools = list_mcp_tools(ToolRegistry::global())?;
-        let domain = self.insert_domain(
-            NATIVE_DOMAIN,
-            "Native Maenifold commands backed by typed handlers.",
-        )?;
         for tool in tools {
+            let Some(domain_name) = domain_mapping::tool_domain(&tool.name) else {
+                continue;
+            };
+            let domain = self.insert_domain(domain_name, domain_description(domain_name))?;
             let entry = CommandEntry {
                 name: tool.name.clone(),
                 description: tool.description,
                 schema: tool.input_schema,
-                safety_class: safety_class(&tool.name).to_string(),
+                safety_class: domain_mapping::tool_safety(&tool.name).to_string(),
             };
             domain.commands.insert(
                 tool.name.clone(),
@@ -157,10 +156,15 @@ impl GatewayCatalog {
     fn add_upstream_tool(&mut self, server_name: &str, tool: &Tool) -> Result<()> {
         let domain = self.insert_domain(server_name, "Gateway MCP server commands.")?;
         let name = tool.name.to_string();
+        let safety = if server_name == "gate" {
+            domain_mapping::gate_tool_safety(&name)
+        } else {
+            domain_mapping::tool_safety(&name)
+        };
         domain.commands.insert(
             name.clone(),
             CatalogCommand {
-                entry: command_entry(tool),
+                entry: command_entry(tool, safety.to_string()),
                 target: CommandTarget::Upstream {
                     server_name: server_name.to_string(),
                     tool_name: name,
@@ -195,31 +199,24 @@ impl GatewayCatalog {
     }
 }
 
-fn command_entry(tool: &Tool) -> CommandEntry {
+fn command_entry(tool: &Tool, safety_class: String) -> CommandEntry {
     let name = tool.name.to_string();
     CommandEntry {
         name: name.clone(),
         description: tool.description.as_deref().unwrap_or("").to_string(),
         schema: Value::Object((*tool.input_schema).clone()),
-        safety_class: safety_class(&name).to_string(),
+        safety_class,
     }
 }
 
-fn safety_class(name: &str) -> &str {
-    match name {
-        name if name.starts_with("Read")
-            || name.starts_with("List")
-            || name.starts_with("Get")
-            || name.starts_with("Search")
-            || name.starts_with("Find")
-            || name.starts_with("Build")
-            || name.starts_with("Visualize")
-            || name.starts_with("Extract") =>
-        {
-            "read"
-        }
-        name if name.starts_with("Delete") || name.starts_with("Move") => "destructive",
-        _ => "mutating",
+fn domain_description(domain: &str) -> &'static str {
+    match domain {
+        "maenifold.memory" => "Maenifold memory file read/write commands.",
+        "maenifold.graph" => "Maenifold graph traversal and repair commands.",
+        "maenifold.workflow" => "Maenifold workflow and pipeline orchestration commands.",
+        "maenifold.thinking" => "Maenifold thinking and assumption tracking commands.",
+        "maenifold.system" => "Maenifold system, asset, ACP, and diagnostics commands.",
+        _ => "Native Maenifold commands backed by typed handlers.",
     }
 }
 

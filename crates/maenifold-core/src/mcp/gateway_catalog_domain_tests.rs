@@ -1,0 +1,142 @@
+use super::domain_mapping::{TOOL_DOMAINS, gate_tool_safety, tool_domain};
+use super::gateway_catalog::{CommandTarget, GatewayCatalog};
+use super::gateway_consolidation::build_consolidated_tools;
+use super::gateway_handler::GatewayState;
+use super::resource_routing::ResourceRoutingRegistry;
+use super::schema::mcp_tool_from_registry_name;
+use super::stdio_pool::StdioPool;
+use super::tool_routing::ToolRoutingRegistry;
+use super::{MaenifoldHandler, TransportKind};
+use crate::registry::ToolRegistry;
+use rmcp::model::Tool;
+use serde_json::{Map, Value};
+use std::collections::{BTreeMap, HashSet};
+use std::sync::Arc;
+
+#[test]
+fn forward_mapping_targets_existing_registry_tools_by_domain() {
+    let canonical: HashSet<_> = ToolRegistry::global().canonical_names().into_iter().collect();
+    let mut by_domain = BTreeMap::<&str, Vec<&str>>::new();
+    for &(tool, domain) in TOOL_DOMAINS {
+        by_domain.entry(domain).or_default().push(tool);
+    }
+    for domain in [
+        "maenifold.memory",
+        "maenifold.graph",
+        "maenifold.workflow",
+        "maenifold.thinking",
+        "maenifold.system",
+    ] {
+        let tools = by_domain.get(domain).expect("domain should have tools");
+        assert!(!tools.is_empty(), "{domain} should route at least one tool");
+        for tool in tools {
+            assert!(canonical.contains(tool), "{tool} in {domain} missing registry handler");
+        }
+    }
+}
+
+#[test]
+fn reverse_mapping_exhaustively_covers_canonical_native_tools() {
+    for name in ToolRegistry::global().canonical_names() {
+        assert!(name == "GetHelp" || tool_domain(name).is_some(), "{name} missing gateway domain");
+    }
+}
+
+#[tokio::test]
+async fn routed_command_schemas_match_native_mcp_schemas() {
+    let catalog = native_catalog().await;
+    for &(tool, domain) in TOOL_DOMAINS {
+        let command = catalog
+            .commands(domain)
+            .expect("domain should exist")
+            .into_iter()
+            .find(|entry| entry.name == tool)
+            .expect("command should be indexed");
+        let native = mcp_tool_from_registry_name(tool).expect("native schema should exist");
+        assert_eq!(command.schema, native.input_schema, "{tool} schema drifted");
+        assert_eq!(
+            catalog.resolve(domain, tool).expect("command should resolve"),
+            CommandTarget::Native {
+                tool_name: tool.to_string()
+            }
+        );
+    }
+}
+
+#[tokio::test]
+async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
+    let catalog = native_catalog().await;
+    assert_eq!(tool_domain("GetHelp"), None);
+    for domain in catalog.domains() {
+        let commands = catalog.commands(&domain.name).expect("domain commands");
+        assert!(!commands.iter().any(|command| command.name == "GetHelp"));
+    }
+    let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
+    let gateway_tools = empty_gateway_tools().await;
+    let mut exposed: Vec<_> = handler
+        .tools
+        .iter()
+        .filter(|tool| tool.name == "GetHelp")
+        .map(|tool| tool.name.to_string())
+        .collect();
+    exposed.extend(gateway_tools.into_iter().map(|tool| tool.name.to_string()));
+    assert_eq!(exposed, vec!["GetHelp", "GatewayIndex", "GatewayExecute"]);
+}
+
+#[tokio::test]
+async fn flat_native_tools_are_hidden_when_gateway_is_active() {
+    let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
+    let mut exposed: Vec<_> = handler
+        .tools
+        .iter()
+        .filter(|tool| tool.name == "GetHelp")
+        .map(|tool| tool.name.to_string())
+        .collect();
+    exposed.extend(empty_gateway_tools().await.into_iter().map(|tool| tool.name.to_string()));
+    assert!(!exposed.iter().any(|name| name == "ReadMemory"));
+    assert!(!exposed.iter().any(|name| name == "WriteMemory"));
+    assert!(exposed.iter().any(|name| name == "GetHelp"));
+}
+
+#[test]
+fn gate_upstream_safety_uses_first_party_contract_when_named_gate() {
+    assert_eq!(gate_tool_safety("status").to_string(), "read");
+    assert_eq!(gate_tool_safety("history").to_string(), "read");
+    assert_eq!(gate_tool_safety("task_body").to_string(), "read");
+    assert_eq!(gate_tool_safety("sync").to_string(), "mutate");
+    assert_eq!(gate_tool_safety("append").to_string(), "mutate");
+    assert_eq!(gate_tool_safety("pass").to_string(), "mutate");
+    assert_eq!(gate_tool_safety("fail").to_string(), "mutate");
+    assert_eq!(gate_tool_safety("cancel").to_string(), "destructive");
+}
+
+#[tokio::test]
+async fn gate_upstream_catalog_entries_are_annotated_when_available() {
+    let gate_tools = vec![tool("status"), tool("append"), tool("cancel")];
+    let (consolidated, passthrough) =
+        build_consolidated_tools(vec![("gate".to_string(), gate_tools)], 2).expect("gate catalog");
+    let pool = StdioPool::start(Vec::new()).await.expect("empty pool");
+    let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
+    let catalog = GatewayCatalog::build(&consolidated, &passthrough, &routing).expect("catalog");
+    let commands = catalog.commands("gate").expect("gate domain");
+    assert!(commands.iter().any(|command| command.name == "status" && command.safety_class == "read"));
+    assert!(commands.iter().any(|command| command.name == "append" && command.safety_class == "mutate"));
+    assert!(commands.iter().any(|command| command.name == "cancel" && command.safety_class == "destructive"));
+}
+
+async fn native_catalog() -> GatewayCatalog {
+    let pool = StdioPool::start(Vec::new()).await.expect("empty pool");
+    let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
+    GatewayCatalog::build(&[], &[], &routing).expect("native catalog")
+}
+
+async fn empty_gateway_tools() -> Vec<Tool> {
+    let pool = Arc::new(StdioPool::start(Vec::new()).await.expect("empty pool"));
+    let routing = ResourceRoutingRegistry::build(pool.as_ref()).expect("resource routing");
+    let catalog = native_catalog().await;
+    GatewayState::new(pool, Arc::new(routing), catalog, Vec::new()).list_tools()
+}
+
+fn tool(name: &str) -> Tool {
+    Tool::new(name.to_string(), format!("{name} description"), Arc::new(Map::<String, Value>::new()))
+}

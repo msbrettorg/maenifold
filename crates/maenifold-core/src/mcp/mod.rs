@@ -1,5 +1,8 @@
 mod cors;
+pub(crate) mod domain_mapping;
 pub(crate) mod gateway_catalog;
+#[cfg(test)]
+mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_handler;
@@ -119,10 +122,13 @@ impl ServerHandler for MaenifoldHandler {
                 None,
             )));
         }
-        let mut tools = self.tools.clone();
-        if let Some(gateway) = &self.gateway {
+        let tools = if let Some(gateway) = &self.gateway {
+            let mut tools: Vec<Tool> = self.tools.iter().filter(|tool| tool.name == "GetHelp").cloned().collect();
             tools.extend(gateway.list_tools());
-        }
+            tools
+        } else {
+            self.tools.clone()
+        };
         std::future::ready(Ok(ListToolsResult {
             tools,
             next_cursor: None,
@@ -179,7 +185,6 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
         std::future::ready(self::resources::handle_subscribe(&request.uri, &context))
     }
-
     fn unsubscribe(
         &self,
         request: UnsubscribeRequestParams,
@@ -187,7 +192,6 @@ impl ServerHandler for MaenifoldHandler {
     ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
         std::future::ready(self::resources::handle_unsubscribe(&request.uri, &context))
     }
-
     fn call_tool(
         &self,
         request: CallToolRequestParams,
@@ -199,10 +203,19 @@ impl ServerHandler for MaenifoldHandler {
             Some(map) => Value::Object(map),
             None => json!({}),
         };
-        let tool_name_for_invoke = tool_name.clone();
-        let native_arguments = arguments.clone();
-
         async move {
+            if let Some(gateway) = self.gateway.clone() {
+                if tool_name != "GetHelp" {
+                    if let Some(gateway_result) =
+                        gateway.handle_tool_call(&tool_name, arguments).await?
+                    {
+                        return Ok(gateway_result);
+                    }
+                    return Err(unknown_tool_error(&tool_name));
+                }
+            }
+            let tool_name_for_invoke = tool_name.clone();
+            let native_arguments = arguments;
             let result = tokio::task::spawn_blocking(move || {
                 ToolRegistry::global().try_invoke(
                     &tool_name_for_invoke,
@@ -216,22 +229,7 @@ impl ServerHandler for MaenifoldHandler {
             match result {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
                 Err(MaenifoldError::UnknownTool(_)) => {
-                    if let Some(gateway) = self.gateway.clone()
-                        && let Some(gateway_result) =
-                            gateway.handle_tool_call(&tool_name, arguments).await?
-                    {
-                        return Ok(gateway_result);
-                    }
-                    let err = MaenifoldError::JsonRpc {
-                        code: JSONRPC_METHOD_NOT_FOUND,
-                        message: format!("Unknown tool: '{tool_name}'"),
-                        data: Value::Null,
-                    };
-                    Err(rmcp::ErrorData::new(
-                        rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32),
-                        err.to_string(),
-                        Some(Value::Null),
-                    ))
+                    Err(unknown_tool_error(&tool_name))
                 }
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(
                     format_tool_error(&tool_name, &err),
@@ -241,6 +239,9 @@ impl ServerHandler for MaenifoldHandler {
     }
 }
 
+fn unknown_tool_error(tool_name: &str) -> rmcp::ErrorData {
+    rmcp::ErrorData::new(rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32), format!("Unknown tool: '{tool_name}'"), Some(Value::Null))
+}
 impl MaenifoldMcpServer {
     pub fn list_tools() -> Result<Vec<McpToolDefinition>> { list_mcp_tools(ToolRegistry::global()) }
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {

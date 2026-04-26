@@ -1,6 +1,7 @@
 use crate::error::{
     GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_INVALID_PARAMS, MaenifoldError,
 };
+use crate::mcp::domain_mapping;
 use crate::mcp::gateway_catalog::{CommandTarget, GatewayCatalog};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
@@ -98,6 +99,12 @@ impl GatewayState {
             return self.handle_gateway_execute(arguments).await.map(Some);
         }
 
+        if let Some(domain) = domain_mapping::tool_domain(tool_name) {
+            return Err(rmcp::ErrorData::invalid_params(
+                hidden_tool_message(tool_name, domain),
+                None,
+            ));
+        }
         if let Some(domain) = self.hidden_tool_domains.get(tool_name) {
             return Err(rmcp::ErrorData::invalid_params(
                 hidden_tool_message(tool_name, domain),
@@ -218,7 +225,7 @@ fn hidden_tool_message(tool_name: &str, domain: &str) -> String {
         );
     }
     format!(
-        "Tool '{tool_name}' is indexed under domain '{domain}'. Use GatewayExecute with domain='{domain}', command='{tool_name}'."
+        "Tool '{tool_name}' is routed under domain '{domain}'. Use GatewayExecute with domain='{domain}', command='{tool_name}'."
     )
 }
 

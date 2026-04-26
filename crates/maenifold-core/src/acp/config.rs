@@ -7,6 +7,8 @@
 // non-mod.rs submodule directory resolution interacts with that mount in a
 // way that differs from the conventional `<stem>/` lookup.
 
+#[path = "config/easter_eggs.rs"]
+mod easter_eggs;
 #[path = "config/gateway_settings.rs"]
 mod gateway_settings;
 #[path = "config/loader.rs"]
@@ -26,6 +28,8 @@ mod loader_tests;
 #[path = "config/tests.rs"]
 mod tests;
 
+#[allow(unused_imports)]
+pub use easter_eggs::*;
 #[allow(unused_imports)]
 pub use gateway_settings::*;
 pub use loader::AgentsConfig;

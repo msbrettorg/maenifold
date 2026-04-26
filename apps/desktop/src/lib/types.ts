@@ -92,6 +92,32 @@ export interface DebugSettings {
   pipelineDriver: string | null;
 }
 
+export interface EasterEggsSettings {
+  wallpaper: WallpaperSettings;
+}
+
+export interface WallpaperSettings {
+  enabled: boolean;
+  mode: string;
+  prompt: string;
+  azure: WallpaperAzureSettings;
+  size: string;
+  quality: string;
+  continuity: boolean;
+  inputFidelity: string;
+  maxRetries: number;
+  communityCount: number;
+  rotateMinutes: number;
+}
+
+export interface WallpaperAzureSettings {
+  endpointEnvVar: string;
+  apiKeyEnvVar: string;
+  imageModel: string;
+  smallModel: string;
+  reasoningModel: string;
+}
+
 export interface MaenifoldSettings {
   logRotation: string;
   debounceMs: number;
@@ -110,6 +136,7 @@ export interface MaenifoldSettings {
   community: CommunitySettings;
   vector: VectorSettings;
   debug: DebugSettings;
+  easterEggs?: EasterEggsSettings;
 }
 
 export interface AgentInstance {

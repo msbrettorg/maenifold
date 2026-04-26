@@ -144,7 +144,7 @@ const AGENT_INFO_RESPONSE = {
   version: "0.1.0",
   mode: "sse",
   agents: {
-    [AGENT_NAME.toLowerCase()]: {
+    copilot: {
       description: "maenifold knowledge graph assistant",
       capabilities: {},
     },
@@ -161,6 +161,7 @@ app.get("/info", (_req, res) => {
 
 app.post("/", async (req, res) => {
   const raw = req.body ?? {};
+  const method = typeof raw.method === "string" ? raw.method : undefined;
   // CopilotKit may nest under params, body, or send flat — normalize
   const body = (
     raw.body && typeof raw.body === "object" ? raw.body as Record<string, unknown> :
@@ -170,19 +171,28 @@ app.post("/", async (req, res) => {
   const threadId = String(body.threadId ?? body.thread_id ?? randomUUID());
   const runId = String(body.runId ?? body.run_id ?? randomUUID());
   const promptText = extractLatestUserText(body);
-  console.log("[bridge] Incoming request", { method: raw.method, threadId, promptText: promptText.slice(0, 80) });
+  console.log("[bridge] Incoming request", { method, threadId, promptText: promptText.slice(0, 80) });
 
   // info requests are just capability probes — respond with agent registry
-  if (raw.method === "info") {
+  if (method === "info") {
     res.json(AGENT_INFO_RESPONSE);
     return;
   }
 
-  // agent/connect establishes the SSE stream — respond with a connected handshake
-  if (raw.method === "agent/connect") {
+  // agent/connect is a CopilotKit readiness handshake. Keep it out of the
+  // prompt loop so an empty connect body is never forwarded to the daemon.
+  if (method === "agent/connect") {
     prepareSse(res);
     sendEvent(res, { type: "RUN_STARTED", threadId, runId });
     sendEvent(res, { type: "RUN_FINISHED", threadId, runId });
+    res.end();
+    return;
+  }
+
+  if (promptText.trim().length === 0) {
+    prepareSse(res);
+    sendEvent(res, { type: "RUN_STARTED", threadId, runId });
+    sendEvent(res, { type: "RUN_ERROR", threadId, runId, message: "AG-UI request did not include a user message" });
     res.end();
     return;
   }
@@ -422,12 +432,11 @@ function extractLatestUserText(body: Record<string, unknown>): string {
   if (typeof content === "string") return content;
   if (Array.isArray(content)) {
     return content.map((part) => {
-      if (typeof part === "string") return part;
       const record = part as Record<string, unknown>;
-      return typeof record.text === "string" ? record.text : "";
+      return record.type === "text" && typeof record.text === "string" ? record.text : "";
     }).join("");
   }
-  return String(content);
+  return "";
 }
 
 function stringifyToolValue(value: unknown): string {

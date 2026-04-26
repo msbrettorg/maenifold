@@ -7,6 +7,7 @@ pub(crate) mod gateway_catalog;
 mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
+mod gateway_errors;
 mod gateway_handler;
 mod gateway_resolver;
 mod gateway_resolver_types;

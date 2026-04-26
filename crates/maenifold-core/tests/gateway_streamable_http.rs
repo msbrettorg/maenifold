@@ -51,9 +51,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
 
     let list = rpc(&server, "tools/list", Value::Null, None).await;
     let names = tool_names(&list);
-    assert!(names.iter().any(|name| name == "GetHelp"));
-    assert!(names.iter().any(|name| name == "GatewayIndex"));
-    assert!(names.iter().any(|name| name == "GatewayExecute"));
+    assert_tool_names(
+        &names,
+        &["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"],
+    );
     assert!(!names.iter().any(|name| name == "GetConfig"));
     assert!(!names.iter().any(|name| name == "gateway_big_server"));
     assert!(!names.iter().any(|name| name == "small_ping"));
@@ -72,6 +73,15 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     )
     .await;
     assert!(result_text(&native).contains("\"maenifoldRoot\""));
+
+    let mcp_resource = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"ReadMcpResource","arguments":{"uri":"asset://catalog"}}),
+        None,
+    )
+    .await;
+    assert!(!result_text(&mcp_resource).is_empty());
 
     let facade = rpc(
         &server,
@@ -153,4 +163,45 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     );
 
     server.stop().await;
+}
+
+#[tokio::test]
+#[serial]
+async fn streamable_http_gateway_intent_enabled_lists_exact_six_tools() {
+    let mut config = gateway_config(vec![stdio_server(
+        "small-server",
+        vec![ok_tool("small_ping", "pong")],
+    )]);
+    config["agents"] = json!({
+        "resolver": {"command": "/bin/echo", "env": {}, "mcpServers": []}
+    });
+    config["settings"] = json!({
+        "gateway": {"intentResolver": {"enabled": true, "agent": "resolver"}}
+    });
+    let server = TestServer::start(config).await;
+
+    initialize(&server).await;
+    let list = rpc(&server, "tools/list", Value::Null, None).await;
+    let names = tool_names(&list);
+    assert_tool_names(
+        &names,
+        &[
+            "GetHelp",
+            "ReadMcpResource",
+            "GatewayIndex",
+            "GatewayExecute",
+            "GatewayBatch",
+            "GatewayIntent",
+        ],
+    );
+
+    server.stop().await;
+}
+
+fn assert_tool_names(actual: &[String], expected: &[&str]) {
+    let mut actual = actual.to_vec();
+    actual.sort();
+    let mut expected: Vec<String> = expected.iter().map(|name| (*name).to_string()).collect();
+    expected.sort();
+    assert_eq!(actual, expected);
 }

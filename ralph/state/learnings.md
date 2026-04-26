@@ -3,6 +3,36 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-26 — Sprint 232 (Easter Eggs Decomposition + Wave 1)
+
+### Duo review catches real architectural gaps across 4 specs in parallel
+- T-232.1: Module wiring uses `#[path]` not `pub mod` — codebase-specific pattern
+- T-232.2: `process.env` not available in Electron renderer (sandbox=true, contextIsolation=true) — needed preload IPC
+- T-232.3: reqwest `multipart` feature not enabled, GPT-image doesn't support `response_format`
+- T-232.4: `file://` blocked by CSP, needed data URL approach, stacking context needs `isolate`
+- T-232.5: `Database` type doesn't exist, CancellationToken not watch::Receiver, service needs launch site
+- **Lesson: Every spec that touches Electron preload/CSP/renderer needs explicit verification of what's available in the sandbox. Every spec that touches Rust types needs verification the type exists. Never assume.**
+
+### Preload IPC security: always constrain to a specific directory
+- T-232.4 R2 caught that `readImageAsDataUrl(filePath)` is an arbitrary file read
+- Fix: `readWallpaperImage` validates path inside `{memoryPath}/.cache/wallpaper/` + `.png` only
+- **Lesson: Any preload IPC that reads files must validate the path against an allowlist directory. Generic helpers are security holes.**
+
+### Cache path: memory_path != maenifold_root
+- T-232.4 R4 caught that cache dir is `{memory_path}/.cache/wallpaper/` where `memory_path = {maenifoldRoot}/memory`
+- The spec initially said `{maenifoldRoot}/.cache/wallpaper/` — wrong by one directory level
+- **Lesson: Always verify Config field names and paths against actual config.rs. `memory_path`, `memory_root`, `maenifold_root` are NOT interchangeable.**
+
+### SWE formatting churn continues — revert out-of-scope files
+- T-232.1 SWE reformatted `gateway_settings_tests.rs` (pure formatting, out of scope)
+- PM reverted before merge — quick catch with `git diff --stat`
+- **Lesson: Always check `git diff --stat` in worktree before merge. Any file not in the spec's Files list is suspect.**
+
+### 6 duo agents running simultaneously works well
+- 3 specs × 2 architects = 6 parallel reviews completing in ~90-120s each
+- R2 follow-up via write_agent retains context — no need to re-explain R1 findings
+- **Lesson: Batch all specs for duo review simultaneously. Use write_agent for R2/R3/R4 rounds — agents keep full conversation history.**
+
 ## 2026-04-26 — Sprint 231 (LOC Violation Fixes)
 
 ### SWE dedup specs must enumerate ALL definition sites, not just the known ones

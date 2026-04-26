@@ -7,9 +7,9 @@ use rmcp::model::{
 };
 use serde_json::{Value, json};
 
-const PIPELINE_SESSIONS_URI: &str = "pipeline://sessions";
+pub(crate) const PIPELINE_SESSIONS_URI: &str = "pipeline://sessions";
 const LEGACY_PIPELINE_SESSIONS_URI: &str = "pipeline://sessions/active";
-const PIPELINE_SESSION_PREFIX: &str = "pipeline://session/";
+pub(crate) const PIPELINE_SESSION_PREFIX: &str = "pipeline://session/";
 const PIPELINE_NODE_PREFIX: &str = "pipeline://node/";
 
 pub(super) fn list_resources() -> Result<Vec<Resource>> {

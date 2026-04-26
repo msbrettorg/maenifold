@@ -11,7 +11,6 @@ import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
 import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
-import { isPipelineStage } from '../lib/gate-display';
 import { gateResourceUri, parseResourcePayload } from '../lib/gate-resources';
 import type { GateSnapshot, GateTask } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
@@ -79,7 +78,7 @@ async function refreshSnapshot(background = false) {
     const normalizedTasks = tasks.map((task) => ({
       ...task,
       stages: Array.isArray(task.stages)
-        ? [...new Set(task.stages.filter(isPipelineStage))]
+        ? task.stages
         : [],
     }));
     const nextSnapshot = createGateSnapshot(root, normalizedTasks);

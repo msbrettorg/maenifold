@@ -3,6 +3,7 @@ pub mod credential_store;
 mod dispatch;
 mod handler;
 mod runtime;
+pub mod supervisor;
 mod trouter;
 mod types;
 

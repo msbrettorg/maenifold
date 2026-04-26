@@ -1,6 +1,7 @@
 use super::*;
 use crate::config::Config;
 use crate::test_util::ConfigResetGuard;
+use crate::teams::set_teams_disabled;
 use crate::util::json::OutputFormat;
 use serde_json::{Value, json};
 use std::sync::{LazyLock, Mutex};
@@ -8,8 +9,18 @@ use tempfile::TempDir;
 
 static TEST_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
+struct TeamsRuntimeResetGuard;
+
+impl Drop for TeamsRuntimeResetGuard {
+    fn drop(&mut self) {
+        set_teams_disabled();
+    }
+}
+
 fn with_context(test: impl FnOnce(&ToolContext)) {
     let _lock = TEST_LOCK.lock().expect("test lock");
+    let _runtime_guard = TeamsRuntimeResetGuard;
+    set_teams_disabled();
     let tmp = TempDir::new().expect("temp dir");
     std::fs::write(
         tmp.path().join("maenifold.json"),
@@ -30,8 +41,13 @@ fn run(context: &ToolContext, payload: Value) -> Value {
 }
 
 #[test]
-fn enable_action_returns_success_with_enabled_true() {
-    with_context(|context| assert_eq!(run(context, json!({"action":"enable"}))["enabled"], true));
+fn enable_without_credentials_returns_auth_error() {
+    with_context(|context| {
+        let result = teams_monitor(context, &json!({"action": "enable"}));
+        assert!(result.is_err());
+        let error_msg = result.unwrap_err().to_string();
+        assert!(error_msg.contains("authentication required"));
+    });
 }
 
 #[test]
@@ -42,8 +58,20 @@ fn disable_action_returns_success_with_enabled_false() {
 #[test]
 fn status_action_returns_current_config_state() {
     with_context(|context| {
-        run(context, json!({"action":"enable"}));
-        assert_eq!(run(context, json!({"action":"status"}))["enabled"], true);
+        let response = run(context, json!({"action":"status"}));
+        assert_eq!(response["action"], "status");
+        assert_eq!(
+            response["config"],
+            json!({
+                "clientId": null,
+                "tenantId": null,
+                "keywords": [],
+                "senderAllowList": null,
+                "senderDenyList": null,
+                "cooldownSeconds": 60,
+                "dispatchAgent": null,
+            })
+        );
     });
 }
 

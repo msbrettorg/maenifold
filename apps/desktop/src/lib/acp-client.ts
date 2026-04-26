@@ -1,9 +1,11 @@
-import type {
+import {
+  AGENT_METHODS,
+  type Agent,
   AuthenticateRequest,
   AuthenticateResponse,
-  Client,
   InitializeRequest,
   InitializeResponse,
+  ListSessionsRequest,
   LoadSessionRequest,
   LoadSessionResponse,
   NewSessionRequest,
@@ -21,14 +23,14 @@ import { AcpClientBridgeCore } from './acp-client-core';
 import { PermissionHandler } from './acp-permissions';
 import type { AgentInstance } from './types';
 
-const SESSION_SET_CONFIG_OPTION_METHOD = 'session/set_config_option';
-const SESSION_CLOSE_METHOD = 'session/close';
+const SESSION_SET_CONFIG_OPTION_METHOD = AGENT_METHODS.session_set_config_option;
+const SESSION_CLOSE_METHOD = AGENT_METHODS.session_close;
 
-export class AcpClientBridge extends AcpClientBridgeCore implements Client {
+export class AcpClientBridge extends AcpClientBridgeCore implements Agent {
   private supportsSessionCloseRequest = false;
 
   async initialize(params: InitializeRequest): Promise<InitializeResponse> {
-    const response = await this.sendRequest<InitializeResponse>('initialize', {
+    const response = await this.sendRequest<InitializeResponse>(AGENT_METHODS.initialize, {
       ...withAcpMeta(params),
       clientCapabilities: withExtensionCapabilities(params.clientCapabilities),
     });
@@ -45,22 +47,22 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Client {
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
-    return this.sendRequest<NewSessionResponse>('session/new', params);
+    return this.sendRequest<NewSessionResponse>(AGENT_METHODS.session_new, params);
   }
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
-    return this.sendRequest<LoadSessionResponse>('session/load', params);
+    return this.sendRequest<LoadSessionResponse>(AGENT_METHODS.session_load, params);
   }
 
-  async listSessions(params?: { cwd?: string; cursor?: string }): Promise<{
+  async listSessions(params?: ListSessionsRequest): Promise<{
     sessions: Array<{ sessionId: string; cwd: string; title?: string; updatedAt?: string }>;
     nextCursor?: string;
   }> {
-    return this.sendRequest('session/list', params ?? {});
+    return this.sendRequest(AGENT_METHODS.session_list, params ?? {});
   }
 
   async prompt(params: PromptRequest): Promise<PromptResponse> {
-    return this.sendRequest<PromptResponse>('session/prompt', params);
+    return this.sendRequest<PromptResponse>(AGENT_METHODS.session_prompt, params);
   }
 
   async unstable_setSessionConfigOption(params: {
@@ -80,7 +82,7 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Client {
   }
 
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {
-    return this.sendRequest<AuthenticateResponse>('authenticate', params);
+    return this.sendRequest<AuthenticateResponse>(AGENT_METHODS.authenticate, params);
   }
 }
 

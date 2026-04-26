@@ -1,27 +1,28 @@
-import type {
-  CancelNotification,
-  ReadTextFileRequest,
-  ReadTextFileResponse,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
-  SessionNotification,
-  WriteTextFileRequest,
-  WriteTextFileResponse,
+import {
+  AGENT_METHODS,
+  ClientSideConnection,
+  type AnyMessage,
+  type CancelNotification,
+  type Client,
+  type ReadTextFileRequest,
+  type ReadTextFileResponse,
+  type RequestPermissionRequest,
+  type RequestPermissionResponse,
+  type SessionNotification,
+  type Stream,
+  type WriteTextFileRequest,
+  type WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
 import { useTrafficStore } from '../stores/traffic';
 import { handleReadTextFileRequest, handleWriteTextFileRequest } from './acp-file-system';
+import { withAcpMeta } from './acp-meta';
 import { PermissionHandler } from './acp-permissions';
 import { DAEMON_BASE_URL } from './daemon-url';
 import {
   asJsonRpcRecord,
-  createJsonRpcErrorResponse,
-  createJsonRpcNotification,
-  createJsonRpcRequest,
-  createJsonRpcSuccessResponse,
   isJsonRpcNotification,
   isJsonRpcRequest,
   isJsonRpcResponse,
-  type JsonRpcError,
   type JsonRpcId,
 } from './acp-rpc';
 
@@ -44,15 +45,12 @@ function buildRelayUrl(agentName: string): string {
   return base.toString();
 }
 
-export class AcpClientBridgeCore {
+export class AcpClientBridgeCore implements Client {
   protected agentId: string;
   protected agentName: string;
   protected permissionHandler: PermissionHandler;
-  private messageResolvers: Map<JsonRpcId, (response: unknown) => void> = new Map();
-  private messageRejecters: Map<JsonRpcId, (error: Error) => void> = new Map();
+  private connection: ClientSideConnection | null = null;
   private pendingMethods: Map<JsonRpcId, string> = new Map();
-  private timeoutHandles: Map<JsonRpcId, ReturnType<typeof setTimeout>> = new Map();
-  private nextRequestId = 0;
   private socket: WebSocket | null = null;
   private transportClosed = false;
   private transportCloseReason: string | null = null;
@@ -69,33 +67,30 @@ export class AcpClientBridgeCore {
   }
 
   async connect(): Promise<void> {
-    if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+    if (this.socket && this.socket.readyState === WebSocket.OPEN && this.connection) {
       return;
     }
 
     this.transportClosed = false;
     this.transportCloseReason = null;
+    this.pendingMethods.clear();
 
     await new Promise<void>((resolve, reject) => {
       const socket = new WebSocket(buildRelayUrl(this.agentName));
       this.socket = socket;
+      this.connection = new ClientSideConnection(() => this, this.createWebSocketStream(socket));
 
       socket.addEventListener('open', () => resolve(), { once: true });
-      socket.addEventListener('error', () => {
-        reject(new Error(`Failed to connect ACP relay for ${this.agentName}`));
-      }, { once: true });
-      socket.addEventListener('message', (event) => {
-        if (typeof event.data === 'string') {
-          this.handleMessage(event.data);
-        }
-      });
+      socket.addEventListener(
+        'error',
+        () => reject(new Error(`Failed to connect ACP relay for ${this.agentName}`)),
+        { once: true }
+      );
       socket.addEventListener('close', (event) => {
         this.transportClosed = true;
         this.transportCloseReason = event.reason || `socket closed (${event.code})`;
         this.socket = null;
-        this.rejectPendingRequests(
-          new Error(`ACP agent terminated before responding (${this.agentName})`),
-        );
+        this.pendingMethods.clear();
       });
     });
   }
@@ -111,31 +106,13 @@ export class AcpClientBridgeCore {
   async disconnect(): Promise<void> {
     this.supportedAgentMethods.clear();
     this.cancelPermission();
-    this.rejectPendingRequests(new Error(`ACP client disconnected before response (${this.agentName})`));
+    this.pendingMethods.clear();
 
     const socket = this.socket;
     this.socket = null;
+    this.connection = null;
     if (socket && socket.readyState < WebSocket.CLOSING) {
       socket.close(1000, 'client disconnect');
-    }
-  }
-
-  private clearRequest(id: JsonRpcId): void {
-    const handle = this.timeoutHandles.get(id);
-    if (handle !== undefined) {
-      clearTimeout(handle);
-      this.timeoutHandles.delete(id);
-    }
-    this.messageResolvers.delete(id);
-    this.messageRejecters.delete(id);
-    this.pendingMethods.delete(id);
-  }
-
-  private rejectPendingRequests(error: Error): void {
-    const pendingRejecters = [...this.messageRejecters.entries()];
-    for (const [id, rejecter] of pendingRejecters) {
-      this.clearRequest(id);
-      rejecter(error);
     }
   }
 
@@ -144,72 +121,20 @@ export class AcpClientBridgeCore {
   }
 
   protected async sendRequest<T>(method: string, params?: unknown): Promise<T> {
-    const id = this.nextRequestId++;
-    const request = createJsonRpcRequest(id, method, params);
-    const store = getTrafficStore();
-    store.addEntry({
-      direction: 'out',
-      type: 'request',
-      method,
-      requestId: id,
-      payload: request,
-    });
-    this.pendingMethods.set(id, method);
-
-    if (import.meta.env.DEV) {
-    }
-    const timeoutMs = this.getTimeoutForMethod(method);
-
-    return new Promise((resolve, reject) => {
-      this.messageResolvers.set(id, (response) => {
-        resolve(response as T);
-      });
-      this.messageRejecters.set(id, reject);
-      try {
-        this.sendRaw(JSON.stringify(request));
-      } catch (e) {
-        this.clearRequest(id);
-        reject(e instanceof Error ? e : new Error(String(e)));
-        return;
-      }
-      const handle = setTimeout(() => {
-        if (this.messageResolvers.has(id)) {
-          this.clearRequest(id);
-          reject(new Error(`Request timeout: ${method}`));
-        }
-      }, timeoutMs);
-      this.timeoutHandles.set(id, handle);
-    });
+    const connection = this.requireConnection();
+    const request = connection.extMethod(method, withAcpMeta(params ?? {}));
+    return this.withTimeout(method, request as Promise<T>);
   }
 
   protected async sendNotification(method: string, params?: unknown): Promise<void> {
-    const notification = createJsonRpcNotification(method, params);
-    const store = getTrafficStore();
-    store.addEntry({
-      direction: 'out',
-      type: 'notification',
-      method,
-      payload: notification,
-    });
-
-    this.sendRaw(JSON.stringify(notification));
-  }
-
-  private sendRaw(payload: string): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      throw new Error(`ACP relay socket is not connected (${this.agentName})`);
-    }
-
-    this.socket.send(payload);
+    await this.requireConnection().extNotification(method, withAcpMeta(params ?? {}));
   }
 
   async cancel(params: CancelNotification): Promise<void> {
-    await this.sendNotification('session/cancel', params);
+    await this.sendNotification(AGENT_METHODS.session_cancel, params);
   }
 
-  async requestPermission(
-    params: RequestPermissionRequest
-  ): Promise<RequestPermissionResponse> {
+  async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
     return this.permissionHandler.requestPermission(params);
   }
 
@@ -223,7 +148,9 @@ export class AcpClientBridgeCore {
     }
   }
 
-  async sessionUpdate(_params: SessionNotification): Promise<void> {}
+  async sessionUpdate(params: SessionNotification): Promise<void> {
+    this.onSessionUpdate?.(params);
+  }
 
   async writeTextFile(params: WriteTextFileRequest): Promise<WriteTextFileResponse> {
     return handleWriteTextFileRequest(params);
@@ -233,122 +160,136 @@ export class AcpClientBridgeCore {
     return handleReadTextFileRequest(params);
   }
 
-  private handleMessage(message: string): void {
-    try {
-      const parsed = asJsonRpcRecord(JSON.parse(message));
-      const store = getTrafficStore();
-
-      if (isJsonRpcResponse(parsed)) {
-        const method = this.pendingMethods.get(parsed.id) || 'unknown';
-        const resolver = this.messageResolvers.get(parsed.id);
-        const rejecter = this.messageRejecters.get(parsed.id);
-        this.clearRequest(parsed.id);
-        store.addEntry({
-          direction: 'in',
-          type: 'response',
-          method,
-          requestId: parsed.id,
-          payload: parsed,
-          error: !!parsed.error,
-        });
-        if (resolver && rejecter) {
-          if (parsed.error) {
-            console.error('JSON-RPC error:', parsed.error);
-            rejecter(new Error(parsed.error.message || 'Unknown error'));
-          } else {
-            resolver(parsed.result);
-          }
-        }
-      }
-
-      if (isJsonRpcRequest(parsed)) {
-        store.addEntry({
-          direction: 'in',
-          type: 'request',
-          method: parsed.method,
-          requestId: parsed.id,
-          payload: parsed,
-        });
-        void this.handleRequest(parsed.id, parsed.method, parsed.params);
-      }
-
-      if (isJsonRpcNotification(parsed)) {
-        store.addEntry({
-          direction: 'in',
-          type: 'notification',
-          method: parsed.method,
-          payload: parsed,
-        });
-        this.handleNotification(parsed.method, parsed.params);
-      }
-    } catch (e) {
-      console.error('Failed to parse message:', message, e);
-    }
-  }
-
-  private async handleRequest(id: JsonRpcId, method: string, params: unknown): Promise<void> {
-    let result: unknown;
-    let error: JsonRpcError | undefined;
-
-    try {
-      switch (method) {
-        case 'fs/read_text_file':
-          result = await this.readTextFile(params as ReadTextFileRequest);
-          break;
-        case 'fs/write_text_file':
-          result = await this.writeTextFile(params as WriteTextFileRequest);
-          break;
-        case 'session/request_permission':
-          result = await this.requestPermission(params as RequestPermissionRequest);
-          break;
-        default:
-          error = { code: -32601, message: `Method not found: ${method}` };
-      }
-    } catch (e) {
-      const code =
-        typeof (e as { code?: unknown })?.code === 'number' ? (e as { code: number }).code : -32603;
-      error = { code, message: e instanceof Error ? e.message : String(e) };
-    }
-
-    const response = error
-      ? createJsonRpcErrorResponse(id, error)
-      : createJsonRpcSuccessResponse(id, result);
-    const store = getTrafficStore();
-    store.addEntry({
-      direction: 'out',
-      type: 'response',
-      method,
-      requestId: id,
-      payload: response,
-      error: !!error,
-    });
-    this.sendRaw(JSON.stringify(response));
-  }
-
-  private handleNotification(method: string, params: unknown): void {
-    if (method === 'session/update' && this.onSessionUpdate) {
-      this.onSessionUpdate(params as SessionNotification);
+  async extNotification(method: string, params: Record<string, unknown>): Promise<void> {
+    if (method !== '_relay/stderr') {
       return;
     }
 
-    if (method === '_relay/stderr' && this.onStderr) {
-      const line = typeof (params as { data?: unknown })?.data === 'string'
-        ? (params as { data: string }).data
-        : '';
-      if (line) {
-        this.onStderr(line);
-      }
+    const line = typeof params.data === 'string' ? params.data : '';
+    if (line) {
+      this.onStderr?.(line);
     }
+  }
+
+  private requireConnection(): ClientSideConnection {
+    if (!this.connection) {
+      throw new Error(`ACP relay socket is not connected (${this.agentName})`);
+    }
+    return this.connection;
+  }
+
+  // SDK parity gap: no browser WebSocket relay Stream adapter with traffic-store hooks.
+  private createWebSocketStream(socket: WebSocket): Stream {
+    let readableClosed = false;
+    const closeReadable = (controller: ReadableStreamDefaultController<AnyMessage>) => {
+      if (!readableClosed) {
+        readableClosed = true;
+        controller.close();
+      }
+    };
+
+    const readable = new ReadableStream<AnyMessage>({
+      start: (controller) => {
+        socket.addEventListener('message', (event) => {
+          if (typeof event.data !== 'string' || readableClosed) return;
+          try {
+            const message = asJsonRpcRecord(JSON.parse(event.data)) as AnyMessage;
+            this.recordTraffic('in', message);
+            controller.enqueue(message);
+          } catch (error) {
+            controller.error(error);
+          }
+        });
+        socket.addEventListener('close', () => closeReadable(controller));
+        socket.addEventListener('error', () => {
+          controller.error(new Error(`ACP relay socket errored (${this.agentName})`));
+        });
+      },
+      cancel: () => {
+        if (socket.readyState < WebSocket.CLOSING) {
+          socket.close(1000, 'stream cancelled');
+        }
+      },
+    });
+
+    const writable = new WritableStream<AnyMessage>({
+      write: (message) => {
+        if (socket.readyState !== WebSocket.OPEN) {
+          throw new Error(`ACP relay socket is not connected (${this.agentName})`);
+        }
+        this.recordTraffic('out', message);
+        socket.send(JSON.stringify(message));
+      },
+    });
+
+    return { readable, writable };
+  }
+
+  private recordTraffic(direction: 'in' | 'out', message: AnyMessage): void {
+    const parsed = asJsonRpcRecord(message);
+    const store = getTrafficStore();
+
+    if (isJsonRpcResponse(parsed)) {
+      const id = parsed.id as JsonRpcId;
+      const method = this.pendingMethods.get(id) || 'unknown';
+      this.pendingMethods.delete(id);
+      store.addEntry({
+        direction,
+        type: 'response',
+        method,
+        requestId: id,
+        payload: message,
+        error: 'error' in parsed,
+      });
+      return;
+    }
+
+    if (isJsonRpcRequest(parsed)) {
+      const id = parsed.id as JsonRpcId;
+      if (direction === 'out') {
+        this.pendingMethods.set(id, parsed.method);
+      }
+      store.addEntry({
+        direction,
+        type: 'request',
+        method: parsed.method,
+        requestId: id,
+        payload: message,
+      });
+      return;
+    }
+
+    if (isJsonRpcNotification(parsed)) {
+      store.addEntry({ direction, type: 'notification', method: parsed.method, payload: message });
+    }
+  }
+
+  private withTimeout<T>(method: string, request: Promise<T>): Promise<T> {
+    // SDK parity gap: ClientSideConnection owns pending responses but does not expose
+    // per-method timeout configuration, so the bridge retains the UI-level timeout policy.
+    return new Promise((resolve, reject) => {
+      const handle = setTimeout(
+        () => reject(new Error(`Request timeout: ${method}`)),
+        this.getTimeoutForMethod(method)
+      );
+      request.then(
+        (value) => {
+          clearTimeout(handle);
+          resolve(value);
+        },
+        (error) => { clearTimeout(handle); reject(error); }
+      );
+    });
   }
 
   private getTimeoutForMethod(method: string): number {
     switch (method) {
-      case 'session/prompt':
+      case AGENT_METHODS.session_prompt:
       case 'terminal/wait_for_exit':
-      case 'session/set_config_option':
+      case AGENT_METHODS.session_set_config_option:
         return 30 * 60 * 1000;
       case 'terminal/create':
-      case 'session/load':
+      case AGENT_METHODS.session_load:
         return 5 * 60 * 1000;
       default:
         return 60 * 1000;

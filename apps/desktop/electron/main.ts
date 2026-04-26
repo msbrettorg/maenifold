@@ -207,6 +207,13 @@ function registerIpcHandlers(): void {
     const tokenPath = join(maenifoldRoot(), 'auth', 'localhost.token');
     return (await readFile(tokenPath, 'utf8')).trim();
   });
+  ipcMain.handle('check-env-vars', (_event, names: string[]) => {
+    const result: Record<string, boolean> = {};
+    for (const name of names) {
+      result[name] = !!process.env[name];
+    }
+    return result;
+  });
   registerVec0Handlers();
   registerVoiceHandlers();
 }

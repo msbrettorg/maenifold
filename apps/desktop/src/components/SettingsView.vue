@@ -6,9 +6,10 @@ import SettingsMcpServers from './SettingsMcpServers.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 import SettingsSchedules from './SettingsSchedules.vue';
+import SettingsEasterEggs from './SettingsEasterEggs.vue';
 import TeamsSettings from './teams/TeamsSettings.vue';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare } from 'lucide-vue-next';
+import { MessageSquare, Sparkles } from 'lucide-vue-next';
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
@@ -16,6 +17,7 @@ const sections = [
   { id: 'maenifold', label: 'Maenifold', description: 'Configure maenifold runtime behavior and tuning.' },
   { id: 'embeddings', label: 'Embeddings', description: 'Manage embedding models and vector index.' },
   { id: 'schedules', label: 'Schedules', description: 'Manage recurring agent tasks and automations.' },
+  { id: 'easter-eggs', label: 'Easter Eggs', description: 'Experimental features and visual surprises.', icon: Sparkles },
   { id: 'teams', label: 'Teams', description: 'Configure Teams monitor keywords, senders, and dispatch.', icon: MessageSquare, component: TeamsSettings },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
@@ -47,6 +49,7 @@ const sections = [
         <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
         <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
         <TabsContent value="schedules"><SettingsSchedules /></TabsContent>
+        <TabsContent value="easter-eggs"><SettingsEasterEggs /></TabsContent>
         <TabsContent value="teams"><TeamsSettings /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
       </ScrollArea>

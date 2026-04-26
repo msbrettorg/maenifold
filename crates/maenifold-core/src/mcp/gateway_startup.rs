@@ -6,6 +6,7 @@ use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::resource_routing::ResourceRoutingRegistry;
+use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use rmcp::model::Tool;
@@ -85,6 +86,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                                     &passthrough_tools,
                                     &registry,
                                 )?;
+                                resources::set_gateway_catalog(Arc::new(catalog.clone()));
                                 let counts = gateway_tool_counts(
                                     &consolidated_tools,
                                     &passthrough_tools,
@@ -162,6 +164,7 @@ async fn native_only_gateway() -> Result<GatewayStartup> {
     let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
     let catalog = GatewayCatalog::build(&[], &[], &routing)?;
+    resources::set_gateway_catalog(Arc::new(catalog.clone()));
     info!(
         "Gateway tools: {} native commands indexed (no upstream servers configured)",
         native_tools.len()

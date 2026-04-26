@@ -41,9 +41,9 @@ use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::{mcp::gateway_handler::GatewayState, util::json::OutputFormat};
 use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
-    ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
-    SubscribeRequestParams, Tool, UnsubscribeRequestParams,
+    CallToolRequestParams, CallToolResult, Content, Implementation, ListResourceTemplatesResult,
+    ListResourcesResult, ListToolsResult, ReadResourceRequestParams, ReadResourceResult,
+    ServerCapabilities, ServerInfo, SubscribeRequestParams, Tool, UnsubscribeRequestParams,
 };
 use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Value, json};
@@ -156,6 +156,11 @@ impl ServerHandler for MaenifoldHandler {
             result.resources.extend(gateway.list_resources());
         }
         Ok(result)
+    }
+    fn list_resource_templates(&self, _request: Option<rmcp::model::PaginatedRequestParams>, _context: rmcp::service::RequestContext<rmcp::RoleServer>) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>> + Send + '_ {
+        std::future::ready(
+            self::resources::handle_list_resource_templates().map_err(self::resources::map_resource_error),
+        )
     }
     fn read_resource(
         &self,

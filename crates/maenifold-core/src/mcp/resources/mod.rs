@@ -1,9 +1,10 @@
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::stdio_pool::StdioPool;
 use rmcp::RoleServer;
 use rmcp::model::{ListResourceTemplatesResult, ListResourcesResult, ReadResourceResult};
 use rmcp::service::RequestContext;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 pub mod agent;
 mod asset;
@@ -18,6 +19,18 @@ pub mod throttle;
 pub mod workflow;
 
 pub use subscription::{AssetWatcherState, notify_resource_updated, start_asset_watcher};
+
+static GATEWAY_CATALOG: RwLock<Option<Arc<GatewayCatalog>>> = RwLock::new(None);
+
+pub(crate) fn set_gateway_catalog(catalog: Arc<GatewayCatalog>) {
+    if let Ok(mut guard) = GATEWAY_CATALOG.write() {
+        *guard = Some(catalog);
+    }
+}
+
+pub(crate) fn gateway_catalog() -> Option<Arc<GatewayCatalog>> {
+    GATEWAY_CATALOG.read().ok().and_then(|guard| guard.clone())
+}
 
 // T-12.8: RTM FR-11 — resources/list assembly now lives in mcp/resources.
 pub fn handle_list_resources() -> Result<ListResourcesResult> {
@@ -39,6 +52,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
 pub fn handle_list_resource_templates() -> Result<ListResourceTemplatesResult> {
     let mut resource_templates = graph::list_resource_templates();
     resource_templates.extend(agent::list_resource_templates());
+    resource_templates.extend(gateway::list_resource_templates());
     resource_templates.extend(pipeline::list_resource_templates());
     resource_templates.extend(schedule::list_resource_templates());
     resource_templates.extend(workflow::list_resource_templates());

@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import SettingsMcpServersDetail from './SettingsMcpServersDetail.vue';
 import SettingsMcpServersList from './SettingsMcpServersList.vue';
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import type { AgentsConfig, McpServerEntry } from '../lib/types';
 import { useConfigStore } from '../stores/config';
 import {
@@ -118,12 +118,12 @@ async function handleSubmit() {
   try {
     const entry = buildEntry();
     const response = editingServer.value
-      ? await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(editingServer.value)}`, {
+      ? await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(editingServer.value)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ entry }),
         })
-      : await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers`, {
+      : await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ entry }),
@@ -161,7 +161,7 @@ async function confirmDeleteServer() {
 
   try {
     feedback.value = null;
-    const response = await fetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(name)}`, {
+    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/mcp-servers/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     configStore.updateFromEvent(await parseConfigResponse(response, 'Delete MCP server'));

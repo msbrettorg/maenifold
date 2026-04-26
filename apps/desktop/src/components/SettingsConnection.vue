@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { AgentConfig, AgentsConfig, McpServerEntry } from '../lib/types';
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import { useConfigStore } from '../stores/config';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import SettingsConnectionAgents from './SettingsConnectionAgents.vue';
@@ -168,12 +168,12 @@ async function handleSubmit() {
       mcpServers: buildMcpServers(form.mcpServers),
     };
     const response = editingAgent.value
-      ? await fetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(form.name)}`, {
+      ? await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(form.name)}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ config }),
         })
-      : await fetch(`${DAEMON_BASE_URL}/api/config/agents`, {
+      : await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: form.name, config }),
@@ -208,7 +208,7 @@ async function confirmDeleteAgent() {
   if (!name) return;
 
   try {
-    const response = await fetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(name)}`, {
+    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(name)}`, {
       method: 'DELETE',
     });
     configStore.updateFromEvent(await parseConfigResponse(response, 'Delete agent'));

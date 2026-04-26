@@ -14,6 +14,7 @@ use crate::api::{
 use crate::mcp::stdio_pool::StdioPool;
 use crate::{Config, db};
 use axum::{
+    middleware,
     Router,
     extract::{Query, State},
     http::StatusCode,
@@ -51,7 +52,7 @@ impl ApiState {
         }
     }
 
-    pub(super) fn config(&self) -> Config {
+    pub(crate) fn config(&self) -> Config {
         self.config.read().clone()
     }
 
@@ -114,12 +115,14 @@ where
 }
 
 pub fn api_routes(state: ApiState) -> Router {
-    Router::new()
+    let read_routes = Router::new()
         .route("/api/config", get(get_config_handler))
         .route("/api/config/path", get(get_config_path_handler))
         .route("/api/config/watch", get(config_watch_handler))
+        .route("/api/machine-id", get(machine_id_handler));
+
+    let mutation_routes = Router::new()
         .route("/api/config/reload", post(reload_config_handler))
-        .route("/api/machine-id", get(machine_id_handler))
         .route("/api/config/agents", post(add_agent_handler))
         .route(
             "/api/config/agents/{name}",
@@ -131,6 +134,14 @@ pub fn api_routes(state: ApiState) -> Router {
             put(update_mcp_server_handler).delete(delete_mcp_server_handler),
         )
         .route("/api/config/settings", post(update_settings_handler))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            crate::api::auth::require_bearer_token,
+        ));
+
+    Router::new()
+        .merge(read_routes)
+        .merge(mutation_routes)
         .route("/api/files/text", get(file_text))
         .route("/api/graph/nodes", get(graph_nodes))
         .route("/api/graph/edges", get(graph_edges))

@@ -2,7 +2,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
 
 interface ConfigChangedEventPayload {
@@ -59,7 +59,7 @@ export const useConfigStore = defineStore('config', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await fetch(`${DAEMON_BASE_URL}/api/config/reload`, {
+      const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/reload`, {
         method: 'POST',
       });
       if (!response.ok) {
@@ -148,7 +148,7 @@ export const useConfigStore = defineStore('config', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await fetch(`${DAEMON_BASE_URL}/api/config/agents`, {
+      const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, config: agent }),

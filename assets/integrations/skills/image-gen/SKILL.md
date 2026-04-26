@@ -400,6 +400,8 @@ background falloff. Epic scale.
 
 **Agents MUST preview the prompt to the user before calling the API.** Show the exact prompt text and all parameters (size, quality, n). Wait for approval. Do not inject style biases, aesthetic nudges, or creative direction that the user didn't ask for. The model's thinking mode will make its own creative decisions — your job is to faithfully translate the user's intent, not art-direct on their behalf.
 
+**Agents MUST always save the image and report the file path.** Never discard output to `/dev/null` or skip saving. Every API call costs money and time — the output is always worth keeping. Use `generate.sh` which handles this automatically.
+
 Bad: User says "visual endophasia" → agent adds "hieroglyphic narrative, ancient Egyptian symbols, glowing luminous imagery"
 Good: User says "visual endophasia" → agent writes "A visual representation of interconnected thought clusters, rendered as imagery rather than text" and lets the model decide the style.
 

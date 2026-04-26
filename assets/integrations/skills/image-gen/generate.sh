@@ -193,7 +193,7 @@ echo "   HTTP 200 on attempt ${ATTEMPT}"
 
 # ── Decode & save ─────────────────────────────────────────────────────────────
 python3 -c "
-import json, base64, sys, time
+import json, base64, sys, time, os
 
 with open('$TMPFILE') as f:
     data = json.load(f)
@@ -210,13 +210,13 @@ ts = int(time.time())
 saved = []
 for i, img in enumerate(data['data']):
     suffix = f'_{i+1}' if len(data['data']) > 1 else ''
-    fp = f'$OUTPUT_DIR/${LABEL}_{ts}{suffix}.${FORMAT}'
+    fp = os.path.abspath(f'$OUTPUT_DIR/${LABEL}_{ts}{suffix}.${FORMAT}')
     raw = base64.b64decode(img['b64_json'])
     with open(fp, 'wb') as f:
         f.write(raw)
     mb = len(raw) / 1_048_576
     saved.append(fp)
-    print(f'✅ Saved: {fp} ({mb:.1f} MB)')
+    print(f'✅ {fp} ({mb:.1f} MB)')
 
 with open('/tmp/gpt2_last_outputs.txt', 'w') as f:
     f.write('\n'.join(saved))

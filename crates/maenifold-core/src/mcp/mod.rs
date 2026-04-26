@@ -1,5 +1,7 @@
 mod cors;
 pub(crate) mod domain_mapping;
+pub(crate) mod gateway_batch;
+pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
 #[cfg(test)]
 mod gateway_catalog_domain_tests;

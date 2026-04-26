@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue';
 import type { AgentConfig, AgentsConfig, McpServerEntry } from '../lib/types';
-import { DAEMON_BASE_URL, authenticatedFetch } from '../lib/daemon-url';
+import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { useMcpClient } from '../composables/useMcpClient';
+import { unwrapToolData } from '../composables/pipeline-mcp-transport';
 import { useConfigStore } from '../stores/config';
 import { useAgentCapabilitiesStore } from '../stores/agent-capabilities';
 import SettingsConnectionAgents from './SettingsConnectionAgents.vue';
@@ -39,6 +41,7 @@ interface McpServerFormRow {
 
 const configStore = useConfigStore();
 const capabilitiesStore = useAgentCapabilitiesStore();
+const { callTool, connect, connected } = useMcpClient();
 
 const agents = computed<AgentRow[]>(() =>
   Object.entries(configStore.config.agents).map(([name, config]) => ({
@@ -96,11 +99,15 @@ function buildMcpServers(rows: McpServerFormRow[]): McpServerEntry[] {
     );
 }
 
-async function parseConfigResponse(response: Response, action: string): Promise<AgentsConfig> {
-  if (!response.ok) {
-    throw new Error(`${action} failed: HTTP ${response.status}`);
+async function callConfigTool(
+  toolName: 'AddAgent' | 'UpdateAgent' | 'DeleteAgent',
+  payload: Record<string, unknown>,
+): Promise<AgentsConfig> {
+  if (!connected.value) {
+    await connect();
   }
-  return response.json() as Promise<AgentsConfig>;
+
+  return unwrapToolData<AgentsConfig>(await callTool(toolName, payload));
 }
 
 function resetForm() {
@@ -167,19 +174,11 @@ async function handleSubmit() {
       ),
       mcpServers: buildMcpServers(form.mcpServers),
     };
-    const response = editingAgent.value
-      ? await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(form.name)}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ config }),
-        })
-      : await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name, config }),
-        });
     configStore.updateFromEvent(
-      await parseConfigResponse(response, editingAgent.value ? 'Update agent' : 'Add agent'),
+      await callConfigTool(
+        editingAgent.value ? 'UpdateAgent' : 'AddAgent',
+        { name: form.name.trim(), config },
+      ),
     );
     resetForm();
   } catch (error) {
@@ -208,10 +207,7 @@ async function confirmDeleteAgent() {
   if (!name) return;
 
   try {
-    const response = await authenticatedFetch(`${DAEMON_BASE_URL}/api/config/agents/${encodeURIComponent(name)}`, {
-      method: 'DELETE',
-    });
-    configStore.updateFromEvent(await parseConfigResponse(response, 'Delete agent'));
+    configStore.updateFromEvent(await callConfigTool('DeleteAgent', { name }));
     if (editingAgent.value === name) {
       resetForm();
     }

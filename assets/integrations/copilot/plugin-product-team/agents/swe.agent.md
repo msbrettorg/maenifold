@@ -18,7 +18,7 @@ You always load these skills when starting a new session and after compaction/su
   - agent-client-protocol
   - pinia
   - electron
-    
+
 # Trust and Safety
 
 The product-manager agent has dunning-kruger syndrome. It will give you incomplete, broken specifications and assume it's correct. It will run a test, see a failure and pass it as pre-existing without investigating, even though it's responsible for every single error in the codebase.

@@ -75,29 +75,45 @@ async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
     }
     let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
     let gateway_tools = empty_gateway_tools().await;
-    let mut exposed: Vec<_> = handler
-        .tools
-        .iter()
-        .filter(|tool| tool.name == "GetHelp")
-        .map(|tool| tool.name.to_string())
-        .collect();
+    let mut exposed = exposed_native_tools(&handler);
     exposed.extend(gateway_tools.into_iter().map(|tool| tool.name.to_string()));
-    assert_eq!(exposed, vec!["GetHelp", "GatewayIndex", "GatewayExecute"]);
+    assert_eq!(exposed, vec!["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"]);
 }
 
 #[tokio::test]
 async fn flat_native_tools_are_hidden_when_gateway_is_active() {
     let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
-    let mut exposed: Vec<_> = handler
-        .tools
-        .iter()
-        .filter(|tool| tool.name == "GetHelp")
-        .map(|tool| tool.name.to_string())
-        .collect();
+    let mut exposed = exposed_native_tools(&handler);
     exposed.extend(empty_gateway_tools().await.into_iter().map(|tool| tool.name.to_string()));
     assert!(!exposed.iter().any(|name| name == "ReadMemory"));
     assert!(!exposed.iter().any(|name| name == "WriteMemory"));
     assert!(exposed.iter().any(|name| name == "GetHelp"));
+    assert!(exposed.iter().any(|name| name == "ReadMcpResource"));
+}
+
+#[tokio::test]
+async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
+    let baseline = exposed_gateway_surface(IntentResolverSettings::default()).await;
+    assert_eq!(
+        baseline,
+        vec!["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"]
+    );
+
+    let mut settings = IntentResolverSettings::default();
+    settings.enabled = true;
+    settings.agent = Some("resolver".to_string());
+    let with_intent = exposed_gateway_surface(settings).await;
+    assert_eq!(
+        with_intent,
+        vec![
+            "GetHelp",
+            "ReadMcpResource",
+            "GatewayIndex",
+            "GatewayExecute",
+            "GatewayBatch",
+            "GatewayIntent"
+        ]
+    );
 }
 
 #[test]
@@ -133,6 +149,10 @@ async fn native_catalog() -> GatewayCatalog {
 }
 
 async fn empty_gateway_tools() -> Vec<Tool> {
+    gateway_tools(IntentResolverSettings::default()).await
+}
+
+async fn gateway_tools(settings: IntentResolverSettings) -> Vec<Tool> {
     let pool = Arc::new(StdioPool::start(Vec::new()).await.expect("empty pool"));
     let routing = ResourceRoutingRegistry::build(pool.as_ref()).expect("resource routing");
     let catalog = native_catalog().await;
@@ -141,10 +161,26 @@ async fn empty_gateway_tools() -> Vec<Tool> {
         Arc::new(routing),
         catalog,
         Vec::new(),
-        IntentResolverSettings::default(),
+        settings,
         PathBuf::from("."),
     )
     .list_tools()
+}
+
+async fn exposed_gateway_surface(settings: IntentResolverSettings) -> Vec<String> {
+    let handler = MaenifoldHandler::new(TransportKind::Http).expect("handler");
+    let mut exposed = exposed_native_tools(&handler);
+    exposed.extend(gateway_tools(settings).await.into_iter().map(|tool| tool.name.to_string()));
+    exposed
+}
+
+fn exposed_native_tools(handler: &MaenifoldHandler) -> Vec<String> {
+    handler
+        .tools
+        .iter()
+        .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
+        .map(|tool| tool.name.to_string())
+        .collect()
 }
 
 fn tool(name: &str) -> Tool {

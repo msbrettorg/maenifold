@@ -98,17 +98,8 @@ impl MaenifoldHandler {
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio => ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .enable_resources_subscribe()
-                .enable_resources_list_changed()
-                .build(),
-            TransportKind::Http => ServerCapabilities::builder()
-                .enable_tools()
-                .enable_resources()
-                .enable_resources_subscribe()
-                .build(),
+            TransportKind::Stdio => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().enable_resources_list_changed().build(),
+            TransportKind::Http => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().build(),
         };
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -135,7 +126,7 @@ impl ServerHandler for MaenifoldHandler {
             let mut tools: Vec<Tool> = self
                 .tools
                 .iter()
-                .filter(|tool| tool.name == "GetHelp")
+                .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
                 .cloned()
                 .collect();
             tools.extend(gateway.list_tools());
@@ -224,7 +215,7 @@ impl ServerHandler for MaenifoldHandler {
         };
         async move {
             if let Some(gateway) = self.gateway.clone() {
-                if tool_name != "GetHelp" {
+                if tool_name != "GetHelp" && tool_name != "ReadMcpResource" {
                     if let Some(gateway_result) =
                         gateway.handle_tool_call(&tool_name, arguments).await?
                     {

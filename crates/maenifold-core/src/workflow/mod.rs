@@ -23,6 +23,12 @@ mod submachine_tests;
 pub(crate) mod think_runner;
 mod think_runner_payloads;
 
+use std::sync::LazyLock;
+
+use tokio::runtime::{Builder, Handle, Runtime};
+
+use crate::mcp::resources::{notify_resource_updated, workflow::WORKFLOW_SESSIONS_URI};
+
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
 pub(crate) use handler::workflow;
 pub(crate) use handler_helpers::{
@@ -49,3 +55,29 @@ pub(crate) use submachine_register::{
     maybe_resume_submachine, register_host_submachine, register_workflow_submachine,
 };
 pub use think_runner::{ThinkOptions, ThinkResult};
+
+static NOTIFICATION_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
+    Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|error| format!("Failed to build workflow notification runtime: {error}"))
+});
+
+pub(crate) fn emit_workflow_resource_updated(session_id: &str) {
+    let session_uri = format!("workflow://session/{session_id}");
+
+    if let Ok(handle) = Handle::try_current() {
+        handle.spawn(async move {
+            notify_resource_updated(WORKFLOW_SESSIONS_URI).await;
+            notify_resource_updated(&session_uri).await;
+        });
+        return;
+    }
+
+    if let Ok(runtime) = NOTIFICATION_RUNTIME.as_ref() {
+        runtime.block_on(async {
+            notify_resource_updated(WORKFLOW_SESSIONS_URI).await;
+            notify_resource_updated(&session_uri).await;
+        });
+    }
+}

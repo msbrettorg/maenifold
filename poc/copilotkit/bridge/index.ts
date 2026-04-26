@@ -155,6 +155,7 @@ app.post("/", async (req, res) => {
   const threadId = String(body.threadId ?? body.thread_id ?? randomUUID());
   const runId = String(body.runId ?? body.run_id ?? randomUUID());
   const promptText = extractLatestUserText(body);
+  console.log("[bridge] RAW BODY:", JSON.stringify(raw, null, 2).slice(0, 2000));
   console.log("[bridge] Incoming request", { method: raw.method, threadId, promptText: promptText.slice(0, 80) });
 
   prepareSse(res);

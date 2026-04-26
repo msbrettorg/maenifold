@@ -5,7 +5,7 @@ import type { Response } from "express";
 import WebSocket, { type RawData } from "ws";
 
 const MAENIFOLD_PORT = process.env.MAENIFOLD_PORT ?? "8080";
-const AGENT_NAME = process.env.MAENIFOLD_AGENT ?? "copilot";
+const AGENT_NAME = process.env.MAENIFOLD_AGENT ?? "Copilot";
 const BRIDGE_PORT = Number(process.env.BRIDGE_PORT ?? "4000");
 const ACP_TARGET = `ws://127.0.0.1:${MAENIFOLD_PORT}/api/acp/session?agent=${encodeURIComponent(AGENT_NAME)}`;
 const SESSION_TTL_MS = 30 * 60 * 1000;

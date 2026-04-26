@@ -1,4 +1,4 @@
-use anyhow::{Result, anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 use croner::parser::CronParser;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -194,13 +194,15 @@ mod tests {
 
     #[test]
     fn rejects_invalid_natural_language_schedule() {
-        let error = parse_schedule("every blursday").expect_err("invalid natural language should fail");
+        let error =
+            parse_schedule("every blursday").expect_err("invalid natural language should fail");
         assert!(error.to_string().contains("invalid cron"));
     }
 
     #[test]
     fn rejects_bad_meridiem_time_format() {
-        let error = parse_schedule("every day at 13pm").expect_err("invalid meridiem time should fail");
+        let error =
+            parse_schedule("every day at 13pm").expect_err("invalid meridiem time should fail");
         assert!(error.to_string().contains("invalid cron"));
     }
 

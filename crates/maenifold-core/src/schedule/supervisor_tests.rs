@@ -1,7 +1,7 @@
 use super::build_payload;
 use crate::schedule::ScheduledTask;
 use chrono::Utc;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 fn task() -> ScheduledTask {
     ScheduledTask {

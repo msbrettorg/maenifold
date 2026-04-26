@@ -1,5 +1,5 @@
 use super::store::validate_schedule_id;
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -46,10 +46,7 @@ impl LockGuard {
                             if remove_error.kind() == std::io::ErrorKind::NotFound => {}
                         Err(remove_error) => {
                             return Err(remove_error).with_context(|| {
-                                format!(
-                                    "failed to remove stale lock '{}'",
-                                    lock_path.display()
-                                )
+                                format!("failed to remove stale lock '{}'", lock_path.display())
                             });
                         }
                     }
@@ -97,7 +94,11 @@ fn is_process_alive(pid: u32) -> bool {
         Err(_) => return false,
     };
     let result = unsafe { libc::kill(pid, 0) };
-    result == 0 || matches!(std::io::Error::last_os_error().raw_os_error(), Some(libc::EPERM))
+    result == 0
+        || matches!(
+            std::io::Error::last_os_error().raw_os_error(),
+            Some(libc::EPERM)
+        )
 }
 
 #[cfg(not(unix))]

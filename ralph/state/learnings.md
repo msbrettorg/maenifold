@@ -3,6 +3,27 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 2111 (5 Tasks Shipped)
+
+### Double gate-pass sends files to done/ without blue-team
+- T-221.5: Two rapid gate-pass calls moved task from red-team → remediate → blue-team → done without dispatching blue-team agent
+- Gate pass is immediate and non-reversible — each call advances one stage
+- **Lesson: NEVER call gate-pass twice in rapid succession on the same task. Always dispatch the stage agent and wait for results between passes.**
+
+### Config::current() Result propagation blast radius
+- T-221.11: Changing Config::current() to return Result touched 90 files (every caller)
+- Rework: handle Result at the call site with process::exit(1), keep Config::current() returning Self
+- **Lesson: Before changing a widely-used function's return type, count callers first. If >12, find a contained approach (handle at call site, use a wrapper, or add a separate fallback method).**
+
+### SWE agents skip tests unless explicitly told to write them
+- T-221.10: SWE created new module with 0 tests. Blue-team correctly caught this.
+- **Lesson: Every SWE dispatch for new code MUST include a test file in the implementation plan with explicit test cases listed. SWEs do not spontaneously write tests.**
+
+### T-221.8 overscoped — memory:// is not a resource scheme
+- Both architects found: memory:// is a tool path (ReadMemory), not a native MCP resource. Can't alias what doesn't exist.
+- ReadMcpResource is sync but gateway resources need async — fundamental plumbing gap.
+- **Lesson: Before specifying URI aliases, verify the canonical URI actually exists in the target subsystem (resources vs tools). They are different dispatch paths.**
+
 ## 2026-04-25 — Iteration 1956 (T-221.2/T-221.4 Spec Advancement)
 
 ### Gateway tools that need async pool access cannot be ToolRegistry native tools

@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::Frontmatter;
 use crate::sessions::workflow_session_uri;
 use crate::thinking::sequential_session_uri;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 // T-12.0: RTM NFR-1 keeps submachine registration and waiting/resume transitions isolated from queue helpers.
 

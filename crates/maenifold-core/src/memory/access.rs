@@ -13,7 +13,7 @@ use crate::tools::ToolContext;
 use crate::tools::with_hint;
 use crate::util::json::{OutputFormat, failure, success};
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 
 const MAX_MEMORY_SLUG_CHARS: usize = 252;

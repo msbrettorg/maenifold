@@ -1,5 +1,5 @@
 use chrono::{Duration, Utc};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::{read_markdown, write_markdown};
@@ -32,7 +32,7 @@ pub(super) fn persist_retryable_failure(
         derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
     let fallback_max_attempts = frontmatter
         .get("maxAttempts")
-        .and_then(serde_yaml::Value::as_u64)
+        .and_then(serde_yml::Value::as_u64)
         .unwrap_or(3) as u32;
     let prior_retry_count = extract_retry_count_from_state(node_states.get(node_id));
     let retry_count = retry_attempts.max(prior_retry_count);
@@ -180,7 +180,7 @@ pub(super) fn persist_workflow_retry_count(
     })?;
     frontmatter.insert(
         "retryCount".to_string(),
-        YamlValue::Number(serde_yaml::Number::from(retry_count)),
+        YamlValue::Number(serde_yml::Number::from(retry_count)),
     );
     write_markdown(&workflow_uri, Some(&frontmatter), &content, &context.config)
 }

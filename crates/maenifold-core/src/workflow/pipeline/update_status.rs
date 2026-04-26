@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use super::compute_blocked_cascade;
 use super::engine_ready::compute_unreachable_conditional_set;

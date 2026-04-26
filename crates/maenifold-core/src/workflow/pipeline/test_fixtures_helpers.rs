@@ -1,7 +1,7 @@
 use crate::markdown::{Frontmatter, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
 use super::{NodeState, NodeStatus, PipelineDefinition};
@@ -27,7 +27,7 @@ pub(super) fn pipeline_session_frontmatter(
 ) -> Frontmatter {
     let node_states_yaml: BTreeMap<String, YamlValue> = node_states
         .iter()
-        .map(|(key, value)| (key.clone(), serde_yaml::to_value(value).expect("yaml")))
+        .map(|(key, value)| (key.clone(), serde_yml::to_value(value).expect("yaml")))
         .collect();
     let mut frontmatter = Frontmatter::new();
     frontmatter.insert(
@@ -44,7 +44,7 @@ pub(super) fn pipeline_session_frontmatter(
     );
     frontmatter.insert(
         "definition".to_string(),
-        serde_yaml::to_value(definition).expect("serialize definition"),
+        serde_yml::to_value(definition).expect("serialize definition"),
     );
     frontmatter.insert(
         "nodeStates".to_string(),
@@ -63,7 +63,7 @@ pub(super) fn pipeline_session_frontmatter(
         );
         frontmatter.insert(
             "maxConcurrency".to_string(),
-            serde_yaml::to_value(max_concurrency).expect("yaml"),
+            serde_yml::to_value(max_concurrency).expect("yaml"),
         );
     }
 

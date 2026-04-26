@@ -1,4 +1,4 @@
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::{Frontmatter, file_exists, read_markdown, write_markdown};

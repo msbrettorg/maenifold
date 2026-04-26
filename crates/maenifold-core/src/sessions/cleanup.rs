@@ -4,7 +4,7 @@ use crate::db;
 use crate::error::Result;
 use crate::markdown::{read_markdown, write_markdown};
 use chrono::{DateTime, Utc};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::fs;
 use std::time::{Duration, UNIX_EPOCH};
 

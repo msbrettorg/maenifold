@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use crate::error::Result;
 use crate::markdown::read_markdown;

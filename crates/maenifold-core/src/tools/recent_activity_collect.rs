@@ -4,7 +4,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;
 use chrono::{TimeDelta, Utc};
 use rusqlite::{Connection, params};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 #[derive(Clone, Copy)]
 pub(super) enum RecentActivityFilter {
@@ -136,7 +136,7 @@ fn parse_frontmatter_summaries(content: &str) -> (Option<String>, Option<String>
     let Some((yaml_text, _body)) = split_embedded_frontmatter(content) else {
         return (None, None);
     };
-    let Ok(frontmatter) = serde_yaml::from_str::<YamlValue>(yaml_text) else {
+    let Ok(frontmatter) = serde_yml::from_str::<YamlValue>(yaml_text) else {
         return (None, None);
     };
 

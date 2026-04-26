@@ -3,7 +3,7 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::{DateTime, Utc};
 use serde_json::json;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
 use super::dispatch_non_workflow::activate_non_workflow_node_session;
@@ -51,7 +51,7 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         .get("last")
         .and_then(YamlValue::as_u64)
         .unwrap_or(0);
-    frontmatter.insert("last".to_string(), serde_yaml::to_value(last + 1)?);
+    frontmatter.insert("last".to_string(), serde_yml::to_value(last + 1)?);
 
     let mut dispatched = Vec::with_capacity(to_dispatch.len());
     for node_id in &to_dispatch {
@@ -77,7 +77,7 @@ pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Resu
         .get("cursor")
         .and_then(YamlValue::as_u64)
         .unwrap_or(0);
-    frontmatter.insert("cursor".to_string(), serde_yaml::to_value(cursor + 1)?);
+    frontmatter.insert("cursor".to_string(), serde_yml::to_value(cursor + 1)?);
 
     persist_pipeline_state(
         &mut frontmatter,

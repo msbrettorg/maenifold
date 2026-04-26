@@ -2,7 +2,7 @@ use super::paths::{file_exists, uri_to_path};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use chrono::{DateTime, Utc};
-use serde_yaml::{Mapping as YamlMapping, Value as YamlValue};
+use serde_yml::{Mapping as YamlMapping, Value as YamlValue};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
@@ -165,7 +165,7 @@ fn parse_frontmatter(full_text: &str, uri: &str) -> (Option<Frontmatter>, String
             return (None, content);
         }
 
-        match serde_yaml::from_str(yaml_text) {
+        match serde_yml::from_str(yaml_text) {
             Ok(frontmatter) => return (Some(frontmatter), content),
             Err(error) => {
                 // T-14.2: RTM FR-10 — Match C# oracle: warn and continue with null frontmatter.
@@ -268,7 +268,7 @@ fn render_frontmatter(frontmatter: &Frontmatter) -> Result<String> {
         mapping.insert(YamlValue::String(key.clone()), value.clone());
     }
 
-    Ok(serde_yaml::to_string(&mapping)?.trim_end().to_string())
+    Ok(serde_yml::to_string(&mapping)?.trim_end().to_string())
 }
 
 fn format_iso(date_time: DateTime<Utc>) -> String {

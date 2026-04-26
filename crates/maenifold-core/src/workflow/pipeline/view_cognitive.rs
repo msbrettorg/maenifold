@@ -5,7 +5,7 @@ use crate::thinking::sequential_session_uri;
 use crate::tools::ToolContext;
 use regex::Regex;
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 

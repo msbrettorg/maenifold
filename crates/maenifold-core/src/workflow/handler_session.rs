@@ -3,7 +3,7 @@ use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markd
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use serde_json::Value;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use super::{
     HostSessionType, ResumeSubmachineResult, build_workflow_response_content, format_workflow_step,

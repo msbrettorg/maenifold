@@ -112,6 +112,6 @@ pub(crate) fn set_current_step(
 ) {
     frontmatter.insert(
         "currentStep".to_string(),
-        serde_yaml::Value::Number(serde_yaml::Number::from(current_step as i64)),
+        serde_yml::Value::Number(serde_yml::Number::from(current_step as i64)),
     );
 }

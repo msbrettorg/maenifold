@@ -44,7 +44,7 @@ fn set_max_attempts(context: &crate::tools::ToolContext, session_id: &str, max_a
         read_pipeline_session(context, session_id).expect("read pipeline");
     frontmatter.insert(
         "maxAttempts".to_string(),
-        serde_yaml::to_value(max_attempts).expect("serialize max attempts"),
+        serde_yml::to_value(max_attempts).expect("serialize max attempts"),
     );
     write_markdown(&uri, Some(&frontmatter), &content, &context.config)
         .expect("write pipeline session");
@@ -53,10 +53,10 @@ fn set_max_attempts(context: &crate::tools::ToolContext, session_id: &str, max_a
 #[test]
 fn retrying_status_serializes_roundtrip() {
     let status = NodeStatus::Retrying;
-    let yaml = serde_yaml::to_string(&status).unwrap();
+    let yaml = serde_yml::to_string(&status).unwrap();
     assert_eq!(yaml.trim(), "retrying");
 
-    let deserialized: NodeStatus = serde_yaml::from_str(&yaml).unwrap();
+    let deserialized: NodeStatus = serde_yml::from_str(&yaml).unwrap();
     assert_eq!(deserialized, NodeStatus::Retrying);
 }
 

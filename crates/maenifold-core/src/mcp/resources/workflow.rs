@@ -8,7 +8,7 @@ use rmcp::model::{
     AnnotateAble, RawResource, ReadResourceResult, Resource, ResourceContents, ResourceTemplate,
 };
 use serde::Serialize;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::time::SystemTime;
 
 pub const WORKFLOW_SESSIONS_URI: &str = "workflow://sessions";

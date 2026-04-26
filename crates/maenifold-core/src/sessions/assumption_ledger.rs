@@ -11,7 +11,7 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::{Datelike, Utc};
 use serde_json::Value;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 
 pub fn assumption_ledger(context: &ToolContext, payload: &Value) -> Result<String> {

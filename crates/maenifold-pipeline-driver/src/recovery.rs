@@ -6,7 +6,7 @@ use maenifold_core::workflow::pipeline::{
     compute_pipeline_status_with_definition, recover_crashed_nodes,
 };
 use maenifold_core::{MaenifoldError, Result};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 use tracing::warn;
 
@@ -131,11 +131,11 @@ fn persist_pipeline_frontmatter(
     pipeline_content: &str,
     node_states: &HashMap<String, NodeState>,
 ) -> Result<()> {
-    frontmatter.insert("nodeStates".to_string(), serde_yaml::to_value(node_states)?);
+    frontmatter.insert("nodeStates".to_string(), serde_yml::to_value(node_states)?);
     let status = if let Some(definition) = frontmatter
         .get("definition")
         .cloned()
-        .and_then(|value| serde_yaml::from_value::<PipelineDefinition>(value).ok())
+        .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value).ok())
     {
         compute_pipeline_status_with_definition(&definition, node_states).to_string()
     } else {
@@ -156,7 +156,7 @@ fn pipeline_node_states(
     let node_states = frontmatter.get("nodeStates").cloned().ok_or_else(|| {
         MaenifoldError::Message("ERROR: Pipeline session missing frontmatter 'nodeStates'".into())
     })?;
-    serde_yaml::from_value(node_states).map_err(Into::into)
+    serde_yml::from_value(node_states).map_err(Into::into)
 }
 
 fn update_workflow_status(

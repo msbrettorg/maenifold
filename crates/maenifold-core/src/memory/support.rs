@@ -5,7 +5,7 @@ use crate::util::json::{OutputFormat, success};
 use regex::Regex;
 use rusqlite::params;
 use serde_json::{Value, json};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;

@@ -4,7 +4,7 @@ use crate::markdown::{file_exists, read_markdown, write_markdown};
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{HashMap, HashSet};
 
 use super::super::handler_validation::workflow_node_file;
@@ -92,11 +92,11 @@ pub(super) fn join_pipeline(
 
     target_frontmatter.insert(
         "definition".to_string(),
-        serde_yaml::to_value(&merged_definition)?,
+        serde_yml::to_value(&merged_definition)?,
     );
     target_frontmatter.insert(
         "nodeStates".to_string(),
-        serde_yaml::to_value(&merged_states)?,
+        serde_yml::to_value(&merged_states)?,
     );
     target_frontmatter.insert(
         "status".to_string(),

@@ -5,7 +5,7 @@ use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
 use super::super::handler_validation::workflow_node_file;
@@ -242,16 +242,16 @@ pub(super) fn fork_pipeline(
             retry_count: None,
         };
         node_states.insert(node.id().to_string(), state.clone());
-        node_states_frontmatter.insert(node.id().to_string(), serde_yaml::to_value(&state)?);
+        node_states_frontmatter.insert(node.id().to_string(), serde_yml::to_value(&state)?);
     }
     for (original_node_id, predecessor_outputs) in &fork_root_predecessor_context {
         let forked_node_id = &node_id_map[original_node_id];
-        if let Some(serde_yaml::Value::Mapping(map)) =
+        if let Some(serde_yml::Value::Mapping(map)) =
             node_states_frontmatter.get_mut(forked_node_id)
         {
             map.insert(
-                serde_yaml::Value::String("predecessorContext".to_string()),
-                serde_yaml::to_value(predecessor_outputs)?,
+                serde_yml::Value::String("predecessorContext".to_string()),
+                serde_yml::to_value(predecessor_outputs)?,
             );
         }
     }

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use serde::Deserialize;
 use serde_json::{Map as JsonMap, Value as JsonValue};
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::read_markdown;

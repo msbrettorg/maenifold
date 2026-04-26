@@ -9,7 +9,7 @@ use crate::markdown::{file_exists, find_file_as_uri, read_markdown, update_markd
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, failure};
 use serde_json::Value;
-use serde_yaml::Value as YamlValue;
+use serde_yml::Value as YamlValue;
 use std::collections::BTreeMap;
 
 // T-12.5: RTM FR-25.2 isolates edit/replace-section behavior from the

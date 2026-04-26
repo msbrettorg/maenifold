@@ -32,7 +32,7 @@ rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true
-serde_yaml.workspace = true
+serde_yml.workspace = true
 handlebars = "6"
 jsonschema = { version = "0.28", default-features = false }
 sha2.workspace = true

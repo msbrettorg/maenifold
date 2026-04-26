@@ -88,9 +88,9 @@ fn deserialize_optional_string<'de, D>(deserializer: D) -> Result<Option<String>
 where
     D: Deserializer<'de>,
 {
-    let value = Option::<serde_yaml::Value>::deserialize(deserializer)?;
+    let value = Option::<serde_yml::Value>::deserialize(deserializer)?;
     Ok(match value {
-        Some(serde_yaml::Value::String(value)) => Some(value),
+        Some(serde_yml::Value::String(value)) => Some(value),
         _ => None,
     })
 }
@@ -104,7 +104,7 @@ fn parse_frontmatter(lines: &[&str]) -> Result<Option<FrontmatterTask>, GateErro
     for line in lines.iter().skip(1) {
         if *line == "---" {
             let yaml = yaml_lines.join("\n");
-            let frontmatter = serde_yaml::from_str::<FrontmatterTask>(&yaml).map_err(|error| {
+            let frontmatter = serde_yml::from_str::<FrontmatterTask>(&yaml).map_err(|error| {
                 GateError::TaskMetadataParse(format!("invalid task frontmatter: {error}"))
             })?;
             return Ok(Some(frontmatter));

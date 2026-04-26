@@ -113,8 +113,16 @@ export function createMcpClientOps(options: {
   setError(message: string | null): void;
 }) {
   const domainMap = new Map<string, string>();
-  const gatewayPassthroughTools = new Set(['GetHelp', 'ReadMcpResource', 'GatewayIndex', 'GatewayExecute']);
+  const gatewayPassthroughTools = new Set([
+    'GetHelp',
+    'ReadMcpResource',
+    'GatewayIndex',
+    'GatewayExecute',
+    'GatewayBatch',
+    'GatewayIntent',
+  ]);
   let domainMapBuilt = false;
+  let domainMapBuildPromise: Promise<void> | null = null;
 
   async function buildDomainMap(): Promise<void> {
     try {
@@ -129,9 +137,9 @@ export function createMcpClientOps(options: {
       const indexData = JSON.parse(indexContent);
       const domains: Array<{ name: string }> = indexData.domains ?? [];
 
-      domainMap.clear();
+      const nextMap = new Map<string, string>();
 
-      await Promise.all(domains.map(async (domain) => {
+      await Promise.allSettled(domains.map(async (domain) => {
         const domainResult = await client.callTool({
           name: 'GatewayIndex',
           arguments: { domain: domain.name },
@@ -142,11 +150,15 @@ export function createMcpClientOps(options: {
         const commands: Array<{ name: string }> = domainData.commands ?? [];
         for (const command of commands) {
           if (!gatewayPassthroughTools.has(command.name)) {
-            domainMap.set(command.name, domain.name);
+            nextMap.set(command.name, domain.name);
           }
         }
       }));
 
+      domainMap.clear();
+      for (const [toolName, domainName] of nextMap) {
+        domainMap.set(toolName, domainName);
+      }
       domainMapBuilt = true;
     } catch {
       // GatewayIndex is unavailable when gateway routing is not active. In that
@@ -154,6 +166,16 @@ export function createMcpClientOps(options: {
       domainMap.clear();
       domainMapBuilt = true;
     }
+  }
+
+  async function ensureDomainMap(): Promise<void> {
+    if (domainMapBuilt) return;
+    if (!domainMapBuildPromise) {
+      domainMapBuildPromise = buildDomainMap().finally(() => {
+        domainMapBuildPromise = null;
+      });
+    }
+    await domainMapBuildPromise;
   }
 
   async function withReconnect<T>(operation: (client: SdkClient) => Promise<T>): Promise<T> {
@@ -202,9 +224,7 @@ export function createMcpClientOps(options: {
 
   async function callToolRaw(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult> {
     options.setError(null);
-    if (!domainMapBuilt) {
-      await buildDomainMap();
-    }
+    await ensureDomainMap();
     return withReconnect(async (client) => {
       const domain = gatewayPassthroughTools.has(name) ? undefined : domainMap.get(name);
       if (domain) {

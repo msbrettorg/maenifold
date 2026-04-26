@@ -72,9 +72,14 @@ async fn gateway_resolver_malformed_json_returns_structured_error() {
 async fn gateway_resolver_disabled_without_invoking_acp() {
     let catalog = catalog().await;
     let settings = IntentResolverSettings::default();
-    let err = resolve_intent(&catalog, &settings, "read memory", std::path::Path::new("."))
-        .await
-        .expect_err("disabled");
+    let err = resolve_intent(
+        &catalog,
+        &settings,
+        "read memory",
+        std::path::Path::new("."),
+    )
+    .await
+    .expect_err("disabled");
     assert!(matches!(err, ResolverError::Disabled { .. }));
 }
 

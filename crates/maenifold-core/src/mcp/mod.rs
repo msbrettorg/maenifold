@@ -3,18 +3,17 @@ pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
-#[cfg(test)]
-mod gateway_catalog_domain_tests;
+#[cfg(test)] mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
 mod gateway_handler;
+#[cfg(test)] mod gateway_integration_tests;
+mod gateway_intent;
+#[cfg(test)] mod gateway_intent_tests;
 mod gateway_resolver;
+#[cfg(test)] mod gateway_resolver_tests;
 mod gateway_resolver_types;
-#[cfg(test)]
-mod gateway_resolver_tests;
-#[cfg(test)]
-mod gateway_integration_tests;
 mod gateway_schema_validation;
 mod gateway_startup;
 pub mod http;
@@ -30,25 +29,21 @@ mod stdio_resource_reader;
 pub mod stdio_session;
 pub mod tool_routing;
 pub(crate) mod tool_utils;
-pub(crate) use cors::localhost_cors;
-pub use resources::*;
-pub use tool_utils::{McpToolDefinition, list_mcp_tools};
-use tool_utils::{format_tool_error, with_lock_retry};
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError, Result};
 use crate::registry::ToolRegistry;
 use crate::{mcp::gateway_handler::GatewayState, util::json::OutputFormat};
-use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult,
-    ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo,
-    SubscribeRequestParams, Tool, UnsubscribeRequestParams,
-};
+pub(crate) use cors::localhost_cors;
+pub use resources::*;
+use rmcp::model::{CallToolRequestParams, CallToolResult, Content, Implementation, ListResourcesResult, ListToolsResult, ReadResourceRequestParams, ReadResourceResult, ServerCapabilities, ServerInfo, SubscribeRequestParams, Tool, UnsubscribeRequestParams};
 use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
+pub use tool_utils::{McpToolDefinition, list_mcp_tools};
+use tool_utils::{format_tool_error, with_lock_retry};
 pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
@@ -130,7 +125,12 @@ impl ServerHandler for MaenifoldHandler {
             )));
         }
         let tools = if let Some(gateway) = &self.gateway {
-            let mut tools: Vec<Tool> = self.tools.iter().filter(|tool| tool.name == "GetHelp").cloned().collect();
+            let mut tools: Vec<Tool> = self
+                .tools
+                .iter()
+                .filter(|tool| tool.name == "GetHelp")
+                .cloned()
+                .collect();
             tools.extend(gateway.list_tools());
             tools
         } else {
@@ -235,9 +235,7 @@ impl ServerHandler for MaenifoldHandler {
 
             match result {
                 Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
-                Err(MaenifoldError::UnknownTool(_)) => {
-                    Err(unknown_tool_error(&tool_name))
-                }
+                Err(MaenifoldError::UnknownTool(_)) => Err(unknown_tool_error(&tool_name)),
                 Err(err) => Ok(CallToolResult::error(vec![Content::text(
                     format_tool_error(&tool_name, &err),
                 )])),
@@ -247,10 +245,16 @@ impl ServerHandler for MaenifoldHandler {
 }
 
 fn unknown_tool_error(tool_name: &str) -> rmcp::ErrorData {
-    rmcp::ErrorData::new(rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32), format!("Unknown tool: '{tool_name}'"), Some(Value::Null))
+    rmcp::ErrorData::new(
+        rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32),
+        format!("Unknown tool: '{tool_name}'"),
+        Some(Value::Null),
+    )
 }
 impl MaenifoldMcpServer {
-    pub fn list_tools() -> Result<Vec<McpToolDefinition>> { list_mcp_tools(ToolRegistry::global()) }
+    pub fn list_tools() -> Result<Vec<McpToolDefinition>> {
+        list_mcp_tools(ToolRegistry::global())
+    }
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;

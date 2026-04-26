@@ -7,10 +7,12 @@ use super::schema::mcp_tool_from_registry_name;
 use super::stdio_pool::StdioPool;
 use super::tool_routing::ToolRoutingRegistry;
 use super::{MaenifoldHandler, TransportKind};
+use crate::acp_config::IntentResolverSettings;
 use crate::registry::ToolRegistry;
 use rmcp::model::Tool;
 use serde_json::{Map, Value};
 use std::collections::{BTreeMap, HashSet};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 #[test]
@@ -134,7 +136,15 @@ async fn empty_gateway_tools() -> Vec<Tool> {
     let pool = Arc::new(StdioPool::start(Vec::new()).await.expect("empty pool"));
     let routing = ResourceRoutingRegistry::build(pool.as_ref()).expect("resource routing");
     let catalog = native_catalog().await;
-    GatewayState::new(pool, Arc::new(routing), catalog, Vec::new()).list_tools()
+    GatewayState::new(
+        pool,
+        Arc::new(routing),
+        catalog,
+        Vec::new(),
+        IntentResolverSettings::default(),
+        PathBuf::from("."),
+    )
+    .list_tools()
 }
 
 fn tool(name: &str) -> Tool {

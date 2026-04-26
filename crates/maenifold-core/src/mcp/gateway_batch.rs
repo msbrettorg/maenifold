@@ -2,9 +2,12 @@ use crate::error::JSONRPC_INVALID_PARAMS;
 use crate::mcp::gateway_batch_types::{BatchItem, BatchItemResult, BatchResult, BatchState};
 use crate::mcp::gateway_catalog::CommandTarget;
 use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
-use crate::mcp::gateway_schema_validation::validate_parameters;
 use crate::mcp::gateway_handler::GatewayState;
-use crate::mcp::schema::{gateway_tools::{BatchItemParams, GatewayBatchParams}, mcp_tool_from_registry_name};
+use crate::mcp::gateway_schema_validation::validate_parameters;
+use crate::mcp::schema::{
+    gateway_tools::{BatchItemParams, GatewayBatchParams},
+    mcp_tool_from_registry_name,
+};
 use rmcp::model::{CallToolResult, Content, ErrorCode};
 use serde_json::{Map, Value, json};
 const MAX_BATCH_ITEMS: usize = 100;
@@ -48,10 +51,14 @@ async fn submit_batch(
         .map(batch_item)
         .collect::<Vec<_>>();
     if items.len() > MAX_BATCH_ITEMS {
-        return Err(invalid_params(format!("GatewayBatch submit accepts at most {MAX_BATCH_ITEMS} items.")));
+        return Err(invalid_params(format!(
+            "GatewayBatch submit accepts at most {MAX_BATCH_ITEMS} items."
+        )));
     }
 
-    for item in &items { validate_item(state, item)?; }
+    for item in &items {
+        validate_item(state, item)?;
+    }
 
     let batch_id = uuid::Uuid::new_v4().to_string();
     let mut results = Vec::with_capacity(items.len());
@@ -69,7 +76,12 @@ async fn submit_batch(
             }
             Err(error) => {
                 failed = true;
-                results.push(result_item(item, false, Value::Null, Some(error_value(error))));
+                results.push(result_item(
+                    item,
+                    false,
+                    Value::Null,
+                    Some(error_value(error)),
+                ));
             }
         }
     }
@@ -83,7 +95,10 @@ async fn submit_batch(
     Ok(render_result(result))
 }
 
-fn batch_status(batch_state: &BatchState, params: GatewayBatchParams) -> Result<CallToolResult, rmcp::ErrorData> {
+fn batch_status(
+    batch_state: &BatchState,
+    params: GatewayBatchParams,
+) -> Result<CallToolResult, rmcp::ErrorData> {
     let batch_id = params
         .batch_id
         .filter(|id| !id.trim().is_empty())
@@ -110,33 +125,64 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
             item.domain, item.command
         )));
     }
-    match state.catalog.resolve(&item.domain, &item.command).map_err(|err| invalid_params(err.to_string()))? {
+    match state
+        .catalog
+        .resolve(&item.domain, &item.command)
+        .map_err(|err| invalid_params(err.to_string()))?
+    {
         CommandTarget::Native { tool_name } => validate_native(&tool_name, &item.parameters),
-        CommandTarget::Upstream { server_name, tool_name } => {
+        CommandTarget::Upstream {
+            server_name,
+            tool_name,
+        } => {
             let server = state.consolidated_server(&server_name)?;
-            validate_dispatch_parameters(server, &tool_name, &Value::Object(item.parameters.clone())).map_err(|err| invalid_params(err.to_string()))
+            validate_dispatch_parameters(
+                server,
+                &tool_name,
+                &Value::Object(item.parameters.clone()),
+            )
+            .map_err(|err| invalid_params(err.to_string()))
         }
     }
 }
 
-fn validate_native(tool_name: &str, parameters: &Map<String, Value>) -> Result<(), rmcp::ErrorData> {
-    let definition = mcp_tool_from_registry_name(tool_name).map_err(|err| invalid_params(err.to_string()))?;
-    validate_parameters(tool_name, &Value::Object(parameters.clone()), &definition.input_schema)
-        .map_err(|err| invalid_params(err.to_string()))
+fn validate_native(
+    tool_name: &str,
+    parameters: &Map<String, Value>,
+) -> Result<(), rmcp::ErrorData> {
+    let definition =
+        mcp_tool_from_registry_name(tool_name).map_err(|err| invalid_params(err.to_string()))?;
+    validate_parameters(
+        tool_name,
+        &Value::Object(parameters.clone()),
+        &definition.input_schema,
+    )
+    .map_err(|err| invalid_params(err.to_string()))
 }
 
-async fn execute_item(state: &GatewayState, item: &BatchItem) -> Result<CallToolResult, rmcp::ErrorData> {
+async fn execute_item(
+    state: &GatewayState,
+    item: &BatchItem,
+) -> Result<CallToolResult, rmcp::ErrorData> {
     let mut args = Map::new();
     args.insert("domain".to_string(), Value::String(item.domain.clone()));
     args.insert("command".to_string(), Value::String(item.command.clone()));
-    args.insert("parameters".to_string(), Value::Object(item.parameters.clone()));
+    args.insert(
+        "parameters".to_string(),
+        Value::Object(item.parameters.clone()),
+    );
     if let Some(key) = &item.idempotency_key {
         args.insert("idempotencyKey".to_string(), Value::String(key.clone()));
     }
     state.handle_gateway_execute(Value::Object(args)).await
 }
 
-fn result_item(item: BatchItem, success: bool, result: Value, error: Option<Value>) -> BatchItemResult {
+fn result_item(
+    item: BatchItem,
+    success: bool,
+    result: Value,
+    error: Option<Value>,
+) -> BatchItemResult {
     BatchItemResult {
         domain: item.domain,
         command: item.command,
@@ -162,7 +208,9 @@ fn skipped_item(item: BatchItem) -> BatchItemResult {
 
 fn render_result(result: BatchResult) -> CallToolResult {
     let value = json!(result);
-    CallToolResult::success(vec![Content::text(serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string()))])
+    CallToolResult::success(vec![Content::text(
+        serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string()),
+    )])
 }
 
 fn tool_result_value(result: &CallToolResult) -> Value {

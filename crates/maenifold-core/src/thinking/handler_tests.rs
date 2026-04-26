@@ -10,6 +10,7 @@ mod tests {
     use crate::util::json::OutputFormat;
     use serde_json::json;
     use serde_yml::Value as YamlValue;
+    use serial_test::serial;
     use std::collections::BTreeMap;
     use tempfile::TempDir;
 
@@ -70,6 +71,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn sequential_submachine_waits_and_resumes_before_advancing() {
         let (_tmp, context, _guard) = test_context();
         let parent_session_id = "session-1735689600000-10001";
@@ -158,6 +160,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn completed_sequential_session_rejects_additional_activity() {
         let (_tmp, context, _guard) = test_context();
         let session_id = "session-1735689600000-10001";

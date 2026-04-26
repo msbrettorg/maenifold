@@ -14,6 +14,11 @@ pub(super) fn pipeline_test_context(
     Config::set_database_path(tmp.path().join("memory.db"));
     let config = Config::current();
     config.ensure_directories().expect("ensure directories");
+    fs::write(
+        config.maenifold_root.join("maenifold.json"),
+        r#"{"agents":{},"settings":{}}"#,
+    )
+    .expect("write minimal maenifold config");
     fs::create_dir_all(config.assets_path.join("workflows")).expect("create workflows dir");
     fs::create_dir_all(config.assets_path.join("usage/tools")).expect("create usage dir");
     fs::write(

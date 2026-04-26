@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use maenifold_core::{Config, mcp::MaenifoldMcpServer};
-use reqwest::header::{ACCEPT, CONTENT_TYPE, HeaderMap, HeaderValue};
+use reqwest::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE, HeaderMap, HeaderValue};
 use serde_json::{Value, json};
 use std::sync::atomic::{AtomicU64, Ordering};
 use tempfile::TempDir;
@@ -214,6 +214,12 @@ pub async fn rpc(
 ) -> Value {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
     let mut headers = mcp_headers();
+    let token = std::fs::read_to_string(server._root.path().join("auth/localhost.token"))
+        .expect("read generated auth token");
+    headers.insert(
+        AUTHORIZATION,
+        HeaderValue::from_str(&format!("Bearer {}", token.trim())).expect("valid auth header"),
+    );
     if let Some(extra_headers) = extra_headers {
         headers.extend(extra_headers);
     }
@@ -230,7 +236,11 @@ pub async fn rpc(
         .send()
         .await
         .expect("HTTP RPC request");
-    assert!(response.status().is_success(), "{method} HTTP failure");
+    let status = response.status();
+    if !status.is_success() {
+        let body = response.text().await.unwrap_or_default();
+        panic!("{method} HTTP failure: {status} {body}");
+    }
     response.json().await.expect("JSON-RPC response")
 }
 

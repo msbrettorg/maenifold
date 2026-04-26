@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
-import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { useMcpClient } from '../composables/useMcpClient';
 import { deriveServerHealth } from '../lib/palette-health';
 import type {
   McpDiscoveredTool,
@@ -15,6 +15,7 @@ function getErrorMessage(error: unknown): string {
 }
 
 export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => {
+  const mcp = useMcpClient();
   const serverResults = ref<McpServerDiscoveryResult[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
@@ -146,14 +147,14 @@ export const useMcpToolDiscoveryStore = defineStore('mcp-tool-discovery', () => 
     loading.value = true;
     error.value = null;
     try {
-      const response = await fetch(`${DAEMON_BASE_URL}/api/discovery/mcp-tools`, {
-        signal: controller.signal,
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to discover MCP tools: HTTP ${response.status}`);
+      if (!mcp.connected.value) {
+        await mcp.connect();
       }
 
-      const rawResults = await response.json() as unknown;
+      const rawResults = await mcp.callTool('DiscoverMcpTools', {}) as unknown;
+      if (controller.signal.aborted) {
+        return serverResults.value;
+      }
       const results = Array.isArray(rawResults)
         ? rawResults
             .map(normalizeResult)

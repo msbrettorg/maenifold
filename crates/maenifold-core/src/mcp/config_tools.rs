@@ -55,6 +55,16 @@ impl ConfigMutationState {
     }
 }
 
+pub(crate) fn mutation_state(
+    config: &Config,
+    config_manager: ConfigManager,
+) -> ConfigMutationState {
+    ConfigMutationState::new(
+        config_manager,
+        Arc::new(parking_lot::RwLock::new(config.clone())),
+    )
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ReloadConfigResponse {

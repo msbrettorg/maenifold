@@ -292,12 +292,5 @@ const fn f(
     expected_command: &'static str,
     expected_safety: SafetyClass,
 ) -> IntentFixture {
-    IntentFixture {
-        id,
-        category,
-        intent,
-        expected_domain,
-        expected_command,
-        expected_safety,
-    }
+    IntentFixture { id, category, intent, expected_domain, expected_command, expected_safety }
 }

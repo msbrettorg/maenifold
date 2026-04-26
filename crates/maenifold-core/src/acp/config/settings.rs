@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::teams::MessageHandlerConfig;
 
+use super::gateway_settings::GatewaySettings;
+
 pub(super) fn default_true() -> bool {
     true
 }
@@ -131,6 +133,8 @@ pub struct MaenifoldSettings {
     pub debug: DebugSettings,
     #[serde(default)]
     pub teams_monitor: TeamsMonitorConfig,
+    #[serde(default)]
+    pub gateway: GatewaySettings,
     #[serde(default, rename = "envPassthrough")]
     pub env_passthrough: Vec<String>,
 }
@@ -157,6 +161,7 @@ impl Default for MaenifoldSettings {
             vector: VectorSettings::default(),
             debug: DebugSettings::default(),
             teams_monitor: TeamsMonitorConfig::default(),
+            gateway: GatewaySettings::default(),
             env_passthrough: Vec::new(),
         }
     }

@@ -170,13 +170,10 @@ app.post("/", async (req, res) => {
   const threadId = String(body.threadId ?? body.thread_id ?? randomUUID());
   const runId = String(body.runId ?? body.run_id ?? randomUUID());
   const promptText = extractLatestUserText(body);
-  if (raw.method !== "info") {
-    console.log("[bridge] BODY KEYS:", Object.keys(body), "| messages?", Array.isArray(body.messages), "| promptText:", promptText.slice(0, 80));
-  }
   console.log("[bridge] Incoming request", { method: raw.method, threadId, promptText: promptText.slice(0, 80) });
 
-  // info requests are just capability probes — respond with agent registry
-  if (raw.method === "info") {
+  // info and connect requests are handshakes — respond without opening an ACP session
+  if (raw.method === "info" || raw.method === "agent/connect") {
     res.json(AGENT_INFO_RESPONSE);
     return;
   }

@@ -28,6 +28,7 @@ type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
   getAuthToken?: () => Promise<string>;
+  readWallpaperImage(filePath: string): Promise<string>;
   checkEnvVarPresence?: (names: string[]) => Promise<Record<string, boolean>>;
   vec0Status?: () => Promise<Vec0Status>;
   vec0Download?: () => Promise<Vec0Status>;

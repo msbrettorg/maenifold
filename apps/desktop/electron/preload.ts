@@ -19,6 +19,8 @@ const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   getAuthToken: () => ipcRenderer.invoke('get-auth-token') as Promise<string>,
+  readWallpaperImage: (filePath: string) =>
+    ipcRenderer.invoke('read-wallpaper-image', filePath) as Promise<string>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
   vec0Status: () => ipcRenderer.invoke('vec0:status') as Promise<Vec0Status>,

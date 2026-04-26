@@ -2,7 +2,9 @@ use crate::error::{MaenifoldError, Result};
 use crate::markdown::{Frontmatter, append_h2_section, read_markdown, write_markdown};
 use crate::sessions::now_iso8601_roundtrip;
 use crate::tools::ToolContext;
-use crate::workflow::{format_workflow_step, read_workflow_definition, workflow_steps};
+use crate::workflow::{
+    emit_workflow_resource_updated, format_workflow_step, read_workflow_definition, workflow_steps,
+};
 use serde_json::json;
 use serde_yml::Value as YamlValue;
 
@@ -11,6 +13,7 @@ use serde_yml::Value as YamlValue;
 pub(crate) fn handle_completed_workflow_status(
     context: &ToolContext,
     workflow_uri: &str,
+    session_id: &str,
     frontmatter: Frontmatter,
     current_step: usize,
     conclusion: Option<&str>,
@@ -29,12 +32,14 @@ pub(crate) fn handle_completed_workflow_status(
         "completed",
         "completed",
     )?;
+    emit_workflow_resource_updated(session_id);
     Ok("✅ Workflow session completed".to_string())
 }
 
 pub(crate) fn handle_cancelled_workflow_status(
     context: &ToolContext,
     workflow_uri: &str,
+    session_id: &str,
     mut frontmatter: Frontmatter,
     existing_content: &str,
     current_step: usize,
@@ -46,11 +51,13 @@ pub(crate) fn handle_cancelled_workflow_status(
         existing_content,
         &context.config,
     )?;
+    emit_workflow_resource_updated(session_id);
     Ok("❌ Workflow session cancelled".to_string())
 }
 
 pub(crate) fn handle_queue_exhaustion(
     context: &ToolContext,
+    session_id: &str,
     workflow_uri: &str,
     frontmatter: Frontmatter,
     current_step: usize,
@@ -70,6 +77,7 @@ pub(crate) fn handle_queue_exhaustion(
         "completed",
         "completed",
     )?;
+    emit_workflow_resource_updated(session_id);
     Ok("✅ All workflows in queue completed".to_string())
 }
 
@@ -77,6 +85,7 @@ pub(crate) fn handle_queue_exhaustion(
 pub(crate) fn transition_to_next_workflow(
     context: &ToolContext,
     workflow_uri: &str,
+    session_id: &str,
     mut frontmatter: Frontmatter,
     existing_content: &str,
     current_workflow_index: usize,
@@ -110,6 +119,7 @@ pub(crate) fn transition_to_next_workflow(
         &rendered_step,
         &context.config,
     )?;
+    emit_workflow_resource_updated(session_id);
 
     Ok(format!("Step 1/{}\n\n{}", next_steps.len(), rendered_step))
 }

@@ -6,11 +6,11 @@ use serde_json::Value;
 use serde_yml::Value as YamlValue;
 
 use super::{
-    HostSessionType, ResumeSubmachineResult, build_workflow_response_content, format_workflow_step,
-    frontmatter_usize, handle_cancelled_workflow_status, handle_completed_workflow_status,
-    handle_queue_exhaustion, maybe_resume_submachine, parse_submachine_type,
-    read_workflow_definition, read_workflow_queue, register_workflow_submachine, set_current_step,
-    transition_to_next_workflow, workflow_steps,
+    HostSessionType, ResumeSubmachineResult, build_workflow_response_content,
+    emit_workflow_resource_updated, format_workflow_step, frontmatter_usize,
+    handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
+    maybe_resume_submachine, parse_submachine_type, read_workflow_definition, read_workflow_queue,
+    register_workflow_submachine, set_current_step, transition_to_next_workflow, workflow_steps,
 };
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
@@ -77,6 +77,7 @@ pub(crate) fn continue_workflow_session(
         &build_workflow_response_content(response, thoughts),
         &context.config,
     )?;
+    emit_workflow_resource_updated(session_id);
 
     current_step += 1;
     set_current_step(&mut frontmatter, current_step);
@@ -86,6 +87,7 @@ pub(crate) fn continue_workflow_session(
         return handle_completed_workflow_status(
             context,
             &uri,
+            session_id,
             frontmatter,
             current_step,
             conclusion,
@@ -96,6 +98,7 @@ pub(crate) fn continue_workflow_session(
         return handle_cancelled_workflow_status(
             context,
             &uri,
+            session_id,
             frontmatter,
             &existing_content,
             current_step,
@@ -105,12 +108,13 @@ pub(crate) fn continue_workflow_session(
     if current_step >= steps.len() {
         current_workflow_index += 1;
         if current_workflow_index >= queue.len() {
-            return handle_queue_exhaustion(context, &uri, frontmatter, current_step, conclusion);
+            return handle_queue_exhaustion(context, session_id, &uri, frontmatter, current_step, conclusion);
         }
 
         return transition_to_next_workflow(
             context,
             &uri,
+            session_id,
             frontmatter,
             &existing_content,
             current_workflow_index,
@@ -194,6 +198,7 @@ fn advance_to_next_workflow_step(
         &rendered_step,
         &context.config,
     )?;
+    emit_workflow_resource_updated(session_id);
     Ok(format!(
         "Step {}/{}\n\n{}",
         current_step + 1,

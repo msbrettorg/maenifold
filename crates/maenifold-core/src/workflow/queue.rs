@@ -3,7 +3,8 @@ use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown
 use crate::sessions::{display_utc_now, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::{
-    format_workflow_step, parse_workflow_identifiers, read_workflow_definition, workflow_steps,
+    emit_workflow_resource_updated, format_workflow_step, parse_workflow_identifiers,
+    read_workflow_definition, workflow_steps,
 };
 use chrono::Utc;
 use serde_json::{Value, json};
@@ -49,6 +50,7 @@ pub(crate) fn start_workflow_session(
         rendered_step,
     );
     write_markdown(&uri, Some(&frontmatter), &file_content, &context.config)?;
+    emit_workflow_resource_updated(&session_id);
 
     Ok(format!(
         "Created session: {session_id}\n\nStep 1/{}\n\n{}",
@@ -149,6 +151,7 @@ pub(crate) fn append_workflow_queue(
         display_utc_now(),
     );
     append_h2_section(&uri, "Queue Updated", &append_content, &context.config)?;
+    emit_workflow_resource_updated(session_id);
 
     Ok(format!(
         "Added {} workflow(s) to queue. New queue: [{}]",

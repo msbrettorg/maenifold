@@ -140,23 +140,43 @@ class AcpClient {
 
 const sessions = new Map<string, SessionEntry>();
 
+const AGENT_INFO_RESPONSE = {
+  version: "0.1.0",
+  mode: "sse",
+  agents: {
+    [AGENT_NAME.toLowerCase()]: {
+      description: "maenifold knowledge graph assistant",
+      capabilities: {},
+    },
+  },
+};
+
 const app = express();
 app.use(cors({ origin: true }));
 app.use(express.json({ limit: "2mb" }));
 
 app.get("/info", (_req, res) => {
-  res.json({ name: "maenifold-copilotkit-bridge", version: "0.1.0" });
+  res.json(AGENT_INFO_RESPONSE);
 });
 
 app.post("/", async (req, res) => {
   const raw = req.body ?? {};
-  // CopilotKit may nest under params or send flat — normalize
-  const body = (raw.params && typeof raw.params === "object") ? raw.params as Record<string, unknown> : raw;
+  // CopilotKit may nest under params, body, or send flat — normalize
+  const body = (
+    raw.body && typeof raw.body === "object" ? raw.body as Record<string, unknown> :
+    raw.params && typeof raw.params === "object" ? raw.params as Record<string, unknown> :
+    raw
+  );
   const threadId = String(body.threadId ?? body.thread_id ?? randomUUID());
   const runId = String(body.runId ?? body.run_id ?? randomUUID());
   const promptText = extractLatestUserText(body);
-  console.log("[bridge] RAW BODY:", JSON.stringify(raw, null, 2).slice(0, 2000));
   console.log("[bridge] Incoming request", { method: raw.method, threadId, promptText: promptText.slice(0, 80) });
+
+  // info requests are just capability probes — respond with agent registry
+  if (raw.method === "info") {
+    res.json(AGENT_INFO_RESPONSE);
+    return;
+  }
 
   prepareSse(res);
 

@@ -2,7 +2,7 @@ use super::routes::{ApiError, ApiResult, ApiState, parse_optional};
 use crate::api::graph;
 use crate::db;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     response::Json,
 };
 use serde::{Deserialize, Serialize};
@@ -32,25 +32,6 @@ pub(super) async fn graph_edges(
     let connection = db::open_connection(&config.database_path).map_err(ApiError::internal)?;
     let edges = graph::get_edges(&connection, community).map_err(ApiError::internal)?;
     Ok(Json(edges))
-}
-
-pub(super) async fn graph_communities(
-    State(state): State<ApiState>,
-) -> ApiResult<Json<graph::CommunityGraph>> {
-    let config = state.config();
-    let connection = db::open_connection(&config.database_path).map_err(ApiError::internal)?;
-    let communities = graph::get_communities(&connection).map_err(ApiError::internal)?;
-    Ok(Json(communities))
-}
-
-pub(super) async fn graph_community_concepts(
-    State(state): State<ApiState>,
-    Path(id): Path<i64>,
-) -> ApiResult<Json<graph::ConceptGraph>> {
-    let config = state.config();
-    let connection = db::open_connection(&config.database_path).map_err(ApiError::internal)?;
-    let concepts = graph::get_community_concepts(&connection, id).map_err(ApiError::internal)?;
-    Ok(Json(concepts))
 }
 
 #[derive(Deserialize)]

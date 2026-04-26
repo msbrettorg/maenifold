@@ -1,5 +1,3 @@
-use std::collections::BTreeMap;
-
 use crate::api;
 use crate::error::{MaenifoldError, Result};
 use rmcp::model::{AnnotateAble, RawResource, ReadResourceResult, Resource, ResourceContents};
@@ -27,16 +25,9 @@ struct SnapshotNode {
 
 #[derive(Debug, Serialize)]
 struct CorpusCommunities {
-    communities: Vec<Community>,
-    edges: Vec<api::graph::GraphEdge>,
+    #[serde(flatten)]
+    graph: api::graph::CommunityGraph,
     generated_at: String,
-}
-
-#[derive(Debug, Serialize)]
-struct Community {
-    id: i64,
-    members: Vec<String>,
-    size: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -134,33 +125,8 @@ fn read_corpus_snapshot(connection: &Connection) -> Result<CorpusSnapshot> {
 }
 
 fn read_corpus_communities(connection: &Connection) -> Result<CorpusCommunities> {
-    let mut statement = connection.prepare(
-        "SELECT community_id, concept_name
-         FROM concept_communities
-         ORDER BY community_id ASC, concept_name ASC",
-    )?;
-    let rows = statement.query_map([], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
-    })?;
-
-    let mut grouped = BTreeMap::<i64, Vec<String>>::new();
-    for row in rows {
-        let (community_id, concept_name) = row?;
-        grouped.entry(community_id).or_default().push(concept_name);
-    }
-
-    let communities = grouped
-        .into_iter()
-        .map(|(id, members)| Community {
-            size: members.len(),
-            id,
-            members,
-        })
-        .collect();
-
     Ok(CorpusCommunities {
-        communities,
-        edges: api::graph::get_edges(connection, None)?,
+        graph: api::graph::get_communities(connection)?,
         generated_at: generated_at(connection)?,
     })
 }

@@ -2,7 +2,8 @@
 // stores/knowledge.ts to keep modules under 300 LOC.
 import type { Ref } from 'vue';
 import type { useMemoryApi } from '../composables/useMemoryApi';
-import { getDaemonUrl } from '../lib/daemon-url';
+import { useMcpResources } from '../composables/useMcpResources';
+import type { ResourceContent } from '../composables/mcpTransport';
 import type { CommunityGraph, ConceptGraph } from '../lib/graph-types';
 import type { MemoryFile } from '../lib/workflow-types';
 import {
@@ -33,11 +34,25 @@ export interface KnowledgeGraphActions {
   openConcept: (conceptName: string) => Promise<void>;
 }
 
+function parseResourceJson<T>(content: ResourceContent): T {
+  if (typeof content.text !== 'string') {
+    throw new Error(`Missing text payload for resource: ${content.uri}`);
+  }
+
+  try {
+    return JSON.parse(content.text) as T;
+  } catch (parseError) {
+    const message = parseError instanceof Error ? parseError.message : String(parseError);
+    throw new Error(`Invalid JSON payload for resource ${content.uri}: ${message}`);
+  }
+}
+
 export function createKnowledgeGraphActions(
   refs: KnowledgeGraphRefs,
   memoryApi: ReturnType<typeof useMemoryApi>,
   openNote: (uri: string) => Promise<void>,
 ): KnowledgeGraphActions {
+  const mcpResources = useMcpResources();
   const {
     graphLoading,
     graphError,
@@ -57,14 +72,8 @@ export function createKnowledgeGraphActions(
     graphError.value = null;
 
     try {
-      const response = await fetch(getDaemonUrl('/api/graph/communities'));
-      if (!response.ok) {
-        throw new Error(
-          (await response.text()) || `Failed to load graph communities (${response.status}).`,
-        );
-      }
-
-      communityGraph.value = (await response.json()) as CommunityGraph;
+      const resource = await mcpResources.readResource('graph://corpus/communities');
+      communityGraph.value = parseResourceJson<CommunityGraph>(resource);
     } catch (errorValue) {
       graphError.value = errorValue instanceof Error ? errorValue.message : String(errorValue);
       communityGraph.value = null;
@@ -78,14 +87,10 @@ export function createKnowledgeGraphActions(
     graphError.value = null;
 
     try {
-      const response = await fetch(getDaemonUrl(`/api/graph/communities/${communityId}/concepts`));
-      if (!response.ok) {
-        throw new Error(
-          (await response.text()) || `Failed to load concepts (${response.status}).`,
-        );
-      }
-
-      const graph = (await response.json()) as ConceptGraph;
+      const resource = await mcpResources.readResource(
+        `graph://community/${encodeURIComponent(String(communityId))}`,
+      );
+      const graph = parseResourceJson<ConceptGraph>(resource);
       const edgeCounts = new Map<string, number>();
       for (const edge of graph.edges) {
         edgeCounts.set(edge.source, (edgeCounts.get(edge.source) ?? 0) + 1);

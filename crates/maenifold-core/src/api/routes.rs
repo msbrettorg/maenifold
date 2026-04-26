@@ -8,9 +8,7 @@ use crate::api::{
         get_config_path_handler, machine_id_handler, reload_config_handler, update_agent_handler,
         update_mcp_server_handler, update_settings_handler,
     },
-    routes_data::{
-        file_text, graph_communities, graph_community_concepts, graph_edges, graph_nodes,
-    },
+    routes_data::{file_text, graph_edges, graph_nodes},
     routes_memory::{memory_read, memory_recent, memory_search},
 };
 use crate::mcp::stdio_pool::StdioPool;
@@ -134,11 +132,6 @@ pub fn api_routes(state: ApiState) -> Router {
         )
         .route("/api/config/settings", post(update_settings_handler))
         .route("/api/files/text", get(file_text))
-        .route("/api/graph/communities", get(graph_communities))
-        .route(
-            "/api/graph/communities/{id}/concepts",
-            get(graph_community_concepts),
-        )
         .route("/api/graph/nodes", get(graph_nodes))
         .route("/api/graph/edges", get(graph_edges))
         .route("/api/memory/read", get(memory_read))

@@ -5,6 +5,7 @@ use super::AssetManager;
 use crate::config::Config;
 use crate::test_util::ConfigResetGuard;
 use serde_json::Value;
+use serial_test::serial;
 use std::fs;
 use std::sync::Arc;
 use std::thread;
@@ -20,6 +21,7 @@ use std::thread;
 /// - Before fix: This test should demonstrate the concurrency hazard
 /// - After fix: All threads complete successfully without deadlock errors
 #[test]
+#[serial]
 fn concurrent_list_assets_does_not_deadlock() {
     let dir = tempfile::tempdir().expect("tempdir");
     let assets_path = dir.path().join("assets");
@@ -94,6 +96,7 @@ fn concurrent_list_assets_does_not_deadlock() {
 
 /// T-205.716: Verify untyped list_assets returns exactly the four asset kinds.
 #[test]
+#[serial]
 fn untyped_list_assets_returns_four_kinds() {
     let dir = tempfile::tempdir().expect("tempdir");
     Config::override_root(dir.path());
@@ -120,6 +123,7 @@ fn untyped_list_assets_returns_four_kinds() {
 
 /// T-205.716: Verify typed list_assets returns metadata array for each kind.
 #[test]
+#[serial]
 fn typed_list_assets_returns_metadata_array() {
     let dir = tempfile::tempdir().expect("tempdir");
     let assets_path = dir.path().join("assets");
@@ -162,6 +166,7 @@ fn typed_list_assets_returns_metadata_array() {
 /// The deadlock in production occurs with "Resource deadlock avoided (os error 11)"
 /// which indicates a circular lock dependency at the kernel level.
 #[test]
+#[serial]
 fn concurrent_list_and_modify_assets_does_not_deadlock() {
     use notify::{RecursiveMode, Watcher};
     use std::sync::atomic::{AtomicBool, Ordering};

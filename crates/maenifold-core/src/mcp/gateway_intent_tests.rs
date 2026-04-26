@@ -8,6 +8,7 @@ use super::stdio_pool::StdioPool;
 use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
 use serde_json::{Value, json};
+use serial_test::serial;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -64,6 +65,7 @@ fn json_text(result: &rmcp::model::CallToolResult) -> Value {
 }
 
 #[tokio::test]
+#[serial]
 async fn read_safe_single_high_confidence_auto_executes() {
     let state = state(settings(true)).await;
     let result = handle_resolved_intent(

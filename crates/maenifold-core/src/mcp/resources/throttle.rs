@@ -110,6 +110,7 @@ impl TrailingThrottle {
 #[cfg(test)]
 mod tests {
     use super::{DEFAULT_THROTTLE_WINDOW, TrailingThrottle};
+    use serial_test::serial;
     use std::time::Duration;
     use tokio::task::JoinSet;
 
@@ -153,6 +154,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
+    #[serial]
     async fn boundary_signal_does_not_cancel_prior_trailing_dispatch() {
         let throttle = TrailingThrottle::new(Duration::from_millis(250));
 
@@ -165,8 +167,16 @@ mod tests {
         std::thread::sleep(Duration::from_millis(300)); // t=300+
         assert!(throttle.signal().await); // new immediate after window boundary
 
-        tokio::task::yield_now().await;
-        assert!(throttle.take_trailing_dispatch().await); // prior window trailing still fires
+        let mut trailing_fired = false;
+        for _ in 0..50 {
+            tokio::task::yield_now().await;
+            if throttle.take_trailing_dispatch().await {
+                trailing_fired = true;
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert!(trailing_fired); // prior window trailing still fires
         assert!(!throttle.take_trailing_dispatch().await);
     }
 

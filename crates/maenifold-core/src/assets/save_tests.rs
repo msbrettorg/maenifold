@@ -4,6 +4,7 @@ mod tests {
     use crate::config::Config;
     use crate::tools::ToolContext;
     use crate::util::json::OutputFormat;
+    use serial_test::serial;
 
     // ── ID validation ──────────────────────────────────────────────────────
 
@@ -82,6 +83,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn save_workflow_asset_writes_file_and_returns_success() {
         let dir = tempfile::tempdir().expect("tempdir");
         let ctx = make_context(dir.path());
@@ -112,6 +114,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn save_workflow_asset_overwrites_existing_file_atomically() {
         let dir = tempfile::tempdir().expect("tempdir");
         let ctx = make_context(dir.path());
@@ -133,6 +136,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn save_workflow_asset_rejects_invalid_id() {
         let dir = tempfile::tempdir().expect("tempdir");
         let ctx = make_context(dir.path());
@@ -144,6 +148,7 @@ mod tests {
     }
 
     #[test]
+    #[serial]
     fn save_workflow_asset_rejects_id_mismatch() {
         let dir = tempfile::tempdir().expect("tempdir");
         let ctx = make_context(dir.path());

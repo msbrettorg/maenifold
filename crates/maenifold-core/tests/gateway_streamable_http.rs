@@ -53,7 +53,22 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     let names = tool_names(&list);
     assert_tool_names(
         &names,
-        &["GetHelp", "ReadMcpResource", "GatewayIndex", "GatewayExecute", "GatewayBatch"],
+        &[
+            "AddAgent",
+            "AddMcpServer",
+            "DeleteAgent",
+            "DeleteMcpServer",
+            "DiscoverMcpTools",
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
+            "GetHelp",
+            "ReadMcpResource",
+            "ReloadConfig",
+            "UpdateAgent",
+            "UpdateMcpServer",
+            "UpdateSettings",
+        ],
     );
     assert!(!names.iter().any(|name| name == "GetConfig"));
     assert!(!names.iter().any(|name| name == "gateway_big_server"));
@@ -186,12 +201,21 @@ async fn streamable_http_gateway_intent_enabled_lists_exact_six_tools() {
     assert_tool_names(
         &names,
         &[
+            "AddAgent",
+            "AddMcpServer",
+            "DeleteAgent",
+            "DeleteMcpServer",
+            "DiscoverMcpTools",
+            "GatewayBatch",
+            "GatewayExecute",
+            "GatewayIndex",
+            "GatewayIntent",
             "GetHelp",
             "ReadMcpResource",
-            "GatewayIndex",
-            "GatewayExecute",
-            "GatewayBatch",
-            "GatewayIntent",
+            "ReloadConfig",
+            "UpdateAgent",
+            "UpdateMcpServer",
+            "UpdateSettings",
         ],
     );
 

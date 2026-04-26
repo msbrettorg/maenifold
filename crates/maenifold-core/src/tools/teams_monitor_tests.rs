@@ -4,6 +4,7 @@ use crate::test_util::ConfigResetGuard;
 use crate::teams::set_teams_disabled;
 use crate::util::json::OutputFormat;
 use serde_json::{Value, json};
+use serial_test::serial;
 use std::sync::{LazyLock, Mutex};
 use tempfile::TempDir;
 
@@ -41,6 +42,7 @@ fn run(context: &ToolContext, payload: Value) -> Value {
 }
 
 #[test]
+#[serial]
 fn enable_without_credentials_returns_auth_error() {
     with_context(|context| {
         let result = teams_monitor(context, &json!({"action": "enable"}));
@@ -51,11 +53,13 @@ fn enable_without_credentials_returns_auth_error() {
 }
 
 #[test]
+#[serial]
 fn disable_action_returns_success_with_enabled_false() {
     with_context(|context| assert_eq!(run(context, json!({"action":"disable"}))["enabled"], false));
 }
 
 #[test]
+#[serial]
 fn status_action_returns_current_config_state() {
     with_context(|context| {
         let response = run(context, json!({"action":"status"}));
@@ -76,6 +80,7 @@ fn status_action_returns_current_config_state() {
 }
 
 #[test]
+#[serial]
 fn configure_with_keywords_updates_status() {
     with_context(|context| {
         run(
@@ -90,6 +95,7 @@ fn configure_with_keywords_updates_status() {
 }
 
 #[test]
+#[serial]
 fn unknown_action_returns_valid_action_list() {
     with_context(|context| {
         let error = teams_monitor(context, &json!({"action":"bogus"})).expect_err("unknown action");
@@ -101,6 +107,7 @@ fn unknown_action_returns_valid_action_list() {
 }
 
 #[test]
+#[serial]
 fn authenticate_requires_client_id() {
     with_context(|context| {
         let error = teams_monitor(
@@ -116,6 +123,7 @@ fn authenticate_requires_client_id() {
 }
 
 #[test]
+#[serial]
 fn invalid_dispatch_agent_type_returns_type_error() {
     with_context(|context| {
         let error = teams_monitor(context, &json!({"action":"configure","dispatchAgent":true}))
@@ -125,6 +133,7 @@ fn invalid_dispatch_agent_type_returns_type_error() {
 }
 
 #[test]
+#[serial]
 fn invalid_cooldown_seconds_type_returns_type_error() {
     with_context(|context| {
         let error = teams_monitor(

@@ -12,6 +12,7 @@ use crate::test_util::ConfigResetGuard;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use serde_yml::Value as YamlValue;
+use serial_test::serial;
 use std::collections::BTreeMap;
 use tempfile::TempDir;
 
@@ -80,6 +81,7 @@ fn parse_submachine_type_defaults_to_sequential() {
 }
 
 #[test]
+#[serial]
 fn gate_task_status_uses_done_directory_as_terminal() {
     let (tmp, context, _guard) = test_context();
     let done_dir = tmp.path().join("done");
@@ -100,6 +102,7 @@ fn gate_task_status_uses_done_directory_as_terminal() {
 }
 
 #[test]
+#[serial]
 fn register_host_submachine_rejects_workflow_cycles() {
     let (_tmp, context, _guard) = test_context();
     let host_session_id = "workflow-1735689600001";
@@ -133,6 +136,7 @@ fn register_host_submachine_rejects_workflow_cycles() {
 }
 
 #[test]
+#[serial]
 fn gate_submachine_resume_uses_persisted_target_path() {
     let (tmp, context, _guard) = test_context();
     std::fs::create_dir_all(tmp.path().join("todo")).expect("create todo dir");

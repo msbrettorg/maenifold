@@ -23,6 +23,10 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - T-221.4: config/tests.rs already at 269 LOC. Planned 80-100 LOC of new tests would bust the limit.
 - **Lesson: Check existing test file LOC before specifying test location. Create dedicated test files when the existing one is above 200 LOC.**
 
+### Worktree merges can lose files created between branch point and merge
+- T-221.11 task file was created in main tree, then T-221.3 worktree (branched earlier) merged as fast-forward, overwriting the file
+- **Lesson: After every worktree merge, verify all expected files exist. If the worktree branch was created before PM changes to main, those PM changes may be lost on fast-forward merge. Use `git merge --no-ff` or verify after merge.**
+
 ## 2026-04-25 — Iteration 1911 (Multi-Spec Wave + T-225.1 Shipped)
 
 ### Reuse idle duo agents with write_agent instead of creating new ones

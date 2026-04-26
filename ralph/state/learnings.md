@@ -3,6 +3,30 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1054 (4 Tasks Shipped — Simplification Wave)
+
+### Blue-team grep patterns must account for substring matches
+- T-225.3 blue-team: grep `mod gate` matched `mod gateway` causing false positive FAIL
+- **Lesson: Blue-team verification patterns should use word-boundary matching or exact strings. `\bgate\b` not `gate`. PM must evaluate false positives rather than auto-failing.**
+
+### gate pass moves files but leaves stale copies in todo/
+- T-225.2 and T-218.43 both left stale files in todo/ after gate pass moved them to done/
+- This causes "duplicate canonical task id" errors on subsequent gate operations
+- **Lesson: After gate pass moves a file to done/, immediately check and rm the stale todo/ copy. Then gate sync --rebuild.**
+
+### serde_yml is a near-drop-in for serde_yaml
+- T-220.27 research confirmed serde_yml (maintained fork, pure-Rust, yaml-rust2) has ~95% API compat
+- Only import path changes needed across 52 files
+- **Lesson: For deprecated dep replacements, always check if a maintained fork exists before considering alternatives. serde_yml made a 52-file migration trivial.**
+
+### Feature-gating isolates problematic transitive deps cleanly
+- T-220.28: hf-hub was sole source of reqwest 0.12. Feature-gating behind `model-download` eliminated the duplicate in default builds.
+- **Lesson: When a transitive dep drags in version conflicts and the consumer is infrequent (model download), feature-gating is cleaner than waiting for upstream or forking.**
+
+### Reka UI autoSaveId eliminates boilerplate
+- T-218.43: Three pages had ~50 LOC each of manual localStorage persistence. Reka UI's autoSaveId does this with 1 prop.
+- **Lesson: Before writing persistence code for UI state, check if the component library already provides it. shadcn-vue/Reka UI primitives have features that aren't in the shadcn-vue docs — check the underlying Reka UI props.**
+
 ## 2026-04-25 — Iteration 1053 (Sprint 06 UI Triage + Backlog Advancement)
 
 ### Gate resource path produces different stage data than tool path

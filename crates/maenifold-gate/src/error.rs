@@ -62,3 +62,27 @@ pub enum GateError {
         second_path: PathBuf,
     },
 }
+
+impl From<maenifold_gate_core::error::GateError> for GateError {
+    fn from(error: maenifold_gate_core::error::GateError) -> Self {
+        match error {
+            maenifold_gate_core::error::GateError::Json(error) => Self::Json(error),
+            maenifold_gate_core::error::GateError::MissingMetadataField(field) => {
+                Self::MissingMetadataField(field)
+            }
+            maenifold_gate_core::error::GateError::TaskMetadataParse(message) => {
+                Self::TaskMetadataParse(message)
+            }
+            maenifold_gate_core::error::GateError::DuplicateStageName(stage) => {
+                Self::DuplicateStageName(stage)
+            }
+            maenifold_gate_core::error::GateError::UnknownTransitionTarget { stage, target } => {
+                Self::UnknownTransitionTarget { stage, target }
+            }
+            maenifold_gate_core::error::GateError::UnknownState(state) => Self::UnknownState(state),
+            maenifold_gate_core::error::GateError::IllegalTransition { state, outcome } => {
+                Self::IllegalTransition { state, outcome }
+            }
+        }
+    }
+}

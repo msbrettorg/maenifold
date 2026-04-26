@@ -17,6 +17,7 @@ egui_extras = "0.31.1"
 indexmap = { version = "2", features = ["serde"] }
 libc.workspace = true
 maenifold-core = { path = "../maenifold-core" }
+maenifold-gate-core = { path = "../maenifold-gate-core" }
 notify.workspace = true
 regex.workspace = true
 rmcp = { workspace = true, features = ["transport-streamable-http-server"] }

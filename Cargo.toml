@@ -3,6 +3,7 @@ members = [
   "crates/maenifold-core",
   "crates/maenifold-cli",
   "crates/maenifold-gate",
+  "crates/maenifold-gate-core",
   "crates/maenifold-jockey",
   "crates/maenifold-pipeline-driver",
 ]

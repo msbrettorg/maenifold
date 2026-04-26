@@ -91,6 +91,20 @@ class AcpClient {
 
     console.log("[bridge] ACP <-", JSON.stringify(message));
 
+    if (typeof message.id === "number" && message.method === "session/request_permission") {
+      const optionId = selectAllowPermissionOption(message.params ?? {});
+      console.log("[bridge] Auto-approving ACP permission request", { id: message.id, optionId });
+      this.ws.send(JSON.stringify({
+        jsonrpc: "2.0",
+        id: message.id,
+        result: {
+          granted: true,
+          outcome: { outcome: "selected", optionId },
+        },
+      }));
+      return;
+    }
+
     if (typeof message.id === "number") {
       const pending = this.pending.get(message.id);
       if (!pending) return;
@@ -240,7 +254,7 @@ async function runPromptLoop(session: SessionEntry, ctx: RunContext, promptText:
       console.log("[bridge] ACP -> session/prompt", { sessionId: session.sessionId, contentLength: content.length, text: content[0]?.text?.slice(0, 80) });
       const result = await session.acp.sendRequest("session/prompt", {
         sessionId: session.sessionId,
-        content,
+        prompt: content,
       }) as { stopReason?: string };
 
       const stopReason = result.stopReason ?? "endTurn";
@@ -266,14 +280,19 @@ async function runPromptLoop(session: SessionEntry, ctx: RunContext, promptText:
 }
 
 function handleSessionUpdate(ctx: RunContext, params: Record<string, unknown>) {
-  const updateType = String(params.sessionUpdate ?? "");
+  const update = (
+    params.update && typeof params.update === "object"
+      ? params.update as Record<string, unknown>
+      : params
+  );
+  const updateType = String(update.sessionUpdate ?? "");
 
   if (updateType === "agent_message_chunk") {
-    const delta = String(params.delta ?? "");
+    const delta = extractTextDelta(update);
     if (!delta) return;
 
     if (!ctx.textStarted || ctx.textEnded) {
-      ctx.messageId = String(params.messageId ?? randomUUID());
+      ctx.messageId = String(update.messageId ?? randomUUID());
       ctx.textStarted = true;
       ctx.textEnded = false;
       sendEvent(ctx.res, { type: "TEXT_MESSAGE_START", messageId: ctx.messageId, role: "assistant" });
@@ -284,7 +303,7 @@ function handleSessionUpdate(ctx: RunContext, params: Record<string, unknown>) {
   }
 
   if (updateType === "agent_thought_chunk") {
-    const delta = String(params.delta ?? "");
+    const delta = extractTextDelta(update);
     if (delta) {
       sendEvent(ctx.res, { type: "THOUGHT_MESSAGE_CONTENT", delta });
     }
@@ -293,18 +312,19 @@ function handleSessionUpdate(ctx: RunContext, params: Record<string, unknown>) {
 
   if (updateType === "tool_call" || updateType === "tool_call_update") {
     finishTextIfNeeded(ctx);
-    const toolCalls = Array.isArray(params.toolCalls) ? params.toolCalls : [];
+    const toolCalls = Array.isArray(update.toolCalls) ? update.toolCalls : [update];
     for (const rawToolCall of toolCalls) {
       const toolCall = rawToolCall as Record<string, unknown>;
-      const toolCallId = String(toolCall.id ?? randomUUID());
-      const toolCallName = String(toolCall.name ?? "tool");
+      const toolCallId = String(toolCall.id ?? toolCall.toolCallId ?? randomUUID());
+      const toolCallName = String(toolCall.name ?? toolCall.title ?? "tool");
       const status = String(toolCall.status ?? "");
 
       if (!ctx.startedTools.has(toolCallId) && (status === "pending" || status === "in_progress" || updateType === "tool_call")) {
         ctx.startedTools.add(toolCallId);
         sendEvent(ctx.res, { type: "TOOL_CALL_START", toolCallId, toolCallName, parentMessageId: ctx.messageId });
-        if (toolCall.arguments !== undefined) {
-          sendEvent(ctx.res, { type: "TOOL_CALL_ARGS", toolCallId, delta: stringifyToolValue(toolCall.arguments) });
+        const args = toolCall.arguments ?? toolCall.rawInput;
+        if (args !== undefined && args !== null) {
+          sendEvent(ctx.res, { type: "TOOL_CALL_ARGS", toolCallId, delta: stringifyToolValue(args) });
         }
       }
 
@@ -313,7 +333,33 @@ function handleSessionUpdate(ctx: RunContext, params: Record<string, unknown>) {
         sendEvent(ctx.res, { type: "TOOL_CALL_END", toolCallId });
       }
     }
+    return;
   }
+
+  if (updateType) {
+    console.log("[bridge] Skipping ACP session/update type", updateType);
+  }
+}
+
+function extractTextDelta(update: Record<string, unknown>): string {
+  if (typeof update.delta === "string") return update.delta;
+  if (typeof update.text === "string") return update.text;
+  const content = update.content;
+  if (typeof content === "string") return content;
+  if (content && typeof content === "object") {
+    const record = content as Record<string, unknown>;
+    if (typeof record.text === "string") return record.text;
+  }
+  return "";
+}
+
+function selectAllowPermissionOption(params: Record<string, unknown>): string {
+  const options = Array.isArray(params.options) ? params.options : [];
+  const allowOption = options.find((option) => {
+    const record = option as Record<string, unknown>;
+    return record.kind === "allow_once" || record.kind === "allow_always";
+  }) as Record<string, unknown> | undefined;
+  return String(allowOption?.optionId ?? "allow_once");
 }
 
 function prepareSse(res: Response) {

@@ -175,7 +175,7 @@ pub(super) fn restore_on_enable(monitor: &TeamsMonitorConfig) -> Result<()> {
             start_monitor_supervisor(monitor, token.access_token)?;
             Ok(())
         }
-        Err(error) => { delete_token(&client_id, &tenant_id)?; record_auth_failure(&error); Ok(()) }
+        Err(error) => { delete_token(&client_id, &tenant_id)?; record_auth_failure(&error); Err(error) }
     }
 }
 

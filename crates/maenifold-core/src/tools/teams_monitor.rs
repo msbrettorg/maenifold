@@ -53,16 +53,19 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
         .settings
         .clone()
         .unwrap_or_else(MaenifoldSettings::default);
-    settings.teams_monitor.enabled = enabled;
     let monitor = settings.teams_monitor.clone();
-    config.settings = Some(settings);
-    write_agents_config(root, &config)?;
     if enabled {
         if let Err(error) = restore_on_enable(&monitor) {
             set_teams_error(error.to_string());
             return Err(error);
         }
+        settings.teams_monitor.enabled = true;
+        config.settings = Some(settings);
+        write_agents_config(root, &config)?;
     } else {
+        settings.teams_monitor.enabled = false;
+        config.settings = Some(settings);
+        write_agents_config(root, &config)?;
         stop_monitor_supervisor()?;
     }
     let runtime = teams_runtime_snapshot();

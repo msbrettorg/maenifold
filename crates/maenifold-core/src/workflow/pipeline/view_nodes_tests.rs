@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use serial_test::serial;
 use serde_json::json;
 
 use crate::util::json::OutputFormat;
@@ -9,6 +10,7 @@ use crate::workflow::pipeline::test_support::pipeline_test_context;
 use crate::workflow::pipeline::{PipelineEdge, ToolProvenance, types::EdgeType};
 
 #[test]
+#[serial]
 fn pipeline_nodes_json_keeps_local_session_id_and_surfaces_provenance_links() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let definition = PipelineDefinition {

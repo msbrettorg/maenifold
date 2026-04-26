@@ -7,6 +7,7 @@ autotests = false
 [features]
 default = ["app"]
 app = []
+model-download = ["dep:hf-hub"]
 
 [dependencies]
 anyhow.workspace = true
@@ -57,7 +58,7 @@ tempfile.workspace = true
 fd-lock.workspace = true
 ort.workspace = true
 tokenizers.workspace = true
-hf-hub.workspace = true
+hf-hub = { version = "0.5", default-features = false, features = ["tokio", "rustls-tls"], optional = true }
 # T-29.2: RTM FR-35 — system tray icon for --web/--http modes on macOS.
 tray-icon.workspace = true
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }

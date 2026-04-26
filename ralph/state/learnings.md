@@ -3,6 +3,26 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-25 — Iteration 1956 (T-221.2/T-221.4 Spec Advancement)
+
+### Gateway tools that need async pool access cannot be ToolRegistry native tools
+- T-221.2 R4 GPT caught: GatewayExecute needs StdioPool for upstream dispatch, but ToolRegistry::try_invoke() is synchronous (spawn_blocking) with no gateway context
+- GatewayIndex/GatewayExecute must be gateway-owned tools dispatched via GatewayState::handle_tool_call, not ToolRegistry entries
+- **Lesson: Before registering a new tool in DESCRIPTORS, check if it needs async resources (pool, state, network). If yes, it must be gateway-owned. The ToolRegistry path is sync-only.**
+
+### http.rs is at 283 LOC — don't extract code INTO it
+- T-221.2 R2 GPT caught: spec planned to move localhost_cors() into http.rs but it's already 283 LOC
+- Fix: extract to new cors.rs file instead
+- **Lesson: Before specifying an extraction target, check the target file's LOC. Files near the limit are common — gateway_handler.rs (290), mod.rs (299), http.rs (283), settings.rs (283), tests.rs (269).**
+
+### Duo review catches real architectural gaps, not just wording
+- T-221.2 went through 4 rounds with GPT-5.5. Each round surfaced genuinely different issues: API access patterns (R1), LOC pressure on extraction targets (R2), cross-crate dependency impossibility (R3), sync-vs-async dispatch architecture (R4)
+- **Lesson: Don't dismiss repeated FAIL verdicts as pedantic. Each round digs deeper into the implementation path and finds real problems the PM missed.**
+
+### Config test files need LOC audit before adding tests
+- T-221.4: config/tests.rs already at 269 LOC. Planned 80-100 LOC of new tests would bust the limit.
+- **Lesson: Check existing test file LOC before specifying test location. Create dedicated test files when the existing one is above 200 LOC.**
+
 ## 2026-04-25 — Iteration 1911 (Multi-Spec Wave + T-225.1 Shipped)
 
 ### Reuse idle duo agents with write_agent instead of creating new ones

@@ -29,9 +29,9 @@ fn gateway_tool_counts_include_native_facades_and_passthrough() {
     assert_eq!(
         gateway_tool_counts(&consolidated, &passthrough, &native_tools),
         super::GatewayToolCounts {
-            total: 6,
-            facades: 1,
-            passthrough: 2,
+            total: 5,
+            facades: 2,
+            passthrough: 0,
         }
     );
 }

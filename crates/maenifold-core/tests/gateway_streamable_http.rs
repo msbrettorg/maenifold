@@ -52,9 +52,11 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     let list = rpc(&server, "tools/list", Value::Null, None).await;
     let names = tool_names(&list);
     assert!(names.iter().any(|name| name == "GetConfig"));
-    assert!(names.iter().any(|name| name == "gateway_big_server"));
-    assert!(names.iter().any(|name| name == "small_ping"));
-    assert!(names.iter().any(|name| name == "small_fail"));
+    assert!(names.iter().any(|name| name == "GatewayIndex"));
+    assert!(names.iter().any(|name| name == "GatewayExecute"));
+    assert!(!names.iter().any(|name| name == "gateway_big_server"));
+    assert!(!names.iter().any(|name| name == "small_ping"));
+    assert!(!names.iter().any(|name| name == "small_fail"));
     assert!(!names.iter().any(|name| name == "big_alpha"));
     assert!(!names.iter().any(|name| name == "big_dashboard"));
 
@@ -71,8 +73,8 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
         &server,
         "tools/call",
         json!({
-            "name": "gateway_big_server",
-            "arguments": {"command": "big_alpha", "parameters": {"message": "hello"}}
+            "name": "GatewayExecute",
+            "arguments": {"domain": "big-server", "command": "big_alpha", "parameters": {"message": "hello"}}
         }),
         None,
     )
@@ -91,13 +93,16 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
         hidden["error"]["message"]
             .as_str()
             .expect("hidden error message")
-            .contains("gateway_big_server")
+            .contains("GatewayExecute")
     );
 
     let passthrough = rpc(
         &server,
         "tools/call",
-        json!({"name":"small_ping","arguments":{"message":"hello"}}),
+        json!({
+            "name":"GatewayExecute",
+            "arguments":{"domain":"small-server","command":"small_ping","parameters":{"message":"hello"}}
+        }),
         None,
     )
     .await;
@@ -126,7 +131,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     let upstream_error = rpc(
         &server,
         "tools/call",
-        json!({"name":"small_fail","arguments":{}}),
+        json!({
+            "name":"GatewayExecute",
+            "arguments":{"domain":"small-server","command":"small_fail","parameters":{}}
+        }),
         None,
     )
     .await;

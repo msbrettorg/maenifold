@@ -228,23 +228,12 @@ process.on('uncaughtException', (error) => {
 process.on('unhandledRejection', (reason) => {
   console.error('[maenifold] Unhandled rejection:', reason);
 });
-if (!app.requestSingleInstanceLock()) {
-  console.error('[maenifold] Another instance is already running — exiting. Kill the existing process first if you need to relaunch with --remote-debugging-port.');
-  app.quit();
-} else {
-  app.on('second-instance', () => {
-    if (!mainWindow) return;
-    if (mainWindow.isMinimized()) mainWindow.restore();
-    mainWindow.show();
-    mainWindow.focus();
-  });
-  app.on('before-quit', () => { isQuitting = true; });
-  app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
-  app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) await createWindow(); else mainWindow?.show(); });
-  app.whenReady().then(async () => {
-    registerIpcHandlers();
-    registerSandboxProtocol();
-    await ensureServices();
-    await createWindow();
-  });
-}
+app.on('before-quit', () => { isQuitting = true; });
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) await createWindow(); else mainWindow?.show(); });
+app.whenReady().then(async () => {
+  registerIpcHandlers();
+  registerSandboxProtocol();
+  await ensureServices();
+  await createWindow();
+});

@@ -35,7 +35,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return Ok(GatewayStartup::Disabled);
+        return native_only_gateway().await;
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -154,6 +154,24 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
             })
         }
     }
+}
+
+async fn native_only_gateway() -> Result<GatewayStartup> {
+    let pool = Arc::new(StdioPool::start(Vec::new()).await?);
+    let native_tools = tool_registry_tools()?;
+    let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
+    let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;
+    let catalog = GatewayCatalog::build(&[], &[], &routing)?;
+    info!(
+        "Gateway tools: {} native commands indexed (no upstream servers configured)",
+        native_tools.len()
+    );
+    Ok(GatewayStartup::Ready(Arc::new(GatewayState::new(
+        pool,
+        Arc::new(resource_routing),
+        catalog,
+        Vec::new(),
+    ))))
 }
 
 fn tool_registry_tools() -> Result<Vec<Tool>> {

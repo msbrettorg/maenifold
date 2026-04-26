@@ -112,6 +112,50 @@ export function createMcpClientOps(options: {
   reconnectSession(): Promise<void>;
   setError(message: string | null): void;
 }) {
+  const domainMap = new Map<string, string>();
+  const gatewayPassthroughTools = new Set(['GetHelp', 'ReadMcpResource', 'GatewayIndex', 'GatewayExecute']);
+  let domainMapBuilt = false;
+
+  async function buildDomainMap(): Promise<void> {
+    try {
+      const client = await options.ensureConnectedSession();
+      const indexResult = await client.callTool({ name: 'GatewayIndex', arguments: {} });
+      const indexContent = (indexResult as ToolCallResult).content?.[0]?.text;
+      if (!indexContent) {
+        domainMap.clear();
+        domainMapBuilt = true;
+        return;
+      }
+      const indexData = JSON.parse(indexContent);
+      const domains: Array<{ name: string }> = indexData.domains ?? [];
+
+      domainMap.clear();
+
+      await Promise.all(domains.map(async (domain) => {
+        const domainResult = await client.callTool({
+          name: 'GatewayIndex',
+          arguments: { domain: domain.name },
+        });
+        const domainContent = (domainResult as ToolCallResult).content?.[0]?.text;
+        if (!domainContent) return;
+        const domainData = JSON.parse(domainContent);
+        const commands: Array<{ name: string }> = domainData.commands ?? [];
+        for (const command of commands) {
+          if (!gatewayPassthroughTools.has(command.name)) {
+            domainMap.set(command.name, domain.name);
+          }
+        }
+      }));
+
+      domainMapBuilt = true;
+    } catch {
+      // GatewayIndex is unavailable when gateway routing is not active. In that
+      // mode, keep the map empty and continue sending bare tool names.
+      domainMap.clear();
+      domainMapBuilt = true;
+    }
+  }
+
   async function withReconnect<T>(operation: (client: SdkClient) => Promise<T>): Promise<T> {
     try {
       return await operation(await options.ensureConnectedSession());
@@ -123,6 +167,8 @@ export function createMcpClientOps(options: {
 
       options.setError('MCP session expired: HTTP 404');
       await options.reconnectSession();
+      domainMapBuilt = false;
+      await buildDomainMap();
 
       try {
         return await operation(await options.ensureConnectedSession());
@@ -156,9 +202,19 @@ export function createMcpClientOps(options: {
 
   async function callToolRaw(name: string, args: Record<string, unknown> = {}): Promise<ToolCallResult> {
     options.setError(null);
-    return withReconnect(async (client) => (
-      await client.callTool({ name, arguments: args })
-    ) as ToolCallResult);
+    if (!domainMapBuilt) {
+      await buildDomainMap();
+    }
+    return withReconnect(async (client) => {
+      const domain = gatewayPassthroughTools.has(name) ? undefined : domainMap.get(name);
+      if (domain) {
+        return (await client.callTool({
+          name: 'GatewayExecute',
+          arguments: { domain, command: name, parameters: args },
+        })) as ToolCallResult;
+      }
+      return (await client.callTool({ name, arguments: args })) as ToolCallResult;
+    });
   }
 
   async function listTools(): Promise<ToolDefinition[]> {

@@ -11,13 +11,14 @@ use crate::api::{
     routes_data::{file_text, graph_edges, graph_nodes},
     routes_memory::{memory_read, memory_recent, memory_search},
 };
+use crate::mcp::config_tools::ConfigMutationState;
 use crate::mcp::stdio_pool::StdioPool;
 use crate::{Config, db};
 use axum::{
-    middleware,
     Router,
     extract::{Query, State},
     http::StatusCode,
+    middleware,
     response::{IntoResponse, Json, Response},
     routing::{get, post, put},
 };
@@ -37,16 +38,16 @@ pub struct ApiState {
 
 impl ApiState {
     #[must_use]
-    pub fn new(config: Config, gateway_pool: Option<Arc<StdioPool>>) -> Self {
-        let config = Arc::new(RwLock::new(config));
-        let config_manager = {
-            let config_guard = config.read();
-            ConfigManager::new(&config_guard)
-        };
-        let config_watch = ConfigWatchState::new(config_manager.clone(), Arc::clone(&config));
+    pub fn new(
+        shared: impl Into<ApiStateSharedConfig>,
+        gateway_pool: Option<Arc<StdioPool>>,
+    ) -> Self {
+        let shared = shared.into();
+        let config_watch =
+            ConfigWatchState::new(shared.config_manager.clone(), Arc::clone(&shared.config));
         Self {
-            config,
-            config_manager,
+            config: shared.config,
+            config_manager: shared.config_manager,
             config_watch,
             gateway_pool,
         }
@@ -56,8 +57,36 @@ impl ApiState {
         self.config.read().clone()
     }
 
-    pub(super) fn refresh_settings(&self, agents_config: &AgentsConfig) {
+    pub(crate) fn refresh_settings(&self, agents_config: &AgentsConfig) {
         self.config.write().settings = agents_config.settings.clone().unwrap_or_default();
+    }
+}
+
+pub struct ApiStateSharedConfig {
+    config: Arc<RwLock<Config>>,
+    config_manager: ConfigManager,
+}
+
+impl From<Config> for ApiStateSharedConfig {
+    fn from(config: Config) -> Self {
+        let config = Arc::new(RwLock::new(config));
+        let config_manager = {
+            let config_guard = config.read();
+            ConfigManager::new(&config_guard)
+        };
+        Self {
+            config,
+            config_manager,
+        }
+    }
+}
+
+impl From<ConfigMutationState> for ApiStateSharedConfig {
+    fn from(state: ConfigMutationState) -> Self {
+        Self {
+            config: state.runtime_config(),
+            config_manager: state.config_manager(),
+        }
     }
 }
 

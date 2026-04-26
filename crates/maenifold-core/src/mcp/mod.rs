@@ -1,24 +1,33 @@
+pub(crate) mod config_tools;
 mod cors;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
-#[cfg(test)] mod gateway_catalog_domain_tests;
+#[cfg(test)]
+mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
-#[cfg(test)] mod gateway_experiment;
-#[cfg(test)] mod gateway_experiment_fixtures;
-#[cfg(test)] mod gateway_experiment_tests;
+#[cfg(test)]
+mod gateway_experiment;
+#[cfg(test)]
+mod gateway_experiment_fixtures;
+#[cfg(test)]
+mod gateway_experiment_tests;
 mod gateway_handler;
-#[cfg(test)] mod gateway_integration_tests;
+#[cfg(test)]
+mod gateway_integration_tests;
 mod gateway_intent;
-#[cfg(test)] mod gateway_intent_tests;
+#[cfg(test)]
+mod gateway_intent_tests;
 mod gateway_resolver;
-#[cfg(test)] mod gateway_resolver_tests;
+#[cfg(test)]
+mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_schema_validation;
 mod gateway_startup;
+mod mcp_tool_calls;
 pub mod http;
 mod resource_routing;
 pub mod resources;
@@ -35,13 +44,13 @@ pub(crate) mod tool_utils;
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
-use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError, Result};
+use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
-use crate::{mcp::gateway_handler::GatewayState, util::json::OutputFormat};
+use crate::mcp::gateway_handler::GatewayState;
 pub(crate) use cors::localhost_cors;
 pub use resources::*;
 use rmcp::model::{
-    CallToolRequestParams, CallToolResult, Content, Implementation, ListResourceTemplatesResult,
+    CallToolRequestParams, CallToolResult, Implementation, ListResourceTemplatesResult,
     ListResourcesResult, ListToolsResult, ReadResourceRequestParams, ReadResourceResult,
     ServerCapabilities, ServerInfo, SubscribeRequestParams, Tool, UnsubscribeRequestParams,
 };
@@ -50,7 +59,7 @@ use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};
-use tool_utils::{format_tool_error, with_lock_retry};
+use tool_utils::with_lock_retry;
 pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
@@ -58,6 +67,7 @@ struct MaenifoldHandler {
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
     gateway_startup_error: Option<String>,
+    config_mutation: Option<config_tools::ConfigMutationState>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -83,6 +93,7 @@ impl MaenifoldHandler {
             gateway: None,
             gateway_diagnostics: None,
             gateway_startup_error: None,
+            config_mutation: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
@@ -94,12 +105,24 @@ impl MaenifoldHandler {
     fn set_gateway_startup_error(&mut self, error: String) {
         self.gateway_startup_error = Some(error);
     }
+    fn set_config_mutation(&mut self, state: config_tools::ConfigMutationState) {
+        self.config_mutation = Some(state);
+    }
 }
 impl ServerHandler for MaenifoldHandler {
     fn get_info(&self) -> ServerInfo {
         let capabilities = match self.transport {
-            TransportKind::Stdio => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().enable_resources_list_changed().build(),
-            TransportKind::Http => ServerCapabilities::builder().enable_tools().enable_resources().enable_resources_subscribe().build(),
+            TransportKind::Stdio => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .enable_resources_list_changed()
+                .build(),
+            TransportKind::Http => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .build(),
         };
         ServerInfo::new(capabilities)
             .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
@@ -126,7 +149,11 @@ impl ServerHandler for MaenifoldHandler {
             let mut tools: Vec<Tool> = self
                 .tools
                 .iter()
-                .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
+                .filter(|tool| {
+                    tool.name == "GetHelp"
+                        || tool.name == "ReadMcpResource"
+                        || self::config_tools::is_config_mutation_tool(tool.name.as_ref())
+                })
                 .cloned()
                 .collect();
             tools.extend(gateway.list_tools());
@@ -155,9 +182,16 @@ impl ServerHandler for MaenifoldHandler {
         }
         Ok(result)
     }
-    fn list_resource_templates(&self, _request: Option<rmcp::model::PaginatedRequestParams>, _context: rmcp::service::RequestContext<rmcp::RoleServer>) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>> + Send + '_ {
+    fn list_resource_templates(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>>
+    + Send
+    + '_ {
         std::future::ready(
-            self::resources::handle_list_resource_templates().map_err(self::resources::map_resource_error),
+            self::resources::handle_list_resource_templates()
+                .map_err(self::resources::map_resource_error),
         )
     }
     fn read_resource(
@@ -213,45 +247,13 @@ impl ServerHandler for MaenifoldHandler {
             Some(map) => Value::Object(map),
             None => json!({}),
         };
+        let config_mutation = self.config_mutation.clone();
+        let gateway = self.gateway.clone();
         async move {
-            if let Some(gateway) = self.gateway.clone() {
-                if tool_name != "GetHelp" && tool_name != "ReadMcpResource" {
-                    if let Some(gateway_result) =
-                        gateway.handle_tool_call(&tool_name, arguments).await?
-                    {
-                        return Ok(gateway_result);
-                    }
-                    return Err(unknown_tool_error(&tool_name));
-                }
-            }
-            let tool_name_for_invoke = tool_name.clone();
-            let native_arguments = arguments;
-            let result = tokio::task::spawn_blocking(move || {
-                ToolRegistry::global().try_invoke(
-                    &tool_name_for_invoke,
-                    &native_arguments,
-                    OutputFormat::Json,
-                )
-            })
-            .await
-            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
-
-            match result {
-                Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
-                Err(MaenifoldError::UnknownTool(_)) => Err(unknown_tool_error(&tool_name)),
-                Err(err) => Ok(CallToolResult::error(vec![Content::text(
-                    format_tool_error(&tool_name, &err),
-                )])),
-            }
+            self::mcp_tool_calls::handle_tool_call(tool_name, arguments, config_mutation, gateway)
+                .await
         }
     }
-}
-fn unknown_tool_error(tool_name: &str) -> rmcp::ErrorData {
-    rmcp::ErrorData::new(
-        rmcp::model::ErrorCode(JSONRPC_METHOD_NOT_FOUND as i32),
-        format!("Unknown tool: '{tool_name}'"),
-        Some(Value::Null),
-    )
 }
 impl MaenifoldMcpServer {
     pub fn list_tools() -> Result<Vec<McpToolDefinition>> {

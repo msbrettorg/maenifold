@@ -4,6 +4,7 @@ use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::graph;
 use crate::graph::analyzer;
+use crate::mcp::config_tools;
 use crate::memory;
 use crate::repair;
 use crate::search;
@@ -255,5 +256,45 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         name: "Schedule",
         aliases: &["schedule", "scheduled_tasks"],
         invoke: tools::schedule,
+    },
+    ToolDescriptor {
+        name: "ReloadConfig",
+        aliases: &["reloadconfig", "reload_config"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "UpdateSettings",
+        aliases: &["updatesettings", "update_settings"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "AddAgent",
+        aliases: &["addagent", "add_agent"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "UpdateAgent",
+        aliases: &["updateagent", "update_agent"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "DeleteAgent",
+        aliases: &["deleteagent", "delete_agent"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "AddMcpServer",
+        aliases: &["addmcpserver", "add_mcp_server"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "UpdateMcpServer",
+        aliases: &["updatemcpserver", "update_mcp_server"],
+        invoke: config_tools::registry_invocation_unavailable,
+    },
+    ToolDescriptor {
+        name: "DeleteMcpServer",
+        aliases: &["deletemcpserver", "delete_mcp_server"],
+        invoke: config_tools::registry_invocation_unavailable,
     },
 ];

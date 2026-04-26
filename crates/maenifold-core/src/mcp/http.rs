@@ -1,12 +1,14 @@
 use super::gateway_startup::{GatewayStartup, build_gateway};
 use super::{MaenifoldHandler, TransportKind};
+use crate::api::config_manager::ConfigManager;
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::config_tools::{ConfigMutationState, mutation_state};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
 use axum::routing::get;
-use axum::{middleware, Router};
+use axum::{Router, middleware};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
@@ -17,12 +19,13 @@ pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, N
 
 pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
     let relay_state = state.clone();
-    let mcp_routes = Router::new()
-        .nest_service("/mcp", service)
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            crate::api::auth::require_bearer_token,
-        ));
+    let mcp_routes =
+        Router::new()
+            .nest_service("/mcp", service)
+            .route_layer(middleware::from_fn_with_state(
+                state.clone(),
+                crate::api::auth::require_bearer_token,
+            ));
 
     Router::new()
         .merge(mcp_routes)
@@ -40,11 +43,28 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
 // requests for session reasons. This eliminates the entire class of
 // "session_expired" failures that occur when long-running AI workloads
 // idle beyond the keepalive window.
+#[allow(dead_code)]
 pub(super) fn service(
     cancellation_token: tokio_util::sync::CancellationToken,
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<StdioPool>>,
     gateway_startup_error: Option<String>,
+) -> MaenifoldHttpService {
+    service_with_config_mutation(
+        cancellation_token,
+        gateway,
+        gateway_diagnostics,
+        gateway_startup_error,
+        None,
+    )
+}
+
+fn service_with_config_mutation(
+    cancellation_token: tokio_util::sync::CancellationToken,
+    gateway: Option<Arc<GatewayState>>,
+    gateway_diagnostics: Option<Arc<StdioPool>>,
+    gateway_startup_error: Option<String>,
+    config_mutation: Option<ConfigMutationState>,
 ) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
@@ -60,6 +80,9 @@ pub(super) fn service(
             }
             if let Some(error) = gateway_startup_error.as_ref() {
                 handler.set_gateway_startup_error(error.clone());
+            }
+            if let Some(config_mutation) = config_mutation.as_ref() {
+                handler.set_config_mutation(config_mutation.clone());
             }
             Ok(handler)
         },
@@ -111,6 +134,7 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
+        let config_mutation = mutation_state(&config, ConfigManager::new(&config));
         let gateway_startup = build_gateway(&config).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
             GatewayStartup::Disabled => (None, None, None),
@@ -121,13 +145,14 @@ impl super::MaenifoldMcpServer {
             GatewayStartup::Failed { error, diagnostics } => (None, Some(error), diagnostics),
         };
         let router = router(
-            service(
+            service_with_config_mutation(
                 shutdown_token.child_token(),
                 gateway,
                 pool_for_api.clone(),
                 gateway_startup_error,
+                Some(config_mutation.clone()),
             ),
-            ApiState::new(config.clone(), pool_for_api),
+            ApiState::new(config_mutation, pool_for_api),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
         // shared tool surface over HTTP.
@@ -164,127 +189,5 @@ impl super::MaenifoldMcpServer {
 
 #[cfg(test)]
 mod tests {
-    use super::{router, service};
-    use crate::api::routes::ApiState;
-    use crate::mcp::localhost_cors;
-    use crate::test_util::ConfigResetGuard;
-    use crate::{Config, GraphDatabase};
-    use axum::{
-        body::{Body, to_bytes},
-        http::{Request, StatusCode, header},
-    };
-    use tempfile::TempDir;
-    use tower::ServiceExt;
-
-    fn test_state() -> (TempDir, ApiState, ConfigResetGuard) {
-        let temp = TempDir::new().expect("temp dir");
-        Config::override_root(temp.path());
-        Config::set_database_path(temp.path().join("memory.db"));
-        let config = Config::current();
-        config.ensure_directories().expect("ensure directories");
-        GraphDatabase::initialize_database(&config).expect("initialize database");
-        (temp, ApiState::new(config, None), ConfigResetGuard)
-    }
-
-    fn test_router(state: ApiState) -> axum::Router {
-        router(
-            service(tokio_util::sync::CancellationToken::new(), None, None, None),
-            state,
-        )
-        .layer(localhost_cors())
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn router_serves_endophasia_frontend() {
-        let (_temp, state, _guard) = test_state();
-        let response = test_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/endophasia")
-                    .body(Body::empty())
-                    .expect("request"),
-            )
-            .await
-            .expect("response");
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response.headers()["content-type"],
-            "text/html; charset=utf-8"
-        );
-        let body = to_bytes(response.into_body(), usize::MAX)
-            .await
-            .expect("body");
-        let body = String::from_utf8(body.to_vec()).expect("utf8");
-        assert!(body.contains("Endophasia"));
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn router_serves_endophasia_communities_json() {
-        let (_temp, state, _guard) = test_state();
-        let response = test_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/api/endophasia/communities")
-                    .body(Body::empty())
-                    .expect("request"),
-            )
-            .await
-            .expect("response");
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(response.headers()["content-type"], "application/json");
-        let body = to_bytes(response.into_body(), usize::MAX)
-            .await
-            .expect("body");
-        let json: serde_json::Value = serde_json::from_slice(&body).expect("json");
-        assert_eq!(json["communities"], serde_json::json!([]));
-        assert_eq!(json["edges"], serde_json::json!([]));
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn router_allows_packaged_electron_null_origin() {
-        let (_temp, state, _guard) = test_state();
-        let response = test_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/api/config")
-                    .header(header::ORIGIN, "null")
-                    .body(Body::empty())
-                    .expect("request"),
-            )
-            .await
-            .expect("response");
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
-            "null"
-        );
-    }
-
-    #[tokio::test]
-    #[serial_test::serial]
-    async fn router_allows_packaged_electron_file_origin() {
-        let (_temp, state, _guard) = test_state();
-        let response = test_router(state)
-            .oneshot(
-                Request::builder()
-                    .uri("/api/config")
-                    .header(header::ORIGIN, "file://")
-                    .body(Body::empty())
-                    .expect("request"),
-            )
-            .await
-            .expect("response");
-
-        assert_eq!(response.status(), StatusCode::OK);
-        assert_eq!(
-            response.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
-            "file://"
-        );
-    }
+    include!("http_tests.rs");
 }

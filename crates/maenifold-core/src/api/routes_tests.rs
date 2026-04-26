@@ -1,9 +1,5 @@
 use super::{ApiState, api_routes};
-use crate::{
-    Config,
-    db::GraphDatabase,
-    test_util::ConfigResetGuard,
-};
+use crate::{Config, db::GraphDatabase, test_util::ConfigResetGuard};
 use axum::{
     body::{Body, to_bytes},
     http::{Request, StatusCode, header},

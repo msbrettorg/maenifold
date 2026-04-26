@@ -87,10 +87,6 @@ fn tool_count_reduction_builds_single_facade() {
     assert_eq!(server.server_name, "Billing Gateway");
     assert_eq!(server.tool_catalog.len(), 10);
     assert!(passthrough.is_empty());
-    assert_eq!(
-        server.facade_tool.name.to_string(),
-        "gateway_billing_gateway"
-    );
 }
 
 #[test]

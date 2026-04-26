@@ -1,60 +1,52 @@
 use crate::error::{
-    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_INVALID_PARAMS, MaenifoldError, Result,
+    GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, JSONRPC_INVALID_PARAMS, MaenifoldError,
 };
+use crate::mcp::gateway_catalog::{CommandTarget, GatewayCatalog};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
-use crate::mcp::gateway_dispatch::{DispatchResult, dispatch_facade_call};
+use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
+use crate::mcp::schema::gateway_tools::{
+    GatewayExecuteParams, GatewayIndexParams, gateway_execute_tool, gateway_index_tool,
+};
 use crate::mcp::stdio_pool::{StdioPool, StdioPoolHealth};
-use crate::mcp::tool_routing::ToolRoutingRegistry;
 use crate::mcp::tool_utils::format_tool_error;
+use crate::registry::ToolRegistry;
+use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
-use serde::Deserialize;
-use serde_json::{Map, Value};
-use std::collections::{HashMap, HashSet};
+use serde_json::Value;
+use std::collections::HashMap;
 use std::sync::Arc;
 use tracing::{error, warn};
 
 #[derive(Clone)]
 pub(crate) struct GatewayState {
     pool: Arc<StdioPool>,
-    routing: Arc<ToolRoutingRegistry>,
     resource_routing: Arc<ResourceRoutingRegistry>,
+    catalog: GatewayCatalog,
     consolidated_tools: Vec<ConsolidatedServerTool>,
-    passthrough_tools: Vec<Tool>,
-    passthrough_names: HashSet<String>,
-    hidden_tool_facades: HashMap<String, String>,
+    hidden_tool_domains: HashMap<String, String>,
 }
 
 impl GatewayState {
     pub(crate) fn new(
         pool: Arc<StdioPool>,
-        routing: Arc<ToolRoutingRegistry>,
         resource_routing: Arc<ResourceRoutingRegistry>,
+        catalog: GatewayCatalog,
         consolidated_tools: Vec<ConsolidatedServerTool>,
-        passthrough_tools: Vec<Tool>,
     ) -> Self {
-        let passthrough_names = passthrough_tools
-            .iter()
-            .map(|tool| tool.name.to_string())
-            .collect();
-        let hidden_tool_facades = consolidated_tools
-            .iter()
-            .flat_map(|server| {
-                let facade_name = server.facade_tool.name.to_string();
-                server
-                    .tool_catalog
-                    .iter()
-                    .map(move |tool| (tool.name.to_string(), facade_name.clone()))
-            })
-            .collect();
+        let mut hidden_tool_domains = HashMap::new();
+        for server in &consolidated_tools {
+            hidden_tool_domains.insert(legacy_facade_name(&server.server_name), server.server_name.clone());
+            for tool in &server.tool_catalog {
+                hidden_tool_domains.insert(tool.name.to_string(), server.server_name.clone());
+            }
+        }
         Self {
             pool,
-            routing,
             resource_routing,
+            catalog,
             consolidated_tools,
-            passthrough_tools,
-            passthrough_names,
-            hidden_tool_facades,
+            hidden_tool_domains,
         }
     }
 
@@ -68,13 +60,10 @@ impl GatewayState {
     }
 
     pub(crate) fn list_tools(&self) -> Vec<Tool> {
-        let mut tools = self
-            .consolidated_tools
-            .iter()
-            .map(|server| server.facade_tool.clone())
-            .collect::<Vec<_>>();
-        tools.extend(self.passthrough_tools.iter().cloned());
-        tools
+        vec![
+            tool_from_definition(gateway_index_tool()),
+            tool_from_definition(gateway_execute_tool()),
+        ]
     }
 
     pub(crate) fn list_resources(&self) -> Vec<Resource> {
@@ -102,34 +91,16 @@ impl GatewayState {
         tool_name: &str,
         arguments: Value,
     ) -> std::result::Result<Option<CallToolResult>, rmcp::ErrorData> {
-        if let Some(server) = self.find_facade(tool_name) {
-            return self
-                .handle_facade_call(server, tool_name, arguments)
-                .await
-                .map(Some);
+        if tool_name == "GatewayIndex" {
+            return self.handle_gateway_index(arguments).map(Some);
+        }
+        if tool_name == "GatewayExecute" {
+            return self.handle_gateway_execute(arguments).await.map(Some);
         }
 
-        if self.passthrough_names.contains(tool_name)
-            && let Some(server_name) = self.routing.lookup(tool_name).map(str::to_string)
-        {
-            let gateway_result = self
-                .pool
-                .call_tool(&server_name, tool_name, arguments)
-                .await;
-            return match gateway_result {
-                Ok(result) => Ok(Some(result)),
-                Err(err) => {
-                    log_gateway_error(Some(&server_name), tool_name, &err);
-                    Err(map_gateway_error(tool_name, err))
-                }
-            };
-        }
-
-        if let Some(facade_name) = self.hidden_tool_facades.get(tool_name) {
+        if let Some(domain) = self.hidden_tool_domains.get(tool_name) {
             return Err(rmcp::ErrorData::invalid_params(
-                format!(
-                    "Tool '{tool_name}' is available through the '{facade_name}' gateway. Use command='{tool_name}' to invoke it."
-                ),
+                hidden_tool_message(tool_name, domain),
                 None,
             ));
         }
@@ -137,40 +108,48 @@ impl GatewayState {
         Ok(None)
     }
 
-    fn find_facade(&self, tool_name: &str) -> Option<&ConsolidatedServerTool> {
-        self.consolidated_tools
-            .iter()
-            .find(|server| server.facade_tool.name.to_string() == tool_name)
-    }
-
-    async fn handle_facade_call(
+    fn handle_gateway_index(
         &self,
-        server: &ConsolidatedServerTool,
-        facade_name: &str,
         arguments: Value,
     ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
-        let args = parse_facade_arguments(facade_name, arguments)
-            .map_err(|err| map_gateway_error(facade_name, err))?;
-        let dispatch = dispatch_facade_call(
-            server,
-            args.intent.as_deref(),
-            args.command.as_deref(),
-            args.learn,
-            args.parameters,
-        )
-        .map_err(|err| map_gateway_error(facade_name, err))?;
+        let args: GatewayIndexParams = serde_json::from_value(arguments)
+            .map_err(|err| map_gateway_error("GatewayIndex", invalid_params(err)))?;
+        let index = self
+            .catalog
+            .render_index(
+                args.domain.as_deref(),
+                args.command.as_deref(),
+                args.include_schemas.unwrap_or(false),
+                args.include_examples.unwrap_or(false),
+            )
+            .map_err(|err| map_gateway_error("GatewayIndex", err))?;
+        Ok(CallToolResult::success(vec![Content::text(render_json(index))]))
+    }
 
-        match dispatch {
-            DispatchResult::CallTool {
+    async fn handle_gateway_execute(
+        &self,
+        arguments: Value,
+    ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
+        let args: GatewayExecuteParams = serde_json::from_value(arguments)
+            .map_err(|err| map_gateway_error("GatewayExecute", invalid_params(err)))?;
+        let parameters = Value::Object(args.parameters);
+        let _idempotency_key = args.idempotency_key.as_deref();
+        match self
+            .catalog
+            .resolve(&args.domain, &args.command)
+            .map_err(|err| map_gateway_error("GatewayExecute", err))?
+        {
+            CommandTarget::Native { tool_name } => {
+                invoke_native(tool_name, parameters).await
+            }
+            CommandTarget::Upstream {
                 server_name,
                 tool_name,
-                parameters,
             } => {
-                let gateway_result = self
-                    .pool
-                    .call_tool(&server_name, &tool_name, parameters)
-                    .await;
-                match gateway_result {
+                let server = self.consolidated_server(&server_name)?;
+                validate_dispatch_parameters(server, &tool_name, &parameters)
+                    .map_err(|err| map_gateway_error(&tool_name, err))?;
+                match self.pool.call_tool(&server_name, &tool_name, parameters).await {
                     Ok(result) => Ok(result),
                     Err(err) => {
                         log_gateway_error(Some(&server_name), &tool_name, &err);
@@ -178,66 +157,84 @@ impl GatewayState {
                     }
                 }
             }
-            DispatchResult::LearnCatalog(text) => {
-                Ok(CallToolResult::success(vec![Content::text(text)]))
-            }
-            DispatchResult::LearnSchema(schema) => {
-                Ok(CallToolResult::success(vec![Content::text(render_json(
-                    schema,
-                ))]))
-            }
-            DispatchResult::Candidates(candidates) => {
-                Ok(CallToolResult::success(vec![Content::text(
-                    render_candidates(candidates),
-                )]))
-            }
         }
     }
-}
 
-#[derive(Deserialize)]
-#[serde(default, deny_unknown_fields)]
-struct FacadeArguments {
-    intent: Option<String>,
-    command: Option<String>,
-    learn: bool,
-    parameters: Value,
-}
-
-impl Default for FacadeArguments {
-    fn default() -> Self {
-        Self {
-            intent: None,
-            command: None,
-            learn: false,
-            parameters: Value::Object(Map::new()),
-        }
+    fn consolidated_server(
+        &self,
+        server_name: &str,
+    ) -> std::result::Result<&ConsolidatedServerTool, rmcp::ErrorData> {
+        self.consolidated_tools
+            .iter()
+            .find(|server| server.server_name == server_name)
+            .ok_or_else(|| {
+                rmcp::ErrorData::internal_error(
+                    format!("Gateway catalog resolved missing server '{server_name}'"),
+                    None,
+                )
+            })
     }
-}
-
-fn parse_facade_arguments(tool_name: &str, arguments: Value) -> Result<FacadeArguments> {
-    let mut parsed: FacadeArguments = serde_json::from_value(arguments).map_err(|error| {
-        MaenifoldError::Message(format!(
-            "Invalid arguments for gateway facade '{tool_name}': {error}"
-        ))
-    })?;
-    if parsed.parameters.is_null() {
-        parsed.parameters = Value::Object(Map::new());
-    }
-    Ok(parsed)
-}
-
-fn render_candidates(candidates: Vec<(String, String)>) -> String {
-    let lines = candidates
-        .into_iter()
-        .map(|(name, description)| format!("- {name}: {description}"))
-        .collect::<Vec<_>>()
-        .join("\n");
-    format!("Matching commands:\n{lines}")
 }
 
 fn render_json(value: Value) -> String {
     serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
+}
+
+async fn invoke_native(
+    tool_name: String,
+    parameters: Value,
+) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
+    let display_name = tool_name.clone();
+    let result = tokio::task::spawn_blocking(move || {
+        ToolRegistry::global().try_invoke(&tool_name, &parameters, OutputFormat::Json)
+    })
+    .await
+    .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))?;
+    match result {
+        Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
+        Err(err) => Ok(CallToolResult::error(vec![Content::text(format_tool_error(
+            &display_name,
+            &err,
+        ))])),
+    }
+}
+
+fn tool_from_definition(definition: crate::mcp::McpToolDefinition) -> Tool {
+    let schema = match definition.input_schema {
+        Value::Object(map) => map,
+        _ => serde_json::Map::new(),
+    };
+    Tool::new(definition.name, definition.description, Arc::new(schema))
+}
+
+fn invalid_params(error: serde_json::Error) -> MaenifoldError {
+    MaenifoldError::GatewayInvalidParams(error.to_string())
+}
+
+fn hidden_tool_message(tool_name: &str, domain: &str) -> String {
+    if tool_name.starts_with("gateway_") {
+        return format!(
+            "Gateway facade '{tool_name}' is retired. Use GatewayIndex with domain='{domain}' to inspect commands, then GatewayExecute."
+        );
+    }
+    format!(
+        "Tool '{tool_name}' is indexed under domain '{domain}'. Use GatewayExecute with domain='{domain}', command='{tool_name}'."
+    )
+}
+
+fn legacy_facade_name(server_name: &str) -> String {
+    let sanitized: String = server_name
+        .chars()
+        .flat_map(|ch| {
+            if ch.is_alphanumeric() {
+                ch.to_lowercase().collect::<Vec<_>>()
+            } else {
+                vec!['_']
+            }
+        })
+        .take(60)
+        .collect();
+    format!("gateway_{sanitized}")
 }
 
 fn map_gateway_error(tool: &str, err: MaenifoldError) -> rmcp::ErrorData {

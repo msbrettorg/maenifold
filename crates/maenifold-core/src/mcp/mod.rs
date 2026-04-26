@@ -1,3 +1,5 @@
+mod cors;
+pub(crate) mod gateway_catalog;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_handler;
@@ -18,33 +20,10 @@ mod stdio_resource_reader;
 pub mod stdio_session;
 pub mod tool_routing;
 pub(crate) mod tool_utils;
+pub(crate) use cors::localhost_cors;
 pub use resources::*;
 pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 use tool_utils::{format_tool_error, with_lock_retry};
-pub(crate) fn localhost_cors() -> tower_http::cors::CorsLayer {
-    use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin, CorsLayer};
-    let origin_predicate = AllowOrigin::predicate(
-        |origin: &axum::http::HeaderValue, _parts: &axum::http::request::Parts| {
-            let Ok(s) = origin.to_str() else {
-                return false;
-            };
-            s == "null"
-                || s == "file://"
-                || s == "http://localhost"
-                || s.starts_with("http://localhost:")
-                || s == "http://127.0.0.1"
-                || s.starts_with("http://127.0.0.1:")
-                || s == "http://[::1]"
-                || s.starts_with("http://[::1]:")
-        },
-    );
-    CorsLayer::new()
-        .allow_origin(origin_predicate)
-        .allow_methods(AllowMethods::any())
-        .allow_headers(AllowHeaders::any())
-        .expose_headers([axum::http::HeaderName::from_static("mcp-session-id")])
-}
-
 use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
@@ -263,10 +242,7 @@ impl ServerHandler for MaenifoldHandler {
 }
 
 impl MaenifoldMcpServer {
-    pub fn list_tools() -> Result<Vec<McpToolDefinition>> {
-        list_mcp_tools(ToolRegistry::global())
-    }
-
+    pub fn list_tools() -> Result<Vec<McpToolDefinition>> { list_mcp_tools(ToolRegistry::global()) }
     pub async fn serve_stdio(shutdown: CancellationToken) -> Result<()> {
         let config = Config::current();
         initialize_runtime(&config)?;

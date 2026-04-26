@@ -126,7 +126,7 @@ fn dispatch_intent(
     }
 }
 
-fn validate_dispatch_parameters(
+pub(crate) fn validate_dispatch_parameters(
     server: &ConsolidatedServerTool,
     tool_name: &str,
     parameters: &Value,

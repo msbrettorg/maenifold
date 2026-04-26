@@ -15,6 +15,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 1. **"trio"** — The word "trio" in any context referring to architect roles. The operating model is **duo** (two architects). There is no trio. There never was a trio. Any reference to a trio is a contamination artifact that must be purged from whatever source produced it.
 2. **"deferral"** — Any suggestion to defer, postpone, or backlog work. We do not defer. We either do it now or we escalate. Deferral is not an option.
 3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned. The duo is anonymous and model-specified per the Roles table. Individual architect names in any active document are contamination.
+4. **Programmatic UAT** — Any attempt to auto-generate test checklists, gate tasks from UAT plan parsing, batch TC-ID verification items, or any form of "programmatic" acceptance testing. You cannot unit-test AI. You cannot batch-verify a UI. The UAT plan is a human-authored guide for interactive CDP testing — not a data source for code generation. Any agent that generates gate tasks by parsing `docs/UAT-PLAN.md` is producing rubber-stamp busywork. This is how sprint 229 shipped broken. Immediate P0. Stop all work.
 
 **Violation response:** Stop all work. Identify the source (file path, memory:// URI, session checkpoint). Purge the reference. Report to PM. Resume only after the contamination is confirmed removed.
 
@@ -31,6 +32,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 4. "Probably fine" is not a trust level. Unverified = untrusted.
 5. Agent self-reports are unreliable. Every claim must be independently verified against the actual artifact (file, build output, interactive CDP session).
 6. **Agents NEVER touch git.** No `git checkout`, `git reset`, `git restore`, `git stash`, `git pull`, `git rebase`, `git merge`, `git clean`. Read-only is fine (`git log`, `git diff`, `git status`). PM owns the working tree and commits. An agent that runs a destructive git command discards every parallel agent's working-tree changes — this has happened in real sprints (T-174.4 lost its executor.rs edits when a peer ran `git checkout bf682ecc`).
+7. **No programmatic UAT. No generated test checklists. No "TC-001 through TC-666" gate tasks.** You cannot unit-test AI behavior. The UAT plan (`docs/UAT-PLAN.md`) is a human-authored reference document for human-driven interactive testing via CDP. It is NOT a source for auto-generating gate tasks, checklists, or batch verification items. Any agent that generates gate tasks by parsing the UAT plan and creating one-task-per-section or one-task-per-TC is producing busywork that will be rubber-stamped, not verified. That is exactly how sprint 229 shipped broken — agents checked boxes instead of clicking buttons. The UAT plan is read by the agent doing interactive CDP testing. It tells them what to click. That's it.
 
 ---
 

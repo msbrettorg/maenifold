@@ -739,7 +739,7 @@ Azure OpenAI image generation is token-based. Per the Microsoft Foundry announce
 - **Knowledge cutoff is December 2025.** The model generates contextually current content.
 - **Multilingual text:** Japanese, Korean, Chinese, Hindi, Bengali with 95%+ accuracy.
 - **Responses API** supports reasoning-model orchestrated image gen, but currently only gpt-image-1 on Azure. Watch for gpt-image-2 support.
-- **Keyword spam does nothing.** "8k masterpiece trending on artstation" is ignored. Use clear natural language.
+- **Max prompt length is 32,000 characters.** Prompts exceeding this are rejected. For large context (full activity feeds, long documents), truncate or summarize before sending.
 - **No WEBP on Azure.** Only PNG and JPEG are supported. WEBP requests will fail.
 - **Resolutions above 2K are experimental.** For production, generate at medium quality + upscale separately.
 

@@ -80,6 +80,24 @@ async fn routed_command_schemas_match_native_mcp_schemas() {
 }
 
 #[tokio::test]
+async fn wrong_domain_command_error_suggests_correct_domain_and_available_commands() {
+    let catalog = native_catalog().await;
+    let error = catalog
+        .resolve("maenifold.memory", "FindSimilarConcepts")
+        .expect_err("command should not resolve in the wrong domain");
+    let text = error.to_string();
+
+    assert!(
+        text.contains(
+            "Unknown gateway command 'FindSimilarConcepts' for domain 'maenifold.memory'."
+        )
+    );
+    assert!(text.contains("Did you mean: maenifold.graph/FindSimilarConcepts?"));
+    assert!(text.contains("Available commands in 'maenifold.memory':"));
+    assert!(text.contains("ReadMemory"));
+}
+
+#[tokio::test]
 async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
     let catalog = native_catalog().await;
     assert_eq!(tool_domain("GetHelp"), None);

@@ -264,7 +264,9 @@ validate_clean_baseline() {
     echo "  ✗ index dirty after rollback"
     ok=false
   fi
-  if ! verify_immutable_files >/dev/null 2>&1; then
+  # Verify against the baseline snapshot copy, not the mutable global file,
+  # to prevent an agent from updating the hash file after modifying ralph.sh.
+  if ! (IMMUTABLE_HASH_FILE="$baseline_dir/immutable-hashes.txt" verify_immutable_files) >/dev/null 2>&1; then
     echo "  ✗ immutable file hash mismatch after rollback"
     ok=false
   fi
@@ -292,6 +294,10 @@ perform_rollback() {
   local baseline_dir="ralph/state/baseline/${iteration}"
   local baseline_head; baseline_head="$(cat "$baseline_dir/HEAD")"
   local quarantine="ralph/state/quarantine/${iteration}-$(date +%s)"
+
+  # Explicitly remove convergence markers — these are gitignored so rollback
+  # cannot detect them as iteration residue.
+  rm -f ralph/state/converged ralph/state/rollback-failed
 
   echo "REVERTING iteration ${iteration}: ${reason}"
   echo "  baseline HEAD: ${baseline_head}"
@@ -343,7 +349,16 @@ print_iteration_summary() {
   git diff --quiet         && tracked_clean="clean" || tracked_clean="DIRTY"
   git diff --cached --quiet && staged_clean="clean"  || staged_clean="DIRTY"
   untracked_count="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
-  if verify_immutable_files >/dev/null 2>&1; then immutable_status="ok"; else immutable_status="VIOLATED"; fi
+  local baseline_hash_file="ralph/state/baseline/${iteration}/immutable-hashes.txt"
+  if [[ -f "$baseline_hash_file" ]]; then
+    if (IMMUTABLE_HASH_FILE="$baseline_hash_file" verify_immutable_files) >/dev/null 2>&1; then
+      immutable_status="ok"
+    else
+      immutable_status="VIOLATED"
+    fi
+  else
+    if verify_immutable_files >/dev/null 2>&1; then immutable_status="ok"; else immutable_status="VIOLATED"; fi
+  fi
   if   [[ -f ralph/state/rollback-failed ]]; then convergence_state="rollback-failed"
   elif [[ -f ralph/state/converged       ]]; then convergence_state="converged"
   else                                            convergence_state="running"
@@ -413,6 +428,13 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   # --- Snapshot pre-iteration baseline (HEAD, immutable hashes, untracked set) ---
   snapshot_baseline "$iteration"
   baseline_head="$(cat "ralph/state/baseline/${iteration}/HEAD")"
+
+  if ! git diff --quiet || ! git diff --cached --quiet; then
+    echo "ERROR: workspace not clean at iteration start (dirty tracked files)."
+    echo "  Ralph requires a clean working tree to guarantee safe rollback."
+    notify "RALPH ⚠️" "Iteration ${iteration} skipped: dirty workspace"
+    continue
+  fi
 
   # --- Logging, OTEL, and session capture ---
   LOG_DIR="ralph/state/logs"

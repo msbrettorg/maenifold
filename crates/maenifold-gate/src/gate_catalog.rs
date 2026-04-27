@@ -55,6 +55,39 @@ impl GateDefinitionCatalog {
         Self::load_builtin(name)
     }
 
+    pub fn resolve_by_name(root: &Path, name: &str) -> Result<GateDefinition, GateError> {
+        let custom_path = root.join("pipeline.json");
+        if custom_path.exists() && !RESERVED_BUILTIN_NAMES.contains(&name) {
+            let text = fs::read_to_string(&custom_path)?;
+            let id = definition_id(&text)?;
+            if id != name {
+                return Err(GateError::Cli(format!(
+                    "custom pipeline name '{name}' does not match pipeline.json id '{id}'"
+                )));
+            }
+            return GateDefinition::from_json_text(&text);
+        }
+
+        Self::resolve(root, name).map_err(|error| match error {
+            GateError::UnknownBuiltinGate(_) => GateError::Cli(format!(
+                "unknown gate pipeline '{name}'; available pipelines: {}",
+                Self::available_pipeline_names(root).join(", ")
+            )),
+            error => error,
+        })
+    }
+
+    pub fn available_pipeline_names(root: &Path) -> Vec<String> {
+        let mut names = RESERVED_BUILTIN_NAMES
+            .iter()
+            .map(|name| (*name).to_string())
+            .collect::<Vec<_>>();
+        if root.join("pipeline.json").exists() {
+            names.push("custom pipeline.json".to_string());
+        }
+        names
+    }
+
     pub fn resolve_for_task(
         root: &Path,
         metadata: &TaskMetadata,
@@ -106,6 +139,15 @@ impl GateDefinitionCatalog {
         }
         Ok(())
     }
+}
+
+fn definition_id(text: &str) -> Result<String, GateError> {
+    let value: serde_json::Value = serde_json::from_str(text)?;
+    value
+        .get("id")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+        .ok_or_else(|| GateError::Cli("pipeline definition is missing string id".to_string()))
 }
 
 fn load_builtin_inner(name: &str) -> Result<GateDefinition, GateError> {

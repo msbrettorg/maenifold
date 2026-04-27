@@ -8,7 +8,7 @@ use super::dispatch_helpers::{
     context_from_value, optional_bool, optional_string, required_string,
 };
 use crate::cli::{
-    AppendArgs, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
+    AppendArgs, CreateArgs, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
 };
 use crate::error::GateError;
 use crate::gate_tool_service::GateToolService;
@@ -52,6 +52,14 @@ pub(crate) fn call_gate_tool(
             agent: required_string(arguments, "agent")?,
             notes: required_string(arguments, "notes")?,
             model: optional_string(arguments, "model")?,
+        })?,
+        "create" => GateToolService::create(CreateArgs {
+            context: context_from_value(arguments, false, root)?,
+            task_id: required_string(arguments, "taskId")?,
+            title: required_string(arguments, "title")?,
+            pipeline: required_string(arguments, "pipeline")?,
+            priority: optional_string(arguments, "priority")?.unwrap_or_else(|| "P2".to_string()),
+            body: optional_string(arguments, "body")?,
         })?,
         "pass" => GateToolService::pass(OutcomeArgs {
             context: context_from_value(arguments, false, root)?,
@@ -97,7 +105,10 @@ pub(crate) fn call_gate_tool(
 }
 
 pub(crate) fn tool_requires_write_lock(tool_name: &str) -> bool {
-    matches!(tool_name, "append" | "pass" | "fail" | "cancel" | "sync")
+    matches!(
+        tool_name,
+        "append" | "create" | "pass" | "fail" | "cancel" | "sync"
+    )
 }
 
 #[cfg(test)]
@@ -223,7 +234,7 @@ mod tests {
 
     #[test]
     fn tool_requires_write_lock_only_for_mutations() {
-        for tool_name in ["append", "pass", "fail", "cancel", "sync"] {
+        for tool_name in ["append", "create", "pass", "fail", "cancel", "sync"] {
             assert!(
                 tool_requires_write_lock(tool_name),
                 "{tool_name} should acquire the write lock"

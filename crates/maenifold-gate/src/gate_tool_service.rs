@@ -1,21 +1,22 @@
-use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::Path;
 
-use maenifold_gate_core::dependency_graph::{compute_blocked, detect_cycles};
 use serde_json::{Value, json};
 
 use crate::append_command::append_task;
 use crate::cache_db::GateCacheDb;
 use crate::cancel_command::cancel_task;
+use crate::create_command::create_task;
 use crate::cli::{
-    AppendArgs, CancelArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs,
+    AppendArgs, CancelArgs, CreateArgs, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs,
     TaskBodyArgs,
 };
 use crate::error::GateError;
 use crate::fail_command::fail_task;
+use crate::gate_tool_helpers::{
+    ensure_existing_read_model, refresh_read_model_unlocked, status_from_existing_read_model,
+    task_status_from_read_model_unlocked,
+};
 use crate::pass_command::pass_task;
-use crate::status_filter::StatusFilter;
 use crate::sync_command::sync_gate_unlocked;
 use crate::task_file::GateProjectLock;
 use crate::task_repository::TaskRepository;
@@ -35,6 +36,15 @@ impl GateToolService {
         let context = args.context.clone();
         let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
         append_task(args)?;
+        refresh_read_model_unlocked(&context)?;
+        task_status_from_read_model_unlocked(&context, &task_id)
+    }
+
+    pub fn create(args: CreateArgs) -> Result<Value, GateError> {
+        let task_id = args.task_id.clone();
+        let context = args.context.clone();
+        let _lock = GateProjectLock::acquire_exclusive(&context.root)?;
+        create_task(args)?;
         refresh_read_model_unlocked(&context)?;
         task_status_from_read_model_unlocked(&context, &task_id)
     }
@@ -115,170 +125,6 @@ impl GateToolService {
             "rebuild": rebuild,
             "taskCount": task_count,
         }))
-    }
-}
-
-fn task_status_from_read_model_unlocked(
-    context: &GateContext,
-    task_id: &str,
-) -> Result<Value, GateError> {
-    let rows = status_rows(context)?;
-    rows.into_iter()
-        .find(|row| row["taskId"].as_str() == Some(task_id))
-        .ok_or_else(|| GateError::Cli(format!("task '{task_id}' missing from gate DB read model")))
-}
-
-fn status_from_existing_read_model(
-    context: &GateContext,
-    filter: &StatusFilter,
-) -> Result<Value, GateError> {
-    let rows = status_rows_read_only(context)?
-        .into_iter()
-        .filter(|row| filter.matches(row))
-        .collect();
-    Ok(Value::Array(rows))
-}
-
-fn status_rows_read_only(context: &GateContext) -> Result<Vec<Value>, GateError> {
-    TaskRepository::list_tasks(context.root.clone())?;
-    let db_path = GateCacheDb::path_for_root(&context.root);
-    ensure_existing_read_model(&db_path)?;
-    load_status_rows(context).map_err(|err| status_read_model_error(&db_path, err))
-}
-
-fn status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
-    TaskRepository::list_tasks(context.root.clone())?;
-    ensure_read_model_ready(context)?;
-    match load_status_rows(context) {
-        Ok(rows) => Ok(rows),
-        Err(err) if cache_refreshable(&err) => {
-            rebuild_read_model_unlocked(context)?;
-            load_status_rows(context)
-        }
-        Err(err) => Err(err),
-    }
-}
-
-fn load_status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
-    let db = GateCacheDb::open(&context.root)?;
-    let rows = db.list_task_status(&context.root, context.requested_pipeline_name.as_deref())?;
-    let tasks = TaskRepository::list_tasks(context.root.clone())?;
-    Ok(enrich_status_rows(&context.root, &tasks, rows))
-}
-
-fn enrich_status_rows(
-    root: &Path,
-    tasks: &[crate::task_repository::TaskPathSet],
-    mut rows: Vec<Value>,
-) -> Vec<Value> {
-    let dependencies = dependencies_by_task(root, tasks);
-    let graph_input: Vec<_> = dependencies
-        .iter()
-        .map(|(task_id, depends_on)| (task_id.clone(), depends_on.clone()))
-        .collect();
-    let cycle_members: HashSet<String> = detect_cycles(&graph_input)
-        .into_iter()
-        .flat_map(|cycle| cycle.task_ids)
-        .collect();
-    let all_tasks: HashMap<String, &str> = tasks
-        .iter()
-        .map(|task| (task.task_id.clone(), task.location.as_str()))
-        .collect();
-
-    for row in &mut rows {
-        let task_id = row
-            .get("taskId")
-            .and_then(Value::as_str)
-            .map(str::to_string);
-        let state_is_initial = row.get("state").and_then(Value::as_str) == Some("pending");
-        let location_is_todo = row.get("location").and_then(Value::as_str) == Some("todo");
-        let Some(task_id) = task_id else {
-            continue;
-        };
-        let depends_on = dependencies.get(&task_id).cloned().unwrap_or_default();
-        let blocked = compute_blocked(&task_id, &depends_on, &all_tasks, &cycle_members);
-        if let Some(object) = row.as_object_mut() {
-            object.insert("dependsOn".to_string(), json!(blocked.depends_on));
-            object.insert("blockedBy".to_string(), json!(blocked.blocked_by));
-            object.insert(
-                "missingDependencies".to_string(),
-                json!(blocked.missing_dependencies),
-            );
-            object.insert(
-                "ready".to_string(),
-                json!(blocked.ready && state_is_initial && location_is_todo),
-            );
-        }
-    }
-    rows
-}
-
-fn dependencies_by_task(
-    root: &Path,
-    tasks: &[crate::task_repository::TaskPathSet],
-) -> HashMap<String, Vec<String>> {
-    tasks
-        .iter()
-        .filter_map(|task| {
-            TaskRepository::read_task_document(root, task)
-                .ok()
-                .map(|document| (task.task_id.clone(), document.metadata.depends_on))
-        })
-        .collect()
-}
-
-fn ensure_read_model_ready(context: &GateContext) -> Result<(), GateError> {
-    if !GateCacheDb::path_for_root(&context.root).exists() {
-        refresh_read_model_unlocked(context)?;
-    }
-    Ok(())
-}
-
-fn ensure_existing_read_model(db_path: &Path) -> Result<(), GateError> {
-    if db_path.exists() {
-        Ok(())
-    } else {
-        Err(GateError::Cli(format!(
-            "gate status requires an existing cache DB at {}; run `gate sync` first",
-            db_path.display()
-        )))
-    }
-}
-
-fn refresh_read_model_unlocked(context: &GateContext) -> Result<(), GateError> {
-    sync_gate_unlocked(SyncArgs {
-        context: GateContext {
-            root: context.root.clone(),
-            requested_pipeline_name: None,
-            json_output: false,
-        },
-        rebuild: false,
-    })
-}
-
-fn rebuild_read_model_unlocked(context: &GateContext) -> Result<(), GateError> {
-    sync_gate_unlocked(SyncArgs {
-        context: GateContext {
-            root: context.root.clone(),
-            requested_pipeline_name: None,
-            json_output: false,
-        },
-        rebuild: true,
-    })
-}
-
-fn cache_refreshable(err: &GateError) -> bool {
-    matches!(err, GateError::Sqlite(_) | GateError::Json(_))
-}
-
-fn status_read_model_error(db_path: &Path, err: GateError) -> GateError {
-    if cache_refreshable(&err) {
-        GateError::Cli(format!(
-            "gate status could not read the cache DB at {}; run `gate sync --rebuild` to refresh it ({err})",
-            db_path.display()
-        ))
-    } else {
-        err
     }
 }
 

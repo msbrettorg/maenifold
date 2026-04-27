@@ -98,7 +98,7 @@ pub(crate) fn gate_tool_safety(tool_name: &str) -> SafetyClass {
     match tool_name {
         "status" | "history" | "task_body" => SafetyClass::Read,
         "cancel" => SafetyClass::Destructive,
-        "sync" | "append" | "pass" | "fail" => SafetyClass::Mutate,
+        "sync" | "append" | "create" | "pass" | "fail" => SafetyClass::Mutate,
         _ => SafetyClass::Mutate,
     }
 }

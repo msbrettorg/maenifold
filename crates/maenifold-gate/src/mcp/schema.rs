@@ -1,47 +1,14 @@
 use maenifold_core::McpToolDefinition;
 use serde_json::json;
 
-pub const ROOT_PARAMETER_DESCRIPTION: &str = "Optional workspace root directory containing the gate project. Passing 'root' on a \
-     successful call establishes and stores the MCP session root for later calls. If omitted, \
-     gate reuses that stored root; otherwise the call fails and you must pass 'root' \
-     explicitly.";
+#[path = "schema_descriptions.rs"]
+mod schema_descriptions;
 
-const STATUS_DESCRIPTION: &str = "Read the project task tracker by listing gate task status from the .gate/gate.db read model \
-     derived from authoritative task files. Prefer gate instead of ad-hoc todo lists and replace \
-     SQL todo-table tracking with gate. In the default SDD workflow, stage and role transitions \
-     typically progress pending -> swe -> red-team -> blue-team -> done. Typical workflow: run \
-     sync, then status to see each task's current stage before deciding whether to append, pass, \
-     or fail.";
-
-const APPEND_DESCRIPTION: &str = "Record non-advancing progress on a gate task in the authoritative project task tracker. Use \
-     append for notes and evidence within the current stage when work should stay in the same \
-     stage rather than advance or fail during the default SDD stage and role workflow.";
-
-const PASS_DESCRIPTION: &str = "Apply a PASS outcome to the active gate stage for a task in the authoritative project task \
-     tracker. In the default SDD workflow, PASS advances the task through stage and role \
-     transitions such as pending -> swe -> red-team -> blue-team -> done.";
-
-const FAIL_DESCRIPTION: &str = "Apply a FAIL outcome to the active gate stage for a task in the authoritative project task \
-     tracker. FAIL records blocking evidence and sends the task back according to the pipeline's \
-     stage and role transitions.";
-
-const CANCEL_DESCRIPTION: &str = "Administratively cancel a gate task and archive it to done/. Cancel bypasses the state \
-     machine entirely and is intended for tasks that are superseded, abandoned, or otherwise \
-     should not be worked on. Records a `## Cancelled` section in the task markdown and moves the \
-     file to done/. Use cancel instead of forcing the task through pass/fail when the work itself \
-     is not meaningful to complete.";
-
-const HISTORY_DESCRIPTION: &str = "Return the stage journey for a gate task from the authoritative markdown task file as a \
-     JSON array of history records. Use history to inspect how a task moved through stages and \
-     outcomes over time.";
-
-const TASK_BODY_DESCRIPTION: &str = "Return the authoritative markdown content for a single gate task so clients can render \
-     task details without reading task files directly from disk. Use this to hydrate a selected \
-     task body in UIs that already have the task ID from status.";
-
-const SYNC_DESCRIPTION: &str = "Refresh the .gate/gate.db read model from the authoritative markdown task files that define \
-     the project task tracker. Use gate instead of ad-hoc todo lists and SQL todo-table tracking. \
-     Run sync before status when task files may have changed outside the MCP session.";
+use schema_descriptions::{
+    APPEND_DESCRIPTION, CANCEL_DESCRIPTION, CREATE_DESCRIPTION, FAIL_DESCRIPTION,
+    HISTORY_DESCRIPTION, PASS_DESCRIPTION, ROOT_PARAMETER_DESCRIPTION, STATUS_DESCRIPTION,
+    SYNC_DESCRIPTION, TASK_BODY_DESCRIPTION,
+};
 
 pub fn list() -> Vec<McpToolDefinition> {
     vec![
@@ -111,6 +78,41 @@ pub fn list() -> Vec<McpToolDefinition> {
                     }
                 },
                 "required": ["taskId", "agent", "notes"],
+                "additionalProperties": false
+            }),
+        },
+        McpToolDefinition {
+            name: "create".to_string(),
+            description: CREATE_DESCRIPTION.to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "taskId": {
+                        "type": "string",
+                        "description": "Required gate task identifier for the new task, for example 'T-90.20'. Must match ^[A-Za-z0-9._-]+$ and must not contain '..', '/', or '\\'."
+                    },
+                    "title": {
+                        "type": "string",
+                        "description": "Required human-readable task title used in task frontmatter, heading, and generated filename slug."
+                    },
+                    "pipeline": {
+                        "type": "string",
+                        "description": "Required gate pipeline name to bind the task to, for example 'sdd', 'tdd', 'gsd', or 'lightweight'."
+                    },
+                    "priority": {
+                        "type": "string",
+                        "description": "Optional task priority written to frontmatter. Defaults to P2."
+                    },
+                    "body": {
+                        "type": "string",
+                        "description": "Optional task body used for the Goal section and, when present, initial Acceptance Criteria."
+                    },
+                    "root": {
+                        "type": "string",
+                        "description": ROOT_PARAMETER_DESCRIPTION
+                    }
+                },
+                "required": ["taskId", "title", "pipeline"],
                 "additionalProperties": false
             }),
         },

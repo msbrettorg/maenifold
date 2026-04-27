@@ -99,12 +99,10 @@ pub fn strip_html(content: &str) -> String {
 }
 
 pub(crate) fn decode_html_entities(text: &str) -> String {
-    text.replace("&nbsp;", " ")
-        .replace("&#39;", "'")
-        .replace("&quot;", "\"")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&amp;", "&")
+    // Full HTML entity decoding equivalent to Python html.unescape()
+    // Ref: credential_scanner.py L252-254 uses html.unescape()
+    // Uses html_escape crate for spec-compliant named + numeric entity decoding
+    html_escape::decode_html_entities(text).into_owned()
 }
 
 pub fn keyword_regex(keyword: &str) -> Regex {

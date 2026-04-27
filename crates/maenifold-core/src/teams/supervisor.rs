@@ -20,6 +20,7 @@ use crate::error::{MaenifoldError, Result};
 use super::{
     EventMessage, MessageHandler, MessageHandlerConfig, TeamsDispatchRequest, TeamsReplyRequest,
     TokenInfo, TrouterClient, TrouterClientConfig, chunking, credential_guard,
+    dispatch_store::{DispatchStatus, DispatchStore},
     dispatcher::{DispatchCtx, DispatchOutcome, run_dispatch},
     runtime::update_teams_runtime_state, send_reply, set_teams_connecting, set_teams_disabled,
     set_teams_error, teams_runtime_snapshot, token_provider::TeamsTokenProvider,
@@ -84,6 +85,14 @@ impl TrouterSupervisor {
         // so contention short-circuits without leaking the runner.
         let singleton = MonitorSingleton::acquire(&lock_path)?;
 
+        // T-238.57B: dispatch queue persists alongside the singleton lock so
+        // restarts can recover in-flight work. Falls back to "." if the lock
+        // path is somehow root-less (it isn't in production).
+        let dispatch_store_path = lock_path
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .join("dispatch-queue.json");
+
         let cancel = CancellationToken::new();
         let task_cancel = cancel.clone();
         let join_handle = tokio::spawn(async move {
@@ -96,6 +105,7 @@ impl TrouterSupervisor {
                 dispatch_agent,
                 dispatch_fn,
                 runner_fn,
+                dispatch_store_path,
                 task_cancel,
             )
             .await;
@@ -213,6 +223,7 @@ async fn run_supervisor(
     dispatch_agent: Option<String>,
     dispatch_fn: DispatchFn,
     runner_fn: RunnerFn,
+    dispatch_store_path: PathBuf,
     cancel: CancellationToken,
 ) {
     set_teams_connecting();
@@ -240,6 +251,7 @@ async fn run_supervisor(
         dispatch_agent,
         dispatch_fn,
         token_rx_for_dispatch,
+        dispatch_store_path,
     ));
 
     let runner_result = match runner_handle.await {
@@ -269,6 +281,7 @@ async fn process_messages(
     dispatch_agent: Option<String>,
     dispatch_fn: DispatchFn,
     token_rx: watch::Receiver<String>,
+    dispatch_store_path: PathBuf,
 ) {
     let mut handler = MessageHandler::new(handler_config.clone());
     // Dedup is a correctness gate against Trouter redelivery (reconnects,
@@ -276,6 +289,29 @@ async fn process_messages(
     // which is a rate limit. See teams::dedup.
     // TODO(T-238.54): share this buffer with the catch-up polling worker.
     let mut dedup = super::MessageDedup::with_capacity(super::DEFAULT_DEDUP_CAPACITY);
+
+    // T-238.57B: persistent dispatch queue. `open()` already calls
+    // `mark_interrupted_as_pending()` to recover stale `in_progress` rows
+    // from a prior crash. A failure to open (e.g. unwritable dir) is
+    // non-fatal — degrade to a temp-file path so the supervisor stays alive.
+    let store = Arc::new(tokio::sync::Mutex::new(
+        DispatchStore::open(dispatch_store_path.clone()).unwrap_or_else(|e| {
+            let fallback = std::env::temp_dir().join("maenifold-dispatch-queue.json");
+            tracing::warn!(
+                %e,
+                primary = %dispatch_store_path.display(),
+                fallback = %fallback.display(),
+                "dispatch store open failed; falling back to temp path"
+            );
+            DispatchStore::open(fallback.clone()).unwrap_or_else(|e2| {
+                tracing::error!(%e2, "dispatch store fallback also failed; running without persistence guarantees");
+                // Last resort: load() is infallible (returns empty on errors),
+                // and add()/update() will then surface I/O errors per call.
+                DispatchStore::open(fallback).expect("infallible load path")
+            })
+        }),
+    ));
+    let mut messages_since_cleanup: u32 = 0;
 
     let timeout_minutes = handler_config.dispatch_timeout_minutes.max(1);
     let dispatch_timeout = Duration::from_secs(timeout_minutes.saturating_mul(60));
@@ -352,28 +388,68 @@ async fn process_messages(
         };
         let dispatch_fn = dispatch_fn.clone();
 
+        // T-238.57B: enqueue as `Pending` synchronously so a crash between
+        // here and the spawn still leaves a recoverable record on disk.
+        let dispatch_id = {
+            let mut s = store.lock().await;
+            match s.add(
+                result.prompt.clone(),
+                result.message.sender_name.clone(),
+                result.message.sender_mri.clone(),
+                result.message.conversation_id.clone(),
+                String::new(),
+            ) {
+                Ok(id) => Some(id),
+                Err(error) => {
+                    tracing::warn!(%error, "dispatch store add failed; continuing without record");
+                    None
+                }
+            }
+        };
+        let store_for_task = store.clone();
+
         // Spawn so a slow agent does not back-pressure the receive loop.
         tokio::spawn(async move {
             let conversation_id = request.metadata.reply_conversation_id.clone();
+            if let Some(id) = dispatch_id.as_deref() {
+                let mut s = store_for_task.lock().await;
+                let _ = s.update_status(id, DispatchStatus::InProgress, None, None);
+            }
             let outcome = run_dispatch(request, &ctx, &dispatch_fn).await;
-            let body = match outcome {
+            let (status, summary, error_msg, body) = match outcome {
                 DispatchOutcome::Success { reply, .. } => {
                     tracing::info!(%conversation_id, "Teams dispatch succeeded");
-                    reply
+                    (DispatchStatus::Done, Some(reply.clone()), None, reply)
                 }
                 DispatchOutcome::Timeout => {
                     tracing::warn!(%conversation_id, "Teams dispatch timed out");
-                    format!("⏳ Timed out after {timeout_minutes} minutes.")
+                    let body = format!("⏳ Timed out after {timeout_minutes} minutes.");
+                    (DispatchStatus::Timeout, None, Some(body.clone()), body)
                 }
                 DispatchOutcome::Failed(error) => {
                     tracing::error!(%conversation_id, %error, "Teams dispatch failed");
-                    format!("❌ Failed: {error}")
+                    let body = format!("❌ Failed: {error}");
+                    (DispatchStatus::Failed, None, Some(error), body)
                 }
             };
+            if let Some(id) = dispatch_id.as_deref() {
+                let mut s = store_for_task.lock().await;
+                let _ = s.update_status(id, status, summary.as_deref(), error_msg.as_deref());
+            }
             if let Err(error) = deliver_reply(&ctx, &conversation_id, &body).await {
                 tracing::warn!(%conversation_id, %error, "Teams reply delivery failed");
             }
         });
+
+        // T-238.57B: periodic cleanup of terminal records older than 48h.
+        // Runs on the receive loop thread (not in spawned tasks) so it never
+        // contends with itself.
+        messages_since_cleanup = messages_since_cleanup.wrapping_add(1);
+        if messages_since_cleanup >= 100 {
+            messages_since_cleanup = 0;
+            let mut s = store.lock().await;
+            let _ = s.cleanup_old(48.0);
+        }
     }
 }
 

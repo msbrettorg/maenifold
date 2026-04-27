@@ -15,7 +15,6 @@
 //! No internal locking — the supervisor wraps this in
 //! `Arc<tokio::sync::Mutex<DispatchStore>>` (see sub-dispatch B). Mirrors
 //! the Python "single-threaded asyncio" contract (py L67).
-#![allow(dead_code)] // wired into the supervisor in T-238.57 sub-dispatch B
 
 use std::{
     collections::HashMap,
@@ -82,6 +81,7 @@ pub struct DispatchRecord {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+#[allow(dead_code)] // schema doc; serialization uses an inline json! envelope
 struct OnDisk {
     version: u32,
     dispatches: Vec<DispatchRecord>,

@@ -24,7 +24,6 @@ async fn state(settings: IntentResolverSettings) -> GatewayState {
         vec![],
         settings,
         PathBuf::from("."),
-        None,
     )
 }
 

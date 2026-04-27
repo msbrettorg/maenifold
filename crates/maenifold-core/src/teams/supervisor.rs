@@ -256,10 +256,23 @@ async fn process_messages(
     _dispatch_fn: DispatchFn,
 ) {
     let mut handler = MessageHandler::new(handler_config.clone());
+    // Dedup is a correctness gate against Trouter redelivery (reconnects,
+    // re-registration). Distinct from the handler's per-conversation cooldown,
+    // which is a rate limit. See teams::dedup.
+    // TODO(T-238.54): share this buffer with the catch-up polling worker.
+    let mut dedup = super::MessageDedup::with_capacity(super::DEFAULT_DEDUP_CAPACITY);
 
     while let Some(message) = msg_rx.recv().await {
         record_message_received();
         ensure_connected_state();
+
+        if !dedup.check_and_record(&message.message_id) {
+            tracing::debug!(
+                message_id = %message.message_id,
+                "skipping duplicate Trouter delivery"
+            );
+            continue;
+        }
 
         let Some(result) = handler.handle(&message) else {
             continue;

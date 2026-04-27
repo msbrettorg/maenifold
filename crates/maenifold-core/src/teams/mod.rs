@@ -1,5 +1,6 @@
 mod auth;
 pub mod credential_store;
+mod dedup;
 mod dispatch;
 mod handler;
 mod handler_helpers;
@@ -19,6 +20,7 @@ pub(crate) mod trouter_protocol;
 mod types;
 
 pub use auth::TokenInfo;
+pub use dedup::{DEFAULT_DEDUP_CAPACITY, MessageDedup};
 pub use dispatch::{TeamsDispatchRequest, TeamsSessionMetadata};
 pub use handler::{MatchResult, MessageHandler};
 pub use handler_helpers::MessageHandlerConfig;

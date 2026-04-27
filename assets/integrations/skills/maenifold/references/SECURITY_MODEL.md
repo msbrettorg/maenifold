@@ -1,6 +1,6 @@
 # Security Model
 
-maenifold is a local-only, single-user context engineering infrastructure built in C# / .NET 9.0. It exposes two interfaces: an MCP server over stdio and a CLI. There is no network listener, no authentication, and no multi-user access control. The trust boundary is the OS user account.
+maenifold is a local-only, single-user context engineering infrastructure built in Rust. It exposes two interfaces: an MCP server over stdio and a CLI. There is no network listener, no authentication, and no multi-user access control. The trust boundary is the OS user account.
 
 This document describes what the security model **is**, not what it should be.
 
@@ -63,89 +63,31 @@ Trust-boundary highlights visible in the flow above:
 - **Process → SQLite**: all queries are parameterized; embeddings and graph data live in `memory.db`.
 - **Process → native deps**: ONNX model and `sqlite-vec` are loaded in-process with no integrity verification.
 
-<details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
+### Threat Flow Table
 
-```mermaid
-flowchart TB
-    classDef external fill:#4a6fa5,stroke:#2d4a7a,color:#fff
-    classDef process fill:#6b8f71,stroke:#4a6b4f,color:#fff
-    classDef datastore fill:#c9a227,stroke:#9a7d1e,color:#000
-    classDef boundary fill:none,stroke:#888,stroke-width:2px,stroke-dasharray:8 4
-
-    %% ── External Entities ──────────────────────────────────
-    subgraph dist ["Distribution Channel"]
-        direction LR
-        NPM["npm Registry"]:::external
-        BREW["Homebrew / GitHub Releases"]:::external
-    end
-
-    subgraph env ["User Environment"]
-        direction LR
-        MCPC["MCP Client\n(Claude Code, Desktop, etc.)"]:::external
-        CLIU["CLI User\n(shell)"]:::external
-        ENVV["Environment Variables\n(MAENIFOLD_ROOT, MAENIFOLD_DATABASE_PATH)"]:::external
-    end
-
-    %% ── maenifold Process ──────────────────────────────────
-    subgraph proc ["maenifold Process"]
-        direction TB
-
-        MCPS["MCP Server\n(stdio JSON-RPC)"]:::process
-        CLIP["CLI Parser\n(tool <name> <payload>)"]:::process
-        TREG["ToolRegistry\n(28 tools, dispatch)"]:::process
-        MDIO["MarkdownIO\n(read/write + path validation)"]:::process
-        ISYNC["IncrementalSync\n(FileSystem watcher)"]:::process
-        AW["AssetWatcher\n(hot-loading)"]:::process
-        ONNX["ONNX Runtime\n(embedding generation)"]:::process
-        DECAY["DecayCalculator"]:::process
-        SEARCH["SearchEngine\n(FTS5 + vector + RRF fusion)"]:::process
-    end
-
-    %% ── Persistent Storage ─────────────────────────────────
-    subgraph storage ["Persistent Storage"]
-        direction LR
-        SQLITE[("SQLite memory.db\n(concepts, file_content,\nfile_search FTS5,\nconcept_graph,\nvec_concepts,\nvec_memory_files)")]:::datastore
-        MDFILES[("Markdown Files\n~/maenifold/memory/")]:::datastore
-        ONNXM[("ONNX Model\nall-MiniLM-L6-v2.onnx")]:::datastore
-        ASSETS[("Asset Files\n~/maenifold/assets/\nworkflows, roles,\ncolors, perspectives")]:::datastore
-        VECEXT[("sqlite-vec\nvec0.dylib/so/dll")]:::datastore
-    end
-
-    %% ── Distribution Flows ─────────────────────────────────
-    NPM -->|"binary + native libs\n+ ONNX model\n(no code signing)"| proc
-    BREW -->|"binary + SHA-256\nchecksums\n(no SLSA provenance)"| proc
-
-    %% ── Environment Flows ──────────────────────────────────
-    ENVV -->|"paths, config\n(no validation beyond\ntype-safe parsing)"| proc
-    MCPC -->|"JSON-RPC\nvia stdio"| MCPS
-    CLIU -->|"tool <name> <payload>\nargs"| CLIP
-
-    %% ── Internal Process Flows ─────────────────────────────
-    MCPS --> TREG
-    CLIP --> TREG
-    TREG --> MDIO
-    TREG --> SEARCH
-    TREG -->|"graph queries\n(parameterized)"| SQLITE
-    TREG --> DECAY
-
-    MDIO -->|"read/write .md\n(path validated)"| MDFILES
-    SEARCH -->|"FTS5 + vector\nqueries"| SQLITE
-
-    ISYNC -->|"watch *.md\nchanges"| MDFILES
-    ISYNC -->|"upsert content\n+ concepts"| SQLITE
-    ISYNC --> ONNX
-
-    AW -->|"watch *.json\nchanges"| ASSETS
-    AW -->|"resource\nnotifications"| MCPS
-
-    ONNX -->|"384-dim\nembeddings"| SQLITE
-
-    %% ── Native Dependency Flows ────────────────────────────
-    ONNXM -->|"loaded in-process\n(no integrity check)"| ONNX
-    VECEXT -->|"loaded as native\nextension\n(no integrity check)"| SQLITE
-```
-
-</details>
+| Category | From | To | Security Note |
+|----------|------|-----|---------------|
+| Distribution | npm Registry | maenifold process (Binary + native libs + ONNX model) | No code signing |
+| Distribution | Homebrew / GitHub Releases | maenifold process (Binary + SHA-256 checksums) | No SLSA provenance |
+| User Environment | Environment Variables | maenifold process (Paths, config) | Type-safe parsing only |
+| User Environment | MCP Client (Claude, Desktop) | MCP Server (stdio JSON-RPC) | No authentication |
+| User Environment | CLI User (shell) | CLI Parser (tool \<name\> \<payload\> args) | No authentication |
+| Internal Process | MCP Server | ToolRegistry (Dispatch to 28 tools) | — |
+| Internal Process | CLI Parser | ToolRegistry (Dispatch to 28 tools) | — |
+| Internal Process | ToolRegistry | MarkdownIO (Read/write operations) | Path validated |
+| Internal Process | ToolRegistry | SearchEngine (FTS5 + vector queries) | — |
+| Internal Process | ToolRegistry | SQLite memory.db (Graph queries) | Parameterized |
+| Internal Process | ToolRegistry | DecayCalculator (Decay calculations) | — |
+| File System | MarkdownIO | Markdown Files (~/maenifold/memory/, Read/write .md) | Path validated |
+| File System | IncrementalSync | Markdown Files (Watch *.md changes) | — |
+| File System | IncrementalSync | SQLite memory.db (Upsert content + concepts) | — |
+| File System | IncrementalSync | ONNX Runtime (Embedding generation) | — |
+| File System | AssetWatcher | Asset Files (~/maenifold/assets/, Watch *.json changes) | — |
+| File System | AssetWatcher | MCP Server (Resource notifications) | — |
+| Search & Storage | SearchEngine | SQLite memory.db (FTS5 + vector queries) | — |
+| Search & Storage | ONNX Runtime | SQLite memory.db (384-dim embeddings) | — |
+| Native Dependencies | ONNX Model (all-MiniLM-L6-v2.onnx) | ONNX Runtime (Loaded in-process) | No integrity check |
+| Native Dependencies | sqlite-vec (vec0.dylib/so/dll) | SQLite (Loaded as native extension) | No integrity check |
 
 ## Trust Boundaries
 
@@ -153,12 +95,12 @@ flowchart TB
 |---|---|---|---|
 | Distribution to Machine | npm, Homebrew, GitHub Releases | Implicit trust in registry | SHA-256 checksums (Homebrew only). No code signing, no SLSA provenance |
 | Environment to Process | Env vars (`MAENIFOLD_ROOT`, `MAENIFOLD_DATABASE_PATH`) | Any local process can set | No validation beyond type-safe parsing |
-| MCP Client to Process | stdio pipe | Parent process (1:1) | No auth (by MCP spec). `SafeJson` MaxDepth=32 |
-| CLI to Process | Shell args | Any local user | No auth. `SafeJson` MaxDepth=32 |
+| MCP Client to Process | stdio pipe | Parent process (1:1) | No auth (by MCP spec). JSON depth limit=32 |
+| CLI to Process | Shell args | Any local user | No auth. JSON depth limit=32 |
 | Process to Filesystem | `MarkdownIO` | OS file permissions | Path traversal: `UriToPath` prefix check, `ValidatePathSecurity`, `SanitizeUserInput` (URL-decode first), `Slugify` |
 | Process to SQLite | Parameterized queries | In-process | Prepared statements throughout. WAL mode. Foreign keys. Read-only connections for queries |
-| Process to ONNX | In-process native code | Bundled model | No integrity verification. Model path from `AppContext.BaseDirectory` |
-| Process to sqlite-vec | Native extension loading | Bundled native lib | No integrity verification. `EnableExtensions(true)` |
+| Process to ONNX | In-process native code | Bundled model | No integrity verification. Model path from assets directory |
+| Process to sqlite-vec | Native extension loading | Bundled native lib | No integrity verification. `load_extension_enable()` |
 
 ## STRIDE Threat Analysis
 
@@ -170,7 +112,7 @@ Memory content flows into LLM context. This is architecturally inherent to all M
 
 **2. ONNX Model Integrity**
 
-No hash verification when loading the `.onnx` model. ONNX models can contain custom operators that execute arbitrary code. Bounded risk: the model file lives in `AppContext.BaseDirectory` (the installed binary directory), not in user-writable `~/maenifold/`. Exploiting this requires write access to the installation directory.
+No hash verification when loading the `.onnx` model. ONNX models can contain custom operators that execute arbitrary code. Bounded risk: the model file lives in the assets directory (the installed binary directory), not in user-writable `~/maenifold/`. Exploiting this requires write access to the installation directory.
 
 **3. sqlite-vec Native Extension Integrity**
 
@@ -191,24 +133,24 @@ The `MAENIFOLD_ROOT` environment variable redirects all data operations. Any pro
 
 - **Path traversal:** 4-layer defense -- URL-decode, sanitize, validate, canonicalize+prefix-check.
 - **SQL injection:** Parameterized queries throughout. No string concatenation of user input into SQL.
-- **JSON DoS:** `SafeJson` enforces `MaxDepth=32` on all deserialization.
+- **JSON DoS:** JSON depth limit of 32 enforced on all deserialization.
 - **WikiLink regex:** Negative lookbehind/lookahead rejects malformed triple/quadruple brackets. Markdig depth limit as fallback.
 
 ## Security Controls Reference
 
 | Control | Location |
 |---|---|
-| `SafeJson` MaxDepth=32 | `src/Utils/SafeJson.cs:13` |
-| `SanitizeUserInput` (URL-decode, strip dangerous chars, collapse traversal) | `src/Tools/MemoryTools.cs:150-189` |
-| `ValidatePathSecurity` (block absolute paths, dot sequences) | `src/Tools/MemoryTools.cs:125-148` |
-| `UriToPath` traversal check (canonicalize + prefix match) | `src/Utils/MarkdownWriter.cs:122-136` |
-| `SanitizeFrontmatter` (strip embedding fields) | `src/Utils/MarkdownWriter.cs:174-181` |
-| Parameterized queries (reflection-based parameter binding) | `src/Utils/SqliteExtensions.cs:76-88` |
-| WikiLink regex hardening (negative lookaround) | `src/Utils/MarkdownReader.cs:21` |
-| Checksum concurrency guard | `src/Utils/MarkdownWriter.cs:36-48` |
-| `MoveMemory` boundary check (canonicalize + prefix match) | `src/Tools/MemoryTools.cs:617-621` |
-| `Slugify` (strip non-alphanumeric, collapse hyphens) | `src/Utils/MarkdownWriter.cs:157-165` |
-| Read-only SQLite connections (`query_only=ON`) | `src/Utils/SqliteExtensions.cs:38-45` |
+| JSON depth limits | `crates/maenifold-core/src/util/json.rs` |
+| `sanitize_user_input` (URL-decode, strip dangerous chars, collapse traversal) | `crates/maenifold-core/src/memory/` |
+| `validate_path_security` (block absolute paths, dot sequences) | `crates/maenifold-core/src/util/paths.rs` |
+| URI-to-path traversal check (canonicalize + prefix match) | `crates/maenifold-core/src/markdown/` |
+| Sanitize frontmatter (strip embedding fields) | `crates/maenifold-core/src/markdown/` |
+| Parameterized queries (rusqlite named parameters) | `crates/maenifold-core/src/db/` |
+| WikiLink regex hardening (negative lookaround) | `crates/maenifold-core/src/markdown/` |
+| Checksum concurrency guard | `crates/maenifold-core/src/markdown/` |
+| `MoveMemory` boundary check (canonicalize + prefix match) | `crates/maenifold-core/src/memory/` |
+| `slugify` (strip non-alphanumeric, collapse hyphens) | `crates/maenifold-core/src/markdown/` |
+| Read-only SQLite connections (`query_only=ON`) | `crates/maenifold-core/src/db/` |
 
 ## Design Philosophy
 

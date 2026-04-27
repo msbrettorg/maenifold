@@ -14,8 +14,8 @@ export function processValue(task: GateTask) {
 }
 
 export function progressRank(task: GateTask) {
-  if (task.location === 'done') return task.stages.length || 1;
-  if (!task.stages.length) return task.state === 'pending' ? 0 : 1;
+  if (task.location === 'done') return task.stages?.length || 1;
+  if (!task.stages?.length) return task.state === 'pending' ? 0 : 1;
   const index = task.stages.indexOf(task.state);
   return index < 0 ? 0 : index;
 }
@@ -57,13 +57,13 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
       .sort((left, right) => {
         const direction = sortDirection.value === 'asc' ? 1 : -1;
         const compare = {
-          id: left.taskId.localeCompare(right.taskId, undefined, { numeric: true }),
-          name: left.title.localeCompare(right.title),
+          id: (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true }),
+          name: (left.title ?? '').localeCompare(right.title ?? ''),
           process: processValue(left).localeCompare(processValue(right)),
           progress: progressRank(left) - progressRank(right),
         }[sortColumn.value];
 
-        return compare * direction || left.taskId.localeCompare(right.taskId, undefined, { numeric: true });
+        return (compare ?? 0) * direction || (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true });
       });
   });
 

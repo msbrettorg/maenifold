@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { BookOpenText, Clock, FileText } from 'lucide-vue-next';
+import { computed, onMounted, ref } from 'vue';
+import { BookOpenText, Clock, FileText, X } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,11 @@ const { activeTabUri, activeNote, noteLoading, noteError } = storeToRefs(store);
 const recentNotes = ref<RecentActivityItem[]>([]);
 const recentLoading = ref(false);
 const recentError = ref<string | null>(null);
+const noteErrorTitle = computed(() => (
+  /not\s*found|no such|missing|404/i.test(noteError.value ?? '')
+    ? 'Note not found'
+    : 'Could not open note'
+));
 
 async function loadRecentNotes(): Promise<void> {
   recentLoading.value = true;
@@ -36,6 +41,28 @@ async function loadRecentNotes(): Promise<void> {
 onMounted(() => {
   void loadRecentNotes();
 });
+
+function closeActiveTab(): void {
+  if (!activeTabUri.value) return;
+  store.closeTab(activeTabUri.value);
+}
+
+function handleContentClick(event: MouseEvent): void {
+  if (!(event.target instanceof Element)) return;
+
+  const target = event.target.closest<HTMLElement>('[data-wikilink]');
+  if (!target) return;
+
+  const concept = target.getAttribute('data-wikilink');
+  if (!concept) return;
+
+  const uri = `memory://${concept}`;
+  if (event.metaKey || event.ctrlKey) {
+    store.openInNewTab(uri);
+    return;
+  }
+  store.openNote(uri);
+}
 </script>
 
 <template>
@@ -57,8 +84,23 @@ onMounted(() => {
         </template>
 
         <Alert v-else-if="noteError" variant="destructive" class="border-border-subtle bg-bg-surface">
-          <AlertTitle>Could not open note</AlertTitle>
-          <AlertDescription>{{ noteError }}</AlertDescription>
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <AlertTitle>{{ noteErrorTitle }}</AlertTitle>
+              <AlertDescription>{{ noteError }}</AlertDescription>
+            </div>
+            <Button
+              v-if="activeTabUri"
+              type="button"
+              size="icon-sm"
+              variant="ghost"
+              class="h-7 w-7 shrink-0 text-text-tertiary hover:bg-bg-surface-hover hover:text-text-primary"
+              aria-label="Close tab"
+              @click="closeActiveTab"
+            >
+              <X class="size-4" aria-hidden="true" />
+            </Button>
+          </div>
         </Alert>
 
         <div v-else-if="!activeNote" class="grid min-h-[24rem] place-items-center">
@@ -99,7 +141,7 @@ onMounted(() => {
           <EmptyState :icon="FileText" title="Empty note" description="This note has no content yet." />
         </div>
 
-        <article v-else class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4">
+        <article v-else class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4" @click="handleContentClick">
           <KnowledgeNoteRenderer :content="activeNote.content" />
         </article>
       </div>

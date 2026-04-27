@@ -36,8 +36,8 @@ function wikilinkPlugin(md: MarkdownIt): void {
   });
 
   md.renderer.rules.wikilink = (tokens, idx) => {
-    const label = md.utils.escapeHtml(tokens[idx].content);
-    return `<span class="note-wiki-pill">${label}</span>`;
+    const conceptName = md.utils.escapeHtml(tokens[idx].content);
+    return `<span class="note-wiki-pill cursor-pointer hover:underline" data-wikilink="${conceptName}">${conceptName}</span>`;
   };
 }
 

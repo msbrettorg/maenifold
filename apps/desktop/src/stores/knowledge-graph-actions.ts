@@ -61,7 +61,6 @@ export function createKnowledgeGraphActions(
     selectedConcept,
     conceptContextLoading,
     conceptContextError,
-    activeTabUri,
   } = refs;
 
   async function loadGraphCommunities(): Promise<void> {
@@ -171,7 +170,6 @@ export function createKnowledgeGraphActions(
         return;
       }
 
-      activeTabUri.value = null;
       conceptContextError.value = `No anchor note found for ${normalized}`;
     } catch (errorValue) {
       conceptContextError.value =

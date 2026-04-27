@@ -15,6 +15,7 @@ const store = useKnowledgeStore();
 const {
   folders,
   rootFiles,
+  searchQuery,
   searchResults,
   activeTabUri,
   foldersLoading,
@@ -24,16 +25,24 @@ const {
 } = storeToRefs(store);
 const query = ref(store.searchQuery);
 const mode = ref<'tree' | 'search'>('tree');
+const hasSubmittedSearch = ref(false);
 const showSearchResults = computed(() => mode.value === 'search');
+const emptySearchMessage = computed(() => (
+  hasSubmittedSearch.value && searchQuery.value.trim()
+    ? 'No results'
+    : 'Search the vault to show matching notes.'
+));
 
 async function runSearch(): Promise<void> {
   await store.search(query.value);
-  mode.value = query.value.trim() ? 'search' : 'tree';
+  hasSubmittedSearch.value = Boolean(query.value.trim());
+  mode.value = hasSubmittedSearch.value ? 'search' : 'tree';
 }
 
 async function clearSearch(): Promise<void> {
   query.value = '';
   await store.search('');
+  hasSubmittedSearch.value = false;
   mode.value = 'tree';
 }
 
@@ -140,7 +149,7 @@ function openUri(uri: string, event: MouseEvent): void {
               </div>
             </Button>
           </template>
-          <p v-else class="px-2 py-3 text-body-sm text-text-secondary">Search the vault to show matching notes.</p>
+          <p v-else class="px-2 py-3 text-body-sm text-text-secondary">{{ emptySearchMessage }}</p>
         </template>
       </div>
     </ScrollArea>

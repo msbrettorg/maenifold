@@ -199,7 +199,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
 
 #[tokio::test]
 #[serial]
-async fn streamable_http_gateway_intent_enabled_lists_exact_six_tools() {
+async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
     let mut config = gateway_config(vec![stdio_server(
         "small-server",
         vec![ok_tool("small_ping", "pong")],
@@ -218,12 +218,21 @@ async fn streamable_http_gateway_intent_enabled_lists_exact_six_tools() {
     assert_tool_names(
         &names,
         &[
+            "AddAgent",
+            "AddMcpServer",
+            "DeleteAgent",
+            "DeleteMcpServer",
+            "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
             "GatewayIntent",
             "GetHelp",
             "ReadMcpResource",
+            "ReloadConfig",
+            "UpdateAgent",
+            "UpdateMcpServer",
+            "UpdateSettings",
         ],
     );
 

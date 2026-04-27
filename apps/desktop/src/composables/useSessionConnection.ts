@@ -1,6 +1,6 @@
 // Session connection composable — manages local session slots and teardown flows.
 import { reactive, watch, type Ref, type WatchStopHandle } from 'vue';
-import type { SessionState } from '../lib/types';
+import type { SessionSource, SessionState } from '../lib/types';
 import { createEmptySessionState, generateSessionId } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import { trackEvent } from '../lib/telemetry';
@@ -19,6 +19,7 @@ interface AgentClosedHandlers {
 
 interface CreateSessionSlotOptions {
   startupPhase?: string;
+  source?: SessionSource;
 }
 export function useSessionConnection({
   sessions,
@@ -117,7 +118,9 @@ export function useSessionConnection({
     cleanupInactiveActiveSession();
 
     const localId = generateSessionId();
-    const sessionState = reactive(createEmptySessionState(localId, agentName, cwd));
+    const sessionState = reactive(
+      createEmptySessionState(localId, agentName, cwd, options.source ?? 'agents')
+    );
     sessionState.isLoading = true;
     sessionState.isConnecting = true;
     sessionState.currentPlan = null;

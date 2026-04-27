@@ -1,7 +1,7 @@
 // Session startup composable — create and resume flows built on shared bootstrap helpers.
 import type { AcpClientBridge } from '../lib/acp-client';
 import { createAcpClient } from '../lib/acp-client';
-import type { AgentInstance, SavedSession, SessionState } from '../lib/types';
+import type { AgentInstance, SavedSession, SessionSource, SessionState } from '../lib/types';
 import { trackError, trackEvent } from '../lib/telemetry';
 import type { SessionRuntimeDeps } from './session-runtime-deps';
 import {
@@ -17,7 +17,7 @@ interface UseSessionStartupDeps extends SessionRuntimeDeps {
   createSessionSlot: (
     agentName: string,
     cwd: string,
-    options?: { startupPhase?: string }
+    options?: { startupPhase?: string; source?: SessionSource }
   ) => { localId: string; sessionState: SessionState };
   clearSessionAbort: (sessionId: string) => void;
   isSessionAborted: (sessionId: string) => boolean;
@@ -128,9 +128,11 @@ export function useSessionStartup({
     agentName: string,
     cwd: string,
     configOptions: Record<string, string> = {},
+    options: { source?: SessionSource } = {},
   ): Promise<void> {
     const { localId, sessionState } = createSessionSlot(agentName, cwd, {
       startupPhase: 'starting',
+      source: options.source ?? 'agents',
     });
     let startupTimer: ReturnType<typeof setInterval> | null = null;
 

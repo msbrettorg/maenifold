@@ -4,7 +4,7 @@ import { isAbsolutePath } from '../lib/acp-meta';
 import { PREFS_STORE_PATH } from '../lib/constants';
 import { initTelemetry } from '../lib/telemetry';
 import { pickAbsoluteDirectory } from './folder-picker';
-import type { AgentsConfig, PermissionRequest, SavedSession, SessionState } from '../lib/types';
+import type { AgentsConfig, PermissionRequest, SavedSession, SessionSource, SessionState } from '../lib/types';
 import {
   resolvePreferredAgent,
   writeLastUsedAgent,
@@ -25,7 +25,7 @@ export type SessionStoreLike = {
   pendingPermission: PermissionRequest | null; pendingPermissionCount: number;
   pendingAuthMethods: AppAuthMethod[]; pendingAuthAgentName: string;
   sessions: Map<string, SessionState>; initStore(): Promise<void>;
-  createSession(agentName: string, cwd: string, configOptions?: Record<string, string>): Promise<void>;
+  createSession(agentName: string, cwd: string, configOptions?: Record<string, string>, options?: { source?: SessionSource }): Promise<void>;
   resumeSession(session: SavedSession): Promise<void>;
   deleteSession(sessionId: string): Promise<void>; cancelConnection(): Promise<void>;
   resolvePermission(optionId: string): void; cancelPermission(): void;

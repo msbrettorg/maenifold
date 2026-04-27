@@ -298,12 +298,21 @@ export interface PlanEntry extends AcpMetadataCarrier {
   status: 'pending' | 'in_progress' | 'completed';
 }
 
+/**
+ * Session origin discriminator. `agents` sessions belong to the Agents tab;
+ * `teams` sessions are created by the Teams tab. Downstream views filter by
+ * this so Teams chat content cannot leak into the Agents UI (and vice versa).
+ */
+export type SessionSource = 'agents' | 'teams';
+
 export interface SessionState {
   sessionId: string;
   /** Client-side bridge instance ID — used to route relay disconnects to the correct session. */
   agentId: string | null;
   agentName: string;
   cwd: string;
+  /** Tab/destination that originated this session. Defaults to `'agents'`. */
+  source: SessionSource;
   session: SavedSession | null;
   isConnected: boolean;
   isConnecting: boolean;
@@ -334,13 +343,15 @@ export function generateSessionId(): string {
 export function createEmptySessionState(
   sessionId: string,
   agentName: string,
-  cwd: string
+  cwd: string,
+  source: SessionSource = 'agents'
 ): SessionState {
   return {
     sessionId,
     agentId: null,
     agentName,
     cwd,
+    source,
     session: null,
     isConnected: false,
     isConnecting: false,

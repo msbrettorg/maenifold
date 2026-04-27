@@ -51,7 +51,7 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
         .clone()
         .unwrap_or_else(MaenifoldSettings::default);
     if enabled {
-        if let Err(error) = restore_on_enable(&mut settings.teams_monitor) {
+        if let Err(error) = restore_on_enable(&mut settings.teams_monitor, root) {
             set_teams_error(error.to_string());
             return Err(error);
         }
@@ -91,6 +91,7 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
 pub(super) fn start_monitor_supervisor(
     monitor: &TeamsMonitorConfig,
     initial_token: TokenInfo,
+    maenifold_root: &Path,
 ) -> Result<()> {
     if let Some(mut supervisor) = take_supervisor()? {
         run_on_supervisor_runtime(supervisor.stop())?;
@@ -102,6 +103,8 @@ pub(super) fn start_monitor_supervisor(
     let provider = Arc::new(TeamsTokenProvider::new());
     let fallback_refresh =
         Duration::from_secs(monitor.connection.token_refresh_minutes.max(1) * 60);
+    // T-238.56: <root>/runtime/teams-monitor.lock — fd-lock RAII singleton.
+    let lock_path = maenifold_root.join("runtime").join("teams-monitor.lock");
     let supervisor = run_on_supervisor_runtime(async move {
         TrouterSupervisor::start(
             initial_token,
@@ -111,8 +114,9 @@ pub(super) fn start_monitor_supervisor(
             handler_config,
             dispatch_agent,
             default_dispatch_fn(),
+            lock_path,
         )
-    })?;
+    })??;
     *SUPERVISOR
         .lock()
         .map_err(|_| MaenifoldError::Message("Teams supervisor lock poisoned".to_string()))? =
@@ -229,7 +233,7 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         monitor.dispatch_agent = dispatch_agent;
     }
     if monitor.enabled {
-        restore_on_enable(monitor)?;
+        restore_on_enable(monitor, root)?;
     }
 
     let monitor = monitor.clone();

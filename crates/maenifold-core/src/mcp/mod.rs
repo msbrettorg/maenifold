@@ -292,7 +292,10 @@ pub fn initialize_runtime(config: &Config) -> Result<()> {
     AssetManager::initialize_assets(config)?;
     GraphDatabase::initialize_database(config)?;
     if config.settings.teams_monitor.enabled {
-        crate::tools::teams_monitor_startup::restore_monitor(&config.settings.teams_monitor)?;
+        crate::tools::teams_monitor_startup::restore_monitor(
+            &config.settings.teams_monitor,
+            &config.maenifold_root,
+        )?;
     }
     Ok(())
 }

@@ -1,4 +1,12 @@
-use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
+use std::{
+    fs::{File, OpenOptions},
+    future::Future,
+    io::{Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
+    pin::Pin,
+    sync::Arc,
+    time::Duration,
+};
 
 use chrono::Utc;
 use serde_json::Value;
@@ -8,7 +16,7 @@ use tokio::{
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 
 use super::{
     EventMessage, MessageHandler, MessageHandlerConfig, TokenInfo, TrouterClient,
@@ -31,6 +39,9 @@ const MESSAGE_CHANNEL_CAPACITY: usize = 64;
 pub struct TrouterSupervisor {
     cancel: CancellationToken,
     join_handle: Option<JoinHandle<()>>,
+    // T-238.56: held for lifetime of supervisor; released on Drop.
+    // Field order matters: declared last so it drops last (after join_handle is taken via stop()).
+    _singleton: MonitorSingleton,
 }
 
 impl TrouterSupervisor {
@@ -42,7 +53,8 @@ impl TrouterSupervisor {
         handler_config: MessageHandlerConfig,
         dispatch_agent: Option<String>,
         dispatch_fn: DispatchFn,
-    ) -> Self {
+        lock_path: PathBuf,
+    ) -> Result<Self> {
         Self::start_with_runner(
             initial_token,
             provider,
@@ -52,6 +64,7 @@ impl TrouterSupervisor {
             dispatch_agent,
             dispatch_fn,
             default_runner(),
+            lock_path,
         )
     }
 
@@ -64,7 +77,12 @@ impl TrouterSupervisor {
         dispatch_agent: Option<String>,
         dispatch_fn: DispatchFn,
         runner_fn: RunnerFn,
-    ) -> Self {
+        lock_path: PathBuf,
+    ) -> Result<Self> {
+        // T-238.56: acquire OS-level singleton BEFORE spawning the supervisor task,
+        // so contention short-circuits without leaking the runner.
+        let singleton = MonitorSingleton::acquire(&lock_path)?;
+
         let cancel = CancellationToken::new();
         let task_cancel = cancel.clone();
         let join_handle = tokio::spawn(async move {
@@ -82,10 +100,11 @@ impl TrouterSupervisor {
             .await;
         });
 
-        Self {
+        Ok(Self {
             cancel,
             join_handle: Some(join_handle),
-        }
+            _singleton: singleton,
+        })
     }
 
     pub async fn stop(&mut self) {
@@ -300,5 +319,156 @@ fn ensure_connected_state() {
             state.connection_state = "connected".to_string();
             state.last_error = None;
         });
+    }
+}
+
+// ─── T-238.56: OS-level singleton lock for the Teams monitor ──────────────────
+//
+// `fd-lock` (POSIX `flock` / Windows `LockFileEx`) gives us "released by the
+// kernel on process exit/death" for free, so no PID-liveness probe is needed.
+// The lock file contains "{hostname}-{pid}" purely for operator diagnostics.
+// Reference pattern: crates/maenifold-pipeline-driver/src/main.rs.
+
+/// RAII guard ensuring at most one Teams monitor runs per maenifold root.
+///
+/// Holds an exclusive advisory file lock until dropped. The owning
+/// `fd_lock::RwLock<File>` is heap-allocated so its address is stable; the
+/// guard's lifetime is unsafely extended to `'static` and the field drop
+/// order (`guard` declared first → drops first → releases lock → THEN box
+/// drops) keeps this sound.
+pub struct MonitorSingleton {
+    guard: Option<fd_lock::RwLockWriteGuard<'static, File>>,
+    // Boxed so address is stable across moves of the outer struct.
+    // SAFETY contract: must outlive `guard`.
+    _rw_lock: Box<fd_lock::RwLock<File>>,
+}
+
+impl MonitorSingleton {
+    pub fn acquire(lock_path: &Path) -> Result<Self> {
+        if let Some(parent) = lock_path.parent() {
+            std::fs::create_dir_all(parent).map_err(|e| {
+                MaenifoldError::Message(format!(
+                    "Cannot create Teams monitor lock directory {}: {e}",
+                    parent.display()
+                ))
+            })?;
+        }
+        let file = OpenOptions::new()
+            .read(true)
+            .write(true)
+            .create(true)
+            .truncate(false)
+            .open(lock_path)
+            .map_err(|e| {
+                MaenifoldError::Message(format!(
+                    "Cannot open Teams monitor lock file {}: {e}",
+                    lock_path.display()
+                ))
+            })?;
+
+        let mut rw_lock = Box::new(fd_lock::RwLock::new(file));
+        // SAFETY: `rw_lock` is heap-allocated (stable address) and lives in
+        // `Self::_rw_lock`. The guard lives in `Self::guard`, declared first,
+        // so it drops before `_rw_lock`. We never expose `&mut self` paths
+        // that could move the box while the guard is alive.
+        let rw_lock_ptr: *mut fd_lock::RwLock<File> = &mut *rw_lock;
+        let guard = unsafe { (*rw_lock_ptr).try_write() }.map_err(|_| {
+            let holder = read_holder(lock_path).unwrap_or_else(|| "<unknown>".to_string());
+            MaenifoldError::Message(format!(
+                "Teams monitor already running (lock held at {}; holder: {holder})",
+                lock_path.display()
+            ))
+        })?;
+        let mut guard: fd_lock::RwLockWriteGuard<'static, File> =
+            unsafe { std::mem::transmute(guard) };
+
+        let holder = format!("{}-{}", hostname_string(), std::process::id());
+        let _ = guard.set_len(0);
+        let _ = guard.seek(SeekFrom::Start(0));
+        let _ = guard.write_all(holder.as_bytes());
+        let _ = guard.flush();
+
+        tracing::info!(
+            holder = %holder,
+            path = %lock_path.display(),
+            "teams monitor singleton acquired"
+        );
+
+        Ok(Self {
+            guard: Some(guard),
+            _rw_lock: rw_lock,
+        })
+    }
+}
+
+impl Drop for MonitorSingleton {
+    fn drop(&mut self) {
+        // Drop guard first → releases kernel lock → THEN _rw_lock box drops.
+        self.guard.take();
+        tracing::info!("teams monitor singleton released");
+    }
+}
+
+fn read_holder(lock_path: &Path) -> Option<String> {
+    let mut f = std::fs::File::open(lock_path).ok()?;
+    let mut s = String::new();
+    f.read_to_string(&mut s).ok()?;
+    let trimmed = s.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+fn hostname_string() -> String {
+    let mut buf = [0u8; 256];
+    let result = unsafe { libc::gethostname(buf.as_mut_ptr() as *mut libc::c_char, buf.len()) };
+    if result != 0 {
+        return "unknown".to_string();
+    }
+    let nul = buf.iter().position(|&b| b == 0).unwrap_or(buf.len());
+    String::from_utf8_lossy(&buf[..nul]).into_owned()
+}
+
+#[cfg(test)]
+mod singleton_tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn acquire_succeeds_and_writes_holder() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("teams-monitor.lock");
+        let _g = MonitorSingleton::acquire(&path).expect("first acquire");
+        let holder = read_holder(&path).expect("holder file present");
+        assert!(
+            holder.contains(&std::process::id().to_string()),
+            "holder {holder} should contain current PID"
+        );
+    }
+
+    #[test]
+    fn second_acquire_fails_with_holder_in_message() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("teams-monitor.lock");
+        let _first = MonitorSingleton::acquire(&path).expect("first acquire");
+        let err = match MonitorSingleton::acquire(&path) {
+            Ok(_) => panic!("second acquire must fail"),
+            Err(e) => e,
+        };
+        let msg = err.to_string();
+        assert!(msg.contains("already running"), "msg: {msg}");
+        assert!(msg.contains(&std::process::id().to_string()), "msg: {msg}");
+    }
+
+    #[test]
+    fn drop_releases_lock() {
+        let dir = TempDir::new().unwrap();
+        let path = dir.path().join("teams-monitor.lock");
+        {
+            let _g = MonitorSingleton::acquire(&path).expect("first acquire");
+        }
+        let _g2 = MonitorSingleton::acquire(&path).expect("re-acquire after drop");
     }
 }

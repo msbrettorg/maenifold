@@ -47,10 +47,10 @@ fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> R
         schedule_human: Some(parsed.description),
         agent: required_string(payload, "agent")?.to_string(),
         prompt: required_string(payload, "prompt")?.to_string(),
-        workdir: None,
+        workdir: optional_path_buf(payload, "workdir")?,
         auto_grant_permissions: optional_bool(payload, "auto_grant_permissions")?.unwrap_or(false),
         allowed_tools: optional_string_array(payload, "allowed_tools")?.unwrap_or_default(),
-        timeout_seconds: 300,
+        timeout_seconds: optional_u32(payload, "timeout_seconds")?.unwrap_or(300),
         skip_if_running: true,
         enabled: optional_bool(payload, "enabled")?.unwrap_or(true),
         created_at: Utc::now(),
@@ -101,6 +101,12 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     }
     if let Some(prompt) = optional_string(payload, "prompt")? {
         task.prompt = prompt;
+    }
+    if payload.get("workdir").is_some() {
+        task.workdir = optional_path_buf(payload, "workdir")?;
+    }
+    if let Some(timeout_seconds) = optional_u32(payload, "timeout_seconds")? {
+        task.timeout_seconds = timeout_seconds;
     }
     if let Some(enabled) = optional_bool(payload, "enabled")? {
         task.enabled = enabled;
@@ -239,6 +245,32 @@ fn optional_bool(payload: &Value, key: &'static str) -> Result<Option<bool>> {
         .as_bool()
         .map(Some)
         .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be a boolean")))
+}
+
+fn optional_path_buf(payload: &Value, key: &'static str) -> Result<Option<PathBuf>> {
+    let Some(value) = payload.get(key) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    value
+        .as_str()
+        .map(PathBuf::from)
+        .map(Some)
+        .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be a string")))
+}
+
+fn optional_u32(payload: &Value, key: &'static str) -> Result<Option<u32>> {
+    let Some(value) = payload.get(key) else {
+        return Ok(None);
+    };
+    let raw = value
+        .as_u64()
+        .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be an integer")))?;
+    u32::try_from(raw)
+        .map(Some)
+        .map_err(|_| MaenifoldError::InvalidArgument(format!("'{key}' must fit in u32")))
 }
 
 fn optional_string_array(payload: &Value, key: &'static str) -> Result<Option<Vec<String>>> {

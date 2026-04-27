@@ -21,7 +21,7 @@ pub struct SequentialThinkingParams {
     /// Whether another thought is needed after this one
     #[serde(default)]
     pub next_thought_needed: bool,
-    /// Current thought number
+    /// Current thought number. New sessions must start at 0. Subsequent thoughts increment from there.
     #[serde(default = "default_zero_u32")]
     #[schemars(default = "default_zero_u32")]
     pub thought_number: u32,
@@ -29,7 +29,7 @@ pub struct SequentialThinkingParams {
     #[serde(default = "default_zero_u32")]
     #[schemars(default = "default_zero_u32")]
     pub total_thoughts: u32,
-    /// Existing sequential thinking session identifier
+    /// Existing session identifier to continue. Omit to start a new session (system will generate one). New sessions must start with thoughtNumber=0.
     #[serde(default)]
     pub session_id: Option<String>,
     /// Cancel the session instead of adding a thought

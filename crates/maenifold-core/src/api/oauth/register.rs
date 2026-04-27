@@ -1,7 +1,4 @@
-use super::{
-    OAUTH_STATE, RegisteredClient, is_loopback_redirect_uri, issued_at, oauth_error,
-    save_clients_to_disk,
-};
+use super::{OAUTH_STATE, RegisteredClient, is_loopback_redirect_uri, issued_at, oauth_error};
 use crate::api::routes::ApiState;
 use axum::{
     Json,
@@ -10,7 +7,6 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
 #[derive(Deserialize)]
 pub(super) struct RegisterRequest {
@@ -34,7 +30,7 @@ pub(super) struct RegisterResponse {
 }
 
 pub(super) async fn register_client(
-    State(state): State<ApiState>,
+    State(_state): State<ApiState>,
     Json(request): Json<RegisterRequest>,
 ) -> Response {
     if request
@@ -92,17 +88,17 @@ pub(super) async fn register_client(
         );
     }
 
-    let client_id = format!("maenifold-local-{}", Uuid::new_v4());
+    // T-240.8: Stateless registration — always return a well-known client_id.
+    // Clients can register repeatedly and always get the same id back.
+    // Eliminates the persistence bug class entirely.
+    let client_id = "maenifold-local-public".to_string();
+    // Store the redirect_uris for this registration in memory for authorize validation.
     OAUTH_STATE.lock().clients.insert(
         client_id.clone(),
         RegisteredClient {
             redirect_uris: redirect_uris.clone(),
         },
     );
-    // Persist so dynamic-client registrations survive daemon restarts
-    // (MCP auth spec / RFC 7591). Clients persist client_id locally and
-    // expect it to remain valid across restarts.
-    save_clients_to_disk(&state.config().maenifold_root);
 
     (
         StatusCode::CREATED,

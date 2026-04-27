@@ -5,12 +5,10 @@ use axum::{
 };
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
-use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::{
     collections::HashMap,
-    fs,
-    path::{Path, PathBuf},
+    path::Path,
     time::{Duration, Instant},
 };
 
@@ -33,7 +31,7 @@ pub(super) struct OAuthState {
     pub codes: HashMap<String, PendingAuthorizationCode>,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug)]
 pub(super) struct RegisteredClient {
     pub redirect_uris: Vec<String>,
 }
@@ -47,69 +45,10 @@ pub(super) struct PendingAuthorizationCode {
     pub expires_at: Instant,
 }
 
-const CLIENTS_FILE_NAME: &str = "clients.json";
-const AUTH_DIR_NAME: &str = "auth";
-
-pub(super) fn clients_path(root: &Path) -> PathBuf {
-    root.join(AUTH_DIR_NAME).join(CLIENTS_FILE_NAME)
-}
-
-/// Load persisted dynamic-client registrations from disk on startup.
-///
-/// Per the MCP authorization spec (Dynamic Client Registration, RFC 7591),
-/// clients persist their `client_id` between sessions and expect it to
-/// remain valid across server restarts. Without this, OpenCode and other
-/// MCP clients fail with `client_id is not registered` after every restart.
-/// Spec: https://modelcontextprotocol.io/specification/draft/basic/authorization
-pub fn load_clients_from_disk(root: &Path) {
-    let path = clients_path(root);
-    let Ok(data) = fs::read_to_string(&path) else {
-        return;
-    };
-    let Ok(loaded): std::result::Result<HashMap<String, RegisteredClient>, _> =
-        serde_json::from_str(&data)
-    else {
-        tracing::warn!(
-            path = %path.display(),
-            "failed to deserialize OAuth clients registry; starting empty"
-        );
-        return;
-    };
-    let mut state = OAUTH_STATE.lock();
-    state.clients = loaded;
-}
-
-/// Persist the in-memory client registry to disk via atomic write.
-pub(super) fn save_clients_to_disk(root: &Path) {
-    let auth_dir = root.join(AUTH_DIR_NAME);
-    if let Err(error) = fs::create_dir_all(&auth_dir) {
-        tracing::error!(?error, "failed to create auth dir for OAuth clients");
-        return;
-    }
-    let snapshot: HashMap<String, RegisteredClient> = OAUTH_STATE.lock().clients.clone();
-    let json = match serde_json::to_string_pretty(&snapshot) {
-        Ok(value) => value,
-        Err(error) => {
-            tracing::error!(?error, "failed to serialize OAuth clients");
-            return;
-        }
-    };
-    let path = clients_path(root);
-    let tmp_path = auth_dir.join(format!("{CLIENTS_FILE_NAME}.tmp"));
-    if let Err(error) = fs::write(&tmp_path, json) {
-        tracing::error!(?error, "failed to write tmp OAuth clients file");
-        return;
-    }
-    #[cfg(unix)]
-    {
-        let _ = fs::set_permissions(
-            &tmp_path,
-            std::os::unix::fs::PermissionsExt::from_mode(0o600),
-        );
-    }
-    if let Err(error) = fs::rename(&tmp_path, &path) {
-        tracing::error!(?error, "failed to atomically rename OAuth clients file");
-    }
+/// T-240.8: OAuth client registration is stateless, so there is no on-disk
+/// client registry to load at startup. Kept as a no-op for existing callers.
+pub fn load_clients_from_disk(_root: &Path) {
+    // No-op.
 }
 
 pub(crate) fn routes(state: crate::api::routes::ApiState) -> Router {

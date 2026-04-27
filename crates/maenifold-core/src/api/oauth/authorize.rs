@@ -49,13 +49,25 @@ pub(super) async fn authorize(headers: HeaderMap, Query(query): Query<AuthorizeQ
 
     let mut state = OAUTH_STATE.lock();
     purge_expired_codes(&mut state);
-    let Some(client) = state.clients.get(client_id) else {
+    // T-240.8: Accept any maenifold-local-* client_id. If not in memory
+    // (e.g., after daemon restart), auto-register with the provided redirect_uri.
+    if !client_id.starts_with("maenifold-local-") {
         return oauth_error_redirect_or_json(
             &query,
             "unauthorized_client",
-            "client_id is not registered",
+            "client_id must start with 'maenifold-local-'",
         );
-    };
+    }
+    if !state.clients.contains_key(client_id) {
+        // Auto-register: daemon restarted but client still has old client_id.
+        state.clients.insert(
+            client_id.to_owned(),
+            super::RegisteredClient {
+                redirect_uris: vec![redirect_uri.to_owned()],
+            },
+        );
+    }
+    let client = state.clients.get(client_id).unwrap();
     if !client.redirect_uris.iter().any(|uri| uri == redirect_uri) {
         return oauth_error(
             StatusCode::BAD_REQUEST,

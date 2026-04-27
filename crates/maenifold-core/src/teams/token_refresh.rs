@@ -16,9 +16,7 @@ use crate::teams::ReRegisterHandle;
 use crate::teams::TokenInfo;
 use crate::teams::set_chatsvc_token;
 use crate::teams::token_provider::{MAX_REFRESH_SLEEP, TeamsTokenProvider};
-use crate::teams::token_refresh_meta::{
-    expires_in, is_valid, refresh_due, seconds_until_refresh,
-};
+use crate::teams::token_refresh_meta::{expires_in, is_valid, refresh_due, seconds_until_refresh};
 
 const FAILURE_BACKOFF: Duration = Duration::from_secs(30);
 
@@ -63,9 +61,7 @@ pub fn spawn_refresh_loop(
                     }
                     set_chatsvc_token(new_token.clone());
                     match re_register.re_register(&new_token).await {
-                        Ok(()) => tracing::info!(
-                            "re-registered with Trouter after token refresh"
-                        ),
+                        Ok(()) => tracing::info!("re-registered with Trouter after token refresh"),
                         Err(err) => tracing::warn!(
                             error = %err,
                             "re-registration after token refresh failed"

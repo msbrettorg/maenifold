@@ -108,7 +108,11 @@ async fn format_dispatches(store: &Arc<Mutex<DispatchStore>>, filter: DispatchFi
             .cloned()
             .collect();
         // Most recent first by enqueue time.
-        v.sort_by(|a, b| b.enqueued_at.partial_cmp(&a.enqueued_at).unwrap_or(std::cmp::Ordering::Equal));
+        v.sort_by(|a, b| {
+            b.enqueued_at
+                .partial_cmp(&a.enqueued_at)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
         v.truncate(10);
         v
     };
@@ -164,7 +168,8 @@ fn format_help() -> String {
      - `!cancel [id]` — cancel a dispatch (placeholder)\n\
      - `!dispatches [pending|incomplete]` — list recent / filtered dispatches\n\
      - `!list` / `!conversations` — list monitored conversations\n\
-     - `!help` / `!?` — show this help".into()
+     - `!help` / `!?` — show this help"
+        .into()
 }
 
 #[cfg(test)]
@@ -185,14 +190,8 @@ mod tests {
     async fn stop_sets_paused() {
         let paused = AtomicBool::new(false);
         let store = fresh_store();
-        let reply = execute_command(
-            &TeamsCommand::Stop,
-            &paused,
-            &store,
-            &[],
-            Instant::now(),
-        )
-        .await;
+        let reply =
+            execute_command(&TeamsCommand::Stop, &paused, &store, &[], Instant::now()).await;
         assert!(reply.contains("paused"));
         assert!(paused.load(Ordering::Acquire));
     }
@@ -219,7 +218,8 @@ mod tests {
     async fn list_empty() {
         let paused = AtomicBool::new(false);
         let store = fresh_store();
-        let reply = execute_command(&TeamsCommand::List, &paused, &store, &[], Instant::now()).await;
+        let reply =
+            execute_command(&TeamsCommand::List, &paused, &store, &[], Instant::now()).await;
         assert!(reply.contains("No conversations"));
     }
 
@@ -228,7 +228,8 @@ mod tests {
         let paused = AtomicBool::new(false);
         let store = fresh_store();
         let convs = vec!["chat-1".to_string(), "chat-2".to_string()];
-        let reply = execute_command(&TeamsCommand::List, &paused, &store, &convs, Instant::now()).await;
+        let reply =
+            execute_command(&TeamsCommand::List, &paused, &store, &convs, Instant::now()).await;
         assert!(reply.contains("chat-1"));
         assert!(reply.contains("chat-2"));
     }
@@ -238,7 +239,9 @@ mod tests {
         let paused = AtomicBool::new(false);
         let store = fresh_store();
         let reply = execute_command(
-            &TeamsCommand::Dispatches { filter: DispatchFilter::Recent },
+            &TeamsCommand::Dispatches {
+                filter: DispatchFilter::Recent,
+            },
             &paused,
             &store,
             &[],
@@ -252,8 +255,17 @@ mod tests {
     async fn help_lists_verbs() {
         let paused = AtomicBool::new(false);
         let store = fresh_store();
-        let reply = execute_command(&TeamsCommand::Help, &paused, &store, &[], Instant::now()).await;
-        for verb in ["!status", "!stop", "!resume", "!cancel", "!dispatches", "!list", "!help"] {
+        let reply =
+            execute_command(&TeamsCommand::Help, &paused, &store, &[], Instant::now()).await;
+        for verb in [
+            "!status",
+            "!stop",
+            "!resume",
+            "!cancel",
+            "!dispatches",
+            "!list",
+            "!help",
+        ] {
             assert!(reply.contains(verb), "missing {verb}");
         }
     }

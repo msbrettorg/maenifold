@@ -25,7 +25,8 @@ fn re(pattern: &str) -> Regex {
 pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
     vec![
         // CRITICAL: System prompt override
-        PatternEntry { // py L46-56
+        PatternEntry {
+            // py L46-56
             name: "ignore_instructions",
             description: "Attempt to override system instructions",
             severity: Severity::Critical,
@@ -36,7 +37,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 (?: instructions | prompts? | rules? | guidelines? | constraints? | directives? )
             "),
         },
-        PatternEntry { // py L57-66
+        PatternEntry {
+            // py L57-66
             name: "new_system_prompt",
             description: "Attempt to inject a new system prompt",
             severity: Severity::Critical,
@@ -47,7 +49,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 \s* [:\-]
             "),
         },
-        PatternEntry { // py L67-77
+        PatternEntry {
+            // py L67-77
             name: "you_are_now",
             description: "Attempt to redefine agent identity",
             severity: Severity::Critical,
@@ -59,7 +62,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                     (?: act | behave | respond ) \s+ as )
             "),
         },
-        PatternEntry { // py L78-89
+        PatternEntry {
+            // py L78-89
             name: "instruction_delimiter",
             description: "Fake instruction delimiter tags",
             severity: Severity::Critical,
@@ -71,7 +75,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
             "),
         },
         // HIGH: Role / tool injection
-        PatternEntry { // py L92-101
+        PatternEntry {
+            // py L92-101
             name: "roleplay_injection",
             description: "Attempt to make agent adopt a different persona",
             severity: Severity::High,
@@ -81,7 +86,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 (?: you \s+ are | that \s+ you | to \s+ be | you're ) \s+
             "),
         },
-        PatternEntry { // py L102-110
+        PatternEntry {
+            // py L102-110
             name: "tool_invocation",
             description: "Attempt to direct agent to invoke specific tools",
             severity: Severity::High,
@@ -91,7 +97,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 (?: function | tool | command | api | endpoint | script ) \s+
             "),
         },
-        PatternEntry { // py L111-126 — destructive command list ported verbatim
+        PatternEntry {
+            // py L111-126 — destructive command list ported verbatim
             name: "shell_injection",
             description: "Shell metacharacters or dangerous command patterns",
             severity: Severity::High,
@@ -104,7 +111,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                   | (?: rm | del | format | shutdown | kill | stop-process ) \s )
             "),
         },
-        PatternEntry { // py L127-137
+        PatternEntry {
+            // py L127-137
             name: "data_exfiltration",
             description: "Instruction to exfiltrate data via outbound channels",
             severity: Severity::High,
@@ -116,7 +124,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
             "),
         },
         // MEDIUM
-        PatternEntry { // py L140-150
+        PatternEntry {
+            // py L140-150
             name: "output_manipulation",
             description: "Attempt to control agent output format",
             severity: Severity::Medium,
@@ -126,7 +135,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                   | with \s+ (?: just | only ) | the \s+ (?: exact | following ) )
             "),
         },
-        PatternEntry { // py L151-161
+        PatternEntry {
+            // py L151-161
             name: "false_authority",
             description: "False authority claim to bypass controls",
             severity: Severity::Medium,
@@ -138,7 +148,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                        (?: admin | administrator | system \s+ admin | owner ) ) )
             "),
         },
-        PatternEntry { // py L162-172
+        PatternEntry {
+            // py L162-172
             name: "urgency_override",
             description: "Urgency-based security bypass attempt",
             severity: Severity::Medium,
@@ -151,7 +162,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                     without \s+ (?: asking | checking | confirming ) )
             "),
         },
-        PatternEntry { // py L173-183
+        PatternEntry {
+            // py L173-183
             name: "hidden_instruction",
             description: "Attempt to hide instructions from user review",
             severity: Severity::Medium,
@@ -164,7 +176,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                     (?: to | for ) \s+ the \s+ user )
             "),
         },
-        PatternEntry { // py L184-194
+        PatternEntry {
+            // py L184-194
             name: "context_manipulation",
             description: "Fake conversation context injection",
             severity: Severity::Medium,
@@ -177,7 +190,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
             "),
         },
         // LOW
-        PatternEntry { // py L197-208
+        PatternEntry {
+            // py L197-208
             name: "encoded_payload",
             description: "Encoded payload or eval-style execution",
             severity: Severity::Low,
@@ -188,7 +202,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                   | (?: eval | decode | unescape ) \s* \( )
             "),
         },
-        PatternEntry { // py L209-218
+        PatternEntry {
+            // py L209-218
             name: "repetitive_override",
             description: "Repetitive emphasis suggesting adversarial prompt",
             severity: Severity::Low,
@@ -198,7 +213,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 | (?: you \s+ (?: MUST | SHOULD | SHALL ) \s+ ){2,}
             "),
         },
-        PatternEntry { // py L219-228 — placed in LOW section but assigned HIGH severity
+        PatternEntry {
+            // py L219-228 — placed in LOW section but assigned HIGH severity
             name: "do_anything_now",
             description: "Known jailbreak pattern (DAN, developer mode, etc.)",
             severity: Severity::High,
@@ -212,7 +228,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                   | no \s+ (?: rules? | restrictions? | limits? ) \s+ mode )
             "),
         },
-        PatternEntry { // py L229-238
+        PatternEntry {
+            // py L229-238
             name: "markdown_injection",
             description: "Markdown-based data exfiltration or script injection",
             severity: Severity::High,
@@ -221,7 +238,8 @@ pub(super) static PATTERNS: LazyLock<Vec<PatternEntry>> = LazyLock::new(|| {
                 | \[ .*? \] \( (?: javascript | data | vbscript ) :
             "),
         },
-        PatternEntry { // py L239-248
+        PatternEntry {
+            // py L239-248
             name: "prompt_leak_request",
             description: "Request to leak system prompt or configuration",
             severity: Severity::Medium,
@@ -265,5 +283,7 @@ pub(super) static ALLOWLIST: LazyLock<Vec<Regex>> = LazyLock::new(|| {
 
 // Invisible / zero-width chars per prompt_guard.py L326-343.
 pub(super) static INVISIBLE_RE: LazyLock<Regex> = LazyLock::new(|| {
-    re("[\u{00ad}\u{2060}\u{feff}\u{034f}\u{061c}\u{115f}\u{1160}\u{17b4}\u{17b5}\u{180e}\u{2000}-\u{200f}\u{202a}-\u{202e}\u{2066}-\u{2069}\u{fff9}-\u{fffb}]+")
+    re(
+        "[\u{00ad}\u{2060}\u{feff}\u{034f}\u{061c}\u{115f}\u{1160}\u{17b4}\u{17b5}\u{180e}\u{2000}-\u{200f}\u{202a}-\u{202e}\u{2066}-\u{2069}\u{fff9}-\u{fffb}]+",
+    )
 });

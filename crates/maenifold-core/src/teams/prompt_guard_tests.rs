@@ -8,7 +8,11 @@ fn ignore_previous_instructions_is_critical_and_blocking() {
     assert!(!r.clean);
     assert_eq!(r.max_severity, Some(Severity::Critical));
     assert!(r.is_blocking());
-    assert!(r.findings.iter().any(|f| f.pattern_name == "ignore_instructions"));
+    assert!(
+        r.findings
+            .iter()
+            .any(|f| f.pattern_name == "ignore_instructions")
+    );
 }
 
 #[test]
@@ -99,10 +103,10 @@ fn html_entity_decoding_unmasks_payload() {
 
     let key = "A".repeat(24); // generic_api_key requires 20+ chars
     let cases = [
-        format!("api&#95;key={key}"),  // &#95; = '_'  (with semicolon)
-        format!("api&#95key={key}"),   // semicolonless variant
-        "password&#61;hunter2secret".to_string(),  // &#61; = '='
-        "password&#61hunter2secret".to_string(),   // semicolonless variant
+        format!("api&#95;key={key}"), // &#95; = '_'  (with semicolon)
+        format!("api&#95key={key}"),  // semicolonless variant
+        "password&#61;hunter2secret".to_string(), // &#61; = '='
+        "password&#61hunter2secret".to_string(), // semicolonless variant
     ];
     for input in &cases {
         let r = scan_for_credentials(input);

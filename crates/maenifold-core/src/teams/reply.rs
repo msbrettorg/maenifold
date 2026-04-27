@@ -69,7 +69,9 @@ pub async fn send_reply(request: TeamsReplyRequest) -> Result<()> {
                 };
                 if let Some(new_region) = extract_region_from_url(hint) {
                     if new_region != request.chatsvc_region.to_lowercase() {
-                        info!("chatsvc auto-discovered region '{new_region}' (status {status}) — retrying");
+                        info!(
+                            "chatsvc auto-discovered region '{new_region}' (status {status}) — retrying"
+                        );
                         return retry_once(&client, &request, &new_region).await;
                     }
                 }

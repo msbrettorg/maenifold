@@ -94,9 +94,7 @@ fn split_on_boundaries(text: &str, max_len: usize) -> Vec<String> {
         let split_byte = char_byte_index(&remaining, split_char_pos);
 
         // Preserve paragraph/line boundary. Source: chunking.py:104-110
-        let (chunk, rest) = if split_byte > 0
-            && remaining.as_bytes()[split_byte - 1] == b'\n'
-        {
+        let (chunk, rest) = if split_byte > 0 && remaining.as_bytes()[split_byte - 1] == b'\n' {
             let c = remaining[..split_byte].to_string();
             let r = remaining[split_byte..].trim_start_matches('\n').to_string();
             (c, r)

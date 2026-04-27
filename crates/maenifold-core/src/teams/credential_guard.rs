@@ -69,11 +69,7 @@ fn strip_html(text: &str) -> String {
 }
 
 /// Scan a single text variant, mutating findings/seen. py L257-284.
-fn scan_variant(
-    text: &str,
-    findings: &mut Vec<CredentialFinding>,
-    seen: &mut HashSet<String>,
-) {
+fn scan_variant(text: &str, findings: &mut Vec<CredentialFinding>, seen: &mut HashSet<String>) {
     for entry in PATTERNS.iter() {
         for m in entry.regex.find_iter(text) {
             let matched = m.as_str();
@@ -98,7 +94,10 @@ fn scan_variant(
 #[allow(dead_code)]
 pub fn scan_for_credentials(text: &str) -> CredentialScanResult {
     if text.is_empty() {
-        return CredentialScanResult { is_clean: true, findings: Vec::new() };
+        return CredentialScanResult {
+            is_clean: true,
+            findings: Vec::new(),
+        };
     }
 
     let mut findings: Vec<CredentialFinding> = Vec::new();

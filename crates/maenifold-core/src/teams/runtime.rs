@@ -24,8 +24,7 @@ static TEAMS_PROMPT_TX: OnceLock<tokio::sync::broadcast::Sender<TeamsPrompt>> = 
 /// Current chatsvcagg bearer token, refreshed by the supervisor's token-refresh loop.
 /// Port of agency-cowork's module-level `set_chatsvc_token` in
 /// `skills/teams/scripts/monitor/service.py` (referenced by `_token_refresh_loop` L719-L760).
-static CHATSVC_TOKEN: LazyLock<RwLock<Option<String>>> =
-    LazyLock::new(|| RwLock::new(None));
+static CHATSVC_TOKEN: LazyLock<RwLock<Option<String>>> = LazyLock::new(|| RwLock::new(None));
 
 pub fn set_chatsvc_token(token: String) {
     *CHATSVC_TOKEN.write() = Some(token);

@@ -6,7 +6,6 @@ use crate::acp_config::{
 };
 use crate::error::{MaenifoldError, Result};
 use crate::teams::credential_store::{AGENCY_COWORK_TOKEN_RESOURCE, delete_agency_cowork_token};
-use std::path::Path;
 use crate::teams::{
     TeamsIdentity, TeamsIdentitySource, TeamsTokenProvider, TokenInfo,
     detect_identity as detect_teams_identity, set_teams_authenticated_until, set_teams_error,
@@ -14,6 +13,7 @@ use crate::teams::{
 };
 use std::fmt::Display;
 use std::future::Future;
+use std::path::Path;
 use std::sync::LazyLock;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
@@ -83,10 +83,7 @@ pub(super) fn restore_on_enable(
     maenifold_root: &Path,
 ) -> Result<()> {
     let token = acquire_token_for_monitor(monitor)?;
-    let expires = monitor
-        .identity
-        .as_ref()
-        .map(|id| id.expires_at.clone());
+    let expires = monitor.identity.as_ref().map(|id| id.expires_at.clone());
     start_monitor_supervisor(monitor, token, maenifold_root)?;
     set_teams_authenticated_until(expires);
     if let Some(agent) = monitor.dispatch_agent.as_deref() {

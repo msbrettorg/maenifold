@@ -155,7 +155,11 @@ async fn poll_one(
         let event = EventMessage {
             message_id: message_id.to_string(),
             conversation_id: conv_id.to_string(),
-            content: msg.get("content").and_then(Value::as_str).unwrap_or("").to_string(),
+            content: msg
+                .get("content")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
             sender_mri: msg
                 .get("from")
                 .and_then(Value::as_str)
@@ -163,7 +167,11 @@ async fn poll_one(
                 .or_else(|| msg.get("fromUserId").and_then(Value::as_str))
                 .unwrap_or("")
                 .to_string(),
-            sender_name: msg.get("imdisplayname").and_then(Value::as_str).unwrap_or("").to_string(),
+            sender_name: msg
+                .get("imdisplayname")
+                .and_then(Value::as_str)
+                .unwrap_or("")
+                .to_string(),
             compose_time: compose_time.to_string(),
             resource_type: "NewMessage".to_string(),
         };

@@ -19,7 +19,6 @@
 //! session work in T-238.61.
 #![allow(dead_code)]
 
-
 use std::collections::HashMap;
 use std::future::Future;
 use std::pin::Pin;
@@ -68,9 +67,7 @@ impl std::error::Error for QueueFull {}
 /// Async dispatch function invoked by each per-conversation worker. Returning
 /// an error does not kill the worker; the next item is still processed.
 pub type DispatchFn = Arc<
-    dyn Fn(QueueItem) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>>
-        + Send
-        + Sync,
+    dyn Fn(QueueItem) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync,
 >;
 
 struct ConversationQueue {
@@ -113,10 +110,17 @@ impl PromptQueue {
     pub fn enqueue(&mut self, item: QueueItem) -> Result<(), QueueFull> {
         let key = item.conversation_id.clone();
         let cap = self.max_queue_size;
-        let full = || QueueFull { conversation_id: key.clone(), capacity: cap };
+        let full = || QueueFull {
+            conversation_id: key.clone(),
+            capacity: cap,
+        };
 
         // Drop any conversation whose worker task has exited.
-        if self.conversations.get(&key).is_some_and(|q| q.handle.is_finished()) {
+        if self
+            .conversations
+            .get(&key)
+            .is_some_and(|q| q.handle.is_finished())
+        {
             self.conversations.remove(&key);
         }
 

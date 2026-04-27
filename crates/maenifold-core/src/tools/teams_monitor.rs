@@ -6,7 +6,8 @@ use crate::error::{MaenifoldError, Result};
 use crate::teams::{
     MessageHandlerConfig, TokenInfo, TrouterClientConfig, set_teams_disabled, set_teams_error,
     supervisor::{TrouterSupervisor, default_dispatch_fn},
-    teams_runtime_snapshot, token_provider::TeamsTokenProvider,
+    teams_runtime_snapshot,
+    token_provider::TeamsTokenProvider,
 };
 use serde_json::Value;
 use std::fs;

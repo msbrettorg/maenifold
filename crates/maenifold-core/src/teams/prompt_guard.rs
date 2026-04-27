@@ -112,11 +112,17 @@ fn truncate_match(matched: &str) -> String {
 /// Scan text for prompt-injection patterns. See module docs for policy.
 pub fn scan(text: &str) -> InjectionScanResult {
     if text.is_empty() {
-        return InjectionScanResult { clean: true, ..Default::default() };
+        return InjectionScanResult {
+            clean: true,
+            ..Default::default()
+        };
     }
     let normalized = normalize_text(text);
     if normalized.trim().is_empty() {
-        return InjectionScanResult { clean: true, ..Default::default() };
+        return InjectionScanResult {
+            clean: true,
+            ..Default::default()
+        };
     }
 
     let allowlisted = is_allowlisted(&normalized);
@@ -125,7 +131,11 @@ pub fn scan(text: &str) -> InjectionScanResult {
     for entry in PATTERNS.iter() {
         if let Some(m) = entry.regex.find(&normalized) {
             // Allowlist demotes to Low; never suppresses (py L398-415).
-            let severity = if allowlisted { Severity::Low } else { entry.severity };
+            let severity = if allowlisted {
+                Severity::Low
+            } else {
+                entry.severity
+            };
             findings.push(InjectionFinding {
                 pattern_name: entry.name,
                 description: entry.description,

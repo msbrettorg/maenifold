@@ -59,9 +59,13 @@ pub fn parse_command(text: &str) -> Option<TeamsCommand> {
         "cancel" => {
             let remainder: String = parts.collect::<Vec<_>>().join(" ");
             Some(TeamsCommand::Cancel {
-                arg: if remainder.is_empty() { None } else { Some(remainder) },
+                arg: if remainder.is_empty() {
+                    None
+                } else {
+                    Some(remainder)
+                },
             })
-        },
+        }
         "dispatches" => {
             let filter = match parts.next().map(|s| s.to_lowercase()).as_deref() {
                 Some("pending") => DispatchFilter::Pending,

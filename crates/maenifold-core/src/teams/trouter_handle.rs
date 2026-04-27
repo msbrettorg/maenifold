@@ -11,8 +11,8 @@ use parking_lot::RwLock;
 use uuid::Uuid;
 
 use crate::error::{MaenifoldError, Result};
-use crate::teams::trouter_protocol::{TrouterConnected, register};
 use crate::teams::TrouterClientConfig;
+use crate::teams::trouter_protocol::{TrouterConnected, register};
 
 #[derive(Clone)]
 pub struct ReRegisterHandle {

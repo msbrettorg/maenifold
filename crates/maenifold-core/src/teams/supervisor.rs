@@ -22,8 +22,10 @@ use super::{
     TokenInfo, TrouterClient, TrouterClientConfig, chunking, credential_guard,
     dispatch_store::{DispatchStatus, DispatchStore},
     dispatcher::{DispatchCtx, DispatchOutcome, run_dispatch},
-    runtime::update_teams_runtime_state, send_reply, set_teams_connected, set_teams_connecting, set_teams_disabled,
-    set_teams_error, teams_runtime_snapshot, token_provider::TeamsTokenProvider,
+    runtime::update_teams_runtime_state,
+    send_reply, set_teams_connected, set_teams_connecting, set_teams_disabled, set_teams_error,
+    teams_runtime_snapshot,
+    token_provider::TeamsTokenProvider,
     token_refresh::spawn_refresh_loop,
 };
 
@@ -32,9 +34,8 @@ pub type RunnerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
 /// Runner factory: receives a pre-built `TrouterClient` (so the supervisor
 /// can pre-extract a `ReRegisterHandle` for the refresh loop) along with the
 /// outbound message channel.
-pub type RunnerFn = Arc<
-    dyn Fn(TrouterClient, mpsc::Sender<EventMessage>) -> RunnerFuture + Send + Sync,
->;
+pub type RunnerFn =
+    Arc<dyn Fn(TrouterClient, mpsc::Sender<EventMessage>) -> RunnerFuture + Send + Sync>;
 
 const MESSAGE_CHANNEL_CAPACITY: usize = 64;
 
@@ -393,12 +394,8 @@ async fn process_messages(
             continue;
         };
 
-        let request = TeamsDispatchRequest::from_match(
-            &result,
-            agent,
-            timeout_minutes,
-            &reply_behavior,
-        );
+        let request =
+            TeamsDispatchRequest::from_match(&result, agent, timeout_minutes, &reply_behavior);
         let ctx = DispatchCtx {
             token: token_rx.clone(),
             from_mri: from_mri.clone(),
@@ -456,7 +453,9 @@ async fn process_messages(
             };
             if let Some(id) = dispatch_id.as_deref() {
                 let mut s = store_for_task.lock().await;
-                if let Err(e) = s.update_status(id, status, summary.as_deref(), error_msg.as_deref()) {
+                if let Err(e) =
+                    s.update_status(id, status, summary.as_deref(), error_msg.as_deref())
+                {
                     tracing::warn!(%e, dispatch_id = %id, "dispatch store status update failed");
                 }
             }

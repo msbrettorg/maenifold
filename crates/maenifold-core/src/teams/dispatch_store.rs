@@ -180,7 +180,10 @@ impl DispatchStore {
     /// supervisor can keep running; subsequent `save()` calls will surface
     /// real I/O errors per-call instead of panicking at construction.
     pub(crate) fn empty(path: PathBuf) -> Self {
-        Self { path, records: HashMap::new() }
+        Self {
+            path,
+            records: HashMap::new(),
+        }
     }
 
     /// Add a new dispatch as `Pending`, returning its 12-char lowercase hex
@@ -193,7 +196,12 @@ impl DispatchStore {
         conversation_id: String,
         session_key: String,
     ) -> Result<String, MaenifoldError> {
-        let id: String = Uuid::new_v4().simple().to_string().chars().take(12).collect();
+        let id: String = Uuid::new_v4()
+            .simple()
+            .to_string()
+            .chars()
+            .take(12)
+            .collect();
         let rec = DispatchRecord {
             id: id.clone(),
             prompt,

@@ -158,9 +158,9 @@ fn reject_unknown_payload_keys(payload: &Value) -> Result<()> {
         // T-240.5: name the closest documented field for common misuse.
         let suggestion = suggest_known_field(key);
         let message = match suggestion {
-            Some(name) => format!(
-                "Unknown SequentialThinking payload field '{key}'. Did you mean '{name}'?"
-            ),
+            Some(name) => {
+                format!("Unknown SequentialThinking payload field '{key}'. Did you mean '{name}'?")
+            }
             None => format!("Unknown SequentialThinking payload field '{key}'."),
         };
         return Err(MaenifoldError::InvalidArgument(message));

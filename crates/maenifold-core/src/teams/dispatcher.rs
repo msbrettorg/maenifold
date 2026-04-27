@@ -175,9 +175,8 @@ mod tests {
 
     #[tokio::test]
     async fn run_dispatch_success_parses_summary() {
-        let f: DispatchFn = Arc::new(|_req| {
-            Box::pin(async { Ok("reply body\n---SUMMARY---\ndone".to_string()) })
-        });
+        let f: DispatchFn =
+            Arc::new(|_req| Box::pin(async { Ok("reply body\n---SUMMARY---\ndone".to_string()) }));
         let outcome = run_dispatch(fake_request(), &ctx(Duration::from_secs(5)), &f).await;
         match outcome {
             DispatchOutcome::Success { reply, summary } => {
@@ -190,10 +189,12 @@ mod tests {
 
     #[tokio::test]
     async fn run_dispatch_propagates_failure() {
-        let f: DispatchFn =
-            Arc::new(|_req| Box::pin(async { Err("agent crashed".to_string()) }));
+        let f: DispatchFn = Arc::new(|_req| Box::pin(async { Err("agent crashed".to_string()) }));
         let outcome = run_dispatch(fake_request(), &ctx(Duration::from_secs(5)), &f).await;
-        assert_eq!(outcome, DispatchOutcome::Failed("agent crashed".to_string()));
+        assert_eq!(
+            outcome,
+            DispatchOutcome::Failed("agent crashed".to_string())
+        );
     }
 
     #[tokio::test]

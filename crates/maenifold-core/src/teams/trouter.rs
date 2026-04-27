@@ -1,8 +1,9 @@
 use super::trouter_handle::ReRegisterHandle;
 use super::trouter_protocol::{
-    ack_message, build_auth_frame, build_connection_url, ensure_tls_provider, message_id,
+    CONNECT_TIMEOUT, MAX_FRAME_SIZE, ORIGIN, TrouterConnected, WsStream, ack_message,
+    build_auth_frame, build_connection_url, ensure_tls_provider, message_id,
     next_text_frame_cancellable, parse_frame, register, send_event_ack, sleep_or_cancel,
-    websocket_text, TrouterConnected, WsStream, CONNECT_TIMEOUT, MAX_FRAME_SIZE, ORIGIN,
+    websocket_text,
 };
 use super::{EventMessage, TrouterFrame, set_teams_connected, set_teams_connecting};
 use crate::error::{MaenifoldError, Result};
@@ -11,7 +12,10 @@ use parking_lot::RwLock;
 use serde_json::{Value, json};
 use std::sync::Arc;
 use std::time::Duration;
-use tokio::{sync::{mpsc, watch}, time};
+use tokio::{
+    sync::{mpsc, watch},
+    time,
+};
 use tokio_tungstenite::{
     connect_async,
     tungstenite::{Message as WsMessage, client::IntoClientRequest, http::HeaderValue},
@@ -125,7 +129,10 @@ impl TrouterClient {
             .await
             .map_err(|e| MaenifoldError::Message(format!("trouter auth send failed: {e}")))?;
         let connected = self.await_connected(&mut ws).await?;
-        tracing::info!(surl_len = connected.surl.len(), "trouter.connected received");
+        tracing::info!(
+            surl_len = connected.surl.len(),
+            "trouter.connected received"
+        );
         tokio::select! {
             result = register(&token, &connected, &self.epid, &self.config) => {
                 tracing::info!("trouter registrar ok");

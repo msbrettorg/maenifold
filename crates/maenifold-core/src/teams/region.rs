@@ -19,7 +19,6 @@
 //! Wired into the supervisor / handler by sub-dispatch B (T-238.52).
 #![allow(dead_code)]
 
-
 use std::sync::LazyLock;
 
 use regex::Regex;
@@ -121,9 +120,7 @@ pub async fn probe_chatsvc_region(token: &str, current_region: &str) -> ProbeRes
             .map(|s| s.to_lowercase());
         if let Some(canon) = header_hint {
             if !canon.is_empty() && canon != current_region.to_lowercase() {
-                info!(
-                    "Region probe: header suggests '{canon}' instead of '{current_region}'"
-                );
+                info!("Region probe: header suggests '{canon}' instead of '{current_region}'");
                 return ProbeResult::Updated(canon);
             }
         }
@@ -144,7 +141,11 @@ pub async fn probe_chatsvc_region(token: &str, current_region: &str) -> ProbeRes
     let body_hint = body.to_lowercase().contains("different cloud");
 
     if redirect_like && (!location.is_empty() || body_hint) {
-        let candidate = if location.is_empty() { &body } else { &location };
+        let candidate = if location.is_empty() {
+            &body
+        } else {
+            &location
+        };
         if let Some(new_region) = extract_region_from_url(candidate) {
             if new_region != current_region.to_lowercase() {
                 info!(
@@ -155,9 +156,7 @@ pub async fn probe_chatsvc_region(token: &str, current_region: &str) -> ProbeRes
         }
     }
 
-    info!(
-        "Region probe: status {status_code} with no redirect hint — keeping '{current_region}'"
-    );
+    info!("Region probe: status {status_code} with no redirect hint — keeping '{current_region}'");
     ProbeResult::Unchanged
 }
 

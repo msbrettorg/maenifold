@@ -51,7 +51,6 @@ fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> R
         auto_grant_permissions: optional_bool(payload, "auto_grant_permissions")?.unwrap_or(false),
         allowed_tools: optional_string_array(payload, "allowed_tools")?.unwrap_or_default(),
         timeout_seconds: optional_u32(payload, "timeout_seconds")?.unwrap_or(300),
-        skip_if_running: true,
         enabled: optional_bool(payload, "enabled")?.unwrap_or(true),
         created_at: Utc::now(),
         updated_at: Utc::now(),

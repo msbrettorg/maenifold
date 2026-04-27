@@ -13,7 +13,6 @@ fn task(schedule: &str) -> ScheduledTask {
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
         timeout_seconds: 300,
-        skip_if_running: true,
         enabled: true,
         created_at: Utc::now(),
         updated_at: Utc::now(),

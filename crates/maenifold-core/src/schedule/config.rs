@@ -20,8 +20,6 @@ pub struct ScheduledTask {
     #[serde(default = "default_timeout")]
     pub timeout_seconds: u32,
     #[serde(default = "default_true")]
-    pub skip_if_running: bool,
-    #[serde(default = "default_true")]
     pub enabled: bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,

@@ -158,6 +158,7 @@ pub fn set_teams_connected() {
         state.connection_state = "connected".to_string();
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("connected", None);
 }
 
 pub fn set_teams_pending_auth() {
@@ -173,10 +174,12 @@ pub fn set_teams_authenticated() {
 }
 
 pub fn set_teams_authenticated_until(expires_at: Option<String>) {
+    let detail = expires_at.clone();
     update_teams_runtime_state(|state| {
         state.mark_authenticated(expires_at);
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("auth_refreshed", detail.as_deref());
 }
 
 pub fn set_teams_unauthenticated() {
@@ -195,6 +198,7 @@ pub fn set_teams_disabled() {
         state.active_dispatches = 0;
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("disabled", None);
 }
 
 pub fn set_teams_auth_expired(message: impl Into<String>) {
@@ -206,13 +210,15 @@ pub fn set_teams_auth_expired(message: impl Into<String>) {
 }
 
 pub fn set_teams_error(message: impl Into<String>) {
+    let message = message.into();
+    let detail = message.clone();
     update_teams_runtime_state(|state| {
-        let message = message.into();
         state.connection_state = "error".to_string();
         state.mark_auth_error(&message);
         state.last_error = Some(message);
         state.active_dispatches = 0;
     });
+    crate::teams::lifecycle::log_lifecycle("error", Some(&detail));
 }
 
 pub fn push_teams_prompt(prompt: TeamsPrompt) {

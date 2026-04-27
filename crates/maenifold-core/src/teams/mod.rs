@@ -1,6 +1,7 @@
 mod auth;
 pub(crate) mod catchup;
 mod chunking;
+pub(crate) mod commands;
 pub mod credential_store;
 mod dedup;
 mod dispatch;
@@ -8,6 +9,7 @@ pub(crate) mod dispatch_store;
 pub(crate) mod dispatcher;
 mod handler;
 mod handler_helpers;
+pub(crate) mod lifecycle;
 mod prompt_guard;
 mod prompt_guard_patterns;
 pub(crate) mod credential_guard;

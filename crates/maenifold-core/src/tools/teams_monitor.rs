@@ -103,6 +103,8 @@ pub(super) fn start_monitor_supervisor(
     let provider = Arc::new(TeamsTokenProvider::new());
     let fallback_refresh =
         Duration::from_secs(monitor.connection.token_refresh_minutes.max(1) * 60);
+    // T-238.55: initialize lifecycle JSONL journal under <root>/logs/.
+    crate::teams::lifecycle::init_lifecycle_journal(maenifold_root);
     // T-238.56: <root>/runtime/teams-monitor.lock — fd-lock RAII singleton.
     let lock_path = maenifold_root.join("runtime").join("teams-monitor.lock");
     let supervisor = run_on_supervisor_runtime(async move {

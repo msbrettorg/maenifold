@@ -45,6 +45,24 @@ Off-limits:
 - Always run `cargo test -p <crate>` before committing.
 - Write a `memory://` note for every accepted change.
 
+## Gate Operations via MCP Gateway
+
+- Gate operations are integrated into the maenifold MCP Gateway. Use
+  maenifold's integrated `maenifold.gate` Gateway domain.
+- MCP Gateway pattern for PM/agent use:
+
+```bash
+# Helper function for MCP gateway calls
+TOKEN=$(tr -d '\n' < ~/maenifold/auth/localhost.token)
+# Use GatewayExecute with domain="maenifold.gate"
+# Available commands: gate_Status, gate_Sync, gate_Pass, gate_Fail, gate_Append, gate_History, gate_TaskBody
+```
+
+- If `gate: command not found`, this is expected. Use the MCP gateway path
+  instead. All gate operations use the maenifold MCP Gateway exclusively.
+- All MCP calls require a valid bearer token from
+  `~/maenifold/auth/localhost.token`.
+
 ## Commit policy
 
 Include this trailer in every commit:

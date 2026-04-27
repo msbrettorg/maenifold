@@ -22,7 +22,7 @@ use super::{
     TokenInfo, TrouterClient, TrouterClientConfig, chunking, credential_guard,
     dispatch_store::{DispatchStatus, DispatchStore},
     dispatcher::{DispatchCtx, DispatchOutcome, run_dispatch},
-    runtime::update_teams_runtime_state, send_reply, set_teams_connecting, set_teams_disabled,
+    runtime::update_teams_runtime_state, send_reply, set_teams_connected, set_teams_connecting, set_teams_disabled,
     set_teams_error, teams_runtime_snapshot, token_provider::TeamsTokenProvider,
     token_refresh::spawn_refresh_loop,
 };
@@ -534,10 +534,7 @@ fn record_message_received() {
 fn ensure_connected_state() {
     let snapshot = teams_runtime_snapshot();
     if snapshot.connection_state != "connected" {
-        update_teams_runtime_state(|state| {
-            state.connection_state = "connected".to_string();
-            state.last_error = None;
-        });
+        set_teams_connected();
     }
 }
 

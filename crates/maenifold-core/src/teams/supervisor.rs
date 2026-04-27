@@ -300,6 +300,28 @@ async fn process_messages(
             continue;
         };
 
+        // T-238.65: fire-and-forget processing receipt before dispatch.
+        // Body is hardcoded — never echo prompt content back to the user.
+        if handler_config.send_receipt {
+            if let Some(receipt_from_mri) = handler_config.self_mri.clone() {
+                let req = TeamsReplyRequest {
+                    token: token_rx.borrow().clone(),
+                    conversation_id: result.message.conversation_id.clone(),
+                    body: "⏳ Processing...".to_string(),
+                    from_mri: receipt_from_mri,
+                    chatsvc_region: chatsvc_region.clone(),
+                    reply_prefix: reply_prefix.clone(),
+                };
+                tokio::spawn(async move {
+                    if let Err(error) = send_reply(req).await {
+                        tracing::warn!(%error, "teams dispatch receipt failed");
+                    }
+                });
+            } else {
+                tracing::debug!("send_receipt enabled but self_mri is None; skipping receipt");
+            }
+        }
+
         super::push_teams_prompt(super::TeamsPrompt {
             prompt: result.prompt.clone(),
             conversation_id: result.message.conversation_id.clone(),

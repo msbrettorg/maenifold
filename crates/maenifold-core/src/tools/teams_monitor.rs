@@ -267,6 +267,7 @@ fn handler_config_from_monitor(monitor: &TeamsMonitorConfig) -> MessageHandlerCo
         sender_allow_list: None,
         sender_deny_list: None,
         cooldown_seconds: 0,
+        send_receipt: true,
     }
 }
 

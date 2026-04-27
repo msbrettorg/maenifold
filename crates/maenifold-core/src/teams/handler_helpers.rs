@@ -32,6 +32,8 @@ pub struct MessageHandlerConfig {
     pub sender_deny_list: Option<Vec<String>>,
     #[serde(default = "default_cooldown_seconds")]
     pub cooldown_seconds: u64,
+    #[serde(default = "default_send_receipt")]
+    pub send_receipt: bool,
 }
 
 impl Default for MessageHandlerConfig {
@@ -48,9 +50,12 @@ impl Default for MessageHandlerConfig {
             sender_allow_list: None,
             sender_deny_list: None,
             cooldown_seconds: default_cooldown_seconds(),
+            send_receipt: default_send_receipt(),
         }
     }
 }
+
+pub fn default_send_receipt() -> bool { true }
 
 pub fn default_cooldown_seconds() -> u64 { 60 }
 pub fn default_listen_scope() -> String { "wildcard".to_string() }

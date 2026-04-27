@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { useMemoryApi } from '../composables/useMemoryApi';
 import type { CommunityGraph, ConceptGraph } from '../lib/graph-types';
 import {
@@ -20,6 +20,13 @@ export type {
   KnowledgeFolderNode,
 } from '../lib/knowledge-helpers';
 
+export interface KnowledgeTabCacheEntry {
+  title: string;
+  loading: boolean;
+  error: string | null;
+  content?: MemoryFile;
+}
+
 export const useKnowledgeStore = defineStore('knowledge', () => {
   const memoryApi = useMemoryApi();
 
@@ -27,8 +34,13 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const rootFiles = ref<KnowledgeFileEntry[]>([]);
 
   const searchResults = ref<MemorySearchItem[]>([]);
-  const activeUri = ref<string | null>(null);
-  const activeNote = ref<MemoryFile | null>(null);
+  const openTabs = ref<string[]>([]);
+  const activeTabUri = ref<string | null>(null);
+  const tabCache = ref<Map<string, KnowledgeTabCacheEntry>>(new Map());
+  const activeTabEntry = computed(() => (
+    activeTabUri.value ? (tabCache.value.get(activeTabUri.value) ?? null) : null
+  ));
+  const activeNote = computed(() => activeTabEntry.value?.content ?? null);
 
   const foldersLoading = ref(false);
   const foldersError = ref<string | null>(null);
@@ -37,8 +49,8 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const searchError = ref<string | null>(null);
   const searchQuery = ref('');
 
-  const noteLoading = ref(false);
-  const noteError = ref<string | null>(null);
+  const noteLoading = computed(() => activeTabEntry.value?.loading ?? false);
+  const noteError = computed(() => activeTabEntry.value?.error ?? null);
 
   const graphLoading = ref(false);
   const graphError = ref<string | null>(null);
@@ -54,6 +66,21 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const relatedConceptsSource = ref<string | null>(null);
   const relatedConceptsLoading = ref(false);
   const relatedConceptsError = ref<string | null>(null);
+
+  function titleFromUri(uri: string): string {
+    return decodeURIComponent(uri.replace(/^memory:\/\//, '').split('/').at(-1) ?? uri);
+  }
+
+  function setTabCache(uri: string, patch: Partial<KnowledgeTabCacheEntry>): void {
+    const next = new Map(tabCache.value);
+    const previous = next.get(uri) ?? {
+      title: titleFromUri(uri),
+      loading: false,
+      error: null,
+    };
+    next.set(uri, { ...previous, ...patch });
+    tabCache.value = next;
+  }
 
   async function loadRootFolders(): Promise<void> {
     foldersLoading.value = true;
@@ -150,24 +177,84 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
-  async function openNote(identifier: string): Promise<void> {
-    noteLoading.value = true;
-    noteError.value = null;
-    activeUri.value = identifier;
-
-    try {
-      activeNote.value = await memoryApi.readMemory(identifier);
-      activeUri.value = activeNote.value.uri;
-      await loadRelatedConceptsForNote(activeNote.value);
-    } catch (errorValue) {
-      noteError.value = errorValue instanceof Error ? errorValue.message : String(errorValue);
-      activeNote.value = null;
-      relatedConcepts.value = [];
-      relatedConceptsSource.value = null;
-      relatedConceptsError.value = null;
-    } finally {
-      noteLoading.value = false;
+  async function loadTab(uri: string): Promise<void> {
+    const current = tabCache.value.get(uri);
+    if (current?.loading) return;
+    if (current?.content) {
+      if (activeTabUri.value === uri) {
+        await loadRelatedConceptsForNote(current.content);
+      }
+      return;
     }
+    setTabCache(uri, { loading: true, error: null });
+    try {
+      const note = await memoryApi.readMemory(uri);
+      setTabCache(uri, {
+        title: note.title || titleFromUri(note.uri),
+        loading: false,
+        error: null,
+        content: note,
+      });
+      if (activeTabUri.value === uri) {
+        await loadRelatedConceptsForNote(note);
+      }
+    } catch (errorValue) {
+      setTabCache(uri, {
+        loading: false,
+        error: errorValue instanceof Error ? errorValue.message : String(errorValue),
+      });
+      if (activeTabUri.value === uri) {
+        relatedConcepts.value = [];
+        relatedConceptsSource.value = null;
+        relatedConceptsError.value = null;
+      }
+    }
+  }
+
+  function setActiveTab(uri: string): void {
+    if (!openTabs.value.includes(uri)) {
+      openTabs.value = [...openTabs.value, uri];
+    }
+    activeTabUri.value = uri;
+    void loadTab(uri);
+  }
+
+  function openInNewTab(uri: string): void {
+    setActiveTab(uri);
+  }
+
+  function openNote(uri: string): void {
+    if (!activeTabUri.value) {
+      openInNewTab(uri);
+      return;
+    }
+    if (openTabs.value.includes(uri)) {
+      setActiveTab(uri);
+      return;
+    }
+    openTabs.value = openTabs.value.map((tabUri) => (
+      tabUri === activeTabUri.value ? uri : tabUri
+    ));
+    activeTabUri.value = uri;
+    void loadTab(uri);
+  }
+
+  function closeTab(uri: string): void {
+    const closingIndex = openTabs.value.indexOf(uri);
+    openTabs.value = openTabs.value.filter((tabUri) => tabUri !== uri);
+    if (activeTabUri.value !== uri) return;
+
+    const nextIndex = Math.max(0, closingIndex - 1);
+    const nextUri = openTabs.value[nextIndex] ?? null;
+    activeTabUri.value = nextUri;
+    if (nextUri) {
+      void loadTab(nextUri);
+      void loadRelatedConceptsForNote(tabCache.value.get(nextUri)?.content ?? null);
+      return;
+    }
+    relatedConcepts.value = [];
+    relatedConceptsSource.value = null;
+    relatedConceptsError.value = null;
   }
 
   const graphActions = createKnowledgeGraphActions(
@@ -181,44 +268,23 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
       selectedConcept,
       conceptContextLoading,
       conceptContextError,
-      activeNote,
-      activeUri,
+      activeTabUri,
     },
     memoryApi,
     openNote,
   );
 
   return {
-    folders,
-    rootFiles,
-    searchQuery,
-    searchResults,
-    activeUri,
-    activeNote,
-    foldersLoading,
-    foldersError,
-    searchLoading,
-    searchError,
-    noteLoading,
-    noteError,
-    graphLoading,
-    graphError,
-    communityGraph,
-    conceptGraph,
-    conceptNodes,
-    activeCommunityId,
-    selectedConcept,
-    conceptContextLoading,
-    conceptContextError,
-    relatedConcepts,
-    relatedConceptsSource,
-    relatedConceptsLoading,
-    relatedConceptsError,
-    loadRootFolders,
-    loadFolder,
-    setFolderOpen,
-    search,
-    openNote,
+    folders, rootFiles, searchQuery, searchResults,
+    openTabs, activeTabUri, tabCache, activeNote,
+    foldersLoading, foldersError, searchLoading, searchError,
+    noteLoading, noteError, graphLoading, graphError,
+    communityGraph, conceptGraph, conceptNodes, activeCommunityId,
+    selectedConcept, conceptContextLoading, conceptContextError,
+    relatedConcepts, relatedConceptsSource,
+    relatedConceptsLoading, relatedConceptsError,
+    loadRootFolders, loadFolder, setFolderOpen, search,
+    openNote, openInNewTab, closeTab, setActiveTab,
     ...graphActions,
   };
 });

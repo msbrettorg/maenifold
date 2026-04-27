@@ -8,17 +8,21 @@ import { useKnowledgeStore, type KnowledgeFolderNode } from '../stores/knowledge
 
 const props = defineProps<{
   node: KnowledgeFolderNode;
-  activeUri: string | null;
+  activeTabUri: string | null;
 }>();
 
 const store = useKnowledgeStore();
 
-function handleOpenChange(nextOpen: boolean) {
+function handleOpenChange(nextOpen: boolean): void {
   void store.setFolderOpen(props.node.path, nextOpen);
 }
 
-function handleOpenNote(uri: string) {
-  void store.openNote(uri);
+function handleOpenNote(uri: string, event: MouseEvent): void {
+  if (event.metaKey || event.ctrlKey) {
+    store.openInNewTab(uri);
+    return;
+  }
+  store.openNote(uri);
 }
 </script>
 
@@ -59,18 +63,18 @@ function handleOpenNote(uri: string) {
             type="button"
             variant="ghost"
             class="h-8 justify-start gap-2 rounded-md px-2"
-            :class="activeUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
-            @click="handleOpenNote(file.uri)"
+            :class="activeTabUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
+            @click="handleOpenNote(file.uri, $event)"
           >
             <FileText class="size-4 shrink-0" aria-hidden="true" />
             <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
           </Button>
 
-          <KnowledgeSidebarNode
+          <KnowledgeVaultNode
             v-for="child in node.children"
             :key="child.path"
             :node="child"
-            :active-uri="activeUri"
+            :active-tab-uri="activeTabUri"
           />
         </template>
       </div>

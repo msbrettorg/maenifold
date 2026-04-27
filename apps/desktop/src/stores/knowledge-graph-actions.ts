@@ -5,7 +5,6 @@ import type { useMemoryApi } from '../composables/useMemoryApi';
 import { useMcpResources } from '../composables/useMcpResources';
 import type { ResourceContent } from '../composables/mcpTransport';
 import type { CommunityGraph, ConceptGraph } from '../lib/graph-types';
-import type { MemoryFile } from '../lib/workflow-types';
 import {
   findBestAnchorUri,
   normalizeConceptName,
@@ -22,8 +21,7 @@ export interface KnowledgeGraphRefs {
   selectedConcept: Ref<string | null>;
   conceptContextLoading: Ref<boolean>;
   conceptContextError: Ref<string | null>;
-  activeNote: Ref<MemoryFile | null>;
-  activeUri: Ref<string | null>;
+  activeTabUri: Ref<string | null>;
 }
 
 export interface KnowledgeGraphActions {
@@ -50,7 +48,7 @@ function parseResourceJson<T>(content: ResourceContent): T {
 export function createKnowledgeGraphActions(
   refs: KnowledgeGraphRefs,
   memoryApi: ReturnType<typeof useMemoryApi>,
-  openNote: (uri: string) => Promise<void>,
+  openNote: (uri: string) => void,
 ): KnowledgeGraphActions {
   const mcpResources = useMcpResources();
   const {
@@ -63,8 +61,6 @@ export function createKnowledgeGraphActions(
     selectedConcept,
     conceptContextLoading,
     conceptContextError,
-    activeNote,
-    activeUri,
   } = refs;
 
   async function loadGraphCommunities(): Promise<void> {
@@ -157,25 +153,23 @@ export function createKnowledgeGraphActions(
         (result) => result.title?.toLowerCase() === normalized.toLowerCase(),
       );
       if (exactMatch?.uri) {
-        await openNote(exactMatch.uri);
+        openNote(exactMatch.uri);
         return;
       }
 
       const anchorUri = findBestAnchorUri(normalized, files);
       if (anchorUri) {
-        await openNote(anchorUri);
+        openNote(anchorUri);
         return;
       }
 
       const fallbackSearch = await memoryApi.searchMemories(normalized, { pageSize: 1 });
       const firstResult = fallbackSearch.results[0];
       if (firstResult) {
-        await openNote(firstResult.uri);
+        openNote(firstResult.uri);
         return;
       }
 
-      activeNote.value = null;
-      activeUri.value = null;
       conceptContextError.value = `No anchor note found for ${normalized}`;
     } catch (errorValue) {
       conceptContextError.value =

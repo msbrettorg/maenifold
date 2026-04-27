@@ -20,7 +20,6 @@ fn test_task(id: &str) -> ScheduledTask {
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
         timeout_seconds: 900,
-        skip_if_running: true,
         enabled: true,
         created_at: Utc
             .with_ymd_and_hms(2026, 4, 21, 7, 0, 0)

@@ -61,14 +61,14 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts.
 
-1. **NEVER move files between `todo/` and `done/`.** Only `gate pass` on the terminal stage moves a file. `mv`, `cp`, `git mv`, IDE drag-drop — all forbidden. If you find yourself reaching for a file operation on a task file, stop: the answer is `gate pass` or `gate fail`. Period.
-2. **`todo/` and `done/` are tracked in git.** Markdown task files are the authoritative spec; `.gate/gate.db` is a derived read-model rebuilt by `gate sync`. Spec history belongs in version control.
-3. **Recovery from gate state loss:** `git restore done/ todo/ && gate sync --root . --rebuild`. Back up `.gate/gate.db` first if it still exists.
+1. **NEVER move files between `todo/` and `done/`.** Only `gate_Pass` on the terminal stage moves a file. `mv`, `cp`, `git mv`, IDE drag-drop — all forbidden. If you find yourself reaching for a file operation on a task file, stop: the answer is `gate_Pass` or `gate_Fail` through `GatewayExecute` with domain `maenifold.gate`. Period.
+2. **`todo/` and `done/` are tracked in git.** Markdown task files are the authoritative spec; `.gate/gate.db` is a derived read-model rebuilt by `gate_Sync`. Spec history belongs in version control.
+3. **Recovery from gate state loss:** restore `done/` and `todo/` from git, then run `GatewayExecute` with domain `maenifold.gate`, command `gate_Sync`, and `parameters={root: "/path/to/repo", rebuild: true}`. Back up `.gate/gate.db` first if it still exists.
 4. **Every stage requires a real dispatched agent.** SWE→SWE agent. Red-team→red-team agent. Blue-team→blue-team agent.
-5. **Never skip or fast-forward.** Each `gate pass` references genuine output from the responsible agent.
+5. **Never skip or fast-forward.** Each `gate_Pass` references genuine output from the responsible agent.
 6. **1 violation = sprint discarded.** All work reverted regardless of correctness.
 7. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
-8. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → gate pass SWE → report back. PM handles red-team/blue-team.
+8. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → record `gate_Pass` for SWE → report back. PM handles red-team/blue-team.
 9. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
 10. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
 11. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
@@ -84,16 +84,16 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
 | **tdd** | pending → blue-team → swe → red-team → done | Bug fix, test-first |
 | **gsd** | pending → research → plan → execute → verify → done | Unknown scope |
 
-### Gate CLI
+### Gate Gateway
 
-```bash
-gate sync --root . --rebuild
-gate status --root .
-gate pass <task-id> --agent <name> --notes "..." --root .
-gate fail <task-id> --agent <name> --notes "..." --root .
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
+GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/repo"}
+GatewayExecute domain="maenifold.gate" command="gate_Pass" parameters={root: "/path/to/repo", taskId: "<task-id>", agent: "<name>", notes: "..."}
+GatewayExecute domain="maenifold.gate" command="gate_Fail" parameters={root: "/path/to/repo", taskId: "<task-id>", agent: "<name>", notes: "..."}
 ```
 
-Prefer MCP when healthy. Don't retry more than once — switch to CLI.
+Use the native maenifold MCP Gateway surface. Do not fall back to a legacy gate process.
 
 ---
 
@@ -103,7 +103,7 @@ Prefer MCP when healthy. Don't retry more than once — switch to CLI.
 
 **The PM operates autonomously.** The PM owns the backlog, dispatches SWEs, advances gate stages, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects. Never stop voluntarily — groom, decompose, dispatch, ship, loop.
 
-**The PM never idles.** After dispatching agents, the PM continues working: grooming the next wave, writing specs for upcoming tasks, running `gate status` to find newly-ready items, or advancing gate stages for completed work. "Waiting for agents to finish" is not a valid PM state — there is always grooming, spec-writing, or gate bookkeeping to do while agents execute.
+**The PM never idles.** After dispatching agents, the PM continues working: grooming the next wave, writing specs for upcoming tasks, running `gate_Status` through `GatewayExecute` to find newly-ready items, or advancing gate stages for completed work. "Waiting for agents to finish" is not a valid PM state — there is always grooming, spec-writing, or gate bookkeeping to do while agents execute.
 
 **Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for immediate dispatch. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get dispatched or triaged, never ignored.
 
@@ -155,7 +155,7 @@ Build passing is necessary but not sufficient.
 **Dispatch rules:**
 
 - **Lowest task ID first.** When selecting tasks to dispatch, always start from the lowest-numbered pending task and work up. T-05.67 ships before T-217.1. Old backlog items don't get to age indefinitely while new work jumps the queue. The only exception is explicit user prioritization.
-- **Saturate the pipeline.** Every pending task whose dependencies are met MUST be dispatched immediately. Do not wait for one task to complete before starting the next. Use `gate status` to find all ready tasks, dispatch them all.
+- **Saturate the pipeline.** Every pending task whose dependencies are met MUST be dispatched immediately. Do not wait for one task to complete before starting the next. Use `gate_Status` through `GatewayExecute` to find all ready tasks, dispatch them all.
 - **Wave-based execution.** Group independent tasks into waves. Dispatch the entire wave in one response using parallel `task` calls. Wait for the wave to complete. Dispatch the next wave.
 - **Per-agent build isolation.** Every dispatched SWE MUST run `cargo` with `CARGO_TARGET_DIR=target/agents/<task-id>` (set by the dispatching PM in the task prompt). Workspace-global `target/` is reserved for blue-team and the human. This is the rule that makes parallel SWEs across different crates actually work — without it, cargo's workspace lock silently serializes builds.
 - **Same file is still forbidden.** Different crates → fully parallel. Same file → edit conflict, not a build conflict; still forbidden.
@@ -175,7 +175,7 @@ Build passing is necessary but not sufficient.
 - Dispatching one task, waiting for completion, dispatching the next. This is serial execution with extra steps.
 - "I'll start with T-X and then do T-Y" when X and Y have no dependency. Start both.
 - Waiting for user confirmation between independent tasks. The PM operates autonomously.
-- Running `gate status` and finding 5 pending tasks but only dispatching 1.
+- Running `gate_Status` and finding 5 pending tasks but only dispatching 1.
 
 ### Formatting
 

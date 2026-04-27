@@ -82,7 +82,7 @@ Status: ✅ current and wired through the MCP-first data layer; 🔜 target or p
 | Pipelines | `Pipeline` | ✅ |
 | Thinking | `SequentialThinking`, `AssumptionLedger` | ✅ |
 | System | `MemoryStatus`, `GetConfig`, `UpdateAssets`, `Adopt`, `ListAssets`, `RecentActivity` | ✅ |
-| Gate | Gate task tools are provided by the upstream gate MCP server, not by maenifold's native tool set. | ✅ |
+| Gate | Gate task tools are provided by the native `maenifold.gate` Gateway domain through `GatewayExecute`. | ✅ |
 
 ### Persistent State
 

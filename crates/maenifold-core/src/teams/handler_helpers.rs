@@ -14,8 +14,9 @@ use serde::{Deserialize, Serialize};
 // bypass of downstream scanners. Ref: credential_scanner.py L252-254.
 static SEMICOLONLESS_DEC: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"&#(\d{1,7})([^;\d])").expect("decimal entity regex"));
-static SEMICOLONLESS_HEX: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"&#x([0-9a-fA-F]{1,6})([^;0-9a-fA-F])").expect("hex entity regex"));
+static SEMICOLONLESS_HEX: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"&#x([0-9a-fA-F]{1,6})([^;0-9a-fA-F])").expect("hex entity regex")
+});
 
 use super::EventMessage;
 
@@ -66,14 +67,28 @@ impl Default for MessageHandlerConfig {
     }
 }
 
-pub fn default_send_receipt() -> bool { true }
+pub fn default_send_receipt() -> bool {
+    true
+}
 
-pub fn default_cooldown_seconds() -> u64 { 60 }
-pub fn default_listen_scope() -> String { "wildcard".to_string() }
-pub fn default_reply_behavior() -> String { "sourceConversation".to_string() }
-pub fn default_reply_prefix() -> String { "maenifold: ".to_string() }
-pub fn default_chatsvc_region() -> String { "amer".to_string() }
-pub fn default_dispatch_timeout_minutes() -> u64 { 10 }
+pub fn default_cooldown_seconds() -> u64 {
+    60
+}
+pub fn default_listen_scope() -> String {
+    "wildcard".to_string()
+}
+pub fn default_reply_behavior() -> String {
+    "sourceConversation".to_string()
+}
+pub fn default_reply_prefix() -> String {
+    "maenifold: ".to_string()
+}
+pub fn default_chatsvc_region() -> String {
+    "amer".to_string()
+}
+pub fn default_dispatch_timeout_minutes() -> u64 {
+    10
+}
 
 pub fn strip_html(content: &str) -> String {
     let mut output = String::with_capacity(content.len());

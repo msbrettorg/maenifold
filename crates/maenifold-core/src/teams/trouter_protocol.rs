@@ -243,7 +243,17 @@ fn parse_event_message(value: Value) -> Option<EventMessage> {
             .unwrap_or_default()
             .to_string(),
     })
-    .filter(|message| message.resource_type == "NewMessage")
+    .filter(|message| {
+        if message.resource_type != "NewMessage" {
+            tracing::debug!(
+                resource_type = %message.resource_type,
+                "ignoring non-NewMessage event"
+            );
+            false
+        } else {
+            true
+        }
+    })
 }
 
 fn conversation_id(resource: &Value) -> String {
@@ -260,12 +270,21 @@ fn sender_mri(resource: &Value) -> String {
     resource
         .get("from")
         .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())
         .map(|value| {
             value
                 .rsplit("/contacts/")
                 .next()
                 .unwrap_or(value)
                 .to_string()
+        })
+        .or_else(|| {
+            // Fallback to fromUserId — matches catchup.rs behavior.
+            // Trouter payloads sometimes omit `from` but include `fromUserId`.
+            resource
+                .get("fromUserId")
+                .and_then(Value::as_str)
+                .map(String::from)
         })
         .unwrap_or_default()
 }

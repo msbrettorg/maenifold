@@ -65,29 +65,68 @@ impl MessageHandler {
             &self.config.sender_allow_list,
             &self.config.sender_deny_list,
         ) {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                sender_mri = %message.sender_mri,
+                "message filtered: sender not in allow list or in deny list"
+            );
             return None;
         }
         if !is_authorized_sender(message, self.config.self_mri.as_deref()) {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                sender_mri = %message.sender_mri,
+                self_mri = ?self.config.self_mri,
+                "message filtered: sender MRI does not match configured identity"
+            );
             return None;
         }
         if !conversation_allowed(message, &self.config) {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                listen_scope = %self.config.listen_scope,
+                "message filtered: conversation not in monitored scope"
+            );
             return None;
         }
         if self.in_cooldown(&message.conversation_id) {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                "message filtered: conversation in cooldown"
+            );
             return None;
         }
 
         let text = strip_html(&message.content);
-        if text.is_empty() || is_self_loop_reply(&text, &self.config.reply_prefix) {
+        if text.is_empty() {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                sender_mri = %message.sender_mri,
+                "message filtered: empty text"
+            );
             return None;
         }
-        let matched_keyword = self
-            .keyword_patterns
-            .iter()
-            .find_map(|(keyword, pattern)| {
-                (pattern.is_match(&text) || mention_match(keyword, &text, &message.content))
-                    .then(|| keyword.clone())
-            })?;
+        if is_self_loop_reply(&text, &self.config.reply_prefix) {
+            tracing::debug!(
+                conversation_id = %message.conversation_id,
+                "message filtered: self-loop reply"
+            );
+            return None;
+        }
+        let matched_keyword = match self.keyword_patterns.iter().find_map(|(keyword, pattern)| {
+            (pattern.is_match(&text) || mention_match(keyword, &text, &message.content))
+                .then(|| keyword.clone())
+        }) {
+            Some(keyword) => keyword,
+            None => {
+                tracing::debug!(
+                    conversation_id = %message.conversation_id,
+                    sender_mri = %message.sender_mri,
+                    "message filtered: no keyword match"
+                );
+                return None;
+            }
+        };
         let prompt = extract_prompt(&text, &matched_keyword, &message.content);
 
         // Prompt-injection scan (T-238.51) — self-chat bypass mirrors

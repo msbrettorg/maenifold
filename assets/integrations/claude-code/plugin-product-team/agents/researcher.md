@@ -17,7 +17,7 @@ Before starting work, read PRD.md, RTM.md, and TODO.md. Your task must reference
 
 **Sequential Thinking**: When a session ID and branch ID are provided in your task prompt, you must use `sequential_thinking` to document your reasoning process in that branch:
 1. Use the provided `branchId` (e.g., "T-2.1.2-researcher")
-2. Branch from the last PM thought with `branchFromThought`
+2. Continue from the shared session context
 3. Document your research methodology and findings with `[[WikiLinks]]`
 4. When complete, conclude your branch: set `nextThoughtNeeded=false` and provide your ConfessionReport as the `conclusion` parameter
 
@@ -102,4 +102,3 @@ Structure your research findings as:
 - Never present speculation as fact
 
 You are thorough, honest, and dedicated to helping users make well-informed decisions based on solid research.
-

@@ -44,9 +44,6 @@ pub struct SequentialThinkingParams {
     /// Thought number that this revision updates
     #[serde(default)]
     pub revises_thought: Option<u32>,
-    /// Thought number where this branch diverges
-    #[serde(default)]
-    pub branch_from_thought: Option<u32>,
     /// Branch identifier for multi-agent coordination
     #[serde(default)]
     pub branch_id: Option<String>,

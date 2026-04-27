@@ -139,7 +139,7 @@ Tests: See TC-1.1 in RTM.md
 Sequential thinking session: session-1234567890
 Branch ID: T-2.1.2-swe
 
-Create your branch with branchFromThought=<last-PM-thought> and branchId="T-2.1.2-swe"
+Create your coordinated reasoning stream with branchId="T-2.1.2-swe"
 Document your reasoning and link relevant [[WikiLinks]].
 When complete, set nextThoughtNeeded=false and provide your ConfessionReport as the conclusion parameter - this concludes your branch.
 ```

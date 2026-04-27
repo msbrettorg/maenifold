@@ -2,6 +2,9 @@ mod auth;
 pub mod credential_store;
 mod dispatch;
 mod handler;
+mod handler_helpers;
+mod prompt_guard;
+mod prompt_guard_patterns;
 pub mod identity;
 mod reply;
 mod runtime;
@@ -16,7 +19,8 @@ mod types;
 
 pub use auth::TokenInfo;
 pub use dispatch::{TeamsDispatchRequest, TeamsSessionMetadata};
-pub use handler::{MatchResult, MessageHandler, MessageHandlerConfig};
+pub use handler::{MatchResult, MessageHandler};
+pub use handler_helpers::MessageHandlerConfig;
 pub use identity::{TeamsIdentity, TeamsIdentitySource, TeamsJwtClaims, detect_identity};
 pub use reply::{TeamsReplyRequest, reply_payload, reply_url, send_reply};
 pub use runtime::{

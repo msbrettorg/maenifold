@@ -78,4 +78,27 @@ describe('AgentProbePreview', () => {
     expect(wrapper.text()).toContain('Offline');
     expect(wrapper.text()).toContain('Live capability discovery is unavailable for architect. Cached options stay visible when present, and Refresh retries MCP discovery.');
   });
+
+  it('maps unexpected capability payload errors to an actionable degraded state', () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+
+    const wrapper = mount(AgentProbePreview, {
+      props: {
+        agentName: 'Copilot',
+        probe: normalizeAgentProbeResult({
+          error: 'Agent returned an unexpected capability payload',
+        }),
+      },
+      global: {
+        plugins: [pinia],
+      },
+    });
+
+    expect(wrapper.text()).toContain('Needs attention');
+    expect(wrapper.text()).toContain('Capability metadata for Copilot could not be interpreted.');
+    expect(wrapper.text()).toContain('Verify the agent command in Settings > Agents, then Refresh.');
+    expect(wrapper.text()).toContain('Agent returned an unexpected capability payload');
+    expect(wrapper.text()).not.toContain('Probe failed');
+  });
 });

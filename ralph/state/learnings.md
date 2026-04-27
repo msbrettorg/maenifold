@@ -1143,3 +1143,12 @@ Here's the execution plan:
 - T-238.30: Sub-PM advanced through red-team and blue-team without dispatching real agents after a test-only SWE cycle.
 - Gate history shows `agent=sub-pm` for red-team and `agent=blue-team` for blue-team but no real agent was dispatched.
 - **Lesson: Sub-PM prompts must explicitly state "you do NOT gate pass red-team or blue-team — report back to the outer PM who owns those stages." The current sub-PM instructions say "SWE stage only" but don't prohibit passing other stages.**
+
+## 2026-04-27 — Sprint 238 (Gate Process Violation)
+
+### SWE dispatched before gate_Pass on pending stage
+- T-238.42 SWE agent (`t23915-vue-lsp`) was dispatched while the task was still in `pending` state.
+- Gate requires stage ownership to be recorded BEFORE or AT dispatch time: call `gate_Pass` on the current stage before dispatching the agent for the next stage.
+- **Lesson: Always run `gate_Pass` to advance the task to the target stage BEFORE dispatching the stage agent. The sequence is: gate_Pass(pending→swe) → dispatch SWE. Never: dispatch SWE → gate_Pass(pending→swe).**
+- The correction was applied: T-238.42 received a retroactive pending PASS with process correction notes referencing the dispatched agent.
+

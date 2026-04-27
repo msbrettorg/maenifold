@@ -20,6 +20,7 @@ pub(crate) mod region;
 pub mod identity;
 mod reply;
 mod runtime;
+pub(crate) mod session_registry;
 pub mod supervisor;
 mod token_refresh;
 pub mod token_refresh_meta;

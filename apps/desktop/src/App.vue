@@ -12,7 +12,7 @@ import AppSidebar from './components/AppSidebar.vue';
 import AppTabBar from './components/AppTabBar.vue';
 import ChatView from './components/ChatView.vue';
 import HomeDashboard from './components/HomeDashboard.vue';
-import KnowledgeExplorer from './components/KnowledgeExplorer.vue';
+import KnowledgeWorkspace from './components/KnowledgeWorkspace.vue';
 import TeamsTab from './components/teams/TeamsTab.vue';
 import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
 import PipelineView from './components/PipelineView.vue';
@@ -169,7 +169,7 @@ function onOnboardingComplete(): void {
         </div>
 
         <div v-if="visitedTabs.has('knowledge')" v-show="!showHome && activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
-          <KnowledgeExplorer />
+          <KnowledgeWorkspace />
         </div>
 
         <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">

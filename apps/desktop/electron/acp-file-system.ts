@@ -1,6 +1,20 @@
-import { readFile, writeFile } from 'node:fs/promises';
-import { isAbsolute } from 'node:path';
+// T-238.33: ACP file I/O has an accepted TOCTOU residual risk.
+// A same-user local attacker who can mutate ancestor directories under memory/
+// can race between path validation and read/write I/O by swapping symlinks or
+// directories after validation completes. At that privilege level the attacker
+// can already read/modify those files directly, so this does not escalate
+// privileges. Node.js does not expose race-free openat(2)-style traversal
+// without a native addon, so we cannot fully eliminate the race here. We still
+// realpath-check targets before I/O to reject existing symlink traversal; write
+// validation resolves the parent for new files and restricts writes to
+// ~/maenifold/memory. This raises the bar but remains pre-I/O validation rather
+// than a race-free guarantee. Risk formally accepted.
+import { readFile, realpath, writeFile } from 'node:fs/promises';
+import { homedir } from 'node:os';
+import * as path from 'node:path';
 import { ipcMain } from 'electron';
+
+const MAENIFOLD_MEMORY_ROOT = path.join(homedir(), 'maenifold', 'memory');
 
 interface ReadTextFileParams {
   path?: unknown;
@@ -13,14 +27,52 @@ interface WriteTextFileParams {
   content?: unknown;
 }
 
-function requireAbsolutePath(path: unknown): string {
-  if (typeof path !== 'string' || path.length === 0) {
+function requireAbsolutePath(filePath: unknown): string {
+  if (typeof filePath !== 'string' || filePath.length === 0) {
     throw new Error('ACP file path must be a non-empty string');
   }
-  if (!isAbsolute(path)) {
+  if (!path.isAbsolute(filePath)) {
     throw new Error('ACP file path must be absolute');
   }
-  return path;
+  return filePath;
+}
+
+async function requireNonSymlinkPath(filePath: string): Promise<string> {
+  const resolvedPath = await realpath(filePath);
+  if (resolvedPath !== filePath) {
+    throw new Error('ACP file path resolves through a symlink, which is not allowed');
+  }
+  return resolvedPath;
+}
+
+async function requireNonSymlinkWritePath(filePath: string): Promise<string> {
+  const parentPath = path.dirname(filePath);
+  const normalizedParentPath = path.normalize(parentPath);
+  const resolvedParentPath = await realpath(parentPath);
+  if (resolvedParentPath !== normalizedParentPath) {
+    throw new Error('ACP file path resolves through a symlink, which is not allowed');
+  }
+
+  try {
+    const resolvedPath = await realpath(filePath);
+    if (resolvedPath !== filePath) {
+      throw new Error('ACP file path resolves through a symlink, which is not allowed');
+    }
+    return resolvedPath;
+  } catch (error) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+      return path.join(resolvedParentPath, path.basename(filePath));
+    }
+    throw error;
+  }
+}
+
+function requireWriteWithinMemory(filePath: string): void {
+  const normalizedFilePath = path.normalize(filePath);
+  const normalizedWriteRoot = path.normalize(MAENIFOLD_MEMORY_ROOT + path.sep);
+  if (!normalizedFilePath.startsWith(normalizedWriteRoot)) {
+    throw new Error('ACP writes are restricted to the maenifold memory directory');
+  }
 }
 
 function optionalInteger(value: unknown, name: string): number | null {
@@ -48,18 +100,21 @@ function sliceContent(content: string, line: number | null, limit: number | null
 export function registerAcpFileSystemHandlers(): void {
   ipcMain.handle('acp:read-text-file', async (_event, params: ReadTextFileParams) => {
     const filePath = requireAbsolutePath(params?.path);
+    const resolvedPath = await requireNonSymlinkPath(filePath);
     const line = optionalInteger(params?.line, 'read line');
     const limit = optionalInteger(params?.limit, 'read limit');
-    const content = await readFile(filePath, 'utf8');
+    const content = await readFile(resolvedPath, 'utf8');
     return { content: sliceContent(content, line, limit) };
   });
 
   ipcMain.handle('acp:write-text-file', async (_event, params: WriteTextFileParams) => {
     const filePath = requireAbsolutePath(params?.path);
+    const resolvedPath = await requireNonSymlinkWritePath(filePath);
+    requireWriteWithinMemory(resolvedPath);
     if (typeof params?.content !== 'string') {
       throw new Error('ACP write content must be a string');
     }
-    await writeFile(filePath, params.content, 'utf8');
+    await writeFile(resolvedPath, params.content, 'utf8');
     return {};
   });
 }

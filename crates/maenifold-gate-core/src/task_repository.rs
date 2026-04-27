@@ -164,7 +164,18 @@ impl TaskRepository {
 
     pub fn read_task_document(root: &Path, task: &TaskPathSet) -> Result<TaskDocument, GateError> {
         let path = Self::canonical_task_markdown_path(root, task)?;
-        TaskFileReader::read(&path)
+        let document = TaskFileReader::read(&path)?;
+        if document
+            .metadata
+            .depends_on
+            .iter()
+            .any(|dependency| dependency == &task.task_id)
+        {
+            return Err(GateError::TaskMetadataParse(
+                "task depends on itself".to_string(),
+            ));
+        }
+        Ok(document)
     }
 
     pub fn append_task_section(

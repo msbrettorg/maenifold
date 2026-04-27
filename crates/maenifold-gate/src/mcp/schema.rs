@@ -67,6 +67,10 @@ pub fn list() -> Vec<McpToolDefinition> {
                         "type": "boolean",
                         "description": "Optional flag to show only ready-to-work tasks, currently defined as tasks in todo/ whose effective state is 'pending'. Defaults to false."
                     },
+                    "blocked": {
+                        "type": "boolean",
+                        "description": "Optional flag to show only blocked tasks, including tasks blocked by unfinished, missing, or cyclic dependencies. Defaults to false."
+                    },
                     "includeDone": {
                         "type": "boolean",
                         "description": "Optional flag to include tasks whose effective state is 'done'. Defaults to false so status focuses on actionable work."

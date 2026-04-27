@@ -80,7 +80,7 @@ Per article, the script:
 3. **Converts** to `[[wikilinks]]` (NFKD decomposition, possessive stripping, kebab-case normalization)
 4. **Filters** hub concepts from `.wikilink-filter.json` (strips brackets, keeps plain text)
 5. **Appends** a `## Source` section with lineage (URL + access date)
-6. **Writes** to `memory://<folder>/<title>` via `maenifold --tool WriteMemory --json`
+6. **Writes** to `memory://<folder>/<title>` via `maenifold tool WriteMemory '<payload>' --json`
 7. **Returns** JSON mapping: `{concept, display, url}` for every converted link
 
 ## When to Use

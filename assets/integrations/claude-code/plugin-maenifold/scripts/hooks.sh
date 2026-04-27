@@ -79,7 +79,7 @@ build_context_loop() {
     [[ -z "$concept" ]] && continue
     (( tokens + token_cost > token_limit )) && break
 
-    result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" --tool BuildContext --payload \
+    result=$(run_with_timeout "$cli_timeout" "$MAENIFOLD_CLI" tool BuildContext \
       "{\"conceptName\":\"$concept\",\"depth\":$depth,\"maxEntities\":$max_entities,\"includeContent\":true}")
 
     # Skip empty, no relations, or weak relations (1-2 file co-occurrence)
@@ -112,11 +112,11 @@ if [[ "$MODE" == "session_start" ]]; then
 
   # Get repo name, search for project context
   REPO_NAME=$(basename "$(git rev-parse --show-toplevel 2>/dev/null || pwd)")
-  PROJECT_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool SearchMemories --payload \
+  PROJECT_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" tool SearchMemories \
     "{\"query\":\"$REPO_NAME\",\"mode\":\"Hybrid\",\"pageSize\":5}" | extract_concepts | sort -u)
 
   # Get recency context, rank by frequency
-  RECENCY_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool RecentActivity --payload \
+  RECENCY_CONCEPTS=$(run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" tool RecentActivity \
     '{"limit":10,"timespan":"1.00:00:00","includeContent":true}' | \
     extract_concepts | sort | uniq -c | sort -rn | head -10 | awk '{print $2}')
 
@@ -225,7 +225,7 @@ if [[ "$MODE" == "pre_compact" ]]; then
   fi
 
   CLI_TIMEOUT="${CLI_TIMEOUT:-5}"
-  run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" --tool WriteMemory --payload \
+  run_with_timeout "$CLI_TIMEOUT" "$MAENIFOLD_CLI" tool WriteMemory \
     "$(jq -n --arg t "compaction-$(date +%s)" --arg c "$CONTENT" '{title:$t,folder:"sessions/compaction",content:$c}')" >/dev/null 2>&1 || true
 
   echo '{}'

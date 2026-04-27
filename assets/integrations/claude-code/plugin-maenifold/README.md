@@ -433,7 +433,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --tool GetConfig --payload '{}'
+   maenifold tool GetConfig '{}'
    ```
 
 #### Linux
@@ -461,7 +461,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```bash
-   maenifold --tool GetConfig --payload '{}'
+   maenifold tool GetConfig '{}'
    ```
 
 #### Windows
@@ -492,7 +492,7 @@ Download the latest release for your platform from [GitHub Releases](https://git
 
 4. Verify installation:
    ```powershell
-   maenifold --tool GetConfig --payload '{}'
+   maenifold tool GetConfig '{}'
    ```
 
 ### Homebrew (Alternative for macOS/Linux)
@@ -683,7 +683,7 @@ After installation, verify the setup:
 ### 1. Check Binary Installation
 
 ```bash
-maenifold --tool GetConfig --payload '{}'
+maenifold tool GetConfig '{}'
 ```
 
 Expected output: JSON configuration including `maenifoldRoot` path and version info

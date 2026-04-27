@@ -161,7 +161,7 @@ def _write_to_memory(
         return None
 
     result = subprocess.run(
-        ["maenifold", "--tool", "WriteMemory", "--payload", payload_json, "--json"],
+        ["maenifold", "tool", "WriteMemory", payload_json, "--json"],
         capture_output=True,
         text=True,
         timeout=_CLI_TIMEOUT_S,

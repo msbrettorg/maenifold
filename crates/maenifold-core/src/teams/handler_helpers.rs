@@ -3,8 +3,19 @@
 //! and so `prompt_guard` can reuse `decode_html_entities` without
 //! duplication.
 
+use std::sync::LazyLock;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+
+// Pre-normalize semicolonless numeric entities to match Python html.unescape().
+// `&#95key` → `&#95;key`, `&#x5fkey` → `&#x5f;key`. Without this, the
+// `html_escape` crate leaves them undecoded, allowing entity-encoded payload
+// bypass of downstream scanners. Ref: credential_scanner.py L252-254.
+static SEMICOLONLESS_DEC: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"&#(\d{1,7})([^;\d])").expect("decimal entity regex"));
+static SEMICOLONLESS_HEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"&#x([0-9a-fA-F]{1,6})([^;0-9a-fA-F])").expect("hex entity regex"));
 
 use super::EventMessage;
 
@@ -99,10 +110,13 @@ pub fn strip_html(content: &str) -> String {
 }
 
 pub(crate) fn decode_html_entities(text: &str) -> String {
-    // Full HTML entity decoding equivalent to Python html.unescape()
-    // Ref: credential_scanner.py L252-254 uses html.unescape()
-    // Uses html_escape crate for spec-compliant named + numeric entity decoding
-    html_escape::decode_html_entities(text).into_owned()
+    // Full HTML entity decoding equivalent to Python html.unescape().
+    // Ref: credential_scanner.py L252-254 uses html.unescape(), which per HTML5
+    // legacy compatibility decodes numeric refs without trailing semicolons.
+    // Pre-normalize those, then defer to html_escape for spec-compliant decode.
+    let normalized = SEMICOLONLESS_DEC.replace_all(text, "&#$1;$2");
+    let normalized = SEMICOLONLESS_HEX.replace_all(&normalized, "&#x$1;$2");
+    html_escape::decode_html_entities(&normalized).into_owned()
 }
 
 pub fn keyword_regex(keyword: &str) -> Regex {

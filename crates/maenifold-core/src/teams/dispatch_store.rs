@@ -165,15 +165,22 @@ impl DispatchStore {
         let body = serde_json::to_string_pretty(&envelope)?;
         let tmp = self.path.with_extension("tmp");
         std::fs::write(&tmp, body)?;
-        // Windows-safe rename-over (py L124–L126 unlinks first).
-        if self.path.exists() {
-            let _ = std::fs::remove_file(&self.path);
-        }
-        if let Err(err) = std::fs::rename(&tmp, &self.path) {
+        // Atomic replace: on Unix `rename` overwrites the destination in
+        // a single syscall, so the previous good file is never absent
+        // (unlike a remove-then-rename, which loses data on crash).
+        std::fs::rename(&tmp, &self.path).map_err(|e| {
             let _ = std::fs::remove_file(&tmp);
-            return Err(err.into());
-        }
+            MaenifoldError::from(e)
+        })?;
         Ok(())
+    }
+
+    /// Construct an in-memory store bound to `path` without performing any
+    /// file I/O. Used as a last-resort fallback when `open()` fails so the
+    /// supervisor can keep running; subsequent `save()` calls will surface
+    /// real I/O errors per-call instead of panicking at construction.
+    pub(crate) fn empty(path: PathBuf) -> Self {
+        Self { path, records: HashMap::new() }
     }
 
     /// Add a new dispatch as `Pending`, returning its 12-char lowercase hex

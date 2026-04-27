@@ -303,12 +303,12 @@ async fn process_messages(
                 fallback = %fallback.display(),
                 "dispatch store open failed; falling back to temp path"
             );
-            DispatchStore::open(fallback.clone()).unwrap_or_else(|e2| {
-                tracing::error!(%e2, "dispatch store fallback also failed; running without persistence guarantees");
-                // Last resort: load() is infallible (returns empty on errors),
-                // and add()/update() will then surface I/O errors per call.
-                DispatchStore::open(fallback).expect("infallible load path")
-            })
+                DispatchStore::open(fallback.clone()).unwrap_or_else(|e2| {
+                    tracing::error!(%e2, "dispatch store fallback also failed; running without persistence guarantees");
+                    // Last resort: build an empty in-memory store; later
+                    // save() calls will surface real I/O errors per call.
+                    DispatchStore::empty(fallback)
+                })
         }),
     ));
     let mut messages_since_cleanup: u32 = 0;
@@ -413,7 +413,9 @@ async fn process_messages(
             let conversation_id = request.metadata.reply_conversation_id.clone();
             if let Some(id) = dispatch_id.as_deref() {
                 let mut s = store_for_task.lock().await;
-                let _ = s.update_status(id, DispatchStatus::InProgress, None, None);
+                if let Err(e) = s.update_status(id, DispatchStatus::InProgress, None, None) {
+                    tracing::warn!(%e, dispatch_id = %id, "dispatch store status update failed");
+                }
             }
             let outcome = run_dispatch(request, &ctx, &dispatch_fn).await;
             let (status, summary, error_msg, body) = match outcome {
@@ -434,7 +436,9 @@ async fn process_messages(
             };
             if let Some(id) = dispatch_id.as_deref() {
                 let mut s = store_for_task.lock().await;
-                let _ = s.update_status(id, status, summary.as_deref(), error_msg.as_deref());
+                if let Err(e) = s.update_status(id, status, summary.as_deref(), error_msg.as_deref()) {
+                    tracing::warn!(%e, dispatch_id = %id, "dispatch store status update failed");
+                }
             }
             if let Err(error) = deliver_reply(&ctx, &conversation_id, &body).await {
                 tracing::warn!(%conversation_id, %error, "Teams reply delivery failed");
@@ -448,7 +452,9 @@ async fn process_messages(
         if messages_since_cleanup >= 100 {
             messages_since_cleanup = 0;
             let mut s = store.lock().await;
-            let _ = s.cleanup_old(48.0);
+            if let Err(e) = s.cleanup_old(48.0) {
+                tracing::warn!(%e, "dispatch store cleanup failed");
+            }
         }
     }
 }

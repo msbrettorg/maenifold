@@ -19,7 +19,7 @@ use crate::error::{MaenifoldError, Result};
 
 use super::{
     EventMessage, MessageHandler, MessageHandlerConfig, TeamsDispatchRequest, TeamsReplyRequest,
-    TokenInfo, TrouterClient, TrouterClientConfig, chunking,
+    TokenInfo, TrouterClient, TrouterClientConfig, chunking, credential_guard,
     dispatcher::{DispatchCtx, DispatchOutcome, run_dispatch},
     runtime::update_teams_runtime_state, send_reply, set_teams_connecting, set_teams_disabled,
     set_teams_error, teams_runtime_snapshot, token_provider::TeamsTokenProvider,
@@ -382,7 +382,24 @@ async fn process_messages(
 /// short-circuits remaining chunks (matches python `_reply_to_chat`).
 async fn deliver_reply(ctx: &DispatchCtx, conversation_id: &str, body: &str) -> Result<()> {
     let token = ctx.token.borrow().clone();
-    let chunks = chunking::chunk_message(body, chunking::DEFAULT_MAX_CHUNK);
+    let scan = credential_guard::scan_for_credentials(body);
+    let effective_body = if credential_guard::has_findings(&scan) {
+        let previews: Vec<String> = scan
+            .findings
+            .iter()
+            .map(|f| format!("{}={}", f.pattern_name, f.match_preview))
+            .collect();
+        tracing::warn!(
+            %conversation_id,
+            finding_count = scan.findings.len(),
+            findings = %previews.join(","),
+            "Credential guard blocked reply — potential credential leak in agent output"
+        );
+        "⚠️ Response blocked — potential credential leak detected. The agent's output contained patterns matching known credential formats.".to_string()
+    } else {
+        body.to_string()
+    };
+    let chunks = chunking::chunk_message(&effective_body, chunking::DEFAULT_MAX_CHUNK);
     let total = chunks.len();
     for (i, chunk) in chunks.into_iter().enumerate() {
         let prefix = if i == 0 {

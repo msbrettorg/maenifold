@@ -19,6 +19,10 @@ use super::validation::{SequentialThinkingInput, validate_completion, validate_p
 // T-12.0: RTM NFR-1 - preserve SequentialThinking behavior while delegating cohesive helper groups.
 #[allow(clippy::too_many_lines)]
 pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<String> {
+    let input = SequentialThinkingInput::from_payload(payload);
+    if let Some(output) = validate_payload(context, payload, &input)? {
+        return Ok(output);
+    }
     if payload
         .get("learn")
         .and_then(Value::as_bool)
@@ -27,11 +31,6 @@ pub fn sequential_thinking(context: &ToolContext, payload: &Value) -> Result<Str
         let help = load_help_doc(&context.config.assets_path, "SequentialThinking")
             .unwrap_or_else(|| "ERROR: Help file not found for SequentialThinking".to_string());
         return Ok(render_text_success(context, help));
-    }
-
-    let input = SequentialThinkingInput::from_payload(payload);
-    if let Some(output) = validate_payload(context, &input)? {
-        return Ok(output);
     }
 
     let uri = sequential_session_uri(&input.session_id);

@@ -6,7 +6,7 @@ use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy, SessionRef
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct PipelineNodeWire {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     kind: Option<String>,

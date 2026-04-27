@@ -1,9 +1,29 @@
-use crate::error::Result;
+use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use serde_json::Value;
 
 use super::render_failure;
 use super::session::generate_sequential_session_id;
+
+const ALLOWED_PAYLOAD_KEYS: &[&str] = &[
+    "response",
+    "thoughtNumber",
+    "totalThoughts",
+    "nextThoughtNeeded",
+    "sessionId",
+    "isRevision",
+    "revisesThought",
+    "needsMoreThoughts",
+    "branchFromThought",
+    "branchId",
+    "conclusion",
+    "cancel",
+    "thoughts",
+    "parentWorkflowId",
+    "submachineSessionId",
+    "submachineType",
+    "learn",
+];
 
 pub(crate) struct SequentialThinkingInput {
     pub(crate) cancel: bool,
@@ -98,8 +118,11 @@ impl SequentialThinkingInput {
 // T-12.0: RTM NFR-1 - preserve SequentialThinking request validation after splitting helpers.
 pub(crate) fn validate_payload(
     context: &ToolContext,
+    payload: &Value,
     input: &SequentialThinkingInput,
 ) -> Result<Option<String>> {
+    reject_unknown_payload_keys(payload)?;
+
     // WikiLink validation removed — concepts are encouraged but no longer block requests.
     if !input.cancel {
         tracing::debug!("Skipping WikiLink validation for sequential thinking request");
@@ -130,6 +153,23 @@ pub(crate) fn validate_payload(
     }
 
     Ok(None)
+}
+
+fn reject_unknown_payload_keys(payload: &Value) -> Result<()> {
+    let Some(object) = payload.as_object() else {
+        return Ok(());
+    };
+
+    if let Some(key) = object
+        .keys()
+        .find(|key| !ALLOWED_PAYLOAD_KEYS.contains(&key.as_str()))
+    {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Unknown SequentialThinking payload field '{key}'."
+        )));
+    }
+
+    Ok(())
 }
 
 pub(crate) fn validate_completion(

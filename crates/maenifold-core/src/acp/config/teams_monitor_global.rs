@@ -12,7 +12,6 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use super::teams_monitor::{TeamsMonitorConnectionConfig, TeamsMonitorIdentityConfig};
 use crate::error::{MaenifoldError, Result};
 
 // ── Defaults (mirror Python `DispatchConfig.__init__`) ─────────────────────
@@ -40,6 +39,9 @@ fn d_pty_idle_timeout_minutes() -> u64 {
 fn d_pty_max_sessions() -> u32 {
     5
 }
+fn d_pty_stale_dispatch_timeout_minutes() -> u64 {
+    5
+}
 
 fn d_keyword() -> String {
     "@agent".to_string()
@@ -48,8 +50,40 @@ fn d_reply_prefix() -> String {
     "Agency Cowork: ".to_string()
 }
 
+fn d_sender_mri() -> String {
+    "8:orgid:00000000-0000-0000-0000-000000000000".to_string()
+}
+fn d_sender_display_name() -> String {
+    "Your Name".to_string()
+}
+fn d_sender_upn() -> String {
+    "user@contoso.com".to_string()
+}
+
+fn d_trouter_gateway() -> String {
+    "go-msit.trouter.teams.microsoft.com".to_string()
+}
+fn d_registrar_url() -> String {
+    "https://teams.cloud.microsoft/registrar/prod/V2/registrations".to_string()
+}
+fn d_app_id() -> String {
+    "AgencyCoworkMonitor".to_string()
+}
+fn d_reconnect_delay_seconds() -> u64 {
+    5
+}
+fn d_max_reconnect_delay_seconds() -> u64 {
+    300
+}
+fn d_token_refresh_minutes() -> u64 {
+    50
+}
+fn d_heartbeat_interval_seconds() -> u64 {
+    30
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct WorkspaceDispatchConfig {
     #[serde(default = "d_command")]
     pub command: String,
@@ -67,12 +101,16 @@ pub struct WorkspaceDispatchConfig {
     pub persistent_session_id: String,
     #[serde(default = "d_use_persistent_pty")]
     pub use_persistent_pty: bool,
+    #[serde(default)]
+    pub pty_warmup_conversations: Vec<String>,
     #[serde(default = "d_pty_queue_max")]
     pub pty_queue_max: u32,
     #[serde(default = "d_pty_idle_timeout_minutes")]
     pub pty_idle_timeout_minutes: u64,
     #[serde(default = "d_pty_max_sessions")]
     pub pty_max_sessions: u32,
+    #[serde(default = "d_pty_stale_dispatch_timeout_minutes")]
+    pub pty_stale_dispatch_timeout_minutes: u64,
 }
 
 impl Default for WorkspaceDispatchConfig {
@@ -86,15 +124,17 @@ impl Default for WorkspaceDispatchConfig {
             response_conversation: d_response_conversation(),
             persistent_session_id: String::new(),
             use_persistent_pty: d_use_persistent_pty(),
+            pty_warmup_conversations: vec!["48:notes".to_string()],
             pty_queue_max: d_pty_queue_max(),
             pty_idle_timeout_minutes: d_pty_idle_timeout_minutes(),
             pty_max_sessions: d_pty_max_sessions(),
+            pty_stale_dispatch_timeout_minutes: d_pty_stale_dispatch_timeout_minutes(),
         }
     }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct MonitoredConversation {
     pub id: String,
     pub name: String,
@@ -116,7 +156,63 @@ impl Default for MonitoredConversation {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+pub struct AuthorizedSender {
+    #[serde(default = "d_sender_mri")]
+    pub mri: String,
+    #[serde(default = "d_sender_display_name", rename = "displayName")]
+    pub display_name: String,
+    #[serde(default = "d_sender_upn")]
+    pub upn: String,
+}
+
+impl Default for AuthorizedSender {
+    fn default() -> Self {
+        Self {
+            mri: d_sender_mri(),
+            display_name: d_sender_display_name(),
+            upn: d_sender_upn(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub struct TeamsMonitorGlobalConnectionConfig {
+    #[serde(default = "d_trouter_gateway")]
+    pub trouter_gateway: String,
+    #[serde(default = "d_registrar_url")]
+    pub registrar_url: String,
+    #[serde(default = "d_app_id")]
+    pub app_id: String,
+    #[serde(default = "d_reconnect_delay_seconds")]
+    pub reconnect_delay_seconds: u64,
+    #[serde(default = "d_max_reconnect_delay_seconds")]
+    pub max_reconnect_delay_seconds: u64,
+    #[serde(default = "d_token_refresh_minutes")]
+    pub token_refresh_minutes: u64,
+    #[serde(default = "d_heartbeat_interval_seconds")]
+    pub heartbeat_interval_seconds: u64,
+    #[serde(default)]
+    pub chatsvc_region: String,
+}
+
+impl Default for TeamsMonitorGlobalConnectionConfig {
+    fn default() -> Self {
+        Self {
+            trouter_gateway: d_trouter_gateway(),
+            registrar_url: d_registrar_url(),
+            app_id: d_app_id(),
+            reconnect_delay_seconds: d_reconnect_delay_seconds(),
+            max_reconnect_delay_seconds: d_max_reconnect_delay_seconds(),
+            token_refresh_minutes: d_token_refresh_minutes(),
+            heartbeat_interval_seconds: d_heartbeat_interval_seconds(),
+            chatsvc_region: String::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub struct WorkspaceTeamsConfig {
     #[serde(default)]
     pub enabled: bool,
@@ -150,12 +246,12 @@ impl Default for WorkspaceTeamsConfig {
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "snake_case")]
 pub struct TeamsMonitorGlobalConfig {
     #[serde(default)]
-    pub identity: Option<TeamsMonitorIdentityConfig>,
+    pub identity: AuthorizedSender,
     #[serde(default)]
-    pub connection: TeamsMonitorConnectionConfig,
+    pub connection: TeamsMonitorGlobalConnectionConfig,
     #[serde(default)]
     pub workspaces: HashMap<String, WorkspaceTeamsConfig>,
 }

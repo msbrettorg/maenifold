@@ -68,10 +68,15 @@ impl GateLifecycle {
                 Ok(row) => row,
                 Err(e) => json!({
                     "taskId": task.task_id,
+                    "canonicalTaskId": task.task_id,
+                    "title": format!("[error] {}", task.task_id),
                     "pipeline": "unknown",
                     "state": "error",
+                    "stages": [],
+                    "attempts": 0,
                     "location": task.location,
                     "path": task.path.display().to_string(),
+                    "linked": false,
                     "issue": format!("{e}"),
                 }),
             };

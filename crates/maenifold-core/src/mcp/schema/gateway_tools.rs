@@ -19,7 +19,6 @@ pub(crate) struct GatewayExecuteParams {
     pub domain: String,
     pub command: String,
     pub parameters: Map<String, Value>,
-    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
@@ -37,7 +36,6 @@ pub(crate) struct BatchItemParams {
     pub domain: String,
     pub command: String,
     pub parameters: Map<String, Value>,
-    pub idempotency_key: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, JsonSchema)]

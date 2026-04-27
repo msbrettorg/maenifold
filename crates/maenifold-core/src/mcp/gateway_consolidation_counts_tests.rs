@@ -13,16 +13,13 @@ fn tool(name: &str) -> Tool {
 
 #[test]
 fn gateway_tool_counts_include_native_facades_and_passthrough() {
-    let (consolidated, passthrough) = build_consolidated_tools(
-        vec![
-            (
-                "Facade".to_string(),
-                vec![tool("a"), tool("b"), tool("c"), tool("d")],
-            ),
-            ("Flat".to_string(), vec![tool("x"), tool("y")]),
-        ],
-        4,
-    )
+    let (consolidated, passthrough) = build_consolidated_tools(vec![
+        (
+            "Facade".to_string(),
+            vec![tool("a"), tool("b"), tool("c"), tool("d")],
+        ),
+        ("Flat".to_string(), vec![tool("x"), tool("y")]),
+    ])
     .expect("builder should succeed");
     let native_tools = vec![tool("native_one"), tool("native_two"), tool("native_three")];
 

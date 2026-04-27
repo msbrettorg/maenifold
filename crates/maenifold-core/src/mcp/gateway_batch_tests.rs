@@ -28,7 +28,6 @@ fn item(domain: &str, command: &str, parameters: Value) -> BatchItemParams {
         domain: domain.to_string(),
         command: command.to_string(),
         parameters: parameters.as_object().expect("object params").clone(),
-        idempotency_key: None,
     }
 }
 

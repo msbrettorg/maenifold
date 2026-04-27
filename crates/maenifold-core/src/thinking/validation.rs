@@ -17,7 +17,6 @@ pub(crate) struct SequentialThinkingInput {
     pub(crate) revises_thought: Option<u64>,
     pub(crate) branch_from_thought: Option<u64>,
     pub(crate) branch_id: Option<String>,
-    pub(crate) analysis_type: Option<String>,
     pub(crate) parent_workflow_id: Option<String>,
     pub(crate) submachine_session_id: Option<String>,
     pub(crate) submachine_type: Option<String>,
@@ -72,10 +71,6 @@ impl SequentialThinkingInput {
             branch_from_thought: payload.get("branchFromThought").and_then(Value::as_u64),
             branch_id: payload
                 .get("branchId")
-                .and_then(Value::as_str)
-                .map(str::to_string),
-            analysis_type: payload
-                .get("analysisType")
                 .and_then(Value::as_str)
                 .map(str::to_string),
             parent_workflow_id: payload

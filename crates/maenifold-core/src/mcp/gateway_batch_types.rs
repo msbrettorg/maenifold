@@ -9,14 +9,12 @@ pub(crate) struct BatchItem {
     pub domain: String,
     pub command: String,
     pub parameters: Map<String, Value>,
-    pub idempotency_key: Option<String>,
 }
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct BatchItemResult {
     pub domain: String,
     pub command: String,
-    pub idempotency_key: Option<String>,
     pub status: String,
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]

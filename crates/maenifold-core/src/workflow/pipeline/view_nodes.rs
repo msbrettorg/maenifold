@@ -204,7 +204,6 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
         PipelineNode::SequentialThinking {
             topic,
             total_thoughts,
-            analysis_type,
             agent,
             model,
             thought_level,
@@ -218,7 +217,6 @@ fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {
             "topic": topic,
             "agent": agent,
             "totalThoughts": total_thoughts,
-            "analysisType": analysis_type,
             "model": model,
             "thoughtLevel": thought_level,
             "allowedTools": allowed_tools,

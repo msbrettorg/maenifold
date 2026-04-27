@@ -60,8 +60,6 @@ pub(super) struct PipelineNodeWire {
     )]
     total_thoughts: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
-    analysis_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     tool_name: Option<String>,
     #[serde(rename = "toolArgs", skip_serializing_if = "Option::is_none")]
     tool_args: Option<Value>,
@@ -185,7 +183,6 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 display_label: wire.display_label,
                 topic: required(wire.topic, "topic")?,
                 total_thoughts: wire.total_thoughts,
-                analysis_type: wire.analysis_type,
                 agent: required(wire.agent, "agent")?,
                 model: wire.model,
                 thought_level: wire.thought_level,

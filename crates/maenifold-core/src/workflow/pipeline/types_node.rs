@@ -51,7 +51,6 @@ pub enum PipelineNode {
         display_label: Option<String>,
         topic: String,
         total_thoughts: u32,
-        analysis_type: Option<String>,
         agent: String,
         model: Option<String>,
         thought_level: Option<String>,

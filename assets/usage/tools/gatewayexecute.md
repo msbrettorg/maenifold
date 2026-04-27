@@ -7,8 +7,6 @@ Executes one exact gateway command selected from `GatewayIndex`.
 - `domain` (string, required): Domain returned by `GatewayIndex`.
 - `command` (string, required): Command name within the selected domain.
 - `parameters` (object, required): Command-specific parameters.
-- `idempotencyKey` (string, optional): Caller-provided key for future
-  idempotency-aware command handling.
 
 ## Returns
 

@@ -78,7 +78,6 @@ pub(super) fn mixed_definition() -> PipelineDefinition {
                 id: "thinking".to_string(),
                 topic: "Pipeline validation".to_string(),
                 total_thoughts: 3,
-                analysis_type: Some("analysis".to_string()),
                 agent: "thinking-agent".to_string(),
                 agent_config: None,
                 model: None,

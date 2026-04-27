@@ -47,16 +47,6 @@ pub(crate) fn initialize_session(
         "activeSubmachineTarget".to_string(),
         YamlValue::String(String::new()),
     );
-    if let Some(analysis_type) = input
-        .analysis_type
-        .as_deref()
-        .filter(|value| !value.is_empty())
-    {
-        frontmatter.insert(
-            "analysisType".to_string(),
-            YamlValue::String(analysis_type.to_string()),
-        );
-    }
     if let Some(parent_workflow_id) = input
         .parent_workflow_id
         .as_deref()

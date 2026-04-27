@@ -7,6 +7,8 @@ mod embedding_models_tools;
 mod files_tools;
 pub(crate) mod gateway_tools;
 #[cfg(test)]
+mod gateway_tools_schema_tests;
+#[cfg(test)]
 mod generic_tool_tests;
 mod graph_params;
 #[cfg(test)]

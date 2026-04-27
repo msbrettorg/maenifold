@@ -1,8 +1,11 @@
 use chrono::{SecondsFormat, Utc};
 use serde_json::{Value, json};
+use tracing::{info, warn};
 use uuid::Uuid;
 
 use crate::error::{MaenifoldError, Result};
+
+use super::region::extract_region_from_url;
 
 const TEAMS_CLOUD_ORIGIN: &str = "https://teams.cloud.microsoft";
 
@@ -17,29 +20,114 @@ pub struct TeamsReplyRequest {
 }
 
 pub async fn send_reply(request: TeamsReplyRequest) -> Result<()> {
-    let response = reqwest::Client::new()
-        .post(reply_url(&request.chatsvc_region, &request.conversation_id))
-        .header("Authorization", bearer_token(&request.token))
+    let client = reqwest::Client::new();
+    let response = post_once(&client, &request, &request.chatsvc_region).await?;
+    let status = response.status().as_u16();
+
+    match status {
+        201 | 202 => Ok(()),
+        200 => {
+            // 200 from the wrong region returns a "messages" echo (conversation
+            // history) instead of delivering. Detect and auto-correct.
+            let body_text = response.text().await.unwrap_or_default();
+            let parsed: Value = serde_json::from_str(&body_text).unwrap_or(Value::Null);
+            let is_echo = parsed.is_array()
+                || parsed
+                    .as_object()
+                    .is_some_and(|o| o.contains_key("messages"));
+            if !is_echo {
+                return Ok(());
+            }
+            if let Some(new_region) = extract_region_from_url(&body_text) {
+                if new_region != request.chatsvc_region.to_lowercase() {
+                    warn!(
+                        "chatsvc region mismatch: sent to '{}' but conversation lives in '{}' — retrying",
+                        request.chatsvc_region, new_region
+                    );
+                    return retry_once(&client, &request, &new_region).await;
+                }
+            }
+            Err(MaenifoldError::Message(format!(
+                "chatsvc returned 200 echo with no alternate region (region={}, bodyLen={})",
+                request.chatsvc_region,
+                body_text.len()
+            )))
+        }
+        301 | 302 | 404 => {
+            let location = response
+                .headers()
+                .get("Location")
+                .and_then(|v| v.to_str().ok())
+                .map(str::to_owned)
+                .unwrap_or_default();
+            let body_text = response.text().await.unwrap_or_default();
+            if !location.is_empty() || body_text.to_lowercase().contains("different cloud") {
+                let hint = if location.is_empty() {
+                    body_text.as_str()
+                } else {
+                    location.as_str()
+                };
+                if let Some(new_region) = extract_region_from_url(hint) {
+                    if new_region != request.chatsvc_region.to_lowercase() {
+                        info!("chatsvc auto-discovered region '{new_region}' (status {status}) — retrying");
+                        return retry_once(&client, &request, &new_region).await;
+                    }
+                }
+            }
+            Err(MaenifoldError::Message(format!(
+                "chatsvc reply returned {status}: {}",
+                body_text.chars().take(500).collect::<String>()
+            )))
+        }
+        _ => {
+            let body = response.text().await.unwrap_or_default();
+            Err(MaenifoldError::Message(format!(
+                "chatsvc reply returned {status}: {}",
+                body.chars().take(500).collect::<String>()
+            )))
+        }
+    }
+}
+
+/// Single retry after region recovery; only 201/202 counts as delivered.
+async fn retry_once(
+    client: &reqwest::Client,
+    request: &TeamsReplyRequest,
+    region: &str,
+) -> Result<()> {
+    let response = post_once(client, request, region).await?;
+    let status = response.status().as_u16();
+    if matches!(status, 201 | 202) {
+        return Ok(());
+    }
+    let body = response.text().await.unwrap_or_default();
+    Err(MaenifoldError::Message(format!(
+        "chatsvc retry returned {status} (region={region}): {}",
+        body.chars().take(200).collect::<String>()
+    )))
+}
+
+/// Build and send the chatsvc POST against `region`. Shared by initial send and
+/// the single region-recovery retry to keep header/payload construction in one place.
+async fn post_once(
+    client: &reqwest::Client,
+    request: &TeamsReplyRequest,
+    region: &str,
+) -> Result<reqwest::Response> {
+    let mut scoped = request.clone();
+    scoped.chatsvc_region = region.to_string();
+    client
+        .post(reply_url(region, &scoped.conversation_id))
+        .header("Authorization", bearer_token(&scoped.token))
         .header("Content-Type", "application/json")
         .header("Origin", TEAMS_CLOUD_ORIGIN)
         .header("X-MS-Migration", "True")
         .header("X-Ms-Test-User", "False")
         .header("clientinfo", client_info())
-        .json(&reply_payload(&request))
+        .json(&reply_payload(&scoped))
         .send()
         .await
-        .map_err(|error| MaenifoldError::Message(format!("chatsvc reply failed: {error}")))?;
-
-    if matches!(response.status().as_u16(), 200 | 201 | 202) {
-        return Ok(());
-    }
-
-    let status = response.status();
-    let body = response.text().await.unwrap_or_default();
-    Err(MaenifoldError::Message(format!(
-        "chatsvc reply returned {status}: {}",
-        body.chars().take(500).collect::<String>()
-    )))
+        .map_err(|error| MaenifoldError::Message(format!("chatsvc reply failed: {error}")))
 }
 
 pub fn reply_url(region: &str, conversation_id: &str) -> String {

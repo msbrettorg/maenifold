@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import SettingsConnection from './SettingsConnection.vue';
 import SettingsMaenifold from './SettingsMaenifold.vue';
@@ -21,6 +22,8 @@ const sections = [
   { id: 'teams', label: 'Teams', description: 'Configure Teams monitor keywords, senders, and dispatch.', icon: MessageSquare, component: TeamsSettings },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
+
+const activeSection = ref('connection');
 </script>
 
 <template>
@@ -30,7 +33,7 @@ const sections = [
       Configure your agent catalog and local application preferences.
     </p>
 
-    <Tabs default-value="connection" orientation="vertical" class="flex gap-6 h-[calc(100%-80px)]">
+    <Tabs v-model="activeSection" orientation="vertical" class="flex gap-6 h-[calc(100%-80px)]">
       <TabsList variant="line" class="flex flex-col gap-1 w-[280px] flex-shrink-0 bg-transparent p-0 rounded-none h-fit" aria-label="Settings sections">
         <TabsTrigger
           v-for="s in sections"
@@ -44,14 +47,14 @@ const sections = [
       </TabsList>
 
       <ScrollArea class="flex-1">
-        <TabsContent value="connection"><SettingsConnection /></TabsContent>
-        <TabsContent value="mcp-servers"><SettingsMcpServers /></TabsContent>
-        <TabsContent value="maenifold"><SettingsMaenifold /></TabsContent>
-        <TabsContent value="embeddings"><SettingsEmbeddings /></TabsContent>
-        <TabsContent value="schedules"><SettingsSchedules /></TabsContent>
-        <TabsContent value="easter-eggs"><SettingsEasterEggs /></TabsContent>
-        <TabsContent value="teams"><TeamsSettings /></TabsContent>
-        <TabsContent value="preferences"><SettingsPreferences /></TabsContent>
+        <TabsContent value="connection"><SettingsConnection v-if="activeSection === 'connection'" /></TabsContent>
+        <TabsContent value="mcp-servers"><SettingsMcpServers v-if="activeSection === 'mcp-servers'" /></TabsContent>
+        <TabsContent value="maenifold"><SettingsMaenifold v-if="activeSection === 'maenifold'" /></TabsContent>
+        <TabsContent value="embeddings"><SettingsEmbeddings v-if="activeSection === 'embeddings'" /></TabsContent>
+        <TabsContent value="schedules"><SettingsSchedules v-if="activeSection === 'schedules'" /></TabsContent>
+        <TabsContent value="easter-eggs"><SettingsEasterEggs v-if="activeSection === 'easter-eggs'" /></TabsContent>
+        <TabsContent value="teams"><TeamsSettings v-if="activeSection === 'teams'" /></TabsContent>
+        <TabsContent value="preferences"><SettingsPreferences v-if="activeSection === 'preferences'" /></TabsContent>
       </ScrollArea>
     </Tabs>
   </div>

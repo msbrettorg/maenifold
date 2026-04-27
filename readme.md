@@ -87,12 +87,12 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 
 ### Gates
 
-- `gate` is a separate binary for file-authoritative task management.
+- `maenifold.gate` is the native Gateway domain for file-authoritative task management.
 - Gates provide the local work ledger for staged delivery, review, and rework inside maenifold.
 - Think of it as a local issue tracker that agents and humans can both drive.
-- Supports staged delivery flows through `status`, `append`, `pass`, `fail`, `history`, and `sync`.
+- Supports staged delivery flows through `gate_Status`, `gate_Append`, `gate_Pass`, `gate_Fail`, `gate_History`, `gate_TaskBody`, and `gate_Sync`.
 - `cancel` archives a task without completing it — for superseded or abandoned work.
-- The same task system can be driven from CLI, MCP, or the desktop UI.
+- The same task system can be driven through `GatewayExecute` or the desktop UI.
 - How the reasoning layer tracks and stages work that matters.
 
 ### Workflows
@@ -116,7 +116,7 @@ The backend centers on `crates/maenifold-core` and exposes MCP tools across eigh
 - Opt-in per server: flag a stdio entry in `maenifold.json` and the gateway handles lifecycle, crash recovery, and tool routing.
 - Tool names from upstream servers appear alongside native maenifold tools in `list_tools`.
 - Resources from upstream servers are also proxied via `resources/read`.
-- No separate gateway binary — the existing `maenifold --http` daemon is the host.
+- Native Gateway domains, including `maenifold.gate`, run inside the existing `maenifold --http` daemon; no additional MCP service is required.
 
 ## Architecture
 
@@ -172,10 +172,10 @@ maenifold-rs/
 Build the CLI from source:
 
 ```bash
-cargo build --release -p maenifold-cli -p maenifold-pipeline-driver -p maenifold-gate
+cargo build --release -p maenifold-cli -p maenifold-pipeline-driver
 ```
 
-Three binaries land in `./target/release/`: `maenifold` (CLI + MCP server), `maenifold-pipeline-driver` (headless pipeline executor), and `gate` (task management). All three must be on your PATH for full functionality. The easiest way is `./rebuild.sh`, which builds, symlinks, restarts services, and packages the desktop app.
+Two binaries land in `./target/release/`: `maenifold` (CLI + MCP server with native Gateway domains such as `maenifold.gate`) and `maenifold-pipeline-driver` (headless pipeline executor). Both must be on your PATH for full functionality. The easiest way is `./rebuild.sh`, which builds, symlinks, restarts services, and packages the desktop app.
 
 Minimal MCP client config:
 

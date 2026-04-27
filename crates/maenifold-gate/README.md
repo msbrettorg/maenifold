@@ -1,6 +1,6 @@
 # maenifold-gate
 
-`gate` is a file-authoritative pipeline tool.
+`maenifold.gate` is a file-authoritative pipeline tool exposed as a native maenifold Gateway domain.
 
 - `todo/` and `done/` task files are the source of truth.
 - `.gate/gate.db` is a rebuildable cache, never the authority.
@@ -8,21 +8,21 @@
 
 ## Quick start
 
-```bash
+```text
 mkdir -p todo done
-gate sync --root . --rebuild
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
 ```
 
-## CLI
+## Gateway commands
 
-```bash
-gate status --root .
-gate append T-1.1 --root . --agent swe --notes "implemented stage work"
-gate pass T-1.1 --root . --agent red-team --notes "review passed"
-gate fail T-1.1 --root . --agent blue-team --notes "needs rework"
-gate sync --root . --rebuild
-gate history T-1.1 --root .
-gate ui --root .
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/repo"}
+GatewayExecute domain="maenifold.gate" command="gate_Append" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "swe", notes: "implemented stage work"}
+GatewayExecute domain="maenifold.gate" command="gate_Pass" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "red-team", notes: "review passed"}
+GatewayExecute domain="maenifold.gate" command="gate_Fail" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "blue-team", notes: "needs rework"}
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
+GatewayExecute domain="maenifold.gate" command="gate_History" parameters={root: "/path/to/repo", taskId: "T-1.1"}
+GatewayExecute domain="maenifold.gate" command="gate_TaskBody" parameters={root: "/path/to/repo", taskId: "T-1.1"}
 ```
 
 ## Pipeline JSON schema overview

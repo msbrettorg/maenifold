@@ -573,8 +573,8 @@ Validation:
 
 | Command | Result |
 |---|---|
-| `gate sync --root . --rebuild` | Passed; rebuilt 516 tasks |
-| `gate status --root .` | Passed; open task list returned |
+| `maenifold.gate` `gate_Sync` via `GatewayExecute` | Passed; rebuilt 516 tasks |
+| `maenifold.gate` `gate_Status` via `GatewayExecute` | Passed; open task list returned |
 | `make audit` | Failed on Rust audit: 1 file-length violation, 4 `.unwrap()` violations |
 | `cd apps/desktop && npm run lint:design && npm run audit:components` | Passed |
 | `cd apps/desktop && npx vue-tsc --noEmit` | Passed |

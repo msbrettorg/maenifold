@@ -35,8 +35,8 @@ The pipeline is file-authoritative, so the backlog is whatever markdown task fil
 
 ## 3. Initialize the Cache
 
-```bash
-gate sync --root . --rebuild
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/pipeline_root", rebuild: true}
 ```
 
 This creates `.gate/gate.db` and adds `.gate/` to `.gitignore` if missing.
@@ -52,14 +52,14 @@ The scoped test command is the single most important thing to get right. If agen
 
 ## 5. Gitignore
 
-You should not need to do anything manually here. `gate sync` handles the `.gate/` ignore entry idempotently.
+You should not need to do anything manually here. `gate_Sync` handles the `.gate/` ignore entry idempotently.
 
 The cache is rebuildable operational state, not source code. The spec files with their accumulated audit trails are the persistent record.
 
 ## 6. Verify
 
-```bash
-gate status --root .
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/pipeline_root"}
 # Should show the same backlog represented by files in todo/ and done/
 ```
 
@@ -71,7 +71,7 @@ Tell the PM orchestrator (or load the dispatch-pipeline skill) and provide:
 - Slot limit (default: 8)
 - Agent types to use (SWE, red-team, blue-team)
 
-The PM will use `gate` and start filling slots.
+The PM will use `maenifold.gate` through `GatewayExecute` and start filling slots.
 
 ## Spec File Format
 

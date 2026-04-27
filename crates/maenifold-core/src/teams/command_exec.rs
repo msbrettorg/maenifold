@@ -119,7 +119,7 @@ async fn format_dispatches(store: &Arc<Mutex<DispatchStore>>, filter: DispatchFi
 
     let mut out = format!("**{title} (showing up to 10):**\n");
     for (i, r) in records.iter().enumerate() {
-        let prompt = if r.prompt.len() > 80 { &r.prompt[..80] } else { &r.prompt };
+        let prompt: String = r.prompt.chars().take(80).collect();
         out.push_str(&format!(
             "\n{}. `{}` [{:?}] {} — {}",
             i + 1,

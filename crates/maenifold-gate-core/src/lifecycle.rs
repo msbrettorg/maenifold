@@ -90,6 +90,45 @@ impl GateLifecycle {
     pub fn sync(args: SyncArgs) -> Result<Value, GateError> {
         let root = canonical_root(&args.context.root)?;
         let _lock = GateProjectLock::acquire_exclusive(&root)?;
+        let gate_dir = root.join(".gate");
+        if !gate_dir.exists() {
+            std::fs::create_dir_all(&gate_dir).map_err(|e| {
+                GateError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("failed to create .gate/: {e}"),
+                ))
+            })?;
+        }
+
+        let gitignore_path = root.join(".gitignore");
+        let needs_entry = if gitignore_path.exists() {
+            let content = std::fs::read_to_string(&gitignore_path).unwrap_or_default();
+            !content
+                .lines()
+                .any(|line| line.trim() == ".gate/" || line.trim() == ".gate")
+        } else {
+            true
+        };
+        if needs_entry {
+            use std::io::Write;
+
+            let mut file = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&gitignore_path)
+                .map_err(|e| {
+                    GateError::Io(std::io::Error::new(
+                        e.kind(),
+                        format!("failed to open .gitignore: {e}"),
+                    ))
+                })?;
+            writeln!(file, "\n.gate/").map_err(|e| {
+                GateError::Io(std::io::Error::new(
+                    e.kind(),
+                    format!("failed to write .gitignore: {e}"),
+                ))
+            })?;
+        }
         Ok(json!({
             "root": root,
             "pipeline": args.context.requested_pipeline_name,

@@ -100,7 +100,7 @@ export function getPipelineAgentCapabilityBadges(
   probe: AgentProbeResult | undefined,
 ): string[] {
   if (!probe) return [];
-  if (probe.error) return ['⚠ probe failed'];
+  if (probe.error) return ['⚠ needs attention'];
   return [
     ...probe.modes,
     ...(probe.models.length

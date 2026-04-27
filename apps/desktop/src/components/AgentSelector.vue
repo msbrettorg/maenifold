@@ -83,7 +83,7 @@ function formatAgentOptionLabel(agentName: string): string {
   const probe = getProbe(agentName);
   if (!probe) return `${agentName}${activeSuffix}`;
   if (probe.state === 'offline') return `${agentName} — offline${activeSuffix}`;
-  if (probe.error) return `${agentName} — probe failed${activeSuffix}`;
+  if (probe.error) return `${agentName} — needs attention${activeSuffix}`;
   return `${agentName}${activeSuffix}`;
 }
 </script>

@@ -150,7 +150,7 @@ const statusLabel = computed(() => {
   if (props.loading && !props.probe) return 'Probing';
   if (!props.probe) return 'Pending';
   if (props.probe.state === 'ready') return 'Ready';
-  return props.probe.state === 'offline' ? 'Offline' : 'Probe failed';
+  return props.probe.state === 'offline' ? 'Offline' : 'Needs attention';
 });
 
 const statusMessage = computed(() => {
@@ -172,7 +172,7 @@ const statusMessage = computed(() => {
     return `Live capability discovery is unavailable for ${props.agentName}. Cached options stay visible when present, and Refresh retries MCP discovery.`;
   }
 
-  return 'Agent returned an unexpected capability payload. Retry or inspect the agent before relying on dynamic overrides.';
+  return `Capability metadata for ${props.agentName} could not be interpreted. Verify the agent command in Settings > Agents, then Refresh. Technical detail below identifies what the probe returned.`;
 });
 
 const technicalDetail = computed(() => {

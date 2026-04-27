@@ -12,6 +12,7 @@
 //! `reply.rs::reply_url` (`urlencoding::encode`); the transitively-available
 //! `percent_encoding` crate is intentionally avoided to keep `Cargo.toml`
 //! untouched.
+use std::collections::BTreeSet;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
@@ -37,7 +38,7 @@ pub(crate) async fn run_catchup_poll(
     conversations: &[String],
     msg_tx: &mpsc::Sender<EventMessage>,
 ) -> usize {
-    let conv_ids: Vec<&String> = conversations
+    let conv_ids: BTreeSet<&String> = conversations
         .iter()
         .filter(|c| c.as_str() != "*" && !c.is_empty())
         .collect();
@@ -155,7 +156,13 @@ async fn poll_one(
             message_id: message_id.to_string(),
             conversation_id: conv_id.to_string(),
             content: msg.get("content").and_then(Value::as_str).unwrap_or("").to_string(),
-            sender_mri: msg.get("from").and_then(Value::as_str).unwrap_or("").to_string(),
+            sender_mri: msg
+                .get("from")
+                .and_then(Value::as_str)
+                .filter(|s| !s.is_empty())
+                .or_else(|| msg.get("fromUserId").and_then(Value::as_str))
+                .unwrap_or("")
+                .to_string(),
             sender_name: msg.get("imdisplayname").and_then(Value::as_str).unwrap_or("").to_string(),
             compose_time: compose_time.to_string(),
             resource_type: "NewMessage".to_string(),

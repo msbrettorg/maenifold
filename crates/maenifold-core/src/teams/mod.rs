@@ -3,6 +3,7 @@ mod chunking;
 pub mod credential_store;
 mod dedup;
 mod dispatch;
+pub(crate) mod dispatch_store;
 pub(crate) mod dispatcher;
 mod handler;
 mod handler_helpers;

@@ -345,13 +345,41 @@ maenifold tool Workflow '{"workflowId":"..."}'
 
 ### MCP Configuration
 
+Copilot CLI should connect to the running maenifold HTTP daemon, not start a separate stdio process. The expected MCP endpoint is:
+
+- `http://127.0.0.1:8080/mcp`
+
+For Copilot CLI, configure the user-level MCP file at `~/.copilot/mcp-config.json` with a single maenifold HTTP server entry:
+
 ```json
 {
   "mcpServers": {
-    "maenifold": { "command": "maenifold", "args": ["--mcp"], "type": "stdio" }
+    "maenifold": {
+      "url": "http://127.0.0.1:8080/mcp",
+      "type": "http",
+      "tools": ["*"]
+    }
   }
 }
 ```
+
+Start the maenifold daemon through the repo-supported HTTP path (`maenifold --http`, default port `8080`) before opening Copilot. Then verify Copilot sees the server:
+
+```bash
+copilot mcp list
+```
+
+The output should include `maenifold (http)`. If it does not, the plugin `.mcp.json` alone was not loaded by Copilot; add the user-level entry above. Do not configure Gate as a second MCP server. Gate is exposed as native Gateway tools through maenifold on the same `http://127.0.0.1:8080/mcp` endpoint, under the `maenifold.gate` domain:
+
+- `gate_Status`
+- `gate_Pass`
+- `gate_Fail`
+- `gate_Append`
+- `gate_Sync`
+- `gate_History`
+- `gate_TaskBody`
+
+Separate Gate MCP endpoints or standalone Gate daemon examples are NO LONGER VALID — replaced by the `maenifold.gate` domain on port `8080`.
 
 ---
 

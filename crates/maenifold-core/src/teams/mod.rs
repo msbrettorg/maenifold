@@ -8,6 +8,7 @@ mod runtime;
 pub mod supervisor;
 pub mod token_provider;
 mod trouter;
+mod trouter_protocol;
 mod types;
 
 pub use auth::TokenInfo;
@@ -26,5 +27,6 @@ pub use token_provider::{
     TEAMS_CHATSVC_TOKEN_ENV, TEAMS_TOKEN_RESOURCE, TeamsTokenAcquisition, TeamsTokenError,
     TeamsTokenProvider, TeamsTokenSource,
 };
-pub use trouter::{TrouterClient, TrouterClientConfig, parse_frame};
+pub use trouter::{TrouterClient, TrouterClientConfig};
+pub use trouter_protocol::parse_frame;
 pub use types::{EventMessage, TrouterFrame};

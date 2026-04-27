@@ -8,7 +8,6 @@ use parking_lot::Mutex;
 use serde_json::json;
 use std::{
     collections::HashMap,
-    path::Path,
     time::{Duration, Instant},
 };
 
@@ -27,13 +26,7 @@ pub(super) static OAUTH_STATE: Lazy<Mutex<OAuthState>> =
 
 #[derive(Default)]
 pub(super) struct OAuthState {
-    pub clients: HashMap<String, RegisteredClient>,
     pub codes: HashMap<String, PendingAuthorizationCode>,
-}
-
-#[derive(Clone, Debug)]
-pub(super) struct RegisteredClient {
-    pub redirect_uris: Vec<String>,
 }
 
 #[derive(Clone, Debug)]
@@ -43,12 +36,6 @@ pub(super) struct PendingAuthorizationCode {
     pub code_challenge: String,
     pub resource: String,
     pub expires_at: Instant,
-}
-
-/// T-240.8: OAuth client registration is stateless, so there is no on-disk
-/// client registry to load at startup. Kept as a no-op for existing callers.
-pub fn load_clients_from_disk(_root: &Path) {
-    // No-op.
 }
 
 pub(crate) fn routes(state: crate::api::routes::ApiState) -> Router {

@@ -1,4 +1,4 @@
-use super::{OAUTH_STATE, RegisteredClient, is_loopback_redirect_uri, issued_at, oauth_error};
+use super::{is_loopback_redirect_uri, issued_at, oauth_error};
 use crate::api::routes::ApiState;
 use axum::{
     Json,
@@ -88,17 +88,9 @@ pub(super) async fn register_client(
         );
     }
 
-    // T-240.8: Stateless registration — always return a well-known client_id.
-    // Clients can register repeatedly and always get the same id back.
-    // Eliminates the persistence bug class entirely.
+    // T-240.8: Stateless registration — return the well-known client_id.
+    // No state stored; authorization validates loopback redirect + PKCE directly.
     let client_id = "maenifold-local-public".to_string();
-    // Store the redirect_uris for this registration in memory for authorize validation.
-    OAUTH_STATE.lock().clients.insert(
-        client_id.clone(),
-        RegisteredClient {
-            redirect_uris: redirect_uris.clone(),
-        },
-    );
 
     (
         StatusCode::CREATED,

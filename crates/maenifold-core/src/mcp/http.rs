@@ -135,7 +135,6 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
-        crate::api::oauth::load_clients_from_disk(&config.maenifold_root);
         let config_mutation = mutation_state(&config, ConfigManager::new(&config));
         let gateway_startup = build_gateway(&config, Some(config_mutation.clone())).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {

@@ -18,7 +18,6 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
-        crate::api::oauth::load_clients_from_disk(&config.maenifold_root);
         let api_state = ApiState::new(config.clone(), None);
 
         // FR-32-SEC: restrict CORS to localhost origins only.

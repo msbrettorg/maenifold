@@ -49,32 +49,17 @@ pub(super) async fn authorize(headers: HeaderMap, Query(query): Query<AuthorizeQ
 
     let mut state = OAUTH_STATE.lock();
     purge_expired_codes(&mut state);
-    // T-240.8: Accept any maenifold-local-* client_id. If not in memory
-    // (e.g., after daemon restart), auto-register with the provided redirect_uri.
-    if !client_id.starts_with("maenifold-local-") {
+    // T-240.8: Truly stateless — accept exactly the well-known public client_id.
+    // No clients map lookup needed. Loopback redirect and PKCE are validated above/below.
+    if client_id != "maenifold-local-public" {
         return oauth_error_redirect_or_json(
             &query,
             "unauthorized_client",
-            "client_id must start with 'maenifold-local-'",
+            "client_id must be 'maenifold-local-public'",
         );
     }
-    if !state.clients.contains_key(client_id) {
-        // Auto-register: daemon restarted but client still has old client_id.
-        state.clients.insert(
-            client_id.to_owned(),
-            super::RegisteredClient {
-                redirect_uris: vec![redirect_uri.to_owned()],
-            },
-        );
-    }
-    let client = state.clients.get(client_id).unwrap();
-    if !client.redirect_uris.iter().any(|uri| uri == redirect_uri) {
-        return oauth_error(
-            StatusCode::BAD_REQUEST,
-            "invalid_redirect_uri",
-            "redirect_uri was not registered for this client",
-        );
-    }
+    // Redirect URI is already validated as loopback above (lines 42-48).
+    // No registered redirect_uris check — any loopback URI is accepted for the public client.
     let Some(code_challenge) = query
         .code_challenge
         .as_deref()

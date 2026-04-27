@@ -79,7 +79,7 @@ pub(super) async fn build_gateway(
                 });
             }
             match tool_registry_tools() {
-                Ok(native_tools) => match build_consolidated_tools(pool.all_gateway_tools(), 4) {
+                Ok(native_tools) => match build_consolidated_tools(pool.all_gateway_tools()) {
                     Ok((consolidated_tools, passthrough_tools)) => {
                         match ToolRoutingRegistry::build(&native_tools, pool.as_ref()) {
                             Ok(registry) => {

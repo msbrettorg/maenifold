@@ -157,9 +157,6 @@ pub struct PipelineSequentialThinkingNodeSchema {
     pub topic: String,
     /// Thought count for thinking nodes
     pub total_thoughts: u32,
-    /// Analysis type for thinking nodes
-    #[serde(default)]
-    pub analysis_type: Option<String>,
     /// ACP agent for sequential thinking nodes
     pub agent: String,
     /// Optional per-node adopt configuration

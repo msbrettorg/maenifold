@@ -231,7 +231,7 @@ These require explicit confirmation:
 
 - deletion
 - mutation of knowledge
-- gate pass or fail actions
+- `maenifold.gate` pass or fail actions
 - cancelling runs
 - workflow edits with lasting effect
 
@@ -283,7 +283,7 @@ Expose top-level app commands for navigation, selection, focus, and panel contro
 
 ### Phase 3: MCP-integrated operator
 
-Let the shell invoke existing domain capabilities such as memory search, graph context, gate status, pipeline actions, and workflow discovery.
+Let the shell invoke existing domain capabilities such as memory search, graph context, `maenifold.gate` status, pipeline actions, and workflow discovery.
 
 ### Phase 4: Adaptive intent engine
 

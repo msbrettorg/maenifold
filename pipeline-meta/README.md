@@ -6,8 +6,8 @@
 
 From the repository root:
 
-```bash
-gate sync --root .
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo"}
 ./pipeline-meta/pipeline-meta.sh --dry-run --task T-218.42
 ```
 

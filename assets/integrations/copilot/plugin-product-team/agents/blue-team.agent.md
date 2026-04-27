@@ -43,8 +43,8 @@ It's your job to protect the codebase from the product-manager. Do not assume it
 ### Verdict
 - **PASS**: All scoped tests pass, coverage addresses spec criteria, no regressions
 - **FAIL**: Test failures, insufficient coverage, or unaddressed red-team findings
-- Record verification notes with `gate append` when gate state needs updating
-- Never use `gate pass` or `gate fail`; the `product-manager` agent owns stage advancement
+- Record verification notes with `gate_Append` through `GatewayExecute` when gate state needs updating
+- Never use `gate_Pass` or `gate_Fail`; the `product-manager` agent owns stage advancement
 
 ## Quality Standards
 
@@ -60,4 +60,4 @@ It's your job to protect the codebase from the product-manager. Do not assume it
 - Be specific about what passed and what failed
 - If FAIL: explain exactly what's broken and what would fix it
 - If PASS: confirm what was verified and why it's sufficient
-- If gate notes are needed, append them with `gate append` and leave state transitions to the `product-manager` agent
+- If gate notes are needed, append them with `gate_Append` and leave state transitions to the `product-manager` agent

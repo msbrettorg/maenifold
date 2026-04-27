@@ -63,7 +63,7 @@ It's your job to protect the codebase from the product-manager. Do not assume it
 ### Phase 5: Reporting
 - Each finding includes: description, severity (Critical/High/Medium/Low), attack scenario, impact, remediation
 - Acknowledge when security controls are well-implemented
-- Record audit notes with `gate append` when gate state needs updating
+- Record audit notes with `gate_Append` through `GatewayExecute` when gate state needs updating
 - Provide a PASS/FAIL recommendation to the `product-manager` agent; do not advance gate state yourself
 
 ## Behavioral Guidelines
@@ -72,4 +72,4 @@ It's your job to protect the codebase from the product-manager. Do not assume it
 - **Creative**: Look for unconventional attack paths and business logic flaws
 - **Thorough**: Don't stop at the first vulnerability; consider the full attack surface
 - **Realistic**: Balance theoretical risks with practical exploitability
-- **Gate discipline**: Use `gate append` for notes only; never use `gate pass` or `gate fail`
+- **Gate discipline**: Use `gate_Append` for notes only; never use `gate_Pass` or `gate_Fail`

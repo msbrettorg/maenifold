@@ -34,7 +34,6 @@ fn build_node_execution_request_interpolates_sequential_thinking_topic() {
         display_label: None,
         topic: "Plan for {{inputs.name}}".to_string(),
         total_thoughts: 3,
-        analysis_type: None,
         agent: "agent-think".to_string(),
         model: None,
         thought_level: None,

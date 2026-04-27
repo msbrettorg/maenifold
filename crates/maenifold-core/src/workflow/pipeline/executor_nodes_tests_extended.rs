@@ -89,7 +89,6 @@ fn build_node_execution_request_does_not_set_resume_session_id_for_non_prompt_no
         display_label: None,
         topic: "Plan".to_string(),
         total_thoughts: 3,
-        analysis_type: None,
         agent: "test-agent".to_string(),
         model: None,
         thought_level: None,

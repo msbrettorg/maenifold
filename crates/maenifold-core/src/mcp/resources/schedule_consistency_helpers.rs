@@ -101,7 +101,7 @@ fn assert_schema_difference_documented(tool_task: &Value, resource_task: &Value)
     assert_eq!(tool_task["description"], resource_task["name"]);
     assert!(tool_task.get("name").is_none());
     assert!(resource_task.get("description").is_none());
-    for raw_only in ["workdir", "timeout_seconds", "skip_if_running"] {
+    for raw_only in ["workdir", "timeout_seconds"] {
         assert!(
             tool_task.get(raw_only).is_none(),
             "tool task_value intentionally omits raw ScheduledTask field '{raw_only}'"

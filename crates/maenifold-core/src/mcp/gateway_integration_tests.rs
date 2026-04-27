@@ -4,8 +4,6 @@ use rmcp::model::Tool;
 use serde_json::{Map, Value, json};
 use std::sync::Arc;
 
-const MIN_TOOLS_FOR_CONSOLIDATION: usize = 4;
-
 fn tool(name: &str, description: &str, schema_fields: &[&str]) -> Tool {
     let properties: Map<String, Value> = schema_fields
         .iter()
@@ -56,10 +54,10 @@ fn billing_gateway_tools() -> Vec<Tool> {
 }
 
 fn build_billing_gateway() -> (ConsolidatedServerTool, Vec<Tool>) {
-    let (mut consolidated, passthrough) = build_consolidated_tools(
-        vec![("Billing Gateway".to_string(), billing_gateway_tools())],
-        MIN_TOOLS_FOR_CONSOLIDATION,
-    )
+    let (mut consolidated, passthrough) = build_consolidated_tools(vec![(
+        "Billing Gateway".to_string(),
+        billing_gateway_tools(),
+    )])
     .expect("gateway should consolidate");
     let server = consolidated.pop().expect("expected one facade");
     (server, passthrough)
@@ -162,7 +160,7 @@ fn unsupported_schemas_skip_local_validation() {
         Arc::new(schema.as_object().cloned().unwrap_or_default()),
     );
     let (mut consolidated, _) =
-        build_consolidated_tools(vec![("Loose Gateway".to_string(), vec![tool; 4])], 4)
+        build_consolidated_tools(vec![("Loose Gateway".to_string(), vec![tool; 4])])
             .expect("gateway should consolidate");
     let result = dispatch_facade_call(
         &consolidated.remove(0),

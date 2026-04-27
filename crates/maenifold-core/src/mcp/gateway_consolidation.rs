@@ -49,13 +49,7 @@ pub(super) struct GatewayToolCounts {
 
 pub fn build_consolidated_tools(
     gateway_sources: Vec<(String, Vec<Tool>)>,
-    min_tools_for_consolidation: usize,
 ) -> Result<(Vec<ConsolidatedServerTool>, Vec<Tool>)> {
-    assert!(
-        min_tools_for_consolidation >= 2,
-        "min_tools_for_consolidation must be at least 2"
-    );
-
     let mut consolidated = Vec::new();
     let mut passthrough = Vec::new();
 

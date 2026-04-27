@@ -20,7 +20,6 @@ fn pipeline_nodes_json_keeps_local_session_id_and_surfaces_provenance_links() {
                 display_label: Some("Deep Reasoning".to_string()),
                 topic: "Topic".to_string(),
                 total_thoughts: 3,
-                analysis_type: None,
                 agent: "agent-think".to_string(),
                 model: None,
                 thought_level: None,

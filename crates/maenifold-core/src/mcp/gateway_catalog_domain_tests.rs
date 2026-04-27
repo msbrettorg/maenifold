@@ -166,7 +166,7 @@ fn gate_upstream_safety_uses_first_party_contract_when_named_gate() {
 async fn gate_upstream_catalog_entries_are_annotated_when_available() {
     let gate_tools = vec![tool("status"), tool("append"), tool("cancel")];
     let (consolidated, passthrough) =
-        build_consolidated_tools(vec![("gate".to_string(), gate_tools)], 2).expect("gate catalog");
+        build_consolidated_tools(vec![("gate".to_string(), gate_tools)]).expect("gate catalog");
     let pool = StdioPool::start(Vec::new()).await.expect("empty pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
     let catalog = GatewayCatalog::build(&consolidated, &passthrough, &routing).expect("catalog");

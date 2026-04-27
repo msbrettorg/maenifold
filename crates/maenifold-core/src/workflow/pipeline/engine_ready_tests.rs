@@ -61,7 +61,6 @@ fn make_thinking_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         model: None,
-        analysis_type: None,
         retry_policy: None,
     }
 }

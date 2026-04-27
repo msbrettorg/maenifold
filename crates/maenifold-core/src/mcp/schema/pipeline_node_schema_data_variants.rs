@@ -38,10 +38,6 @@ pub(super) fn sequential_thinking_variant_schema() -> Value {
                         "minimum": 0,
                         "description": "Thought count for thinking nodes"
                     },
-                    "analysisType": {
-                        "type": "string",
-                        "description": "Analysis type for thinking nodes"
-                    },
                     "agent": {
                         "type": "string",
                         "description": "ACP agent for sequential thinking nodes"

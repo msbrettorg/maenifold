@@ -9,7 +9,6 @@ fn make_node(id: &str) -> PipelineNode {
         display_label: None,
         topic: "topic".to_string(),
         total_thoughts: 1,
-        analysis_type: None,
         agent: "agent".to_string(),
         model: None,
         thought_level: None,

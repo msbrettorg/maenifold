@@ -6,7 +6,7 @@ use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy, SessionRef
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct PipelineNodeWire {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     kind: Option<String>,
@@ -59,8 +59,6 @@ pub(super) struct PipelineNodeWire {
         skip_serializing_if = "is_default_total_thoughts"
     )]
     total_thoughts: u32,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    analysis_type: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     tool_name: Option<String>,
     #[serde(rename = "toolArgs", skip_serializing_if = "Option::is_none")]
@@ -185,7 +183,6 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 display_label: wire.display_label,
                 topic: required(wire.topic, "topic")?,
                 total_thoughts: wire.total_thoughts,
-                analysis_type: wire.analysis_type,
                 agent: required(wire.agent, "agent")?,
                 model: wire.model,
                 thought_level: wire.thought_level,

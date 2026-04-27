@@ -46,7 +46,6 @@ Parameters explained:
 - branchId: Identifier for the current branch (if any)
 - needsMoreThoughts: If reaching end but realizing more thoughts needed
 - sessionId: Continue an existing session; omit to start a new one
-- analysisType: Optional annotation (bug, architecture, retrospective, complex)
 - parentWorkflowId: Optional; only on thought 1; links to an active workflow and creates a [[workflow/{id}]] back-link
 - conclusion: Conclude this session with a structured ConfessionReport using this format:
   ```

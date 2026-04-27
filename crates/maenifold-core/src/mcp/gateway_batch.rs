@@ -114,7 +114,6 @@ fn batch_item(item: BatchItemParams) -> BatchItem {
         domain: item.domain,
         command: item.command,
         parameters: item.parameters,
-        idempotency_key: item.idempotency_key,
     }
 }
 
@@ -171,9 +170,6 @@ async fn execute_item(
         "parameters".to_string(),
         Value::Object(item.parameters.clone()),
     );
-    if let Some(key) = &item.idempotency_key {
-        args.insert("idempotencyKey".to_string(), Value::String(key.clone()));
-    }
     state.handle_gateway_execute(Value::Object(args)).await
 }
 
@@ -186,7 +182,6 @@ fn result_item(
     BatchItemResult {
         domain: item.domain,
         command: item.command,
-        idempotency_key: item.idempotency_key,
         status: if success { "completed" } else { "failed" }.to_string(),
         success,
         result: success.then_some(result),
@@ -198,7 +193,6 @@ fn skipped_item(item: BatchItem) -> BatchItemResult {
     BatchItemResult {
         domain: item.domain,
         command: item.command,
-        idempotency_key: item.idempotency_key,
         status: "skipped".to_string(),
         success: false,
         result: None,

@@ -38,8 +38,7 @@ pub(crate) async fn handle_resolved_intent(
             .handle_gateway_execute(json!({
                 "domain": candidate.domain,
                 "command": candidate.command,
-                "parameters": candidate.parameters_draft,
-                "idempotencyKey": null
+                "parameters": candidate.parameters_draft
             }))
             .await;
     }

@@ -1,6 +1,6 @@
 # Gate UML Spec
 
-This document is the authoritative implementation spec for `gate`.
+This document is the authoritative implementation spec for the native `maenifold.gate` Gateway domain.
 
 ## Authority
 
@@ -19,18 +19,16 @@ This document is the authoritative implementation spec for `gate`.
 ## Scope
 
 - Crate: `crates/maenifold-gate`
-- Binary: `gate`
-- Command surface:
-  - `status`
-  - `append`
-  - `history`
-  - `pass`
-  - `fail`
-  - `sync`
-  - `ui`
-- Service modes:
-  - `--mcp` for MCP over stdio
-  - `--http` for MCP over streamable HTTP
+- Host surface: native Gateway domain `maenifold.gate`, served by the existing `maenifold --http` daemon.
+- Gateway command surface:
+  - `gate_Status`
+  - `gate_Append`
+  - `gate_History`
+  - `gate_Pass`
+  - `gate_Fail`
+  - `gate_Sync`
+  - `gate_TaskBody`
+- Access pattern: call `GatewayExecute` with `domain="maenifold.gate"`, one of the command names above, and parameters such as `{root: "/path/to/repo"}`.
 - Shipped built-in processes:
   - `sdd`
   - `tdd`
@@ -40,7 +38,7 @@ This document is the authoritative implementation spec for `gate`.
 ## Architectural Rules
 
 - `main.rs` is entrypoint and mode dispatch only
-- CLI parsing must be isolated from command execution
+- Gateway request parsing must be isolated from command execution
 - Transition logic must exist only in `state_machine.rs`
 - Gate JSON validation must exist only in `gate_definition.rs`
 - Gate asset resolution and bootstrap must exist only in `gate_catalog.rs`
@@ -53,13 +51,13 @@ This document is the authoritative implementation spec for `gate`.
 - All reusable command paths must coordinate through `.gate/gate.lock` using OS-level advisory locks:
   - read-only operations (`status`, `history`, `task_body`) take a shared lock
   - mutating/cache-refresh operations (`append`, `pass`, `fail`, `cancel`, `sync`) take an exclusive lock
-  - CLI, MCP stdio, MCP HTTP, and file-watcher reconciliation must share the same lock file
+  - Gateway commands, local UI paths, and file-watcher reconciliation must share the same lock file
 - Per-task lock files under `.gate/locks/` may additionally serialize same-task mutators, but they do not replace the project-level lock
 - Final archive moves must use same-filesystem `rename` from `todo/` to `done/` and fsync the containing directories after the rename
 - `sync --rebuild` must recover a task left in `todo/` with a terminal stage record by moving it to `done/` before rebuilding `gate.db`
-- Command business logic must be reusable by CLI and MCP transports
-- MCP tool execution must call the same business logic as CLI commands
-- Tray/runtime code must not duplicate gate command logic
+- Command business logic must be reusable by the native Gateway domain and UI consumers
+- Gateway tool execution must call the same business logic as local UI paths
+- Runtime host code must not duplicate gate command logic
 - Every task file must bind itself to a specific pipeline name
 - Built-in process definitions use explicit state-machine JSON with `schemaVersion`, `id`, `name`, `initial`, `states`, `on`, and `terminal`
 - There is no backward compatibility for legacy built-in process JSON
@@ -80,31 +78,25 @@ This document is the authoritative implementation spec for `gate`.
   - `gsd`
   - `lightweight`
 
-## Service Runtime Rules
+## Gateway Runtime Rules
 
-- `--mcp` and `--http` are mutually exclusive
-- `--port` is only valid with `--http`
-- MCP stdio and MCP HTTP must expose exactly five tools:
-  - `status`
-  - `append`
-  - `pass`
-  - `fail`
-  - `sync`
-- HTTP transport must serve MCP at `/mcp`
-- HTTP transport must bind localhost only
-- Each running MCP instance must create its own tray icon on macOS
-- Tray tooltip must identify the instance mode:
-  - `gate MCP stdio`
-  - `gate MCP :<port>`
-- `--mcp` runs MCP over stdio on a background runtime thread while the tray event loop remains on the main thread
-- `--http` runs MCP over HTTP on a background runtime thread while the tray event loop remains on the main thread
-- On non-macOS platforms, MCP modes may run headless without tray integration
-- Open-at-login support is a tray action backed by a macOS LaunchAgent plist
-- Open-at-login applies to HTTP mode only
-- The LaunchAgent service label must be `com.ma-collective.gate`
-- Long-lived tray/server runtimes must host the debounced file watcher that reconciles external file mutations into `gate.db`
-- `gate ui` launches the native task board window
-- The tray menu "Open UI" item spawns `gate ui --root <current_root>` as a subprocess
+- Gate is exposed as the native Gateway domain `maenifold.gate`; it is not a standalone MCP server.
+- The existing `maenifold --http` daemon hosts Gateway execution over the maenifold HTTP MCP endpoint, normally on port `8080`.
+- Gateway access uses `GatewayExecute` with:
+  - `domain="maenifold.gate"`
+  - `command` set to one of the native command names
+  - `parameters` containing the repository `root` and command-specific arguments
+- The Gateway domain must expose exactly these commands:
+  - `gate_Status`
+  - `gate_Sync`
+  - `gate_Append`
+  - `gate_Pass`
+  - `gate_Fail`
+  - `gate_History`
+  - `gate_TaskBody`
+- The Gateway domain runs in-process with maenifold and must not require tray icons, per-instance tooltips, LaunchAgent setup, or an additional service process.
+- Long-lived maenifold runtimes host the debounced file watcher that reconciles external file mutations into `gate.db`.
+- Native UI surfaces call the same gate command service used by `maenifold.gate`.
 
 ## JSON Schema
 
@@ -480,13 +472,12 @@ If implementation requires a new file, this spec must be updated first.
 
 ### `main.rs`
 
-- Program entrypoint only
-- Dispatch tray-enabled modes on the main thread
+- Domain entrypoint/registration only
+- No standalone transport or tray lifecycle logic
 
 ### `cli.rs`
 
-- `clap` parsing only
-- CLI mode classification only
+- Deprecated compatibility parsing only, if present
 - No business logic
 
 ### `error.rs`
@@ -512,7 +503,7 @@ If implementation requires a new file, this spec must be updated first.
 ### `gate_tool_service.rs`
 
 - Own all reusable gate command business logic
-- Return structured results consumable by CLI and MCP
+- Return structured results consumable by the native Gateway domain and UI paths
 - Never print directly
 
 ### `json_output.rs`
@@ -521,32 +512,29 @@ If implementation requires a new file, this spec must be updated first.
 
 ### `mcp/mod.rs`
 
-- MCP stdio lifecycle
-- MCP tool dispatch
-- MCP list-tools surface
+- Native Gateway domain adapter for `maenifold.gate`
+- Gateway command dispatch
+- Gateway command metadata surface
 
 ### `mcp/http.rs`
 
-- Streamable HTTP MCP service and router
-- Localhost-only HTTP server bootstrap
+- No standalone HTTP service
+- Gate HTTP access is hosted by the maenifold Gateway runtime
 
 ### `mcp/schema.rs`
 
-- MCP tool definitions and input schemas
+- Gateway command definitions and input schemas
 - No transport logic
 
 ### `tray.rs`
 
-- Tray lifecycle
-- Main-thread event loop integration
-- Background runtime thread for MCP server execution
-- Per-instance tooltip rendering
+- Deprecated/removed standalone tray surface
+- Must not host gate command logic
 
 ### `tray_menu.rs`
 
-- Tray menu construction
-- Open-at-login toggle
-- macOS LaunchAgent plist generation and removal
+- Deprecated/removed standalone tray menu surface
+- Must not create open-at-login configuration for gate
 
 ### `file_watcher.rs`
 
@@ -562,7 +550,7 @@ If implementation requires a new file, this spec must be updated first.
 - Loads task rows once at window startup; no in-window auto-refresh loop exists
 - Table view with filtering, sorting, search
 - Task detail panel with markdown rendering
-- Launched as subprocess via tray menu or `gate ui`
+- Launched only by native maenifold UI integration when present
 
 ### `task_repository.rs`
 
@@ -633,23 +621,23 @@ If implementation requires a new file, this spec must be updated first.
 
 ### `status_command.rs`
 
-- CLI presentation for `status`
+- Presentation adapter for `gate_Status`
 
 ### `append_command.rs`
 
-- CLI presentation for `append`
+- Presentation adapter for `gate_Append`
 
 ### `pass_command.rs`
 
-- CLI presentation for `pass`
+- Presentation adapter for `gate_Pass`
 
 ### `fail_command.rs`
 
-- CLI presentation for `fail`
+- Presentation adapter for `gate_Fail`
 
 ### `sync_command.rs`
 
-- CLI presentation for `sync`
+- Presentation adapter for `gate_Sync`
 - Reconcile `gate.db` from authoritative files without deleting the live DB file or sidecars
 
 ## State Models
@@ -978,7 +966,7 @@ All implementation must be testable against these required named tests.
 - `gsd_e2e_retries_from_verify_and_completes`
 - `lightweight_e2e_retries_from_blue_and_completes`
 
-### CLI Flow Tests
+### Gateway Flow Tests
 
 - `status_reports_new_todo_task_as_pending`
 - `append_records_swe_work_without_advancing_state`
@@ -992,9 +980,13 @@ All implementation must be testable against these required named tests.
 - `task_file_requires_explicit_pipeline_binding`
 - `legacy_task_without_pipeline_binding_is_rejected`
 - `sync_rebuild_writes_db_under_dot_gate_and_updates_gitignore_idempotently`
-- `classify_mcp_mode_as_tray_enabled`
-- `classify_http_mode_as_tray_enabled`
-- `reject_port_without_http`
+- `gateway_execute_routes_gate_status`
+- `gateway_execute_routes_gate_append`
+- `gateway_execute_routes_gate_pass`
+- `gateway_execute_routes_gate_fail`
+- `gateway_execute_routes_gate_sync`
+- `gateway_execute_routes_gate_history`
+- `gateway_execute_routes_gate_task_body`
 
 ### Repository Behavior Tests
 
@@ -1003,17 +995,15 @@ All implementation must be testable against these required named tests.
 - `status_respects_frontmatter_done_state_for_repo_tasks`
 - `sync_rebuild_succeeds_for_shipped_repo_tasks`
 
-### MCP and Runtime Tests
+### Gateway and Runtime Tests
 
-- `mcp_tool_list_exposes_exactly_five_gate_tools`
-- `mcp_status_tool_returns_task_array`
-- `mcp_pass_tool_advances_bound_task`
-- `http_router_mounts_mcp_endpoint`
+- `gateway_domain_lists_gate_commands`
+- `gateway_status_command_returns_task_array`
+- `gateway_pass_command_advances_bound_task`
+- `gateway_history_command_returns_stage_history`
+- `gateway_task_body_command_returns_task_markdown`
+- `maenifold_http_hosts_gateway_execute`
 - `ui_args_target_requested_root`
-- `open_ui_is_enabled_for_stdio_and_http_modes`
-- `tray_tooltip_renders_stdio_mode`
-- `tray_tooltip_renders_http_port_mode`
-- `http_login_item_plist_contains_gate_service_label_and_port`
 
 ## Agent Contract
 
@@ -1050,10 +1040,7 @@ Implementation is not complete unless:
 - the new state-machine JSON schema is enforced
 - each shipped built-in process has an end-to-end completion test
 - fail and retry paths are exercised for each shipped process
-- MCP stdio mode serves the five gate tools
-- MCP HTTP mode serves the same five gate tools at `/mcp`
-- each running MCP instance creates a tray icon on macOS
-- the tray tooltip reflects `stdio` or the bound HTTP port
-- the macOS open-at-login action writes and removes the gate LaunchAgent plist
+- `maenifold.gate` serves the seven native Gateway commands through `GatewayExecute`
+- `maenifold --http` hosts the Gateway surface without requiring an additional gate service
 - named verification passes
-- a runnable binary is produced
+- the integrated maenifold Gateway surface is usable

@@ -53,9 +53,6 @@ pub struct SequentialThinkingParams {
     /// Whether more thoughts are needed than originally estimated
     #[serde(default)]
     pub needs_more_thoughts: bool,
-    /// Optional analysis type annotation such as bug or architecture
-    #[serde(default)]
-    pub analysis_type: Option<String>,
     /// Optional parent workflow session identifier
     #[serde(default)]
     pub parent_workflow_id: Option<String>,

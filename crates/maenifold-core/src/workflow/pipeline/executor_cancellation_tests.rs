@@ -66,7 +66,6 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 display_label: None,
                 topic: "Topic".to_string(),
                 total_thoughts: 2,
-                analysis_type: None,
                 agent: "agent-b".to_string(),
                 model: None,
                 thought_level: None,

@@ -180,7 +180,6 @@ impl GatewayState {
         let args: GatewayExecuteParams = serde_json::from_value(arguments)
             .map_err(|err| map_gateway_error("GatewayExecute", invalid_params(err)))?;
         let parameters = Value::Object(args.parameters);
-        let _idempotency_key = args.idempotency_key.as_deref();
         match self
             .catalog
             .resolve(&args.domain, &args.command)

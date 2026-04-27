@@ -247,7 +247,6 @@ fn render_frontmatter(frontmatter: &Frontmatter) -> Result<String> {
         "activeSubmachineType",
         "activeSubmachineSessionId",
         "activeSubmachineTarget",
-        "analysisType",
         "parent",
         "related",
         "first",

@@ -47,8 +47,8 @@ pub(crate) fn validate_session_state(
 
     if !input.cancel && input.thought_number > 0 && !input.session_id_provided {
         let message = format!(
-            "Session {} missing. Start with thoughtNumber=0.",
-            input.session_id
+            "Cannot start at thoughtNumber={} without an existing session. To start a new session, omit 'sessionId' and set thoughtNumber=0. Minimal retry: {{\"response\":\"...\",\"thoughtNumber\":0,\"totalThoughts\":1,\"nextThoughtNeeded\":true}}",
+            input.thought_number
         );
         return Ok((
             false,
@@ -154,8 +154,8 @@ pub(crate) fn validate_session_state(
     }
     if input.thought_number > 0 && !session_exists && !input.is_revision && !input.cancel {
         let message = format!(
-            "Session {} missing. Start with thoughtNumber=0.",
-            input.session_id
+            "Session '{}' not found. To continue, start with thoughtNumber=0 (same sessionId to create it, or omit sessionId for a new session). Minimal retry: {{\"sessionId\":\"{}\",\"response\":\"...\",\"thoughtNumber\":0,\"totalThoughts\":1,\"nextThoughtNeeded\":true}}",
+            input.session_id, input.session_id
         );
         return Ok((
             false,

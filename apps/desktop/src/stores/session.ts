@@ -347,6 +347,7 @@ export const useSessionStore = defineStore('session', () => {
     // Multi-session state
     sessions,
     activeSessionId,
+    activeSession,
 
     // State (global)
     savedSessions,

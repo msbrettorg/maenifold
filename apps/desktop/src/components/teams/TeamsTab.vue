@@ -8,7 +8,9 @@ const mcpResources = useMcpResources();
 const error = ref('');
 
 async function connectToTeamsSession(): Promise<void> {
-  if (sessionStore.currentSession) return;
+  // Only skip if there's already an active *Teams* session — an active Agents
+  // session must not block creating a Teams session, since they're scoped per tab.
+  if (sessionStore.activeSession?.source === 'teams') return;
 
   let agent = 'Codex';
   let cwd = '/Users/brett/maenifold/memory';
@@ -26,7 +28,7 @@ async function connectToTeamsSession(): Promise<void> {
   } catch { /* use defaults */ }
 
   try {
-    await sessionStore.createSession(agent, cwd);
+    await sessionStore.createSession(agent, cwd, {}, { source: 'teams' });
   } catch (e) {
     error.value = e instanceof Error ? e.message : String(e);
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, reactive, watch } from 'vue';
+import { computed, onMounted, reactive, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useOnboarding } from './composables/useOnboarding';
 import OnboardingWizard from './components/OnboardingWizard.vue';
@@ -106,6 +106,17 @@ function onOnboardingComplete(): void {
   // to ensure the gate flips after the wizard persists completion.
   checkFirstRun();
 }
+
+// Source-based scoping: each tab's ChatView only renders when the active
+// session was created from that tab. Prevents Teams sessions from leaking
+// into the Agents tab and vice versa.
+const activeSessionSource = computed(() => sessionStore.activeSession?.source ?? null);
+const showAgentsChat = computed(
+  () => isConnected.value && activeSessionSource.value === 'agents'
+);
+const showTeamsChat = computed(
+  () => isConnected.value && activeSessionSource.value === 'teams'
+);
 </script>
 
 <template>
@@ -156,7 +167,7 @@ function onOnboardingComplete(): void {
 
         <ChatView
           v-if="visitedTabs.has('agents')"
-          v-show="!showHome && activeTab === 'agents' && isConnected"
+          v-show="!showHome && activeTab === 'agents' && showAgentsChat"
           :key="sessionStore.activeSessionId ?? 'active-session'"
         />
 
@@ -175,7 +186,7 @@ function onOnboardingComplete(): void {
         <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">
           <TeamsTab />
           <ChatView
-            v-if="isConnected"
+            v-if="showTeamsChat"
             :key="sessionStore.activeSessionId ?? 'teams-session'"
           />
         </div>
@@ -190,7 +201,7 @@ function onOnboardingComplete(): void {
 
         <EmptyState
           v-if="visitedTabs.has('agents')"
-          v-show="!showHome && activeTab === 'agents' && !isConnected"
+          v-show="!showHome && activeTab === 'agents' && !showAgentsChat"
           :icon="MessageSquare"
           title="No active session"
           description="Select an agent and start a new session"

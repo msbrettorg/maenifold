@@ -26,10 +26,7 @@ fn visualize_schema_exposes_format_enum_for_tools_list() {
         .get("format")
         .and_then(serde_json::Value::as_object)
         .expect("format schema");
-    let values = format
-        .values()
-        .find_map(find_enum)
-        .expect("format enum");
+    let values = format.values().find_map(find_enum).expect("format enum");
     assert_eq!(
         values,
         &vec![serde_json::json!("mermaid"), serde_json::json!("graph")]

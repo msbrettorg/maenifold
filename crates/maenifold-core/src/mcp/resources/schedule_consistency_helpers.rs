@@ -3,10 +3,10 @@ use crate::acp_config::MaenifoldSettings;
 use crate::config::Config;
 use crate::schedule::{ScheduleStore, ScheduledTask};
 use crate::test_util::ConfigResetGuard;
-use crate::tools::{schedule as schedule_tool, ToolContext};
+use crate::tools::{ToolContext, schedule as schedule_tool};
 use crate::util::json::OutputFormat;
 use rmcp::model::ResourceContents;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::fs;
 use tempfile::TempDir;
 
@@ -195,7 +195,9 @@ pub(super) fn assert_logs_within_bounds(logs: &Value) {
     }
     assert!(total <= MAX_TOTAL_LOG_BYTES);
     assert!(largest_retained_log >= MAX_LOG_BYTES_PER_FILE - 1024);
-    assert!(entries
-        .iter()
-        .any(|entry| entry["content"].as_str() == Some(TRUNCATED)));
+    assert!(
+        entries
+            .iter()
+            .any(|entry| entry["content"].as_str() == Some(TRUNCATED))
+    );
 }

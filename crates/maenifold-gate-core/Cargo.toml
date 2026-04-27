@@ -4,12 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+chrono.workspace = true
+fd-lock.workspace = true
 indexmap = { version = "2", features = ["serde"] }
 regex.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 serde_yml.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+tempfile.workspace = true
 
 [lints]
 workspace = true

@@ -6,7 +6,9 @@ use serde_json::{Value, json};
 pub fn read_text_file(context: &ToolContext, payload: &Value) -> Result<String> {
     let path = required_string(payload, "path")?;
     if path.trim().is_empty() {
-        return Err(MaenifoldError::InvalidArgument("path must not be empty".into()));
+        return Err(MaenifoldError::InvalidArgument(
+            "path must not be empty".into(),
+        ));
     }
     let cwd = payload.get("cwd").and_then(Value::as_str);
     let resolved_path = resolve_requested_file_path(path, cwd)
@@ -14,7 +16,10 @@ pub fn read_text_file(context: &ToolContext, payload: &Value) -> Result<String> 
 
     let content = std::fs::read_to_string(&resolved_path).map_err(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
-            MaenifoldError::Message(format!("File not found: {}", resolved_path.to_string_lossy()))
+            MaenifoldError::Message(format!(
+                "File not found: {}",
+                resolved_path.to_string_lossy()
+            ))
         } else {
             MaenifoldError::Io(error)
         }

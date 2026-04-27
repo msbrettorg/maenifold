@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use serial_test::serial;
 use serde_json::json;
+use serial_test::serial;
 
 use crate::util::json::OutputFormat;
 

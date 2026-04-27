@@ -6,9 +6,17 @@ fn config_with_agent(name: &str) -> AgentsConfig {
     let mut agents = HashMap::new();
     agents.insert(
         name.to_string(),
-        AgentEntry { command: "/bin/echo".to_string(), env: HashMap::new(), mcp_servers: Vec::new() },
+        AgentEntry {
+            command: "/bin/echo".to_string(),
+            env: HashMap::new(),
+            mcp_servers: Vec::new(),
+        },
     );
-    AgentsConfig { mcp_servers: Vec::new(), agents, settings: None }
+    AgentsConfig {
+        mcp_servers: Vec::new(),
+        agents,
+        settings: None,
+    }
 }
 
 fn validation_error(settings: IntentResolverSettings) -> String {
@@ -57,10 +65,13 @@ fn explicit_gateway_settings_deserialize() {
 #[test]
 fn valid_enabled_resolver_passes_validation() {
     let s = IntentResolverSettings {
-        enabled: true, agent: Some("resolver".to_string()),
-        thought_level: Some("medium".to_string()), ..IntentResolverSettings::default()
+        enabled: true,
+        agent: Some("resolver".to_string()),
+        thought_level: Some("medium".to_string()),
+        ..IntentResolverSettings::default()
     };
-    validate_intent_resolver_config(&s, &config_with_agent("resolver")).expect("valid resolver should pass");
+    validate_intent_resolver_config(&s, &config_with_agent("resolver"))
+        .expect("valid resolver should pass");
 }
 
 #[test]
@@ -75,7 +86,8 @@ fn enabled_resolver_requires_known_non_empty_agent() {
     }
 
     let settings = IntentResolverSettings {
-        enabled: true, agent: Some("missing".to_string()),
+        enabled: true,
+        agent: Some("missing".to_string()),
         ..IntentResolverSettings::default()
     };
     assert!(validation_error(settings).contains("not configured or is not executable"));
@@ -83,13 +95,17 @@ fn enabled_resolver_requires_known_non_empty_agent() {
 
 #[test]
 fn rejects_invalid_numeric_and_thought_level_settings() {
-    let mut s = IntentResolverSettings { auto_execute_confidence_threshold: 1.1, ..IntentResolverSettings::default() };
+    let mut s = IntentResolverSettings {
+        auto_execute_confidence_threshold: 1.1,
+        ..IntentResolverSettings::default()
+    };
     assert!(validation_error(s.clone()).contains("between 0.0 and 1.0"));
 
     s.auto_execute_confidence_threshold = 0.9;
     s.thought_level = Some("none".to_string());
     assert_eq!(s.effective_thought_level(), None);
-    validate_intent_resolver_config(&s, &AgentsConfig::default()).expect("thoughtLevel none should validate");
+    validate_intent_resolver_config(&s, &AgentsConfig::default())
+        .expect("thoughtLevel none should validate");
 
     s.thought_level = Some("ultra".to_string());
     assert!(validation_error(s.clone()).contains("unsupported"));
@@ -105,31 +121,54 @@ fn rejects_invalid_numeric_and_thought_level_settings() {
 
 #[test]
 fn threshold_boundaries_validate() {
-    let mut s = IntentResolverSettings { auto_execute_confidence_threshold: -0.1, ..IntentResolverSettings::default() };
+    let mut s = IntentResolverSettings {
+        auto_execute_confidence_threshold: -0.1,
+        ..IntentResolverSettings::default()
+    };
     assert!(validation_error(s.clone()).contains("between 0.0 and 1.0"));
     s.auto_execute_confidence_threshold = 0.0;
-    validate_intent_resolver_config(&s, &AgentsConfig::default()).expect("0.0 threshold should validate");
+    validate_intent_resolver_config(&s, &AgentsConfig::default())
+        .expect("0.0 threshold should validate");
     s.auto_execute_confidence_threshold = 1.0;
-    validate_intent_resolver_config(&s, &AgentsConfig::default()).expect("1.0 threshold should validate");
+    validate_intent_resolver_config(&s, &AgentsConfig::default())
+        .expect("1.0 threshold should validate");
 }
 
 #[test]
 fn gateway_settings_roundtrip_uses_camel_case() {
-    let settings = GatewaySettings { intent_resolver: IntentResolverSettings {
-        enabled: true, agent: Some("resolver".to_string()), model: "gpt-5.4".to_string(),
-        thought_level: Some("low".to_string()), timeout_seconds: Some(5), max_candidates: Some(3),
-        auto_execute_read_safe: true, auto_execute_confidence_threshold: 0.5,
-        max_catalog_characters: 1234,
-        mcp_servers: vec![McpServerEntry::Http { name: "m".to_string(), url: "http://localhost".to_string() }],
-    } };
+    let settings = GatewaySettings {
+        intent_resolver: IntentResolverSettings {
+            enabled: true,
+            agent: Some("resolver".to_string()),
+            model: "gpt-5.4".to_string(),
+            thought_level: Some("low".to_string()),
+            timeout_seconds: Some(5),
+            max_candidates: Some(3),
+            auto_execute_read_safe: true,
+            auto_execute_confidence_threshold: 0.5,
+            max_catalog_characters: 1234,
+            mcp_servers: vec![McpServerEntry::Http {
+                name: "m".to_string(),
+                url: "http://localhost".to_string(),
+            }],
+        },
+    };
     let value = serde_json::to_value(&settings).expect("gateway settings should serialize");
     let resolver = &value["intentResolver"];
-    for key in ["thoughtLevel", "timeoutSeconds", "maxCandidates", "autoExecuteReadSafe",
-        "autoExecuteConfidenceThreshold", "maxCatalogCharacters", "mcpServers"] {
+    for key in [
+        "thoughtLevel",
+        "timeoutSeconds",
+        "maxCandidates",
+        "autoExecuteReadSafe",
+        "autoExecuteConfidenceThreshold",
+        "maxCatalogCharacters",
+        "mcpServers",
+    ] {
         assert!(resolver.get(key).is_some(), "missing {key}");
     }
     assert!(value.get("intentResolver").is_some());
-    let reparsed: GatewaySettings = serde_json::from_value(value).expect("gateway settings should deserialize");
+    let reparsed: GatewaySettings =
+        serde_json::from_value(value).expect("gateway settings should deserialize");
     assert_eq!(reparsed, settings);
 }
 
@@ -137,7 +176,8 @@ fn gateway_settings_roundtrip_uses_camel_case() {
 fn existing_configs_without_gateway_section_parse() {
     let cfg: AgentsConfig = serde_json::from_value(json!({
         "mcpServers": [], "agents": {}, "settings": {"logRotation": "hourly"}
-    })).expect("legacy config should deserialize");
+    }))
+    .expect("legacy config should deserialize");
     let settings = cfg.settings.expect("settings should be present");
     assert_eq!(settings.log_rotation, "hourly");
     assert!(!settings.gateway.intent_resolver.enabled);

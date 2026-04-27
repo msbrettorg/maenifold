@@ -11,8 +11,6 @@ use super::dispatch_prompt::build_prompt_dispatch_response;
 use super::dispatch_thinking::build_thinking_dispatch_response;
 use super::dispatch_tool::build_tool_dispatch_response;
 use super::dispatch_workflow::{activate_workflow_node_session, build_workflow_dispatch_response};
-use crate::markdown::file_exists;
-use crate::sessions::workflow_session_uri;
 use super::session_io::{
     NodeFile, derive_pipeline_node_states, frontmatter_value, persist_pipeline_state,
     read_pipeline_session, update_workflow_node_frontmatter,
@@ -23,6 +21,8 @@ use super::{
     NodeState, NodeStatus, PipelineDefinition, PipelineNode, compute_ready_set,
     workflow_id_for_node,
 };
+use crate::markdown::file_exists;
+use crate::sessions::workflow_session_uri;
 
 // T-45.7: RTM-337 / RTM-342 / RTM-343 / RTM-344
 // Dispatch computes the ready set, atomically claims eligible nodes (pending→active),
@@ -31,7 +31,8 @@ use super::{
 pub(super) fn dispatch_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
-    let mut node_states: HashMap<String, NodeState> = frontmatter_value(&frontmatter, "nodeStates")?;
+    let mut node_states: HashMap<String, NodeState> =
+        frontmatter_value(&frontmatter, "nodeStates")?;
     release_retrying_nodes(context, session_id, &definition, &mut node_states)?;
     let mut node_states = derive_pipeline_node_states(context, &node_states)?;
     let max_concurrency = frontmatter

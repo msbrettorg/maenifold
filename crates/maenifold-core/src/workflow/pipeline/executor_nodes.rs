@@ -179,9 +179,7 @@ pub(super) fn build_node_execution_request(
                     allowed_tools,
                     *max_turns,
                     *timeout,
-                    session_ref
-                        .as_ref()
-                        .map(|sr| sr.session_id.clone()),
+                    session_ref.as_ref().map(|sr| sr.session_id.clone()),
                 )?,
             }
         }

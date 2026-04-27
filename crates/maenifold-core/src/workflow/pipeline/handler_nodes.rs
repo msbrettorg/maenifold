@@ -34,8 +34,8 @@ pub(super) fn handle_node_operation(
     {
         let conclusion = payload.get("conclusion").and_then(Value::as_str);
         return update_pipeline_node_status(
-            context, session_id, node_id, status, conclusion, None, None, None, None, None,
-            None, None,
+            context, session_id, node_id, status, conclusion, None, None, None, None, None, None,
+            None,
         )
         .map(Some);
     }

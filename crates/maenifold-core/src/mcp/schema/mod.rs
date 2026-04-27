@@ -46,10 +46,10 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
         .or_else(|| pipeline_tools::tool(registry_name))
         .or_else(|| workflow_tools::tool(registry_name))
         .or_else(|| assumption_tools::tool(registry_name))
-            .or_else(|| files_tools::tool(registry_name))
-            .or_else(|| config_tools::tool(registry_name))
-            .or_else(|| discovery_tools::tool(registry_name))
-            .or_else(|| system_tools::tool(registry_name))
+        .or_else(|| files_tools::tool(registry_name))
+        .or_else(|| config_tools::tool(registry_name))
+        .or_else(|| discovery_tools::tool(registry_name))
+        .or_else(|| system_tools::tool(registry_name))
         .or_else(|| embedding_models_tools::tool(registry_name))
         .unwrap_or_else(|| {
             tracing::warn!("No schema mapping for tool {registry_name}, using generic schema");

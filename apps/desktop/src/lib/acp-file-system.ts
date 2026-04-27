@@ -4,53 +4,47 @@ import type {
   WriteTextFileRequest,
   WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
+import { assertAbsolutePath } from './acp-meta';
 
-function ensureBrowserFsAvailable() {
-  const browserWindow = window as Window & {
-    showSaveFilePicker?: unknown;
-    showOpenFilePicker?: unknown;
-  };
+type ElectronFileSystemApi = {
+  readTextFile: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
+  writeTextFile: (params: { path: string; content: string }) => Promise<Record<string, never>>;
+};
 
+function getElectronFileSystemApi(): ElectronFileSystemApi {
+  const api = typeof window === 'undefined' ? undefined : window.electronAPI;
   if (
-    typeof window === 'undefined' ||
-    !browserWindow.showSaveFilePicker ||
-    !browserWindow.showOpenFilePicker
+    !api ||
+    typeof api.readTextFile !== 'function' ||
+    typeof api.writeTextFile !== 'function'
   ) {
-    throw new Error('Browser file access is unavailable in this environment');
+    throw new Error('Electron ACP file access is unavailable in this environment');
   }
+  return {
+    readTextFile: api.readTextFile,
+    writeTextFile: api.writeTextFile,
+  };
 }
 
 export async function handleWriteTextFileRequest(
   params: WriteTextFileRequest,
 ): Promise<WriteTextFileResponse> {
-  ensureBrowserFsAvailable();
-  const picker = (window as Window & {
-    showSaveFilePicker?: unknown;
-  }).showSaveFilePicker as unknown as (options?: Record<string, unknown>) => Promise<{
-    createWritable: () => Promise<{ write: (content: string) => Promise<void>; close: () => Promise<void> }>;
-  }>;
-  const handle = await picker({
-    suggestedName: params.path?.split('/').pop() ?? 'untitled.txt',
+  assertAbsolutePath(params.path);
+  await getElectronFileSystemApi().writeTextFile({
+    path: params.path,
+    content: params.content,
   });
-  const writable = await handle.createWritable();
-  await writable.write(params.content);
-  await writable.close();
   return {};
 }
 
 export async function handleReadTextFileRequest(
-  _params: ReadTextFileRequest,
+  params: ReadTextFileRequest,
 ): Promise<ReadTextFileResponse> {
-  ensureBrowserFsAvailable();
-  const picker = (window as Window & {
-    showOpenFilePicker?: unknown;
-  }).showOpenFilePicker as unknown as () => Promise<Array<{
-    getFile: () => Promise<{ text: () => Promise<string> }>;
-  }>>;
-  const [handle] = await picker();
-  if (!handle) {
-    throw new Error('No file selected');
-  }
-  const file = await handle.getFile();
-  return { content: await file.text() };
+  assertAbsolutePath(params.path);
+  const request: { path: string; line?: number; limit?: number } = { path: params.path };
+  if (typeof params.line === 'number') request.line = params.line;
+  if (typeof params.limit === 'number') request.limit = params.limit;
+  return getElectronFileSystemApi().readTextFile({
+    ...request,
+  });
 }

@@ -92,7 +92,6 @@ fn expected_settings() -> MaenifoldSettings {
         },
         teams_monitor: TeamsMonitorConfig::default(),
         gateway: GatewaySettings::default(),
-        easter_eggs: EasterEggsSettings::default(),
         env_passthrough: Vec::new(),
     }
 }

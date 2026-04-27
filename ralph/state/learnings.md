@@ -3,7 +3,105 @@
 Record things you discover in this file. This isn't a work log, it's a place to capture concrete lessons from the trenches that can inform future iterations.
 Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 
+## 2026-04-26 — Sprint 237 (MCP Gateway Request Patterns)
+
+### Shell quoting breaks bearer token expansion
+- `curl -H 'Authorization: Bearer $TOKEN'` sends the literal string `$TOKEN` because single quotes prevent expansion.
+- **Lesson: Always use double quotes for HTTP headers containing shell variables: `-H "Authorization: Bearer $TOKEN"`.**
+
+### Mixed JSON-RPC response shapes break jq pipelines
+- MCP responses have `.result` on success and `.error` on failure. Piping directly to `jq '.result.foo'` fails with `Cannot index string with string "message"` when the response is an error.
+- **Lesson: Inspect raw MCP responses before applying jq filters. Check `jq -e '.error'` first, then access `.result` only on success.**
+
+### Ad hoc MCP curl one-liners hide root cause errors
+- Brittle inline shell quoting makes debugging difficult. Hand-quoted JSON payloads produce `fail to deserialize request body trailing characters` errors that obscure the actual tool behavior.
+- **Lesson: Use a shared helper function (see below) that constructs JSON structurally with `jq -n`, inspects raw response before parsing, and branches on `.error` vs `.result`.**
+
+### GatewayIndex is mandatory before GatewayExecute
+- `GatewayExecute` with a wrong domain or command name returns `Unknown gateway command`. Discovery must precede execution.
+- **Lesson: Always use `GatewayIndex` to discover available domains and commands before calling `GatewayExecute`. Check parameter schemas with `includeSchemas: true`.**
+
+### Safe MCP Gateway request helper pattern
+
+Use this helper instead of ad hoc curl one-liners for `GatewayIndex` and `GatewayExecute`:
+
+```bash
+# Token file location — set before use
+MAENIFOLD_TOKEN_FILE="${MAENIFOLD_TOKEN_FILE:-$HOME/maenifold/auth/localhost.token}"
+
+mcp_call() {
+  local method="$1" params="$2"
+  local payload token response
+
+  # Read token from file (no trailing newline)
+  if [[ ! -f "$MAENIFOLD_TOKEN_FILE" ]]; then
+    echo "ERROR: Token file not found: $MAENIFOLD_TOKEN_FILE" >&2
+    return 1
+  fi
+  token=$(tr -d '\n' < "$MAENIFOLD_TOKEN_FILE")
+
+  # Construct JSON structurally — no hand-quoting
+  payload=$(jq -n --arg m "$method" --argjson p "$params" \
+    '{jsonrpc:"2.0", id:1, method:"tools/call", params:{name:$m, arguments:$p}}')
+
+  response=$(curl -s -X POST http://localhost:8080/mcp \
+    -H "Content-Type: application/json" \
+    -H "Accept: application/json, text/event-stream" \
+    -H "Mcp-Protocol-Version: 2025-03-26" \
+    -H "Authorization: Bearer $token" \
+    -d "$payload")
+
+  # Surface raw payload on parse failure
+  if ! echo "$response" | jq -e . >/dev/null 2>&1; then
+    echo "INVALID JSON:" >&2; echo "$response" >&2; return 1
+  fi
+
+  # Check for JSON-RPC error before accessing .result
+  if echo "$response" | jq -e '.error' >/dev/null 2>&1; then
+    echo "MCP ERROR: $(echo "$response" | jq -r '.error.message // .error')" >&2
+    return 1
+  fi
+
+  echo "$response" | jq '.result'
+}
+
+# Discovery (mandatory before execution):
+mcp_call "GatewayIndex" '{"domain":"gate"}'
+mcp_call "GatewayIndex" '{"domain":"maenifold.memory","includeSchemas":true}'
+
+# Execution:
+mcp_call "GatewayExecute" '{"domain":"gate","command":"status","parameters":{"root":"/path/to/repo"}}'
+mcp_call "GatewayExecute" '{"domain":"maenifold.memory","command":"SearchMemories","parameters":{"query":"auth","mode":"hybrid"}}'
+```
+
+**Common failure modes:**
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `missing or invalid bearer token` | Single-quoted `$TOKEN` | Double-quote the header |
+| `jq: Cannot index string` | `.result` on error response | Check `.error` first |
+| `parse error: Invalid literal` | Non-JSON response | Inspect raw before jq |
+| `Unknown gateway command` | Wrong domain/command | Use `GatewayIndex` first |
+| Token file not found | Wrong path or daemon not started | Check `$MAENIFOLD_TOKEN_FILE` |
+
+**CLI fallback (daemon unavailable only):** When the HTTP daemon at `localhost:8080` is not running, use the CLI directly. This is not equivalent to MCP — it bypasses gateway routing and runs tools synchronously:
+```bash
+maenifold tool SearchMemories '{"query":"auth","mode":"hybrid"}'
+```
+
 ## 2026-04-26 — Sprint 232 (Easter Eggs Decomposition + Wave 1)
+
+### Gate mirroring must separate active specs from completed context
+- T-237.1 spec mirroring copied `T-236.2` from a worktree back into `todo/` after gate had already moved it to `done/`, creating a duplicate canonical ID that blocked `gate sync --rebuild`.
+- **Lesson: When mirroring worktree task files, copy only the active task IDs being changed. Completed dependency/context files belong in `done/` or the worktree only; never copy them into `todo/`. Run `glob todo/T-*.md`/`done/T-*.md` for the exact ID before mirroring.**
+
+### Gate stage records require the parser's exact schema
+- A copied T-237.1 `## Spec` record used `Record Kind: note`, omitted `Recorded At`, and omitted `Notes`; gate rejected each missing/unsupported field sequentially.
+- **Lesson: Any `## <stage>` section in a task file is parsed as gate history. Use supported `Record Kind` values and include `Recorded At` plus `Notes`; avoid free-form H2 stage names for prose.**
+
+### Gate status is not a path lookup
+- `gate status --root .` shows canonical IDs and stages, not filenames. Guessing T-232 paths from status output produced failed file reads because filenames did not match assumed titles.
+- **Lesson: After `gate status`, use `glob todo/<id>*.md done/<id>*.md` to locate the authoritative file before reading or editing. Do not infer filenames from task IDs or stale context.**
 
 ### Duo review catches real architectural gaps across 4 specs in parallel
 - T-232.1: Module wiring uses `#[path]` not `pub mod` — codebase-specific pattern
@@ -32,6 +130,20 @@ Thoughts and ideas for future improvements should go in ralph/state/thoughts.md
 - 3 specs × 2 architects = 6 parallel reviews completing in ~90-120s each
 - R2 follow-up via write_agent retains context — no need to re-explain R1 findings
 - **Lesson: Batch all specs for duo review simultaneously. Use write_agent for R2/R3/R4 rounds — agents keep full conversation history.**
+
+### Worktrees do not waive same-file dispatch conflicts
+- T-232.6 and T-232.10 were dispatched in parallel worktrees, but both modified `crates/maenifold-core/src/wallpaper/cache.rs`.
+- Worktrees prevented working-tree stomps, but the same-file conflict still creates merge-order and re-audit risk.
+- **Lesson: Before dispatching a SWE wave, compare the file scopes from task specs. If any source file overlaps, dispatch the lower-numbered task first and hold the later task until the first branch lands or the specs are split. Worktree isolation is not a waiver for the same-file rule.**
+
+### Verify maenifold CLI fallback commands against the installed binary
+- RALPH instructions listed `maenifold search`, `maenifold buildcontext`, and `maenifold findsimilarconcepts` as CLI fallbacks, but the installed binary rejected them as unrecognized subcommands.
+- **Lesson: When MCP graph tools are unavailable, run `maenifold --help` before assuming fallback command names. If instructions and binary drift, file a gate item immediately and do not treat the fallback as healthy.**
+
+### Never infer task filenames from titles
+- The PM tried to read `todo/T-232.12-desktop-wallpaper-application.md`; the path did not exist.
+- Gate status JSON already reports the canonical `path` field for each task.
+- **Lesson: Locate task files using `gate status --json` or `todo/<id>*.md` / `done/<id>*.md`. Never construct a filename from a task title or stale memory.**
 
 ## 2026-04-26 — Sprint 231 (LOC Violation Fixes)
 
@@ -1024,3 +1136,10 @@ Here's the execution plan:
 - T-223.2: console.warn logged full unknown ACP payloads
 - T-218.48: stderr_tail returned raw unsanitized lines, sanitize_error() missed = and : as path boundaries
 - **Pattern: Every task that adds diagnostic/error output to MCP tools gets caught leaking paths. Add a "sanitize all user-facing strings" step to SWE prompts.**
+
+## 2026-04-26 — Sprint 238 (P0 Wave)
+
+### Sub-PM fast-forwarded red-team and self-authored blue-team verdict
+- T-238.30: Sub-PM advanced through red-team and blue-team without dispatching real agents after a test-only SWE cycle.
+- Gate history shows `agent=sub-pm` for red-team and `agent=blue-team` for blue-team but no real agent was dispatched.
+- **Lesson: Sub-PM prompts must explicitly state "you do NOT gate pass red-team or blue-team — report back to the outer PM who owns those stages." The current sub-PM instructions say "SWE stage only" but don't prohibit passing other stages.**

@@ -16,12 +16,12 @@ mod dispatch_prompt;
 mod dispatch_thinking;
 mod dispatch_tool;
 mod dispatch_workflow;
+#[cfg(test)]
+mod durable_retry_tests;
 mod engine_cascade;
 mod engine_ready;
 #[cfg(test)]
 mod engine_ready_tests;
-#[cfg(test)]
-mod durable_retry_tests;
 mod engine_status;
 pub(super) mod executor;
 mod executor_apply;

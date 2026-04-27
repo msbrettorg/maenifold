@@ -261,16 +261,6 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::teams_monitor,
     },
     ToolDescriptor {
-        name: "WallpaperStatus",
-        aliases: &["wallpaperstatus"],
-        invoke: tools::wallpaper_status,
-    },
-    ToolDescriptor {
-        name: "WallpaperClearCache",
-        aliases: &["wallpaperclearcache", "wallpaper_clear_cache"],
-        invoke: tools::wallpaper_clear_cache,
-    },
-    ToolDescriptor {
         name: "Schedule",
         aliases: &["schedule", "scheduled_tasks"],
         invoke: tools::schedule,

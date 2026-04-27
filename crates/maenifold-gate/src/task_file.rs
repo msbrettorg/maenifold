@@ -10,6 +10,41 @@ use crate::error::GateError;
 use crate::task_metadata::{TaskMetadata, TaskMetadataParser};
 use crate::task_sections::{TaskSectionParser, TaskStageRecord};
 
+/// Validate a task ID to prevent path traversal attacks.
+///
+/// Rejects empty strings, path separators (`/`, `\`), parent directory
+/// references (`..`), current-directory references (`.`), and strings
+/// that look like absolute paths.
+pub fn validate_task_id(task_id: &str) -> Result<(), GateError> {
+    if task_id.is_empty() {
+        return Err(GateError::Cli(
+            "taskId must not be empty".to_string(),
+        ));
+    }
+    if task_id == "." || task_id == ".." {
+        return Err(GateError::Cli(format!(
+            "taskId '{task_id}' is a relative path component and is not allowed"
+        )));
+    }
+    if task_id.contains('/') || task_id.contains('\\') {
+        return Err(GateError::Cli(format!(
+            "taskId '{task_id}' contains path separators and is not allowed"
+        )));
+    }
+    if task_id.contains("..") {
+        return Err(GateError::Cli(format!(
+            "taskId '{task_id}' contains '..' and is not allowed"
+        )));
+    }
+    // Absolute path check (Unix and Windows)
+    if task_id.starts_with('/') || (task_id.len() >= 2 && task_id.as_bytes()[1] == b':') {
+        return Err(GateError::Cli(format!(
+            "taskId '{task_id}' looks like an absolute path and is not allowed"
+        )));
+    }
+    Ok(())
+}
+
 static TEMP_FILE_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 #[derive(Debug, Clone)]
@@ -60,6 +95,7 @@ pub struct GateProjectLock {
 
 impl TaskFileLock {
     pub fn acquire(root: &Path, task_id: &str) -> Result<Self, GateError> {
+        validate_task_id(task_id)?;
         let lock_path = lock_path(root, task_id);
         let lock_dir = lock_path
             .parent()
@@ -77,6 +113,30 @@ impl TaskFileLock {
 }
 
 impl GateProjectLock {
+    /// Acquire a shared lock for read operations. If the `.gate` directory
+    /// does not exist (i.e. no tasks have been written yet), returns `None`
+    /// instead of creating the directory — read operations should not
+    /// produce side-effects on the filesystem.
+    pub fn acquire_shared_if_exists(root: &Path) -> Result<Option<Self>, GateError> {
+        let lock_path = project_lock_path(root);
+        if !lock_path
+            .parent()
+            .map(|p| p.exists())
+            .unwrap_or(false)
+        {
+            return Ok(None);
+        }
+        if !lock_path.exists() {
+            return Ok(None);
+        }
+        let file = OpenOptions::new()
+            .read(true)
+            .open(&lock_path)?;
+        lock_shared(&file)?;
+        Ok(Some(Self { file }))
+    }
+
+    #[allow(dead_code)] // Retained for non-MCP callers that need guaranteed locking
     pub fn acquire_shared(root: &Path) -> Result<Self, GateError> {
         let file = open_project_lock(root)?;
         lock_shared(&file)?;
@@ -295,5 +355,42 @@ mod tests {
             })
             .collect::<Vec<_>>();
         assert_eq!(entries, vec!["T-90.24.md"]);
+    }
+
+    #[test]
+    fn validate_task_id_rejects_path_traversal() {
+        use super::validate_task_id;
+
+        // Empty
+        assert!(validate_task_id("").is_err());
+
+        // Dot components
+        assert!(validate_task_id(".").is_err());
+        assert!(validate_task_id("..").is_err());
+
+        // Path separators
+        assert!(validate_task_id("../etc/passwd").is_err());
+        assert!(validate_task_id("foo/bar").is_err());
+        assert!(validate_task_id("foo\\bar").is_err());
+
+        // Absolute paths
+        assert!(validate_task_id("/etc/passwd").is_err());
+        assert!(validate_task_id("C:Windows").is_err());
+
+        // Embedded ..
+        assert!(validate_task_id("T-1..2").is_err());
+
+        // Valid task IDs
+        assert!(validate_task_id("T-90.24").is_ok());
+        assert!(validate_task_id("T-237.1a2").is_ok());
+        assert!(validate_task_id("my-task").is_ok());
+    }
+
+    #[test]
+    fn lock_acquire_rejects_traversal_task_id() {
+        let root = tempdir().expect("create temp root");
+        let err = TaskFileLock::acquire(root.path(), "../escape")
+            .expect_err("traversal task id should fail");
+        assert!(err.to_string().contains("path separators"));
     }
 }

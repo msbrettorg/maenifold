@@ -1,6 +1,5 @@
 use super::domain_mapping::SafetyClass;
 use super::gateway_catalog::GatewayCatalog;
-use super::gateway_consolidation::ConsolidatedServerTool;
 use super::gateway_experiment::{
     ExperimentReport, LEVELS, LevelReport, score_fixture, write_report,
 };
@@ -9,10 +8,7 @@ use super::gateway_resolver_types::{ResolverCandidate, ResolverOutput};
 use super::stdio_pool::StdioPool;
 use super::tool_routing::ToolRoutingRegistry;
 use crate::acp_config::IntentResolverSettings;
-use rmcp::model::Tool;
 use serde_json::Map;
-use std::collections::HashMap;
-use std::sync::Arc;
 
 #[test]
 fn fixture_set_has_required_shape() {
@@ -96,6 +92,16 @@ fn report_writer_uses_sprint_output_directory() {
 }
 
 #[tokio::test]
+async fn experiment_catalog_uses_native_gate_without_standalone_server() {
+    let catalog = experiment_catalog().await;
+    let domains = catalog.domains();
+    assert!(domains.iter().any(|domain| domain.name == "maenifold.gate"));
+    assert!(!domains.iter().any(|domain| domain.name == "gate"));
+    assert!(catalog.commands("maenifold.gate").is_ok());
+    assert!(catalog.commands("gate").is_err());
+}
+
+#[tokio::test]
 #[ignore = "requires configured ACP resolver agent; run with --ignored --nocapture"]
 async fn live_reasoning_level_experiment_writes_report() {
     let root = std::env::var("MAENIFOLD_ROOT")
@@ -136,21 +142,7 @@ fn candidate(
 }
 
 async fn experiment_catalog() -> GatewayCatalog {
-    let consolidated = vec![ConsolidatedServerTool {
-        server_name: "gate".to_string(),
-        tool_catalog: ["status", "history", "task_body", "append", "sync"]
-            .iter()
-            .map(|name| {
-                Tool::new(
-                    (*name).to_string(),
-                    format!("gate {name}"),
-                    Arc::new(Map::new()),
-                )
-            })
-            .collect(),
-        tool_validators: HashMap::new(),
-    }];
     let pool = StdioPool::start(Vec::new()).await.expect("pool");
     let routing = ToolRoutingRegistry::build(&[], &pool).expect("routing");
-    GatewayCatalog::build(&consolidated, &[], &routing).expect("catalog builds")
+    GatewayCatalog::build(&[], &[], &routing).expect("catalog builds")
 }

@@ -41,12 +41,14 @@ fn renders_valid_weekday_plist_xml() {
         .expect("weekday plist should render");
     let file = tempfile::NamedTempFile::new().expect("temp file should exist");
     std::fs::write(file.path(), &plist).expect("plist should write");
-    assert!(std::process::Command::new("plutil")
-        .args(["-lint", file.path().to_str().expect("utf-8 path")])
-        .output()
-        .expect("plutil should run")
-        .status
-        .success());
+    assert!(
+        std::process::Command::new("plutil")
+            .args(["-lint", file.path().to_str().expect("utf-8 path")])
+            .output()
+            .expect("plutil should run")
+            .status
+            .success()
+    );
     assert_eq!(plist.matches("<key>Weekday</key>").count(), 5);
     for day in 1..=5 {
         assert!(plist.contains(&format!("<key>Weekday</key><integer>{day}</integer>")));

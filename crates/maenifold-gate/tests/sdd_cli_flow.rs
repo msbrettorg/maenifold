@@ -3,7 +3,8 @@ mod support;
 use predicates::prelude::*;
 use std::thread;
 use support::{
-    gate_command, new_pipeline_root, read_task, status_json, sync_gate, write_pending_task,
+    fail_task, gate_command, new_pipeline_root, pass_task, read_task, status_json, sync_gate,
+    write_pending_task,
 };
 
 #[test]
@@ -24,19 +25,7 @@ fn append_records_swe_work_without_advancing_state() {
     let root = new_pipeline_root();
     let task = write_pending_task(root.path(), "T-1.1");
 
-    gate_command(root.path())
-        .args([
-            "pass",
-            "T-1.1",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--agent",
-            "test-agent",
-            "--notes",
-            "pending gate",
-        ])
-        .assert()
-        .success();
+    pass_task(root.path(), "T-1.1", "test-agent", "pending gate");
 
     gate_command(root.path())
         .args([
@@ -138,19 +127,7 @@ fn append_on_done_task_fails_with_explicit_message() {
         "red approved",
         "blue verified",
     ] {
-        gate_command(root.path())
-            .args([
-                "pass",
-                "T-1.1",
-                "--root",
-                root.path().to_str().expect("root utf8"),
-                "--agent",
-                "test-agent",
-                "--notes",
-                notes,
-            ])
-            .assert()
-            .success();
+        pass_task(root.path(), "T-1.1", "test-agent", notes);
     }
 
     assert!(!task.exists());
@@ -201,37 +178,13 @@ fn fail_on_done_task_reopens_it_in_todo_pending() {
         "red approved",
         "blue verified",
     ] {
-        gate_command(root.path())
-            .args([
-                "pass",
-                "T-1.1",
-                "--root",
-                root.path().to_str().expect("root utf8"),
-                "--agent",
-                "test-agent",
-                "--notes",
-                notes,
-            ])
-            .assert()
-            .success();
+        pass_task(root.path(), "T-1.1", "test-agent", notes);
     }
 
     assert!(!todo_path.exists());
     assert!(support::done_task_path(root.path(), "T-1.1").exists());
 
-    gate_command(root.path())
-        .args([
-            "fail",
-            "T-1.1",
-            "--root",
-            root.path().to_str().expect("root utf8"),
-            "--agent",
-            "test-agent",
-            "--notes",
-            "reopen for rework",
-        ])
-        .assert()
-        .success();
+    fail_task(root.path(), "T-1.1", "test-agent", "reopen for rework");
 
     let reopened_path = support::task_path(root.path(), "T-1.1");
     assert!(reopened_path.exists());

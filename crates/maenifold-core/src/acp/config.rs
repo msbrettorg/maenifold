@@ -15,6 +15,8 @@ mod gateway_settings;
 mod loader;
 #[path = "config/settings.rs"]
 mod settings;
+#[path = "config/teams_monitor.rs"]
+mod teams_monitor;
 #[path = "config/types.rs"]
 mod types;
 
@@ -35,7 +37,10 @@ pub use gateway_settings::*;
 pub use loader::AgentsConfig;
 #[allow(unused_imports)]
 pub use settings::{
-    CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, TeamsMonitorConfig,
-    VectorSettings,
+    CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, VectorSettings,
+};
+#[allow(unused_imports)]
+pub use teams_monitor::{
+    TeamsMonitorConfig, TeamsMonitorConnectionConfig, TeamsMonitorIdentityConfig,
 };
 pub use types::{AgentEntry, McpServerEntry};

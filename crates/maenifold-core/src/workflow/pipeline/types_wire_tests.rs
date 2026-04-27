@@ -1,9 +1,6 @@
 use serde_json::json;
 
-use super::{
-    super::types::PipelineNode,
-    PipelineNodeWire,
-};
+use super::{super::types::PipelineNode, PipelineNodeWire};
 
 #[test]
 fn tool_node_deserialization_preserves_timeout() {

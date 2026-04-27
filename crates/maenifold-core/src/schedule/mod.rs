@@ -7,7 +7,7 @@ mod supervisor;
 mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
-pub use cron::{parse_schedule, ParsedSchedule};
+pub use cron::{ParsedSchedule, parse_schedule};
 pub use launchd::LaunchdManager;
 pub use lock::LockGuard;
 pub use store::ScheduleStore;

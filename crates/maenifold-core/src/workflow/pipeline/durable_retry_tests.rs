@@ -162,7 +162,10 @@ fn retry_after_survives_restart_and_is_honored() {
     let response: serde_json::Value = serde_json::from_str(&raw).expect("json response");
 
     assert_eq!(
-        response["data"]["dispatched"].as_array().expect("array").len(),
+        response["data"]["dispatched"]
+            .as_array()
+            .expect("array")
+            .len(),
         0
     );
     let node_states = read_raw_node_states(&context, session_id);
@@ -201,7 +204,10 @@ fn dispatch_recovers_missing_retry_workflow_session() {
     let response: serde_json::Value = serde_json::from_str(&raw).expect("json response");
 
     assert_eq!(
-        response["data"]["dispatched"].as_array().expect("array").len(),
+        response["data"]["dispatched"]
+            .as_array()
+            .expect("array")
+            .len(),
         1
     );
     assert!(file_exists(&workflow_uri, &context.config).expect("file exists check"));

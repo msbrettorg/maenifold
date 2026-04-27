@@ -1,5 +1,6 @@
 use crate::cli::HistoryArgs;
 use crate::error::GateError;
+use crate::output::write_line;
 use crate::task_repository::TaskRepository;
 use crate::task_sections::TaskStageRecord;
 
@@ -11,20 +12,20 @@ impl HistoryCommand {
         let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
         let document = TaskRepository::read_task_document(&args.context.root, &task)?;
 
-        println!("{} history", args.task_id);
-        println!("title: {}", document.metadata.title);
-        println!("pipeline: {}", document.metadata.pipeline);
-        println!("location: {}", task.location);
+        write_line(&format!("{} history", args.task_id))?;
+        write_line(&format!("title: {}", document.metadata.title))?;
+        write_line(&format!("pipeline: {}", document.metadata.pipeline))?;
+        write_line(&format!("location: {}", task.location))?;
 
         if document.records.is_empty() {
-            println!();
-            println!("No gate history recorded yet.");
+            write_line("")?;
+            write_line("No gate history recorded yet.")?;
             return Ok(());
         }
 
         for (index, record) in document.records.iter().enumerate() {
-            println!();
-            println!("{}", render_record(index + 1, record));
+            write_line("")?;
+            write_line(&render_record(index + 1, record))?;
         }
 
         Ok(())

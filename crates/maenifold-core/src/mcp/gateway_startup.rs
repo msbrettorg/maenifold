@@ -2,6 +2,7 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::acp_config::{AgentsConfig, McpServerEntry};
 use crate::config::Config;
 use crate::error::Result;
+use crate::mcp::config_tools::ConfigMutationState;
 use crate::mcp::gateway_catalog::GatewayCatalog;
 use crate::mcp::gateway_consolidation::{build_consolidated_tools, gateway_tool_counts};
 use crate::mcp::gateway_handler::GatewayState;
@@ -22,7 +23,10 @@ pub(super) enum GatewayStartup {
     },
 }
 
-pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
+pub(super) async fn build_gateway(
+    config: &Config,
+    _config_mutation: Option<ConfigMutationState>,
+) -> Result<GatewayStartup> {
     let agents_config = match AgentsConfig::load(&config.maenifold_root) {
         Ok(config) => config,
         Err(error) => {
@@ -36,7 +40,7 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway(config).await;
+        return native_only_gateway(config, _config_mutation).await;
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -160,7 +164,10 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
     }
 }
 
-async fn native_only_gateway(config: &Config) -> Result<GatewayStartup> {
+async fn native_only_gateway(
+    config: &Config,
+    _config_mutation: Option<ConfigMutationState>,
+) -> Result<GatewayStartup> {
     let pool = Arc::new(StdioPool::start(Vec::new()).await?);
     let native_tools = tool_registry_tools()?;
     let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;

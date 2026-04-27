@@ -1,6 +1,6 @@
 use super::{
-    BertTokenizerConfig, TokenizerAssets, DEFAULT_MAX_TOKENS, TOKENIZER_CONFIG_FILENAME,
-    TOKENIZER_JSON_FILENAME,
+    BertTokenizerConfig, DEFAULT_MAX_TOKENS, TOKENIZER_CONFIG_FILENAME, TOKENIZER_JSON_FILENAME,
+    TokenizerAssets,
 };
 use crate::error::{MaenifoldError, Result};
 use std::fs;

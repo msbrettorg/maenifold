@@ -1,4 +1,4 @@
-use std::sync::{Arc, LazyLock};
+use std::sync::{Arc, LazyLock, OnceLock};
 
 use parking_lot::RwLock;
 use serde::Serialize;
@@ -18,6 +18,8 @@ static NOTIFICATION_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = La
 static TEAMS_RUNTIME_STATE: LazyLock<Arc<RwLock<TeamsRuntimeState>>> =
     LazyLock::new(|| Arc::new(RwLock::new(TeamsRuntimeState::default())));
 
+static TEAMS_PROMPT_TX: OnceLock<tokio::sync::broadcast::Sender<TeamsPrompt>> = OnceLock::new();
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct TeamsRuntimeState {
@@ -31,6 +33,15 @@ pub struct TeamsRuntimeState {
     pub match_count: u32,
     pub active_dispatches: u32,
     pub last_error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct TeamsPrompt {
+    pub prompt: String,
+    pub conversation_id: String,
+    pub sender_name: String,
+    pub matched_keyword: String,
 }
 
 impl Default for TeamsRuntimeState {
@@ -106,6 +117,13 @@ pub fn set_teams_connecting() {
     });
 }
 
+pub fn set_teams_connected() {
+    update_teams_runtime_state(|state| {
+        state.connection_state = "connected".to_string();
+        state.last_error = None;
+    });
+}
+
 pub fn set_teams_pending_auth() {
     update_teams_runtime_state(|state| {
         state.connection_state = "pending_auth".to_string();
@@ -120,7 +138,6 @@ pub fn set_teams_authenticated() {
 
 pub fn set_teams_authenticated_until(expires_at: Option<String>) {
     update_teams_runtime_state(|state| {
-        state.connection_state = "authenticated".to_string();
         state.mark_authenticated(expires_at);
         state.last_error = None;
     });
@@ -160,6 +177,27 @@ pub fn set_teams_error(message: impl Into<String>) {
         state.last_error = Some(message);
         state.active_dispatches = 0;
     });
+}
+
+pub fn push_teams_prompt(prompt: TeamsPrompt) {
+    let tx = TEAMS_PROMPT_TX.get_or_init(|| {
+        let (tx, _) = tokio::sync::broadcast::channel(64);
+        tx
+    });
+    let _ = tx.send(prompt);
+    update_teams_runtime_state(|state| {
+        state.match_count = state.match_count.saturating_add(1);
+        state.last_match_at = Some(chrono::Utc::now().to_rfc3339());
+    });
+}
+
+pub fn subscribe_teams_prompts() -> tokio::sync::broadcast::Receiver<TeamsPrompt> {
+    TEAMS_PROMPT_TX
+        .get_or_init(|| {
+            let (tx, _) = tokio::sync::broadcast::channel(64);
+            tx
+        })
+        .subscribe()
 }
 
 pub fn update_teams_runtime_state(update: impl FnOnce(&mut TeamsRuntimeState)) {

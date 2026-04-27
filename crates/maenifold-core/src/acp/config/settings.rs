@@ -3,10 +3,9 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::teams::MessageHandlerConfig;
-
 use super::easter_eggs::EasterEggsSettings;
 use super::gateway_settings::GatewaySettings;
+use super::teams_monitor::TeamsMonitorConfig;
 
 pub(super) fn default_true() -> bool {
     true
@@ -169,21 +168,6 @@ impl Default for MaenifoldSettings {
             env_passthrough: Vec::new(),
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
-#[serde(rename_all = "camelCase")]
-pub struct TeamsMonitorConfig {
-    #[serde(default)]
-    pub enabled: bool,
-    #[serde(default)]
-    pub client_id: Option<String>,
-    #[serde(default)]
-    pub tenant_id: Option<String>,
-    #[serde(default)]
-    pub handler: MessageHandlerConfig,
-    #[serde(default)]
-    pub dispatch_agent: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

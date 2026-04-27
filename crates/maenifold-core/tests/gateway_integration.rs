@@ -89,8 +89,7 @@ fn server_config(name: &str, tool_specs: Vec<Value>) -> StdioServerConfig {
 }
 
 fn call_text(result: &CallToolResult) -> String {
-    serde_json::to_value(result)
-        .expect("call result should serialize")["content"][0]["text"]
+    serde_json::to_value(result).expect("call result should serialize")["content"][0]["text"]
         .as_str()
         .expect("call result should contain text")
         .to_string()
@@ -192,7 +191,11 @@ async fn gateway_returns_tool_not_found_for_unknown_upstream_tool() {
         .expect_err("missing tool should fail");
 
     match error {
-        MaenifoldError::JsonRpc { code, message, data } => {
+        MaenifoldError::JsonRpc {
+            code,
+            message,
+            data,
+        } => {
             assert_eq!(code, -32601);
             assert_eq!(message, "Unknown tool: missing_tool");
             assert_eq!(data, Value::Null);

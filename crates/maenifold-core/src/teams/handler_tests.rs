@@ -10,6 +10,14 @@ fn config() -> MessageHandlerConfig {
     }
 }
 
+fn mention_config() -> MessageHandlerConfig {
+    MessageHandlerConfig {
+        keywords: vec!["@maenifold".into()],
+        cooldown_seconds: 0,
+        ..Default::default()
+    }
+}
+
 fn message(
     conversation_id: &str,
     content: &str,
@@ -49,14 +57,16 @@ fn matches_keywords_case_insensitively() {
 fn returns_none_when_no_keyword_matches() {
     let mut handler = MessageHandler::new(config());
 
-    assert!(handler
-        .handle(&message(
-            "no-match",
-            "hello world",
-            "8:orgid:alice",
-            "alice"
-        ))
-        .is_none());
+    assert!(
+        handler
+            .handle(&message(
+                "no-match",
+                "hello world",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_none()
+    );
 }
 
 #[test]
@@ -66,14 +76,16 @@ fn allowed_mri_with_malicious_content_passes_sender_filter() {
         ..config()
     });
 
-    assert!(handler
-        .handle(&message(
-            "allowed",
-            MALICIOUS_HELP,
-            "8:ORGID:ALLOWED-USER",
-            "attacker"
-        ))
-        .is_some());
+    assert!(
+        handler
+            .handle(&message(
+                "allowed",
+                MALICIOUS_HELP,
+                "8:ORGID:ALLOWED-USER",
+                "attacker"
+            ))
+            .is_some()
+    );
 }
 
 #[test]
@@ -83,14 +95,16 @@ fn denied_mri_with_malicious_content_fails_sender_filter() {
         ..config()
     });
 
-    assert!(handler
-        .handle(&message(
-            "deny-list",
-            MALICIOUS_HELP,
-            "8:orgid:blocked-user",
-            "Brett"
-        ))
-        .is_none());
+    assert!(
+        handler
+            .handle(&message(
+                "deny-list",
+                MALICIOUS_HELP,
+                "8:orgid:blocked-user",
+                "Brett"
+            ))
+            .is_none()
+    );
 }
 
 #[test]
@@ -100,28 +114,32 @@ fn unknown_mri_with_malicious_content_requires_allow_list_membership_when_config
         ..config()
     });
 
-    assert!(handler
-        .handle(&message(
-            "unknown-allow",
-            MALICIOUS_HELP,
-            "8:orgid:unknown-user",
-            "allowed-user"
-        ))
-        .is_none());
+    assert!(
+        handler
+            .handle(&message(
+                "unknown-allow",
+                MALICIOUS_HELP,
+                "8:orgid:unknown-user",
+                "allowed-user"
+            ))
+            .is_none()
+    );
 }
 
 #[test]
 fn unknown_mri_with_malicious_content_passes_when_no_allow_or_deny_list_is_configured() {
     let mut handler = MessageHandler::new(config());
 
-    assert!(handler
-        .handle(&message(
-            "unknown-open",
-            MALICIOUS_HELP,
-            "8:orgid:unknown-user",
-            "attacker"
-        ))
-        .is_some());
+    assert!(
+        handler
+            .handle(&message(
+                "unknown-open",
+                MALICIOUS_HELP,
+                "8:orgid:unknown-user",
+                "attacker"
+            ))
+            .is_some()
+    );
 }
 
 #[test]
@@ -131,14 +149,16 @@ fn spoofed_display_name_matching_allow_list_does_not_authorize_different_mri() {
         ..config()
     });
 
-    assert!(handler
-        .handle(&message(
-            "spoof",
-            MALICIOUS_HELP,
-            "8:orgid:attacker",
-            "8:orgid:allowed-user"
-        ))
-        .is_none());
+    assert!(
+        handler
+            .handle(&message(
+                "spoof",
+                MALICIOUS_HELP,
+                "8:orgid:attacker",
+                "8:orgid:allowed-user"
+            ))
+            .is_none()
+    );
 }
 
 #[test]
@@ -175,5 +195,137 @@ fn strips_html_before_matching() {
             .expect("HTML-stripped keyword should match")
             .matched_keyword,
         "help me"
+    );
+}
+
+#[test]
+fn mention_keyword_extracts_prompt_from_teams_at_tag() {
+    let mut handler = MessageHandler::new(mention_config());
+    let result = handler
+        .handle(&message(
+            "48:notes",
+            "<at id=\"0\">maenifold</at> summarize this",
+            "8:orgid:alice",
+            "alice",
+        ))
+        .expect("Teams at-tag should match bare mention text");
+
+    assert_eq!(result.matched_keyword, "@maenifold");
+    assert_eq!(result.prompt, "summarize this");
+}
+
+#[test]
+fn self_scope_only_accepts_self_chat() {
+    let mut handler = MessageHandler::new(MessageHandlerConfig {
+        listen_scope: "self".to_string(),
+        ..mention_config()
+    });
+
+    assert!(
+        handler
+            .handle(&message(
+                "19:group",
+                "@maenifold summarize",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_none()
+    );
+    assert!(
+        handler
+            .handle(&message(
+                "48:notes",
+                "@maenifold summarize",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_some()
+    );
+}
+
+#[test]
+fn custom_scope_only_accepts_configured_conversations() {
+    let mut handler = MessageHandler::new(MessageHandlerConfig {
+        listen_scope: "custom".to_string(),
+        monitored_conversations: vec!["19:allowed".to_string()],
+        ..mention_config()
+    });
+
+    assert!(
+        handler
+            .handle(&message(
+                "19:blocked",
+                "@maenifold summarize",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_none()
+    );
+    assert!(
+        handler
+            .handle(&message(
+                "19:allowed",
+                "@maenifold summarize",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_some()
+    );
+}
+
+#[test]
+fn self_authored_messages_are_accepted() {
+    let mut handler = MessageHandler::new(MessageHandlerConfig {
+        self_mri: Some("8:orgid:self".to_string()),
+        ..mention_config()
+    });
+
+    assert!(
+        handler
+            .handle(&message(
+                "48:notes",
+                "@maenifold summarize",
+                "8:ORGID:SELF",
+                "self"
+            ))
+            .is_some()
+    );
+}
+
+#[test]
+fn other_sender_messages_are_rejected() {
+    let mut handler = MessageHandler::new(MessageHandlerConfig {
+        self_mri: Some("8:orgid:self".to_string()),
+        ..mention_config()
+    });
+
+    assert!(
+        handler
+            .handle(&message(
+                "48:notes",
+                "@maenifold summarize",
+                "8:orgid:someone-else",
+                "stranger"
+            ))
+            .is_none()
+    );
+}
+
+#[test]
+fn reply_prefix_messages_are_suppressed() {
+    let mut handler = MessageHandler::new(MessageHandlerConfig {
+        reply_prefix: "maenifold: ".to_string(),
+        ..mention_config()
+    });
+
+    assert!(
+        handler
+            .handle(&message(
+                "48:notes",
+                "maenifold: @maenifold done",
+                "8:orgid:alice",
+                "alice"
+            ))
+            .is_none()
     );
 }

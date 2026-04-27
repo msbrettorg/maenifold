@@ -39,13 +39,21 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
             })
         }
         TEAMS_CONFIG_URI => {
-            let config = Config::current().settings.teams_monitor;
+            let cfg = Config::current();
+            let config = cfg.settings.teams_monitor;
+            let root = cfg.maenifold_root.to_string_lossy();
             json!({
-                "keywords": config.handler.keywords,
-                "senderAllowList": config.handler.sender_allow_list,
-                "senderDenyList": config.handler.sender_deny_list,
-                "cooldownSeconds": config.handler.cooldown_seconds,
+                "maenifoldRoot": root.as_ref(),
+                "sessionId": crate::teams::supervisor::TEAMS_SESSION_ID,
+                "identity": config.identity,
+                "keyword": config.keyword,
+                "listenScope": config.listen_scope,
+                "monitoredConversations": config.monitored_conversations,
+                "replyBehavior": config.reply_behavior,
+                "replyPrefix": config.reply_prefix,
+                "dispatchTimeoutMinutes": config.dispatch_timeout_minutes,
                 "dispatchAgent": config.dispatch_agent,
+                "connection": config.connection,
             })
         }
         _ => {

@@ -28,8 +28,8 @@ mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_schema_validation;
 mod gateway_startup;
-mod mcp_tool_calls;
 pub mod http;
+mod mcp_tool_calls;
 mod resource_routing;
 pub mod resources;
 pub mod schema;
@@ -46,8 +46,8 @@ use crate::assets::AssetManager;
 use crate::config::Config;
 use crate::db::GraphDatabase;
 use crate::error::{MaenifoldError, Result};
-use crate::registry::ToolRegistry;
 use crate::mcp::gateway_handler::GatewayState;
+use crate::registry::ToolRegistry;
 pub(crate) use cors::localhost_cors;
 pub use resources::*;
 use rmcp::model::{
@@ -59,8 +59,8 @@ use rmcp::{ServerHandler, ServiceExt};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tokio_util::sync::CancellationToken;
-pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 use tool_utils::with_lock_retry;
+pub use tool_utils::{McpToolDefinition, list_mcp_tools};
 pub struct MaenifoldMcpServer;
 struct MaenifoldHandler {
     transport: TransportKind,
@@ -290,5 +290,8 @@ pub fn initialize_runtime(config: &Config) -> Result<()> {
     config.ensure_directories()?;
     AssetManager::initialize_assets(config)?;
     GraphDatabase::initialize_database(config)?;
+    if config.settings.teams_monitor.enabled {
+        crate::tools::teams_monitor_startup::restore_monitor(&config.settings.teams_monitor)?;
+    }
     Ok(())
 }

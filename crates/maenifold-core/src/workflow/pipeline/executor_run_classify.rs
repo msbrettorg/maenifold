@@ -290,7 +290,16 @@ pub(super) fn classify_tool_result(
         Err(error) => {
             let reason = log_node_execution_error(node_id, &error);
             let (phase, transient_error_kind) = classify_retryable_error(&error, &reason);
-            abandoned(reason, phase, transient_error_kind, None, None, None, None, None)
+            abandoned(
+                reason,
+                phase,
+                transient_error_kind,
+                None,
+                None,
+                None,
+                None,
+                None,
+            )
         }
     }
 }

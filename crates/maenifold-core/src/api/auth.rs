@@ -24,11 +24,7 @@ pub fn token_path(root: &Path) -> PathBuf {
 }
 
 pub fn generate_and_write_token(root: &Path) -> Result<()> {
-    let token = format!(
-        "{}{}",
-        Uuid::new_v4().simple(),
-        Uuid::new_v4().simple()
-    );
+    let token = format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple());
     let auth_dir = root.join(AUTH_DIR_NAME);
     fs::create_dir_all(&auth_dir)?;
 
@@ -47,7 +43,10 @@ pub fn generate_and_write_token(root: &Path) -> Result<()> {
     }
 
     #[cfg(unix)]
-    fs::set_permissions(&tmp_path, std::os::unix::fs::PermissionsExt::from_mode(0o600))?;
+    fs::set_permissions(
+        &tmp_path,
+        std::os::unix::fs::PermissionsExt::from_mode(0o600),
+    )?;
 
     fs::rename(&tmp_path, &token_path)?;
     Ok(())

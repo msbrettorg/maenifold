@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { usePipelineStore } from '../stores/pipeline';
-import WallpaperBackground from './WallpaperBackground.vue';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 
@@ -100,8 +99,6 @@ onMounted(async () => {
 
 <template>
   <div class="relative isolate flex flex-1 flex-col items-center overflow-hidden px-8 pt-[16vh]">
-    <WallpaperBackground />
-
     <div class="relative z-10 flex w-full flex-col items-center">
       <div class="mb-5">
         <Brain class="size-16 text-text-tertiary opacity-40" :stroke-width="1" />

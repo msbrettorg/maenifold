@@ -117,7 +117,7 @@ pub(crate) fn maybe_warn_on_community_drift(
 }
 
 // T-14.6: RTM FR-15
-fn community_nmi_threshold() -> f64 {
+pub(crate) fn community_nmi_threshold() -> f64 {
     std::env::var(COMMUNITY_NMI_THRESHOLD_ENV)
         .ok()
         .and_then(|value| value.parse::<f64>().ok())

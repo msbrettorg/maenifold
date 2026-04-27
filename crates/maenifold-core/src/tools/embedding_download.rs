@@ -88,10 +88,7 @@ impl Progress for DownloadTracker {
 /// Files are written to a hidden staging directory and atomically renamed
 /// into place on success. A pre-existing install short-circuits with an error.
 #[cfg(feature = "model-download")]
-pub async fn download_model(
-    model: &CatalogModel,
-    models_dir: &Path,
-) -> Result<PathBuf, String> {
+pub async fn download_model(model: &CatalogModel, models_dir: &Path) -> Result<PathBuf, String> {
     let model_id = model.id.as_str();
     let final_dir = models_dir.join(model_id);
     if final_dir.exists() {
@@ -121,7 +118,10 @@ pub async fn download_model(
     let api = Api::new().map_err(|e| e.to_string())?;
 
     // ONNX files from onnx_repo (or hf_repo if no override)
-    let onnx_source = model.onnx_repo.as_deref().unwrap_or(&model.huggingface_repo);
+    let onnx_source = model
+        .onnx_repo
+        .as_deref()
+        .unwrap_or(&model.huggingface_repo);
     let onnx_revision = model.onnx_revision.as_deref().unwrap_or(&model.revision);
     let onnx_api = api.repo(Repo::with_revision(
         onnx_source.to_string(),
@@ -185,10 +185,7 @@ pub async fn download_model(
 
 #[cfg(not(feature = "model-download"))]
 #[allow(dead_code)]
-pub async fn download_model(
-    _model: &CatalogModel,
-    _models_dir: &Path,
-) -> Result<PathBuf, String> {
+pub async fn download_model(_model: &CatalogModel, _models_dir: &Path) -> Result<PathBuf, String> {
     Err(MODEL_DOWNLOAD_FEATURE_ERROR.to_string())
 }
 
@@ -198,7 +195,10 @@ fn validate_catalog_entry(model: &CatalogModel) -> Result<(), String> {
         return Err(format!("Model {} is missing immutable revision", model.id));
     }
     if model.files.is_empty() {
-        return Err(format!("Model {} has no verified files in catalog", model.id));
+        return Err(format!(
+            "Model {} has no verified files in catalog",
+            model.id
+        ));
     }
     if !model
         .files

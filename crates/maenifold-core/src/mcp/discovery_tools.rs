@@ -22,6 +22,15 @@ pub(crate) async fn handle_tool_call(
     tool_name: &str,
     arguments: Value,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
+    handle_gateway_tool_call(state, gateway.as_deref(), tool_name, arguments).await
+}
+
+pub(crate) async fn handle_gateway_tool_call(
+    state: ConfigMutationState,
+    gateway: Option<&GatewayState>,
+    tool_name: &str,
+    arguments: Value,
+) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     match tool_name {
         "DiscoverMcpTools" => {
             let _params: DiscoverMcpToolsParams =
@@ -39,7 +48,7 @@ pub(crate) async fn handle_tool_call(
 
 async fn discover_mcp_tools(
     state: ConfigMutationState,
-    gateway: Option<Arc<GatewayState>>,
+    gateway: Option<&GatewayState>,
 ) -> Vec<mcp_discovery::McpServerDiscoveryResult> {
     let config = state.config_manager().get_config();
     let mut results = Vec::new();

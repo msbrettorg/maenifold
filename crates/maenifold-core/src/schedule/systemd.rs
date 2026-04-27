@@ -1,7 +1,7 @@
-use super::{validate_schedule_id, ScheduledTask};
+use super::{ScheduledTask, validate_schedule_id};
 #[path = "systemd_cron.rs"]
 mod systemd_cron;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;

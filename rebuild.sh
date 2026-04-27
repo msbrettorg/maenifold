@@ -7,7 +7,7 @@ cd "$ROOT"
 UID_NUM=$(id -u)
 
 echo "═══ Release build: all crates ═══"
-cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli -p maenifold-gate
+cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
 
 echo ""
 echo "═══ Install binaries ═══"

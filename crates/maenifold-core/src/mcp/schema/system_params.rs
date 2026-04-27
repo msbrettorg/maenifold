@@ -129,11 +129,8 @@ pub enum TeamsMonitorAction {
     Disable,
     Status,
     Configure,
-    Authenticate,
-    #[serde(rename = "authenticate_start")]
-    AuthenticateStart,
-    #[serde(rename = "authenticate_complete")]
-    AuthenticateComplete,
+    #[serde(rename = "detect_identity")]
+    DetectIdentity,
     Refresh,
     #[serde(rename = "sign_out")]
     SignOut,
@@ -144,27 +141,48 @@ pub enum TeamsMonitorAction {
 pub struct TeamsMonitorParams {
     /// Teams monitor operation to perform
     pub action: TeamsMonitorAction,
-    /// Azure AD application client ID for device code authentication
+    /// Trigger keyword for monitor matches during configure
     #[serde(default)]
-    pub client_id: Option<String>,
-    /// Azure AD tenant ID or tenant name for device code authentication
+    pub keyword: Option<String>,
+    /// Conversation scope to monitor during configure: wildcard, self, or custom
     #[serde(default)]
-    pub tenant_id: Option<String>,
-    /// Keywords that trigger a monitor match during configure
+    pub listen_scope: Option<String>,
+    /// Conversation IDs for custom listen scope during configure
     #[serde(default)]
-    pub keywords: Option<Vec<String>>,
-    /// Optional OAuth scopes for device code authentication
+    pub monitored_conversations: Option<Vec<String>>,
+    /// Reply target behavior during configure
     #[serde(default)]
-    pub scopes: Option<Vec<String>>,
-    /// Optional sender allow-list to require for matches during configure. Pass null to clear.
+    pub reply_behavior: Option<String>,
+    /// Prefix for outbound Teams replies during configure
     #[serde(default)]
-    pub sender_allow_list: Option<Vec<String>>,
-    /// Optional sender deny-list to reject during configure. Pass null to clear.
+    pub reply_prefix: Option<String>,
+    /// Dispatch timeout in minutes during configure
     #[serde(default)]
-    pub sender_deny_list: Option<Vec<String>>,
-    /// Per-conversation cooldown in seconds during configure
+    pub dispatch_timeout_minutes: Option<u64>,
+    /// Detected chat service region during configure
     #[serde(default)]
-    pub cooldown_seconds: Option<u64>,
+    pub chatsvc_region: Option<String>,
+    /// Trouter gateway host during configure
+    #[serde(default)]
+    pub trouter_gateway: Option<String>,
+    /// Trouter registrar URL during configure
+    #[serde(default)]
+    pub registrar_url: Option<String>,
+    /// Trouter app ID during configure
+    #[serde(default)]
+    pub app_id: Option<String>,
+    /// Reconnect delay in seconds during configure
+    #[serde(default)]
+    pub reconnect_delay_seconds: Option<u64>,
+    /// Maximum reconnect delay in seconds during configure
+    #[serde(default)]
+    pub max_reconnect_delay_seconds: Option<u64>,
+    /// Token refresh cadence in minutes during configure
+    #[serde(default)]
+    pub token_refresh_minutes: Option<u64>,
+    /// Trouter heartbeat interval in seconds during configure
+    #[serde(default)]
+    pub heartbeat_interval_seconds: Option<u64>,
     /// ACP agent to dispatch when a match occurs during configure. Pass null to clear.
     #[serde(default)]
     pub dispatch_agent: Option<String>,

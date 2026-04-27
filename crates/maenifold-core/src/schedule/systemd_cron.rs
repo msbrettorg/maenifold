@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 
 pub(super) fn cron_to_oncalendar(cron: &str) -> Result<String> {
     let mut parts = cron.split_whitespace();

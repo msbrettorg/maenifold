@@ -1,25 +1,22 @@
 use super::context::{ToolContext, render, required_string};
-use super::teams_monitor_auth::{
-    authenticate_complete, authenticate_start, refresh, restore_on_enable, sign_out,
-};
+use super::teams_monitor_auth::{detect_identity, refresh, restore_on_enable, sign_out};
 use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
 use crate::teams::{
-    set_teams_disabled, set_teams_error,
+    MessageHandlerConfig, TrouterClientConfig, set_teams_disabled, set_teams_error,
     supervisor::{TrouterSupervisor, default_dispatch_fn},
     teams_runtime_snapshot,
 };
 use serde_json::Value;
-use std::future::Future;
 use std::fs;
+use std::future::Future;
 use std::path::Path;
 use std::sync::{LazyLock, Mutex};
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
 
-static SUPERVISOR: LazyLock<Mutex<Option<TrouterSupervisor>>> =
-    LazyLock::new(|| Mutex::new(None));
+static SUPERVISOR: LazyLock<Mutex<Option<TrouterSupervisor>>> = LazyLock::new(|| Mutex::new(None));
 static SUPERVISOR_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = LazyLock::new(|| {
     Builder::new_multi_thread()
         .worker_threads(2)
@@ -35,12 +32,11 @@ pub fn teams_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         "disable" => set_enabled(context, false),
         "status" => monitor_status(context),
         "configure" => configure_monitor(context, payload),
-        "authenticate" | "authenticate_start" => authenticate_start(context, payload),
-        "authenticate_complete" => authenticate_complete(context),
+        "detect_identity" => detect_identity(context),
         "refresh" => refresh(context),
         "sign_out" => sign_out(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: enable, disable, status, configure, authenticate, authenticate_start, authenticate_complete, refresh, sign_out",
+            "unknown action '{}'. Available: enable, disable, status, configure, detect_identity, refresh, sign_out",
             action
         ))),
     }
@@ -53,50 +49,56 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
         .settings
         .clone()
         .unwrap_or_else(MaenifoldSettings::default);
-    let monitor = settings.teams_monitor.clone();
     if enabled {
-        if let Err(error) = restore_on_enable(&monitor) {
+        if let Err(error) = restore_on_enable(&mut settings.teams_monitor) {
             set_teams_error(error.to_string());
             return Err(error);
         }
         settings.teams_monitor.enabled = true;
+        let monitor = settings.teams_monitor.clone();
         config.settings = Some(settings);
         write_agents_config(root, &config)?;
+        let runtime = teams_runtime_snapshot();
+        return Ok(render(
+            context.output_format,
+            status_value(
+                "enable",
+                &monitor,
+                &runtime,
+                "Teams monitor enabled using the signed-in Teams environment.",
+            ),
+        ));
     } else {
         settings.teams_monitor.enabled = false;
+        let monitor = settings.teams_monitor.clone();
         config.settings = Some(settings);
         write_agents_config(root, &config)?;
         stop_monitor_supervisor()?;
+        let runtime = teams_runtime_snapshot();
+        return Ok(render(
+            context.output_format,
+            status_value(
+                "disable",
+                &monitor,
+                &runtime,
+                "Teams monitor disabled in maenifold.json.",
+            ),
+        ));
     }
-    let runtime = teams_runtime_snapshot();
-    Ok(render(
-        context.output_format,
-        status_value(
-            if enabled { "enable" } else { "disable" },
-            &monitor,
-            &runtime,
-            if enabled {
-                "Teams monitor enabled in maenifold.json; stored Teams credentials were restored when available."
-            } else {
-                "Teams monitor disabled in maenifold.json."
-            },
-        ),
-    ))
 }
 
-pub(super) fn start_monitor_supervisor(
-    monitor: &TeamsMonitorConfig,
-    token: String,
-) -> Result<()> {
+pub(super) fn start_monitor_supervisor(monitor: &TeamsMonitorConfig, token: String) -> Result<()> {
     if let Some(mut supervisor) = take_supervisor()? {
         run_on_supervisor_runtime(supervisor.stop())?;
     }
 
-    let handler_config = monitor.handler.clone();
+    let handler_config = handler_config_from_monitor(monitor);
+    let trouter_config = trouter_config_from_monitor(monitor);
     let dispatch_agent = monitor.dispatch_agent.clone();
     let supervisor = run_on_supervisor_runtime(async move {
         TrouterSupervisor::start(
             token,
+            trouter_config,
             handler_config,
             dispatch_agent,
             default_dispatch_fn(),
@@ -171,21 +173,54 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
         .unwrap_or_else(MaenifoldSettings::default);
     let monitor = &mut settings.teams_monitor;
 
-    if let Some(keywords) = optional_string_vec(payload, "keywords")? {
-        monitor.handler.keywords = keywords;
+    if let Some(keyword) = optional_string(payload, "keyword")? {
+        monitor.keyword = keyword;
     }
-    if let Some(sender_allow_list) = optional_nullable_string_vec(payload, "senderAllowList")? {
-        monitor.handler.sender_allow_list = sender_allow_list;
+    if let Some(listen_scope) = optional_string(payload, "listenScope")? {
+        monitor.listen_scope = listen_scope;
     }
-    if let Some(sender_deny_list) = optional_nullable_string_vec(payload, "senderDenyList")? {
-        monitor.handler.sender_deny_list = sender_deny_list;
+    if let Some(monitored_conversations) = optional_string_vec(payload, "monitoredConversations")? {
+        monitor.monitored_conversations = monitored_conversations;
     }
-    if let Some(cooldown_seconds) = optional_u64(payload, "cooldownSeconds")? {
-        monitor.handler.cooldown_seconds = cooldown_seconds;
+    if let Some(reply_behavior) = optional_string(payload, "replyBehavior")? {
+        monitor.reply_behavior = reply_behavior;
+    }
+    if let Some(reply_prefix) = optional_string(payload, "replyPrefix")? {
+        monitor.reply_prefix = reply_prefix;
+    }
+    if let Some(dispatch_timeout_minutes) = optional_u64(payload, "dispatchTimeoutMinutes")? {
+        monitor.dispatch_timeout_minutes = dispatch_timeout_minutes;
+    }
+    if let Some(chatsvc_region) = optional_string(payload, "chatsvcRegion")? {
+        monitor.connection.chatsvc_region = chatsvc_region;
+    }
+    if let Some(trouter_gateway) = optional_string(payload, "trouterGateway")? {
+        monitor.connection.trouter_gateway = trouter_gateway;
+    }
+    if let Some(registrar_url) = optional_string(payload, "registrarUrl")? {
+        monitor.connection.registrar_url = registrar_url;
+    }
+    if let Some(app_id) = optional_string(payload, "appId")? {
+        monitor.connection.app_id = app_id;
+    }
+    if let Some(reconnect_delay_seconds) = optional_u64(payload, "reconnectDelaySeconds")? {
+        monitor.connection.reconnect_delay_seconds = reconnect_delay_seconds;
+    }
+    if let Some(max_reconnect_delay_seconds) = optional_u64(payload, "maxReconnectDelaySeconds")? {
+        monitor.connection.max_reconnect_delay_seconds = max_reconnect_delay_seconds;
+    }
+    if let Some(token_refresh_minutes) = optional_u64(payload, "tokenRefreshMinutes")? {
+        monitor.connection.token_refresh_minutes = token_refresh_minutes;
+    }
+    if let Some(heartbeat_interval_seconds) = optional_u64(payload, "heartbeatIntervalSeconds")? {
+        monitor.connection.heartbeat_interval_seconds = heartbeat_interval_seconds;
     }
     if let Some(dispatch_agent) = optional_nullable_string(payload, "dispatchAgent")? {
         validate_dispatch_agent(&config, dispatch_agent.as_deref())?;
         monitor.dispatch_agent = dispatch_agent;
+    }
+    if monitor.enabled {
+        restore_on_enable(monitor)?;
     }
 
     let monitor = monitor.clone();
@@ -203,6 +238,36 @@ fn configure_monitor(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
+fn handler_config_from_monitor(monitor: &TeamsMonitorConfig) -> MessageHandlerConfig {
+    MessageHandlerConfig {
+        keywords: vec![monitor.keyword.clone()],
+        listen_scope: monitor.listen_scope.clone(),
+        monitored_conversations: monitor.monitored_conversations.clone(),
+        self_mri: monitor
+            .identity
+            .as_ref()
+            .map(|identity| identity.mri.clone()),
+        reply_behavior: monitor.reply_behavior.clone(),
+        reply_prefix: monitor.reply_prefix.clone(),
+        chatsvc_region: monitor.connection.chatsvc_region.clone(),
+        dispatch_timeout_minutes: monitor.dispatch_timeout_minutes,
+        sender_allow_list: None,
+        sender_deny_list: None,
+        cooldown_seconds: 0,
+    }
+}
+
+fn trouter_config_from_monitor(monitor: &TeamsMonitorConfig) -> TrouterClientConfig {
+    TrouterClientConfig {
+        gateway: monitor.connection.trouter_gateway.clone(),
+        registrar_url: monitor.connection.registrar_url.clone(),
+        app_id: monitor.connection.app_id.clone(),
+        heartbeat: std::time::Duration::from_secs(monitor.connection.heartbeat_interval_seconds),
+        initial_backoff: std::time::Duration::from_secs(monitor.connection.reconnect_delay_seconds),
+        max_backoff: std::time::Duration::from_secs(monitor.connection.max_reconnect_delay_seconds),
+    }
+}
+
 pub(super) fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
     Ok(AgentsConfig::load(root)?
         .settings
@@ -210,10 +275,17 @@ pub(super) fn load_monitor_config(root: &Path) -> Result<TeamsMonitorConfig> {
         .teams_monitor)
 }
 
-pub(super) fn optional_string_vec(
-    payload: &Value,
-    key: &'static str,
-) -> Result<Option<Vec<String>>> {
+fn optional_string(payload: &Value, key: &'static str) -> Result<Option<String>> {
+    let Some(value) = payload.get(key) else {
+        return Ok(None);
+    };
+    value
+        .as_str()
+        .map(|text| Some(text.to_string()))
+        .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be a string")))
+}
+
+fn optional_string_vec(payload: &Value, key: &'static str) -> Result<Option<Vec<String>>> {
     let Some(value) = payload.get(key) else {
         return Ok(None);
     };
@@ -229,19 +301,6 @@ pub(super) fn optional_string_vec(
         })
         .collect::<Result<Vec<_>>>()
         .map(Some)
-}
-
-fn optional_nullable_string_vec(
-    payload: &Value,
-    key: &'static str,
-) -> Result<Option<Option<Vec<String>>>> {
-    let Some(value) = payload.get(key) else {
-        return Ok(None);
-    };
-    if value.is_null() {
-        return Ok(Some(None));
-    }
-    optional_string_vec(payload, key).map(|value| value.map(Some))
 }
 
 fn optional_nullable_string(payload: &Value, key: &'static str) -> Result<Option<Option<String>>> {

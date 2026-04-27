@@ -25,16 +25,6 @@ gate history T-1.1 --root .
 gate ui --root .
 ```
 
-## MCP service modes
-
-```bash
-gate --mcp
-gate --http --port 8081
-```
-
-- `gate --mcp` runs MCP over stdio.
-- `gate --http --port N` runs MCP over streamable HTTP at `/mcp`.
-
 ## Pipeline JSON schema overview
 
 Every pipeline definition uses the same shape:

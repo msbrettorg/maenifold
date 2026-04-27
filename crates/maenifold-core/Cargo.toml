@@ -29,6 +29,7 @@ pulldown-cmark.workspace = true
 regex.workspace = true
 croner = "3.0.1"
 rusqlite.workspace = true
+rustls = { version = "0.23", default-features = false, features = ["aws_lc_rs"] }
 serde.workspace = true
 serde_json.workspace = true
 schemars.workspace = true

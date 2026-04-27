@@ -179,7 +179,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                     retry_policy,
                     session_ref: wire.session_ref,
                 }
-            },
+            }
             "sequentialThinking" => Self::SequentialThinking {
                 id: wire.id,
                 display_label: wire.display_label,

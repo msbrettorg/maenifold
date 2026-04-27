@@ -1,7 +1,7 @@
 use super::*;
 use crate::config::Config;
-use crate::test_util::ConfigResetGuard;
 use crate::teams::set_teams_disabled;
+use crate::test_util::ConfigResetGuard;
 use crate::util::json::OutputFormat;
 use serde_json::{Value, json};
 use serial_test::serial;
@@ -43,12 +43,14 @@ fn run(context: &ToolContext, payload: Value) -> Value {
 
 #[test]
 #[serial]
-fn enable_without_credentials_returns_auth_error() {
+fn authenticate_action_is_removed_from_public_surface() {
     with_context(|context| {
-        let result = teams_monitor(context, &json!({"action": "enable"}));
-        assert!(result.is_err());
-        let error_msg = result.unwrap_err().to_string();
-        assert!(error_msg.contains("authentication required"));
+        let error = teams_monitor(context, &json!({"action":"authenticate"}))
+            .expect_err("authenticate removed");
+        let message = error.to_string();
+        assert!(message.contains("unknown action 'authenticate'"));
+        assert!(!message.contains("clientId"));
+        assert!(!message.contains("tenantId"));
     });
 }
 
@@ -67,13 +69,24 @@ fn status_action_returns_current_config_state() {
         assert_eq!(
             response["config"],
             json!({
-                "clientId": null,
-                "tenantId": null,
-                "keywords": [],
-                "senderAllowList": null,
-                "senderDenyList": null,
-                "cooldownSeconds": 60,
+                "identity": null,
+                "keyword": "@maenifold",
+                "listenScope": "wildcard",
+                "monitoredConversations": [],
+                "replyBehavior": "sourceConversation",
+                "replyPrefix": "maenifold: ",
+                "dispatchTimeoutMinutes": 10,
                 "dispatchAgent": null,
+                "connection": {
+                    "trouterGateway": "go-msit.trouter.teams.microsoft.com",
+                    "registrarUrl": "https://teams.cloud.microsoft/registrar/prod/V2/registrations",
+                    "appId": "TeamsCDLWebWorker",
+                    "reconnectDelaySeconds": 5,
+                    "maxReconnectDelaySeconds": 300,
+                    "tokenRefreshMinutes": 50,
+                    "heartbeatIntervalSeconds": 30,
+                    "chatsvcRegion": "amer"
+                },
             })
         );
     });
@@ -81,16 +94,18 @@ fn status_action_returns_current_config_state() {
 
 #[test]
 #[serial]
-fn configure_with_keywords_updates_status() {
+fn configure_with_keyword_updates_status() {
     with_context(|context| {
         run(
             context,
-            json!({"action":"configure","keywords":["alpha","beta"]}),
+            json!({"action":"configure","keyword":"alpha","listenScope":"self","replyBehavior":"selfChat","replyPrefix":"reply: ","dispatchTimeoutMinutes":3}),
         );
-        assert_eq!(
-            run(context, json!({"action":"status"}))["config"]["keywords"],
-            json!(["alpha", "beta"])
-        );
+        let config = run(context, json!({"action":"status"}))["config"].clone();
+        assert_eq!(config["keyword"], json!("alpha"));
+        assert_eq!(config["listenScope"], json!("self"));
+        assert_eq!(config["replyBehavior"], json!("selfChat"));
+        assert_eq!(config["replyPrefix"], json!("reply: "));
+        assert_eq!(config["dispatchTimeoutMinutes"], json!(3));
     });
 }
 
@@ -101,24 +116,23 @@ fn unknown_action_returns_valid_action_list() {
         let error = teams_monitor(context, &json!({"action":"bogus"})).expect_err("unknown action");
         assert_eq!(
             error.to_string(),
-            "unknown action 'bogus'. Available: enable, disable, status, configure, authenticate, authenticate_start, authenticate_complete, refresh, sign_out"
+            "unknown action 'bogus'. Available: enable, disable, status, configure, detect_identity, refresh, sign_out"
         );
     });
 }
 
 #[test]
 #[serial]
-fn authenticate_requires_client_id() {
+fn detect_identity_does_not_accept_app_registration_fields() {
     with_context(|context| {
         let error = teams_monitor(
             context,
-            &json!({"action":"authenticate","tenantId":"tenant"}),
+            &json!({"action":"authenticate_start","tenantId":"tenant","clientId":"client"}),
         )
-        .expect_err("missing clientId");
-        assert_eq!(
-            error.to_string(),
-            "Required property 'clientId' is missing from payload."
-        );
+        .expect_err("authenticate_start removed");
+        let message = error.to_string();
+        assert!(message.contains("unknown action 'authenticate_start'"));
+        assert!(!message.contains("authenticate_complete"));
     });
 }
 
@@ -134,13 +148,16 @@ fn invalid_dispatch_agent_type_returns_type_error() {
 
 #[test]
 #[serial]
-fn invalid_cooldown_seconds_type_returns_type_error() {
+fn invalid_dispatch_timeout_minutes_type_returns_type_error() {
     with_context(|context| {
         let error = teams_monitor(
             context,
-            &json!({"action":"configure","cooldownSeconds":"soon"}),
+            &json!({"action":"configure","dispatchTimeoutMinutes":"soon"}),
         )
-        .expect_err("cooldownSeconds type error");
-        assert_eq!(error.to_string(), "'cooldownSeconds' must be an integer");
+        .expect_err("dispatchTimeoutMinutes type error");
+        assert_eq!(
+            error.to_string(),
+            "'dispatchTimeoutMinutes' must be an integer"
+        );
     });
 }

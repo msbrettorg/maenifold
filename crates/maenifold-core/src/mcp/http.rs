@@ -135,12 +135,7 @@ impl super::MaenifoldMcpServer {
         super::initialize_runtime(&config)?;
         crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
         let config_mutation = mutation_state(&config, ConfigManager::new(&config));
-        let wallpaper_config = config_mutation.runtime_config();
-        let wallpaper_shutdown = shutdown_token.child_token();
-        tokio::spawn(async move {
-            crate::wallpaper::service::wallpaper_service(wallpaper_config, wallpaper_shutdown).await;
-        });
-        let gateway_startup = build_gateway(&config).await?;
+        let gateway_startup = build_gateway(&config, Some(config_mutation.clone())).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
             GatewayStartup::Disabled => (None, None, None),
             GatewayStartup::Ready(gateway) => {

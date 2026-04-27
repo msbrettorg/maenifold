@@ -127,26 +127,27 @@ pub async fn execute_runtime(
 
     let app_session_id_owned = app_session_scope.clone();
 
-    if worker_tx().send(WorkerMsg::Execute {
-        runtime_key: runtime_key.clone(),
-        binary: adapter.binary.clone(),
-        args: adapter.args.clone(),
-        env: adapter.env.clone(),
-        client_capabilities: default_client_capabilities(),
-        role_name: role_name.to_string(),
-        app_session_id: app_session_scope,
-        prompt: prompt.to_string(),
-        context: context.to_vec(),
-        cwd: cwd.to_string(),
-        delta_tx,
-        result_tx,
-        auto_approve,
-        mcp_servers,
-        role_mode,
-        role_config_options,
-        resume_session_id,
-    })
-    .is_err()
+    if worker_tx()
+        .send(WorkerMsg::Execute {
+            runtime_key: runtime_key.clone(),
+            binary: adapter.binary.clone(),
+            args: adapter.args.clone(),
+            env: adapter.env.clone(),
+            client_capabilities: default_client_capabilities(),
+            role_name: role_name.to_string(),
+            app_session_id: app_session_scope,
+            prompt: prompt.to_string(),
+            context: context.to_vec(),
+            cwd: cwd.to_string(),
+            delta_tx,
+            result_tx,
+            auto_approve,
+            mcp_servers,
+            role_mode,
+            role_config_options,
+            resume_session_id,
+        })
+        .is_err()
     {
         let message = "ACP worker unavailable".to_string();
         return AcpPromptResult {

@@ -1,5 +1,4 @@
 import { computed, ref } from 'vue';
-import { DEFAULT_GATE_MCP_BASE_URL } from '../lib/constants';
 import {
   createGateSnapshot,
   GATE_POLL_INTERVAL_MS,
@@ -14,17 +13,23 @@ import {
 import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
-const GATE_SYNC_TOOLS = ['sync', 'gate-sync'] as const;
-const GATE_STATUS_TOOLS = ['status', 'gate-status'] as const;
-const GATE_HISTORY_TOOLS = ['history', 'gate-history'] as const;
-const GATE_TASK_BODY_TOOLS = ['task_body'] as const;
+const GATE_DOMAIN = 'maenifold.gate';
+const REQUIRED_GATE_COMMANDS = ['gate_Status', 'gate_Sync', 'gate_History', 'gate_TaskBody'] as const;
+
+interface GatewayCommand {
+  name?: unknown;
+}
+
+interface GatewayIndexResult {
+  commands?: GatewayCommand[];
+}
 
 interface GatePollingState {
   root: string | null;
   handle: ReturnType<typeof setInterval> | null;
 }
 
-export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
+export function useGateMcp(baseUrl?: string) {
   const mcp = getSharedMcpClient(baseUrl);
   const pollingError = ref<string | null>(null);
   const error = computed(() => pollingError.value ?? mcp.error.value);
@@ -32,6 +37,11 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
     root: null,
     handle: null,
   };
+  let gateGatewayValidated = false;
+
+  mcp.onDisconnect(() => {
+    gateGatewayValidated = false;
+  });
 
   async function ensureConnected() {
     if (mcp.connected.value) {
@@ -41,28 +51,40 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
     await mcp.connect();
   }
 
-  function isUnknownToolError(errorValue: unknown) {
-    const message = errorValue instanceof Error ? errorValue.message : String(errorValue);
-    return /unknown tool|tool not found|unknown gate MCP tool/i.test(message);
+  function commandNames(result: GatewayIndexResult) {
+    return new Set(
+      (result.commands ?? [])
+        .map((command) => command.name)
+        .filter((name): name is string => typeof name === 'string' && name.length > 0),
+    );
   }
 
-  async function callGateTool<T>(toolNames: readonly string[], payload: Record<string, unknown> = {}) {
+  async function ensureGateGateway() {
     await ensureConnected();
-    let lastError: unknown = null;
+    if (gateGatewayValidated) return;
 
-    for (const toolName of toolNames) {
-      try {
-        const result = await mcp.callTool(toolName, payload);
-        return unwrapToolData<T>(result);
-      } catch (toolError) {
-        lastError = toolError;
-        if (!isUnknownToolError(toolError)) {
-          throw toolError;
-        }
-      }
+    const index = unwrapToolData<GatewayIndexResult>(
+      await mcp.callTool('GatewayIndex', { domain: GATE_DOMAIN }),
+    );
+    const available = commandNames(index);
+    const missing = REQUIRED_GATE_COMMANDS.filter((command) => !available.has(command));
+    if (missing.length > 0) {
+      throw new Error(
+        `Gate tab requires GatewayIndex domain '${GATE_DOMAIN}' to expose ${REQUIRED_GATE_COMMANDS.join(', ')}; missing ${missing.join(', ')}.`,
+      );
     }
 
-    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+    gateGatewayValidated = true;
+  }
+
+  async function callGateTool<T>(command: string, payload: Record<string, unknown> = {}) {
+    await ensureGateGateway();
+    const result = await mcp.callTool('GatewayExecute', {
+      domain: GATE_DOMAIN,
+      command,
+      parameters: payload,
+    });
+    return unwrapToolData<T>(result);
   }
 
   function stopPolling() {
@@ -97,7 +119,7 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
   }
 
   function sync(args: GateSyncArgs): Promise<GateSyncResult> {
-    return callGateTool<GateSyncResult>(GATE_SYNC_TOOLS, args);
+    return callGateTool<GateSyncResult>('gate_Sync', args);
   }
 
   function normalizeTaskStages(task: GateTask): GateTask {
@@ -106,19 +128,19 @@ export function useGateMcp(baseUrl = DEFAULT_GATE_MCP_BASE_URL) {
   }
 
   async function status(args: GateStatusArgs): Promise<GateTask[]> {
-    const tasks = await callGateTool<GateTask[]>(GATE_STATUS_TOOLS, args);
+    const tasks = await callGateTool<GateTask[]>('gate_Status', args);
     return Array.isArray(tasks) ? tasks.map(normalizeTaskStages) : tasks;
   }
 
   function readTaskHistory(taskId: string, root?: string): Promise<GateTaskHistoryEntry[]> {
-    return callGateTool<GateTaskHistoryEntry[]>(GATE_HISTORY_TOOLS, {
+    return callGateTool<GateTaskHistoryEntry[]>('gate_History', {
       taskId,
       ...(root ? { root } : {}),
     });
   }
 
   function readTaskBody(taskId: string, root?: string): Promise<GateTaskBody> {
-    return callGateTool<GateTaskBody>(GATE_TASK_BODY_TOOLS, {
+    return callGateTool<GateTaskBody>('gate_TaskBody', {
       taskId,
       ...(root ? { root } : {}),
     });

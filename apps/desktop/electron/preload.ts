@@ -19,6 +19,10 @@ const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   getAuthToken: () => ipcRenderer.invoke('get-auth-token') as Promise<string>,
+  readTextFile: (params: { path: string; line?: number; limit?: number }) =>
+    ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
+  writeTextFile: (params: { path: string; content: string }) =>
+    ipcRenderer.invoke('acp:write-text-file', params) as Promise<Record<string, never>>,
   readWallpaperImage: (filePath: string) =>
     ipcRenderer.invoke('read-wallpaper-image', filePath) as Promise<string>,
   checkEnvVarPresence: (names: string[]) =>

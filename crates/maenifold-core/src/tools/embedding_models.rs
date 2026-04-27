@@ -1,18 +1,18 @@
-use super::context::{load_help_doc, render, ToolContext};
-pub(crate) use super::embedding_catalog::{
-    load_catalog, load_catalog_with_external_trust, CatalogModel,
-};
+use super::context::{ToolContext, load_help_doc, render};
 #[cfg(feature = "model-download")]
 pub(crate) use super::embedding_catalog::CatalogFile;
+pub(crate) use super::embedding_catalog::{
+    CatalogModel, load_catalog, load_catalog_with_external_trust,
+};
 use super::embedding_models_actions::{handle_activate, handle_download};
 use super::embedding_models_detect::{handle_delete, handle_list, handle_regenerate};
 use super::embedding_models_scan::active_model_status;
 use crate::db;
 use crate::error::Result;
 use crate::mcp::schema::{EmbeddingModelsAction, EmbeddingModelsParams};
-use crate::util::json::{success, OutputFormat};
+use crate::util::json::{OutputFormat, success};
 use crate::vector;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 pub fn embedding_models(context: &ToolContext, payload: &Value) -> Result<String> {
     let learn = payload

@@ -10,8 +10,7 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 
 static ORT_INITIALIZED: OnceLock<std::result::Result<(), String>> = OnceLock::new();
-const ORT_RUNTIME_NOT_FOUND_MESSAGE: &str =
-    "ONNX Runtime library not found. Set ORT_DYLIB_PATH or place the library in the assets/lib directory.";
+const ORT_RUNTIME_NOT_FOUND_MESSAGE: &str = "ONNX Runtime library not found. Set ORT_DYLIB_PATH or place the library in the assets/lib directory.";
 
 /// Load/initialize the model (called lazily on first use)
 pub fn load_model() -> Result<()> {

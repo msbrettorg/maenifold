@@ -13,12 +13,9 @@ pub(super) fn handle_download(
     context: &ToolContext,
     params: &EmbeddingModelsParams,
 ) -> Result<Value> {
-    let model_id = params
-        .model_id
-        .as_deref()
-        .ok_or_else(|| {
-            MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
-        })?;
+    let model_id = params.model_id.as_deref().ok_or_else(|| {
+        MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
+    })?;
 
     let catalog = load_catalog_with_external_trust(
         &context.config.assets_path,
@@ -42,9 +39,8 @@ pub(super) fn handle_download(
     // caller. Run the download synchronously from the (sync) tool handler so
     // success/failure flows back to the MCP response and the frontend's poll
     // observes installed=true (or surfaces the error in its catch block).
-    let download_future = async move {
-        super::embedding_download::download_model(&model, &dir).await
-    };
+    let download_future =
+        async move { super::embedding_download::download_model(&model, &dir).await };
 
     let result = match tokio::runtime::Handle::try_current() {
         Ok(handle) => {
@@ -107,12 +103,9 @@ pub(super) fn handle_activate(
     context: &ToolContext,
     params: &EmbeddingModelsParams,
 ) -> Result<Value> {
-    let model_id = params
-        .model_id
-        .as_deref()
-        .ok_or_else(|| {
-            MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
-        })?;
+    let model_id = params.model_id.as_deref().ok_or_else(|| {
+        MaenifoldError::Message("Missing required parameter 'modelId'".to_string())
+    })?;
 
     let catalog = load_catalog_with_external_trust(
         &context.config.assets_path,
@@ -288,9 +281,7 @@ fn write_agents_config(root: &Path, config: &AgentsConfig) -> Result<()> {
     let path = root.join("maenifold.json");
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| {
-            MaenifoldError::Message(format!(
-                "Failed to ensure config directory: {e}"
-            ))
+            MaenifoldError::Message(format!("Failed to ensure config directory: {e}"))
         })?;
     }
     let content = serde_json::to_string_pretty(config)

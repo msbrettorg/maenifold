@@ -5,7 +5,7 @@ use rmcp::model::{
     AnnotateAble, RawResource, RawResourceTemplate, ReadResourceResult, Resource, ResourceContents,
     ResourceTemplate,
 };
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
@@ -73,11 +73,9 @@ pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     };
 
     let text = serde_json::to_string_pretty(&payload)?;
-    Ok(ReadResourceResult::new(vec![ResourceContents::text(
-        text,
-        uri.to_string(),
-    )
-    .with_mime_type("application/json")]))
+    Ok(ReadResourceResult::new(vec![
+        ResourceContents::text(text, uri.to_string()).with_mime_type("application/json"),
+    ]))
 }
 
 fn list_jobs_payload() -> Result<Value> {

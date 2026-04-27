@@ -10,6 +10,8 @@ At a bare minimum it should be mentioned in this file.
 Look for opportunities to keep as many agents running in parallel as possible. Use worktrees to avoid contention and keep track of which agents are working on which tasks.  Make sure to update/prune the worktree as tasks are completed.
 
 Always start with the lowest numbered gate items and work your way up. New gate items assume the old ones have been addressed. If you skip around you WILL cause problems.
+
+We're re-using a lot of code from /Users/brett/src/agency-cowork - always check it for reusable code before writing new code or specifying new features. Teams monitor especially.
   
 ---
 

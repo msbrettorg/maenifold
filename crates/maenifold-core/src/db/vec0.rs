@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::vector;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use std::path::{Path, PathBuf};
 
 const MODEL_METADATA_TABLE_SQL: &str = r#"

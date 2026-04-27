@@ -134,7 +134,11 @@ pub(crate) async fn handle_tool_call(
 
 fn notification_uris(tool_name: &str) -> &'static [&'static str] {
     match tool_name {
-        "ReloadConfig" => &[CONFIG_SETTINGS_URI, CONFIG_AGENTS_URI, CONFIG_MCP_SERVERS_URI],
+        "ReloadConfig" => &[
+            CONFIG_SETTINGS_URI,
+            CONFIG_AGENTS_URI,
+            CONFIG_MCP_SERVERS_URI,
+        ],
         "UpdateSettings" => &[CONFIG_SETTINGS_URI],
         "AddAgent" | "UpdateAgent" | "DeleteAgent" => &[CONFIG_AGENTS_URI],
         "AddMcpServer" | "UpdateMcpServer" | "DeleteMcpServer" => &[CONFIG_MCP_SERVERS_URI],

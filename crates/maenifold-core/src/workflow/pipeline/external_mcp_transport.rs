@@ -43,12 +43,15 @@ pub(super) async fn invoke_via_stdio(
     if call_result.is_ok() {
         info!(
             server_name,
-            remote_tool_name,
-            "external MCP tool call succeeded"
+            remote_tool_name, "external MCP tool call succeeded"
         );
     }
 
-    finalize_external_tool_result(server_name, call_result, Ok(rmcp::service::QuitReason::Closed))
+    finalize_external_tool_result(
+        server_name,
+        call_result,
+        Ok(rmcp::service::QuitReason::Closed),
+    )
 }
 
 pub(super) async fn invoke_via_stdio_fallback(

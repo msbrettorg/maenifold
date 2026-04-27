@@ -5,22 +5,26 @@ use serde_json::Value;
 use tokio::{sync::mpsc, task::JoinHandle};
 use tokio_util::sync::CancellationToken;
 
-use crate::{
-    error::Result,
-    registry::ToolRegistry,
-    util::json::OutputFormat,
-};
+use crate::error::Result;
 
 use super::{
-    runtime::update_teams_runtime_state, EventMessage, MessageHandler, MessageHandlerConfig,
-    TeamsDispatchRequest, TrouterClient, set_teams_authenticated, set_teams_connecting,
-    set_teams_disabled, set_teams_error, teams_runtime_snapshot,
+    EventMessage, MessageHandler, MessageHandlerConfig,
+    TrouterClient, TrouterClientConfig, runtime::update_teams_runtime_state,
+    set_teams_connecting, set_teams_disabled, set_teams_error, teams_runtime_snapshot,
 };
 
 pub type DispatchFn = Arc<dyn Fn(Value) -> std::result::Result<String, String> + Send + Sync>;
 pub type RunnerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
-pub type RunnerFn =
-    Arc<dyn Fn(String, CancellationToken, mpsc::Sender<EventMessage>) -> RunnerFuture + Send + Sync>;
+pub type RunnerFn = Arc<
+    dyn Fn(
+            String,
+            TrouterClientConfig,
+            CancellationToken,
+            mpsc::Sender<EventMessage>,
+        ) -> RunnerFuture
+        + Send
+        + Sync,
+>;
 
 const MESSAGE_CHANNEL_CAPACITY: usize = 64;
 
@@ -32,12 +36,14 @@ pub struct TrouterSupervisor {
 impl TrouterSupervisor {
     pub fn start(
         token: String,
+        trouter_config: TrouterClientConfig,
         handler_config: MessageHandlerConfig,
         dispatch_agent: Option<String>,
         dispatch_fn: DispatchFn,
     ) -> Self {
         Self::start_with_runner(
             token,
+            trouter_config,
             handler_config,
             dispatch_agent,
             dispatch_fn,
@@ -47,6 +53,7 @@ impl TrouterSupervisor {
 
     pub fn start_with_runner(
         token: String,
+        trouter_config: TrouterClientConfig,
         handler_config: MessageHandlerConfig,
         dispatch_agent: Option<String>,
         dispatch_fn: DispatchFn,
@@ -57,6 +64,7 @@ impl TrouterSupervisor {
         let join_handle = tokio::spawn(async move {
             run_supervisor(
                 token,
+                trouter_config,
                 handler_config,
                 dispatch_agent,
                 dispatch_fn,
@@ -84,16 +92,97 @@ impl TrouterSupervisor {
 
 pub fn default_dispatch_fn() -> DispatchFn {
     Arc::new(|payload| {
-        ToolRegistry::global()
-            .try_invoke("AcpExec", &payload, OutputFormat::Json)
-            .map_err(|error| error.to_string())
+        let agent = payload
+            .get("agent")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+        let prompt = payload
+            .get("prompt")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .to_string();
+
+        let adapter = jockey::acp::build_stdio_adapter(&agent)
+            .map_err(|e| format!("Agent setup failed: {e}"))?
+            .ok_or_else(|| format!("agent '{agent}' is not configured"))?;
+
+        let root = jockey::acp::config_root();
+        let cwd = root.join("memory").to_string_lossy().to_string();
+
+        let (event_tx, _) = tokio::sync::mpsc::channel::<jockey::acp::AcpEvent>(64);
+        let (result_tx, result_rx) = tokio::sync::oneshot::channel();
+
+        jockey::acp::worker_tx()
+            .send(jockey::acp::WorkerMsg::Execute {
+                runtime_key: adapter.runtime_key,
+                binary: adapter.binary,
+                args: adapter.args,
+                env: adapter.env,
+                role_name: agent,
+                app_session_id: TEAMS_SESSION_ID.to_string(),
+                prompt,
+                context: vec![],
+                cwd,
+                delta_tx: event_tx,
+                result_tx,
+                auto_approve: false,
+                mcp_servers: vec![],
+                client_capabilities: agent_client_protocol::ClientCapabilities::default(),
+                role_mode: None,
+                role_config_options: vec![],
+                resume_session_id: None,
+            })
+            .map_err(|_| "ACP worker unavailable".to_string())?;
+
+        match result_rx.blocking_recv() {
+            Ok(Ok(success)) => Ok(success.output),
+            Ok(Err(error)) => Err(error.message),
+            Err(_) => Err("ACP worker dropped result channel".to_string()),
+        }
     })
 }
 
+pub const TEAMS_SESSION_ID: &str = "teams-monitor";
+
+pub fn prewarm_teams_session(agent: &str) {
+    let Ok(Some(adapter)) = jockey::acp::build_stdio_adapter(agent) else {
+        tracing::warn!(agent, "cannot prewarm teams session: agent not configured");
+        return;
+    };
+    let root = jockey::acp::config_root();
+    let cwd = root.join("memory").to_string_lossy().to_string();
+
+    if jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Prewarm {
+            runtime_key: adapter.runtime_key,
+            binary: adapter.binary,
+            args: adapter.args,
+            env: adapter.env,
+            client_capabilities: agent_client_protocol::ClientCapabilities::default(),
+            role_name: agent.to_string(),
+            app_session_id: TEAMS_SESSION_ID.to_string(),
+            cwd,
+            auto_approve: false,
+            mcp_servers: vec![],
+            role_mode: None,
+            role_config_options: vec![],
+            delta_tx: None,
+            result_tx: None,
+            resume_session_id: None,
+        })
+        .is_err()
+    {
+        tracing::warn!("ACP worker unavailable for teams session prewarm");
+    } else {
+        tracing::info!(agent, "teams ACP session prewarmed");
+    }
+}
+
 fn default_runner() -> RunnerFn {
-    Arc::new(|token, cancel, msg_tx| {
+    Arc::new(|token, trouter_config, cancel, msg_tx| {
         Box::pin(async move {
-            let mut client = TrouterClient::new(token, cancel);
+            let mut client = TrouterClient::with_config(token, cancel, trouter_config);
             client.run(msg_tx).await
         })
     })
@@ -101,6 +190,7 @@ fn default_runner() -> RunnerFn {
 
 async fn run_supervisor(
     token: String,
+    trouter_config: TrouterClientConfig,
     handler_config: MessageHandlerConfig,
     dispatch_agent: Option<String>,
     dispatch_fn: DispatchFn,
@@ -111,9 +201,13 @@ async fn run_supervisor(
 
     let (msg_tx, msg_rx) = mpsc::channel::<EventMessage>(MESSAGE_CHANNEL_CAPACITY);
     let runner_cancel = cancel.child_token();
-    let runner_handle = tokio::spawn(async move { runner_fn(token, runner_cancel, msg_tx).await });
+    let runner_token = token.clone();
+    let runner_handle = tokio::spawn(async move {
+        runner_fn(runner_token, trouter_config, runner_cancel, msg_tx).await
+    });
     let processor_handle = tokio::spawn(process_messages(
         msg_rx,
+        token,
         handler_config,
         dispatch_agent,
         dispatch_fn,
@@ -139,25 +233,27 @@ async fn run_supervisor(
 
 async fn process_messages(
     mut msg_rx: mpsc::Receiver<EventMessage>,
+    _token: String,
     handler_config: MessageHandlerConfig,
-    dispatch_agent: Option<String>,
-    dispatch_fn: DispatchFn,
+    _dispatch_agent: Option<String>,
+    _dispatch_fn: DispatchFn,
 ) {
-    let mut handler = MessageHandler::new(handler_config);
+    let mut handler = MessageHandler::new(handler_config.clone());
 
     while let Some(message) = msg_rx.recv().await {
         record_message_received();
-        mark_authenticated_on_first_message();
+        ensure_connected_state();
 
         let Some(result) = handler.handle(&message) else {
             continue;
         };
-        record_match();
 
-        if let Some(agent) = dispatch_agent.as_deref() {
-            let payload = TeamsDispatchRequest::from_match(&result, agent).to_acp_payload();
-            spawn_dispatch(payload, dispatch_fn.clone());
-        }
+        super::push_teams_prompt(super::TeamsPrompt {
+            prompt: result.prompt,
+            conversation_id: result.message.conversation_id,
+            sender_name: result.message.sender_name,
+            matched_keyword: result.matched_keyword,
+        });
     }
 }
 
@@ -167,52 +263,12 @@ fn record_message_received() {
     });
 }
 
-fn mark_authenticated_on_first_message() {
+fn ensure_connected_state() {
     let snapshot = teams_runtime_snapshot();
-    if snapshot.connection_state == "authenticated" {
-        return;
-    }
-    if snapshot.auth_state == "authenticated" {
+    if snapshot.connection_state != "connected" {
         update_teams_runtime_state(|state| {
-            state.connection_state = "authenticated".to_string();
+            state.connection_state = "connected".to_string();
             state.last_error = None;
-        });
-        return;
-    }
-    set_teams_authenticated();
-}
-
-fn record_match() {
-    update_teams_runtime_state(|state| {
-        state.last_match_at = Some(Utc::now().to_rfc3339());
-        state.match_count = state.match_count.saturating_add(1);
-    });
-}
-
-fn spawn_dispatch(payload: Value, dispatch_fn: DispatchFn) {
-    tokio::task::spawn_blocking(move || {
-        let _guard = ActiveDispatchGuard::new();
-        if let Err(error) = dispatch_fn(payload) {
-            tracing::warn!("Teams monitor dispatch failed: {error}");
-        }
-    });
-}
-
-struct ActiveDispatchGuard;
-
-impl ActiveDispatchGuard {
-    fn new() -> Self {
-        update_teams_runtime_state(|state| {
-            state.active_dispatches = state.active_dispatches.saturating_add(1);
-        });
-        Self
-    }
-}
-
-impl Drop for ActiveDispatchGuard {
-    fn drop(&mut self) {
-        update_teams_runtime_state(|state| {
-            state.active_dispatches = state.active_dispatches.saturating_sub(1);
         });
     }
 }

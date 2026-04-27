@@ -7,7 +7,8 @@ use crate::append_command::append_task;
 use crate::cache_db::GateCacheDb;
 use crate::cancel_command::cancel_task;
 use crate::cli::{
-    AppendArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs, TaskBodyArgs,
+    AppendArgs, CancelArgs, GateContext, HistoryArgs, OutcomeArgs, StatusArgs, SyncArgs,
+    TaskBodyArgs,
 };
 use crate::error::GateError;
 use crate::fail_command::fail_task;
@@ -54,7 +55,7 @@ impl GateToolService {
         task_status_from_read_model_unlocked(&context, &task_id)
     }
 
-    pub fn cancel(args: OutcomeArgs) -> Result<Value, GateError> {
+    pub fn cancel(args: CancelArgs) -> Result<Value, GateError> {
         let task_id = args.task_id.clone();
         let context = args.context.clone();
         let _lock = GateProjectLock::acquire_exclusive(&context.root)?;

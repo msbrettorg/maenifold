@@ -25,7 +25,7 @@ import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import { MessagesSquare, MessageSquare } from 'lucide-vue-next';
+import { MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
 import type { AppShellTab } from './stores/app-shell';
 
@@ -173,7 +173,11 @@ function onOnboardingComplete(): void {
         </div>
 
         <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">
-          <TeamsTab :empty-icon="MessagesSquare" />
+          <TeamsTab />
+          <ChatView
+            v-if="isConnected"
+            :key="sessionStore.activeSessionId ?? 'teams-session'"
+          />
         </div>
 
         <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">

@@ -1,7 +1,7 @@
-use super::{validate_schedule_id, ScheduledTask};
+use super::{ScheduledTask, validate_schedule_id};
 #[path = "launchd_cron.rs"]
 mod launchd_cron;
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use launchd_cron::cron_to_start_calendar_interval_xml;
 use std::fs;
 use std::path::{Path, PathBuf};

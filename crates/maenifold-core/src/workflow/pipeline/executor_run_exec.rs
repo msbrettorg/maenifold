@@ -1,5 +1,5 @@
-use super::*;
 use super::super::external_mcp::require_tool_allowed;
+use super::*;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_prompt_node(

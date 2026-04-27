@@ -1,4 +1,5 @@
 mod data;
+pub mod events;
 mod louvain;
 mod louvain_scoring;
 mod metrics;

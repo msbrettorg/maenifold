@@ -133,21 +133,25 @@ fn lightweight_e2e_retries_from_blue_and_completes() {
 }
 
 fn pass(root: &std::path::Path, task_id: &str, notes: &str) {
+    let expected_state = support::task_state(root, task_id);
     gate_command(root)
         .args(["pass", task_id, "--root"])
         .arg(root)
         .args(["--agent", "test-agent"])
         .args(["--notes", notes])
+        .args(["--expected-state", expected_state.as_str()])
         .assert()
         .success();
 }
 
 fn fail(root: &std::path::Path, task_id: &str, notes: &str) {
+    let expected_state = support::task_state(root, task_id);
     gate_command(root)
         .args(["fail", task_id, "--root"])
         .arg(root)
         .args(["--agent", "test-agent"])
         .args(["--notes", notes])
+        .args(["--expected-state", expected_state.as_str()])
         .assert()
         .success();
 }

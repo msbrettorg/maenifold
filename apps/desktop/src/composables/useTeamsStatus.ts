@@ -2,7 +2,17 @@ import type { ResourceContent } from './mcpTransport';
 
 export const TEAMS_STATUS_URI = 'teams://status';
 
-export type TeamsConnectionState = 'disabled' | 'connecting' | 'connected' | 'reconnecting' | 'error';
+export type TeamsConnectionState =
+  | 'disabled'
+  | 'connecting'
+  | 'connected'
+  | 'authenticated'
+  | 'pending_auth'
+  | 'reconnecting'
+  | 'unauthenticated'
+  | 'error';
+
+export type TeamsAuthState = 'unauthenticated' | 'pending' | 'authenticated' | 'expired' | 'error';
 
 export interface TeamsStatus {
   enabled: boolean;
@@ -12,6 +22,48 @@ export interface TeamsStatus {
   matchCount: number;
   activeDispatches: number;
   lastError: string | null;
+  authState: TeamsAuthState;
+  expiresAt: string | null;
+  lastAuthError: string | null;
+}
+
+export interface TeamsIdentity {
+  mri: string;
+  objectId: string;
+  tenantId?: string | null;
+  upn?: string | null;
+  displayName?: string | null;
+  expiresAt: string;
+  chatsvcRegion?: string | null;
+  source: string;
+}
+
+export interface TeamsConnectionConfig {
+  chatsvcRegion?: string;
+  trouterGateway?: string;
+  registrarUrl?: string;
+  appId?: string;
+  reconnectDelaySeconds?: number;
+  maxReconnectDelaySeconds?: number;
+  tokenRefreshMinutes?: number;
+  heartbeatIntervalSeconds?: number;
+}
+
+export interface TeamsMonitorConfig {
+  identity?: TeamsIdentity | null;
+  keyword?: string;
+  listenScope?: string;
+  monitoredConversations?: string[];
+  replyBehavior?: string;
+  replyPrefix?: string;
+  dispatchTimeoutMinutes?: number;
+  dispatchAgent?: string | null;
+  connection?: TeamsConnectionConfig;
+}
+
+export interface TeamsMonitorStatus extends Partial<TeamsStatus> {
+  config?: TeamsMonitorConfig;
+  message?: string;
 }
 
 const DEFAULT_TEAMS_STATUS: TeamsStatus = {
@@ -22,13 +74,27 @@ const DEFAULT_TEAMS_STATUS: TeamsStatus = {
   matchCount: 0,
   activeDispatches: 0,
   lastError: null,
+  authState: 'unauthenticated',
+  expiresAt: null,
+  lastAuthError: null,
 };
 
 const VALID_CONNECTION_STATES = new Set<TeamsConnectionState>([
   'disabled',
   'connecting',
   'connected',
+  'authenticated',
+  'pending_auth',
   'reconnecting',
+  'unauthenticated',
+  'error',
+]);
+
+const VALID_AUTH_STATES = new Set<TeamsAuthState>([
+  'unauthenticated',
+  'pending',
+  'authenticated',
+  'expired',
   'error',
 ]);
 
@@ -62,10 +128,13 @@ export function parseTeamsStatusPayload(payload: unknown): TeamsStatus {
     matchCount: nonNegativeInteger(obj.matchCount),
     activeDispatches: nonNegativeInteger(obj.activeDispatches),
     lastError: stringOrNull(obj.lastError),
+    authState: parseAuthState(obj.authState),
+    expiresAt: stringOrNull(obj.expiresAt),
+    lastAuthError: stringOrNull(obj.lastAuthError),
   };
 }
 
-export function formatTeamsConnectionState(value: TeamsConnectionState): string {
+export function formatTeamsConnectionState(value: string): string {
   return value
     .split('_')
     .filter(Boolean)
@@ -78,6 +147,13 @@ function parseConnectionState(value: unknown): TeamsConnectionState {
     return value as TeamsConnectionState;
   }
   return 'disabled';
+}
+
+function parseAuthState(value: unknown): TeamsAuthState {
+  if (typeof value === 'string' && VALID_AUTH_STATES.has(value as TeamsAuthState)) {
+    return value as TeamsAuthState;
+  }
+  return 'unauthenticated';
 }
 
 function stringOrNull(value: unknown): string | null {

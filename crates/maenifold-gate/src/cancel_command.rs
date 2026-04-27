@@ -1,4 +1,4 @@
-use crate::cli::OutcomeArgs;
+use crate::cli::CancelArgs;
 use crate::error::GateError;
 use crate::gate_catalog::GateDefinitionCatalog;
 use crate::gate_tool_service::GateToolService;
@@ -11,13 +11,13 @@ use crate::task_status::TaskStatusDeriver;
 pub struct CancelCommand;
 
 impl CancelCommand {
-    pub fn execute(args: OutcomeArgs) -> Result<(), GateError> {
+    pub fn execute(args: CancelArgs) -> Result<(), GateError> {
         let _ = GateToolService::cancel(args)?;
         Ok(())
     }
 }
 
-pub(crate) fn cancel_task(args: OutcomeArgs) -> Result<(), GateError> {
+pub(crate) fn cancel_task(args: CancelArgs) -> Result<(), GateError> {
     let _task_lock = TaskFileLock::acquire(&args.context.root, &args.task_id)?;
     let task = TaskRepository::find_task(args.context.root.clone(), &args.task_id)?;
     let document = TaskRepository::read_task_document(&args.context.root, &task)?;
@@ -104,7 +104,7 @@ mod tests {
     use tempfile::TempDir;
 
     use super::cancel_task;
-    use crate::cli::{GateContext, OutcomeArgs};
+    use crate::cli::{CancelArgs, GateContext};
 
     #[test]
     fn cancel_appends_section_and_moves_task_to_done() {
@@ -116,7 +116,7 @@ mod tests {
         )
         .expect("write task");
 
-        cancel_task(OutcomeArgs {
+        cancel_task(CancelArgs {
             context: GateContext {
                 root: root.path().to_path_buf(),
                 requested_pipeline_name: None,
@@ -202,7 +202,7 @@ mod tests {
         )
         .expect("write cancelled task");
 
-        let error = cancel_task(OutcomeArgs {
+        let error = cancel_task(CancelArgs {
             context: GateContext {
                 root: root.path().to_path_buf(),
                 requested_pipeline_name: None,
@@ -228,7 +228,7 @@ mod tests {
         )
         .expect("write done task");
 
-        let error = cancel_task(OutcomeArgs {
+        let error = cancel_task(CancelArgs {
             context: GateContext {
                 root: root.path().to_path_buf(),
                 requested_pipeline_name: None,
@@ -257,7 +257,7 @@ mod tests {
         let task_path = root.path().join("todo").join("T-77.4.md");
         unix_fs::symlink(&target, &task_path).expect("create symlinked task");
 
-        let error = cancel_task(OutcomeArgs {
+        let error = cancel_task(CancelArgs {
             context: GateContext {
                 root: root.path().to_path_buf(),
                 requested_pipeline_name: None,

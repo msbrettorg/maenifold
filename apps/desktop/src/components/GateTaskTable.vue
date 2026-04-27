@@ -186,6 +186,7 @@ const table = useVueTable<GateTask>({
           <TableRow
             v-for="row in table.getRowModel().rows"
             :key="row.id"
+            :data-task-id="row.original.taskId"
             :data-state="gateTaskSelectionKey(row.original) === props.selectedTaskKey ? 'selected' : undefined"
             :title="rowTitle(row.original)"
             class="cursor-pointer hover:bg-surface-high data-[state=selected]:bg-surface-high data-[state=selected]:text-text-primary"

@@ -99,13 +99,7 @@ async fn invoke_via_stdio_via_runtime(
                 ))
             })?
             .block_on(async {
-                invoke_via_stdio(
-                    &task_server_name,
-                    &task_tool_name,
-                    arguments,
-                    pool.as_ref(),
-                )
-                .await
+                invoke_via_stdio(&task_server_name, &task_tool_name, arguments, pool.as_ref()).await
             })
     })
     .await

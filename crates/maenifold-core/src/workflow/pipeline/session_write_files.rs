@@ -13,11 +13,11 @@ use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 
-use super::session_write::DeletePipelineSessionFilesResult;
 use super::resource_notifications::{
     clear_pipeline_resource_state, emit_pipeline_resource_updated,
     emit_pipeline_sessions_resource_updated,
 };
+use super::session_write::DeletePipelineSessionFilesResult;
 use super::{NodeState, PipelineDefinition};
 
 pub(super) fn delete_pipeline_session_files(

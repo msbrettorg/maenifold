@@ -4,15 +4,14 @@ import { lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
+import { registerAcpFileSystemHandlers } from './acp-file-system.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
 const MAENIFOLD_SERVICE = 'com.ma-collective.maenifold';
-const GATE_SERVICE = 'com.ma-collective.gate';
 const MAENIFOLD_HEALTH_URL = 'http://localhost:8080/api/config';
-const GATE_HEALTH_URL = 'http://localhost:8081/mcp';
 const moduleDir = dirname(fileURLToPath(import.meta.url));
 const launchctlDomain = process.platform === 'darwin' && typeof process.getuid === 'function'
   ? `gui/${process.getuid()}`
@@ -63,10 +62,6 @@ async function ensureServices(): Promise<void> {
   if (!(await isServiceHealthy(MAENIFOLD_HEALTH_URL))) {
     console.log('[maenifold] Service not responding on 8080, starting via launchctl...');
     startLaunchctlService(MAENIFOLD_SERVICE);
-  }
-  if (!(await isServiceHealthy(GATE_HEALTH_URL))) {
-    console.log('[maenifold] Gate service not responding on 8081, starting via launchctl...');
-    startLaunchctlService(GATE_SERVICE);
   }
   for (let attempt = 0; attempt < 30; attempt += 1) {
     if (await isServiceHealthy(MAENIFOLD_HEALTH_URL)) return;
@@ -246,6 +241,7 @@ function registerIpcHandlers(): void {
     }
     return result;
   });
+  registerAcpFileSystemHandlers();
   registerVec0Handlers();
   registerVoiceHandlers();
 }

@@ -1,4 +1,4 @@
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use std::collections::BTreeMap;
 
 pub(super) fn cron_to_start_calendar_interval_xml(cron: &str) -> Result<String> {

@@ -108,7 +108,14 @@ pub(crate) fn continue_workflow_session(
     if current_step >= steps.len() {
         current_workflow_index += 1;
         if current_workflow_index >= queue.len() {
-            return handle_queue_exhaustion(context, session_id, &uri, frontmatter, current_step, conclusion);
+            return handle_queue_exhaustion(
+                context,
+                session_id,
+                &uri,
+                frontmatter,
+                current_step,
+                conclusion,
+            );
         }
 
         return transition_to_next_workflow(

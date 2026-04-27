@@ -125,9 +125,7 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
 
     if exists_subdir {
         std::fs::remove_dir_all(&target_dir).map_err(|e| {
-            crate::error::MaenifoldError::Message(format!(
-                "Failed to delete model directory: {e}"
-            ))
+            crate::error::MaenifoldError::Message(format!("Failed to delete model directory: {e}"))
         })?;
     } else if exists_flat {
         std::fs::remove_file(&flat_path).map_err(|e| {
@@ -153,9 +151,7 @@ pub(super) fn handle_delete(context: &ToolContext, payload: &Value) -> Result<Va
 /// model.
 pub(super) fn handle_regenerate(context: &ToolContext, _payload: &Value) -> Result<Value> {
     let conn = db::open_connection(&context.config.database_path).map_err(|e| {
-        crate::error::MaenifoldError::Message(format!(
-            "Failed to open database: {e}"
-        ))
+        crate::error::MaenifoldError::Message(format!("Failed to open database: {e}"))
     })?;
 
     // Idempotent: table may not exist on first run before any sync

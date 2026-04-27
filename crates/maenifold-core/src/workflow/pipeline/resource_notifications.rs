@@ -115,13 +115,16 @@ fn mark_trailing_session_update_emitted(session_id: &str) {
 fn spawn_trailing_session_update(session_id: String, delay: Duration) {
     let thread_name = format!("pipeline-resource-update-{session_id}");
     let fallback_id = session_id.clone();
-    if let Err(error) = std::thread::Builder::new().name(thread_name).spawn(move || {
-        std::thread::sleep(delay);
-        run_notification(async move {
-            mark_trailing_session_update_emitted(&session_id);
-            emit_pipeline_resource_update_pair(&session_id).await;
-        });
-    }) {
+    if let Err(error) = std::thread::Builder::new()
+        .name(thread_name)
+        .spawn(move || {
+            std::thread::sleep(delay);
+            run_notification(async move {
+                mark_trailing_session_update_emitted(&session_id);
+                emit_pipeline_resource_update_pair(&session_id).await;
+            });
+        })
+    {
         eprintln!("Warning: failed to schedule pipeline resource update: {error}");
         mark_trailing_session_update_emitted(&fallback_id);
         run_notification(async move {

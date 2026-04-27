@@ -118,6 +118,24 @@ impl TeamsRuntimeState {
             .then_some(self.expires_at.as_deref())
             .flatten()
     }
+
+    /// Public status projection shared by the Teams monitor tool and the
+    /// `teams://status` MCP resource. Keep the shape stable — clients depend
+    /// on these field names.
+    pub fn public_status_value(&self) -> serde_json::Value {
+        serde_json::json!({
+            "enabled": self.enabled(),
+            "connectionState": self.connection_state.as_str(),
+            "authState": self.auth_state.as_str(),
+            "expiresAt": self.status_expires_at(),
+            "lastAuthError": self.last_auth_error.as_deref(),
+            "lastMessageAt": self.last_message_at.as_deref(),
+            "lastMatchAt": self.last_match_at.as_deref(),
+            "matchCount": self.match_count,
+            "activeDispatches": self.active_dispatches,
+            "lastError": self.last_error.as_deref(),
+        })
+    }
 }
 
 pub fn teams_runtime_state() -> Arc<RwLock<TeamsRuntimeState>> {

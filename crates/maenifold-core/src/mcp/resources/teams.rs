@@ -23,21 +23,7 @@ pub(super) fn list_resources() -> Vec<Resource> {
 
 pub(super) fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
     let payload = match uri {
-        TEAMS_STATUS_URI => {
-            let state = teams_runtime_snapshot();
-            json!({
-                "enabled": state.enabled(),
-                "connectionState": state.connection_state.as_str(),
-                "authState": state.auth_state.as_str(),
-                "expiresAt": state.status_expires_at(),
-                "lastAuthError": state.last_auth_error.as_deref(),
-                "lastMessageAt": state.last_message_at.as_deref(),
-                "lastMatchAt": state.last_match_at.as_deref(),
-                "matchCount": state.match_count,
-                "activeDispatches": state.active_dispatches,
-                "lastError": state.last_error.as_deref(),
-            })
-        }
+        TEAMS_STATUS_URI => teams_runtime_snapshot().public_status_value(),
         TEAMS_CONFIG_URI => {
             let cfg = Config::current();
             let config = cfg.settings.teams_monitor;

@@ -1,4 +1,5 @@
 mod auth;
+pub(crate) mod catchup;
 mod chunking;
 pub mod credential_store;
 mod dedup;

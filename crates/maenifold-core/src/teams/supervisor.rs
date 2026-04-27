@@ -244,6 +244,26 @@ async fn run_supervisor(
         cancel.child_token(),
     );
 
+    // T-238.54: kick off a one-shot catch-up sweep against chatsvc to
+    // backfill messages missed during the offline gap. Spawned detached so
+    // it runs concurrently with the Trouter runner; downstream MessageDedup
+    // suppresses any overlap with live deliveries.
+    {
+        let catchup_token = msg_tx.clone();
+        let token_snapshot = token_rx_for_dispatch.borrow().clone();
+        let region = handler_config.chatsvc_region.clone();
+        let conversations = handler_config.monitored_conversations.clone();
+        tokio::spawn(async move {
+            super::catchup::run_catchup_poll(
+                &token_snapshot,
+                &region,
+                &conversations,
+                &catchup_token,
+            )
+            .await;
+        });
+    }
+
     let runner_handle = tokio::spawn(async move { runner_fn(client, msg_tx).await });
     let processor_handle = tokio::spawn(process_messages(
         msg_rx,

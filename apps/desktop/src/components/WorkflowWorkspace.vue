@@ -75,7 +75,7 @@ onMounted(async () => {
       />
       <ResizablePanel
         id="middle"
-        :default-size="50"
+        :default-size="isWorkflowSelected ? 50 : 80"
         :min-size="30"
         :order="2"
       >

@@ -21,7 +21,7 @@ Before starting work, read PRD.md, RTM.md, and TODO.md. Your task must reference
 
 **Sequential Thinking**: When a session ID and branch ID are provided in your task prompt, you must use `sequential_thinking` to document your reasoning process in that branch:
 1. Use the provided `branchId` (e.g., "T-2.1.2-red-team")
-2. Branch from the last PM thought with `branchFromThought`
+2. Continue from the shared session context
 3. Document your attack analysis and findings with `[[WikiLinks]]`
 4. When complete, conclude your branch: set `nextThoughtNeeded=false` and provide your ConfessionReport as the `conclusion` parameter
 

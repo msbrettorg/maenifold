@@ -403,7 +403,6 @@ Binary: `~/maenifold/bin/maenifold` (no env override; memory path `~/maenifold/m
 - Visualize (`maenifold`): mermaid edges among those concepts (high co-occurrence counts).
 - SequentialThinking validation errors (no files written):
   - Missing [[WikiLinks]] → `ERROR: Must include [[WikiLinks]]...`
-  - Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
   - Providing `sessionId` on thoughtNumber=1 for a non-existent session triggered a runtime crash (Signal 6) instead of a friendly error.
 - SequentialThinking happy path (writes to prod, then cleaned):
   - Thought 1 with `[[cli-test]]` auto-created session `session-1766422076688` at `memory://thinking/sequential/2025/12/22/session-1766422076688`

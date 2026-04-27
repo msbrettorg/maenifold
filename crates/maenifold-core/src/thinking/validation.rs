@@ -14,7 +14,6 @@ const ALLOWED_PAYLOAD_KEYS: &[&str] = &[
     "isRevision",
     "revisesThought",
     "needsMoreThoughts",
-    "branchFromThought",
     "branchId",
     "conclusion",
     "cancel",
@@ -35,7 +34,6 @@ pub(crate) struct SequentialThinkingInput {
     pub(crate) needs_more_thoughts: bool,
     pub(crate) is_revision: bool,
     pub(crate) revises_thought: Option<u64>,
-    pub(crate) branch_from_thought: Option<u64>,
     pub(crate) branch_id: Option<String>,
     pub(crate) parent_workflow_id: Option<String>,
     pub(crate) submachine_session_id: Option<String>,
@@ -88,7 +86,6 @@ impl SequentialThinkingInput {
                 .and_then(Value::as_bool)
                 .unwrap_or(false),
             revises_thought: payload.get("revisesThought").and_then(Value::as_u64),
-            branch_from_thought: payload.get("branchFromThought").and_then(Value::as_u64),
             branch_id: payload
                 .get("branchId")
                 .and_then(Value::as_str)
@@ -126,12 +123,6 @@ pub(crate) fn validate_payload(
     // WikiLink validation removed — concepts are encouraged but no longer block requests.
     if !input.cancel {
         tracing::debug!("Skipping WikiLink validation for sequential thinking request");
-    }
-
-    if input.branch_from_thought.is_some() && input.branch_id.is_none() {
-        let message =
-            "branchId required when branchFromThought is specified for multi-agent coordination";
-        return Ok(Some(render_failure(context, "BRANCH_ID_REQUIRED", message)));
     }
 
     if input.submachine_type.is_some() && input.submachine_session_id.is_none() {

@@ -16,7 +16,7 @@ Key features:
 - You can question or revise previous thoughts
 - You can add more thoughts even after reaching what seemed like the end
 - You can express uncertainty and explore alternative approaches
-- Not every thought needs to build linearly - you can branch or backtrack
+- Not every thought needs to build linearly - you can revise or backtrack
 - Generates a solution hypothesis
 - Verifies the hypothesis based on the Chain of Thought steps
 - Repeats the process until satisfied
@@ -42,7 +42,6 @@ Parameters explained:
 - totalThoughts: Current estimate of thoughts needed (can be adjusted up/down)
 - isRevision: A boolean indicating if this thought revises previous thinking
 - revisesThought: If is_revision is true, which thought number is being reconsidered
-- branchFromThought: If branching, which thought number is the branching point
 - branchId: Identifier for the current branch (if any)
 - needsMoreThoughts: If reaching end but realizing more thoughts needed
 - sessionId: Continue an existing session; omit to start a new one
@@ -74,7 +73,6 @@ maenifold specifics:
 - response/thoughts MUST include [[WikiLinks]] (e.g., [[analysis]], [[reasoning]]); conclusion with [[WikiLinks]] and confession structure is required when nextThoughtNeeded is false
 - Sessions persist to memory://thinking/sequential/{sessionId}.md with agent tag, timestamps, and frontmatter
 - New sessions start at thoughtNumber=0 (sessionId auto-created). thoughtNumber>0 requires the session to exist unless isRevision is true; an existing sessionId with thoughtNumber=1 is rejected unless revising
-- branchId is required when branchFromThought is set (multi-agent safety)
 - parentWorkflowId can be set only on the first thought and must reference an active workflow; creates a [[workflow/{id}]] back-link
 - needsMoreThoughts extends the displayed total when you exceed the estimate
 - Completion appends the conclusion and sets status=completed; cancel sets status=cancelled
@@ -95,7 +93,6 @@ Common errors (expect these if violated):
 - Invalid sessionId format (must be `session-{unix-milliseconds}`) → `ERROR: Invalid sessionId format...`
 - Providing sessionId on thought 1 when session does not exist → `ERROR: Session {id} not found. To start new session, don't provide sessionId.`
 - Trying thoughtNumber>1 without an existing session → `ERROR: Session {id} missing. Start with thoughtNumber=0.` (use thoughtNumber=0 to create a new session)
-- Branching without branchId → `ERROR: branchId required when branchFromThought is specified...`
 - Parent workflow on thought>1 or missing/closed workflow → corresponding parent workflow errors
 
 You should:
@@ -103,7 +100,7 @@ You should:
 2. Feel free to question or revise previous thoughts
 3. Don't hesitate to add more thoughts if needed, even at the "end"
 4. Express uncertainty when present
-5. Mark thoughts that revise previous thinking or branch into new paths
+5. Mark thoughts that revise previous thinking or use `branchId` for multi-agent coordination
 6. Ignore information that is irrelevant to the current step
 7. Generate a solution hypothesis when appropriate
 8. Verify the hypothesis based on the Chain of Thought steps

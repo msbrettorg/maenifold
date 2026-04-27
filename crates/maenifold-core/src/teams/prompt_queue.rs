@@ -137,6 +137,10 @@ impl PromptQueue {
             None => item,
         };
 
+        // Guard: if old worker is still draining, refuse rather than spawn a parallel one.
+        if !entry.handle.is_finished() {
+            return Err(full());
+        }
         // Stale worker: respawn and retry exactly once so the prompt isn't lost.
         self.conversations.remove(&key);
         let fresh = spawn_conversation(cap, dispatcher, key.clone());

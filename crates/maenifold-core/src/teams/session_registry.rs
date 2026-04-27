@@ -38,7 +38,11 @@ pub struct SessionRegistry {
 }
 
 impl SessionRegistry {
-    /// Create a new registry with the given capacity and idle timeout.
+    /// Creates a new session registry.
+    ///
+    /// `max_sessions` is clamped to a minimum of 1 — a zero-capacity registry
+    /// would silently discard all sessions, which is not useful behavior.
+    /// To disable session reuse, do not use a registry.
     pub fn new(max_sessions: usize, idle_timeout: Duration) -> Self {
         Self {
             sessions: HashMap::with_capacity(max_sessions.max(1)),
@@ -52,7 +56,11 @@ impl SessionRegistry {
     ///
     /// Updates `last_used` on every call. Evicts the oldest idle entry if the
     /// registry is at capacity and a new entry must be inserted.
-    pub fn get_or_create(&mut self, conversation_id: &str) -> &str {
+    pub fn get_or_create(&mut self, conversation_id: &str) -> Option<&str> {
+        if conversation_id.trim().is_empty() {
+            tracing::warn!("session_registry: rejecting empty conversation_id");
+            return None;
+        }
         let now = Instant::now();
         if self.sessions.contains_key(conversation_id) {
             let entry = self
@@ -60,7 +68,7 @@ impl SessionRegistry {
                 .get_mut(conversation_id)
                 .expect("contains_key just confirmed presence");
             entry.last_used = now;
-            return entry.app_session_id.as_str();
+            return Some(entry.app_session_id.as_str());
         }
 
         if self.sessions.len() >= self.max_sessions {
@@ -75,10 +83,12 @@ impl SessionRegistry {
                 last_used: now,
             },
         );
-        self.sessions
-            .get(conversation_id)
-            .map(|e| e.app_session_id.as_str())
-            .expect("just inserted")
+        Some(
+            self.sessions
+                .get(conversation_id)
+                .map(|e| e.app_session_id.as_str())
+                .expect("just inserted"),
+        )
     }
 
     /// Update `last_used` for an existing conversation. No-op if unknown.
@@ -132,15 +142,15 @@ mod tests {
     #[test]
     fn get_or_create_derives_app_session_id_from_conversation_id() {
         let mut reg = SessionRegistry::default();
-        let id = reg.get_or_create("conv-abc").to_string();
+        let id = reg.get_or_create("conv-abc").unwrap().to_string();
         assert_eq!(id, "teams:conv-abc");
     }
 
     #[test]
     fn repeat_access_returns_same_app_session_id_and_keeps_one_entry() {
         let mut reg = SessionRegistry::default();
-        let first = reg.get_or_create("conv-abc").to_string();
-        let second = reg.get_or_create("conv-abc").to_string();
+        let first = reg.get_or_create("conv-abc").unwrap().to_string();
+        let second = reg.get_or_create("conv-abc").unwrap().to_string();
         assert_eq!(first, second);
         assert_eq!(reg.active_count(), 1);
     }
@@ -148,10 +158,25 @@ mod tests {
     #[test]
     fn distinct_conversations_get_distinct_session_ids() {
         let mut reg = SessionRegistry::default();
-        let a = reg.get_or_create("conv-a").to_string();
-        let b = reg.get_or_create("conv-b").to_string();
+        let a = reg.get_or_create("conv-a").unwrap().to_string();
+        let b = reg.get_or_create("conv-b").unwrap().to_string();
         assert_ne!(a, b);
         assert_eq!(reg.active_count(), 2);
+    }
+
+    #[test]
+    fn empty_conversation_id_is_rejected() {
+        let mut reg = SessionRegistry::new(5, Duration::from_secs(3600));
+        assert!(reg.get_or_create("").is_none());
+        assert!(reg.get_or_create("   ").is_none());
+        assert_eq!(reg.active_count(), 0);
+    }
+
+    #[test]
+    fn zero_capacity_is_clamped_to_one() {
+        let mut reg = SessionRegistry::new(0, Duration::from_secs(3600));
+        assert!(reg.get_or_create("conv1").is_some());
+        assert_eq!(reg.active_count(), 1);
     }
 
     #[test]

@@ -38,8 +38,9 @@ const presence = ref<Record<string, boolean>>({});
 const isChecking = ref(false);
 const status = ref('');
 
+const envVarFields = fields.filter((field) => field.key !== 'imageModel');
 const namesToCheck = computed(() =>
-  fields
+  envVarFields
     .map((field) => props.azure[field.key].trim())
     .filter((name) => name.length > 0),
 );
@@ -50,7 +51,18 @@ function updateField(field: AzureField, value: string | number) {
 
 function fieldPresence(field: AzureField): boolean | null {
   const name = props.azure[field].trim();
+  if (field === 'imageModel') {
+    return name.length > 0;
+  }
   return name ? presence.value[name] ?? false : null;
+}
+
+function fieldStatusTitle(field: AzureField): string {
+  const isPresent = fieldPresence(field);
+  if (field === 'imageModel') {
+    return isPresent ? 'Deployment name configured' : 'Deployment name required';
+  }
+  return isPresent ? 'Present in environment' : 'Not present in environment';
 }
 
 async function refreshPresence() {
@@ -104,7 +116,7 @@ watch(namesToCheck, () => {
         <span
           class="size-2 rounded-full"
           :class="fieldPresence(field.key) ? 'bg-success' : 'bg-destructive'"
-          :title="fieldPresence(field.key) ? 'Present in environment' : 'Not present in environment'"
+          :title="fieldStatusTitle(field.key)"
           aria-hidden="true"
         />
         <Label :for="`easter-eggs-${field.key}`" class="text-sm font-semibold">

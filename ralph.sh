@@ -166,7 +166,6 @@ mkdir -p ralph/state
 require_command copilot
 require_command jq
 require_command maenifold
-require_command gate
 require_command shasum
 
 PARENT_THINKING_SESSION="${RALPH_THINKING_SESSION:-}"

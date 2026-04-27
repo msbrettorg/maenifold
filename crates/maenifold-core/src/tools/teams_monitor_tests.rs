@@ -72,7 +72,7 @@ fn status_action_returns_current_config_state() {
                 "identity": null,
                 "keyword": "@maenifold",
                 "listenScope": "wildcard",
-                "monitoredConversations": [],
+                "monitoredConversations": ["48:notes"],
                 "replyBehavior": "sourceConversation",
                 "replyPrefix": "maenifold: ",
                 "dispatchTimeoutMinutes": 10,
@@ -85,7 +85,7 @@ fn status_action_returns_current_config_state() {
                     "maxReconnectDelaySeconds": 300,
                     "tokenRefreshMinutes": 50,
                     "heartbeatIntervalSeconds": 30,
-                    "chatsvcRegion": "amer"
+                    "chatsvcRegion": ""
                 },
             })
         );

@@ -206,6 +206,162 @@ verify_immutable_files() {
   return 0
 }
 
+# --- Baseline snapshot / rollback helpers (T-240.4) ---
+
+snapshot_baseline() {
+  local iteration="$1"
+  local baseline_dir="ralph/state/baseline/${iteration}"
+  mkdir -p "$baseline_dir"
+
+  git rev-parse HEAD > "$baseline_dir/HEAD"
+  cp "$IMMUTABLE_HASH_FILE" "$baseline_dir/immutable-hashes.txt" 2>/dev/null || true
+  git ls-files --others --exclude-standard -z > "$baseline_dir/untracked-pre.z"
+  git status --porcelain=v1 -z > "$baseline_dir/status-pre.z"
+}
+
+# Compute set difference of NUL-delimited lists: post \ pre.
+# Refuses to operate (returns non-zero) if any path contains an embedded newline.
+_iteration_new_untracked() {
+  local pre_z="$1" post_z="$2" out="$3"
+  local pre_txt post_txt
+  pre_txt="$(mktemp)"
+  post_txt="$(mktemp)"
+  # NUL → newline. If a path itself contained a newline this would corrupt the diff,
+  # so guard explicitly: count NUL records vs newline records and refuse on mismatch.
+  local pre_nul pre_nl post_nul post_nl
+  pre_nul=$(tr -cd '\0' < "$pre_z"  | wc -c | tr -d ' ')
+  post_nul=$(tr -cd '\0' < "$post_z" | wc -c | tr -d ' ')
+  tr '\0' '\n' < "$pre_z"  | LC_ALL=C sort -u > "$pre_txt"
+  tr '\0' '\n' < "$post_z" | LC_ALL=C sort -u > "$post_txt"
+  pre_nl=$(grep -c '' "$pre_txt"  || true)
+  post_nl=$(grep -c '' "$post_txt" || true)
+  # After sort -u, duplicate-empty paths collapse, so allow nl <= nul.
+  if (( pre_nl > pre_nul )) || (( post_nl > post_nul )); then
+    echo "ERROR: untracked path contains embedded newline; refusing to diff" >&2
+    rm -f "$pre_txt" "$post_txt"
+    return 2
+  fi
+  comm -13 "$pre_txt" "$post_txt" > "$out"
+  rm -f "$pre_txt" "$post_txt"
+}
+
+validate_clean_baseline() {
+  local iteration="$1"
+  local baseline_dir="ralph/state/baseline/${iteration}"
+  local expected_head current_head ok=true
+  expected_head="$(cat "$baseline_dir/HEAD")"
+  current_head="$(git rev-parse HEAD)"
+
+  if [[ "$current_head" != "$expected_head" ]]; then
+    echo "  ✗ HEAD mismatch: expected $expected_head, got $current_head"
+    ok=false
+  fi
+  if ! git diff --quiet; then
+    echo "  ✗ worktree dirty after rollback"
+    ok=false
+  fi
+  if ! git diff --cached --quiet; then
+    echo "  ✗ index dirty after rollback"
+    ok=false
+  fi
+  if ! verify_immutable_files >/dev/null 2>&1; then
+    echo "  ✗ immutable file hash mismatch after rollback"
+    ok=false
+  fi
+
+  local current_z residue
+  current_z="$(mktemp)"
+  residue="$(mktemp)"
+  git ls-files --others --exclude-standard -z > "$current_z"
+  if ! _iteration_new_untracked "$baseline_dir/untracked-pre.z" "$current_z" "$residue"; then
+    rm -f "$current_z" "$residue"
+    return 1
+  fi
+  if [[ -s "$residue" ]]; then
+    echo "  ✗ iteration-created untracked residue still present:"
+    sed 's/^/      /' "$residue"
+    ok=false
+  fi
+  rm -f "$current_z" "$residue"
+
+  $ok
+}
+
+perform_rollback() {
+  local iteration="$1" reason="$2"
+  local baseline_dir="ralph/state/baseline/${iteration}"
+  local baseline_head; baseline_head="$(cat "$baseline_dir/HEAD")"
+  local quarantine="ralph/state/quarantine/${iteration}-$(date +%s)"
+
+  echo "REVERTING iteration ${iteration}: ${reason}"
+  echo "  baseline HEAD: ${baseline_head}"
+  notify "RALPH ⚠️" "Iteration ${iteration} reverting: ${reason}"
+
+  # 1. Quarantine untracked files created during this iteration.
+  local post_z new_untracked
+  post_z="$(mktemp)"
+  new_untracked="$(mktemp)"
+  git ls-files --others --exclude-standard -z > "$post_z"
+  if ! _iteration_new_untracked "$baseline_dir/untracked-pre.z" "$post_z" "$new_untracked"; then
+    echo "  ERROR: cannot compute iteration-created untracked set"
+    rm -f "$post_z" "$new_untracked"
+    return 1
+  fi
+
+  if [[ -s "$new_untracked" ]]; then
+    mkdir -p "$quarantine"
+    local count
+    count=$(grep -c '' "$new_untracked" || true)
+    echo "  Quarantining ${count} iteration-created untracked file(s) → $quarantine"
+    while IFS= read -r path; do
+      [[ -z "$path" ]] && continue
+      if [[ -e "$path" || -L "$path" ]]; then
+        mkdir -p "$quarantine/$(dirname "$path")"
+        mv -- "$path" "$quarantine/$path"
+      fi
+    done < "$new_untracked"
+    cp "$new_untracked" "$quarantine/MANIFEST.txt"
+    printf '%s\n' "$reason" > "$quarantine/REASON.txt"
+    printf '%s\n' "$baseline_head" > "$quarantine/BASELINE_HEAD.txt"
+  fi
+  rm -f "$post_z" "$new_untracked"
+
+  # 2. Hard-reset index + worktree to baseline HEAD.
+  if ! git reset --hard "$baseline_head"; then
+    echo "  ERROR: git reset --hard ${baseline_head} failed"
+    return 1
+  fi
+
+  # 3. Validate post-conditions.
+  validate_clean_baseline "$iteration"
+}
+
+print_iteration_summary() {
+  local iteration="$1" outcome="$2" baseline_head="$3"
+  local final_head tracked_clean staged_clean untracked_count immutable_status convergence_state
+  final_head="$(git rev-parse HEAD)"
+  git diff --quiet         && tracked_clean="clean" || tracked_clean="DIRTY"
+  git diff --cached --quiet && staged_clean="clean"  || staged_clean="DIRTY"
+  untracked_count="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
+  if verify_immutable_files >/dev/null 2>&1; then immutable_status="ok"; else immutable_status="VIOLATED"; fi
+  if   [[ -f ralph/state/rollback-failed ]]; then convergence_state="rollback-failed"
+  elif [[ -f ralph/state/converged       ]]; then convergence_state="converged"
+  else                                            convergence_state="running"
+  fi
+
+  cat <<EOF
+─── Iteration ${iteration} summary ───
+  outcome:        ${outcome}
+  base commit:    ${baseline_head}
+  final commit:   ${final_head}
+  tracked diff:   ${tracked_clean}
+  staged diff:    ${staged_clean}
+  untracked:      ${untracked_count}
+  immutable:      ${immutable_status}
+  convergence:    ${convergence_state}
+EOF
+}
+
 # --- Main loop ---
 consecutive_reverts=0
 
@@ -253,6 +409,10 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   # Export iteration config
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
+
+  # --- Snapshot pre-iteration baseline (HEAD, immutable hashes, untracked set) ---
+  snapshot_baseline "$iteration"
+  baseline_head="$(cat "ralph/state/baseline/${iteration}/HEAD")"
 
   # --- Logging, OTEL, and session capture ---
   LOG_DIR="ralph/state/logs"
@@ -352,16 +512,29 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   fi
 
   # --- Revert or keep ---
+  iteration_outcome="KEPT"
   if [[ "$should_revert" == "true" ]]; then
-    echo "REVERTING iteration ${iteration}: ${revert_reason}"
-    notify "RALPH ⚠️" "Iteration ${iteration} reverted: ${revert_reason}"
-    git checkout -- . 2>/dev/null || true
-    consecutive_reverts=$((consecutive_reverts + 1))
-
-    if [[ $consecutive_reverts -ge 3 ]]; then
-      echo "3 consecutive reverts — auto-converging."
-      notify "RALPH 🛑" "3 consecutive reverts — auto-converged"
-      touch ralph/state/converged
+    iteration_outcome="REVERTED"
+    if perform_rollback "$iteration" "$revert_reason"; then
+      consecutive_reverts=$((consecutive_reverts + 1))
+      if [[ $consecutive_reverts -ge 3 ]]; then
+        if validate_clean_baseline "$iteration" >/dev/null 2>&1; then
+          echo "3 consecutive clean reverts — auto-converging."
+          notify "RALPH 🛑" "3 consecutive reverts — auto-converged"
+          touch ralph/state/converged
+        else
+          echo "3 consecutive reverts but tree dirty — refusing to converge."
+          rm -f ralph/state/converged
+        fi
+      fi
+    else
+      echo "ROLLBACK FAILED iteration ${iteration}: tree not restored to baseline"
+      notify "RALPH 🛑" "Rollback FAILED iteration ${iteration} — manual intervention required"
+      rm -f ralph/state/converged
+      touch ralph/state/rollback-failed
+      print_iteration_summary "$iteration" "ROLLBACK_FAILED" "$baseline_head"
+      echo "Ralph iteration ${iteration} complete: duration=${duration}s revert=true rollback=failed"
+      exit 2
     fi
   else
     echo "KEEPING iteration ${iteration}: changes accepted"
@@ -369,6 +542,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
     consecutive_reverts=0
   fi
 
+  print_iteration_summary "$iteration" "$iteration_outcome" "$baseline_head"
   echo "Ralph iteration ${iteration} complete: duration=${duration}s revert=${should_revert}"
 
   if [[ -f "ralph/state/converged" ]]; then
@@ -379,5 +553,8 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 done
 
 echo ""
+if [[ -f ralph/state/rollback-failed ]]; then
+  echo "Ralph loop ended with ROLLBACK FAILURE — see ralph/state/rollback-failed and ralph/state/quarantine/."
+fi
 echo "Ralph loop complete after ${iteration} iterations."
 notify "RALPH 🏁" "Loop complete — ${iteration} iterations"

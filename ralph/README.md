@@ -42,6 +42,15 @@ Two nested loops, two prompts, two shells, one score:
 | `state/meta-baseline.json` | Gate snapshot + F components captured before each META iteration | `meta.sh` writes; META reads | Source of truth for `score_before` |
 | `state/meta-verdict.json` | Single-iteration verdict (kept/reverted, scores, reason) | META writes; `meta.sh` reads then deletes | **Mandatory.** Missing verdict = automatic revert. |
 | `state/meta.lock` | Lockfile preventing concurrent META runs | `meta.sh` only | If `meta.sh` won't start, check this. |
+| `state/baseline/<iter>/` | Per-iteration snapshot: pre-iteration `HEAD`, immutable hashes, untracked file set | `ralph.sh` writes before dispatch | Used by rollback to restore exact baseline. Safe to `rm -rf` between runs. |
+| `state/quarantine/<iter>-<ts>/` | Untracked files created by an iteration that was reverted, plus `MANIFEST.txt` / `REASON.txt` / `BASELINE_HEAD.txt` | `ralph.sh` writes during rollback | Inspect before discarding. To recover, `mv` files back into the worktree. Safe to `rm -rf` once reviewed. |
+| `state/rollback-failed` | Sentinel — the last rollback could not restore the baseline | `ralph.sh` writes; you delete after manual recovery | While present, `state/converged` will not be honored as a green light. |
+
+**Rollback semantics (T-240.4).** When an iteration is reverted, RALPH:
+1. Quarantines iteration-created untracked files (set difference vs. the pre-iteration snapshot) into `state/quarantine/<iter>-<ts>/`.
+2. Runs `git reset --hard <baseline_HEAD>` to restore tracked state.
+3. Validates `HEAD`, `git diff`, `git diff --cached`, immutable hashes, and untracked residue all match baseline. If anything fails, it writes `state/rollback-failed`, removes any `state/converged` marker, prints a summary, and exits 2.
+4. The 3-consecutive-revert convergence shortcut only fires when the most recent rollback validated clean.
 
 The shells live one level up at the repo root: **`/ralph.sh`** and **`/meta.sh`**.
 

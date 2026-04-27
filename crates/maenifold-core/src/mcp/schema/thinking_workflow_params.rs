@@ -18,10 +18,10 @@ pub struct SequentialThinkingParams {
     /// Main thought content; must include [[WikiLinks]] unless cancelling
     #[serde(default)]
     pub response: Option<String>,
-    /// Whether another thought is needed after this one
+    /// Whether another thought is needed after this one. `true` to continue with another thought; `false` to complete the session (requires `conclusion`) or cancel (requires `cancel=true`).
     #[serde(default)]
     pub next_thought_needed: bool,
-    /// Current thought number. New sessions must start at 0. Subsequent thoughts increment from there.
+    /// Sequence index. To start a new session, omit `sessionId` and pass `thoughtNumber=0` — the server returns the generated `sessionId`. Subsequent calls reuse that `sessionId` and increment from 1.
     #[serde(default = "default_zero_u32")]
     #[schemars(default = "default_zero_u32")]
     pub thought_number: u32,
@@ -59,7 +59,7 @@ pub struct SequentialThinkingParams {
     /// Type of child submachine to register; defaults to sequential when omitted
     #[serde(default)]
     pub submachine_type: Option<SubmachineType>,
-    /// Structured ConfessionReport used when completing the session
+    /// Required when completing a session (`nextThoughtNeeded=false` and `cancel=false`). Structured ConfessionReport. Omit when continuing or cancelling.
     #[serde(default)]
     pub conclusion: Option<String>,
     /// Return help documentation instead of executing

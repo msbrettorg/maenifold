@@ -11,7 +11,7 @@ cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipelin
 
 echo ""
 echo "═══ Install binaries ═══"
-for bin in maenifold maenifold-pipeline-driver gate; do
+for bin in maenifold maenifold-pipeline-driver; do
   src="$ROOT/target/release/$bin"
   dest="/usr/local/bin/$bin"
   if [ -f "$src" ]; then
@@ -26,7 +26,7 @@ done
 
 echo ""
 echo "═══ Restart launchd services ═══"
-for svc in com.ma-collective.maenifold com.ma-collective.gate; do
+for svc in com.ma-collective.maenifold; do
   if launchctl list "$svc" &>/dev/null; then
     launchctl kickstart -k "gui/${UID_NUM}/${svc}" 2>/dev/null || true
     sleep 1
@@ -61,6 +61,19 @@ for port in 8080 8081; do
     echo "  ✗ localhost:${port} not responding (HTTP ${code})"
   fi
 done
+
+echo ""
+echo "═══ Verify maenifold.gate domain registration ═══"
+gate_check=$(curl -s -X POST http://127.0.0.1:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json, text/event-stream' \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"GatewayIndex","arguments":{}}}' \
+  2>/dev/null | grep -c 'maenifold.gate' || true)
+if [ "${gate_check:-0}" -gt 0 ]; then
+  echo "  ✓ maenifold.gate domain registered"
+else
+  echo "  ✗ maenifold.gate domain MISSING from GatewayIndex — daemon may be running a stale binary"
+fi
 
 echo ""
 echo "Done."

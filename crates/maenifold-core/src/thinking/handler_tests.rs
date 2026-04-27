@@ -193,4 +193,121 @@ mod tests {
 
         assert!(result.contains("already completed"));
     }
+
+    // T-240.5: completing without a conclusion must produce a JSON failure envelope.
+    #[test]
+    #[serial]
+    fn completion_without_conclusion_returns_failure_envelope() {
+        let (_tmp, _ctx, _guard) = test_context();
+        let cfg = Config::current();
+        let json_ctx = ToolContext::new(cfg, OutputFormat::Json);
+        let session_id = "session-1735689600000-30001";
+        seed_session(&json_ctx, session_id);
+
+        let output = sequential_thinking(
+            &json_ctx,
+            &json!({
+                "sessionId": session_id,
+                "thoughtNumber": 1,
+                "totalThoughts": 1,
+                "response": "[[wrap-up]] without conclusion",
+                "nextThoughtNeeded": false,
+            }),
+        )
+        .expect("validation failure rendered as Ok envelope");
+
+        let parsed: serde_json::Value =
+            serde_json::from_str(&output).expect("failure envelope is JSON");
+        assert_eq!(parsed["success"], serde_json::Value::Bool(false));
+        assert_eq!(parsed["error"]["code"], "CONCLUSION_REQUIRED");
+    }
+
+    // T-240.5: a well-formed completion call with a conclusion succeeds.
+    #[test]
+    #[serial]
+    fn completion_with_conclusion_succeeds() {
+        let (_tmp, _ctx, _guard) = test_context();
+        let cfg = Config::current();
+        let json_ctx = ToolContext::new(cfg, OutputFormat::Json);
+        let session_id = "session-1735689600000-30002";
+        seed_session(&json_ctx, session_id);
+
+        let output = sequential_thinking(
+            &json_ctx,
+            &json!({
+                "sessionId": session_id,
+                "thoughtNumber": 1,
+                "totalThoughts": 1,
+                "response": "[[wrap-up]] with conclusion",
+                "nextThoughtNeeded": false,
+                "conclusion": "[[done]]",
+            }),
+        )
+        .expect("completion succeeds");
+
+        let parsed: serde_json::Value =
+            serde_json::from_str(&output).expect("success envelope is JSON");
+        assert_eq!(parsed["success"], serde_json::Value::Bool(true));
+        assert_eq!(parsed["data"]["status"], "completed");
+    }
+
+    // T-240.5: unknown payload field 'initialThoughts' should suggest 'thoughtNumber'.
+    #[test]
+    #[serial]
+    fn unknown_field_initial_thoughts_suggests_thought_number() {
+        let (_tmp, context, _guard) = test_context();
+
+        let err = sequential_thinking(
+            &context,
+            &json!({
+                "initialThoughts": 0,
+                "thoughtNumber": 1,
+                "totalThoughts": 3,
+                "nextThoughtNeeded": true,
+                "response": "[[start]]",
+            }),
+        )
+        .expect_err("unknown field rejected");
+
+        let message = err.to_string();
+        assert!(
+            message.contains("initialThoughts"),
+            "message names offending field: {message}"
+        );
+        assert!(
+            message.contains("thoughtNumber"),
+            "message suggests canonical field: {message}"
+        );
+    }
+
+    // T-240.5: SESSION_MISSING explains the start-session contract.
+    #[test]
+    #[serial]
+    fn session_missing_message_explains_start_contract() {
+        let (_tmp, _ctx, _guard) = test_context();
+        let cfg = Config::current();
+        let json_ctx = ToolContext::new(cfg, OutputFormat::Json);
+
+        let output = sequential_thinking(
+            &json_ctx,
+            &json!({
+                "sessionId": "session-1735689600000-30003",
+                "thoughtNumber": 1,
+                "totalThoughts": 2,
+                "nextThoughtNeeded": true,
+                "response": "[[start]]",
+            }),
+        )
+        .expect("session-missing rendered as Ok envelope");
+
+        let parsed: serde_json::Value =
+            serde_json::from_str(&output).expect("failure envelope is JSON");
+        assert_eq!(parsed["success"], serde_json::Value::Bool(false));
+        assert_eq!(parsed["error"]["code"], "SESSION_MISSING");
+        let message = parsed["error"]["message"].as_str().unwrap_or_default();
+        assert!(
+            message.contains("thoughtNumber=0"),
+            "SESSION_MISSING message teaches the start contract: {message}"
+        );
+    }
 }

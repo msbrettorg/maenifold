@@ -155,12 +155,30 @@ fn reject_unknown_payload_keys(payload: &Value) -> Result<()> {
         .keys()
         .find(|key| !ALLOWED_PAYLOAD_KEYS.contains(&key.as_str()))
     {
-        return Err(MaenifoldError::InvalidArgument(format!(
-            "Unknown SequentialThinking payload field '{key}'."
-        )));
+        // T-240.5: name the closest documented field for common misuse.
+        let suggestion = suggest_known_field(key);
+        let message = match suggestion {
+            Some(name) => format!(
+                "Unknown SequentialThinking payload field '{key}'. Did you mean '{name}'?"
+            ),
+            None => format!("Unknown SequentialThinking payload field '{key}'."),
+        };
+        return Err(MaenifoldError::InvalidArgument(message));
     }
 
     Ok(())
+}
+
+// T-240.5: actionable hints for fields commonly invented by callers.
+fn suggest_known_field(key: &str) -> Option<&'static str> {
+    match key {
+        "initialThoughts" | "initial_thoughts" => Some("thoughtNumber"),
+        "concl" | "conclude" => Some("conclusion"),
+        "nextThought" | "next_thought" | "nextThoughtsNeeded" => Some("nextThoughtNeeded"),
+        "session" | "session_id" => Some("sessionId"),
+        "totalThought" | "total_thoughts" => Some("totalThoughts"),
+        _ => None,
+    }
 }
 
 pub(crate) fn validate_completion(

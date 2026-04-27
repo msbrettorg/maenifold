@@ -11,17 +11,36 @@
     "typescript": {
       "command": "typescript-language-server",
       "args": ["--stdio"],
+      "rootUri": "apps/desktop",
+      "initializationOptions": {
+        "tsserver": {
+          "path": "node_modules/typescript/lib"
+        }
+      },
       "fileExtensions": {
         ".ts": "typescript",
-        ".tsx": "typescript"
+        ".tsx": "typescriptreact",
+        ".js": "javascript",
+        ".jsx": "javascriptreact",
+        ".mjs": "javascript",
+        ".cjs": "javascript",
+        ".mts": "typescript",
+        ".cts": "typescript"
       }
     },
     "vue": {
       "command": "vue-language-server",
-      "args": [
-        "--stdio",
-        "--tsdk=/Users/brett/src/ma-collective/maenifold-rs/apps/desktop/node_modules/typescript/lib"
-      ],
+      "args": ["--stdio"],
+      "rootUri": "apps/desktop",
+      "requestTimeoutMs": 180000,
+      "initializationOptions": {
+        "typescript": {
+          "tsdk": "node_modules/typescript/lib"
+        },
+        "vue": {
+          "hybridMode": false
+        }
+      },
       "fileExtensions": {
         ".vue": "vue"
       }

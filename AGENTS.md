@@ -241,7 +241,7 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/r
 
 - **300 LOC hard limit** on source files. Build-enforced by `audit-crates.sh` (Rust) and `audit-components.mjs` (Vue). Split before adding. Red-team flags violations.
 - **Research before building.** Hand-rolling what a library provides is a P0 escalation.
-- **LSP is mandatory** for Rust/TS/Vue navigation. No grep/glob on source files.
+- **LSP is preferred** for Rust/TS/Vue navigation. See [LSP Reference](#lsp-reference) for what works, what doesn't, and when to fall back to grep/glob.
 - **Full-stack spec verification.** Frontend without backend plumbing is not a feature.
 - **No TODO/FIXME/HACK.** File a gate task instead. Build-enforced.
 - **No console.log/debug/warn.** Use a proper logger or remove. Build-enforced (frontend).
@@ -301,6 +301,80 @@ Launch binary directly (not `open -a`) with `--remote-debugging-port=9222`. One 
 ## Protected Files
 
 - `assets/integrations/copilot/plugin-maenifold/.mcp.json` — dot prefix intentional, never rename.
+
+---
+
+## LSP Reference
+
+Three LSP servers are configured in `.github/lsp.json` (repo-level) and `~/.copilot/lsp-config.json` (user-level). Config reference: [Adding LSP servers for Copilot CLI](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/add-lsp-servers).
+
+### Monorepo Layout
+
+The TS/Vue frontend lives in `apps/desktop/`, not at the git root. Both servers use `rootUri: "apps/desktop"` to point at the subdirectory containing `tsconfig.json`. Without this, the servers start in the git root, find no tsconfig, and fail silently.
+
+### Rust (`rust-analyzer`)
+
+**Status:** Fully operational. All LSP operations work including cross-crate `workspaceSymbol`.
+
+| Operation | Works | Notes |
+|---|---|---|
+| `workspaceSymbol` | ✅ | Finds symbols across all crates |
+| `documentSymbol` | ✅ | |
+| `goToDefinition` | ✅ | Cross-crate |
+| `findReferences` | ✅ | Cross-crate |
+| `hover` | ✅ | Full type + size info |
+| `incomingCalls` | ✅ | |
+| `outgoingCalls` | ✅ | |
+| `rename` | ✅ | |
+
+### TypeScript (`typescript-language-server`)
+
+**Status:** File-level operations work. `workspaceSymbol` is unreliable.
+
+| Operation | Works | Notes |
+|---|---|---|
+| `documentSymbol` | ✅ | Full symbol tree for any `.ts` file |
+| `hover` | ✅ | Type signatures, docs |
+| `goToDefinition` | ✅ | Cross-file, into `node_modules` |
+| `findReferences` | ✅ | Cross-file |
+| `rename` | ✅ | |
+| `workspaceSymbol` | ⚠️ | Returns empty until tsserver finishes async project loading. No way to wait for readiness from config. Use `documentSymbol` on specific files or `findReferences` from a known symbol instead. |
+
+**Known limitation:** `typescript-language-server` loads the project asynchronously. The `workspace/symbol` request returns empty results until initialization completes (signaled by a `$/progress` notification the Copilot CLI client does not currently surface). See [typescript-language-server#948](https://github.com/typescript-language-server/typescript-language-server/issues/948). File-level operations (`hover`, `findReferences`, `goToDefinition`, `documentSymbol`) work immediately because they trigger on-demand file loading.
+
+**Workaround for symbol discovery:** Instead of `workspaceSymbol`, use `documentSymbol` on the target file, or start from a known import and use `goToDefinition` to navigate. `findReferences` from any known symbol location provides the cross-file view that `workspaceSymbol` would.
+
+### Vue (`vue-language-server`)
+
+**Status:** Requires warm-up time. Large projects may exceed default timeout.
+
+| Operation | Works | Notes |
+|---|---|---|
+| `documentSymbol` | ⚠️ | Works after project loads; may timeout on first request |
+| `hover` | ⚠️ | Same warm-up caveat |
+| `goToDefinition` | ⚠️ | Same warm-up caveat |
+| `findReferences` | ⚠️ | Same warm-up caveat |
+| `workspaceSymbol` | ⚠️ | Same async loading limitation as TS |
+
+Config includes `requestTimeoutMs: 180000` (3 min) to accommodate the larger project. The `@vue/language-server` package version must match `vue-tsc` — both pinned at `3.2.7`.
+
+### Config Fields That Matter
+
+| Field | What it does | Where documented |
+|---|---|---|
+| `rootUri` | Sets workspace root relative to git root. Required for monorepos. | [Copilot CLI LSP docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/add-lsp-servers) |
+| `initializationOptions.tsserver.path` | Tells `typescript-language-server` where to find TypeScript. Relative to `rootUri`. | [typescript-language-server/docs/configuration.md](https://github.com/typescript-language-server/typescript-language-server/blob/main/docs/configuration.md) |
+| `initializationOptions.typescript.tsdk` | Tells `vue-language-server` where to find TypeScript. Relative to `rootUri`. | Vue Language Server docs |
+| `requestTimeoutMs` | Per-request timeout in ms. Default: 90000. | [Copilot CLI LSP docs](https://docs.github.com/en/copilot/how-tos/copilot-cli/set-up-copilot-cli/add-lsp-servers) |
+| `initializationTimeoutMs` | Server startup timeout. | Copilot CLI LSP docs |
+| `fileExtensions` | Maps file extensions to language IDs. | Copilot CLI LSP docs |
+
+### Agent Guidance
+
+1. **Prefer file-level operations.** `documentSymbol`, `hover`, `findReferences`, `goToDefinition` are reliable across all three servers. Use these as your primary navigation tools.
+2. **Use `workspaceSymbol` only for Rust.** It works reliably with `rust-analyzer`. For TS/Vue, navigate from known entry points instead.
+3. **If an LSP call times out**, the server is still loading. Try again on the next turn — don't fall back to grep/glob unless the server is genuinely broken (in which case, file a gate item for the tooling failure).
+4. **Manage with `/lsp`.** Use `/lsp show` to check status, `/lsp reload` after config changes, `/lsp test <server>` to verify a server starts.
 
 ---
 

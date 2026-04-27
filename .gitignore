@@ -17,6 +17,9 @@ memory
 # Obsidian vault config (user-local)
 .obsidian/
 ralph/state/converged
+ralph/state/baseline/
+ralph/state/quarantine/
+ralph/state/rollback-failed
 .mcp.json
 worktrees/
 ralph/**/snapshots/

@@ -249,11 +249,28 @@ async fn invoke_native(
     .await
     .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))?;
     match result {
-        Ok(output) => Ok(CallToolResult::success(vec![Content::text(output)])),
+        Ok(output) => {
+            // T-240.5: surface domain failures as MCP errors so clients can route on isError.
+            // The body remains byte-identical; only the is_error flag changes when the
+            // embedded JSON envelope reports {"success": false, ...}.
+            if envelope_indicates_failure(&output) {
+                Ok(CallToolResult::error(vec![Content::text(output)]))
+            } else {
+                Ok(CallToolResult::success(vec![Content::text(output)]))
+            }
+        }
         Err(err) => Ok(CallToolResult::error(vec![Content::text(
             format_tool_error(&display_name, &err),
         )])),
     }
+}
+
+// T-240.5: detect domain-failure envelopes produced by `util::json::failure`.
+fn envelope_indicates_failure(text: &str) -> bool {
+    serde_json::from_str::<Value>(text)
+        .ok()
+        .and_then(|v| v.get("success").and_then(Value::as_bool).map(|b| !b))
+        .unwrap_or(false)
 }
 
 fn tool_from_definition(definition: crate::mcp::McpToolDefinition) -> Tool {
@@ -262,4 +279,27 @@ fn tool_from_definition(definition: crate::mcp::McpToolDefinition) -> Tool {
         _ => serde_json::Map::new(),
     };
     Tool::new(definition.name, definition.description, Arc::new(schema))
+}
+
+#[cfg(test)]
+mod envelope_tests {
+    use super::envelope_indicates_failure;
+
+    #[test]
+    fn detects_domain_failure_envelope() {
+        let body = r#"{"success":false,"data":null,"error":{"code":"X","message":"Y"}}"#;
+        assert!(envelope_indicates_failure(body));
+    }
+
+    #[test]
+    fn passes_success_envelope_through() {
+        let body = r#"{"success":true,"data":{"foo":1},"error":null}"#;
+        assert!(!envelope_indicates_failure(body));
+    }
+
+    #[test]
+    fn ignores_non_envelope_text() {
+        assert!(!envelope_indicates_failure("plain markdown"));
+        assert!(!envelope_indicates_failure("{}"));
+    }
 }

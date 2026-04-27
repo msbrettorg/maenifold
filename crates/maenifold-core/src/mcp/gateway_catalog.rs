@@ -47,7 +47,9 @@ pub(crate) enum CommandTarget {
     Native {
         tool_name: String,
     },
-    Gate { command: String },
+    Gate {
+        command: String,
+    },
     Upstream {
         server_name: String,
         tool_name: String,
@@ -172,7 +174,8 @@ impl GatewayCatalog {
     }
 
     fn add_gate_tools(&mut self) -> Result<()> {
-        let domain = self.insert_domain(gateway_gate::DOMAIN_NAME, gateway_gate::DOMAIN_DESCRIPTION)?;
+        let domain =
+            self.insert_domain(gateway_gate::DOMAIN_NAME, gateway_gate::DOMAIN_DESCRIPTION)?;
         for command in gateway_gate::commands() {
             domain.commands.insert(
                 command.name.clone(),

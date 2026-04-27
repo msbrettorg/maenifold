@@ -47,7 +47,7 @@ pub use teams_monitor::{
 };
 #[allow(unused_imports)]
 pub use teams_monitor_global::{
-    normalize_workspace_key, MonitoredConversation, TeamsMonitorGlobalConfig,
-    WorkspaceDispatchConfig, WorkspaceTeamsConfig,
+    MonitoredConversation, TeamsMonitorGlobalConfig, WorkspaceDispatchConfig, WorkspaceTeamsConfig,
+    normalize_workspace_key,
 };
 pub use types::{AgentEntry, McpServerEntry};

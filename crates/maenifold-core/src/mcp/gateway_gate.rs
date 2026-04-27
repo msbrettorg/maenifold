@@ -13,13 +13,48 @@ pub(crate) const DOMAIN_DESCRIPTION: &str =
 
 pub(crate) fn commands() -> Vec<CommandEntry> {
     vec![
-        command("gate_Status", "List gate task status.", status_schema(), "read"),
-        command("gate_Append", "Append notes to the active task stage.", note_schema(), "mutate"),
-        command("gate_Pass", "Pass the active task stage.", note_schema(), "mutate"),
-        command("gate_Fail", "Fail the active task stage.", note_schema(), "mutate"),
-        command("gate_History", "Read gate task stage history.", task_schema(), "read"),
-        command("gate_TaskBody", "Read a gate task markdown body.", task_schema(), "read"),
-        command("gate_Sync", "Sync gate markdown state.", sync_schema(), "mutate"),
+        command(
+            "gate_Status",
+            "List gate task status.",
+            status_schema(),
+            "read",
+        ),
+        command(
+            "gate_Append",
+            "Append notes to the active task stage.",
+            note_schema(),
+            "mutate",
+        ),
+        command(
+            "gate_Pass",
+            "Pass the active task stage.",
+            note_schema(),
+            "mutate",
+        ),
+        command(
+            "gate_Fail",
+            "Fail the active task stage.",
+            note_schema(),
+            "mutate",
+        ),
+        command(
+            "gate_History",
+            "Read gate task stage history.",
+            task_schema(),
+            "read",
+        ),
+        command(
+            "gate_TaskBody",
+            "Read a gate task markdown body.",
+            task_schema(),
+            "read",
+        ),
+        command(
+            "gate_Sync",
+            "Sync gate markdown state.",
+            sync_schema(),
+            "mutate",
+        ),
     ]
 }
 
@@ -32,14 +67,19 @@ pub(crate) async fn invoke_gate(
         .await
         .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))?;
     match result {
-        Ok(value) => Ok(CallToolResult::success(vec![Content::text(render_json(value))])),
+        Ok(value) => Ok(CallToolResult::success(vec![Content::text(render_json(
+            value,
+        ))])),
         Err(err) => Ok(CallToolResult::error(vec![Content::text(format!(
             "Error invoking {display_name}: {err}"
         ))])),
     }
 }
 
-fn call_gate(command: &str, parameters: Value) -> Result<Value, maenifold_gate_core::error::GateError> {
+fn call_gate(
+    command: &str,
+    parameters: Value,
+) -> Result<Value, maenifold_gate_core::error::GateError> {
     let args = object(parameters)?;
     match command {
         "gate_Status" => GateLifecycle::status(StatusArgs {
@@ -75,7 +115,9 @@ fn command(name: &str, description: &str, schema: Value, safety_class: &str) -> 
     }
 }
 
-fn context(args: &Map<String, Value>) -> Result<GateContext, maenifold_gate_core::error::GateError> {
+fn context(
+    args: &Map<String, Value>,
+) -> Result<GateContext, maenifold_gate_core::error::GateError> {
     Ok(GateContext {
         root: PathBuf::from(required_string(args, "root")?),
         requested_pipeline_name: optional_string(args, "pipeline")?,

@@ -80,6 +80,10 @@ function formatRelative(dateStr: string | number): string {
 }
 
 function handleResume(session: SavedSession) {
+  if (isResumeUnavailable(session)) {
+    return;
+  }
+
   const liveSession = liveSessionsByRemoteId.value.get(session.sessionId);
   if (liveSession) {
     sessionStore.setActiveSession(liveSession.localId);
@@ -108,7 +112,7 @@ function hasActiveAgentSession(session: SavedSession): boolean {
 function isResumeUnavailable(session: SavedSession): boolean {
   return !isCurrentConnectedSession(session)
     && !isCurrentConnectingSession(session)
-    && session.supportsLoadSession !== true;
+    && session.supportsLoadSession === false;
 }
 
 function getDeleteTitle(session: SavedSession): string {

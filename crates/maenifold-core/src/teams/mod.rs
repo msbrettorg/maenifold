@@ -5,6 +5,7 @@ mod handler;
 mod handler_helpers;
 mod prompt_guard;
 mod prompt_guard_patterns;
+pub(crate) mod region;
 pub mod identity;
 mod reply;
 mod runtime;

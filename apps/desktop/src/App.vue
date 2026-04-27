@@ -107,15 +107,12 @@ function onOnboardingComplete(): void {
   checkFirstRun();
 }
 
-// Source-based scoping: each tab's ChatView only renders when the active
-// session was created from that tab. Prevents Teams sessions from leaking
-// into the Agents tab and vice versa.
+// Source-based scoping: the Agents tab's ChatView only renders when the
+// active session was created from that tab. The Teams tab is display-only
+// (see TeamsTab.vue) and MUST NOT mutate activeSessionId.
 const activeSessionSource = computed(() => sessionStore.activeSession?.source ?? null);
 const showAgentsChat = computed(
   () => isConnected.value && activeSessionSource.value === 'agents'
-);
-const showTeamsChat = computed(
-  () => isConnected.value && activeSessionSource.value === 'teams'
 );
 </script>
 
@@ -185,10 +182,6 @@ const showTeamsChat = computed(
 
         <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">
           <TeamsTab />
-          <ChatView
-            v-if="showTeamsChat"
-            :key="sessionStore.activeSessionId ?? 'teams-session'"
-          />
         </div>
 
         <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">

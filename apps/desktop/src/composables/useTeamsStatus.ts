@@ -1,3 +1,11 @@
+// Backend contract lock — every type/field in this file MUST mirror one of:
+//   * crates/maenifold-core/src/acp/config/teams_monitor.rs
+//       (TeamsMonitorConfig, TeamsMonitorIdentityConfig, TeamsMonitorConnectionConfig)
+//   * crates/maenifold-core/src/tools/teams_monitor_helpers.rs::status_value
+//       (status payload returned by every TeamsMonitor action)
+//   * crates/maenifold-core/src/mcp/resources/teams.rs (teams://status, teams://config)
+// Do NOT add fields without a backend counterpart. The Settings UI binds
+// directly to these shapes; phantom fields ship as silent no-ops.
 import type { ResourceContent } from './mcpTransport';
 
 export const TEAMS_STATUS_URI = 'teams://status';

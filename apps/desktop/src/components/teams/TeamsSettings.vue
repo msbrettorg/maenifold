@@ -177,7 +177,7 @@ onMounted(() => { void loadStatus(); });
     <div class="flex flex-col gap-1">
       <h3 class="text-base font-semibold text-text-primary">Teams monitor</h3>
       <p class="text-sm text-text-secondary">
-        Uses the signed-in Teams session automatically. No app registration or device code is required.
+        Reuses the signed-in Teams desktop session token to monitor and dispatch.
       </p>
     </div>
     <Alert v-if="runtimeError" variant="destructive">

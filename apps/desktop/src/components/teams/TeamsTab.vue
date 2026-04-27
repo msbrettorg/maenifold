@@ -1,44 +1,49 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
-import { useMcpResources } from '@/composables/useMcpResources';
-import { useSessionStore } from '@/stores/session';
+// Teams tab is display/replay only. It MUST NOT call sessionStore.createSession
+// or otherwise mutate activeSessionId — the Teams Monitor ACP session is owned
+// by the backend (see crates/maenifold-core/src/teams/supervisor.rs,
+// TEAMS_SESSION_ID = "teams-monitor"). Configure it in Settings → Teams.
+// A read-only replay view will land in a follow-up task; until then this tab
+// renders a status placeholder so it cannot leak into the Agents tab.
+import { computed, onMounted, ref } from 'vue';
+import { useMcpClient } from '@/composables/useMcpClient';
+import {
+  parseTeamsStatusPayload,
+  formatTeamsConnectionState,
+  type TeamsMonitorStatus,
+  type TeamsStatus,
+} from '@/composables/useTeamsStatus';
 
-const sessionStore = useSessionStore();
-const mcpResources = useMcpResources();
+const { callTool, connect, connected } = useMcpClient();
+const status = ref<TeamsStatus>(parseTeamsStatusPayload({}));
 const error = ref('');
 
-async function connectToTeamsSession(): Promise<void> {
-  // Only skip if there's already an active *Teams* session — an active Agents
-  // session must not block creating a Teams session, since they're scoped per tab.
-  if (sessionStore.activeSession?.source === 'teams') return;
+const headline = computed(() =>
+  status.value.enabled
+    ? `Teams monitor active · ${formatTeamsConnectionState(status.value.connectionState)}`
+    : 'Teams monitor is disabled. Enable it in Settings → Teams.',
+);
+const detail = computed(
+  () => `${status.value.matchCount} matches · ${status.value.activeDispatches} active dispatches`,
+);
 
-  let agent = 'Codex';
-  let cwd = '/Users/brett/maenifold/memory';
+async function loadStatus(): Promise<void> {
   try {
-    const resource = await mcpResources.readResource('teams://config');
-    if (typeof resource.text === 'string') {
-      const config = JSON.parse(resource.text);
-      if (typeof config.dispatchAgent === 'string' && config.dispatchAgent) {
-        agent = config.dispatchAgent;
-      }
-      if (typeof config.maenifoldRoot === 'string' && config.maenifoldRoot) {
-        cwd = `${config.maenifoldRoot}/memory`;
-      }
-    }
-  } catch { /* use defaults */ }
-
-  try {
-    await sessionStore.createSession(agent, cwd, {}, { source: 'teams' });
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : String(e);
+    if (!connected.value) await connect();
+    const payload = await callTool<TeamsMonitorStatus>('TeamsMonitor', { action: 'status' });
+    status.value = parseTeamsStatusPayload(payload);
+  } catch (loadError) {
+    error.value = loadError instanceof Error ? loadError.message : String(loadError);
   }
 }
 
-onMounted(() => { void connectToTeamsSession(); });
+onMounted(() => { void loadStatus(); });
 </script>
 
 <template>
-  <div v-if="error" class="flex h-full items-center justify-center p-8 text-sm text-text-secondary">
-    {{ error }}
+  <div class="flex flex-1 flex-col items-center justify-center gap-2 p-8 text-center">
+    <p class="text-sm font-semibold text-text-primary">{{ headline }}</p>
+    <p class="text-xs text-text-secondary">{{ detail }}</p>
+    <p v-if="error" class="text-xs text-destructive">{{ error }}</p>
   </div>
 </template>

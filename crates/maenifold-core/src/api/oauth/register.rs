@@ -1,6 +1,11 @@
-use super::{OAUTH_STATE, RegisteredClient, is_loopback_redirect_uri, issued_at, oauth_error};
+use super::{
+    OAUTH_STATE, RegisteredClient, is_loopback_redirect_uri, issued_at, oauth_error,
+    save_clients_to_disk,
+};
+use crate::api::routes::ApiState;
 use axum::{
     Json,
+    extract::State,
     http::StatusCode,
     response::{IntoResponse, Response},
 };
@@ -28,7 +33,10 @@ pub(super) struct RegisterResponse {
     response_types: Vec<&'static str>,
 }
 
-pub(super) async fn register_client(Json(request): Json<RegisterRequest>) -> Response {
+pub(super) async fn register_client(
+    State(state): State<ApiState>,
+    Json(request): Json<RegisterRequest>,
+) -> Response {
     if request
         .token_endpoint_auth_method
         .as_deref()
@@ -91,6 +99,10 @@ pub(super) async fn register_client(Json(request): Json<RegisterRequest>) -> Res
             redirect_uris: redirect_uris.clone(),
         },
     );
+    // Persist so dynamic-client registrations survive daemon restarts
+    // (MCP auth spec / RFC 7591). Clients persist client_id locally and
+    // expect it to remain valid across restarts.
+    save_clients_to_disk(&state.config().maenifold_root);
 
     (
         StatusCode::CREATED,

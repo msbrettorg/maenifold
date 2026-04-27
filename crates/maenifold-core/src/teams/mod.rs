@@ -1,10 +1,8 @@
 mod auth;
-#[allow(dead_code)]
 mod chunking;
 pub mod credential_store;
 mod dedup;
 mod dispatch;
-#[allow(dead_code)]
 pub(crate) mod dispatcher;
 mod handler;
 mod handler_helpers;

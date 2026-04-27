@@ -9,7 +9,6 @@ use std::{
 };
 
 use chrono::Utc;
-use serde_json::Value;
 use tokio::{
     sync::{mpsc, watch},
     task::JoinHandle,
@@ -19,13 +18,15 @@ use tokio_util::sync::CancellationToken;
 use crate::error::{MaenifoldError, Result};
 
 use super::{
-    EventMessage, MessageHandler, MessageHandlerConfig, TokenInfo, TrouterClient,
-    TrouterClientConfig, runtime::update_teams_runtime_state, set_teams_connecting,
-    set_teams_disabled, set_teams_error, teams_runtime_snapshot,
-    token_provider::TeamsTokenProvider, token_refresh::spawn_refresh_loop,
+    EventMessage, MessageHandler, MessageHandlerConfig, TeamsDispatchRequest, TeamsReplyRequest,
+    TokenInfo, TrouterClient, TrouterClientConfig, chunking,
+    dispatcher::{DispatchCtx, DispatchOutcome, run_dispatch},
+    runtime::update_teams_runtime_state, send_reply, set_teams_connecting, set_teams_disabled,
+    set_teams_error, teams_runtime_snapshot, token_provider::TeamsTokenProvider,
+    token_refresh::spawn_refresh_loop,
 };
 
-pub type DispatchFn = Arc<dyn Fn(Value) -> std::result::Result<String, String> + Send + Sync>;
+pub use super::dispatcher::DispatchFn;
 pub type RunnerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
 /// Runner factory: receives a pre-built `TrouterClient` (so the supervisor
 /// can pre-extract a `ReRegisterHandle` for the refresh loop) along with the
@@ -118,55 +119,47 @@ impl TrouterSupervisor {
 }
 
 pub fn default_dispatch_fn() -> DispatchFn {
-    Arc::new(|payload| {
-        let agent = payload
-            .get("agent")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_string();
-        let prompt = payload
-            .get("prompt")
-            .and_then(Value::as_str)
-            .unwrap_or("")
-            .to_string();
+    Arc::new(|req: TeamsDispatchRequest| {
+        Box::pin(async move {
+            let agent = req.agent.clone();
+            let adapter = jockey::acp::build_stdio_adapter(&agent)
+                .map_err(|e| format!("Agent setup failed: {e}"))?
+                .ok_or_else(|| format!("agent '{agent}' is not configured"))?;
 
-        let adapter = jockey::acp::build_stdio_adapter(&agent)
-            .map_err(|e| format!("Agent setup failed: {e}"))?
-            .ok_or_else(|| format!("agent '{agent}' is not configured"))?;
+            let root = jockey::acp::config_root();
+            let cwd = root.join("memory").to_string_lossy().to_string();
 
-        let root = jockey::acp::config_root();
-        let cwd = root.join("memory").to_string_lossy().to_string();
+            let (event_tx, _) = tokio::sync::mpsc::channel::<jockey::acp::AcpEvent>(64);
+            let (result_tx, result_rx) = tokio::sync::oneshot::channel();
 
-        let (event_tx, _) = tokio::sync::mpsc::channel::<jockey::acp::AcpEvent>(64);
-        let (result_tx, result_rx) = tokio::sync::oneshot::channel();
+            jockey::acp::worker_tx()
+                .send(jockey::acp::WorkerMsg::Execute {
+                    runtime_key: adapter.runtime_key,
+                    binary: adapter.binary,
+                    args: adapter.args,
+                    env: adapter.env,
+                    role_name: agent,
+                    app_session_id: TEAMS_SESSION_ID.to_string(),
+                    prompt: req.prompt,
+                    context: vec![],
+                    cwd,
+                    delta_tx: event_tx,
+                    result_tx,
+                    auto_approve: false,
+                    mcp_servers: vec![],
+                    client_capabilities: agent_client_protocol::ClientCapabilities::default(),
+                    role_mode: None,
+                    role_config_options: vec![],
+                    resume_session_id: None,
+                })
+                .map_err(|_| "ACP worker unavailable".to_string())?;
 
-        jockey::acp::worker_tx()
-            .send(jockey::acp::WorkerMsg::Execute {
-                runtime_key: adapter.runtime_key,
-                binary: adapter.binary,
-                args: adapter.args,
-                env: adapter.env,
-                role_name: agent,
-                app_session_id: TEAMS_SESSION_ID.to_string(),
-                prompt,
-                context: vec![],
-                cwd,
-                delta_tx: event_tx,
-                result_tx,
-                auto_approve: false,
-                mcp_servers: vec![],
-                client_capabilities: agent_client_protocol::ClientCapabilities::default(),
-                role_mode: None,
-                role_config_options: vec![],
-                resume_session_id: None,
-            })
-            .map_err(|_| "ACP worker unavailable".to_string())?;
-
-        match result_rx.blocking_recv() {
-            Ok(Ok(success)) => Ok(success.output),
-            Ok(Err(error)) => Err(error.message),
-            Err(_) => Err("ACP worker dropped result channel".to_string()),
-        }
+            match result_rx.await {
+                Ok(Ok(success)) => Ok(success.output),
+                Ok(Err(error)) => Err(error.message),
+                Err(_) => Err("ACP worker dropped result channel".to_string()),
+            }
+        })
     })
 }
 
@@ -226,6 +219,7 @@ async fn run_supervisor(
 
     let (msg_tx, msg_rx) = mpsc::channel::<EventMessage>(MESSAGE_CHANNEL_CAPACITY);
     let (token_tx, token_rx) = watch::channel(initial_token.access_token.clone());
+    let token_rx_for_dispatch = token_rx.clone();
 
     let client = TrouterClient::with_config(token_rx, cancel.child_token(), trouter_config);
     let re_register = client.re_register_handle();
@@ -245,6 +239,7 @@ async fn run_supervisor(
         handler_config,
         dispatch_agent,
         dispatch_fn,
+        token_rx_for_dispatch,
     ));
 
     let runner_result = match runner_handle.await {
@@ -271,8 +266,9 @@ async fn run_supervisor(
 async fn process_messages(
     mut msg_rx: mpsc::Receiver<EventMessage>,
     handler_config: MessageHandlerConfig,
-    _dispatch_agent: Option<String>,
-    _dispatch_fn: DispatchFn,
+    dispatch_agent: Option<String>,
+    dispatch_fn: DispatchFn,
+    token_rx: watch::Receiver<String>,
 ) {
     let mut handler = MessageHandler::new(handler_config.clone());
     // Dedup is a correctness gate against Trouter redelivery (reconnects,
@@ -280,6 +276,13 @@ async fn process_messages(
     // which is a rate limit. See teams::dedup.
     // TODO(T-238.54): share this buffer with the catch-up polling worker.
     let mut dedup = super::MessageDedup::with_capacity(super::DEFAULT_DEDUP_CAPACITY);
+
+    let timeout_minutes = handler_config.dispatch_timeout_minutes.max(1);
+    let dispatch_timeout = Duration::from_secs(timeout_minutes.saturating_mul(60));
+    let from_mri = handler_config.self_mri.clone().unwrap_or_default();
+    let chatsvc_region = handler_config.chatsvc_region.clone();
+    let reply_prefix = handler_config.reply_prefix.clone();
+    let reply_behavior = handler_config.reply_behavior.clone();
 
     while let Some(message) = msg_rx.recv().await {
         record_message_received();
@@ -298,12 +301,87 @@ async fn process_messages(
         };
 
         super::push_teams_prompt(super::TeamsPrompt {
-            prompt: result.prompt,
-            conversation_id: result.message.conversation_id,
-            sender_name: result.message.sender_name,
-            matched_keyword: result.matched_keyword,
+            prompt: result.prompt.clone(),
+            conversation_id: result.message.conversation_id.clone(),
+            sender_name: result.message.sender_name.clone(),
+            matched_keyword: result.matched_keyword.clone(),
+        });
+
+        let Some(agent) = dispatch_agent.as_ref() else {
+            tracing::info!(
+                conversation_id = %result.message.conversation_id,
+                "Teams match received but no dispatch_agent configured; skipping dispatch"
+            );
+            continue;
+        };
+
+        let request = TeamsDispatchRequest::from_match(
+            &result,
+            agent,
+            timeout_minutes,
+            &reply_behavior,
+        );
+        let ctx = DispatchCtx {
+            token: token_rx.clone(),
+            from_mri: from_mri.clone(),
+            chatsvc_region: chatsvc_region.clone(),
+            reply_prefix: reply_prefix.clone(),
+            dispatch_timeout,
+        };
+        let dispatch_fn = dispatch_fn.clone();
+
+        // Spawn so a slow agent does not back-pressure the receive loop.
+        tokio::spawn(async move {
+            let conversation_id = request.metadata.reply_conversation_id.clone();
+            let outcome = run_dispatch(request, &ctx, &dispatch_fn).await;
+            let body = match outcome {
+                DispatchOutcome::Success { reply, .. } => {
+                    tracing::info!(%conversation_id, "Teams dispatch succeeded");
+                    reply
+                }
+                DispatchOutcome::Timeout => {
+                    tracing::warn!(%conversation_id, "Teams dispatch timed out");
+                    format!("⏳ Timed out after {timeout_minutes} minutes.")
+                }
+                DispatchOutcome::Failed(error) => {
+                    tracing::error!(%conversation_id, %error, "Teams dispatch failed");
+                    format!("❌ Failed: {error}")
+                }
+            };
+            if let Err(error) = deliver_reply(&ctx, &conversation_id, &body).await {
+                tracing::warn!(%conversation_id, %error, "Teams reply delivery failed");
+            }
         });
     }
+}
+
+/// Apply the reply prefix to the first chunk only, then send chunks
+/// sequentially with `INTER_CHUNK_DELAY` between sends. First failure
+/// short-circuits remaining chunks (matches python `_reply_to_chat`).
+async fn deliver_reply(ctx: &DispatchCtx, conversation_id: &str, body: &str) -> Result<()> {
+    let token = ctx.token.borrow().clone();
+    let chunks = chunking::chunk_message(body, chunking::DEFAULT_MAX_CHUNK);
+    let total = chunks.len();
+    for (i, chunk) in chunks.into_iter().enumerate() {
+        let prefix = if i == 0 {
+            ctx.reply_prefix.clone()
+        } else {
+            String::new()
+        };
+        send_reply(TeamsReplyRequest {
+            token: token.clone(),
+            conversation_id: conversation_id.to_string(),
+            body: chunk,
+            from_mri: ctx.from_mri.clone(),
+            chatsvc_region: ctx.chatsvc_region.clone(),
+            reply_prefix: prefix,
+        })
+        .await?;
+        if i + 1 < total {
+            tokio::time::sleep(chunking::INTER_CHUNK_DELAY).await;
+        }
+    }
+    Ok(())
 }
 
 fn record_message_received() {

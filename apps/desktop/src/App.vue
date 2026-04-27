@@ -14,7 +14,7 @@ import ChatView from './components/ChatView.vue';
 import HomeDashboard from './components/HomeDashboard.vue';
 import KnowledgeWorkspace from './components/KnowledgeWorkspace.vue';
 import TeamsTab from './components/teams/TeamsTab.vue';
-import WorkflowAuthoringPage from './components/WorkflowAuthoringPage.vue';
+import WorkflowWorkspace from './components/WorkflowWorkspace.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
 import PermissionDialog from './components/PermissionDialog.vue';
@@ -181,9 +181,7 @@ function onOnboardingComplete(): void {
         </div>
 
         <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
-          <div class="flex flex-1 overflow-auto p-4">
-            <WorkflowAuthoringPage />
-          </div>
+          <WorkflowWorkspace />
         </div>
 
         <div v-if="visitedTabs.has('settings')" v-show="!showHome && activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">

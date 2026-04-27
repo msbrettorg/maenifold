@@ -21,7 +21,6 @@ const selectedStepId = ref<string | null>(null)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
 const isWorkflowSelected = computed(() => currentId.value !== null)
-const isInspectorVisible = computed(() => selectedStepId.value !== null)
 
 function handleSelectStep(stepId: string) {
   selectedStepId.value = selectedStepId.value === stepId ? null : stepId
@@ -59,7 +58,7 @@ onMounted(async () => {
   <div role="main" aria-label="Workflow editor" class="flex h-full w-full overflow-hidden">
     <ResizablePanelGroup
       direction="horizontal"
-      auto-save-id="workflow-authoring-panels-v1"
+      auto-save-id="workflow-workspace"
       class="h-full w-full"
     >
       <ResizablePanel
@@ -76,7 +75,7 @@ onMounted(async () => {
       />
       <ResizablePanel
         id="middle"
-        :default-size="isInspectorVisible ? 50 : 80"
+        :default-size="50"
         :min-size="30"
         :order="2"
       >
@@ -98,20 +97,23 @@ onMounted(async () => {
           @select-step="handleSelectStep"
         />
       </ResizablePanel>
-      <template v-if="isWorkflowSelected && isInspectorVisible">
+      <template v-if="isWorkflowSelected">
         <ResizableHandle
           class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"
         />
         <ResizablePanel
           id="inspector"
           :default-size="30"
-          :min-size="20"
+          :min-size="15"
           :order="3"
+          collapsible
         >
-          <WorkflowStepInspector
-            class="h-full overflow-y-auto bg-surface"
-            :selected-step-id="selectedStepId"
-          />
+          <div class="h-full w-full min-w-0 min-h-0">
+            <WorkflowStepInspector
+              class="h-full overflow-y-auto bg-surface"
+              :selected-step-id="selectedStepId"
+            />
+          </div>
         </ResizablePanel>
       </template>
     </ResizablePanelGroup>

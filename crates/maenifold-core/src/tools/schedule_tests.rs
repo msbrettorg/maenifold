@@ -89,6 +89,56 @@ fn create_accepts_explicit_permission_allowlist() {
     );
 }
 
+#[test]
+fn create_persists_workdir_and_timeout_seconds_from_payload() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let mut payload = create_payload("custom-execution", false);
+    payload["workdir"] = json!("/var/tmp/maenifold-work");
+    payload["timeout_seconds"] = json!(42);
+    let fake_bin = PathBuf::from("/nonexistent/binary");
+
+    create_task_with_bin(&context, &payload, &fake_bin).expect("create paused schedule");
+
+    let persisted = schedule_store(&context)
+        .read("custom-execution")
+        .expect("read schedule");
+    assert_eq!(
+        persisted.workdir,
+        Some(PathBuf::from("/var/tmp/maenifold-work"))
+    );
+    assert_eq!(persisted.timeout_seconds, 42);
+}
+
+#[test]
+fn update_persists_workdir_and_timeout_seconds_from_payload() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let payload = create_payload("update-execution", false);
+    let fake_bin = PathBuf::from("/nonexistent/binary");
+    create_task_with_bin(&context, &payload, &fake_bin).expect("create paused schedule");
+
+    update_task(
+        &context,
+        &json!({
+            "action": "update",
+            "id": "update-execution",
+            "workdir": "/var/tmp/updated-work",
+            "timeout_seconds": 17
+        }),
+    )
+    .expect("update paused schedule");
+
+    let persisted = schedule_store(&context)
+        .read("update-execution")
+        .expect("read schedule");
+    assert_eq!(
+        persisted.workdir,
+        Some(PathBuf::from("/var/tmp/updated-work"))
+    );
+    assert_eq!(persisted.timeout_seconds, 17);
+}
+
 #[cfg(not(any(target_os = "macos", target_os = "linux")))]
 #[test]
 fn create_enabled_unsupported_platform_is_blocked_before_persisting() {

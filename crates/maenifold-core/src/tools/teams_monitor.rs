@@ -51,6 +51,7 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
         .clone()
         .unwrap_or_else(MaenifoldSettings::default);
     if enabled {
+        crate::teams::lifecycle::init_lifecycle_journal(root);
         if let Err(error) = restore_on_enable(&mut settings.teams_monitor, root) {
             set_teams_error(error.to_string());
             return Err(error);

@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock, OnceLock};
 
 use parking_lot::RwLock;
@@ -36,6 +37,22 @@ pub fn current_chatsvc_token() -> Option<String> {
 
 pub fn clear_chatsvc_token() {
     *CHATSVC_TOKEN.write() = None;
+}
+
+/// Pause flag for the Teams monitor. When true, the supervisor should
+/// short-circuit dispatch (mirrors the `!stop` / `!resume` interactive
+/// commands in `agency-cowork/skills/teams/scripts/monitor/message_handler.py`).
+static TEAMS_PAUSED: AtomicBool = AtomicBool::new(false);
+
+pub fn is_teams_paused() -> bool {
+    TEAMS_PAUSED.load(Ordering::Acquire)
+}
+
+pub fn set_teams_paused(paused: bool) {
+    let prev = TEAMS_PAUSED.swap(paused, Ordering::AcqRel);
+    if prev != paused {
+        emit_teams_status_updated();
+    }
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
@@ -134,6 +151,7 @@ impl TeamsRuntimeState {
             "matchCount": self.match_count,
             "activeDispatches": self.active_dispatches,
             "lastError": self.last_error.as_deref(),
+            "paused": is_teams_paused(),
         })
     }
 }
@@ -151,6 +169,7 @@ pub fn set_teams_connecting() {
         state.connection_state = "connecting".to_string();
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("connecting", None);
 }
 
 pub fn set_teams_connected() {
@@ -167,6 +186,7 @@ pub fn set_teams_pending_auth() {
         state.mark_auth_pending();
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("pending_auth", None);
 }
 
 pub fn set_teams_authenticated() {
@@ -189,6 +209,7 @@ pub fn set_teams_unauthenticated() {
         state.active_dispatches = 0;
         state.last_error = None;
     });
+    crate::teams::lifecycle::log_lifecycle("unauthenticated", None);
 }
 
 pub fn set_teams_disabled() {
@@ -207,6 +228,7 @@ pub fn set_teams_auth_expired(message: impl Into<String>) {
         state.mark_auth_expired(message.into());
         state.active_dispatches = 0;
     });
+    crate::teams::lifecycle::log_lifecycle("auth_expired", None);
 }
 
 pub fn set_teams_error(message: impl Into<String>) {

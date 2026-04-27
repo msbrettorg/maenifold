@@ -263,6 +263,12 @@ impl DispatchStore {
         Ok(count)
     }
 
+    /// Read-only iterator over all records, in arbitrary order.
+    /// Used by the command executor to format dispatch listings.
+    pub(crate) fn records(&self) -> impl Iterator<Item = &DispatchRecord> {
+        self.records.values()
+    }
+
     /// Drop terminal records older than `max_age_hours` (py `cleanup_old`,
     /// L211–L223). Pending / in-progress rows are preserved regardless of
     /// age. Returns the count removed.

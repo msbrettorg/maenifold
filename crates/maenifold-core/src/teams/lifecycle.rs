@@ -42,14 +42,30 @@ pub fn init_lifecycle_journal(maenifold_root: &Path) {
             return;
         }
     }
-    let _ = JOURNAL.set(LifecycleJournal {
+    if let Err(rejected) = JOURNAL.set(LifecycleJournal {
         path,
         write_lock: Mutex::new(()),
-    });
+    }) {
+        if let Some(existing) = JOURNAL.get() {
+            if existing.path != rejected.path {
+                tracing::warn!(
+                    target: "teams::lifecycle",
+                    existing = %existing.path.display(),
+                    requested = %rejected.path.display(),
+                    "lifecycle journal already initialized at a different path; ignoring reinit"
+                );
+            }
+        }
+    }
 }
 
 /// Append a lifecycle event. No-op (with `tracing::trace!`) if not initialized.
 pub fn log_lifecycle(event: &str, detail: Option<&str>) {
+    log_lifecycle_kv(event, detail, &[]);
+}
+
+/// Append a lifecycle event with extra structured key/value fields.
+pub fn log_lifecycle_kv(event: &str, detail: Option<&str>, extra: &[(&str, &str)]) {
     let Some(journal) = JOURNAL.get() else {
         tracing::trace!(target: "teams::lifecycle", event, "journal not initialized");
         return;
@@ -58,12 +74,15 @@ pub fn log_lifecycle(event: &str, detail: Option<&str>) {
     let mut entry = json!({
         "ts": chrono::Utc::now().to_rfc3339(),
         "event": event,
+        "pid": std::process::id(),
     });
-    if let Some(detail) = detail {
-        entry
-            .as_object_mut()
-            .expect("entry is an object")
-            .insert("detail".to_string(), json!(detail));
+    if let Some(obj) = entry.as_object_mut() {
+        if let Some(detail) = detail {
+            obj.insert("detail".to_string(), json!(detail));
+        }
+        for (k, v) in extra {
+            obj.insert((*k).to_string(), json!(v));
+        }
     }
     let line = entry.to_string();
 

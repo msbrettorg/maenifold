@@ -56,9 +56,12 @@ pub fn parse_command(text: &str) -> Option<TeamsCommand> {
         "status" => Some(TeamsCommand::Status),
         "stop" | "pause" => Some(TeamsCommand::Stop),
         "resume" | "start" => Some(TeamsCommand::Resume),
-        "cancel" => Some(TeamsCommand::Cancel {
-            arg: parts.next().map(String::from),
-        }),
+        "cancel" => {
+            let remainder: String = parts.collect::<Vec<_>>().join(" ");
+            Some(TeamsCommand::Cancel {
+                arg: if remainder.is_empty() { None } else { Some(remainder) },
+            })
+        },
         "dispatches" => {
             let filter = match parts.next().map(|s| s.to_lowercase()).as_deref() {
                 Some("pending") => DispatchFilter::Pending,
@@ -121,5 +124,14 @@ mod tests {
     #[test]
     fn unknown_verb_returns_none() {
         assert_eq!(parse_command("!unknown"), None);
+    }
+
+    #[test]
+    fn cancel_captures_full_remainder() {
+        let cmd = parse_command("!cancel 1, 3").unwrap();
+        match cmd {
+            TeamsCommand::Cancel { arg } => assert_eq!(arg.as_deref(), Some("1, 3")),
+            _ => panic!("expected Cancel"),
+        }
     }
 }

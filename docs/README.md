@@ -899,7 +899,7 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 ├── crates/           # Rust backend workspace
 │   ├── maenifold-core/           # Library — tools, search, graph, ACP, pipeline engine
 │   ├── maenifold-cli/            # Binary — CLI + MCP server
-│   ├── maenifold-gate/           # Library — file-authoritative gate backlog logic
+│   ├── maenifold-gate-core/      # Library — shared gate lifecycle logic
 │   ├── maenifold-jockey/         # Binary — desktop integration daemon
 │   └── maenifold-pipeline-driver/ # Binary — headless pipeline executor
 └── apps/desktop/     # Electron + Vue 3 desktop application

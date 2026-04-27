@@ -10,7 +10,7 @@ This repository is a Rust workspace plus a desktop app:
 
 - `crates/maenifold-core` — core domain logic (tools, memory, graph, workflows, ACP/MCP orchestration)
 - `crates/maenifold-cli` — `maenifold` CLI + MCP server binary entrypoint
-- `crates/maenifold-gate` — `gate` task pipeline binary
+- `crates/maenifold-gate-core` — shared gate lifecycle logic exposed through the `maenifold.gate` Gateway domain
 - `crates/maenifold-jockey` — coordination/runtime crate in the workspace
 - `crates/maenifold-pipeline-driver` — headless pipeline execution binary
 - `apps/desktop` — desktop UI (Electron + Vue + Vite)

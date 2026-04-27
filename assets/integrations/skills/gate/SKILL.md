@@ -64,7 +64,7 @@ Gate currently ships four built-ins:
 - `gsd`
 - `lightweight`
 
-Built-in definitions are bundled into `maenifold-gate`, then copied into the runtime gate asset folder only if missing. Existing runtime JSON files are never overwritten.
+Built-in definitions live in `assets/gates/`, then are copied into the runtime gate asset folder only if missing. Existing runtime JSON files are never overwritten.
 
 Runtime gate asset directory:
 
@@ -263,7 +263,7 @@ That reparses `todo/` and `done/`, rebuilds `.gate/gate.db`, and re-derives task
 If gate internals change, keep this skill aligned with:
 
 - [docs/gate-uml-spec.md](../../../../../docs/gate-uml-spec.md)
-- `crates/maenifold-gate/assets/*.json`
+- `assets/gates/*.json`
 - the native `maenifold.gate` Gateway command surface
 - the maenifold `GatewayExecute` behavior
 

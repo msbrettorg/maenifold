@@ -4,7 +4,7 @@ This document is the authoritative implementation spec for the native `maenifold
 
 ## Authority
 
-- `SPEC = this document + the bundled built-in gate JSON files in crates/maenifold-gate/assets/*.json`
+- `SPEC = this document + the gate JSON files in assets/gates/*.json`
 - Runtime authoritative gate JSON lives in `$MAENIFOLD_ROOT/assets/gates/` (defaults to `~/maenifold/assets/gates/`)
 - Bundled built-ins are copied to the gate directory only when missing or stale
 - Existing runtime gate JSON files are authoritative and must never be overwritten by bootstrap
@@ -18,7 +18,8 @@ This document is the authoritative implementation spec for the native `maenifold
 
 ## Scope
 
-- Crate: `crates/maenifold-gate`
+- Crate: `crates/maenifold-gate-core`
+- Gateway adapter: `crates/maenifold-core/src/mcp/gateway_gate.rs`
 - Host surface: native Gateway domain `maenifold.gate`, served by the existing `maenifold --http` daemon.
 - Gateway command surface:
   - `gate_Status`
@@ -37,11 +38,11 @@ This document is the authoritative implementation spec for the native `maenifold
 
 ## Architectural Rules
 
-- `main.rs` is entrypoint and mode dispatch only
-- Gateway request parsing must be isolated from command execution
+- `lifecycle.rs` owns the reusable gate command lifecycle
+- Gateway request parsing must be isolated in `crates/maenifold-core/src/mcp/gateway_gate.rs`
 - Transition logic must exist only in `state_machine.rs`
 - Gate JSON validation must exist only in `gate_definition.rs`
-- Gate asset resolution and bootstrap must exist only in `gate_catalog.rs`
+- Built-in gate definition resolution must remain inside the shared lifecycle library
 - File parsing must be isolated from file mutation
 - Cache rebuilding must never override file authority
 - `status` and UI read paths must consume `gate.db`, not derive status directly from task files
@@ -68,10 +69,10 @@ This document is the authoritative implementation spec for the native `maenifold
 
 ## Built-in Asset Rules
 
-- Bundled built-ins live in `crates/maenifold-gate/assets/`
-- On built-in load, `gate_catalog.rs` must ensure all four bundled assets exist in the runtime directory
+- Gate definitions live in `assets/gates/`
+- On built-in load, the runtime gate directory must contain the bundled assets
 - Bundled assets are written to the runtime directory only when the runtime copy is missing
-- The compiled binary seeds missing built-ins; existing runtime copies remain authoritative
+- The Maenifold asset bootstrap seeds missing built-ins; existing runtime copies remain authoritative
 - Built-in names are reserved:
   - `sdd`
   - `tdd`
@@ -436,49 +437,33 @@ GateDefinitionCatalog --> GateDefinition
 
 ## Allowed Module Inventory
 
-Only these source files are allowed in `crates/maenifold-gate/src`:
+Only these source files are allowed in `crates/maenifold-gate-core/src`:
 
-- `main.rs`
-- `cli.rs`
+- `dependency_graph.rs`
 - `error.rs`
 - `gate_definition.rs`
-- `gate_catalog.rs`
-- `gate_tool_service.rs`
-- `json_output.rs`
-- `mcp/mod.rs`
-- `mcp/http.rs`
-- `mcp/schema.rs`
-- `tray.rs`
-- `tray_menu.rs`
-- `file_watcher.rs`
-- `ui_window.rs`
-- `task_repository.rs`
+- `lifecycle.rs`
+- `lib.rs`
+- `section_factory.rs`
+- `state_machine.rs`
+- `status_filter.rs`
 - `task_file.rs`
+- `task_id.rs`
 - `task_metadata.rs`
+- `task_repository.rs`
 - `task_sections.rs`
 - `task_status.rs`
-- `state_machine.rs`
-- `section_factory.rs`
-- `cache_db.rs`
-- `status_command.rs`
-- `append_command.rs`
-- `pass_command.rs`
-- `fail_command.rs`
-- `sync_command.rs`
 
-If implementation requires a new file, this spec must be updated first.
+The Gateway command adapter lives outside this crate at `crates/maenifold-core/src/mcp/gateway_gate.rs`. If implementation requires a new file, this spec must be updated first.
 
 ## Module Responsibilities
 
-### `main.rs`
+### `crates/maenifold-core/src/mcp/gateway_gate.rs`
 
-- Domain entrypoint/registration only
-- No standalone transport or tray lifecycle logic
-
-### `cli.rs`
-
-- Deprecated compatibility parsing only, if present
-- No business logic
+- Native Gateway domain adapter for `maenifold.gate`
+- Gateway command dispatch for `gate_Status`, `gate_Append`, `gate_Pass`, `gate_Fail`, `gate_History`, `gate_TaskBody`, and `gate_Sync`
+- Gateway command metadata and input schemas
+- No gate business logic beyond request parsing, argument validation, and response rendering
 
 ### `error.rs`
 
@@ -492,65 +477,13 @@ If implementation requires a new file, this spec must be updated first.
 - Represent state and transition data
 - Expose lookup helpers
 
-### `gate_catalog.rs`
+### `lifecycle.rs`
 
-- Embed bundled built-in gate assets
-- Bootstrap missing runtime assets only
-- Resolve built-in definitions from the runtime gate directory
-- Resolve custom `{root}/pipeline.json` only for explicit non-reserved names
-- Enforce reserved-name precedence and pipeline binding checks
-
-### `gate_tool_service.rs`
-
-- Own all reusable gate command business logic
-- Return structured results consumable by the native Gateway domain and UI paths
+- Own reusable gate command business logic
+- Resolve built-in definitions and explicit `{root}/pipeline.json` custom definitions
+- Return structured results consumable by the native Gateway domain
+- Coordinate command paths through `.gate/gate.lock`
 - Never print directly
-
-### `json_output.rs`
-
-- JSON formatting only
-
-### `mcp/mod.rs`
-
-- Native Gateway domain adapter for `maenifold.gate`
-- Gateway command dispatch
-- Gateway command metadata surface
-
-### `mcp/http.rs`
-
-- No standalone HTTP service
-- Gate HTTP access is hosted by the maenifold Gateway runtime
-
-### `mcp/schema.rs`
-
-- Gateway command definitions and input schemas
-- No transport logic
-
-### `tray.rs`
-
-- Deprecated/removed standalone tray surface
-- Must not host gate command logic
-
-### `tray_menu.rs`
-
-- Deprecated/removed standalone tray menu surface
-- Must not create open-at-login configuration for gate
-
-### `file_watcher.rs`
-
-- Debounced watcher over `todo/` and `done/`
-- Trigger `sync` reconciliation for out-of-band file mutations
-- Never mutate task files directly
-
-### `ui_window.rs`
-
-- Native egui task board window
-- Calls `GateToolService::status()` for DB-backed task data
-- No direct file parsing or status derivation
-- Loads task rows once at window startup; no in-window auto-refresh loop exists
-- Table view with filtering, sorting, search
-- Task detail panel with markdown rendering
-- Launched only by native maenifold UI integration when present
 
 ### `task_repository.rs`
 
@@ -603,42 +536,10 @@ If implementation requires a new file, this spec must be updated first.
 ### `section_factory.rs`
 
 - Produce canonical markdown sections for:
-  - `append`
-  - `pass`
-  - `fail`
+- `append`
+- `pass`
+- `fail`
 - `append` sections are informational work events only and must not encode a stage transition
-
-### `cache_db.rs`
-
-- Open and maintain the `gate.db` read model
-- Rebuild task pipeline/status snapshots in place
-- Error on missing/invalid `sessionId` for live `todo/` tasks
-- Warn on missing/invalid linkage for completed tasks still sitting in top-level `done/`
-- Cache work log history entries
-- Preserve the existing DB file and WAL/SHM sidecars during refresh
-- Serve task status rows for `status` and UI consumers
-- No authority over task truth
-
-### `status_command.rs`
-
-- Presentation adapter for `gate_Status`
-
-### `append_command.rs`
-
-- Presentation adapter for `gate_Append`
-
-### `pass_command.rs`
-
-- Presentation adapter for `gate_Pass`
-
-### `fail_command.rs`
-
-- Presentation adapter for `gate_Fail`
-
-### `sync_command.rs`
-
-- Presentation adapter for `gate_Sync`
-- Reconcile `gate.db` from authoritative files without deleting the live DB file or sidecars
 
 ## State Models
 

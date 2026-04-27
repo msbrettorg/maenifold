@@ -150,7 +150,7 @@ maenifold-rs/
 ├── crates/
 │   ├── maenifold-core/              # Library — tools, search, graph, ACP, pipeline engine
 │   ├── maenifold-cli/               # Binary — CLI + MCP server
-│   ├── maenifold-gate/              # Binary — file-authoritative task management
+│   ├── maenifold-gate-core/         # Library — shared gate lifecycle logic
 │   ├── maenifold-jockey/            # Binary — desktop integration daemon
 │   └── maenifold-pipeline-driver/   # Binary — headless pipeline executor
 ├── apps/desktop/                    # Electron + Vue 3 desktop application

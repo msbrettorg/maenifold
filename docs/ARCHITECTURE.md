@@ -41,8 +41,8 @@ flowchart LR
 2. **`maenifold-cli`**  
    Binary entrypoint for `maenifold`; dispatches to core CLI/MCP/HTTP runtime.
 
-3. **`maenifold-gate`**  
-   File-authoritative gate engine exposed through the native `maenifold.gate` Gateway domain for task progression (`gate_Status/gate_Append/gate_Pass/gate_Fail/gate_History/gate_TaskBody/gate_Sync`), with `.gate/gate.db` as read model cache.
+3. **`maenifold-gate-core`**
+   Shared file-authoritative gate lifecycle library for task progression. Gate operations are accessed through `GatewayExecute` with `domain="maenifold.gate"` on the MCP Gateway surface, where `crates/maenifold-core/src/mcp/gateway_gate.rs` exposes `gate_Status/gate_Append/gate_Pass/gate_Fail/gate_History/gate_TaskBody/gate_Sync`.
 
 4. **`maenifold-jockey`**  
    ACP bridge/runtime integration used by core workflow/pipeline execution.
@@ -137,11 +137,9 @@ Related persistence:
   `apps/desktop/electron/main.ts`  
   `apps/desktop/src/lib/daemon-url.ts`  
   `apps/desktop/src/lib/constants.ts`
-- Gate progression/data model:  
-  `crates/maenifold-gate/src/cli.rs`  
-  `crates/maenifold-gate/src/pass_command.rs`  
-  `crates/maenifold-gate/src/task_repository.rs`  
-  `crates/maenifold-gate/src/gate_tool_service.rs`  
-  `crates/maenifold-gate/src/cache_db.rs`  
-  `crates/maenifold-gate/src/file_watcher.rs`  
-  `crates/maenifold-gate/src/mcp/mod.rs`
+- Gate progression/data model:
+  - `crates/maenifold-gate-core/src/lifecycle.rs`
+  - `crates/maenifold-gate-core/src/task_repository.rs`
+  - `crates/maenifold-gate-core/src/gate_definition.rs`
+  - `crates/maenifold-gate-core/src/state_machine.rs`
+  - `crates/maenifold-core/src/mcp/gateway_gate.rs`

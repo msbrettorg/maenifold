@@ -223,7 +223,6 @@ Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based 
 
 ```bash
 cargo build --release -p maenifold-cli     # CLI/app
-cargo build --release -p maenifold-gate    # gate
 make app                                    # frontend + CLI
 cd apps/desktop && npm run package          # Electron bundle
 cd apps/desktop && npx vue-tsc --noEmit     # frontend typecheck
@@ -233,7 +232,7 @@ make audit-crates                           # Rust: 300 LOC, no TODO, no unwrap
 make audit-frontend                         # Vue/TS: lint-design + audit-components
 ```
 
-Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`), `target/release/gate`.
+Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`).
 
 ---
 

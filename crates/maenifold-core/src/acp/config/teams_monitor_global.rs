@@ -42,6 +42,9 @@ fn d_pty_max_sessions() -> u32 {
 fn d_pty_stale_dispatch_timeout_minutes() -> u64 {
     5
 }
+fn d_pty_warmup_conversations() -> Vec<String> {
+    vec!["48:notes".to_string()]
+}
 
 fn d_keyword() -> String {
     "@agent".to_string()
@@ -82,6 +85,26 @@ fn d_heartbeat_interval_seconds() -> u64 {
     30
 }
 
+fn d_conversation_type() -> String {
+    "Unknown".to_string()
+}
+fn d_added_now() -> String {
+    Utc::now().to_rfc3339()
+}
+fn d_default_monitored_conversations() -> Vec<MonitoredConversation> {
+    vec![MonitoredConversation {
+        id: "48:notes".to_string(),
+        name: "Self (Notes)".to_string(),
+        type_: "Self".to_string(),
+        added: d_added_now(),
+    }]
+}
+fn d_workspace_dispatch() -> WorkspaceDispatchConfig {
+    let mut dispatch = WorkspaceDispatchConfig::default();
+    dispatch.persistent_session_id = Uuid::new_v4().to_string();
+    dispatch
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub struct WorkspaceDispatchConfig {
@@ -101,7 +124,7 @@ pub struct WorkspaceDispatchConfig {
     pub persistent_session_id: String,
     #[serde(default = "d_use_persistent_pty")]
     pub use_persistent_pty: bool,
-    #[serde(default)]
+    #[serde(default = "d_pty_warmup_conversations")]
     pub pty_warmup_conversations: Vec<String>,
     #[serde(default = "d_pty_queue_max")]
     pub pty_queue_max: u32,
@@ -137,10 +160,11 @@ impl Default for WorkspaceDispatchConfig {
 #[serde(rename_all = "snake_case")]
 pub struct MonitoredConversation {
     pub id: String,
-    pub name: String,
-    #[serde(rename = "type")]
-    pub type_: String,
     #[serde(default)]
+    pub name: String,
+    #[serde(default = "d_conversation_type", rename = "type")]
+    pub type_: String,
+    #[serde(default = "d_added_now")]
     pub added: String,
 }
 
@@ -149,8 +173,8 @@ impl Default for MonitoredConversation {
         Self {
             id: String::new(),
             name: String::new(),
-            type_: String::new(),
-            added: Utc::now().to_rfc3339(),
+            type_: d_conversation_type(),
+            added: d_added_now(),
         }
     }
 }
@@ -220,9 +244,9 @@ pub struct WorkspaceTeamsConfig {
     pub keyword: String,
     #[serde(default = "d_reply_prefix")]
     pub reply_prefix: String,
-    #[serde(default)]
+    #[serde(default = "d_default_monitored_conversations")]
     pub monitored_conversations: Vec<MonitoredConversation>,
-    #[serde(default)]
+    #[serde(default = "d_workspace_dispatch")]
     pub dispatch: WorkspaceDispatchConfig,
 }
 
@@ -234,12 +258,7 @@ impl Default for WorkspaceTeamsConfig {
             enabled: false,
             keyword: d_keyword(),
             reply_prefix: d_reply_prefix(),
-            monitored_conversations: vec![MonitoredConversation {
-                id: "48:notes".to_string(),
-                name: "Self (Notes)".to_string(),
-                type_: "Self".to_string(),
-                added: Utc::now().to_rfc3339(),
-            }],
+            monitored_conversations: d_default_monitored_conversations(),
             dispatch,
         }
     }

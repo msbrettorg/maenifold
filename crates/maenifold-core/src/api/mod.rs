@@ -12,6 +12,7 @@ pub(crate) mod endophasia_stream;
 pub mod graph;
 pub(crate) mod graph_queries;
 pub(crate) mod mcp_discovery;
+pub(crate) mod oauth;
 pub(crate) mod pipeline_stream;
 pub mod routes;
 pub(crate) mod routes_config;

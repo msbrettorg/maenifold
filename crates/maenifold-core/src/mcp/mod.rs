@@ -10,6 +10,7 @@ mod gateway_catalog_domain_tests;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
+mod gateway_gate;
 #[cfg(test)]
 mod gateway_experiment;
 #[cfg(test)]

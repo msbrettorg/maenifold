@@ -4,6 +4,7 @@ use crate::mcp::gateway_catalog::{CommandTarget, GatewayCatalog};
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_dispatch::validate_dispatch_parameters;
 use crate::mcp::gateway_errors::*;
+use crate::mcp::gateway_gate::invoke_gate;
 use crate::mcp::resource_routing::{ResourceRoutingRegistry, map_gateway_resource_error};
 use crate::mcp::schema::gateway_tools::{
     GatewayExecuteParams, GatewayIndexParams, gateway_batch_tool, gateway_execute_tool,
@@ -186,6 +187,7 @@ impl GatewayState {
             .map_err(|err| map_gateway_error("GatewayExecute", err))?
         {
             CommandTarget::Native { tool_name } => invoke_native(tool_name, parameters).await,
+            CommandTarget::Gate { command } => invoke_gate(command, parameters).await,
             CommandTarget::Upstream {
                 server_name,
                 tool_name,

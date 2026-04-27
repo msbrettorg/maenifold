@@ -59,16 +59,16 @@ pub async fn require_bearer_token(
     next: Next,
 ) -> Response {
     let Some(provided_token) = bearer_token(&headers) else {
-        return unauthorized();
+        return unauthorized(&headers);
     };
 
     let expected_path = token_path(&state.config().maenifold_root);
     let Ok(expected_token) = fs::read_to_string(expected_path) else {
-        return unauthorized();
+        return unauthorized(&headers);
     };
 
     if !constant_time_eq(provided_token.as_bytes(), expected_token.trim().as_bytes()) {
-        return unauthorized();
+        return unauthorized(&headers);
     }
 
     next.run(request).await
@@ -79,9 +79,14 @@ fn bearer_token(headers: &HeaderMap) -> Option<&str> {
     value.strip_prefix("Bearer ")
 }
 
-fn unauthorized() -> Response {
+fn unauthorized(headers: &HeaderMap) -> Response {
+    let metadata_url = crate::api::oauth::protected_resource_metadata_url(headers);
     (
         StatusCode::UNAUTHORIZED,
+        [(
+            header::WWW_AUTHENTICATE,
+            format!("Bearer resource_metadata=\"{metadata_url}\""),
+        )],
         Json(json!({ "error": "missing or invalid bearer token" })),
     )
         .into_response()

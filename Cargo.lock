@@ -2456,6 +2456,7 @@ dependencies = [
  "keyring",
  "libc",
  "machine-uid",
+ "maenifold-gate-core",
  "maenifold-jockey",
  "notify",
  "objc2-core-foundation",

@@ -28,6 +28,7 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
             ));
 
     Router::new()
+        .merge(crate::api::oauth::routes(state.clone()))
         .merge(mcp_routes)
         .merge(api_routes(state.clone()))
         .merge(endophasia_routes(state))
@@ -190,4 +191,6 @@ impl super::MaenifoldMcpServer {
 #[cfg(test)]
 mod tests {
     include!("http_tests.rs");
+    include!("http_oauth_tests.rs");
+    include!("http_oauth_helpers.rs");
 }

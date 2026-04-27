@@ -18,6 +18,7 @@ chrono.workspace = true
 clap = { version = "4", features = ["derive"] }
 futures-util = "0.3"
 jockey = { package = "maenifold-jockey", path = "../maenifold-jockey" }
+maenifold-gate-core = { path = "../maenifold-gate-core" }
 keyring = { version = "3", features = ["apple-native"] }
 libc.workspace = true
 machine-uid = "0.5"

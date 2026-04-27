@@ -1,6 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::domain_mapping;
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
+use crate::mcp::gateway_gate;
 use crate::mcp::list_mcp_tools;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use crate::registry::ToolRegistry;
@@ -46,6 +47,7 @@ pub(crate) enum CommandTarget {
     Native {
         tool_name: String,
     },
+    Gate { command: String },
     Upstream {
         server_name: String,
         tool_name: String,
@@ -62,6 +64,7 @@ impl GatewayCatalog {
             domains: BTreeMap::new(),
         };
         catalog.add_native_tools()?;
+        catalog.add_gate_tools()?;
         for server in consolidated {
             for tool in &server.tool_catalog {
                 catalog.add_upstream_tool(&server.server_name, tool)?;
@@ -162,6 +165,22 @@ impl GatewayCatalog {
                     target: CommandTarget::Native {
                         tool_name: tool.name,
                     },
+                },
+            );
+        }
+        Ok(())
+    }
+
+    fn add_gate_tools(&mut self) -> Result<()> {
+        let domain = self.insert_domain(gateway_gate::DOMAIN_NAME, gateway_gate::DOMAIN_DESCRIPTION)?;
+        for command in gateway_gate::commands() {
+            domain.commands.insert(
+                command.name.clone(),
+                CatalogCommand {
+                    target: CommandTarget::Gate {
+                        command: command.name.clone(),
+                    },
+                    entry: command,
                 },
             );
         }

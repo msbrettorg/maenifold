@@ -1,5 +1,7 @@
 use regex::Regex;
+use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer};
+use std::collections::HashSet;
 use std::sync::LazyLock;
 
 use crate::error::GateError;
@@ -18,6 +20,7 @@ pub struct TaskMetadata {
     pub pipeline: String,
     pub state: Option<String>,
     pub session_id: Option<String>,
+    pub depends_on: Vec<String>,
 }
 
 #[derive(Debug, Clone, Default, Deserialize)]
@@ -33,6 +36,33 @@ struct FrontmatterTask {
         deserialize_with = "deserialize_optional_string"
     )]
     session_id: Option<String>,
+    #[serde(default)]
+    depends_on: Option<StringOrVec>,
+    #[serde(default)]
+    depends: Option<StringOrVec>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct StringOrVec(Vec<String>);
+
+impl<'de> Deserialize<'de> for StringOrVec {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        match serde_yml::Value::deserialize(deserializer)? {
+            serde_yml::Value::String(value) => Ok(StringOrVec(vec![value])),
+            serde_yml::Value::Sequence(values) => values
+                .into_iter()
+                .map(|value| match value {
+                    serde_yml::Value::String(value) => Ok(value),
+                    _ => Err(D::Error::custom("depends_on entries must be strings")),
+                })
+                .collect::<Result<Vec<_>, _>>()
+                .map(StringOrVec),
+            _ => Err(D::Error::custom("depends_on must be a string or list")),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -41,8 +71,11 @@ pub struct TaskMetadataParser;
 impl TaskMetadataParser {
     pub fn parse(lines: &[&str]) -> Result<TaskMetadata, GateError> {
         if let Some(frontmatter) = parse_frontmatter(lines)? {
+            let id = validate_task_id(frontmatter.id)?;
+            let depends_on =
+                normalize_dependencies(frontmatter.depends_on, frontmatter.depends, id.as_deref())?;
             return Ok(TaskMetadata {
-                id: validate_task_id(frontmatter.id)?,
+                id,
                 title: frontmatter
                     .title
                     .or_else(|| parse_title(lines).ok().map(str::to_string))
@@ -57,6 +90,7 @@ impl TaskMetadataParser {
                     .ok_or(GateError::MissingMetadataField("pipeline"))?,
                 state: frontmatter.state,
                 session_id: frontmatter.session_id,
+                depends_on,
             });
         }
 
@@ -67,6 +101,7 @@ impl TaskMetadataParser {
                 .ok_or(GateError::MissingMetadataField("Pipeline"))?,
             state: None,
             session_id: None,
+            depends_on: Vec::new(),
         })
     }
 
@@ -155,22 +190,46 @@ fn validate_task_id(task_id: Option<String>) -> Result<Option<String>, GateError
         .transpose()
 }
 
+fn normalize_dependencies(
+    depends_on: Option<StringOrVec>,
+    depends: Option<StringOrVec>,
+    task_id: Option<&str>,
+) -> Result<Vec<String>, GateError> {
+    let mut seen = HashSet::new();
+    let mut normalized = Vec::new();
+    for value in depends_on
+        .into_iter()
+        .chain(depends)
+        .flat_map(|StringOrVec(values)| values)
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    {
+        if task_id == Some(value.as_str()) {
+            return Err(GateError::TaskMetadataParse(
+                "task depends on itself".to_string(),
+            ));
+        }
+        if seen.insert(value.clone()) {
+            normalized.push(value);
+        }
+    }
+    Ok(normalized)
+}
+
 #[cfg(test)]
 mod tests {
     use super::{TaskMetadataParser, is_linked_session_id};
 
+    fn parse_yaml(yaml: &str) -> crate::task_metadata::TaskMetadata {
+        let lines: Vec<_> = yaml.lines().collect();
+        TaskMetadataParser::parse(&lines).expect("parse metadata")
+    }
+
     #[test]
     fn parses_optional_session_id_from_frontmatter() {
-        let lines = vec![
-            "---",
-            "id: T-108.2",
-            "title: Linked task",
-            "pipeline: sdd",
-            "sessionId: session-1775916753112-57359",
-            "---",
-        ];
-
-        let metadata = TaskMetadataParser::parse(&lines).expect("parse metadata");
+        let metadata = parse_yaml(
+            "---\nid: T-108.2\ntitle: Linked task\npipeline: sdd\nsessionId: session-1775916753112-57359\n---",
+        );
         assert_eq!(
             metadata.session_id.as_deref(),
             Some("session-1775916753112-57359")
@@ -180,16 +239,8 @@ mod tests {
 
     #[test]
     fn ignores_non_string_session_id_values() {
-        let lines = vec![
-            "---",
-            "title: Lenient task",
-            "pipeline: sdd",
-            "sessionId:",
-            "  - malformed",
-            "---",
-        ];
-
-        let metadata = TaskMetadataParser::parse(&lines).expect("parse metadata");
+        let metadata =
+            parse_yaml("---\ntitle: Lenient task\npipeline: sdd\nsessionId:\n  - malformed\n---");
         assert_eq!(metadata.session_id, None);
         assert!(!is_linked_session_id(metadata.session_id.as_deref()));
     }
@@ -202,15 +253,40 @@ mod tests {
             Some("T-138.4".to_string())
         );
 
-        let traversal =
-            "---\nid: ../../escape\ntitle: Escape task\npipeline: sdd\n---\n# Escape task\n";
-        assert!(TaskMetadataParser::parse_task_id(traversal).is_err());
+        for invalid in ["../../escape", "foo/bar", "foo\\bar"] {
+            let yaml = format!("---\nid: {invalid}\ntitle: bad\npipeline: sdd\n---\n# bad\n");
+            assert!(TaskMetadataParser::parse_task_id(&yaml).is_err());
+        }
+    }
 
-        let slash = "---\nid: foo/bar\ntitle: Slash task\npipeline: sdd\n---\n# Slash task\n";
-        assert!(TaskMetadataParser::parse_task_id(slash).is_err());
+    #[test]
+    fn parses_depends_on_string_list_alias_and_dedups() {
+        let cases = [
+            ("depends_on: T-237.1c", vec!["T-237.1c"]),
+            (
+                "depends_on: [T-237.1c, T-238.24]",
+                vec!["T-237.1c", "T-238.24"],
+            ),
+            ("depends: T-237.1c", vec!["T-237.1c"]),
+            (
+                "depends_on: [T-1, T-2]\ndepends: [T-2, T-3]",
+                vec!["T-1", "T-2", "T-3"],
+            ),
+            ("depends_on: ['  T-1  ', '', '   ', T-1]", vec!["T-1"]),
+        ];
 
-        let backslash =
-            "---\nid: foo\\bar\ntitle: Backslash task\npipeline: sdd\n---\n# Backslash task\n";
-        assert!(TaskMetadataParser::parse_task_id(backslash).is_err());
+        for (depends_yaml, expected) in cases {
+            let yaml = format!("---\nid: T-9\ntitle: deps\npipeline: sdd\n{depends_yaml}\n---");
+            let metadata = parse_yaml(&yaml);
+            assert_eq!(metadata.depends_on, expected);
+        }
+    }
+
+    #[test]
+    fn rejects_self_dependency() {
+        let yaml = "---\nid: T-1\ntitle: self dep\npipeline: sdd\ndepends_on: [T-0, T-1]\n---";
+        let lines: Vec<_> = yaml.lines().collect();
+        let error = TaskMetadataParser::parse(&lines).expect_err("self dependency should fail");
+        assert!(error.to_string().contains("task depends on itself"));
     }
 }

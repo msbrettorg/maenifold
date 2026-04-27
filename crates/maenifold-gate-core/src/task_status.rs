@@ -211,6 +211,7 @@ mod tests {
                 pipeline: "sdd".to_string(),
                 state: state.map(str::to_string),
                 session_id: None,
+                depends_on: Vec::new(),
             },
             records,
         }

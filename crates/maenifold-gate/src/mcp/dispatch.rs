@@ -42,6 +42,7 @@ pub(crate) fn call_gate_tool(
             filter: StatusFilter {
                 state: optional_string(arguments, "state")?,
                 ready_only: optional_bool(arguments, "ready")?.unwrap_or(false),
+                blocked_only: optional_bool(arguments, "blocked")?.unwrap_or(false),
                 include_done: optional_bool(arguments, "includeDone")?.unwrap_or(false),
             },
         })?,

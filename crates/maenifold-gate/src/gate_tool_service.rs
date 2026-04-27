@@ -1,6 +1,8 @@
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::Path;
 
+use maenifold_gate_core::dependency_graph::{compute_blocked, detect_cycles};
 use serde_json::{Value, json};
 
 use crate::append_command::append_task;
@@ -159,7 +161,70 @@ fn status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
 
 fn load_status_rows(context: &GateContext) -> Result<Vec<Value>, GateError> {
     let db = GateCacheDb::open(&context.root)?;
-    db.list_task_status(&context.root, context.requested_pipeline_name.as_deref())
+    let rows = db.list_task_status(&context.root, context.requested_pipeline_name.as_deref())?;
+    let tasks = TaskRepository::list_tasks(context.root.clone())?;
+    Ok(enrich_status_rows(&context.root, &tasks, rows))
+}
+
+fn enrich_status_rows(
+    root: &Path,
+    tasks: &[crate::task_repository::TaskPathSet],
+    mut rows: Vec<Value>,
+) -> Vec<Value> {
+    let dependencies = dependencies_by_task(root, tasks);
+    let graph_input: Vec<_> = dependencies
+        .iter()
+        .map(|(task_id, depends_on)| (task_id.clone(), depends_on.clone()))
+        .collect();
+    let cycle_members: HashSet<String> = detect_cycles(&graph_input)
+        .into_iter()
+        .flat_map(|cycle| cycle.task_ids)
+        .collect();
+    let all_tasks: HashMap<String, &str> = tasks
+        .iter()
+        .map(|task| (task.task_id.clone(), task.location.as_str()))
+        .collect();
+
+    for row in &mut rows {
+        let task_id = row
+            .get("taskId")
+            .and_then(Value::as_str)
+            .map(str::to_string);
+        let state_is_initial = row.get("state").and_then(Value::as_str) == Some("pending");
+        let location_is_todo = row.get("location").and_then(Value::as_str) == Some("todo");
+        let Some(task_id) = task_id else {
+            continue;
+        };
+        let depends_on = dependencies.get(&task_id).cloned().unwrap_or_default();
+        let blocked = compute_blocked(&task_id, &depends_on, &all_tasks, &cycle_members);
+        if let Some(object) = row.as_object_mut() {
+            object.insert("dependsOn".to_string(), json!(blocked.depends_on));
+            object.insert("blockedBy".to_string(), json!(blocked.blocked_by));
+            object.insert(
+                "missingDependencies".to_string(),
+                json!(blocked.missing_dependencies),
+            );
+            object.insert(
+                "ready".to_string(),
+                json!(blocked.ready && state_is_initial && location_is_todo),
+            );
+        }
+    }
+    rows
+}
+
+fn dependencies_by_task(
+    root: &Path,
+    tasks: &[crate::task_repository::TaskPathSet],
+) -> HashMap<String, Vec<String>> {
+    tasks
+        .iter()
+        .filter_map(|task| {
+            TaskRepository::read_task_document(root, task)
+                .ok()
+                .map(|document| (task.task_id.clone(), document.metadata.depends_on))
+        })
+        .collect()
 }
 
 fn ensure_read_model_ready(context: &GateContext) -> Result<(), GateError> {

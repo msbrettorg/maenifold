@@ -49,6 +49,7 @@ impl GateSubcommand {
                 filter: StatusFilter {
                     state: args.state,
                     ready_only: args.ready,
+                    blocked_only: args.blocked,
                     include_done: args.all,
                 },
             }),
@@ -109,6 +110,8 @@ pub(crate) struct StatusCliArgs {
     pub(crate) state: Option<String>,
     #[arg(long)]
     pub(crate) ready: bool,
+    #[arg(long)]
+    pub(crate) blocked: bool,
 }
 
 #[derive(Debug, Args)]

@@ -41,6 +41,7 @@ pub(crate) fn load_tasks(root: &Path) -> Result<Vec<TaskEntry>, String> {
         filter: StatusFilter {
             state: None,
             ready_only: false,
+            blocked_only: false,
             include_done: false,
         },
     })

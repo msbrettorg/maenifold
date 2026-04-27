@@ -4,14 +4,20 @@ use serde_json::Value;
 pub struct StatusFilter {
     pub state: Option<String>,
     pub ready_only: bool,
+    pub blocked_only: bool,
     pub include_done: bool,
 }
 
 impl StatusFilter {
     pub fn matches(&self, row: &Value) -> bool {
-        if self.ready_only
-            && (row["location"].as_str() != Some("todo")
-                || row["state"].as_str() != Some("pending"))
+        if self.ready_only && row["ready"].as_bool() != Some(true) {
+            return false;
+        }
+
+        if self.blocked_only
+            && !row["blockedBy"]
+                .as_array()
+                .is_some_and(|blocked_by| !blocked_by.is_empty())
         {
             return false;
         }
@@ -41,11 +47,11 @@ mod tests {
         let filter = StatusFilter {
             state: None,
             ready_only: true,
+            blocked_only: false,
             include_done: false,
         };
-        assert!(filter.matches(&json!({ "state": "pending", "location": "todo" })));
-        assert!(!filter.matches(&json!({ "state": "pending", "location": "done" })));
-        assert!(!filter.matches(&json!({ "state": "swe", "location": "todo" })));
+        assert!(filter.matches(&json!({ "ready": true, "state": "pending", "location": "todo" })));
+        assert!(!filter.matches(&json!({ "ready": false, "state": "pending", "location": "todo" })));
     }
 
     #[test]
@@ -53,6 +59,7 @@ mod tests {
         let filter = StatusFilter {
             state: Some("red-team".to_string()),
             ready_only: false,
+            blocked_only: false,
             include_done: false,
         };
         assert!(filter.matches(&json!({ "state": "red-team", "location": "todo" })));
@@ -64,6 +71,7 @@ mod tests {
         let filter = StatusFilter {
             state: None,
             ready_only: false,
+            blocked_only: false,
             include_done: false,
         };
         assert!(!filter.matches(&json!({ "state": "done", "location": "done" })));
@@ -75,6 +83,7 @@ mod tests {
         let filter = StatusFilter {
             state: None,
             ready_only: false,
+            blocked_only: false,
             include_done: true,
         };
         assert!(filter.matches(&json!({ "state": "done", "location": "done" })));
@@ -85,9 +94,22 @@ mod tests {
         let filter = StatusFilter {
             state: Some("done".to_string()),
             ready_only: false,
+            blocked_only: false,
             include_done: false,
         };
         assert!(filter.matches(&json!({ "state": "done", "location": "done" })));
         assert!(!filter.matches(&json!({ "state": "pending", "location": "todo" })));
+    }
+
+    #[test]
+    fn blocked_only_matches_rows_with_blockers() {
+        let filter = StatusFilter {
+            state: None,
+            ready_only: false,
+            blocked_only: true,
+            include_done: false,
+        };
+        assert!(filter.matches(&json!({ "state": "pending", "blockedBy": ["T-1"] })));
+        assert!(!filter.matches(&json!({ "state": "pending", "blockedBy": [] })));
     }
 }

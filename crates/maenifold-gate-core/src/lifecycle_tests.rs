@@ -175,6 +175,7 @@ fn default_filter() -> StatusFilter {
     StatusFilter {
         state: None,
         ready_only: false,
+        blocked_only: false,
         include_done: true,
     }
 }

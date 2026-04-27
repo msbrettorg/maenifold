@@ -1,6 +1,8 @@
 use std::fs;
 use std::path::Path;
 
+use maenifold_gate_core::dependency_graph::detect_cycles;
+
 use crate::cache_db::GateCacheDb;
 use crate::cli::SyncArgs;
 use crate::error::GateError;
@@ -29,6 +31,7 @@ pub(crate) fn sync_gate_unlocked(args: SyncArgs) -> Result<(), GateError> {
     ensure_gate_gitignore_entry(&args.context.root)?;
     recover_terminal_todo_tasks(&args)?;
     let tasks = TaskRepository::list_tasks(args.context.root.clone())?;
+    warn_dependency_cycles(&args.context.root, &tasks);
 
     if args.rebuild {
         GateCacheDb::rebuild(&args.context.root, &tasks)?;
@@ -37,6 +40,23 @@ pub(crate) fn sync_gate_unlocked(args: SyncArgs) -> Result<(), GateError> {
     }
 
     Ok(())
+}
+
+fn warn_dependency_cycles(root: &Path, tasks: &[crate::task_repository::TaskPathSet]) {
+    let dependencies: Vec<_> = tasks
+        .iter()
+        .filter_map(|task| {
+            TaskRepository::read_task_document(root, task)
+                .ok()
+                .map(|document| (task.task_id.clone(), document.metadata.depends_on))
+        })
+        .collect();
+    for cycle in detect_cycles(&dependencies) {
+        eprintln!(
+            "Warning: dependency cycle detected involving: {}",
+            cycle.task_ids.join(", ")
+        );
+    }
 }
 
 fn recover_terminal_todo_tasks(args: &SyncArgs) -> Result<(), GateError> {

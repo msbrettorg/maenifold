@@ -240,6 +240,7 @@ mod tests {
             panic!("status subcommand should produce a status request");
         };
         assert!(args.filter.ready_only);
+        assert!(!args.filter.blocked_only);
         assert_eq!(args.filter.state, None);
         assert!(!args.filter.include_done);
     }
@@ -256,6 +257,7 @@ mod tests {
         };
         assert_eq!(args.filter.state.as_deref(), Some("swe"));
         assert!(!args.filter.ready_only);
+        assert!(!args.filter.blocked_only);
         assert!(!args.filter.include_done);
     }
 
@@ -271,6 +273,21 @@ mod tests {
         };
         assert!(args.filter.include_done);
         assert!(!args.filter.ready_only);
+        assert!(!args.filter.blocked_only);
         assert_eq!(args.filter.state, None);
+    }
+
+    #[test]
+    fn parse_status_blocked_flag() {
+        let cli = GateCli::parse_from(["gate", "status", "--blocked"]);
+        let Some(command) = cli.command else {
+            panic!("status subcommand should be present");
+        };
+        let request = command.into_request().expect("status request should build");
+        let CommandRequest::Status(args) = request else {
+            panic!("status subcommand should produce a status request");
+        };
+        assert!(args.filter.blocked_only);
+        assert!(!args.filter.ready_only);
     }
 }

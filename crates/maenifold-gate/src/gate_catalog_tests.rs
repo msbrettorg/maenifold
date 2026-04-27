@@ -182,6 +182,7 @@ fn resolve_for_task_rejects_pipeline_mismatch() {
         pipeline: "sdd".to_string(),
         state: None,
         session_id: None,
+        depends_on: Vec::new(),
     };
     let result = GateDefinitionCatalog::resolve_for_task(root.path(), &metadata, Some("tdd"));
     assert!(result.is_err());

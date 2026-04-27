@@ -1,3 +1,4 @@
+pub mod dependency_graph;
 pub mod error;
 pub mod gate_definition;
 pub mod state_machine;

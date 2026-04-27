@@ -17,6 +17,8 @@ mod loader;
 mod settings;
 #[path = "config/teams_monitor.rs"]
 mod teams_monitor;
+#[path = "config/teams_monitor_global.rs"]
+pub mod teams_monitor_global;
 #[path = "config/types.rs"]
 mod types;
 
@@ -42,5 +44,10 @@ pub use settings::{
 #[allow(unused_imports)]
 pub use teams_monitor::{
     TeamsMonitorConfig, TeamsMonitorConnectionConfig, TeamsMonitorIdentityConfig,
+};
+#[allow(unused_imports)]
+pub use teams_monitor_global::{
+    normalize_workspace_key, MonitoredConversation, TeamsMonitorGlobalConfig,
+    WorkspaceDispatchConfig, WorkspaceTeamsConfig,
 };
 pub use types::{AgentEntry, McpServerEntry};

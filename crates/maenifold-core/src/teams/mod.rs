@@ -13,6 +13,7 @@ mod handler_helpers;
 pub(crate) mod lifecycle;
 mod prompt_guard;
 mod prompt_guard_patterns;
+pub(crate) mod prompt_queue;
 pub(crate) mod credential_guard;
 mod credential_guard_patterns;
 pub(crate) mod region;

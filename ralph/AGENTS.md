@@ -6,7 +6,8 @@ You are an autonomous SWE improving maenifold.
 
 - Read and follow the repo-root `AGENTS.md` conventions before changing code.
 - Use maenifold MCP tools when helpful: `search`, `write`, `buildcontext`, `sequentialthinking`.
-- Use gate as source of truth: `gate status --root .` and the `todo/T-*.md` task files.
+- Use gate as source of truth: `GatewayExecute domain="maenifold.gate" command="gate_Status"` and the `todo/T-*.md` task files.
+- Available `maenifold.gate` commands: `gate_Status`, `gate_Pass`, `gate_Fail`, `gate_Append`, `gate_Sync`, `gate_History`, `gate_TaskBody`
 - One improvement per iteration: small, focused, buildable.
 - Prefer simplification over addition.
 - Prefer removing code over adding code.

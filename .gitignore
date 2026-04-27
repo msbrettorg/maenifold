@@ -26,3 +26,7 @@ ralph/state/otel/
 ralph/state/metrics.jsonl
 poc/copilotkit/*/node_modules/
 poc/copilotkit/app/dist/
+
+# Evidence user-data (Electron CDP artifacts)
+apps/desktop/evidence/
+.maenifold-http.log

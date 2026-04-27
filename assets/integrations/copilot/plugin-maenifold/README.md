@@ -525,123 +525,59 @@ cp src/Maenifold/bin/Release/net9.0/maenifold ~/maenifold/bin/
 
 ## MCP Configuration
 
-The maenifold skill requires the MCP server to be configured. Configuration varies by client.
+The maenifold skill requires Copilot CLI to connect to the running maenifold HTTP daemon. The expected Streamable HTTP MCP endpoint is:
 
-### Claude Code
+- `http://127.0.0.1:8080/mcp`
 
-Create or update `.mcp.json` in your project root:
+Start the daemon through the repo-supported HTTP path before opening Copilot:
+
+```bash
+maenifold --http
+```
+
+That command hosts maenifold MCP on port `8080` by default. It is also the host for native Gateway domains.
+
+### Copilot CLI
+
+Configure the user-level Copilot MCP file at `~/.copilot/mcp-config.json`. Do not mutate this file from the plugin installer; document the following entry for the user's active Copilot configuration:
 
 ```json
 {
   "mcpServers": {
     "maenifold": {
-      "command": "maenifold",
-      "args": ["--mcp"],
-      "type": "stdio"
+      "url": "http://127.0.0.1:8080/mcp",
+      "type": "http",
+      "tools": ["*"]
     }
   }
 }
 ```
 
-If maenifold is not in PATH, specify the full path to your installation:
+Verify that Copilot loaded the active user-level config:
 
-**macOS/Linux**:
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "/Users/<username>/maenifold/bin/maenifold",
-      "args": ["--mcp"],
-      "type": "stdio"
-    }
-  }
-}
+```bash
+copilot mcp list
 ```
 
-**Windows**:
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "C:\\Users\\<username>\\maenifold\\bin\\maenifold.exe",
-      "args": ["--mcp"],
-      "type": "stdio"
-    }
-  }
-}
-```
+The output should include `maenifold (http)`. If `copilot mcp list` does not show plugin servers, this plugin's `.mcp.json` is insufficient by itself; add the `~/.copilot/mcp-config.json` entry above.
 
-### Claude Desktop
+### Gate tools
 
-Edit the configuration file at:
-- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+Gate is not a separate MCP server for Copilot. Do not configure a `gate` MCP server entry, a second port, or standalone Gate daemon flags. Gate operations are native Gateway tools served through maenifold on the same `http://127.0.0.1:8080/mcp` endpoint.
 
-Add the maenifold server:
+The Gate Gateway domain is `maenifold.gate`, with these commands:
 
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "maenifold",
-      "args": ["--mcp"]
-    }
-  }
-}
-```
+- `gate_Status`
+- `gate_Pass`
+- `gate_Fail`
+- `gate_Append`
+- `gate_Sync`
+- `gate_History`
+- `gate_TaskBody`
 
-If maenifold is not added to PATH, use the full path:
+Any plugin or config example that declares `gate` as a separate MCP server, or starts Gate as its own MCP/HTTP process, is NO LONGER VALID — replaced by the `maenifold.gate` domain on port `8080`.
 
-**macOS/Linux**:
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "/Users/<username>/maenifold/bin/maenifold",
-      "args": ["--mcp"]
-    }
-  }
-}
-```
-
-**Windows**:
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "C:\\Users\\<username>\\maenifold\\bin\\maenifold.exe",
-      "args": ["--mcp"]
-    }
-  }
-}
-```
-
-Replace `<username>` with your actual username, or use environment variable expansion if your client supports it.
-
-### Codex CLI
-
-Edit `~/.codex/config.toml`:
-
-```toml
-[mcp_servers.maenifold]
-type = "stdio"
-command = "maenifold"
-args = ["--mcp"]
-startup_timeout_sec = 120
-tool_timeout_sec = 600
-```
-
-With custom data directory:
-
-```toml
-[mcp_servers.maenifold]
-type = "stdio"
-command = "maenifold"
-args = ["--mcp"]
-startup_timeout_sec = 120
-tool_timeout_sec = 600
-env = { MAENIFOLD_ROOT = "~/my-knowledge-base" }
-```
+The plugin `.mcp.json` mirrors the same single maenifold HTTP server shape for clients that load plugin-local MCP files. Copilot CLI users should still verify with `copilot mcp list`.
 
 ## Environment Variables
 
@@ -659,22 +595,8 @@ export MAENIFOLD_ROOT=~/my-knowledge-base
 $env:MAENIFOLD_ROOT = "$HOME\my-knowledge-base"
 ```
 
-Or specify it in the MCP configuration:
+Or export it in the shell before starting the maenifold HTTP daemon.
 
-```json
-{
-  "mcpServers": {
-    "maenifold": {
-      "command": "maenifold",
-      "args": ["--mcp"],
-      "type": "stdio",
-      "env": {
-        "MAENIFOLD_ROOT": "~/my-knowledge-base"
-      }
-    }
-  }
-}
-```
 
 ## Verification
 
@@ -688,17 +610,25 @@ maenifold --tool GetConfig --payload '{}'
 
 Expected output: JSON configuration including `maenifoldRoot` path and version info
 
-### 2. Test MCP Server
+### 2. Test HTTP MCP Server
 
 ```bash
-maenifold --mcp
+maenifold --http
 ```
 
-The server should start and wait for JSON-RPC input. Press Ctrl+C to exit.
+The server should expose Streamable HTTP MCP at `http://127.0.0.1:8080/mcp`. Keep this daemon running while Copilot uses the tools.
 
-### 3. Test from Claude Code
+### 3. Verify Copilot MCP Registration
 
-Start Claude Code and try:
+```bash
+copilot mcp list
+```
+
+Expected output includes `maenifold (http)`. If it does not, the active user-level Copilot config did not load the maenifold HTTP server entry.
+
+### 4. Test from Copilot CLI
+
+Start Copilot CLI and try:
 
 ```
 Write a test memory about [[installation]] verification
@@ -706,9 +636,9 @@ Write a test memory about [[installation]] verification
 
 If successful, you should see confirmation that the memory was written.
 
-### 4. Verify Skill Loading
+### 5. Verify Skill Loading
 
-In Claude Code, the skill should load automatically when you mention:
+In Copilot CLI, the skill should load automatically when you mention:
 - "write memory", "read memory", "search memories"
 - "build context", "find similar concepts"
 - "sequential thinking", "run workflow"
@@ -733,19 +663,7 @@ In Claude Code, the skill should load automatically when you mention:
 ### MCP Server Timeout
 
 - **Cause**: Server taking too long to start
-- **Solution**: Increase timeout in configuration:
-  ```json
-  {
-    "mcpServers": {
-      "maenifold": {
-        "command": "maenifold",
-        "args": ["--mcp"],
-        "type": "stdio",
-        "timeout": 120000
-      }
-    }
-  }
-  ```
+- **Solution**: Start the maenifold HTTP daemon before launching Copilot and verify `copilot mcp list` reports `maenifold (http)`.
 
 ### Database Lock Error
 
@@ -756,8 +674,8 @@ In Claude Code, the skill should load automatically when you mention:
 
 - **Cause**: Skill files not found or plugin not installed
 - **Solution**:
-  1. Run `claude plugin list` to verify installation
-  2. Reinstall with `claude plugin install msbrettorg/maenifold`
+  1. Verify the maenifold plugin is installed in Copilot CLI
+  2. Verify `copilot mcp list` includes `maenifold (http)`
 
 ### Empty Search Results
 
@@ -767,16 +685,15 @@ In Claude Code, the skill should load automatically when you mention:
   Sync the knowledge graph
   ```
 
-## Client Comparison
+## Copilot Bootstrap Summary
 
-| Feature | Claude Code | Claude Desktop | Codex CLI |
-|---------|-------------|----------------|-----------|
-| Config Format | JSON (`.mcp.json`) | JSON | TOML |
-| Config Location | Project root | App Support folder | `~/.codex/` |
-| Skill Support | Yes | No | Partial |
-| Plugin Install | `claude plugin install` | Manual only | Manual only |
-| Env Variables | In config or shell | In config | In config |
-| Timeout Config | `timeout` field | Not configurable | `startup_timeout_sec`, `tool_timeout_sec` |
+| Requirement | Value |
+|-------------|-------|
+| MCP endpoint | `http://127.0.0.1:8080/mcp` |
+| Copilot config path | `~/.copilot/mcp-config.json` |
+| Server entry | `maenifold` with `type: "http"` |
+| Gate exposure | Native `maenifold.gate` Gateway tools through maenifold |
+| Verification | `copilot mcp list` shows `maenifold (http)` |
 
 ## Related Documentation
 

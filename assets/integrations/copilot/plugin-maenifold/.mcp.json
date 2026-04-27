@@ -4,11 +4,6 @@
       "url": "http://127.0.0.1:8080/mcp",
       "type": "http",
       "tools": ["*"]
-    },
-    "gate": {
-      "url": "http://127.0.0.1:8081/mcp",
-      "type": "http",
-      "tools": ["*"]
     }
   }
 }

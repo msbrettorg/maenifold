@@ -34,7 +34,7 @@ pub(crate) fn append_task(args: AppendArgs) -> Result<(), GateError> {
         .terminal
     {
         return Err(GateError::Cli(format!(
-            "task '{}' is already done; append is not allowed on completed tasks",
+            "task '{}' is already done; append is not allowed on completed tasks. To record follow-up work, create a new successor task file in todo/ referencing this task, then run gate_Sync to register it.",
             args.task_id
         )));
     }

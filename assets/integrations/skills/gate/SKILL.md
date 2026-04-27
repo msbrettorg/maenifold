@@ -1,11 +1,11 @@
 ---
 name: gate
-description: "The team's gated delivery process and gate CLI/MCP runtime. Use this skill when the user asks to run or set up gate, SDD, TDD, GSD, lightweight, task pipeline orchestration, `.gate/gate.db`, `gate --mcp`, `gate --http`, tray/runtime behavior, open-at-login, or custom gate process JSON."
+description: "The team's gated delivery process through the native maenifold.gate Gateway domain. Use this skill when the user asks to run or set up gate, SDD, TDD, GSD, lightweight, task pipeline orchestration, `.gate/gate.db`, GatewayExecute, or custom gate process JSON."
 ---
 
 # Gate
 
-`gate` is a file-authoritative pipeline tool.
+Gate is a file-authoritative pipeline tool exposed through the native `maenifold.gate` Gateway domain.
 
 - Task files in `todo/` and `done/` are the source of truth.
 - `.gate/gate.db` is a rebuildable cache only.
@@ -16,22 +16,28 @@ If you are changing the gate implementation itself, read [docs/gate-uml-spec.md]
 
 ## Current Surface
 
-CLI commands:
+Gate is accessed with `GatewayExecute` against the integrated domain `maenifold.gate`.
+The existing `maenifold --http` daemon hosts this Gateway surface, normally via the maenifold MCP HTTP endpoint on port `8080`.
+Gate is not run as its own MCP server and has no gate-specific tray, tooltip, LaunchAgent, or open-at-login service mode.
 
-- `gate status`
-- `gate append`
-- `gate pass`
-- `gate fail`
-- `gate sync`
+Gateway commands:
 
-Service modes:
+- `gate_Status` — list task status
+- `gate_Sync` — validate and rebuild cache
+- `gate_Append` — record notes without advancing
+- `gate_Pass` — advance with pass
+- `gate_Fail` — advance with fail
+- `gate_History` — read task stage history
+- `gate_TaskBody` — read task markdown
 
-- `gate --mcp`
-  MCP over stdio
-- `gate --http --port <n>`
-  MCP over streamable HTTP at `/mcp`
+Access pattern:
 
-On macOS, both MCP service modes create a tray icon per running instance. HTTP mode also supports open-at-login via a LaunchAgent plist.
+```text
+GatewayExecute
+  domain: "maenifold.gate"
+  command: "gate_Status"
+  parameters: {root: "/path/to/repo"}
+```
 
 ## Mental Model
 
@@ -121,17 +127,17 @@ Minimum project layout:
 project/
 ├── todo/
 ├── done/
-└── .gate/        # created by gate sync when needed
+└── .gate/        # created by gate_Sync when needed
 ```
 
 Initialize a new pipeline root:
 
-```bash
+```text
 mkdir -p todo done
-gate sync --root . --rebuild
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
 ```
 
-`gate sync` now:
+`gate_Sync` now:
 
 - creates `.gate/` if needed
 - writes `.gate/gate.db`
@@ -145,63 +151,61 @@ For a fuller walkthrough, read `references/setup-template.md`.
 
 Loop:
 
-1. Run `gate status --root . --json`
+1. Run `gate_Status` through `GatewayExecute`
 2. Pick the next ready task
 3. Dispatch the stage agent
 4. Record the result with:
-   - `gate append`
-   - `gate pass`
-   - `gate fail`
+   - `gate_Append`
+   - `gate_Pass`
+   - `gate_Fail`
 5. Repeat until `todo/` drains
 
-Final-stage `gate pass` moves the file into `done/`.
+Final-stage `gate_Pass` moves the file into `done/`.
 
 Agents do not mutate gate state directly.
 
-## Common Commands
+## Gateway Commands
 
-```bash
+```text
 # status
-gate status --root .
-gate status --root . --json
+GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/repo"}
 
 # record work without advancing
-gate append T-1.1 --root . --agent swe --notes "implemented auth flow"
+GatewayExecute domain="maenifold.gate" command="gate_Append" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "swe", notes: "implemented auth flow"}
 
 # advance current stage
-gate pass T-1.1 --root . --agent red --notes "stage passed"
+GatewayExecute domain="maenifold.gate" command="gate_Pass" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "red", notes: "stage passed"}
 
 # return according to the active state's fail edge
-gate fail T-1.1 --root . --agent blue --notes "needs rework"
+GatewayExecute domain="maenifold.gate" command="gate_Fail" parameters={root: "/path/to/repo", taskId: "T-1.1", agent: "blue", notes: "needs rework"}
 
 # rebuild cache
-gate sync --root . --rebuild
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
+
+# read history and task body
+GatewayExecute domain="maenifold.gate" command="gate_History" parameters={root: "/path/to/repo", taskId: "T-1.1"}
+GatewayExecute domain="maenifold.gate" command="gate_TaskBody" parameters={root: "/path/to/repo", taskId: "T-1.1"}
 ```
 
-## MCP Usage
+## Gateway Usage
 
-`gate` exposes the same five operations over MCP:
+`maenifold.gate` exposes the gate operations as native Gateway commands:
 
-- `status`
-- `append`
-- `pass`
-- `fail`
-- `sync`
+- `gate_Status`
+- `gate_Append`
+- `gate_Pass`
+- `gate_Fail`
+- `gate_Sync`
+- `gate_History`
+- `gate_TaskBody`
 
-Use:
+Use `GatewayExecute` through the existing maenifold MCP connection:
 
-```bash
-gate --mcp
-gate --http --port 8081
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/repo"}
 ```
 
-HTTP MCP serves at `http://127.0.0.1:<port>/mcp`.
-
-Tray behavior on macOS:
-
-- stdio tooltip: `gate MCP stdio`
-- HTTP tooltip: `gate MCP :<port>`
-- open-at-login is available only for HTTP mode
+The maenifold HTTP MCP host is provided by `maenifold --http`; the gate domain does not require or provide its own service process.
 
 ## Prompt Templates
 
@@ -241,8 +245,8 @@ For confession-enhanced processes (`sdd-c`, `tdd-c`), use this mapping to dispat
 
 Recovery is filesystem-first:
 
-```bash
-gate sync --root . --rebuild
+```text
+GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo", rebuild: true}
 ```
 
 That reparses `todo/` and `done/`, rebuilds `.gate/gate.db`, and re-derives task state from canonical stage records.
@@ -260,7 +264,7 @@ If gate internals change, keep this skill aligned with:
 
 - [docs/gate-uml-spec.md](../../../../../docs/gate-uml-spec.md)
 - `crates/maenifold-gate/assets/*.json`
-- the actual CLI help for `gate`
-- the actual service-mode behavior for `--mcp` and `--http`
+- the native `maenifold.gate` Gateway command surface
+- the maenifold `GatewayExecute` behavior
 
 Do not leave stale references to obsolete commands, old cache paths, or legacy pipeline schema fields.

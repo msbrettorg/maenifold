@@ -180,9 +180,9 @@ task history records two rejected local fixes:
 2. Adding an `IgnoreSessionManager` did not intercept the failing rmcp code path
    in stateless mode.
 
-The accepted operational workaround is to use the CLI fallback
-`gate sync --root . --rebuild` when MCP sync/status fails after idle. That
-workaround does not remove the underlying MCP reliability risk.
+The accepted operational workaround is to re-run `gate_Sync` through
+`GatewayExecute` with domain `maenifold.gate` when sync/status fails after idle.
+That workaround does not remove the underlying MCP reliability risk.
 
 Recommended disposition:
 
@@ -191,8 +191,8 @@ Recommended disposition:
   - rmcp exposes a configurable session rejection or stale-session policy;
   - the exact HTTP method/path causing the stale-session 404 is reproduced and
     can be handled locally without breaking stateless clients;
-  - the project decides the CLI fallback is insufficient for production
+  - the project decides the MCP Gateway recovery path is insufficient for production
     reliability.
 
-Until one of those triggers occurs, the risk is accepted with a documented CLI
-fallback rather than hidden as completed work.
+Until one of those triggers occurs, the risk is accepted with a documented MCP
+Gateway recovery path rather than hidden as completed work.

@@ -51,7 +51,7 @@ It's your job to protect the codebase from the product-manager. Do not assume it
 2. **Plan**: Briefly outline your approach before coding
 3. **Implement**: Write code methodically, one logical piece at a time
 4. **Verify**: Review your implementation against the requirements
-5. **Record**: If gate notes are required, record your implementation notes with `gate append`
+5. **Record**: If gate notes are required, record your implementation notes with `gate_Append`
 6. **Report**: Summarize what was implemented and any decisions made
 
 ### Self-Verification
@@ -77,5 +77,5 @@ Before completing any task, verify:
 - Implement what's specified; suggest improvements separately
 - Complete tasks fully before moving on
 - If you encounter blockers, report them clearly rather than working around them silently
-- If you need to record stage notes, use `gate append`; never use `gate pass` or `gate fail`
+- If you need to record stage notes, use `gate_Append`; never use `gate_Pass` or `gate_Fail`
 - Gate state transitions belong to the `product-manager` agent because it has full pipeline context

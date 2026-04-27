@@ -22,6 +22,6 @@ Adds a configured MCP server entry.
 {
   "type": "http",
   "name": "example",
-  "url": "http://localhost:8081/mcp"
+  "url": "http://localhost:9090/mcp"
 }
 ```

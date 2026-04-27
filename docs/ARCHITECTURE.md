@@ -12,11 +12,11 @@ This guide documents the runtime architecture as implemented in this repository,
                               ^
                               |
 [maenifold-pipeline-driver] --+--> [ACP runtimes via maenifold-jockey]
-
-[gate service :8081] <--> [todo/ + done/ task files]   (HTTP /mcp)
+                              |
+                              +--> [maenifold.gate Gateway domain] <--> [todo/ + done/ task files]
 ```
 
-Two service surfaces (daemon :8080 and gate :8081) plus the CLI all converge on `maenifold-core`. The pipeline driver dispatches ACP runtimes through `maenifold-jockey`.
+The `maenifold --http` daemon on port 8080 hosts MCP, `/api/*`, and native Gateway domains including `maenifold.gate`. The pipeline driver dispatches ACP runtimes through `maenifold-jockey`.
 
 <details><summary>Same diagram in Mermaid (graphical viewers only)</summary>
 
@@ -27,7 +27,8 @@ flowchart LR
     Daemon <--> Core
     Driver["maenifold-pipeline-driver"] <--> Core
     Driver <--> ACP["ACP runtimes via maenifold-jockey"]
-    Gate["gate service :8081 (/mcp)"] <--> Files["todo/ + done/ task files"]
+    Daemon --> Gateway["Gateway domain: maenifold.gate"]
+    Gateway <--> Files["todo/ + done/ task files"]
 ```
 
 </details>
@@ -41,7 +42,7 @@ flowchart LR
    Binary entrypoint for `maenifold`; dispatches to core CLI/MCP/HTTP runtime.
 
 3. **`maenifold-gate`**  
-   File-authoritative gate engine and MCP service for task progression (`status/append/pass/fail/history/task_body/sync`), with `.gate/gate.db` as read model cache.
+   File-authoritative gate engine exposed through the native `maenifold.gate` Gateway domain for task progression (`gate_Status/gate_Append/gate_Pass/gate_Fail/gate_History/gate_TaskBody/gate_Sync`), with `.gate/gate.db` as read model cache.
 
 4. **`maenifold-jockey`**  
    ACP bridge/runtime integration used by core workflow/pipeline execution.
@@ -56,7 +57,7 @@ flowchart LR
 - In core, MCP `call_tool` routes to `ToolRegistry::global().try_invoke(...)`.
 - CLI `maenifold tool ...` also routes to `ToolRegistry::global().try_invoke(...)`.
 - MCP tool discovery in core is generated from canonical registry names (`list_mcp_tools` from `ToolRegistry`), so MCP and CLI share the same operation surface.
-- Gate MCP similarly routes tool calls to `GateToolService`, which is also used by gate command handlers.
+- The `maenifold.gate` Gateway domain routes `GatewayExecute` commands to `GateToolService`, which owns the shared gate command behavior.
 
 ## Data model and runtime paths (verified)
 
@@ -102,7 +103,7 @@ Related persistence:
 
 ## E2E trace 3: Gate progression (`pending -> ... -> done`)
 
-1. Entry via CLI (`gate pass`) or MCP (`pass` tool) converges in `GateToolService::pass`.
+1. Entry via `GatewayExecute` with domain `maenifold.gate` and command `gate_Pass` converges in `GateToolService::pass`.
 2. `pass_task`/`apply_outcome`:
    - acquires task lock
    - reads authoritative task markdown from `todo/` or `done/`

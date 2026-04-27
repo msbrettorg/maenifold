@@ -100,10 +100,10 @@ Default SDD stage flow:
 
 Typical loop:
 
-1. `gate sync --root .`
-2. `gate status --root .`
+1. `GatewayExecute domain="maenifold.gate" command="gate_Sync" parameters={root: "/path/to/repo"}`
+2. `GatewayExecute domain="maenifold.gate" command="gate_Status" parameters={root: "/path/to/repo"}`
 3. implement/review work for current stage
-4. record with `gate append`, then advance with `gate pass` or return with `gate fail`
+4. record with `gate_Append`, then advance with `gate_Pass` or return with `gate_Fail`
 
 Spec reference: [docs/gate-uml-spec.md](./docs/gate-uml-spec.md)
 

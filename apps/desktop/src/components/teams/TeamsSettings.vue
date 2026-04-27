@@ -54,7 +54,8 @@ const authStatusLabel = computed(() => formatTeamsConnectionState(runtime.value.
 const identityTitle = computed(() => identity.value?.displayName || identity.value?.upn || 'Not detected');
 const identitySubtitle = computed(() => identity.value?.mri || 'Use Detect identity to read the signed-in Teams token.');
 const runtimeError = computed(() => error.value || runtime.value.lastError || runtime.value.lastAuthError || '');
-const regionLabel = computed(() => connection.value.chatsvcRegion || identity.value?.chatsvcRegion || 'amer');
+const detectedRegion = computed<string | null>(() => identity.value?.chatsvcRegion || connection.value.chatsvcRegion || null);
+const tokenExpiryLabel = computed(() => runtime.value.expiresAt || identity.value?.expiresAt || '');
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
@@ -192,16 +193,18 @@ onMounted(() => { void loadStatus(); });
       <div class="grid gap-4 lg:grid-cols-[1fr_auto]">
         <div class="rounded-md border border-border bg-muted/40 p-4">
           <div class="flex items-start justify-between gap-4">
-            <div class="min-w-0">
+            <div class="min-w-0 flex flex-col gap-1">
               <p class="text-sm font-semibold text-text-primary">{{ identityTitle }}</p>
-              <p class="mt-1 break-all text-xs text-muted-foreground">{{ identitySubtitle }}</p>
+              <p v-if="identity?.upn" class="text-xs text-text-secondary">{{ identity.upn }}</p>
+              <p class="break-all font-mono text-[11px] text-muted-foreground">{{ identitySubtitle }}</p>
+              <p v-if="detectedRegion" class="text-[11px] text-muted-foreground">
+                Region: {{ detectedRegion }}
+              </p>
+              <p v-if="tokenExpiryLabel" class="text-[11px] text-muted-foreground">
+                Token expires: {{ tokenExpiryLabel }}
+              </p>
             </div>
             <Badge variant="outline">{{ authStatusLabel }}</Badge>
-          </div>
-          <div class="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
-            <span>Region: {{ regionLabel }}</span>
-            <span>UPN: {{ identity?.upn || 'unknown' }}</span>
-            <span>Token expires: {{ runtime.expiresAt || identity?.expiresAt || 'unknown' }}</span>
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2 lg:justify-end">

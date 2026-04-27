@@ -55,11 +55,26 @@ impl GateLifecycle {
         let _lock = GateProjectLock::acquire_shared(&root)?;
         let mut rows = Vec::new();
         for task in TaskRepository::list_tasks(root.clone())? {
-            let row = status_row(
+            // Skip done/ tasks early when not requested — avoids replaying
+            // incomplete stage records for legacy/manually-moved tasks.
+            if task.location == "done" && !args.filter.include_done {
+                continue;
+            }
+            let row = match status_row(
                 &root,
                 &task,
                 args.context.requested_pipeline_name.as_deref(),
-            )?;
+            ) {
+                Ok(row) => row,
+                Err(e) => json!({
+                    "taskId": task.task_id,
+                    "pipeline": "unknown",
+                    "state": "error",
+                    "location": task.location,
+                    "path": task.path.display().to_string(),
+                    "issue": format!("{e}"),
+                }),
+            };
             if args.filter.matches(&row) {
                 rows.push(row);
             }

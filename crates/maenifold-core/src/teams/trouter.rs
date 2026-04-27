@@ -1,3 +1,4 @@
+use super::trouter_handle::ReRegisterHandle;
 use super::trouter_protocol::{
     ack_message, build_auth_frame, build_connection_url, ensure_tls_provider, message_id,
     next_text_frame_cancellable, parse_frame, register, send_event_ack, sleep_or_cancel,
@@ -6,9 +7,11 @@ use super::trouter_protocol::{
 use super::{EventMessage, TrouterFrame, set_teams_connected, set_teams_connecting};
 use crate::error::{MaenifoldError, Result};
 use futures_util::{SinkExt, StreamExt};
+use parking_lot::RwLock;
 use serde_json::{Value, json};
+use std::sync::Arc;
 use std::time::Duration;
-use tokio::{sync::mpsc, time};
+use tokio::{sync::{mpsc, watch}, time};
 use tokio_tungstenite::{
     connect_async,
     tungstenite::{Message as WsMessage, client::IntoClientRequest, http::HeaderValue},
@@ -50,40 +53,54 @@ impl Default for TrouterClientConfig {
 
 pub struct TrouterClient {
     config: TrouterClientConfig,
-    token: String,
+    token_rx: watch::Receiver<String>,
     cancel: CancellationToken,
     ws: Option<WsStream>,
     epid: Uuid,
     seq: u64,
-    connected: Option<TrouterConnected>,
+    connected: Arc<RwLock<Option<TrouterConnected>>>,
 }
 
-impl TrouterClient {
-    pub fn new(token: String, cancel: CancellationToken) -> Self {
-        Self::with_config(token, cancel, TrouterClientConfig::default())
-    }
+/// Cloneable handle for re-registering with Trouter using a fresh token,
+/// without owning `&mut TrouterClient`. Used by the token-refresh loop
+/// (T-238.50). See `trouter_handle::ReRegisterHandle`.
 
+impl TrouterClient {
     pub fn with_config(
-        token: String,
+        token_rx: watch::Receiver<String>,
         cancel: CancellationToken,
         config: TrouterClientConfig,
     ) -> Self {
         Self {
             config,
-            token,
+            token_rx,
             cancel,
             ws: None,
             epid: Uuid::new_v4(),
             seq: 0,
-            connected: None,
+            connected: Arc::new(RwLock::new(None)),
         }
+    }
+
+    /// Cloneable handle the refresh loop uses to immediately re-register after
+    /// acquiring a fresh token.
+    pub fn re_register_handle(&self) -> ReRegisterHandle {
+        ReRegisterHandle {
+            config: self.config.clone(),
+            epid: self.epid,
+            connected: Arc::clone(&self.connected),
+        }
+    }
+
+    fn current_token(&self) -> String {
+        self.token_rx.borrow().clone()
     }
 
     pub async fn connect(&mut self) -> Result<()> {
         ensure_tls_provider();
         self.epid = Uuid::new_v4();
         self.seq = 0;
-        self.connected = None;
+        *self.connected.write() = None;
         let mut request = build_connection_url(&self.config.gateway, &self.epid)
             .into_client_request()
             .map_err(|e| MaenifoldError::Message(format!("invalid trouter request: {e}")))?;
@@ -101,7 +118,8 @@ impl TrouterClient {
                 "expected trouter connect frame, received {connect}"
             )));
         }
-        let auth = build_auth_frame(&self.token, &self.epid);
+        let token = self.current_token();
+        let auth = build_auth_frame(&token, &self.epid);
         tracing::debug!(len = auth.len(), "trouter sending auth");
         ws.send(WsMessage::Text(auth.into()))
             .await
@@ -109,7 +127,7 @@ impl TrouterClient {
         let connected = self.await_connected(&mut ws).await?;
         tracing::info!(surl_len = connected.surl.len(), "trouter.connected received");
         tokio::select! {
-            result = register(&self.token, &connected, &self.epid, &self.config) => {
+            result = register(&token, &connected, &self.epid, &self.config) => {
                 tracing::info!("trouter registrar ok");
                 result?
             },
@@ -117,26 +135,9 @@ impl TrouterClient {
                 return Err(MaenifoldError::Message("trouter registration cancelled".to_string()));
             }
         }
-        self.connected = Some(connected);
+        *self.connected.write() = Some(connected);
         self.ws = Some(ws);
         Ok(())
-    }
-
-    /// Re-register using a (possibly fresh) token without tearing down the websocket.
-    /// Called by the token-refresh loop (T-238.50) after acquiring a new chatsvcagg token.
-    pub async fn re_register_with_token(&self, token: &str) -> Result<()> {
-        let Some(connected) = self.connected.as_ref() else {
-            return Err(MaenifoldError::Message(
-                "trouter re_register called before connect".into(),
-            ));
-        };
-        register(token, connected, &self.epid, &self.config).await
-    }
-
-    /// Update the bearer token used by subsequent periodic re-registrations.
-    /// The token-refresh loop (T-238.50) calls this after acquiring a fresh token.
-    pub fn update_token(&mut self, token: String) {
-        self.token = token;
     }
 
     pub async fn run(&mut self, msg_tx: mpsc::Sender<EventMessage>) -> Result<()> {
@@ -159,7 +160,7 @@ impl TrouterClient {
                         self.close_ws().await;
                         return Ok(());
                     }
-                    self.connected = None;
+                    *self.connected.write() = None;
                     set_teams_connecting();
                 }
                 Err(error) => tracing::warn!("trouter connect failed: {error}"),
@@ -226,7 +227,6 @@ impl TrouterClient {
                     ws.send(WsMessage::Text(ping.into())).await.map_err(|e| MaenifoldError::Message(format!("trouter heartbeat failed: {e}")))?;
                 }
                 _ = reregister.tick() => {
-                    // Reap any completed prior task; skip if still in flight to avoid overlap.
                     if reregister_handle.as_ref().is_some_and(|h| h.is_finished()) {
                         if let Some(h) = reregister_handle.take() {
                             match h.await {
@@ -239,18 +239,15 @@ impl TrouterClient {
                         tracing::warn!("trouter re-registration still in flight, skipping tick");
                     }
                     if reregister_handle.is_none() {
-                        if let Some(connected) = self.connected.clone() {
-                            let token = self.token.clone();
-                            let epid = self.epid;
-                            let config = self.config.clone();
-                            let cancel = self.cancel.clone();
-                            reregister_handle = Some(tokio::spawn(async move {
-                                tokio::select! {
-                                    result = register(&token, &connected, &epid, &config) => result,
-                                    _ = cancel.cancelled() => Err(MaenifoldError::Message("trouter re-registration cancelled".into())),
-                                }
-                            }));
-                        }
+                        let handle = self.re_register_handle();
+                        let token = self.current_token();
+                        let cancel = self.cancel.clone();
+                        reregister_handle = Some(tokio::spawn(async move {
+                            tokio::select! {
+                                result = handle.re_register(&token) => result,
+                                _ = cancel.cancelled() => Err(MaenifoldError::Message("trouter re-registration cancelled".into())),
+                            }
+                        }));
                     }
                 }
                 frame = ws.next() => {
@@ -290,7 +287,7 @@ impl TrouterClient {
     }
 
     async fn close_ws(&mut self) {
-        self.connected = None;
+        *self.connected.write() = None;
         if let Some(mut ws) = self.ws.take() {
             let _ = ws.close(None).await;
         }

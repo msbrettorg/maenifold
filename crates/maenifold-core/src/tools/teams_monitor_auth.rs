@@ -7,7 +7,7 @@ use crate::acp_config::{
 use crate::error::{MaenifoldError, Result};
 use crate::teams::credential_store::{AGENCY_COWORK_TOKEN_RESOURCE, delete_agency_cowork_token};
 use crate::teams::{
-    TeamsIdentity, TeamsIdentitySource, TeamsTokenProvider,
+    TeamsIdentity, TeamsIdentitySource, TeamsTokenProvider, TokenInfo,
     detect_identity as detect_teams_identity, set_teams_authenticated_until, set_teams_error,
     set_teams_unauthenticated, teams_runtime_snapshot,
 };
@@ -91,8 +91,8 @@ pub(super) fn restore_on_enable(monitor: &mut TeamsMonitorConfig) -> Result<()> 
     Ok(())
 }
 
-pub(super) fn acquire_token_for_monitor(monitor: &mut TeamsMonitorConfig) -> Result<String> {
-    let acquisition = run_teams_future(TeamsTokenProvider::new().acquire_token())?;
+pub(super) fn acquire_token_for_monitor(monitor: &mut TeamsMonitorConfig) -> Result<TokenInfo> {
+    let acquisition = run_teams_future(TeamsTokenProvider::new().acquire_token(false))?;
     let token = acquisition.token;
     let identity = run_teams_future(detect_teams_identity(&token.access_token))?;
     monitor.identity = Some(identity_config(&identity));
@@ -100,7 +100,7 @@ pub(super) fn acquire_token_for_monitor(monitor: &mut TeamsMonitorConfig) -> Res
         monitor.connection.chatsvc_region = region.clone();
     }
     set_teams_authenticated_until(Some(token.expires_at.to_rfc3339()));
-    Ok(token.access_token)
+    Ok(token)
 }
 
 fn identity_config(identity: &TeamsIdentity) -> TeamsMonitorIdentityConfig {

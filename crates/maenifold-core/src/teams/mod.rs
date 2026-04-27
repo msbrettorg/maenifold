@@ -6,9 +6,12 @@ pub mod identity;
 mod reply;
 mod runtime;
 pub mod supervisor;
+mod token_refresh;
+pub mod token_refresh_meta;
 pub mod token_provider;
 mod trouter;
-mod trouter_protocol;
+mod trouter_handle;
+pub(crate) mod trouter_protocol;
 mod types;
 
 pub use auth::TokenInfo;
@@ -18,15 +21,17 @@ pub use identity::{TeamsIdentity, TeamsIdentitySource, TeamsJwtClaims, detect_id
 pub use reply::{TeamsReplyRequest, reply_payload, reply_url, send_reply};
 pub use runtime::{
     TEAMS_STATUS_URI, TeamsPrompt, TeamsRuntimeState,
-    push_teams_prompt, set_teams_auth_expired, set_teams_authenticated,
-    set_teams_authenticated_until, set_teams_connected, set_teams_connecting, set_teams_disabled,
-    set_teams_error, set_teams_pending_auth, set_teams_unauthenticated,
-    subscribe_teams_prompts, teams_runtime_snapshot, teams_runtime_state,
+    clear_chatsvc_token, current_chatsvc_token, push_teams_prompt, set_chatsvc_token,
+    set_teams_auth_expired, set_teams_authenticated, set_teams_authenticated_until,
+    set_teams_connected, set_teams_connecting, set_teams_disabled, set_teams_error,
+    set_teams_pending_auth, set_teams_unauthenticated, subscribe_teams_prompts,
+    teams_runtime_snapshot, teams_runtime_state,
 };
 pub use token_provider::{
     TEAMS_CHATSVC_TOKEN_ENV, TEAMS_TOKEN_RESOURCE, TeamsTokenAcquisition, TeamsTokenError,
     TeamsTokenProvider, TeamsTokenSource,
 };
 pub use trouter::{TrouterClient, TrouterClientConfig};
+pub use trouter_handle::ReRegisterHandle;
 pub use trouter_protocol::parse_frame;
 pub use types::{EventMessage, TrouterFrame};

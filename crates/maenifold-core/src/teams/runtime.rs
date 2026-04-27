@@ -20,6 +20,24 @@ static TEAMS_RUNTIME_STATE: LazyLock<Arc<RwLock<TeamsRuntimeState>>> =
 
 static TEAMS_PROMPT_TX: OnceLock<tokio::sync::broadcast::Sender<TeamsPrompt>> = OnceLock::new();
 
+/// Current chatsvcagg bearer token, refreshed by the supervisor's token-refresh loop.
+/// Port of agency-cowork's module-level `set_chatsvc_token` in
+/// `skills/teams/scripts/monitor/service.py` (referenced by `_token_refresh_loop` L719-L760).
+static CHATSVC_TOKEN: LazyLock<RwLock<Option<String>>> =
+    LazyLock::new(|| RwLock::new(None));
+
+pub fn set_chatsvc_token(token: String) {
+    *CHATSVC_TOKEN.write() = Some(token);
+}
+
+pub fn current_chatsvc_token() -> Option<String> {
+    CHATSVC_TOKEN.read().clone()
+}
+
+pub fn clear_chatsvc_token() {
+    *CHATSVC_TOKEN.write() = None;
+}
+
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct TeamsRuntimeState {

@@ -1,29 +1,29 @@
-use std::{future::Future, pin::Pin, sync::Arc};
+use std::{future::Future, pin::Pin, sync::Arc, time::Duration};
 
 use chrono::Utc;
 use serde_json::Value;
-use tokio::{sync::mpsc, task::JoinHandle};
+use tokio::{
+    sync::{mpsc, watch},
+    task::JoinHandle,
+};
 use tokio_util::sync::CancellationToken;
 
 use crate::error::Result;
 
 use super::{
-    EventMessage, MessageHandler, MessageHandlerConfig,
-    TrouterClient, TrouterClientConfig, runtime::update_teams_runtime_state,
-    set_teams_connecting, set_teams_disabled, set_teams_error, teams_runtime_snapshot,
+    EventMessage, MessageHandler, MessageHandlerConfig, TokenInfo, TrouterClient,
+    TrouterClientConfig, runtime::update_teams_runtime_state, set_teams_connecting,
+    set_teams_disabled, set_teams_error, teams_runtime_snapshot,
+    token_provider::TeamsTokenProvider, token_refresh::spawn_refresh_loop,
 };
 
 pub type DispatchFn = Arc<dyn Fn(Value) -> std::result::Result<String, String> + Send + Sync>;
 pub type RunnerFuture = Pin<Box<dyn Future<Output = Result<()>> + Send>>;
+/// Runner factory: receives a pre-built `TrouterClient` (so the supervisor
+/// can pre-extract a `ReRegisterHandle` for the refresh loop) along with the
+/// outbound message channel.
 pub type RunnerFn = Arc<
-    dyn Fn(
-            String,
-            TrouterClientConfig,
-            CancellationToken,
-            mpsc::Sender<EventMessage>,
-        ) -> RunnerFuture
-        + Send
-        + Sync,
+    dyn Fn(TrouterClient, mpsc::Sender<EventMessage>) -> RunnerFuture + Send + Sync,
 >;
 
 const MESSAGE_CHANNEL_CAPACITY: usize = 64;
@@ -35,14 +35,18 @@ pub struct TrouterSupervisor {
 
 impl TrouterSupervisor {
     pub fn start(
-        token: String,
+        initial_token: TokenInfo,
+        provider: Arc<TeamsTokenProvider>,
+        fallback_refresh: Duration,
         trouter_config: TrouterClientConfig,
         handler_config: MessageHandlerConfig,
         dispatch_agent: Option<String>,
         dispatch_fn: DispatchFn,
     ) -> Self {
         Self::start_with_runner(
-            token,
+            initial_token,
+            provider,
+            fallback_refresh,
             trouter_config,
             handler_config,
             dispatch_agent,
@@ -52,7 +56,9 @@ impl TrouterSupervisor {
     }
 
     pub fn start_with_runner(
-        token: String,
+        initial_token: TokenInfo,
+        provider: Arc<TeamsTokenProvider>,
+        fallback_refresh: Duration,
         trouter_config: TrouterClientConfig,
         handler_config: MessageHandlerConfig,
         dispatch_agent: Option<String>,
@@ -63,7 +69,9 @@ impl TrouterSupervisor {
         let task_cancel = cancel.clone();
         let join_handle = tokio::spawn(async move {
             run_supervisor(
-                token,
+                initial_token,
+                provider,
+                fallback_refresh,
                 trouter_config,
                 handler_config,
                 dispatch_agent,
@@ -180,16 +188,14 @@ pub fn prewarm_teams_session(agent: &str) {
 }
 
 fn default_runner() -> RunnerFn {
-    Arc::new(|token, trouter_config, cancel, msg_tx| {
-        Box::pin(async move {
-            let mut client = TrouterClient::with_config(token, cancel, trouter_config);
-            client.run(msg_tx).await
-        })
-    })
+    Arc::new(|mut client, msg_tx| Box::pin(async move { client.run(msg_tx).await }))
 }
 
+#[allow(clippy::too_many_arguments)]
 async fn run_supervisor(
-    token: String,
+    initial_token: TokenInfo,
+    provider: Arc<TeamsTokenProvider>,
+    fallback_refresh: Duration,
     trouter_config: TrouterClientConfig,
     handler_config: MessageHandlerConfig,
     dispatch_agent: Option<String>,
@@ -200,14 +206,23 @@ async fn run_supervisor(
     set_teams_connecting();
 
     let (msg_tx, msg_rx) = mpsc::channel::<EventMessage>(MESSAGE_CHANNEL_CAPACITY);
-    let runner_cancel = cancel.child_token();
-    let runner_token = token.clone();
-    let runner_handle = tokio::spawn(async move {
-        runner_fn(runner_token, trouter_config, runner_cancel, msg_tx).await
-    });
+    let (token_tx, token_rx) = watch::channel(initial_token.access_token.clone());
+
+    let client = TrouterClient::with_config(token_rx, cancel.child_token(), trouter_config);
+    let re_register = client.re_register_handle();
+
+    let refresh_join = spawn_refresh_loop(
+        initial_token,
+        provider,
+        fallback_refresh,
+        token_tx,
+        re_register,
+        cancel.child_token(),
+    );
+
+    let runner_handle = tokio::spawn(async move { runner_fn(client, msg_tx).await });
     let processor_handle = tokio::spawn(process_messages(
         msg_rx,
-        token,
         handler_config,
         dispatch_agent,
         dispatch_fn,
@@ -219,6 +234,9 @@ async fn run_supervisor(
             "Teams Trouter runner task failed: {error}"
         ))),
     };
+
+    cancel.cancel();
+    let _ = refresh_join.await;
 
     if let Err(error) = processor_handle.await {
         set_teams_error(format!("Teams message processor task failed: {error}"));
@@ -233,7 +251,6 @@ async fn run_supervisor(
 
 async fn process_messages(
     mut msg_rx: mpsc::Receiver<EventMessage>,
-    _token: String,
     handler_config: MessageHandlerConfig,
     _dispatch_agent: Option<String>,
     _dispatch_fn: DispatchFn,

@@ -4,15 +4,16 @@ use super::teams_monitor_helpers::status_value;
 use crate::acp_config::{AgentsConfig, MaenifoldSettings, TeamsMonitorConfig};
 use crate::error::{MaenifoldError, Result};
 use crate::teams::{
-    MessageHandlerConfig, TrouterClientConfig, set_teams_disabled, set_teams_error,
+    MessageHandlerConfig, TokenInfo, TrouterClientConfig, set_teams_disabled, set_teams_error,
     supervisor::{TrouterSupervisor, default_dispatch_fn},
-    teams_runtime_snapshot,
+    teams_runtime_snapshot, token_provider::TeamsTokenProvider,
 };
 use serde_json::Value;
 use std::fs;
 use std::future::Future;
 use std::path::Path;
-use std::sync::{LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
+use std::time::Duration;
 use tokio::runtime::{Builder, Handle, Runtime, RuntimeFlavor};
 use tokio::task;
 
@@ -87,7 +88,10 @@ fn set_enabled(context: &ToolContext, enabled: bool) -> Result<String> {
     }
 }
 
-pub(super) fn start_monitor_supervisor(monitor: &TeamsMonitorConfig, token: String) -> Result<()> {
+pub(super) fn start_monitor_supervisor(
+    monitor: &TeamsMonitorConfig,
+    initial_token: TokenInfo,
+) -> Result<()> {
     if let Some(mut supervisor) = take_supervisor()? {
         run_on_supervisor_runtime(supervisor.stop())?;
     }
@@ -95,9 +99,14 @@ pub(super) fn start_monitor_supervisor(monitor: &TeamsMonitorConfig, token: Stri
     let handler_config = handler_config_from_monitor(monitor);
     let trouter_config = trouter_config_from_monitor(monitor);
     let dispatch_agent = monitor.dispatch_agent.clone();
+    let provider = Arc::new(TeamsTokenProvider::new());
+    let fallback_refresh =
+        Duration::from_secs(monitor.connection.token_refresh_minutes.max(1) * 60);
     let supervisor = run_on_supervisor_runtime(async move {
         TrouterSupervisor::start(
-            token,
+            initial_token,
+            provider,
+            fallback_refresh,
             trouter_config,
             handler_config,
             dispatch_agent,

@@ -16,6 +16,13 @@ pub const TEAMS_CHATSVC_TOKEN_ENV: &str = "TEAMS_CHATSVC_TOKEN";
 const AZURE_CLI_TIMEOUT: Duration = Duration::from_secs(15);
 const MIN_VALIDITY_REUSE_SECONDS: i64 = 30;
 
+// Refresh-buffer constants port the agency-cowork TokenManager defaults.
+// Reference: skills/teams/scripts/api/auth.py L29-L32
+pub(crate) const REFRESH_BUFFER_RATIO: f64 = 0.10;
+pub(crate) const MIN_REFRESH_BUFFER_SECS: u64 = 60;
+pub(crate) const MAX_REFRESH_BUFFER_SECS: u64 = 300;
+pub const MAX_REFRESH_SLEEP: Duration = Duration::from_secs(MAX_REFRESH_BUFFER_SECS);
+
 static CLI_BLOCKED_BY_TOKEN_PROTECTION: AtomicBool = AtomicBool::new(false);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -75,21 +82,26 @@ impl TeamsTokenProvider {
         Self
     }
 
-    pub async fn acquire_token(&self) -> Result<TeamsTokenAcquisition, TeamsTokenError> {
-        if let Some(token) = Self::token_from_process_env()? {
-            return Ok(TeamsTokenAcquisition {
-                token,
-                source: TeamsTokenSource::Environment,
-            });
-        }
+    pub async fn acquire_token(
+        &self,
+        force_refresh: bool,
+    ) -> Result<TeamsTokenAcquisition, TeamsTokenError> {
+        if !force_refresh {
+            if let Some(token) = Self::token_from_process_env()? {
+                return Ok(TeamsTokenAcquisition {
+                    token,
+                    source: TeamsTokenSource::Environment,
+                });
+            }
 
-        if let Some(token) = read_agency_cowork_token(TEAMS_TOKEN_RESOURCE)
-            .map_err(|error| TeamsTokenError::CacheUnavailable(error.to_string()))?
-        {
-            return Ok(TeamsTokenAcquisition {
-                token,
-                source: TeamsTokenSource::DiskCache,
-            });
+            if let Some(token) = read_agency_cowork_token(TEAMS_TOKEN_RESOURCE)
+                .map_err(|error| TeamsTokenError::CacheUnavailable(error.to_string()))?
+            {
+                return Ok(TeamsTokenAcquisition {
+                    token,
+                    source: TeamsTokenSource::DiskCache,
+                });
+            }
         }
 
         let cli_error = match acquire_via_azure_cli().await {

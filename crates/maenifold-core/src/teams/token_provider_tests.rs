@@ -61,7 +61,7 @@ fn teams_token_prefers_homebrew_azure_cli_locations() {
 #[ignore = "requires local Azure CLI sign-in or signed-in Teams browser cache"]
 async fn teams_token_live_provider_is_runnable_locally() {
     let provider = TeamsTokenProvider::new();
-    let acquisition = provider.acquire_token().await;
+    let acquisition = provider.acquire_token(false).await;
     if let Ok(acquisition) = acquisition {
         assert!(!acquisition.token.access_token.is_empty());
     }

@@ -17,6 +17,7 @@ type Vec0Status = {
 
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
+  openPath: (path: string) => ipcRenderer.invoke('shell:open-path', path) as Promise<string>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   readTextFile: (params: { path: string; line?: number; limit?: number }) =>
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,

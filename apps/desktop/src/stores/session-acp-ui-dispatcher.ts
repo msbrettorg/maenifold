@@ -124,7 +124,7 @@ export const ACP_UI_SESSION_DISPATCHER_SOURCE = String.raw`
         break;
 
       default:
-        console.log('Unhandled session update:', update);
+        trackEvent('Unhandled session update:', update);
     }
   }
 `;

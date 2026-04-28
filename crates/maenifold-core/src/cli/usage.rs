@@ -30,10 +30,22 @@ pub(super) fn usage() -> String {
         "  Think:  SequentialThinking",
         "  Flow:   Workflow",
         "  System: MemoryStatus, ListMemories, GetConfig, GetHelp",
-        "  Sync:   StartWatcher, StopWatcher",
         "  Repair: RepairConcepts, AnalyzeConceptCorruption",
         "  MCP:    ListAssets, ReadMcpResource, AcpExec",
         "  Bench:  RunFullBenchmark",
     ]
     .join("\n")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::usage;
+
+    #[test]
+    fn usage_text_does_not_mention_unregistered_tools() {
+        let usage_text = usage();
+
+        assert!(!usage_text.contains("StartWatcher"));
+        assert!(!usage_text.contains("StopWatcher"));
+    }
 }

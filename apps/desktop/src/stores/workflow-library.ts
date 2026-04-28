@@ -23,6 +23,7 @@ import {
   type WorkflowExportState,
   type WorkflowSaveState,
 } from './workflow-library-save-actions'
+import { createWorkflowLibrarySelection } from './workflow-library-selection'
 export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
   const pipelineStore = usePipelineStore()
   const summaries = ref<WorkflowAssetSummary[]>([])
@@ -41,22 +42,6 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
   const saveError = ref<string | null>(null), saveState = ref<WorkflowSaveState>('idle')
   const searchQuery = ref(''), categoryFilter = ref<WorkflowCategory | 'all'>('all')
   const isDirty = computed(() => !definitionsEqual(draftDefinition.value, currentDefinition.value))
-  const filteredWorkflows= computed(() => {
-    let result = summaries.value
-    if (categoryFilter.value !== 'all') {
-      result = result.filter((wf) => categorizeWorkflow(wf) === categoryFilter.value)
-    }
-    const q = searchQuery.value.trim().toLowerCase()
-    if (q.length > 0) {
-      result = result.filter(
-        (wf) =>
-          wf.name.toLowerCase().includes(q) ||
-          wf.description.toLowerCase().includes(q) ||
-          categorizeWorkflow(wf).toLowerCase().includes(q),
-      )
-    }
-    return result
-  })
   const currentStepCount = computed(() => draftDefinition.value?.steps.length ?? 0), categories = computed(() => Array.from(new Set(summaries.value.map(categorizeWorkflow))).sort())
 
   async function fetchSummaries() {
@@ -66,6 +51,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     try {
       const { valid, invalid } = filterWorkflowSummaries(await pipelineStore.listWorkflowSummaries())
       summaries.value = valid
+      await ensureVisibleWorkflowSelected()
       if (invalid.length > 0) error.value = `Ignored invalid workflows: ${invalid.map(({ id, reason }) => `${id} (${reason})`).join('; ')}`
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
@@ -130,6 +116,21 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     }
     await loadWorkflow(id)
   }
+
+  const {
+    ensureVisibleWorkflowSelected,
+    filteredWorkflows,
+    setCategoryFilter,
+    setSearchQuery,
+  } = createWorkflowLibrarySelection({
+    summaries,
+    searchQuery,
+    categoryFilter,
+    currentId,
+    pendingWorkflowId,
+    isDirty,
+    selectWorkflow,
+  })
 
   async function confirmDiscardAndContinue() {
     const nextId = pendingWorkflowId.value
@@ -238,18 +239,6 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     saveState.value = 'idle'
   }
 
-  // Explicit setters for the browser filters. T-205.711 — using actions
-  // instead of writing to `storeToRefs(...)` refs from a child template
-  // makes the update path unambiguous and easy to reason about, and avoids
-  // any reliance on the SFC compiler's ref-write proxy semantics.
-  function setSearchQuery(value: string) {
-    searchQuery.value = value
-  }
-
-  function setCategoryFilter(value: WorkflowCategory | 'all') {
-    categoryFilter.value = value
-  }
-
   watch(() => pipelineStore.connected, (connected) => {
     if (connected && summaries.value.length === 0) fetchSummaries()
   }, { immediate: true })
@@ -281,6 +270,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     importWorkflow,
     selectWorkflow,
     requestSelectWorkflow,
+    ensureVisibleWorkflowSelected,
     confirmDiscardAndContinue,
     cancelPendingSelection,
     discardDraft,

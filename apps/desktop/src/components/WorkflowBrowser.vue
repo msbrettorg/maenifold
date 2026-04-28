@@ -194,7 +194,7 @@ watch(
 
 <template>
   <aside
-    class="flex h-full w-64 min-w-56 max-w-80 flex-col overflow-hidden bg-bg-sidebar"
+    class="flex h-full w-[22rem] min-w-80 max-w-[22rem] flex-col overflow-hidden bg-bg-sidebar"
     role="region"
     aria-label="Workflow library"
   >

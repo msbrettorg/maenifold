@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Tabs } from '@/components/ui/tabs';
+import KnowledgeMemoryView from './KnowledgeMemoryView.vue';
 import KnowledgeSubtabToggle from './KnowledgeSubtabToggle.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
@@ -25,10 +26,6 @@ const provenanceLinks = computed(() => (
     knowledge: currentKnowledgeTitle.value,
   }).filter((link) => link.kind !== 'knowledge' && link.id !== store.activeTabUri)
 ));
-
-onMounted(() => {
-  void store.loadRootFolders();
-});
 
 function selectSubtab(value: string | number): void {
   if (value === 'memory' || value === 'graph') {
@@ -58,11 +55,9 @@ function selectSubtab(value: string | number): void {
         <KnowledgeSubtabToggle />
       </div>
 
-      <div class="min-h-0 flex-1 p-4 text-sm text-text-secondary">
-        <div v-if="activeSubtab === 'memory'">
-          Memory subtab — vault + viewer coming in T-242.13.2
-        </div>
-        <div v-else-if="activeSubtab === 'graph'">
+      <div class="min-h-0 flex-1">
+        <KnowledgeMemoryView v-if="activeSubtab === 'memory'" />
+        <div v-else-if="activeSubtab === 'graph'" class="p-4 text-sm text-text-secondary">
           Graph subtab — full-canvas graph coming in T-242.13.4
         </div>
       </div>

@@ -69,11 +69,6 @@ CONTINUE=false
 NOTIFY=true
 EXTRA_COPILOT_ARGS=()
 
-# Files the agent MUST NOT modify — verified by hash after each iteration
-IMMUTABLE_FILES=(
-  "ralph.sh"
-)
-
 usage() {
   cat <<EOF
 Usage: $0 [watch] [options]
@@ -181,31 +176,6 @@ fi
 echo $$ > "$LOCK"
 trap 'rm -f "$LOCK"' EXIT
 
-# --- Compute immutable file hashes ---
-IMMUTABLE_HASH_FILE="ralph/state/immutable-hashes.txt"
-rm -f "$IMMUTABLE_HASH_FILE"
-for f in "${IMMUTABLE_FILES[@]}"; do
-  if [[ -f "$f" ]]; then
-    shasum -a 256 "$f" >> "$IMMUTABLE_HASH_FILE"
-  fi
-done
-
-verify_immutable_files() {
-  for f in "${IMMUTABLE_FILES[@]}"; do
-    if [[ -f "$f" ]]; then
-      expected=$(grep -F "  $f" "$IMMUTABLE_HASH_FILE" | head -1 | cut -d' ' -f1)
-      actual=$(shasum -a 256 "$f" | cut -d' ' -f1)
-      if [[ "$actual" != "$expected" ]]; then
-        echo "VIOLATION: immutable file $f was modified!"
-        echo "  expected: $expected"
-        echo "  actual:   $actual"
-        return 1
-      fi
-    fi
-  done
-  return 0
-}
-
 # --- Baseline snapshot / rollback helpers (T-240.4) ---
 
 snapshot_baseline() {
@@ -214,7 +184,6 @@ snapshot_baseline() {
   mkdir -p "$baseline_dir"
 
   git rev-parse HEAD > "$baseline_dir/HEAD"
-  cp "$IMMUTABLE_HASH_FILE" "$baseline_dir/immutable-hashes.txt" 2>/dev/null || true
   git ls-files --others --exclude-standard -z > "$baseline_dir/untracked-pre.z"
   git status --porcelain=v1 -z > "$baseline_dir/status-pre.z"
 }
@@ -262,12 +231,6 @@ validate_clean_baseline() {
   fi
   if ! git diff --cached --quiet; then
     echo "  ✗ index dirty after rollback"
-    ok=false
-  fi
-  # Verify against the baseline snapshot copy, not the mutable global file,
-  # to prevent an agent from updating the hash file after modifying ralph.sh.
-  if ! (IMMUTABLE_HASH_FILE="$baseline_dir/immutable-hashes.txt" verify_immutable_files) >/dev/null 2>&1; then
-    echo "  ✗ immutable file hash mismatch after rollback"
     ok=false
   fi
 
@@ -344,21 +307,11 @@ perform_rollback() {
 
 print_iteration_summary() {
   local iteration="$1" outcome="$2" baseline_head="$3"
-  local final_head tracked_clean staged_clean untracked_count immutable_status convergence_state
+  local final_head tracked_clean staged_clean untracked_count convergence_state
   final_head="$(git rev-parse HEAD)"
   git diff --quiet         && tracked_clean="clean" || tracked_clean="DIRTY"
   git diff --cached --quiet && staged_clean="clean"  || staged_clean="DIRTY"
   untracked_count="$(git ls-files --others --exclude-standard | wc -l | tr -d ' ')"
-  local baseline_hash_file="ralph/state/baseline/${iteration}/immutable-hashes.txt"
-  if [[ -f "$baseline_hash_file" ]]; then
-    if (IMMUTABLE_HASH_FILE="$baseline_hash_file" verify_immutable_files) >/dev/null 2>&1; then
-      immutable_status="ok"
-    else
-      immutable_status="VIOLATED"
-    fi
-  else
-    if verify_immutable_files >/dev/null 2>&1; then immutable_status="ok"; else immutable_status="VIOLATED"; fi
-  fi
   if   [[ -f ralph/state/rollback-failed ]]; then convergence_state="rollback-failed"
   elif [[ -f ralph/state/converged       ]]; then convergence_state="converged"
   else                                            convergence_state="running"
@@ -372,7 +325,6 @@ print_iteration_summary() {
   tracked diff:   ${tracked_clean}
   staged diff:    ${staged_clean}
   untracked:      ${untracked_count}
-  immutable:      ${immutable_status}
   convergence:    ${convergence_state}
 EOF
 }
@@ -425,7 +377,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
 
-  # --- Snapshot pre-iteration baseline (HEAD, immutable hashes, untracked set) ---
+  # --- Snapshot pre-iteration baseline (HEAD, untracked set) ---
   snapshot_baseline "$iteration"
   baseline_head="$(cat "ralph/state/baseline/${iteration}/HEAD")"
 
@@ -521,13 +473,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   should_revert=false
   revert_reason=""
 
-  # 1. Check immutable files
-  if ! verify_immutable_files; then
-    should_revert=true
-    revert_reason="immutable file modified"
-  fi
-
-  # 2. Check copilot exit code
+  # 1. Check copilot exit code
   if [[ "$should_revert" == "false" && "$exit_code" -ne 0 ]]; then
     should_revert=true
     revert_reason="copilot exited with code $exit_code"

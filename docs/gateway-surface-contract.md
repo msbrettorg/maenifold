@@ -96,10 +96,11 @@ tools-only control plane.
 | `GatewayIndex` | Inspect domains, commands, schemas, examples, and safety policy. | Deterministic discovery. Must be sufficient for clients without MCP resources, prompts, sampling, or dynamic discovery. |
 | `GatewayExecute` | Execute one exact selected domain command. | Deterministic execution only. No natural-language intent resolution. |
 | `GatewayBatch` | Submit and inspect deterministic exact-command batches. | Covers submit/status for exact command invocations, not intent routing. |
+| `DiscoverMcpTools` | Enumerate downstream MCP servers and their tool catalogs without going through Gateway. | Allows tools-only clients to discover proxy capability without Gateway round-trips. |
 | `ReadMcpResource` | Tool-mediated resource read. | Existing tool preserved so tools-only clients can reach resource content. |
 | `GetHelp` | Standalone human/agent help. | Existing tool preserved as a flat public exception and exempt from gateway routing and hard-cut removal. |
 
-Intent disabled public total: **5 tools**.
+Intent disabled public total: **6 tools**.
 
 ### Conditional tool: intent enabled only
 
@@ -107,7 +108,7 @@ Intent disabled public total: **5 tools**.
 |------|---------|---------------------|
 | `GatewayIntent` | ACP-backed intent resolver that proposes route candidates or, for safe read-only paths, may resolve a configured exact route according to policy. | Intent routing is enabled in configuration and a valid ACP/Jockey resolver agent is configured and healthy. |
 
-Intent enabled public total: **6 tools**.
+Intent enabled public total: **7 tools**.
 
 `GatewayIntent` must be omitted from `tools/list` when intent routing is
 disabled, not configured, or missing a valid ACP/Jockey resolver agent. It must
@@ -117,8 +118,10 @@ not appear as a disabled placeholder.
 
 All first-party operations are routed domains behind `GatewayIndex` and
 `GatewayExecute`; they are not permanent flat exceptions. `GetHelp` and
-`ReadMcpResource` are the only native standalone public tools in the baseline
-contract.
+`ReadMcpResource` are native standalone public tools in the baseline contract.
+`DiscoverMcpTools` is also a standalone public tool: `tools/list` includes it
+via `is_discovery_tool`, allowing clients to enumerate downstream MCP servers
+and tool catalogs without a gateway round-trip.
 
 ### Current native domains
 

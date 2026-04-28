@@ -11,6 +11,7 @@ import {
   type KnowledgeFileEntry,
   type KnowledgeFolderNode,
 } from '../lib/knowledge-helpers';
+import { readStorageValue, writeStorageValue } from '../lib/local-storage';
 import type { MemoryFile, MemorySearchItem, SimilarConceptItem } from '../lib/workflow-types';
 import { createKnowledgeGraphActions } from './knowledge-graph-actions';
 
@@ -27,11 +28,22 @@ export interface KnowledgeTabCacheEntry {
   content?: MemoryFile;
 }
 
+export type KnowledgeSubtab = 'memory' | 'graph';
+
+const STORAGE_NAMESPACE = 'knowledge';
+const ACTIVE_SUBTAB_STORAGE_KEY = 'activeSubtab';
+
+function readActiveSubtab(): KnowledgeSubtab {
+  const saved = readStorageValue<KnowledgeSubtab>(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY);
+  return saved === 'graph' ? 'graph' : 'memory';
+}
+
 export const useKnowledgeStore = defineStore('knowledge', () => {
   const memoryApi = useMemoryApi();
 
   const folders = ref<KnowledgeFolderNode[]>([]);
   const rootFiles = ref<KnowledgeFileEntry[]>([]);
+  const activeSubtab = ref<KnowledgeSubtab>(readActiveSubtab());
 
   const searchResults = ref<MemorySearchItem[]>([]);
   const openTabs = ref<string[]>([]);
@@ -80,6 +92,11 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     };
     next.set(uri, { ...previous, ...patch });
     tabCache.value = next;
+  }
+
+  function setActiveSubtab(subtab: KnowledgeSubtab): void {
+    activeSubtab.value = subtab;
+    writeStorageValue(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY, subtab);
   }
 
   async function loadRootFolders(): Promise<void> {
@@ -276,7 +293,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
 
   return {
     folders, rootFiles, searchQuery, searchResults,
-    openTabs, activeTabUri, tabCache, activeNote,
+    activeSubtab, openTabs, activeTabUri, tabCache, activeNote,
     foldersLoading, foldersError, searchLoading, searchError,
     noteLoading, noteError, graphLoading, graphError,
     communityGraph, conceptGraph, conceptNodes, activeCommunityId,
@@ -284,7 +301,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
     loadRootFolders, loadFolder, setFolderOpen, search,
-    openNote, openInNewTab, closeTab, setActiveTab,
+    openNote, openInNewTab, closeTab, setActiveTab, setActiveSubtab,
     ...graphActions,
   };
 });

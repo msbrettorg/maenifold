@@ -17,7 +17,7 @@ interface OnboardingState {
 }
 
 export interface UseOnboardingReturn {
-  isFirstRun: Ref<boolean>;
+  isFirstRun: Ref<boolean | null>;
   step: Ref<number>;
   highWaterStep: Ref<number>;
   currentStepId: ComputedRef<OnboardingStepId>;
@@ -25,6 +25,7 @@ export interface UseOnboardingReturn {
   canGoForward: ComputedRef<boolean>;
   steps: ComputedRef<readonly OnboardingStepId[]>;
   checkFirstRun: () => boolean;
+  checkFirstRunWithConfig: () => Promise<boolean>;
   advance: () => void;
   goToStep: (target: number) => void;
   goBack: () => void;
@@ -35,10 +36,27 @@ function readOnboardingState(): OnboardingState | null {
   return readStorageValue<OnboardingState>(PREFS_STORE_PATH, ONBOARDING_KEY);
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+export async function hasExistingMaenifoldConfig(): Promise<boolean> {
+  try {
+    const result = await window.electronAPI?.configRead?.();
+    if (!result?.exists || result.content.trim().length === 0) {
+      return false;
+    }
+    const parsed: unknown = JSON.parse(result.content);
+    return isRecord(parsed);
+  } catch {
+    return false;
+  }
+}
+
 export function useOnboarding(
   stepSource: MaybeRefOrGetter<readonly OnboardingStepId[]> = DEFAULT_ONBOARDING_STEPS,
 ): UseOnboardingReturn {
-  const isFirstRun = ref<boolean>(true);
+  const isFirstRun = ref<boolean | null>(null);
   const step = ref<number>(0);
   const highWaterStep = ref<number>(0);
 
@@ -64,6 +82,23 @@ export function useOnboarding(
     }
     isFirstRun.value = false;
     return false;
+  }
+
+  async function checkFirstRunWithConfig(): Promise<boolean> {
+    const localState = readOnboardingState();
+    const localSaysReturning =
+      !!localState && localState.completed && localState.version >= CURRENT_VERSION;
+
+    if (localSaysReturning) {
+      isFirstRun.value = false;
+      return false;
+    }
+    if (await hasExistingMaenifoldConfig()) {
+      markComplete();
+      return false;
+    }
+    isFirstRun.value = true;
+    return true;
   }
 
   function advance(): void {
@@ -113,6 +148,7 @@ export function useOnboarding(
     canGoForward,
     steps,
     checkFirstRun,
+    checkFirstRunWithConfig,
     advance,
     goToStep,
     goBack,

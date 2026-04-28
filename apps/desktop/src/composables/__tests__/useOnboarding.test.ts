@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { PREFS_STORE_PATH } from '../../lib/constants';
 import { storageKey } from '../../lib/local-storage';
@@ -12,8 +12,18 @@ function fullKey(): string {
   return storageKey(PREFS_STORE_PATH, ONBOARDING_KEY);
 }
 
+function stubConfigRead(result: { content: string; exists: boolean }): void {
+  vi.stubGlobal('electronAPI', {
+    configRead: vi.fn().mockResolvedValue({
+      path: '/Users/example/maenifold/maenifold.json',
+      ...result,
+    }),
+  });
+}
+
 describe('useOnboarding', () => {
   beforeEach(() => {
+    vi.unstubAllGlobals();
     window.localStorage.clear();
   });
 
@@ -113,5 +123,111 @@ describe('useOnboarding', () => {
     onboarding.markComplete();
     const next = useOnboarding();
     expect(next.checkFirstRun()).toBe(false);
+  });
+
+  it('checkFirstRunWithConfig returns false and persists flag when existing agents map is non-empty', async () => {
+    stubConfigRead({
+      exists: true,
+      content: JSON.stringify({ agents: { claude: { command: 'claude' } } }),
+    });
+
+    const onboarding = useOnboarding();
+    await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(false);
+    expect(onboarding.isFirstRun.value).toBe(false);
+
+    const raw = window.localStorage.getItem(fullKey());
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw as string);
+    expect(parsed.completed).toBe(true);
+    expect(parsed.version).toBe(CURRENT_VERSION);
+  });
+
+  it('checkFirstRunWithConfig returns true when configRead reports no config', async () => {
+    stubConfigRead({ exists: false, content: '' });
+
+    const onboarding = useOnboarding();
+    await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(true);
+    expect(onboarding.isFirstRun.value).toBe(true);
+    expect(window.localStorage.getItem(fullKey())).toBeNull();
+  });
+
+  it('checkFirstRunWithConfig returns false when existing config has empty agents', async () => {
+    stubConfigRead({
+      exists: true,
+      content: JSON.stringify({ agents: {} }),
+    });
+
+    const onboarding = useOnboarding();
+    await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(false);
+    expect(onboarding.isFirstRun.value).toBe(false);
+    expect(window.localStorage.getItem(fullKey())).not.toBeNull();
+  });
+
+  it('checkFirstRunWithConfig returns true when config content is empty whitespace', async () => {
+    stubConfigRead({ exists: true, content: '   ' });
+
+    const onboarding = useOnboarding();
+    await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(true);
+    expect(onboarding.isFirstRun.value).toBe(true);
+    expect(window.localStorage.getItem(fullKey())).toBeNull();
+  });
+
+  it('checkFirstRunWithConfig keeps isFirstRun null until configRead resolves', async () => {
+    let resolveConfig!: (value: { exists: boolean; content: string; path: string }) => void;
+    const configReadPromise = new Promise<{ exists: boolean; content: string; path: string }>((resolve) => {
+      resolveConfig = resolve;
+    });
+    vi.stubGlobal('electronAPI', {
+      configRead: vi.fn(() => configReadPromise),
+    });
+
+    const onboarding = useOnboarding();
+    const checkPromise = onboarding.checkFirstRunWithConfig();
+
+    await Promise.resolve();
+
+    expect(onboarding.isFirstRun.value).toBe(null);
+
+    resolveConfig({
+      exists: true,
+      content: JSON.stringify({ agents: { foo: {} } }),
+      path: '/x/maenifold.json',
+    });
+    await checkPromise;
+
+    expect(onboarding.isFirstRun.value).toBe(false);
+  });
+
+  it('checkFirstRunWithConfig keeps isFirstRun null until configRead resolves (no config)', async () => {
+    let resolveConfig!: (value: { exists: boolean; content: string; path: string }) => void;
+    const configReadPromise = new Promise<{ exists: boolean; content: string; path: string }>((resolve) => {
+      resolveConfig = resolve;
+    });
+    vi.stubGlobal('electronAPI', {
+      configRead: vi.fn(() => configReadPromise),
+    });
+
+    const onboarding = useOnboarding();
+    const checkPromise = onboarding.checkFirstRunWithConfig();
+
+    await Promise.resolve();
+
+    expect(onboarding.isFirstRun.value).toBe(null);
+
+    resolveConfig({ exists: false, content: '', path: '/x/maenifold.json' });
+    await checkPromise;
+
+    expect(onboarding.isFirstRun.value).toBe(true);
+  });
+
+  it('checkFirstRunWithConfig returns true when configRead throws', async () => {
+    vi.stubGlobal('electronAPI', {
+      configRead: vi.fn().mockRejectedValue(new Error('config read failed')),
+    });
+
+    const onboarding = useOnboarding();
+    await expect(onboarding.checkFirstRunWithConfig()).resolves.toBe(true);
+    expect(onboarding.isFirstRun.value).toBe(true);
+    expect(window.localStorage.getItem(fullKey())).toBeNull();
   });
 });

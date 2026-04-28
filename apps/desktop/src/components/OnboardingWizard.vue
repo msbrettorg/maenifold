@@ -3,6 +3,7 @@ import { computed, onMounted, provide, ref, type Component } from 'vue';
 import { Loader2 } from 'lucide-vue-next';
 
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Stepper,
@@ -104,7 +105,7 @@ onMounted(() => {
   <Dialog :open="true" :modal="true">
     <DialogContent
       :show-close-button="false"
-      class="left-0 top-0 z-50 grid h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-bg-app p-0 shadow-none"
+      class="left-0 top-0 z-[1010] grid h-screen max-h-screen w-screen max-w-none translate-x-0 translate-y-0 gap-0 rounded-none border-0 bg-bg-app p-0 shadow-none"
       @interact-outside.prevent
       @escape-key-down.prevent
       @pointer-down-outside.prevent
@@ -112,6 +113,17 @@ onMounted(() => {
       <DialogTitle class="sr-only">Onboarding</DialogTitle>
       <ScrollArea class="h-full w-full">
         <div class="flex flex-col items-center justify-start min-h-screen p-8">
+          <div class="mb-4 flex w-full max-w-2xl justify-end">
+            <Button
+              variant="ghost"
+              size="sm"
+              class="text-text-secondary"
+              @click="handleMarkComplete"
+            >
+              Skip onboarding
+            </Button>
+          </div>
+
           <div
             v-if="!wizardReady"
             class="flex min-h-[50vh] w-full max-w-2xl flex-col items-center justify-center gap-3"

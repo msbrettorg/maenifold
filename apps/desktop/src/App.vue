@@ -25,7 +25,7 @@ import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
-import { MessageSquare } from 'lucide-vue-next';
+import { Loader2, MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
 import type { AppShellTab } from './stores/app-shell';
 
@@ -94,10 +94,10 @@ async function handlePromptSubmit(prompt: string): Promise<boolean> {
   return sessionStore.sendPrompt(trimmedPrompt);
 }
 
-const { isFirstRun, checkFirstRun } = useOnboarding();
+const { isFirstRun, checkFirstRun, checkFirstRunWithConfig } = useOnboarding();
 
-onMounted(() => {
-  checkFirstRun();
+onMounted(async () => {
+  await checkFirstRunWithConfig();
 });
 
 function onOnboardingComplete(): void {
@@ -116,7 +116,10 @@ const showAgentsChat = computed(
 </script>
 
 <template>
-  <OnboardingWizard v-if="isFirstRun" @complete="onOnboardingComplete" />
+  <div v-if="isFirstRun === null" class="grid h-screen place-items-center bg-bg-app">
+    <Loader2 class="h-6 w-6 animate-spin text-text-secondary" />
+  </div>
+  <OnboardingWizard v-else-if="isFirstRun" @complete="onOnboardingComplete" />
   <div v-else class="relative box-border flex h-screen flex-col overflow-hidden">
     <AppTabBar :model-value="activeTab" @update:model-value="appShellStore.setActiveTab($event)" />
 

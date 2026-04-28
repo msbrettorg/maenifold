@@ -279,6 +279,14 @@ Issues and pull requests are welcome on [GitHub](https://github.com/msbrettorg/m
 - **SearchMemories returns empty results:** Expected on a fresh install with no memory files. Write a memory first with `WriteMemory`.
 - **Desktop dev shell doesn't start Electron:** Run `npm run dev:electron` from `apps/desktop/`. The plain `npm run dev` script starts only the Vite renderer; the Electron host is wired behind the `dev:electron` lifecycle event.
 - **MCP client can't spawn the server:** Ensure the `command` in your MCP config points to an absolute path or a binary on your PATH.
+- **GUI app missing env vars set in `~/.zprofile` (e.g. `AZURE_OPENAI_API_KEY`):** macOS GUI launches (Dock, Spotlight, double-click) do not source your shell init files. Bake the variable into the user-launchd domain so every GUI app inherits it:
+
+  ```sh
+  launchctl setenv AZURE_OPENAI_API_KEY "$(<~/.secrets/azure_openai_api_key)"
+  launchctl setenv AZURE_OPENAI_ENDPOINT "https://your-resource.openai.azure.com"
+  ```
+
+  Quit and reopen maenifold after running. To make it survive reboot, add a LaunchAgent plist under `~/Library/LaunchAgents/` that calls `launchctl setenv` at login (Apple Q&A: [Setting environment variables for GUI processes](https://developer.apple.com/library/archive/documentation/MacOSX/Conceptual/BPRuntimeConfig/Articles/EnvironmentVars.html)).
 
 ## Documentation
 

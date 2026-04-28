@@ -99,6 +99,12 @@ onMounted(() => {
 
     <div v-else class="flex flex-col gap-2">
       <span class="text-xs font-medium text-text-secondary">Available models</span>
+      <p
+        v-if="models.length === 0"
+        class="text-sm text-text-secondary"
+      >
+        No embedding models available. Click "Download later →" to skip.
+      </p>
       <div class="flex flex-col gap-2">
         <Button
           v-for="model in models"
@@ -201,28 +207,37 @@ onMounted(() => {
         ← Back
       </Button>
 
-      <div class="flex items-center gap-2">
-        <Button variant="outline" :disabled="downloading" @click="onSkip">
-          Download later →
-        </Button>
+      <div class="flex flex-col items-end gap-2">
+        <div class="flex items-center gap-2">
+          <Button variant="outline" :disabled="downloading" @click="onSkip">
+            Download later →
+          </Button>
 
-        <Button
-          variant="default"
-          class="bg-brand hover:bg-brand-hover text-primary-foreground px-6"
-          :disabled="loading || !!loadError || selectedModel === null || downloading"
-          @click="onDownload"
+          <Button
+            variant="default"
+            class="bg-brand hover:bg-brand-hover text-primary-foreground px-6"
+            :disabled="loading || !!loadError || selectedModel === null || downloading"
+            @click="onDownload"
+          >
+            <Loader2 v-if="downloading" class="h-4 w-4 animate-spin" />
+            <span>
+              {{
+                downloading
+                  ? 'Downloading…'
+                  : selectedModel?.installed || selectedModel?.isActive
+                    ? 'Next →'
+                    : 'Download →'
+              }}
+            </span>
+          </Button>
+        </div>
+
+        <p
+          v-if="selectedModel === null && models.length > 0"
+          class="mt-2 text-xs text-text-tertiary"
         >
-          <Loader2 v-if="downloading" class="h-4 w-4 animate-spin" />
-          <span>
-            {{
-              downloading
-                ? 'Downloading…'
-                : selectedModel?.installed || selectedModel?.isActive
-                  ? 'Next →'
-                  : 'Download →'
-            }}
-          </span>
-        </Button>
+          Select a model above first.
+        </p>
       </div>
     </div>
   </div>

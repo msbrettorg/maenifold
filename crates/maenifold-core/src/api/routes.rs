@@ -3,7 +3,7 @@ use crate::api::config_watch::ConfigWatchState;
 use crate::api::{
     routes_config::{
         config_watch_handler, discover_mcp_tools_handler, get_config_handler,
-        get_config_path_handler, machine_id_handler,
+        get_config_path_handler, machine_id_handler, reload_config_handler,
     },
     routes_data::{file_text, graph_edges, graph_nodes},
     routes_memory::{memory_read, memory_recent, memory_search},
@@ -15,7 +15,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::{IntoResponse, Json, Response},
-    routing::get,
+    routing::{get, post},
 };
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -136,6 +136,7 @@ pub fn api_routes(state: ApiState) -> Router {
     let read_routes = Router::new()
         .route("/api/config", get(get_config_handler))
         .route("/api/config/path", get(get_config_path_handler))
+        .route("/api/config/reload", post(reload_config_handler))
         .route("/api/config/watch", get(config_watch_handler))
         .route("/api/machine-id", get(machine_id_handler));
 

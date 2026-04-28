@@ -24,6 +24,17 @@ pub(super) async fn get_config_path_handler(
     ))
 }
 
+pub(super) async fn reload_config_handler(
+    State(state): State<ApiState>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let config = state.config_manager.reload().map_err(ApiError::internal)?;
+    Ok(Json(serde_json::json!({
+        "config": config,
+        "reloaded": ["configManagerState", "apiRuntimeSettings"],
+        "requiresRestart": ["agentRuntimeBehavior"],
+    })))
+}
+
 pub(super) async fn config_watch_handler(
     State(state): State<ApiState>,
 ) -> ApiResult<impl IntoResponse> {

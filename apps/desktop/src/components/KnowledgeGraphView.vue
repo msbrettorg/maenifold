@@ -7,6 +7,7 @@ import {
   ResizablePanelGroup,
 } from '@/components/ui/resizable';
 import GraphViewCanvas from './GraphViewCanvas.vue';
+import KnowledgeGraphCommunities from './KnowledgeGraphCommunities.vue';
 import KnowledgeGraphToolbar from './KnowledgeGraphToolbar.vue';
 import { useForceGraph } from '../composables/useForceGraph';
 import type { ForceEdge, ForceNode } from '../lib/graph-types';
@@ -129,10 +130,7 @@ onMounted(async () => {
       class="h-full w-full"
     >
       <ResizablePanel id="graph-communities" :default-size="18" :min-size="15" :max-size="30" :order="1">
-        <aside class="flex h-full min-h-0 w-full flex-col border-r border-border-subtle bg-bg-sidebar p-4">
-          <p class="text-sm font-semibold text-text-primary">Communities</p>
-          <p class="mt-2 text-sm text-text-secondary">Coming in T-242.13.5.</p>
-        </aside>
+        <KnowledgeGraphCommunities />
       </ResizablePanel>
       <ResizableHandle
         class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"

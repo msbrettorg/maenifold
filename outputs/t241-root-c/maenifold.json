@@ -1,0 +1,9 @@
+{
+  "mcpServers": [],
+  "agents": [
+    {
+      "name": "Copilot",
+      "command": "copilot"
+    }
+  ]
+}

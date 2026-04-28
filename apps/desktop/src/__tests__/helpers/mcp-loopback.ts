@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
@@ -48,7 +49,7 @@ function readRequestBody(req: IncomingMessage): Promise<unknown> {
   return new Promise((resolve, reject) => {
     let raw = '';
     req.setEncoding('utf8');
-    req.on('data', (chunk) => {
+    req.on('data', (chunk: string) => {
       raw += chunk;
     });
     req.on('error', reject);
@@ -188,7 +189,7 @@ export async function startMcpLoopbackServer(options: LoopbackOptions = {}): Pro
   let failedOnce = false;
   let nextSessionNumber = 1;
 
-  const httpServer = createServer(async (req, res) => {
+  const httpServer = createServer(async (req: IncomingMessage, res: ServerResponse) => {
     const body = await readRequestBody(req);
     const record: RequestRecord = {
       method: req.method ?? '',
@@ -283,7 +284,7 @@ export async function startMcpLoopbackServer(options: LoopbackOptions = {}): Pro
       await Promise.all(Array.from(mcpServers, (server) => server.close().catch(() => undefined)));
       await Promise.all(Array.from(transports.values(), (transport) => transport.close().catch(() => undefined)));
       await new Promise<void>((resolve, reject) => {
-        httpServer.close((error) => {
+        httpServer.close((error?: Error) => {
           if (error) {
             reject(error);
             return;

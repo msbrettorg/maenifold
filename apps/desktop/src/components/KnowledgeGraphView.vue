@@ -9,6 +9,7 @@ import {
 import GraphViewCanvas from './GraphViewCanvas.vue';
 import KnowledgeGraphCommunities from './KnowledgeGraphCommunities.vue';
 import KnowledgeGraphToolbar from './KnowledgeGraphToolbar.vue';
+import KnowledgeNodeInspector from './KnowledgeNodeInspector.vue';
 import { useForceGraph } from '../composables/useForceGraph';
 import type { ForceEdge, ForceNode } from '../lib/graph-types';
 import { mapCommunityGraph, mapConceptGraph } from '../lib/knowledge-graph-mappers';
@@ -16,6 +17,7 @@ import { useKnowledgeStore } from '../stores/knowledge';
 
 const containerRef = ref<HTMLElement | null>(null);
 const graphFilter = ref('');
+const hoveredNode = ref<ForceNode | null>(null);
 const store = useKnowledgeStore();
 const {
   graphLoading,
@@ -54,6 +56,14 @@ const visibleGraph = computed((): { nodes: ForceNode[]; edges: ForceEdge[] } => 
 });
 
 const nodeCount = computed(() => visibleGraph.value.nodes.length);
+const hoveredFileCount = computed(() => {
+  const node = hoveredNode.value;
+  if (!node) return 0;
+  if (viewLevel.value === 'communities') {
+    return communityGraph.value?.nodes.find((item) => `community-${item.id}` === node.id)?.size ?? 0;
+  }
+  return conceptGraph.value?.nodes.find((item) => item.name === node.id)?.occurrences ?? 0;
+});
 const title = computed(() => {
   if (activeCommunityId.value === null || !communityGraph.value) {
     return 'Concept communities';
@@ -70,10 +80,21 @@ function handleNodeClick(node: ForceNode): void {
     }
     return;
   }
-  void store.openConcept(node.id);
+  void store.inspectConcept(node.id);
 }
 
-const { start, stop, resetView } = useForceGraph(containerRef, undefined, handleNodeClick);
+function handleNodeDoubleClick(node: ForceNode): void {
+  if (viewLevel.value === 'concepts') {
+    void store.openConceptInMemory(node.id);
+  }
+}
+
+const { start, stop, resetView } = useForceGraph(
+  containerRef,
+  (node) => { hoveredNode.value = node; },
+  handleNodeClick,
+  handleNodeDoubleClick,
+);
 
 async function redrawGraph(): Promise<void> {
   await nextTick();
@@ -151,6 +172,13 @@ onMounted(async () => {
           />
           <GraphViewCanvas :is-loading="graphLoading" :error="graphError ?? ''" :node-count="nodeCount" @retry="reloadCurrentView">
             <div ref="containerRef" class="relative h-full w-full" />
+            <div
+              v-if="hoveredNode"
+              class="pointer-events-none absolute right-4 top-4 z-[1] rounded-lg border border-border-subtle bg-bg-surface/95 px-3 py-2 shadow-lg"
+            >
+              <p class="max-w-64 truncate text-sm font-medium text-text-primary">{{ hoveredNode.label }}</p>
+              <p class="text-xs text-text-secondary">{{ hoveredFileCount }} files</p>
+            </div>
           </GraphViewCanvas>
         </div>
       </ResizablePanel>
@@ -166,10 +194,7 @@ onMounted(async () => {
         collapsible
         :order="3"
       >
-        <aside class="flex h-full min-h-0 w-full flex-col border-l border-border-subtle bg-bg-sidebar p-4">
-          <p class="text-sm font-semibold text-text-primary">Inspector</p>
-          <p class="mt-2 text-sm text-text-secondary">Coming in T-242.13.6.</p>
-        </aside>
+        <KnowledgeNodeInspector />
       </ResizablePanel>
     </ResizablePanelGroup>
   </section>

@@ -12,7 +12,12 @@ import {
   type KnowledgeFolderNode,
 } from '../lib/knowledge-helpers';
 import { readStorageValue, writeStorageValue } from '../lib/local-storage';
-import type { MemoryFile, MemorySearchItem, SimilarConceptItem } from '../lib/workflow-types';
+import type {
+  BuildContextResult,
+  MemoryFile,
+  MemorySearchItem,
+  SimilarConceptItem,
+} from '../lib/workflow-types';
 import { createKnowledgeGraphActions } from './knowledge-graph-actions';
 
 export type {
@@ -65,6 +70,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
   const conceptNodes = ref<KnowledgeConceptNode[]>([]);
   const activeCommunityId = ref<number | null>(null);
   const selectedConcept = ref<string | null>(null);
+  const selectedConceptContext = ref<BuildContextResult | null>(null);
   const conceptContextLoading = ref(false);
   const conceptContextError = ref<string | null>(null);
 
@@ -276,12 +282,14 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
       conceptNodes,
       activeCommunityId,
       selectedConcept,
+      selectedConceptContext,
       conceptContextLoading,
       conceptContextError,
       activeTabUri,
     },
     memoryApi,
     openNote,
+    setActiveSubtab,
   );
 
   return {
@@ -290,7 +298,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     foldersLoading, foldersError, searchLoading, searchError,
     noteLoading, noteError, graphLoading, graphError,
     communityGraph, conceptGraph, conceptNodes, activeCommunityId,
-    selectedConcept, conceptContextLoading, conceptContextError,
+    selectedConcept, selectedConceptContext, conceptContextLoading, conceptContextError,
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
     loadRootFolders, loadFolder, setFolderOpen, search,

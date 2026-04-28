@@ -7,11 +7,13 @@ cytoscape.use(coseBilkent);
 
 type HoverCallback = (node: ForceNode | null) => void;
 type ClickCallback = (node: ForceNode) => void;
+type DoubleClickCallback = (node: ForceNode) => void;
 
 export function useForceGraph(
   containerRef: Ref<HTMLElement | null>,
   onHover?: HoverCallback,
   onClick?: ClickCallback,
+  onDoubleClick?: DoubleClickCallback,
 ) {
   let cy: Core | null = null;
   let nodeMap = new Map<string, ForceNode>();
@@ -23,7 +25,7 @@ export function useForceGraph(
 
     // mind.html aesthetic: monochrome white-on-deep-space; structure emerges from density
     const labelColor = 'rgba(255, 255, 255, 0.7)';
-    const labelHighlightColor = '#FFFFFF';
+    const labelHighlightColor = 'rgb(255, 255, 255)';
     const labelDimmedColor = 'rgba(255, 255, 255, 0.25)';
 
     nodeMap = new Map();
@@ -76,6 +78,8 @@ export function useForceGraph(
             // Hide labels until zoomed in — structure first, names second
             'min-zoomed-font-size': 14,
             'overlay-opacity': 0,
+            'transition-property': 'border-width border-color background-opacity',
+            'transition-duration': 150,
           } as cytoscape.Css.Node,
         },
         {
@@ -98,13 +102,24 @@ export function useForceGraph(
         {
           selector: '.highlighted',
           style: {
-            'background-color': '#FFFFFF',
+            'background-color': labelHighlightColor,
             'background-opacity': 1,
             'border-width': 0,
             'color': labelHighlightColor,
             'font-size': '10px',
             'font-weight': 500,
             'z-index': 10,
+          } as cytoscape.Css.Node,
+        },
+        {
+          selector: '.selected',
+          style: {
+            'border-color': labelHighlightColor,
+            'border-opacity': 0.9,
+            'border-width': 2,
+            'background-opacity': 1,
+            'color': labelHighlightColor,
+            'z-index': 20,
           } as cytoscape.Css.Node,
         },
         {
@@ -166,6 +181,11 @@ export function useForceGraph(
       hideLabelsOnViewport: true,
     });
 
+    function selectNode(nodeId: string): void {
+      cy?.nodes().removeClass('selected');
+      cy?.getElementById(nodeId).addClass('selected');
+    }
+
     // Dynamic LOD based on zoom level
     cy.on('zoom', () => {
       if (!cy) return;
@@ -209,8 +229,15 @@ export function useForceGraph(
     });
 
     cy.on('tap', 'node', (e) => {
+      selectNode(e.target.id());
       const n = nodeMap.get(e.target.id());
       if (n) onClick?.(n);
+    });
+
+    cy.on('dbltap', 'node', (e) => {
+      selectNode(e.target.id());
+      const n = nodeMap.get(e.target.id());
+      if (n) onDoubleClick?.(n);
     });
   }
 

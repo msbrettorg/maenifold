@@ -10,6 +10,7 @@ import {
   normalizeConceptName,
   type KnowledgeConceptNode,
 } from '../lib/knowledge-helpers';
+import type { BuildContextRelation, BuildContextResult } from '../lib/workflow-types';
 
 export interface KnowledgeGraphRefs {
   graphLoading: Ref<boolean>;
@@ -19,6 +20,7 @@ export interface KnowledgeGraphRefs {
   conceptNodes: Ref<KnowledgeConceptNode[]>;
   activeCommunityId: Ref<number | null>;
   selectedConcept: Ref<string | null>;
+  selectedConceptContext: Ref<BuildContextResult | null>;
   conceptContextLoading: Ref<boolean>;
   conceptContextError: Ref<string | null>;
   activeTabUri: Ref<string | null>;
@@ -29,7 +31,9 @@ export interface KnowledgeGraphActions {
   loadGraphConcepts: (communityId: number) => Promise<void>;
   focusCommunity: (communityId: number) => Promise<void>;
   showCommunityGraph: () => void;
+  inspectConcept: (conceptName: string) => Promise<BuildContextResult | null>;
   openConcept: (conceptName: string) => Promise<void>;
+  openConceptInMemory: (conceptName: string) => Promise<void>;
 }
 
 function parseResourceJson<T>(content: ResourceContent): T {
@@ -45,10 +49,30 @@ function parseResourceJson<T>(content: ResourceContent): T {
   }
 }
 
+function relationScore(relation: BuildContextRelation): number {
+  return relation.weightedScore ?? relation.coOccurrenceCount;
+}
+
+function findStrongestBondUri(conceptName: string, context: BuildContextResult): string | null {
+  const directRelations = [...context.directRelations]
+    .sort((left, right) => relationScore(right) - relationScore(left));
+
+  for (const relation of directRelations) {
+    const uri = findBestAnchorUri(conceptName, relation.files);
+    if (uri) return uri;
+  }
+
+  return findBestAnchorUri(conceptName, [
+    ...context.directRelations.flatMap((relation) => relation.files),
+    ...context.expandedRelations.flatMap((relation) => relation.files),
+  ]);
+}
+
 export function createKnowledgeGraphActions(
   refs: KnowledgeGraphRefs,
   memoryApi: ReturnType<typeof useMemoryApi>,
   openNote: (uri: string) => void,
+  setActiveSubtab: (subtab: 'memory' | 'graph') => void,
 ): KnowledgeGraphActions {
   const mcpResources = useMcpResources();
   const {
@@ -59,6 +83,7 @@ export function createKnowledgeGraphActions(
     conceptNodes,
     activeCommunityId,
     selectedConcept,
+    selectedConceptContext,
     conceptContextLoading,
     conceptContextError,
   } = refs;
@@ -125,14 +150,16 @@ export function createKnowledgeGraphActions(
     conceptGraph.value = null;
     conceptNodes.value = [];
     selectedConcept.value = null;
+    selectedConceptContext.value = null;
     conceptContextError.value = null;
   }
 
-  async function openConcept(conceptName: string): Promise<void> {
+  async function inspectConcept(conceptName: string): Promise<BuildContextResult | null> {
     const normalized = normalizeConceptName(conceptName);
-    if (!normalized) return;
+    if (!normalized) return null;
 
     selectedConcept.value = normalized;
+    selectedConceptContext.value = null;
     conceptContextLoading.value = true;
     conceptContextError.value = null;
 
@@ -143,6 +170,25 @@ export function createKnowledgeGraphActions(
         activeCommunityId.value = context.communityId;
       }
 
+      selectedConceptContext.value = context;
+      return context;
+    } catch (errorValue) {
+      conceptContextError.value =
+        errorValue instanceof Error ? errorValue.message : String(errorValue);
+      return null;
+    } finally {
+      conceptContextLoading.value = false;
+    }
+  }
+
+  async function openConcept(conceptName: string): Promise<void> {
+    const normalized = normalizeConceptName(conceptName);
+    if (!normalized) return;
+
+    const context = await inspectConcept(normalized);
+    if (!context) return;
+
+    try {
       const files = [
         ...context.directRelations.flatMap((relation) => relation.files),
         ...context.expandedRelations.flatMap((relation) => relation.files),
@@ -174,9 +220,25 @@ export function createKnowledgeGraphActions(
     } catch (errorValue) {
       conceptContextError.value =
         errorValue instanceof Error ? errorValue.message : String(errorValue);
-    } finally {
-      conceptContextLoading.value = false;
     }
+  }
+
+  async function openConceptInMemory(conceptName: string): Promise<void> {
+    const normalized = normalizeConceptName(conceptName);
+    if (!normalized) return;
+
+    const context = await inspectConcept(normalized);
+    if (!context) return;
+
+    const uri = findStrongestBondUri(normalized, context);
+    if (uri) {
+      setActiveSubtab('memory');
+      openNote(uri);
+      return;
+    }
+
+    await openConcept(normalized);
+    setActiveSubtab('memory');
   }
 
   return {
@@ -184,6 +246,8 @@ export function createKnowledgeGraphActions(
     loadGraphConcepts,
     focusCommunity,
     showCommunityGraph,
+    inspectConcept,
     openConcept,
+    openConceptInMemory,
   };
 }

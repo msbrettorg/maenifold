@@ -75,7 +75,10 @@ function stepLabel(count?: number): string | null {
           aria-hidden="true"
         />
         <div class="flex min-w-0 flex-1 flex-col gap-px">
-          <span class="break-words text-sm font-medium leading-snug text-text-primary">
+          <span
+            class="truncate text-sm font-medium leading-snug text-text-primary"
+            :title="humanizeName(wf.name, wf.id)"
+          >
             {{ humanizeName(wf.name, wf.id) }}
           </span>
           <div class="flex flex-wrap items-center gap-1.5">

@@ -35,6 +35,29 @@ describe('useMessageHandler', () => {
     });
   });
 
+  it('updates the current session mode from current_mode_update notifications', () => {
+    const session = reactive(createEmptySessionState('local-1', 'OpenCode', '/repo'));
+    const sessions = ref(new Map([[session.sessionId, session]]));
+    const handler = useMessageHandler({
+      sessions,
+      bridges: new Map(),
+      activeSessionId: ref(session.sessionId),
+      savedSessions: ref<SavedSession[]>([]),
+      saveSessionsToStore: async () => {},
+      cancelPermission: () => {},
+    });
+
+    handler.handleSessionUpdate(session.sessionId, {
+      sessionId: 'remote-1',
+      update: {
+        sessionUpdate: 'current_mode_update',
+        currentModeId: 'architect',
+      },
+    } as never);
+
+    expect(session.currentModeId).toBe('architect');
+  });
+
   it('renames a new session from the first user message', async () => {
     const session = reactive(createEmptySessionState('local-1', 'Architect', '/repo'));
     session.session = {

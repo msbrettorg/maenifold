@@ -2,6 +2,7 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Tabs } from '@/components/ui/tabs';
+import KnowledgeGraphView from './KnowledgeGraphView.vue';
 import KnowledgeMemoryView from './KnowledgeMemoryView.vue';
 import KnowledgeSubtabToggle from './KnowledgeSubtabToggle.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
@@ -57,8 +58,8 @@ function selectSubtab(value: string | number): void {
 
       <div class="min-h-0 flex-1">
         <KnowledgeMemoryView v-if="activeSubtab === 'memory'" />
-        <div v-else-if="activeSubtab === 'graph'" class="p-4 text-sm text-text-secondary">
-          Graph subtab — full-canvas graph coming in T-242.13.4
+        <div v-else-if="activeSubtab === 'graph'" class="h-full min-h-0">
+          <KnowledgeGraphView />
         </div>
       </div>
     </Tabs>

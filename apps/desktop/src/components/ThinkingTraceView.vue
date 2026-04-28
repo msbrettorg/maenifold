@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import {
   Accordion,
   AccordionContent,
@@ -19,6 +17,7 @@ import { useProvenanceNavigation } from '../composables/useProvenanceNavigation'
 import { usePipelineStore } from '../stores/pipeline';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
+import MarkdownView from './MarkdownView.vue';
 
 const props = defineProps<{
   trace: NonNullable<SequentialThinkingViewNode['thinking_trace']>;
@@ -88,11 +87,6 @@ const thinkingLineageLinks = computed(() =>
 const provenanceLinks = computed(() =>
   thinkingLineageLinks.value
     .filter((link) => link.kind !== 'thinking' && link.id !== currentThinkingSessionId.value));
-
-function renderMarkdown(content: string): string {
-  const parsed = marked.parse(content, { async: false });
-  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-}
 
 function thoughtKey(thought: NonNullable<SequentialThinkingViewNode['thinking_trace']>[number], index: number): string {
   return `${thought.thought_number}-${index}`;
@@ -197,9 +191,9 @@ function toggleAll(): void {
               </AccordionTrigger>
               <AccordionContent>
                 <div class="px-3 pb-3 border-t border-border-default">
-                  <div
+                  <MarkdownView
+                    :content="thought.text"
                     class="text-text-primary text-sm leading-relaxed pt-3 [overflow-wrap:anywhere] [&_p]:m-0 [&_p+p]:mt-2 [&_pre]:mt-2 [&_pre]:p-2 [&_pre]:rounded [&_pre]:bg-bg-code [&_pre]:overflow-x-auto [&_code]:font-mono [&_code]:text-xs [&_code]:px-1 [&_code]:py-0.5 [&_code]:rounded [&_code]:bg-bg-code [&_pre_code]:bg-transparent [&_pre_code]:p-0"
-                    v-html="renderMarkdown(thought.text)"
                   />
                 </div>
               </AccordionContent>

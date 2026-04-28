@@ -47,22 +47,6 @@ function closeActiveTab(): void {
   store.closeTab(activeTabUri.value);
 }
 
-function handleContentClick(event: MouseEvent): void {
-  if (!(event.target instanceof Element)) return;
-
-  const target = event.target.closest<HTMLElement>('[data-wikilink]');
-  if (!target) return;
-
-  const concept = target.getAttribute('data-wikilink');
-  if (!concept) return;
-
-  const uri = `memory://${concept}`;
-  if (event.metaKey || event.ctrlKey) {
-    store.openInNewTab(uri);
-    return;
-  }
-  store.openNote(uri);
-}
 </script>
 
 <template>
@@ -141,7 +125,7 @@ function handleContentClick(event: MouseEvent): void {
           <EmptyState :icon="FileText" title="Empty note" description="This note has no content yet." />
         </div>
 
-        <article v-else class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4" @click="handleContentClick">
+        <article v-else class="bg-bg-surface min-w-0 max-w-full rounded-[8px] p-4">
           <KnowledgeNoteRenderer :content="activeNote.content" />
         </article>
       </div>

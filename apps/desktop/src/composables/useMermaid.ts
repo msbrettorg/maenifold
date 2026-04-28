@@ -8,6 +8,7 @@ let mermaidRenderSequence = 0;
 function getMermaidTheme(): 'dark' | 'default' {
   const isDark =
     typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
     window.matchMedia('(prefers-color-scheme: dark)').matches;
 
   return isDark ? 'dark' : 'default';
@@ -63,10 +64,14 @@ export function useMermaid() {
       return;
     }
 
-    const mermaid = await getMermaid();
     const mermaidBlocks = Array.from(
       container.querySelectorAll<HTMLElement>('code.language-mermaid')
     );
+    if (mermaidBlocks.length === 0) {
+      return;
+    }
+
+    const mermaid = await getMermaid();
 
     for (const codeBlock of mermaidBlocks) {
       const preBlock = codeBlock.closest('pre');

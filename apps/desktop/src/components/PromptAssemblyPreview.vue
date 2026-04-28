@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import { ChevronRight } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import MarkdownView from './MarkdownView.vue';
 
 interface PreviewSection {
   key: string;
@@ -18,11 +17,6 @@ const props = defineProps<{
 }>();
 
 const isExpanded = ref(false);
-
-function renderMarkdown(content: string): string {
-  const parsed = marked.parse(content, { async: false });
-  return DOMPurify.sanitize(typeof parsed === 'string' ? parsed : '');
-}
 
 const sections = computed<PreviewSection[]>(() => {
   const trimmedPrompt = props.assembledPrompt.trim();
@@ -104,9 +98,9 @@ const sections = computed<PreviewSection[]>(() => {
             {{ section.label }}
           </div>
           <ScrollArea class="max-h-48 rounded-md border border-border-subtle bg-bg-app">
-            <div
+            <MarkdownView
+              :content="section.content"
               class="p-3 text-text-primary font-mono text-sm leading-normal [overflow-wrap:anywhere] [&_*]:mt-0 [&_p:last-child]:mb-0 [&_code]:font-mono [&_code]:text-xs [&_code]:bg-bg-app [&_code]:rounded [&_code]:px-1 [&_code]:py-0.5 [&_pre]:mt-3 [&_pre]:mb-0 [&_pre]:p-3 [&_pre]:bg-bg-app [&_pre]:rounded [&_pre]:overflow-x-auto"
-              v-html="renderMarkdown(section.content)"
             />
           </ScrollArea>
         </div>

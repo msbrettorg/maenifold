@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { Brain, ChevronDown, ChevronUp, CircleDot, Circle, CheckCircle2 } from 'lucide-vue-next';
-import DOMPurify from 'dompurify';
-import { marked } from 'marked';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -11,6 +9,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import type { WorkflowStep } from '../lib/workflow-types';
+import MarkdownView from './MarkdownView.vue';
 
 const props = defineProps<{
   step: WorkflowStep;
@@ -43,18 +42,6 @@ function relativeTime(iso: string | undefined): string {
   const h = Math.floor(m / 60);
   if (h < 24) return `${h}h ago`;
   return `${Math.floor(h / 24)}d ago`;
-}
-
-function renderMarkdownWithDOMPurify(text: string | undefined): string {
-  if (!text) return '';
-  const withPills = text.replace(/\[\[([^\]]+)\]\]/g, (_match, label: string) => {
-    const escaped = label.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    return `<span class="wiki-pill inline-block whitespace-nowrap rounded px-1.5 py-0.5 text-xs font-semibold bg-brand/15 text-brand">${escaped}</span>`;
-  });
-  const result = marked.parse(withPills, { async: false });
-  return DOMPurify.sanitize(typeof result === 'string' ? result : '', {
-    ADD_ATTR: ['class'],
-  });
 }
 
 function handleToggle(event: Event) {
@@ -131,7 +118,8 @@ function handleToggle(event: Event) {
 
       <CollapsibleContent v-if="step.response">
         <ScrollArea class="mt-1 mb-1.5 ml-9 max-h-[400px] rounded bg-surface">
-          <div
+          <MarkdownView
+            :content="step.response"
             class="py-2 px-3 text-xs leading-relaxed text-text-primary
                    [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
                    [&_code]:font-mono [&_code]:text-[0.6875rem] [&_code]:bg-bg-elevated [&_code]:px-1 [&_code]:py-px [&_code]:rounded [&_code]:text-brand
@@ -140,10 +128,9 @@ function handleToggle(event: Event) {
                    [&_table]:border-collapse [&_table]:w-full [&_table]:my-3 [&_table]:text-xs
                    [&_th]:border [&_th]:border-border-subtle [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:bg-surface [&_th]:font-semibold
                    [&_td]:border [&_td]:border-border-subtle [&_td]:px-3 [&_td]:py-2 [&_td]:text-left
-                   [&_tr:nth-child(even)]:bg-bg-elevated
-                   [&_ul]:my-1 [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:pl-5
-                   [&_li]:my-0.5"
-            v-html="renderMarkdownWithDOMPurify(step.response)"
+                    [&_tr:nth-child(even)]:bg-bg-elevated
+                    [&_ul]:my-1 [&_ul]:pl-5 [&_ol]:my-1 [&_ol]:pl-5
+                    [&_li]:my-0.5"
           />
         </ScrollArea>
       </CollapsibleContent>

@@ -3,6 +3,8 @@ import type { StateInline } from 'markdown-it/index.js';
 import { fromHighlighter } from '@shikijs/markdown-it';
 import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
 import { bundledLanguages, createHighlighter } from 'shiki';
+import markdownItFootnote from 'markdown-it-footnote';
+import markdownItTaskLists from 'markdown-it-task-lists';
 
 let mdPromise: Promise<MarkdownIt> | null = null;
 
@@ -37,7 +39,7 @@ function wikilinkPlugin(md: MarkdownIt): void {
 
   md.renderer.rules.wikilink = (tokens, idx) => {
     const conceptName = md.utils.escapeHtml(tokens[idx].content);
-    return `<span class="note-wiki-pill cursor-pointer hover:underline" data-wikilink="${conceptName}">${conceptName}</span>`;
+    return `<span class="wiki-pill cursor-pointer hover:underline" data-wikilink="${conceptName}">${conceptName}</span>`;
   };
 }
 
@@ -79,6 +81,8 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
         }),
       );
 
+      md.use(markdownItFootnote);
+      md.use(markdownItTaskLists, { enabled: true });
       md.use(wikilinkPlugin);
 
       // Preserve mermaid fences as plain <pre><code class="language-mermaid">

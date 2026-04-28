@@ -1,22 +1,19 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '@/components/ui/resizable';
-import KnowledgeGraphPane from './KnowledgeGraphPane.vue';
-import KnowledgeLeafPane from './KnowledgeLeafPane.vue';
-import KnowledgeTabStrip from './KnowledgeTabStrip.vue';
-import KnowledgeVaultBrowser from './KnowledgeVaultBrowser.vue';
+import { computed } from 'vue';
+import { storeToRefs } from 'pinia';
+import { Tabs } from '@/components/ui/tabs';
+import KnowledgeGraphView from './KnowledgeGraphView.vue';
+import KnowledgeMemoryView from './KnowledgeMemoryView.vue';
+import KnowledgeSubtabToggle from './KnowledgeSubtabToggle.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
-import { useKnowledgeStore } from '../stores/knowledge';
+import { useKnowledgeStore, type KnowledgeSubtab } from '../stores/knowledge';
 import { useProvenanceStore } from '../stores/provenance';
 
 const store = useKnowledgeStore();
 const provenance = useProvenanceStore();
 const { navigateTo } = useProvenanceNavigation();
+const { activeSubtab } = storeToRefs(store);
 
 const currentKnowledgeTitle = computed(() => store.activeNote?.title);
 const provenanceLinks = computed(() => (
@@ -31,9 +28,11 @@ const provenanceLinks = computed(() => (
   }).filter((link) => link.kind !== 'knowledge' && link.id !== store.activeTabUri)
 ));
 
-onMounted(() => {
-  void store.loadRootFolders();
-});
+function selectSubtab(value: string | number): void {
+  if (value === 'memory' || value === 'graph') {
+    store.setActiveSubtab(value as KnowledgeSubtab);
+  }
+}
 </script>
 
 <template>
@@ -48,43 +47,21 @@ onMounted(() => {
       />
     </div>
 
-    <ResizablePanelGroup
-      direction="horizontal"
-      auto-save-id="knowledge-workspace"
+    <Tabs
+      :model-value="activeSubtab"
       class="min-h-0 flex-1"
+      @update:model-value="selectSubtab"
     >
-      <ResizablePanel id="knowledge-browser" :default-size="20" :min-size="15" :order="1">
-        <div class="h-full w-full min-w-0 min-h-0">
-          <KnowledgeVaultBrowser />
+      <div class="border-b border-border-subtle px-4">
+        <KnowledgeSubtabToggle />
+      </div>
+
+      <div class="min-h-0 flex-1">
+        <KnowledgeMemoryView v-if="activeSubtab === 'memory'" />
+        <div v-else-if="activeSubtab === 'graph'" class="h-full min-h-0">
+          <KnowledgeGraphView />
         </div>
-      </ResizablePanel>
-
-      <ResizableHandle
-        class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"
-      />
-
-      <ResizablePanel id="knowledge-content" :default-size="50" :min-size="30" :order="2">
-        <div class="flex h-full w-full min-w-0 min-h-0 flex-col">
-          <KnowledgeTabStrip />
-          <KnowledgeLeafPane />
-        </div>
-      </ResizablePanel>
-
-      <ResizableHandle
-        class="w-px shrink-0 cursor-col-resize bg-border after:w-4 after:bg-transparent after:transition-colors hover:after:bg-accent/70 focus-visible:after:bg-accent/70 data-[state=drag]:after:bg-accent"
-      />
-
-      <ResizablePanel
-        id="knowledge-graph"
-        :default-size="30"
-        :min-size="15"
-        :order="3"
-        collapsible
-      >
-        <div class="h-full w-full min-w-0 min-h-0">
-          <KnowledgeGraphPane />
-        </div>
-      </ResizablePanel>
-    </ResizablePanelGroup>
+      </div>
+    </Tabs>
   </section>
 </template>

@@ -7,11 +7,18 @@ cytoscape.use(coseBilkent);
 
 type HoverCallback = (node: ForceNode | null) => void;
 type ClickCallback = (node: ForceNode) => void;
+type DoubleClickCallback = (node: ForceNode) => void;
+
+function readCssToken(token: string): string {
+  if (typeof window === 'undefined') return '';
+  return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+}
 
 export function useForceGraph(
   containerRef: Ref<HTMLElement | null>,
   onHover?: HoverCallback,
   onClick?: ClickCallback,
+  onDoubleClick?: DoubleClickCallback,
 ) {
   let cy: Core | null = null;
   let nodeMap = new Map<string, ForceNode>();
@@ -21,10 +28,11 @@ export function useForceGraph(
     const el = containerRef.value;
     if (!el) return;
 
-    // mind.html aesthetic: monochrome white-on-deep-space; structure emerges from density
-    const labelColor = 'rgba(255, 255, 255, 0.7)';
-    const labelHighlightColor = '#FFFFFF';
-    const labelDimmedColor = 'rgba(255, 255, 255, 0.25)';
+    const canvasColor = readCssToken('--color-bg-app');
+    const labelColor = readCssToken('--color-text-secondary');
+    const labelHighlightColor = readCssToken('--color-text-primary');
+    const labelDimmedColor = readCssToken('--color-text-tertiary');
+    const edgeColor = readCssToken('--color-border-subtle');
 
     nodeMap = new Map();
     for (const n of nodes) nodeMap.set(n.id, n);
@@ -58,16 +66,26 @@ export function useForceGraph(
         {
           selector: 'node',
           style: {
-            'width': 'data(nodeRadius)',
-            'height': 'data(nodeRadius)',
+            'width': 'mapData(nodeRadius, 1.6, 6.5, 8, 24)',
+            'height': 'mapData(nodeRadius, 1.6, 6.5, 8, 24)',
             'background-color': 'data(nodeColor)',
-            'background-opacity': 0.95,
-            'border-width': 0,
+            'background-opacity': 0.9,
+            'border-color': 'data(nodeColor)',
+            'border-opacity': 0.45,
+            'border-width': 1,
             'label': 'data(label)',
             'color': labelColor,
             'font-size': '8px',
             'font-family': '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace',
             'font-weight': 400,
+            'shadow-blur': 14,
+            'shadow-color': 'data(nodeColor)',
+            'shadow-opacity': 0.35,
+            'shadow-offset-x': 0,
+            'shadow-offset-y': 0,
+            'text-outline-color': canvasColor,
+            'text-outline-opacity': 0.85,
+            'text-outline-width': 2,
             'text-valign': 'bottom',
             'text-halign': 'center',
             'text-margin-y': 4,
@@ -76,16 +94,18 @@ export function useForceGraph(
             // Hide labels until zoomed in — structure first, names second
             'min-zoomed-font-size': 14,
             'overlay-opacity': 0,
+            'transition-property': 'border-width border-color background-opacity shadow-opacity',
+            'transition-duration': 150,
           } as cytoscape.Css.Node,
         },
         {
           selector: 'edge',
           style: {
-            'width': 0.5,
-            'line-color': 'rgba(255, 255, 255, 0.05)',
+            'width': 'mapData(weight, 1, 12, 0.6, 1.8)',
+            'line-color': edgeColor,
             'curve-style': 'haystack',
             'haystack-radius': 0.5,
-            'opacity': 1,
+            'opacity': 0.38,
             'overlay-opacity': 0,
           } as cytoscape.Css.Edge,
         },
@@ -98,21 +118,34 @@ export function useForceGraph(
         {
           selector: '.highlighted',
           style: {
-            'background-color': '#FFFFFF',
+            'background-color': labelHighlightColor,
             'background-opacity': 1,
-            'border-width': 0,
+            'border-width': 1,
             'color': labelHighlightColor,
             'font-size': '10px',
             'font-weight': 500,
+            'shadow-opacity': 0.75,
             'z-index': 10,
+          } as cytoscape.Css.Node,
+        },
+        {
+          selector: '.selected',
+          style: {
+            'border-color': labelHighlightColor,
+            'border-opacity': 0.9,
+            'border-width': 2,
+            'background-opacity': 1,
+            'color': labelHighlightColor,
+            'shadow-opacity': 0.85,
+            'z-index': 20,
           } as cytoscape.Css.Node,
         },
         {
           selector: '.highlighted-edge',
           style: {
-            'line-color': 'rgba(255, 255, 255, 0.45)',
-            'width': 1,
-            'opacity': 1,
+            'line-color': labelHighlightColor,
+            'width': 1.5,
+            'opacity': 0.75,
             'z-index': 10,
           } as cytoscape.Css.Edge,
         },
@@ -122,6 +155,7 @@ export function useForceGraph(
             'background-opacity': 0.15,
             'opacity': 0.15,
             'color': labelDimmedColor,
+            'shadow-opacity': 0.05,
           } as cytoscape.Css.Node,
         },
         {
@@ -166,6 +200,11 @@ export function useForceGraph(
       hideLabelsOnViewport: true,
     });
 
+    function selectNode(nodeId: string): void {
+      cy?.nodes().removeClass('selected');
+      cy?.getElementById(nodeId).addClass('selected');
+    }
+
     // Dynamic LOD based on zoom level
     cy.on('zoom', () => {
       if (!cy) return;
@@ -175,7 +214,7 @@ export function useForceGraph(
       if (zoom < 0.4) {
         // Far out: hide all labels, edges nearly invisible — let density carry structure
         nodes.addClass('lod-no-labels');
-        cy.edges().style('opacity', 0.6);
+        cy.edges().style('opacity', 0.24);
       } else if (zoom < 0.8) {
         // Medium: show labels on large nodes only
         nodes.forEach((n) => {
@@ -185,11 +224,11 @@ export function useForceGraph(
             n.addClass('lod-no-labels');
           }
         });
-        cy.edges().style('opacity', 0.85);
+        cy.edges().style('opacity', 0.32);
       } else {
         // Close: full detail
         nodes.removeClass('lod-no-labels');
-        cy.edges().style('opacity', 1);
+        cy.edges().style('opacity', 0.38);
       }
     });
 
@@ -209,8 +248,15 @@ export function useForceGraph(
     });
 
     cy.on('tap', 'node', (e) => {
+      selectNode(e.target.id());
       const n = nodeMap.get(e.target.id());
       if (n) onClick?.(n);
+    });
+
+    cy.on('dbltap', 'node', (e) => {
+      selectNode(e.target.id());
+      const n = nodeMap.get(e.target.id());
+      if (n) onDoubleClick?.(n);
     });
   }
 

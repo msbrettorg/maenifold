@@ -8,6 +8,13 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledgeStore } from '../stores/knowledge';
 
 const store = useKnowledgeStore();
+const props = withDefaults(defineProps<{
+  rail?: boolean;
+  openInMemory?: boolean;
+}>(), {
+  rail: false,
+  openInMemory: false,
+});
 const {
   relatedConcepts,
   relatedConceptsSource,
@@ -16,10 +23,22 @@ const {
   conceptContextLoading,
   conceptContextError,
 } = storeToRefs(store);
+
+function openRelatedConcept(conceptName: string): void {
+  if (props.openInMemory) {
+    store.setActiveSubtab('memory');
+  }
+  void store.openConcept(conceptName);
+}
 </script>
 
 <template>
-  <aside class="flex min-h-0 h-64 shrink-0 flex-col border-t border-border-subtle bg-bg-sidebar" aria-label="Related concepts">
+  <aside
+    :class="rail
+      ? 'flex h-full min-h-0 w-full flex-col border-l border-border-subtle bg-bg-sidebar'
+      : 'flex min-h-0 h-64 shrink-0 flex-col border-t border-border-subtle bg-bg-sidebar'"
+    aria-label="Related concepts"
+  >
     <div class="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
       <Sparkles class="size-4 text-text-secondary" aria-hidden="true" />
       <p class="text-sm font-semibold text-text-primary">Related concepts</p>
@@ -48,7 +67,7 @@ const {
             type="button"
             variant="ghost"
             class="h-auto justify-start rounded-lg px-2 py-2 text-left"
-            @click="store.openConcept(concept.name)"
+            @click="openRelatedConcept(concept.name)"
           >
             <div class="grid min-w-0 gap-1">
               <span class="truncate text-sm text-text-primary">{{ concept.name }}</span>

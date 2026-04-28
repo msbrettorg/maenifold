@@ -171,7 +171,7 @@ onMounted(async () => {
             @reload="reloadCurrentView"
           />
           <GraphViewCanvas :is-loading="graphLoading" :error="graphError ?? ''" :node-count="nodeCount" @retry="reloadCurrentView">
-            <div ref="containerRef" class="relative h-full w-full" />
+            <div ref="containerRef" class="relative h-full w-full bg-bg-app" />
             <div
               v-if="hoveredNode"
               class="pointer-events-none absolute right-4 top-4 z-[1] rounded-lg border border-border-subtle bg-bg-surface/95 px-3 py-2 shadow-lg"

@@ -1,78 +1,59 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { startMcpLoopbackServer } from '../../__tests__/helpers/mcp-loopback';
 import { useMcpClient } from '../useMcpClient';
 
-const { fetchMock } = vi.hoisted(() => ({
-  fetchMock: vi.fn(),
-}));
+let currentClient: ReturnType<typeof useMcpClient> | null = null;
+let currentServer: Awaited<ReturnType<typeof startMcpLoopbackServer>> | null = null;
 
-vi.mock('../../lib/http', () => ({
-  getHttpFetch: vi.fn(() => fetchMock),
-}));
-
-const BASE_URL = 'http://127.0.0.1:8080';
-const MCP_URL = `${BASE_URL}/mcp`;
-
-function jsonRpcResponse(id: number, result: unknown, headers: Record<string, string> = {}): Response {
-  return new Response(JSON.stringify({ jsonrpc: '2.0', id, result }), {
-    status: 200,
-    headers: {
-      'content-type': 'application/json',
-      ...headers,
-    },
-  });
+async function startClient(stateless = true) {
+  currentServer = await startMcpLoopbackServer({ stateless });
+  currentClient = useMcpClient(currentServer.baseUrl);
+  return { client: currentClient, server: currentServer };
 }
 
-function notificationResponse(headers: Record<string, string> = {}): Response {
-  return new Response(null, {
-    status: 202,
-    headers,
-  });
+function bodyMethod(body: unknown): string | undefined {
+  return typeof body === 'object' && body !== null && 'method' in body
+    ? String((body as { method?: unknown }).method)
+    : undefined;
 }
 
-function toolCallResponse(id: number, payload: unknown): Response {
-  return jsonRpcResponse(id, {
-    content: [{ type: 'text', text: JSON.stringify(payload) }],
-  });
+function callToolName(body: unknown): string | undefined {
+  if (typeof body !== 'object' || body === null || !('params' in body)) {
+    return undefined;
+  }
+  const params = (body as { params?: unknown }).params;
+  if (typeof params !== 'object' || params === null || !('name' in params)) {
+    return undefined;
+  }
+  return String((params as { name?: unknown }).name);
 }
 
-function listToolsResponse(id: number, toolNames: string[]): Response {
-  return jsonRpcResponse(id, {
-    tools: toolNames.map((name) => ({ name })),
-  });
-}
-
-function getHeadersAt(callIndex: number): Record<string, string> {
-  return (fetchMock.mock.calls[callIndex]?.[1] as RequestInit | undefined)?.headers as Record<string, string>;
+function requestsForMethod(method: string) {
+  return currentServer?.requests.filter((request) => bodyMethod(request.body) === method) ?? [];
 }
 
 describe('useMcpClient stateless MCP support', () => {
-  beforeEach(() => {
-    fetchMock.mockReset();
+  afterEach(async () => {
+    await currentClient?.disconnect().catch(() => undefined);
+    await currentServer?.close().catch(() => undefined);
+    currentClient = null;
+    currentServer = null;
   });
 
-  it('connect() succeeds when initialize returns no Mcp-Session-Id header', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse());
-
-    const client = useMcpClient(BASE_URL);
+  it('connect() succeeds against a real stateless MCP SDK server', async () => {
+    const { client, server } = await startClient();
 
     await expect(client.connect()).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      MCP_URL,
-      expect.objectContaining({ method: 'POST' }),
-    );
+
+    expect(server.requests.map((request) => bodyMethod(request.body))).toEqual([
+      'initialize',
+      'notifications/initialized',
+    ]);
   });
 
   it('keeps connected=true and sessionId=null after a stateless connect', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse());
-
-    const client = useMcpClient(BASE_URL);
+    const { client } = await startClient();
 
     await client.connect();
 
@@ -81,102 +62,108 @@ describe('useMcpClient stateless MCP support', () => {
     expect(client.error.value).toBeNull();
   });
 
-  it('builds requests with Mcp-Protocol-Version when no session id exists', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse());
+  it('builds initialize requests with Mcp-Protocol-Version and without Mcp-Session-Id', async () => {
+    const { client, server } = await startClient();
 
-    const client = useMcpClient(BASE_URL);
+    await client.connect();
 
-    await client.connect().catch(() => undefined);
-
-    expect(getHeadersAt(0)).toMatchObject({
-      Accept: 'application/json, text/event-stream',
-      'Content-Type': 'application/json',
-      'Mcp-Protocol-Version': '2025-03-26',
+    const initializeRequest = server.requests.find((request) => bodyMethod(request.body) === 'initialize');
+    expect(initializeRequest?.headers).toMatchObject({
+      accept: 'application/json, text/event-stream',
+      'content-type': 'application/json',
+      'mcp-protocol-version': '2025-03-26',
     });
-    expect(getHeadersAt(0)['Mcp-Session-Id']).toBeUndefined();
+    expect(initializeRequest?.headers['mcp-session-id']).toBeUndefined();
   });
 
   it('listTools() works after a stateless connect even without a session id', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse())
-      .mockResolvedValueOnce(listToolsResponse(2, ['Pipeline']));
-
-    const client = useMcpClient(BASE_URL);
+    const { client, server } = await startClient();
     await client.connect();
 
-    await expect(client.listTools()).resolves.toEqual([{ name: 'Pipeline' }]);
-    expect(getHeadersAt(2)['Mcp-Session-Id']).toBeUndefined();
+    await expect(client.listTools()).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Pipeline' })]),
+    );
+
+    const toolsListRequest = server.requests.find((request) => bodyMethod(request.body) === 'tools/list');
+    expect(toolsListRequest?.headers['mcp-session-id']).toBeUndefined();
   });
 
-  it('callTool() works in stateless mode', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse())
-      .mockResolvedValueOnce(toolCallResponse(2, { success: true, data: { pipelines: [] } }));
-
-    const client = useMcpClient(BASE_URL);
+  it('callTool() routes through GatewayExecute with the real SDK transport in stateless mode', async () => {
+    const { client, server } = await startClient();
     await client.connect();
 
     await expect(client.callTool('Pipeline', { list: true })).resolves.toEqual({
       success: true,
       data: { pipelines: [] },
     });
-    expect(getHeadersAt(2)['Mcp-Session-Id']).toBeUndefined();
+
+    const toolNames = server.requests
+      .filter((request) => bodyMethod(request.body) === 'tools/call')
+      .map((request) => callToolName(request.body));
+    expect(toolNames).toEqual([
+      'GatewayIndex',
+      'GatewayIndex',
+      'GatewayExecute',
+    ]);
+    expect(server.requests.every((request) => request.headers['mcp-session-id'] === undefined)).toBe(true);
   });
 
   it('reconnects and retries after a 404 in stateless mode', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse())
-      .mockResolvedValueOnce(new Response(null, { status: 404 }))
-      .mockResolvedValueOnce(jsonRpcResponse(3, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse())
-      .mockResolvedValueOnce(toolCallResponse(2, { success: true, data: { pipelines: [] } }));
+    currentServer = await startMcpLoopbackServer({
+      stateless: true,
+      failOnce: (request) => (
+        bodyMethod(request.body) === 'tools/call'
+        && callToolName(request.body) === 'GatewayExecute'
+      ),
+    });
+    currentClient = useMcpClient(currentServer.baseUrl);
 
-    const client = useMcpClient(BASE_URL);
-    await client.connect();
+    await currentClient.connect();
 
-    await expect(client.callTool('Pipeline', { list: true })).resolves.toEqual({
+    await expect(currentClient.callTool('Pipeline', { list: true })).resolves.toEqual({
       success: true,
       data: { pipelines: [] },
     });
-    expect(fetchMock).toHaveBeenCalledTimes(6);
-    expect(getHeadersAt(5)['Mcp-Session-Id']).toBeUndefined();
+    expect(requestsForMethod('initialize')).toHaveLength(2);
+    expect(
+      currentServer.requests
+        .filter((request) => bodyMethod(request.body) === 'tools/call')
+        .map((request) => callToolName(request.body)),
+    ).toEqual([
+      'GatewayIndex',
+      'GatewayIndex',
+      'GatewayExecute',
+      'GatewayIndex',
+      'GatewayIndex',
+      'GatewayExecute',
+    ]);
   });
 
   it('disconnect() skips DELETE when there is no session id', async () => {
-    fetchMock
-      .mockResolvedValueOnce(jsonRpcResponse(1, { protocolVersion: '2025-03-26' }))
-      .mockResolvedValueOnce(notificationResponse());
-
-    const client = useMcpClient(BASE_URL);
+    const { client, server } = await startClient();
     await client.connect();
     await client.disconnect();
 
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(server.requests.some((request) => request.method === 'DELETE')).toBe(false);
     expect(client.connected.value).toBe(false);
     expect(client.sessionId.value).toBeNull();
   });
 
   it('preserves stateful behavior when the server returns a session id', async () => {
-    fetchMock
-      .mockResolvedValueOnce(
-        jsonRpcResponse(1, { protocolVersion: '2025-03-26' }, { 'Mcp-Session-Id': 'session-123' }),
-      )
-      .mockResolvedValueOnce(notificationResponse())
-      .mockResolvedValueOnce(listToolsResponse(2, ['Pipeline']));
-
-    const client = useMcpClient(BASE_URL);
+    const { client, server } = await startClient(false);
 
     await client.connect();
-    await expect(client.listTools()).resolves.toEqual([{ name: 'Pipeline' }]);
+    await expect(client.listTools()).resolves.toEqual(
+      expect.arrayContaining([expect.objectContaining({ name: 'Pipeline' })]),
+    );
 
     expect(client.connected.value).toBe(true);
-    expect(client.sessionId.value).toBe('session-123');
-    expect(getHeadersAt(1)['Mcp-Session-Id']).toBe('session-123');
-    expect(getHeadersAt(2)['Mcp-Session-Id']).toBe('session-123');
+    expect(client.sessionId.value).toBe('session-1');
+    expect(server.requests.find((request) => bodyMethod(request.body) === 'initialize')?.headers['mcp-session-id'])
+      .toBeUndefined();
+    expect(server.requests.find((request) => bodyMethod(request.body) === 'notifications/initialized')?.headers['mcp-session-id'])
+      .toBe('session-1');
+    expect(server.requests.find((request) => bodyMethod(request.body) === 'tools/list')?.headers['mcp-session-id'])
+      .toBe('session-1');
   });
 });

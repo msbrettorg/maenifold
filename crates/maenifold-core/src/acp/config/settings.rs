@@ -5,7 +5,6 @@ use serde::{Deserialize, Serialize};
 
 use super::easter_eggs::EasterEggsSettings;
 use super::gateway_settings::GatewaySettings;
-use super::teams_monitor::TeamsMonitorConfig;
 
 pub(super) fn default_true() -> bool {
     true
@@ -132,8 +131,6 @@ pub struct MaenifoldSettings {
     #[serde(default)]
     pub debug: DebugSettings,
     #[serde(default)]
-    pub teams_monitor: TeamsMonitorConfig,
-    #[serde(default)]
     pub gateway: GatewaySettings,
     #[serde(default)]
     pub easter_eggs: EasterEggsSettings,
@@ -162,7 +159,6 @@ impl Default for MaenifoldSettings {
             community: CommunitySettings::default(),
             vector: VectorSettings::default(),
             debug: DebugSettings::default(),
-            teams_monitor: TeamsMonitorConfig::default(),
             gateway: GatewaySettings::default(),
             easter_eggs: EasterEggsSettings::default(),
             env_passthrough: Vec::new(),

@@ -138,7 +138,6 @@ fn partial_settings_schema() -> Value {
             "debug": { "type": "object", "additionalProperties": true },
             "community": { "type": "object", "additionalProperties": true },
             "decay": { "type": "object", "additionalProperties": true },
-            "teamsMonitor": { "type": "object", "additionalProperties": true },
             "gateway": { "type": "object", "additionalProperties": true },
             "envPassthrough": { "type": "array", "items": { "type": "string" } }
         },

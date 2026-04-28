@@ -13,7 +13,6 @@ import AppTabBar from './components/AppTabBar.vue';
 import ChatView from './components/ChatView.vue';
 import HomeDashboard from './components/HomeDashboard.vue';
 import KnowledgeWorkspace from './components/KnowledgeWorkspace.vue';
-import TeamsTab from './components/teams/TeamsTab.vue';
 import WorkflowWorkspace from './components/WorkflowWorkspace.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
@@ -108,8 +107,7 @@ function onOnboardingComplete(): void {
 }
 
 // Source-based scoping: the Agents tab's ChatView only renders when the
-// active session was created from that tab. The Teams tab is display-only
-// (see TeamsTab.vue) and MUST NOT mutate activeSessionId.
+// active session was created from that tab.
 const activeSessionSource = computed(() => sessionStore.activeSession?.source ?? null);
 const showAgentsChat = computed(
   () => isConnected.value && activeSessionSource.value === 'agents'
@@ -178,10 +176,6 @@ const showAgentsChat = computed(
 
         <div v-if="visitedTabs.has('knowledge')" v-show="!showHome && activeTab === 'knowledge'" class="flex flex-1 flex-col overflow-hidden">
           <KnowledgeWorkspace />
-        </div>
-
-        <div v-if="visitedTabs.has('teams')" v-show="!showHome && activeTab === 'teams'" class="flex flex-1 flex-col overflow-hidden">
-          <TeamsTab />
         </div>
 
         <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">

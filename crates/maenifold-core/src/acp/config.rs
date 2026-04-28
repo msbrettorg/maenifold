@@ -15,10 +15,6 @@ mod gateway_settings;
 mod loader;
 #[path = "config/settings.rs"]
 mod settings;
-#[path = "config/teams_monitor.rs"]
-mod teams_monitor;
-#[path = "config/teams_monitor_global.rs"]
-pub mod teams_monitor_global;
 #[path = "config/types.rs"]
 mod types;
 
@@ -40,14 +36,5 @@ pub use loader::AgentsConfig;
 #[allow(unused_imports)]
 pub use settings::{
     CommunitySettings, DebugSettings, DecaySettings, MaenifoldSettings, VectorSettings,
-};
-#[allow(unused_imports)]
-pub use teams_monitor::{
-    TeamsMonitorConfig, TeamsMonitorConnectionConfig, TeamsMonitorIdentityConfig,
-};
-#[allow(unused_imports)]
-pub use teams_monitor_global::{
-    MonitoredConversation, TeamsMonitorGlobalConfig, WorkspaceDispatchConfig, WorkspaceTeamsConfig,
-    normalize_workspace_key,
 };
 pub use types::{AgentEntry, McpServerEntry};

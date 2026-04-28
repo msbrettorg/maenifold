@@ -90,7 +90,6 @@ fn expected_settings() -> MaenifoldSettings {
             trace: true,
             pipeline_driver: Some("inline".to_string()),
         },
-        teams_monitor: TeamsMonitorConfig::default(),
         gateway: GatewaySettings::default(),
         easter_eggs: EasterEggsSettings::default(),
         env_passthrough: Vec::new(),

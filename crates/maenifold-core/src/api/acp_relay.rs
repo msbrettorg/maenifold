@@ -147,8 +147,6 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
     // The code is retained for future multi-user support but is currently unreachable.
     let mut permission_ids: HashMap<u64, String> = HashMap::new();
     let mut next_permission_id = 1_u64;
-    let mut teams_rx = crate::teams::subscribe_teams_prompts();
-    let mut teams_prompt_seq = 1000_u64;
 
     loop {
         tokio::select! {
@@ -213,37 +211,6 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
                 if let Some(id) = request_id {
                     let payload = prompt_result_payload(id, result, cancelled);
                     if !send_json(&mut sender, payload).await {
-                        break;
-                    }
-                }
-            }
-            teams_prompt = teams_rx.recv(), if pending_prompt.is_none() && session.is_some() => {
-                let Ok(prompt) = teams_prompt else { continue; };
-                if let Some(active) = session.as_ref() {
-                    teams_prompt_seq += 1;
-                    let request_id = json!(teams_prompt_seq);
-                    let params = json!({
-                        "sessionId": active.session_id,
-                        "prompt": [{ "type": "text", "text": prompt.prompt }],
-                    });
-                    let msg_payload = json!({
-                        "jsonrpc": "2.0",
-                        "id": request_id,
-                        "method": "session/prompt",
-                        "params": params,
-                    });
-                    let ws_msg = axum::extract::ws::Message::Text(msg_payload.to_string().into());
-                    if !handle_incoming(
-                        ws_msg,
-                        &relay,
-                        &mut sender,
-                        &mut session,
-                        &mut pending_prompt,
-                        &mut delta_rx,
-                        &mut result_rx,
-                        &mut permission_ids,
-                        &mut next_permission_id,
-                    ).await {
                         break;
                     }
                 }

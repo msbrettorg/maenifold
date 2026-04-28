@@ -8,9 +8,8 @@ import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsPreferences from './SettingsPreferences.vue';
 import SettingsSchedules from './SettingsSchedules.vue';
 import SettingsEasterEggs from './SettingsEasterEggs.vue';
-import TeamsSettings from './teams/TeamsSettings.vue';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { MessageSquare, Sparkles } from 'lucide-vue-next';
+import { Sparkles } from 'lucide-vue-next';
 
 const sections = [
   { id: 'connection', label: 'Agents', description: 'Manage ACP agents and their configuration.' },
@@ -19,7 +18,6 @@ const sections = [
   { id: 'embeddings', label: 'Embeddings', description: 'Manage embedding models and vector index.' },
   { id: 'schedules', label: 'Schedules', description: 'Manage recurring agent tasks and automations.' },
   { id: 'easter-eggs', label: 'Easter Eggs', description: 'Experimental features and visual surprises.', icon: Sparkles },
-  { id: 'teams', label: 'Teams', description: 'Configure Teams monitor keywords, senders, and dispatch.', icon: MessageSquare, component: TeamsSettings },
   { id: 'preferences', label: 'Preferences', description: 'Control persisted application defaults.' },
 ];
 
@@ -53,7 +51,6 @@ const activeSection = ref('connection');
         <TabsContent value="embeddings"><SettingsEmbeddings v-if="activeSection === 'embeddings'" /></TabsContent>
         <TabsContent value="schedules"><SettingsSchedules v-if="activeSection === 'schedules'" /></TabsContent>
         <TabsContent value="easter-eggs"><SettingsEasterEggs v-if="activeSection === 'easter-eggs'" /></TabsContent>
-        <TabsContent value="teams"><TeamsSettings v-if="activeSection === 'teams'" /></TabsContent>
         <TabsContent value="preferences"><SettingsPreferences v-if="activeSection === 'preferences'" /></TabsContent>
       </ScrollArea>
     </Tabs>

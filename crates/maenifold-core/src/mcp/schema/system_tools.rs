@@ -1,7 +1,7 @@
 use super::params::{
     AcpExecParams, AdoptParams, GetConfigParams, GetHelpParams, ListAssetsParams,
     ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
-    TeamsMonitorParams, UpdateAssetsParams,
+    UpdateAssetsParams,
 };
 use super::support::derived_tool_definition;
 use crate::mcp::McpToolDefinition;
@@ -44,10 +44,6 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "ListSessions" => derived_tool_definition::<ListSessionsParams>(
             registry_name,
             "Lists resumable ACP sessions across configured agents.",
-        ),
-        "TeamsMonitor" => derived_tool_definition::<TeamsMonitorParams>(
-            registry_name,
-            "Controls the Teams monitor by enabling, disabling, reporting status, updating monitor configuration, or starting device code authentication.",
         ),
         "AcpExec" => derived_tool_definition::<AcpExecParams>(
             registry_name,

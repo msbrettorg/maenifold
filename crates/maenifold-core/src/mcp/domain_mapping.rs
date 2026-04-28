@@ -51,7 +51,6 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("ListAssets", "maenifold.system"),
     ("ReadMcpResource", "maenifold.system"),
     ("ListSessions", "maenifold.system"),
-    ("TeamsMonitor", "maenifold.system"),
     ("AcpExec", "maenifold.system"),
     ("EmbeddingModels", "maenifold.system"),
     ("ReadTextFile", "maenifold.system"),
@@ -89,7 +88,7 @@ pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
         "Workflow" | "Pipeline" | "SequentialThinking" | "AssumptionLedger" | "AcpExec"
         | "Schedule" => SafetyClass::Orchestration,
         "EditMemory" | "MoveMemory" | "Sync" | "RepairConcepts" | "UpdateAssets"
-        | "TeamsMonitor" | "EmbeddingModels" => SafetyClass::Mutate,
+        | "EmbeddingModels" => SafetyClass::Mutate,
         _ => SafetyClass::Mutate,
     }
 }

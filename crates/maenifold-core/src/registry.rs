@@ -256,11 +256,6 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::embedding_models,
     },
     ToolDescriptor {
-        name: "TeamsMonitor",
-        aliases: &["teamsmonitor", "teams_monitor"],
-        invoke: tools::teams_monitor,
-    },
-    ToolDescriptor {
         name: "Schedule",
         aliases: &["schedule", "scheduled_tasks"],
         invoke: tools::schedule,

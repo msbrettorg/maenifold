@@ -299,11 +299,9 @@ export interface PlanEntry extends AcpMetadataCarrier {
 }
 
 /**
- * Session origin discriminator. `agents` sessions belong to the Agents tab;
- * `teams` sessions are created by the Teams tab. Downstream views filter by
- * this so Teams chat content cannot leak into the Agents UI (and vice versa).
+ * Session origin discriminator. `agents` sessions belong to the Agents tab.
  */
-export type SessionSource = 'agents' | 'teams';
+export type SessionSource = 'agents';
 
 export interface SessionState {
   sessionId: string;

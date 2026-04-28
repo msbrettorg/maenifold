@@ -1,5 +1,7 @@
 mod formatting;
 mod handler;
+#[cfg(test)]
+mod handler_test_support;
 mod session;
 mod session_init;
 mod validation;

@@ -245,7 +245,6 @@ impl GatewayCatalog {
                 .collect::<Vec<_>>();
 
             let mut message = format!("Unknown gateway command '{command}' for domain '{domain}'.");
-
             if !suggestions.is_empty() {
                 message.push_str(&format!(" Did you mean: {}?", suggestions.join(", ")));
             }

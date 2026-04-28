@@ -54,9 +54,9 @@ if [[ "${1:-}" == "watch" ]]; then
   exit 0
 fi
 
-MODEL="claude-opus-4.6-1m"
+MODEL="claude-opus-4.7-1m-internal"
 REASONING_EFFORT="xhigh"
-MAX_ITERATIONS=50
+MAX_ITERATIONS=5
 MAX_RUNTIME_SECONDS=0        # 0 = unlimited; e.g. 14400 = 4 hours
 STUCK_TIMEOUT_SECONDS=600    # 10 min without log output = stuck
 CRATE=""
@@ -377,14 +377,29 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
   export RALPH_ITERATION="$iteration"
   export RALPH_MAX_ITERATIONS="$MAX_ITERATIONS"
 
+  # --- Quiesce dirty workspace BEFORE snapshot ---
+  # Ralph's rollback model is `git reset --hard $baseline_head`. If the
+  # workspace is dirty at iteration start, capture it as a checkpoint commit
+  # so the baseline includes the user's in-flight work. The next iteration's
+  # rollback then preserves that work; only the iteration's own changes are
+  # undone on failure.
+  if ! git diff --quiet || ! git diff --cached --quiet || \
+     [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+    echo "Workspace not clean — capturing checkpoint commit before iteration ${iteration}."
+    git add -A
+    git commit -m "ralph: pre-iter-${iteration} quiesce" --no-verify
+    echo "  ✓ checkpoint committed at $(git rev-parse --short HEAD)"
+  fi
+
   # --- Snapshot pre-iteration baseline (HEAD, untracked set) ---
   snapshot_baseline "$iteration"
   baseline_head="$(cat "ralph/state/baseline/${iteration}/HEAD")"
 
+  # Defensive double-check: snapshot_baseline must observe a clean tree.
+  # If this fires, the quiesce above failed and rollback safety is broken.
   if ! git diff --quiet || ! git diff --cached --quiet; then
-    echo "ERROR: workspace not clean at iteration start (dirty tracked files)."
-    echo "  Ralph requires a clean working tree to guarantee safe rollback."
-    notify "RALPH ⚠️" "Iteration ${iteration} skipped: dirty workspace"
+    echo "ERROR: workspace still dirty after quiesce — refusing to run iteration."
+    notify "RALPH ⚠️" "Iteration ${iteration} skipped: quiesce failed"
     continue
   fi
 

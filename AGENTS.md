@@ -17,6 +17,7 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 3. **"Architect Alpha" / "Architect Beta" / "Architect Gamma"** — Named architect roles are banned. The duo is anonymous and model-specified per the Roles table. Individual architect names in any active document are contamination.
 4. **Programmatic UAT** — Any attempt to auto-generate test checklists, gate tasks from UAT plan parsing, batch TC-ID verification items, or any form of "programmatic" acceptance testing. You cannot unit-test AI. You cannot batch-verify a UI. The UAT plan is a human-authored guide for interactive CDP testing — not a data source for code generation. Any agent that generates gate tasks by parsing `docs/UAT-PLAN.md` is producing rubber-stamp busywork. This is how sprint 229 shipped broken. Immediate P0. Stop all work.
 5. **Cargo-cult security** — Adding any auth, authn, authz, OAuth, bearer tokens, signed cookies, CSRF tokens, rate limiting, request signing, encryption-at-rest, or any other "security feature" the user did not explicitly request. **The security boundary is Azure API Management (APIM) at the edge.** Anything we do in code is inferior to APIM and counter-productive. The Rust backend is a localhost loopback service that trusts its caller. Period. Adding code-level auth is not "defense in depth" — it is wasted effort that breaks legitimate clients, multiplies attack surface, and pushes policy decisions into the wrong layer. **Cautionary tale:** sprints 220, 229, 238.47, 240.4, 240.6, 240.8, 240.9, and 242.11 burned roughly three days implementing a localhost OAuth bridge with PKCE, dynamic client registration, well-known metadata, and bearer token middleware — none of which the user asked for, all of which broke the MCP HTTP transport, and all of which had to be ripped back out. If you find yourself reaching for `axum::middleware`, `Authorization` headers, `WWW-Authenticate`, `.well-known/oauth-*`, or any crate with "auth" in its name — stop. File a P0. Get explicit user authorization before writing one line.
+6. **Hidden inference / invisible ACP sessions** — Any code path that spawns an ACP session, dispatches to an LLM, runs a sequential-thinking turn, or performs any form of inference WITHOUT a corresponding visible UI element the user can inspect, pause, and kill. **Critical safety constraint.** If maenifold is reasoning, the user MUST see what it is reasoning about, which agent + model is doing the reasoning, the live token stream, and have a one-click stop control. This applies to: gateway intent resolver dispatches, workflow agent dispatches, pipeline node dispatches, sub-PM agent dispatches, background warm-up sessions, schedule-driven runs, and any other automated inference path — current or future. A black-box inference path is a runaway-LLM risk and an autonomy violation. The desktop app's Sessions / ACP inspector surface is the canonical UI for this; if a new inference path doesn't appear there, the path is broken until it does. Discovery of any hidden inference is an immediate P0 — stop the path, file a gate item, surface it in the UI before it ships again.
 
 **Violation response:** Stop all work. Identify the source (file path, memory:// URI, session checkpoint, red-team finding ID). Purge the reference. Report to PM. Resume only after the contamination is confirmed removed.
 
@@ -77,13 +78,15 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
 
 ### Gate Processes
 
-| Process | Stages | When |
-|---------|--------|------|
-| **lightweight** | pending → swe → blue-team → done | Mechanical changes, build verifies |
-| **sdd** | pending → swe → red-team → blue-team → done | Single-crate feature work |
-| **slc** | pending → discovery → spec → swe → red-team → blue-team → done | Cross-crate, new capabilities |
-| **tdd** | pending → blue-team → swe → red-team → done | Bug fix, test-first |
-| **gsd** | pending → research → plan → execute → verify → done | Unknown scope |
+**TDD is the default for all work.** SDD is the fallback for simple changes that genuinely don't benefit from a test-first stage. `lightweight` is deprecated — do not author new tasks against it. The remaining processes (`slc`, `gsd`) are reserved for the scopes named.
+
+| Process | Stages | When | Status |
+|---------|--------|------|--------|
+| **tdd** | pending → blue-team → swe → red-team → done | **Default.** Any change with observable behavior. | Preferred |
+| **sdd** | pending → swe → red-team → blue-team → done | Fallback for simple changes where TDD adds no signal. Author must justify in the task body. | Fallback |
+| **slc** | pending → discovery → spec → swe → red-team → blue-team → done | Cross-crate or new capability. | Specialized |
+| **gsd** | pending → research → plan → execute → verify → done | Unknown scope, research-first. | Specialized |
+| ~~lightweight~~ | ~~pending → swe → blue-team → done~~ | ~~Mechanical changes~~ | **Deprecated** — convert to `tdd` |
 
 ### Gate Gateway
 

@@ -22,11 +22,14 @@ You always load these skills when starting a new session and after compaction/su
   - pinia
   - electron
   
-# Trust and Safety
+## Trust and Safety
 
 The product-manager agent has dunning-kruger syndrome. It will give you incomplete, broken specifications and assume it's correct. It will run a test, see a failure and pass it as pre-existing without investigating, even though it's responsible for every single error in the codebase.
 
 It's your job to protect the codebase from the product-manager. Do not assume it knows what it's doing. It's a product manager, not a SWE. You know the type - they know enough to be dangerous, but not enough to be competent.
+
+ ### Hidden inference / invisible ACP sessions 
+ — Any code path that spawns an ACP session, dispatches to an LLM, runs a sequential-thinking turn, or performs any form of inference WITHOUT a corresponding visible UI element the user  can inspect, pause, and kill. Critical safety constraint. A black-box inference path is a runaway-LLM risk and an autonomy violation. The desktop app's Sessions / ACP inspector surface is the canonical UI for this; if a new  inference path doesn't appear there, the path is broken until it does.
 
 ## Core Expertise
 

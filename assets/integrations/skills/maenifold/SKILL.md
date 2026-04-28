@@ -23,6 +23,99 @@ This is the abstract pattern. What follows teaches the specific tools, conventio
 
 This skill requires the maenifold MCP server. See [README.md](./README.md) for binary install and MCP setup. If tools aren't responding, verify `which maenifold` resolves, check your client's MCP config, and restart the client. When the server is unavailable, you can still read this skill and [references/](./references/) to guide the user to https://github.com/msbrettorg/maenifold/releases/latest.
 
+## The Gateway Surface
+
+**Maenifold exposes a deliberately small MCP tool surface.** Every conceptual operation is invoked through the Gateway, not as its own top-level tool. The seven top-level MCP tools are:
+
+| Tool | Purpose |
+|------|---------|
+| **GatewayIndex** | Discover domains, commands, and exact JSON schemas |
+| **GatewayExecute** | Invoke one command in one domain with a parameters object |
+| **GatewayBatch** | Sequentially submit multiple commands |
+| **GatewayIntent** | Natural-language → candidate commands (when enabled) |
+| **DiscoverMcpTools** | List tools across all configured downstream MCP servers |
+| **ReadMcpResource** | Read MCP resource content by URI |
+| **GetHelp** | Load canonical per-tool help into context |
+
+Why this shape? A single-server MCP exposes domain-rich surfaces (memory, graph, thinking, workflow, gate, system) without bloating the client's tool list. Clients keep one connection, one set of seven tools, and the Gateway does deterministic dispatch behind it.
+
+**The mental shorthand used throughout this skill** — "use `WriteMemory` to create a note" — is the conceptual operation. **The actual MCP call is always:**
+
+```text
+GatewayExecute
+  domain: "maenifold.memory"
+  command: "WriteMemory"
+  parameters: { "title": "...", "content": "...[[Concept]]...", "folder": "..." }
+```
+
+The gateway domain (`maenifold.memory`) plus the command name (`WriteMemory`) **is** the canonical name of the operation. The two are interchangeable when you're reasoning about what to do. They differ only at invocation time.
+
+For exact parameter shapes, call `GatewayIndex` with `includeSchemas=true` and the target domain — the schema returned is the source of truth. Do not infer parameters from this skill; verify against the live schema.
+
+## Domains and Commands
+
+The Gateway exposes seven maenifold domains. (`maenifold.gate` is documented in the separate `gate` skill.)
+
+### maenifold.memory — knowledge files
+
+| Command | What it does |
+|---------|--------------|
+| `WriteMemory` | Create a knowledge file. `content` MUST contain at least one `[[WikiLink]]`. |
+| `ReadMemory` | Retrieve a file by `identifier` (URI or title). Returns checksum by default for safe edits. |
+| `EditMemory` | Modify a file. Operations: `append`, `prepend`, `find_replace`, `replace_section`. Pass last-read `checksum` for stale-edit protection. |
+| `DeleteMemory` | Delete a file. Requires `confirm=true`. |
+| `MoveMemory` | Rename or relocate a file; WikiLinks are preserved. |
+| `ListMemories` | List files or folders relative to the memory root. The folder structure is the ontology. |
+| `SearchMemories` | Hybrid / Semantic / FullText ranking with optional weight knobs (`semanticWeight`, `textWeight`, `rrfK`, `semanticMinScore`). |
+| `ExtractConceptsFromFile` | Return the WikiLinks in one file. |
+
+### maenifold.graph — co-occurrence routing graph
+
+| Command | What it does |
+|---------|--------------|
+| `BuildContext` | Traverse from a known concept anchor. `depth=1` for neighbors, higher to expand. `includeContent=true` returns previews. |
+| `FindSimilarConcepts` | Semantic discovery, including concepts that don't exist yet (the query text is embedded). Use BEFORE writing to find existing variants. |
+| `Visualize` | Mermaid or graph JSON output for a concept neighborhood. |
+| `Sync` | Rebuild graph from WikiLinks on disk. |
+| `AnalyzeConceptCorruption` | Diagnose a concept family for variants. Run before `RepairConcepts`. |
+| `RepairConcepts` | Replace variants with a canonical form. **Always** call with `dryRun=true` first. |
+
+### maenifold.thinking — persistent reasoning
+
+| Command | What it does |
+|---------|--------------|
+| `SequentialThinking` | Persistent thought sessions. To start, omit `sessionId` and pass `thoughtNumber=0` — the server returns the new `sessionId`. Reuse it across turns and days. Supports `isRevision`, `branchId`, `submachineSessionId`. `response` MUST contain `[[WikiLinks]]`. |
+| `AssumptionLedger` | Track assumptions tied to a workflow or thinking context. Actions: `append`, `update`, `read`. |
+
+### maenifold.workflow — orchestration
+
+| Command | What it does |
+|---------|--------------|
+| `Workflow` | Run a structured workflow with optional nested submachines. |
+| `Pipeline` | Create / advance / cancel a DAG of workflow nodes with edges (`success`, `always`, `conditional`). Validates the graph and returns ready nodes. |
+
+### maenifold.system — config, assets, ACP
+
+| Command | What it does |
+|---------|--------------|
+| `GetConfig` | View resolved configuration and paths. |
+| `MemoryStatus` | Corpus statistics and health. |
+| `RecentActivity` | Recently indexed files, optionally with content. Filters: `thinking`, `memory`, `assumptions`, `all`. |
+| `ListAssets` | List asset types or items: `workflow`, `role`, `color`, `perspective`. |
+| `Adopt` | Load a role / color / perspective to condition reasoning. |
+| `ListSessions` | List resumable ACP sessions across configured agents. |
+| `AcpExec` | Unified ACP agent invocation: `prompt`, `think`, or `workflow` mode. |
+| `ReadTextFile` | Read a UTF-8 text file (absolute or cwd-relative). |
+| `ReadMcpResource` | Read MCP resource content by URI. (Also a top-level convenience tool.) |
+| `EmbeddingModels` | Manage embedding models: `status`, `list`, `download`, `activate`, `delete`, `regenerate`. |
+| `UpdateAssets` | Refresh runtime assets from packaged assets. Defaults `dryRun=true`. |
+| `RunFullBenchmark` | Run search / sync / traversal benchmarks. |
+| `Schedule` | Scheduled command execution. Use `learn=true` for details. |
+
+### Help and discovery
+
+Use `GetHelp` with a tool name (e.g. `GatewayExecute`, `WriteMemory`) for canonical per-tool documentation. Use `GatewayIndex` with `includeSchemas=true` to inspect exact parameter shapes for any command. Most commands also accept `learn=true` to return their help text instead of executing.
+
 ## Operating Stance
 
 Your context resets between sessions. Treat the graph and `memory://` corpus as your real memory — internal model knowledge is untrusted, especially for anything that postdates training or concerns this repo's specifics. Before answering, search the graph. Before writing, search for what already exists. Before inventing a concept, look for a near-duplicate. The cost of a duplicate note is fragmentation of the routing index; the cost of a missing search is hallucination.
@@ -33,11 +126,11 @@ Your context will be auto-compacted as it approaches the limit. Do not stop work
 
 Sessions are ephemeral; the graph is not. Two mechanisms turn ephemeral compute into durable infrastructure:
 
-**`sequentialthinking` for reasoning.** Every thought with `[[WikiLinks]]` becomes a node. Start a session by passing `initialThoughts: 0` and no session ID — the tool returns one. Use that session ID across multiple turns and across days. Use revision and branching when you want to explore alternatives without losing the original line of thought.
+**`SequentialThinking` for reasoning.** Every thought with `[[WikiLinks]]` becomes a node. Start a session by passing `thoughtNumber=0` and no session ID — the tool returns one. Use that session ID across multiple turns and across days. Use `isRevision` and `branchId` when you want to explore alternatives without losing the original line of thought.
 
-**Session sharing with subagents.** You are the decision maker; subagents execute. When you spawn a subagent, pass it your `sequentialthinking` session ID so its thoughts feed the same graph. Embed `[[WikiLinks]]` in the Task prompt — the PreToolUse hook injects matching graph context automatically. The hook does retrieval; the graph grows through the thinking sessions themselves.
+**Session sharing with subagents.** You are the decision maker; subagents execute. When you spawn a subagent, pass it your thinking session ID so its thoughts feed the same graph. Embed `[[WikiLinks]]` in the dispatch prompt — the PreToolUse hook injects matching graph context automatically. The hook does retrieval; the graph grows through the thinking sessions themselves.
 
-For non-trivial tasks, use `workflow` with the `workflow-dispatch` workflow. It analyzes the task and routes to an appropriate methodology. If the user says "think about X," reach for `workflow-dispatch`.
+For non-trivial tasks, use `Workflow` with the `workflow-dispatch` workflow. It analyzes the task and routes to an appropriate methodology. If the user says "think about X," reach for `workflow-dispatch`.
 
 ## Knowledge Grounding
 
@@ -59,37 +152,37 @@ Rules that follow from this:
 **Lineage.** Any `memory://` note you create or modify must carry a `## Source` section. Web sources include full URL and access date. Repo sources include workspace-relative paths and, when practical, specific symbols/sections. Prefer first-party sources; avoid unsourced blogs. Distinguish direct extracts from your derived summary — never launder external text into the graph as if it were native knowledge.
 
 **External sources, in order of preference when the graph is insufficient:**
-- **Context7** for library/framework APIs: `mcp__plugin_context7_context7__resolve-library-id` then `query-docs`.
-- **Microsoft Docs**: `microsoft-docs:microsoft-docs` for concepts, `microsoft-docs:microsoft-code-reference` for APIs and samples.
+- **Context7** for library/framework APIs.
+- **Microsoft Docs** for Microsoft / Azure concepts and code samples.
 - Generic web search only when neither covers the topic.
 
 This grounding requirement applies to all work, code or otherwise.
 
 ## Graph Navigation
 
-Two complementary tools for concept exploration:
+Two complementary commands for concept exploration:
 
-- **`buildcontext`** traverses graph relationships from a known anchor. Use `depth=1` for direct neighbors, `depth=2+` to expand. `includeContent=true` returns previews so you skip a separate `readmemory` round-trip.
-- **`findsimilarconcepts`** finds concepts by semantic similarity, including ones that don't exist yet (it embeds the query text). Use it to discover naming variants *before* writing — this is your primary defense against fragmenting the graph with near-duplicates.
+- **`BuildContext`** traverses graph relationships from a known anchor. Use `depth=1` for direct neighbors, `depth=2+` to expand. `includeContent=true` returns previews so you skip a separate `ReadMemory` round-trip.
+- **`FindSimilarConcepts`** finds concepts by semantic similarity, including ones that don't exist yet (it embeds the query text). Use it to discover naming variants *before* writing — this is your primary defense against fragmenting the graph with near-duplicates.
 
 Two patterns worth memorizing:
 
-- **Chain pattern**: `findsimilarconcepts` → pick the best anchor → `buildcontext` → `searchmemories` for relevant files → `readmemory` on the highest-signal hits. E.g., when researching authentication, you might land on `[[JWT]]` as the anchor, traverse to `[[token-rotation]]` and `[[refresh-tokens]]`, then read the surfaced notes.
-- **HYDE pattern**: Draft a hypothetical answer with `[[WikiLinks]]` inline — `[[vector-embeddings]]`, `[[BM25]]`, `[[reciprocal-rank-fusion]]` — then feed those concepts into `buildcontext`/`findsimilarconcepts`/`searchmemories`. The hypothesis seeds retrieval; the corpus corrects you.
+- **Chain pattern**: `FindSimilarConcepts` → pick the best anchor → `BuildContext` → `SearchMemories` for relevant files → `ReadMemory` on the highest-signal hits. E.g., when researching authentication, you might land on `[[JWT]]` as the anchor, traverse to `[[token-rotation]]` and `[[refresh-tokens]]`, then read the surfaced notes.
+- **HYDE pattern**: Draft a hypothetical answer with `[[WikiLinks]]` inline — `[[vector-embeddings]]`, `[[BM25]]`, `[[reciprocal-rank-fusion]]` — then feed those concepts into `BuildContext` / `FindSimilarConcepts` / `SearchMemories`. The hypothesis seeds retrieval; the corpus corrects you.
 
 Reading every plausible file blindly is worse than navigating the graph intentionally.
 
 ## Writing Signal, Not Noise
 
-`writememory` is how the wiki compounds. Most notes you consider writing should not be written. Write a note only when it is a high-quality, wiki-style article that future agents will benefit from retrieving. The test: would another agent searching this domain in three months be glad this note exists?
+`WriteMemory` is how the wiki compounds. Most notes you consider writing should not be written. Write a note only when it is a high-quality, wiki-style article that future agents will benefit from retrieving. The test: would another agent searching this domain in three months be glad this note exists?
 
 Before writing, always:
 
-1. `searchmemories` and `findsimilarconcepts` to find an existing note to update instead.
-2. `listmemories` to find the right folder. **The folder structure is the ontology** — `azure/`, `finops/`, `tech/`, with sub-domains nested (`azure/billing/`, `tech/ml/`). Place notes where they will be discovered. Extend the structure only when a genuinely new domain emerges.
+1. `SearchMemories` and `FindSimilarConcepts` to find an existing note to update instead.
+2. `ListMemories` to find the right folder. **The folder structure is the ontology** — `azure/`, `finops/`, `tech/`, with sub-domains nested (`azure/billing/`, `tech/ml/`). Place notes where they will be discovered. Extend the structure only when a genuinely new domain emerges.
 3. Choose `[[WikiLinks]]` that route. A good note about a deadlock fix might link `[[deadlock]]`, `[[mutex]]`, `[[tokio-runtime]]`, `[[async-rust]]` — substantive concepts an agent in the same domain would search for.
 
-For thinking, `sequentialthinking` is your episodic record. Use it to capture reasoning, document decisions, branch through alternatives, and note what worked and what didn't. The graph absorbs both kinds of writing — articles and thoughts — and the routing improves either way.
+For thinking, `SequentialThinking` is your episodic record. Use it to capture reasoning, document decisions, branch through alternatives, and note what worked and what didn't. The graph absorbs both kinds of writing — articles and thoughts — and the routing improves either way.
 
 ## WikiLink Anti-Patterns
 
@@ -98,75 +191,91 @@ For thinking, `sequentialthinking` is your episodic record. Use it to capture re
 Real failure modes observed in the corpus:
 
 - **Prompt leakage**: `[[load-the-gate-skill-and-sync-the-gate-cache-in-users-brett-src-ma-collective-ma]]`, `[[sequential-thinking-required-the-blue-hat-opens-every-six-thinking-hats-session]]`. Sentences and instructions wrapped in brackets. Concepts are nouns or short noun phrases, not directives.
-- **God nodes**: `[[software-tool]]` (7,438 edges), `[[testing-tool]]` (6,820), `[[rust]]` (601 files). When a concept connects to everything, it routes to nothing — `buildcontext` returns noise. Prefer specifics: `[[cargo-workspace]]`, `[[clippy-lint]]`, `[[tokio-runtime]]`.
+- **God nodes**: `[[software-tool]]` (7,438 edges), `[[testing-tool]]` (6,820), `[[rust]]` (601 files). When a concept connects to everything, it routes to nothing — `BuildContext` returns noise. Prefer specifics: `[[cargo-workspace]]`, `[[clippy-lint]]`, `[[tokio-runtime]]`.
 - **Code symbols**: `[[AgentPool]]`, `[[PipelineComposer]]`, `[[WorkflowStepTimeline]]`. Implementation details, not domain concepts. Tag the *behavior* (`[[agent-pooling]]`, `[[workflow-orchestration]]`), not the struct name.
 - **Trivial tags**: `[[tool]]`, `[[memory]]` (531 files), `[[concept]]`, `[[file]]`, `[[the]]`. Too generic to be useful retrieval anchors.
 - **Cosmetic violations** (silently normalized — still avoid): underscores `[[my_concept]]`, slashes `[[foo/bar]]`, double hyphens, leading/trailing hyphens, `[single-bracket]`.
 
-Good concept conventions: double brackets, singular for the general concept (`[[agent]]`), plural only for the collection meaning (`[[tools]]`), primary noun not qualifier compound (`[[MCP]]` over `[[MCP-server]]`), `findsimilarconcepts` first to reuse what exists.
+Good concept conventions: double brackets, singular for the general concept (`[[agent]]`), plural only for the collection meaning (`[[tools]]`), primary noun not qualifier compound (`[[MCP]]` over `[[MCP-server]]`), `FindSimilarConcepts` first to reuse what exists.
 
 Example of a well-tagged sentence: `Fixed [[null-reference-exception]] in [[authentication]] flow by hardening [[JWT]] validation.`
 
-## Quick Reference
+## Invocation Cheat Sheet
 
-Per-tool docs are not duplicated here. Call `gethelp` with the PascalCase tool name (e.g., `WriteMemory`, `BuildContext`, `Workflow`) to load canonical help.
+Conceptual call, then the literal MCP request. Parameter spelling matters — when in doubt run `GatewayIndex` with `includeSchemas=true` for the target domain.
 
-### Memory
+**Search the corpus**
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **writememory** | Create knowledge files with graph integration | `title`, `content` (must contain `[[WikiLinks]]`), `folder`, `tags` |
-| **readmemory** | Retrieve files by URI or title | `identifier`, `includeChecksum` |
-| **searchmemories** | Hybrid/Semantic/FullText search | `query`, `mode`, `folder`, `tags` |
-| **editmemory** | Modify with checksum-based safety | `identifier`, `operation`, `content`, `checksum` |
-| **deletememory** | Remove with confirmation | `identifier`, `confirm=true` |
-| **movememory** | Relocate/rename, preserving WikiLinks | `source`, `destination` |
-| **listmemories** | Explore folder structure (the ontology) | `path` |
+```text
+GatewayExecute
+  domain="maenifold.memory"
+  command="SearchMemories"
+  parameters={"query": "azure savings plan", "mode": "Hybrid", "pageSize": 5}
+```
 
-### Graph
+**Find concept variants before writing**
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **buildcontext** | Traverse from a concept anchor | `conceptName`, `depth`, `maxEntities`, `includeContent` |
-| **findsimilarconcepts** | Semantic discovery, including non-existent concepts | `conceptName`, `maxResults` |
-| **visualize** | Mermaid diagram of a neighborhood | `conceptName`, `depth`, `maxNodes` |
-| **sync** | Rebuild graph from WikiLinks on disk | (none) |
-| **extractconceptsfromfile** | List WikiLinks in a file | `identifier` |
+```text
+GatewayExecute
+  domain="maenifold.graph"
+  command="FindSimilarConcepts"
+  parameters={"conceptName": "savings-plan", "maxResults": 10}
+```
 
-### Concept Repair
+**Traverse the graph from an anchor**
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **analyzeconceptcorruption** | Diagnose families/variants (e.g., `[[tool]]` vs `[[tools]]` vs `[[software-tool]]`) | `conceptFamily`, `maxResults` |
-| **repairconcepts** | Replace variants with a canonical form | `conceptsToReplace`, `canonicalConcept`, `dryRun=true` |
+```text
+GatewayExecute
+  domain="maenifold.graph"
+  command="BuildContext"
+  parameters={"conceptName": "JWT", "depth": 2, "includeContent": true}
+```
 
-Always run `analyzeconceptcorruption` first, and always use `dryRun=true` before applying.
+**Write a memory file**
 
-### Reasoning
+```text
+GatewayExecute
+  domain="maenifold.memory"
+  command="WriteMemory"
+  parameters={
+    "title": "Azure Savings Plan refresh policy",
+    "folder": "azure/billing",
+    "content": "Decision to use [[savings-plan]] over [[reservation]] for [[compute-fleet]]..."
+  }
+```
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **workflow** | Multi-step methodology orchestration | `workflowId`, `sessionId`, `response`, `status`, `conclusion` |
-| **sequentialthinking** | Persistent thought sessions; branching & revision | `response`, `thoughtNumber`, `totalThoughts`, `nextThoughtNeeded`, `sessionId` |
-| **assumptionledger** | Track and validate assumptions | `action`, `assumption`, `confidence`, `context` |
+**Start (or continue) a thinking session**
 
-`response` and `conclusion` MUST contain `[[WikiLinks]]` — that's how reasoning feeds the graph.
+```text
+# start: omit sessionId, pass thoughtNumber=0, get sessionId back
+GatewayExecute
+  domain="maenifold.thinking"
+  command="SequentialThinking"
+  parameters={
+    "thoughtNumber": 0,
+    "totalThoughts": 5,
+    "nextThoughtNeeded": true,
+    "response": "First thought touching [[concept-A]] and [[concept-B]]..."
+  }
 
-### Pipeline
+# continue: reuse sessionId, increment thoughtNumber
+GatewayExecute
+  domain="maenifold.thinking"
+  command="SequentialThinking"
+  parameters={
+    "sessionId": "<returned-id>",
+    "thoughtNumber": 1,
+    "nextThoughtNeeded": true,
+    "response": "Building on [[concept-A]] with [[concept-C]]..."
+  }
+```
 
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **pipeline** | Compose workflows into a validated DAG | `definition` (nodes + edges), `maxConcurrency` |
+**Inspect what's available**
 
-Each node references a `workflowId` and optional `acpClient` for agent dispatch. Edges define flow control (e.g. `success`). The tool validates the graph (no cycles, no duplicates, no dangling refs), creates a persistent session, and returns ready nodes for scheduling.
+```text
+GatewayIndex                                           # all domains
+GatewayIndex parameters={"domain": "maenifold.graph"}  # one domain's commands
+GatewayIndex parameters={"domain": "maenifold.memory", "includeSchemas": true}  # exact schemas
+GetHelp parameters={"toolName": "WriteMemory"}        # canonical per-tool help
+```
 
-### System
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| **adopt** | Load a role / color / perspective to condition reasoning | `type`, `identifier` |
-| **getconfig** | View resolved configuration and paths | (none) |
-| **gethelp** | Load canonical tool documentation | `toolName` |
-| **memorystatus** | Corpus statistics and health | (none) |
-| **recentactivity** | Recently indexed files, optionally with content | `filter`, `timespan`, `limit` |
-| **updateassets** | Refresh packaged assets after upgrade | `dryRun=true` |

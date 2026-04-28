@@ -279,3 +279,8 @@ GatewayIndex parameters={"domain": "maenifold.memory", "includeSchemas": true}  
 GetHelp parameters={"toolName": "WriteMemory"}        # canonical per-tool help
 ```
 
+---
+
+## Verification
+
+Verified against commit `aa7df44a` on `2026-04-28` via `make audit-parity` (see `docs/parity-uat.md`).

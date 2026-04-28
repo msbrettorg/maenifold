@@ -285,3 +285,9 @@ If gate internals change, keep this skill aligned with:
 - the maenifold `GatewayExecute` behavior
 
 Do not leave stale references to obsolete commands, old cache paths, or legacy pipeline schema fields.
+
+---
+
+## Verification
+
+Verified against commit `aa7df44a` on `2026-04-28` via `make audit-parity` (see `docs/parity-uat.md`).

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 // Lifted from formulahendry/acp-ui (MIT) — see LICENSE-acp-ui
 // https://github.com/formulahendry/acp-ui
-// Adaptation notes: 
+// Adaptation notes: Maenifold adaptation: replace scoped CSS with Tailwind design tokens and shadcn-vue Button.
 
+import { Button } from '@/components/ui/button';
 import type { PermissionRequest } from '../lib/types';
 
 defineProps<{
@@ -21,183 +22,53 @@ function handleSelect(optionId: string) {
 function handleCancel() {
   emit('cancel');
 }
+
+function optionVariant(kind: string): 'default' | 'destructive' | 'outline' {
+  if (kind.startsWith('allow')) return 'default';
+  if (kind.startsWith('reject')) return 'destructive';
+  return 'outline';
+}
 </script>
 
 <template>
-  <div class="permission-overlay">
-    <div class="permission-dialog">
-      <div class="dialog-header">
-        <span class="icon">🔐</span>
-        <h3>Permission Required</h3>
+  <div class="permission-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div class="permission-dialog w-[90%] max-w-md overflow-hidden rounded-lg border border-border-subtle bg-bg-surface shadow-xl">
+      <div class="dialog-header flex items-center gap-2 border-b border-border-subtle bg-surface px-4 py-4">
+        <span class="icon text-2xl">🔐</span>
+        <h3 class="m-0 text-lg font-semibold text-text-primary">Permission Required</h3>
       </div>
-      
-      <div class="dialog-content">
-        <div class="tool-info">
-          <span class="tool-title">{{ request.toolCall.title }}</span>
-          <span class="tool-kind">{{ request.toolCall.kind }}</span>
+
+      <div class="dialog-content p-4">
+        <div class="tool-info flex flex-col gap-1">
+          <span class="tool-title text-base font-semibold text-text-primary">{{ request.toolCall.title }}</span>
+          <span class="tool-kind text-sm capitalize text-text-secondary">{{ request.toolCall.kind }}</span>
         </div>
-        
-        <div v-if="request.toolCall.locations?.length" class="locations">
-          <div 
-            v-for="(loc, index) in request.toolCall.locations" 
+
+        <div v-if="request.toolCall.locations?.length" class="locations mt-3 rounded border border-border-subtle bg-surface-high px-3 py-2">
+          <div
+            v-for="(loc, index) in request.toolCall.locations"
             :key="index"
-            class="location"
+            class="location break-all py-0.5 font-mono text-xs text-text-primary"
           >
             📁 {{ loc.path }}
           </div>
         </div>
       </div>
-      
-      <div class="dialog-actions">
-        <button 
-          v-for="option in request.options" 
+
+      <div class="dialog-actions flex flex-wrap gap-2 border-t border-border-subtle bg-surface px-4 py-4">
+        <Button
+          v-for="option in request.options"
           :key="option.optionId"
-          :class="['option-btn', `option-${option.kind}`]"
+          :class="['option-btn min-w-28 flex-1', `option-${option.kind}`]"
+          :variant="optionVariant(option.kind)"
           @click="handleSelect(option.optionId)"
         >
           {{ option.name }}
-        </button>
-        <button class="cancel-btn" @click="handleCancel">
+        </Button>
+        <Button class="cancel-btn min-w-28 flex-1" variant="outline" @click="handleCancel">
           Cancel
-        </button>
+        </Button>
       </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.permission-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.permission-dialog {
-  background: var(--bg-dialog, #fff);
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  max-width: 480px;
-  width: 90%;
-  overflow: hidden;
-}
-
-.dialog-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 1rem;
-  background: var(--bg-header, #f5f5f5);
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
-}
-
-.dialog-header .icon {
-  font-size: 1.5rem;
-}
-
-.dialog-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-}
-
-.dialog-content {
-  padding: 1rem;
-}
-
-.tool-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.tool-title {
-  font-weight: 600;
-  font-size: 1rem;
-}
-
-.tool-kind {
-  font-size: 0.875rem;
-  color: var(--text-muted, #666);
-  text-transform: capitalize;
-}
-
-.locations {
-  margin-top: 0.75rem;
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-hover, #f5f5f5);
-  border-radius: 4px;
-  border: 1px solid var(--border-color, #e0e0e0);
-}
-
-.location {
-  font-family: monospace;
-  font-size: 0.8rem;
-  padding: 0.125rem 0;
-  color: var(--text-primary, #333);
-  word-break: break-all;
-}
-
-.dialog-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 1rem;
-  border-top: 1px solid var(--border-color, #e0e0e0);
-  background: var(--bg-footer, #fafafa);
-}
-
-.option-btn {
-  flex: 1;
-  min-width: 120px;
-  padding: 0.625rem 1rem;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.option-allow_once,
-.option-allow_always {
-  background: var(--bg-success, #28a745);
-  color: white;
-}
-
-.option-allow_once:hover,
-.option-allow_always:hover {
-  background: var(--bg-success-hover, #218838);
-}
-
-.option-reject_once,
-.option-reject_always {
-  background: var(--bg-danger, #dc3545);
-  color: white;
-}
-
-.option-reject_once:hover,
-.option-reject_always:hover {
-  background: var(--bg-danger-hover, #c82333);
-}
-
-.cancel-btn {
-  flex: 1;
-  min-width: 120px;
-  padding: 0.625rem 1rem;
-  border: 1px solid var(--border-color, #ccc);
-  border-radius: 4px;
-  background: var(--bg-button, #fff);
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.cancel-btn:hover {
-  background: var(--bg-hover, #f0f0f0);
-}
-</style>

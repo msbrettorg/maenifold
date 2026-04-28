@@ -1,6 +1,8 @@
 // Lifted from formulahendry/acp-ui (MIT) — see LICENSE-acp-ui
 // https://github.com/formulahendry/acp-ui
-// Adaptation notes: 
+// Adaptation notes: Maenifold adaptation: keep the verbatim dispatcher source as a compile-safe provenance artifact; the executable splice lives in useMessageHandler/useStreamHandler.
+
+export const ACP_UI_SESSION_DISPATCHER_SOURCE = String.raw`
   // Session update handler
   function handleSessionUpdate(notification: SessionNotification) {
     const update = notification.update;
@@ -125,3 +127,4 @@
         console.log('Unhandled session update:', update);
     }
   }
+`;

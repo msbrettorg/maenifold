@@ -1,7 +1,8 @@
 <script setup lang="ts">
 // Lifted from formulahendry/acp-ui (MIT) — see LICENSE-acp-ui
 // https://github.com/formulahendry/acp-ui
-// Adaptation notes: 
+// Adaptation notes: Maenifold adaptation: replace scoped CSS classes with Tailwind design tokens.
+// Maenifold adaptation: expose an inert details slot so wrappers can render Maenifold-only extensions without changing lifted control flow.
 
 import { computed } from 'vue';
 import type { ToolCallInfo } from '../lib/types';
@@ -11,6 +12,16 @@ const props = defineProps<{
 }>();
 
 const statusClass = computed(() => {
+  switch (props.toolCall.status) {
+    case 'pending': return 'border-l-warning bg-warning/10';
+    case 'in_progress': return 'border-l-brand bg-brand/10';
+    case 'completed': return 'border-l-success bg-success/10';
+    case 'failed': return 'border-l-danger bg-danger/10';
+    default: return 'border-l-border-subtle bg-surface-high';
+  }
+});
+
+const statusClassName = computed(() => {
   switch (props.toolCall.status) {
     case 'pending': return 'status-pending';
     case 'in_progress': return 'status-running';
@@ -42,83 +53,25 @@ const kindIcon = computed(() => {
 </script>
 
 <template>
-  <div class="tool-call-card" :class="statusClass">
-    <div class="tool-header">
-      <span class="kind-icon">{{ kindIcon }}</span>
-      <span class="tool-title">{{ toolCall.title }}</span>
-      <span class="status-icon">{{ statusIcon }}</span>
+  <div
+    :class="['tool-call-card my-2 rounded-md border border-border-subtle border-l-4 p-3 text-sm', statusClass, statusClassName]"
+  >
+    <div class="tool-header flex items-center gap-2">
+      <span class="kind-icon text-base">{{ kindIcon }}</span>
+      <span class="tool-title flex-1 font-medium text-text-primary">{{ toolCall.title }}</span>
+      <span class="status-icon text-sm">{{ statusIcon }}</span>
     </div>
-    
-    <div v-if="toolCall.locations?.length" class="tool-locations">
-      <div 
-        v-for="(loc, index) in toolCall.locations" 
+
+    <div v-if="toolCall.locations?.length" class="tool-locations mt-2 flex flex-col gap-1 pl-6">
+      <div
+        v-for="(loc, index) in toolCall.locations"
         :key="index"
-        class="location"
+        class="location break-all font-mono text-xs text-text-secondary"
       >
         📁 {{ loc.path }}
       </div>
     </div>
+
+    <slot name="details" :tool-call="toolCall" />
   </div>
 </template>
-
-<style scoped>
-.tool-call-card {
-  padding: 0.75rem;
-  border-radius: 6px;
-  margin: 0.5rem 0;
-  border-left: 3px solid var(--border-color, #ccc);
-  background: var(--bg-tool, #f9f9f9);
-}
-
-.status-pending {
-  border-left-color: #ffc107;
-  background: #fffbf0;
-}
-
-.status-running {
-  border-left-color: #17a2b8;
-  background: #f0f9ff;
-}
-
-.status-completed {
-  border-left-color: #28a745;
-  background: #f0fff4;
-}
-
-.status-failed {
-  border-left-color: #dc3545;
-  background: #fff5f5;
-}
-
-.tool-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.kind-icon {
-  font-size: 1rem;
-}
-
-.tool-title {
-  flex: 1;
-  font-weight: 500;
-  font-size: 0.9rem;
-}
-
-.status-icon {
-  font-size: 0.875rem;
-}
-
-.tool-locations {
-  margin-top: 0.5rem;
-  padding-left: 1.5rem;
-}
-
-.location {
-  font-family: monospace;
-  font-size: 0.8rem;
-  color: var(--text-muted, #666);
-  padding: 0.125rem 0;
-}
-</style>

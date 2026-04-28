@@ -24,6 +24,7 @@ pub mod util;
 pub use util::json;
 pub use util::paths;
 pub mod registry;
+pub(crate) mod registry_gateway;
 // T-12.2: RTM FR-6 / FR-2 - expose extracted repair/analysis module.
 pub mod repair;
 pub mod schedule;

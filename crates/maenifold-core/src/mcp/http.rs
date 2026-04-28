@@ -5,8 +5,8 @@ use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
+use axum::Router;
 use axum::routing::get;
-use axum::{Router, middleware};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
@@ -17,17 +17,8 @@ pub(super) type MaenifoldHttpService = StreamableHttpService<MaenifoldHandler, N
 
 pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
     let relay_state = state.clone();
-    let mcp_routes =
-        Router::new()
-            .nest_service("/mcp", service)
-            .route_layer(middleware::from_fn_with_state(
-                state.clone(),
-                crate::api::auth::require_bearer_token,
-            ));
-
     Router::new()
-        .merge(crate::api::oauth::routes(state.clone()))
-        .merge(mcp_routes)
+        .nest_service("/mcp", service)
         .merge(api_routes(state.clone()))
         .merge(endophasia_routes(state))
         .route(
@@ -113,7 +104,6 @@ impl super::MaenifoldMcpServer {
     ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
         let gateway_startup = build_gateway(&config).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
             GatewayStartup::Disabled => (None, None, None),
@@ -168,6 +158,4 @@ impl super::MaenifoldMcpServer {
 #[cfg(test)]
 mod tests {
     include!("http_tests.rs");
-    include!("http_oauth_tests.rs");
-    include!("http_oauth_helpers.rs");
 }

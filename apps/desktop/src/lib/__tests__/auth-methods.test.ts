@@ -26,8 +26,8 @@ describe('auth method normalization', () => {
   it('rejects unsupported auth method variants explicitly', () => {
     expect(
       toSelectableAuthMethod({
-        kind: 'oauth',
-        displayName: 'OAuth',
+        kind: 'unknown-variant',
+        displayName: 'Unknown Variant',
       })
     ).toBeNull();
   });

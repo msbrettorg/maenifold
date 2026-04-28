@@ -199,10 +199,6 @@ function registerIpcHandlers(): void {
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
   ipcMain.handle('app:get-version', () => app.getVersion());
-  ipcMain.handle('get-auth-token', async () => {
-    const tokenPath = join(maenifoldRoot(), 'auth', 'localhost.token');
-    return (await readFile(tokenPath, 'utf8')).trim();
-  });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};
     for (const name of names) {

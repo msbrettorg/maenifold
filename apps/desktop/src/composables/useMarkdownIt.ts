@@ -3,6 +3,7 @@ import type { StateInline } from 'markdown-it/index.js';
 import { fromHighlighter } from '@shikijs/markdown-it';
 import { createJavaScriptRegexEngine } from '@shikijs/engine-javascript';
 import { bundledLanguages, createHighlighter } from 'shiki';
+import type { LanguageInput } from 'shiki';
 import markdownItFootnote from 'markdown-it-footnote';
 import markdownItTaskLists from 'markdown-it-task-lists';
 
@@ -78,6 +79,7 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
             light: 'github-light',
             dark: 'github-dark',
           },
+          fallbackLanguage: 'text' as unknown as LanguageInput,
         }),
       );
 

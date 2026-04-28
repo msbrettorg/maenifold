@@ -112,6 +112,29 @@ describe('MarkdownView', () => {
     wrapper.unmount();
   });
 
+  it('falls back to plain text for unknown fenced-code language without collapsing the document', async () => {
+    const wrapper = await mountConsumer('chat', [
+      'Paragraph before.',
+      '',
+      '```not-a-real-lang',
+      'const answer = 42;',
+      '```',
+      '',
+      'Paragraph after.',
+    ].join('\n'));
+
+    const markdown = wrapper.findComponent(MarkdownView);
+    const paragraphs = markdown.findAll('p');
+
+    expect(paragraphs.map((paragraph) => paragraph.text())).toEqual([
+      'Paragraph before.',
+      'Paragraph after.',
+    ]);
+    expect(markdown.find('pre code').exists()).toBe(true);
+    expect(markdown.find('pre code').text()).toContain('const answer = 42;');
+    wrapper.unmount();
+  });
+
   it('supports task lists, footnotes, GFM tables, and autolinks', async () => {
     const wrapper = await mountConsumer('chat', [
       '- [ ] open task',

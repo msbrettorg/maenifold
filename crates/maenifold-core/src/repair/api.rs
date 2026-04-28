@@ -15,6 +15,14 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
         .get("learn")
         .and_then(Value::as_bool)
         .unwrap_or(false);
+    if learn {
+        let help = load_help_doc(&context.config.assets_path, "RepairConcepts")
+            .unwrap_or_else(|| "ERROR: Help file not found for RepairConcepts".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
     let create_wikilinks = payload
         .get("createWikiLinks")
         .and_then(Value::as_bool)
@@ -38,14 +46,6 @@ pub fn repair_concepts(context: &ToolContext, payload: &Value) -> Result<String>
         .ok_or(MaenifoldError::MissingProperty("canonicalConcept"))?
         .trim()
         .to_string();
-    if learn {
-        let help = load_help_doc(&context.config.assets_path, "RepairConcepts")
-            .unwrap_or_else(|| "ERROR: Help file not found for RepairConcepts".to_string());
-        return Ok(match context.output_format {
-            OutputFormat::Json => success(help),
-            OutputFormat::Markdown => help,
-        });
-    }
     if canonical_concept.is_empty() {
         return Err(MaenifoldError::InvalidArgument(
             "canonicalConcept cannot be empty".to_string(),

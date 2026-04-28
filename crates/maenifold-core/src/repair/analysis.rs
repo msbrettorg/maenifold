@@ -18,6 +18,12 @@ static WIKILINK_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
 
 // T-3.1: RTM FR-6
 pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+        let help = load_help_doc(&context.config.assets_path, "ExtractConceptsFromFile")
+            .unwrap_or_else(|| "ERROR: Help file not found for ExtractConceptsFromFile".to_string());
+        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+    }
+
     let identifier = payload
         .get("identifier")
         .and_then(Value::as_str)
@@ -75,11 +81,6 @@ pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Res
         .get("learn")
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let concept_family = payload
-        .get("conceptFamily")
-        .and_then(Value::as_str)
-        .ok_or(MaenifoldError::MissingProperty("conceptFamily"))?
-        .trim();
     if learn {
         let help = load_help_doc(&context.config.assets_path, "AnalyzeConceptCorruption")
             .unwrap_or_else(|| {
@@ -90,6 +91,11 @@ pub fn analyze_concept_corruption(context: &ToolContext, payload: &Value) -> Res
             OutputFormat::Markdown => help,
         });
     }
+    let concept_family = payload
+        .get("conceptFamily")
+        .and_then(Value::as_str)
+        .ok_or(MaenifoldError::MissingProperty("conceptFamily"))?
+        .trim();
     if concept_family.is_empty() {
         return Err(MaenifoldError::InvalidArgument(
             "conceptFamily cannot be empty".to_string(),

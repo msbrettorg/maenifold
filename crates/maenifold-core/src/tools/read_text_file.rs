@@ -1,9 +1,23 @@
-use super::context::{ToolContext, render, required_string};
+use super::context::{ToolContext, load_help_doc, render, required_string};
 use crate::api::routes_data::resolve_requested_file_path;
 use crate::error::{MaenifoldError, Result};
+use crate::util::json::{OutputFormat, success};
 use serde_json::{Value, json};
 
 pub fn read_text_file(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let help = load_help_doc(&context.config.assets_path, "ReadTextFile")
+            .unwrap_or_else(|| "ERROR: Help file not found for ReadTextFile".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let path = required_string(payload, "path")?;
     if path.trim().is_empty() {
         return Err(MaenifoldError::InvalidArgument(

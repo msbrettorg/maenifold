@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Loader2, Sparkles } from 'lucide-vue-next';
+import { Loader2, PanelRightClose, PanelRightOpen, Sparkles } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ const props = withDefaults(defineProps<{
   rail: false,
   openInMemory: false,
 });
+const collapsed = defineModel<boolean>('collapsed', { default: false });
 const {
   relatedConcepts,
   relatedConceptsSource,
@@ -39,14 +40,30 @@ function openRelatedConcept(conceptName: string): void {
       : 'flex min-h-0 h-64 shrink-0 flex-col border-t border-border-subtle bg-bg-sidebar'"
     aria-label="Related concepts"
   >
-    <div class="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
-      <Sparkles class="size-4 text-text-secondary" aria-hidden="true" />
-      <p class="text-sm font-semibold text-text-primary">Related concepts</p>
+    <div
+      :class="collapsed
+        ? 'flex items-center justify-center border-b border-border-subtle px-1 py-2'
+        : 'flex items-center justify-between gap-2 border-b border-border-subtle px-3 py-2'"
+    >
+      <div v-if="!collapsed" class="flex min-w-0 items-center gap-2">
+        <Sparkles class="size-4 text-text-secondary" aria-hidden="true" />
+        <p class="text-sm font-semibold text-text-primary">Related concepts</p>
+      </div>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        :title="collapsed ? 'Expand related concepts' : 'Collapse related concepts'"
+        :aria-label="collapsed ? 'Expand related concepts' : 'Collapse related concepts'"
+        @click="collapsed = !collapsed"
+      >
+        <PanelRightOpen v-if="collapsed" class="size-4" />
+        <PanelRightClose v-else class="size-4" />
+      </Button>
     </div>
-    <div class="border-b border-border-subtle px-3 py-2 text-xs text-text-tertiary">
+    <div v-if="!collapsed" class="border-b border-border-subtle px-3 py-2 text-xs text-text-tertiary">
       {{ relatedConceptsSource ? `Seed: ${relatedConceptsSource}` : 'Open a note to load nearby concepts.' }}
     </div>
-    <ScrollArea class="min-h-0 flex-1 px-2 py-2">
+    <ScrollArea v-if="!collapsed" class="min-h-0 flex-1 px-2 py-2">
       <div class="grid gap-2">
         <Alert v-if="relatedConceptsError" variant="destructive" class="border-border-subtle bg-bg-surface">
           <AlertTitle>Could not load related concepts</AlertTitle>
@@ -82,11 +99,15 @@ function openRelatedConcept(conceptName: string): void {
         </p>
       </div>
     </ScrollArea>
-    <Alert v-if="conceptContextError" variant="destructive" class="m-2 border-border-subtle bg-bg-surface">
+    <Alert
+      v-if="!collapsed && conceptContextError"
+      variant="destructive"
+      class="m-2 border-border-subtle bg-bg-surface"
+    >
       <AlertTitle>Concept navigation failed</AlertTitle>
       <AlertDescription>{{ conceptContextError }}</AlertDescription>
     </Alert>
-    <div v-else-if="conceptContextLoading" class="px-3 pb-3 text-xs text-text-secondary">
+    <div v-else-if="!collapsed && conceptContextLoading" class="px-3 pb-3 text-xs text-text-secondary">
       Opening concept context…
     </div>
   </aside>

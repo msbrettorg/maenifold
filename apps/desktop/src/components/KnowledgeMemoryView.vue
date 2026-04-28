@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -12,9 +12,19 @@ import KnowledgeTabStrip from './KnowledgeTabStrip.vue';
 import KnowledgeVaultBrowser from './KnowledgeVaultBrowser.vue';
 
 const store = useKnowledgeStore();
+const relatedRailCollapsed = ref(false);
+const relatedRailPanel = ref<{ collapse: () => void; expand: () => void } | null>(null);
 
 onMounted(() => {
   void store.loadRootFolders();
+});
+
+watch(relatedRailCollapsed, (collapsed) => {
+  if (collapsed) {
+    relatedRailPanel.value?.collapse();
+    return;
+  }
+  relatedRailPanel.value?.expand();
 });
 </script>
 
@@ -58,15 +68,22 @@ onMounted(() => {
       />
 
       <ResizablePanel
+        ref="relatedRailPanel"
         id="knowledge-memory-related"
         :default-size="26"
         :min-size="15"
         :max-size="35"
-        :collapsed-size="0"
+        :collapsed-size="4"
         collapsible
         :order="3"
+        @collapse="relatedRailCollapsed = true"
+        @expand="relatedRailCollapsed = false"
       >
-        <KnowledgeRelatedConcepts rail open-in-memory />
+        <KnowledgeRelatedConcepts
+          v-model:collapsed="relatedRailCollapsed"
+          rail
+          open-in-memory
+        />
       </ResizablePanel>
     </ResizablePanelGroup>
   </section>

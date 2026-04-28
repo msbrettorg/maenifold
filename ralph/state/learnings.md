@@ -1152,3 +1152,32 @@ Here's the execution plan:
 - **Lesson: Always run `gate_Pass` to advance the task to the target stage BEFORE dispatching the stage agent. The sequence is: gate_Pass(pending→swe) → dispatch SWE. Never: dispatch SWE → gate_Pass(pending→swe).**
 - The correction was applied: T-238.42 received a retroactive pending PASS with process correction notes referencing the dispatched agent.
 
+
+## 2026-04-28 — Sprint 242 iteration 2 (RALPH)
+
+### Verify runtime binary matches current source SHA before declaring tasks stale
+- Multiple "stale" verdicts (T-242.16/17/19) were issued against the PACKAGED binary at `apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/Resources/maenifold` (built from `b3d90cbd2`). A fresh `cargo build --release -p maenifold-cli` from current dev HEAD `a4a11d269` REPRODUCED the bugs — they were real.
+- Root cause: dev was `git reset` from `6ac10230c` to `aa7df44a2`, discarding ~28 commits of gate-passed work. The packaged binary predated the reset.
+- **Lesson:** Before declaring a task stale based on runtime behavior, run `cargo build --release` from current source and re-test against THAT binary. Compare its size/hash with the packaged binary if they differ. Don't trust the packaged binary as ground truth.
+
+### Recover discarded gate-passed work via reflog before iterating
+- After detecting a destructive `git reset`, inspect the reflog (`git reflog dev --date=iso`) to find the lost dev tip. Save a recovery branch (`git branch recover/dev-pre-quiesce <sha>`) before any other operation.
+- The constitution forbids agents from touching git, but the PM owns the working tree and SHOULD do recovery operations as part of normal lifecycle work. Recovery branches let you cherry-pick selectively.
+
+### Use git worktrees for parallel SWE dispatch — symlink node_modules
+- Created 5 worktrees (T-241.1, T-242.11, T-242.14, T-242.15, T-242.18, T-242.28) for parallel SWE work. Each worktree has its own `target/` so cargo builds don't contend.
+- For frontend tasks, symlink the parent's `node_modules`: `ln -s "$(pwd)/apps/desktop/node_modules" worktrees/T-XXX.Y/apps/desktop/node_modules`. Zero conflicts across 4 parallel frontend SWEs.
+- Cleanup: `git worktree remove worktrees/T-XXX.Y && git branch -d task/T-XXX.Y` after merge.
+
+### gate_Pass → todo/done file moves happen in MAIN tree, not worktree
+- When a SWE commits in their worktree, the worktree's branch holds the OLD version of the task file (from worktree creation time). When you `gate_Pass` the terminal stage in the main tree, the markdown file moves todo/ → done/ in the MAIN tree.
+- On `git merge`, this can produce a conflict if the main tree's gate notes accumulated during the iteration (which they do on every gate_Append/gate_Pass).
+- **Solution:** Commit the gate-note changes in the main tree FIRST (separate commit). Then merge the worktree branch. If conflict, prefer main's version (`git checkout --ours todo/T-XXX.Y.md`) since main has the latest gate notes.
+
+### Onboarding wizard P0 fix — 3 remediation rounds for race condition
+- T-241.1 took 3 SWE rounds to fully close. Round 1 fixed the z-index but introduced a flicker. Round 2 added tri-state initial value but `checkFirstRunWithConfig` still synchronously set `isFirstRun.value = true` before awaiting config probe. Round 3 finally rewrote the helper to avoid mutating until both local + config evidence resolved.
+- **Lesson:** When the bug is a race condition, the fix MUST include a deferred-promise test that asserts the intermediate state is correct, not just the final state. Round 3 added `expect(isFirstRun.value).toBe(null)` while a hand-built unresolved promise was pending — only that test PROVED the race was closed.
+
+### CRITICAL: agents NEVER touch git, but some tasks legitimately need cherry-pick
+- T-242.28 recovery requires cherry-picking commits from the recovery branch into a fresh task branch. The PM authorized the SWE to use `git cherry-pick` ONE specific command (no other git ops). This is the explicit exception model: any agent git use must be authorized in the dispatch prompt with a specific command and reason.
+- Default remains: agents NEVER touch git. PM owns all git operations.

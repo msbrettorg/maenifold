@@ -5,6 +5,7 @@ import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { registerAcpFileSystemHandlers } from './acp-file-system.js';
+import { registerConfigHandlers } from './config-file.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 protocol.registerSchemesAsPrivileged([
@@ -202,38 +203,6 @@ function registerIpcHandlers(): void {
     const tokenPath = join(maenifoldRoot(), 'auth', 'localhost.token');
     return (await readFile(tokenPath, 'utf8')).trim();
   });
-  ipcMain.handle('read-wallpaper-image', async (_event, filePath: string) => {
-    const requestedPath = resolve(filePath);
-    const wallpaperDir = resolve(maenifoldRoot(), 'memory', '.cache', 'wallpaper');
-
-    let realWallpaperDir: string;
-    try {
-      realWallpaperDir = await realpath(wallpaperDir);
-    } catch {
-      throw new Error('Wallpaper cache directory does not exist');
-    }
-
-    let realRequestedPath: string;
-    try {
-      realRequestedPath = await realpath(requestedPath);
-    } catch {
-      throw new Error('Wallpaper image not found');
-    }
-
-    if (!realRequestedPath.startsWith(`${realWallpaperDir}${sep}`)) {
-      throw new Error('Path outside wallpaper cache');
-    }
-    if (extname(realRequestedPath).toLowerCase() !== '.png') {
-      throw new Error('Only PNG wallpaper images allowed');
-    }
-    const stat = await lstat(requestedPath);
-    if (stat.isSymbolicLink()) {
-      throw new Error('Symlink wallpaper images are not allowed');
-    }
-
-    const data = await readFile(realRequestedPath);
-    return `data:image/png;base64,${data.toString('base64')}`;
-  });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};
     for (const name of names) {
@@ -242,6 +211,7 @@ function registerIpcHandlers(): void {
     return result;
   });
   registerAcpFileSystemHandlers();
+  registerConfigHandlers();
   registerVec0Handlers();
   registerVoiceHandlers();
 }

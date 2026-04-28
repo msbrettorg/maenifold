@@ -27,9 +27,6 @@ pub struct ToolDescriptor {
     pub invoke: ToolFn,
 }
 
-#[path = "registry_config_descriptors.rs"]
-mod registry_config_descriptors;
-
 pub struct ToolRegistry {
     descriptors: BTreeMap<String, ToolDescriptor>,
 }
@@ -84,9 +81,7 @@ impl ToolRegistry {
 }
 
 fn all_descriptors() -> impl Iterator<Item = &'static ToolDescriptor> {
-    DESCRIPTORS
-        .iter()
-        .chain(registry_config_descriptors::DESCRIPTORS.iter())
+    DESCRIPTORS.iter()
 }
 
 const DESCRIPTORS: &[ToolDescriptor] = &[

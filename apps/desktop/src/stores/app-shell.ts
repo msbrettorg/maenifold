@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 
-export type AppShellTab = 'home' | 'agents' | 'pipelines' | 'gate' | 'knowledge' | 'workflows' | 'settings';
+export type AppShellTab = 'home' | 'agents' | 'pipelines' | 'gate' | 'knowledge' | 'workflows' | 'schedules' | 'settings';
 
 export const useAppShellStore = defineStore('appShell', () => {
   const activeTab = ref<AppShellTab>('home');

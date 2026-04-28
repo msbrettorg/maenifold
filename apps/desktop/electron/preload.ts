@@ -23,10 +23,18 @@ const electronAPI = {
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
   writeTextFile: (params: { path: string; content: string }) =>
     ipcRenderer.invoke('acp:write-text-file', params) as Promise<Record<string, never>>,
-  readWallpaperImage: (filePath: string) =>
-    ipcRenderer.invoke('read-wallpaper-image', filePath) as Promise<string>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
+  configRead: () =>
+    ipcRenderer.invoke('config:read') as Promise<{ path: string; content: string; exists: boolean }>,
+  configWrite: (content: string) =>
+    ipcRenderer.invoke('config:write', content) as Promise<{ path: string }>,
+  configPath: () => ipcRenderer.invoke('config:path') as Promise<string>,
+  onConfigChanged: (handler: () => void) => {
+    const listener = () => handler();
+    ipcRenderer.on('config:changed', listener);
+    return () => ipcRenderer.removeListener('config:changed', listener);
+  },
   vec0Status: () => ipcRenderer.invoke('vec0:status') as Promise<Vec0Status>,
   vec0Download: () => ipcRenderer.invoke('vec0:download') as Promise<Vec0Status>,
   voiceCheck: () => ipcRenderer.invoke('voice:check') as Promise<{

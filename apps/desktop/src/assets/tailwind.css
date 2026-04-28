@@ -738,3 +738,10 @@ html.font-comfortable {
     transform: rotate(360deg);
   }
 }
+
+/* json-editor-vue (svelte-jsoneditor) host needs to fill its container.
+ * Reference: https://github.com/cloydlau/json-editor-vue#dark-theme
+ *           https://github.com/josdejong/svelte-jsoneditor#properties */
+.jse-theme-dark :where(.jse-main) {
+  height: 100%;
+}

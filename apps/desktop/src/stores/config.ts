@@ -1,37 +1,34 @@
-// Agent configuration store with daemon-backed hot-reload support
+// Maenifold config store. Reads/writes ~/maenifold/maenifold.json directly via Electron IPC.
+//
+// Constitutionally `maenifold.json` is desktop-owned (preferences) — going through MCP would
+// be circular: the daemon's transport mutating the daemon's config. The Settings tab is the
+// sole owner; the daemon picks up changes via its file watcher (api/config_watch.rs).
+//
+// Reference: https://pinia.vuejs.org/core-concepts/  (Setup Stores)
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
-import { useMcpClient } from '../composables/useMcpClient';
-import { unwrapToolData } from '../composables/pipeline-mcp-transport';
 import type { AgentConfig, AgentsConfig } from '../lib/types';
 
-const CONFIG_RESOURCE_URIS = [
-  'config://settings',
-  'config://agents',
-  'config://mcp-servers',
-] as const;
-
-type ConfigResourceUri = typeof CONFIG_RESOURCE_URIS[number];
-
-interface ReloadConfigResponse {
-  config: AgentsConfig;
-  reloaded?: unknown[];
-  requires_restart?: unknown[];
+interface ConfigFileApi {
+  read(): Promise<{ path: string; content: string; exists: boolean }>;
+  write(content: string): Promise<{ path: string }>;
+  path(): Promise<string>;
+  onChanged(handler: () => void): () => void;
 }
 
-interface GetConfigPaths {
-  configPath?: unknown;
-  maenifoldRoot?: unknown;
-}
-
-interface GetConfigResponse {
-  agents?: unknown;
-  mcpServers?: unknown;
-  paths?: GetConfigPaths;
-  configPath?: unknown;
-  path?: unknown;
-  settings?: unknown;
+function getConfigApi(): ConfigFileApi | null {
+  if (typeof window === 'undefined' || !window.electronAPI) return null;
+  const api = window.electronAPI;
+  if (!api.configRead || !api.configWrite || !api.configPath || !api.onConfigChanged) {
+    return null;
+  }
+  return {
+    read: () => api.configRead!(),
+    write: (content) => api.configWrite!(content),
+    path: () => api.configPath!(),
+    onChanged: (handler) => api.onConfigChanged!(handler),
+  };
 }
 
 function getErrorMessage(error: unknown): string {
@@ -42,229 +39,140 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isConfigResourceUri(uri: string): uri is ConfigResourceUri {
-  return CONFIG_RESOURCE_URIS.includes(uri as ConfigResourceUri);
-}
-
-function normalizeAgentCommand(command: unknown, args: unknown): string {
-  const binary = typeof command === 'string' ? command : '';
-  if (!Array.isArray(args)) {
-    return binary;
+function parseAgentsConfig(content: string): AgentsConfig {
+  if (content.trim().length === 0) return { mcpServers: [], agents: {} };
+  const parsed: unknown = JSON.parse(content);
+  if (!isRecord(parsed)) {
+    throw new Error('maenifold.json root must be a JSON object');
   }
-
-  const parts = args.filter((arg): arg is string => typeof arg === 'string' && arg.length > 0);
-  return parts.length > 0 ? [binary, ...parts].filter(Boolean).join(' ') : binary;
+  const config: AgentsConfig = {
+    mcpServers: Array.isArray(parsed.mcpServers)
+      ? (parsed.mcpServers as AgentsConfig['mcpServers'])
+      : [],
+    agents: normalizeAgents(parsed.agents),
+  };
+  if (parsed.settings !== undefined) {
+    config.settings = parsed.settings as AgentsConfig['settings'];
+  }
+  return config;
 }
 
-function normalizeAgentEntry(entry: Record<string, unknown>): AgentConfig {
-  const args = entry.args;
-  const agentFields = Object.fromEntries(
-    Object.entries(entry).filter(([key]) => key !== 'name' && key !== 'args'),
-  );
-  return {
-    ...agentFields,
-    command: normalizeAgentCommand(agentFields.command, args),
-  } as AgentConfig;
-}
-
-function normalizeAgentsConfig(agents: unknown): Record<string, AgentConfig> {
+function normalizeAgents(agents: unknown): Record<string, AgentConfig> {
   if (Array.isArray(agents)) {
-    return agents.reduce<Record<string, AgentConfig>>((normalized, entry) => {
-      if (!isRecord(entry) || typeof entry.name !== 'string' || entry.name.length === 0) {
-        return normalized;
-      }
-
-      normalized[entry.name] = normalizeAgentEntry(entry);
-      return normalized;
-    }, {});
+    const out: Record<string, AgentConfig> = {};
+    for (const entry of agents) {
+      if (!isRecord(entry) || typeof entry.name !== 'string' || entry.name.length === 0) continue;
+      out[entry.name] = entryToAgent(entry);
+    }
+    return out;
   }
-
   if (isRecord(agents)) {
-    return Object.entries(agents).reduce<Record<string, AgentConfig>>((normalized, [name, entry]) => {
-      if (!isRecord(entry)) {
-        return normalized;
-      }
-
-      normalized[name] = normalizeAgentEntry({ name, ...entry });
-      return normalized;
-    }, {});
+    const out: Record<string, AgentConfig> = {};
+    for (const [name, entry] of Object.entries(agents)) {
+      if (!isRecord(entry)) continue;
+      out[name] = entryToAgent({ name, ...entry });
+    }
+    return out;
   }
-
   return {};
 }
 
-function resolveConfigPath(response: GetConfigResponse): string {
-  if (typeof response.configPath === 'string') {
-    return response.configPath;
-  }
-
-  if (typeof response.path === 'string') {
-    return response.path;
-  }
-
-  if (typeof response.paths?.configPath === 'string') {
-    return response.paths.configPath;
-  }
-
-  if (typeof response.paths?.maenifoldRoot === 'string') {
-    const root = response.paths.maenifoldRoot;
-    return root.endsWith('/') || root.endsWith('\\') ? `${root}maenifold.json` : `${root}/maenifold.json`;
-  }
-
-  return '';
+function entryToAgent(entry: Record<string, unknown>): AgentConfig {
+  const argsArray = Array.isArray(entry.args)
+    ? entry.args.filter((arg): arg is string => typeof arg === 'string' && arg.length > 0)
+    : [];
+  const command = typeof entry.command === 'string' ? entry.command : '';
+  const fullCommand = argsArray.length > 0 ? [command, ...argsArray].filter(Boolean).join(' ') : command;
+  const rest = Object.fromEntries(
+    Object.entries(entry).filter(([key]) => key !== 'name' && key !== 'args' && key !== 'command'),
+  );
+  return { ...rest, command: fullCommand } as AgentConfig;
 }
 
-function normalizeGetConfigResponse(result: unknown): { config: AgentsConfig; configPath: string } {
-  const data = unwrapToolData<GetConfigResponse>(result);
-  if (!isRecord(data)) {
-    throw new Error('GetConfig returned an invalid response');
+// Reverse `entryToAgent`: explode the joined command into command+args for on-disk storage.
+function agentToEntry(name: string, agent: AgentConfig): Record<string, unknown> {
+  const tokens = (agent.command ?? '').trim().split(/\s+/).filter(Boolean);
+  const [command = '', ...args] = tokens;
+  const rest: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(agent)) {
+    if (key === 'command') continue;
+    rest[key] = value;
   }
+  const entry: Record<string, unknown> = { name, command, ...rest };
+  if (args.length > 0) entry.args = args;
+  return entry;
+}
 
-  const config: AgentsConfig = {
-    mcpServers: Array.isArray(data.mcpServers)
-      ? data.mcpServers as AgentsConfig['mcpServers']
-      : [],
-    agents: normalizeAgentsConfig(data.agents),
-  };
-
-  if (data.settings !== undefined) {
-    config.settings = data.settings as AgentsConfig['settings'];
-  }
-
-  return {
-    config,
-    configPath: resolveConfigPath(data),
-  };
+function serializeConfig(config: AgentsConfig): string {
+  const out: Record<string, unknown> = {};
+  if (config.mcpServers !== undefined) out.mcpServers = config.mcpServers;
+  out.agents = Object.entries(config.agents).map(([name, agent]) => agentToEntry(name, agent));
+  if (config.settings !== undefined) out.settings = config.settings;
+  return `${JSON.stringify(out, null, 2)}\n`;
 }
 
 export const useConfigStore = defineStore('config', () => {
-  const mcp = useMcpClient();
   const config = ref<AgentsConfig>({ mcpServers: [], agents: {} });
   const configPath = ref<string>('');
   const loading = ref(false);
   const error = ref<string | null>(null);
-  let unsubscribeConfigNotifications: (() => void) | null = null;
-  const subscribedConfigResources = new Set<ConfigResourceUri>();
+
+  let unsubscribeWatcher: (() => void) | null = null;
 
   const agentNames = computed(() => Object.keys(config.value.agents));
   const hasAgents = computed(() => agentNames.value.length > 0);
 
-  async function loadConfig() {
+  async function loadConfig(): Promise<void> {
+    const api = getConfigApi();
+    if (!api) {
+      error.value = 'Config file IPC unavailable (Electron preload missing)';
+      return;
+    }
     loading.value = true;
     error.value = null;
     try {
-      if (!mcp.connected.value) {
-        await mcp.connect();
-      }
-      const payload = normalizeGetConfigResponse(await mcp.callTool('GetConfig', {}));
-      config.value = payload.config;
-      configPath.value = payload.configPath;
+      const result = await api.read();
+      configPath.value = result.path;
+      config.value = parseAgentsConfig(result.content);
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
-      toast.error(message);
+      toast.error(`Config load failed: ${message}`);
     } finally {
       loading.value = false;
     }
   }
 
-  async function reload() {
-    loading.value = true;
-    error.value = null;
-    try {
-      if (!mcp.connected.value) {
-        await mcp.connect();
-      }
-      const payload = unwrapToolData<ReloadConfigResponse>(await mcp.callTool('ReloadConfig', {}));
-      config.value = payload.config;
-    } catch (e) {
-      const message = getErrorMessage(e);
-      error.value = message;
-      toast.error(message);
-    } finally {
-      loading.value = false;
-    }
+  async function reload(): Promise<void> {
+    await loadConfig();
+  }
+
+  // Persist current in-memory config to disk; daemon picks up via api/config_watch.rs.
+  async function save(): Promise<void> {
+    const api = getConfigApi();
+    if (!api) throw new Error('Config file IPC unavailable');
+    const serialized = serializeConfig(config.value);
+    await api.write(serialized);
+  }
+
+  // Replace the entire config and persist; the file watcher will echo back to ensure consistency.
+  async function writeRaw(rawText: string): Promise<void> {
+    const api = getConfigApi();
+    if (!api) throw new Error('Config file IPC unavailable');
+    await api.write(rawText);
+    config.value = parseAgentsConfig(rawText);
   }
 
   function getAgent(name: string): AgentConfig | undefined {
     return config.value.agents[name];
   }
 
-  async function setupHotReload() {
-    await teardown();
-
-    try {
-      if (!mcp.connected.value) {
-        await mcp.connect();
-      }
-
-      unsubscribeConfigNotifications = mcp.onNotification((notification) => {
-        if (notification.method !== 'notifications/resources/updated') {
-          return;
-        }
-
-        const uri = isRecord(notification.params) && typeof notification.params.uri === 'string'
-          ? notification.params.uri
-          : null;
-        if (!uri || !isConfigResourceUri(uri)) {
-          return;
-        }
-
-        void loadConfig();
-      });
-
-      for (const uri of CONFIG_RESOURCE_URIS) {
-        await mcp.subscribeResource(uri);
-        subscribedConfigResources.add(uri);
-      }
-    } catch (e) {
-      await teardown();
-      const message = `Config resource subscription failed: ${getErrorMessage(e)}`;
-      error.value = message;
-      toast.warning(message);
-    }
-  }
-
-  function updateFromEvent(newConfig: AgentsConfig) {
-    config.value = newConfig;
-  }
-
-  function clearError() {
-    error.value = null;
-  }
-
-  async function teardown() {
-    unsubscribeConfigNotifications?.();
-    unsubscribeConfigNotifications = null;
-
-    const resourcesToUnsubscribe = Array.from(subscribedConfigResources);
-    subscribedConfigResources.clear();
-
-    if (!mcp.connected.value) {
-      return;
-    }
-
-    await Promise.all(
-      resourcesToUnsubscribe.map(async (uri) => {
-        try {
-          await mcp.unsubscribeResource(uri);
-        } catch {
-          // Best-effort cleanup: a dropped session has already discarded server-side subscriptions.
-        }
-      }),
-    );
-  }
-
   async function addAgent(name: string, agent: AgentConfig): Promise<void> {
     loading.value = true;
     error.value = null;
     try {
-      if (!mcp.connected.value) {
-        await mcp.connect();
-      }
-      config.value = unwrapToolData<AgentsConfig>(
-        await mcp.callTool('AddAgent', { name, config: agent }),
-      );
+      config.value.agents[name] = agent;
+      await save();
     } catch (e) {
       const message = getErrorMessage(e);
       error.value = message;
@@ -272,6 +180,28 @@ export const useConfigStore = defineStore('config', () => {
     } finally {
       loading.value = false;
     }
+  }
+
+  function updateFromEvent(newConfig: AgentsConfig): void {
+    config.value = newConfig;
+  }
+
+  function clearError(): void {
+    error.value = null;
+  }
+
+  async function setupHotReload(): Promise<void> {
+    teardown();
+    const api = getConfigApi();
+    if (!api) return;
+    unsubscribeWatcher = api.onChanged(() => {
+      void loadConfig();
+    });
+  }
+
+  function teardown(): void {
+    unsubscribeWatcher?.();
+    unsubscribeWatcher = null;
   }
 
   return {
@@ -283,6 +213,8 @@ export const useConfigStore = defineStore('config', () => {
     hasAgents,
     loadConfig,
     reload,
+    save,
+    writeRaw,
     getAgent,
     setupHotReload,
     updateFromEvent,

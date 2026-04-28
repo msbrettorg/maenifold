@@ -1,5 +1,9 @@
+// Discovery tool: enumerate MCP servers + their tools (used by the Pipelines tab).
+// Reads on-disk maenifold.json directly; settings are owned by the desktop, never by MCP.
+use crate::acp_config::AgentsConfig;
 use crate::api::mcp_discovery;
-use crate::mcp::{config_tools::ConfigMutationState, gateway_handler::GatewayState};
+use crate::config::Config;
+use crate::mcp::gateway_handler::GatewayState;
 use rmcp::model::{CallToolResult, Content};
 use schemars::JsonSchema;
 use serde::Deserialize;
@@ -17,16 +21,14 @@ pub(crate) fn is_discovery_tool(tool_name: &str) -> bool {
 }
 
 pub(crate) async fn handle_tool_call(
-    state: ConfigMutationState,
     gateway: Option<Arc<GatewayState>>,
     tool_name: &str,
     arguments: Value,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
-    handle_gateway_tool_call(state, gateway.as_deref(), tool_name, arguments).await
+    handle_gateway_tool_call(gateway.as_deref(), tool_name, arguments).await
 }
 
 pub(crate) async fn handle_gateway_tool_call(
-    state: ConfigMutationState,
     gateway: Option<&GatewayState>,
     tool_name: &str,
     arguments: Value,
@@ -35,7 +37,7 @@ pub(crate) async fn handle_gateway_tool_call(
         "DiscoverMcpTools" => {
             let _params: DiscoverMcpToolsParams =
                 serde_json::from_value(arguments).map_err(invalid_params)?;
-            let results = discover_mcp_tools(state, gateway).await;
+            let results = discover_mcp_tools(gateway).await;
             let output = serde_json::to_string_pretty(&results).map_err(internal_error)?;
             Ok(CallToolResult::success(vec![Content::text(output)]))
         }
@@ -47,10 +49,10 @@ pub(crate) async fn handle_gateway_tool_call(
 }
 
 async fn discover_mcp_tools(
-    state: ConfigMutationState,
     gateway: Option<&GatewayState>,
 ) -> Vec<mcp_discovery::McpServerDiscoveryResult> {
-    let config = state.config_manager().get_config();
+    let config = AgentsConfig::load_or_default(&Config::current().maenifold_root)
+        .unwrap_or_default();
     let mut results = Vec::new();
 
     if let Some(gateway) = gateway {

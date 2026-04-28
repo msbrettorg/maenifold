@@ -91,7 +91,6 @@ fn expected_settings() -> MaenifoldSettings {
             pipeline_driver: Some("inline".to_string()),
         },
         gateway: GatewaySettings::default(),
-        easter_eggs: EasterEggsSettings::default(),
         env_passthrough: Vec::new(),
     }
 }

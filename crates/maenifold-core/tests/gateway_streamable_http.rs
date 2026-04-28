@@ -73,26 +73,14 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
         "tools/call",
         json!({
             "name":"GatewayIndex",
-            "arguments":{"domain":"maenifold.config","includeSchemas":true}
+            "arguments":{"domain":"maenifold.system","includeSchemas":true}
         }),
         None,
     )
     .await;
     let config_index_text = result_text(&config_index);
-    assert!(config_index_text.contains("\"ReloadConfig\""));
     assert!(config_index_text.contains("\"DiscoverMcpTools\""));
 
-    let reload_config = rpc(
-        &server,
-        "tools/call",
-        json!({
-            "name":"GatewayExecute",
-            "arguments":{"domain":"maenifold.config","command":"ReloadConfig","parameters":{}}
-        }),
-        None,
-    )
-    .await;
-    assert!(result_text(&reload_config).contains("\"config\""));
 
     let native = rpc(
         &server,
@@ -218,10 +206,6 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
     assert_tool_names(
         &names,
         &[
-            "AddAgent",
-            "AddMcpServer",
-            "DeleteAgent",
-            "DeleteMcpServer",
             "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
@@ -229,10 +213,6 @@ async fn streamable_http_gateway_intent_enabled_lists_current_tools() {
             "GatewayIntent",
             "GetHelp",
             "ReadMcpResource",
-            "ReloadConfig",
-            "UpdateAgent",
-            "UpdateMcpServer",
-            "UpdateSettings",
         ],
     );
 

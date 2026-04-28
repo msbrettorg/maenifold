@@ -1,6 +1,5 @@
-pub(crate) mod config_tools;
-mod cors;
 pub(crate) mod discovery_tools;
+mod cors;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
@@ -69,7 +68,6 @@ struct MaenifoldHandler {
     gateway: Option<Arc<GatewayState>>,
     gateway_diagnostics: Option<Arc<crate::mcp::stdio_pool::StdioPool>>,
     gateway_startup_error: Option<String>,
-    config_mutation: Option<config_tools::ConfigMutationState>,
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum TransportKind {
@@ -96,7 +94,6 @@ impl MaenifoldHandler {
             gateway: None,
             gateway_diagnostics: None,
             gateway_startup_error: None,
-            config_mutation: None,
         })
     }
     fn set_gateway(&mut self, gateway: Arc<GatewayState>) {
@@ -107,9 +104,6 @@ impl MaenifoldHandler {
     }
     fn set_gateway_startup_error(&mut self, error: String) {
         self.gateway_startup_error = Some(error);
-    }
-    fn set_config_mutation(&mut self, state: config_tools::ConfigMutationState) {
-        self.config_mutation = Some(state);
     }
 }
 impl ServerHandler for MaenifoldHandler {
@@ -155,7 +149,6 @@ impl ServerHandler for MaenifoldHandler {
                 .filter(|tool| {
                     tool.name == "GetHelp"
                         || tool.name == "ReadMcpResource"
-                        || self::config_tools::is_config_mutation_tool(tool.name.as_ref())
                         || self::discovery_tools::is_discovery_tool(tool.name.as_ref())
                 })
                 .cloned()
@@ -251,11 +244,9 @@ impl ServerHandler for MaenifoldHandler {
             Some(map) => Value::Object(map),
             None => json!({}),
         };
-        let config_mutation = self.config_mutation.clone();
         let gateway = self.gateway.clone();
         async move {
-            self::mcp_tool_calls::handle_tool_call(tool_name, arguments, config_mutation, gateway)
-                .await
+            self::mcp_tool_calls::handle_tool_call(tool_name, arguments, gateway).await
         }
     }
 }

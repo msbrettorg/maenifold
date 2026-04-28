@@ -16,6 +16,7 @@ import KnowledgeWorkspace from './components/KnowledgeWorkspace.vue';
 import WorkflowWorkspace from './components/WorkflowWorkspace.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
+import SchedulesTab from './components/SchedulesTab.vue';
 import PermissionDialog from './components/PermissionDialog.vue';
 import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
@@ -180,6 +181,10 @@ const showAgentsChat = computed(
 
         <div v-if="visitedTabs.has('workflows')" v-show="!showHome && activeTab === 'workflows'" class="flex flex-1 flex-col overflow-hidden">
           <WorkflowWorkspace />
+        </div>
+
+        <div v-if="visitedTabs.has('schedules')" v-show="!showHome && activeTab === 'schedules'" class="flex flex-1 flex-col overflow-hidden">
+          <SchedulesTab />
         </div>
 
         <div v-if="visitedTabs.has('settings')" v-show="!showHome && activeTab === 'settings'" class="flex flex-1 flex-col overflow-hidden">

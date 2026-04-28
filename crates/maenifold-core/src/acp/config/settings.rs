@@ -3,7 +3,6 @@
 
 use serde::{Deserialize, Serialize};
 
-use super::easter_eggs::EasterEggsSettings;
 use super::gateway_settings::GatewaySettings;
 
 pub(super) fn default_true() -> bool {
@@ -132,8 +131,6 @@ pub struct MaenifoldSettings {
     pub debug: DebugSettings,
     #[serde(default)]
     pub gateway: GatewaySettings,
-    #[serde(default)]
-    pub easter_eggs: EasterEggsSettings,
     #[serde(default, rename = "envPassthrough")]
     pub env_passthrough: Vec<String>,
 }
@@ -160,7 +157,6 @@ impl Default for MaenifoldSettings {
             vector: VectorSettings::default(),
             debug: DebugSettings::default(),
             gateway: GatewaySettings::default(),
-            easter_eggs: EasterEggsSettings::default(),
             env_passthrough: Vec::new(),
         }
     }

@@ -13,6 +13,7 @@ export const TAB_ORDER = [
   { value: 'gate', label: 'Gate', icon: 'ShieldCheck' },
   { value: 'knowledge', label: 'Knowledge', icon: 'Brain' },
   { value: 'workflows', label: 'Workflows', icon: 'Workflow' },
+  { value: 'schedules', label: 'Schedules', icon: 'CalendarClock' },
   { value: 'settings', label: 'Settings', icon: 'Settings' },
 ] as const satisfies ReadonlyArray<{ value: AppShellTab; label: string; icon: string }>;
 

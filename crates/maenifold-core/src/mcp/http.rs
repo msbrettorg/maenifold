@@ -1,10 +1,8 @@
 use super::gateway_startup::{GatewayStartup, build_gateway};
 use super::{MaenifoldHandler, TransportKind};
-use crate::api::config_manager::ConfigManager;
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::config_tools::{ConfigMutationState, mutation_state};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
 use axum::routing::get;
@@ -51,22 +49,6 @@ pub(super) fn service(
     gateway_diagnostics: Option<Arc<StdioPool>>,
     gateway_startup_error: Option<String>,
 ) -> MaenifoldHttpService {
-    service_with_config_mutation(
-        cancellation_token,
-        gateway,
-        gateway_diagnostics,
-        gateway_startup_error,
-        None,
-    )
-}
-
-fn service_with_config_mutation(
-    cancellation_token: tokio_util::sync::CancellationToken,
-    gateway: Option<Arc<GatewayState>>,
-    gateway_diagnostics: Option<Arc<StdioPool>>,
-    gateway_startup_error: Option<String>,
-    config_mutation: Option<ConfigMutationState>,
-) -> MaenifoldHttpService {
     let session_manager = Arc::new(NeverSessionManager::default());
 
     StreamableHttpService::new(
@@ -81,9 +63,6 @@ fn service_with_config_mutation(
             }
             if let Some(error) = gateway_startup_error.as_ref() {
                 handler.set_gateway_startup_error(error.clone());
-            }
-            if let Some(config_mutation) = config_mutation.as_ref() {
-                handler.set_config_mutation(config_mutation.clone());
             }
             Ok(handler)
         },
@@ -135,8 +114,7 @@ impl super::MaenifoldMcpServer {
         let config = Config::current();
         super::initialize_runtime(&config)?;
         crate::api::auth::generate_and_write_token(&config.maenifold_root)?;
-        let config_mutation = mutation_state(&config, ConfigManager::new(&config));
-        let gateway_startup = build_gateway(&config, Some(config_mutation.clone())).await?;
+        let gateway_startup = build_gateway(&config).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
             GatewayStartup::Disabled => (None, None, None),
             GatewayStartup::Ready(gateway) => {
@@ -146,14 +124,13 @@ impl super::MaenifoldMcpServer {
             GatewayStartup::Failed { error, diagnostics } => (None, Some(error), diagnostics),
         };
         let router = router(
-            service_with_config_mutation(
+            service(
                 shutdown_token.child_token(),
                 gateway,
                 pool_for_api.clone(),
                 gateway_startup_error,
-                Some(config_mutation.clone()),
             ),
-            ApiState::new(config_mutation, pool_for_api),
+            ApiState::new(Config::current(), pool_for_api),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
         // shared tool surface over HTTP.

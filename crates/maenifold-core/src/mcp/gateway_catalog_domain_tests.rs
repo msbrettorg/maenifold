@@ -1,4 +1,3 @@
-use super::config_tools;
 use super::domain_mapping::{TOOL_DOMAINS, gate_tool_safety, tool_domain};
 use super::gateway_catalog::{CommandTarget, GatewayCatalog};
 use super::gateway_consolidation::build_consolidated_tools;
@@ -48,9 +47,7 @@ fn forward_mapping_targets_existing_registry_tools_by_domain() {
 fn reverse_mapping_exhaustively_covers_canonical_native_tools() {
     for name in ToolRegistry::global().canonical_names() {
         assert!(
-            name == "GetHelp"
-                || config_tools::is_config_mutation_tool(name)
-                || tool_domain(name).is_some(),
+            name == "GetHelp" || tool_domain(name).is_some(),
             "{name} missing gateway domain"
         );
     }

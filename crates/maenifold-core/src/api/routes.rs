@@ -1,26 +1,21 @@
-use crate::acp_config::AgentsConfig;
 use crate::api::config_manager::ConfigManager;
 use crate::api::config_watch::ConfigWatchState;
 use crate::api::{
     routes_config::{
-        add_agent_handler, add_mcp_server_handler, config_watch_handler, delete_agent_handler,
-        delete_mcp_server_handler, discover_mcp_tools_handler, get_config_handler,
-        get_config_path_handler, machine_id_handler, reload_config_handler, update_agent_handler,
-        update_mcp_server_handler, update_settings_handler,
+        config_watch_handler, discover_mcp_tools_handler, get_config_handler,
+        get_config_path_handler, machine_id_handler,
     },
     routes_data::{file_text, graph_edges, graph_nodes},
     routes_memory::{memory_read, memory_recent, memory_search},
 };
-use crate::mcp::config_tools::ConfigMutationState;
 use crate::mcp::stdio_pool::StdioPool;
 use crate::{Config, db};
 use axum::{
     Router,
     extract::{Query, State},
     http::StatusCode,
-    middleware,
     response::{IntoResponse, Json, Response},
-    routing::{get, post, put},
+    routing::get,
 };
 use parking_lot::RwLock;
 use std::collections::HashMap;
@@ -56,10 +51,6 @@ impl ApiState {
     pub(crate) fn config(&self) -> Config {
         self.config.read().clone()
     }
-
-    pub(crate) fn refresh_settings(&self, agents_config: &AgentsConfig) {
-        self.config.write().settings = agents_config.settings.clone().unwrap_or_default();
-    }
 }
 
 pub struct ApiStateSharedConfig {
@@ -77,15 +68,6 @@ impl From<Config> for ApiStateSharedConfig {
         Self {
             config,
             config_manager,
-        }
-    }
-}
-
-impl From<ConfigMutationState> for ApiStateSharedConfig {
-    fn from(state: ConfigMutationState) -> Self {
-        Self {
-            config: state.runtime_config(),
-            config_manager: state.config_manager(),
         }
     }
 }
@@ -150,33 +132,15 @@ where
 }
 
 pub fn api_routes(state: ApiState) -> Router {
+    let _ = &state;
     let read_routes = Router::new()
         .route("/api/config", get(get_config_handler))
         .route("/api/config/path", get(get_config_path_handler))
         .route("/api/config/watch", get(config_watch_handler))
         .route("/api/machine-id", get(machine_id_handler));
 
-    let mutation_routes = Router::new()
-        .route("/api/config/reload", post(reload_config_handler))
-        .route("/api/config/agents", post(add_agent_handler))
-        .route(
-            "/api/config/agents/{name}",
-            put(update_agent_handler).delete(delete_agent_handler),
-        )
-        .route("/api/config/mcp-servers", post(add_mcp_server_handler))
-        .route(
-            "/api/config/mcp-servers/{name}",
-            put(update_mcp_server_handler).delete(delete_mcp_server_handler),
-        )
-        .route("/api/config/settings", post(update_settings_handler))
-        .route_layer(middleware::from_fn_with_state(
-            state.clone(),
-            crate::api::auth::require_bearer_token,
-        ));
-
     Router::new()
         .merge(read_routes)
-        .merge(mutation_routes)
         .route("/api/files/text", get(file_text))
         .route("/api/graph/nodes", get(graph_nodes))
         .route("/api/graph/edges", get(graph_edges))

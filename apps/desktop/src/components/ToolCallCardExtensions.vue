@@ -113,9 +113,7 @@ function openLocation(path: string): void {
     return;
   }
 
-  if (path.startsWith('/')) {
-    void window.electronAPI?.openPath?.(path);
-  }
+  // Absolute-path navigation deferred to T-244.72 permission gate.
 }
 
 function blockJson(block: ToolCallContentBlock): JsonValue {

@@ -198,7 +198,6 @@ function registerIpcHandlers(): void {
       : await dialog.showOpenDialog({ properties: ['openDirectory'] });
     return result.canceled ? null : (result.filePaths[0] ?? null);
   });
-  ipcMain.handle('shell:open-path', (_event, path: string) => shell.openPath(path));
   ipcMain.handle('app:get-version', () => app.getVersion());
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};

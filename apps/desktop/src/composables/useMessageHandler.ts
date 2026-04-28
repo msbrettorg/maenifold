@@ -165,6 +165,10 @@ export function useMessageHandler({
         }
         break;
 
+      case 'current_mode_update':
+        session.currentModeId = update.currentModeId;
+        break;
+
       case 'session_info_update': {
         const targetSessionId = notification.sessionId;
         const nextTitle =

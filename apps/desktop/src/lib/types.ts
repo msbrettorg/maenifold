@@ -298,6 +298,7 @@ export interface SessionState {
   agentPromptCapabilities: PromptCapabilities | null;
   supportsSessionList: boolean;
   availableCommands: AvailableCommand[];
+  currentModeId: string | null;
   configOptions: SessionConfigOption[];
   hasConfigOptions: boolean;
   usage: Record<string, unknown> | null;
@@ -337,6 +338,7 @@ export function createEmptySessionState(
     agentPromptCapabilities: null,
     supportsSessionList: false,
     availableCommands: [],
+    currentModeId: null,
     configOptions: [],
     hasConfigOptions: false,
     usage: null,

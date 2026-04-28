@@ -26,7 +26,6 @@ type ElectronVoiceLaunchResult = {
 
 type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
-  openPath?: (path: string) => Promise<string>;
   getAppVersion?: () => Promise<string>;
   readTextFile?: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
   writeTextFile?: (params: { path: string; content: string }) => Promise<Record<string, never>>;

@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 import ToolCallCard from '../ToolCallCard.vue';
 import ToolCallCardExtensions from '../ToolCallCardExtensions.vue';
 import type { ToolCallInfo } from '../../types/acp';
+import { useAppShellStore } from '../../stores/app-shell';
+import { useKnowledgeStore } from '../../stores/knowledge';
 
 function createToolCall(overrides: Partial<ToolCallInfo> = {}): ToolCallInfo {
   return {
@@ -33,7 +35,10 @@ describe('ToolCallCard', () => {
   });
 
   it('renders Maenifold extension slot content for output, diffs, raw payload, and location chips', async () => {
-    setActivePinia(createPinia());
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const appShellStore = useAppShellStore();
+    const knowledgeStore = useKnowledgeStore();
     const toolCall = createToolCall({
       kind: 'edit',
       status: 'completed',
@@ -54,7 +59,7 @@ describe('ToolCallCard', () => {
     const wrapper = mount(ToolCallCardExtensions, {
       props: { toolCall: toolCall as never, expanded: true },
       global: {
-        plugins: [createPinia()],
+        plugins: [pinia],
         stubs: { MarkdownView: { template: '<article>{{ content }}</article>', props: ['content'] } },
       },
     });
@@ -65,6 +70,18 @@ describe('ToolCallCard', () => {
     expect(wrapper.text()).toContain('**done**');
     expect(wrapper.text()).toContain('--- /repo/src/main.ts');
     expect(wrapper.text()).toContain('+++ /repo/src/main.ts');
+
+    const absoluteLocation = wrapper.findAll('button').find((button) => button.text().includes('/repo/src/main.ts'));
+    expect(absoluteLocation).toBeTruthy();
+    await absoluteLocation!.trigger('click');
+    expect(appShellStore.activeTab).toBe('home');
+    expect(knowledgeStore.activeTabUri).toBeNull();
+
+    const memoryLocation = wrapper.findAll('button').find((button) => button.text().includes('memory://TestNote'));
+    expect(memoryLocation).toBeTruthy();
+    await memoryLocation!.trigger('click');
+    expect(appShellStore.activeTab).toBe('knowledge');
+    expect(knowledgeStore.activeTabUri).toBe('memory://TestNote');
 
     const rawToggle = wrapper.findAll('button').find((button) => button.text().includes('View raw'));
     expect(rawToggle).toBeTruthy();

@@ -26,8 +26,6 @@ export const TOOL_CATEGORIES: Record<string, { label: string; icon: string }> = 
   UpdateAssets: { label: 'System', icon: '🔄' },
   ListAssets: { label: 'System', icon: '📋' },
   ReadMcpResource: { label: 'System', icon: '📄' },
-  StartWatcher: { label: 'System', icon: '👁️' },
-  StopWatcher: { label: 'System', icon: '⏹️' },
   RunFullBenchmark: { label: 'System', icon: '🏃' },
 };
 

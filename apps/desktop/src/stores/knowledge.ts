@@ -27,23 +27,17 @@ export interface KnowledgeTabCacheEntry {
   error: string | null;
   content?: MemoryFile;
 }
-
 export type KnowledgeSubtab = 'memory' | 'graph';
-
 const STORAGE_NAMESPACE = 'knowledge';
 const ACTIVE_SUBTAB_STORAGE_KEY = 'activeSubtab';
-
-function readActiveSubtab(): KnowledgeSubtab {
-  const saved = readStorageValue<KnowledgeSubtab>(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY);
-  return saved === 'graph' ? 'graph' : 'memory';
-}
-
 export const useKnowledgeStore = defineStore('knowledge', () => {
   const memoryApi = useMemoryApi();
 
   const folders = ref<KnowledgeFolderNode[]>([]);
   const rootFiles = ref<KnowledgeFileEntry[]>([]);
-  const activeSubtab = ref<KnowledgeSubtab>(readActiveSubtab());
+  const activeSubtab = ref<KnowledgeSubtab>(
+    readStorageValue<KnowledgeSubtab>(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY) === 'graph' ? 'graph' : 'memory',
+  );
 
   const searchResults = ref<MemorySearchItem[]>([]);
   const openTabs = ref<string[]>([]);
@@ -98,7 +92,6 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     activeSubtab.value = subtab;
     writeStorageValue(STORAGE_NAMESPACE, ACTIVE_SUBTAB_STORAGE_KEY, subtab);
   }
-
   async function loadRootFolders(): Promise<void> {
     foldersLoading.value = true;
     foldersError.value = null;

@@ -205,6 +205,22 @@ export function useForceGraph(
       cy?.getElementById(nodeId).addClass('selected');
     }
 
+    function selectedForceNode(event: cytoscape.EventObject): ForceNode | null {
+      return nodeMap.get(event.target.id()) ?? null;
+    }
+
+    function handleNodeClick(event: cytoscape.EventObject): void {
+      selectNode(event.target.id());
+      const node = selectedForceNode(event);
+      if (node) onClick?.(node);
+    }
+
+    function handleNodeDoubleClick(event: cytoscape.EventObject): void {
+      selectNode(event.target.id());
+      const node = selectedForceNode(event);
+      if (node) onDoubleClick?.(node);
+    }
+
     // Dynamic LOD based on zoom level
     cy.on('zoom', () => {
       if (!cy) return;
@@ -247,17 +263,9 @@ export function useForceGraph(
       onHover?.(null);
     });
 
-    cy.on('tap', 'node', (e) => {
-      selectNode(e.target.id());
-      const n = nodeMap.get(e.target.id());
-      if (n) onClick?.(n);
-    });
+    cy.on('tap click', 'node', handleNodeClick);
 
-    cy.on('dbltap', 'node', (e) => {
-      selectNode(e.target.id());
-      const n = nodeMap.get(e.target.id());
-      if (n) onDoubleClick?.(n);
-    });
+    cy.on('dbltap dblclick', 'node', handleNodeDoubleClick);
   }
 
   function stop() {

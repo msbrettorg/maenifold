@@ -51,8 +51,8 @@ pub(crate) async fn handle_gateway_tool_call(
 async fn discover_mcp_tools(
     gateway: Option<&GatewayState>,
 ) -> Vec<mcp_discovery::McpServerDiscoveryResult> {
-    let config = AgentsConfig::load_or_default(&Config::current().maenifold_root)
-        .unwrap_or_default();
+    let config =
+        AgentsConfig::load_or_default(&Config::current().maenifold_root).unwrap_or_default();
     let mut results = Vec::new();
 
     if let Some(gateway) = gateway {

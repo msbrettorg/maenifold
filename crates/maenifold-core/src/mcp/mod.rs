@@ -1,11 +1,12 @@
-pub(crate) mod discovery_tools;
 mod cors;
+pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
 pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
 #[cfg(test)]
 mod gateway_catalog_domain_tests;
+mod gateway_cli;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
 mod gateway_errors;
@@ -49,6 +50,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::registry::ToolRegistry;
 pub(crate) use cors::localhost_cors;
+pub(crate) use gateway_cli::{gateway_cli_help, invoke_gateway_cli_tool};
 pub use resources::*;
 use rmcp::model::{
     CallToolRequestParams, CallToolResult, Implementation, ListResourceTemplatesResult,
@@ -245,9 +247,7 @@ impl ServerHandler for MaenifoldHandler {
             None => json!({}),
         };
         let gateway = self.gateway.clone();
-        async move {
-            self::mcp_tool_calls::handle_tool_call(tool_name, arguments, gateway).await
-        }
+        async move { self::mcp_tool_calls::handle_tool_call(tool_name, arguments, gateway).await }
     }
 }
 impl MaenifoldMcpServer {

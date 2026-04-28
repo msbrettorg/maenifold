@@ -47,10 +47,26 @@ fn forward_mapping_targets_existing_registry_tools_by_domain() {
 fn reverse_mapping_exhaustively_covers_canonical_native_tools() {
     for name in ToolRegistry::global().canonical_names() {
         assert!(
-            name == "GetHelp" || tool_domain(name).is_some(),
+            is_top_level_gateway_tool(name) || tool_domain(name).is_some(),
             "{name} missing gateway domain"
         );
     }
+}
+
+fn is_top_level_gateway_tool(name: &str) -> bool {
+    if name.starts_with("gate_") {
+        return true;
+    }
+    matches!(
+        name,
+        "GetHelp"
+            | "ReadMcpResource"
+            | "DiscoverMcpTools"
+            | "GatewayIndex"
+            | "GatewayExecute"
+            | "GatewayBatch"
+            | "GatewayIntent"
+    )
 }
 
 #[tokio::test]

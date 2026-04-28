@@ -1,7 +1,8 @@
-use super::context::{ToolContext, render, required_string};
+use super::context::{ToolContext, load_help_doc, render, required_string};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
 use crate::schedule::{ScheduleStore, ScheduledTask, Supervisor, parse_schedule};
+use crate::util::json::{OutputFormat, success};
 use chrono::Utc;
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -15,6 +16,12 @@ mod schedule_tests;
 use schedule_os::{is_not_installed_scheduler_error, sync_os_scheduler, uninstall_os_scheduler};
 
 pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+        let help = load_help_doc(&context.config.assets_path, "Schedule")
+            .unwrap_or_else(|| "ERROR: Help file not found for Schedule".to_string());
+        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+    }
+
     let action = required_string(payload, "action")?;
     match action {
         "create" => create_task(context, payload),

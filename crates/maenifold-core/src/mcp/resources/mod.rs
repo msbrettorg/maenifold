@@ -144,7 +144,6 @@ fn uri_matches_template(uri: &str, uri_template: &str) -> bool {
     uri == uri_template
 }
 
-
 pub fn map_resource_error(err: MaenifoldError) -> rmcp::ErrorData {
     match err {
         // T-10.2: RTM FR-11 / RTM-070 — missing assets map to MCP resource-not-found.

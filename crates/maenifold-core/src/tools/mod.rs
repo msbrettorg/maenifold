@@ -36,6 +36,6 @@ pub use recent_activity_format::{
     recent_activity_extract_session_id,
 };
 pub use recent_activity_render::recent_activity_extract_snippet;
+pub use response::{with_hint, with_next_steps};
 pub use schedule::schedule;
 pub use sessions::list_sessions;
-pub use response::{with_hint, with_next_steps};

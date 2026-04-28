@@ -23,6 +23,12 @@ static WHITESPACE_PATTERN: LazyLock<Regex> =
 // T-12.5: RTM FR-25.2 consolidates shared [[memory.rs]] support helpers so
 // split tool modules keep the pre-existing behavior and diagnostics.
 pub fn get_help(context: &ToolContext, payload: &Value) -> Result<String> {
+    if learn_requested(payload) {
+        let help = load_help_doc(&context.config.assets_path, "GetHelp")
+            .unwrap_or_else(|| "ERROR: Help file not found for GetHelp".to_string());
+        return Ok(render_learn_help(context, &help));
+    }
+
     let tool_name = payload
         .get("toolName")
         .and_then(Value::as_str)

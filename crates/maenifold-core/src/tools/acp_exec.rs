@@ -2,9 +2,10 @@ use super::acp_exec_payload::{
     mode_for_log, mode_or_default, optional_string, request_from_payload, request_options_from,
     required_str,
 };
-use super::context::ToolContext;
+use super::context::{ToolContext, load_help_doc};
 use crate::acp_config::{AgentEntry, AgentsConfig};
 use crate::error::{MaenifoldError, Result};
+use crate::util::json::{OutputFormat, success};
 use agent_client_protocol as acp;
 use jockey::acp::AcpPromptResult;
 use serde_json::Value;
@@ -36,6 +37,12 @@ fn acp_exec_runtime() -> crate::error::Result<&'static Runtime> {
 /// - **think** – translate the request into a structured prompt and return the response text.
 /// - **workflow** – translate the request into a structured prompt and return the response text.
 pub fn acp_exec(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+        let help = load_help_doc(&context.config.assets_path, "AcpExec")
+            .unwrap_or_else(|| "ERROR: Help file not found for AcpExec".to_string());
+        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+    }
+
     let agent = required_str(payload, "agent")?;
     let mode = mode_or_default(payload)?;
     let model = optional_string(payload, "model");

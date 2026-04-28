@@ -1,10 +1,23 @@
-use super::context::{ToolContext, render, required_string};
+use super::context::{ToolContext, load_help_doc, render, required_string};
 use crate::assets::{AssetKind, AssetManager};
 use crate::error::Result;
 use crate::util::json::{OutputFormat, success};
 use serde_json::Value;
 
 pub fn list_assets(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let help = load_help_doc(&context.config.assets_path, "ListAssets")
+            .unwrap_or_else(|| "ERROR: Help file not found for ListAssets".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let asset_manager = AssetManager::new(&context.config);
     let kind = payload
         .get("type")
@@ -20,6 +33,19 @@ pub fn list_assets(context: &ToolContext, payload: &Value) -> Result<String> {
 }
 
 pub fn read_mcp_resource(context: &ToolContext, payload: &Value) -> Result<String> {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let help = load_help_doc(&context.config.assets_path, "ReadMcpResource")
+            .unwrap_or_else(|| "ERROR: Help file not found for ReadMcpResource".to_string());
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
+    }
+
     let uri = required_string(payload, "uri")?;
     let asset_manager = AssetManager::new(&context.config);
     let value = asset_manager.read_resource(uri)?;

@@ -81,7 +81,6 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     let config_index_text = result_text(&config_index);
     assert!(config_index_text.contains("\"DiscoverMcpTools\""));
 
-
     let native = rpc(
         &server,
         "tools/call",

@@ -81,7 +81,9 @@ impl ToolRegistry {
 }
 
 fn all_descriptors() -> impl Iterator<Item = &'static ToolDescriptor> {
-    DESCRIPTORS.iter()
+    DESCRIPTORS
+        .iter()
+        .chain(crate::registry_gateway::descriptors())
 }
 
 const DESCRIPTORS: &[ToolDescriptor] = &[

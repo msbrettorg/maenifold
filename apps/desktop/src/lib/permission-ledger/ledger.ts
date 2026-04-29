@@ -112,7 +112,11 @@ class IpcPermissionLedger implements PermissionLedger {
     optionId: string;
     scope?: PermissionScope;
   }): Promise<void> {
-    await window.electronAPI?.permissionResolveDecision?.(payload);
+    const resolveDecision = window.electronAPI?.permissionResolveDecision;
+    if (!resolveDecision) {
+      throw new Error('Permission resolve-decision IPC is unavailable');
+    }
+    await resolveDecision(payload);
   }
 
   async listDecisions(): Promise<PersistedPermissionDecision[]> {
@@ -147,6 +151,12 @@ export function createDefaultPermissionLedger(): PermissionLedger {
 }
 
 export function getDefaultPermissionLedger(): PermissionLedger {
-  defaultLedger ??= createDefaultPermissionLedger();
-  return defaultLedger;
+  if (defaultLedger) {
+    return defaultLedger;
+  }
+  const ledger = createDefaultPermissionLedger();
+  if (!(ledger instanceof NoopPermissionLedger)) {
+    defaultLedger = ledger;
+  }
+  return ledger;
 }

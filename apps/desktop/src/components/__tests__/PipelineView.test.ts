@@ -64,9 +64,9 @@ vi.mock('../../composables/usePipelineMcp', () => ({
   }),
 }));
 
-function createView(status: PipelineViewModel['status'] = 'paused'): PipelineViewModel {
+function createView(status: PipelineViewModel['status'] = 'paused', pipelineId = 'pipeline-1'): PipelineViewModel {
   return {
-    pipelineId: 'pipeline-1',
+    pipelineId,
     status,
     running: false,
     ready: [],
@@ -153,6 +153,12 @@ async function expectRunnerExpanded(wrapper: ReturnType<typeof mount>) {
   expect(wrapper.get('[data-testid="runner"]').attributes('data-collapsed')).toBe('false');
 }
 
+async function settleRunnerWatchers() {
+  await flushPromises();
+  await nextTick();
+  await nextTick();
+}
+
 beforeEach(() => {
   vi.restoreAllMocks();
   document.body.innerHTML = '';
@@ -200,6 +206,73 @@ describe('PipelineView runner expansion state', () => {
 
     store.currentPipelineId = 'pipeline-2';
     await nextTick();
+
+    await expectRunnerCollapsed(wrapper);
+  });
+
+  it('stays collapsed when switching into a stuck pipeline view', async () => {
+    const { store, wrapper } = mountPipelineView((pipelineStore) => {
+      pipelineStore.currentPipelineId = 'pipeline-a';
+      pipelineStore.currentView = createView('completed', 'pipeline-a');
+    });
+
+    await flushPromises();
+    await expectRunnerCollapsed(wrapper);
+
+    store.currentPipelineId = 'pipeline-b';
+    store.currentView = createView('stuck', 'pipeline-b');
+    await settleRunnerWatchers();
+
+    await expectRunnerCollapsed(wrapper);
+  });
+
+  it('expands when the same pipeline transitions to stuck', async () => {
+    const { store, wrapper } = mountPipelineView((pipelineStore) => {
+      pipelineStore.currentPipelineId = 'pipeline-a';
+      pipelineStore.currentView = createView('completed', 'pipeline-a');
+    });
+
+    await flushPromises();
+    await expectRunnerCollapsed(wrapper);
+
+    store.currentView = createView('stuck', 'pipeline-a');
+    await settleRunnerWatchers();
+
+    await expectRunnerExpanded(wrapper);
+  });
+
+  it('expands when the same pipeline transitions to abandoned', async () => {
+    const { store, wrapper } = mountPipelineView((pipelineStore) => {
+      pipelineStore.currentPipelineId = 'pipeline-a';
+      pipelineStore.currentView = createView('completed', 'pipeline-a');
+    });
+
+    await flushPromises();
+    await expectRunnerCollapsed(wrapper);
+
+    store.currentView = createView('abandoned', 'pipeline-a');
+    await settleRunnerWatchers();
+
+    await expectRunnerExpanded(wrapper);
+  });
+
+  it('does not re-expand when re-entering a stuck pipeline', async () => {
+    const { store, wrapper } = mountPipelineView((pipelineStore) => {
+      pipelineStore.currentPipelineId = 'pipeline-a';
+      pipelineStore.currentView = createView('stuck', 'pipeline-a');
+    });
+
+    await flushPromises();
+    await expectRunnerCollapsed(wrapper);
+
+    store.currentPipelineId = 'pipeline-b';
+    store.currentView = createView('completed', 'pipeline-b');
+    await settleRunnerWatchers();
+    await expectRunnerCollapsed(wrapper);
+
+    store.currentPipelineId = 'pipeline-a';
+    store.currentView = createView('stuck', 'pipeline-a');
+    await settleRunnerWatchers();
 
     await expectRunnerCollapsed(wrapper);
   });

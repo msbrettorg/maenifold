@@ -6,14 +6,8 @@ import { Textarea } from '@/components/ui/textarea';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
-import type { AvailableCommand, ContentBlock } from '../lib/types';
-
-type PendingAttachmentView = {
-  id: string;
-  kind: 'image' | 'audio';
-  label: string;
-  block: ContentBlock;
-};
+import type { PendingAttachment } from './ChatAttachmentBar.vue';
+import type { AvailableCommand } from '../lib/types';
 
 const props = defineProps<{
   modelValue: string;
@@ -26,7 +20,7 @@ const props = defineProps<{
   imageAttachmentTooltip: string;
   audioAttachmentTooltip: string;
   embeddedContextTooltip: string;
-  pendingAttachments: PendingAttachmentView[];
+  pendingAttachments: PendingAttachment[];
   attachmentError: string | null;
   accent?: 'normal' | 'plan';
 }>();
@@ -37,7 +31,7 @@ const emit = defineEmits<{
   'select-command': [command: AvailableCommand];
   'remove-attachment': [attachmentId: string];
   'insert-embedded-context-hint': [];
-  'add-attachments': [attachments: PendingAttachmentView[]];
+  'add-attachments': [attachments: PendingAttachment[]];
   'attachment-error': [message: string | null];
 }>();
 

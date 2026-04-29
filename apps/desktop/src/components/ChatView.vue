@@ -10,9 +10,9 @@ import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
 import { ScrollArea } from './ui/scroll-area';
 import { Card } from './ui/card';
+import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
 
-type PendingAttachment = { id: string; kind: 'image' | 'audio'; label: string; block: ContentBlock };
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();

@@ -54,6 +54,7 @@ const starterChips: { icon: Component; label: string }[] = [
       v-for="message in messages"
       :key="message.id"
       :message="message"
+      :is-streaming="isLoading && message.role === 'assistant' && message === messages[messages.length - 1]"
       :expanded-thought-ids="expandedThoughtIds"
       :expanded-tool-call-ids="expandedToolCallIds"
       @toggle-thought="emit('toggle-thought', $event)"

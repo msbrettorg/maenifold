@@ -13,6 +13,7 @@ const props = defineProps<{
   message: ChatMessage;
   expandedThoughtIds: string[];
   expandedToolCallIds: string[];
+  isStreaming?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -44,6 +45,11 @@ const markdownContent = computed(() =>
     ? props.message.content
     : '',
 );
+const streamingTextContent = computed(() => {
+  if (!props.isStreaming || !props.message.content) return '';
+  if (blocks.value.some((block) => block.type !== 'text')) return '';
+  return props.message.content;
+});
 const isToolOnlyAssistantMessage = computed(
   () =>
     props.message.role === 'assistant' &&
@@ -96,10 +102,15 @@ const isAssistant = computed(() => props.message.role === 'assistant');
           @toggle-tool-call="emit('toggle-tool-call', $event)"
         />
 
-        <ChatContentBlocks v-if="blocks.length" :blocks="blocks" />
+        <pre
+          v-if="streamingTextContent"
+          class="m-0 whitespace-pre-wrap break-words font-[inherit] text-sm leading-6 text-text-primary"
+        >{{ streamingTextContent }}</pre>
+
+        <ChatContentBlocks v-else-if="blocks.length" :blocks="blocks" />
 
         <KnowledgeNoteRenderer
-          v-if="markdownContent"
+          v-if="!streamingTextContent && markdownContent"
           :content="markdownContent"
           class="text-text-primary"
         />

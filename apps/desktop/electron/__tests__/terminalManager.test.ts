@@ -71,12 +71,21 @@ describe('TerminalManager security hardening', () => {
 
   it('defaults omitted outputByteLimit to 1 MiB', () => {
     const manager = createManager();
-    const terminalId = manager.createTerminal({ command: 'echo' });
+    const { terminalId } = manager.createTerminal({ command: 'echo' });
     ptyState.spawned[0]?.emitData('x'.repeat(DEFAULT_OUTPUT_BYTE_LIMIT + 1));
 
     expect(manager.getOutput(terminalId)).toMatchObject({
       output: 'x'.repeat(DEFAULT_OUTPUT_BYTE_LIMIT),
       truncated: true,
+    });
+  });
+
+  it('returns the normalized default outputByteLimit when omitted', () => {
+    const manager = createManager();
+
+    expect(manager.createTerminal({ command: 'echo' })).toMatchObject({
+      terminalId: expect.any(String),
+      outputByteLimit: DEFAULT_OUTPUT_BYTE_LIMIT,
     });
   });
 

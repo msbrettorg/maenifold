@@ -19,7 +19,7 @@ import {
   type KillTerminalRequest,
   type KillTerminalResponse,
   type ReleaseTerminalRequest,
-  type ReleaseTerminalResponse,
+type ReleaseTerminalResponse,
   type WriteTextFileRequest,
   type WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
@@ -42,6 +42,10 @@ import {
 } from './acp-rpc';
 
 let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
+
+type CreateTerminalResponseWithLimit = CreateTerminalResponse & {
+  outputByteLimit?: number;
+};
 
 function createRejectAllWritesPolicy(): WritePermissionPolicy {
   return {
@@ -255,7 +259,7 @@ export class AcpClientBridgeCore implements Client {
       truncated: false,
       released: false,
       exitStatus: null,
-      outputByteLimit: params.outputByteLimit ?? undefined,
+      outputByteLimit: response.outputByteLimit,
     });
     return response;
   }
@@ -309,14 +313,14 @@ export class AcpClientBridgeCore implements Client {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.command, 'command');
     const store = useTerminalsStore();
-    const response = await this.sendTerminalRequest<CreateTerminalResponse>('terminal/create', params);
+    const response = await this.sendTerminalRequest<CreateTerminalResponseWithLimit>('terminal/create', params);
     store.setTerminal(response.terminalId, {
       terminalId: response.terminalId,
       output: '',
       truncated: false,
       released: false,
       exitStatus: null,
-      outputByteLimit: params.outputByteLimit ?? undefined,
+      outputByteLimit: response.outputByteLimit,
     });
     return response;
   }

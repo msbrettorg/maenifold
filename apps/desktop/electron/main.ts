@@ -214,7 +214,7 @@ function registerIpcHandlers(): void {
   });
   ipcMain.handle('terminal:create', (_event, params) => {
     const { sessionId: _sessionId, ...terminalParams } = validateCreateTerminalParams(params);
-    return { terminalId: terminalManager.createTerminal(terminalParams) };
+    return terminalManager.createTerminal(terminalParams);
   });
   ipcMain.handle('terminal:output', (_event, params) => {
     const { terminalId } = validateTerminalOperationParams(params);

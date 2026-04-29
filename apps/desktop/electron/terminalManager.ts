@@ -33,6 +33,11 @@ export type TerminalOutput = {
   exitStatus?: TerminalExitStatus | null;
 };
 
+export type CreateTerminalResult = {
+  terminalId: string;
+  outputByteLimit: number;
+};
+
 type TerminalEntry = {
   pty: pty.IPty;
   output: string;
@@ -205,7 +210,7 @@ export class TerminalManager {
 
   constructor(private readonly getWebContents: () => WebContents | null) {}
 
-  createTerminal({ command, args = [], env, cwd, outputByteLimit }: CreateTerminalParams): string {
+  createTerminal({ command, args = [], env, cwd, outputByteLimit }: CreateTerminalParams): CreateTerminalResult {
     if (typeof command !== 'string' || command.trim().length === 0) {
       throw new Error('terminal/create requires a command');
     }
@@ -249,7 +254,7 @@ export class TerminalManager {
       entry.resolveExit(exitStatus);
     });
 
-    return terminalId;
+    return { terminalId, outputByteLimit: entry.outputByteLimit };
   }
 
   getOutput(terminalId: string): TerminalOutput {

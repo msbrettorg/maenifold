@@ -71,7 +71,7 @@ type ElectronApi = {
       env?: Array<{ name: string; value: string }>;
       cwd?: string | null;
       outputByteLimit?: number | null;
-    }) => Promise<{ terminalId: string }>;
+    }) => Promise<{ terminalId: string; outputByteLimit: number }>;
     getOutput?: (params: { sessionId?: string; terminalId: string }) => Promise<{
       output: string;
       truncated: boolean;

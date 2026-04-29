@@ -112,7 +112,10 @@ const electronAPI = {
     ipcRenderer.invoke('permission:reset-decisions', token) as Promise<void>,
   terminal: {
     create: (params: TerminalCreatePayload) =>
-      ipcRenderer.invoke('terminal:create', params) as Promise<{ terminalId: string }>,
+      ipcRenderer.invoke('terminal:create', params) as Promise<{
+        terminalId: string;
+        outputByteLimit: number;
+      }>,
     getOutput: (params: TerminalIdPayload) =>
       ipcRenderer.invoke('terminal:output', params) as Promise<{
         output: string;

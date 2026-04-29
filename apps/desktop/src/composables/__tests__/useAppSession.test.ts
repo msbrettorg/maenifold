@@ -5,7 +5,8 @@ import { reactive } from 'vue';
 
 import { createEmptySessionState } from '../../lib/types';
 import type { AgentsConfig, SavedSession, SessionState } from '../../lib/types';
-import type { ConfigStoreLike, SessionStoreLike } from '../useAppSession';
+import { useSessionStore } from '../../stores/session';
+import type { ConfigStoreLike } from '../useAppSession';
 import { useAppSession } from '../useAppSession';
 
 vi.mock('../../stores/agent-capabilities', () => ({
@@ -53,29 +54,14 @@ function createConfigStore(): ConfigStoreLike {
   };
 }
 
-function createSessionStore(sessions = new Map<string, SessionState>()): SessionStoreLike {
+function createTestSessionStore(sessions = new Map<string, SessionState>()) {
+  const sessionStore = useSessionStore();
+  sessionStore.sessions = sessions;
+
   return {
-    isConnected: false,
-    isConnecting: false,
-    error: null,
-    activeSessionId: null,
-    pendingPermission: null,
-    pendingPermissionCount: 0,
-    pendingAuthMethods: [],
-    pendingAuthAgentName: '',
-    sessions,
-    initStore: vi.fn().mockResolvedValue(undefined),
-    createSession: vi.fn().mockResolvedValue(undefined),
-    resumeSession: vi.fn().mockResolvedValue(undefined),
-    deleteSession: vi.fn().mockResolvedValue(undefined),
-    cancelConnection: vi.fn().mockResolvedValue(undefined),
-    resolvePermission: vi.fn(),
-    cancelPermission: vi.fn(),
-    selectAuthMethod: vi.fn(),
-    cancelAuthSelection: vi.fn(),
-    setActiveSession: vi.fn(),
-    setError: vi.fn(),
-    clearError: vi.fn(),
+    sessionStore,
+    resumeSession: vi.spyOn(sessionStore, 'resumeSession').mockResolvedValue(undefined),
+    setActiveSession: vi.spyOn(sessionStore, 'setActiveSession').mockImplementation(() => undefined),
   };
 }
 
@@ -88,7 +74,7 @@ describe('useAppSession.handleResumeSession', () => {
 
   it('activates a matching connected local session without resuming', async () => {
     const savedSession = createSavedSession();
-    const sessionStore = createSessionStore(new Map([
+    const { sessionStore, resumeSession, setActiveSession } = createTestSessionStore(new Map([
       ['local-connected', createLocalSession(true)],
     ]));
     const appSession = useAppSession({
@@ -98,13 +84,13 @@ describe('useAppSession.handleResumeSession', () => {
 
     await appSession.handleResumeSession(savedSession);
 
-    expect(sessionStore.setActiveSession).toHaveBeenCalledWith('local-connected');
-    expect(sessionStore.resumeSession).not.toHaveBeenCalled();
+    expect(setActiveSession).toHaveBeenCalledWith('local-connected');
+    expect(resumeSession).not.toHaveBeenCalled();
   });
 
   it('resumes when the matching local session is disconnected', async () => {
     const savedSession = createSavedSession();
-    const sessionStore = createSessionStore(new Map([
+    const { sessionStore, resumeSession, setActiveSession } = createTestSessionStore(new Map([
       ['local-disconnected', createLocalSession(false)],
     ]));
     const appSession = useAppSession({
@@ -114,13 +100,13 @@ describe('useAppSession.handleResumeSession', () => {
 
     await appSession.handleResumeSession(savedSession);
 
-    expect(sessionStore.setActiveSession).not.toHaveBeenCalled();
-    expect(sessionStore.resumeSession).toHaveBeenCalledWith(savedSession);
+    expect(setActiveSession).not.toHaveBeenCalled();
+    expect(resumeSession).toHaveBeenCalledWith(savedSession);
   });
 
   it('resumes when no local session matches', async () => {
     const savedSession = createSavedSession();
-    const sessionStore = createSessionStore(new Map([
+    const { sessionStore, resumeSession, setActiveSession } = createTestSessionStore(new Map([
       ['local-other', createLocalSession(true, 'acp-remote-other')],
     ]));
     const appSession = useAppSession({
@@ -130,7 +116,7 @@ describe('useAppSession.handleResumeSession', () => {
 
     await appSession.handleResumeSession(savedSession);
 
-    expect(sessionStore.setActiveSession).not.toHaveBeenCalled();
-    expect(sessionStore.resumeSession).toHaveBeenCalledWith(savedSession);
+    expect(setActiveSession).not.toHaveBeenCalled();
+    expect(resumeSession).toHaveBeenCalledWith(savedSession);
   });
 });

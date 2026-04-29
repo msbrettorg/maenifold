@@ -34,3 +34,8 @@ poc/copilotkit/app/dist/
 # Evidence user-data (Electron CDP artifacts)
 apps/desktop/evidence/
 .maenifold-http.log
+
+# Gate state — rebuilt from .gate/gate.db cache. Per-developer, not shared via git.
+# See AGENTS.md for the operating model change.
+todo/
+done/

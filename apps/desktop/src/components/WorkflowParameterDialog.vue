@@ -66,9 +66,14 @@ function submit() {
   }
   validationError.value = null;
   const payload: Record<string, unknown> = {};
-  for (const field of fields.value) {
-    const value = coerceWorkflowInputValue(field, values[field.name] ?? '');
-    if (value !== undefined) payload[field.name] = value;
+  try {
+    for (const field of fields.value) {
+      const value = coerceWorkflowInputValue(field, values[field.name] ?? '');
+      if (value !== undefined) payload[field.name] = value;
+    }
+  } catch (unknownError) {
+    validationError.value = unknownError instanceof Error ? unknownError.message : String(unknownError);
+    return;
   }
   emit('submit', payload);
 }

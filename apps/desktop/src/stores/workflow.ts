@@ -147,7 +147,11 @@ export const useWorkflowStore = defineStore('workflow', () => {
     runningWorkflow.value = true;
     runError.value = null;
     try {
-      const result = await mcp.callTool('Workflow', { workflowId, ...inputs });
+      const args: Record<string, unknown> = { workflowId };
+      if (inputs && Object.keys(inputs).length > 0) {
+        args.inputs = inputs;
+      }
+      const result = await mcp.callTool('Workflow', args);
       const sessionId = extractSessionId(result);
       activeRunWorkflowId.value = workflowId;
       selectedSessionId.value = sessionId;

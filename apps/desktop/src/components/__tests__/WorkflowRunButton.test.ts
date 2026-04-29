@@ -112,8 +112,10 @@ describe('WorkflowRunButton', () => {
 
     expect(callTool).toHaveBeenCalledWith('Workflow', {
       workflowId: 'demo-workflow',
-      topic: 'cost optimization',
-      notes: 'include reservations',
+      inputs: {
+        topic: 'cost optimization',
+        notes: 'include reservations',
+      },
     });
   });
 });

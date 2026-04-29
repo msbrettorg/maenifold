@@ -72,6 +72,7 @@ describe('WorkflowLiveProgress', () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.text()).toContain('Run completed');
+    expect(wrapper.text()).toContain('Updated');
     expect(wrapper.text()).toContain('Total duration');
   });
 

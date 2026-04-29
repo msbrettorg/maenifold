@@ -108,12 +108,11 @@ watch(
 <template>
   <Sheet :open="true" @update:open="(open) => !open && emit('close')">
     <SheetContent
-      id="pipeline-flyout"
       side="left"
       :show-close-button="false"
       class="w-[min(320px,88vw)] border-0 bg-surface p-0 text-text-primary shadow-fluent-16"
     >
-      <div ref="flyoutRef" class="flex h-full flex-col" @keydown="handleKeydown">
+      <div id="pipeline-flyout" ref="flyoutRef" class="flex h-full flex-col" @keydown="handleKeydown">
         <SheetHeader class="gap-1 px-4 py-4 text-left">
           <div class="flex items-start justify-between gap-3">
             <div class="min-w-0">

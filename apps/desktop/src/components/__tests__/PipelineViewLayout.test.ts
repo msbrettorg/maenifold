@@ -93,7 +93,7 @@ async function openFlyout(wrapper: VueWrapper<any>) {
 }
 
 function findFlyout(): HTMLElement | null {
-  return document.body.querySelector<HTMLElement>('.pipeline-flyout');
+  return document.body.querySelector<HTMLElement>('#pipeline-flyout');
 }
 
 function findInBody<E extends Element = HTMLElement>(selector: string): E | null {
@@ -124,7 +124,7 @@ describe('PipelineView layout behavior', () => {
     await openFlyout(wrapper);
 
     expect(findFlyout()).not.toBeNull();
-    expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(true);
+    expect(findFlyout()?.textContent).toContain('pipeline-current');
 
     await wrapper.get('button[aria-label="Close pipelines flyout"]').trigger('click');
     await flushPromises();
@@ -249,14 +249,19 @@ describe('PipelineView layout behavior', () => {
     expect(findFlyout()).toBeNull();
   });
 
-  it('keeps mobile behavior by hiding the rail and rendering the existing sidebar layout', async () => {
+  it('keeps mobile behavior by hiding the rail and rendering the sidebar in the mobile sheet', async () => {
     const { wrapper } = mountPipelineView({ narrowViewport: true });
 
     await flushPromises();
 
     expect(wrapper.findComponent(PipelineIconRail).exists()).toBe(false);
     expect(wrapper.find('button[aria-label="Open pipelines flyout"]').exists()).toBe(false);
-    expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(true);
     expect(wrapper.text()).toContain('Open Sidebar');
+
+    await wrapper.get('button').trigger('click');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('Close Sidebar');
+    expect(wrapper.findComponent(PipelineSidebar).exists()).toBe(true);
   });
 });

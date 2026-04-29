@@ -8,7 +8,6 @@ use super::mcp::load_role_mcp_servers;
 use crate::types::AppState;
 
 struct PrewarmOpts<'a> {
-    runtime_kind: &'a str,
     role_name: &'a str,
     cwd: &'a str,
     resume_session_id: Option<String>,
@@ -19,7 +18,7 @@ struct PrewarmOpts<'a> {
 async fn send_prewarm(
     opts: PrewarmOpts<'_>,
 ) -> Option<oneshot::Receiver<(Vec<Value>, Vec<String>, String)>> {
-    let adapter = match build_stdio_adapter(opts.runtime_kind) {
+    let adapter = match build_stdio_adapter(opts.role_name) {
         Ok(Some(adapter)) => adapter,
         _ => return None,
     };
@@ -51,7 +50,7 @@ async fn send_prewarm(
 
 /// Fire-and-forget prewarm.
 pub async fn prewarm_role(
-    runtime_kind: &str,
+    _runtime_kind: &str,
     role_name: &str,
     cwd: &str,
     state: Option<(&AppState, &str)>,
@@ -63,7 +62,6 @@ pub async fn prewarm_role(
         .unwrap_or_default();
 
     let Some(rx) = send_prewarm(PrewarmOpts {
-        runtime_kind,
         role_name,
         cwd,
         resume_session_id: None,
@@ -80,7 +78,7 @@ pub async fn prewarm_role(
 
 /// Prewarm and return discovered config options + modes.
 pub async fn prewarm_role_for_config(
-    runtime_kind: &str,
+    _runtime_kind: &str,
     role_name: &str,
     cwd: &str,
     state: Option<(&AppState, &str)>,
@@ -92,7 +90,6 @@ pub async fn prewarm_role_for_config(
         .unwrap_or_default();
 
     let Some(rx) = send_prewarm(PrewarmOpts {
-        runtime_kind,
         role_name,
         cwd,
         resume_session_id: None,
@@ -110,14 +107,13 @@ pub async fn prewarm_role_for_config(
 
 /// Prewarm to refresh config option definitions only.
 pub async fn refresh_role_config_defs(
-    runtime_kind: &str,
+    _runtime_kind: &str,
     role_name: &str,
     cwd: &str,
     state: &AppState,
 ) -> (Vec<Value>, Vec<String>) {
     let mcp_servers = load_role_mcp_servers(state, role_name);
     let Some(rx) = send_prewarm(PrewarmOpts {
-        runtime_kind,
         role_name,
         cwd,
         resume_session_id: None,
@@ -135,7 +131,7 @@ pub async fn refresh_role_config_defs(
 
 /// Prewarm with an explicit session ID.
 pub async fn prewarm_role_with_session_id(
-    runtime_kind: &str,
+    _runtime_kind: &str,
     role_name: &str,
     cwd: &str,
     resume_session_id: Option<String>,
@@ -144,7 +140,6 @@ pub async fn prewarm_role_with_session_id(
 ) {
     let mcp_servers = load_role_mcp_servers(state, role_name);
     let Some(rx) = send_prewarm(PrewarmOpts {
-        runtime_kind,
         role_name,
         cwd,
         resume_session_id,

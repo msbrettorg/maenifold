@@ -6,6 +6,17 @@ import { bundledLanguages, createHighlighter } from 'shiki';
 import type { LanguageInput } from 'shiki';
 import markdownItFootnote from 'markdown-it-footnote';
 import markdownItTaskLists from 'markdown-it-task-lists';
+import markdownItKatexModule from '@vscode/markdown-it-katex';
+
+type MarkdownItKatexPlugin = (
+  md: MarkdownIt,
+  options?: { throwOnError?: boolean },
+) => MarkdownIt;
+
+const markdownItKatex =
+  typeof markdownItKatexModule === 'function'
+    ? (markdownItKatexModule as MarkdownItKatexPlugin)
+    : (markdownItKatexModule as unknown as { default: MarkdownItKatexPlugin }).default;
 
 let mdPromise: Promise<MarkdownIt> | null = null;
 
@@ -43,9 +54,41 @@ function wikilinkPlugin(md: MarkdownIt): void {
   };
 }
 
+function katexCompatibilityPlugin(md: MarkdownIt): void {
+  md.block.ruler.before('math_block', 'literal_triple_dollar', (state, startLine, _endLine, silent) => {
+    const start = state.bMarks[startLine] + state.tShift[startLine];
+    const max = state.eMarks[startLine];
+    const line = state.src.slice(start, max);
+    if (!line.startsWith('$$$')) return false;
+    if (silent) return true;
+
+    state.push('paragraph_open', 'p', 1);
+    const token = state.push('inline', '', 0);
+    token.content = line;
+    token.children = [];
+    state.push('paragraph_close', 'p', -1);
+    state.line = startLine + 1;
+    return true;
+  });
+
+  for (const ruleName of ['math_inline', 'math_inline_block', 'math_inline_bare_block', 'math_block']) {
+    const renderRule = md.renderer.rules[ruleName];
+    if (!renderRule) continue;
+
+    md.renderer.rules[ruleName] = (tokens, idx, options, env, self) => {
+      const html = renderRule(tokens, idx, options, env, self);
+      if (!html.includes('mathcolor="#cc0000"') && !html.includes('color:#cc0000')) {
+        return html;
+      }
+      return html.replace('class="katex"', 'class="katex katex-error"');
+    };
+  }
+}
+
 /**
  * Lazily initialize a single markdown-it instance configured with:
  *  - Shiki syntax highlighting (light + dark themes via CSS variables).
+ *  - KaTeX rendering for inline and display math.
  *  - A WikiLink inline rule that emits styled pill spans for [[concept]].
  *  - A fence override that leaves ```mermaid blocks untouched so the
  *    useMermaid composable can post-process them into rendered SVG.
@@ -83,6 +126,8 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
 
       md.use(markdownItFootnote);
       md.use(markdownItTaskLists, { enabled: true });
+      md.use(markdownItKatex, { throwOnError: false });
+      md.use(katexCompatibilityPlugin);
       md.use(wikilinkPlugin);
 
       // Preserve mermaid fences as plain <pre><code class="language-mermaid">

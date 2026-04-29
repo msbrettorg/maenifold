@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { nextTick } from 'vue';
+import { describe, expect, it, vi } from 'vitest';
 import PermissionDecisionDialog from '../PermissionDecisionDialog.vue';
+import { DialogContent } from '../ui/dialog';
 import type { PermissionRequest } from '../../lib/types';
 
 function request(): PermissionRequest {
@@ -64,5 +66,53 @@ describe('PermissionDecisionDialog scope picker', () => {
 
     expect(wrapper.get('[data-scope="forever"]').classes()).toContain(selectedScopeClass);
     expect(wrapper.get('[data-scope="agent"]').classes()).not.toContain(selectedScopeClass);
+  });
+});
+
+describe('PermissionDecisionDialog modal dismissal', () => {
+  function cancelableDismissEvent() {
+    return { preventDefault: vi.fn() };
+  }
+
+  it('keeps the permission dialog open when pointer-down-outside fires', async () => {
+    const wrapper = mount(PermissionDecisionDialog, {
+      props: { request: request(), totalPending: 1 },
+    });
+    const event = cancelableDismissEvent();
+
+    wrapper.getComponent(DialogContent).vm.$emit('pointer-down-outside', event);
+    await nextTick();
+
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(wrapper.find('.permission-dialog').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Read file');
+    expect(wrapper.emitted('select')).toBeUndefined();
+    expect(wrapper.emitted('cancel')).toBeUndefined();
+  });
+
+  it('keeps the permission dialog open when escape-key-down fires', async () => {
+    const wrapper = mount(PermissionDecisionDialog, {
+      props: { request: request(), totalPending: 1 },
+    });
+    const event = cancelableDismissEvent();
+
+    wrapper.getComponent(DialogContent).vm.$emit('escape-key-down', event);
+    await nextTick();
+
+    expect(event.preventDefault).toHaveBeenCalledOnce();
+    expect(wrapper.find('.permission-dialog').exists()).toBe(true);
+    expect(wrapper.text()).toContain('Read file');
+    expect(wrapper.emitted('select')).toBeUndefined();
+    expect(wrapper.emitted('cancel')).toBeUndefined();
+  });
+
+  it('still emits the selected permission option when an action button is clicked', async () => {
+    const wrapper = mount(PermissionDecisionDialog, {
+      props: { request: request(), totalPending: 1 },
+    });
+
+    await wrapper.get('.option-allow_once').trigger('click');
+
+    expect(wrapper.emitted('select')).toEqual([['allow-once']]);
   });
 });

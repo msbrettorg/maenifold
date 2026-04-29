@@ -53,8 +53,6 @@ const electronAPI = {
   },
   resolveWritePermission: (payload: WritePermissionResolvePayload) =>
     ipcRenderer.invoke('acp:write-permission:resolve', payload) as Promise<{ ok: true }>,
-  gateWriteTaskFile: (payload: { root: string; filename: string; content: string }) =>
-    ipcRenderer.invoke('gate:write-task-file', payload) as Promise<{ path: string }>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
   configRead: () =>

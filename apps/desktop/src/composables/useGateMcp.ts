@@ -2,6 +2,8 @@ import { computed, ref } from 'vue';
 import {
   createGateSnapshot,
   GATE_POLL_INTERVAL_MS,
+  type GateCreateArgs,
+  type GateCreateResult,
   type GateSnapshot,
   type GateStatusArgs,
   type GateSyncArgs,
@@ -15,6 +17,7 @@ import { getSharedMcpClient } from './usePipelineMcp';
 
 const GATE_DOMAIN = 'maenifold.gate';
 const REQUIRED_GATE_COMMANDS = [
+  'gate_Create',
   'gate_Status',
   'gate_Sync',
   'gate_History',
@@ -130,6 +133,10 @@ export function useGateMcp(baseUrl?: string) {
     return callGateTool<GateSyncResult>('gate_Sync', args);
   }
 
+  function createTask(args: GateCreateArgs): Promise<GateCreateResult> {
+    return callGateTool<GateCreateResult>('gate_Create', args);
+  }
+
   function normalizeTaskStages(task: GateTask): GateTask {
     const filtered = Array.isArray(task.stages) ? task.stages : [];
     return { ...task, stages: filtered };
@@ -184,6 +191,7 @@ export function useGateMcp(baseUrl?: string) {
     reconnecting: mcp.reconnecting,
     error,
     loadSnapshot,
+    createTask,
     sync,
     status,
     append,

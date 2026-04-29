@@ -109,6 +109,7 @@ export const gatewayPassthroughTools = new Set([
   'GatewayBatch',
   'GatewayIntent',
   'DiscoverMcpTools',
+  'gate_Create',
   'ReadMcpResource',
   'GetHelp',
 ]);

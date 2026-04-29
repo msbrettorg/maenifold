@@ -39,6 +39,24 @@ export interface GateSyncArgs extends Record<string, unknown> {
   rebuild?: boolean;
 }
 
+export interface GateCreateArgs extends Record<string, unknown> {
+  root: string;
+  taskId: string;
+  title: string;
+  pipeline: string;
+  body?: string;
+  priority?: string;
+  sprint?: number;
+  parent?: string;
+}
+
+export interface GateCreateResult {
+  taskId: string;
+  path: string;
+  pipeline: string;
+  sprint: number;
+}
+
 export type GateSyncResult = Record<string, unknown>;
 export interface GateTaskHistoryEntry {
   stage: string;

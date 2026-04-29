@@ -1,6 +1,6 @@
 use crate::mcp::gateway_catalog::CommandEntry;
 use maenifold_gate_core::lifecycle::{
-    GateContext, GateLifecycle, StageNoteArgs, StatusArgs, SyncArgs, TaskArgs,
+    CreateTaskArgs, GateContext, GateLifecycle, StageNoteArgs, StatusArgs, SyncArgs, TaskArgs,
 };
 use maenifold_gate_core::status_filter::StatusFilter;
 use rmcp::model::{CallToolResult, Content};
@@ -13,6 +13,12 @@ pub(crate) const DOMAIN_DESCRIPTION: &str =
 
 pub(crate) fn commands() -> Vec<CommandEntry> {
     vec![
+        command(
+            "gate_Create",
+            "Create a gate task markdown file and sync gate state.",
+            create_schema(),
+            "mutate",
+        ),
         command(
             "gate_Status",
             "List gate task status.",
@@ -82,6 +88,7 @@ fn call_gate(
 ) -> Result<Value, maenifold_gate_core::error::GateError> {
     let args = object(parameters)?;
     match command {
+        "gate_Create" => GateLifecycle::create(create_args(&args)?),
         "gate_Status" => GateLifecycle::status(StatusArgs {
             context: context(&args)?,
             filter: StatusFilter {
@@ -136,6 +143,23 @@ fn note_args(
     })
 }
 
+fn create_args(
+    args: &Map<String, Value>,
+) -> Result<CreateTaskArgs, maenifold_gate_core::error::GateError> {
+    Ok(CreateTaskArgs {
+        context: GateContext {
+            root: PathBuf::from(required_string(args, "root")?),
+            requested_pipeline_name: Some(required_string(args, "pipeline")?),
+        },
+        task_id: required_json_string(args, "taskId")?,
+        title: required_json_string(args, "title")?,
+        body: optional_string(args, "body")?,
+        priority: optional_string(args, "priority")?,
+        sprint: optional_u64(args, "sprint")?,
+        parent: optional_string(args, "parent")?,
+    })
+}
+
 fn task_args(args: &Map<String, Value>) -> Result<TaskArgs, maenifold_gate_core::error::GateError> {
     Ok(TaskArgs {
         context: context(args)?,
@@ -158,6 +182,18 @@ fn required_string(
 ) -> Result<String, maenifold_gate_core::error::GateError> {
     match args.get(key).and_then(Value::as_str) {
         Some(value) if !value.trim().is_empty() => Ok(value.to_string()),
+        _ => Err(maenifold_gate_core::error::GateError::Cli(format!(
+            "missing required string parameter '{key}'"
+        ))),
+    }
+}
+
+fn required_json_string(
+    args: &Map<String, Value>,
+    key: &str,
+) -> Result<String, maenifold_gate_core::error::GateError> {
+    match args.get(key).and_then(Value::as_str) {
+        Some(value) => Ok(value.to_string()),
         _ => Err(maenifold_gate_core::error::GateError::Cli(format!(
             "missing required string parameter '{key}'"
         ))),
@@ -190,6 +226,23 @@ fn optional_bool(
     }
 }
 
+fn optional_u64(
+    args: &Map<String, Value>,
+    key: &str,
+) -> Result<Option<u64>, maenifold_gate_core::error::GateError> {
+    match args.get(key) {
+        None | Some(Value::Null) => Ok(None),
+        Some(Value::Number(value)) => value.as_u64().map(Some).ok_or_else(|| {
+            maenifold_gate_core::error::GateError::Cli(format!(
+                "parameter '{key}' must be a non-negative integer"
+            ))
+        }),
+        _ => Err(maenifold_gate_core::error::GateError::Cli(format!(
+            "parameter '{key}' must be an integer"
+        ))),
+    }
+}
+
 fn render_json(value: Value) -> String {
     serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
 }
@@ -205,6 +258,22 @@ fn base_properties() -> Map<String, Value> {
         json!({"type": "string", "description": "Optional pipeline id to require for task resolution."}),
     );
     properties
+}
+
+fn create_schema() -> Value {
+    let mut properties = Map::new();
+    properties.insert(
+        "root".to_string(),
+        json!({"type": "string", "description": "Absolute repository root containing todo/ and done/."}),
+    );
+    properties.insert("taskId".to_string(), json!({"type": "string"}));
+    properties.insert("title".to_string(), json!({"type": "string"}));
+    properties.insert("pipeline".to_string(), json!({"type": "string"}));
+    properties.insert("body".to_string(), json!({"type": "string"}));
+    properties.insert("priority".to_string(), json!({"type": "string"}));
+    properties.insert("sprint".to_string(), json!({"type": "integer"}));
+    properties.insert("parent".to_string(), json!({"type": "string"}));
+    json!({"type": "object", "properties": properties, "required": ["root", "taskId", "title", "pipeline"], "additionalProperties": false})
 }
 
 fn status_schema() -> Value {

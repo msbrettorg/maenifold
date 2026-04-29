@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use crate::error::GateError;
@@ -20,6 +21,56 @@ pub struct TaskRepository;
 const TASK_LOCATIONS: [&str; 2] = ["todo", "done"];
 
 impl TaskRepository {
+    pub fn create_task(
+        root: &Path,
+        task_id: &str,
+        slug: &str,
+        markdown: &str,
+    ) -> Result<PathBuf, GateError> {
+        let todo_dir = root.join("todo");
+        if !todo_dir.exists() {
+            return Err(GateError::Cli(format!(
+                "required todo directory is missing: {}",
+                todo_dir.display()
+            )));
+        }
+        if fs::symlink_metadata(&todo_dir)?.file_type().is_symlink() {
+            return Err(GateError::Cli(format!(
+                "required todo directory must not be a symlink: {}",
+                todo_dir.display()
+            )));
+        }
+
+        Self::reject_duplicate_task_id(root, task_id)?;
+
+        let destination = todo_dir.join(format!("{task_id}-{slug}.md"));
+        let task = TaskPathSet {
+            task_id: task_id.to_string(),
+            path: destination.clone(),
+            location: "todo".to_string(),
+        };
+        Self::validate_create_destination(root, &todo_dir, &task)?;
+
+        let mut file = fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&destination)
+            .map_err(|error| {
+                if error.kind() == std::io::ErrorKind::AlreadyExists {
+                    GateError::Cli(format!(
+                        "task '{task_id}' already exists in todo: {}",
+                        destination.display()
+                    ))
+                } else {
+                    GateError::Io(error)
+                }
+            })?;
+        file.write_all(markdown.as_bytes())?;
+        file.sync_all()?;
+        sync_directory(&todo_dir)?;
+        Ok(destination)
+    }
+
     pub fn find_task(root: PathBuf, task_id: &str) -> Result<TaskPathSet, GateError> {
         for task in Self::list_tasks(root.clone())? {
             if task.task_id == task_id {
@@ -208,6 +259,66 @@ impl TaskRepository {
         fs::rename(&source, &destination)?;
         sync_directory(source_parent)?;
         sync_directory(destination_parent)?;
+        Ok(())
+    }
+
+    fn reject_duplicate_task_id(root: &Path, task_id: &str) -> Result<(), GateError> {
+        for location in TASK_LOCATIONS {
+            let directory = root.join(location);
+            if !directory.exists() {
+                continue;
+            }
+            for entry in fs::read_dir(&directory)? {
+                let entry = entry?;
+                let path = entry.path();
+                if !path.is_file()
+                    || path.extension().and_then(|value| value.to_str()) != Some("md")
+                {
+                    continue;
+                }
+                let Some(stem) = path.file_stem().and_then(|value| value.to_str()) else {
+                    continue;
+                };
+                if stem == task_id
+                    || stem
+                        .strip_prefix(task_id)
+                        .is_some_and(|rest| rest.starts_with('-'))
+                {
+                    return Err(GateError::Cli(format!(
+                        "task '{task_id}' already exists in {location}: {}",
+                        path.display()
+                    )));
+                }
+            }
+        }
+
+        match Self::find_task(root.to_path_buf(), task_id) {
+            Ok(task) => Err(GateError::Cli(format!(
+                "task '{}' already exists in {}: {}",
+                task_id,
+                task.location,
+                task.path.display()
+            ))),
+            Err(GateError::TaskNotFound { .. }) => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+
+    fn validate_create_destination(
+        root: &Path,
+        todo_dir: &Path,
+        task: &TaskPathSet,
+    ) -> Result<(), GateError> {
+        let canonical_root = fs::canonicalize(root)?;
+        let canonical_todo = fs::canonicalize(todo_dir)?;
+        if canonical_todo.parent() != Some(canonical_root.as_path()) {
+            return Err(Self::invalid_gate_task_path(task));
+        }
+        if task.path.parent() != Some(todo_dir)
+            || task.path.extension().and_then(|value| value.to_str()) != Some("md")
+        {
+            return Err(Self::invalid_gate_task_path(task));
+        }
         Ok(())
     }
 

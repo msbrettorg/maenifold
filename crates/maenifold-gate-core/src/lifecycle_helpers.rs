@@ -17,6 +17,19 @@ pub fn resolve_definition(root: &Path, pipeline: &str) -> Result<GateDefinition,
     if let Some(text) = builtin_definition_text(pipeline) {
         return GateDefinition::from_json_text(text);
     }
+    let asset_path = root
+        .join("assets")
+        .join("gates")
+        .join(format!("{pipeline}.json"));
+    if asset_path.exists() {
+        let text = fs::read_to_string(&asset_path).map_err(|error| {
+            GateError::Cli(format!(
+                "failed to read custom gate definition '{}': {error}",
+                asset_path.display()
+            ))
+        })?;
+        return GateDefinition::from_json_text(&text);
+    }
     let path = root.join("pipeline.json");
     let text = fs::read_to_string(&path).map_err(|error| {
         GateError::Cli(format!(

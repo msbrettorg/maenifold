@@ -12,6 +12,8 @@ const gatewayPassthroughTools = new Set([
   'GatewayExecute',
   'GatewayBatch',
   'GatewayIntent',
+  'DiscoverMcpTools',
+  'gate_Create',
 ]);
 
 export function isGatewayPassthroughTool(name: string): boolean {

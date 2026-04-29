@@ -39,7 +39,6 @@ type ElectronApi = {
     requestId: string;
     decision: 'allow_once' | 'allow_always' | 'reject';
   }) => Promise<{ ok: true }>;
-  gateWriteTaskFile?: (payload: { root: string; filename: string; content: string }) => Promise<{ path: string }>;
   checkEnvVarPresence?: (names: string[]) => Promise<Record<string, boolean>>;
   configRead?: () => Promise<{ path: string; content: string; exists: boolean }>;
   configWrite?: (content: string) => Promise<{ path: string }>;

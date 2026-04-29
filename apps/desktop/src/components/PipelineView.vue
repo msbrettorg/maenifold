@@ -55,10 +55,11 @@ const {
   handleNodeSelected, handleEdgeSelected, clearInspectorSelection,
   handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
 } = usePipelineViewState({ currentView, currentPipelineId });
-watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; }, { immediate: true });
+watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; });
 watch(() => String(currentView.value?.status ?? ''), (status) => {
   if (status === 'stuck' || status === 'abandoned') runnerExpanded.value = true;
-}, { immediate: true });
+});
+watch(currentPipelineId, () => { runnerExpanded.value = false; });
 watch(isNarrowViewport, (narrow) => { if (narrow) closeFlyout(); });
 watch(
   [() => provenance.pendingThinkingSessionId, currentView],

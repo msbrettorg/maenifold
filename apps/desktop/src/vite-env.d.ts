@@ -29,6 +29,7 @@ type ElectronApi = {
   getAppVersion?: () => Promise<string>;
   readTextFile?: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
   writeTextFile?: (params: { path: string; content: string }) => Promise<Record<string, never>>;
+  gateWriteTaskFile?: (payload: { root: string; filename: string; content: string }) => Promise<{ path: string }>;
   checkEnvVarPresence?: (names: string[]) => Promise<Record<string, boolean>>;
   configRead?: () => Promise<{ path: string; content: string; exists: boolean }>;
   configWrite?: (content: string) => Promise<{ path: string }>;

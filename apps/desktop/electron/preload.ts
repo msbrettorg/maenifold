@@ -33,6 +33,8 @@ const electronAPI = {
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
   writeTextFile: (params: { path: string; content: string }) =>
     ipcRenderer.invoke('acp:write-text-file', params) as Promise<Record<string, never>>,
+  gateWriteTaskFile: (payload: { root: string; filename: string; content: string }) =>
+    ipcRenderer.invoke('gate:write-task-file', payload) as Promise<{ path: string }>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
   configRead: () =>

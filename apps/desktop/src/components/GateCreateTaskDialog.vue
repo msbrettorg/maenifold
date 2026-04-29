@@ -95,10 +95,10 @@ async function submit() {
   submitting.value = true;
   try {
     const id = taskId.value.trim();
-    const path = `${props.root.replace(/\/+$/, '')}/todo/${id}-${slugify(title.value)}.md`;
-    const writer = window.electronAPI?.writeTextFile;
-    if (!writer) throw new Error('Electron file write API is unavailable.');
-    await writer({ path, content: markdown() });
+    const writer = window.electronAPI?.gateWriteTaskFile;
+    if (!writer) throw new Error('gate:write-task-file IPC unavailable');
+    const filename = `${id}-${slugify(title.value)}.md`;
+    await writer({ root: props.root, filename, content: markdown() });
     await gateMcp.sync({ root: props.root, rebuild: true });
     emit('created', id);
     emit('update:open', false);

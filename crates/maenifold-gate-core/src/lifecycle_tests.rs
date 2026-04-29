@@ -11,10 +11,10 @@ use crate::status_filter::StatusFilter;
 #[test]
 fn append_records_canonical_active_stage_without_transition() {
     let root = new_root();
-    write_task(root.path(), "T-237.a", "sdd");
-    let path = task_path(root.path(), "T-237.a", "todo");
+    write_task(root.path(), "T-237.1", "sdd");
+    let path = task_path(root.path(), "T-237.1", "todo");
 
-    GateLifecycle::append(note(root.path(), "T-237.a", "swe", "captured progress"))
+    GateLifecycle::append(note(root.path(), "T-237.1", "swe", "captured progress"))
         .expect("append succeeds");
 
     let text = fs::read_to_string(path).expect("read task");
@@ -31,17 +31,17 @@ fn append_records_canonical_active_stage_without_transition() {
 #[test]
 fn pass_and_fail_apply_state_machine_transitions() {
     let root = new_root();
-    write_task(root.path(), "T-237.b", "sdd");
+    write_task(root.path(), "T-237.2", "sdd");
 
     let after_pass =
-        GateLifecycle::pass(note(root.path(), "T-237.b", "pm", "ready")).expect("pass succeeds");
+        GateLifecycle::pass(note(root.path(), "T-237.2", "pm", "ready")).expect("pass succeeds");
     assert_eq!(after_pass["state"], "swe");
 
-    let after_fail = GateLifecycle::fail(note(root.path(), "T-237.b", "swe", "needs spec work"))
+    let after_fail = GateLifecycle::fail(note(root.path(), "T-237.2", "swe", "needs spec work"))
         .expect("fail succeeds");
     assert_eq!(after_fail["state"], "pending");
 
-    let text = fs::read_to_string(task_path(root.path(), "T-237.b", "todo")).expect("read task");
+    let text = fs::read_to_string(task_path(root.path(), "T-237.2", "todo")).expect("read task");
     assert!(text.contains("- Outcome: PASS"));
     assert!(text.contains("- Outcome: FAIL"));
     assert!(text.contains("- Stage ID: swe"));
@@ -50,21 +50,21 @@ fn pass_and_fail_apply_state_machine_transitions() {
 #[test]
 fn terminal_pass_moves_task_to_done() {
     let root = new_root();
-    write_task(root.path(), "T-237.c", "test");
+    write_task(root.path(), "T-237.3", "test");
 
     let after_pass =
-        GateLifecycle::pass(note(root.path(), "T-237.c", "pm", "complete")).expect("pass");
+        GateLifecycle::pass(note(root.path(), "T-237.3", "pm", "complete")).expect("pass");
 
     assert_eq!(after_pass["state"], "done");
-    assert!(!task_path(root.path(), "T-237.c", "todo").exists());
-    assert!(task_path(root.path(), "T-237.c", "done").exists());
+    assert!(!task_path(root.path(), "T-237.3", "todo").exists());
+    assert!(task_path(root.path(), "T-237.3", "done").exists());
 }
 
 #[test]
 fn read_commands_do_not_mutate_task_files() {
     let root = new_root();
-    write_task(root.path(), "T-237.d", "sdd");
-    let path = task_path(root.path(), "T-237.d", "todo");
+    write_task(root.path(), "T-237.4", "sdd");
+    let path = task_path(root.path(), "T-237.4", "todo");
     let before = fs::read_to_string(&path).expect("read before");
 
     GateLifecycle::status(StatusArgs {
@@ -74,12 +74,12 @@ fn read_commands_do_not_mutate_task_files() {
     .expect("status");
     GateLifecycle::history(TaskArgs {
         context: context(root.path()),
-        task_id: "T-237.d".to_string(),
+        task_id: "T-237.4".to_string(),
     })
     .expect("history");
     GateLifecycle::task_body(TaskArgs {
         context: context(root.path()),
-        task_id: "T-237.d".to_string(),
+        task_id: "T-237.4".to_string(),
     })
     .expect("task body");
 
@@ -90,9 +90,9 @@ fn read_commands_do_not_mutate_task_files() {
 #[test]
 fn invalid_transition_and_unknown_task_errors_are_actionable() {
     let root = new_root();
-    write_task(root.path(), "T-237.e", "sdd");
+    write_task(root.path(), "T-237.5", "sdd");
 
-    let invalid = GateLifecycle::fail(note(root.path(), "T-237.e", "pm", "bad fail"))
+    let invalid = GateLifecycle::fail(note(root.path(), "T-237.5", "pm", "bad fail"))
         .expect_err("pending fail is invalid");
     assert!(invalid.to_string().contains("illegal transition"));
 
@@ -105,7 +105,7 @@ fn invalid_transition_and_unknown_task_errors_are_actionable() {
 #[test]
 fn sync_reports_counts_without_requiring_standalone_gate() {
     let root = new_root();
-    write_task(root.path(), "T-237.f", "sdd");
+    write_task(root.path(), "T-237.6", "sdd");
 
     let value = GateLifecycle::sync(SyncArgs {
         context: context(root.path()),
@@ -115,6 +115,23 @@ fn sync_reports_counts_without_requiring_standalone_gate() {
 
     assert_eq!(value["taskCount"], 1);
     assert_eq!(value["synced"], true);
+}
+
+#[test]
+fn status_surfaces_malformed_task_id_with_path_expected_and_actual() {
+    let root = new_root();
+    fs::write(
+        task_path(root.path(), "T-243.2.0-delta-review", "todo"),
+        "---\nid: T-243.2.0\ntitle: malformed task\npipeline: sdd\n---\n# malformed task\n",
+    )
+    .expect("write malformed task");
+
+    let row = single_status(root.path());
+    assert_eq!(row["state"], "error");
+    let issue = row["issue"].as_str().expect("issue string");
+    assert!(issue.contains("todo/T-243.2.0-delta-review.md"));
+    assert!(issue.contains("expected format T-{sprint}.{N}.md"));
+    assert!(issue.contains("actual id 'T-243.2.0'"));
 }
 
 #[test]

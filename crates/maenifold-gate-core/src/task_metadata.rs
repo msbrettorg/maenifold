@@ -2,6 +2,7 @@ use regex::Regex;
 use serde::de::Error as DeError;
 use serde::{Deserialize, Deserializer};
 use std::collections::HashSet;
+use std::path::Path;
 use std::sync::LazyLock;
 
 use crate::error::GateError;
@@ -12,6 +13,10 @@ static LABELED_VALUE_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 static TASK_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^[A-Za-z0-9._-]+$").expect("task id regex"));
+static CANONICAL_TASK_ID_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^T-\d+\.\d+$").expect("canonical task id regex"));
+
+const EXPECTED_TASK_ID_FORMAT: &str = "T-{sprint}.{N}.md";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskMetadata {
@@ -70,8 +75,19 @@ pub struct TaskMetadataParser;
 
 impl TaskMetadataParser {
     pub fn parse(lines: &[&str]) -> Result<TaskMetadata, GateError> {
+        Self::parse_with_optional_path(lines, None)
+    }
+
+    pub fn parse_with_path(lines: &[&str], path: &Path) -> Result<TaskMetadata, GateError> {
+        Self::parse_with_optional_path(lines, Some(path))
+    }
+
+    fn parse_with_optional_path(
+        lines: &[&str],
+        path: Option<&Path>,
+    ) -> Result<TaskMetadata, GateError> {
         if let Some(frontmatter) = parse_frontmatter(lines)? {
-            let id = validate_task_id(frontmatter.id)?;
+            let id = validate_task_id(frontmatter.id, path)?;
             let depends_on =
                 normalize_dependencies(frontmatter.depends_on, frontmatter.depends, id.as_deref())?;
             return Ok(TaskMetadata {
@@ -106,9 +122,20 @@ impl TaskMetadataParser {
     }
 
     pub fn parse_task_id(text: &str) -> Result<Option<String>, GateError> {
+        Self::parse_task_id_with_optional_path(text, None)
+    }
+
+    pub fn parse_task_id_with_path(text: &str, path: &Path) -> Result<Option<String>, GateError> {
+        Self::parse_task_id_with_optional_path(text, Some(path))
+    }
+
+    fn parse_task_id_with_optional_path(
+        text: &str,
+        path: Option<&Path>,
+    ) -> Result<Option<String>, GateError> {
         let lines: Vec<_> = text.lines().collect();
         let frontmatter = parse_frontmatter(&lines)?;
-        validate_task_id(frontmatter.and_then(|frontmatter| frontmatter.id))
+        validate_task_id(frontmatter.and_then(|frontmatter| frontmatter.id), path)
     }
 }
 
@@ -173,7 +200,10 @@ fn parse_labeled_value(lines: &[&str], label: &str) -> Result<Option<String>, Ga
     }))
 }
 
-fn validate_task_id(task_id: Option<String>) -> Result<Option<String>, GateError> {
+fn validate_task_id(
+    task_id: Option<String>,
+    path: Option<&Path>,
+) -> Result<Option<String>, GateError> {
     task_id
         .map(|task_id| {
             if task_id.contains("..")
@@ -183,6 +213,18 @@ fn validate_task_id(task_id: Option<String>) -> Result<Option<String>, GateError
             {
                 return Err(GateError::TaskMetadataParse(format!(
                     "invalid task id '{task_id}': must match ^[A-Za-z0-9._-]+$ and must not contain path separators or '..'"
+                )));
+            }
+            if !CANONICAL_TASK_ID_RE.is_match(&task_id) {
+                if let Some(path) = path {
+                    return Err(GateError::MalformedTaskId {
+                        path: path.to_path_buf(),
+                        expected_format: EXPECTED_TASK_ID_FORMAT,
+                        actual_id: task_id,
+                    });
+                }
+                return Err(GateError::TaskMetadataParse(format!(
+                    "malformed task id: expected format {EXPECTED_TASK_ID_FORMAT}, actual id '{task_id}'"
                 )));
             }
             Ok(task_id)
@@ -262,12 +304,12 @@ mod tests {
     #[test]
     fn parses_depends_on_string_list_alias_and_dedups() {
         let cases = [
-            ("depends_on: T-237.1c", vec!["T-237.1c"]),
+            ("depends_on: T-237.11", vec!["T-237.11"]),
             (
-                "depends_on: [T-237.1c, T-238.24]",
-                vec!["T-237.1c", "T-238.24"],
+                "depends_on: [T-237.11, T-238.24]",
+                vec!["T-237.11", "T-238.24"],
             ),
-            ("depends: T-237.1c", vec!["T-237.1c"]),
+            ("depends: T-237.11", vec!["T-237.11"]),
             (
                 "depends_on: [T-1, T-2]\ndepends: [T-2, T-3]",
                 vec!["T-1", "T-2", "T-3"],
@@ -276,7 +318,7 @@ mod tests {
         ];
 
         for (depends_yaml, expected) in cases {
-            let yaml = format!("---\nid: T-9\ntitle: deps\npipeline: sdd\n{depends_yaml}\n---");
+            let yaml = format!("---\nid: T-9.1\ntitle: deps\npipeline: sdd\n{depends_yaml}\n---");
             let metadata = parse_yaml(&yaml);
             assert_eq!(metadata.depends_on, expected);
         }
@@ -284,7 +326,8 @@ mod tests {
 
     #[test]
     fn rejects_self_dependency() {
-        let yaml = "---\nid: T-1\ntitle: self dep\npipeline: sdd\ndepends_on: [T-0, T-1]\n---";
+        let yaml =
+            "---\nid: T-1.1\ntitle: self dep\npipeline: sdd\ndepends_on: [T-0.1, T-1.1]\n---";
         let lines: Vec<_> = yaml.lines().collect();
         let error = TaskMetadataParser::parse(&lines).expect_err("self dependency should fail");
         assert!(error.to_string().contains("task depends on itself"));

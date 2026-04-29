@@ -171,6 +171,7 @@ pub(super) fn write_workflow_node_session_with_status(
         &node_file.session_id,
         std::slice::from_ref(&node_file.workflow_id),
         status,
+        None,
     );
     frontmatter.insert(
         "pipelineId".to_string(),

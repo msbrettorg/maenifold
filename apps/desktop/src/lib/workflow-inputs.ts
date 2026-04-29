@@ -73,7 +73,12 @@ export function normalizeWorkflowInputs(input: unknown): WorkflowInputField[] {
 
 export function coerceWorkflowInputValue(field: WorkflowInputField, value: string): unknown {
   if (field.type === 'number') {
-    return value.trim() === '' ? undefined : Number(value);
+    if (value.trim() === '') return undefined;
+    const n = Number(value);
+    if (!Number.isFinite(n)) {
+      throw new Error(`Invalid number for "${field.name}": ${value}`);
+    }
+    return n;
   }
   if (field.type === 'boolean') {
     if (value === 'true') return true;

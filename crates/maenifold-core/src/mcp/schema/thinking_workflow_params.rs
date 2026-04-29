@@ -90,6 +90,11 @@ pub struct WorkflowParams {
     /// Workflow identifier or list of workflow identifiers to start
     #[serde(default)]
     pub workflow_id: Option<WorkflowIdValue>,
+    /// Declared workflow inputs (start mode only). Keys must match input names declared in the
+    /// workflow asset's frontmatter; values are typed per the workflow declaration. Validated
+    /// against the asset declaration before dispatch.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub inputs: Option<std::collections::HashMap<String, serde_json::Value>>,
     /// Response to the current step; include [[WikiLinks]]
     #[serde(default)]
     pub response: Option<String>,

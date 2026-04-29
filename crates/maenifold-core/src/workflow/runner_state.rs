@@ -3,6 +3,7 @@ use crate::markdown::read_markdown;
 use crate::sessions::workflow_session_uri;
 use crate::tools::ToolContext;
 use serde_json::json;
+use std::collections::HashMap;
 
 use super::runner_helpers::parse_step_progress;
 use super::{frontmatter_usize, read_workflow_definition, workflow_steps};
@@ -11,6 +12,7 @@ pub(super) fn init_workflow_session(
     context: &ToolContext,
     workflow_id: &str,
     existing_session_id: Option<String>,
+    inputs: Option<HashMap<String, serde_json::Value>>,
 ) -> Result<(String, String)> {
     if let Some(sid) = existing_session_id {
         let text = super::handler::workflow(
@@ -22,7 +24,11 @@ pub(super) fn init_workflow_session(
         )?;
         return Ok((sid, text));
     }
-    let text = super::handler::workflow(context, &json!({ "workflowId": workflow_id }))?;
+    let mut payload = json!({ "workflowId": workflow_id });
+    if let Some(inputs) = inputs {
+        payload["inputs"] = serde_json::to_value(inputs)?;
+    }
+    let text = super::handler::workflow(context, &payload)?;
     let sid = parse_session_id_from_creation(&text).ok_or_else(|| {
         MaenifoldError::Message("Workflow session ID missing from response".to_string())
     })?;

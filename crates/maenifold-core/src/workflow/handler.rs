@@ -4,6 +4,7 @@ use crate::sessions::load_help_doc;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::Value;
+use std::collections::HashMap;
 
 use super::handler_session::continue_workflow_session;
 use super::{
@@ -39,6 +40,7 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
         .and_then(Value::as_bool)
         .unwrap_or(false);
     let append = payload.get("append");
+    let inputs = workflow_inputs(payload.get("inputs"))?;
     let submachine_session_id = payload.get("submachineSessionId").and_then(Value::as_str);
     let submachine_type = payload.get("submachineType").and_then(Value::as_str);
 
@@ -56,7 +58,7 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
     AssetManager::initialize_assets(&context.config)?;
 
     if let Some(workflow_ids) = workflow_ids {
-        return start_workflow_session(context, &workflow_ids);
+        return start_workflow_session(context, &workflow_ids, inputs);
     }
 
     if let Some(session_id) = session_id {
@@ -90,5 +92,23 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
          Append to queue: sessionId + append\n\n\
          TIP: view=true and append both require a sessionId to identify which session to operate on."
             .to_string(),
+    ))
+}
+
+fn workflow_inputs(value: Option<&Value>) -> Result<Option<HashMap<String, Value>>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let object = value.as_object().ok_or_else(|| {
+        MaenifoldError::InvalidArgument("Workflow inputs must be an object".to_string())
+    })?;
+    if object.is_empty() {
+        return Ok(None);
+    }
+    Ok(Some(
+        object
+            .iter()
+            .map(|(key, value)| (key.clone(), value.clone()))
+            .collect(),
     ))
 }

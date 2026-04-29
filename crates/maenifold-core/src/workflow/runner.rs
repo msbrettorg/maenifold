@@ -88,7 +88,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
 ) -> Result<WorkflowResult> {
     require_adopted_role("workflow invocation", requires_role, adopt_role)?;
     let (session_id, start_text) =
-        init_workflow_session(context, workflow_id, existing_session_id)?;
+        init_workflow_session(context, workflow_id, existing_session_id, None)?;
     if trace_enabled() {
         eprintln!("[workflow] init session");
     }

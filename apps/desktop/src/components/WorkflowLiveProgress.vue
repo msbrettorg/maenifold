@@ -176,7 +176,9 @@ onBeforeUnmount(() => {
           <li v-for="{ step, label } in liveSteps" :key="step.stepNumber" class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
               <Badge :variant="badgeVariant(label)" class="capitalize">{{ label }}</Badge>
-              <span class="text-xs text-muted-foreground">{{ step.respondedAt ? totalDuration : '—' }}</span>
+              <span class="text-xs text-muted-foreground">
+                Updated: {{ step.respondedAt ? totalDuration : '—' }}
+              </span>
             </div>
             <WorkflowStepDetail
               :step="step"

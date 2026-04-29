@@ -9,13 +9,14 @@ use crate::workflow::{
 use chrono::Utc;
 use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 // T-12.0: RTM NFR-1 keeps workflow session creation, queue persistence, and frontmatter parsing in a focused submodule.
 
 pub(crate) fn start_workflow_session(
     context: &ToolContext,
     workflow_ids: &[String],
+    inputs: Option<HashMap<String, Value>>,
 ) -> Result<String> {
     let workflow_id = workflow_ids
         .first()
@@ -41,7 +42,7 @@ pub(crate) fn start_workflow_session(
     let first_step = steps.first().cloned().unwrap_or_else(|| json!({}));
     let rendered_step = format_workflow_step(&first_step)?;
     let uri = workflow_session_uri(&session_id);
-    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active");
+    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
 
     let file_content = format!(
         "# Workflow Session\n\nStarted: {}\n\n## Step 1/{}\n\n{}\n",
@@ -206,6 +207,7 @@ pub(crate) fn initial_workflow_frontmatter(
     session_id: &str,
     workflow_ids: &[String],
     status: &str,
+    inputs: Option<HashMap<String, Value>>,
 ) -> Frontmatter {
     let mut frontmatter: Frontmatter = BTreeMap::new();
     frontmatter.insert(
@@ -237,6 +239,13 @@ pub(crate) fn initial_workflow_frontmatter(
         "phase".to_string(),
         YamlValue::String("running".to_string()),
     );
+    if let Some(inputs) = inputs {
+        if !inputs.is_empty() {
+            if let Ok(value) = serde_yml::to_value(inputs) {
+                frontmatter.insert("inputs".to_string(), value);
+            }
+        }
+    }
     frontmatter.insert(
         "activeSubmachineType".to_string(),
         YamlValue::String(String::new()),

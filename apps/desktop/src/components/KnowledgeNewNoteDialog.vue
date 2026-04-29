@@ -15,7 +15,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { collectFolderPaths } from '../lib/knowledge-helpers';
 import { useKnowledgeStore } from '../stores/knowledge';
+import FolderPicker from './FolderPicker.vue';
 
 const store = useKnowledgeStore();
 const open = ref(false);
@@ -25,6 +27,7 @@ const content = ref('');
 const submitting = ref(false);
 const error = ref<string | null>(null);
 
+const availableFolders = computed(() => collectFolderPaths(store.folders));
 const hasWikiLink = computed(() => /\[\[[^\]]+\]\]/.test(content.value));
 const canSubmit = computed(() => title.value.trim().length > 0 && hasWikiLink.value && !submitting.value);
 
@@ -89,11 +92,10 @@ async function submit(): Promise<void> {
 
         <div class="grid gap-2">
           <Label for="new-note-folder">Folder</Label>
-          <Input
-            id="new-note-folder"
+          <FolderPicker
             v-model="folder"
+            :available-folders="availableFolders"
             data-testid="new-note-folder"
-            class="border-border-subtle bg-bg-app"
             placeholder="Existing folder or create new folder"
           />
         </div>

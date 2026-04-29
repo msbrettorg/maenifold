@@ -153,13 +153,15 @@ export function useMemoryApi() {
 
   async function moveMemory(options: MoveMemoryOptions): Promise<string> {
     await ensureConnected();
-    return normalizeMemoryWriteResponse(
-      await mcp.callTool('MoveMemory', {
-        source: options.source,
-        destination: options.destination,
-      }),
-      `memory://${options.destination.replace(/\.md$/i, '')}`,
-    );
+    const response = await mcp.callTool('MoveMemory', {
+      source: options.source,
+      destination: options.destination,
+    });
+    const responseText = unwrapToolData<unknown>(response);
+    const arrowMatch = typeof responseText === 'string'
+      ? responseText.match(/→\s*(memory:\/\/[^\s]+)/)
+      : null;
+    return arrowMatch?.[1] ?? options.destination;
   }
 
   async function buildContext(

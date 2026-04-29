@@ -19,8 +19,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { collectFolderPaths } from '../lib/knowledge-helpers';
 import type { KnowledgeFileEntry } from '../stores/knowledge';
 import { useKnowledgeStore } from '../stores/knowledge';
+import FolderPicker from './FolderPicker.vue';
 
 const props = defineProps<{
   file: KnowledgeFileEntry;
@@ -35,6 +37,7 @@ const moveFolder = ref('');
 const error = ref<string | null>(null);
 const busy = ref(false);
 
+const availableFolders = computed(() => collectFolderPaths(store.folders));
 const folderPath = computed(() => {
   const index = props.file.path.lastIndexOf('/');
   return index > -1 ? props.file.path.slice(0, index) : '';
@@ -168,7 +171,13 @@ async function moveNote(): Promise<void> {
         </DialogHeader>
         <div class="grid gap-2">
           <Label for="move-note-folder">Folder</Label>
-          <Input id="move-note-folder" v-model="moveFolder" data-testid="move-note-folder" class="border-border-subtle bg-bg-app" />
+          <FolderPicker
+            id="move-note-folder"
+            v-model="moveFolder"
+            :available-folders="availableFolders"
+            data-testid="move-note-folder"
+            placeholder="Choose destination folder"
+          />
         </div>
         <Alert v-if="error" variant="destructive" class="border-border-subtle bg-bg-app">
           <AlertDescription>{{ error }}</AlertDescription>

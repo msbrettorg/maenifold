@@ -4,6 +4,7 @@ import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
 import KnowledgeNewNoteDialog from '../KnowledgeNewNoteDialog.vue';
+import { useKnowledgeStore } from '../../stores/knowledge';
 
 const mockCallTool = vi.fn();
 
@@ -26,6 +27,21 @@ const dialogStubs = {
   DialogDescription: { template: '<p><slot /></p>' },
   DialogFooter: { template: '<div><slot /></div>' },
   DialogTrigger: { template: '<div><slot /></div>' },
+};
+
+const selectStubs = {
+  Select: {
+    props: ['modelValue'],
+    emits: ['update:modelValue'],
+    template: '<div data-testid="select-stub"><slot /></div>',
+  },
+  SelectTrigger: { template: '<button type="button" data-testid="folder-picker-trigger"><slot /></button>' },
+  SelectValue: { props: ['placeholder'], template: '<span>{{ placeholder }}</span>' },
+  SelectContent: { template: '<div><slot /></div>' },
+  SelectItem: {
+    props: ['value'],
+    template: '<button type="button" :data-testid="`folder-picker-option-${value}`" @click="$parent.$emit(\'update:modelValue\', value)"><slot /></button>',
+  },
 };
 
 describe('KnowledgeNewNoteDialog', () => {
@@ -64,12 +80,27 @@ describe('KnowledgeNewNoteDialog', () => {
         },
       });
 
+    const store = useKnowledgeStore();
+    store.folders = [{
+      name: 'research',
+      path: 'research',
+      fileCount: 0,
+      open: false,
+      loaded: true,
+      loading: false,
+      error: null,
+      children: [],
+      files: [],
+    }];
+
     const wrapper = mount(KnowledgeNewNoteDialog, {
-      global: { stubs: dialogStubs },
+      global: { stubs: { ...dialogStubs, ...selectStubs } },
     });
 
     await wrapper.find('[data-testid="new-note-title"]').setValue('Research note');
-    await wrapper.find('[data-testid="new-note-folder"]').setValue('research');
+    expect(wrapper.find('[data-testid="folder-picker-trigger"]').exists()).toBe(true);
+    expect(wrapper.text()).toContain('research');
+    await wrapper.find('[data-testid="folder-picker-option-research"]').trigger('click');
     await wrapper.find('[data-testid="new-note-content"]').setValue('Connected to [[knowledge-crud]].');
     await wrapper.find('[data-testid="new-note-form"]').trigger('submit');
 

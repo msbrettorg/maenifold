@@ -126,6 +126,13 @@ export function findFolderNode(
   return null;
 }
 
+export function collectFolderPaths(folders: KnowledgeFolderNode[]): string[] {
+  return folders.flatMap((folder) => [
+    folder.path,
+    ...collectFolderPaths(folder.children),
+  ]);
+}
+
 export function normalizeConceptName(rawValue: string): string {
   const normalized = rawValue.trim();
   const aliasIndex = normalized.indexOf('|');

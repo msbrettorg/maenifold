@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Image as ImageIcon, Headphones } from 'lucide-vue-next';
+import { Image as ImageIcon, Headphones, Paperclip } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
+import { fileLabel, mimeType, readFileAsBase64, type AttachmentKind } from '../lib/attachment-helpers';
 import type { ContentBlock } from '../lib/types';
 
 export type PendingAttachment = {
   id: string;
-  kind: 'image' | 'audio';
+  kind: AttachmentKind;
   label: string;
   block: ContentBlock;
 };
@@ -27,54 +28,11 @@ const emit = defineEmits<{
   'attachment-error': [msg: string | null];
 }>();
 
-const IMAGE_MIME: Record<string, string> = {
-  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif', '.webp': 'image/webp', '.svg': 'image/svg+xml',
-  '.bmp': 'image/bmp', '.ico': 'image/x-icon', '.tif': 'image/tiff', '.tiff': 'image/tiff',
-};
-const AUDIO_MIME: Record<string, string> = {
-  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg',
-  '.m4a': 'audio/mp4', '.aac': 'audio/aac', '.flac': 'audio/flac',
-  '.opus': 'audio/opus', '.weba': 'audio/webm',
-};
-
 const imageInputRef = ref<HTMLInputElement | null>(null);
 const audioInputRef = ref<HTMLInputElement | null>(null);
+const fileInputRef = ref<HTMLInputElement | null>(null);
 
-function fileLabel(name: string): string {
-  const segs = name.replace(/\\/g, '/').split('/');
-  return segs[segs.length - 1] || name;
-}
-
-function mimeType(name: string, kind: 'image' | 'audio'): string {
-  const ext = name.lastIndexOf('.') >= 0 ? name.slice(name.lastIndexOf('.')).toLowerCase() : '';
-  const known = kind === 'image' ? IMAGE_MIME[ext] : AUDIO_MIME[ext];
-  return known ?? (kind === 'image' ? 'image/png' : 'audio/mpeg');
-}
-
-function readFileAsBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onerror = () => {
-      reject(reader.error ?? new Error(`Failed to read ${file.name}.`));
-    };
-
-    reader.onload = () => {
-      if (typeof reader.result !== 'string') {
-        reject(new Error(`Unexpected file reader result for ${file.name}.`));
-        return;
-      }
-
-      const commaIndex = reader.result.indexOf(',');
-      resolve(commaIndex >= 0 ? reader.result.slice(commaIndex + 1) : reader.result);
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-function triggerPicker(kind: 'image' | 'audio'): void {
+function triggerPicker(kind: AttachmentKind): void {
   if (props.isLoading) return;
   if (kind === 'image' && !props.supportsImage) {
     toast.info('Image attachments are not yet available for this agent.');
@@ -84,11 +42,15 @@ function triggerPicker(kind: 'image' | 'audio'): void {
     toast.info('Audio attachments are not yet available for this agent.');
     return;
   }
-  const target = kind === 'image' ? imageInputRef.value : audioInputRef.value;
+  const target = kind === 'image'
+    ? imageInputRef.value
+    : kind === 'audio'
+      ? audioInputRef.value
+      : fileInputRef.value;
   target?.click();
 }
 
-async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<void> {
+async function handleSelection(event: Event, kind: AttachmentKind): Promise<void> {
   const input = event.target as HTMLInputElement | null;
   const files = Array.from(input?.files ?? []);
 
@@ -104,10 +66,7 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
         const label = fileLabel(file.name);
         const resolvedMimeType = file.type || mimeType(file.name, kind);
         const data = await readFileAsBase64(file);
-        const block: ContentBlock =
-          kind === 'image'
-            ? { type: 'image', data, mimeType: resolvedMimeType, uri: file.name }
-            : { type: 'audio', data, mimeType: resolvedMimeType };
+        const block: ContentBlock = createContentBlock(kind, label, resolvedMimeType, data);
         return { id: crypto.randomUUID(), kind, label, block } satisfies PendingAttachment;
       }),
     );
@@ -123,6 +82,34 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
       input.value = '';
     }
   }
+}
+
+function createContentBlock(
+  kind: AttachmentKind,
+  label: string,
+  resolvedMimeType: string,
+  data: string,
+): ContentBlock {
+  if (kind === 'image') {
+    return { type: 'image', data, mimeType: resolvedMimeType, uri: label };
+  }
+  if (kind === 'audio') {
+    return { type: 'audio', data, mimeType: resolvedMimeType };
+  }
+  return {
+    type: 'resource',
+    resource: {
+      uri: `file://${label}`,
+      mimeType: resolvedMimeType,
+      blob: data,
+    },
+  };
+}
+
+function iconFor(kind: AttachmentKind): typeof ImageIcon {
+  if (kind === 'image') return ImageIcon;
+  if (kind === 'audio') return Headphones;
+  return Paperclip;
 }
 </script>
 
@@ -148,6 +135,17 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
         accept=".mp3,.wav,.ogg,.m4a,.aac,.flac,.opus,.weba,audio/*"
         multiple
         @change="handleSelection($event, 'audio')"
+      />
+    </label>
+    <label class="sr-only">
+      File attachment
+      <input
+        ref="fileInputRef"
+        class="sr-only"
+        type="file"
+        accept="*/*"
+        multiple
+        @change="handleSelection($event, 'file')"
       />
     </label>
     <div class="flex flex-wrap gap-2" role="toolbar" aria-label="Attachments">
@@ -177,10 +175,21 @@ async function handleSelection(event: Event, kind: 'image' | 'audio'): Promise<v
           <Headphones class="inline size-4" :stroke-width="1.5" /> Audio
         </Button>
       </span>
+      <span class="inline-flex" title="Attach any file">
+        <Button
+          variant="outline"
+          size="sm"
+          class="border border-border-subtle rounded bg-bg-surface text-text-primary px-3 py-[0.35rem] text-sm cursor-pointer disabled:opacity-[0.55] disabled:cursor-not-allowed"
+          :disabled="isLoading"
+          @click="triggerPicker('file')"
+        >
+          <Paperclip class="inline size-4" :stroke-width="1.5" /> File
+        </Button>
+      </span>
     </div>
     <div v-if="pendingAttachments.length" class="flex flex-wrap gap-2">
       <div v-for="att in pendingAttachments" :key="att.id" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded bg-bg-surface border border-border-subtle text-sm">
-        <span><component :is="att.kind === 'image' ? ImageIcon : Headphones" class="inline size-4" :stroke-width="1.5" /> {{ att.label }}</span>
+        <span><component :is="iconFor(att.kind)" class="inline size-4" :stroke-width="1.5" /> {{ att.label }}</span>
         <Button variant="ghost" size="icon-xs" class="border-none bg-transparent text-text-secondary cursor-pointer text-base leading-none p-0 disabled:cursor-not-allowed" :disabled="isLoading" @click="emit('remove-attachment', att.id)">×</Button>
       </div>
     </div>

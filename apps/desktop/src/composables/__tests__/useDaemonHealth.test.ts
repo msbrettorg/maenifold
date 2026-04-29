@@ -59,7 +59,28 @@ describe('useDaemonHealth', () => {
     await health.forceCheck();
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(fetchMock.mock.calls[0]?.[0]).toContain('/health');
+    expect(fetchMock.mock.calls[0]?.[0]).toContain('/api/health');
+  });
+
+  it('does not write probe state after stop aborts an in-flight check', async () => {
+    const health = useDaemonHealth();
+    const previousLastCheckedAt = health.lastCheckedAt.value;
+    fetchMock.mockImplementationOnce((_url, init?: RequestInit) => new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener('abort', () => {
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    }));
+
+    health.start();
+    await flushPromises();
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    health.stop();
+    await flushPromises();
+
+    expect(health.daemonOnline.value).toBe(true);
+    expect(health.lastErrorMessage.value).toBeNull();
+    expect(health.lastCheckedAt.value).toBe(previousLastCheckedAt);
   });
 
   it('polls every 5s online and every 2s offline', async () => {

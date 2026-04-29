@@ -63,6 +63,30 @@ async fn config_read_route_returns_config_json() {
 
 #[tokio::test]
 #[serial_test::serial]
+async fn health_route_returns_ok_status() {
+    let (_temp, state, _guard) = test_state();
+    let response = api_routes(state)
+        .oneshot(
+            Request::builder()
+                .uri("/api/health")
+                .body(Body::empty())
+                .expect("request"),
+        )
+        .await
+        .expect("response");
+
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(response.headers()["content-type"], "application/json");
+
+    let body = to_bytes(response.into_body(), usize::MAX)
+        .await
+        .expect("body");
+    let json: serde_json::Value = serde_json::from_slice(&body).expect("json");
+    assert_eq!(json, serde_json::json!({ "status": "ok" }));
+}
+
+#[tokio::test]
+#[serial_test::serial]
 async fn reload_config_route_reports_partial_runtime_reload() {
     let (temp, state, _guard) = test_state();
     std::fs::write(

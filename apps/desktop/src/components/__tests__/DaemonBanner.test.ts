@@ -94,6 +94,26 @@ describe('DaemonBanner', () => {
     expect(reconnectSession).toHaveBeenCalledOnce();
   });
 
+  it('surfaces reconnectSession failures as connection errors', async () => {
+    const store = useSessionStore();
+    store.connectionError = 'resume failed';
+    reconnectSession.mockRejectedValueOnce(new Error('reconnect failed'));
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(okResponse());
+
+    const wrapper = mount(DaemonBanner, {
+      global: { plugins: [pinia] },
+    });
+
+    const retry = wrapper.findAll('button').find((button) => button.text() === 'Retry');
+    expect(retry).toBeDefined();
+    await retry!.trigger('click');
+    await flushPromises();
+
+    expect(store.connectionError).toBe('reconnect failed');
+    expect(wrapper.text()).toContain('Connection issue: reconnect failed');
+  });
+
   it('toggles inline help from How to start', async () => {
     await setDaemonOnline(false);
     const wrapper = mount(DaemonBanner, {

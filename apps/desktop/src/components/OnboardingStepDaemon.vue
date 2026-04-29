@@ -5,6 +5,7 @@ import { computed, inject, onMounted, onUnmounted, ref } from 'vue';
 import { ClipboardCopy, Plug } from 'lucide-vue-next';
 
 import { DAEMON_BASE_URL } from '../lib/daemon-url';
+import { getApiBase } from '../lib/api-base';
 import { useConfigStore } from '../stores/config';
 
 type ProbeState = 'checking' | 'connected' | 'disconnected';
@@ -27,6 +28,8 @@ let disposed = false;
 
 async function checkDaemonHealth(): Promise<boolean> {
   try {
+    const response = await fetch(`${getApiBase()}/api/health`, { method: 'GET' });
+    if (!response.ok) return false;
     await configStore.loadConfig();
     return configStore.error === null;
   } catch {

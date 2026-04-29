@@ -103,6 +103,16 @@ export function toServerCapabilities(client: SdkClient): McpServerCapabilities |
   return (client.getServerCapabilities() ?? null) as McpServerCapabilities | null;
 }
 
+export const gatewayPassthroughTools = new Set([
+  'GatewayIndex',
+  'GatewayExecute',
+  'GatewayBatch',
+  'GatewayIntent',
+  'DiscoverMcpTools',
+  'ReadMcpResource',
+  'GetHelp',
+]);
+
 function isSessionExpiredError(err: unknown): boolean {
   return err instanceof StreamableHTTPError && err.code === 404;
 }
@@ -113,14 +123,6 @@ export function createMcpClientOps(options: {
   setError(message: string | null): void;
 }) {
   const domainMap = new Map<string, string>();
-  const gatewayPassthroughTools = new Set([
-    'GetHelp',
-    'ReadMcpResource',
-    'GatewayIndex',
-    'GatewayExecute',
-    'GatewayBatch',
-    'GatewayIntent',
-  ]);
   const directMcpFallbackTools = new Set([
     'status',
   ]);

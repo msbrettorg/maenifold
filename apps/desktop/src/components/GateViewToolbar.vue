@@ -23,6 +23,7 @@ const emit = defineEmits<{
   'change-root': [value: string];
   refresh: [];
   remove: [];
+  'new-task': [];
   'update:selectedLocation': [value: string];
 }>();
 
@@ -111,6 +112,7 @@ function chipClass(location: 'todo' | 'done' | 'all', baseClass: string) {
         </SelectContent>
       </Select>
       <Button variant="ghost" @click="emit('browse')">Browse…</Button>
+      <Button variant="ghost" :disabled="!props.hasGateRoot" data-testid="gate-new-task-trigger" @click="emit('new-task')">New task</Button>
       <Button variant="ghost" :disabled="!props.hasGateRoot" @click="emit('remove')">Remove</Button>
       <Button variant="ghost" :disabled="!props.hasGateRoot || props.isLoading" @click="emit('refresh')">
         {{ props.isLoading ? 'Refreshing…' : 'Refresh' }}

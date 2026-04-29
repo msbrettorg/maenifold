@@ -7,6 +7,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
+import GateStageActions from './GateStageActions.vue';
 import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 import { getTaskPipelineLabel, isTaskPipelineDigestStale } from '../lib/gate-display';
@@ -19,9 +20,10 @@ const props = defineProps<{
   historyLoading: boolean;
   bodyError: string;
   historyError: string;
+  root: string;
 }>();
 
-defineEmits<{ close: [] }>();
+defineEmits<{ close: []; 'action-complete': [] }>();
 
 const processLabel = computed(() => {
   if (!props.task) return '';
@@ -93,6 +95,13 @@ const detailTitleId = computed(() =>
             class="p-4 border border-border rounded-md bg-muted/30"
           />
         </section>
+
+        <GateStageActions
+          v-if="task.location === 'todo'"
+          :task="task"
+          :root="root"
+          @completed="$emit('action-complete')"
+        />
 
         <GateTaskDetailStages :task="task" />
 

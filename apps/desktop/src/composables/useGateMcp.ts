@@ -14,7 +14,15 @@ import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
 const GATE_DOMAIN = 'maenifold.gate';
-const REQUIRED_GATE_COMMANDS = ['gate_Status', 'gate_Sync', 'gate_History', 'gate_TaskBody'] as const;
+const REQUIRED_GATE_COMMANDS = [
+  'gate_Status',
+  'gate_Sync',
+  'gate_History',
+  'gate_TaskBody',
+  'gate_Append',
+  'gate_Pass',
+  'gate_Fail',
+] as const;
 
 interface GatewayCommand {
   name?: unknown;
@@ -146,6 +154,18 @@ export function useGateMcp(baseUrl?: string) {
     });
   }
 
+  function append(args: { root: string; taskId: string; agent: string; notes: string }) {
+    return callGateTool<Record<string, unknown>>('gate_Append', args);
+  }
+
+  function pass(args: { root: string; taskId: string; agent: string; notes: string }) {
+    return callGateTool<Record<string, unknown>>('gate_Pass', args);
+  }
+
+  function fail(args: { root: string; taskId: string; agent: string; notes: string }) {
+    return callGateTool<Record<string, unknown>>('gate_Fail', args);
+  }
+
   async function loadSnapshot(root: string): Promise<GateSnapshot> {
     await sync({ root });
     const tasks = await status({ root, includeDone: true });
@@ -166,6 +186,9 @@ export function useGateMcp(baseUrl?: string) {
     loadSnapshot,
     sync,
     status,
+    append,
+    pass,
+    fail,
     readTaskBody,
     readTaskHistory,
     startPolling,

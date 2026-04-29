@@ -157,8 +157,8 @@ fn node_agent_name(node: &PipelineNode) -> Option<&str> {
     }
 }
 
-fn node_can_reconnect(node: &PipelineNode, state: &NodeState) -> bool {
-    !matches!(node, PipelineNode::Tool { .. }) && state.acp_session_id.is_some()
+fn node_can_reconnect(_node: &PipelineNode, _state: &NodeState) -> bool {
+    true
 }
 
 fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {

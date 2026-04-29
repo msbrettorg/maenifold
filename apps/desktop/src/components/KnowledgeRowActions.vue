@@ -122,7 +122,7 @@ async function moveNote(): Promise<void> {
     </DropdownMenu>
 
     <Dialog v-model:open="deleteOpen">
-      <DialogContent class="border-border-card bg-bg-surface text-text-primary">
+      <DialogContent class="border-border-card bg-bg-surface text-text-primary sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Delete note</DialogTitle>
           <DialogDescription>
@@ -142,7 +142,7 @@ async function moveNote(): Promise<void> {
     </Dialog>
 
     <Dialog v-model:open="renameOpen">
-      <DialogContent class="border-border-card bg-bg-surface text-text-primary">
+      <DialogContent class="border-border-card bg-bg-surface text-text-primary sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Rename note</DialogTitle>
           <DialogDescription>Rename within {{ folderPath || 'the vault root' }}.</DialogDescription>
@@ -164,7 +164,7 @@ async function moveNote(): Promise<void> {
     </Dialog>
 
     <Dialog v-model:open="moveOpen">
-      <DialogContent class="border-border-card bg-bg-surface text-text-primary">
+      <DialogContent class="border-border-card bg-bg-surface text-text-primary sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Move note</DialogTitle>
           <DialogDescription>Choose the destination folder for {{ file.name }}.</DialogDescription>

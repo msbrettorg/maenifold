@@ -101,7 +101,7 @@ async function forceOverwrite(): Promise<void> {
     </div>
 
     <Dialog v-model:open="conflictOpen">
-      <DialogContent class="border-border-card bg-bg-surface text-text-primary">
+      <DialogContent class="border-border-card bg-bg-surface text-text-primary sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Edit conflict</DialogTitle>
           <DialogDescription>

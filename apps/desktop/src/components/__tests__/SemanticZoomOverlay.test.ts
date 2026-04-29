@@ -8,8 +8,6 @@ import { usePromptDialogStore } from '../../stores/prompt-dialog';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
 import type { ViewNode } from '../../lib/pipeline-types';
 
-const originalOffsetHeight = Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'offsetHeight');
-
 function createNode(overrides: Partial<ViewNode> = {}): ViewNode {
   return {
     nodeId: 'node-1',
@@ -52,24 +50,22 @@ function findButtonByLabel(label: string): HTMLButtonElement {
   return button!;
 }
 
-function expectVisibleButton(label: string): void {
-  const button = findButtonByLabel(label);
-  expect(button.offsetHeight, `${label} button should remain visible`).toBeGreaterThan(0);
+function findDialogContent(): HTMLElement {
+  const dialogContent = document.body.querySelector<HTMLElement>('[data-slot="dialog-content"]');
+  expect(dialogContent, 'dialog content should be present').not.toBeNull();
+  return dialogContent!;
+}
+
+function findScrollContainer(): HTMLElement {
+  const scrollContainer = document.body.querySelector<HTMLElement>('[data-slot="scroll-area"]');
+  expect(scrollContainer, 'scroll area root should be present').not.toBeNull();
+  return scrollContainer!;
 }
 
 describe('SemanticZoomOverlay', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     document.body.innerHTML = '';
-    Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
-      configurable: true,
-      get() {
-        if (this instanceof HTMLButtonElement && this.textContent?.trim()) {
-          return 24;
-        }
-        return originalOffsetHeight?.get?.call(this) ?? 0;
-      },
-    });
 
     const pinia = createPinia();
     setActivePinia(pinia);
@@ -145,21 +141,23 @@ describe('SemanticZoomOverlay', () => {
     wrapper.unmount();
   });
 
-  it('makes the content container scroll within the fixed-height dialog', async () => {
+  // Visual scroll behavior is verified via CDP UAT, not vitest.
+  // JSDOM does not compute layout; offsetHeight mocks are dishonest.
+  // These tests assert the structural CSS contract only.
+  it('puts the scroll contract on the ScrollArea flex child', async () => {
     setCurrentNode(createNode({ output: hugeNodeOutput() }));
     const wrapper = mountOverlay();
     await flushPromises();
 
-    const scrollContainer = document.body.querySelector('div.flex-1.min-h-0.overflow-y-auto.p-4');
-    expect(scrollContainer).not.toBeNull();
-    expect(scrollContainer?.classList.contains('overflow-y-auto')).toBe(true);
-    expect(scrollContainer?.classList.contains('flex-1')).toBe(true);
-    expect(scrollContainer?.classList.contains('min-h-0')).toBe(true);
+    const scrollContainer = findScrollContainer();
+    expect(scrollContainer.classList.contains('flex-1')).toBe(true);
+    expect(scrollContainer.classList.contains('min-h-0')).toBe(true);
+    expect(scrollContainer.classList.contains('overflow-y-auto')).toBe(true);
 
     wrapper.unmount();
   });
 
-  it('keeps all footer action buttons visible when node output overflows', async () => {
+  it('keeps footer action buttons outside the scroll container', async () => {
     setCurrentNode(createNode({
       output: hugeNodeOutput(),
       provenance: {
@@ -174,25 +172,18 @@ describe('SemanticZoomOverlay', () => {
     const completedWrapper = mountOverlay();
     await flushPromises();
 
-    expectVisibleButton('Reconnect');
-    expectVisibleButton('Fork from node');
-    expectVisibleButton('Rewind node');
-    expectVisibleButton('Graft from node');
-    expectVisibleButton('Promote to Memory');
+    const dialogContent = findDialogContent();
+    const scrollContainer = findScrollContainer();
+    const reconnectButton = findButtonByLabel('Reconnect');
+    const footer = reconnectButton.closest('footer');
+
+    expect(scrollContainer.parentElement).toBe(dialogContent);
+    expect(footer, 'footer controls should be present').not.toBeNull();
+    expect(footer?.parentElement).toBe(dialogContent);
+    expect(reconnectButton.closest('[data-slot="scroll-area"]')).toBeNull();
+    expect(Array.from(dialogContent.children)).toContain(scrollContainer);
+    expect(Array.from(dialogContent.children)).toContain(footer);
+
     completedWrapper.unmount();
-
-    setCurrentNode(createNode({ status: 'abandoned', output: hugeNodeOutput() }));
-    const abandonedWrapper = mountOverlay();
-    await flushPromises();
-
-    expectVisibleButton('Restart node');
-    abandonedWrapper.unmount();
-
-    setCurrentNode(createNode({ status: 'active', output: hugeNodeOutput() }));
-    const activeWrapper = mountOverlay();
-    await flushPromises();
-
-    expectVisibleButton('Abandon node');
-    activeWrapper.unmount();
   });
 });

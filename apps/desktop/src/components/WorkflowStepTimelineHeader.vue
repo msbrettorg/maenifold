@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import WorkflowRunButton from './WorkflowRunButton.vue';
+import type { WorkflowAssetDefinition } from '../lib/workflow-asset-types';
 
 defineProps<{
   title: string;
+  workflow: WorkflowAssetDefinition;
   hasSteps: boolean;
   allExpanded: boolean;
   exportState: 'idle' | 'exporting' | 'success' | 'error';
@@ -49,6 +52,7 @@ const emit = defineEmits<{
       >
         {{ saveButtonLabel }}
       </Button>
+      <WorkflowRunButton :workflow="workflow" />
     </div>
   </header>
 </template>

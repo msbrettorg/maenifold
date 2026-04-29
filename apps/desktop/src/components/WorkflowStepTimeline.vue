@@ -205,6 +205,7 @@ watch(exportState, (state) => {
     <div class="flex flex-col gap-3 p-4">
     <WorkflowStepTimelineHeader
       :title="displayedDefinition.name"
+      :workflow="displayedDefinition"
       :has-steps="displayedDefinition.steps.length > 0"
       :all-expanded="allExpanded"
       :export-state="exportState"

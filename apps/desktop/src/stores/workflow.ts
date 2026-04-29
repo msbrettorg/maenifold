@@ -2,6 +2,7 @@ import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import { useMcpResources } from '../composables/useMcpResources';
 import type { ResourceContent } from '../composables/mcpTransport';
+import { usePipelineMcp } from '../composables/usePipelineMcp';
 
 interface WorkflowSessionSummary {
   id: string;
@@ -46,10 +47,14 @@ function parseResourceJson<T>(content: ResourceContent): T {
 
 export const useWorkflowStore = defineStore('workflow', () => {
   const resources = useMcpResources();
+  const mcp = usePipelineMcp();
 
   const activeSessions = ref<WorkflowSessionSummary[]>([]);
   const selectedSessionId = ref<string | null>(null);
   const selectedSession = ref<WorkflowSessionDetail | null>(null);
+  const activeRunWorkflowId = ref<string | null>(null);
+  const runError = ref<string | null>(null);
+  const runningWorkflow = ref(false);
   const loading = ref(false);
   const error = ref<string | null>(null);
   const lastUpdated = ref<string | null>(null);
@@ -59,6 +64,20 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const subscriberCount = ref(0);
 
   const hasSessions = computed(() => activeSessions.value.length > 0);
+
+  function extractSessionId(result: unknown): string {
+    if (typeof result === 'object' && result !== null) {
+      const data = 'data' in result ? (result as { data?: unknown }).data : result;
+      if (typeof data === 'object' && data !== null && 'sessionId' in data) {
+        const id = (data as { sessionId?: unknown }).sessionId;
+        if (typeof id === 'string' && id.trim()) return id;
+      }
+    }
+    const text = typeof result === 'string' ? result : JSON.stringify(result);
+    const match = /Created session:\s*([^\s]+)/.exec(text);
+    if (match?.[1]) return match[1];
+    throw new Error('Workflow run did not return a session id.');
+  }
 
   async function refreshSessions() {
     loading.value = true;
@@ -124,6 +143,41 @@ export const useWorkflowStore = defineStore('workflow', () => {
     await resubscribeSelectedSessionDetail();
   }
 
+  async function runWorkflow(workflowId: string, inputs: Record<string, unknown> = {}) {
+    runningWorkflow.value = true;
+    runError.value = null;
+    try {
+      const result = await mcp.callTool('Workflow', { workflowId, ...inputs });
+      const sessionId = extractSessionId(result);
+      activeRunWorkflowId.value = workflowId;
+      selectedSessionId.value = sessionId;
+      await refreshSessions().catch(() => undefined);
+      await refreshSelectedSession().catch(() => undefined);
+      await resubscribeSelectedSessionDetail().catch(() => undefined);
+      return sessionId;
+    } catch (unknownError) {
+      runError.value = unknownError instanceof Error ? unknownError.message : String(unknownError);
+      throw unknownError;
+    } finally {
+      runningWorkflow.value = false;
+    }
+  }
+
+  async function cancelWorkflow(sessionId: string) {
+    runError.value = null;
+    try {
+      await mcp.callTool('Workflow', {
+        sessionId,
+        response: 'Cancelled from desktop workflow runner. [[workflow-execution]]',
+        status: 'cancelled',
+      });
+      await refreshSelectedSession().catch(() => undefined);
+    } catch (unknownError) {
+      runError.value = unknownError instanceof Error ? unknownError.message : String(unknownError);
+      throw unknownError;
+    }
+  }
+
   async function mount() {
     subscriberCount.value += 1;
     if (subscriberCount.value > 1) {
@@ -155,13 +209,18 @@ export const useWorkflowStore = defineStore('workflow', () => {
     activeSessions,
     selectedSessionId,
     selectedSession,
+    activeRunWorkflowId,
     loading,
     error,
+    runError,
+    runningWorkflow,
     lastUpdated,
     hasSessions,
     refreshSessions,
     refreshSelectedSession,
     selectSession,
+    runWorkflow,
+    cancelWorkflow,
     mount,
     unmount,
   };

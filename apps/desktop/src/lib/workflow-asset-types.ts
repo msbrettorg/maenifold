@@ -25,6 +25,7 @@ export interface WorkflowAssetDefinition {
   sequentialThinkingEnabled: boolean
   multiAgent: boolean
   category?: WorkflowCategory
+  inputs?: unknown
   steps: WorkflowStepDefinition[]
 }
 

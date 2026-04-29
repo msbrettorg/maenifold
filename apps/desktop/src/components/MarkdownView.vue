@@ -19,10 +19,26 @@ let renderVersion = 0;
 const { renderMermaidBlocks } = useMermaid();
 const knowledgeStore = useKnowledgeStore();
 
+// Keep data URI rendering to inert raster image formats. SVG data URIs are
+// intentionally excluded because nested SVG payloads can carry executable
+// script/event handlers that would bypass DOM-level SVG sanitization.
 const allowedUriRegexp =
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|svg\+xml|webp);base64,)/i;
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
 const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
-const forbiddenAttrs = ['onload', 'onerror', 'onclick', 'onmouseover', 'onfocus', 'onblur', 'onchange', 'onsubmit'];
+const eventAttributeHookInstalledKey = '__maenifoldEventAttributeHookInstalled';
+
+function installEventAttributeHook(): void {
+  const purifierState = DOMPurify as unknown as Record<string, boolean>;
+  if (purifierState[eventAttributeHookInstalledKey]) return;
+  DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+    if (data.attrName?.toLowerCase().startsWith('on')) {
+      data.keepAttr = false;
+    }
+  });
+  purifierState[eventAttributeHookInstalledKey] = true;
+}
+
+installEventAttributeHook();
 
 function restoreForeignObjectText(safeHtml: string, originalHtml: string): string {
   if (!originalHtml.includes('<foreignObject') && !originalHtml.includes('<foreignobject')) {
@@ -42,7 +58,6 @@ function restoreForeignObjectText(safeHtml: string, originalHtml: string): strin
     const sanitizedInnerHtml = DOMPurify.sanitize(originalNode.innerHTML, {
       USE_PROFILES: { html: true },
       FORBID_TAGS: [...forbiddenTags, 'style'],
-      FORBID_ATTR: forbiddenAttrs,
       ALLOWED_URI_REGEXP: allowedUriRegexp,
     });
     const container = document.createElement('div');
@@ -103,7 +118,6 @@ async function updateRendered(): Promise<void> {
         'xmlns:xlink',
       ],
       FORBID_TAGS: forbiddenTags,
-      FORBID_ATTR: forbiddenAttrs,
       ALLOWED_URI_REGEXP: allowedUriRegexp,
     });
     if (thisVersion !== renderVersion) return;

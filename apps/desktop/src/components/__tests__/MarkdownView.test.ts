@@ -104,6 +104,18 @@ describe('MarkdownView rendering regression coverage', () => {
       wrapper.unmount();
     });
 
+    it('data:image/svg+xml nested script-bearing SVG blocked from href', async () => {
+      const wrapper = await mountMarkdown(
+        '<svg xmlns="http://www.w3.org/2000/svg"><use href="data:image/svg+xml;base64,PHN2ZyBvbmxvYWQ9YWxlcnQoMSk+PC9zdmc+" /></svg>',
+      );
+
+      const use = wrapper.find('use');
+      expect(use.exists()).toBe(true);
+      expect(use.attributes('href') ?? '').not.toContain('data:image/svg+xml');
+      expect(use.attributes('xlink:href') ?? '').not.toContain('data:image/svg+xml');
+      wrapper.unmount();
+    });
+
     it('svg with internal xlink:href preserved', async () => {
       const wrapper = await mountMarkdown(
         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"><defs><path id="shape" d="M0 0 L10 10" /></defs><use xlink:href="#shape"></use></svg>',
@@ -112,6 +124,18 @@ describe('MarkdownView rendering regression coverage', () => {
       const use = wrapper.find('use');
       expect(use.exists()).toBe(true);
       expect(use.attributes('xlink:href') ?? use.attributes('href')).toBe('#shape');
+      wrapper.unmount();
+    });
+
+    it('foreignObject script is stripped while label text remains', async () => {
+      const wrapper = await mountMarkdown(
+        '<svg xmlns="http://www.w3.org/2000/svg"><foreignObject><script>alert(1)</script>label text</foreignObject></svg>',
+      );
+
+      expect(wrapper.find('foreignObject, foreignobject').exists()).toBe(true);
+      expect(wrapper.find('script').exists()).toBe(false);
+      expect(wrapper.text()).toContain('label text');
+      expect(wrapper.html()).not.toContain('alert(1)');
       wrapper.unmount();
     });
   });
@@ -210,6 +234,32 @@ describe('MarkdownView rendering regression coverage', () => {
       const image = wrapper.find('img');
       expect(image.exists()).toBe(true);
       expect(image.attributes('onerror')).toBeUndefined();
+      wrapper.unmount();
+    });
+
+    it('ontoggle|onpointer|onanimation handlers stripped by hook', async () => {
+      const wrapper = await mountMarkdown(
+        '<details ontoggle="alert(1)"><summary>More</summary><p onpointerover="alert(2)" onanimationstart="alert(3)">Body</p></details>',
+      );
+
+      const details = wrapper.find('details');
+      const paragraph = wrapper.find('p');
+      expect(details.exists()).toBe(true);
+      expect(paragraph.exists()).toBe(true);
+      expect(details.attributes('ontoggle')).toBeUndefined();
+      expect(paragraph.attributes('onpointerover')).toBeUndefined();
+      expect(paragraph.attributes('onanimationstart')).toBeUndefined();
+      wrapper.unmount();
+    });
+
+    it('mixed-case and custom on-prefixed attributes are stripped for safety', async () => {
+      const wrapper = await mountMarkdown('<p OnLoad="alert(1)" ONERROR="alert(2)" onbehalfof="user">Body</p>');
+
+      const paragraph = wrapper.find('p');
+      expect(paragraph.exists()).toBe(true);
+      expect(paragraph.attributes('onload')).toBeUndefined();
+      expect(paragraph.attributes('onerror')).toBeUndefined();
+      expect(paragraph.attributes('onbehalfof')).toBeUndefined();
       wrapper.unmount();
     });
   });

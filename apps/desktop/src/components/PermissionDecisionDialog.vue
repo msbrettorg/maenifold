@@ -70,7 +70,7 @@ function confirmScope(): void {
   <div
     v-if="pendingOption"
     data-test="permission-scope-picker"
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-black/30"
+    class="fixed inset-0 z-[1010] flex items-center justify-center bg-black/30"
   >
     <div class="w-[90%] max-w-md rounded-lg border border-border-subtle bg-bg-surface p-4 shadow-xl">
       <div class="mb-3">

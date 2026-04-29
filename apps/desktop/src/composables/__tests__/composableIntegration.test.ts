@@ -28,6 +28,7 @@ const PROBE_TIMEOUT_MS = 3_000;
 
 let savedLocation: Location;
 let workflowUri: string | null = null;
+const WORKFLOW_STEP_HEADING_RE = /^## Step \d+\/\d+$/m;
 
 function setWindowLocation(url: string): void {
   Object.defineProperty(window, 'location', {
@@ -68,16 +69,25 @@ async function probeMemoryApi(): Promise<ProbeResult> {
 async function findWorkflowUri(): Promise<string | null> {
   const api = useMemoryApi();
   const recent = await api.recentActivity({ filter: 'thinking', limit: 200 });
-  const recentWorkflow = recent.items.find((item) => item.uri.includes('/thinking/workflow/'));
-  if (recentWorkflow) {
-    return recentWorkflow.uri;
+  for (const item of recent.items.filter((entry) => entry.uri.includes('/thinking/workflow/'))) {
+    const file = await api.readMemory(item.uri);
+    if (WORKFLOW_STEP_HEADING_RE.test(file.content)) {
+      return item.uri;
+    }
   }
 
   const search = await api.searchMemories('workflow', {
     folder: 'thinking/workflow',
     pageSize: 25,
   });
-  return search.results[0]?.uri ?? null;
+  for (const result of search.results) {
+    const file = await api.readMemory(result.uri);
+    if (WORKFLOW_STEP_HEADING_RE.test(file.content)) {
+      return result.uri;
+    }
+  }
+
+  return null;
 }
 
 function createHandlerHarness() {

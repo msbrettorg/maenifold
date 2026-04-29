@@ -1,5 +1,11 @@
 import type { WebContents } from 'electron';
+import { statSync } from 'node:fs';
+import { isAbsolute } from 'node:path';
 import * as pty from 'node-pty';
+
+export const MAX_ACTIVE_TERMINALS = 64;
+export const DEFAULT_OUTPUT_BYTE_LIMIT = 1024 * 1024;
+export const MAX_OUTPUT_BYTE_LIMIT = 100 * 1024 * 1024;
 
 type EnvVariable = { name: string; value: string };
 
@@ -11,9 +17,14 @@ export type TerminalExitStatus = {
 export type CreateTerminalParams = {
   command: string;
   args?: string[];
-  env?: EnvVariable[] | Record<string, string | undefined>;
+  env?: EnvVariable[];
   cwd?: string | null;
   outputByteLimit?: number | null;
+};
+
+export type TerminalOperationParams = {
+  sessionId: string;
+  terminalId: string;
 };
 
 export type TerminalOutput = {
@@ -35,10 +46,122 @@ type TerminalEntry = {
 
 const encoder = new TextEncoder();
 
-function normalizeByteLimit(limit: number | null | undefined): number | undefined {
-  return typeof limit === 'number' && Number.isFinite(limit) && limit >= 0
-    ? Math.floor(limit)
-    : undefined;
+export class TerminalLimitError extends Error {
+  readonly code = 'TERMINAL_LIMIT_EXCEEDED';
+
+  constructor() {
+    super(`Terminal limit exceeded: maximum ${MAX_ACTIVE_TERMINALS} active terminals`);
+  }
+}
+
+export class InvalidTerminalParamsError extends Error {
+  readonly code = 'INVALID_TERMINAL_PARAMS';
+
+  constructor(
+    readonly field: string,
+    readonly reason: string
+  ) {
+    super(`Invalid terminal params: ${field} ${reason}`);
+  }
+}
+
+function invalid(field: string, reason: string): never {
+  throw new InvalidTerminalParamsError(field, reason);
+}
+
+function normalizeByteLimit(limit: number | null | undefined): number {
+  if (limit == null) return DEFAULT_OUTPUT_BYTE_LIMIT;
+  if (!Number.isFinite(limit) || !Number.isInteger(limit) || limit <= 0) {
+    invalid('outputByteLimit', 'must be a finite positive integer');
+  }
+  if (limit > MAX_OUTPUT_BYTE_LIMIT) {
+    invalid('outputByteLimit', `must be <= ${MAX_OUTPUT_BYTE_LIMIT}`);
+  }
+  return limit;
+}
+
+function validateSessionId(params: Record<string, unknown>): string {
+  if (typeof params.sessionId !== 'string' || params.sessionId.trim().length === 0) {
+    invalid('sessionId', 'must be a non-empty string');
+  }
+  return params.sessionId.trim();
+}
+
+function validateTerminalId(params: Record<string, unknown>): string {
+  if (typeof params.terminalId !== 'string' || params.terminalId.trim().length === 0) {
+    invalid('terminalId', 'must be a non-empty string');
+  }
+  return params.terminalId.trim();
+}
+
+function asRecord(params: unknown): Record<string, unknown> {
+  if (typeof params !== 'object' || params === null || Array.isArray(params)) {
+    invalid('params', 'must be an object');
+  }
+  return params as Record<string, unknown>;
+}
+
+export function validateCreateTerminalParams(params: unknown): CreateTerminalParams & { sessionId: string } {
+  const record = asRecord(params);
+  const sessionId = validateSessionId(record);
+  if (typeof record.command !== 'string' || record.command.trim().length === 0) {
+    invalid('command', 'must be a non-empty string');
+  }
+
+  const args = record.args;
+  if (args != null && (!Array.isArray(args) || args.some((arg) => typeof arg !== 'string'))) {
+    invalid('args', 'must be an array of strings');
+  }
+
+  const env = record.env;
+  if (
+    env != null &&
+    (!Array.isArray(env) ||
+      env.some(
+        (entry) =>
+          typeof entry !== 'object' ||
+          entry === null ||
+          Array.isArray(entry) ||
+          typeof (entry as { name?: unknown }).name !== 'string' ||
+          typeof (entry as { value?: unknown }).value !== 'string'
+      ))
+  ) {
+    invalid('env', 'must be an array of { name: string, value: string } entries');
+  }
+
+  let cwd: string | null | undefined;
+  if (record.cwd != null) {
+    if (typeof record.cwd !== 'string' || !isAbsolute(record.cwd)) {
+      invalid('cwd', 'must be an absolute path string');
+    }
+    try {
+      if (!statSync(record.cwd).isDirectory()) {
+        invalid('cwd', 'must exist and be a directory');
+      }
+    } catch {
+      invalid('cwd', 'must exist and be a directory');
+    }
+    cwd = record.cwd;
+  }
+
+  const outputByteLimit = normalizeByteLimit(record.outputByteLimit as number | null | undefined);
+
+  return {
+    sessionId,
+    command: record.command.trim(),
+    args: args == null ? [] : args,
+    env: env == null ? [] : env as EnvVariable[],
+    cwd,
+    outputByteLimit,
+  };
+}
+
+export function validateTerminalOperationParams(params: unknown): TerminalOperationParams {
+  const record = asRecord(params);
+  return {
+    sessionId: validateSessionId(record),
+    terminalId: validateTerminalId(record),
+  };
 }
 
 function truncateUtf8FromFront(output: string, limit: number): { output: string; truncated: boolean } {
@@ -66,16 +189,11 @@ function buildEnv(env: CreateTerminalParams['env']): Record<string, string> {
   for (const [key, value] of Object.entries(process.env)) {
     if (value != null) base[key] = value;
   }
-  if (Array.isArray(env)) {
+  // Trust model: a connected local ACP agent is trusted to inherit and override
+  // environment variables. Do not sanitize PATH or allowlist env keys here.
+  if (env) {
     for (const item of env) {
       base[item.name] = item.value;
-    }
-    return base;
-  }
-  if (env) {
-    for (const [key, value] of Object.entries(env)) {
-      if (value == null) delete base[key];
-      else base[key] = value;
     }
   }
   return base;
@@ -91,6 +209,11 @@ export class TerminalManager {
     if (typeof command !== 'string' || command.trim().length === 0) {
       throw new Error('terminal/create requires a command');
     }
+    if (this.terminals.size >= MAX_ACTIVE_TERMINALS) {
+      throw new TerminalLimitError();
+    }
+
+    const normalizedOutputByteLimit = normalizeByteLimit(outputByteLimit);
 
     const terminalId = `term-${Date.now().toString(36)}-${(this.nextTerminalId += 1).toString(36)}`;
     let resolveExit: (status: TerminalExitStatus) => void = () => {};
@@ -105,7 +228,7 @@ export class TerminalManager {
       pty: ptyProcess,
       output: '',
       truncated: false,
-      outputByteLimit: normalizeByteLimit(outputByteLimit),
+      outputByteLimit: normalizedOutputByteLimit,
       exitStatus: null,
       released: false,
       exitPromise,
@@ -162,14 +285,22 @@ export class TerminalManager {
     return entry.exitPromise;
   }
 
+  dispose(): void {
+    for (const entry of this.terminals.values()) {
+      try {
+        entry.pty.kill();
+      } catch {
+        // Ignore races where the PTY has already exited.
+      }
+      entry.released = true;
+    }
+    this.terminals.clear();
+  }
+
   private appendOutput(terminalId: string, chunk: string): void {
     const entry = this.terminals.get(terminalId);
     if (!entry) return;
     const appended = `${entry.output}${chunk}`;
-    if (entry.outputByteLimit == null) {
-      entry.output = appended;
-      return;
-    }
     const truncated = truncateUtf8FromFront(appended, entry.outputByteLimit);
     entry.output = truncated.output;
     entry.truncated ||= truncated.truncated;

@@ -31,6 +31,8 @@ async function getMermaid(): Promise<typeof mermaidType> {
 function sanitizeMermaidSvg(svg: string): string {
   return DOMPurify.sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true },
+    ADD_TAGS: ['style', 'foreignObject'],
+    ADD_ATTR: ['xmlns'],
   });
 }
 

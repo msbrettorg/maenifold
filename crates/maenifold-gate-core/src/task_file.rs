@@ -36,7 +36,7 @@ impl TaskFileReader {
     pub fn read(path: &Path) -> Result<TaskDocument, GateError> {
         let text = fs::read_to_string(path)?;
         let lines: Vec<&str> = text.lines().collect();
-        let metadata = TaskMetadataParser::parse(&lines)?;
+        let metadata = TaskMetadataParser::parse_with_path(&lines, path)?;
         let records = TaskSectionParser::parse(&lines)?;
         Ok(TaskDocument { metadata, records })
     }

@@ -19,6 +19,18 @@ pub enum GateError {
     #[error("failed to parse task metadata: {0}")]
     TaskMetadataParse(String),
 
+    #[error(
+        "malformed task id in '{}': expected format {}, actual id '{}'",
+        path.display(),
+        expected_format,
+        actual_id
+    )]
+    MalformedTaskId {
+        path: PathBuf,
+        expected_format: &'static str,
+        actual_id: String,
+    },
+
     #[error("duplicate state id in pipeline definition: {0}")]
     DuplicateStageName(String),
 

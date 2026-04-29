@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 type Vec0Status = {
   platform: string;
@@ -26,17 +26,33 @@ type PermissionResolveDecisionPayload = {
   scope?: 'session' | 'agent' | 'forever';
 };
 
+type WritePermissionPromptPayload = {
+  requestId: string;
+  path: string;
+  sessionId?: string;
+  contentPreview: string;
+};
+
+type WritePermissionResolvePayload = {
+  requestId: string;
+  decision: 'allow_once' | 'allow_always' | 'reject';
+};
+
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   readTextFile: (params: { path: string; line?: number; limit?: number }) =>
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
-  writeTextFile: (params: { path: string; content: string; token?: string }) =>
+  writeTextFile: (params: { path: string; content: string; sessionId?: string }) =>
     ipcRenderer.invoke('acp:write-text-file', params) as Promise<Record<string, never>>,
-  issueWritePermissionToken: (params: { path: string; allowsAlways?: boolean }) =>
-    ipcRenderer.invoke('acp:write-permission:issue-token', params) as Promise<string>,
-  isWritePathAlwaysAllowed: (path: string) =>
-    ipcRenderer.invoke('acp:write-permission:check-always-allowed', path) as Promise<boolean>,
+  onWritePermissionPrompt: (handler: (payload: WritePermissionPromptPayload) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: WritePermissionPromptPayload) =>
+      handler(payload);
+    ipcRenderer.on('acp:write-permission:prompt', listener);
+    return () => ipcRenderer.removeListener('acp:write-permission:prompt', listener);
+  },
+  resolveWritePermission: (payload: WritePermissionResolvePayload) =>
+    ipcRenderer.invoke('acp:write-permission:resolve', payload) as Promise<{ ok: true }>,
   gateWriteTaskFile: (payload: { root: string; filename: string; content: string }) =>
     ipcRenderer.invoke('gate:write-task-file', payload) as Promise<{ path: string }>,
   checkEnvVarPresence: (names: string[]) =>

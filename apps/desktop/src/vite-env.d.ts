@@ -28,9 +28,17 @@ type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
   readTextFile?: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
-  writeTextFile?: (params: { path: string; content: string; token?: string }) => Promise<Record<string, never>>;
-  issueWritePermissionToken?: (params: { path: string; allowsAlways?: boolean }) => Promise<string>;
-  isWritePathAlwaysAllowed?: (path: string) => Promise<boolean>;
+  writeTextFile?: (params: { path: string; content: string; sessionId?: string }) => Promise<Record<string, never>>;
+  onWritePermissionPrompt?: (handler: (payload: {
+    requestId: string;
+    path: string;
+    sessionId?: string;
+    contentPreview: string;
+  }) => void) => () => void;
+  resolveWritePermission?: (payload: {
+    requestId: string;
+    decision: 'allow_once' | 'allow_always' | 'reject';
+  }) => Promise<{ ok: true }>;
   gateWriteTaskFile?: (payload: { root: string; filename: string; content: string }) => Promise<{ path: string }>;
   checkEnvVarPresence?: (names: string[]) => Promise<Record<string, boolean>>;
   configRead?: () => Promise<{ path: string; content: string; exists: boolean }>;

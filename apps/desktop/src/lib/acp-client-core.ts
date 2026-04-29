@@ -35,8 +35,6 @@ let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
 function createRejectAllWritesPolicy(): WritePermissionPolicy {
   return {
     currentModeId: () => null,
-    requestPermission: async () => 'reject',
-    pathAllowList: { has: () => false, add: () => {} },
     notifyPlanModeBlocked: () => {},
   };
 }

@@ -11,18 +11,11 @@ type ElectronReadFileSystemApi = {
 };
 
 type ElectronWriteFileSystemApi = {
-  writeTextFile: (params: { path: string; content: string; token?: string }) => Promise<Record<string, never>>;
-  issueWritePermissionToken: (params: { path: string; allowsAlways?: boolean }) => Promise<string>;
-  isWritePathAlwaysAllowed: (path: string) => Promise<boolean>;
+  writeTextFile: (params: { path: string; content: string; sessionId?: string }) => Promise<Record<string, never>>;
 };
 
-export type WritePermissionDecision = 'allow' | 'reject' | 'always-allow-path';
-
-type WritePermissionRequest = { path: string; content: string };
 export type WritePermissionPolicy = {
   currentModeId: () => string | null;
-  requestPermission: (request: WritePermissionRequest) => Promise<WritePermissionDecision>;
-  pathAllowList: { has: (path: string) => boolean; add: (path: string) => void };
   notifyPlanModeBlocked: (path: string) => void;
 };
 
@@ -47,16 +40,12 @@ function getElectronWriteFileSystemApi(): ElectronWriteFileSystemApi {
   const api = typeof window === 'undefined' ? undefined : window.electronAPI;
   if (
     !api ||
-    typeof api.writeTextFile !== 'function' ||
-    typeof api.issueWritePermissionToken !== 'function' ||
-    typeof api.isWritePathAlwaysAllowed !== 'function'
+    typeof api.writeTextFile !== 'function'
   ) {
     throw new Error('Electron ACP file access is unavailable in this environment');
   }
   return {
     writeTextFile: api.writeTextFile,
-    issueWritePermissionToken: api.issueWritePermissionToken,
-    isWritePathAlwaysAllowed: api.isWritePathAlwaysAllowed,
   };
 }
 
@@ -70,30 +59,10 @@ export async function handleWriteTextFileRequest(
     throw new WritePermissionRejectedError(params.path, 'plan mode');
   }
   const electronFileSystem = getElectronWriteFileSystemApi();
-  const isAlwaysAllowed =
-    policy.pathAllowList.has(params.path) ||
-    await electronFileSystem.isWritePathAlwaysAllowed(params.path);
-  let token: string | undefined;
-  if (!isAlwaysAllowed) {
-    const decision = await policy.requestPermission({
-      path: params.path,
-      content: params.content,
-    });
-    if (decision === 'reject') {
-      throw new WritePermissionRejectedError(params.path);
-    }
-    token = await electronFileSystem.issueWritePermissionToken({
-      path: params.path,
-      allowsAlways: decision === 'always-allow-path',
-    });
-    if (decision === 'always-allow-path') {
-      policy.pathAllowList.add(params.path);
-    }
-  }
   await electronFileSystem.writeTextFile({
     path: params.path,
     content: params.content,
-    token,
+    sessionId: params.sessionId,
   });
   return {};
 }

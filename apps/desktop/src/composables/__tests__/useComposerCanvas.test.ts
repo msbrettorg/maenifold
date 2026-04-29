@@ -87,7 +87,6 @@ function createView(overrides?: Partial<PipelineView>): PipelineView {
           inspectable: true,
           detail: {
             sessionId: 'acp-remote-1',
-            canReconnect: true,
           },
         },
         status: 'active',
@@ -105,7 +104,6 @@ function createView(overrides?: Partial<PipelineView>): PipelineView {
           inspectable: true,
           detail: {
             sessionId: 'tool-acp-ignored',
-            canReconnect: false,
           },
         },
         status: 'completed',
@@ -204,7 +202,7 @@ describe('useComposerCanvas double-click behavior', () => {
     expect(appShellStore.activeTab).toBe('pipelines');
   });
 
-  it('honors provenance canReconnect even when a non-tool ACP session id exists', async () => {
+  it('preserves inspect zoom even when a non-tool ACP session id exists', async () => {
     const sessionStore = useSessionStore();
     const zoomStore = useSemanticZoomStore();
 
@@ -223,7 +221,6 @@ describe('useComposerCanvas double-click behavior', () => {
               inspectable: true,
               detail: {
                 sessionId: 'acp-remote-1',
-                canReconnect: false,
               },
             },
             status: 'active',

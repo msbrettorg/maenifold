@@ -209,7 +209,6 @@ describe('pipeline view transforms', () => {
             inspectable: true,
             detail: {
               sessionId: 'acp-remote-1',
-              canReconnect: true,
             },
           },
           status: 'active',
@@ -224,9 +223,7 @@ describe('pipeline view transforms', () => {
           provenance: {
             agent: null,
             inspectable: true,
-            detail: {
-              canReconnect: false,
-            },
+            detail: {},
           },
           status: 'completed',
           attempts: 1,
@@ -250,7 +247,6 @@ describe('pipeline view transforms', () => {
         inspectable: true,
         detail: {
           sessionId: 'acp-remote-1',
-          canReconnect: true,
         },
       },
     });
@@ -259,9 +255,7 @@ describe('pipeline view transforms', () => {
       provenance: {
         agent: null,
         inspectable: true,
-        detail: {
-          canReconnect: false,
-        },
+        detail: {},
       },
       toolProvenance: {
         toolName: 'example.echo',

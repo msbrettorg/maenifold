@@ -26,7 +26,6 @@ interface ViewNodeBase {
 }
 
 export interface NodeProvenanceDetail {
-  [key: string]: unknown;
   sessionId?: string | null;
   thinkingSessionId?: string | null;
   parentWorkflowId?: string | null;

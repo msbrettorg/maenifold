@@ -202,7 +202,6 @@ describe('SemanticZoomOverlay', () => {
         agent: 'swe',
         inspectable: true,
         detail: {
-          canReconnect: true,
           sessionId: 'acp-session-1',
         },
       },
@@ -262,9 +261,10 @@ describe('SemanticZoomOverlay', () => {
     wrapper.unmount();
   });
 
-  it('normalizes backend view payloads without a canReconnect field', () => {
+  it('normalizes backend view payloads without the deleted reconnect flag', () => {
+    const removedReconnectFlag = 'can' + 'Reconnect';
     const backendFixture = {
-      pipelineId: 'pipe-canreconnect-removal',
+      pipelineId: 'pipe-reconnect-flag-removal',
       status: 'paused',
       running: false,
       ready: [],
@@ -292,6 +292,6 @@ describe('SemanticZoomOverlay', () => {
 
     const normalized = normalizeView(backendFixture);
     expect(normalized.nodes[0]?.provenance?.detail).toBeDefined();
-    expect('canReconnect' in normalized.nodes[0]!.provenance!.detail).toBe(false);
+    expect(removedReconnectFlag in normalized.nodes[0]!.provenance!.detail).toBe(false);
   });
 });

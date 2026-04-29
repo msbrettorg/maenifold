@@ -14,11 +14,13 @@ import { homedir } from 'node:os';
 import * as path from 'node:path';
 import { ipcMain } from 'electron';
 import {
-  consumeWriteToken,
   isAlwaysAllowed,
-  issueWriteToken,
   rememberAlwaysAllowed,
-} from './write-permission-tokens.js';
+} from './write-permission-allowlist.js';
+import {
+  requestWritePermission,
+  resolveWritePermissionPrompt,
+} from './write-permission-prompts.js';
 
 const MAENIFOLD_MEMORY_ROOT = path.join(homedir(), 'maenifold', 'memory');
 
@@ -31,7 +33,7 @@ interface ReadTextFileParams {
 interface WriteTextFileParams {
   path?: unknown;
   content?: unknown;
-  token?: unknown;
+  sessionId?: unknown;
 }
 
 class WritePermissionRejectedError extends Error {
@@ -112,16 +114,8 @@ function sliceContent(content: string, line: number | null, limit: number | null
 }
 
 export function registerAcpFileSystemHandlers(): void {
-  ipcMain.handle('acp:write-permission:issue-token', async (_event, params: {
-    path?: unknown;
-    allowsAlways?: unknown;
-  }) => {
-    const filePath = requireAbsolutePath(params?.path);
-    return issueWriteToken(filePath, params?.allowsAlways === true);
-  });
-
-  ipcMain.handle('acp:write-permission:check-always-allowed', async (_event, filePath: unknown) =>
-    isAlwaysAllowed(requireAbsolutePath(filePath))
+  ipcMain.handle('acp:write-permission:resolve', async (_event, payload: unknown) =>
+    resolveWritePermissionPrompt(payload)
   );
 
   ipcMain.handle('acp:read-text-file', async (_event, params: ReadTextFileParams) => {
@@ -138,20 +132,25 @@ export function registerAcpFileSystemHandlers(): void {
     if (typeof params?.content !== 'string') {
       throw new Error('ACP write content must be a string');
     }
-    if (!isAlwaysAllowed(filePath)) {
-      if (typeof params?.token !== 'string') {
-        throw new WritePermissionRejectedError(filePath, 'write requires permission token');
-      }
-      const tokenResult = consumeWriteToken(params.token, filePath);
-      if (!tokenResult.ok) {
-        throw new WritePermissionRejectedError(filePath, tokenResult.reason);
-      }
-      if (tokenResult.allowsAlways) {
-        rememberAlwaysAllowed(filePath);
-      }
-    }
     const resolvedPath = await requireNonSymlinkWritePath(filePath);
     requireWriteWithinMemory(resolvedPath);
+    if (!isAlwaysAllowed(resolvedPath)) {
+      const decision = await requestWritePermission(
+        _event.sender,
+        filePath,
+        params.content,
+        typeof params?.sessionId === 'string' ? params.sessionId : undefined
+      ).catch((error) => {
+        const reason = error instanceof Error ? error.message : String(error);
+        throw new WritePermissionRejectedError(filePath, reason);
+      });
+      if (decision === 'reject') {
+        throw new WritePermissionRejectedError(filePath, 'user rejected');
+      }
+      if (decision === 'allow_always') {
+        rememberAlwaysAllowed(resolvedPath);
+      }
+    }
     await writeFile(resolvedPath, params.content, 'utf8');
     return {};
   });

@@ -6,11 +6,14 @@ import { usePipelineStore } from '../stores/pipeline'
 import { useWorkflowLibraryStore } from '../stores/workflow-library'
 import EmptyState from './EmptyState.vue'
 import WorkflowBrowser from './WorkflowBrowser.vue'
+import WorkflowLiveProgress from './WorkflowLiveProgress.vue'
 import WorkflowStepTimeline from './WorkflowStepTimeline.vue'
 import WorkflowStepInspector from './WorkflowStepInspector.vue'
+import { useWorkflowStore } from '../stores/workflow'
 
 const pipelineStore = usePipelineStore()
 const store = useWorkflowLibraryStore()
+const workflowStore = useWorkflowStore()
 const {
   currentDefinition,
   currentId,
@@ -22,6 +25,10 @@ const {
 const selectedStepId = ref<string | null>(null)
 
 const displayedDefinition = computed(() => draftDefinition.value ?? currentDefinition.value)
+const showLiveProgress = computed(() => (
+  workflowStore.activeRunWorkflowId === currentId.value &&
+  workflowStore.selectedSessionId !== null
+))
 const isSelectionVisibleInFilter = computed(() => (
   currentId.value !== null &&
   filteredWorkflows.value.some((workflow) => workflow.id === currentId.value)
@@ -83,6 +90,12 @@ onMounted(async () => {
           description="Choose a workflow from the browser to view its steps and details."
         />
       </div>
+      <WorkflowLiveProgress
+        v-else-if="showLiveProgress"
+        class="h-full min-w-0 flex-1"
+        :workflow-name="displayedDefinition?.name ?? currentId ?? 'Workflow'"
+        :workflow="displayedDefinition"
+      />
       <template v-else>
         <WorkflowStepTimeline
           class="h-full min-w-0 flex-1 overflow-y-auto bg-bg-app"

@@ -65,7 +65,7 @@ pub async fn execute_runtime(
         };
     }
 
-    let adapter = match build_stdio_adapter(&normalized) {
+    let adapter = match build_stdio_adapter(role_name) {
         Ok(Some(a)) => a,
         Ok(None) => {
             let output = format!("unsupported runtime kind: {}", normalized);

@@ -238,3 +238,33 @@ pub(super) fn clip(s: &str, n: usize) -> String {
 pub(super) fn acp_log(event: &str, payload: Value) {
     eprintln!("[jockey.acp] {} {} {}", now_ms(), event, payload);
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{build_stdio_adapter_with_root, clear_adapter_cache};
+
+    #[test]
+    fn stdio_adapter_resolves_agent_display_name_not_runtime_kind() {
+        let root = tempfile::tempdir().expect("create temp config root");
+        std::fs::write(
+            root.path().join("maenifold.json"),
+            r#"{"agents":{"Codex":{"command":"/some/path/to/codex-acp --flag"}}}"#,
+        )
+        .expect("write maenifold.json");
+        let root = root.path().to_path_buf();
+
+        clear_adapter_cache();
+        let adapter = build_stdio_adapter_with_root("Codex", &root)
+            .expect("display-name key should resolve")
+            .expect("adapter should exist");
+
+        assert_eq!(adapter.binary, "/some/path/to/codex-acp");
+        assert_eq!(adapter.args, vec!["--flag"]);
+
+        let err = match build_stdio_adapter_with_root("codex-cli", &root) {
+            Ok(_) => panic!("runtime kind should not match display-name keyed agents"),
+            Err(err) => err,
+        };
+        assert_eq!(err, "Agent 'codex-cli' not found in maenifold.json");
+    }
+}

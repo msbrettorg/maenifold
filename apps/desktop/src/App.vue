@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useOnboarding } from './composables/useOnboarding';
 import OnboardingWizard from './components/OnboardingWizard.vue';
@@ -17,7 +17,9 @@ import WorkflowWorkspace from './components/WorkflowWorkspace.vue';
 import PipelineView from './components/PipelineView.vue';
 import GateView from './components/GateView.vue';
 import SchedulesTab from './components/SchedulesTab.vue';
-import PermissionDialog from './components/PermissionDialog.vue';
+import PermissionDecisionDialog from './components/PermissionDecisionDialog.vue';
+import PermissionManagementDialog from './components/PermissionManagementDialog.vue';
+import PermissionGhostNotifications from './components/PermissionGhostNotifications.vue';
 import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
@@ -33,6 +35,7 @@ const configStore = useConfigStore();
 const sessionStore = useSessionStore();
 const folderPickerStore = useFolderPickerStore();
 const appShellStore = useAppShellStore();
+const permissionManagementOpen = ref(false);
 const { isOpen: isFolderPickerOpen, initialPath: folderPickerInitialPath } = storeToRefs(folderPickerStore);
 const { activeTab } = storeToRefs(appShellStore);
 
@@ -98,7 +101,20 @@ const { isFirstRun, checkFirstRun, checkFirstRunWithConfig } = useOnboarding();
 
 onMounted(async () => {
   await checkFirstRunWithConfig();
+  window.addEventListener('keydown', handlePermissionManagementShortcut);
 });
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', handlePermissionManagementShortcut);
+});
+
+function handlePermissionManagementShortcut(event: KeyboardEvent): void {
+  if (!event.metaKey || !event.shiftKey || event.key.toLowerCase() !== 'p') {
+    return;
+  }
+  event.preventDefault();
+  permissionManagementOpen.value = true;
+}
 
 function onOnboardingComplete(): void {
   // Re-sync local gate state from persisted storage. The wizard's composable
@@ -211,7 +227,7 @@ const showAgentsChat = computed(
     </div>
 
     <!-- Permission Dialog -->
-    <PermissionDialog
+    <PermissionDecisionDialog
       v-if="pendingPermission"
       :request="pendingPermission"
       :total-pending="pendingPermissionCount"
@@ -235,6 +251,11 @@ const showAgentsChat = computed(
     />
     <ConfirmDialog />
     <PromptDialog />
+    <PermissionManagementDialog
+      :open="permissionManagementOpen"
+      @close="permissionManagementOpen = false"
+    />
+    <PermissionGhostNotifications />
 
     <Toaster
       theme="dark"

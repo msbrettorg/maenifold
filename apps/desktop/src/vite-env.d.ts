@@ -38,6 +38,15 @@ type ElectronApi = {
   vec0Download?: () => Promise<Vec0Status>;
   voiceCheck?: () => Promise<ElectronVoiceCheckResult>;
   voiceLaunch?: () => Promise<ElectronVoiceLaunchResult>;
+  permissionTryAutoDecide?: (payload: unknown) => Promise<{
+    decision: 'allow' | 'reject' | null;
+    event: import('./lib/permission-ledger/ledger').LastAutoPermissionDecision | null;
+  }>;
+  permissionRecordDecision?: (payload: unknown) => Promise<import('./lib/permission-ledger/ledger').PersistedPermissionDecision>;
+  permissionListDecisions?: () => Promise<import('./lib/permission-ledger/ledger').PersistedPermissionDecision[]>;
+  permissionListAuditEvents?: () => Promise<import('./lib/permission-ledger/ledger').PermissionAuditEvent[]>;
+  permissionRevokeDecision?: (id: number) => Promise<void>;
+  permissionResetDecisions?: () => Promise<void>;
 };
 
 type Vec0DownloadProgress = {

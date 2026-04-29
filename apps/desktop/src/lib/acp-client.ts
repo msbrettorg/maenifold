@@ -90,7 +90,11 @@ export async function createAcpClient(
   agentInstance: AgentInstance,
   options: { onStderr?: (line: string) => void } = {},
 ): Promise<AcpClientBridge> {
-  const client = new AcpClientBridge(agentInstance.id, agentInstance.name, new PermissionHandler());
+  const client = new AcpClientBridge(
+    agentInstance.id,
+    agentInstance.name,
+    new PermissionHandler(undefined, { agent: agentInstance.name })
+  );
   if (options.onStderr) {
     client.onStderr = options.onStderr;
   }

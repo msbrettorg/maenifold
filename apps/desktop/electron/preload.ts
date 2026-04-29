@@ -15,6 +15,11 @@ type Vec0Status = {
   } | null;
 };
 
+type PermissionLedgerPayload = {
+  request: unknown;
+  context: unknown;
+};
+
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
@@ -47,6 +52,16 @@ const electronAPI = {
     alreadyRunning?: boolean;
     pid?: number;
   }>,
+  permissionTryAutoDecide: (payload: PermissionLedgerPayload) =>
+    ipcRenderer.invoke('permission:try-auto-decide', payload) as Promise<unknown>,
+  permissionRecordDecision: (payload: PermissionLedgerPayload) =>
+    ipcRenderer.invoke('permission:record-decision', payload) as Promise<unknown>,
+  permissionListDecisions: () => ipcRenderer.invoke('permission:list-decisions') as Promise<unknown[]>,
+  permissionListAuditEvents: () =>
+    ipcRenderer.invoke('permission:list-audit-events') as Promise<unknown[]>,
+  permissionRevokeDecision: (id: number) =>
+    ipcRenderer.invoke('permission:revoke-decision', id) as Promise<void>,
+  permissionResetDecisions: () => ipcRenderer.invoke('permission:reset-decisions') as Promise<void>,
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

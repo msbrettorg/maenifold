@@ -107,6 +107,11 @@ function terminalExitCode(block: Extract<ToolCallContentBlock, { type: 'terminal
   return block.exitStatus?.exitCode ?? null;
 }
 
+function terminalId(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
+  const id = (block as { terminalId?: unknown }).terminalId;
+  return typeof id === 'string' && id.length > 0 ? id : null;
+}
+
 function terminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
   const exitCode = terminalExitCode(block);
   if (exitCode != null) return `exit ${exitCode}`;
@@ -196,8 +201,24 @@ function blockJson(block: ToolCallContentBlock): JsonValue {
 </span></code></pre>
         </div>
         <div v-else-if="isTerminalBlock(block)" class="flex flex-col gap-1.5">
+          <div
+            v-if="terminalId(block)"
+            class="flex flex-wrap items-center gap-2 rounded bg-surface px-3 py-2 text-sm text-text-secondary"
+            data-testid="terminal-reference"
+          >
+            <span class="font-medium text-text-primary">Terminal: {{ terminalId(block) }}</span>
+            <Badge :variant="terminalBadgeVariant(block)" class="text-xs">
+              {{ terminalStatusLabel(block) ?? 'status pending' }}
+            </Badge>
+            <span class="text-xs">Live terminal output is referenced by terminalId.</span>
+          </div>
           <div class="flex items-center gap-2">
-            <Badge v-if="terminalStatusLabel(block)" :variant="terminalBadgeVariant(block)" class="text-xs" data-testid="terminal-exit-code">
+            <Badge
+              v-if="terminalStatusLabel(block) && !terminalId(block)"
+              :variant="terminalBadgeVariant(block)"
+              class="text-xs"
+              data-testid="terminal-exit-code"
+            >
               {{ terminalStatusLabel(block) }}
             </Badge>
           </div>

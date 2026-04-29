@@ -44,8 +44,7 @@ const emit = defineEmits<{
 }>();
 
 function processLabel(task: GateTask) {
-  const pipeline = getTaskPipelineLabel(task);
-  return task.location === 'done' ? `${pipeline} done` : pipeline;
+  return getTaskPipelineLabel(task);
 }
 
 function pipelineStaleTitle(task: GateTask) {

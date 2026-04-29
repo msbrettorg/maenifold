@@ -115,6 +115,8 @@ fn sync_reports_counts_without_requiring_standalone_gate() {
 
     assert_eq!(value["taskCount"], 1);
     assert_eq!(value["synced"], true);
+    let metadata = fs::metadata(root.path().join(".gate/gate.db")).expect("gate.db metadata");
+    assert!(metadata.len() > 0);
 }
 
 #[test]
@@ -122,6 +124,33 @@ fn builtin_definitions_are_cycle_free_gate_core_assets() {
     let definition = resolve_definition(Path::new("/"), "slc").expect("slc definition");
     assert_eq!(definition.initial_state().expect("initial"), "pending");
     assert!(definition.find_state("done").expect("done").terminal);
+}
+
+#[test]
+fn status_error_rows_preserve_task_title_and_pipeline() {
+    let root = new_root();
+    write_task(root.path(), "T-237.g", "sdd");
+    fs::rename(
+        task_path(root.path(), "T-237.g", "todo"),
+        task_path(root.path(), "T-237.g", "done"),
+    )
+    .expect("move malformed archive fixture");
+
+    let rows = GateLifecycle::status(StatusArgs {
+        context: context(root.path()),
+        filter: default_filter(),
+    })
+    .expect("status")
+    .as_array()
+    .expect("array")
+    .clone();
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["state"], "error");
+    assert_eq!(rows[0]["title"], "T-237.g task");
+    assert_eq!(rows[0]["pipeline"], "sdd");
+    assert_ne!(rows[0]["title"], "[error] T-237.g");
+    assert_ne!(rows[0]["pipeline"], "unknown");
 }
 
 fn new_root() -> TempDir {

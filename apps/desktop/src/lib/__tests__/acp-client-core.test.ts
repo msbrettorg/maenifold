@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
+import { nextTick, type ComputedRef } from 'vue';
 import { AcpClientBridgeCore } from '../acp-client-core';
+import { AcpClientBridge } from '../acp-client';
 import { PermissionHandler } from '../acp-permissions';
 import { useTrafficStore } from '../../stores/traffic';
 
@@ -89,6 +91,53 @@ class TestAcpClientBridgeCore extends AcpClientBridgeCore {
   }
 }
 
+type TerminalState = {
+  terminalId: string;
+  output: string;
+  truncated: boolean;
+  released: boolean;
+  exitStatus?: {
+    exitCode?: number | null;
+    signal?: string | null;
+  } | null;
+};
+
+type UseTerminalsStoreModule = {
+  useTerminalsStore: () => {
+    setTerminal: (terminalId: string, state: TerminalState) => void;
+    getTerminalState: (terminalId: string) => ComputedRef<TerminalState | null>;
+  };
+};
+
+type TerminalBridgeMethods = {
+  terminalCreate?: (params: {
+    sessionId: string;
+    command: string;
+    args?: string[];
+    env?: Array<{ name: string; value: string }>;
+    cwd?: string;
+    outputByteLimit?: number;
+  }) => Promise<{ terminalId: string }>;
+  terminalOutput?: (params: {
+    sessionId: string;
+    terminalId: string;
+  }) => Promise<{
+    output: string;
+    truncated: boolean;
+    exitStatus?: { exitCode: number | null; signal: string | null };
+  }>;
+  terminalWaitForExit?: (params: {
+    sessionId: string;
+    terminalId: string;
+  }) => Promise<{ exitCode: number | null; signal: string | null }>;
+  terminalKill?: (params: { sessionId: string; terminalId: string }) => Promise<unknown>;
+  terminalRelease?: (params: { sessionId: string; terminalId: string }) => Promise<unknown>;
+};
+
+async function loadUseTerminalsStoreModule(): Promise<UseTerminalsStoreModule> {
+  return vi.importActual<UseTerminalsStoreModule>('../../stores/useTerminalsStore');
+}
+
 describe('AcpClientBridgeCore request hardening', () => {
   const originalWebSocket = globalThis.WebSocket;
 
@@ -98,6 +147,18 @@ describe('AcpClientBridgeCore request hardening', () => {
 
   async function connectBridge(agentId = 'agent-1') {
     const bridge = new TestAcpClientBridgeCore(agentId, agentId, new PermissionHandler());
+    const connectPromise = bridge.connect();
+    const socket = getLatestSocket();
+    if (!socket) {
+      throw new Error('Expected WebSocket to be created');
+    }
+    socket.triggerOpen();
+    await connectPromise;
+    return { bridge, socket };
+  }
+
+  async function connectAcpBridge(agentId = 'agent-1') {
+    const bridge = new AcpClientBridge(agentId, agentId, new PermissionHandler());
     const connectPromise = bridge.connect();
     const socket = getLatestSocket();
     if (!socket) {
@@ -224,5 +285,220 @@ describe('AcpClientBridgeCore request hardening', () => {
     const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
 
     expect(bridge.timeoutFor('session/set_config_option')).toBe(30 * 60 * 1000);
+  });
+
+  it('uses a 30 minute timeout for terminal/wait_for_exit', () => {
+    const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
+
+    expect(bridge.timeoutFor('terminal/wait_for_exit')).toBe(30 * 60 * 1000);
+  });
+
+  it('terminalCreate sends the ACP terminal/create request and returns a terminalId', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalCreate = (bridge as unknown as TerminalBridgeMethods).terminalCreate;
+
+    expect(terminalCreate).toBeTypeOf('function');
+
+    const promise = terminalCreate!.call(bridge, {
+      sessionId: 'sess-1',
+      command: 'npm',
+      args: ['test'],
+      env: [{ name: 'NODE_ENV', value: 'test' }],
+      cwd: '/repo',
+      outputByteLimit: 1024,
+    });
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'terminal/create',
+      params: {
+        sessionId: 'sess-1',
+        command: 'npm',
+        args: ['test'],
+        env: [{ name: 'NODE_ENV', value: 'test' }],
+        cwd: '/repo',
+        outputByteLimit: 1024,
+      },
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: { terminalId: 'term-1' },
+    }));
+
+    await expect(promise).resolves.toEqual({ terminalId: 'term-1' });
+  });
+
+  it('terminalOutput returns buffered output and exit status', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalOutput = (bridge as unknown as TerminalBridgeMethods).terminalOutput;
+
+    expect(terminalOutput).toBeTypeOf('function');
+
+    const promise = terminalOutput!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'terminal/output',
+      params: { sessionId: 'sess-1', terminalId: 'term-1' },
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: {
+        output: 'hello\n',
+        truncated: false,
+        exitStatus: { exitCode: 0, signal: null },
+      },
+    }));
+
+    await expect(promise).resolves.toEqual({
+      output: 'hello\n',
+      truncated: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
+  });
+
+  it('terminalWaitForExit returns exitCode and signal', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalWaitForExit = (bridge as unknown as TerminalBridgeMethods).terminalWaitForExit;
+
+    expect(terminalWaitForExit).toBeTypeOf('function');
+
+    const promise = terminalWaitForExit!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'terminal/wait_for_exit',
+      params: { sessionId: 'sess-1', terminalId: 'term-1' },
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: { exitCode: 0, signal: null },
+    }));
+
+    await expect(promise).resolves.toEqual({ exitCode: 0, signal: null });
+  });
+
+  it('terminalKill sends an ACP terminal/kill request', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalKill = (bridge as unknown as TerminalBridgeMethods).terminalKill;
+
+    expect(terminalKill).toBeTypeOf('function');
+
+    const promise = terminalKill!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'terminal/kill',
+      params: { sessionId: 'sess-1', terminalId: 'term-1' },
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: {},
+    }));
+
+    await expect(promise).resolves.toEqual({});
+  });
+
+  it('terminalRelease acknowledges release and marks the store entry released', async () => {
+    const { useTerminalsStore } = await loadUseTerminalsStoreModule();
+    const store = useTerminalsStore();
+    store.setTerminal('term-1', {
+      terminalId: 'term-1',
+      output: 'done',
+      truncated: false,
+      released: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalRelease = (bridge as unknown as TerminalBridgeMethods).terminalRelease;
+
+    expect(terminalRelease).toBeTypeOf('function');
+
+    const promise = terminalRelease!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'terminal/release',
+      params: { sessionId: 'sess-1', terminalId: 'term-1' },
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: {},
+    }));
+
+    await expect(promise).resolves.toEqual({});
+    await nextTick();
+    expect(store.getTerminalState('term-1').value?.released).toBe(true);
+  });
+
+  it('terminalOutput surfaces unknown terminalId errors', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalOutput = (bridge as unknown as TerminalBridgeMethods).terminalOutput;
+
+    expect(terminalOutput).toBeTypeOf('function');
+
+    const promise = terminalOutput!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'missing-terminal',
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      error: { code: -32001, message: 'Unknown terminalId: missing-terminal' },
+    }));
+
+    await expect(promise).rejects.toThrow('Unknown terminalId: missing-terminal');
+  });
+
+  it('terminalCreate rejects when sessionId is missing', async () => {
+    const { bridge } = await connectAcpBridge();
+    const terminalCreate = (bridge as unknown as TerminalBridgeMethods).terminalCreate;
+
+    expect(terminalCreate).toBeTypeOf('function');
+
+    await expect(
+      terminalCreate!.call(bridge, {
+        sessionId: '',
+        command: 'npm',
+      })
+    ).rejects.toThrow(/session/i);
+  });
+
+  it('terminalWaitForExit rejects malformed exit responses', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalWaitForExit = (bridge as unknown as TerminalBridgeMethods).terminalWaitForExit;
+
+    expect(terminalWaitForExit).toBeTypeOf('function');
+
+    const promise = terminalWaitForExit!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: { exitCode: '0', signal: 9 },
+    }));
+
+    await expect(promise).rejects.toThrow(/exit/i);
   });
 });

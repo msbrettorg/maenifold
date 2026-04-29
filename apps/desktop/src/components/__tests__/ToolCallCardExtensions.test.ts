@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { mount } from '@vue/test-utils';
-import { createPinia, setActivePinia } from 'pinia';
+import { createPinia, setActivePinia, type Pinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { nextTick, reactive, toRef } from 'vue';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
@@ -15,6 +15,23 @@ const base64 = 'aGVsbG8=';
 
 vi.mock('vue-sonner', () => ({ toast: { error: vi.fn() } }));
 
+type TerminalState = {
+  terminalId: string;
+  output: string;
+  truncated: boolean;
+  released: boolean;
+  exitStatus?: {
+    exitCode?: number | null;
+    signal?: string | null;
+  } | null;
+};
+
+type UseTerminalsStoreModule = {
+  useTerminalsStore: () => {
+    setTerminal: (terminalId: string, state: TerminalState) => void;
+  };
+};
+
 function createToolCall(overrides: Partial<ToolCallInfo> = {}): ToolCallInfo {
   return {
     toolCallId: 'tool-1',
@@ -26,11 +43,35 @@ function createToolCall(overrides: Partial<ToolCallInfo> = {}): ToolCallInfo {
   };
 }
 
-function mountExtensions(toolCall: ToolCallInfo) {
+async function loadUseTerminalsStoreModule(): Promise<UseTerminalsStoreModule> {
+  return vi.importActual<UseTerminalsStoreModule>('../../stores/useTerminalsStore');
+}
+
+async function seedTerminalState(
+  pinia: Pinia,
+  terminalId: string,
+  overrides: Partial<TerminalState> = {}
+) {
+  const { useTerminalsStore } = await loadUseTerminalsStoreModule();
+  setActivePinia(pinia);
+  const store = useTerminalsStore();
+  store.setTerminal(terminalId, {
+    terminalId,
+    output: '',
+    truncated: false,
+    released: false,
+    exitStatus: null,
+    ...overrides,
+  });
+  await nextTick();
+}
+
+function mountExtensions(toolCall: ToolCallInfo, pinia: Pinia = createPinia()) {
+  setActivePinia(pinia);
   return mount(ToolCallCardExtensions, {
     props: { toolCall, expanded: true },
     global: {
-      plugins: [createPinia()],
+      plugins: [pinia],
       stubs: {
         KnowledgeNoteRenderer: { props: ['content'], template: '<article data-testid="knowledge-note">{{ content }}</article>' },
         MarkdownView: { props: ['content'], template: '<article data-testid="markdown-view">{{ content }}</article>' },
@@ -186,6 +227,92 @@ describe('ToolCallCardExtensions tool-call content blocks', () => {
     expect(terminal.exists()).toBe(true);
     expect(terminal.text()).toContain('Terminal: term-1');
     expect(terminal.text().trim().length).toBeGreaterThan(0);
+  });
+
+  it('renders actual terminal output when a terminalId matches store state', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', { output: 'running tests...\npass' });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    expect(wrapper.find('[data-testid="terminal-output"]').text()).toContain('running tests...\npass');
+    expect(wrapper.text()).not.toContain('Live terminal output is referenced by terminalId.');
+  });
+
+  it('keeps the placeholder when no matching terminalId exists in the store', () => {
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'missing-term' }],
+    }));
+
+    expect(wrapper.find('[data-testid="terminal-reference"]').text()).toContain('Live terminal output is referenced by terminalId.');
+  });
+
+  it('continues rendering retained output after release', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', {
+      output: 'retained output',
+      released: true,
+    });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    expect(wrapper.find('[data-testid="terminal-output"]').text()).toContain('retained output');
+  });
+
+  it('shows an exited 0 status indicator for successful terminal completion', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', {
+      output: 'done',
+      exitStatus: { exitCode: 0, signal: null },
+    });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    expect(wrapper.text().toLowerCase()).toContain('exited 0');
+  });
+
+  it('shows a non-zero exit status indicator for failed terminal completion', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', {
+      output: 'boom',
+      exitStatus: { exitCode: 23, signal: null },
+    });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    expect(wrapper.text().toLowerCase()).toContain('exited 23');
+  });
+
+  it('shows a truncation banner for truncated terminal output', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', {
+      output: 'tail output',
+      truncated: true,
+    });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    expect(wrapper.find('[data-testid="terminal-truncated"]').text().toLowerCase()).toContain('truncated');
+  });
+
+  it('strips ANSI escape codes before rendering terminal output', async () => {
+    const pinia = createPinia();
+    await seedTerminalState(pinia, 'term-1', {
+      output: '\u001b[31mred\u001b[0m',
+    });
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }), pinia);
+
+    const rendered = wrapper.find('[data-testid="terminal-output"]').text();
+    expect(rendered).toContain('red');
+    expect(rendered).not.toContain('\u001b[31m');
+    expect(rendered).not.toContain('\u001b[0m');
   });
 
   it('renders fallback for terminal block with empty terminalId', () => {

@@ -8,6 +8,11 @@ import { registerConfigHandlers } from './config-file.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 import { registerPermissionLedgerHandlers } from './permission-ledger.js';
+import {
+  TerminalManager,
+  validateCreateTerminalParams,
+  validateTerminalOperationParams,
+} from './terminalManager.js';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -19,6 +24,7 @@ const launchctlDomain = process.platform === 'darwin' && typeof process.getuid =
   : null;
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+const terminalManager = new TerminalManager(() => mainWindow?.webContents ?? null);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function isServiceHealthy(url: string): Promise<boolean> {
   try {
@@ -206,6 +212,26 @@ function registerIpcHandlers(): void {
     }
     return result;
   });
+  ipcMain.handle('terminal:create', (_event, params) => {
+    const { sessionId: _sessionId, ...terminalParams } = validateCreateTerminalParams(params);
+    return terminalManager.createTerminal(terminalParams);
+  });
+  ipcMain.handle('terminal:output', (_event, params) => {
+    const { terminalId } = validateTerminalOperationParams(params);
+    return terminalManager.getOutput(terminalId);
+  });
+  ipcMain.handle('terminal:wait_for_exit', (_event, params) => {
+    const { terminalId } = validateTerminalOperationParams(params);
+    return terminalManager.waitForExit(terminalId);
+  });
+  ipcMain.handle('terminal:kill', (_event, params) => {
+    const { terminalId } = validateTerminalOperationParams(params);
+    return terminalManager.kill(terminalId);
+  });
+  ipcMain.handle('terminal:release', (_event, params) => {
+    const { terminalId } = validateTerminalOperationParams(params);
+    return terminalManager.release(terminalId);
+  });
   registerAcpFileSystemHandlers();
   registerConfigHandlers();
   registerVec0Handlers();
@@ -216,6 +242,7 @@ app.on('render-process-gone', async (_event, _webContents, details) => {
   console.error('[maenifold] Renderer process gone:', details.reason, details.exitCode);
   if (details.reason !== 'clean-exit') {
     mainWindow = null;
+    terminalManager.dispose();
     await createWindow();
   }
 });
@@ -225,12 +252,14 @@ app.on('child-process-gone', (_event, details) => {
 process.on('uncaughtException', (error) => {
   console.error('[maenifold] Uncaught exception:', error);
   appendFileSync(join(app.getPath('userData'), 'crash.log'), `[${new Date().toISOString()}] uncaughtException: ${error.stack || error}\n`);
+  terminalManager.dispose();
   process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('[maenifold] Unhandled rejection:', reason);
 });
-app.on('before-quit', () => { isQuitting = true; });
+app.on('before-quit', () => { isQuitting = true; terminalManager.dispose(); });
+app.on('will-quit', () => { terminalManager.dispose(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) await createWindow(); else mainWindow?.show(); });
 app.whenReady().then(async () => {

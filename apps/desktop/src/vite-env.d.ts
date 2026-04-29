@@ -63,6 +63,28 @@ type ElectronApi = {
   permissionRevokeDecision?: (id: number) => Promise<void>;
   permissionResetConfirmPrepare?: () => Promise<string>;
   permissionResetDecisions?: (token: string) => Promise<void>;
+  terminal?: {
+    create?: (params: {
+      sessionId?: string;
+      command: string;
+      args?: string[];
+      env?: Array<{ name: string; value: string }>;
+      cwd?: string | null;
+      outputByteLimit?: number | null;
+    }) => Promise<{ terminalId: string; outputByteLimit: number }>;
+    getOutput?: (params: { sessionId?: string; terminalId: string }) => Promise<{
+      output: string;
+      truncated: boolean;
+      exitStatus?: { exitCode?: number | null; signal?: string | null } | null;
+    }>;
+    waitForExit?: (params: { sessionId?: string; terminalId: string }) => Promise<{
+      exitCode?: number | null;
+      signal?: string | null;
+    }>;
+    kill?: (params: { sessionId?: string; terminalId: string }) => Promise<Record<string, never>>;
+    release?: (params: { sessionId?: string; terminalId: string }) => Promise<Record<string, never>>;
+    onOutput?: (handler: (terminalId: string, chunk: string) => void) => () => void;
+  };
 };
 
 type Vec0DownloadProgress = {

@@ -24,6 +24,25 @@ function request(path = '/repo/file.txt', agent = 'agent-a'): { request: Permiss
   };
 }
 
+function otherRequest(title: string): PermissionRequest {
+  return {
+    sessionId: 'session-1',
+    toolCall: {
+      toolCallId: 'tool-1',
+      title,
+      kind: 'other',
+      status: 'pending',
+      rawInput: {},
+    },
+    options: [
+      { optionId: 'allow-once', kind: 'allow_once', name: 'Allow once' },
+      { optionId: 'allow-always', kind: 'allow_always', name: 'Allow always' },
+      { optionId: 'reject-once', kind: 'reject_once', name: 'Reject once' },
+      { optionId: 'reject-always', kind: 'reject_always', name: 'Reject always' },
+    ],
+  };
+}
+
 describe('NodeSqlitePermissionLedger', () => {
   it('writes and reads persisted allow decisions', () => {
     const ledger = new NodeSqlitePermissionLedger(':memory:');
@@ -78,5 +97,17 @@ describe('NodeSqlitePermissionLedger', () => {
     ledger.revokeDecision(saved.id);
 
     expect(ledger.tryAutoDecide(input.request, { agent: input.agent, sessionId: 'session-1' })).toBeNull();
+  });
+
+  it('auto-allows other requests with different titles for the same agent', () => {
+    const ledger = new NodeSqlitePermissionLedger(':memory:');
+
+    ledger.recordDecision(otherRequest('A'), {
+      agent: 'agent-a',
+      scope: 'agent',
+      decision: 'allow',
+    });
+
+    expect(ledger.tryAutoDecide(otherRequest('B'), { agent: 'agent-a', sessionId: 'session-1' })).toBe('allow');
   });
 });

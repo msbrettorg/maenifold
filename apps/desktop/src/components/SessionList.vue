@@ -85,7 +85,7 @@ function handleResume(session: SavedSession) {
   }
 
   const liveSession = liveSessionsByRemoteId.value.get(session.sessionId);
-  if (liveSession) {
+  if (liveSession?.isConnected) {
     sessionStore.setActiveSession(liveSession.localId);
     return;
   }

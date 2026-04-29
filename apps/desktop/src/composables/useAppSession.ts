@@ -181,7 +181,7 @@ export function useAppSession({
   async function handleResumeSession(session: SavedSession) {
     try {
       for (const [localId, liveSession] of sessionStore.sessions.entries()) {
-        if (liveSession.session?.sessionId === session.sessionId) {
+        if (liveSession.session?.sessionId === session.sessionId && liveSession.isConnected) {
           sessionStore.setActiveSession(localId);
           selectedAgent.value = session.agentName;
           writeLastUsedAgent(session.agentName);

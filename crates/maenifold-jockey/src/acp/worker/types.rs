@@ -140,6 +140,7 @@ pub enum WorkerMsg {
         app_session_id: String,
         prompt: String,
         context: Vec<(String, String)>,
+        prompt_blocks: Option<Vec<acp::ContentBlock>>,
         cwd: String,
         delta_tx: mpsc::Sender<AcpEvent>,
         result_tx: oneshot::Sender<AcpExecuteResult>,

@@ -32,6 +32,7 @@ pub(crate) async fn handle_execute(
     app_session_id: String,
     prompt: String,
     context: Vec<(String, String)>,
+    prompt_blocks: Option<Vec<acp::ContentBlock>>,
     cwd: String,
     delta_tx: mpsc::Sender<AcpEvent>,
     result_tx: oneshot::Sender<Result<AcpExecuteSuccess, AcpExecuteError>>,
@@ -155,7 +156,7 @@ pub(crate) async fn handle_execute(
         }
     }
 
-    let blocks = build_prompt_blocks(prompt, &context);
+    let blocks = prompt_blocks.unwrap_or_else(|| build_prompt_blocks(prompt, &context));
 
     // Install cancel handle so the Cancel message handler can send ACP cancel
     // without touching CONN_MAP.

@@ -138,6 +138,7 @@ pub async fn execute_runtime(
             app_session_id: app_session_scope,
             prompt: prompt.to_string(),
             context: context.to_vec(),
+            prompt_blocks: None,
             cwd: cwd.to_string(),
             delta_tx,
             result_tx,

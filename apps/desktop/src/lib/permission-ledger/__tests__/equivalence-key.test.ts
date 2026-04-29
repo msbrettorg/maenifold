@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPermissionEquivalenceKey } from '../equivalence-key';
+import { buildPermissionEquivalenceKey, canonicalPermissionTarget } from '../equivalence-key';
 import type { PermissionRequest } from '../../types';
 
 function request(overrides: Partial<PermissionRequest['toolCall']> = {}): PermissionRequest {
@@ -102,5 +102,47 @@ describe('buildPermissionEquivalenceKey', () => {
     );
 
     expect(low).not.toBe(high);
+  });
+});
+
+describe('canonicalPermissionTarget', () => {
+  it('does not use changing titles as targets for other requests', () => {
+    const left = canonicalPermissionTarget(request({
+      title: 'Discovering MCP tools',
+      kind: 'other',
+      rawInput: {},
+      _meta: { riskClass: 'low' },
+    }));
+    const right = canonicalPermissionTarget(request({
+      title: 'Finding MCP get-time tool',
+      kind: 'other',
+      rawInput: {},
+      _meta: { riskClass: 'low' },
+    }));
+
+    expect(left).toBe(right);
+  });
+
+  it('keeps file targets path-based instead of title-based', () => {
+    expect(canonicalPermissionTarget(request({
+      title: 'Edit foo',
+      kind: 'edit',
+      rawInput: { path: '/foo' },
+    }))).toBe('/foo');
+  });
+
+  it('keeps execute targets command plus cwd', () => {
+    expect(canonicalPermissionTarget(request({
+      title: 'List directory',
+      kind: 'execute',
+      rawInput: { command: 'ls', cwd: '/' },
+    }))).toBe('ls\u0000/');
+  });
+
+  it('keeps explicit other targets', () => {
+    expect(canonicalPermissionTarget(request({
+      kind: 'other',
+      rawInput: { target: 'specific-thing' },
+    }))).toBe('specific-thing');
   });
 });

@@ -83,7 +83,7 @@ export function canonicalPermissionTarget(request: PermissionRequest, kind = nor
   return (
     firstString(rawInput, ['target', 'path', 'url', 'uri', 'query']) ??
     request.toolCall.locations?.[0]?.path ??
-    request.toolCall.title
+    null
   );
 }
 

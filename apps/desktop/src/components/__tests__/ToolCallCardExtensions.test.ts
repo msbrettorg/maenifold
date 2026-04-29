@@ -177,6 +177,17 @@ describe('ToolCallCardExtensions tool-call content blocks', () => {
     expect(wrapper.find('[data-testid="terminal-output"]').text()).toContain('hello world');
   });
 
+  it('renders standard ACP terminal block by terminalId', () => {
+    const wrapper = mountExtensions(createToolCall({
+      content: [{ type: 'terminal', terminalId: 'term-1' }],
+    }));
+
+    const terminal = wrapper.find('[data-testid="terminal-reference"]');
+    expect(terminal.exists()).toBe(true);
+    expect(terminal.text()).toContain('Terminal: term-1');
+    expect(terminal.text().trim().length).toBeGreaterThan(0);
+  });
+
   it('renders terminal content block with exit code badge', () => {
     const wrapper = mountExtensions(createToolCall({
       content: [{ type: 'terminal', output: 'oops', exitCode: 1 }],
@@ -251,7 +262,7 @@ describe('Tool call lifecycle rendering', () => {
     const { handler, session } = createStoreHandlerHarness();
 
     sendToolCall(handler, { status: 'pending' });
-    sendToolCall(handler, { status: 'in_progress', title: 'Updated title' });
+    sendToolCallUpdate(handler, { status: 'in_progress', title: 'Updated title' });
 
     expect(session.messages[0]?.toolCalls).toHaveLength(1);
     expect(session.messages[0]?.toolCalls?.[0]).toMatchObject({

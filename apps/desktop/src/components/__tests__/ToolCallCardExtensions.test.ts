@@ -197,6 +197,15 @@ describe('ToolCallCardExtensions tool-call content blocks', () => {
     expect(fallback.text()).toBe(JSON.stringify(block, null, 2));
   });
 
+  it('renders fallback for terminal block with whitespace-only terminalId', () => {
+    const block = { type: 'terminal', terminalId: '   ' };
+    const wrapper = mountExtensions(createToolCall({ content: [block] }));
+
+    const fallback = wrapper.find('[data-testid="unknown-tool-call-block"]');
+    expect(wrapper.text().trim().length).toBeGreaterThan(0);
+    expect(fallback.text()).toBe(JSON.stringify(block, null, 2));
+  });
+
   it('renders fallback for terminal block with no terminalId at all', () => {
     const block = { type: 'terminal' };
     const wrapper = mountExtensions(createToolCall({ content: [block] }));

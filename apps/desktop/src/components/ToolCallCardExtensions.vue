@@ -114,7 +114,9 @@ function terminalExitCode(block: Extract<ToolCallContentBlock, { type: 'terminal
 
 function terminalId(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
   const id = (block as { terminalId?: unknown }).terminalId;
-  return typeof id === 'string' && id.length > 0 ? id : null;
+  if (typeof id !== 'string') return null;
+  const trimmed = id.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function terminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {

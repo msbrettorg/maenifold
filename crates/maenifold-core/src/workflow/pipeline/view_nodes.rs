@@ -115,9 +115,9 @@ pub(super) fn pipeline_nodes_json(
 }
 
 fn pipeline_node_provenance_json(node: &PipelineNode, state: &NodeState) -> Value {
-    let can_reconnect = node_can_reconnect(node, state);
-    let inspectable =
-        can_reconnect || state.thinking_session_id.is_some() || state.tool_provenance.is_some();
+    let inspectable = state.acp_session_id.is_some()
+        || state.thinking_session_id.is_some()
+        || state.tool_provenance.is_some();
 
     json!({
         "agent": node_agent_name(node),
@@ -125,7 +125,6 @@ fn pipeline_node_provenance_json(node: &PipelineNode, state: &NodeState) -> Valu
         "detail": {
             "sessionId": state.acp_session_id.as_deref(),
             "thinkingSessionId": state.thinking_session_id.as_deref(),
-            "canReconnect": can_reconnect,
             "adoption": node_adoption_state_json(node),
         }
     })
@@ -155,10 +154,6 @@ fn node_agent_name(node: &PipelineNode) -> Option<&str> {
         PipelineNode::SequentialThinking { agent, .. } => Some(agent.as_str()),
         PipelineNode::Tool { agent, .. } => agent.as_deref(),
     }
-}
-
-fn node_can_reconnect(_node: &PipelineNode, _state: &NodeState) -> bool {
-    true
 }
 
 fn add_pipeline_node_view_fields(node_json: &mut Value, node: &PipelineNode) {

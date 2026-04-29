@@ -38,7 +38,6 @@ export interface NodeProvenanceDetail {
   lineage_pipeline_run_id?: string | null;
   lineage_thinking_session_id?: string | null;
   lineage_memory_note_id?: string | null;
-  canReconnect: boolean;
   adoption?: {
     role: string;
     color: string;

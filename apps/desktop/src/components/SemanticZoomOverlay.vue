@@ -65,12 +65,6 @@ const reconnectSessionId = computed<string | null>(() => {
   const trimmed = sid.trim();
   return trimmed.length > 0 ? trimmed : null;
 });
-const canReconnect = computed(() =>
-  viewNode.value?.status === 'completed'
-  && nodeType.value !== 'tool'
-  && viewNode.value.provenance?.detail.canReconnect === true
-  && !!reconnectSessionId.value,
-);
 const canConnectLive = computed(() =>
   viewNode.value?.status === 'active'
   && nodeType.value !== 'tool'
@@ -238,7 +232,6 @@ watch(() => viewNode.value?.nodeId, () => {
         :busy-action="busyAction"
         :can-connect-live="canConnectLive"
         :can-promote="canPromote"
-        :can-reconnect="canReconnect"
         :forked-session-id="forkedSessionId"
         :graft-submitting="graftSubmitting"
         :has-results="hasResults"

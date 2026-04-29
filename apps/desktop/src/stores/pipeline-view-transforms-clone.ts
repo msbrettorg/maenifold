@@ -81,7 +81,6 @@ export function cloneNodeProvenance(provenance: NodeProvenance): NodeProvenance 
             },
           }
         : {}),
-      canReconnect: provenance.detail.canReconnect,
     },
   };
 }

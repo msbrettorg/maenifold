@@ -2,6 +2,8 @@ import { computed, ref } from 'vue';
 import {
   createGateSnapshot,
   GATE_POLL_INTERVAL_MS,
+  type GateCreateArgs,
+  type GateCreateResult,
   type GateSnapshot,
   type GateStatusArgs,
   type GateSyncArgs,
@@ -15,6 +17,7 @@ import { getSharedMcpClient } from './usePipelineMcp';
 
 const GATE_DOMAIN = 'maenifold.gate';
 const REQUIRED_GATE_COMMANDS = [
+  'gate_Create',
   'gate_Status',
   'gate_Sync',
   'gate_History',
@@ -36,6 +39,10 @@ interface GatePollingState {
   root: string | null;
   handle: ReturnType<typeof setInterval> | null;
 }
+
+type JsonPrimitive = string | number | boolean | null;
+type JsonValue = JsonPrimitive | JsonValue[] | { [property: string]: JsonValue };
+type JsonObject = { [property: string]: JsonValue };
 
 export function useGateMcp(baseUrl?: string) {
   const mcp = getSharedMcpClient(baseUrl);
@@ -85,7 +92,7 @@ export function useGateMcp(baseUrl?: string) {
     gateGatewayValidated = true;
   }
 
-  async function callGateTool<T>(command: string, payload: Record<string, unknown> = {}) {
+  async function callGateTool<T>(command: string, payload: JsonObject = {}) {
     await ensureGateGateway();
     const result = await mcp.callTool('GatewayExecute', {
       domain: GATE_DOMAIN,
@@ -93,6 +100,12 @@ export function useGateMcp(baseUrl?: string) {
       parameters: payload,
     });
     return unwrapToolData<T>(result);
+  }
+
+  function gatePayload(payload: object): JsonObject {
+    return Object.fromEntries(
+      Object.entries(payload).filter((entry): entry is [string, JsonValue] => entry[1] !== undefined),
+    );
   }
 
   function stopPolling() {
@@ -127,7 +140,11 @@ export function useGateMcp(baseUrl?: string) {
   }
 
   function sync(args: GateSyncArgs): Promise<GateSyncResult> {
-    return callGateTool<GateSyncResult>('gate_Sync', args);
+    return callGateTool<GateSyncResult>('gate_Sync', gatePayload(args));
+  }
+
+  function createTask(args: GateCreateArgs): Promise<GateCreateResult> {
+    return callGateTool<GateCreateResult>('gate_Create', gatePayload(args));
   }
 
   function normalizeTaskStages(task: GateTask): GateTask {
@@ -136,34 +153,34 @@ export function useGateMcp(baseUrl?: string) {
   }
 
   async function status(args: GateStatusArgs): Promise<GateTask[]> {
-    const tasks = await callGateTool<GateTask[]>('gate_Status', args);
+    const tasks = await callGateTool<GateTask[]>('gate_Status', gatePayload(args));
     return Array.isArray(tasks) ? tasks.map(normalizeTaskStages) : tasks;
   }
 
   function readTaskHistory(taskId: string, root?: string): Promise<GateTaskHistoryEntry[]> {
-    return callGateTool<GateTaskHistoryEntry[]>('gate_History', {
+    return callGateTool<GateTaskHistoryEntry[]>('gate_History', gatePayload({
       taskId,
       ...(root ? { root } : {}),
-    });
+    }));
   }
 
   function readTaskBody(taskId: string, root?: string): Promise<GateTaskBody> {
-    return callGateTool<GateTaskBody>('gate_TaskBody', {
+    return callGateTool<GateTaskBody>('gate_TaskBody', gatePayload({
       taskId,
       ...(root ? { root } : {}),
-    });
+    }));
   }
 
   function append(args: { root: string; taskId: string; agent: string; notes: string }) {
-    return callGateTool<Record<string, unknown>>('gate_Append', args);
+    return callGateTool<Record<string, unknown>>('gate_Append', gatePayload(args));
   }
 
   function pass(args: { root: string; taskId: string; agent: string; notes: string }) {
-    return callGateTool<Record<string, unknown>>('gate_Pass', args);
+    return callGateTool<Record<string, unknown>>('gate_Pass', gatePayload(args));
   }
 
   function fail(args: { root: string; taskId: string; agent: string; notes: string }) {
-    return callGateTool<Record<string, unknown>>('gate_Fail', args);
+    return callGateTool<Record<string, unknown>>('gate_Fail', gatePayload(args));
   }
 
   async function loadSnapshot(root: string): Promise<GateSnapshot> {
@@ -184,6 +201,7 @@ export function useGateMcp(baseUrl?: string) {
     reconnecting: mcp.reconnecting,
     error,
     loadSnapshot,
+    createTask,
     sync,
     status,
     append,

@@ -35,6 +35,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: discover_mcp_tools,
     },
     ToolDescriptor {
+        name: "gate_Create",
+        aliases: &["gate_create"],
+        invoke: gate_create,
+    },
+    ToolDescriptor {
         name: "gate_Status",
         aliases: &["gate_status"],
         invoke: gate_status,
@@ -84,6 +89,7 @@ gateway_tool!(gateway_execute, "GatewayExecute");
 gateway_tool!(gateway_batch, "GatewayBatch");
 gateway_tool!(gateway_intent, "GatewayIntent");
 gateway_tool!(discover_mcp_tools, "DiscoverMcpTools");
+gateway_tool!(gate_create, "gate_Create");
 gateway_tool!(gate_status, "gate_Status");
 gateway_tool!(gate_sync, "gate_Sync");
 gateway_tool!(gate_append, "gate_Append");

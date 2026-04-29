@@ -1,7 +1,6 @@
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync, promises as fsPromises } from 'node:fs';
-import { lstat, readFile, realpath } from 'node:fs/promises';
-import { dirname, extname, isAbsolute, join, resolve, sep } from 'node:path';
+import { appendFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { registerAcpFileSystemHandlers } from './acp-file-system.js';
@@ -21,15 +20,6 @@ const launchctlDomain = process.platform === 'darwin' && typeof process.getuid =
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-function assertString(value: unknown, name: string): string {
-  if (typeof value !== 'string') {
-    throw new Error(`${name} must be a string`);
-  }
-  return value;
-}
 async function isServiceHealthy(url: string): Promise<boolean> {
   try {
     const response = await fetch(url);
@@ -215,42 +205,6 @@ function registerIpcHandlers(): void {
       result[name] = !!process.env[name];
     }
     return result;
-  });
-  ipcMain.handle('gate:write-task-file', async (_event, payload: unknown) => {
-    if (!isRecord(payload)) throw new Error('invalid payload');
-    const root = assertString(payload.root, 'root');
-    const filename = assertString(payload.filename, 'filename');
-    const content = assertString(payload.content, 'content');
-
-    if (!/^T-\d+\.\d+-[a-z0-9-]+\.md$/.test(filename)) {
-      throw new Error('invalid filename');
-    }
-
-    if (!isAbsolute(root)) throw new Error('root must be absolute');
-
-    const todoDir = join(root, 'todo');
-    const target = join(todoDir, filename);
-    if (!target.startsWith(todoDir + sep)) {
-      throw new Error('path traversal detected');
-    }
-
-    await fsPromises.mkdir(todoDir, { recursive: true });
-
-    try {
-      const handle = await fsPromises.open(target, 'wx');
-      try {
-        await handle.writeFile(content, 'utf8');
-      } finally {
-        await handle.close();
-      }
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code === 'EEXIST') {
-        throw new Error('task file already exists');
-      }
-      throw err;
-    }
-
-    return { path: target };
   });
   registerAcpFileSystemHandlers();
   registerConfigHandlers();

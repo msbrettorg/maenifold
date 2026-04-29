@@ -44,15 +44,6 @@ watch(() => props.open, (open) => {
   if (open) initializeForm();
 }, { immediate: true });
 
-function slugify(value: string): string {
-  const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return slug || 'task';
-}
-
-function yamlString(value: string): string {
-  return value.includes(':') || value.includes('#') ? JSON.stringify(value) : value;
-}
-
 function validate(): boolean {
   const id = taskId.value.trim();
   if (!idPattern.value.test(id)) {
@@ -74,32 +65,26 @@ function validate(): boolean {
   return true;
 }
 
-function markdown(): string {
-  return [
-    '---',
-    `id: ${taskId.value.trim()}`,
-    `title: ${yamlString(title.value.trim())}`,
-    `pipeline: ${pipeline.value}`,
-    `priority: ${priority.value}`,
-    `sprint: ${sprint.value}`,
-    '---',
-    '',
-    body.value.trim(),
-    '',
-  ].join('\n');
-}
-
 async function submit() {
   error.value = '';
   if (!validate()) return;
   submitting.value = true;
   try {
     const id = taskId.value.trim();
-    const writer = window.electronAPI?.gateWriteTaskFile;
-    if (!writer) throw new Error('gate:write-task-file IPC unavailable');
-    const filename = `${id}-${slugify(title.value)}.md`;
-    await writer({ root: props.root, filename, content: markdown() });
-    await gateMcp.sync({ root: props.root, rebuild: true });
+    const trimmedRoot = props.root.trim();
+    const trimmedTitle = title.value.trim();
+    const trimmedPipeline = pipeline.value.trim();
+    const trimmedPriority = priority.value.trim();
+    const trimmedBody = body.value.trim();
+    await gateMcp.createTask({
+      root: trimmedRoot,
+      taskId: id,
+      title: trimmedTitle,
+      pipeline: trimmedPipeline,
+      priority: trimmedPriority,
+      sprint: sprint.value,
+      ...(trimmedBody ? { body: trimmedBody } : {}),
+    });
     emit('created', id);
     emit('update:open', false);
   } catch (errorValue) {

@@ -25,7 +25,7 @@ export interface GateSnapshot {
   tasks: GateTask[];
 }
 
-export interface GateStatusArgs extends Record<string, unknown> {
+export interface GateStatusArgs {
   root?: string;
   pipeline?: string;
   state?: string;
@@ -33,10 +33,28 @@ export interface GateStatusArgs extends Record<string, unknown> {
   includeDone?: boolean;
 }
 
-export interface GateSyncArgs extends Record<string, unknown> {
+export interface GateSyncArgs {
   root?: string;
   pipeline?: string;
   rebuild?: boolean;
+}
+
+export interface GateCreateArgs {
+  root: string;
+  taskId: string;
+  title: string;
+  pipeline: string;
+  body?: string;
+  priority?: string;
+  sprint?: number;
+  parent?: string;
+}
+
+export interface GateCreateResult {
+  taskId: string;
+  path: string;
+  pipeline: string;
+  sprint: number;
 }
 
 export type GateSyncResult = Record<string, unknown>;

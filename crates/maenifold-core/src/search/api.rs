@@ -4,7 +4,7 @@ use crate::search::display::load_help_doc;
 use crate::search::fulltext::perform_fulltext_search;
 use crate::search::hybrid::perform_hybrid_search;
 use crate::search::semantic::perform_semantic_search;
-use crate::search::text::{informative_query_terms, slugify_query, tokenize_query};
+use crate::search::text::{informative_query_terms, query_slug, tokenize_query};
 use crate::tools::ToolContext;
 use crate::tools::with_hint;
 use serde_json::Value;
@@ -126,7 +126,7 @@ pub fn search_memories(context: &ToolContext, payload: &Value) -> Result<String>
     GraphDatabase::initialize_database(&context.config)?;
     let connection = db::open_connection(&context.config.database_path)?;
     let query_terms = tokenize_query(&request.query);
-    let query_slug = slugify_query(&request.query);
+    let query_slug = query_slug(&request.query);
 
     if request.is_semantic() {
         return perform_semantic_search(context, &connection, &request, &query_terms, &query_slug);

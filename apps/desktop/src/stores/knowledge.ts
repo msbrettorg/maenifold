@@ -4,7 +4,6 @@ import { useMemoryApi } from '../composables/useMemoryApi';
 import type { CommunityGraph, ConceptGraph } from '../lib/graph-types';
 import {
   createFolderNode,
-  extractConceptCandidates,
   findFolderNode,
   parseListMemoriesOutput,
   type KnowledgeConceptNode,
@@ -19,6 +18,8 @@ import type {
   SimilarConceptItem,
 } from '../lib/workflow-types';
 import { createKnowledgeGraphActions } from './knowledge-graph-actions';
+import { createKnowledgeMemoryActions } from './knowledge-memory-actions';
+import { createKnowledgeRelatedActions } from './knowledge-related-actions';
 
 export type {
   KnowledgeConceptNode,
@@ -168,30 +169,12 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
-  async function loadRelatedConceptsForNote(note: MemoryFile | null): Promise<void> {
-    relatedConceptsSource.value = null;
-    relatedConceptsError.value = null;
-    relatedConcepts.value = [];
-
-    const [seedConcept] = extractConceptCandidates(note);
-    if (!seedConcept) return;
-
-    relatedConceptsSource.value = seedConcept;
-    relatedConceptsLoading.value = true;
-    try {
-      const result = await memoryApi.findSimilarConcepts(seedConcept, 8);
-      const filtered = result.results.filter(
-        (item) => item.name.toLowerCase() !== seedConcept.toLowerCase(),
-      );
-      relatedConcepts.value = filtered;
-    } catch (errorValue) {
-      relatedConceptsError.value =
-        errorValue instanceof Error ? errorValue.message : String(errorValue);
-      relatedConcepts.value = [];
-    } finally {
-      relatedConceptsLoading.value = false;
-    }
-  }
+  const { loadRelatedConceptsForNote } = createKnowledgeRelatedActions({
+    relatedConcepts,
+    relatedConceptsSource,
+    relatedConceptsLoading,
+    relatedConceptsError,
+  }, memoryApi);
 
   async function loadTab(uri: string, force = false): Promise<void> {
     const current = tabCache.value.get(uri);
@@ -225,49 +208,6 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
         relatedConceptsError.value = null;
       }
     }
-  }
-
-  async function createNote(input: { title: string; folder?: string; content: string }): Promise<string> {
-    const uri = await memoryApi.writeMemory(input);
-    await loadRootFolders();
-    setActiveTab(uri);
-    return uri;
-  }
-
-  async function reloadNote(uri: string): Promise<void> {
-    await loadTab(uri, true);
-  }
-
-  async function saveNoteContent(input: {
-    uri: string;
-    previousContent: string;
-    content: string;
-    checksum: string | null;
-  }): Promise<void> {
-    if (!input.checksum) {
-      throw new Error('A checksum is required before updating this note.');
-    }
-    await memoryApi.editMemory({
-      identifier: input.uri,
-      findText: input.previousContent,
-      content: input.content,
-      checksum: input.checksum,
-    });
-    await reloadNote(input.uri);
-  }
-
-  async function forceSaveNoteContent(uri: string, content: string): Promise<void> {
-    const latest = await memoryApi.readMemory(uri);
-    if (!latest.checksum) {
-      throw new Error('A checksum is required before updating this note.');
-    }
-    await memoryApi.editMemory({
-      identifier: uri,
-      findText: latest.content,
-      content,
-      checksum: latest.checksum,
-    });
-    await reloadNote(uri);
   }
 
   function setActiveTab(uri: string): void {
@@ -334,6 +274,10 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     openNote,
     setActiveSubtab,
   );
+  const memoryActions = createKnowledgeMemoryActions(
+    { activeTabUri, loadRootFolders, loadTab, setActiveTab, closeTab, openNote },
+    memoryApi,
+  );
 
   return {
     folders, rootFiles, searchQuery, searchResults,
@@ -344,9 +288,9 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     selectedConcept, selectedConceptContext, conceptContextLoading, conceptContextError,
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
-    loadRootFolders, loadFolder, setFolderOpen, search, createNote,
-    reloadNote, saveNoteContent, forceSaveNoteContent,
+    loadRootFolders, loadFolder, setFolderOpen, search,
     openNote, openInNewTab, closeTab, setActiveTab, setActiveSubtab,
+    ...memoryActions,
     ...graphActions,
   };
 });

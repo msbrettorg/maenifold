@@ -51,6 +51,11 @@ interface EditMemoryOptions {
   findText: string;
 }
 
+interface MoveMemoryOptions {
+  source: string;
+  destination: string;
+}
+
 interface BuildContextOptions {
   depth?: number;
   maxEntities?: number;
@@ -141,6 +146,22 @@ export function useMemoryApi() {
     );
   }
 
+  async function deleteMemory(identifier: string): Promise<void> {
+    await ensureConnected();
+    await mcp.callTool('DeleteMemory', { identifier, confirm: true });
+  }
+
+  async function moveMemory(options: MoveMemoryOptions): Promise<string> {
+    await ensureConnected();
+    return normalizeMemoryWriteResponse(
+      await mcp.callTool('MoveMemory', {
+        source: options.source,
+        destination: options.destination,
+      }),
+      `memory://${options.destination.replace(/\.md$/i, '')}`,
+    );
+  }
+
   async function buildContext(
     conceptName: string,
     opts: BuildContextOptions = {},
@@ -174,6 +195,8 @@ export function useMemoryApi() {
     listMemories,
     writeMemory,
     editMemory,
+    deleteMemory,
+    moveMemory,
     buildContext,
     findSimilarConcepts,
   };

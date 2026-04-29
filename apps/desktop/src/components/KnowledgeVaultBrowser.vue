@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useKnowledgeStore } from '../stores/knowledge';
+import KnowledgeRowActions from './KnowledgeRowActions.vue';
 import KnowledgeVaultNode from './KnowledgeVaultNode.vue';
 
 const store = useKnowledgeStore();
@@ -107,18 +108,18 @@ function openUri(uri: string, event: MouseEvent): void {
             <Skeleton v-for="index in 4" :key="index" class="h-8 rounded-md" />
           </template>
           <template v-else>
-            <Button
+            <div
               v-for="file in rootFiles"
               :key="file.uri"
-              type="button"
-              variant="ghost"
-              class="h-8 justify-start gap-2 rounded-md px-2"
+              class="flex h-8 items-center gap-1 rounded-md"
               :class="activeTabUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
-              @click="openUri(file.uri, $event)"
             >
-              <FileText class="size-4 shrink-0" aria-hidden="true" />
-              <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
-            </Button>
+              <Button type="button" variant="ghost" class="min-w-0 flex-1 justify-start gap-2 px-2" @click="openUri(file.uri, $event)">
+                <FileText class="size-4 shrink-0" aria-hidden="true" />
+                <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
+              </Button>
+              <KnowledgeRowActions :file="file" />
+            </div>
             <KnowledgeVaultNode v-for="folder in folders" :key="folder.path" :node="folder" :active-tab-uri="activeTabUri" />
             <p v-if="!rootFiles.length && !folders.length" class="px-2 py-3 text-body-sm text-text-secondary">
               No memory folders were found.

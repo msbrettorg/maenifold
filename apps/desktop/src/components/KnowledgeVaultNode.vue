@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useKnowledgeStore, type KnowledgeFolderNode } from '../stores/knowledge';
+import KnowledgeRowActions from './KnowledgeRowActions.vue';
 
 const props = defineProps<{
   node: KnowledgeFolderNode;
@@ -57,18 +58,18 @@ function handleOpenNote(uri: string, event: MouseEvent): void {
         </template>
 
         <template v-else>
-          <Button
+          <div
             v-for="file in node.files"
             :key="file.uri"
-            type="button"
-            variant="ghost"
-            class="h-8 justify-start gap-2 rounded-md px-2"
+            class="flex h-8 items-center gap-1 rounded-md"
             :class="activeTabUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
-            @click="handleOpenNote(file.uri, $event)"
           >
-            <FileText class="size-4 shrink-0" aria-hidden="true" />
-            <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
-          </Button>
+            <Button type="button" variant="ghost" class="min-w-0 flex-1 justify-start gap-2 px-2" @click="handleOpenNote(file.uri, $event)">
+              <FileText class="size-4 shrink-0" aria-hidden="true" />
+              <span class="truncate text-body-sm font-medium">{{ file.name }}</span>
+            </Button>
+            <KnowledgeRowActions :file="file" />
+          </div>
 
           <KnowledgeVaultNode
             v-for="child in node.children"

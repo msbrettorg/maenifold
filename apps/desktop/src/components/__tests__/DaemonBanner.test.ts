@@ -94,6 +94,26 @@ describe('DaemonBanner', () => {
     expect(reconnectSession).toHaveBeenCalledOnce();
   });
 
+  it('clears stale connectionError after successful retry reconnect', async () => {
+    const store = useSessionStore();
+    store.connectionError = 'resume failed';
+    reconnectSession.mockResolvedValueOnce(undefined);
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValueOnce(okResponse());
+
+    const wrapper = mount(DaemonBanner, {
+      global: { plugins: [pinia] },
+    });
+
+    const retry = wrapper.findAll('button').find((button) => button.text() === 'Retry');
+    expect(retry).toBeDefined();
+    await retry!.trigger('click');
+    await flushPromises();
+
+    expect(store.connectionError).toBeNull();
+    expect(wrapper.find('[role="alert"]').exists()).toBe(false);
+  });
+
   it('surfaces reconnectSession failures as connection errors', async () => {
     const store = useSessionStore();
     store.connectionError = 'resume failed';

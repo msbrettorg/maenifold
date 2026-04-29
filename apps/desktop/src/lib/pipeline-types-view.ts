@@ -26,6 +26,7 @@ interface ViewNodeBase {
 }
 
 export interface NodeProvenanceDetail {
+  [key: string]: unknown;
   sessionId?: string | null;
   thinkingSessionId?: string | null;
   parentWorkflowId?: string | null;
@@ -38,7 +39,6 @@ export interface NodeProvenanceDetail {
   lineage_pipeline_run_id?: string | null;
   lineage_thinking_session_id?: string | null;
   lineage_memory_note_id?: string | null;
-  canReconnect: boolean;
   adoption?: {
     role: string;
     color: string;

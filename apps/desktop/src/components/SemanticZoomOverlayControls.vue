@@ -5,7 +5,6 @@ defineProps<{
   busyAction: string | null;
   canConnectLive: boolean;
   canPromote: boolean;
-  canReconnect: boolean;
   forkedSessionId: string | null;
   graftSubmitting: boolean;
   hasResults: boolean;
@@ -82,7 +81,7 @@ defineEmits<{
         {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
       </Button>
       <Button
-        v-if="canReconnect && reconnectSessionId"
+        v-if="reconnectSessionId"
         variant="outline"
         :disabled="reconnectBusy || busyAction !== null"
         type="button"

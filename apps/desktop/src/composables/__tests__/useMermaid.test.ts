@@ -24,7 +24,7 @@ describe('useMermaid', () => {
     renderMock.mockResolvedValue({
       svg: [
         '<svg xmlns="http://www.w3.org/2000/svg" role="img">',
-        '<style>.nodeLabel { color: #111827; }</style>',
+        '<style>.nodeLabel { color: var(--text-primary); }</style>',
         '<foreignObject width="80" height="24"><div>Visible label</div></foreignObject>',
         '<text>Fallback label</text>',
         '<script>alert("xss")</script>',

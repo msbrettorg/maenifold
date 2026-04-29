@@ -54,6 +54,7 @@ async function waitForPendingPermission(handler: {
 describe('permission persistence integration', () => {
   afterEach(() => {
     Reflect.deleteProperty(window, 'electronAPI');
+    vi.restoreAllMocks();
     vi.resetModules();
   });
 
@@ -133,5 +134,63 @@ describe('permission persistence integration', () => {
         decision: 'allow',
       }),
     ]);
+  });
+
+  it('drains pending state and resolves response when resolveDecision throws', async () => {
+    vi.resetModules();
+    Reflect.deleteProperty(window, 'electronAPI');
+
+    const persistError = new Error('resolveDecision failed');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const database = new NodeSqlitePermissionLedger(':memory:');
+    let tokenCounter = 0;
+    const registry = createPermissionDecisionRegistry({
+      tokenFactory: () => `token-${(tokenCounter += 1)}`,
+      recordDecision: (request, context) => {
+        database.recordDecision(request, context);
+      },
+    });
+    const electronApi: ElectronApiMock = {
+      async permissionTryAutoDecide({ request, context }) {
+        return {
+          decision: null,
+          event: null,
+          token: registry.register(request, context),
+        };
+      },
+      async permissionResolveDecision() {
+        throw persistError;
+      },
+    };
+    Object.defineProperty(window, 'electronAPI', {
+      configurable: true,
+      value: electronApi,
+    });
+
+    const { PermissionHandler } = await import('../../acp-permissions');
+    const handler = new PermissionHandler(undefined, {
+      agent: 'agent-a',
+      currentModeId: () => null,
+    });
+
+    const response = handler.requestPermission(permissionRequest('tool-throw'));
+    const displayed = await waitForPendingPermission(handler);
+
+    expect(displayed.decisionToken).toBe('token-1');
+
+    await handler.resolvePermission('tool-throw', 'allow-always', 'agent');
+
+    await expect(response).resolves.toEqual({
+      outcome: { outcome: 'selected', optionId: 'allow-always' },
+      _meta: null,
+    });
+    expect(handler.getPermissions()).toHaveLength(0);
+    expect(
+      (handler as unknown as { pendingPermissions: Map<string, unknown> }).pendingPermissions
+    ).toHaveLength(0);
+    expect(consoleError).toHaveBeenCalledWith(
+      '[T-244.102] Permission persistence failed:',
+      persistError
+    );
   });
 });

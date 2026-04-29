@@ -128,13 +128,18 @@ export class PermissionHandler {
       return;
     }
 
-    await this.recordPersistentDecision(pendingRequest.request, optionId, scope);
-    this.pendingPermissions.delete(requestId);
-    this.syncPendingPermissionRequests();
-    pendingRequest.resolver({
-      outcome: { outcome: 'selected', optionId },
-      _meta: null,
-    });
+    try {
+      await this.recordPersistentDecision(pendingRequest.request, optionId, scope);
+    } catch (error) {
+      console.error('[T-244.102] Permission persistence failed:', error);
+    } finally {
+      this.pendingPermissions.delete(requestId);
+      this.syncPendingPermissionRequests();
+      pendingRequest.resolver({
+        outcome: { outcome: 'selected', optionId },
+        _meta: null,
+      });
+    }
   }
 
   cancelPermission(requestId: string): void {

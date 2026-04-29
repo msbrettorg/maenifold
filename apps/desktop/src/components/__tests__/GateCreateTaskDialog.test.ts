@@ -6,7 +6,7 @@ import GateCreateTaskDialog from '../GateCreateTaskDialog.vue';
 import type { GateTask } from '../../lib/gate';
 
 const mockCallTool = vi.fn();
-const writeTextFile = vi.fn();
+const gateWriteTaskFile = vi.fn();
 
 vi.mock('../../composables/usePipelineMcp', () => ({
   getSharedMcpClient: vi.fn(() => ({
@@ -92,13 +92,13 @@ function mountDialog(extraProps = {}) {
 describe('GateCreateTaskDialog', () => {
   beforeEach(() => {
     mockCallTool.mockReset();
-    writeTextFile.mockReset();
+    gateWriteTaskFile.mockReset();
     mockGateSuccess();
     Object.defineProperty(window, 'electronAPI', {
-      value: { writeTextFile },
+      value: { gateWriteTaskFile },
       configurable: true,
     });
-    writeTextFile.mockResolvedValue({});
+    gateWriteTaskFile.mockResolvedValue({ path: '/repo/todo/T-244.12-create-task-form.md' });
   });
 
   it('prefills the next sprint id and lists supported pipelines', () => {
@@ -132,20 +132,46 @@ describe('GateCreateTaskDialog', () => {
     await wrapper.find('[data-testid="gate-create-form"]').trigger('submit');
     await flushPromises();
 
-    expect(writeTextFile).toHaveBeenCalledWith({
-      path: '/repo/todo/T-244.12-create-task-form.md',
+    expect(gateWriteTaskFile).toHaveBeenCalledWith({
+      root: '/repo',
+      filename: 'T-244.12-create-task-form.md',
       content: expect.stringContaining('id: T-244.12'),
     });
-    expect(writeTextFile.mock.calls[0][0].content).toContain('title: Create task form');
-    expect(writeTextFile.mock.calls[0][0].content).toContain('pipeline: tdd');
-    expect(writeTextFile.mock.calls[0][0].content).toContain('priority: P0');
-    expect(writeTextFile.mock.calls[0][0].content).toContain('sprint: 244');
-    expect(writeTextFile.mock.calls[0][0].content).toContain('Task body markdown.');
+    expect(gateWriteTaskFile.mock.calls[0][0].filename).toMatch(/^T-\d+\.\d+-[a-z0-9-]+\.md$/);
+    expect(gateWriteTaskFile.mock.calls[0][0].content).toContain('title: Create task form');
+    expect(gateWriteTaskFile.mock.calls[0][0].content).toContain('pipeline: tdd');
+    expect(gateWriteTaskFile.mock.calls[0][0].content).toContain('priority: P0');
+    expect(gateWriteTaskFile.mock.calls[0][0].content).toContain('sprint: 244');
+    expect(gateWriteTaskFile.mock.calls[0][0].content).toContain('Task body markdown.');
     expect(mockCallTool).toHaveBeenCalledWith('GatewayExecute', {
       domain: 'maenifold.gate',
       command: 'gate_Sync',
       parameters: { root: '/repo', rebuild: true },
     });
     expect(wrapper.emitted('created')?.[0]).toEqual(['T-244.12']);
+  });
+
+  it('surfaces filename regex validation failures from the gate task IPC', async () => {
+    gateWriteTaskFile.mockRejectedValueOnce(new Error('invalid filename'));
+    const wrapper = mountDialog();
+
+    await wrapper.find('[data-testid="gate-create-title"]').setValue('Create task form');
+    await wrapper.find('[data-testid="gate-create-form"]').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('invalid filename');
+    expect(mockCallTool).not.toHaveBeenCalledWith('GatewayExecute', expect.anything());
+  });
+
+  it('surfaces no-clobber task file errors from the gate task IPC', async () => {
+    gateWriteTaskFile.mockRejectedValueOnce(new Error('task file already exists'));
+    const wrapper = mountDialog();
+
+    await wrapper.find('[data-testid="gate-create-title"]').setValue('Create task form');
+    await wrapper.find('[data-testid="gate-create-form"]').trigger('submit');
+    await flushPromises();
+
+    expect(wrapper.text()).toContain('task file already exists');
+    expect(mockCallTool).not.toHaveBeenCalledWith('GatewayExecute', expect.anything());
   });
 });

@@ -4,7 +4,7 @@
  *
  * These tests verify the CORRECT behavior that the component SHOULD have:
  * 1. Command text should be `maenifold --http` (not `maenifold-cli serve`)
- * 2. Health probe should use configStore.loadConfig() (not raw fetch to `/health`)
+ * 2. Health probe should use the real `/api/health` route before loading config
  * 3. Connected state should show when loadConfig() succeeds
  * 4. Disconnected state should show when loadConfig() fails, with correct command
  *
@@ -17,12 +17,17 @@ import { flushPromises, mount } from '@vue/test-utils';
 import OnboardingStepDaemon from '../OnboardingStepDaemon.vue';
 import { useConfigStore } from '../../stores/config';
 
-// Mock fetch globally to verify it's NOT called for /health
+// Mock fetch globally to verify calls to the real health route.
 const mockFetch = vi.fn();
 
 beforeEach(() => {
   vi.restoreAllMocks();
   mockFetch.mockReset();
+  mockFetch.mockResolvedValue({
+    ok: true,
+    status: 200,
+    json: () => Promise.resolve({ status: 'ok' }),
+  });
   globalThis.fetch = mockFetch;
 });
 
@@ -70,9 +75,14 @@ describe('OnboardingStepDaemon', () => {
   });
 
   describe('health probe mechanism', () => {
-    it('uses configStore.loadConfig() instead of raw fetch to /health', async () => {
+    it('checks /api/health before loading config', async () => {
       const { pinia, advance, goBack, configStore } = createTestEnv();
 
+      mockFetch.mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve({ status: 'ok' }),
+      });
       const loadConfigSpy = vi.spyOn(configStore, 'loadConfig').mockResolvedValue();
 
       mount(OnboardingStepDaemon, {
@@ -87,29 +97,25 @@ describe('OnboardingStepDaemon', () => {
 
       await flushPromises();
 
-      // CORRECT behavior: should call configStore.loadConfig()
-      expect(loadConfigSpy).toHaveBeenCalled();
-
-      // BUG: Component currently fetches /health directly
-      // Verify no fetch calls to /health endpoint
       const healthCalls = mockFetch.mock.calls.filter(
-        (call) => typeof call[0] === 'string' && call[0].includes('/health')
+        (call) => typeof call[0] === 'string' && call[0].includes('/api/health')
       );
-      expect(healthCalls).toHaveLength(0);
+      expect(healthCalls).toHaveLength(1);
+      expect(loadConfigSpy).toHaveBeenCalled();
     });
 
-    it('does not call fictional /health endpoint', async () => {
+    it('does not load config when /api/health fails', async () => {
       const { pinia, advance, goBack, configStore } = createTestEnv();
 
-      // Let the component try its current buggy behavior
       mockFetch.mockResolvedValue({
-        ok: true,
-        json: () => Promise.resolve({ version: '1.0.0', tools: 5, agents: 2 }),
+        ok: false,
+        status: 503,
+        statusText: 'Down',
       });
 
-      vi.spyOn(configStore, 'loadConfig').mockResolvedValue();
+      const loadConfigSpy = vi.spyOn(configStore, 'loadConfig').mockResolvedValue();
 
-      mount(OnboardingStepDaemon, {
+      const wrapper = mount(OnboardingStepDaemon, {
         global: {
           plugins: [pinia],
           provide: {
@@ -121,15 +127,12 @@ describe('OnboardingStepDaemon', () => {
 
       await flushPromises();
 
-      // BUG: Component fetches /health which doesn't exist
-      // The daemon only has /api/config, not /health
-      const allFetchUrls = mockFetch.mock.calls.map((call) => call[0]);
-      const healthEndpointCalled = allFetchUrls.some(
-        (url) => typeof url === 'string' && url.includes('/health')
+      const healthCalls = mockFetch.mock.calls.filter(
+        (call) => typeof call[0] === 'string' && call[0].includes('/api/health')
       );
-
-      // This should be false - no /health calls should be made
-      expect(healthEndpointCalled).toBe(false);
+      expect(healthCalls).toHaveLength(1);
+      expect(loadConfigSpy).not.toHaveBeenCalled();
+      expect(wrapper.text()).toContain('Disconnected');
     });
   });
 

@@ -22,6 +22,7 @@ export function useSessionLifecycle({
   promptForAuthMethod,
   cancelAuthResolver,
   getAppVersion,
+  clearConnectionError,
   cancelPendingToolCalls,
   pushSystemMessage,
 }: UseSessionLifecycleDeps) {
@@ -41,6 +42,7 @@ export function useSessionLifecycle({
     handleSessionUpdate,
     promptForAuthMethod,
     getAppVersion,
+    clearConnectionError,
   };
   const startup = useSessionStartup({
     ...runtimeDeps,

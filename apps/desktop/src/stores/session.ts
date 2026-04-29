@@ -119,6 +119,7 @@ export const useSessionStore = defineStore('session', () => {
     promptForAuthMethod,
     cancelAuthResolver,
     getAppVersion,
+    clearConnectionError,
     cancelPendingToolCalls: _cancelPendingToolCalls,
     pushSystemMessage: _pushSystemMessage,
   });

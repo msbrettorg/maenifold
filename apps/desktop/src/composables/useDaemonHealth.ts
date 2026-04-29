@@ -12,6 +12,8 @@ const lastErrorMessage = ref<string | null>(null);
 let pollTimer: ReturnType<typeof setTimeout> | null = null;
 let running = false;
 let inFlight: Promise<void> | null = null;
+let activeController: AbortController | null = null;
+let probeGeneration = 0;
 
 function clearPollTimer(): void {
   if (pollTimer !== null) {
@@ -37,11 +39,14 @@ function toErrorMessage(error: unknown): string {
   return String(error);
 }
 
-async function fetchHealth(): Promise<void> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), HEALTH_TIMEOUT_MS);
+async function fetchHealth(controller: AbortController): Promise<void> {
+  let timedOut = false;
+  const timeout = setTimeout(() => {
+    timedOut = true;
+    controller.abort();
+  }, HEALTH_TIMEOUT_MS);
   try {
-    const response = await fetch(`${getApiBase()}/health`, {
+    const response = await fetch(`${getApiBase()}/api/health`, {
       method: 'GET',
       signal: controller.signal,
     });
@@ -51,6 +56,7 @@ async function fetchHealth(): Promise<void> {
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
+      if (!timedOut) throw error;
       throw new Error(`Health check timed out after ${HEALTH_TIMEOUT_MS}ms`);
     }
     throw error;
@@ -59,18 +65,31 @@ async function fetchHealth(): Promise<void> {
   }
 }
 
-async function runProbe(): Promise<void> {
+async function runProbe(allowStopped = false): Promise<void> {
   if (inFlight) return inFlight;
+  const controller = new AbortController();
+  const generation = probeGeneration;
+  activeController = controller;
+  const canWriteState = () => generation === probeGeneration && (allowStopped || running);
+
   inFlight = (async () => {
     try {
-      await fetchHealth();
+      await fetchHealth(controller);
+      if (!canWriteState()) return;
       daemonOnline.value = true;
       lastErrorMessage.value = null;
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') return;
+      if (!canWriteState()) return;
       daemonOnline.value = false;
       lastErrorMessage.value = toErrorMessage(error);
     } finally {
-      lastCheckedAt.value = Date.now();
+      if (activeController === controller) {
+        activeController = null;
+      }
+      if (canWriteState()) {
+        lastCheckedAt.value = Date.now();
+      }
       inFlight = null;
       scheduleNext();
     }
@@ -81,7 +100,7 @@ async function runProbe(): Promise<void> {
 export function useDaemonHealth() {
   async function forceCheck(): Promise<void> {
     clearPollTimer();
-    await runProbe();
+    await runProbe(true);
   }
 
   function start(): void {
@@ -92,6 +111,9 @@ export function useDaemonHealth() {
 
   function stop(): void {
     running = false;
+    probeGeneration++;
+    activeController?.abort();
+    activeController = null;
     clearPollTimer();
   }
 

@@ -23,7 +23,11 @@ const isVisible = computed(() => !daemonOnline.value || !!connectionError.value)
 async function retry(): Promise<void> {
   await daemonHealth.forceCheck();
   if (connectionError.value) {
-    await Promise.resolve(mcpClient.reconnectSession()).catch(() => undefined);
+    try {
+      await mcpClient.reconnectSession();
+    } catch (error) {
+      sessionStore.connectionError = error instanceof Error ? error.message : String(error);
+    }
   }
 }
 </script>

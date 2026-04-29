@@ -40,6 +40,7 @@ export function useSessionStartup({
   handleSessionUpdate,
   promptForAuthMethod,
   getAppVersion,
+  clearConnectionError,
   bindPendingPermission,
   stopPermissionWatch,
   createSessionSlot,
@@ -190,6 +191,7 @@ export function useSessionStartup({
 
       trackEvent('SessionCreated', { agentName, success: 'true' });
       applySessionConfigurationState(sessionState, sessionResponse);
+      clearConnectionError();
     } catch (error) {
       handleLifecycleFailure(localId, 'SessionCreated', agentName, error);
     } finally {
@@ -254,6 +256,7 @@ export function useSessionStartup({
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'true' });
       savedSession.lastUpdated = Date.now();
       await saveSessionsToStore();
+      clearConnectionError();
     } catch (error) {
       handleLifecycleFailure(localId, 'SessionResumed', savedSession.agentName, error);
     } finally {

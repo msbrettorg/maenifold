@@ -48,6 +48,7 @@ function buildLifecycleHarness(session: SessionState) {
     promptForAuthMethod: async () => null,
     cancelAuthResolver: () => {},
     getAppVersion: () => '0.1.0',
+    clearConnectionError: () => {},
     cancelPendingToolCalls: (target) => {
       for (const toolCall of target.toolCalls.values()) {
         if (toolCall.status === 'pending' || toolCall.status === 'in_progress') {

@@ -25,4 +25,5 @@ export interface SessionRuntimeDeps {
     agentName: string
   ) => Promise<string | null>;
   getAppVersion: () => string;
+  clearConnectionError: () => void;
 }

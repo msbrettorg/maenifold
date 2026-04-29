@@ -18,6 +18,7 @@ use axum::{
     routing::{get, post},
 };
 use parking_lot::RwLock;
+use serde_json::json;
 use std::collections::HashMap;
 use std::fmt::Display;
 use std::str::FromStr;
@@ -134,6 +135,7 @@ where
 pub fn api_routes(state: ApiState) -> Router {
     let _ = &state;
     let read_routes = Router::new()
+        .route("/api/health", get(health_handler))
         .route("/api/config", get(get_config_handler))
         .route("/api/config/path", get(get_config_path_handler))
         .route("/api/config/reload", post(reload_config_handler))
@@ -151,6 +153,10 @@ pub fn api_routes(state: ApiState) -> Router {
         .route("/api/discovery/mcp-tools", get(discover_mcp_tools_handler))
         .route("/api/pipeline/stream", get(pipeline_stream_handler))
         .with_state(state)
+}
+
+async fn health_handler() -> impl IntoResponse {
+    (StatusCode::OK, Json(json!({ "status": "ok" })))
 }
 
 // T-92.7: RTM FR-36 — Endophasia frontend + API routes for /endophasia,

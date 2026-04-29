@@ -9,11 +9,28 @@
 - Runtime: headless jsdom + Vue Test Utils + Node performance hooks.
 - acp-ui comparison: stripped dispatcher reference matching `/tmp/acp-ui/src/stores/session.ts` `agent_message_chunk` behavior. Direct acp-ui mount was not used because the Tauri store imports are not directly runnable in this Electron/jsdom test environment.
 
+
+## Audit caveat (PM 2026-04-28)
+
+Red-team T-244.73 audit (red-t244-73) flagged that:
+- The "acp-ui dispatcher-only baseline" is NOT a like-for-like comparison with our full
+  render pipeline. The 0.09 ms figure measures only acp-ui's dispatcher cost, not its
+  Vue render cost. A true side-by-side requires mounting acp-ui's chat surface in the
+  same harness — deferred to T-245.3.
+- The "Not confirmed as bottleneck" status for H2 / H3 / H4 / H6 / H7 reflects what
+  the headless jsdom harness can probe, not what real-world Electron behavior would
+  show. Sibling-component render counts, Pinia subscriber fanout, and per-frame ACP
+  notification rates are NOT measured here. Deferred to T-245.3.
+
+The H1 fix (262x speedup on max chunk render) is independently verified and
+addresses the user-reported "Agents tab is very slow" complaint. Other hypotheses
+remain follow-up work, NOT confirmed safe.
+
 ## Metrics
 
-| Scenario | acp-ui/reference | ours-before | ours-after H1 | Target | Result |
+| Scenario | acp-ui dispatcher-only baseline | ours-before (full render) | ours-after H1 | Target | Result |
 | --- | ---: | ---: | ---: | ---: | --- |
-| 100 `agent_message_chunk` notifications, total | 0.09 ms dispatcher-only | 2017.33 ms | 131.43 ms | < 2000 ms | PASS |
+| 100 `agent_message_chunk` notifications, total | 0.09 ms (dispatcher only — NOT a like-for-like baseline; see follow-up T-245.3) | 2017.33 ms | 131.43 ms | < 2000 ms | PASS |
 | 100 `agent_message_chunk` notifications, max chunk | n/a | 1860.72 ms | 7.07 ms | < 16 ms | PASS |
 | 100 `agent_message_chunk` notifications, average chunk | n/a | 20.17 ms | 1.31 ms | < 16 ms | PASS |
 | 50 `tool_call_update` notifications | n/a | 58.55 ms | 62.58 ms | < 750 ms | PASS |

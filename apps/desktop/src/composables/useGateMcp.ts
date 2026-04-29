@@ -16,6 +16,16 @@ import { unwrapToolData } from './pipeline-mcp-transport';
 import { getSharedMcpClient } from './usePipelineMcp';
 
 const GATE_DOMAIN = 'maenifold.gate';
+const REQUIRED_GATE_COMMANDS = [
+  'gate_Create',
+  'gate_Status',
+  'gate_Sync',
+  'gate_History',
+  'gate_TaskBody',
+  'gate_Append',
+  'gate_Pass',
+  'gate_Fail',
+] as const;
 
 interface GatewayCommand {
   name?: unknown;
@@ -42,10 +52,10 @@ export function useGateMcp(baseUrl?: string) {
     root: null,
     handle: null,
   };
-  const validatedGateCommands = new Set<string>();
+  let gateGatewayValidated = false;
 
   mcp.onDisconnect(() => {
-    validatedGateCommands.clear();
+    gateGatewayValidated = false;
   });
 
   async function ensureConnected() {
@@ -64,25 +74,26 @@ export function useGateMcp(baseUrl?: string) {
     );
   }
 
-  async function ensureGateGateway(command: string) {
+  async function ensureGateGateway() {
     await ensureConnected();
-    if (validatedGateCommands.has(command)) return;
+    if (gateGatewayValidated) return;
 
     const index = unwrapToolData<GatewayIndexResult>(
       await mcp.callTool('GatewayIndex', { domain: GATE_DOMAIN }),
     );
     const available = commandNames(index);
-    if (!available.has(command)) {
+    const missing = REQUIRED_GATE_COMMANDS.filter((command) => !available.has(command));
+    if (missing.length > 0) {
       throw new Error(
-        `Gate tab requires GatewayIndex domain '${GATE_DOMAIN}' to expose ${command}.`,
+        `Gate tab requires GatewayIndex domain '${GATE_DOMAIN}' to expose ${REQUIRED_GATE_COMMANDS.join(', ')}; missing ${missing.join(', ')}.`,
       );
     }
 
-    validatedGateCommands.add(command);
+    gateGatewayValidated = true;
   }
 
   async function callGateTool<T>(command: string, payload: JsonObject = {}) {
-    await ensureGateGateway(command);
+    await ensureGateGateway();
     const result = await mcp.callTool('GatewayExecute', {
       domain: GATE_DOMAIN,
       command,

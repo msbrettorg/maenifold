@@ -148,7 +148,8 @@ fn pipeline_nodes_json_keeps_local_session_id_and_surfaces_provenance_links() {
         tool["provenance"]["detail"]["thinkingSessionId"],
         Value::Null
     );
-    assert_eq!(tool["provenance"]["detail"]["canReconnect"], false);
+    // T-244.85 hardcoded — full removal in T-244.83
+    assert_eq!(tool["provenance"]["detail"]["canReconnect"], true);
     assert_eq!(tool["provenance"]["detail"]["adoption"]["role"], "none");
     assert_eq!(tool["provenance"]["detail"]["adoption"]["color"], "none");
     assert_eq!(

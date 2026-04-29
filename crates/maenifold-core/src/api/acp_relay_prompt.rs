@@ -1,4 +1,5 @@
 use super::acp_relay::{PendingPrompt, RelayConfig, RelaySession};
+use super::acp_relay_caps::{AgentCaps, caps_for_agent};
 use super::acp_relay_helpers::{rpc_error, update_config_options};
 use agent_client_protocol as acp;
 use serde_json::{Value, json};
@@ -36,8 +37,8 @@ pub(super) fn handle_prompt(
             "sessionId does not match active session",
         ));
     }
-    let (prompt, context) =
-        prompt_parts(&request).map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
+    let blocks = prompt_parts(&request, caps_for_agent(&relay.agent_name, &relay.adapter))
+        .map_err(|error| rpc_error(request_id.clone(), -32602, error))?;
     let (event_tx, event_rx) = mpsc::channel(512);
     let (tx, rx) = oneshot::channel();
     jockey::acp::worker_tx()
@@ -48,8 +49,9 @@ pub(super) fn handle_prompt(
             env: relay.adapter.env.clone(),
             role_name: relay.agent_name.clone(),
             app_session_id: active.app_session_id.clone(),
-            prompt,
-            context,
+            prompt: prompt_text(&blocks),
+            context: Vec::new(),
+            prompt_blocks: Some(blocks),
             cwd: active.cwd.clone(),
             delta_tx: event_tx,
             result_tx: tx,
@@ -116,32 +118,58 @@ pub(super) async fn handle_set_config_option(
         "updatedCategory": category,
     }))
 }
-fn prompt_parts(request: &acp::PromptRequest) -> Result<(String, Vec<(String, String)>), String> {
-    let mut prompt = Vec::new();
-    let mut context = Vec::new();
-    for (index, block) in request.prompt.iter().enumerate() {
+fn prompt_parts(
+    request: &acp::PromptRequest,
+    caps: AgentCaps,
+) -> Result<Vec<acp::ContentBlock>, String> {
+    let mut blocks = Vec::new();
+    let mut has_prompt_content = false;
+    for block in &request.prompt {
         match block {
-            acp::ContentBlock::Text(text) => prompt.push(text.text.clone()),
+            acp::ContentBlock::Text(text) => {
+                if !text.text.trim().is_empty() {
+                    has_prompt_content = true;
+                }
+                blocks.push(block.clone());
+            }
             acp::ContentBlock::ResourceLink(_) | acp::ContentBlock::Resource(_) => {
-                context.push((
-                    format!("attachment-{}", index + 1),
-                    serde_json::to_string(block).map_err(|error| error.to_string())?,
-                ));
+                has_prompt_content = true;
+                blocks.push(block.clone());
             }
             acp::ContentBlock::Image(_) => {
-                return Err("image prompt blocks are not supported by the relay".to_string());
+                if !caps.image {
+                    return Err("image prompt blocks are not supported by the relay".to_string());
+                }
+                has_prompt_content = true;
+                blocks.push(block.clone());
             }
             acp::ContentBlock::Audio(_) => {
-                return Err("audio prompt blocks are not supported by the relay".to_string());
+                if !caps.audio {
+                    return Err("audio prompt blocks are not supported by the relay".to_string());
+                }
+                has_prompt_content = true;
+                blocks.push(block.clone());
             }
             _ => return Err("unsupported prompt block type".to_string()),
         }
     }
-    let prompt = prompt.join("\n").trim().to_string();
-    if prompt.is_empty() {
-        return Err("prompt must contain at least one text block".to_string());
+    if !has_prompt_content {
+        return Err("prompt must contain at least one content block".to_string());
     }
-    Ok((prompt, context))
+    Ok(blocks)
+}
+
+fn prompt_text(blocks: &[acp::ContentBlock]) -> String {
+    blocks
+        .iter()
+        .filter_map(|block| match block {
+            acp::ContentBlock::Text(text) => Some(text.text.as_str()),
+            _ => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+        .trim()
+        .to_string()
 }
 
 fn parse_set_config_request(params: Value) -> Result<(String, String, String), String> {
@@ -159,4 +187,67 @@ fn parse_set_config_request(params: Value) -> Result<(String, String, String), S
         _ => return Err("value must be a string or boolean".to_string()),
     };
     Ok((session_id.to_string(), config_id.to_string(), value))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn caps(image: bool, audio: bool) -> AgentCaps {
+        AgentCaps {
+            image,
+            audio,
+            embedded_context: true,
+        }
+    }
+
+    fn prompt_with_block(block: Value) -> acp::PromptRequest {
+        serde_json::from_value(json!({
+            "sessionId": "session-1",
+            "prompt": [
+                { "type": "text", "text": "describe this" },
+                block
+            ]
+        }))
+        .expect("valid prompt request")
+    }
+
+    #[test]
+    fn image_block_is_forwarded_when_cap_enabled() {
+        let request = prompt_with_block(json!({
+            "type": "image",
+            "data": "iVBORw0KGgo=",
+            "mimeType": "image/png"
+        }));
+
+        let blocks = prompt_parts(&request, caps(true, false)).expect("image accepted");
+
+        assert!(matches!(blocks.get(1), Some(acp::ContentBlock::Image(_))));
+    }
+
+    #[test]
+    fn image_block_is_rejected_when_cap_disabled() {
+        let request = prompt_with_block(json!({
+            "type": "image",
+            "data": "iVBORw0KGgo=",
+            "mimeType": "image/png"
+        }));
+
+        let error = prompt_parts(&request, caps(false, false)).expect_err("image rejected");
+
+        assert_eq!(error, "image prompt blocks are not supported by the relay");
+    }
+
+    #[test]
+    fn audio_block_is_forwarded_when_cap_enabled() {
+        let request = prompt_with_block(json!({
+            "type": "audio",
+            "data": "UklGRg==",
+            "mimeType": "audio/wav"
+        }));
+
+        let blocks = prompt_parts(&request, caps(false, true)).expect("audio accepted");
+
+        assert!(matches!(blocks.get(1), Some(acp::ContentBlock::Audio(_))));
+    }
 }

@@ -1,4 +1,5 @@
 use super::acp_relay::{RelayConfig, RelaySession, SessionLoadParams, SessionSetupParams};
+use super::acp_relay_caps::{AgentCaps, caps_for_agent};
 use super::acp_relay_dispatch::forward_event;
 use super::acp_relay_helpers::{build_modes, resolve_session_cwd, rpc_error};
 use super::acp_relay_mcp::{prewarm_session, reset_session_connection};
@@ -52,17 +53,28 @@ pub(super) async fn handle_initialize(
         active.client_capabilities = request.client_capabilities;
     }
 
-    Ok(json!({
+    Ok(initialize_response(
+        relay,
+        caps_for_agent(&relay.agent_name, &relay.adapter),
+    ))
+}
+
+fn initialize_response(relay: &RelayConfig, caps: AgentCaps) -> Value {
+    json!({
         "protocolVersion": 1,
         "agentCapabilities": {
             "loadSession": true,
-            "promptCapabilities": { "image": false, "audio": false, "embeddedContext": true },
+            "promptCapabilities": {
+                "image": caps.image,
+                "audio": caps.audio,
+                "embeddedContext": caps.embedded_context
+            },
             "sessionCapabilities": {},
             "_meta": { "maenifold/extensions": { "supportedAgentMethods": ["session/set_config_option"] } }
         },
         "authMethods": [],
         "agentInfo": { "name": relay.agent_name, "title": relay.agent_name, "version": "0.1.0" }
-    }))
+    })
 }
 
 pub(super) async fn handle_session_new(
@@ -271,30 +283,5 @@ fn reject_client_mcp_servers(params: &Value, request_id: Value, method: &str) ->
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn rejects_session_new_and_load_client_mcp_server_injection() {
-        for (method, request_id) in [("session/new", json!(7)), ("session/load", json!("load"))] {
-            let error = reject_client_mcp_servers(
-                &json!({
-                    "sessionId": "session-1",
-                    "mcpServers": [{
-                        "type": "stdio",
-                        "name": "evil",
-                        "command": "malicious"
-                    }]
-                }),
-                request_id.clone(),
-                method,
-            )
-            .expect_err("client mcpServers must be rejected");
-            assert_eq!(error["id"], request_id);
-            assert_eq!(error["error"]["code"], json!(-32602));
-            assert_eq!(
-                error["error"]["message"],
-                format!("{method} does not accept client-provided mcpServers")
-            );
-        }
-    }
-}
+#[path = "acp_relay_session_tests.rs"]
+mod tests;

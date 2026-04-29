@@ -20,7 +20,7 @@ function writePermissionParams(toolCallId = 'tool-write-1'): RequestPermissionRe
       { optionId: `${toolCallId}-allow-once`, kind: 'allow_once', name: 'Allow once' },
       { optionId: `${toolCallId}-reject-once`, kind: 'reject_once', name: 'Reject once' },
     ],
-  } as RequestPermissionRequest;
+  } as unknown as RequestPermissionRequest;
 }
 
 class StaticLedger implements PermissionLedger {

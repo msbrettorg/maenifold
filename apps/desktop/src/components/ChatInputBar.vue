@@ -28,6 +28,7 @@ const props = defineProps<{
   embeddedContextTooltip: string;
   pendingAttachments: PendingAttachmentView[];
   attachmentError: string | null;
+  accent?: 'normal' | 'plan';
 }>();
 
 const emit = defineEmits<{
@@ -91,7 +92,10 @@ function handleClose(): void {}
 </script>
 
 <template>
-  <div class="relative flex items-end gap-2 px-4 py-3 bg-surface">
+  <div
+    class="relative flex items-end gap-2 px-4 py-3 bg-surface"
+    :class="{ 'border-t border-warning/30 bg-warning/10': accent === 'plan' }"
+  >
     <CommandPalette
       ref="commandPaletteRef"
       :commands="availableCommands"
@@ -145,6 +149,7 @@ function handleClose(): void {}
         rows="3"
         aria-label="Message input"
         class="flex-1 p-3 border border-border-subtle rounded bg-surface text-text-primary resize-none font-[inherit] text-base transition-[border-color,box-shadow] duration-150 placeholder:text-text-secondary focus:outline-none focus:border-brand focus:shadow-none"
+        :class="{ 'border-warning/40 focus:border-warning': accent === 'plan' }"
         @keydown="handleKeyDown"
       />
     </div>

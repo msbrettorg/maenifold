@@ -85,11 +85,11 @@ describe('handleWriteTextFileRequest', () => {
     const rememberedPaths = new Set<string>();
     const isWritePathAlwaysAllowed = vi
       .spyOn(fileSystem, 'isWritePathAlwaysAllowed')
-      .mockImplementation((path: string) => rememberedPaths.has(path));
+      .mockImplementation((path: unknown) => rememberedPaths.has(String(path)));
     const rememberWritePathAlwaysAllowed = vi
       .spyOn(fileSystem, 'rememberWritePathAlwaysAllowed')
-      .mockImplementation((path: string) => {
-        rememberedPaths.add(path);
+      .mockImplementation((path: unknown) => {
+        rememberedPaths.add(String(path));
       });
     const requestWritePermission = vi
       .spyOn(fileSystem, 'requestWritePermission')

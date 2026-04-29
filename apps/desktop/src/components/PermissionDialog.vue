@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { computed } from 'vue';
 import type { PermissionRequest } from '../lib/types';
 
 const props = withDefaults(defineProps<{
@@ -38,6 +39,31 @@ function optionVariant(kind: string): 'default' | 'destructive' | 'outline' {
   if (kind.startsWith('allow')) return 'default';
   if (kind.startsWith('reject')) return 'destructive';
   return 'outline';
+}
+
+const isFsWriteRequest = computed(() => props.request.toolCall.kind === 'fs/write_text_file');
+const fsWriteRawInput = computed(() => {
+  const rawInput = props.request.toolCall.rawInput;
+  return rawInput && typeof rawInput === 'object' ? rawInput as Record<string, unknown> : {};
+});
+const fsWritePath = computed(() => {
+  const path = fsWriteRawInput.value.path;
+  return typeof path === 'string' ? path : '';
+});
+const fsWriteContentPreview = computed(() => {
+  const content = fsWriteRawInput.value.content;
+  const text = typeof content === 'string' ? content : formatPayload(content);
+  return text.length > 200 ? `${text.slice(0, 200)}…` : text;
+});
+
+function optionTestId(kind: string, name: string): string | undefined {
+  if (!isFsWriteRequest.value) return undefined;
+  if (kind === 'reject_once') return 'permission-deny-button';
+  if (kind === 'allow_always' && name.toLowerCase().includes('path')) {
+    return 'permission-allow-path-button';
+  }
+  if (kind === 'reject_always') return 'permission-deny-always-button';
+  return undefined;
 }
 
 function dialogTitle(): string {
@@ -105,7 +131,27 @@ function contentBlockText(block: unknown): string {
           </div>
         </div>
 
-        <div class="entry-details mt-3 max-h-[50vh] overflow-auto rounded border border-border-subtle bg-surface-high p-3 text-sm text-text-primary">
+        <div
+          v-if="isFsWriteRequest"
+          class="entry-details mt-3 max-h-[50vh] overflow-auto rounded border border-border-subtle bg-surface-high p-3 text-sm text-text-primary"
+        >
+          <div class="mb-3">
+            <div class="mb-1 font-semibold text-text-secondary">Target path</div>
+            <pre
+              data-testid="fs-write-target-path"
+              class="m-0 whitespace-pre-wrap break-words font-mono text-xs"
+            >{{ fsWritePath }}</pre>
+          </div>
+          <div>
+            <div class="mb-1 font-semibold text-text-secondary">Content preview</div>
+            <pre
+              data-testid="fs-write-content-preview"
+              class="m-0 whitespace-pre-wrap break-words font-mono text-xs"
+            >{{ fsWriteContentPreview }}</pre>
+          </div>
+        </div>
+
+        <div v-else class="entry-details mt-3 max-h-[50vh] overflow-auto rounded border border-border-subtle bg-surface-high p-3 text-sm text-text-primary">
           <div v-if="request.toolCall.rawInput !== undefined" class="mb-3">
             <div class="mb-1 font-semibold text-text-secondary">rawInput</div>
             <pre class="m-0 whitespace-pre-wrap break-words font-mono text-xs">{{ formatPayload(request.toolCall.rawInput) }}</pre>
@@ -134,6 +180,8 @@ function contentBlockText(block: unknown): string {
           :key="option.optionId"
           :class="['option-btn min-w-28 flex-1', `option-${option.kind}`]"
           :variant="optionVariant(option.kind)"
+          :data-testid="optionTestId(option.kind, option.name)"
+          :autofocus="isFsWriteRequest && option.kind === 'reject_once'"
           @click="handleSelect(option.optionId)"
         >
           {{ option.name }}

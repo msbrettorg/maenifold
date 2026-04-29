@@ -20,7 +20,7 @@ import {
   withExtensionCapabilities,
 } from './acp-meta';
 import { AcpClientBridgeCore } from './acp-client-core';
-import { PermissionHandler } from './acp-permissions';
+import { PermissionHandler, type InlinePermissionMessageSink } from './acp-permissions';
 import type { AgentInstance } from './types';
 
 const SESSION_SET_CONFIG_OPTION_METHOD = AGENT_METHODS.session_set_config_option;
@@ -88,12 +88,18 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Agent {
 
 export async function createAcpClient(
   agentInstance: AgentInstance,
-  options: { onStderr?: (line: string) => void } = {},
+  options: {
+    onStderr?: (line: string) => void;
+    onInlineMessage?: InlinePermissionMessageSink;
+  } = {},
 ): Promise<AcpClientBridge> {
   const client = new AcpClientBridge(
     agentInstance.id,
     agentInstance.name,
-    new PermissionHandler(undefined, { agent: agentInstance.name })
+    new PermissionHandler(undefined, {
+      agent: agentInstance.name,
+      onInlineMessage: options.onInlineMessage,
+    })
   );
   if (options.onStderr) {
     client.onStderr = options.onStderr;

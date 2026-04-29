@@ -30,6 +30,7 @@ const expandedToolCalls = ref<Set<string>>(new Set());
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const currentSession = computed(() => sessionStore.currentSession);
+const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 'plan');
 const configOptions = computed(() => sessionStore.configOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 const currentPlan = computed(() => sessionStore.currentPlan);
@@ -41,7 +42,9 @@ const supportsEmbeddedContext = computed(() => capabilities.value.embeddedContex
 const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? 'Attach image' : 'This agent does not support image attachments.');
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
-const inputPlaceholder = computed(() => activeCommandHint.value ?? 'Type your message...');
+const inputPlaceholder = computed(() =>
+  activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...')
+);
 const agentSessionStatus = computed(() => {
   if (
     currentSession.value?.sessionId
@@ -232,6 +235,13 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       </div>
     </div>
 
+    <div
+      v-if="isPlanMode"
+      class="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm font-semibold tracking-wide text-warning"
+    >
+      PLAN MODE — no execution will occur.
+    </div>
+
     <ScrollArea ref="scrollAreaRef" class="flex-1 min-h-0">
       <div ref="messagesContainer" class="p-4">
         <ChatMessageList
@@ -262,6 +272,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       :embedded-context-tooltip="embeddedContextTooltip"
       :pending-attachments="pendingAttachments"
       :attachment-error="attachmentError"
+      :accent="isPlanMode ? 'plan' : 'normal'"
       @update:model-value="setInputText"
       @send="handleSend"
       @select-command="handleCommandSelect"

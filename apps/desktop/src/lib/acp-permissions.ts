@@ -13,8 +13,14 @@ import {
   type PermissionScope,
 } from './permission-ledger/ledger';
 import { normalizePermissionToolKind } from './permission-ledger/equivalence-key';
+export { setChatNotificationSink, type ChatNotificationSink } from './acp-chat-notifications';
 
 type PermissionResolver = (response: RequestPermissionResponse) => void;
+export type InlinePermissionMessageSink = (message: {
+  toolCallId: string;
+  message: string;
+  severity: 'warning';
+}) => void;
 
 type PendingPermissionEntry = {
   request: LocalPermissionRequest;
@@ -35,21 +41,31 @@ export class PermissionHandler {
   private readonly context: {
     agent: string;
     currentModeId: () => string | null;
+    onInlineMessage?: InlinePermissionMessageSink;
   };
 
   constructor(
     permissionLedger: PermissionLedger = getDefaultPermissionLedger(),
-    context: { agent?: string; currentModeId?: () => string | null } = {}
+    context: {
+      agent?: string;
+      currentModeId?: () => string | null;
+      onInlineMessage?: InlinePermissionMessageSink;
+    } = {}
   ) {
     this.permissionLedger = permissionLedger;
     this.context = {
       agent: context.agent ?? '',
       currentModeId: context.currentModeId ?? (() => null),
+      onInlineMessage: context.onInlineMessage,
     };
   }
 
   setCurrentModeProvider(currentModeId: () => string | null): void {
     this.context.currentModeId = currentModeId;
+  }
+
+  setInlineMessageSink(onInlineMessage: InlinePermissionMessageSink): void {
+    this.context.onInlineMessage = onInlineMessage;
   }
 
   requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
@@ -180,6 +196,13 @@ export class PermissionHandler {
   private tryModeSupersede(request: LocalPermissionRequest): 'allow' | 'reject' | null {
     const modeId = this.context.currentModeId();
     if (modeId === 'plan' && normalizePermissionToolKind(request.toolCall.kind) === 'edit') {
+      if (request.toolCall.kind === 'fs/write_text_file') {
+        this.context.onInlineMessage?.({
+          toolCallId: request.toolCall.toolCallId,
+          message: 'Write blocked by plan mode',
+          severity: 'warning',
+        });
+      }
       return 'reject';
     }
     return null;

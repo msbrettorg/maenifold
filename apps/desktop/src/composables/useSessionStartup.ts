@@ -10,6 +10,7 @@ import {
   detectPhase,
 } from './session-utils';
 import { useSessionBootstrap } from './useSessionBootstrap';
+import { bindWritePermissionBridge } from './useWritePermissionBridge';
 
 interface UseSessionStartupDeps extends SessionRuntimeDeps {
   bindPendingPermission: (sessionId: string, bridge: AcpClientBridge) => void;
@@ -75,9 +76,21 @@ export function useSessionStartup({
           session.startupPhase = detectedPhase;
         }
       },
+      onInlineMessage: (message) => {
+        const session = sessions.value.get(localId);
+        if (session) {
+          session.messages.push({
+            id: crypto.randomUUID(),
+            role: 'system',
+            content: message.message,
+            timestamp: Date.now(),
+          });
+        }
+      },
     });
     bridges.set(localId, bridge);
     bridge.setPermissionModeProvider(() => sessions.value.get(localId)?.currentModeId ?? null);
+    bindWritePermissionBridge(localId, sessions, bridge);
     bindPendingPermission(localId, bridge);
     bridge.onSessionUpdate = (notification) => handleSessionUpdate(localId, notification);
     await ensureNotAborted(localId, () => bridge.disconnect());

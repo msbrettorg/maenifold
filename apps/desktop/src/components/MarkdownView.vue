@@ -19,6 +19,56 @@ let renderVersion = 0;
 const { renderMermaidBlocks } = useMermaid();
 const knowledgeStore = useKnowledgeStore();
 
+// Keep data URI rendering to inert raster image formats. SVG data URIs are
+// intentionally excluded because nested SVG payloads can carry executable
+// script/event handlers that would bypass DOM-level SVG sanitization.
+const allowedUriRegexp =
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
+const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
+const eventAttributeHookInstalledKey = '__maenifoldEventAttributeHookInstalled';
+
+function installEventAttributeHook(): void {
+  const purifierState = DOMPurify as unknown as Record<string, boolean>;
+  if (purifierState[eventAttributeHookInstalledKey]) return;
+  DOMPurify.addHook('uponSanitizeAttribute', (_node, data) => {
+    if (data.attrName?.toLowerCase().startsWith('on')) {
+      data.keepAttr = false;
+    }
+  });
+  purifierState[eventAttributeHookInstalledKey] = true;
+}
+
+installEventAttributeHook();
+
+function restoreForeignObjectText(safeHtml: string, originalHtml: string): string {
+  if (!originalHtml.includes('<foreignObject') && !originalHtml.includes('<foreignobject')) {
+    return safeHtml;
+  }
+
+  const parser = new DOMParser();
+  const originalDocument = parser.parseFromString(`<body>${originalHtml}</body>`, 'text/html');
+  const safeDocument = parser.parseFromString(`<body>${safeHtml}</body>`, 'text/html');
+  const originalForeignObjects = Array.from(originalDocument.body.querySelectorAll('foreignObject, foreignobject'));
+  const safeForeignObjects = Array.from(safeDocument.body.querySelectorAll('foreignObject, foreignobject'));
+
+  safeForeignObjects.forEach((safeNode, index) => {
+    const originalNode = originalForeignObjects[index];
+    if (!originalNode) return;
+
+    const sanitizedInnerHtml = DOMPurify.sanitize(originalNode.innerHTML, {
+      USE_PROFILES: { html: true },
+      FORBID_TAGS: [...forbiddenTags, 'style'],
+      ALLOWED_URI_REGEXP: allowedUriRegexp,
+    });
+    const container = document.createElement('div');
+    container.innerHTML = sanitizedInnerHtml;
+    const text = container.textContent ?? '';
+    if (text) safeNode.textContent = text;
+  });
+
+  return safeDocument.body.innerHTML;
+}
+
 async function updateRendered(): Promise<void> {
   const thisVersion = ++renderVersion;
   const source = props.content ?? '';
@@ -33,11 +83,46 @@ async function updateRendered(): Promise<void> {
 
     const html = md.render(source);
     const safe = DOMPurify.sanitize(html, {
-      ADD_ATTR: ['class', 'style', 'data-wikilink', 'data-mermaid-processed', 'disabled', 'checked'],
+      USE_PROFILES: { html: true, svg: true, svgFilters: true },
+      ADD_TAGS: ['style', 'foreignObject', 'use'],
+      ADD_ATTR: [
+        'class',
+        'style',
+        'data-wikilink',
+        'data-mermaid-processed',
+        'disabled',
+        'checked',
+        'xmlns',
+        'viewBox',
+        'fill',
+        'stroke',
+        'd',
+        'cx',
+        'cy',
+        'r',
+        'width',
+        'height',
+        'x',
+        'y',
+        'rx',
+        'ry',
+        'transform',
+        'points',
+        'x1',
+        'y1',
+        'x2',
+        'y2',
+        'id',
+        'href',
+        'xlink:href',
+        'xmlns:xlink',
+      ],
+      FORBID_TAGS: forbiddenTags,
+      ALLOWED_URI_REGEXP: allowedUriRegexp,
     });
     if (thisVersion !== renderVersion) return;
 
-    rendered.value = safe;
+    rendered.value = restoreForeignObjectText(safe, html);
   } catch {
     if (thisVersion !== renderVersion) return;
     rendered.value = source

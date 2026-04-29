@@ -56,6 +56,10 @@ export function dispatchResource(content: ResourceContent): DispatchedResource {
     return { kind: 'markdown', text: content.text };
   }
 
+  if (mimeType === 'image/svg+xml' && content.text != null) {
+    return { kind: 'markdown', text: content.text };
+  }
+
   if (mimeType === 'application/json' && content.text != null) {
     try {
       return { kind: 'json', pretty: JSON.stringify(JSON.parse(content.text), null, 2) };

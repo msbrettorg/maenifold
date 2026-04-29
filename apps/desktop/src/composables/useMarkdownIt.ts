@@ -11,9 +11,8 @@ let mdPromise: Promise<MarkdownIt> | null = null;
 
 /**
  * Inline rule that recognises [[concept]] WikiLinks and emits a 'wikilink'
- * token. Keeping this at the parser level lets us leave `html: false` on the
- * markdown-it instance (no raw HTML pass-through, no XSS surface), while still
- * rendering pill-styled spans for WikiLinks.
+ * token. Keeping this at the parser level lets WikiLinks coexist with raw HTML
+ * passthrough; the final rendered output is still sanitized by MarkdownView.
  */
 function wikilinkPlugin(md: MarkdownIt): void {
   md.inline.ruler.before('emphasis', 'wikilink', (state: StateInline, silent: boolean) => {
@@ -51,9 +50,8 @@ function wikilinkPlugin(md: MarkdownIt): void {
  *  - A fence override that leaves ```mermaid blocks untouched so the
  *    useMermaid composable can post-process them into rendered SVG.
  *
- * `html: false` is intentional — raw HTML in source must never bypass the
- * tokeniser. WikiLink pills are emitted by a renderer rule whose output is
- * still routed through DOMPurify by the consumer.
+ * Raw HTML is enabled so safe HTML and inline SVG can pass through to the
+ * consumer's DOMPurify sanitizer.
  *
  * Returns a shared promise so the (async) Shiki plugin is only loaded once.
  */
@@ -61,7 +59,7 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
   if (!mdPromise) {
     mdPromise = (async () => {
       const md = new MarkdownIt({
-        html: false,
+        html: true,
         linkify: true,
         breaks: false,
         typographer: false,

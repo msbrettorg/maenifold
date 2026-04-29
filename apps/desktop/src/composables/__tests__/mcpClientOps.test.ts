@@ -1,6 +1,6 @@
 import { StreamableHTTPError } from '@modelcontextprotocol/sdk/client/streamableHttp';
 import { describe, expect, it, vi } from 'vitest';
-import { createMcpClientOps, type SdkClient } from '../mcpClientOps';
+import { createMcpClientOps, gatewayPassthroughTools, type SdkClient } from '../mcpClientOps';
 import type { ToolCallResult } from '../mcpTransport';
 
 function toolText(payload: unknown): ToolCallResult {
@@ -36,6 +36,22 @@ function createOps(
 }
 
 describe('createMcpClientOps gateway routing', () => {
+  it('allowlist contains all 7 documented top-level MCP tools', () => {
+    const expected = [
+      'GatewayIndex',
+      'GatewayExecute',
+      'GatewayBatch',
+      'GatewayIntent',
+      'DiscoverMcpTools',
+      'ReadMcpResource',
+      'GetHelp',
+    ];
+
+    for (const tool of expected) {
+      expect(gatewayPassthroughTools.has(tool)).toBe(true);
+    }
+  });
+
   it('builds a tool-to-domain map from GatewayIndex and routes domain tools via GatewayExecute', async () => {
     const client = createMockClient(async ({ name, arguments: args = {} }) => {
       if (name === 'GatewayIndex' && !('domain' in args)) {

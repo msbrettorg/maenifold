@@ -2,49 +2,52 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useMcpToolDiscoveryStore } from '../mcp-tool-discovery';
 
-const fetchMock = vi.fn();
+const mcpClientMock = vi.hoisted(() => ({
+  connected: { value: true },
+  connect: vi.fn(),
+  callTool: vi.fn(),
+}));
+
+vi.mock('../../composables/useMcpClient', () => ({
+  useMcpClient: () => mcpClientMock,
+}));
 
 describe('useMcpToolDiscoveryStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
-    fetchMock.mockReset();
-    vi.stubGlobal('fetch', fetchMock);
+    mcpClientMock.connected.value = true;
+    mcpClientMock.connect.mockReset();
+    mcpClientMock.callTool.mockReset();
   });
 
   it('derives ready, auth, stale, and unavailable server health from discovery results', async () => {
-    fetchMock
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
-          {
-            server: 'filesystem',
-            type: 'stdio',
-            status: 'ok',
-            tools: [
-              {
-                name: 'filesystem.ReadFile',
-                inputSchema: {},
-                _meta: {
-                  ui: {
-                    resourceUri: 'ui://filesystem/read-file.html',
-                    csp: "default-src 'self'",
-                    permissions: ['camera', 42],
-                  },
+    mcpClientMock.callTool
+      .mockResolvedValueOnce([
+        {
+          server: 'filesystem',
+          type: 'stdio',
+          status: 'ok',
+          tools: [
+            {
+              name: 'filesystem.ReadFile',
+              inputSchema: {},
+              _meta: {
+                ui: {
+                  resourceUri: 'ui://filesystem/read-file.html',
+                  csp: "default-src 'self'",
+                  permissions: ['camera', 42],
                 },
               },
-            ],
-          },
-          { server: 'msx-mcp', type: 'stdio', status: 'ok', tools: [{ name: 'msx-mcp.list_accounts', inputSchema: {} }] },
-        ],
-      })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => [
-          { server: 'filesystem', type: 'stdio', status: 'error', error: 'connection timed out', tools: [] },
-          { server: 'msx-mcp', type: 'stdio', status: 'error', error: 'login required', tools: [] },
-          { server: 'broken', type: 'stdio', status: 'error', error: 'socket refused', tools: [] },
-        ],
-      });
+            },
+          ],
+        },
+        { server: 'msx-mcp', type: 'stdio', status: 'ok', tools: [{ name: 'msx-mcp.list_accounts', inputSchema: {} }] },
+      ])
+      .mockResolvedValueOnce([
+        { server: 'filesystem', type: 'stdio', status: 'error', error: 'connection timed out', tools: [] },
+        { server: 'msx-mcp', type: 'stdio', status: 'error', error: 'login required', tools: [] },
+        { server: 'broken', type: 'stdio', status: 'error', error: 'socket refused', tools: [] },
+      ]);
 
     const store = useMcpToolDiscoveryStore();
     await store.refreshTools();
@@ -66,5 +69,30 @@ describe('useMcpToolDiscoveryStore', () => {
       csp: "default-src 'self'",
       permissions: ['camera'],
     });
+  });
+
+  it('loads DiscoverMcpTools through the MCP client without the direct fallback routing error', async () => {
+    mcpClientMock.callTool.mockResolvedValueOnce([
+      { server: 'filesystem', type: 'stdio', status: 'ok', tools: [{ name: 'filesystem.ReadFile', inputSchema: {} }] },
+    ]);
+
+    const store = useMcpToolDiscoveryStore();
+
+    await expect(store.refreshTools()).resolves.toEqual([
+      {
+        server: 'filesystem',
+        type: 'stdio',
+        status: 'ok',
+        error: null,
+        tools: [{
+          name: 'filesystem.ReadFile',
+          description: null,
+          inputSchema: {},
+          appUi: null,
+        }],
+      },
+    ]);
+    expect(mcpClientMock.callTool).toHaveBeenCalledWith('DiscoverMcpTools', {});
+    expect(store.error).toBeNull();
   });
 });

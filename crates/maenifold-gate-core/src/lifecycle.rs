@@ -226,6 +226,12 @@ fn error_status_row(root: &std::path::Path, task: &TaskPathSet, error: GateError
             if let Some(id) = metadata.id {
                 canonical_task_id = id;
             }
+        } else if let Ok(metadata) = TaskMetadataParser::parse_lenient(&lines) {
+            title = metadata.title;
+            pipeline = metadata.pipeline;
+            if let Some(id) = metadata.id {
+                canonical_task_id = id;
+            }
         }
     }
 

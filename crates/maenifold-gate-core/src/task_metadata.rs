@@ -28,6 +28,13 @@ pub struct TaskMetadata {
     pub depends_on: Vec<String>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LenientTaskMetadata {
+    pub id: Option<String>,
+    pub title: String,
+    pub pipeline: String,
+}
+
 #[derive(Debug, Clone, Default, Deserialize)]
 struct FrontmatterTask {
     #[serde(default, deserialize_with = "deserialize_optional_string")]
@@ -80,6 +87,33 @@ impl TaskMetadataParser {
 
     pub fn parse_with_path(lines: &[&str], path: &Path) -> Result<TaskMetadata, GateError> {
         Self::parse_with_optional_path(lines, Some(path))
+    }
+
+    pub fn parse_lenient(lines: &[&str]) -> Result<LenientTaskMetadata, GateError> {
+        if let Some(frontmatter) = parse_frontmatter(lines)? {
+            return Ok(LenientTaskMetadata {
+                id: validate_lenient_task_id(frontmatter.id)?,
+                title: frontmatter
+                    .title
+                    .or_else(|| parse_title(lines).ok().map(str::to_string))
+                    .ok_or_else(|| {
+                        GateError::TaskMetadataParse(
+                            "frontmatter task is missing both title and markdown heading"
+                                .to_string(),
+                        )
+                    })?,
+                pipeline: frontmatter
+                    .pipeline
+                    .ok_or(GateError::MissingMetadataField("pipeline"))?,
+            });
+        }
+
+        Ok(LenientTaskMetadata {
+            id: None,
+            title: parse_title(lines)?.to_string(),
+            pipeline: parse_labeled_value(lines, "Pipeline")?
+                .ok_or(GateError::MissingMetadataField("Pipeline"))?,
+        })
     }
 
     fn parse_with_optional_path(
@@ -225,6 +259,23 @@ fn validate_task_id(
                 }
                 return Err(GateError::TaskMetadataParse(format!(
                     "malformed task id: expected format {EXPECTED_TASK_ID_FORMAT}, actual id '{task_id}'"
+                )));
+            }
+            Ok(task_id)
+        })
+        .transpose()
+}
+
+fn validate_lenient_task_id(task_id: Option<String>) -> Result<Option<String>, GateError> {
+    task_id
+        .map(|task_id| {
+            if task_id.contains("..")
+                || task_id.contains('/')
+                || task_id.contains('\\')
+                || !TASK_ID_RE.is_match(&task_id)
+            {
+                return Err(GateError::TaskMetadataParse(format!(
+                    "invalid task id '{task_id}': must match ^[A-Za-z0-9._-]+$ and must not contain path separators or '..'"
                 )));
             }
             Ok(task_id)

@@ -27,11 +27,8 @@ import { usePipelineViewState } from '../composables/usePipelineViewState';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
-type PipelineIconRailExpose = { focusPipelineToggle: () => void };
-type TemplateGalleryExpose = { resetForNewPipeline: () => void };
-const store = usePipelineStore();
-const provenance = useProvenanceStore();
-const zoomStore = useSemanticZoomStore();
+type PipelineIconRailExpose = { focusPipelineToggle: () => void }; type TemplateGalleryExpose = { resetForNewPipeline: () => void };
+const store = usePipelineStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
 const { navigateTo } = useProvenanceNavigation();
 const { currentPipelineId, currentView, designMode, error, localDefinition, successMessage, workflows } = storeToRefs(store);
 const runnerExpanded = ref(false);
@@ -50,16 +47,21 @@ const showFullScreenEmpty = computed(() =>
 const showBrowseExistingEntry = computed(() => !designMode.value && !currentView.value);
 const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrowseExistingEntry.value);
 const {
-  configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds,
-  currentPipelineLineageId, provenanceLinks,
-  handleNodeSelected, handleEdgeSelected, clearInspectorSelection,
-  handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
+  configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds, currentPipelineLineageId, provenanceLinks,
+  handleNodeSelected, handleEdgeSelected, clearInspectorSelection, handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
 } = usePipelineViewState({ currentView, currentPipelineId });
+const lastStatusByPipeline = ref<Record<string, string | null>>({});
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; });
-watch(() => String(currentView.value?.status ?? ''), (status) => {
-  if (status === 'stuck' || status === 'abandoned') runnerExpanded.value = true;
+watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? '')], ([pipelineId, status], [prevPipelineId]) => {
+  if (!pipelineId) return;
+  if (pipelineId !== prevPipelineId) {
+    runnerExpanded.value = false;
+    lastStatusByPipeline.value[pipelineId] = status;
+    return;
+  }
+  if (status !== lastStatusByPipeline.value[pipelineId] && (status === 'stuck' || status === 'abandoned')) runnerExpanded.value = true;
+  lastStatusByPipeline.value[pipelineId] = status;
 });
-watch(currentPipelineId, () => { runnerExpanded.value = false; });
 watch(isNarrowViewport, (narrow) => { if (narrow) closeFlyout(); });
 watch(
   [() => provenance.pendingThinkingSessionId, currentView],
@@ -84,12 +86,8 @@ watch(
   },
   { immediate: true },
 );
-function handleDefinitionUpdate(nextDefinition: PipelineDefinition) {
-  localDefinition.value = nextDefinition;
-}
-function focusRailToggle() {
-  nextTick(() => iconRailRef.value?.focusPipelineToggle());
-}
+function handleDefinitionUpdate(nextDefinition: PipelineDefinition) { localDefinition.value = nextDefinition; }
+function focusRailToggle() { nextTick(() => iconRailRef.value?.focusPipelineToggle()); }
 function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
   if (!isPipelineFlyoutOpen.value) return;
   closeFlyout();

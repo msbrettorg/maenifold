@@ -161,7 +161,7 @@ describe('AddNodeForm', () => {
     await setSelectValueByAttr(wrapper, '[data-testid="prompt-thought-level-select"]', 'high');
     await setSelectValueByAttr(wrapper, '[data-testid="prompt-config-temperature"]', '1');
     await wrapper.get('textarea[placeholder="Required prompt template"]').setValue('Investigate the failure');
-    await wrapper.get('form.composer-toolbar').trigger('submit');
+    await wrapper.get('form').trigger('submit');
 
     expect(submitNode).toHaveBeenCalledWith('prompt', {
       agent: 'architect',
@@ -202,7 +202,7 @@ describe('AddNodeForm', () => {
 
     expect(nodePaletteStore.searchQuery).toBe('search');
 
-    await wrapper.get('form.composer-toolbar').trigger('submit');
+    await wrapper.get('form').trigger('submit');
 
     expect(submitNode).toHaveBeenCalledWith('tool', {
       toolName: 'maenifold.SearchMemories',

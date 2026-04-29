@@ -62,6 +62,8 @@ export class AcpClientBridgeCore implements Client {
   protected permissionHandler: PermissionHandler;
   private connection: ClientSideConnection | null = null;
   private pendingMethods: Map<JsonRpcId, string> = new Map();
+  private timeoutHandles: Map<number, ReturnType<typeof setTimeout>> = new Map();
+  private pendingRequests: Map<number, { reject: (error: Error) => void }> = new Map();
   private socket: WebSocket | null = null;
   private transportClosed = false;
   private transportCloseReason: string | null = null;
@@ -110,6 +112,7 @@ export class AcpClientBridgeCore implements Client {
         this.transportClosed = true;
         this.transportCloseReason = event.reason || `socket closed (${event.code})`;
         this.socket = null;
+        this.rejectPendingRequests(new Error(`ACP agent terminated before responding (${this.agentName})`));
         this.pendingMethods.clear();
       });
     });
@@ -126,6 +129,7 @@ export class AcpClientBridgeCore implements Client {
   async disconnect(): Promise<void> {
     this.supportedAgentMethods.clear();
     this.cancelPermission();
+    this.rejectPendingRequests(new Error(`ACP client disconnected before response (${this.agentName})`));
     this.pendingMethods.clear();
 
     const socket = this.socket;
@@ -296,20 +300,55 @@ export class AcpClientBridgeCore implements Client {
 
   private withTimeout<T>(method: string, request: Promise<T>): Promise<T> {
     // SDK parity gap: ClientSideConnection owns pending responses but does not expose
-    // per-method timeout configuration, so the bridge retains the UI-level timeout policy.
+    // per-method timeout configuration or semantic close errors, so the bridge retains
+    // the UI-level timeout policy and rejects in-flight requests on transport shutdown.
+    const requestId = this.nextRequestId();
     return new Promise((resolve, reject) => {
       const handle = setTimeout(
-        () => reject(new Error(`Request timeout: ${method}`)),
+        () => {
+          this.timeoutHandles.delete(requestId);
+          this.pendingRequests.delete(requestId);
+          reject(new Error(`Request timeout: ${method}`));
+        },
         this.getTimeoutForMethod(method)
       );
+      this.timeoutHandles.set(requestId, handle);
+      this.pendingRequests.set(requestId, { reject });
       request.then(
         (value) => {
+          this.pendingRequests.delete(requestId);
+          this.timeoutHandles.delete(requestId);
           clearTimeout(handle);
           resolve(value);
         },
-        (error) => { clearTimeout(handle); reject(error); }
+        (error) => {
+          this.pendingRequests.delete(requestId);
+          this.timeoutHandles.delete(requestId);
+          clearTimeout(handle);
+          reject(error);
+        }
       );
     });
+  }
+
+  private nextRequestId(): number {
+    let id = 0;
+    while (this.pendingRequests.has(id) || this.timeoutHandles.has(id)) {
+      id += 1;
+    }
+    return id;
+  }
+
+  private rejectPendingRequests(error: Error): void {
+    for (const [requestId, pending] of this.pendingRequests) {
+      const handle = this.timeoutHandles.get(requestId);
+      if (handle) {
+        clearTimeout(handle);
+        this.timeoutHandles.delete(requestId);
+      }
+      pending.reject(error);
+    }
+    this.pendingRequests.clear();
   }
 
   private getTimeoutForMethod(method: string): number {

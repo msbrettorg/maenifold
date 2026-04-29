@@ -13,12 +13,18 @@ import { useNodePaletteStore } from '../../stores/node-palette';
 import { usePipelineStore } from '../../stores/pipeline';
 import type { McpServerDiscoveryResult } from '../../lib/types';
 
-const { callTool, connect, connected } = vi.hoisted(() => {
+const { callTool, connect, connected, discoveryResultsQueue } = vi.hoisted(() => {
   const connected = { value: false, __v_isRef: true };
+  const discoveryResultsQueue: unknown[][] = [];
   return {
-    callTool: vi.fn(async () => ({})),
+    callTool: vi.fn(async (toolName: string) => (
+      toolName === 'DiscoverMcpTools'
+        ? (discoveryResultsQueue.shift() ?? [])
+        : {}
+    )),
     connect: vi.fn(async () => { connected.value = true; }),
     connected,
+    discoveryResultsQueue,
   };
 });
 
@@ -32,6 +38,17 @@ vi.mock('../../composables/usePipelineMcp', () => ({
     listTools: vi.fn(async () => []),
     diffViews: vi.fn(() => []),
     startPolling: vi.fn(),
+  }),
+}));
+
+vi.mock('../../composables/useMcpClient', () => ({
+  useMcpClient: () => ({
+    connected,
+    reconnecting: ref(false),
+    error: ref<string | null>(null),
+    connect,
+    disconnect: vi.fn(async () => { connected.value = false; }),
+    callTool,
   }),
 }));
 
@@ -131,6 +148,7 @@ function healthyDiscoveryResults(): McpServerDiscoveryResult[] {
 }
 
 function mockDiscoveryFetch(...results: McpServerDiscoveryResult[][]) {
+  discoveryResultsQueue.splice(0, discoveryResultsQueue.length, ...results);
   vi.stubGlobal(
     'fetch',
     vi.fn().mockImplementation(() => {
@@ -312,8 +330,9 @@ describe('ToolPaletteFields', () => {
     expect(wrapper.text()).toContain('Accounts & CRM');
     expect(wrapper.text()).toContain('Workplace Intelligence');
     expect(wrapper.text()).not.toContain('Documentation');
-    expect(wrapper.find('.tool-palette__quick-add').text()).toContain('ask_work_iq');
-    expect(wrapper.find('.tool-palette__quick-add').text()).toContain('WriteMemory');
+    const quickAdd = wrapper.get('section[aria-label="Quick Add"]');
+    expect(quickAdd.text()).toContain('ask_work_iq');
+    expect(quickAdd.text()).toContain('WriteMemory');
 
     const listbox = wrapper.get('[role="listbox"]');
     expect(listbox.attributes('aria-label')).toBe('Browse by intent tools');
@@ -330,7 +349,7 @@ describe('ToolPaletteFields', () => {
     await wrapper.setProps({ toolName: 'maenifold.WriteMemory' });
     await listbox.trigger('keydown', { key: ' ' });
     expect(wrapper.emitted('submitRequest')).toHaveLength(1);
-    expect(wrapper.findAll('.tool-palette__server').some((node) => node.text() === 'workiq')).toBe(true);
+    expect(wrapper.findAll('[role="option"]').some((node) => node.text().includes('workiq'))).toBe(true);
   });
 
   it('blocks cached auth-error tools into auth setup path even when stale cache exists', async () => {

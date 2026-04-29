@@ -25,6 +25,7 @@ async function retry(): Promise<void> {
   if (connectionError.value) {
     try {
       await mcpClient.reconnectSession();
+      sessionStore.clearConnectionError();
     } catch (error) {
       sessionStore.connectionError = error instanceof Error ? error.message : String(error);
     }

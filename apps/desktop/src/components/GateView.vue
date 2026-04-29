@@ -4,6 +4,7 @@ import GateViewContent from './GateViewContent.vue';
 import GateViewFilters from './GateViewFilters.vue';
 import GateViewStatus from './GateViewStatus.vue';
 import GateViewToolbar from './GateViewToolbar.vue';
+import GateCreateTaskDialog from './GateCreateTaskDialog.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import { useProvenanceNavigation } from '../composables/useProvenanceNavigation';
 import { useGateMcp } from '../composables/useGateMcp';
@@ -24,6 +25,7 @@ const snapshot = ref<GateSnapshot | null>(null);
 const isLoading = ref(false);
 const error = ref('');
 const lastRefreshLabel = ref('');
+const createTaskOpen = ref(false);
 
 const gateRoot = computed(() => registry.selectedGateRoot.value);
 
@@ -110,6 +112,16 @@ async function handleRemoveCurrentGate() {
   detail.clearSelection();
 }
 
+async function handleGateActionComplete() {
+  await refreshSnapshot(true);
+}
+
+async function handleTaskCreated(taskId: string) {
+  await refreshSnapshot();
+  const task = snapshot.value?.tasks.find((item) => item.taskId === taskId);
+  if (task) await detail.selectTask(task);
+}
+
 watch(gateRoot, async (root) => {
   detail.selectedTaskId.value = '';
   detail.selectedTaskKey.value = '';
@@ -157,6 +169,14 @@ onBeforeUnmount(() => {
         @browse="registry.browseForRoot"
         @remove="handleRemoveCurrentGate"
         @refresh="() => refreshSnapshot()"
+        @new-task="createTaskOpen = true"
+      />
+      <GateCreateTaskDialog
+        v-if="hasGateRoot"
+        v-model:open="createTaskOpen"
+        :root="gateRoot"
+        :tasks="snapshot?.tasks ?? []"
+        @created="handleTaskCreated"
       />
       <GateViewFilters
         v-model:searchText="filtering.searchText.value"
@@ -187,9 +207,11 @@ onBeforeUnmount(() => {
         :history-loading="detail.detailHistoryLoading.value"
         :body-error="detail.detailBodyError.value"
         :history-error="detail.detailHistoryError.value"
+        :root="gateRoot"
         @sort="filtering.toggleSort"
         @select="detail.selectTask"
         @close="detail.clearSelection"
+        @action-complete="handleGateActionComplete"
       />
   </div>
 </template>

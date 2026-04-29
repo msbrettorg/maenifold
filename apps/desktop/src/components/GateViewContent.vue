@@ -23,12 +23,14 @@ defineProps<{
   historyLoading: boolean;
   bodyError: string;
   historyError: string;
+  root: string;
 }>();
 
 defineEmits<{
   sort: [column: SortColumn];
   select: [task: GateTask];
   close: [];
+  'action-complete': [];
 }>();
 </script>
 
@@ -74,7 +76,9 @@ defineEmits<{
             :history-loading="historyLoading"
             :body-error="bodyError"
             :history-error="historyError"
+            :root="root"
             @close="$emit('close')"
+            @action-complete="$emit('action-complete')"
           />
         </div>
       </ResizablePanel>

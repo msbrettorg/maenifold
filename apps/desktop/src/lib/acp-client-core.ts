@@ -160,8 +160,16 @@ export class AcpClientBridgeCore implements Client {
     return this.permissionHandler.requestPermission(params);
   }
 
-  resolvePermission(requestId: string, optionId: string, scope?: 'session' | 'agent' | 'forever'): void {
-    void this.permissionHandler.resolvePermission(requestId, optionId, scope);
+  async resolvePermission(
+    requestId: string,
+    optionId: string,
+    scope?: 'session' | 'agent' | 'forever'
+  ): Promise<void> {
+    try {
+      await this.permissionHandler.resolvePermission(requestId, optionId, scope);
+    } catch (error) {
+      console.error('Failed to resolve permission decision:', error);
+    }
   }
 
   cancelPermission(): void {

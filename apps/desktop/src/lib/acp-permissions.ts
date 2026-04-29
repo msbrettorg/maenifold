@@ -285,10 +285,14 @@ export class PermissionHandler {
     }
 
     const decision = option.kind.startsWith('allow') ? 'allow' : 'reject';
-    void this.permissionLedger.recordDecision(request, {
-      agent: this.context.agent,
-      scope,
-      decision,
-    });
+    try {
+      await this.permissionLedger.recordDecision(request, {
+        agent: this.context.agent,
+        scope,
+        decision,
+      });
+    } catch (error) {
+      console.error('Failed to persist permission decision via fallback ledger path:', error);
+    }
   }
 }

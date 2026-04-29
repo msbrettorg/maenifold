@@ -137,6 +137,26 @@ fn status_surfaces_malformed_task_id_with_path_expected_and_actual() {
 }
 
 #[test]
+fn status_error_rows_leniently_preserve_title_and_pipeline_for_malformed_ids() {
+    let root = new_root();
+    fs::write(
+        task_path(root.path(), "T-243.2.0-lenient-salvage", "todo"),
+        "---\nid: T-243.2.0\ntitle: malformed salvage task\npipeline: sdd\n---\n# malformed salvage task\n",
+    )
+    .expect("write malformed task");
+
+    let row = single_status(root.path());
+
+    assert_eq!(row["state"], "error");
+    assert_eq!(row["title"], "malformed salvage task");
+    assert_eq!(row["pipeline"], "sdd");
+    assert_eq!(row["canonicalTaskId"], "T-243.2.0");
+    let issue = row["issue"].as_str().expect("issue string");
+    assert!(issue.contains("expected format T-{sprint}.{N}.md"));
+    assert!(issue.contains("actual id 'T-243.2.0'"));
+}
+
+#[test]
 fn builtin_definitions_are_cycle_free_gate_core_assets() {
     let definition = resolve_definition(Path::new("/"), "slc").expect("slc definition");
     assert_eq!(definition.initial_state().expect("initial"), "pending");
@@ -144,14 +164,14 @@ fn builtin_definitions_are_cycle_free_gate_core_assets() {
 }
 
 #[test]
-fn status_error_rows_preserve_task_title_and_pipeline() {
+fn status_error_rows_preserve_task_title_and_pipeline_when_status_derivation_fails() {
     let root = new_root();
-    write_task(root.path(), "T-237.g", "sdd");
+    write_task(root.path(), "T-237.7", "sdd");
     fs::rename(
-        task_path(root.path(), "T-237.g", "todo"),
-        task_path(root.path(), "T-237.g", "done"),
+        task_path(root.path(), "T-237.7", "todo"),
+        task_path(root.path(), "T-237.7", "done"),
     )
-    .expect("move malformed archive fixture");
+    .expect("move non-terminal task into done");
 
     let rows = GateLifecycle::status(StatusArgs {
         context: context(root.path()),
@@ -164,10 +184,16 @@ fn status_error_rows_preserve_task_title_and_pipeline() {
 
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["state"], "error");
-    assert_eq!(rows[0]["title"], "T-237.g task");
+    assert_eq!(rows[0]["title"], "T-237.7 task");
     assert_eq!(rows[0]["pipeline"], "sdd");
-    assert_ne!(rows[0]["title"], "[error] T-237.g");
+    assert_ne!(rows[0]["title"], "[error] T-237.7");
     assert_ne!(rows[0]["pipeline"], "unknown");
+    assert!(
+        rows[0]["issue"]
+            .as_str()
+            .expect("issue string")
+            .contains("task archived in done/ but effective state is pending")
+    );
 }
 
 fn new_root() -> TempDir {

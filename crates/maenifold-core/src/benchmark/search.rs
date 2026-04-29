@@ -92,7 +92,7 @@ pub(crate) fn benchmark_hybrid_search(
     sample_size: usize,
 ) -> Result<usize> {
     let query_lower = query.to_ascii_lowercase();
-    let query_slug = slugify_query(query);
+    let query_slug = query_slug(query);
     let query_terms = tokenize_query(query);
     let mut statement = connection.prepare(
         "SELECT COALESCE(title, ''), COALESCE(content, '')
@@ -132,7 +132,7 @@ pub(crate) fn benchmark_semantic_search(
     sample_size: usize,
 ) -> Result<usize> {
     let query_lower = query.to_ascii_lowercase();
-    let query_slug = slugify_query(query);
+    let query_slug = query_slug(query);
     let like_query = format!("%{query_lower}%");
     let like_slug = format!("%{query_slug}%");
     let mut statement = connection.prepare(
@@ -197,7 +197,7 @@ pub(crate) fn benchmark_full_text_search(
     }
 }
 
-pub(crate) fn slugify_query(query: &str) -> String {
+pub(crate) fn query_slug(query: &str) -> String {
     query
         .to_ascii_lowercase()
         .replace(|ch: char| !ch.is_ascii_alphanumeric(), "-")

@@ -1,7 +1,7 @@
 use serde_json::Value;
 use std::collections::HashSet;
 
-pub(crate) fn slugify_query(query: &str) -> String {
+pub(crate) fn query_slug(query: &str) -> String {
     ::slug::slugify(query)
 }
 

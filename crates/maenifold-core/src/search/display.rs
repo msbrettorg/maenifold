@@ -1,6 +1,6 @@
 use crate::error::{MaenifoldError, Result};
 use crate::markdown::{Frontmatter, path_to_uri, read_markdown};
-use crate::search::text::{build_snippet, slugify_query, tokenize_query};
+use crate::search::text::{build_snippet, query_slug, tokenize_query};
 use crate::tools::ToolContext;
 use serde_yml::Value as YamlValue;
 use std::collections::BTreeSet;
@@ -25,7 +25,7 @@ pub fn get_file_display_info(
 ) -> (String, String) {
     let fallback_title = fallback_display_title(file_identifier);
     let query_terms = tokenize_query(query);
-    let query_slug = slugify_query(query);
+    let query_slug = query_slug(query);
 
     let loaded = if file_identifier.starts_with("memory://") {
         read_markdown(file_identifier, config)

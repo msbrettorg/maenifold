@@ -14,6 +14,7 @@ use crate::task_file::{GateProjectLock, TaskFileLock};
 use crate::task_metadata::TaskMetadataParser;
 use crate::task_repository::TaskPathSet;
 use crate::task_repository::TaskRepository;
+use crate::task_title_slug;
 
 #[path = "lifecycle_helpers.rs"]
 mod lifecycle_helpers;
@@ -125,7 +126,7 @@ impl GateLifecycle {
             )));
         }
 
-        let slug = slugify_title(title);
+        let slug = task_title_slug(title);
         let markdown = create_task_markdown(
             &args.task_id,
             title,
@@ -310,15 +311,6 @@ impl GateLifecycle {
 
     pub fn fail(args: StageNoteArgs) -> Result<Value, GateError> {
         apply_outcome(args, "fail")
-    }
-}
-
-fn slugify_title(title: &str) -> String {
-    let result = ::slug::slugify(title);
-    if result.is_empty() {
-        "untitled".to_string()
-    } else {
-        result
     }
 }
 

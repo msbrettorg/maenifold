@@ -96,14 +96,7 @@ pub fn join_validated_path_buf(base_path: &Path, relative: &Path) -> Result<Path
     Ok(joined)
 }
 
-pub fn slugify_title(title: &str) -> String {
-    let result = ::slug::slugify(title);
-    if result.is_empty() {
-        "untitled".to_string()
-    } else {
-        result
-    }
-}
+pub use maenifold_gate_core::task_title_slug as slugify_title;
 
 pub fn memory_uri_to_path(identifier: &str, config: &Config) -> Result<PathBuf> {
     let Some(rest) = identifier.strip_prefix("memory://") else {

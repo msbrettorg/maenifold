@@ -266,11 +266,20 @@ fn create_schema() -> Value {
         "root".to_string(),
         json!({"type": "string", "description": "Absolute repository root containing todo/ and done/."}),
     );
-    properties.insert("taskId".to_string(), json!({"type": "string"}));
-    properties.insert("title".to_string(), json!({"type": "string"}));
+    properties.insert(
+        "taskId".to_string(),
+        json!({"type": "string", "pattern": "^T-\\d+\\.\\d+$"}),
+    );
+    properties.insert(
+        "title".to_string(),
+        json!({"type": "string", "minLength": 1}),
+    );
     properties.insert("pipeline".to_string(), json!({"type": "string"}));
     properties.insert("body".to_string(), json!({"type": "string"}));
-    properties.insert("priority".to_string(), json!({"type": "string"}));
+    properties.insert(
+        "priority".to_string(),
+        json!({"type": "string", "enum": ["P0", "P1", "P2", "P3", "P4"]}),
+    );
     properties.insert("sprint".to_string(), json!({"type": "integer"}));
     properties.insert("parent".to_string(), json!({"type": "string"}));
     json!({"type": "object", "properties": properties, "required": ["root", "taskId", "title", "pipeline"], "additionalProperties": false})

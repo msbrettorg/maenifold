@@ -87,6 +87,9 @@ export function normalizeReadMemoryResponse(value: unknown): MemoryFile {
 
 export function normalizeMemoryWriteResponse(value: unknown, fallbackUri: string | null = null): string {
   const data = unwrapToolData<unknown>(value);
+  if (typeof data === 'string' && /^ERROR:/i.test(data.trim())) {
+    throw new Error(data.trim());
+  }
   const uri = extractUri(data) ?? fallbackUri;
   if (!uri) {
     throw new Error('Memory write completed without returning a memory URI.');

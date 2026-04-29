@@ -193,10 +193,10 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
-  async function loadTab(uri: string): Promise<void> {
+  async function loadTab(uri: string, force = false): Promise<void> {
     const current = tabCache.value.get(uri);
     if (current?.loading) return;
-    if (current?.content) {
+    if (current?.content && !force) {
       if (activeTabUri.value === uri) {
         await loadRelatedConceptsForNote(current.content);
       }
@@ -232,6 +232,42 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     await loadRootFolders();
     setActiveTab(uri);
     return uri;
+  }
+
+  async function reloadNote(uri: string): Promise<void> {
+    await loadTab(uri, true);
+  }
+
+  async function saveNoteContent(input: {
+    uri: string;
+    previousContent: string;
+    content: string;
+    checksum: string | null;
+  }): Promise<void> {
+    if (!input.checksum) {
+      throw new Error('A checksum is required before updating this note.');
+    }
+    await memoryApi.editMemory({
+      identifier: input.uri,
+      findText: input.previousContent,
+      content: input.content,
+      checksum: input.checksum,
+    });
+    await reloadNote(input.uri);
+  }
+
+  async function forceSaveNoteContent(uri: string, content: string): Promise<void> {
+    const latest = await memoryApi.readMemory(uri);
+    if (!latest.checksum) {
+      throw new Error('A checksum is required before updating this note.');
+    }
+    await memoryApi.editMemory({
+      identifier: uri,
+      findText: latest.content,
+      content,
+      checksum: latest.checksum,
+    });
+    await reloadNote(uri);
   }
 
   function setActiveTab(uri: string): void {
@@ -309,6 +345,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
     loadRootFolders, loadFolder, setFolderOpen, search, createNote,
+    reloadNote, saveNoteContent, forceSaveNoteContent,
     openNote, openInNewTab, closeTab, setActiveTab, setActiveSubtab,
     ...graphActions,
   };

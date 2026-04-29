@@ -44,6 +44,13 @@ interface WriteMemoryOptions {
   content: string;
 }
 
+interface EditMemoryOptions {
+  identifier: string;
+  content: string;
+  checksum: string;
+  findText: string;
+}
+
 interface BuildContextOptions {
   depth?: number;
   maxEntities?: number;
@@ -119,6 +126,21 @@ export function useMemoryApi() {
     return normalizeMemoryWriteResponse(await mcp.callTool('WriteMemory', payload));
   }
 
+  async function editMemory(options: EditMemoryOptions): Promise<string> {
+    await ensureConnected();
+    return normalizeMemoryWriteResponse(
+      await mcp.callTool('EditMemory', {
+        identifier: options.identifier,
+        operation: 'find_replace',
+        findText: options.findText,
+        expectedCount: 1,
+        content: options.content,
+        checksum: options.checksum,
+      }),
+      options.identifier,
+    );
+  }
+
   async function buildContext(
     conceptName: string,
     opts: BuildContextOptions = {},
@@ -151,6 +173,7 @@ export function useMemoryApi() {
     recentActivity,
     listMemories,
     writeMemory,
+    editMemory,
     buildContext,
     findSimilarConcepts,
   };

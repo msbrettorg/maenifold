@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import { BookOpenText, Clock, FileText, X } from 'lucide-vue-next';
+import { computed, onMounted, ref, watch } from 'vue';
+import { BookOpenText, Clock, FileText, Pencil, X } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useMemoryApi } from '../composables/useMemoryApi';
 import { useKnowledgeStore } from '../stores/knowledge';
 import type { RecentActivityItem } from '../lib/workflow-types';
 import EmptyState from './EmptyState.vue';
+import KnowledgeInlineEditor from './KnowledgeInlineEditor.vue';
 import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 
 const store = useKnowledgeStore();
@@ -18,6 +19,7 @@ const { activeTabUri, activeNote, noteLoading, noteError } = storeToRefs(store);
 const recentNotes = ref<RecentActivityItem[]>([]);
 const recentLoading = ref(false);
 const recentError = ref<string | null>(null);
+const editing = ref(false);
 const noteErrorTitle = computed(() => (
   /not\s*found|no such|missing|404/i.test(noteError.value ?? '')
     ? 'Note not found'
@@ -42,6 +44,10 @@ onMounted(() => {
   void loadRecentNotes();
 });
 
+watch(activeTabUri, () => {
+  editing.value = false;
+});
+
 function closeActiveTab(): void {
   if (!activeTabUri.value) return;
   store.closeTab(activeTabUri.value);
@@ -52,9 +58,23 @@ function closeActiveTab(): void {
 <template>
   <section class="flex min-h-0 min-w-0 flex-1 flex-col bg-bg-app" aria-label="Knowledge leaf">
     <header v-if="activeNote" class="border-b border-border-subtle px-5 py-3">
-      <p class="text-tiny uppercase tracking-[0.04em] text-text-tertiary">Selected note</p>
-      <h2 class="truncate text-title font-semibold text-text-primary">{{ activeNote.title }}</h2>
-      <p v-if="activeTabUri" class="truncate text-body-sm text-text-secondary">{{ activeTabUri }}</p>
+      <div class="flex items-start justify-between gap-3">
+        <div class="min-w-0">
+          <p class="text-tiny uppercase tracking-[0.04em] text-text-tertiary">Selected note</p>
+          <h2 class="truncate text-title font-semibold text-text-primary">{{ activeNote.title }}</h2>
+          <p v-if="activeTabUri" class="truncate text-body-sm text-text-secondary">{{ activeTabUri }}</p>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          class="gap-2 text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary"
+          @click="editing = !editing"
+        >
+          <Pencil class="size-4" aria-hidden="true" />
+          {{ editing ? 'Preview' : 'Edit' }}
+        </Button>
+      </div>
     </header>
 
     <ScrollArea class="min-h-0 flex-1">
@@ -120,6 +140,13 @@ function closeActiveTab(): void {
             </div>
           </div>
         </div>
+
+        <KnowledgeInlineEditor
+          v-else-if="editing"
+          :note="activeNote"
+          @saved="editing = false"
+          @cancel="editing = false"
+        />
 
         <div v-else-if="!activeNote.content?.trim()" class="flex min-h-[18rem] items-center justify-center">
           <EmptyState :icon="FileText" title="Empty note" description="This note has no content yet." />

@@ -5,6 +5,7 @@ import type { PermissionRequest as LocalPermissionRequest } from './types';
 import {
   markAutoPermissionStatus,
   pushPermissionGhostNotification,
+  pushPermissionSafetyNotification,
 } from './permission-ledger/audit-events';
 import {
   getDefaultPermissionLedger,
@@ -19,6 +20,13 @@ type PendingPermissionEntry = {
   request: LocalPermissionRequest;
   resolver: PermissionResolver;
 };
+
+export class PermissionAgentNonCompliantError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'PermissionAgentNonCompliantError';
+  }
+}
 
 export class PermissionHandler {
   public pendingPermissionRequests: Ref<LocalPermissionRequest[]> = ref([]);
@@ -49,7 +57,17 @@ export class PermissionHandler {
     const modeDecision = this.tryModeSupersede(request);
     if (modeDecision) {
       markAutoPermissionStatus(request.toolCall.toolCallId, modeDecision);
-      return Promise.resolve(this.selectedResponse(request, modeDecision));
+      try {
+        return Promise.resolve(this.selectedResponse(request, modeDecision));
+      } catch (error) {
+        if (error instanceof PermissionAgentNonCompliantError) {
+          pushPermissionSafetyNotification(
+            `Agent failed to provide ${modeDecision} option for plan-mode protected tool call. Refusing for safety.`
+          );
+          return Promise.resolve(this.mostRestrictiveResponse(request));
+        }
+        throw error;
+      }
     }
 
     const ledgerDecision = this.permissionLedger.tryAutoDecide(request, {
@@ -72,26 +90,29 @@ export class PermissionHandler {
       markAutoPermissionStatus(request.toolCall.toolCallId, ledgerDecision);
       const event = this.permissionLedger.getLastAutoDecision?.();
       if (event) pushPermissionGhostNotification(event);
-      return Promise.resolve(this.selectedResponse(request, ledgerDecision));
+      try {
+        return Promise.resolve(this.selectedResponse(request, ledgerDecision));
+      } catch (error) {
+        if (error instanceof PermissionAgentNonCompliantError) {
+          pushPermissionSafetyNotification(
+            `Agent failed to provide ${ledgerDecision} option for persisted permission decision. Showing the permission dialog instead.`
+          );
+          return this.promptForPermission(params, request);
+        }
+        throw error;
+      }
     }
 
-    return new Promise((resolve) => {
-      const key = params.toolCall.toolCallId;
-      this.pendingPermissions.set(key, {
-        request,
-        resolver: resolve,
-      });
-      this.syncPendingPermissionRequests();
-    });
+    return this.promptForPermission(params, request);
   }
 
-  resolvePermission(requestId: string, optionId: string, scope?: PermissionScope): void {
+  async resolvePermission(requestId: string, optionId: string, scope?: PermissionScope): Promise<void> {
     const pendingRequest = this.pendingPermissions.get(requestId);
     if (!pendingRequest) {
       return;
     }
 
-    this.recordPersistentDecision(pendingRequest.request, optionId, scope);
+    await this.recordPersistentDecision(pendingRequest.request, optionId, scope);
     this.pendingPermissions.delete(requestId);
     this.syncPendingPermissionRequests();
     pendingRequest.resolver({
@@ -168,23 +189,75 @@ export class PermissionHandler {
     request: LocalPermissionRequest,
     decision: 'allow' | 'reject'
   ): RequestPermissionResponse {
-    const option = request.options.find((candidate) => candidate.kind === `${decision}_once`);
+    const option = request.options.find(
+      (candidate) => candidate.kind === `${decision}_once` || candidate.kind === `${decision}_always`
+    );
+    if (!option) {
+      throw new PermissionAgentNonCompliantError(
+        `Agent did not provide a ${decision}_once option for tool call ${request.toolCall.toolCallId}`
+      );
+    }
     return {
       outcome: {
         outcome: 'selected',
-        optionId: option?.optionId ?? request.options[0]?.optionId ?? '',
+        optionId: option.optionId,
       },
       _meta: null,
     };
   }
 
-  private recordPersistentDecision(
+  private mostRestrictiveResponse(request: LocalPermissionRequest): RequestPermissionResponse {
+    const reject = request.options.find(
+      (candidate) => candidate.kind === 'reject_once' || candidate.kind === 'reject_always'
+    );
+    if (reject) {
+      return {
+        outcome: { outcome: 'selected', optionId: reject.optionId },
+        _meta: null,
+      };
+    }
+    return {
+      outcome: { outcome: 'cancelled' },
+      _meta: null,
+    };
+  }
+
+  private promptForPermission(
+    params: RequestPermissionRequest,
+    request: LocalPermissionRequest
+  ): Promise<RequestPermissionResponse> {
+    const token = this.permissionLedger.consumePendingDecisionToken?.(request.toolCall.toolCallId);
+    const displayRequest = token ? { ...request, decisionToken: token } : request;
+    return new Promise((resolve) => {
+      const key = params.toolCall.toolCallId;
+      this.pendingPermissions.set(key, {
+        request: displayRequest,
+        resolver: resolve,
+      });
+      this.syncPendingPermissionRequests();
+    });
+  }
+
+  private async recordPersistentDecision(
     request: LocalPermissionRequest,
     optionId: string,
     scope: PermissionScope | undefined
-  ): void {
+  ): Promise<void> {
     const option = request.options.find((candidate) => candidate.optionId === optionId);
-    if (!option || !option.kind.endsWith('_always') || !scope) {
+    if (!option) {
+      return;
+    }
+
+    if (request.decisionToken && this.permissionLedger.resolveDecision) {
+      await this.permissionLedger.resolveDecision({
+        token: request.decisionToken,
+        optionId,
+        scope,
+      });
+      return;
+    }
+
+    if (!option.kind.endsWith('_always') || !scope) {
       return;
     }
 

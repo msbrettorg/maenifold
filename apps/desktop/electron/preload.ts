@@ -20,6 +20,12 @@ type PermissionLedgerPayload = {
   context: unknown;
 };
 
+type PermissionResolveDecisionPayload = {
+  token: string;
+  optionId: string;
+  scope?: 'session' | 'agent' | 'forever';
+};
+
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
@@ -54,14 +60,17 @@ const electronAPI = {
   }>,
   permissionTryAutoDecide: (payload: PermissionLedgerPayload) =>
     ipcRenderer.invoke('permission:try-auto-decide', payload) as Promise<unknown>,
-  permissionRecordDecision: (payload: PermissionLedgerPayload) =>
-    ipcRenderer.invoke('permission:record-decision', payload) as Promise<unknown>,
+  permissionResolveDecision: (payload: PermissionResolveDecisionPayload) =>
+    ipcRenderer.invoke('permission:resolve-decision', payload) as Promise<void>,
   permissionListDecisions: () => ipcRenderer.invoke('permission:list-decisions') as Promise<unknown[]>,
   permissionListAuditEvents: () =>
     ipcRenderer.invoke('permission:list-audit-events') as Promise<unknown[]>,
   permissionRevokeDecision: (id: number) =>
     ipcRenderer.invoke('permission:revoke-decision', id) as Promise<void>,
-  permissionResetDecisions: () => ipcRenderer.invoke('permission:reset-decisions') as Promise<void>,
+  permissionResetConfirmPrepare: () =>
+    ipcRenderer.invoke('permission:reset-confirm-prepare') as Promise<string>,
+  permissionResetDecisions: (token: string) =>
+    ipcRenderer.invoke('permission:reset-decisions', token) as Promise<void>,
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

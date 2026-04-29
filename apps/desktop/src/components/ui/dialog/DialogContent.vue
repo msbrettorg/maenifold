@@ -17,13 +17,14 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const props = withDefaults(defineProps<DialogContentProps & { class?: HTMLAttributes['class'], showCloseButton?: boolean }>(), {
+const props = withDefaults(defineProps<DialogContentProps & { class?: HTMLAttributes['class'], showCloseButton?: boolean, disablePortal?: boolean }>(), {
   showCloseButton: true,
+  disablePortal: false,
 })
 const emits = defineEmits<DialogContentEmits>()
 
 const delegatedProps = computed(() => {
-  const { class: _class, showCloseButton: _showCloseButton, ...rest } = props
+  const { class: _class, showCloseButton: _showCloseButton, disablePortal: _disablePortal, ...rest } = props
   return rest
 })
 
@@ -31,7 +32,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
 
 <template>
-  <DialogPortal>
+  <DialogPortal :disabled="disablePortal" :force-mount="forceMount">
     <DialogOverlay />
     <DialogContent
       data-slot="dialog-content"

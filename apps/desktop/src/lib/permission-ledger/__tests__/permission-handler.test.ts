@@ -83,6 +83,24 @@ describe('PermissionHandler persistence interceptor', () => {
     expect(handler.pendingPermissionRequests.value).toHaveLength(0);
   });
 
+  it('does not fall back to allow when plan-mode reject options are missing', async () => {
+    const handler = new PermissionHandler(new StaticLedger('allow'), {
+      agent: 'agent-a',
+      currentModeId: () => 'plan',
+    });
+    const edit = params('/repo/file.txt') as RequestPermissionRequest;
+    edit.toolCall.kind = 'edit';
+    edit.options = [
+      { optionId: 'allow-once', kind: 'allow_once', name: 'Allow once' },
+      { optionId: 'allow-always', kind: 'allow_always', name: 'Allow always' },
+    ];
+
+    const response = await handler.requestPermission(edit);
+
+    expect(response.outcome).not.toEqual({ outcome: 'selected', optionId: 'allow-once' });
+    expect(handler.pendingPermissionRequests.value).toHaveLength(0);
+  });
+
   it('records an always decision with the selected scope before resolving', () => {
     const records: Array<{ request: PermissionRequest; scope: string; decision: string }> = [];
     const ledger: PermissionLedger = {

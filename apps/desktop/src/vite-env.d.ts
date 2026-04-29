@@ -41,12 +41,18 @@ type ElectronApi = {
   permissionTryAutoDecide?: (payload: unknown) => Promise<{
     decision: 'allow' | 'reject' | null;
     event: import('./lib/permission-ledger/ledger').LastAutoPermissionDecision | null;
+    token?: string | null;
   }>;
-  permissionRecordDecision?: (payload: unknown) => Promise<import('./lib/permission-ledger/ledger').PersistedPermissionDecision>;
+  permissionResolveDecision?: (payload: {
+    token: string;
+    optionId: string;
+    scope?: import('./lib/permission-ledger/ledger').PermissionScope;
+  }) => Promise<void>;
   permissionListDecisions?: () => Promise<import('./lib/permission-ledger/ledger').PersistedPermissionDecision[]>;
   permissionListAuditEvents?: () => Promise<import('./lib/permission-ledger/ledger').PermissionAuditEvent[]>;
   permissionRevokeDecision?: (id: number) => Promise<void>;
-  permissionResetDecisions?: () => Promise<void>;
+  permissionResetConfirmPrepare?: () => Promise<string>;
+  permissionResetDecisions?: (token: string) => Promise<void>;
 };
 
 type Vec0DownloadProgress = {

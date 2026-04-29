@@ -62,6 +62,12 @@ export interface PermissionLedger {
   revokeDecision(id: number): MaybePromise<void>;
   resetDecisions(): MaybePromise<void>;
   getLastAutoDecision?(): LastAutoPermissionDecision | null;
+  consumePendingDecisionToken?(toolCallId: string): string | null;
+  resolveDecision?(payload: {
+    token: string;
+    optionId: string;
+    scope?: PermissionScope;
+  }): MaybePromise<void>;
 }
 
 class NoopPermissionLedger implements PermissionLedger {
@@ -77,6 +83,7 @@ class NoopPermissionLedger implements PermissionLedger {
 
 class IpcPermissionLedger implements PermissionLedger {
   private lastAutoDecision: LastAutoPermissionDecision | null = null;
+  private readonly pendingDecisionTokens = new Map<string, string>();
 
   async tryAutoDecide(
     request: PermissionRequest,
@@ -84,16 +91,28 @@ class IpcPermissionLedger implements PermissionLedger {
   ): Promise<PermissionDecision | null> {
     const result = await window.electronAPI?.permissionTryAutoDecide?.({ request, context });
     this.lastAutoDecision = result?.event ?? null;
+    if (result?.token) {
+      this.pendingDecisionTokens.set(request.toolCall.toolCallId, result.token);
+    }
     return result?.decision ?? null;
   }
 
-  async recordDecision(
-    request: PermissionRequest,
-    context: PermissionRecordContext
-  ): Promise<PersistedPermissionDecision> {
-    const result = await window.electronAPI?.permissionRecordDecision?.({ request, context });
-    if (!result) throw new Error('Permission ledger IPC did not return a saved decision');
-    return result;
+  recordDecision(): never {
+    throw new Error('Permission decisions must be recorded through resolve-decision tokens');
+  }
+
+  consumePendingDecisionToken(toolCallId: string): string | null {
+    const token = this.pendingDecisionTokens.get(toolCallId) ?? null;
+    this.pendingDecisionTokens.delete(toolCallId);
+    return token;
+  }
+
+  async resolveDecision(payload: {
+    token: string;
+    optionId: string;
+    scope?: PermissionScope;
+  }): Promise<void> {
+    await window.electronAPI?.permissionResolveDecision?.(payload);
   }
 
   async listDecisions(): Promise<PersistedPermissionDecision[]> {
@@ -109,7 +128,8 @@ class IpcPermissionLedger implements PermissionLedger {
   }
 
   async resetDecisions(): Promise<void> {
-    await window.electronAPI?.permissionResetDecisions?.();
+    const token = await window.electronAPI?.permissionResetConfirmPrepare?.();
+    await window.electronAPI?.permissionResetDecisions?.(token ?? '');
   }
 
   getLastAutoDecision(): LastAutoPermissionDecision | null {

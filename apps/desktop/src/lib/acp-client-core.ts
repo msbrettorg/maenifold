@@ -145,7 +145,7 @@ export class AcpClientBridgeCore implements Client {
   }
 
   resolvePermission(requestId: string, optionId: string, scope?: 'session' | 'agent' | 'forever'): void {
-    this.permissionHandler.resolvePermission(requestId, optionId, scope);
+    void this.permissionHandler.resolvePermission(requestId, optionId, scope);
   }
 
   cancelPermission(): void {

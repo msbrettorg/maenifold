@@ -23,6 +23,25 @@ export function pushPermissionGhostNotification(event: LastAutoPermissionDecisio
   }, 3_000);
 }
 
+export function pushPermissionSafetyNotification(message: string): void {
+  const notification: PermissionGhostNotification = {
+    id: `safety-${Date.now()}`,
+    permissionId: null,
+    agent: '',
+    sessionId: '',
+    toolKind: 'permission',
+    canonicalTarget: null,
+    decision: 'reject',
+    message,
+  };
+  permissionGhostNotifications.value = [...permissionGhostNotifications.value, notification];
+  globalThis.setTimeout(() => {
+    permissionGhostNotifications.value = permissionGhostNotifications.value.filter(
+      (candidate) => candidate.id !== notification.id
+    );
+  }, 5_000);
+}
+
 export function markAutoPermissionStatus(toolCallId: string, decision: 'allow' | 'reject'): void {
   autoPermissionStatuses.value = {
     ...autoPermissionStatuses.value,

@@ -161,6 +161,7 @@ export interface ToolCallInfo extends AcpMetadataCarrier {
 
 export interface PermissionRequest extends AcpMetadataCarrier {
   sessionId: string;
+  decisionToken?: string;
   toolCall: ToolCallInfo;
   options: PermissionOption[];
 }

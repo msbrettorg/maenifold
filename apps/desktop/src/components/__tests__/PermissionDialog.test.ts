@@ -78,4 +78,18 @@ describe('PermissionDialog', () => {
 
     expect(wrapper.text()).not.toContain('Permission 1 of');
   });
+
+  it('renders entry details for raw payloads and content blocks', () => {
+    const wrapper = mount(PermissionDialog, {
+      props: {
+        request: createPermissionRequest(),
+        totalPending: 2,
+      },
+      global: { stubs: dialogStubs },
+    });
+
+    expect(wrapper.find('.entry-details').text()).toContain('really-long-command.js');
+    expect(wrapper.find('.entry-details').text()).toContain('line 1');
+    expect(wrapper.find('.entry-details').text()).toContain('stdout');
+  });
 });

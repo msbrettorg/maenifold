@@ -224,7 +224,7 @@ watch(() => viewNode.value?.nodeId, () => {
       <div v-if="agentSummary" class="border-b border-border-subtle bg-accent px-4 py-2 font-display text-caption text-text-secondary">{{ agentSummary }}</div>
       <SemanticZoomOverlayFailure :failure-reason="failureReason" />
       <ScrollArea class="flex-1">
-      <div class="p-4">
+      <div class="flex-1 min-h-0 overflow-y-auto p-4">
         <SemanticZoomOverlayContent
           :assembled-prompt="assembledPrompt"
           :node-output="nodeOutput"

@@ -10,7 +10,7 @@ import {
   detectPhase,
 } from './session-utils';
 import { useSessionBootstrap } from './useSessionBootstrap';
-import { bindWritePermissionBridge } from './useWritePermissionBridge';
+import { createWritePermissionPolicy } from './useWritePermissionBridge';
 
 interface UseSessionStartupDeps extends SessionRuntimeDeps {
   bindPendingPermission: (sessionId: string, bridge: AcpClientBridge) => void;
@@ -63,7 +63,9 @@ export function useSessionStartup({
     localId: string,
     agentInstance: AgentInstance
   ): Promise<AcpClientBridge> {
-    const bridge = await createAcpClient(agentInstance, {
+    let bridge: AcpClientBridge;
+    const writePolicy = createWritePermissionPolicy(localId, sessions, () => bridge);
+    bridge = await createAcpClient(agentInstance, {
       onStderr: (line) => {
         const session = sessions.value.get(localId);
         if (!session) {
@@ -87,10 +89,10 @@ export function useSessionStartup({
           });
         }
       },
+      writePolicy,
     });
     bridges.set(localId, bridge);
     bridge.setPermissionModeProvider(() => sessions.value.get(localId)?.currentModeId ?? null);
-    bindWritePermissionBridge(localId, sessions, bridge);
     bindPendingPermission(localId, bridge);
     bridge.onSessionUpdate = (notification) => handleSessionUpdate(localId, notification);
     await ensureNotAborted(localId, () => bridge.disconnect());

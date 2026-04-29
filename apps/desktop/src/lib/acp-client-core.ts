@@ -14,7 +14,11 @@ import {
   type WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
 import { useTrafficStore } from '../stores/traffic';
-import { handleReadTextFileRequest, handleWriteTextFileRequest } from './acp-file-system';
+import {
+  handleReadTextFileRequest,
+  handleWriteTextFileRequest,
+  type WritePermissionPolicy,
+} from './acp-file-system';
 import { withAcpMeta } from './acp-meta';
 import { PermissionHandler } from './acp-permissions';
 import { DAEMON_BASE_URL } from './daemon-url';
@@ -27,6 +31,15 @@ import {
 } from './acp-rpc';
 
 let trafficStore: ReturnType<typeof useTrafficStore> | null = null;
+
+function createRejectAllWritesPolicy(): WritePermissionPolicy {
+  return {
+    currentModeId: () => null,
+    requestPermission: async () => 'reject',
+    pathAllowList: { has: () => false, add: () => {} },
+    notifyPlanModeBlocked: () => {},
+  };
+}
 
 function getTrafficStore() {
   if (!trafficStore) {
@@ -59,7 +72,12 @@ export class AcpClientBridgeCore implements Client {
   public onSessionUpdate: ((notification: SessionNotification) => void) | null = null;
   public onStderr: ((line: string) => void) | null = null;
 
-  constructor(agentId: string, agentName: string, permissionHandler: PermissionHandler) {
+  constructor(
+    agentId: string,
+    agentName: string,
+    permissionHandler: PermissionHandler,
+    private readonly writePolicy: WritePermissionPolicy = createRejectAllWritesPolicy()
+  ) {
     this.agentId = agentId;
     this.agentName = agentName;
     this.permissionHandler = permissionHandler;
@@ -159,7 +177,7 @@ export class AcpClientBridgeCore implements Client {
   }
 
   async writeTextFile(params: WriteTextFileRequest): Promise<WriteTextFileResponse> {
-    return handleWriteTextFileRequest(params);
+    return handleWriteTextFileRequest(params, this.writePolicy);
   }
 
   async readTextFile(params: ReadTextFileRequest): Promise<ReadTextFileResponse> {

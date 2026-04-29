@@ -5,21 +5,26 @@ import type {
   WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
 import { assertAbsolutePath } from './acp-meta';
-import { pushPlanModeWriteBlockedNotification } from './acp-chat-notifications';
 
-type ElectronFileSystemApi = {
+type ElectronReadFileSystemApi = {
   readTextFile: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
-  writeTextFile: (params: { path: string; content: string }) => Promise<Record<string, never>>;
+};
+
+type ElectronWriteFileSystemApi = {
+  writeTextFile: (params: { path: string; content: string; token?: string }) => Promise<Record<string, never>>;
+  issueWritePermissionToken: (params: { path: string; allowsAlways?: boolean }) => Promise<string>;
+  isWritePathAlwaysAllowed: (path: string) => Promise<boolean>;
 };
 
 export type WritePermissionDecision = 'allow' | 'reject' | 'always-allow-path';
 
 type WritePermissionRequest = { path: string; content: string };
-type WritePermissionGate = (request: WritePermissionRequest) => Promise<WritePermissionDecision>;
-
-const alwaysAllowedWritePaths = new Set<string>();
-let writePermissionGate: WritePermissionGate = async () => 'reject';
-let modeProvider: () => string | null = () => null;
+export type WritePermissionPolicy = {
+  currentModeId: () => string | null;
+  requestPermission: (request: WritePermissionRequest) => Promise<WritePermissionDecision>;
+  pathAllowList: { has: (path: string) => boolean; add: (path: string) => void };
+  notifyPlanModeBlocked: (path: string) => void;
+};
 
 export class WritePermissionRejectedError extends Error {
   constructor(public readonly path: string, reason?: string) {
@@ -28,71 +33,67 @@ export class WritePermissionRejectedError extends Error {
   }
 }
 
-export function setWritePermissionGate(gate: WritePermissionGate): void {
-  writePermissionGate = gate;
-}
-
-export function setCurrentModeProvider(provider: () => string | null): void {
-  modeProvider = provider;
-}
-
-export function currentModeId(): string | null {
-  return modeProvider();
-}
-
-export function rememberWritePathAlwaysAllowed(path: string): void {
-  alwaysAllowedWritePaths.add(path);
-}
-
-export function isWritePathAlwaysAllowed(path: string): boolean {
-  return alwaysAllowedWritePaths.has(path);
-}
-
-export async function requestWritePermission(
-  request: WritePermissionRequest,
-): Promise<WritePermissionDecision> {
-  return writePermissionGate(request);
-}
-
-function getElectronFileSystemApi(): ElectronFileSystemApi {
+function getElectronReadFileSystemApi(): ElectronReadFileSystemApi {
   const api = typeof window === 'undefined' ? undefined : window.electronAPI;
-  if (
-    !api ||
-    typeof api.readTextFile !== 'function' ||
-    typeof api.writeTextFile !== 'function'
-  ) {
+  if (!api || typeof api.readTextFile !== 'function') {
     throw new Error('Electron ACP file access is unavailable in this environment');
   }
   return {
     readTextFile: api.readTextFile,
+  };
+}
+
+function getElectronWriteFileSystemApi(): ElectronWriteFileSystemApi {
+  const api = typeof window === 'undefined' ? undefined : window.electronAPI;
+  if (
+    !api ||
+    typeof api.writeTextFile !== 'function' ||
+    typeof api.issueWritePermissionToken !== 'function' ||
+    typeof api.isWritePathAlwaysAllowed !== 'function'
+  ) {
+    throw new Error('Electron ACP file access is unavailable in this environment');
+  }
+  return {
     writeTextFile: api.writeTextFile,
+    issueWritePermissionToken: api.issueWritePermissionToken,
+    isWritePathAlwaysAllowed: api.isWritePathAlwaysAllowed,
   };
 }
 
 export async function handleWriteTextFileRequest(
   params: WriteTextFileRequest,
+  policy: WritePermissionPolicy,
 ): Promise<WriteTextFileResponse> {
   assertAbsolutePath(params.path);
-  const fileSystem = await import('./acp-file-system');
-  if (fileSystem.currentModeId() === 'plan') {
-    pushPlanModeWriteBlockedNotification(params.path);
+  if (policy.currentModeId() === 'plan') {
+    policy.notifyPlanModeBlocked(params.path);
     throw new WritePermissionRejectedError(params.path, 'plan mode');
   }
-  if (!fileSystem.isWritePathAlwaysAllowed(params.path)) {
-    const decision = await fileSystem.requestWritePermission({
+  const electronFileSystem = getElectronWriteFileSystemApi();
+  const isAlwaysAllowed =
+    policy.pathAllowList.has(params.path) ||
+    await electronFileSystem.isWritePathAlwaysAllowed(params.path);
+  let token: string | undefined;
+  if (!isAlwaysAllowed) {
+    const decision = await policy.requestPermission({
       path: params.path,
       content: params.content,
     });
     if (decision === 'reject') {
       throw new WritePermissionRejectedError(params.path);
     }
+    token = await electronFileSystem.issueWritePermissionToken({
+      path: params.path,
+      allowsAlways: decision === 'always-allow-path',
+    });
     if (decision === 'always-allow-path') {
-      fileSystem.rememberWritePathAlwaysAllowed(params.path);
+      policy.pathAllowList.add(params.path);
     }
   }
-  await getElectronFileSystemApi().writeTextFile({
+  await electronFileSystem.writeTextFile({
     path: params.path,
     content: params.content,
+    token,
   });
   return {};
 }
@@ -104,7 +105,7 @@ export async function handleReadTextFileRequest(
   const request: { path: string; line?: number; limit?: number } = { path: params.path };
   if (typeof params.line === 'number') request.line = params.line;
   if (typeof params.limit === 'number') request.limit = params.limit;
-  return getElectronFileSystemApi().readTextFile({
+  return getElectronReadFileSystemApi().readTextFile({
     ...request,
   });
 }

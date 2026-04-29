@@ -21,6 +21,7 @@ import {
 } from './acp-meta';
 import { AcpClientBridgeCore } from './acp-client-core';
 import { PermissionHandler, type InlinePermissionMessageSink } from './acp-permissions';
+import type { WritePermissionPolicy } from './acp-file-system';
 import type { AgentInstance } from './types';
 
 const SESSION_SET_CONFIG_OPTION_METHOD = AGENT_METHODS.session_set_config_option;
@@ -91,6 +92,7 @@ export async function createAcpClient(
   options: {
     onStderr?: (line: string) => void;
     onInlineMessage?: InlinePermissionMessageSink;
+    writePolicy?: WritePermissionPolicy;
   } = {},
 ): Promise<AcpClientBridge> {
   const client = new AcpClientBridge(
@@ -99,7 +101,8 @@ export async function createAcpClient(
     new PermissionHandler(undefined, {
       agent: agentInstance.name,
       onInlineMessage: options.onInlineMessage,
-    })
+    }),
+    options.writePolicy
   );
   if (options.onStderr) {
     client.onStderr = options.onStderr;

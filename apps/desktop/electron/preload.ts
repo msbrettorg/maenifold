@@ -31,8 +31,12 @@ const electronAPI = {
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
   readTextFile: (params: { path: string; line?: number; limit?: number }) =>
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
-  writeTextFile: (params: { path: string; content: string }) =>
+  writeTextFile: (params: { path: string; content: string; token?: string }) =>
     ipcRenderer.invoke('acp:write-text-file', params) as Promise<Record<string, never>>,
+  issueWritePermissionToken: (params: { path: string; allowsAlways?: boolean }) =>
+    ipcRenderer.invoke('acp:write-permission:issue-token', params) as Promise<string>,
+  isWritePathAlwaysAllowed: (path: string) =>
+    ipcRenderer.invoke('acp:write-permission:check-always-allowed', path) as Promise<boolean>,
   gateWriteTaskFile: (payload: { root: string; filename: string; content: string }) =>
     ipcRenderer.invoke('gate:write-task-file', payload) as Promise<{ path: string }>,
   checkEnvVarPresence: (names: string[]) =>

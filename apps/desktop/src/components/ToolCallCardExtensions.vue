@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import MarkdownView from './MarkdownView.vue';
+import ChatContentBlocks from './ChatContentBlocks.vue';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
@@ -41,9 +41,8 @@ function isDiffBlock(block: ToolCallContentBlock): block is Extract<ToolCallCont
   return block.type === 'diff';
 }
 
-function contentText(block: Extract<ToolCallContentBlock, { type: 'content' }>): string | null {
-  const content = block.content;
-  return content?.type === 'text' ? content.text : null;
+function isTerminalBlock(block: ToolCallContentBlock): block is Extract<ToolCallContentBlock, { type: 'terminal' }> {
+  return block.type === 'terminal';
 }
 
 function splitLines(text: string | null | undefined): string[] {
@@ -100,6 +99,25 @@ function getDiffLineClass(kind: DiffLine['kind']): string {
     case 'remove': return 'text-danger';
     default: return 'text-text-secondary';
   }
+}
+
+function terminalExitCode(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): number | null {
+  const directExitCode = (block as { exitCode?: unknown }).exitCode;
+  if (typeof directExitCode === 'number') return directExitCode;
+  return block.exitStatus?.exitCode ?? null;
+}
+
+function terminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
+  const exitCode = terminalExitCode(block);
+  if (exitCode != null) return `exit ${exitCode}`;
+  if (block.exitStatus?.signal) return `signal ${block.exitStatus.signal}`;
+  if (block.released === true) return 'released';
+  return null;
+}
+
+function terminalBadgeVariant(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): 'outline' | 'destructive' {
+  const exitCode = terminalExitCode(block);
+  return exitCode != null && exitCode !== 0 ? 'destructive' : 'outline';
 }
 
 function locationLabel(location: { path: string; line?: number }): string {
@@ -164,11 +182,11 @@ function blockJson(block: ToolCallContentBlock): JsonValue {
         :key="`${toolCall.toolCallId}-content-${blockIndex}`"
         class="rounded border border-border-subtle bg-surface-container p-2"
       >
-        <MarkdownView
-          v-if="isContentBlock(block) && contentText(block)"
-          :content="contentText(block) ?? ''"
+        <ChatContentBlocks
+          v-if="isContentBlock(block)"
+          :blocks="[block.content]"
         />
-        <div v-else-if="isDiffBlock(block)" class="flex flex-col gap-1.5">
+        <div v-else-if="isDiffBlock(block)" class="flex flex-col gap-1.5" data-testid="tool-call-diff">
           <Badge variant="outline" class="self-start font-mono text-xs">{{ block.path }}</Badge>
           <pre class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm"><code class="font-mono"><span
             v-for="(line, lineIndex) in getUnifiedDiffLines(block)"
@@ -177,14 +195,26 @@ function blockJson(block: ToolCallContentBlock): JsonValue {
           >{{ line.text }}
 </span></code></pre>
         </div>
-        <VueJsonPretty
+        <div v-else-if="isTerminalBlock(block)" class="flex flex-col gap-1.5">
+          <div class="flex items-center gap-2">
+            <Badge v-if="terminalStatusLabel(block)" :variant="terminalBadgeVariant(block)" class="text-xs" data-testid="terminal-exit-code">
+              {{ terminalStatusLabel(block) }}
+            </Badge>
+          </div>
+          <pre
+            v-if="typeof block.output === 'string' && block.output.length > 0"
+            class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"
+            data-testid="terminal-output"
+          ><code class="font-mono">{{ block.output }}</code></pre>
+          <p v-if="block.truncated === true" class="m-0 text-xs italic text-text-secondary" data-testid="terminal-truncated">
+            Output truncated by the terminal byte limit.
+          </p>
+        </div>
+        <pre
           v-else
-          :data="blockJson(block)"
-          :deep="3"
-          :show-line="false"
-          :show-double-quotes="true"
-          :show-length="true"
-        />
+          class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"
+          data-testid="unknown-tool-call-block"
+        ><code class="font-mono">{{ JSON.stringify(blockJson(block), null, 2) }}</code></pre>
       </div>
 
       <Button

@@ -42,6 +42,17 @@ const statusIcon = computed(() => {
   }
 });
 
+const statusLabel = computed(() => {
+  switch (props.toolCall.status) {
+    case 'pending': return 'Pending';
+    case 'in_progress': return 'In progress';
+    case 'completed': return 'Completed';
+    case 'failed': return 'Failed';
+    case 'cancelled': return 'Cancelled';
+    default: return String(props.toolCall.status);
+  }
+});
+
 const kindIcon = computed(() => {
   switch (props.toolCall.kind) {
     case 'read': return '📖';
@@ -68,7 +79,12 @@ const autoPermissionStatus = computed(() => autoPermissionStatuses.value[props.t
       >
         {{ autoPermissionStatus === 'auto-allowed' ? 'Auto-allowed' : 'Auto-denied' }}
       </span>
-      <span v-else class="status-icon text-sm">{{ statusIcon }}</span>
+      <span
+        v-else
+        class="status-icon text-sm"
+        data-testid="tool-call-status"
+        :aria-label="`Status: ${statusLabel}`"
+      >{{ statusIcon }} {{ statusLabel }}</span>
     </div>
 
     <div v-if="toolCall.locations?.length" class="tool-locations mt-2 flex flex-col gap-1 pl-6">

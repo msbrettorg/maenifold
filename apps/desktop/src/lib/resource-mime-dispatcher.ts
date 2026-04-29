@@ -69,6 +69,10 @@ export function dispatchResource(content: ResourceContent): DispatchedResource {
     return { kind: 'code', language, text: content.text };
   }
 
+  if (mimeType.startsWith('text/') && content.text != null) {
+    return { kind: 'code', language: 'text', text: content.text };
+  }
+
   if (mimeType.startsWith('image/') && content.blob) {
     return {
       kind: 'image',

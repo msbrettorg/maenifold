@@ -78,6 +78,32 @@ function createToolCallInfo(
   };
 }
 
+function applyToolCallSnapshot(target: ToolCallInfo, source: ToolCallInfo, appendContent = false): void {
+  target.title = source.title;
+  target.kind = source.kind;
+  target.status = source.status;
+  if (source.locations) {
+    target.locations = source.locations;
+  }
+  if (source.content?.length) {
+    target.content = appendContent
+      ? [...(target.content ?? []), ...source.content]
+      : [...source.content];
+  }
+  if (source.rawInput) {
+    target.rawInput = source.rawInput;
+  }
+  if (source.rawOutput) {
+    target.rawOutput = source.rawOutput;
+  }
+  if (source._meta) {
+    target._meta = source._meta;
+  }
+  if (!target.appUi && source.appUi) {
+    target.appUi = cloneAppUiMetadata(source.appUi);
+  }
+}
+
 // ── Content-block helpers ───────────────────────────────────────────
 
 function warnNonTextContentBlock(block: ContentBlock): void {
@@ -198,6 +224,19 @@ export function handleToolCall(
   appUi: McpAppUiMetadata | null = null,
 ): void {
   const toolCallInfo = createToolCallInfo(update, appUi);
+  const existing = session.toolCalls.get(update.toolCallId);
+
+  if (existing) {
+    applyToolCallSnapshot(existing, toolCallInfo);
+    for (const msg of session.messages) {
+      const messageToolCall = msg.toolCalls?.find((t) => t.toolCallId === update.toolCallId);
+      if (messageToolCall) {
+        applyToolCallSnapshot(messageToolCall, toolCallInfo);
+        break;
+      }
+    }
+    return;
+  }
 
   // Add tool call to the current assistant message, synthesizing a
   // tool-only assistant turn when the agent emits tool activity before

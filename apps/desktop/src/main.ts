@@ -1,6 +1,7 @@
 import "./assets/tailwind.css";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
+import "katex/dist/katex.min.css";
 import "vue-sonner/style.css";
 
 import { createApp } from "vue";

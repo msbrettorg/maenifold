@@ -261,8 +261,12 @@ describe('SemanticZoomOverlay', () => {
     wrapper.unmount();
   });
 
-  it('normalizes backend view payloads without the deleted reconnect flag', () => {
-    const removedReconnectFlag = 'can' + 'Reconnect';
+  // Regression guard for T-244.83: the legacy `canReconnect` field is removed
+  // from view payloads end-to-end. This assertion is parallel to the backend
+  // negative assertions in crates/maenifold-core/src/workflow/pipeline/view_nodes_tests.rs
+  // (assert!(!detail_object(...).contains_key("canReconnect"))).
+  // Do not delete unless the field is being intentionally reintroduced.
+  it('normalizes backend view payloads without a canReconnect field', () => {
     const backendFixture = {
       pipelineId: 'pipe-reconnect-flag-removal',
       status: 'paused',
@@ -292,6 +296,6 @@ describe('SemanticZoomOverlay', () => {
 
     const normalized = normalizeView(backendFixture);
     expect(normalized.nodes[0]?.provenance?.detail).toBeDefined();
-    expect(removedReconnectFlag in normalized.nodes[0]!.provenance!.detail).toBe(false);
+    expect('canReconnect' in normalized.nodes[0]!.provenance!.detail).toBe(false);
   });
 });

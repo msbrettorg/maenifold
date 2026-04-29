@@ -22,6 +22,8 @@ function request(): PermissionRequest {
 }
 
 describe('PermissionDecisionDialog scope picker', () => {
+  const selectedScopeClass = 'border-brand';
+
   it('renders the always-allow scope picker above the permission dialog and emits the selected scope', async () => {
     const wrapper = mount(PermissionDecisionDialog, {
       props: { request: request(), totalPending: 1 },
@@ -38,5 +40,29 @@ describe('PermissionDecisionDialog scope picker', () => {
     await wrapper.get('[data-test="confirm-permission-scope"]').trigger('click');
 
     expect(wrapper.emitted('select')).toEqual([['allow-always', 'agent']]);
+  });
+
+  it('visibly highlights the default selected scope', async () => {
+    const wrapper = mount(PermissionDecisionDialog, {
+      props: { request: request(), totalPending: 1 },
+    });
+
+    await wrapper.get('.option-allow_always').trigger('click');
+
+    expect(wrapper.get('[data-scope="agent"]').classes()).toContain(selectedScopeClass);
+    expect(wrapper.get('[data-scope="session"]').classes()).not.toContain(selectedScopeClass);
+    expect(wrapper.get('[data-scope="forever"]').classes()).not.toContain(selectedScopeClass);
+  });
+
+  it('moves the visible highlight when a different scope is selected', async () => {
+    const wrapper = mount(PermissionDecisionDialog, {
+      props: { request: request(), totalPending: 1 },
+    });
+
+    await wrapper.get('.option-allow_always').trigger('click');
+    await wrapper.get('[data-scope="forever"]').trigger('click');
+
+    expect(wrapper.get('[data-scope="forever"]').classes()).toContain(selectedScopeClass);
+    expect(wrapper.get('[data-scope="agent"]').classes()).not.toContain(selectedScopeClass);
   });
 });

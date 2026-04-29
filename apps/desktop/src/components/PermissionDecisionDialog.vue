@@ -83,7 +83,10 @@ function confirmScope(): void {
       <div class="flex flex-col gap-2">
         <Button
           variant="outline"
-          class="h-auto justify-start whitespace-normal p-3 text-left"
+          :class="[
+            'h-auto justify-start whitespace-normal p-3 text-left',
+            selectedScope === 'session' && 'border-brand bg-brand-light ring-2 ring-brand',
+          ]"
           data-scope="session"
           :aria-pressed="selectedScope === 'session'"
           @click="selectedScope = 'session'"
@@ -95,7 +98,10 @@ function confirmScope(): void {
         </Button>
         <Button
           variant="outline"
-          class="h-auto justify-start whitespace-normal p-3 text-left"
+          :class="[
+            'h-auto justify-start whitespace-normal p-3 text-left',
+            selectedScope === 'agent' && 'border-brand bg-brand-light ring-2 ring-brand',
+          ]"
           data-scope="agent"
           :aria-pressed="selectedScope === 'agent'"
           @click="selectedScope = 'agent'"
@@ -107,7 +113,10 @@ function confirmScope(): void {
         </Button>
         <Button
           variant="outline"
-          class="h-auto justify-start whitespace-normal p-3 text-left"
+          :class="[
+            'h-auto justify-start whitespace-normal p-3 text-left',
+            selectedScope === 'forever' && 'border-brand bg-brand-light ring-2 ring-brand',
+          ]"
           data-scope="forever"
           :aria-pressed="selectedScope === 'forever'"
           @click="selectedScope = 'forever'"

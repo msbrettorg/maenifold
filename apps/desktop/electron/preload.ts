@@ -38,6 +38,25 @@ type WritePermissionResolvePayload = {
   decision: 'allow_once' | 'allow_always' | 'reject';
 };
 
+type TerminalCreatePayload = {
+  sessionId?: string;
+  command: string;
+  args?: string[];
+  env?: Array<{ name: string; value: string }>;
+  cwd?: string | null;
+  outputByteLimit?: number | null;
+};
+
+type TerminalIdPayload = {
+  sessionId?: string;
+  terminalId: string;
+};
+
+type TerminalExitStatus = {
+  exitCode?: number | null;
+  signal?: string | null;
+};
+
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
@@ -91,6 +110,28 @@ const electronAPI = {
     ipcRenderer.invoke('permission:reset-confirm-prepare') as Promise<string>,
   permissionResetDecisions: (token: string) =>
     ipcRenderer.invoke('permission:reset-decisions', token) as Promise<void>,
+  terminal: {
+    create: (params: TerminalCreatePayload) =>
+      ipcRenderer.invoke('terminal:create', params) as Promise<{ terminalId: string }>,
+    getOutput: (params: TerminalIdPayload) =>
+      ipcRenderer.invoke('terminal:output', params) as Promise<{
+        output: string;
+        truncated: boolean;
+        exitStatus?: TerminalExitStatus | null;
+      }>,
+    waitForExit: (params: TerminalIdPayload) =>
+      ipcRenderer.invoke('terminal:wait_for_exit', params) as Promise<TerminalExitStatus>,
+    kill: (params: TerminalIdPayload) =>
+      ipcRenderer.invoke('terminal:kill', params) as Promise<Record<string, never>>,
+    release: (params: TerminalIdPayload) =>
+      ipcRenderer.invoke('terminal:release', params) as Promise<Record<string, never>>,
+    onOutput: (handler: (terminalId: string, chunk: string) => void) => {
+      const listener = (_event: IpcRendererEvent, terminalId: string, chunk: string) =>
+        handler(terminalId, chunk);
+      ipcRenderer.on('terminal:output', listener);
+      return () => ipcRenderer.removeListener('terminal:output', listener);
+    },
+  },
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

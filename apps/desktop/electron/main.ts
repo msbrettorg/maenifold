@@ -8,6 +8,7 @@ import { registerConfigHandlers } from './config-file.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 import { registerPermissionLedgerHandlers } from './permission-ledger.js';
+import { TerminalManager } from './terminalManager.js';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -19,6 +20,7 @@ const launchctlDomain = process.platform === 'darwin' && typeof process.getuid =
   : null;
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+const terminalManager = new TerminalManager(() => mainWindow?.webContents ?? null);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function isServiceHealthy(url: string): Promise<boolean> {
   try {
@@ -206,6 +208,21 @@ function registerIpcHandlers(): void {
     }
     return result;
   });
+  ipcMain.handle('terminal:create', (_event, params) => ({
+    terminalId: terminalManager.createTerminal(params),
+  }));
+  ipcMain.handle('terminal:output', (_event, params: { terminalId: string }) =>
+    terminalManager.getOutput(params.terminalId)
+  );
+  ipcMain.handle('terminal:wait_for_exit', (_event, params: { terminalId: string }) =>
+    terminalManager.waitForExit(params.terminalId)
+  );
+  ipcMain.handle('terminal:kill', (_event, params: { terminalId: string }) =>
+    terminalManager.kill(params.terminalId)
+  );
+  ipcMain.handle('terminal:release', (_event, params: { terminalId: string }) =>
+    terminalManager.release(params.terminalId)
+  );
   registerAcpFileSystemHandlers();
   registerConfigHandlers();
   registerVec0Handlers();

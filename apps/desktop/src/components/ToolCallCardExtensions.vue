@@ -3,9 +3,12 @@ import { computed, ref } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import stripAnsi from 'strip-ansi';
 import ChatContentBlocks from './ChatContentBlocks.vue';
+import { useTerminalOutput } from '../composables/useTerminalOutput';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
+import type { TerminalState } from '../stores/useTerminalsStore';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
 type JsonValue = string | number | boolean | unknown[] | Record<string, unknown> | null;
@@ -127,6 +130,37 @@ function terminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'termi
   return null;
 }
 
+function terminalOutputState(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): TerminalState | null {
+  const id = terminalId(block);
+  return id ? useTerminalOutput(id).value : null;
+}
+
+function terminalRenderedOutput(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string {
+  const state = terminalOutputState(block);
+  const output = state?.output ?? block.output ?? '';
+  return stripAnsi(output);
+}
+
+function terminalRenderedStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
+  const state = terminalOutputState(block);
+  const exitCode = state?.exitStatus?.exitCode ?? terminalExitCode(block);
+  if (exitCode != null) return state ? `exited ${exitCode}` : `exit ${exitCode}`;
+  const signal = state?.exitStatus?.signal ?? block.exitStatus?.signal;
+  if (signal) return `signal ${signal}`;
+  if ((state?.released ?? block.released) === true) return 'released';
+  return terminalStatusLabel(block);
+}
+
+function terminalRenderedBadgeVariant(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): 'outline' | 'destructive' {
+  const state = terminalOutputState(block);
+  const exitCode = state?.exitStatus?.exitCode ?? terminalExitCode(block);
+  return exitCode != null && exitCode !== 0 ? 'destructive' : 'outline';
+}
+
+function terminalIsTruncated(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): boolean {
+  return terminalOutputState(block)?.truncated === true || block.truncated === true;
+}
+
 function terminalBadgeVariant(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): 'outline' | 'destructive' {
   const exitCode = terminalExitCode(block);
   return exitCode != null && exitCode !== 0 ? 'destructive' : 'outline';
@@ -209,7 +243,7 @@ function blockJson(block: ToolCallContentBlock): JsonValue {
         </div>
         <div v-else-if="isTerminalBlock(block)" class="flex flex-col gap-1.5">
           <div
-            v-if="terminalId(block)"
+            v-if="terminalId(block) && !terminalOutputState(block)"
             class="flex flex-wrap items-center gap-2 rounded bg-surface px-3 py-2 text-sm text-text-secondary"
             data-testid="terminal-reference"
           >
@@ -221,21 +255,21 @@ function blockJson(block: ToolCallContentBlock): JsonValue {
           </div>
           <div class="flex items-center gap-2">
             <Badge
-              v-if="terminalStatusLabel(block) && !terminalId(block)"
-              :variant="terminalBadgeVariant(block)"
+              v-if="terminalRenderedStatusLabel(block) && (!terminalId(block) || terminalOutputState(block))"
+              :variant="terminalRenderedBadgeVariant(block)"
               class="text-xs"
               data-testid="terminal-exit-code"
             >
-              {{ terminalStatusLabel(block) }}
+              {{ terminalRenderedStatusLabel(block) }}
             </Badge>
           </div>
           <pre
-            v-if="typeof block.output === 'string' && block.output.length > 0"
-            class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono text-sm text-text-secondary"
+            v-if="terminalRenderedOutput(block).length > 0"
+            class="m-0 overflow-x-auto rounded bg-surface p-3 font-mono font-tabular-nums text-sm text-text-secondary"
             data-testid="terminal-output"
-          ><code class="font-mono">{{ block.output }}</code></pre>
-          <p v-if="block.truncated === true" class="m-0 text-xs italic text-text-secondary" data-testid="terminal-truncated">
-            Output truncated by the terminal byte limit.
+          ><code class="font-mono font-tabular-nums">{{ terminalRenderedOutput(block) }}</code></pre>
+          <p v-if="terminalIsTruncated(block)" class="m-0 text-xs italic text-text-secondary" data-testid="terminal-truncated">
+            Output truncated.
           </p>
         </div>
         <pre

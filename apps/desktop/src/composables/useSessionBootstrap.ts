@@ -58,7 +58,7 @@ export function useSessionBootstrap({
     };
 
     const clientCapabilities: InitializeClientCapabilities = {
-      terminal: false,
+      terminal: true,
       fs: { readTextFile: true, writeTextFile: true },
       prompt: { image: true, audio: true, embeddedContext: true },
     };

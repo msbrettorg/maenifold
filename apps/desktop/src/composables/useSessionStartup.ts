@@ -76,6 +76,7 @@ export function useSessionStartup({
       },
     });
     bridges.set(localId, bridge);
+    bridge.setPermissionModeProvider(() => sessions.value.get(localId)?.currentModeId ?? null);
     bindPendingPermission(localId, bridge);
     bridge.onSessionUpdate = (notification) => handleSessionUpdate(localId, notification);
     await ensureNotAborted(localId, () => bridge.disconnect());

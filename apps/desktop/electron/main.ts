@@ -8,6 +8,7 @@ import { registerAcpFileSystemHandlers } from './acp-file-system.js';
 import { registerConfigHandlers } from './config-file.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
+import { registerPermissionLedgerHandlers } from './permission-ledger.js';
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -210,6 +211,7 @@ function registerIpcHandlers(): void {
   registerConfigHandlers();
   registerVec0Handlers();
   registerVoiceHandlers();
+  registerPermissionLedgerHandlers();
 }
 app.on('render-process-gone', async (_event, _webContents, details) => {
   console.error('[maenifold] Renderer process gone:', details.reason, details.exitCode);

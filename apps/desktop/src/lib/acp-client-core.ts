@@ -66,6 +66,10 @@ export class AcpClientBridgeCore implements Client {
     this.pendingPermissionRequests = permissionHandler.pendingPermissionRequests;
   }
 
+  setPermissionModeProvider(currentModeId: () => string | null): void {
+    this.permissionHandler.setCurrentModeProvider(currentModeId);
+  }
+
   async connect(): Promise<void> {
     if (this.socket && this.socket.readyState === WebSocket.OPEN && this.connection) {
       return;
@@ -135,11 +139,13 @@ export class AcpClientBridgeCore implements Client {
   }
 
   async requestPermission(params: RequestPermissionRequest): Promise<RequestPermissionResponse> {
+    // PermissionHandler performs mode supersede and persisted-ledger lookup before
+    // exposing anything through pendingPermissionRequests for the lifted dialog.
     return this.permissionHandler.requestPermission(params);
   }
 
-  resolvePermission(requestId: string, optionId: string): void {
-    this.permissionHandler.resolvePermission(requestId, optionId);
+  resolvePermission(requestId: string, optionId: string, scope?: 'session' | 'agent' | 'forever'): void {
+    this.permissionHandler.resolvePermission(requestId, optionId, scope);
   }
 
   cancelPermission(): void {

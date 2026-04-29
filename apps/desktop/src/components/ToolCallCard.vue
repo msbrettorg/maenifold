@@ -6,6 +6,7 @@
 
 import { computed } from 'vue';
 import type { ToolCallInfo } from '../lib/types';
+import { autoPermissionStatuses } from '../lib/permission-ledger/audit-events';
 
 const props = defineProps<{
   toolCall: ToolCallInfo;
@@ -50,6 +51,8 @@ const kindIcon = computed(() => {
     default: return '🔧';
   }
 });
+
+const autoPermissionStatus = computed(() => autoPermissionStatuses.value[props.toolCall.toolCallId] ?? null);
 </script>
 
 <template>
@@ -59,7 +62,13 @@ const kindIcon = computed(() => {
     <div class="tool-header flex items-center gap-2">
       <span class="kind-icon text-base">{{ kindIcon }}</span>
       <span class="tool-title flex-1 font-medium text-text-primary">{{ toolCall.title }}</span>
-      <span class="status-icon text-sm">{{ statusIcon }}</span>
+      <span
+        v-if="autoPermissionStatus"
+        class="rounded border border-border-subtle px-2 py-0.5 text-xs font-semibold text-text-primary"
+      >
+        {{ autoPermissionStatus === 'auto-allowed' ? 'Auto-allowed' : 'Auto-denied' }}
+      </span>
+      <span v-else class="status-icon text-sm">{{ statusIcon }}</span>
     </div>
 
     <div v-if="toolCall.locations?.length" class="tool-locations mt-2 flex flex-col gap-1 pl-6">

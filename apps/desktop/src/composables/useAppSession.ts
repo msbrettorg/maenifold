@@ -5,6 +5,7 @@ import { PREFS_STORE_PATH } from '../lib/constants';
 import { initTelemetry } from '../lib/telemetry';
 import { pickAbsoluteDirectory } from './folder-picker';
 import type { AgentsConfig, PermissionRequest, SavedSession, SessionSource, SessionState } from '../lib/types';
+import type { PermissionScope } from '../lib/permission-ledger/ledger';
 import {
   resolvePreferredAgent,
   writeLastUsedAgent,
@@ -28,7 +29,7 @@ export type SessionStoreLike = {
   createSession(agentName: string, cwd: string, configOptions?: Record<string, string>, options?: { source?: SessionSource }): Promise<void>;
   resumeSession(session: SavedSession): Promise<void>;
   deleteSession(sessionId: string): Promise<void>; cancelConnection(): Promise<void>;
-  resolvePermission(optionId: string): void; cancelPermission(): void;
+  resolvePermission(optionId: string, scope?: PermissionScope): void; cancelPermission(): void;
   selectAuthMethod(methodId: string): void; cancelAuthSelection(): void;
   setActiveSession(localId: string): void; setError(message: string): void; clearError(): void;
 };
@@ -200,7 +201,9 @@ export function useAppSession({
   }
   async function handleCancelConnection() { await sessionStore.cancelConnection(); }
 
-  function handlePermissionSelect(optionId: string) { sessionStore.resolvePermission(optionId); }
+  function handlePermissionSelect(optionId: string, scope?: PermissionScope) {
+    sessionStore.resolvePermission(optionId, scope);
+  }
   function handlePermissionCancel() { sessionStore.cancelPermission(); }
   function handleAuthMethodSelect(methodId: string) { sessionStore.selectAuthMethod(methodId); }
   function handleAuthMethodCancel() { sessionStore.cancelAuthSelection(); }

@@ -4,6 +4,7 @@ import type { SessionState } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { AuthMethod } from '@agentclientprotocol/sdk';
 import { normalizeAuthMethods } from '../lib/auth-methods';
+import type { PermissionScope } from '../lib/permission-ledger/ledger';
 
 interface UsePermissionsDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -14,13 +15,13 @@ interface UsePermissionsDeps {
 export function usePermissions({ sessions, bridges, activeSessionId }: UsePermissionsDeps) {
   const authMethodResolvers = new Map<string, (methodId: string | null) => void>();
 
-  function resolvePermission(optionId: string): void {
+  function resolvePermission(optionId: string, scope?: PermissionScope): void {
     if (!activeSessionId.value) return;
     const session = sessions.value.get(activeSessionId.value);
     const bridge = bridges.get(activeSessionId.value);
     const activePermission = session?.pendingPermissions[0];
     if (bridge && activePermission) {
-      bridge.resolvePermission(activePermission.toolCall.toolCallId, optionId);
+      bridge.resolvePermission(activePermission.toolCall.toolCallId, optionId, scope);
     }
   }
 

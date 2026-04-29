@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/resizable';
 import { useKnowledgeStore } from '../stores/knowledge';
 import KnowledgeLeafPane from './KnowledgeLeafPane.vue';
+import KnowledgeNewNoteDialog from './KnowledgeNewNoteDialog.vue';
 import KnowledgeRelatedConcepts from './KnowledgeRelatedConcepts.vue';
 import KnowledgeTabStrip from './KnowledgeTabStrip.vue';
 import KnowledgeVaultBrowser from './KnowledgeVaultBrowser.vue';
@@ -43,7 +44,12 @@ watch(relatedRailCollapsed, (collapsed) => {
         :order="1"
       >
         <div class="flex h-full w-full min-h-0 min-w-0">
-          <KnowledgeVaultBrowser />
+          <div class="flex h-full min-h-0 w-full flex-col">
+            <div class="border-r border-b border-border-subtle bg-bg-sidebar px-3 py-3">
+              <KnowledgeNewNoteDialog />
+            </div>
+            <KnowledgeVaultBrowser />
+          </div>
         </div>
       </ResizablePanel>
 

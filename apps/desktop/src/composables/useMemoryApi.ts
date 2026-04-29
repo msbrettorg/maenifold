@@ -9,6 +9,7 @@ import type {
 } from '../lib/workflow-types';
 import {
   normalizeBuildContextResponse,
+  normalizeMemoryWriteResponse,
   normalizeReadMemoryResponse,
   normalizeSimilarConceptsResponse,
 } from '../lib/memory-api-helpers';
@@ -35,6 +36,12 @@ interface RecentActivityOptions {
 
 interface ListMemoriesOptions {
   path?: string;
+}
+
+interface WriteMemoryOptions {
+  title: string;
+  folder?: string;
+  content: string;
 }
 
 interface BuildContextOptions {
@@ -102,6 +109,16 @@ export function useMemoryApi() {
     return unwrapToolData<string>(await mcp.callTool('ListMemories', payload));
   }
 
+  async function writeMemory(options: WriteMemoryOptions): Promise<string> {
+    await ensureConnected();
+    const payload: Record<string, unknown> = {
+      title: options.title,
+      content: options.content,
+    };
+    if (options.folder?.trim()) payload.folder = options.folder.trim();
+    return normalizeMemoryWriteResponse(await mcp.callTool('WriteMemory', payload));
+  }
+
   async function buildContext(
     conceptName: string,
     opts: BuildContextOptions = {},
@@ -133,6 +150,7 @@ export function useMemoryApi() {
     searchMemories,
     recentActivity,
     listMemories,
+    writeMemory,
     buildContext,
     findSimilarConcepts,
   };

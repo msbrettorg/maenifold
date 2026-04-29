@@ -227,6 +227,13 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
+  async function createNote(input: { title: string; folder?: string; content: string }): Promise<string> {
+    const uri = await memoryApi.writeMemory(input);
+    await loadRootFolders();
+    setActiveTab(uri);
+    return uri;
+  }
+
   function setActiveTab(uri: string): void {
     if (!openTabs.value.includes(uri)) {
       openTabs.value = [...openTabs.value, uri];
@@ -301,7 +308,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     selectedConcept, selectedConceptContext, conceptContextLoading, conceptContextError,
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
-    loadRootFolders, loadFolder, setFolderOpen, search,
+    loadRootFolders, loadFolder, setFolderOpen, search, createNote,
     openNote, openInNewTab, closeTab, setActiveTab, setActiveSubtab,
     ...graphActions,
   };

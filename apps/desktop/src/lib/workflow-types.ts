@@ -45,6 +45,7 @@ export interface MemoryFile {
   uri: string;
   title: string;
   content: string;
+  checksum: string | null;
   created: string | null;
   modified: string | null;
   lineageGateTaskId?: string | null;

@@ -68,6 +68,7 @@ export function normalizeReadMemoryResponse(value: unknown): MemoryFile {
     uri,
     title: toNonEmptyString(data.title) ?? uri,
     content,
+    checksum: toNonEmptyString(data.checksum),
     created: typeof data.created === 'string' ? data.created : null,
     modified: typeof data.modified === 'string' ? data.modified : null,
     lineageGateTaskId: extractLineageValue(data, 'lineageGateTaskId', 'lineage_gate_task_id')
@@ -82,6 +83,15 @@ export function normalizeReadMemoryResponse(value: unknown): MemoryFile {
       ?? extractLineageValue(metadataRecord, 'parentWorkflowId', 'parent_workflow_id'),
     ...(metadata ? { metadata } : {}),
   };
+}
+
+export function normalizeMemoryWriteResponse(value: unknown, fallbackUri: string | null = null): string {
+  const data = unwrapToolData<unknown>(value);
+  const uri = extractUri(data) ?? fallbackUri;
+  if (!uri) {
+    throw new Error('Memory write completed without returning a memory URI.');
+  }
+  return uri;
 }
 
 export function normalizeBuildContextResponse(value: unknown): BuildContextResult {

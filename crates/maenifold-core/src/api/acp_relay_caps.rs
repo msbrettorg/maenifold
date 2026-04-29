@@ -50,6 +50,12 @@ fn explicit_caps(agent_name: &str) -> Option<AgentCaps> {
     })
 }
 
+/// Per-vendor capability inference. Sources:
+/// - Anthropic Messages API: https://docs.anthropic.com/en/api/messages — image accepted via base64/URL; audio not supported as of 2026-04.
+/// - OpenAI vision guide: https://platform.openai.com/docs/guides/vision — image support for vision-capable models; audio support inferred for audio-capable gpt-4o/gpt-5 adapters.
+/// - GitHub Copilot CLI: model-dependent; conservative image:true, audio:false.
+/// - Ollama: model-dependent; conservative image:false, audio:false (override via maenifold.json explicit hint).
+/// - Unknown vendors: image:false, audio:false (conservative).
 fn inferred_caps(agent_name: &str, adapter: &jockey::acp::StdioAdapterSpec) -> AgentCaps {
     let haystack = vendor_source(agent_name, adapter);
     if contains_any(&haystack, &["ollama"]) {
@@ -74,7 +80,6 @@ fn vendor_source(agent_name: &str, adapter: &jockey::acp::StdioAdapterSpec) -> S
         adapter.binary.to_ascii_lowercase(),
     ];
     parts.extend(adapter.args.iter().map(|arg| arg.to_ascii_lowercase()));
-    parts.extend(adapter.env.iter().map(|(key, _)| key.to_ascii_lowercase()));
     parts.join(" ")
 }
 

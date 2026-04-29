@@ -132,7 +132,16 @@ fn prompt_parts(
                 }
                 blocks.push(block.clone());
             }
-            acp::ContentBlock::ResourceLink(_) | acp::ContentBlock::Resource(_) => {
+            acp::ContentBlock::ResourceLink(_) => {
+                has_prompt_content = true;
+                blocks.push(block.clone());
+            }
+            acp::ContentBlock::Resource(_) => {
+                if !caps.embedded_context {
+                    return Err(
+                        "embedded context prompt blocks are not supported by the relay".to_string(),
+                    );
+                }
                 has_prompt_content = true;
                 blocks.push(block.clone());
             }
@@ -193,11 +202,11 @@ fn parse_set_config_request(params: Value) -> Result<(String, String, String), S
 mod tests {
     use super::*;
 
-    fn caps(image: bool, audio: bool) -> AgentCaps {
+    fn caps(image: bool, audio: bool, embedded_context: bool) -> AgentCaps {
         AgentCaps {
             image,
             audio,
-            embedded_context: true,
+            embedded_context,
         }
     }
 
@@ -220,7 +229,7 @@ mod tests {
             "mimeType": "image/png"
         }));
 
-        let blocks = prompt_parts(&request, caps(true, false)).expect("image accepted");
+        let blocks = prompt_parts(&request, caps(true, false, true)).expect("image accepted");
 
         assert!(matches!(blocks.get(1), Some(acp::ContentBlock::Image(_))));
     }
@@ -233,7 +242,7 @@ mod tests {
             "mimeType": "image/png"
         }));
 
-        let error = prompt_parts(&request, caps(false, false)).expect_err("image rejected");
+        let error = prompt_parts(&request, caps(false, false, true)).expect_err("image rejected");
 
         assert_eq!(error, "image prompt blocks are not supported by the relay");
     }
@@ -246,8 +255,65 @@ mod tests {
             "mimeType": "audio/wav"
         }));
 
-        let blocks = prompt_parts(&request, caps(false, true)).expect("audio accepted");
+        let blocks = prompt_parts(&request, caps(false, true, true)).expect("audio accepted");
 
         assert!(matches!(blocks.get(1), Some(acp::ContentBlock::Audio(_))));
+    }
+
+    #[test]
+    fn resource_link_block_is_forwarded_without_embedded_context_cap() {
+        let request = prompt_with_block(json!({
+            "type": "resource_link",
+            "name": "repo-readme",
+            "uri": "file:///workspace/README.md"
+        }));
+
+        let blocks =
+            prompt_parts(&request, caps(false, false, false)).expect("resource link accepted");
+
+        assert!(matches!(
+            blocks.get(1),
+            Some(acp::ContentBlock::ResourceLink(_))
+        ));
+    }
+
+    #[test]
+    fn resource_block_is_forwarded_when_embedded_context_cap_enabled() {
+        let request = prompt_with_block(json!({
+            "type": "resource",
+            "resource": {
+                "uri": "file:///workspace/README.md",
+                "text": "# README",
+                "mimeType": "text/markdown"
+            }
+        }));
+
+        let blocks =
+            prompt_parts(&request, caps(false, false, true)).expect("embedded resource accepted");
+
+        assert!(matches!(
+            blocks.get(1),
+            Some(acp::ContentBlock::Resource(_))
+        ));
+    }
+
+    #[test]
+    fn resource_block_is_rejected_when_embedded_context_cap_disabled() {
+        let request = prompt_with_block(json!({
+            "type": "resource",
+            "resource": {
+                "uri": "file:///workspace/README.md",
+                "text": "# README",
+                "mimeType": "text/markdown"
+            }
+        }));
+
+        let error = prompt_parts(&request, caps(false, false, false))
+            .expect_err("embedded resource rejected");
+
+        assert_eq!(
+            error,
+            "embedded context prompt blocks are not supported by the relay"
+        );
     }
 }

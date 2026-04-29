@@ -45,6 +45,7 @@ function mockGateSuccess() {
     if (name === 'GatewayIndex') {
       return Promise.resolve({
         commands: [
+          { name: 'gate_Create' },
           { name: 'gate_Status' },
           { name: 'gate_Sync' },
           { name: 'gate_History' },

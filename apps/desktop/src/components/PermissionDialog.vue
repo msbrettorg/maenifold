@@ -93,12 +93,15 @@ function contentBlockText(block: unknown): string {
 </script>
 
 <template>
-  <Dialog :open="true">
+  <Dialog :open="true" :modal="true">
     <DialogContent
       class="permission-dialog w-[90%] max-w-md overflow-hidden rounded-lg border border-border-subtle bg-bg-surface p-0 shadow-xl"
       :show-close-button="false"
       :disable-portal="true"
       :force-mount="true"
+      @pointer-down-outside="(event) => event.preventDefault()"
+      @interact-outside="(event) => event.preventDefault()"
+      @escape-key-down="(event) => event.preventDefault()"
     >
       <DialogHeader class="dialog-header flex items-start gap-2 border-b border-border-subtle bg-surface px-4 py-4">
         <div class="flex items-center gap-2">

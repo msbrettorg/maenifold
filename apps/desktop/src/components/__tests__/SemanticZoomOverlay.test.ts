@@ -6,7 +6,8 @@ import SemanticZoomOverlay from '../SemanticZoomOverlay.vue';
 import { usePipelineStore } from '../../stores/pipeline';
 import { usePromptDialogStore } from '../../stores/prompt-dialog';
 import { useSemanticZoomStore } from '../../stores/semantic-zoom';
-import type { ViewNode } from '../../lib/pipeline-types';
+import type { PipelineView, ViewNode } from '../../lib/pipeline-types';
+import { normalizeView } from '../../stores/pipeline-view-transforms';
 
 function createNode(overrides: Partial<ViewNode> = {}): ViewNode {
   return {
@@ -60,6 +61,43 @@ function findScrollContainer(): HTMLElement {
   const scrollContainer = document.body.querySelector<HTMLElement>('[data-slot="scroll-area"]');
   expect(scrollContainer, 'scroll area root should be present').not.toBeNull();
   return scrollContainer!;
+}
+
+function completedNodeWithSession(
+  type: 'workflow' | 'prompt' | 'sequentialThinking' | 'tool',
+  sessionId: string | null | undefined,
+): ViewNode {
+  const detail = sessionId === undefined ? {} : { sessionId };
+  const provenance = {
+    agent: type === 'tool' ? null : 'architect',
+    inspectable: true,
+    detail,
+  } as unknown as ViewNode['provenance'];
+
+  switch (type) {
+    case 'workflow':
+      return createNode({ provenance });
+    case 'prompt':
+      return createNode({
+        type: 'prompt',
+        prompt: 'Reconnect me',
+        agent: 'architect',
+        provenance,
+      });
+    case 'sequentialThinking':
+      return createNode({
+        type: 'sequentialThinking',
+        topic: 'Reconnect me',
+        agent: 'architect',
+        provenance,
+      });
+    case 'tool':
+      return createNode({
+        type: 'tool',
+        toolName: 'example.echo',
+        provenance,
+      });
+  }
 }
 
 describe('SemanticZoomOverlay', () => {
@@ -185,5 +223,75 @@ describe('SemanticZoomOverlay', () => {
     expect(Array.from(dialogContent.children)).toContain(footer);
 
     completedWrapper.unmount();
+  });
+
+  it.each([
+    ['workflow', completedNodeWithSession('workflow', 'acp-workflow-1')],
+    ['prompt', completedNodeWithSession('prompt', 'acp-prompt-1')],
+    ['sequentialThinking', completedNodeWithSession('sequentialThinking', 'acp-thinking-1')],
+    ['tool', completedNodeWithSession('tool', 'acp-tool-1')],
+  ])('shows reconnect for completed %s nodes when an ACP session id exists', async (_label, node) => {
+    setCurrentNode(node);
+    const wrapper = mountOverlay();
+    await flushPromises();
+
+    expect(document.body.textContent).toContain('Reconnect');
+    expect(wrapper.html()).not.toContain('Connect to live session');
+
+    wrapper.unmount();
+  });
+
+  it.each([
+    ['undefined', undefined, false],
+    ['null', null, false],
+    ['empty', '', false],
+    ['whitespace', '   ', false],
+    ['valid', 'acp-valid-1', true],
+  ])('treats %s session ids as reconnect visibility=%s', async (_label, sessionId, expectedVisible) => {
+    setCurrentNode(completedNodeWithSession('workflow', sessionId));
+    const wrapper = mountOverlay();
+    await flushPromises();
+
+    if (expectedVisible) {
+      expect(document.body.textContent).toContain('Reconnect');
+      expect(wrapper.html()).not.toContain('Connect to live session');
+    } else {
+      expect(document.body.textContent).not.toContain('Reconnect');
+    }
+
+    wrapper.unmount();
+  });
+
+  it('normalizes backend view payloads without a canReconnect field', () => {
+    const backendFixture = {
+      pipelineId: 'pipe-canreconnect-removal',
+      status: 'paused',
+      running: false,
+      ready: [],
+      active: [],
+      completed: ['node-1'],
+      mermaid: 'graph TD;',
+      edges: [],
+      nodes: [
+        {
+          nodeId: 'node-1',
+          sessionId: 'local-node-1',
+          status: 'completed',
+          attempts: 1,
+          workflowId: 'workflow.alpha',
+          provenance: {
+            agent: 'architect',
+            inspectable: true,
+            detail: {
+              sessionId: 'acp-remote-1',
+            },
+          },
+        },
+      ],
+    } as unknown as PipelineView;
+
+    const normalized = normalizeView(backendFixture);
+    expect(normalized.nodes[0]?.provenance?.detail).toBeDefined();
+    expect('canReconnect' in normalized.nodes[0]!.provenance!.detail).toBe(false);
   });
 });

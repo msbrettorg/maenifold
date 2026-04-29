@@ -20,6 +20,7 @@ import SchedulesTab from './components/SchedulesTab.vue';
 import PermissionDecisionDialog from './components/PermissionDecisionDialog.vue';
 import PermissionManagementDialog from './components/PermissionManagementDialog.vue';
 import PermissionGhostNotifications from './components/PermissionGhostNotifications.vue';
+import DaemonBanner from './components/DaemonBanner.vue';
 import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
@@ -29,10 +30,12 @@ import PromptDialog from './components/PromptDialog.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
 import { Loader2, MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
+import { useDaemonHealth } from './composables/useDaemonHealth';
 import type { AppShellTab } from './stores/app-shell';
 
 const configStore = useConfigStore();
 const sessionStore = useSessionStore();
+const daemonHealth = useDaemonHealth();
 const folderPickerStore = useFolderPickerStore();
 const appShellStore = useAppShellStore();
 const permissionManagementOpen = ref(false);
@@ -100,11 +103,13 @@ async function handlePromptSubmit(prompt: string): Promise<boolean> {
 const { isFirstRun, checkFirstRun, checkFirstRunWithConfig } = useOnboarding();
 
 onMounted(async () => {
+  daemonHealth.start();
   await checkFirstRunWithConfig();
   window.addEventListener('keydown', handlePermissionManagementShortcut);
 });
 
 onBeforeUnmount(() => {
+  daemonHealth.stop();
   window.removeEventListener('keydown', handlePermissionManagementShortcut);
 });
 
@@ -137,6 +142,7 @@ const showAgentsChat = computed(
   </div>
   <OnboardingWizard v-else-if="isFirstRun" @complete="onOnboardingComplete" />
   <div v-else class="relative box-border flex h-screen flex-col overflow-hidden">
+    <DaemonBanner />
     <AppTabBar :model-value="activeTab" @update:model-value="appShellStore.setActiveTab($event)" />
 
     <div class="flex min-h-0 flex-1 overflow-hidden">

@@ -173,6 +173,7 @@ export function useMcpClient(baseUrl?: string) {
     serverCapabilities: readonly(serverCapabilities),
     connect,
     disconnect,
+    reconnectSession,
     callTool: ops.callTool,
     callToolRaw: ops.callToolRaw,
     listTools: ops.listTools,

@@ -197,6 +197,7 @@ describe('useSessionStore reconnect flow', () => {
 
     expect(result).toEqual({ status: 'missing' });
     expect(store.error).toBeNull();
+    expect(store.connectionError).toContain('ACP session acp-remote-missing is unavailable');
     expect(store.activeSessionId).toBeNull();
     expect(store.sessions.size).toBe(0);
     expect(toast.error).not.toHaveBeenCalled();
@@ -242,6 +243,20 @@ describe('useSessionStore reconnect flow', () => {
     expect(store.sessions.size).toBe(1);
     expect([...store.sessions.keys()]).toEqual(['local-existing']);
     expect(store.error).toBeNull();
+    expect(store.connectionError).toContain('Failed to reconnect ACP session acp-remote-resume');
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('records connectionError when reconnect UI suppresses toast errors', async () => {
+    const store = useSessionStore();
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-missing', undefined, {
+      suppressErrors: true,
+    });
+
+    expect(result).toEqual({ status: 'missing' });
+    expect(store.error).toBeNull();
+    expect(store.connectionError).toContain('ACP session acp-remote-missing is unavailable');
     expect(toast.error).not.toHaveBeenCalled();
   });
 });

@@ -29,6 +29,7 @@ export const useSessionStore = defineStore('session', () => {
   // ── Core multi-session state (owned by orchestrator) ──────────────
   const sessions = ref<Map<string, SessionState>>(new Map());
   const activeSessionId = ref<string | null>(null);
+  const connectionError = ref<string | null>(null);
   const bridges = new Map<string, AcpClientBridge>();
 
   // ── Active session helper ─────────────────────────────────────────
@@ -184,9 +185,14 @@ export const useSessionStore = defineStore('session', () => {
     message: string,
     options: FocusOrResumeRemoteSessionOptions,
   ): void {
+    connectionError.value = message;
     if (!options.suppressErrors) {
       setError(message);
     }
+  }
+
+  function clearConnectionError(): void {
+    connectionError.value = null;
   }
 
   function discardReconnectAttempt(
@@ -237,6 +243,7 @@ export const useSessionStore = defineStore('session', () => {
     const localSession = findLocalSessionByRemoteSessionId(trimmedSessionId);
     if (localSession?.session.isConnected) {
       setActiveSession(localSession.localId);
+      clearConnectionError();
       return { status: 'activated', localSessionId: localSession.localId };
     }
 
@@ -261,6 +268,7 @@ export const useSessionStore = defineStore('session', () => {
         const previousActiveSessionId = activeSessionId.value;
         try {
           await resumeSession(syntheticSession);
+          clearConnectionError();
           return {
             status: 'resumed',
             localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
@@ -290,6 +298,7 @@ export const useSessionStore = defineStore('session', () => {
     const previousActiveSessionId = activeSessionId.value;
     try {
       await resumeSession(savedSession);
+      clearConnectionError();
       return {
         status: 'resumed',
         localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
@@ -348,6 +357,7 @@ export const useSessionStore = defineStore('session', () => {
     sessions,
     activeSessionId,
     activeSession,
+    connectionError,
 
     // State (global)
     savedSessions,
@@ -373,6 +383,7 @@ export const useSessionStore = defineStore('session', () => {
     focusOrResumeRemoteSession,
     setError,
     clearError,
+    clearConnectionError,
     clearMessages,
 
     // Multi-session actions

@@ -1,10 +1,11 @@
-use super::context::{ToolContext, load_help_doc, render, required_string};
+use super::context::{load_help_doc, render, required_string, ToolContext};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{ScheduleStore, ScheduledTask, Supervisor, parse_schedule};
-use crate::util::json::{OutputFormat, success};
-use chrono::Utc;
-use serde_json::{Value, json};
+use crate::schedule::{parse_schedule, ScheduleStore, ScheduledTask, Supervisor};
+use crate::util::json::{success, OutputFormat};
+use chrono::{SecondsFormat, Utc};
+use croner::parser::CronParser;
+use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
@@ -16,10 +17,17 @@ mod schedule_tests;
 use schedule_os::{is_not_installed_scheduler_error, sync_os_scheduler, uninstall_os_scheduler};
 
 pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
-    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
         let help = load_help_doc(&context.config.assets_path, "Schedule")
             .unwrap_or_else(|| "ERROR: Help file not found for Schedule".to_string());
-        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
     }
 
     let action = required_string(payload, "action")?;
@@ -31,11 +39,39 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "get" => get_task(context, payload),
         "run_now" => run_now(context, payload),
         "logs" => get_logs(context, payload),
+        "preview" => preview_schedule(context, payload),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview",
             action
         ))),
     }
+}
+
+fn preview_schedule(context: &ToolContext, payload: &Value) -> Result<String> {
+    let input = required_string(payload, "schedule")?;
+    let parsed = parse_schedule(input)
+        .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+    let cron = CronParser::new()
+        .parse(&parsed.cron)
+        .map_err(|error| MaenifoldError::InvalidArgument(format!("invalid cron: {error}")))?;
+    let now = Utc::now();
+    let next_fires = cron
+        .iter_after(now)
+        .take(5)
+        .map(|time| time.to_rfc3339_opts(SecondsFormat::Secs, true))
+        .collect::<Vec<_>>();
+
+    Ok(render(
+        context.output_format,
+        json!({
+            "action": "preview",
+            "cron": parsed.cron,
+            "description": parsed.description,
+            "nextFires": next_fires,
+            // Follow-up T-245.13: expose host IANA timezone when available without new deps.
+            "timezone": "UTC",
+        }),
+    ))
 }
 
 fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {

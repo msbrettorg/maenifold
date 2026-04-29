@@ -5,11 +5,11 @@ Manages recurring agent tasks and automations.
 ## Parameters
 
 - `action` (string, required): `create`, `update`, `delete`, `list`, `get`,
-  `run_now`, or `logs`.
+  `run_now`, `logs`, or `preview`.
 - `id` (string, required for `create`, `update`, `delete`, `get`, `run_now`,
   and `logs`): Scheduled task ID.
-- `schedule` (string, required for `create`, optional for `update`): Schedule
-  expression accepted by the scheduler parser.
+- `schedule` (string, required for `create` and `preview`, optional for
+  `update`): Schedule expression accepted by the scheduler parser.
 - `agent` (string, required for `create`, optional for `update`): ACP agent.
 - `prompt` (string, required for `create`, optional for `update`): Prompt to
   run.
@@ -29,6 +29,13 @@ Manages recurring agent tasks and automations.
 {
   "action": "run_now",
   "id": "daily-summary"
+}
+```
+
+```json
+{
+  "action": "preview",
+  "schedule": "every weekday at 9am"
 }
 ```
 

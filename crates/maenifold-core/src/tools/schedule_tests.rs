@@ -31,6 +31,35 @@ fn create_payload(id: &str, enabled: bool) -> Value {
     })
 }
 
+#[test]
+fn preview_returns_validated_cron_next_fires_and_timezone() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+
+    let rendered = preview_schedule(
+        &context,
+        &json!({"action": "preview", "schedule": "every weekday at 9am"}),
+    )
+    .expect("preview should parse weekday schedule");
+    let payload: Value = serde_json::from_str(&rendered).expect("preview should be json");
+
+    assert_eq!(payload["action"], "preview");
+    assert_eq!(payload["cron"], "0 9 * * 1-5");
+    assert!(payload["description"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+    assert_eq!(
+        payload["nextFires"]
+            .as_array()
+            .expect("nextFires array")
+            .len(),
+        5
+    );
+    assert!(payload["timezone"]
+        .as_str()
+        .is_some_and(|value| !value.is_empty()));
+}
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn create_enabled_os_install_failure_leaves_no_persisted_schedule() {

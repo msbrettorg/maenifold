@@ -12,6 +12,17 @@ interface ScheduleRun {
   error?: string | null;
 }
 
+export interface ScheduleForm {
+  id: string;
+  schedule: string;
+  agent: string;
+  prompt: string;
+  description: string;
+  enabled: boolean;
+  autoGrantPermissions: boolean;
+  allowedTools: string;
+}
+
 export interface ScheduleJob {
   id: string;
   description?: string;
@@ -45,8 +56,9 @@ export function useSchedulesSettings() {
   const statusMessage = ref('');
   const dialogOpen = ref(false);
   const dialogMode = ref<DialogMode>('create');
+  const previewIsValid = ref(false);
   const schedulePlatform = detectSchedulePlatform();
-  const form = reactive({
+  const form = reactive<ScheduleForm>({
     id: '',
     schedule: '',
     agent: '',
@@ -68,6 +80,7 @@ export function useSchedulesSettings() {
     && !!form.prompt.trim()
     && !isSubmitting.value
     && agentNames.value.length > 0
+    && previewIsValid.value
     && (!form.enabled || schedulePlatform.supportsEnabledSchedules),
   );
 
@@ -80,6 +93,7 @@ export function useSchedulesSettings() {
     form.enabled = schedulePlatform.supportsEnabledSchedules;
     form.autoGrantPermissions = false;
     form.allowedTools = '';
+    previewIsValid.value = false;
   }
 
   function ensureDialogAgent(): void {
@@ -131,6 +145,7 @@ export function useSchedulesSettings() {
     dialogMode.value = 'create';
     resetForm();
     ensureDialogAgent();
+    previewIsValid.value = false;
     dialogOpen.value = true;
   }
 
@@ -145,6 +160,7 @@ export function useSchedulesSettings() {
     form.autoGrantPermissions = Boolean(job.auto_grant_permissions);
     form.allowedTools = job.allowed_tools?.join(', ') ?? '';
     ensureDialogAgent();
+    previewIsValid.value = false;
     dialogOpen.value = true;
   }
 
@@ -238,6 +254,7 @@ export function useSchedulesSettings() {
     dialogTitle,
     dialogDescription,
     canSubmit,
+    previewIsValid,
     form,
     schedulePlatform,
     scheduleLabel,

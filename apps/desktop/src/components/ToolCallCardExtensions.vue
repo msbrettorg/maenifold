@@ -42,7 +42,12 @@ function isDiffBlock(block: ToolCallContentBlock): block is Extract<ToolCallCont
 }
 
 function isTerminalBlock(block: ToolCallContentBlock): block is Extract<ToolCallContentBlock, { type: 'terminal' }> {
-  return block.type === 'terminal';
+  if (block.type !== 'terminal') return false;
+  const terminalBlock = block as Extract<ToolCallContentBlock, { type: 'terminal' }>;
+  return terminalId(terminalBlock) != null ||
+    (typeof terminalBlock.output === 'string' && terminalBlock.output.length > 0) ||
+    terminalStatusLabel(terminalBlock) != null ||
+    terminalBlock.truncated === true;
 }
 
 function splitLines(text: string | null | undefined): string[] {

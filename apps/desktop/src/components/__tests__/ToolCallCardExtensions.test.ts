@@ -188,6 +188,24 @@ describe('ToolCallCardExtensions tool-call content blocks', () => {
     expect(terminal.text().trim().length).toBeGreaterThan(0);
   });
 
+  it('renders fallback for terminal block with empty terminalId', () => {
+    const block = { type: 'terminal', terminalId: '' };
+    const wrapper = mountExtensions(createToolCall({ content: [block] }));
+
+    const fallback = wrapper.find('[data-testid="unknown-tool-call-block"]');
+    expect(wrapper.text().trim().length).toBeGreaterThan(0);
+    expect(fallback.text()).toBe(JSON.stringify(block, null, 2));
+  });
+
+  it('renders fallback for terminal block with no terminalId at all', () => {
+    const block = { type: 'terminal' };
+    const wrapper = mountExtensions(createToolCall({ content: [block] }));
+
+    const fallback = wrapper.find('[data-testid="unknown-tool-call-block"]');
+    expect(wrapper.text().trim().length).toBeGreaterThan(0);
+    expect(fallback.text()).toBe(JSON.stringify(block, null, 2));
+  });
+
   it('renders terminal content block with exit code badge', () => {
     const wrapper = mountExtensions(createToolCall({
       content: [{ type: 'terminal', output: 'oops', exitCode: 1 }],

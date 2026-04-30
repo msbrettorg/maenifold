@@ -127,6 +127,7 @@ async fn get_help_is_not_routed_but_remains_in_gateway_active_surface() {
         vec![
             "GetHelp",
             "ReadMcpResource",
+            "DiscoverMcpTools",
             "GatewayIndex",
             "GatewayExecute",
             "GatewayBatch"
@@ -148,6 +149,7 @@ async fn flat_native_tools_are_hidden_when_gateway_is_active() {
     assert!(!exposed.iter().any(|name| name == "WriteMemory"));
     assert!(exposed.iter().any(|name| name == "GetHelp"));
     assert!(exposed.iter().any(|name| name == "ReadMcpResource"));
+    assert!(exposed.iter().any(|name| name == "DiscoverMcpTools"));
 }
 
 #[tokio::test]
@@ -158,6 +160,7 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
         vec![
             "GetHelp",
             "ReadMcpResource",
+            "DiscoverMcpTools",
             "GatewayIndex",
             "GatewayExecute",
             "GatewayBatch"
@@ -173,12 +176,39 @@ async fn gateway_active_surface_has_exact_tool_count_by_intent_mode() {
         vec![
             "GetHelp",
             "ReadMcpResource",
+            "DiscoverMcpTools",
             "GatewayIndex",
             "GatewayExecute",
             "GatewayBatch",
             "GatewayIntent"
         ]
     );
+}
+
+#[tokio::test]
+async fn gateway_active_surface_has_canonical_unique_tool_names() {
+    let mut settings = IntentResolverSettings::default();
+    settings.enabled = true;
+    settings.agent = Some("resolver".to_string());
+
+    let names = exposed_gateway_surface(settings).await;
+    let unique: HashSet<_> = names.iter().cloned().collect();
+    let expected: HashSet<_> = [
+        "GatewayIndex",
+        "GatewayExecute",
+        "GatewayBatch",
+        "GatewayIntent",
+        "DiscoverMcpTools",
+        "ReadMcpResource",
+        "GetHelp",
+    ]
+    .into_iter()
+    .map(String::from)
+    .collect();
+
+    assert_eq!(names.len(), 7);
+    assert_eq!(unique.len(), 7);
+    assert_eq!(unique, expected);
 }
 
 #[test]
@@ -260,7 +290,11 @@ fn exposed_native_tools(handler: &MaenifoldHandler) -> Vec<String> {
     handler
         .tools
         .iter()
-        .filter(|tool| tool.name == "GetHelp" || tool.name == "ReadMcpResource")
+        .filter(|tool| {
+            tool.name == "GetHelp"
+                || tool.name == "ReadMcpResource"
+                || tool.name == "DiscoverMcpTools"
+        })
         .map(|tool| tool.name.to_string())
         .collect()
 }

@@ -57,8 +57,35 @@ When the user gives a direct instruction, execute it immediately. Do not:
 - Ask clarifying questions when the instruction is clear
 - Start planning or researching instead of doing what was asked
 
+## Gate Capture Is Not Negotiable
+
+**EVERY observation, complaint, bug report, request, screenshot annotation, side comment, and "by the way" from the user becomes a gate item BEFORE you do anything else. Period. No exceptions. No editorial filtering. No "I'll note that and address it later."**
+
+Recurring failure mode (T-231.7, T-231.8, T-234.1–.20, sprint 244 hot-fix wave): the PM hears a problem, mentally classifies it as "too small" / "I'll fix it inline" / "pre-existing" / "out of scope" / "I should triage first," and proceeds without filing. The user discovers the gap later and fails the entire sprint for the violation. The user is right to be angry. **The PM does not get to decide what is worth filing.** The user decides by mentioning it. Filing is non-negotiable.
+
+### Hard rules
+
+1. **User mentions a problem → gate item filed in `todo/` BEFORE the next tool call that does anything else.** Not after the fix. Not after the discussion. First.
+2. **User mentions multiple problems in one message → file ALL of them in one batch BEFORE acting on any.** Do not pick the "most important" one and skip the rest.
+3. **You observe a problem during UAT (CDP click-through) → file it BEFORE moving to the next click.** Do not save findings for a "summary at the end."
+4. **An agent reports a finding → file it BEFORE deciding whether it's actionable.** Triage is a separate gate stage, not a PM-internal filter.
+5. **Severity is the user's call, not yours.** Default to P0 when the user used the word "broken" or pointed at a screenshot. Default to P1 otherwise. Never default to "skip."
+6. **No mental triage.** No "this is too small to file." No "this is the same as that other thing so I'll just amend it." No "I'll add a note to pipelines.md instead." If it's a discrete observation, it gets a discrete `todo/T-{sprint}.{N}.md` file.
+7. **No batch-skipping.** When you list "things I noticed" in a response, every single one of them must already be filed before the response is sent. If you find yourself writing "I observed X but didn't file it because Y," you have already failed.
+
+### When you catch yourself NOT filing
+
+You are deciding. Stop. File the item. Then continue.
+
+### Why this rule exists
+
+The PM's optimization function is not "close tasks fast." It is "every problem the user surfaces becomes a tracked, accountable, dispatchable item." Backlog growth is healthy. Backlog gaps are catastrophic — they're how shipped sprints turn out to be broken in production. The user has scrapped multiple iterations because the PM filtered findings instead of filing them. This is the standing remediation.
+
 ## Stop Conditions
 
+- **If you catch yourself reading a user message without filing every observation in it as a gate item — STOP. File first.**
+- **If you catch yourself writing "I noticed X but didn't file it" — STOP. File now.**
+- **If you catch yourself deciding what severity / priority / worthiness an item has before filing — STOP. Filing is unconditional.**
 - If you find yourself writing code or running tests — stop and dispatch a subagent.
 - If you find yourself reading spec file contents — stop and dispatch a subagent.
 - If you find yourself troubleshooting a bug — stop and send it to an architect.

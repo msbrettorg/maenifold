@@ -78,9 +78,7 @@ pub(super) enum TransportKind {
 }
 impl MaenifoldHandler {
     fn new(transport: TransportKind) -> Result<Self> {
-        let mut mcp_tools = list_mcp_tools(&ToolRegistry::new())?;
-        mcp_tools.push(schema::discovery_tools::discover_mcp_tools_tool());
-        let tools = mcp_tools
+        let tools = list_mcp_tools(&ToolRegistry::new())?
             .into_iter()
             .map(|t| {
                 let schema: serde_json::Map<String, Value> = match t.input_schema {

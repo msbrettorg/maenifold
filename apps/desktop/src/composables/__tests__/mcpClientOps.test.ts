@@ -36,20 +36,15 @@ function createOps(
 }
 
 describe('createMcpClientOps gateway routing', () => {
-  it('allowlist contains all 7 documented top-level MCP tools', () => {
-    const expected = [
-      'GatewayIndex',
-      'GatewayExecute',
-      'GatewayBatch',
-      'GatewayIntent',
-      'DiscoverMcpTools',
-      'ReadMcpResource',
-      'GetHelp',
-    ];
-
-    for (const tool of expected) {
-      expect(gatewayPassthroughTools.has(tool)).toBe(true);
-    }
+  it('allowlist contains all 8 canonical passthrough MCP tools', () => {
+    expect(gatewayPassthroughTools.has('GatewayIndex')).toBe(true);
+    expect(gatewayPassthroughTools.has('GatewayExecute')).toBe(true);
+    expect(gatewayPassthroughTools.has('GatewayBatch')).toBe(true);
+    expect(gatewayPassthroughTools.has('GatewayIntent')).toBe(true);
+    expect(gatewayPassthroughTools.has('DiscoverMcpTools')).toBe(true);
+    expect(gatewayPassthroughTools.has('gate_Create')).toBe(true);
+    expect(gatewayPassthroughTools.has('ReadMcpResource')).toBe(true);
+    expect(gatewayPassthroughTools.has('GetHelp')).toBe(true);
   });
 
   it('builds a tool-to-domain map from GatewayIndex and routes domain tools via GatewayExecute', async () => {

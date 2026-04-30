@@ -21,6 +21,7 @@
     "make": "electron-forge make",
     "preview": "vite preview",
     "test": "NODE_OPTIONS='--no-warnings' vitest run",
+    "test:electron-launch": "node ./scripts/test-electron-launch.mjs",
     "test:e2e": "playwright test tests/e2e",
     "test:visual": "playwright test tests/visual",
     "test:e2e:headed": "playwright test --headed",

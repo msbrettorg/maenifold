@@ -1215,3 +1215,14 @@ Here's the execution plan:
 - **Lesson**: Microsoft Edge running in the background owns port 9222 by default for its own debug protocol. Use 9223 (or any free port) for our Electron CDP.
 - **Lesson**: Electron 111+ requires `--remote-allow-origins=*` (or specific origins) for WebSocket CDP connections from non-DevTools clients. Without it, agent-browser's `Target.createTarget` returns 'Not supported' / 'Handshake status 403 Forbidden'. The constitution's launch instructions in AGENTS.md should document this flag.
 
+
+### apps/desktop node_modules/.bin can become empty — breaks blue-team verification
+- During T-243.30 RALPH iter-2 blue-team, `npx vue-tsc` and `npm run build` failed with `sh: vue-tsc: command not found` because `apps/desktop/node_modules/.bin/` was empty (vue-tsc package present but binary symlink missing).
+- Worktrees that symlink `node_modules` to the parent inherit the empty `.bin/`. This compounds the impact.
+- Fix: `cd apps/desktop && npm install` → restores `.bin/` symlinks (postinstall electron-rebuild also runs).
+- **Lesson**: Before dispatching blue-team or running `npm run build`, confirm `apps/desktop/node_modules/.bin/vue-tsc` exists. If empty, run `npm install` first. Filed as **T-243.34** for a longer-term fix (auto-detect + repair in rebuild.sh, or postinstall hook).
+
+### Blue-team prompts must specify the correct git diff base
+- Iter-2 blue-team for T-243.30 reported FAIL because the PM dispatched with `git diff main` which included EVERY change between main and the worktree branch tip — many unrelated commits had landed in dev between worktree creation and verification time. The SWE's actual delta was one commit.
+- **Fix**: Blue-team prompts must ask for `git diff HEAD~N HEAD` where N is the number of SWE commits, OR `git diff <BASE_SHA> HEAD` where BASE_SHA is the worktree's branch base. NEVER `git diff main` from a long-lived worktree branch.
+- **Lesson**: Capture the worktree's base SHA at creation time and pass it to all blue/red-team verifications. Without that, drift kills the verification.

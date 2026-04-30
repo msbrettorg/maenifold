@@ -3,12 +3,10 @@ import { computed, ref } from 'vue';
 import VueJsonPretty from 'vue-json-pretty';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import stripAnsi from 'strip-ansi';
 import ChatContentBlocks from './ChatContentBlocks.vue';
-import { useTerminalOutput } from '../composables/useTerminalOutput';
+import { useToolCallTerminal } from '../composables/useToolCallTerminal';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
-import type { TerminalState } from '../stores/useTerminalsStore';
 import type { ToolCallContentBlock, ToolCallInfo } from '../lib/types';
 
 type JsonValue = string | number | boolean | unknown[] | Record<string, unknown> | null;
@@ -23,6 +21,17 @@ const emit = defineEmits<{ toggle: [] }>();
 const rawOpen = ref(false);
 const appShellStore = useAppShellStore();
 const knowledgeStore = useKnowledgeStore();
+const {
+  isTerminalBlock,
+  terminalExitCode,
+  terminalId,
+  terminalStatusLabel,
+  terminalOutputState,
+  terminalRenderedOutput,
+  terminalRenderedStatusLabel,
+  terminalRenderedBadgeVariant,
+  terminalIsTruncated,
+} = useToolCallTerminal();
 
 const hasContent = computed(() => Boolean(props.toolCall.content?.length));
 const hasRawPayload = computed(() => Boolean(props.toolCall.rawInput || props.toolCall.rawOutput));
@@ -42,15 +51,6 @@ function isContentBlock(block: ToolCallContentBlock): block is Extract<ToolCallC
 
 function isDiffBlock(block: ToolCallContentBlock): block is Extract<ToolCallContentBlock, { type: 'diff' }> {
   return block.type === 'diff';
-}
-
-function isTerminalBlock(block: ToolCallContentBlock): block is Extract<ToolCallContentBlock, { type: 'terminal' }> {
-  if (block.type !== 'terminal') return false;
-  const terminalBlock = block as Extract<ToolCallContentBlock, { type: 'terminal' }>;
-  return terminalId(terminalBlock) != null ||
-    (typeof terminalBlock.output === 'string' && terminalBlock.output.length > 0) ||
-    terminalStatusLabel(terminalBlock) != null ||
-    terminalBlock.truncated === true;
 }
 
 function splitLines(text: string | null | undefined): string[] {
@@ -107,58 +107,6 @@ function getDiffLineClass(kind: DiffLine['kind']): string {
     case 'remove': return 'text-danger';
     default: return 'text-text-secondary';
   }
-}
-
-function terminalExitCode(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): number | null {
-  const directExitCode = (block as { exitCode?: unknown }).exitCode;
-  if (typeof directExitCode === 'number') return directExitCode;
-  return block.exitStatus?.exitCode ?? null;
-}
-
-function terminalId(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
-  const id = (block as { terminalId?: unknown }).terminalId;
-  if (typeof id !== 'string') return null;
-  const trimmed = id.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function terminalStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
-  const exitCode = terminalExitCode(block);
-  if (exitCode != null) return `exit ${exitCode}`;
-  if (block.exitStatus?.signal) return `signal ${block.exitStatus.signal}`;
-  if (block.released === true) return 'released';
-  return null;
-}
-
-function terminalOutputState(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): TerminalState | null {
-  const id = terminalId(block);
-  return id ? useTerminalOutput(id).value : null;
-}
-
-function terminalRenderedOutput(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string {
-  const state = terminalOutputState(block);
-  const output = state?.output ?? block.output ?? '';
-  return stripAnsi(output);
-}
-
-function terminalRenderedStatusLabel(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): string | null {
-  const state = terminalOutputState(block);
-  const exitCode = state?.exitStatus?.exitCode ?? terminalExitCode(block);
-  if (exitCode != null) return state ? `exited ${exitCode}` : `exit ${exitCode}`;
-  const signal = state?.exitStatus?.signal ?? block.exitStatus?.signal;
-  if (signal) return `signal ${signal}`;
-  if ((state?.released ?? block.released) === true) return 'released';
-  return terminalStatusLabel(block);
-}
-
-function terminalRenderedBadgeVariant(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): 'outline' | 'destructive' {
-  const state = terminalOutputState(block);
-  const exitCode = state?.exitStatus?.exitCode ?? terminalExitCode(block);
-  return exitCode != null && exitCode !== 0 ? 'destructive' : 'outline';
-}
-
-function terminalIsTruncated(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): boolean {
-  return terminalOutputState(block)?.truncated === true || block.truncated === true;
 }
 
 function terminalBadgeVariant(block: Extract<ToolCallContentBlock, { type: 'terminal' }>): 'outline' | 'destructive' {

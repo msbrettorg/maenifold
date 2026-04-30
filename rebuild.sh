@@ -31,17 +31,26 @@ echo "═══ Release build: all crates ═══"
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
 
 echo ""
-echo "═══ Install binaries ═══"
+echo "═══ Verify binaries ═══"
 for bin in maenifold maenifold-pipeline-driver; do
   src="$ROOT/target/release/$bin"
   dest="/usr/local/bin/$bin"
-  if [ -f "$src" ]; then
-    if [ -L "$dest" ] && [ "$(readlink "$dest")" = "$src" ]; then
-      echo "  ✓ $bin symlink already correct"
-    else
-      sudo ln -sf "$src" "$dest"
-      echo "  ✓ $bin → $dest"
-    fi
+  if [ ! -f "$src" ]; then
+    echo "  ✗ $bin missing at $src — cargo build did not produce it"
+    exit 1
+  fi
+  if [ ! -L "$dest" ]; then
+    echo "  ⚠ $dest is not a symlink — skipping verify (you manage this path)"
+    continue
+  fi
+  actual=$(readlink "$dest")
+  if [ "$actual" = "$src" ]; then
+    echo "  ✓ $bin symlink correct ($dest → $src)"
+  else
+    echo "  ⚠ $bin symlink points elsewhere: $dest → $actual"
+    echo "     Expected: $src"
+    echo "     This script will NOT modify /usr/local/bin (no sudo). Fix manually if needed:"
+    echo "       ln -sf $src $dest"
   fi
 done
 

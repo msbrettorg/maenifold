@@ -168,7 +168,7 @@ const showAgentsChat = computed(
 
       <!-- Main Content Area -->
       <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <main class="flex min-h-0 flex-1 flex-col overflow-hidden bg-bg-app">
+        <main class="flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-bg-app">
         <HomeDashboard
           v-show="activeTab === 'home'"
           key="home"

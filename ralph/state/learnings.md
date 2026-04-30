@@ -1204,3 +1204,14 @@ Here's the execution plan:
 - **Lesson**: Blue-team verification for any merge-bound work MUST include `npm run build` (the full chain: vue-tsc + lint-design --all + audit-components --all + vite build). Narrower lint scopes hide regressions until the next PM tries to package.
 - **Lesson**: For frontend hex literals matching upstream library output (not design choices), encode the literal with a unicode escape `'\u0023cc0000'` so the regex `/#[0-9a-fA-F]{3,8}\b/` no longer matches. Document the upstream source in a code comment.
 
+
+### Packaged Electron app silently fails before createWindow — UAT blocked
+- Iteration 1 attempted to launch the packaged app for sprint 243 UAT. Across 4 launch attempts (with various combinations of `--remote-debugging-port`, `--remote-allow-origins=*`, fresh `--user-data-dir`, `--enable-logging --v=1`), the Electron main process started but never spawned helper processes (network/GPU/renderer). CDP returned 0 pages indefinitely. Last log line is always the SQLite ExperimentalWarning.
+- The first launch attempt (10:12) DID spawn network + GPU helpers. Subsequent launches did NOT. Possible singleton-lock / corrupted state issue, or timing-dependent.
+- Likely root cause: `terminalManager.ts` (which imports `node-pty`) is the FIRST handler imported at the top of `electron/main.ts`. If the prebuilt `node-pty` binary inside the asar isn't compatible with Electron 41 / Node 22 / arm64, the import would throw at module-resolution time — silently if Electron's loader catches it without printing.
+- This blocks ALL of sprint 243 UAT. Filed as **T-243.19** (P0, TDD pipeline) with full repro + acceptance + the 4 likely root causes.
+- **Lesson**: Wrap each top-level import in `electron/main.ts` with explicit `try/catch + process.stderr.write(...)` so silent module-load failures cannot block the app without leaving a paper trail. This is constitutional: AGENTS.md "We Do Not Trust. We Verify." + "No silent defaults."
+- **Lesson**: A `make audit` smoke-test that spawns the packaged app and asserts a CDP page appears within 30s would catch this regression at build time, not at first-UAT time. Filed as part of T-243.19 acceptance.
+- **Lesson**: Microsoft Edge running in the background owns port 9222 by default for its own debug protocol. Use 9223 (or any free port) for our Electron CDP.
+- **Lesson**: Electron 111+ requires `--remote-allow-origins=*` (or specific origins) for WebSocket CDP connections from non-DevTools clients. Without it, agent-browser's `Target.createTarget` returns 'Not supported' / 'Handshake status 403 Forbidden'. The constitution's launch instructions in AGENTS.md should document this flag.
+

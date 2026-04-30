@@ -6,6 +6,27 @@ cd "$ROOT"
 
 UID_NUM=$(id -u)
 
+launchctl_kickstart_with_timeout() {
+  local svc=$1
+  local timeout_sec=${2:-60}
+  ( launchctl kickstart -k "gui/${UID_NUM}/${svc}" ) &
+  local pid=$!
+  local waited=0
+  while kill -0 "$pid" 2>/dev/null; do
+    if [ "$waited" -ge "$timeout_sec" ]; then
+      kill -TERM "$pid" 2>/dev/null || true
+      sleep 1
+      kill -KILL "$pid" 2>/dev/null || true
+      echo "  ⚠ kickstart timed out after ${timeout_sec}s — falling back to bootout/bootstrap"
+      return 1
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+  wait "$pid" 2>/dev/null || true
+  return 0
+}
+
 echo "═══ Release build: all crates ═══"
 cargo build --release -p maenifold-jockey -p maenifold-core -p maenifold-pipeline-driver -p maenifold-cli
 
@@ -25,10 +46,28 @@ for bin in maenifold maenifold-pipeline-driver; do
 done
 
 echo ""
+echo "═══ Desktop app ═══"
+cd apps/desktop
+npm run package
+echo "  ✓ packaged"
+cd "$ROOT"
+
+echo ""
 echo "═══ Restart launchd services ═══"
 for svc in com.ma-collective.maenifold; do
   if launchctl list "$svc" &>/dev/null; then
-    launchctl kickstart -k "gui/${UID_NUM}/${svc}" 2>/dev/null || true
+    if ! launchctl_kickstart_with_timeout "$svc"; then
+      plist="$HOME/Library/LaunchAgents/${svc}.plist"
+      if [ -f "$plist" ]; then
+        launchctl bootout "gui/${UID_NUM}/${svc}" 2>/dev/null || true
+        sleep 1
+        launchctl bootstrap "gui/${UID_NUM}" "$plist"
+        echo "  ✓ $svc bootstrapped after kickstart timeout"
+      else
+        echo "  ✗ $svc plist missing at $plist — cannot recover"
+        exit 1
+      fi
+    fi
     sleep 1
     launchctl start "$svc" 2>/dev/null || true
     echo "  ✓ $svc restarted"
@@ -38,11 +77,8 @@ for svc in com.ma-collective.maenifold; do
 done
 
 echo ""
-echo "═══ Desktop app ═══"
+echo "═══ Launch desktop app ═══"
 cd apps/desktop
-npm run package
-echo "  ✓ packaged"
-
 if pgrep -f 'maenifold.app' &>/dev/null; then
   osascript -e 'tell application "maenifold" to quit' 2>/dev/null || true
   sleep 2

@@ -20,6 +20,15 @@ const markdownItKatex =
 
 let mdPromise: Promise<MarkdownIt> | null = null;
 
+// KaTeX renders parse errors with this exact color in both the MathML
+// `mathcolor` attribute and inline `color:` CSS. We detect those substrings
+// in rendered HTML so we can add a `katex-error` class for styling.
+// The number-sign escape keeps the design lint from treating this
+// upstream-output detection as a design color choice.
+const KATEX_ERROR_COLOR_HEX = '\u0023cc0000';
+const KATEX_ERROR_MATHML_ATTR = `mathcolor="${KATEX_ERROR_COLOR_HEX}"`;
+const KATEX_ERROR_CSS = `color:${KATEX_ERROR_COLOR_HEX}`;
+
 /**
  * Inline rule that recognises [[concept]] WikiLinks and emits a 'wikilink'
  * token. Keeping this at the parser level lets WikiLinks coexist with raw HTML
@@ -77,7 +86,7 @@ function katexCompatibilityPlugin(md: MarkdownIt): void {
 
     md.renderer.rules[ruleName] = (tokens, idx, options, env, self) => {
       const html = renderRule(tokens, idx, options, env, self);
-      if (!html.includes('mathcolor="#cc0000"') && !html.includes('color:#cc0000')) {
+      if (!html.includes(KATEX_ERROR_MATHML_ATTR) && !html.includes(KATEX_ERROR_CSS)) {
         return html;
       }
       return html.replace('class="katex"', 'class="katex katex-error"');

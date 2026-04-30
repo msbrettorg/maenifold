@@ -54,6 +54,7 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert_tool_names(
         &names,
         &[
+            "DiscoverMcpTools",
             "GatewayBatch",
             "GatewayExecute",
             "GatewayIndex",
@@ -79,7 +80,12 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     )
     .await;
     let config_index_text = result_text(&config_index);
-    assert!(config_index_text.contains("\"DiscoverMcpTools\""));
+    // DiscoverMcpTools is a top-level MCP tool (asserted above in tools/list),
+    // not a maenifold.system domain command. The maenifold.system catalog
+    // must NOT contain it — verifying we did not regress to the pre-T-246.5
+    // duplicate-registration shape where it appeared in both surfaces.
+    assert!(!config_index_text.contains("\"DiscoverMcpTools\""));
+    assert!(config_index_text.contains("\"GetConfig\""));
 
     let native = rpc(
         &server,

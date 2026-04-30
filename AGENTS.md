@@ -291,9 +291,32 @@ Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`).
 
 ### CDP Testing
 
-Launch binary directly (not `open -a`) with `--remote-debugging-port=9222`. One agent per CDP session — visual audits are serial.
+Launch binary directly (not `open -a`) with `--remote-debugging-port=<port>`. One agent per CDP session — visual audits are serial.
 
-**Tooling:** Use `agent-browser` CLI for all CDP interaction. Load the `electron` skill first (`agent-browser skills get electron`). Connect with `agent-browser connect 9222`. Use `agent-browser snapshot` to get the accessibility tree with `@eN` element refs, then `agent-browser click @eN` / `agent-browser type @eN "text"` to interact. Use `agent-browser screenshot` for evidence.
+**Required launch flags** (all three matter — verified in RALPH iter-1, 2026-04-30):
+
+1. `--remote-debugging-port=<port>` — port `9222` is the convention but **Microsoft Edge and other Chromium browsers commonly own 9222** when running. Use `9223` (or any free port) if `lsof -i :9222` shows another process. Confirm the port is free before launch: `lsof -i :<port>` should be silent.
+2. `--remote-allow-origins=*` — **Chromium 111+ (Electron 24+) requires this for any non-DevTools WebSocket CDP client**. Without it `agent-browser connect` returns `Target.createTarget: Not supported` and `WebSocket Handshake status 403 Forbidden`. The `*` wildcard is fine for local dev / sprint UAT (no remote callers can reach a localhost-only port).
+3. `--user-data-dir=<temp dir>` — recommended for UAT to avoid stale state from prior sessions corrupting first-run tests. The default user-data-dir at `~/Library/Application Support/maenifold/` accumulates settings across runs.
+
+Concrete launch sequence (macOS, after `npm run package`):
+
+```bash
+# kill any prior instance
+ps aux | grep "maenifold.app/Contents/MacOS/maenifold" | grep -v grep | awk '{print $2}' | xargs -r kill -9
+mkdir -p /tmp/mae-uat-userdata
+nohup ./apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
+  --remote-debugging-port=9223 \
+  --remote-allow-origins='*' \
+  --user-data-dir=/tmp/mae-uat-userdata \
+  > /tmp/mae-cdp.log 2>&1 &
+disown
+sleep 8
+curl -s http://127.0.0.1:9223/json | head -c 200   # → JSON array with at least one page entry
+agent-browser connect 9223
+```
+
+**Tooling:** Use `agent-browser` CLI for all CDP interaction. Load the `electron` skill first (`agent-browser skills get electron`). Connect with `agent-browser connect <port>`. Use `agent-browser snapshot` to get the accessibility tree with `@eN` element refs, then `agent-browser click @eN` / `agent-browser type @eN "text"` to interact. Use `agent-browser screenshot` for evidence.
 
 **Do NOT write custom Python/Playwright scripts for UI testing.** `agent-browser` is the tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots, and gives you reliable element refs. Hand-written scripts get stuck in loops and miss elements.
 

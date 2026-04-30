@@ -1,8 +1,28 @@
+import { builtinModules } from "node:module";
 import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import tailwindcss from "@tailwindcss/vite";
 import electron from "vite-plugin-electron/simple";
+
+// Externals for the electron main + preload bundles. Native modules and
+// Electron itself MUST NOT be bundled — Electron's Node loads them from
+// node_modules at runtime via the asar's prebuilt .node binaries.
+//
+// Node built-ins must also be external because Vite v8/Rolldown otherwise
+// emits CJS `require("fs")` calls into the ESM main bundle, and ESM in
+// Electron's main process has no `require` — the app throws
+// "Calling `require` for 'fs' in an environment that doesn't expose the
+// `require` function" before reaching createWindow, helper processes
+// never spawn, and no window appears.
+//
+// See T-243.19 (UAT-blocker symptom) and T-246.2 (root-cause family).
+const electronMainExternal = [
+  "electron",
+  "node-pty",
+  ...builtinModules,
+  ...builtinModules.map((moduleName) => `node:${moduleName}`),
+];
 
 // https://vite.dev/config/
 export default defineConfig(() => {
@@ -22,22 +42,20 @@ export default defineConfig(() => {
                 vite: {
                   build: {
                     rollupOptions: {
-                      // Native modules and Electron must NOT be bundled —
-                      // Electron's Node loads them from node_modules at
-                      // runtime via the asar's prebuilt .node binaries.
-                      // Without this, Rolldown emits CJS `require("fs")`
-                      // calls into an ESM bundle and the main process
-                      // throws "Calling `require` for 'fs' in an
-                      // environment that doesn't expose the `require`
-                      // function" before reaching createWindow.
-                      // See T-246.2 / T-243.19.
-                      external: ["electron", "node-pty"],
+                      external: electronMainExternal,
                     },
                   },
                 },
               },
               preload: {
                 input: "electron/preload.ts",
+                vite: {
+                  build: {
+                    rollupOptions: {
+                      external: electronMainExternal,
+                    },
+                  },
+                },
               },
               renderer: {},
             }),

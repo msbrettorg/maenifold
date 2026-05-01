@@ -16,7 +16,7 @@ static TASK_ID_RE: LazyLock<Regex> =
 static CANONICAL_TASK_ID_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^T-\d+\.\d+(?:\.[1-9]\d*)?$").expect("canonical task id regex"));
 
-const EXPECTED_TASK_ID_FORMAT: &str = "T-{sprint}.{N}.md";
+const EXPECTED_TASK_ID_FORMAT: &str = "T-{sprint}.{N}.md or T-{sprint}.{N}.{M}.md";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TaskMetadata {

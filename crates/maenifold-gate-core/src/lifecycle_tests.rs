@@ -282,7 +282,9 @@ fn status_surfaces_malformed_task_id_with_path_expected_and_actual() {
     assert_eq!(row["state"], "error");
     let issue = row["issue"].as_str().expect("issue string");
     assert!(issue.contains("todo/T-243.2.0-delta-review.md"));
-    assert!(issue.contains("expected format T-{sprint}.{N}.md"));
+    assert!(issue.contains(
+        "expected format T-{sprint}.{N}.md or T-{sprint}.{N}.{M}.md"
+    ));
     assert!(issue.contains("actual id 'T-243.2.0'"));
 }
 
@@ -302,7 +304,9 @@ fn status_error_rows_leniently_preserve_title_and_pipeline_for_malformed_ids() {
     assert_eq!(row["pipeline"], "sdd");
     assert_eq!(row["canonicalTaskId"], "T-243.2.0");
     let issue = row["issue"].as_str().expect("issue string");
-    assert!(issue.contains("expected format T-{sprint}.{N}.md"));
+    assert!(issue.contains(
+        "expected format T-{sprint}.{N}.md or T-{sprint}.{N}.{M}.md"
+    ));
     assert!(issue.contains("actual id 'T-243.2.0'"));
 }
 

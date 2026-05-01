@@ -66,15 +66,16 @@ Gate is sacrosanct. The process is followed exactly. No exceptions. No shortcuts
 1. **NEVER move files between `todo/` and `done/`.** Only `gate_Pass` on the terminal stage moves a file. `mv`, `cp`, `git mv`, IDE drag-drop — all forbidden. If you find yourself reaching for a file operation on a task file, stop: the answer is `gate_Pass` or `gate_Fail` through `GatewayExecute` with domain `maenifold.gate`. Period.
 2. **`todo/` and `done/` are NOT tracked in git** (gitignored as of 2026-04-28). Gate state is per-developer / per-clone. Markdown task files on disk are the authoritative spec; `.gate/gate.db` is a derived read-model rebuilt by `gate_Sync`. Source of truth for what shipped is the actual code commits + their `T-XXX.X` task-id references in commit messages, NOT the spec markdown. Why the change: parallel worktrees were creating spurious "delete" merge conflicts when one branch's gate moved a file to `done/` while another branch was still working from before the move (T-244.71, T-244.72 incidents). Single-user repo per constitution; backlog is local PM state.
 3. **Recovery from gate state loss:** specs are not recoverable from git. The PM regroom from existing code commits + memory:// notes + checkpoint files. `.gate/gate.db` rebuilds from on-disk markdown via `gate_Sync` with `rebuild: true`; if both the markdown AND the cache are lost, the PM rebuilds the spec from scratch using the existing code as evidence of intent.
-4. **Every stage requires a real dispatched agent.** SWE→SWE agent. Red-team→red-team agent. Blue-team→blue-team agent.
-5. **Never skip or fast-forward.** Each `gate_Pass` references genuine output from the responsible agent.
-6. **1 violation = sprint discarded.** All work reverted regardless of correctness.
-7. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
-8. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → record `gate_Pass` for SWE → report back. PM handles red-team/blue-team.
-9. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
-10. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
-11. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
-12. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
+4. **Task ID format:** `T-{sprint}.{task}` for top-level tasks, `T-{sprint}.{task}.{sub}` for sub-tasks. The sub-task number starts at 1 (never 0). Examples: `T-122.3` is sprint 122 task 3. `T-122.3.1` is the first sub-task of T-122.3.
+5. **Every stage requires a real dispatched agent.** SWE→SWE agent. Red-team→red-team agent. Blue-team→blue-team agent.
+6. **Never skip or fast-forward.** Each `gate_Pass` references genuine output from the responsible agent.
+7. **1 violation = sprint discarded.** All work reverted regardless of correctness.
+8. **PM skips stages ONLY with explicit written user authorization.** Record: `stage waived per user authorization at <timestamp>`.
+9. **Sub-PMs own SWE stage only.** Dispatch SWE → verify build + delta → record `gate_Pass` for SWE → report back. PM handles red-team/blue-team.
+10. **Sub-PMs escalate after 15 minutes.** Silent long runs are process violations.
+11. **One task per sub-PM.** Never assign multiple tasks to a single sub-PM.
+12. **No "waived re-audit."** Every remediation cycle gets a full independent re-audit. "Waived" is not a valid verdict.
+13. **PM circuit breaker.** If >3 tasks enter remediation in one session, stop new dispatch. Land in-flight work first.
 
 ### Gate Processes
 

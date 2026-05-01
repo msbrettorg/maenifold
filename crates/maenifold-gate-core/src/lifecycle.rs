@@ -65,6 +65,7 @@ pub struct StageNoteArgs {
     pub agent: String,
     pub notes: String,
     pub model: Option<String>,
+    pub expected_stage: Option<String>,
 }
 
 #[derive(Debug, Clone)]

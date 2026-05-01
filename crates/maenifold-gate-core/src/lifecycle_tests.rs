@@ -48,6 +48,59 @@ fn pass_and_fail_apply_state_machine_transitions() {
 }
 
 #[test]
+fn pass_with_matching_expected_stage_advances_to_next_stage() {
+    let root = new_root();
+    write_task(root.path(), "T-245.6", "sdd");
+
+    let after_pass = GateLifecycle::pass(note_with_expected_stage(
+        root.path(),
+        "T-245.6",
+        "pm",
+        "pending",
+        "ready",
+    ))
+    .expect("pass succeeds when expected stage matches");
+
+    assert_eq!(after_pass["state"], "swe");
+}
+
+#[test]
+fn pass_with_wrong_expected_stage_returns_error_and_preserves_state() {
+    let root = new_root();
+    write_task(root.path(), "T-245.6", "sdd");
+
+    let error = GateLifecycle::pass(note_with_expected_stage(
+        root.path(),
+        "T-245.6",
+        "pm",
+        "swe",
+        "stale snapshot",
+    ))
+    .expect_err("pass should reject stale expected stage");
+
+    assert!(error.to_string().contains("expected stage"));
+    assert_eq!(single_status(root.path())["state"], "pending");
+}
+
+#[test]
+fn fail_with_wrong_expected_stage_returns_error_and_preserves_state() {
+    let root = new_root();
+    write_task(root.path(), "T-245.6", "sdd");
+
+    let error = GateLifecycle::fail(note_with_expected_stage(
+        root.path(),
+        "T-245.6",
+        "pm",
+        "swe",
+        "stale snapshot",
+    ))
+    .expect_err("fail should reject stale expected stage");
+
+    assert!(error.to_string().contains("expected stage"));
+    assert_eq!(single_status(root.path())["state"], "pending");
+}
+
+#[test]
 fn terminal_pass_moves_task_to_done() {
     let root = new_root();
     write_task(root.path(), "T-237.3", "test");
@@ -122,14 +175,22 @@ fn sync_reports_counts_without_requiring_standalone_gate() {
 #[test]
 fn sync_rebuild_true_auto_creates_gate_dir_for_fresh_root() {
     let root = new_root();
-    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
     assert!(root.path().join(".gate/gate.db").exists());
 }
 
 #[test]
 fn sync_rebuild_false_auto_creates_gate_dir_for_fresh_root() {
     let root = new_root();
-    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: false }).expect("sync");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: false,
+    })
+    .expect("sync");
     assert!(root.path().join(".gate/gate.db").exists());
 }
 
@@ -138,8 +199,15 @@ fn sync_preserves_existing_gate_root_state() {
     let root = new_root();
     fs::create_dir_all(root.path().join(".gate")).expect("gate dir");
     fs::write(root.path().join(".gitignore"), ".gate/\n").expect("gitignore");
-    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
-    assert_eq!(fs::read_to_string(root.path().join(".gitignore")).expect("gitignore"), ".gate/\n");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
+    assert_eq!(
+        fs::read_to_string(root.path().join(".gitignore")).expect("gitignore"),
+        ".gate/\n"
+    );
     assert!(root.path().join(".gate/gate.db").exists());
 }
 
@@ -147,10 +215,58 @@ fn sync_preserves_existing_gate_root_state() {
 fn sync_augments_gitignore_when_creating_fresh_gate_root() {
     let root = new_root();
     fs::write(root.path().join(".gitignore"), "target/\n").expect("gitignore");
-    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
     let gitignore = fs::read_to_string(root.path().join(".gitignore")).expect("gitignore");
     assert!(gitignore.contains("target/\n"));
     assert!(gitignore.contains(".gate/"));
+}
+
+#[test]
+fn sync_accepts_three_segment_task_ids_in_status() {
+    let root = new_root();
+    fs::write(
+        root.path().join("todo/T-243.1.5-sub-task.md"),
+        "---\nid: T-243.1.5\ntitle: sub task\npipeline: sdd\npriority: P1\n---\n# sub task\n",
+    )
+    .expect("write task");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
+    assert_eq!(single_status(root.path())["taskId"], "T-243.1.5");
+}
+
+#[test]
+fn sync_rejects_four_segment_task_ids() {
+    let root = new_root();
+    fs::write(
+        root.path().join("todo/T-243.1.5.9-bad.md"),
+        "---\nid: T-243.1.5.9\ntitle: bad task\npipeline: sdd\npriority: P1\n---\n# bad task\n",
+    )
+    .expect("write task");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
+    assert_ne!(single_status(root.path())["taskId"], "T-243.1.5.9");
+}
+
+#[test]
+fn sync_keeps_two_segment_task_ids_working() {
+    let root = new_root();
+    fs::write(root.path().join("todo/T-999.1-regression-check.md"), "---\nid: T-999.1\ntitle: regression check\npipeline: sdd\npriority: P1\n---\n# regression check\n").expect("write task");
+    GateLifecycle::sync(SyncArgs {
+        context: context(root.path()),
+        rebuild: true,
+    })
+    .expect("sync");
+    assert_eq!(single_status(root.path())["taskId"], "T-999.1");
 }
 
 #[test]
@@ -258,6 +374,24 @@ fn note(root: &Path, task_id: &str, agent: &str, notes: &str) -> StageNoteArgs {
         agent: agent.to_string(),
         notes: notes.to_string(),
         model: Some("test-model".to_string()),
+        expected_stage: None,
+    }
+}
+
+fn note_with_expected_stage(
+    root: &Path,
+    task_id: &str,
+    agent: &str,
+    expected_stage: &str,
+    notes: &str,
+) -> StageNoteArgs {
+    StageNoteArgs {
+        context: context(root),
+        task_id: task_id.to_string(),
+        agent: agent.to_string(),
+        notes: notes.to_string(),
+        model: Some("test-model".to_string()),
+        expected_stage: Some(expected_stage.to_string()),
     }
 }
 

@@ -140,6 +140,7 @@ fn note_args(
         agent: required_string(args, "agent")?,
         notes: required_string(args, "notes")?,
         model: optional_string(args, "model")?,
+        expected_stage: optional_string(args, "expectedStage")?,
     })
 }
 
@@ -300,6 +301,10 @@ fn note_schema() -> Value {
     properties.insert("agent".to_string(), json!({"type": "string"}));
     properties.insert("notes".to_string(), json!({"type": "string"}));
     properties.insert("model".to_string(), json!({"type": "string"}));
+    properties.insert(
+        "expectedStage".to_string(),
+        json!({"type": "string", "description": "Optional guard requiring the task's current stage to match before advancing."}),
+    );
     json!({"type": "object", "properties": properties, "required": ["root", "taskId", "agent", "notes"], "additionalProperties": false})
 }
 

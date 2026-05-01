@@ -43,6 +43,13 @@ pub enum GateError {
     #[error("illegal transition: state '{state}' does not allow outcome '{outcome}'")]
     IllegalTransition { state: String, outcome: String },
 
+    #[error("task '{task_id}' expected stage '{expected}' but current stage is '{actual}'")]
+    StageMismatch {
+        task_id: String,
+        expected: String,
+        actual: String,
+    },
+
     #[error(
         "task '{task_id}' not found. searched directories: {searched_directories}. Task lookup matches frontmatter `id:` (falling back to the filename stem when no `id:` is present)."
     )]

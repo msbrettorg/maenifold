@@ -50,6 +50,15 @@ pub(super) fn apply_outcome(args: StageNoteArgs, outcome: &str) -> Result<Value,
         &task,
         args.context.requested_pipeline_name.as_deref(),
     )?;
+    if let Some(expected) = &args.expected_stage
+        && state.state != expected.as_str()
+    {
+        return Err(GateError::StageMismatch {
+            task_id: args.task_id,
+            expected: expected.clone(),
+            actual: state.state.clone(),
+        });
+    }
     let transition = match outcome {
         "pass" => StateMachine::next_on_pass(&state.state, &definition)?,
         "fail" => StateMachine::next_on_fail(&state.state, &definition)?,

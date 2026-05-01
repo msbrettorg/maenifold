@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, existsSync } from 'node:fs';
+import { appendFileSync, existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
@@ -44,6 +44,31 @@ let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
 const terminalManager = new TerminalManager(() => mainWindow?.webContents ?? null);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const gateTaskFilenamePattern = /^T-\d+\.\d+-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
+
+type GateWriteTaskFileParams = {
+  root?: unknown;
+  filename?: unknown;
+  content?: unknown;
+};
+
+function validateGateWriteTaskFileParams(params: unknown) {
+  if (!params || typeof params !== 'object') {
+    throw new Error('parameters are required');
+  }
+  const candidate = params as GateWriteTaskFileParams;
+  if (typeof candidate.root !== 'string' || candidate.root.length === 0) {
+    throw new Error('root is required');
+  }
+  if (typeof candidate.filename !== 'string' || !gateTaskFilenamePattern.test(candidate.filename)) {
+    throw new Error('invalid task filename');
+  }
+  if (typeof candidate.content !== 'string') {
+    throw new Error('content is required');
+  }
+  return { root: candidate.root, filename: candidate.filename, content: candidate.content };
+}
+
 async function isServiceHealthy(url: string): Promise<boolean> {
   try {
     const response = await fetch(url);
@@ -229,6 +254,21 @@ function registerIpcHandlers(): void {
       result[name] = !!process.env[name];
     }
     return result;
+  });
+  ipcMain.handle('gate:write-task-file', (_event, params: unknown) => {
+    const { root, filename, content } = validateGateWriteTaskFileParams(params);
+    const todoDir = join(root, 'todo');
+    if (lstatSync(todoDir).isSymbolicLink()) {
+      throw new Error('Refusing to write: todo/ is a symbolic link');
+    }
+    const resolvedTodo = realpathSync(todoDir);
+    const resolvedRoot = realpathSync(root);
+    if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) {
+      throw new Error('Refusing to write: todo/ resolves outside root');
+    }
+    const taskPath = join(todoDir, filename);
+    writeFileSync(taskPath, content, { flag: 'wx' });
+    return { path: taskPath };
   });
   ipcMain.handle('terminal:create', (_event, params) => {
     const { sessionId: _sessionId, ...terminalParams } = validateCreateTerminalParams(params);

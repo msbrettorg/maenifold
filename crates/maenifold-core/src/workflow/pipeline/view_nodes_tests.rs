@@ -214,7 +214,10 @@ fn pipeline_nodes_json_keeps_local_session_id_and_omits_can_reconnect() {
     );
     assert!(!detail_object(workflow).contains_key("canReconnect"));
     assert_eq!(workflow["provenance"]["detail"]["adoption"]["role"], "none");
-    assert_eq!(workflow["provenance"]["detail"]["adoption"]["color"], "none");
+    assert_eq!(
+        workflow["provenance"]["detail"]["adoption"]["color"],
+        "none"
+    );
     assert_eq!(
         workflow["provenance"]["detail"]["adoption"]["perspective"],
         "none"

@@ -18,10 +18,19 @@ static WIKILINK_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
 
 // T-3.1: RTM FR-6
 pub fn extract_concepts_from_file(context: &ToolContext, payload: &Value) -> Result<String> {
-    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
         let help = load_help_doc(&context.config.assets_path, "ExtractConceptsFromFile")
-            .unwrap_or_else(|| "ERROR: Help file not found for ExtractConceptsFromFile".to_string());
-        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+            .unwrap_or_else(|| {
+                "ERROR: Help file not found for ExtractConceptsFromFile".to_string()
+            });
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
     }
 
     let identifier = payload

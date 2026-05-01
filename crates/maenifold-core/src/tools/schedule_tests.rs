@@ -45,9 +45,11 @@ fn preview_returns_validated_cron_next_fires_and_timezone() {
 
     assert_eq!(payload["action"], "preview");
     assert_eq!(payload["cron"], "0 9 * * 1-5");
-    assert!(payload["description"]
-        .as_str()
-        .is_some_and(|value| !value.is_empty()));
+    assert!(
+        payload["description"]
+            .as_str()
+            .is_some_and(|value| !value.is_empty())
+    );
     assert_eq!(
         payload["nextFires"]
             .as_array()
@@ -55,9 +57,11 @@ fn preview_returns_validated_cron_next_fires_and_timezone() {
             .len(),
         5
     );
-    assert!(payload["timezone"]
-        .as_str()
-        .is_some_and(|value| !value.is_empty()));
+    assert!(
+        payload["timezone"]
+            .as_str()
+            .is_some_and(|value| !value.is_empty())
+    );
 }
 
 #[test]

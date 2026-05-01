@@ -65,9 +65,7 @@ pub(super) fn prompt_text(blocks: &[acp::ContentBlock]) -> String {
         .to_string()
 }
 
-pub(super) fn parse_set_config_request(
-    params: Value,
-) -> Result<(String, String, String), String> {
+pub(super) fn parse_set_config_request(params: Value) -> Result<(String, String, String), String> {
     let session_id = params
         .get("sessionId")
         .and_then(Value::as_str)

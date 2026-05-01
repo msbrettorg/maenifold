@@ -333,7 +333,10 @@ mod gate_create_tests {
         assert!(
             commands.iter().any(|command| command.name == "gate_Create"),
             "gate_Create missing from maenifold.gate catalog: {:?}",
-            commands.iter().map(|command| &command.name).collect::<Vec<_>>()
+            commands
+                .iter()
+                .map(|command| &command.name)
+                .collect::<Vec<_>>()
         );
     }
 
@@ -354,10 +357,9 @@ mod gate_create_tests {
 
         assert!(!result.is_error.unwrap_or(false), "{}", text(&result));
         let rendered = parsed_json(&result);
-        let expected_path = root.path().join(format!(
-            "todo/T-99.1-{}.md",
-            slugify_title(title)
-        ));
+        let expected_path = root
+            .path()
+            .join(format!("todo/T-99.1-{}.md", slugify_title(title)));
 
         assert_eq!(rendered["taskId"], "T-99.1");
         assert_eq!(rendered["pipeline"], "tdd");
@@ -382,7 +384,10 @@ mod gate_create_tests {
         .await
         .expect("status result");
         assert!(!status.is_error.unwrap_or(false), "{}", text(&status));
-        let rows = parsed_json(&status).as_array().cloned().expect("status rows");
+        let rows = parsed_json(&status)
+            .as_array()
+            .cloned()
+            .expect("status rows");
         assert!(
             rows.iter().any(|row| row["taskId"] == "T-99.1"),
             "gate_Status should surface newly-created task: {rows:?}"
@@ -397,7 +402,10 @@ mod gate_create_tests {
 
             let result = invoke_create(root.path(), "T-99.1", "duplicate", "tdd", json!({})).await;
 
-            assert!(result.is_error.unwrap_or(false), "{location} duplicate should fail");
+            assert!(
+                result.is_error.unwrap_or(false),
+                "{location} duplicate should fail"
+            );
             let message = text(&result);
             assert!(message.contains("T-99.1"), "{message}");
             assert!(
@@ -416,8 +424,14 @@ mod gate_create_tests {
 
             assert!(result.is_error.unwrap_or(false), "{invalid:?} should fail");
             let message = text(&result);
-            assert!(message.contains("taskId") || message.contains("task id"), "{message}");
-            assert!(message.contains("T-") || message.contains("regex"), "{message}");
+            assert!(
+                message.contains("taskId") || message.contains("task id"),
+                "{message}"
+            );
+            assert!(
+                message.contains("T-") || message.contains("regex"),
+                "{message}"
+            );
         }
     }
 
@@ -434,7 +448,10 @@ mod gate_create_tests {
         .await;
         assert!(unknown.is_error.unwrap_or(false));
         let pipeline_message = text(&unknown);
-        assert!(pipeline_message.contains("frobnicate"), "{pipeline_message}");
+        assert!(
+            pipeline_message.contains("frobnicate"),
+            "{pipeline_message}"
+        );
         for expected in ["sdd", "tdd", "gsd", "lightweight"] {
             assert!(pipeline_message.contains(expected), "{pipeline_message}");
         }
@@ -450,7 +467,10 @@ mod gate_create_tests {
         assert!(invalid_priority.is_error.unwrap_or(false));
         let priority_message = text(&invalid_priority);
         assert!(priority_message.contains("priority"), "{priority_message}");
-        assert!(priority_message.contains("P0") || priority_message.contains("P4"), "{priority_message}");
+        assert!(
+            priority_message.contains("P0") || priority_message.contains("P4"),
+            "{priority_message}"
+        );
     }
 
     #[tokio::test]
@@ -461,13 +481,19 @@ mod gate_create_tests {
             assert!(result.is_error.unwrap_or(false), "{title:?} should fail");
             let message = text(&result);
             assert!(message.contains("title"), "{message}");
-            assert!(message.contains("empty") || message.contains("required"), "{message}");
+            assert!(
+                message.contains("empty") || message.contains("required"),
+                "{message}"
+            );
         }
     }
 
     #[tokio::test]
     async fn gate_create_slugifies_unsafe_titles_without_path_escape() {
-        for (index, title) in ["foo/bar", "../etc", "foo\u{0000}bar"].into_iter().enumerate() {
+        for (index, title) in ["foo/bar", "../etc", "foo\u{0000}bar"]
+            .into_iter()
+            .enumerate()
+        {
             let root = gate_root();
             let task_id = format!("T-99.{}", index + 1);
             let result = invoke_create(root.path(), &task_id, title, "tdd", json!({})).await;
@@ -486,7 +512,11 @@ mod gate_create_tests {
             assert_eq!(actual, expected);
             assert_eq!(actual.parent(), Some(root.path().join("todo").as_path()));
             assert!(actual.starts_with(root.path().join("todo")));
-            assert!(actual.exists(), "created path should exist: {}", actual.display());
+            assert!(
+                actual.exists(),
+                "created path should exist: {}",
+                actual.display()
+            );
         }
     }
 
@@ -582,7 +612,10 @@ mod gate_create_tests {
             invoke_create(root.path(), "T-99.1", "missing todo", "tdd", json!({})).await;
         assert!(missing_todo_result.is_error.unwrap_or(false));
         let missing_todo_message = text(&missing_todo_result);
-        assert!(missing_todo_message.contains("todo"), "{missing_todo_message}");
+        assert!(
+            missing_todo_message.contains("todo"),
+            "{missing_todo_message}"
+        );
         assert!(
             missing_todo_message.contains("missing") || missing_todo_message.contains("required"),
             "{missing_todo_message}"
@@ -605,9 +638,12 @@ mod gate_create_tests {
         if let Some(extra) = extra.as_object() {
             parameters.extend(extra.clone());
         }
-        gateway_gate::invoke_gate("gate_Create".to_string(), serde_json::Value::Object(parameters))
-            .await
-            .expect("gate create should return CallToolResult")
+        gateway_gate::invoke_gate(
+            "gate_Create".to_string(),
+            serde_json::Value::Object(parameters),
+        )
+        .await
+        .expect("gate create should return CallToolResult")
     }
 
     fn gate_root() -> TempDir {
@@ -618,12 +654,29 @@ mod gate_create_tests {
         root
     }
 
-    fn write_existing_task(root: &Path, location: &str, task_id: &str, title: &str, pipeline: &str) {
+    fn write_existing_task(
+        root: &Path,
+        location: &str,
+        task_id: &str,
+        title: &str,
+        pipeline: &str,
+    ) {
         let path = root
             .join(location)
             .join(format!("{task_id}-{}.md", slugify_title(title)));
-        fs::write(path, markdown(task_id, title, pipeline, Some("P2"), Some(99), None, "## Problem\n\nExisting task.\n"))
-            .expect("write existing task");
+        fs::write(
+            path,
+            markdown(
+                task_id,
+                title,
+                pipeline,
+                Some("P2"),
+                Some(99),
+                None,
+                "## Problem\n\nExisting task.\n",
+            ),
+        )
+        .expect("write existing task");
     }
 
     fn write_custom_pipeline(root: &Path, pipeline: &str) {
@@ -674,7 +727,11 @@ mod gate_create_tests {
 
     fn frontmatter(markdown: &str) -> serde_json::Value {
         let mut lines = markdown.lines();
-        assert_eq!(lines.next(), Some("---"), "task should begin with YAML frontmatter");
+        assert_eq!(
+            lines.next(),
+            Some("---"),
+            "task should begin with YAML frontmatter"
+        );
         let mut yaml = Vec::new();
         for line in lines.by_ref() {
             if line == "---" {

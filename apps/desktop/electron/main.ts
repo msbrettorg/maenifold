@@ -13,6 +13,24 @@ import {
   validateCreateTerminalParams,
   validateTerminalOperationParams,
 } from './terminalManager.js';
+
+function ignoreOnlyEpipe(error: NodeJS.ErrnoException) {
+  if (error.code === 'EPIPE') return;
+  try {
+    appendFileSync(
+      join(app.getPath('userData'), 'crash.log'),
+      `[${new Date().toISOString()}] stdio error: ${error.stack || error}\n`,
+    );
+  } catch { /* pre-ready or write failure — nothing we can do */ }
+}
+process.stdout?.on('error', ignoreOnlyEpipe);
+process.stderr?.on('error', ignoreOnlyEpipe);
+
+const writeConsoleError = (...args: unknown[]) => console['error'](...args);
+function safeLogError(...args: unknown[]) {
+  try { writeConsoleError(...args); } catch { /* crash-path: logging failure is non-fatal */ }
+}
+
 protocol.registerSchemesAsPrivileged([
   { scheme: 'mcp-app-sandbox', privileges: { standard: true, secure: true, supportFetchAPI: true } },
 ]);
@@ -55,14 +73,14 @@ function startLaunchctlService(label: string): void {
   try {
     if (!isLaunchctlServiceLoaded(label)) {
       if (!existsSync(plistPath)) {
-        console.error(`[maenifold] LaunchAgent missing for ${label}: ${plistPath}`);
+        safeLogError(`[maenifold] LaunchAgent missing for ${label}: ${plistPath}`);
         return;
       }
       execFileSync('launchctl', ['bootstrap', launchctlDomain, plistPath], { timeout: 5_000 });
     }
     execFileSync('launchctl', ['kickstart', '-k', `${launchctlDomain}/${label}`], { timeout: 5_000 });
   } catch (error) {
-    console.error(`[maenifold] Failed to start ${label} via launchctl`, error);
+    safeLogError(`[maenifold] Failed to start ${label} via launchctl`, error);
   }
 }
 async function ensureServices(): Promise<void> {
@@ -74,7 +92,7 @@ async function ensureServices(): Promise<void> {
     if (await isServiceHealthy(MAENIFOLD_HEALTH_URL)) return;
     await wait(1_000);
   }
-  console.error(
+  safeLogError(
     '[maenifold] Service not responding on port 8080 after 30s. ' +
       'Check: launchctl print gui/$(id -u)/com.ma-collective.maenifold',
   );
@@ -239,7 +257,7 @@ function registerIpcHandlers(): void {
   registerPermissionLedgerHandlers();
 }
 app.on('render-process-gone', async (_event, _webContents, details) => {
-  console.error('[maenifold] Renderer process gone:', details.reason, details.exitCode);
+  safeLogError('[maenifold] Renderer process gone:', details.reason, details.exitCode);
   if (details.reason !== 'clean-exit') {
     mainWindow = null;
     terminalManager.dispose();
@@ -247,16 +265,17 @@ app.on('render-process-gone', async (_event, _webContents, details) => {
   }
 });
 app.on('child-process-gone', (_event, details) => {
-  console.error('[maenifold] Child process gone:', details.type, details.reason);
+  safeLogError('[maenifold] Child process gone:', details.type, details.reason);
 });
 process.on('uncaughtException', (error) => {
-  console.error('[maenifold] Uncaught exception:', error);
+  if ((error as NodeJS.ErrnoException).code === 'EPIPE') return;
+  safeLogError('[maenifold] Uncaught exception:', error);
   appendFileSync(join(app.getPath('userData'), 'crash.log'), `[${new Date().toISOString()}] uncaughtException: ${error.stack || error}\n`);
   terminalManager.dispose();
-  process.exit(1);
+  setImmediate(() => process.exit(1));
 });
 process.on('unhandledRejection', (reason) => {
-  console.error('[maenifold] Unhandled rejection:', reason);
+  safeLogError('[maenifold] Unhandled rejection:', reason);
 });
 app.on('before-quit', () => { isQuitting = true; terminalManager.dispose(); });
 app.on('will-quit', () => { terminalManager.dispose(); });

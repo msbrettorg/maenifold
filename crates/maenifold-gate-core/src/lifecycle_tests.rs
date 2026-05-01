@@ -120,6 +120,40 @@ fn sync_reports_counts_without_requiring_standalone_gate() {
 }
 
 #[test]
+fn sync_rebuild_true_auto_creates_gate_dir_for_fresh_root() {
+    let root = new_root();
+    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
+    assert!(root.path().join(".gate/gate.db").exists());
+}
+
+#[test]
+fn sync_rebuild_false_auto_creates_gate_dir_for_fresh_root() {
+    let root = new_root();
+    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: false }).expect("sync");
+    assert!(root.path().join(".gate/gate.db").exists());
+}
+
+#[test]
+fn sync_preserves_existing_gate_root_state() {
+    let root = new_root();
+    fs::create_dir_all(root.path().join(".gate")).expect("gate dir");
+    fs::write(root.path().join(".gitignore"), ".gate/\n").expect("gitignore");
+    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
+    assert_eq!(fs::read_to_string(root.path().join(".gitignore")).expect("gitignore"), ".gate/\n");
+    assert!(root.path().join(".gate/gate.db").exists());
+}
+
+#[test]
+fn sync_augments_gitignore_when_creating_fresh_gate_root() {
+    let root = new_root();
+    fs::write(root.path().join(".gitignore"), "target/\n").expect("gitignore");
+    GateLifecycle::sync(SyncArgs { context: context(root.path()), rebuild: true }).expect("sync");
+    let gitignore = fs::read_to_string(root.path().join(".gitignore")).expect("gitignore");
+    assert!(gitignore.contains("target/\n"));
+    assert!(gitignore.contains(".gate/"));
+}
+
+#[test]
 fn status_surfaces_malformed_task_id_with_path_expected_and_actual() {
     let root = new_root();
     fs::write(

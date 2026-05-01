@@ -141,9 +141,20 @@ struct ResolvedAgent {
 
 fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     let config = AgentsConfig::load(root)?;
-    let entry = config.agents.get(agent).ok_or_else(|| {
-        MaenifoldError::AgentSetup(format!("agent '{agent}' not configured in maenifold.json"))
-    })?;
+    let entry = config
+        .agents
+        .get(agent)
+        .or_else(|| {
+            let requested = normalized_agent_display_name(agent);
+            config
+                .agents
+                .iter()
+                .find(|(name, _)| normalized_agent_display_name(name) == requested)
+                .map(|(_, entry)| entry)
+        })
+        .ok_or_else(|| {
+            MaenifoldError::AgentSetup(format!("agent '{agent}' not configured in maenifold.json"))
+        })?;
 
     let runtime_kind = infer_runtime_kind(entry)?;
     let mut seen = HashSet::new();
@@ -160,6 +171,27 @@ fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
         runtime_kind,
         mcp_servers,
     })
+}
+
+fn normalized_agent_display_name(agent: &str) -> String {
+    let normalized = agent
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                ' '
+            }
+        })
+        .collect::<String>();
+    let mut parts = normalized
+        .split_whitespace()
+        .filter(|part| *part != "cli")
+        .collect::<Vec<_>>();
+    if parts.last() == Some(&"code") {
+        parts.pop();
+    }
+    parts.join(" ")
 }
 
 fn infer_runtime_kind(entry: &AgentEntry) -> Result<String> {
@@ -245,9 +277,10 @@ fn log_acp_exec_result<T>(
 
 #[cfg(test)]
 mod tests {
-    use super::infer_runtime_kind;
+    use super::{infer_runtime_kind, resolve_agent};
     use crate::acp_config::AgentEntry;
     use std::collections::HashMap;
+    use tempfile::tempdir;
 
     #[test]
     fn infer_runtime_kind_maps_command_binary() {
@@ -290,6 +323,23 @@ mod tests {
         assert!(
             err.to_string().contains("disallowed ACP runtime 'mock'"),
             "unexpected error: {err}"
+        );
+    }
+
+    #[test]
+    fn resolve_agent_maps_codex_display_name_to_runtime_id() {
+        let root = tempdir().expect("temp root");
+        std::fs::write(
+            root.path().join("maenifold.json"),
+            r#"{"agents":{"codex-cli":{"command":"/bin/sh codex"}}}"#,
+        )
+        .expect("write config");
+
+        assert_eq!(
+            resolve_agent(root.path(), "Codex")
+                .expect("display name should resolve")
+                .runtime_kind,
+            "codex-cli"
         );
     }
 }

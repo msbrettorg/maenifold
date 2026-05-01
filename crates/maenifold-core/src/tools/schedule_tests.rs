@@ -60,6 +60,29 @@ fn preview_returns_validated_cron_next_fires_and_timezone() {
         .is_some_and(|value| !value.is_empty()));
 }
 
+#[test]
+fn preview_rejects_overly_long_schedule_expression() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    let schedule = format!("every{}weekday at 9am", " ".repeat(1981));
+    assert_eq!(schedule.len(), 2000);
+    assert!(matches!(
+        preview_schedule(&context, &json!({"action": "preview", "schedule": schedule})),
+        Err(MaenifoldError::InvalidArgument(message)) if message.contains("too long")
+    ));
+}
+
+#[test]
+fn preview_rejects_impossible_cron_with_no_upcoming_fire_times() {
+    let temp = TempDir::new().expect("temp dir");
+    let context = test_context(&temp);
+    assert!(matches!(
+        preview_schedule(&context, &json!({"action": "preview", "schedule": "0 0 30 2 *"})),
+        Err(MaenifoldError::InvalidArgument(message))
+            if message.contains("no upcoming fire times")
+    ));
+}
+
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 #[test]
 fn create_enabled_os_install_failure_leaves_no_persisted_schedule() {

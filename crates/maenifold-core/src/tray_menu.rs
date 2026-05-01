@@ -187,7 +187,10 @@ fn write_launch_agent(port: u16) -> std::io::Result<()> {
     <key>RunAtLoad</key>
     <true/>
     <key>KeepAlive</key>
-    <false/>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
 </dict>
 </plist>
 "#,

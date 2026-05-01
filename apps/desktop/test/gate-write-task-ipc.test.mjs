@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from 'node:assert/strict';
-import { lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -25,5 +25,21 @@ for (const name of ['T-1.1-a.md', 'T-1.1-a-b2.md']) {
   assert.equal(TIGHTENED_REGEX.test(name), true, `tightened regex should allow ${name}`);
 }
 
+const mainSource = readFileSync(new URL('../electron/main.ts', import.meta.url), 'utf8');
+const gateRegistrySource = readFileSync(new URL('../src/composables/useGateRegistry.ts', import.meta.url), 'utf8');
+const handlerMatch = mainSource.match(/ipcMain\.handle\('gate:write-task-file'[\s\S]*?return \{ path: taskPath \};\n  }\);/);
+assert.ok(handlerMatch, 'gate:write-task-file handler should exist');
+assert.match(gateRegistrySource, /selectedGateRoot/, 'renderer should track a selected Gate root');
+assert.match(mainSource, /let selectedGateRoot: string \| null = null;/, 'main process should track selected Gate root');
+assert.match(mainSource, /ipcMain\.handle\('gate:set-root'/, 'renderer should be able to set selected Gate root in main');
+assert.match(gateRegistrySource, /gateSetRoot/, 'renderer registry should sync selected Gate root to main');
+assert.match(handlerMatch[0], /realpathSync\(root\)/, 'handler should canonicalize the caller-provided root');
+assert.match(handlerMatch[0], /realpathSync\(selectedGateRoot\)/, 'handler should canonicalize selected Gate root');
+assert.match(
+  handlerMatch[0],
+  /Root mismatch: provided root does not match selected gate root/,
+  'handler should reject roots that do not match selected Gate root',
+);
+
 rmSync(root, { recursive: true, force: true });
-console.log('gate-write-task IPC weakness repro passed');
+console.log('gate-write-task IPC root validation passed');

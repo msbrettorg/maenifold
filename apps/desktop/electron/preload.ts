@@ -74,6 +74,8 @@ const electronAPI = {
     ipcRenderer.invoke('acp:write-permission:resolve', payload) as Promise<{ ok: true }>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
+  gateSetRoot: (params: { root: string | null }) =>
+    ipcRenderer.invoke('gate:set-root', params) as Promise<Record<string, never>>,
   configRead: () =>
     ipcRenderer.invoke('config:read') as Promise<{ path: string; content: string; exists: boolean }>,
   configWrite: (content: string) =>

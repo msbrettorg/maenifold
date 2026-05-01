@@ -40,6 +40,7 @@ type ElectronApi = {
     decision: 'allow_once' | 'allow_always' | 'reject';
   }) => Promise<{ ok: true }>;
   checkEnvVarPresence?: (names: string[]) => Promise<Record<string, boolean>>;
+  gateSetRoot?: (params: { root: string | null }) => Promise<Record<string, never>>;
   configRead?: () => Promise<{ path: string; content: string; exists: boolean }>;
   configWrite?: (content: string) => Promise<{ path: string }>;
   configPath?: () => Promise<string>;

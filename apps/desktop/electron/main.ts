@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { appendFileSync, existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, isAbsolute, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { registerAcpFileSystemHandlers } from './acp-file-system.js';
@@ -42,6 +42,7 @@ const launchctlDomain = process.platform === 'darwin' && typeof process.getuid =
   : null;
 let mainWindow: BrowserWindow | null = null;
 let isQuitting = false;
+let selectedGateRoot: string | null = null;
 const terminalManager = new TerminalManager(() => mainWindow?.webContents ?? null);
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const gateTaskFilenamePattern = /^T-\d+\.\d+-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
@@ -50,6 +51,10 @@ type GateWriteTaskFileParams = {
   root?: unknown;
   filename?: unknown;
   content?: unknown;
+};
+
+type GateSetRootParams = {
+  root?: unknown;
 };
 
 function validateGateWriteTaskFileParams(params: unknown) {
@@ -67,6 +72,20 @@ function validateGateWriteTaskFileParams(params: unknown) {
     throw new Error('content is required');
   }
   return { root: candidate.root, filename: candidate.filename, content: candidate.content };
+}
+
+function validateGateSetRootParams(params: unknown) {
+  if (!params || typeof params !== 'object') {
+    throw new Error('parameters are required');
+  }
+  const candidate = params as GateSetRootParams;
+  if (candidate.root !== null && typeof candidate.root !== 'string') {
+    throw new Error('root is required');
+  }
+  if (candidate.root !== null && !isAbsolute(candidate.root)) {
+    throw new Error('gate:set-root requires an absolute path');
+  }
+  return { root: candidate.root as string | null };
 }
 
 async function isServiceHealthy(url: string): Promise<boolean> {
@@ -255,14 +274,22 @@ function registerIpcHandlers(): void {
     }
     return result;
   });
+  ipcMain.handle('gate:set-root', (_event, params: unknown) => {
+    const { root } = validateGateSetRootParams(params);
+    selectedGateRoot = root === null ? null : realpathSync(root);
+    return {};
+  });
   ipcMain.handle('gate:write-task-file', (_event, params: unknown) => {
     const { root, filename, content } = validateGateWriteTaskFileParams(params);
+    const resolvedRoot = realpathSync(root);
+    if (selectedGateRoot === null || resolvedRoot !== realpathSync(selectedGateRoot)) {
+      throw new Error('Root mismatch: provided root does not match selected gate root');
+    }
     const todoDir = join(root, 'todo');
     if (lstatSync(todoDir).isSymbolicLink()) {
       throw new Error('Refusing to write: todo/ is a symbolic link');
     }
     const resolvedTodo = realpathSync(todoDir);
-    const resolvedRoot = realpathSync(root);
     if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) {
       throw new Error('Refusing to write: todo/ resolves outside root');
     }

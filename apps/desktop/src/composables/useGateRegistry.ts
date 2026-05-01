@@ -22,6 +22,11 @@ function browserStorageAvailable() {
   return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 }
 
+async function setSelectedRootInMain(root: string): Promise<void> {
+  if (typeof window === 'undefined' || typeof window.electronAPI?.gateSetRoot !== 'function') return;
+  await window.electronAPI.gateSetRoot({ root: normalizeRoot(root) || null });
+}
+
 async function readStoredValue<T>(key: string): Promise<T | null> {
   if (!browserStorageAvailable()) {
     return null;
@@ -59,6 +64,7 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
     try {
       await writeStoredValue(GATE_ROOTS_KEY, gateRoots.value);
       await writeStoredValue(SELECTED_GATE_ROOT_KEY, selectedGateRoot.value);
+      await setSelectedRootInMain(selectedGateRoot.value);
     } catch (persistError) {
       error.value = persistError instanceof Error ? persistError.message : String(persistError);
     }
@@ -127,6 +133,7 @@ export function useGateRegistry(seedRoot: MaybeRefOrGetter<string>) {
         (await readStoredValue<string>(SELECTED_GATE_ROOT_KEY)) ?? gateRoots.value[0] ?? '',
       );
       gateRoots.value = uniqueRoots([...gateRoots.value, selectedGateRoot.value]);
+      await setSelectedRootInMain(selectedGateRoot.value);
     } catch (loadError) {
       error.value = loadError instanceof Error ? loadError.message : String(loadError);
     } finally {

@@ -66,16 +66,24 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const hasSessions = computed(() => activeSessions.value.length > 0);
 
   function extractSessionId(result: unknown): string {
-    if (typeof result === 'object' && result !== null) {
-      const data = 'data' in result ? (result as { data?: unknown }).data : result;
-      if (typeof data === 'object' && data !== null && 'sessionId' in data) {
-        const id = (data as { sessionId?: unknown }).sessionId;
-        if (typeof id === 'string' && id.trim()) return id;
+    const rawData = typeof result === 'object' && result !== null && 'data' in result
+      ? (result as { data?: unknown }).data
+      : result;
+    let data = rawData;
+
+    if (typeof rawData === 'string') {
+      try {
+        data = JSON.parse(rawData);
+      } catch {
+        data = rawData;
       }
     }
-    const text = typeof result === 'string' ? result : JSON.stringify(result);
-    const match = /Created session:\s*([^\s]+)/.exec(text);
-    if (match?.[1]) return match[1];
+
+    if (typeof data === 'object' && data !== null && 'sessionId' in data) {
+      const id = (data as { sessionId?: unknown }).sessionId;
+      if (typeof id === 'string' && id.trim()) return id;
+    }
+
     throw new Error('Workflow run did not return a session id.');
   }
 

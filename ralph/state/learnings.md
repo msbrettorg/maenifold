@@ -1226,3 +1226,10 @@ Here's the execution plan:
 - Iter-2 blue-team for T-243.30 reported FAIL because the PM dispatched with `git diff main` which included EVERY change between main and the worktree branch tip — many unrelated commits had landed in dev between worktree creation and verification time. The SWE's actual delta was one commit.
 - **Fix**: Blue-team prompts must ask for `git diff HEAD~N HEAD` where N is the number of SWE commits, OR `git diff <BASE_SHA> HEAD` where BASE_SHA is the worktree's branch base. NEVER `git diff main` from a long-lived worktree branch.
 - **Lesson**: Capture the worktree's base SHA at creation time and pass it to all blue/red-team verifications. Without that, drift kills the verification.
+
+### maenifold daemon can crash silently during sustained UAT batches
+- During RALPH iter-2 sprint 243 UAT batch (4+ consecutive tab UATs each spawning agent-browser CDP sessions), the `/usr/local/bin/maenifold --http --port 8080` daemon crashed silently. Detected when MCP `GatewayExecute` returned `TypeError: fetch failed`.
+- `launchctl list | grep maenifold` showed registered but no PID. `curl http://127.0.0.1:8080/...` returned HTTP 000.
+- Workaround: `launchctl kickstart -p gui/$(id -u)/com.ma-collective.maenifold` (works immediately).
+- **Lesson**: monitor daemon health between UAT runs. After every gate transition, do a quick `ps aux | grep "/usr/local/bin/maenifold"` to confirm the daemon is alive. If it's gone, kickstart before proceeding.
+- Filed as **T-243.85** for root-cause investigation (panic? OOM? signal?). The launchctl logs need inspection.

@@ -1,7 +1,7 @@
 use super::context::{load_help_doc, render, required_string, ToolContext};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{parse_schedule, ScheduleStore, ScheduledTask, Supervisor};
+use crate::schedule::{parse_schedule, ParsedSchedule, ScheduleStore, ScheduledTask, Supervisor};
 use crate::util::json::{success, OutputFormat};
 use chrono::{SecondsFormat, Utc};
 use croner::parser::CronParser;
@@ -49,8 +49,7 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
 
 fn preview_schedule(context: &ToolContext, payload: &Value) -> Result<String> {
     let input = required_string(payload, "schedule")?;
-    let parsed = parse_schedule(input)
-        .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+    let parsed = validate_and_parse_schedule(input)?;
     let cron = CronParser::new()
         .parse(&parsed.cron)
         .map_err(|error| MaenifoldError::InvalidArgument(format!("invalid cron: {error}")))?;
@@ -60,7 +59,6 @@ fn preview_schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         .take(5)
         .map(|time| time.to_rfc3339_opts(SecondsFormat::Secs, true))
         .collect::<Vec<_>>();
-
     Ok(render(
         context.output_format,
         json!({
@@ -74,6 +72,27 @@ fn preview_schedule(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
+fn validate_and_parse_schedule(input: &str) -> Result<ParsedSchedule> {
+    if input.len() > 1024 {
+        return Err(MaenifoldError::InvalidArgument(
+            "schedule expression too long: max 1024 bytes".into(),
+        ));
+    }
+    let parsed = parse_schedule(input)
+        .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+    let cron = CronParser::new()
+        .parse(&parsed.cron)
+        .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+    let now = Utc::now();
+    let has_fires = cron.iter_after(now).take(1).next().is_some();
+    if !has_fires {
+        return Err(MaenifoldError::InvalidArgument(
+            "schedule has no upcoming fire times in the next year".into(),
+        ));
+    }
+    Ok(parsed)
+}
+
 fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
     let bin = resolve_maenifold_bin()?;
     create_task_with_bin(context, payload, &bin)
@@ -81,8 +100,7 @@ fn create_task(context: &ToolContext, payload: &Value) -> Result<String> {
 
 fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> Result<String> {
     let id = required_string(payload, "id")?;
-    let parsed = parse_schedule(required_string(payload, "schedule")?)
-        .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+    let parsed = validate_and_parse_schedule(required_string(payload, "schedule")?)?;
     let task = ScheduledTask {
         id: id.to_string(),
         name: optional_string(payload, "description")?.unwrap_or_else(|| id.to_string()),
@@ -133,8 +151,7 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     let mut task = original.clone();
     if let Some(schedule_input) = optional_string(payload, "schedule")? {
-        let parsed = parse_schedule(&schedule_input)
-            .map_err(|error| MaenifoldError::InvalidArgument(error.to_string()))?;
+        let parsed = validate_and_parse_schedule(&schedule_input)?;
         task.schedule = parsed.cron;
         task.schedule_human = Some(parsed.description);
     }

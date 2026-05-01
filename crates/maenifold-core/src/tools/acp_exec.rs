@@ -73,7 +73,7 @@ fn exec_with_jockey(
     let timeout = options.timeout_seconds.take();
 
     let runtime_kind = resolved_agent.runtime_kind;
-    let agent_name = agent.to_string();
+    let agent_name = resolved_agent.agent_key;
     let cwd = options.cwd.to_string_lossy().to_string();
     let role_mode = options.role_mode.clone();
     let role_config_options = options.role_config_options.clone();
@@ -135,26 +135,46 @@ where
 
 #[derive(Debug)]
 struct ResolvedAgent {
+    agent_key: String,
     runtime_kind: String,
     mcp_servers: Vec<acp::McpServer>,
 }
 
 fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     let config = AgentsConfig::load(root)?;
-    let entry = config
-        .agents
-        .get(agent)
-        .or_else(|| {
-            let requested = normalized_agent_display_name(agent);
-            config
-                .agents
-                .iter()
-                .find(|(name, _)| normalized_agent_display_name(name) == requested)
-                .map(|(_, entry)| entry)
-        })
-        .ok_or_else(|| {
-            MaenifoldError::AgentSetup(format!("agent '{agent}' not configured in maenifold.json"))
-        })?;
+    let (agent_key, entry) = if let Some(entry) = config.agents.get(agent) {
+        (agent.to_string(), entry)
+    } else {
+        let requested = normalized_agent_display_name(agent);
+        let mut matches = config
+            .agents
+            .iter()
+            .filter(|(name, _)| normalized_agent_display_name(name) == requested)
+            .collect::<Vec<_>>();
+        matches.sort_by(|(left, _), (right, _)| left.cmp(right));
+
+        match matches.len() {
+            1 => {
+                let (matched_key, entry) = matches[0];
+                (matched_key.to_string(), entry)
+            }
+            0 => {
+                return Err(MaenifoldError::AgentSetup(format!(
+                    "agent '{agent}' not configured in maenifold.json"
+                )));
+            }
+            _ => {
+                let keys = matches
+                    .iter()
+                    .map(|(key, _)| key.as_str())
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                return Err(MaenifoldError::AgentSetup(format!(
+                    "agent '{agent}' is ambiguous: matches config keys {keys}"
+                )));
+            }
+        }
+    };
 
     let runtime_kind = infer_runtime_kind(entry)?;
     let mut seen = HashSet::new();
@@ -168,6 +188,7 @@ fn resolve_agent(root: &Path, agent: &str) -> Result<ResolvedAgent> {
     }
 
     Ok(ResolvedAgent {
+        agent_key,
         runtime_kind,
         mcp_servers,
     })

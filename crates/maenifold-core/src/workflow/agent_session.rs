@@ -1,15 +1,17 @@
 use jockey::acp::AcpPromptResult;
 use serde_json::Value;
 use std::sync::atomic::{AtomicBool, Ordering};
+use std::{future::Future, pin::Pin, sync::Arc};
 use tracing::{debug, info, warn};
 
-use crate::acp_config::AgentsConfig;
-use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 
-use super::agent_session_config::build_role_config_options;
 use super::agent_session_resume::{PromptGate, ResumeState, prompt_result_is_failed_resume};
-use super::runner::AgentSessionConfig;
+
+pub(crate) use super::agent_session_open::open_agent_session;
+
+pub(crate) type AcpSessionCapturedCallback =
+    Arc<dyn Fn(String) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> + Send + Sync>;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct AgentResponse {
@@ -45,87 +47,25 @@ impl From<AcpPromptResult> for AgentResponse {
 }
 
 pub(crate) struct AgentSession {
-    agent_name: String,
-    runtime_kind: String,
-    /// Internal pool key (app_session_id) used for CONN_MAP routing.
-    session_id: String,
-    /// Real ACP session ID returned by the agent process after the first prompt.
-    real_acp_session_id: std::sync::Mutex<Option<String>>,
-    cwd: String,
-    model: Option<String>,
-    thought_level: Option<String>,
-    role_mode: Option<String>,
-    config_options: Vec<(String, String)>,
-    auto_approve: bool,
+    pub(super) agent_name: String,
+    pub(super) runtime_kind: String,
+    pub(super) session_id: String,
+    pub(super) real_acp_session_id: std::sync::Mutex<Option<String>>,
+    pub(super) on_acp_session_captured: Option<AcpSessionCapturedCallback>,
+    pub(super) cwd: String,
+    pub(super) model: Option<String>,
+    pub(super) thought_level: Option<String>,
+    pub(super) role_mode: Option<String>,
+    pub(super) config_options: Vec<(String, String)>,
+    pub(super) auto_approve: bool,
     /// Optional ACP session ID to resume on the next prompt via `session/load`.
-    resume_state: ResumeState,
-    prompt_gate: PromptGate,
-    event_tx: jockey::EventSender,
-    cleanup_on_drop: AtomicBool,
-}
-
-pub(crate) async fn open_agent_session(
-    agent_name: &str,
-    session_config: &AgentSessionConfig,
-    event_tx: &jockey::EventSender,
-) -> Result<AgentSession> {
-    let cwd_str = session_config.cwd.to_string_lossy().to_string();
-    let trusted_root = Config::current().maenifold_root;
-    let runtime_kind = resolve_runtime_kind(agent_name, &trusted_root)?;
-    let auto_approve = session_config.auto_approve;
-    let (_config_options, _modes) =
-        jockey::acp::prewarm_role_for_config(&runtime_kind, agent_name, &cwd_str, None).await;
-    let config_options = build_role_config_options(
-        session_config.config_options.as_ref(),
-        session_config.model.as_deref(),
-        session_config.thought_level.as_deref(),
-    )?;
-    let session_id = session_config
-        .session_id
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-        .map(str::to_string)
-        .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
-    info!(
-        agent_name,
-        cwd = %cwd_str,
-        model = ?session_config.model,
-        thought_level = ?session_config.thought_level,
-        auto_approve,
-        config_options_count = config_options.len(),
-        %session_id,
-        "opening pipeline agent session"
-    );
-    if !config_options.is_empty() {
-        info!(
-            %session_id,
-            config_options = ?config_options,
-            "agent session config options to apply"
-        );
-    }
-
-    Ok(AgentSession {
-        agent_name: agent_name.to_string(),
-        runtime_kind,
-        session_id,
-        real_acp_session_id: std::sync::Mutex::new(None),
-        cwd: cwd_str,
-        model: session_config.model.clone(),
-        thought_level: session_config.thought_level.clone(),
-        role_mode: session_config.mode.clone(),
-        config_options,
-        auto_approve,
-        resume_state: ResumeState::new(session_config.resume_session_id.clone()),
-        prompt_gate: PromptGate::new(),
-        event_tx: event_tx.clone(),
-        cleanup_on_drop: AtomicBool::new(true),
-    })
+    pub(super) resume_state: ResumeState,
+    pub(super) prompt_gate: PromptGate,
+    pub(super) event_tx: jockey::EventSender,
+    pub(super) cleanup_on_drop: AtomicBool,
 }
 
 impl AgentSession {
-    /// Returns the real ACP session ID if captured from a prompt response,
-    /// otherwise falls back to the internal pool key.
     pub(crate) fn remote_id(&self) -> String {
         match self.real_acp_session_id.lock() {
             Ok(guard) => guard.clone().unwrap_or_else(|| self.session_id.clone()),
@@ -138,6 +78,13 @@ impl AgentSession {
                 self.session_id.clone()
             }
         }
+    }
+
+    pub(crate) fn set_acp_session_captured_callback(
+        &mut self,
+        callback: AcpSessionCapturedCallback,
+    ) {
+        self.on_acp_session_captured = Some(callback);
     }
 
     pub(crate) fn keep_alive(&self) {
@@ -200,14 +147,21 @@ impl AgentSession {
             );
         }
 
-        // Capture the real ACP session ID from the worker's response metadata.
         if let Some(sid) = result.meta.get("sessionId").and_then(|v| v.as_str()) {
-            let mut guard = self.real_acp_session_id.lock().map_err(|_| {
-                MaenifoldError::Message(
-                    "internal error: real ACP session id lock was poisoned".to_string(),
-                )
-            })?;
-            *guard = Some(sid.to_string());
+            let sid = sid.to_string();
+            let changed = {
+                let mut guard = self.real_acp_session_id.lock().map_err(|_| {
+                    MaenifoldError::Message(
+                        "internal error: real ACP session id lock was poisoned".to_string(),
+                    )
+                })?;
+                let changed = guard.as_deref() != Some(sid.as_str());
+                *guard = Some(sid.clone());
+                changed
+            };
+            if changed && let Some(callback) = &self.on_acp_session_captured {
+                callback(sid).await?;
+            }
         }
 
         Ok(result.into())
@@ -270,14 +224,4 @@ impl Drop for AgentSession {
             }
         });
     }
-}
-
-fn resolve_runtime_kind(agent_name: &str, config_root: &std::path::Path) -> Result<String> {
-    let config = AgentsConfig::load(config_root)?;
-    config.agents.get(agent_name).ok_or_else(|| {
-        MaenifoldError::AgentSetup(format!(
-            "agent '{agent_name}' not configured in maenifold.json"
-        ))
-    })?;
-    Ok(agent_name.to_string())
 }

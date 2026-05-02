@@ -72,13 +72,42 @@ function resolveScrollViewport(): HTMLElement | null {
   return viewport ?? root;
 }
 
+async function rerenderExpandedMarkdown(): Promise<void> {
+  await nextTick();
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+}
+
+async function toggleThought(messageId: string): Promise<void> {
+  if (expandedThoughts.value.has(messageId)) {
+    expandedThoughts.value.delete(messageId);
+    return;
+  }
+  expandedThoughts.value.add(messageId);
+  await rerenderExpandedMarkdown();
+}
+
+async function toggleToolCall(toolCallId: string): Promise<void> {
+  if (expandedToolCalls.value.has(toolCallId)) {
+    expandedToolCalls.value.delete(toolCallId);
+    return;
+  }
+  expandedToolCalls.value.add(toolCallId);
+  await rerenderExpandedMarkdown();
+}
+
+function handleCancel(): void { void sessionStore.cancelOperation(); }
+
 watch(messages, async () => {
   await nextTick();
   const viewport = resolveScrollViewport();
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
   if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
 }, { deep: true });
-onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); });
+
+onMounted(async () => {
+  await nextTick();
+  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
+});
 onMounted(() => {
   void agentStore.start();
 });
@@ -115,48 +144,15 @@ async function handleSend(): Promise<void> {
   }
 }
 function handleCommandSelect(command: AvailableCommand): void {
-  const meta = command._meta;
-  if (meta && typeof meta === 'object' && 'clientAction' in meta) {
-    const action = meta.clientAction as string;
-    if (action === 'setConfigOption' && meta.configId && meta.value) {
-      handleConfigOptionChange(String(meta.configId), String(meta.value));
-      return;
-    }
-    if (action === 'clearMessages') {
-      sessionStore.clearMessages();
-      return;
-    }
-  }
   inputText.value = `/${command.name} `;
   activeCommandHint.value = command.input?.hint ?? null;
 }
-function handleCancel(): void { sessionStore.cancelOperation(); }
 async function handleConfigOptionChange(configId: string, value: string): Promise<void> {
   try {
     await sessionStore.setConfigOption(configId, value);
   } catch {
     attachmentError.value = 'Failed to change config option.';
   }
-}
-async function rerenderExpandedMarkdown(): Promise<void> {
-  await nextTick();
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
-}
-async function toggleThought(messageId: string): Promise<void> {
-  if (expandedThoughts.value.has(messageId)) {
-    expandedThoughts.value.delete(messageId);
-    return;
-  }
-  expandedThoughts.value.add(messageId);
-  await rerenderExpandedMarkdown();
-}
-async function toggleToolCall(toolCallId: string): Promise<void> {
-  if (expandedToolCalls.value.has(toolCallId)) {
-    expandedToolCalls.value.delete(toolCallId);
-    return;
-  }
-  expandedToolCalls.value.add(toolCallId);
-  await rerenderExpandedMarkdown();
 }
 function getFileLabel(path: string): string { const parts = path.replace(/\\/g, '/').split('/'); return parts[parts.length - 1] || path; }
 function addPendingAttachments(attachments: PendingAttachment[]): void { pendingAttachments.value = [...pendingAttachments.value, ...attachments]; }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { Brain, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { usePipelineStore } from '../stores/pipeline';
+import HomeRecentActivity from './HomeRecentActivity.vue';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 
@@ -36,7 +36,6 @@ const emit = defineEmits<{
   'resume-session': [session: SavedSession];
 }>();
 
-const pipelineStore = usePipelineStore();
 const composerInput = ref('');
 const composerError = ref('');
 const isSubmittingPrompt = ref(false);
@@ -92,9 +91,6 @@ watch(composerInput, () => {
   }
 });
 
-onMounted(async () => {
-  await pipelineStore.refreshList();
-});
 </script>
 
 <template>
@@ -152,6 +148,13 @@ onMounted(async () => {
           </p>
         </CardContent>
       </Card>
+
+      <!-- Keep returning-user resume paths close to the composer without displacing the launcher tiles. -->
+      <HomeRecentActivity
+        :recent-sessions="recentSessions"
+        @open-tab="emit('open-tab', $event)"
+        @resume-session="emit('resume-session', $event)"
+      />
     </div>
   </div>
 </template>

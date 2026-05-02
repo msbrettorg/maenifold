@@ -52,13 +52,14 @@ const {
 } = usePipelineViewState({ currentView, currentPipelineId });
 const lastStatusByPipeline = ref<Record<string, string | null>>({});
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; });
-watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? '')], ([pipelineId, status], [prevPipelineId]) => {
+watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? ''), () => currentView.value?.nodes.some((node) => node.type === 'prompt' && node.status === 'active') ?? false], ([pipelineId, status, hasActivePrompt], [prevPipelineId]) => {
   if (!pipelineId) return;
   if (pipelineId !== prevPipelineId) {
-    runnerExpanded.value = false;
+    runnerExpanded.value = hasActivePrompt;
     lastStatusByPipeline.value[pipelineId] = status;
     return;
   }
+  if (hasActivePrompt) runnerExpanded.value = true;
   if (status !== lastStatusByPipeline.value[pipelineId] && (status === 'stuck' || status === 'abandoned')) runnerExpanded.value = true;
   lastStatusByPipeline.value[pipelineId] = status;
 });

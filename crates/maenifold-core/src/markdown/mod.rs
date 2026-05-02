@@ -20,3 +20,6 @@ pub use wikilinks::{
     slugify,
 };
 pub use wikilinks_strip::strip_wikilink_brackets;
+
+#[cfg(test)]
+mod cloud_read_tests;

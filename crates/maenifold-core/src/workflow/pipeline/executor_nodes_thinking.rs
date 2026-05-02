@@ -10,6 +10,7 @@ use super::executor_run::NodeTaskResult;
 pub(super) async fn execute_thinking_node_request(
     context: &ToolContext,
     node_id: &str,
+    pipeline_session_id: &str,
     node_session_id: String,
     topic: String,
     prompt_context: String,
@@ -40,6 +41,11 @@ pub(super) async fn execute_thinking_node_request(
                 event_tx,
                 None,
                 true,
+                Some(runner::ActiveNodeSessionPersistence {
+                    pipeline_session_id: pipeline_session_id.to_string(),
+                    node_id: node_id.to_string(),
+                    thinking_session_id: None,
+                }),
             )
             .await,
         ),

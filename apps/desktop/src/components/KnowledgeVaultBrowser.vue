@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { FileText, FolderTree, RefreshCw, Search, X } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useKnowledgeStore } from '../stores/knowledge';
+import { useKnowledgeStore, type KnowledgeFileEntry, type KnowledgeFolderNode } from '../stores/knowledge';
 import KnowledgeRowActions from './KnowledgeRowActions.vue';
 import KnowledgeVaultNode from './KnowledgeVaultNode.vue';
 
@@ -25,14 +25,72 @@ const {
   searchError,
 } = storeToRefs(store);
 const query = ref(store.searchQuery);
+const treeQuery = ref(store.searchQuery);
 const mode = ref<'tree' | 'search'>('tree');
 const hasSubmittedSearch = ref(false);
 const showSearchResults = computed(() => mode.value === 'search');
+const normalizedTreeQuery = computed(() => treeQuery.value.trim().toLocaleLowerCase());
+const isTreeFilterActive = computed(() => normalizedTreeQuery.value.length > 0);
+const visibleRootFiles = computed(() => filterFiles(rootFiles.value, normalizedTreeQuery.value));
+const visibleFolders = computed(() => filterFolders(folders.value, normalizedTreeQuery.value));
 const emptySearchMessage = computed(() => (
   hasSubmittedSearch.value && searchQuery.value.trim()
     ? 'No results'
     : 'Search the vault to show matching notes.'
 ));
+let treeFilterTimer: number | null = null;
+
+function entryMatches(values: string[], normalizedQuery: string): boolean {
+  return values.some((value) => value.toLocaleLowerCase().includes(normalizedQuery));
+}
+
+function fileMatches(file: KnowledgeFileEntry, normalizedQuery: string): boolean {
+  return entryMatches([file.name, file.path, file.uri], normalizedQuery);
+}
+
+function folderMatches(folder: KnowledgeFolderNode, normalizedQuery: string): boolean {
+  return entryMatches([folder.name, folder.path], normalizedQuery);
+}
+
+function filterFiles(files: KnowledgeFileEntry[], normalizedQuery: string): KnowledgeFileEntry[] {
+  if (!normalizedQuery) return files;
+  return files.filter((file) => fileMatches(file, normalizedQuery));
+}
+
+function filterFolders(
+  folderNodes: KnowledgeFolderNode[],
+  normalizedQuery: string,
+): KnowledgeFolderNode[] {
+  if (!normalizedQuery) return folderNodes;
+
+  return folderNodes
+    .map((folder) => {
+      const filteredFiles = filterFiles(folder.files, normalizedQuery);
+      const filteredChildren = filterFolders(folder.children, normalizedQuery);
+      const matches = folderMatches(folder, normalizedQuery);
+      if (!matches && filteredFiles.length === 0 && filteredChildren.length === 0) {
+        return null;
+      }
+      return { ...folder, files: filteredFiles, children: filteredChildren };
+    })
+    .filter((folder): folder is KnowledgeFolderNode => folder !== null);
+}
+
+watch(query, (nextQuery) => {
+  if (treeFilterTimer) {
+    window.clearTimeout(treeFilterTimer);
+  }
+  treeFilterTimer = window.setTimeout(() => {
+    treeQuery.value = nextQuery;
+    treeFilterTimer = null;
+  }, 75);
+});
+
+onBeforeUnmount(() => {
+  if (treeFilterTimer) {
+    window.clearTimeout(treeFilterTimer);
+  }
+});
 
 async function runSearch(): Promise<void> {
   await store.search(query.value);
@@ -109,7 +167,7 @@ function openUri(uri: string, event: MouseEvent): void {
           </template>
           <template v-else>
             <div
-              v-for="file in rootFiles"
+              v-for="file in visibleRootFiles"
               :key="file.uri"
               class="flex h-8 items-center gap-1 rounded-md"
               :class="activeTabUri === file.uri ? 'bg-bg-surface text-text-primary' : 'text-text-secondary hover:bg-bg-surface-hover hover:text-text-primary'"
@@ -120,9 +178,15 @@ function openUri(uri: string, event: MouseEvent): void {
               </Button>
               <KnowledgeRowActions :file="file" />
             </div>
-            <KnowledgeVaultNode v-for="folder in folders" :key="folder.path" :node="folder" :active-tab-uri="activeTabUri" />
-            <p v-if="!rootFiles.length && !folders.length" class="px-2 py-3 text-body-sm text-text-secondary">
-              No memory folders were found.
+            <KnowledgeVaultNode
+              v-for="folder in visibleFolders"
+              :key="folder.path"
+              :node="folder"
+              :active-tab-uri="activeTabUri"
+              :filter-active="isTreeFilterActive"
+            />
+            <p v-if="!visibleRootFiles.length && !visibleFolders.length" class="px-2 py-3 text-body-sm text-text-secondary">
+              {{ isTreeFilterActive ? 'No matching notes or folders.' : 'No memory folders were found.' }}
             </p>
           </template>
         </template>

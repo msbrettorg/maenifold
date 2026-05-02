@@ -11,9 +11,8 @@ use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 
 use super::executor_helpers::load_pipeline_node_states;
-use super::executor_nodes::{
-    NodeExecutionRequest, NodeOutcome, classify_node_result, execute_node_request,
-};
+use super::executor_nodes::{NodeExecutionRequest, NodeOutcome, classify_node_result};
+use super::executor_nodes_dispatch::execute_node_request_with_pipeline_session;
 use super::executor_retry::{RetryExecutionError, with_retry_attempts};
 use super::executor_timeout::{TimeoutResultKind, timeout_result_for_kind};
 use super::{NodeStatus, PipelineDefinition, PipelineNode, RetryPolicy};
@@ -51,7 +50,9 @@ pub(super) fn spawn_dispatched_node_task(
     timeout_kind: TimeoutResultKind,
     node_retry_policy: Option<RetryPolicy>,
     initial_retry_attempts: u32,
+    pipeline_session_id: String,
 ) {
+    let _legacy_execute_node_request = super::executor_nodes::execute_node_request;
     join_set.spawn(async move {
         let _permit = permit;
         let run_once = || {
@@ -61,6 +62,7 @@ pub(super) fn spawn_dispatched_node_task(
             let event_tx = event_tx.clone();
             let output_config = output_config.clone();
             let output_stdio_pool = output_stdio_pool.clone();
+            let pipeline_session_id = pipeline_session_id.clone();
             async move {
                 let context = ToolContext::new(output_config, output_format)
                     .with_stdio_pool(output_stdio_pool);
@@ -68,8 +70,9 @@ pub(super) fn spawn_dispatched_node_task(
                     Some(duration) => {
                         match tokio::time::timeout(
                             duration,
-                            execute_node_request(
+                            execute_node_request_with_pipeline_session(
                                 context,
+                                pipeline_session_id,
                                 node_id.clone(),
                                 execution,
                                 agent,
@@ -91,8 +94,15 @@ pub(super) fn spawn_dispatched_node_task(
                     }
                     None => (
                         false,
-                        execute_node_request(context, node_id.clone(), execution, agent, event_tx)
-                            .await,
+                        execute_node_request_with_pipeline_session(
+                            context,
+                            pipeline_session_id,
+                            node_id.clone(),
+                            execution,
+                            agent,
+                            event_tx,
+                        )
+                        .await,
                     ),
                 };
 

@@ -10,6 +10,7 @@ use super::executor_run::{NodeTaskResult, run_prompt_node};
 pub(super) async fn execute_prompt_node_request(
     context: &ToolContext,
     node_id: &str,
+    pipeline_session_id: &str,
     session_id: String,
     prompt: String,
     tool_mode: String,
@@ -26,6 +27,8 @@ pub(super) async fn execute_prompt_node_request(
                 context,
                 &event_tx,
                 agent,
+                node_id,
+                pipeline_session_id,
                 &session_id,
                 &prompt,
                 &tool_mode,

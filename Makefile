@@ -10,6 +10,7 @@ QUALITY_REPORT_DIR := $(QUALITY_DIR)/reports
 
 release:
 	cargo build --release -p maenifold-cli
+	cargo build --release -p maenifold-pipeline-driver
 
 audit: audit-parity audit-crates audit-frontend test-electron-launch
 

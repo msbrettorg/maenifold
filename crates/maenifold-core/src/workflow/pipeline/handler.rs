@@ -4,7 +4,9 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 use serde_json::Value;
 
-use super::handler_crud::{create_pipeline, delete_pipeline, list_pipelines, view_pipeline};
+use super::handler_crud::{
+    create_pipeline, delete_pipeline, delete_pipeline_with_force, list_pipelines, view_pipeline,
+};
 use super::handler_lifecycle::handle_lifecycle_operation;
 use super::handler_nodes::handle_node_operation;
 use super::handler_surgery::handle_surgery_operation;
@@ -44,7 +46,20 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
             .and_then(Value::as_bool)
             .unwrap_or(false)
         {
-            return delete_pipeline(context, session_id);
+            let force = match payload.get("force") {
+                None | Some(Value::Null) => false,
+                Some(Value::Bool(force)) => *force,
+                Some(other) => {
+                    return Err(MaenifoldError::InvalidArgument(format!(
+                        "force must be a boolean, got {other}"
+                    )));
+                }
+            };
+            return if force {
+                delete_pipeline_with_force(context, session_id, true)
+            } else {
+                delete_pipeline(context, session_id)
+            };
         }
 
         if let Some(result) = handle_lifecycle_operation(context, session_id, payload)? {

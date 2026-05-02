@@ -61,6 +61,7 @@ Use the worktree release binary for this audit. The script builds it if missing.
 
    ```bash
    CARGO_TARGET_DIR=target cargo build --release -p maenifold-cli
+   CARGO_TARGET_DIR=target cargo build --release -p maenifold-pipeline-driver
    ```
 
 4. Confirm `jq` is available:

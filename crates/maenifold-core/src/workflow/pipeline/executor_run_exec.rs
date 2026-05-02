@@ -1,12 +1,18 @@
 use super::super::external_mcp::require_tool_allowed;
 use super::*;
+use std::sync::Arc;
+
+use super::super::super::agent_session::AcpSessionCapturedCallback;
+use super::executor_run_persist::persist_active_node_session;
 
 #[allow(clippy::too_many_arguments)]
 pub(crate) async fn run_prompt_node(
-    _context: &ToolContext,
+    context: &ToolContext,
     event_tx: &EventSender,
     agent: &str,
-    _session_id: &str,
+    node_id: &str,
+    pipeline_session_id: &str,
+    session_id: &str,
     prompt: &str,
     _tool_mode: &str,
     adopt_instructions: &[String],
@@ -15,11 +21,48 @@ pub(crate) async fn run_prompt_node(
     session_config: AgentSessionConfig,
     keep_session_alive: bool,
 ) -> Result<PromptExecutionResult> {
+    let _ = session_id;
     require_adopted_role("prompt invocation", requires_role, adopt_role)?;
-    let session = open_agent_session(agent, &session_config, event_tx).await?;
+    let mut session = open_agent_session(agent, &session_config, event_tx).await?;
+    let acp_session_id = session.remote_id();
+    persist_active_node_session(
+        context,
+        pipeline_session_id,
+        node_id,
+        Some(&acp_session_id),
+        None,
+        session_config.model.as_deref(),
+    )
+    .await?;
+    let callback_context = ToolContext::new(context.config.clone(), context.output_format)
+        .with_stdio_pool(context.stdio_pool.clone());
+    let callback_session_id = pipeline_session_id.to_string();
+    let callback_node_id = node_id.to_string();
+    let callback_model = session_config.model.clone();
+    let callback: AcpSessionCapturedCallback = Arc::new(move |acp_session_id| {
+        let context = ToolContext::new(
+            callback_context.config.clone(),
+            callback_context.output_format,
+        )
+        .with_stdio_pool(callback_context.stdio_pool.clone());
+        let session_id = callback_session_id.clone();
+        let node_id = callback_node_id.clone();
+        let model = callback_model.clone();
+        Box::pin(async move {
+            persist_active_node_session(
+                &context,
+                &session_id,
+                &node_id,
+                Some(&acp_session_id),
+                None,
+                model.as_deref(),
+            )
+            .await
+        })
+    });
+    session.set_acp_session_captured_callback(callback);
     apply_adopt_instructions(&session, adopt_instructions).await?;
     let response_result = session.prompt(prompt).await;
-    let acp_session_id = session.remote_id();
     let prompt_result = match response_result {
         Ok(response) => {
             if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {

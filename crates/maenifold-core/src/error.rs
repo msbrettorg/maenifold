@@ -37,6 +37,10 @@ pub enum MaenifoldError {
     MissingExecutableParent,
     #[error("Path is not valid UTF-8: {0:?}")]
     NonUtf8Path(PathBuf),
+    #[error("file is dataless / cloud-offloaded: {path} (size={size}, blocks=0)")]
+    FileDataless { path: PathBuf, size: u64 },
+    #[error("delete verification failed; file still exists after unlink: {path}")]
+    DeleteVerificationFailed { path: PathBuf },
     #[error("JSON-RPC error (code={code}, message={message}, data={data})")]
     JsonRpc {
         code: i64,

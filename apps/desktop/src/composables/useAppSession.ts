@@ -163,8 +163,14 @@ export function useAppSession({
   async function handleNewSession() {
     if (!selectedAgent.value) return;
     const cwd = selectedCwd.value.trim();
-    if (!cwd) return sessionStore.setError('Working directory is required');
-    if (!isAbsolutePath(cwd)) return sessionStore.setError('Working directory must be an absolute path');
+    if (!cwd) {
+      sessionStore.setError('Working directory is required');
+      return;
+    }
+    if (!isAbsolutePath(cwd)) {
+      sessionStore.setError('Working directory must be an absolute path');
+      return;
+    }
 
     try {
       await sessionStore.createSession(

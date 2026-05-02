@@ -1,4 +1,4 @@
-use super::params::{RecentActivityParams, WorkflowParams};
+use super::params::{DeleteWorkflowAssetParams, RecentActivityParams, WorkflowParams};
 use super::support::{derived_tool_definition, schema_value, tool_definition};
 use crate::mcp::McpToolDefinition;
 use serde_json::Value;
@@ -8,6 +8,10 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
         "Workflow" => derived_tool_definition::<WorkflowParams>(
             registry_name,
             "Runs structured workflows with optional nested submachines.",
+        ),
+        "DeleteWorkflowAsset" => derived_tool_definition::<DeleteWorkflowAssetParams>(
+            registry_name,
+            "Deletes one workflow asset by name when no running pipeline references it.",
         ),
         "RecentActivity" => recent_activity_tool(registry_name),
         _ => return None,

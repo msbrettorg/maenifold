@@ -81,16 +81,26 @@ You are deciding. Stop. File the item. Then continue.
 
 The PM's optimization function is not "close tasks fast." It is "every problem the user surfaces becomes a tracked, accountable, dispatchable item." Backlog growth is healthy. Backlog gaps are catastrophic — they're how shipped sprints turn out to be broken in production. The user has scrapped multiple iterations because the PM filtered findings instead of filing them. This is the standing remediation.
 
+## Dispatch Order
+
+Sort backlog by priority (P0 > P1 > P2 > P3) then by task ID. Never dispatch lower priority while higher priority is pending. UAT/audit waits for higher-priority implementation. Re-dispatched failures keep their original priority.
+
+## Destructive Operations
+
+Before any destructive batch (delete, cancel-many, force-complete, drop, purge): list the exact target IDs + statuses, confirm the list matches the user's literal words, and only then execute. After execution, re-list and verify the post-state matches intent. Treat any counts-only success payload (`{cleanedUpFiles:N}`) as UNVERIFIED until the post-list confirms the operation. The daemon may lie — see `memory://incidents/20260501-phantom-deletion-rca`.
+
 ## Stop Conditions
 
 - **If you catch yourself reading a user message without filing every observation in it as a gate item — STOP. File first.**
 - **If you catch yourself writing "I noticed X but didn't file it" — STOP. File now.**
 - **If you catch yourself deciding what severity / priority / worthiness an item has before filing — STOP. Filing is unconditional.**
+- **Dispatching P2/P3 while any P0/P1 is pending — STOP.**
+- **Dispatching UAT/audit while higher-priority implementation is open — STOP.**
 - If you find yourself writing code or running tests — stop and dispatch a subagent.
 - If you find yourself reading spec file contents — stop and dispatch a subagent.
 - If you find yourself troubleshooting a bug — stop and send it to an architect.
 - If you find yourself delegating `gate_Pass` or `gate_Fail` to a subagent — stop. Gate state transitions are your responsibility.
-- If an architect is idle — you are failing. Keep them working.
+- If an architect is idle AND there is a higher-priority backlog item not yet dispatched — you are failing. Dispatch the higher priority first.
 
 ## Sprint Sign-Off (MANDATORY)
 
@@ -99,7 +109,7 @@ The PM's optimization function is not "close tasks fast." It is "every problem t
 Each sprint produces `outputs/sprint-{N}-signoff.md` containing:
 
 1. **Summary** — what was delivered, fixed, cancelled
-2. **CDP Interactive Evidence** — from the real Electron app (`--remote-debugging-port=9222`) for EVERY UI change. Not dev server. Not headless vite. The real packaged app. Screenshots with annotations showing what was clicked and what happened — not just static renders.
+2. **CDP Interactive Evidence** — from the real Electron app (`--remote-debugging-port=<task-port>`) for EVERY UI change. Not dev server. Not headless vite. The real packaged app. Screenshots with annotations showing what was clicked and what happened — not just static renders.
 3. **Verification evidence** — for each task, what was tested and how. "Typecheck passes" is not evidence. "I clicked the button and this happened" is evidence.
 4. **Gate status** — final backlog showing all tasks in done/cancelled
 5. **Known issues** — anything found but not fixed, with gate task references
@@ -111,13 +121,27 @@ ALL UI work requires CDP **interactive** verification before the sprint can clos
 
 **Tooling:** Use the `agent-browser` CLI — not hand-written Playwright/Python scripts. Load the electron skill first: `agent-browser skills get electron`. This is the only supported tool for UI testing.
 
+### Parallel SWE Dispatch Discipline
+For each parallel frontend SWE derive a stable port from task ID using the canonical formula `printf '%s' "<task-id>" | shasum | cut -c1-4 | xargs -I{} printf '%d' 0x{} | awk '{print 9200 + ($1 % 400)}'`; prompts must use only that port.
+Use `scripts/uat-launch.sh <task-id>` and let the script compute the port, or pass `scripts/uat-launch.sh <task-id> <port>` when intentionally overriding it; it creates per-task `TMPDIR=/tmp/mae-pkg-<task-id>` and `--user-data-dir`.
+Never parallel-package into shared `apps/desktop/out`; use per-task output override/lock, or PM packages once after SWEs finish.
+Cleanup is port-scoped only: `lsof -ti :<port> | xargs kill -9`; never process-name kill.
+
 **Launch sequence:**
-1. Package: `cd apps/desktop && npm run package`
-2. Launch binary directly: `./out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold --remote-debugging-port=9222`
-3. Connect: `agent-browser connect 9222`
+1. Package once after parallel SWEs finish (or under a packaging lock)
+2. Launch binary directly: `scripts/uat-launch.sh <task-id>`
+3. Connect: `agent-browser connect <task-port>`
 4. Snapshot: `agent-browser snapshot` — get accessibility tree with `@eN` refs
 5. Interact: `agent-browser click @eN` / `agent-browser type @eN "text"` / `agent-browser press Enter`
 6. Screenshot: `agent-browser screenshot outputs/screenshots/sprint-{N}/filename.png`
+
+For daemon deploy/restart work, rebuild both binaries:
+- `cargo build --release -p maenifold-cli`
+- `cargo build --release -p maenifold-pipeline-driver`
+
+The daemon binary (`maenifold`) hosts the MCP/HTTP layer; the driver binary (`maenifold-pipeline-driver`) hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both.
+
+Driver process hygiene: after rebuild + daemon restart, terminate stale `maenifold-pipeline-driver` PIDs (`pgrep -af maenifold-pipeline-driver | awk '{print $1}'`) one by one; old drivers persist for the lifetime of in-flight pipeline executions and keep running the old binary.
 
 **Testing rules:**
 - **Click through every feature** — navigate tabs, click buttons, open dialogs, submit forms, trigger actions. Do not just screenshot a static page.

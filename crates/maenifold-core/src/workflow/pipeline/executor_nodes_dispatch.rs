@@ -12,6 +12,25 @@ pub(super) async fn execute_node_request(
     agent: Option<String>,
     event_tx: EventSender,
 ) -> (String, NodeTaskResult) {
+    execute_node_request_with_pipeline_session(
+        context,
+        node_id.clone(),
+        node_id,
+        execution,
+        agent,
+        event_tx,
+    )
+    .await
+}
+
+pub(super) async fn execute_node_request_with_pipeline_session(
+    context: ToolContext,
+    pipeline_session_id: String,
+    node_id: String,
+    execution: NodeExecutionRequest,
+    agent: Option<String>,
+    event_tx: EventSender,
+) -> (String, NodeTaskResult) {
     let result = match execution {
         NodeExecutionRequest::Workflow {
             workflow_id,
@@ -25,6 +44,7 @@ pub(super) async fn execute_node_request(
             super::executor_nodes_workflow::execute_workflow_node_request(
                 &context,
                 &node_id,
+                &pipeline_session_id,
                 workflow_id,
                 existing_session_id,
                 prompt,
@@ -49,6 +69,7 @@ pub(super) async fn execute_node_request(
             super::executor_nodes_prompt::execute_prompt_node_request(
                 &context,
                 &node_id,
+                &pipeline_session_id,
                 session_id,
                 prompt,
                 tool_mode,
@@ -74,6 +95,7 @@ pub(super) async fn execute_node_request(
             super::executor_nodes_thinking::execute_thinking_node_request(
                 &context,
                 &node_id,
+                &pipeline_session_id,
                 node_session_id,
                 topic,
                 prompt_context,

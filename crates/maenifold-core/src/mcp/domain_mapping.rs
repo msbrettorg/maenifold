@@ -40,6 +40,7 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("RepairConcepts", "maenifold.graph"),
     ("AnalyzeConceptCorruption", "maenifold.graph"),
     ("Workflow", "maenifold.workflow"),
+    ("DeleteWorkflowAsset", "maenifold.workflow"),
     ("Pipeline", "maenifold.workflow"),
     ("SequentialThinking", "maenifold.thinking"),
     ("AssumptionLedger", "maenifold.thinking"),
@@ -84,7 +85,7 @@ pub(crate) fn tool_safety(tool_name: &str) -> SafetyClass {
         | "ReadTextFile"
         | "RecentActivity" => SafetyClass::Read,
         "WriteMemory" => SafetyClass::Write,
-        "DeleteMemory" => SafetyClass::Destructive,
+        "DeleteMemory" | "DeleteWorkflowAsset" => SafetyClass::Destructive,
         "Workflow" | "Pipeline" | "SequentialThinking" | "AssumptionLedger" | "AcpExec"
         | "Schedule" => SafetyClass::Orchestration,
         "EditMemory" | "MoveMemory" | "Sync" | "RepairConcepts" | "UpdateAssets"

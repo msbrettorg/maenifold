@@ -22,7 +22,12 @@ From the repository root:
 cargo build
 cargo build -p maenifold-core
 cargo build -p maenifold-cli
+cargo build -p maenifold-pipeline-driver
 ```
+
+If your change touches `crates/maenifold-core/src/workflow/`, build both
+`maenifold-cli` and `maenifold-pipeline-driver`: the CLI hosts the daemon
+surface, and the driver hosts pipeline execution.
 
 ## Format / Lint
 

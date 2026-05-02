@@ -2,9 +2,11 @@ use crate::error::{MaenifoldError, Result};
 use crate::tools::ToolContext;
 use jockey::EventSender;
 use serde_json::json;
+use std::sync::Arc;
 
 use super::adoption::require_adopted_role;
-use super::agent_session::open_agent_session;
+use super::agent_session::{AcpSessionCapturedCallback, open_agent_session};
+use super::pipeline::persist_active_node_session;
 use super::runner_helpers::{
     prompt_workflow_agent, step_think_config, terminal_workflow_status, workflow_completion_text,
     workflow_step_payload, workflow_text,
@@ -47,6 +49,13 @@ pub struct WorkflowResult {
     pub status: WorkflowRunStatus,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct ActiveNodeSessionPersistence {
+    pub pipeline_session_id: String,
+    pub node_id: String,
+    pub thinking_session_id: Option<String>,
+}
+
 fn workflow_failure_result(
     session_id: impl Into<String>,
     acp_session_id: impl Into<String>,
@@ -85,6 +94,7 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
     session_config: AgentSessionConfig,
     event_tx: EventSender,
     keep_session_alive: bool,
+    active_session: Option<ActiveNodeSessionPersistence>,
 ) -> Result<WorkflowResult> {
     require_adopted_role("workflow invocation", requires_role, adopt_role)?;
     let (session_id, start_text) =
@@ -98,7 +108,23 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
         event_tx,
         model: session_config.model.clone(),
     };
-    let driver = open_agent_session(agent, &session_config, &run_ctx.event_tx).await?;
+    let mut driver = open_agent_session(agent, &session_config, &run_ctx.event_tx).await?;
+    if let Some(active) = active_session {
+        persist_active_node_session(
+            context,
+            &active.pipeline_session_id,
+            &active.node_id,
+            Some(&driver.remote_id()),
+            active.thinking_session_id.as_deref(),
+            session_config.model.as_deref(),
+        )
+        .await?;
+        driver.set_acp_session_captured_callback(active_node_session_callback(
+            context,
+            active,
+            session_config.model.clone(),
+        ));
+    }
     for instruction in adopt_instructions {
         let response = driver.prompt(instruction).await?;
         if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
@@ -168,6 +194,35 @@ pub(crate) async fn run_workflow_with_pool_session_opts(
             (Err(error), Ok(())) => Ok(failure_result(&error)),
         }
     }
+}
+
+pub(crate) fn active_node_session_callback(
+    context: &ToolContext,
+    active: ActiveNodeSessionPersistence,
+    model: Option<String>,
+) -> AcpSessionCapturedCallback {
+    let callback_context = ToolContext::new(context.config.clone(), context.output_format)
+        .with_stdio_pool(context.stdio_pool.clone());
+    Arc::new(move |acp_session_id| {
+        let context = ToolContext::new(
+            callback_context.config.clone(),
+            callback_context.output_format,
+        )
+        .with_stdio_pool(callback_context.stdio_pool.clone());
+        let active = active.clone();
+        let model = model.clone();
+        Box::pin(async move {
+            persist_active_node_session(
+                &context,
+                &active.pipeline_session_id,
+                &active.node_id,
+                Some(&acp_session_id),
+                active.thinking_session_id.as_deref(),
+                model.as_deref(),
+            )
+            .await
+        })
+    })
 }
 
 async fn maybe_run_step_thinking(

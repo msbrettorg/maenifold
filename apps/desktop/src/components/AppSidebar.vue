@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import AgentSelector from './AgentSelector.vue';
 import SessionList from './SessionList.vue';
 import StartupProgress from './StartupProgress.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useResizeHandle } from '../composables/useResizeHandle';
+import { isAbsolutePath } from '../lib/acp-meta';
 import { getSidebarSizingTokens } from '../lib/sidebarSizing';
 import type { SavedSession } from '../lib/types';
 import { Radio, PanelLeftClose, PanelLeftOpen, FolderOpen } from 'lucide-vue-next';
@@ -14,7 +16,7 @@ const selectedAgent = defineModel<string>('selectedAgent', { required: true });
 const showTrafficMonitor = defineModel<boolean>('showTrafficMonitor', { required: true });
 const showStartupDetails = defineModel<boolean>('showStartupDetails', { required: true });
 
-defineProps<{
+const props = defineProps<{
   selectedCwd: string;
   hasAgents: boolean;
   isConnecting: boolean;
@@ -32,6 +34,7 @@ const emit = defineEmits<{
   'cancel-connection': [];
 }>();
 
+const hasAbsoluteCwd = computed(() => isAbsolutePath(props.selectedCwd.trim()));
 const sidebarSizing = getSidebarSizingTokens();
 const resize = useResizeHandle({
   initial: sidebarSizing.width,
@@ -101,13 +104,19 @@ const resize = useResizeHandle({
               <FolderOpen class="size-4" />
             </Button>
           </div>
+          <p
+            v-if="!hasAbsoluteCwd"
+            class="mt-1.5 text-xs leading-4 text-text-muted"
+          >
+            Select an absolute working directory before starting an Agents session.
+          </p>
         </div>
 
         <Button
           v-if="hasAgents"
           variant="default"
           class="mt-4 w-full"
-          :disabled="!selectedAgent || isConnecting"
+          :disabled="!selectedAgent || isConnecting || !hasAbsoluteCwd"
           @click="emit('new-session')"
         >
           New session

@@ -1,4 +1,4 @@
-use super::paths::{file_exists, uri_to_path};
+use super::paths::{file_exists, read_to_string_guarded, uri_to_path};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use chrono::{DateTime, Utc};
@@ -30,7 +30,7 @@ pub fn read_markdown(uri: &str, config: &Config) -> Result<(Option<Frontmatter>,
             "Memory file not found: {uri}"
         )));
     }
-    let full_text = fs::read_to_string(&path)?;
+    let full_text = read_to_string_guarded(&path)?;
     // T-15.18: RTM NFR-1 — Strip UTF-8 BOM (U+FEFF) that fs::read_to_string preserves.
     // C# File.ReadAllText strips BOM implicitly via StreamReader; without this,
     // the BOM character corrupts frontmatter delimiter detection ("---").

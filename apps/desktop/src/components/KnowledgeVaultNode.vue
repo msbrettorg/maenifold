@@ -10,6 +10,7 @@ import KnowledgeRowActions from './KnowledgeRowActions.vue';
 const props = defineProps<{
   node: KnowledgeFolderNode;
   activeTabUri: string | null;
+  filterActive?: boolean;
 }>();
 
 const store = useKnowledgeStore();
@@ -28,7 +29,7 @@ function handleOpenNote(uri: string, event: MouseEvent): void {
 </script>
 
 <template>
-  <Collapsible :open="node.open" class="rounded-md" @update:open="handleOpenChange">
+  <Collapsible :open="filterActive || node.open" class="rounded-md" @update:open="handleOpenChange">
     <CollapsibleTrigger as-child>
       <Button
         type="button"
@@ -37,7 +38,7 @@ function handleOpenNote(uri: string, event: MouseEvent): void {
       >
         <ChevronDown
           class="size-4 shrink-0 text-text-secondary transition-transform"
-          :class="node.open ? 'rotate-0' : '-rotate-90'"
+          :class="filterActive || node.open ? 'rotate-0' : '-rotate-90'"
           aria-hidden="true"
         />
         <Folder class="size-4 shrink-0 text-brand" aria-hidden="true" />
@@ -76,6 +77,7 @@ function handleOpenNote(uri: string, event: MouseEvent): void {
             :key="child.path"
             :node="child"
             :active-tab-uri="activeTabUri"
+            :filter-active="filterActive"
           />
         </template>
       </div>

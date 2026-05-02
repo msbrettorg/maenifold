@@ -10,6 +10,7 @@ use super::executor_run::NodeTaskResult;
 pub(super) async fn execute_workflow_node_request(
     context: &ToolContext,
     node_id: &str,
+    pipeline_session_id: &str,
     workflow_id: String,
     existing_session_id: Option<String>,
     prompt: String,
@@ -34,6 +35,11 @@ pub(super) async fn execute_workflow_node_request(
                 session_config,
                 event_tx,
                 true,
+                Some(runner::ActiveNodeSessionPersistence {
+                    pipeline_session_id: pipeline_session_id.to_string(),
+                    node_id: node_id.to_string(),
+                    thinking_session_id: None,
+                }),
             )
             .await,
         ),

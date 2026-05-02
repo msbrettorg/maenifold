@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/table';
 import ScheduleFormDialog from '@/components/ScheduleFormDialog.vue';
 import ScheduleRunsDrawer from '@/components/ScheduleRunsDrawer.vue';
+import SchedulesEmptyState from '@/components/SchedulesEmptyState.vue';
 import { useSchedulesSettings } from '@/composables/useSchedulesSettings';
 
 const {
@@ -92,6 +93,8 @@ function openRunsDrawer(id: string): void {
       Loading schedules…
     </div>
 
+    <SchedulesEmptyState v-else-if="jobs.length === 0" @create="openCreateDialog" />
+
     <div v-else class="rounded-md border">
       <Table>
         <TableHeader>
@@ -106,11 +109,6 @@ function openRunsDrawer(id: string): void {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-if="jobs.length === 0">
-            <TableCell colspan="7" class="py-8 text-center text-sm text-muted-foreground">
-              No schedules configured yet.
-            </TableCell>
-          </TableRow>
           <TableRow v-for="job in jobs" :key="job.id">
             <TableCell class="font-medium text-text-primary">{{ job.id }}</TableCell>
             <TableCell class="max-w-[18rem] text-sm text-muted-foreground">{{ scheduleLabel(job) }}</TableCell>

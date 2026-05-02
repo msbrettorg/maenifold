@@ -82,8 +82,9 @@ pub async fn prewarm_role_for_config(
     role_name: &str,
     cwd: &str,
     state: Option<(&AppState, &str)>,
-) -> (Vec<Value>, Vec<String>) {
-    let app_session_id = state.as_ref().map(|(_, sid)| *sid);
+    app_session_id: Option<&str>,
+) -> (Vec<Value>, Vec<String>, String) {
+    let app_session_id = app_session_id.or_else(|| state.as_ref().map(|(_, sid)| *sid));
     let mcp_servers = state
         .as_ref()
         .map(|(state, _)| load_role_mcp_servers(state, role_name))
@@ -98,11 +99,10 @@ pub async fn prewarm_role_for_config(
     })
     .await
     else {
-        return (vec![], vec![]);
+        return (vec![], vec![], String::new());
     };
 
-    let (opts, modes, _sid) = rx.await.unwrap_or_default();
-    (opts, modes)
+    rx.await.unwrap_or_default()
 }
 
 /// Prewarm to refresh config option definitions only.

@@ -125,6 +125,13 @@ pub struct WorkflowParams {
 }
 
 #[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct DeleteWorkflowAssetParams {
+    /// Workflow asset name to delete. Must be a single kebab-case asset name without extension.
+    pub name: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum RecentActivityFilter {
     Thinking,

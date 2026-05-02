@@ -1,9 +1,14 @@
 use crate::error::{MaenifoldError, Result};
+use crate::markdown::write_markdown;
 use crate::tools::ToolContext;
-use serde_json::{Map as JsonMap, Value};
+use crate::util::json::{OutputFormat, success};
+use serde_json::{Map as JsonMap, Value, json};
+use serde_yml::Value as YamlValue;
 use std::process::Command;
 
 use super::lease;
+use super::resource_notifications::emit_pipeline_resource_updated;
+use super::session_io::read_pipeline_session;
 use super::session_write::persist_final_pipeline_status;
 use super::session_write_files::persist_pipeline_runtime_context;
 
@@ -135,14 +140,10 @@ fn parse_inputs_payload(value: Option<&Value>) -> Result<Option<JsonMap<String, 
 fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     let lock_path = lease::pipeline_lock_path(session_id, &context.config);
     if !lock_path.exists() {
-        return Err(MaenifoldError::Message(format!(
-            "Pipeline {session_id} is not running (no lock file)"
-        )));
+        return cancel_orphan_pipeline(context, session_id, "no lock file");
     }
     if !lease::session_lock_is_held(session_id, &context.config) {
-        return Err(MaenifoldError::Message(format!(
-            "Pipeline {session_id} is not running (lock not held)"
-        )));
+        return cancel_orphan_pipeline(context, session_id, "lock not held");
     }
 
     let holder = std::fs::read_to_string(&lock_path).map_err(|error| {
@@ -187,6 +188,58 @@ fn cancel_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     Ok(format!(
         "Pipeline {session_id} cancellation requested (SIGTERM sent to PID {pid})"
     ))
+}
+
+fn cancel_orphan_pipeline(context: &ToolContext, session_id: &str, reason: &str) -> Result<String> {
+    let (uri, mut frontmatter, pipeline_content) = read_pipeline_session(context, session_id)?;
+    if frontmatter.get("status").and_then(YamlValue::as_str) != Some("running") {
+        return Err(MaenifoldError::Message(format!(
+            "Pipeline {session_id} is not running ({reason})"
+        )));
+    }
+
+    let cancelled_nodes = cancel_active_or_retrying_nodes(&mut frontmatter)?;
+    frontmatter.insert(
+        "status".to_string(),
+        YamlValue::String("cancelled".to_string()),
+    );
+    write_markdown(&uri, Some(&frontmatter), &pipeline_content, &context.config)?;
+    emit_pipeline_resource_updated(session_id);
+
+    let result = json!({
+        "cancelledOrphan": true,
+        "cancelledNodes": cancelled_nodes,
+    });
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+fn cancel_active_or_retrying_nodes(
+    frontmatter: &mut crate::markdown::Frontmatter,
+) -> Result<usize> {
+    let Some(node_states) = frontmatter
+        .get_mut("nodeStates")
+        .and_then(YamlValue::as_mapping_mut)
+    else {
+        return Err(MaenifoldError::Message(
+            "Pipeline session is missing nodeStates".to_string(),
+        ));
+    };
+    let mut cancelled_nodes = 0;
+    for node in node_states.values_mut() {
+        let Some(node) = node.as_mapping_mut() else {
+            continue;
+        };
+        let status_key = YamlValue::String("status".to_string());
+        let status = node.get(&status_key).and_then(YamlValue::as_str);
+        if matches!(status, Some("active" | "retrying")) {
+            node.insert(status_key, YamlValue::String("cancelled".to_string()));
+            cancelled_nodes += 1;
+        }
+    }
+    Ok(cancelled_nodes)
 }
 
 /// Admin override: force a pipeline to `completed` status regardless of

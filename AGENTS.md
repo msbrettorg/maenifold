@@ -159,8 +159,9 @@ Build passing is necessary but not sufficient.
 
 **Dispatch rules:**
 
-- **Lowest task ID first.** When selecting tasks to dispatch, always start from the lowest-numbered pending task and work up. T-05.67 ships before T-217.1. Old backlog items don't get to age indefinitely while new work jumps the queue. The only exception is explicit user prioritization.
+- **Priority first, then ID.** Sort `pending` by priority (P0 > P1 > P2 > P3) then by task ID ascending. Dispatch only from the highest non-empty priority bucket. Within a bucket, lowest ID wins. Never dispatch P2/P3 while any P0/P1 is dispatchable. Re-dispatched failures keep their original priority.
 - **Saturate the pipeline.** Every pending task whose dependencies are met MUST be dispatched immediately. Do not wait for one task to complete before starting the next. Use `gate_Status` through `GatewayExecute` to find all ready tasks, dispatch them all.
+- **Parallel frontend isolation.** CDP SWEs use the PM dispatch discipline: stable task-hash port computed with `printf '%s' "<task-id>" | shasum | cut -c1-4 | xargs -I{} printf '%d' 0x{} | awk '{print 9200 + ($1 % 400)}'`, `scripts/uat-launch.sh <task-id>` unless intentionally overriding the port, per-task TMPDIR/user-data-dir, no shared `out/` contention, and port-only kill.
 - **Wave-based execution.** Group independent tasks into waves. Dispatch the entire wave in one response using parallel `task` calls. Wait for the wave to complete. Dispatch the next wave.
 - **Per-agent build isolation.** Every dispatched SWE MUST run `cargo` with `CARGO_TARGET_DIR=target/agents/<task-id>` (set by the dispatching PM in the task prompt). Workspace-global `target/` is reserved for blue-team and the human. This is the rule that makes parallel SWEs across different crates actually work — without it, cargo's workspace lock silently serializes builds.
 - **Same file is still forbidden.** Different crates → fully parallel. Same file → edit conflict, not a build conflict; still forbidden.
@@ -228,7 +229,7 @@ Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based 
 
 ```bash
 cargo build --release -p maenifold-cli     # CLI/app
-make app                                    # frontend + CLI
+cargo build --release -p maenifold-pipeline-driver
 cd apps/desktop && npm run package          # Electron bundle
 cd apps/desktop && npx vue-tsc --noEmit     # frontend typecheck
 ./rebuild.sh                                # full rebuild + restart
@@ -237,7 +238,83 @@ make audit-crates                           # Rust: 300 LOC, no TODO, no unwrap
 make audit-frontend                         # Vue/TS: lint-design + audit-components
 ```
 
-Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`).
+Binaries: `target/release/maenifold` (→ `/usr/local/bin/maenifold`) and `target/release/maenifold-pipeline-driver`.
+
+The daemon binary (`maenifold`) hosts the MCP/HTTP layer; the driver binary (`maenifold-pipeline-driver`) hosts pipeline node execution. ANY change touching `crates/maenifold-core/src/workflow/` requires rebuilding both.
+
+Driver process hygiene: after rebuild + daemon restart, terminate stale `maenifold-pipeline-driver` PIDs (`pgrep -af maenifold-pipeline-driver | awk '{print $1}'`) one by one; old drivers persist for the lifetime of in-flight pipeline executions and keep running the old binary.
+
+---
+
+## 72-Hour Retrospective (2026-04-29 → 2026-05-01)
+
+What broke, what we learned, what changed. Sources: `memory://incidents/20260501-*`, `done/T-244.*`, `done/T-246.*`, `done/T-247.*`, `done/T-248.*`, `done/T-243.*`.
+
+### 1. Local-first storage is not negotiable
+
+**Incidents:** T-248.13 (phantom delete RCA), T-248.16 (pipeline list derivation gap), T-248.19 (OneDrive dataless detection), T-248.23 (DB fallback).
+
+OneDrive on macOS materializes `~/maenifold/memory/pipelines/**/*.md` as `compressed,dataless` placeholders. Hot-path code that called `fs::read_to_string` on these files timed out, and the `list_pipelines` discovery loop wrapped the failure in `else { continue; }` — silently dropping pipelines from the UI. The same OneDrive surface is implicated in the phantom-delete success-without-unlink behavior.
+
+**Lesson — never wrap a read with silent `continue;`.** Any read failure on a hot-path authority surface MUST degrade into a read-model fallback (DB lookup, indexed metadata) AND emit an explicit `unreadable: true` / `degraded: { reason: "..." }` flag so the caller can distinguish a missing entity from an unreadable one. See `memory://research/architecture/statefidelity-external-patterns-for-maenifold-may-2026` for the four external patterns (local-first, dataless-file, Electron preload, soft-delete) this maps to.
+
+### 2. Counts-only success payloads are unverified
+
+**Incidents:** T-248.13, T-248.24 (post-unlink verification), T-248.6 (PM-deleted-pipelines).
+
+Daemon returned `{ deletedSessionId, cleanedUpFiles: N, skippedFiles: 0 }` for two completed pipelines. The PM faithfully reported "2 deleted." The files survived. Forensic note `memory://incidents/20260501-pm-deleted-pipelines-forensic` proved 35 surviving artifacts. The PM did not fabricate; the daemon did.
+
+**Lesson — destructive ops must return the resolved file list AND fail-closed on post-unlink verification.** A `cleanedUpFiles: N` count without `deletedFiles[]` is a process gap that propagates into PM hallucination. Apply the same rule to any destructive batch: re-list after the operation; treat counts-only as UNVERIFIED.
+
+### 3. The PM is a meta-alignment failure mode
+
+**Incidents:** T-248.22 (PM prioritization correction), `memory://think-tank/ai-alignment-failure/the-metaalignment-problem`.
+
+User: "fix the alignment problem where you don't listen." PM scoped to "fix the pipeline delete API." The PM demonstrated the bug it was asked to fix — semantic substitution of the user's literal words. Other instances in the 72h window: "running" → "all" (T-248.6), "highest priority" → "lowest ID" (T-248.22), "cancel running" → "delete completed" (T-248.6).
+
+**Lesson — when the user says a literal word, execute on that literal word.** Do not widen scope. Do not interpret "I want X" as "I think the user really means Y." `running ≠ completed`. `cancel ≠ delete`. `highest ≠ lowest`. Before any destructive batch: list the exact target IDs + statuses, verify the list matches the user's literal words. Encoded in PM agent prompt + `~/.copilot/copilot-instructions.md` Destructive Operations rule.
+
+### 4. The deploy procedure missed an entire binary
+
+**Incidents:** T-248.26 (driver deploy gap).
+
+Pipeline node execution lives in a SEPARATE binary `maenifold-pipeline-driver`. The standing procedure ("rebuild + restart daemon") only built `maenifold-cli`. T-243.46 v5+v6 fixes lived in the daemon binary but not the driver. Two blue-team verification cycles failed because the driver was running April 30 code while the daemon was running May 1 code. Constitution + AGENTS.md + Makefile + audit-parity.sh + DEVELOPMENT.md + parity-uat.md now all enforce both-binary builds.
+
+**Lesson — verify the running binary, not the source tree.** After any deploy: (1) `lsof -p <pid> | grep txt` shows expected inode, (2) `LC_ALL=C grep -ac "<v(N+1)-only literal>" <binary>` returns ≥1, (3) the daemon log emits a structured field that v(N) didn't emit. Any deploy procedure that names one binary by name is missing the others.
+
+### 5. Frontend filters silently exclude valid backend data
+
+**Incidents:** T-243.46 (5 SWE iterations), T-248.28 v1 (workflow + thinking branch missed).
+
+Backend correctly persists `acpSessionId` to pipeline frontmatter. Frontend filters with `node.type === 'prompt'` — workflow + thinking nodes excluded. Same class of bug occurred multiple times in T-243.46 iterations: each round fixed one layer (callback timing, then session-id capture, then plumbing) assuming the others were correct.
+
+**Lesson — trace before fixing, spec full-stack from the start.** For any UI-visible bug: write the FULL data path from source → persist → read → API → frontend selector → render BEFORE scoping the fix. Specs that say "backend persists X, frontend should pick it up" are guesses. Verify the frontend selector shape matches the new data shape. Red-team prompts for hidden-coupling bugs MUST require an end-to-end data-flow trace with named line refs.
+
+### 6. Gate state lives on disk; operate through the Gateway
+
+**Incidents:** T-244.107 (3-component task IDs broke gate), T-244.108 (gate cache empty), T-246.6 (duplicate canonical task id), T-247.10 (gate_Sync didn't auto-create `.gate/`).
+
+Multiple 72h fires came from agents trying to mutate gate state directly: `mv` between todo/done, hand-editing markdown, deriving state from `.gate/gate.db` directly. The cache is rebuildable; the markdown is authoritative; but only `gate_Pass`/`gate_Fail`/`gate_Sync` through `GatewayExecute maenifold.gate` advance state correctly.
+
+**Lesson — never `mv`, `cp`, `git mv`, or hand-edit task files between todo/done.** Gate ownership is non-negotiable. Encoded in Constitution Gate Is The Law section + gate skill. Task files require YAML frontmatter with `id:` matching the filename stem, otherwise gate cannot find them (lesson from filing T-248.26-T-248.30).
+
+### 7. Audit baselines are evidence; do not gloss them
+
+**Incidents:** T-243.18 (LOC violation), T-244.11x test-failure cluster, T-248.14 baseline tracking.
+
+13 pre-existing `audit-crates` violations grew to 15 quietly — no SWE introduced them in their delta but the workspace baseline drifted. SWEs reported "no new violations" while the baseline crept up. Fixed at sprint close by re-baselining T-248.14.
+
+**Lesson — every audit failure is a tracked item.** The baseline number is part of the spec. If the baseline moves, file the delta. "Pre-existing" is not an exemption per Constitution Escalation rules.
+
+### 8. CDP UAT is the only thing that proves the UI works
+
+**Incidents:** T-243.1, T-243.2, T-243.3, T-243.30, T-244.74-78 (dialogs clamped, scope picker invisible, etc.) — many UI bugs that passed typecheck and screenshot review.
+
+`vue-tsc --noEmit` proved zero. Static screenshots proved the renderer rendered. Only `agent-browser snapshot` + `agent-browser click @eN` against the packaged Electron app caught the actual broken behavior. T-248.30 also surfaced that agent-browser sometimes attaches to `about:blank` instead of the real renderer — workaround: fetch the renderer websocket URL from `curl http://127.0.0.1:9271/json` and pass it explicitly.
+
+**Lesson — be OCD on every screen.** Click every button. Open every dialog. Submit every form. File a gate item for any anomaly even if it looks "minor." Triage happens later, not during testing. The packaged app is the only test surface that counts.
+
+
 
 ---
 

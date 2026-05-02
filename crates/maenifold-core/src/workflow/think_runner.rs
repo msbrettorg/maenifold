@@ -8,8 +8,12 @@ use crate::util::json::OutputFormat;
 
 use super::adoption::require_adopted_role;
 use super::agent_session::{AgentSession, open_agent_session};
+use super::pipeline::persist_active_node_session;
 use super::runner::append_close_error_context;
-use super::runner::{AgentSessionConfig, sanitize_workflow_session_config};
+use super::runner::{
+    ActiveNodeSessionPersistence, AgentSessionConfig, active_node_session_callback,
+    sanitize_workflow_session_config,
+};
 use super::runner_helpers::prompt_with_embedded_context;
 use super::think_runner_payloads::{
     ThinkSessionData, is_completion_response, normalize_think_prompt_response, think_call,
@@ -101,10 +105,27 @@ pub(crate) async fn drive_think_session(
     event_tx: &EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     keep_session_alive: bool,
+    active_session: Option<ActiveNodeSessionPersistence>,
 ) -> Result<ThinkResult> {
     require_adopted_role("sequential thinking invocation", requires_role, adopt_role)?;
     let session_config = sanitize_workflow_session_config(session_config);
-    let driver = open_agent_session(agent, &session_config, event_tx).await?;
+    let mut driver = open_agent_session(agent, &session_config, event_tx).await?;
+    if let Some(active) = active_session {
+        persist_active_node_session(
+            context,
+            &active.pipeline_session_id,
+            &active.node_id,
+            Some(&driver.remote_id()),
+            active.thinking_session_id.as_deref(),
+            session_config.model.as_deref(),
+        )
+        .await?;
+        driver.set_acp_session_captured_callback(active_node_session_callback(
+            context,
+            active,
+            session_config.model.clone(),
+        ));
+    }
     for instruction in adopt_instructions {
         let response = driver.prompt(instruction).await?;
         if let Some(error) = response.error.filter(|value| !value.trim().is_empty()) {
@@ -208,8 +229,13 @@ pub(crate) async fn run_think_with_pool(
     event_tx: EventSender,
     content_blocks: Option<Vec<acp::ContentBlock>>,
     keep_session_alive: bool,
+    active_session: Option<ActiveNodeSessionPersistence>,
 ) -> Result<ThinkResult> {
     let session_id = seed_think_session(context, topic, &opts).await?;
+    let active_session = active_session.map(|mut active| {
+        active.thinking_session_id = Some(session_id.clone());
+        active
+    });
     drive_think_session(
         context,
         agent,
@@ -224,6 +250,7 @@ pub(crate) async fn run_think_with_pool(
         &event_tx,
         content_blocks,
         keep_session_alive,
+        active_session,
     )
     .await
 }

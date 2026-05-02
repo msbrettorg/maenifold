@@ -4,6 +4,10 @@ use crate::error::{MaenifoldError, Result};
 use crate::util::paths::join_validated_relative_path;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::mpsc;
+use std::time::Duration;
+
+const FILE_READ_TIMEOUT: Duration = Duration::from_secs(30);
 
 pub fn validate_uri(uri: &str, param_name: &str) -> Result<()> {
     if uri.is_empty() {
@@ -72,6 +76,112 @@ pub fn delete_file(uri: &str, config: &Config) -> Result<()> {
     }
     fs::remove_file(path)?;
     Ok(())
+}
+
+pub fn read_to_string_guarded(path: &Path) -> Result<String> {
+    let metadata = fs::metadata(path)?;
+    if is_dataless(&metadata) {
+        return Err(MaenifoldError::FileDataless {
+            path: path.to_path_buf(),
+            size: metadata.len(),
+        });
+    }
+    read_to_string_with_timeout(path, FILE_READ_TIMEOUT)
+}
+
+#[cfg(test)]
+pub(crate) fn read_to_string_guarded_for_test(path: &Path, timeout: Duration) -> Result<String> {
+    let metadata = fs::metadata(path)?;
+    if is_dataless(&metadata) {
+        return Err(MaenifoldError::FileDataless {
+            path: path.to_path_buf(),
+            size: metadata.len(),
+        });
+    }
+    read_to_string_with_timeout(path, timeout)
+}
+
+pub fn is_dataless(metadata: &fs::Metadata) -> bool {
+    is_dataless_size_blocks(metadata.len(), metadata_blocks(metadata))
+}
+
+pub fn is_dataless_size_blocks(size: u64, blocks: u64) -> bool {
+    blocks == 0 && size > 0
+}
+
+fn metadata_blocks(metadata: &fs::Metadata) -> u64 {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::MetadataExt;
+        metadata.blocks()
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = metadata;
+        1
+    }
+}
+
+fn read_to_string_with_timeout(path: &Path, timeout: Duration) -> Result<String> {
+    let (sender, receiver) = mpsc::sync_channel(1);
+    let path = path.to_path_buf();
+    let handle = std::thread::Builder::new()
+        .name("maenifold-file-read-timeout".to_string())
+        .spawn({
+            let path = path.clone();
+            move || {
+                let _ = sender.send(read_to_string_with_tokio_timeout(path, timeout));
+            }
+        })
+        .map_err(|error| {
+            MaenifoldError::Message(format!(
+                "file read worker failed: {}: {error}",
+                path.display()
+            ))
+        })?;
+    let result = receiver.recv().map_err(|error| {
+        MaenifoldError::Message(format!(
+            "file read worker failed: {}: {error}",
+            path.display()
+        ))
+    })?;
+    let _ = handle.join();
+    result
+}
+
+fn read_to_string_with_tokio_timeout(path: PathBuf, timeout: Duration) -> Result<String> {
+    let path_text = path.display().to_string();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_time()
+        .build()
+        .map_err(|error| {
+            MaenifoldError::Message(format!("file read runtime failed: {path_text}: {error}"))
+        })?;
+    let result = runtime.block_on(async {
+        let read_path = path.clone();
+        match tokio::time::timeout(
+            timeout,
+            tokio::task::spawn_blocking(move || fs::read_to_string(read_path)),
+        )
+        .await
+        {
+            Ok(join_result) => join_result
+                .map_err(|error| {
+                    MaenifoldError::Message(format!("file read task failed: {path_text}: {error}"))
+                })?
+                .map_err(MaenifoldError::from),
+            Err(_) => Err(file_read_timeout_error(&path)),
+        }
+    });
+    runtime.shutdown_timeout(Duration::from_millis(10));
+    result
+}
+
+fn file_read_timeout_error(path: &Path) -> MaenifoldError {
+    MaenifoldError::Message(format!(
+        "file read timed out: {} (likely cloud-offloaded — run `brctl download` or move maenifold root to local-only storage)",
+        path.display()
+    ))
 }
 
 pub fn get_memory_files(config: &Config, folder_uri: Option<&str>) -> Result<Vec<String>> {

@@ -58,8 +58,8 @@ ensure_cli() {
   fi
 
   if [[ "$CLI" == "$ROOT/target/release/maenifold" ]]; then
-    echo "release CLI missing; building maenifold-cli..."
-    (cd "$ROOT" && CARGO_TARGET_DIR=target cargo build --release -p maenifold-cli) || die_infra "failed to build release CLI"
+    echo "release CLI missing; building maenifold-cli and maenifold-pipeline-driver..."
+    (cd "$ROOT" && CARGO_TARGET_DIR=target cargo build --release -p maenifold-cli && CARGO_TARGET_DIR=target cargo build --release -p maenifold-pipeline-driver) || die_infra "failed to build release binaries"
   fi
 
   [[ -x "$CLI" ]] || die_infra "CLI not found or not executable at $CLI"

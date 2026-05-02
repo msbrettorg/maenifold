@@ -23,11 +23,14 @@ use super::types::ToolProvenance;
 mod executor_run_classify;
 #[path = "executor_run_exec.rs"]
 mod executor_run_exec;
+#[path = "executor_run_persist.rs"]
+mod executor_run_persist;
 
 use executor_run_classify::{
     classify_prompt_result, classify_think_result, classify_tool_result, classify_workflow_result,
 };
 pub(super) use executor_run_exec::{run_prompt_node, run_tool_node};
+pub(crate) use executor_run_persist::persist_active_node_session;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct PromptExecutionResult {

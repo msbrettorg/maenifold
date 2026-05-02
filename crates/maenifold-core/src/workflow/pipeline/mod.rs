@@ -10,6 +10,8 @@ use crate::{
 };
 
 pub(super) mod circuit_breaker;
+#[cfg(test)]
+mod delete_verification_tests;
 mod dispatch;
 mod dispatch_non_workflow;
 mod dispatch_prompt;
@@ -70,6 +72,8 @@ mod mapping_predecessor;
 mod mapping_resolve;
 #[cfg(test)]
 mod orphan_cascade_tests;
+#[cfg(test)]
+mod orphan_recovery_tests;
 mod resource_notifications;
 mod session_io;
 mod session_read;
@@ -109,6 +113,7 @@ pub use executor::ExecutionResult;
 pub use executor_cleanup::{
     cancel_active_nodes, finalize_failed_pipeline_execution, recover_crashed_nodes,
 };
+pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;

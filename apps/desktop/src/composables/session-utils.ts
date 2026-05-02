@@ -168,46 +168,7 @@ function applyAvailableCommandsState(
   session: SessionState,
   response: { availableCommands?: unknown[] | null }
 ): void {
-  if (Array.isArray(response.availableCommands) && response.availableCommands.length > 0) {
+  if (Array.isArray(response.availableCommands)) {
     session.availableCommands = response.availableCommands as AvailableCommand[];
-    return;
   }
-  if (session.availableCommands.length > 0) return;
-  synthesizeClientCommands(session);
-}
-
-function synthesizeClientCommands(session: SessionState): void {
-  const commands: AvailableCommand[] = [];
-  if (session.hasConfigOptions) {
-    const modeOption = session.configOptions.find(
-      opt => opt.category === 'mode' && opt.valueType !== 'boolean'
-    );
-    if (modeOption) {
-      for (const opt of flatConfigSelectOptions(modeOption.options)) {
-        commands.push({
-          name: deriveCommandName(opt.value),
-          description: `Switch to ${opt.name} mode`,
-          _meta: { clientAction: 'setConfigOption', configId: modeOption.id, value: opt.value },
-        });
-      }
-    }
-  }
-  commands.push({ name: 'clear', description: 'Clear chat messages', _meta: { clientAction: 'clearMessages' } });
-  session.availableCommands = commands;
-}
-
-function deriveCommandName(value: string): string {
-  const fragment = value.split('#').pop() || '';
-  return fragment || value.split('/').pop() || value;
-}
-
-function flatConfigSelectOptions(options: SessionConfigSelectOptions): SessionConfigSelectOption[] {
-  if (options.length === 0) return [];
-  return 'group' in options[0]
-    ? (options as SessionConfigSelectGroup[]).flatMap(group => group.options)
-    : (options as SessionConfigSelectOption[]);
-}
-
-export function isClientCommand(command: AvailableCommand): boolean {
-  return Boolean(command._meta && typeof command._meta === 'object' && 'clientAction' in command._meta);
 }

@@ -9,6 +9,9 @@ use serde_json::{Map as JsonMap, Value, json};
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
+use super::engine_status::{
+    completed_node_count, definition_node_count, derive_pipeline_list_status, pipeline_node_states,
+};
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
 use super::session_io::{
     delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
@@ -25,9 +28,7 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
             "Pipeline definition is required".to_string(),
         ));
     };
-
     AssetManager::initialize_assets(&context.config)?;
-
     let mut definition: PipelineDefinition = serde_json::from_value(definition_value.clone())?;
     let payload_inputs = parse_inputs_payload(payload.get("inputs"))?;
     definition.inputs = merge_pipeline_inputs(definition.inputs.take(), payload_inputs);
@@ -95,11 +96,20 @@ pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
 }
-#[allow(clippy::too_many_lines)]
 pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
+    list_pipelines_impl(context, read_markdown)
+}
+fn list_pipelines_impl(
+    context: &ToolContext,
+    read_markdown_fn: fn(
+        &str,
+        &crate::config::Config,
+    ) -> Result<(Option<crate::markdown::Frontmatter>, String, String)>,
+) -> Result<String> {
     let pipelines_dir = context.config.memory_path.join("pipelines");
     let mut pipelines = Vec::new();
-
+    crate::db::GraphDatabase::initialize_database(&context.config)?;
+    let connection = crate::db::open_connection(&context.config.database_path)?;
     if pipelines_dir.is_dir() {
         for entry in walkdir::WalkDir::new(&pipelines_dir)
             .into_iter()
@@ -109,58 +119,63 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
             if path.extension().is_none_or(|ext| ext != "md") {
                 continue;
             }
-
             let Some(session_id) = path.file_stem().and_then(|name| name.to_str()) else {
                 continue;
             };
-
             let uri = pipeline_session_uri(session_id);
-            let Ok((Some(frontmatter), _, _)) = read_markdown(&uri, &context.config) else {
-                continue;
-            };
-            if frontmatter.get("type").and_then(YamlValue::as_str) != Some("pipeline") {
-                continue;
+            match read_markdown_fn(&uri, &context.config) {
+                Ok((Some(frontmatter), _, _)) => {
+                    if frontmatter.get("type").and_then(YamlValue::as_str) != Some("pipeline") {
+                        continue;
+                    }
+                    let node_states = pipeline_node_states(&frontmatter);
+                    let status = derive_pipeline_list_status(
+                        session_id,
+                        frontmatter.get("status").and_then(YamlValue::as_str),
+                        &node_states,
+                        &context.config,
+                    );
+                    pipelines.push(json!({
+                        "pipelineId": frontmatter.get("permalink").and_then(YamlValue::as_str).unwrap_or(session_id),
+                        "status": status,
+                        "nodeCount": definition_node_count(frontmatter.get("definition")),
+                        "completedCount": completed_node_count(&node_states),
+                    }));
+                }
+                Ok((None, _, _)) => {
+                    if let Some(entry) = crate::db::lookup_pipeline_degraded_json(
+                        &connection,
+                        &uri,
+                        "markdown_unreadable",
+                        "pipeline markdown had no frontmatter",
+                    )? {
+                        pipelines.push(entry);
+                    }
+                }
+                Err(error) => {
+                    let reason = if matches!(error, MaenifoldError::FileDataless { .. }) {
+                        "dataless"
+                    } else {
+                        "markdown_unreadable"
+                    };
+                    if let Some(entry) = crate::db::lookup_pipeline_degraded_json(
+                        &connection,
+                        &uri,
+                        reason,
+                        &error.to_string(),
+                    )? {
+                        pipelines.push(entry);
+                    }
+                }
             }
-
-            let node_states = frontmatter
-                .get("nodeStates")
-                .and_then(|value| {
-                    serde_yml::from_value::<HashMap<String, NodeState>>(value.clone()).ok()
-                })
-                .unwrap_or_default();
-            let completed_count = node_states
-                .values()
-                .filter(|state| matches!(state.status, NodeStatus::Completed))
-                .count();
-            let status = frontmatter
-                .get("status")
-                .and_then(YamlValue::as_str)
-                .map(str::to_owned)
-                .unwrap_or_else(|| super::compute_pipeline_status(&node_states).to_string());
-            let node_count = frontmatter
-                .get("definition")
-                .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value.clone()).ok())
-                .map(|definition| definition.nodes.len())
-                .unwrap_or(0);
-
-            pipelines.push(json!({
-                "pipelineId": frontmatter
-                    .get("permalink")
-                    .and_then(YamlValue::as_str)
-                    .unwrap_or(session_id),
-                "status": status,
-                "nodeCount": node_count,
-                "completedCount": completed_count,
-            }));
         }
     }
-
     pipelines.sort_by(|a, b| {
-        let a_id = a.get("pipelineId").and_then(Value::as_str).unwrap_or("");
-        let b_id = b.get("pipelineId").and_then(Value::as_str).unwrap_or("");
-        a_id.cmp(b_id)
+        a.get("pipelineId")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .cmp(b.get("pipelineId").and_then(Value::as_str).unwrap_or(""))
     });
-
     let result = json!({ "pipelines": pipelines });
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
@@ -168,6 +183,14 @@ pub(super) fn list_pipelines(context: &ToolContext) -> Result<String> {
     })
 }
 pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
+    delete_pipeline_with_force(context, session_id, false)
+}
+
+pub(super) fn delete_pipeline_with_force(
+    context: &ToolContext,
+    session_id: &str,
+    force: bool,
+) -> Result<String> {
     lease::with_exclusive_session_lock(
         session_id,
         &context.config,
@@ -178,6 +201,12 @@ pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result
         },
         || {
             let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+            if !force && frontmatter.get("status").and_then(YamlValue::as_str) == Some("completed")
+            {
+                return Err(MaenifoldError::InvalidArgument(format!(
+                    "Pipeline {session_id} is completed; pass force:true to delete completed pipelines"
+                )));
+            }
             let node_states = match frontmatter_value(&frontmatter, "nodeStates") {
                 Ok(raw_node_states) => match derive_pipeline_node_states(context, &raw_node_states)
                 {
@@ -198,21 +227,21 @@ pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result
                     HashMap::new()
                 }
             };
-
-            let has_active_work = node_states
-                .values()
-                .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying));
-            if has_active_work {
+            if !force
+                && node_states
+                    .values()
+                    .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying))
+            {
                 return Err(MaenifoldError::InvalidArgument(format!(
                     "Pipeline {session_id} has active work; cancel it before deleting"
                 )));
             }
-
             let deleted_files = delete_pipeline_session_files(context, session_id, &node_states)?;
             let result = json!({
                 "deletedSessionId": session_id,
                 "cleanedUpFiles": deleted_files.cleaned_up_files,
                 "skippedFiles": deleted_files.skipped_files,
+                "deletedFiles": deleted_files.deleted_files,
             });
             Ok(match context.output_format {
                 OutputFormat::Json => success(result),

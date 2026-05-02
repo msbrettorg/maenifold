@@ -8,6 +8,7 @@ import { usePipelineStore } from '../stores/pipeline';
 import type { LogEntry } from '../lib/pipeline-types';
 import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { buildNodeOutputPreview, buildAbandonedNodePreview } from '../composables/pipeline-view-diff';
+import PipelineAcpSessionInspectors from './PipelineAcpSessionInspectors.vue';
 
 const props = defineProps<{ collapsed?: boolean }>();
 
@@ -131,6 +132,7 @@ function formatLogEntry(entry: LogEntry) {
       <span>{{ props.collapsed ? collapsedSummaryLine : statusLine }}</span>
     </div>
 
+    <PipelineAcpSessionInspectors v-show="!props.collapsed" />
     <ScrollArea
       v-show="!props.collapsed"
       class="flex-1 min-h-0 bg-surface-container"

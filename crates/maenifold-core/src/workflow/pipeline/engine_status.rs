@@ -1,5 +1,45 @@
-use super::{NodeState, NodeStatus, PipelineDefinition};
+use super::{NodeState, NodeStatus, PipelineDefinition, lease};
+use crate::config::Config;
+use crate::markdown::Frontmatter;
 use std::collections::HashMap;
+
+pub(super) fn derive_pipeline_list_status(
+    session_id: &str,
+    stored_status: Option<&str>,
+    node_states: &HashMap<String, NodeState>,
+    config: &Config,
+) -> String {
+    let abandoned =
+        stored_status == Some("running") && !lease::session_lock_is_held(session_id, config);
+    if abandoned {
+        "abandoned".to_string()
+    } else {
+        stored_status
+            .unwrap_or_else(|| compute_pipeline_status(node_states))
+            .to_string()
+    }
+}
+
+pub(super) fn completed_node_count(node_states: &HashMap<String, NodeState>) -> usize {
+    node_states
+        .values()
+        .filter(|state| matches!(state.status, NodeStatus::Completed))
+        .count()
+}
+
+pub(super) fn definition_node_count(value: Option<&serde_yml::Value>) -> usize {
+    value
+        .and_then(|value| serde_yml::from_value::<PipelineDefinition>(value.clone()).ok())
+        .map(|definition| definition.nodes.len())
+        .unwrap_or(0)
+}
+
+pub(super) fn pipeline_node_states(frontmatter: &Frontmatter) -> HashMap<String, NodeState> {
+    frontmatter
+        .get("nodeStates")
+        .and_then(|value| serde_yml::from_value::<HashMap<String, NodeState>>(value.clone()).ok())
+        .unwrap_or_default()
+}
 
 pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'static str {
     if !node_states.is_empty()

@@ -92,6 +92,7 @@ async fn execute_pipeline_inner(
                 &nodes_by_id,
                 &prompt,
                 &execution_config.inputs,
+                session_id,
                 event_tx.clone(),
                 semaphore.clone(),
                 &mut join_set,
@@ -155,6 +156,7 @@ async fn schedule_dispatched_node(
     nodes_by_id: &HashMap<String, PipelineNode>,
     ambient_prompt: &str,
     inputs: &serde_json::Map<String, serde_json::Value>,
+    pipeline_session_id: &str,
     event_tx: EventSender,
     semaphore: Arc<Semaphore>,
     join_set: &mut JoinSet<NodeJoinResult>,
@@ -227,6 +229,7 @@ async fn schedule_dispatched_node(
         timeout_kind,
         node_retry_policy,
         initial_retry_attempts,
+        pipeline_session_id.to_string(),
     );
     Ok(())
 }

@@ -22,6 +22,7 @@ pub(super) struct NodeFile {
 pub(super) struct DeletePipelineSessionFilesResult {
     pub(super) cleaned_up_files: usize,
     pub(super) skipped_files: usize,
+    pub(super) deleted_files: Vec<String>,
 }
 
 pub(super) fn generate_pipeline_node_session_id(timestamp_millis: i64, node_id: &str) -> String {

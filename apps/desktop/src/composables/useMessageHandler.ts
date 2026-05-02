@@ -1,35 +1,11 @@
-// Message handler composable — session update handling, prompt, and cancel.
-// Streaming chunk and tool-call processing is delegated to useStreamHandler.
 import type { Ref } from 'vue';
-import type {
-  ContentBlock,
-  McpAppUiMetadata,
-  SavedSession,
-  SessionState,
-  AvailableCommand,
-} from '../lib/types';
+import type { ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
-import {
-  deriveSessionTitleFromFirstMessage,
-  isClientCommand,
-  isGeneratedSessionTitle,
-  parseUpdatedAt,
-} from './session-utils';
-import {
-  applyConfigOptionsUpdate,
-  getActiveSessionContext,
-  requireActiveSessionContext,
-} from './session-state-helpers';
-import {
-  cloneContentBlock,
-  handleUserMessageChunk,
-  handleAgentMessageChunk,
-  handleAgentThoughtChunk,
-  handleToolCall,
-  handleToolCallUpdate,
-} from './useStreamHandler';
+import { deriveSessionTitleFromFirstMessage, isGeneratedSessionTitle, parseUpdatedAt } from './session-utils';
+import { applyConfigOptionsUpdate, getActiveSessionContext, requireActiveSessionContext } from './session-state-helpers';
+import { cloneContentBlock, handleUserMessageChunk, handleAgentMessageChunk, handleAgentThoughtChunk, handleToolCall, handleToolCallUpdate } from './useStreamHandler';
 
 interface UseMessageHandlerDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -101,10 +77,7 @@ export function useMessageHandler({
     }
   }
 
-  function handleSessionUpdate(
-    localSessionId: string,
-    notification: SessionNotification,
-  ) {
+  function handleSessionUpdate(localSessionId: string, notification: SessionNotification) {
     const session = sessions.value.get(localSessionId);
     if (!session) return;
 
@@ -155,13 +128,8 @@ export function useMessageHandler({
         break;
 
       case 'available_commands_update':
-        // Agent advertised slash commands — merge with client-side commands
         if ('availableCommands' in update && Array.isArray(update.availableCommands)) {
-          const clientCommands = session.availableCommands.filter(isClientCommand);
-          session.availableCommands = [
-            ...(update.availableCommands as AvailableCommand[]),
-            ...clientCommands,
-          ];
+          session.availableCommands = update.availableCommands as AvailableCommand[];
         }
         break;
 
@@ -221,10 +189,7 @@ export function useMessageHandler({
     }
   }
 
-  async function sendPrompt(
-    text: string,
-    attachments: ContentBlock[] = [],
-  ): Promise<boolean> {
+  async function sendPrompt(text: string, attachments: ContentBlock[] = []): Promise<boolean> {
     let activeSession: SessionState | null = null;
     try {
       const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
@@ -236,7 +201,6 @@ export function useMessageHandler({
         ...attachments.map((attachment) => cloneContentBlock(attachment)),
       ];
 
-      // Add user message
       session.messages.push({
         id: crypto.randomUUID(),
         role: 'user',
@@ -251,9 +215,6 @@ export function useMessageHandler({
           sessionId: session.session.sessionId,
           prompt,
         });
-
-        if (import.meta.env.DEV) {
-        }
 
         switch (response.stopReason) {
           case 'refusal':
@@ -283,7 +244,6 @@ export function useMessageHandler({
           );
         }
 
-        // Track prompt sent
         trackEvent('PromptSent', {
           messageLength: String(text.length),
           stopReason: response.stopReason || 'unknown',
@@ -294,14 +254,10 @@ export function useMessageHandler({
       return true;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      if (import.meta.env.DEV) {
-      }
       if (activeSession) {
         activeSession.error = errorMessage;
         pushSystemMessage(activeSession, errorMessage);
       }
-      // Do NOT re-throw — the UI surfaces the error via session state and the
-      // boolean return value lets callers decide whether to clear input.
       return false;
     }
   }

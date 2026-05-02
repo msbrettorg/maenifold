@@ -43,6 +43,16 @@ function titleFromBody(body: string, fallback: string): string {
   return body.split('\n').find((line) => line.trim().length > 0)?.trim() ?? fallback;
 }
 
+function authoredStep(stepNumber: number) {
+  return props.workflow?.steps?.[stepNumber - 1] ?? null;
+}
+
+function nameForStep(stepNumber: number, prompt: HistoryEntry | undefined): string {
+  const authored = authoredStep(stepNumber);
+  if (authored) return authored.name;
+  return titleFromBody(prompt?.body ?? '', `Step ${stepNumber}`);
+}
+
 function labelForStep(stepNumber: number): LiveStep['label'] {
   const session = selectedSession.value;
   if (!session) return 'pending';
@@ -72,23 +82,24 @@ const liveSteps = computed<LiveStep[]>(() => {
     else prompts.set(number, entry);
   }
 
-  const total = Math.max(session.total_steps ?? 0, prompts.size, responses.size);
+  const total = Math.max(session.total_steps ?? 0, props.workflow?.steps?.length ?? 0, prompts.size, responses.size);
   return Array.from({ length: total }, (_, index) => {
     const stepNumber = index + 1;
     const prompt = prompts.get(stepNumber);
     const response = responses.get(stepNumber);
     const label = labelForStep(stepNumber);
+    const authored = authoredStep(stepNumber);
     return {
       label,
       step: {
         stepNumber,
         totalSteps: total,
-        id: `step-${stepNumber}`,
-        name: titleFromBody(prompt?.body ?? '', `Step ${stepNumber}`),
+        id: authored?.id ?? `step-${stepNumber}`,
+        name: nameForStep(stepNumber, prompt),
         status: statusForLabel(label),
         response: response?.body,
         respondedAt: response ? (session.updated_at ?? undefined) : undefined,
-        requiresSequentialThinking: false,
+        requiresSequentialThinking: authored?.requiresSequentialThinking ?? false,
       },
     };
   });

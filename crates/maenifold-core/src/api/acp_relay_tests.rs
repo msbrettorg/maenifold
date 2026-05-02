@@ -56,3 +56,35 @@ fn non_cancelled_worker_error_returns_json_rpc_error() {
     assert_eq!(payload["error"]["message"], "agent failed");
     assert!(payload.get("result").is_none());
 }
+
+#[test]
+fn socket_close_worker_message_resets_session_connection() {
+    let relay = RelayConfig {
+        agent_name: "Copilot".to_string(),
+        adapter: jockey::acp::StdioAdapterSpec {
+            runtime_key: "copilot".to_string(),
+            binary: "copilot".to_string(),
+            args: Vec::new(),
+            env: Vec::new(),
+        },
+        default_cwd: "/repo".to_string(),
+        configured_mcp_servers: Vec::new(),
+        keep_session_alive: false,
+    };
+    let (result_tx, _result_rx) = tokio::sync::oneshot::channel();
+
+    match relay_reset_message(&relay, "acp-relay:local-1", result_tx) {
+        jockey::acp::WorkerMsg::Reset {
+            runtime_key,
+            role_name,
+            app_session_id,
+            ..
+        } => {
+            assert_eq!(runtime_key, "copilot");
+            assert_eq!(role_name, "Copilot");
+            assert_eq!(app_session_id, "acp-relay:local-1");
+        }
+        jockey::acp::WorkerMsg::Cancel { .. } => panic!("socket close must reset, not cancel"),
+        _ => panic!("socket close must use WorkerMsg::Reset"),
+    }
+}

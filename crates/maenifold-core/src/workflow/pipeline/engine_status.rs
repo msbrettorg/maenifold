@@ -45,7 +45,7 @@ pub fn compute_pipeline_status(node_states: &HashMap<String, NodeState>) -> &'st
     if !node_states.is_empty()
         && node_states
             .values()
-            .all(|state| matches!(state.status, NodeStatus::Completed))
+            .all(|state| matches!(state.status, NodeStatus::Completed | NodeStatus::Skipped))
     {
         return "completed";
     }
@@ -91,7 +91,7 @@ pub fn compute_pipeline_status_with_definition(
         && terminal_ids.iter().all(|id| {
             matches!(
                 node_states.get(*id).map(|s| &s.status),
-                Some(NodeStatus::Completed)
+                Some(NodeStatus::Completed | NodeStatus::Skipped)
             )
         })
     {
@@ -213,6 +213,34 @@ mod terminal_node_tests {
         let node_states: HashMap<String, NodeState> = [
             make_state("a", NodeStatus::Completed),
             make_state("b", NodeStatus::Completed),
+        ]
+        .into();
+
+        assert_eq!(
+            compute_pipeline_status_with_definition(&definition, &node_states),
+            "completed"
+        );
+    }
+
+    #[test]
+    fn terminal_skipped_branch_is_terminal_neutral() {
+        let definition = PipelineDefinition {
+            nodes: vec![
+                make_tool_node("root"),
+                make_tool_node("selected"),
+                make_tool_node("not-selected"),
+            ],
+            edges: vec![
+                make_edge("root", "selected", EdgeType::Success),
+                make_edge("root", "not-selected", EdgeType::Success),
+            ],
+            inputs: None,
+            template_id: None,
+        };
+        let node_states: HashMap<String, NodeState> = [
+            make_state("root", NodeStatus::Completed),
+            make_state("selected", NodeStatus::Completed),
+            make_state("not-selected", NodeStatus::Skipped),
         ]
         .into();
 

@@ -31,6 +31,18 @@ function createAgentInstance(name: string): AgentInstance {
   };
 }
 
+function isTransientResumeTransportError(error: unknown, bridge: AcpClientBridge): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return bridge.isTransportClosed()
+    || message.includes('ACP connection closed')
+    || message.includes('ACP agent terminated before responding')
+    || message.includes('ACP relay socket is not connected');
+}
+
+function waitForResumeRetry(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 1000));
+}
+
 export function useSessionStartup({
   sessions,
   bridges,
@@ -114,19 +126,33 @@ export function useSessionStartup({
     return initialized;
   }
 
-  function handleLifecycleFailure(
+  async function handleLifecycleFailure(
     localId: string,
     eventName: 'SessionCreated' | 'SessionResumed',
     agentName: string,
     error: unknown
-  ): never {
+  ): Promise<never> {
     const session = sessions.value.get(localId);
     if (session) {
       session.error = error instanceof Error ? error.message : String(error);
     }
 
     stopPermissionWatch(localId);
+    const bridge = bridges.get(localId);
     bridges.delete(localId);
+    if (bridge) {
+      try {
+        await bridge.disconnect();
+      } catch (disconnectError) {
+        const cleanupError = disconnectError instanceof Error
+          ? disconnectError
+          : new Error(String(disconnectError));
+        if (session) {
+          session.error = `${session.error ?? 'Connection failed'}; cleanup failed: ${cleanupError.message}`;
+        }
+        trackError(cleanupError);
+      }
+    }
     trackEvent(eventName, { agentName, success: 'false' });
     trackError(error instanceof Error ? error : new Error(String(error)));
     throw error;
@@ -208,7 +234,7 @@ export function useSessionStartup({
       applySessionConfigurationState(sessionState, sessionResponse);
       clearConnectionError();
     } catch (error) {
-      handleLifecycleFailure(localId, 'SessionCreated', agentName, error);
+      await handleLifecycleFailure(localId, 'SessionCreated', agentName, error);
     } finally {
       finalizeConnectionAttempt(localId);
       if (startupTimer) {
@@ -228,44 +254,79 @@ export function useSessionStartup({
     const { localId, sessionState } = createSessionSlot(savedSession.agentName, savedSession.cwd);
 
     try {
-      const agentInstance = createAgentInstance(savedSession.agentName);
-      sessionState.agentId = agentInstance.id;
+      let bridge: AcpClientBridge | null = null;
+      let initialized: Awaited<ReturnType<typeof initializeConnectedBridge>> | null = null;
+      let loadResponse: Awaited<ReturnType<AcpClientBridge['loadSession']>> | null = null;
+      let lastError: unknown = null;
 
-      const bridge = await createBoundBridge(localId, agentInstance);
-      const initialized = await initializeConnectedBridge(localId, bridge, sessionState);
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        const agentInstance = createAgentInstance(savedSession.agentName);
+        sessionState.agentId = agentInstance.id;
+        bridge = await createBoundBridge(localId, agentInstance);
+        initialized = await initializeConnectedBridge(localId, bridge, sessionState);
 
-      if (!initialized.initResponse.agentCapabilities?.loadSession) {
-        await bridge.disconnect();
-        throw new Error('Agent no longer supports session loading');
+        if (!initialized.initResponse.agentCapabilities?.loadSession) {
+          await bridge.disconnect();
+          throw new Error('Agent no longer supports session loading');
+        }
+
+        sessionState.messages = [];
+        sessionState.toolCalls.clear();
+
+        try {
+          loadResponse = await runWithAuthenticationRetry(
+            localId,
+            bridge,
+            sessionState,
+            savedSession.agentName,
+            initialized.availableAuthMethods,
+            async () => {
+              await validateSavedSessionCwd(bridge as AcpClientBridge, savedSession);
+              return (bridge as AcpClientBridge).loadSession({
+                sessionId: savedSession.sessionId,
+                cwd: savedSession.cwd,
+                mcpServers: [],
+              });
+            },
+            (wasAborted) => (wasAborted ? 'Connection cancelled' : 'Authentication cancelled by user')
+          );
+          break;
+        } catch (error) {
+          lastError = error;
+          const shouldRetry = attempt === 0 && isTransientResumeTransportError(error, bridge);
+          bridges.delete(localId);
+          await bridge.disconnect().catch((disconnectError) => {
+            trackError(disconnectError instanceof Error ? disconnectError : new Error(String(disconnectError)));
+          });
+          bridge = null;
+          initialized = null;
+          if (!shouldRetry) {
+            throw error;
+          }
+          await waitForResumeRetry();
+        }
       }
 
-      sessionState.messages = [];
-      sessionState.toolCalls.clear();
-
-      const loadResponse = await runWithAuthenticationRetry(
-        localId,
-        bridge,
-        sessionState,
-        savedSession.agentName,
-        initialized.availableAuthMethods,
-        async () => {
-          await validateSavedSessionCwd(bridge, savedSession);
-          return bridge.loadSession({
-            sessionId: savedSession.sessionId,
-            cwd: savedSession.cwd,
-            mcpServers: [],
-          });
-        },
-        (wasAborted) => (wasAborted ? 'Connection cancelled' : 'Authentication cancelled by user')
-      );
+      if (!bridge || !initialized || !loadResponse) {
+        throw lastError ?? new Error('Session resume failed before session/load completed');
+      }
 
       await ensureNotAborted(localId, () => bridge.disconnect());
       sessionState.session = savedSession;
       sessionState.isConnected = true;
       applySessionConfigurationState(sessionState, loadResponse);
-
-      if (sessionState.supportsSessionList) {
-        await mergeSessionsFromAgent(bridge, savedSession.agentName, savedSession.cwd);
+      if (sessionState.messages.length === 0 && savedSession.messages?.length) {
+        sessionState.messages = savedSession.messages.map((message) => ({
+          ...message,
+          blocks: message.blocks?.map((block) => ({ ...block })),
+          toolCalls: message.toolCalls?.map((toolCall) => ({
+            ...toolCall,
+            locations: toolCall.locations?.map((location) => ({ ...location })),
+            content: toolCall.content?.map((block) => ({ ...block })),
+            rawInput: toolCall.rawInput ? { ...toolCall.rawInput } : undefined,
+            rawOutput: toolCall.rawOutput ? { ...toolCall.rawOutput } : undefined,
+          })),
+        }));
       }
 
       trackEvent('SessionResumed', { agentName: savedSession.agentName, success: 'true' });
@@ -273,7 +334,7 @@ export function useSessionStartup({
       await saveSessionsToStore();
       clearConnectionError();
     } catch (error) {
-      handleLifecycleFailure(localId, 'SessionResumed', savedSession.agentName, error);
+      await handleLifecycleFailure(localId, 'SessionResumed', savedSession.agentName, error);
     } finally {
       finalizeConnectionAttempt(localId);
     }

@@ -196,18 +196,27 @@ export const useSessionStore = defineStore('session', () => {
     connectionError.value = null;
   }
 
-  function discardReconnectAttempt(
+  async function discardReconnectAttempt(
     previousSessionIds: Set<string>,
     previousActiveSessionId: string | null,
-  ): void {
+  ): Promise<string | null> {
     let didMutate = false;
+    let disconnectError: string | null = null;
     for (const localId of [...sessions.value.keys()]) {
       if (previousSessionIds.has(localId)) {
         continue;
       }
 
+      const bridge = bridges.get(localId);
       sessions.value.delete(localId);
       bridges.delete(localId);
+      if (bridge) {
+        try {
+          await bridge.disconnect();
+        } catch (error) {
+          disconnectError = error instanceof Error ? error.message : String(error);
+        }
+      }
       didMutate = true;
     }
 
@@ -217,14 +226,15 @@ export const useSessionStore = defineStore('session', () => {
 
     if (previousActiveSessionId && sessions.value.has(previousActiveSessionId)) {
       activeSessionId.value = previousActiveSessionId;
-      return;
+      return disconnectError;
     }
 
     if (activeSessionId.value && sessions.value.has(activeSessionId.value)) {
-      return;
+      return disconnectError;
     }
 
     activeSessionId.value = [...sessions.value.keys()][0] ?? null;
+    return disconnectError;
   }
 
   async function focusOrResumeRemoteSession(
@@ -275,13 +285,15 @@ export const useSessionStore = defineStore('session', () => {
             localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
           };
         } catch (error) {
+          let cleanupError: string | null = null;
           if (options.suppressErrors) {
-            discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
+            cleanupError = await discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
           }
+          const message = error instanceof Error
+            ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
+            : `Failed to reconnect ACP session ${trimmedSessionId}.`;
           reportReconnectError(
-            error instanceof Error
-              ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
-              : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+            cleanupError ? `${message} Cleanup also failed: ${cleanupError}` : message,
             options,
           );
           return { status: 'error' };
@@ -305,13 +317,15 @@ export const useSessionStore = defineStore('session', () => {
         localSessionId: findLocalSessionByRemoteSessionId(trimmedSessionId)?.localId ?? undefined,
       };
     } catch (error) {
+      let cleanupError: string | null = null;
       if (options.suppressErrors) {
-        discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
+        cleanupError = await discardReconnectAttempt(previousSessionIds, previousActiveSessionId);
       }
+      const message = error instanceof Error
+        ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
+        : `Failed to reconnect ACP session ${trimmedSessionId}.`;
       reportReconnectError(
-        error instanceof Error
-          ? `Failed to reconnect ACP session ${trimmedSessionId}: ${error.message}`
-          : `Failed to reconnect ACP session ${trimmedSessionId}.`,
+        cleanupError ? `${message} Cleanup also failed: ${cleanupError}` : message,
         options,
       );
       return { status: 'error' };

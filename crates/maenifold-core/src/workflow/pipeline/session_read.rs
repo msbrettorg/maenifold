@@ -99,6 +99,7 @@ pub(super) fn workflow_status_to_node_status(status: &str) -> Option<NodeStatus>
         "ready" => Some(NodeStatus::Ready),
         "active" => Some(NodeStatus::Active),
         "completed" => Some(NodeStatus::Completed),
+        "skipped" => Some(NodeStatus::Skipped),
         "abandoned" | "cancelled" => Some(NodeStatus::Abandoned),
         "stuck" => Some(NodeStatus::Stuck),
         "retrying" => Some(NodeStatus::Retrying),

@@ -99,6 +99,10 @@ thread_local! {
     /// Per-slot prompt serialization: pool_key → async mutex.
     pub(crate) static PROMPT_LOCKS: RefCell<HashMap<String, Arc<AsyncMutex<()>>>> =
         RefCell::new(HashMap::new());
+
+    /// Remote ACP session id → current pool key for live connections.
+    pub(crate) static SESSION_INDEX: RefCell<HashMap<String, String>> =
+        RefCell::new(HashMap::new());
 }
 
 // ── Global state: child PIDs (still shared for cross-thread shutdown) ─────────
@@ -114,4 +118,39 @@ pub(crate) fn register_child_pid(pid: u32) {
 
 pub(crate) fn unregister_child_pid(pid: u32) {
     child_pids().remove(&pid);
+}
+
+pub(crate) fn session_index_key(runtime_key: &str, role_name: &str, session_id: &str) -> String {
+    format!("{runtime_key}:{role_name}:{session_id}")
+}
+
+pub(crate) fn register_session_index(
+    runtime_key: &str,
+    role_name: &str,
+    session_id: &str,
+    key: &str,
+) {
+    SESSION_INDEX.with(|m| {
+        m.borrow_mut()
+            .insert(session_index_key(runtime_key, role_name, session_id), key.to_string());
+    });
+}
+
+pub(crate) fn remove_session_index(runtime_key: &str, role_name: &str, session_id: &str) {
+    SESSION_INDEX.with(|m| {
+        m.borrow_mut()
+            .remove(&session_index_key(runtime_key, role_name, session_id));
+    });
+}
+
+pub(crate) fn find_session_key(
+    runtime_key: &str,
+    role_name: &str,
+    session_id: &str,
+) -> Option<String> {
+    SESSION_INDEX.with(|m| {
+        m.borrow()
+            .get(&session_index_key(runtime_key, role_name, session_id))
+            .cloned()
+    })
 }

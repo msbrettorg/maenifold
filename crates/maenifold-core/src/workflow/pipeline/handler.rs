@@ -37,7 +37,8 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     }
 
     if let Some(session_id) = payload.get("sessionId").and_then(Value::as_str) {
-        if let Some(result) = handle_surgery_operation(context, session_id, payload)? {
+        let session_id = normalize_pipeline_session_id(session_id)?;
+        if let Some(result) = handle_surgery_operation(context, &session_id, payload)? {
             return Ok(result);
         }
 
@@ -56,13 +57,13 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
                 }
             };
             return if force {
-                delete_pipeline_with_force(context, session_id, true)
+                delete_pipeline_with_force(context, &session_id, true)
             } else {
-                delete_pipeline(context, session_id)
+                delete_pipeline(context, &session_id)
             };
         }
 
-        if let Some(result) = handle_lifecycle_operation(context, session_id, payload)? {
+        if let Some(result) = handle_lifecycle_operation(context, &session_id, payload)? {
             return Ok(result);
         }
 
@@ -71,10 +72,10 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
             .and_then(Value::as_bool)
             .unwrap_or(false)
         {
-            return view_pipeline(context, session_id);
+            return view_pipeline(context, &session_id);
         }
 
-        if let Some(result) = handle_node_operation(context, session_id, payload)? {
+        if let Some(result) = handle_node_operation(context, &session_id, payload)? {
             return Ok(result);
         }
     }
@@ -103,4 +104,27 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
           TIP: lifecycle, topology, and view operations all require a sessionId to identify which pipeline session to inspect."
             .to_string(),
     ))
+}
+
+fn normalize_pipeline_session_id(identifier: &str) -> Result<String> {
+    let trimmed = identifier.trim();
+    if trimmed.is_empty() {
+        return Err(MaenifoldError::InvalidArgument(
+            "sessionId must not be empty".to_string(),
+        ));
+    }
+    if let Some(path) = trimmed.strip_prefix("memory://pipelines/") {
+        let Some(name) = path.rsplit('/').next().filter(|name| !name.is_empty()) else {
+            return Err(MaenifoldError::InvalidArgument(format!(
+                "pipeline URI has no session id: {identifier}"
+            )));
+        };
+        return Ok(name.strip_suffix(".md").unwrap_or(name).to_string());
+    }
+    if trimmed.starts_with("memory://") {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "sessionId memory URI must point to memory://pipelines/: {identifier}"
+        )));
+    }
+    Ok(trimmed.to_string())
 }

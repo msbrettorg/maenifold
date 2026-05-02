@@ -13,11 +13,15 @@ use super::engine_status::{
     completed_node_count, definition_node_count, derive_pipeline_list_status, pipeline_node_states,
 };
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
+use super::resource_notifications::{
+    clear_pipeline_resource_state, emit_pipeline_sessions_resource_updated,
+};
 use super::session_io::{
     delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
     generate_pipeline_node_session_id, read_pipeline_session, write_pipeline_session,
     write_workflow_node_session,
 };
+use super::session_write_files::delete_file_verified;
 use super::view::view_pipeline_session;
 use super::{
     NodeState, NodeStatus, PipelineDefinition, compute_ready_set, lease, validate_pipeline,
@@ -200,7 +204,13 @@ pub(super) fn delete_pipeline_with_force(
             ))
         },
         || {
-            let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+            let (_, frontmatter, _) = match read_pipeline_session(context, session_id) {
+                Ok(session) => session,
+                Err(error @ MaenifoldError::FileDataless { .. }) => {
+                    return delete_unreadable_pipeline(context, session_id, force, error);
+                }
+                Err(error) => return Err(error),
+            };
             if !force && frontmatter.get("status").and_then(YamlValue::as_str) == Some("completed")
             {
                 return Err(MaenifoldError::InvalidArgument(format!(
@@ -249,6 +259,38 @@ pub(super) fn delete_pipeline_with_force(
             })
         },
     )
+}
+
+pub(super) fn delete_unreadable_pipeline(
+    context: &ToolContext,
+    session_id: &str,
+    force: bool,
+    read_error: MaenifoldError,
+) -> Result<String> {
+    if !force {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Pipeline {session_id} is unreadable ({read_error}); pass force:true to delete unreadable pipelines"
+        )));
+    }
+    let pipeline_uri = crate::sessions::pipeline_session_uri(session_id);
+    let deleted_file = delete_file_verified(&pipeline_uri, &context.config)?;
+    clear_pipeline_resource_state(session_id);
+    emit_pipeline_sessions_resource_updated();
+    let result = json!({
+        "deletedSessionId": session_id,
+        "cleanedUpFiles": 1,
+        "skippedFiles": 0,
+        "deletedFiles": [deleted_file],
+        "degraded": {
+            "reason": "dataless",
+            "nodeCleanup": "skipped_unreadable_parent",
+            "readError": read_error.to_string(),
+        },
+    });
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
 }
 pub(super) fn view_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     view_pipeline_session(context, session_id)

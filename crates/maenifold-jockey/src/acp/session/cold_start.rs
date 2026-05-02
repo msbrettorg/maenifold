@@ -15,7 +15,7 @@ use super::super::runtime_state::{
 };
 use super::super::worker::{AcpEvent, DeltaSlot, LiveConnection, register_child_pid};
 use super::cold_start_helpers::{
-    INIT_TIMEOUT, LIVE_CONNECTION_SEQ, SESSION_TIMEOUT, extract_mode_ids,
+    INIT_TIMEOUT, LIVE_CONNECTION_SEQ, LOAD_SESSION_TIMEOUT, SESSION_TIMEOUT, extract_mode_ids,
     extract_models_from_config_options,
 };
 
@@ -156,19 +156,13 @@ pub(crate) async fn cold_start(
         })
     }
 
-    let start_result: SessionStartResult = match resume_session_id {
-        Some(sid) => {
-            // Caller explicitly requested resume; silent fallback to a new session
-            // would lose user context. Fail loudly instead.
-            if !supports_load {
-                acp_log(
-                    "session.load.unsupported",
-                    json!({ "runtime": runtime_key, "sessionId": &sid }),
-                );
-                return Err(format!(
-                    "agent '{runtime_key}' does not advertise loadSession capability; cannot resume session '{sid}'"
-                ));
-            }
+    let start_result: SessionStartResult = if let Some(sid) = resume_session_id {
+        if !supports_load {
+            return Err(format!(
+                "agent '{_role_name}' does not advertise loadSession capability; cannot resume session '{sid}'"
+            ));
+        }
+        {
             let mut load_req = acp::LoadSessionRequest::new(
                 acp::SessionId::from(sid.clone()),
                 std::path::PathBuf::from(abs_cwd),
@@ -176,14 +170,14 @@ pub(crate) async fn cold_start(
             if !mcp_servers.is_empty() {
                 load_req = load_req.mcp_servers(mcp_servers.clone());
             }
-            match tokio::time::timeout(SESSION_TIMEOUT, conn.load_session(load_req))
+            match tokio::time::timeout(LOAD_SESSION_TIMEOUT, conn.load_session(load_req))
                 .await
                 .map_err(|_| {
                     acp::Error::new(
                         acp::ErrorCode::InternalError.into(),
                         format!(
                             "timeout: load_session exceeded {}s",
-                            SESSION_TIMEOUT.as_secs()
+                            LOAD_SESSION_TIMEOUT.as_secs()
                         ),
                     )
                 })
@@ -203,16 +197,17 @@ pub(crate) async fn cold_start(
                 }
                 Err(e) => {
                     acp_log(
-                        "session.load.failed",
+                        "session.load.error",
                         json!({ "runtime": runtime_key, "sessionId": &sid, "error": e.to_string() }),
                     );
                     return Err(format!(
-                        "session/load failed for session '{sid}' on agent '{runtime_key}': {e}"
+                        "session/load failed for session '{sid}' on agent '{_role_name}': {e}"
                     ));
                 }
             }
         }
-        None => do_new_session(&conn, abs_cwd, mcp_servers).await?,
+    } else {
+        do_new_session(&conn, abs_cwd, mcp_servers).await?
     };
 
     let discovered_models =

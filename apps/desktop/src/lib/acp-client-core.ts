@@ -386,10 +386,11 @@ export class AcpClientBridgeCore implements Client {
           try {
             const message = asJsonRpcRecord(JSON.parse(event.data)) as AnyMessage;
             if (this.resolveManualResponse(message)) return;
+            if (this.handleAcpUiNotification(message)) return;
             this.recordTraffic('in', message);
             controller.enqueue(message);
           } catch (error) {
-            controller.error(error);
+            console.error('Failed to handle ACP relay message:', error);
           }
         });
         socket.addEventListener('close', () => closeReadable(controller));
@@ -415,6 +416,32 @@ export class AcpClientBridgeCore implements Client {
     });
 
     return { readable, writable };
+  }
+
+  private handleAcpUiNotification(message: AnyMessage): boolean {
+    const parsed = asJsonRpcRecord(message);
+    if (!isJsonRpcNotification(parsed)) {
+      return false;
+    }
+
+    if (parsed.method === 'session/update') {
+      this.recordTraffic('in', message);
+      try {
+        this.onSessionUpdate?.((parsed.params ?? {}) as SessionNotification);
+      } catch (error) {
+        console.error('Failed to handle ACP session/update notification:', error);
+      }
+      return true;
+    }
+
+    if (parsed.method === '_relay/stderr') {
+      this.recordTraffic('in', message);
+      const params = asJsonRpcRecord(parsed.params);
+      void this.extNotification(parsed.method, params);
+      return true;
+    }
+
+    return false;
   }
 
   private recordTraffic(direction: 'in' | 'out', message: AnyMessage): void {

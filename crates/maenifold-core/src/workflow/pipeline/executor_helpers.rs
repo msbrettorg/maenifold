@@ -113,7 +113,7 @@ pub(super) fn derive_execution_status(
     // Fallback (definition unreadable): derive from raw node states.
     if node_states
         .values()
-        .all(|state| matches!(state.status, NodeStatus::Completed))
+        .all(|state| matches!(state.status, NodeStatus::Completed | NodeStatus::Skipped))
     {
         Ok("completed".to_string())
     } else if node_states

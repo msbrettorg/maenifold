@@ -96,6 +96,7 @@ fn status_emoji(status: &NodeStatus) -> &'static str {
         NodeStatus::Ready => "🟡",
         NodeStatus::Active => "🔄",
         NodeStatus::Completed => "✅",
+        NodeStatus::Skipped => "⏭️",
         NodeStatus::Abandoned => "❌",
         NodeStatus::Stuck => "🚫",
         NodeStatus::Retrying => "⏱️",

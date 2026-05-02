@@ -37,10 +37,17 @@ fn acp_exec_runtime() -> crate::error::Result<&'static Runtime> {
 /// - **think** – translate the request into a structured prompt and return the response text.
 /// - **workflow** – translate the request into a structured prompt and return the response text.
 pub fn acp_exec(context: &ToolContext, payload: &Value) -> Result<String> {
-    if payload.get("learn").and_then(Value::as_bool).unwrap_or(false) {
+    if payload
+        .get("learn")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
         let help = load_help_doc(&context.config.assets_path, "AcpExec")
             .unwrap_or_else(|| "ERROR: Help file not found for AcpExec".to_string());
-        return Ok(match context.output_format { OutputFormat::Json => success(help), OutputFormat::Markdown => help });
+        return Ok(match context.output_format {
+            OutputFormat::Json => success(help),
+            OutputFormat::Markdown => help,
+        });
     }
 
     let agent = required_str(payload, "agent")?;

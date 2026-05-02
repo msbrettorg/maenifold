@@ -5,6 +5,100 @@ description: This skill should be used when the user asks to "write memory", "re
 
 # Understand and Leverage Maenifold
 
+> **Gateway-first rule:** the public MCP surface is only seven tools. Most real work (`WriteMemory`, `BuildContext`, `SequentialThinking`, `Workflow`, `GetConfig`, etc.) is **not** a top-level MCP tool. It is a gateway command you invoke through `GatewayExecute`. On cold start, do **not** assume you know which Gateway-backed domains are live — call `GatewayIndex` first and treat its response as the source of truth.
+
+## Start Here in a Fresh Session
+
+If you only remember one thing, remember this sequence:
+
+1. **Discover the live domain surface** with `GatewayIndex` **first**. On cold start, you do **not** know which additional Gateway-backed server domains are currently configured.
+2. **Load usage details** with `GetHelp` for the specific public tool or gateway command.
+3. **Inspect packaged assets/resources** with `ReadMcpResource` when you need `asset://...` content.
+4. **Inspect live downstream MCP servers** with `DiscoverMcpTools` when the question is about configured MCP servers/tool inventories rather than live gateway domains.
+5. **Run the actual operation** with `GatewayExecute`.
+
+Minimal startup flow:
+
+```text
+GatewayIndex                                       # see domains
+GatewayIndex domain="maenifold.memory" includeSchemas=true
+GetHelp toolName="WriteMemory"                     # or GatewayExecute, BuildContext, etc.
+GatewayExecute domain="maenifold.memory" command="WriteMemory" parameters={...}
+```
+
+`GatewayIndex` is the live source of truth for **all currently exposed domains** — both native `maenifold.*` domains and any additional Gateway-backed server domains. Runtime-visible extras can include names like `ai-infrastructure`, `azure-mcp-server`, `fetch`, `msx-mcp`, `shell-mcp`, `srectl`, and `workiq`, but that set is runtime-dependent, so discover it live instead of assuming a fixed list.
+
+## Public MCP Tools vs Gateway Commands
+
+### Direct public entry points
+
+These are the only top-level MCP tools you should expect to see:
+
+| Tool | Use it for | Do not expect |
+|------|------------|---------------|
+| **GatewayIndex** | Start here. Discover the live domains, commands, schemas, and safety class. It is the source of truth for both native `maenifold.*` domains and any additional Gateway-backed server domains currently exposed. | It does not execute commands. |
+| **GatewayExecute** | Run one exact domain+command call. | It does not infer intent. |
+| **GatewayBatch** | Submit several exact gateway calls in order. | It is not discovery. |
+| **GatewayIntent** | Translate natural language into gateway candidates when you do not yet know the exact command. | It is less deterministic than `GatewayIndex`. |
+| **DiscoverMcpTools** | See the live MCP tools exposed by configured downstream servers, grouped by server/tool inventory. | It does **not** replace `GatewayIndex` for live domain discovery. |
+| **ReadMcpResource** | Read `asset://...` and other MCP resource URIs. | It does **not** read `memory://` notes. |
+| **GetHelp** | Load canonical help for either a public tool or a gateway command name. | It does not inspect runtime state. |
+
+### Gateway commands
+
+These are the operations you usually want, but they are **not** separate top-level MCP tools:
+
+- `WriteMemory`, `ReadMemory`, `EditMemory`, `SearchMemories`
+- `BuildContext`, `FindSimilarConcepts`, `Visualize`, `Sync`
+- `SequentialThinking`, `AssumptionLedger`
+- `Workflow`, `Pipeline`
+- `GetConfig`, `MemoryStatus`, `RecentActivity`, `Adopt`, `ListAssets`, `AcpExec`
+
+You call them like this:
+
+```text
+GatewayExecute
+  domain: "maenifold.memory"
+  command: "WriteMemory"
+  parameters: { "title": "...", "content": "...[[Concept]]...", "folder": "..." }
+```
+
+When this skill says "use `WriteMemory`" or "run `SequentialThinking`", read that as shorthand for:
+
+- identify the command with `GatewayIndex`
+- confirm usage with `GetHelp` or `includeSchemas=true`
+- invoke it through `GatewayExecute`
+
+## The Discovery Failures This Skill Must Prevent
+
+Agents commonly lose time in the same ways:
+
+1. **They search for `WriteMemory` or `BuildContext` as if those were public MCP tools.** They are usually gateway commands instead.
+2. **They open maenifold on the theory section first.** The practical startup path must come before the abstract model.
+3. **They use `DiscoverMcpTools` when they really need `GatewayIndex`.** `DiscoverMcpTools` inventories tools grouped by configured downstream server; `GatewayIndex` discovers the live gateway domains you can actually call.
+4. **They assume only built-in `maenifold.*` domains matter.** `GatewayIndex` can also surface additional Gateway-backed domains from configured servers, so cold-start discovery must cover the whole live domain set.
+5. **They use `ReadMcpResource` for the wrong data plane.** `ReadMcpResource` is for MCP resources like `asset://catalog`; `memory://` content is handled by memory commands over the gateway. If you try `gateway://...` URIs here, expect a resource-format mismatch rather than domain discovery.
+
+## Default Discovery Sequence
+
+Use this default path unless you have a specific reason not to:
+
+1. **`GatewayIndex` with no filters** — learn the available live domains first. This is the cold-start discovery step for native maenifold domains **and** any additional Gateway-backed server domains currently exposed.
+2. **`GatewayIndex domain="..." includeSchemas=true`** — inspect exact command names and parameter shapes.
+3. **`GetHelp toolName="..."`** — load canonical instructions when the command/tool semantics matter.
+4. **`GatewayExecute`** — run the command with an exact `domain`, `command`, and `parameters` object.
+
+Only branch from that default when:
+
+- you need packaged asset/resource content → `ReadMcpResource`
+- you need the live list of configured downstream MCP tools → `DiscoverMcpTools`
+- you only have a natural-language request and need candidates first → `GatewayIntent`
+- you need several exact calls in sequence → `GatewayBatch`
+
+## Installation
+
+This skill requires the maenifold MCP server. See [README.md](./README.md) for binary install and MCP setup. If tools aren't responding, verify `which maenifold` resolves, check your client's MCP config, and restart the client. When the server is unavailable, you can still read this skill and [references/](./references/) to guide the user to https://github.com/msbrettorg/maenifold/releases/latest.
+
 ## The Pattern
 
 Maenifold is a compounding wiki maintained by LLMs. Unlike retrieval-augmented generation — where documents are fetched, consumed, and forgotten — the LLM writes knowledge back into the corpus after every meaningful interaction. Retrieval improves as the corpus grows. Each session builds on every prior session. The loop closes on itself, and institutional memory accumulates across sessions, agents, and time.
@@ -17,44 +111,9 @@ What prevents the wiki from decaying into noise? Conditioning and convention, no
 
 This works because of what maenifold deliberately omits. The graph carries no built-in semantics, no type system, no inference engine — it is dumb infrastructure the LLM reads through. An LLM with full context interprets a co-occurrence edge more usefully than any schema we could predefine. Maintenance is radically asymmetric: writing a WikiLink costs one bracketed phrase; the routing value it creates compounds across every future query by every future agent. The system tracks freshness; the LLM decides what matters. Every feature not built into the substrate is room for intelligence to emerge.
 
-This is the abstract pattern. What follows teaches the specific tools, conventions, and protocols that instantiate it.
-
-## Installation
-
-This skill requires the maenifold MCP server. See [README.md](./README.md) for binary install and MCP setup. If tools aren't responding, verify `which maenifold` resolves, check your client's MCP config, and restart the client. When the server is unavailable, you can still read this skill and [references/](./references/) to guide the user to https://github.com/msbrettorg/maenifold/releases/latest.
-
-## The Gateway Surface
-
-**Maenifold exposes a deliberately small MCP tool surface.** Every conceptual operation is invoked through the Gateway, not as its own top-level tool. The seven top-level MCP tools are:
-
-| Tool | Purpose |
-|------|---------|
-| **GatewayIndex** | Discover domains, commands, and exact JSON schemas |
-| **GatewayExecute** | Invoke one command in one domain with a parameters object |
-| **GatewayBatch** | Sequentially submit multiple commands |
-| **GatewayIntent** | Natural-language → candidate commands (when enabled) |
-| **DiscoverMcpTools** | List tools across all configured downstream MCP servers |
-| **ReadMcpResource** | Read MCP resource content by URI |
-| **GetHelp** | Load canonical per-tool help into context |
-
-Why this shape? A single-server MCP exposes domain-rich surfaces (memory, graph, thinking, workflow, gate, system) without bloating the client's tool list. Clients keep one connection, one set of seven tools, and the Gateway does deterministic dispatch behind it.
-
-**The mental shorthand used throughout this skill** — "use `WriteMemory` to create a note" — is the conceptual operation. **The actual MCP call is always:**
-
-```text
-GatewayExecute
-  domain: "maenifold.memory"
-  command: "WriteMemory"
-  parameters: { "title": "...", "content": "...[[Concept]]...", "folder": "..." }
-```
-
-The gateway domain (`maenifold.memory`) plus the command name (`WriteMemory`) **is** the canonical name of the operation. The two are interchangeable when you're reasoning about what to do. They differ only at invocation time.
-
-For exact parameter shapes, call `GatewayIndex` with `includeSchemas=true` and the target domain — the schema returned is the source of truth. Do not infer parameters from this skill; verify against the live schema.
-
 ## Domains and Commands
 
-The Gateway exposes seven maenifold domains. (`maenifold.gate` is documented in the separate `gate` skill.)
+`GatewayIndex` may expose more than the native maenifold domains because configured Gateway-backed servers can add their own live domains at runtime. The list below documents the native maenifold domains; use `GatewayIndex` to discover the full live set first. (`maenifold.gate` is documented in the separate `gate` skill.)
 
 ### maenifold.memory — knowledge files
 

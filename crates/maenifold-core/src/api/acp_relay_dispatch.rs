@@ -114,6 +114,10 @@ pub(super) async fn handle_incoming(
             .await
             .map(|result| rpc_ok(id.expect("id checked by match guard"), result)),
         ),
+        "session/close" if id.is_some() => Some(
+            handle_close(relay, session, id.expect("id checked by match guard"))
+                .map(|result| rpc_ok(result.0, result.1)),
+        ),
         "session/cancel" => {
             handle_cancel(relay, session, pending_prompt, permission_ids, params);
             None
@@ -134,6 +138,32 @@ pub(super) async fn handle_incoming(
     }
     true
 }
+
+fn handle_close(
+    relay: &RelayConfig,
+    session: &mut Option<RelaySession>,
+    request_id: Value,
+) -> Result<(Value, Value), Value> {
+    let Some(active) = session.as_ref() else {
+        return Err(rpc_error(
+            request_id,
+            -32600,
+            "initialize must be called before session/close",
+        ));
+    };
+    let (result_tx, _result_rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(jockey::acp::WorkerMsg::Reset {
+            runtime_key: relay.adapter.runtime_key.clone(),
+            role_name: relay.agent_name.clone(),
+            app_session_id: active.app_session_id.clone(),
+            result_tx,
+        })
+        .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
+    *session = None;
+    Ok((request_id, json!({})))
+}
+
 pub(super) fn handle_cancel(
     relay: &RelayConfig,
     session: &Option<RelaySession>,

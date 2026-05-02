@@ -1,12 +1,17 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { Brain, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import HomeRecentActivity from './HomeRecentActivity.vue';
+import { useDaemonHealth } from '../composables/useDaemonHealth';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
+import pkg from '../../package.json';
+
+const appName = (pkg as { productName?: string; name: string }).productName ?? pkg.name;
+const appVersion = pkg.version;
 
 interface HomeTile {
   key: string;
@@ -39,6 +44,55 @@ const emit = defineEmits<{
 const composerInput = ref('');
 const composerError = ref('');
 const isSubmittingPrompt = ref(false);
+const daemonHealth = useDaemonHealth();
+const { daemonOnline, lastErrorMessage } = daemonHealth;
+
+const connectionStatus = computed(() => {
+  if (!daemonOnline.value) {
+    return {
+      label: 'Daemon stopped',
+      description: lastErrorMessage.value ?? 'Start maenifold --http, then retry.',
+      toneClass: 'border-danger/30 bg-danger/10 text-danger',
+      dotClass: 'bg-danger',
+      actionLabel: 'Retry daemon',
+      action: 'retry-daemon',
+    };
+  }
+  if (props.isConnecting) {
+    return {
+      label: 'Connecting',
+      description: 'Starting an agent session.',
+      toneClass: 'border-warning/30 bg-warning/10 text-warning',
+      dotClass: 'bg-warning',
+      actionLabel: '',
+      action: '',
+    };
+  }
+  if (props.isConnected) {
+    return {
+      label: 'Connected',
+      description: 'Ready to send work.',
+      toneClass: 'border-success/30 bg-success/10 text-success',
+      dotClass: 'bg-success',
+      actionLabel: '',
+      action: '',
+    };
+  }
+  return {
+    label: 'Agent stopped',
+    description: props.hasAgents ? 'Start a session before sending work.' : 'No agents are available yet.',
+    toneClass: 'border-border-card bg-bg-surface text-text-secondary',
+    dotClass: 'bg-text-muted',
+    actionLabel: props.hasAgents ? 'Start session' : '',
+    action: props.hasAgents ? 'start-session' : '',
+  };
+});
+
+const canSubmitPrompt = computed(() => (
+  !isSubmittingPrompt.value
+  && daemonOnline.value
+  && !props.isConnecting
+));
 
 const categories: HomeTile[] = [
   { key: 'agents', title: 'Agents', description: 'Start or resume sessions', icon: '💬', accentClass: 'text-brand', tab: 'agents' },
@@ -62,7 +116,7 @@ function handleTileSelect(tile: HomeTile) {
 async function handleComposerSubmit() {
   const trimmedPrompt = composerInput.value.trim();
   if (!trimmedPrompt) return;
-  if (isSubmittingPrompt.value) return;
+  if (!canSubmitPrompt.value) return;
 
   composerError.value = '';
   isSubmittingPrompt.value = true;
@@ -85,6 +139,16 @@ async function handleComposerSubmit() {
   composerInput.value = '';
 }
 
+async function handleStatusAction(): Promise<void> {
+  if (connectionStatus.value.action === 'retry-daemon') {
+    await daemonHealth.forceCheck();
+    return;
+  }
+  if (connectionStatus.value.action === 'start-session') {
+    emit('new-session');
+  }
+}
+
 watch(composerInput, () => {
   if (composerError.value) {
     composerError.value = '';
@@ -100,7 +164,36 @@ watch(composerInput, () => {
         <Brain class="size-16 text-text-tertiary opacity-40" :stroke-width="1" />
       </div>
 
+      <div class="mb-3 flex items-center gap-2" aria-label="Application identity">
+        <span class="text-sm font-semibold tracking-tight text-text-secondary">{{ appName }}</span>
+        <span
+          class="rounded-full border border-border-card bg-bg-elevated px-2 py-0.5 font-mono text-[10px] font-medium text-text-tertiary"
+          aria-label="Application version"
+        >v{{ appVersion }}</span>
+      </div>
+
       <h1 class="mb-3 text-center text-[26px] font-semibold tracking-tight text-text-primary">What can I help you with?</h1>
+
+      <div
+        id="home-connection-status"
+        class="mb-4 flex max-w-[800px] items-center gap-3 rounded-full border px-3 py-1.5 text-xs"
+        :class="connectionStatus.toneClass"
+        role="status"
+      >
+        <span class="size-2 rounded-full" :class="connectionStatus.dotClass" />
+        <span class="font-semibold">{{ connectionStatus.label }}</span>
+        <span class="text-text-tertiary">{{ connectionStatus.description }}</span>
+        <Button
+          v-if="connectionStatus.actionLabel"
+          type="button"
+          variant="ghost"
+          size="xs"
+          class="ml-1 h-5 rounded-full px-2 text-[11px]"
+          @click="handleStatusAction"
+        >
+          {{ connectionStatus.actionLabel }}
+        </Button>
+      </div>
 
       <div class="mb-4 grid w-full max-w-[800px] grid-cols-5 gap-2">
         <Button
@@ -126,14 +219,14 @@ watch(composerInput, () => {
               type="text"
               placeholder="Ask me anything..."
               :aria-invalid="composerError ? 'true' : 'false'"
-              aria-describedby="home-composer-error"
+              aria-describedby="home-connection-status home-composer-error"
               class="flex-1 border-0 bg-transparent text-sm text-text-primary shadow-none outline-none ring-0 placeholder:text-text-tertiary focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
             />
             <Button
               type="submit"
               variant="ghost"
               size="icon"
-              :disabled="isSubmittingPrompt"
+              :disabled="!canSubmitPrompt"
               class="flex size-9 items-center justify-center rounded-[4px] text-text-tertiary transition-colors hover:text-text-primary"
             >
               <Send class="size-4" :stroke-width="1.5" />

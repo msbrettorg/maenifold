@@ -1,0 +1,29 @@
+{
+  "skill_name": "maenifold-testing",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "We have a regression in the Agents tab: reconnect says active but the chat doesn't attach. Validate it in the real app.",
+      "expected_output": "Uses AGENTS.md plus the maenifold-testing skill, launches packaged Electron through scripts/uat-launch.sh, connects with agent-browser, snapshots before clicking, checks browser errors/console, and compares ACP reconnect behavior against ../acp-ui before proposing code changes.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "npm run build is failing during desktop verification because vue-tsc is missing. Figure out the right next step.",
+      "expected_output": "Checks apps/desktop/node_modules/.bin/vue-tsc, uses the RALPH learning that npm install restores missing .bin symlinks, and proposes that focused environment repair before rerunning the build.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Pipeline behavior still looks stale after a workflow change. Validate whether the running code is actually current.",
+      "expected_output": "Identifies the two-binary maenifold-cli and maenifold-pipeline-driver deployment surface, rebuilds or proposes rebuilding the relevant release binaries, verifies running artifacts rather than source only, and cleans stale driver processes only by exact PID.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "A GatewayExecute curl command is returning a jq indexing error while testing gate status. Debug the request.",
+      "expected_output": "Inspects the raw MCP response, checks .error before .result, uses GatewayIndex for command/schema discovery, and avoids assuming CLI fallback command names without checking maenifold --help.",
+      "files": []
+    }
+  ]
+}

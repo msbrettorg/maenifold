@@ -39,9 +39,22 @@ import { useSessionStore } from '../session';
 describe('useSessionStore reconnect flow', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
+    mockBridge.initialize.mockResolvedValue({
+      protocolVersion: 1,
+      authMethods: [],
+      agentCapabilities: {
+        loadSession: true,
+        sessionCapabilities: {
+          list: false,
+        },
+      },
+    });
+    mockBridge.loadSession.mockResolvedValue({});
+    mockBridge.listSessions.mockResolvedValue({ sessions: [] });
     mockBridge.disconnect.mockClear();
     mockBridge.initialize.mockClear();
     mockBridge.loadSession.mockClear();
+    mockBridge.listSessions.mockClear();
     toast.info.mockClear();
     toast.warning.mockClear();
     toast.error.mockClear();
@@ -138,6 +151,70 @@ describe('useSessionStore reconnect flow', () => {
       cwd: '/repo',
       mcpServers: [],
     });
+  });
+
+  it('retries a transient transport close during saved-session resume', async () => {
+    mockBridge.loadSession
+      .mockRejectedValueOnce(new Error('ACP connection closed'))
+      .mockResolvedValueOnce({});
+
+    const store = useSessionStore();
+    store.savedSessions = [
+      {
+        id: 'saved-remote',
+        agentName: 'architect',
+        sessionId: 'acp-remote-resume',
+        title: 'Resumable session',
+        lastUpdated: Date.now(),
+        cwd: '/repo',
+        supportsLoadSession: true,
+      },
+    ];
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-resume');
+
+    expect(result.status).toBe('resumed');
+    expect(store.activeSessionId).toBe(result.localSessionId);
+    expect(store.currentSession?.sessionId).toBe('acp-remote-resume');
+    expect(mockBridge.initialize).toHaveBeenCalledTimes(2);
+    expect(mockBridge.loadSession).toHaveBeenCalledTimes(2);
+    expect(mockBridge.disconnect).toHaveBeenCalledTimes(1);
+    expect(store.error).toBeNull();
+  });
+
+  it('does not refresh the session list after session/load reconnect succeeds', async () => {
+    mockBridge.initialize.mockResolvedValueOnce({
+      protocolVersion: 1,
+      authMethods: [],
+      agentCapabilities: {
+        loadSession: true,
+        sessionCapabilities: {
+          list: true,
+        },
+      },
+    });
+    mockBridge.listSessions.mockRejectedValueOnce(new Error('ACP connection closed'));
+
+    const store = useSessionStore();
+    store.savedSessions = [
+      {
+        id: 'saved-remote',
+        agentName: 'architect',
+        sessionId: 'acp-remote-resume',
+        title: 'Resumable session',
+        lastUpdated: Date.now(),
+        cwd: '/repo',
+        supportsLoadSession: true,
+      },
+    ];
+
+    const result = await store.focusOrResumeRemoteSession('acp-remote-resume');
+
+    expect(result.status).toBe('resumed');
+    expect(store.activeSessionId).toBe(result.localSessionId);
+    expect(store.currentSession?.sessionId).toBe('acp-remote-resume');
+    expect(mockBridge.listSessions).not.toHaveBeenCalled();
+    expect(store.error).toBeNull();
   });
 
   it('resumes through session/load when only a disconnected local match exists', async () => {
@@ -244,6 +321,39 @@ describe('useSessionStore reconnect flow', () => {
     expect([...store.sessions.keys()]).toEqual(['local-existing']);
     expect(store.error).toBeNull();
     expect(store.connectionError).toContain('Failed to reconnect ACP session acp-remote-resume');
+    expect(mockBridge.disconnect).toHaveBeenCalledOnce();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('disconnects failed synthetic pipeline inspector reconnects', async () => {
+    mockBridge.loadSession.mockRejectedValueOnce(new Error('stale pipeline session'));
+
+    const store = useSessionStore();
+    const existingSession = reactive(createEmptySessionState('local-existing', 'architect', '/repo'));
+    existingSession.session = {
+      id: 'saved-existing',
+      agentName: 'architect',
+      sessionId: 'acp-remote-existing',
+      title: 'Existing session',
+      lastUpdated: Date.now(),
+      cwd: '/repo',
+      supportsLoadSession: true,
+    };
+    existingSession.isConnected = true;
+
+    store.sessions.set('local-existing', existingSession);
+    store.sessions = new Map(store.sessions);
+    store.activeSessionId = 'local-existing';
+
+    const result = await store.focusOrResumeRemoteSession('pipeline-acp-session', 'Copilot', {
+      suppressErrors: true,
+    });
+
+    expect(result).toEqual({ status: 'error' });
+    expect(store.activeSessionId).toBe('local-existing');
+    expect(store.sessions.size).toBe(1);
+    expect(store.connectionError).toContain('Failed to reconnect ACP session pipeline-acp-session');
+    expect(mockBridge.disconnect).toHaveBeenCalledOnce();
     expect(toast.error).not.toHaveBeenCalled();
   });
 

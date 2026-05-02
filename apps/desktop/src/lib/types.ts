@@ -135,6 +135,7 @@ export interface SavedSession {
   lastUpdated: number;
   cwd: string;
   supportsLoadSession?: boolean; // Whether the agent supports session/load
+  messages?: ChatMessage[];
 }
 
 export interface ChatMessage {

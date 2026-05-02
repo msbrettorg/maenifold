@@ -134,6 +134,12 @@ const activeSessionSource = computed(() => sessionStore.activeSession?.source ??
 const showAgentsChat = computed(
   () => isConnected.value && activeSessionSource.value === 'agents'
 );
+const agentsEmptyTitle = computed(() =>
+  sessionStore.error ? 'Session failed to resume' : 'No active session'
+);
+const agentsEmptyDescription = computed(() =>
+  sessionStore.error ?? 'Select an agent and start a new session'
+);
 </script>
 
 <template>
@@ -220,8 +226,8 @@ const showAgentsChat = computed(
           v-if="visitedTabs.has('agents')"
           v-show="!showHome && activeTab === 'agents' && !showAgentsChat"
           :icon="MessageSquare"
-          title="No active session"
-          description="Select an agent and start a new session"
+          :title="agentsEmptyTitle"
+          :description="agentsEmptyDescription"
         />
         </main>
 

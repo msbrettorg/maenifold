@@ -36,6 +36,7 @@ fn relay_for(agent_name: &str) -> RelayConfig {
         },
         default_cwd: ".".to_string(),
         configured_mcp_servers: Vec::new(),
+        keep_session_alive: false,
     }
 }
 

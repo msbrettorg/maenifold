@@ -3,7 +3,7 @@ import { reactive, watch, type Ref, type WatchStopHandle } from 'vue';
 import type { SessionSource, SessionState } from '../lib/types';
 import { createEmptySessionState, generateSessionId } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
-import { trackEvent } from '../lib/telemetry';
+import { trackError, trackEvent } from '../lib/telemetry';
 
 interface UseSessionConnectionDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -65,6 +65,7 @@ export function useSessionConnection({
     try {
       await bridge.disconnect();
     } catch (error) {
+      trackError(error instanceof Error ? error : new Error(String(error)), { sessionId });
     }
   }
   async function closeRemoteSession(session: SessionState, bridge: AcpClientBridge): Promise<void> {
@@ -106,9 +107,10 @@ export function useSessionConnection({
     if (!existing || existing.isConnected) {
       return;
     }
+    const inactiveSessionId = activeSessionId.value;
     existing.agentId = null;
-    deleteSessionState(activeSessionId.value);
-    bridges.delete(activeSessionId.value);
+    void disconnectBridge(inactiveSessionId);
+    deleteSessionState(inactiveSessionId);
   }
   function createSessionSlot(
     agentName: string,
@@ -187,8 +189,7 @@ export function useSessionConnection({
       return;
     }
 
-    stopPermissionWatch(sessionId);
-    bridges.delete(sessionId);
+    await disconnectBridge(sessionId);
     session.agentId = null;
     deleteSessionState(sessionId);
     adjustActiveSessionId(sessionId);

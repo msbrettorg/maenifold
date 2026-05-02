@@ -178,6 +178,7 @@ pub enum NodeStatus {
     Ready,
     Active,
     Completed,
+    Skipped,
     Abandoned,
     Stuck,
     Retrying,

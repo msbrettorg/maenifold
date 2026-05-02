@@ -103,7 +103,7 @@ pub(super) fn update_pipeline_node_status(
                             "ERROR: Pipeline session missing node state for '{unreachable_node_id}'"
                         ))
                     })?;
-                unreachable_state.status = NodeStatus::Abandoned;
+                unreachable_state.status = NodeStatus::Skipped;
                 unreachable_state.completed_at = Some(Utc::now());
                 unreachable_state.acp_session_id = None;
                 unreachable_state.thinking_session_id = None;
@@ -135,7 +135,7 @@ pub(super) fn update_pipeline_node_status(
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
 
-            let mut skipped_node_ids = unreachable_node_ids;
+            let mut skipped_node_ids = unreachable_node_ids.clone();
             skipped_node_ids.extend(cascaded_node_ids);
             for skipped_node_id in &skipped_node_ids {
                 let skipped_session_id = node_states
@@ -147,7 +147,17 @@ pub(super) fn update_pipeline_node_status(
                     })?
                     .session_id
                     .clone();
-                update_workflow_node_frontmatter(context, &skipped_session_id, "abandoned", None)?;
+                let skipped_status = if unreachable_node_ids.contains(skipped_node_id) {
+                    "skipped"
+                } else {
+                    "abandoned"
+                };
+                update_workflow_node_frontmatter(
+                    context,
+                    &skipped_session_id,
+                    skipped_status,
+                    None,
+                )?;
             }
         }
         "abandoned" | "stuck" => {

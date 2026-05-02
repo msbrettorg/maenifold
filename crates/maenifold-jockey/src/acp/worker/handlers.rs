@@ -4,7 +4,9 @@ use serde_json::json;
 use super::super::adapter::acp_log;
 use super::super::runtime_state::clear_all as clear_runtime_state_fn;
 use super::super::session::cold_start;
-use super::pool::{CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, pool_key};
+use super::pool::{
+    CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, pool_key, remove_session_index,
+};
 
 // Re-exports from extracted modules
 #[allow(unused_imports)]
@@ -36,6 +38,9 @@ pub(crate) async fn shutdown_worker_state() {
         m.borrow_mut().clear();
     });
     PROMPT_LOCKS.with(|m| {
+        m.borrow_mut().clear();
+    });
+    super::pool::SESSION_INDEX.with(|m| {
         m.borrow_mut().clear();
     });
 
@@ -84,7 +89,9 @@ pub(crate) async fn reset_worker_session(
             .await;
     }
 
-    CONN_MAP.with(|m| m.borrow_mut().remove(&key));
+    if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(&key)) {
+        remove_session_index(runtime_key, role_name, &live.session_id.to_string());
+    }
     use super::super::runtime_state::clear_session as clear_session_runtime_state;
     clear_session_runtime_state(app_session_id, runtime_key, role_name);
     Ok(())
@@ -105,7 +112,9 @@ pub(crate) async fn reconnect_worker_session(
             .await;
     }
 
-    CONN_MAP.with(|m| m.borrow_mut().remove(&key));
+    if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(&key)) {
+        remove_session_index(runtime_key, role_name, &live.session_id.to_string());
+    }
     use super::super::runtime_state::clear_session as clear_session_runtime_state;
     clear_session_runtime_state(app_session_id, runtime_key, role_name);
     acp_log(

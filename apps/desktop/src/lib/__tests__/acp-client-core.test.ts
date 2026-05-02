@@ -281,6 +281,94 @@ describe('AcpClientBridgeCore request hardening', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('dispatches replay session updates directly like acp-ui', async () => {
+    const { bridge, socket } = await connectBridge();
+    const updates: unknown[] = [];
+    bridge.onSessionUpdate = (notification) => updates.push(notification);
+    const replayNotification = {
+      jsonrpc: '2.0',
+      method: 'session/update',
+      params: {
+        sessionId: 'session-1',
+        update: {
+          sessionUpdate: 'tool_call',
+          toolCallId: 'tool-1',
+          title: 'Read file',
+          kind: 'read',
+          status: 'completed',
+          content: null,
+          locations: null,
+        },
+      },
+    };
+
+    socket.triggerMessage(JSON.stringify(replayNotification));
+
+    expect(updates).toEqual([replayNotification.params]);
+    expect(socket.sent).toEqual([]);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('keeps session/load pending when a replay update handler fails', async () => {
+    const { bridge, socket } = await connectBridge();
+    bridge.onSessionUpdate = () => {
+      throw new Error('bad replay update');
+    };
+
+    const loadPromise = bridge.request('session/load', {
+      sessionId: 'session-1',
+      cwd: '/repo',
+      mcpServers: [],
+    });
+    const replayNotification = {
+      jsonrpc: '2.0',
+      method: 'session/update',
+      params: {
+        sessionId: 'session-1',
+        update: {
+          sessionUpdate: 'available_commands_update',
+          availableCommands: null,
+        },
+      },
+    };
+
+    socket.triggerMessage(JSON.stringify(replayNotification));
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: {},
+    }));
+
+    await expect(loadPromise).resolves.toEqual({});
+    expect(console.error).toHaveBeenCalledWith(
+      'Failed to handle ACP session/update notification:',
+      expect.any(Error)
+    );
+  });
+
+  it('keeps session/load pending when an inbound relay message is malformed', async () => {
+    const { bridge, socket } = await connectBridge();
+
+    const loadPromise = bridge.request('session/load', {
+      sessionId: 'session-1',
+      cwd: '/repo',
+      mcpServers: [],
+    });
+
+    socket.triggerMessage('not-json');
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: {},
+    }));
+
+    await expect(loadPromise).resolves.toEqual({});
+    expect(console.error).toHaveBeenCalledWith(
+      'Failed to handle ACP relay message:',
+      expect.any(Error)
+    );
+  });
+
   it('uses long-lived timeouts for ACP control mutations', () => {
     const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
 

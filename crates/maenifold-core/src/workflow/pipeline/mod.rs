@@ -56,6 +56,8 @@ mod failure_reason_scope_tests_cascade;
 mod failure_reason_scope_tests_edge;
 mod handler;
 mod handler_crud;
+#[cfg(test)]
+mod handler_delete_degraded_tests;
 mod handler_lifecycle;
 mod handler_nodes;
 mod handler_surgery;

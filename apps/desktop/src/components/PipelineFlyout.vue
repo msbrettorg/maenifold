@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Sheet,
@@ -141,10 +140,10 @@ watch(
           />
         </div>
 
-        <ScrollArea class="h-[calc(100vh-7rem)]">
+        <div class="min-h-0 flex-1 overflow-hidden">
           <div
             v-if="showLoadingState"
-            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
+            class="grid place-content-center gap-3 p-6 text-center"
             aria-live="polite"
           >
             <Skeleton class="h-[1.1rem] w-[min(14rem,85vw)] justify-self-center rounded-sm" />
@@ -154,7 +153,7 @@ watch(
 
           <div
             v-else-if="showErrorState"
-            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center text-text-primary"
+            class="grid place-content-center gap-3 p-6 text-center text-text-primary"
             role="alert"
           >
             <p class="m-0 text-lg text-text-primary">Failed to load</p>
@@ -164,7 +163,7 @@ watch(
 
           <div
             v-else-if="pipelines.length === 0"
-            class="grid min-h-[calc(100vh-12rem)] place-content-center gap-3 p-6 text-center"
+            class="grid place-content-center gap-3 p-6 text-center"
           >
             <p class="m-0 text-lg text-text-primary">No pipelines yet</p>
             <Button type="button" class="rounded-sm" @click="emit('new-pipeline')">New pipeline</Button>
@@ -176,7 +175,7 @@ watch(
             :filter-query="searchQuery"
             @pipeline-selected="emit('close')"
           />
-        </ScrollArea>
+        </div>
       </div>
     </SheetContent>
   </Sheet>

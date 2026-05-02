@@ -5,6 +5,7 @@ use std::sync::atomic::AtomicU64;
 
 pub(super) const INIT_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
 pub(super) const SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+pub(super) const LOAD_SESSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(8);
 pub(super) static LIVE_CONNECTION_SEQ: AtomicU64 = AtomicU64::new(1);
 
 pub(crate) fn default_client_capabilities() -> acp::ClientCapabilities {

@@ -77,14 +77,9 @@ async fn prewarm_acp_session(
     cwd: &str,
     session_id: &str,
 ) -> Result<String> {
-    let (_config_options, _modes, actual_acp_session_id) = jockey::acp::prewarm_role_for_config(
-        runtime_kind,
-        agent_name,
-        cwd,
-        None,
-        Some(session_id),
-    )
-    .await;
+    let (_config_options, _modes, actual_acp_session_id) =
+        jockey::acp::prewarm_role_for_config(runtime_kind, agent_name, cwd, None, Some(session_id))
+            .await;
     if actual_acp_session_id.trim().is_empty() {
         return Err(MaenifoldError::AgentSetup(format!(
             "agent '{agent_name}' did not return an ACP session id during session/new"

@@ -11,6 +11,7 @@ pub(super) fn node_status_string(status: &NodeStatus) -> &'static str {
         NodeStatus::Pending => "pending",
         NodeStatus::Active => "active",
         NodeStatus::Completed => "completed",
+        NodeStatus::Skipped => "skipped",
         NodeStatus::Abandoned => "abandoned",
         NodeStatus::Ready => "ready",
         NodeStatus::Stuck => "stuck",

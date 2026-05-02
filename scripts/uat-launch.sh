@@ -33,6 +33,7 @@ binary="$repo_root/apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Content
 pkg_tmp="/tmp/mae-pkg-$safe_task_id"
 user_data_dir="$pkg_tmp/user-data"
 log_path="$pkg_tmp/mae-cdp-$port.log"
+pid_path="$pkg_tmp/mae-cdp-$port.pid"
 
 if [ ! -x "$binary" ]; then
   echo "error: packaged binary not found or not executable: $binary" >&2
@@ -40,12 +41,16 @@ if [ ! -x "$binary" ]; then
   exit 1
 fi
 
-mkdir -p "$user_data_dir"
-
-pids="$(lsof -ti :"$port" 2>/dev/null || true)"
-if [ -n "$pids" ]; then
-  printf '%s\n' "$pids" | xargs kill -9
+port_owner="$(lsof -nP -iTCP:"$port" -sTCP:LISTEN 2>/dev/null || true)"
+if [ -n "$port_owner" ]; then
+  echo "error: CDP port $port is already in use" >&2
+  echo "$port_owner" >&2
+  echo "kill the exact owning PID first, then re-run this script" >&2
+  exit 1
 fi
+
+rm -rf "$pkg_tmp"
+mkdir -p "$user_data_dir"
 
 export TMPDIR="$pkg_tmp"
 nohup "$binary" \
@@ -54,9 +59,30 @@ nohup "$binary" \
   --user-data-dir="$user_data_dir" \
   >"$log_path" 2>&1 &
 pid="$!"
+disown
+printf '%s\n' "$pid" >"$pid_path"
+
+sleep 8
+if ! ps -p "$pid" >/dev/null 2>&1; then
+  echo "error: packaged app exited during CDP launch: pid $pid" >&2
+  echo "log: $log_path" >&2
+  tail -n 120 "$log_path" >&2 || true
+  exit 1
+fi
+
+if ! curl -fsS "http://127.0.0.1:$port/json" >/tmp/mae-cdp-targets-"$port".json; then
+  echo "error: CDP endpoint did not respond on port $port" >&2
+  echo "pid: $pid" >&2
+  echo "log: $log_path" >&2
+  tail -n 120 "$log_path" >&2 || true
+  exit 1
+fi
 
 echo "pid: $pid"
 echo "port: $port"
 echo "TMPDIR: $TMPDIR"
 echo "user-data-dir: $user_data_dir"
 echo "log: $log_path"
+echo "pid-file: $pid_path"
+echo "targets: /tmp/mae-cdp-targets-$port.json"
+echo "connect: agent-browser connect $port"

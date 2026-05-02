@@ -165,7 +165,12 @@ fn is_conditional_only_unreachable(
                     has_conditional = true;
                     if !matches!(
                         node_states.get(source_id).map(|state| &state.status),
-                        Some(NodeStatus::Completed | NodeStatus::Abandoned | NodeStatus::Stuck)
+                        Some(
+                            NodeStatus::Completed
+                                | NodeStatus::Skipped
+                                | NodeStatus::Abandoned
+                                | NodeStatus::Stuck,
+                        )
                     ) {
                         all_sources_terminal = false;
                     }

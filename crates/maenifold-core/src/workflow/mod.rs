@@ -1,7 +1,7 @@
 mod adoption;
 mod agent_session;
-mod agent_session_open;
 mod agent_session_config;
+mod agent_session_open;
 mod agent_session_resume;
 mod asset_delete;
 mod handler;

@@ -107,19 +107,52 @@ fn invoke(context: &ToolContext, tool_name: &str, payload: &Value) -> Result<Str
         return Ok(mcp::gateway_cli_help(tool_name));
     }
 
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .map_err(|error| {
-            MaenifoldError::Message(format!(
-                "Failed to build runtime for gateway CLI tool '{tool_name}': {error}"
-            ))
-        })?
-        .block_on(mcp::invoke_gateway_cli_tool(
-            &context.config,
-            dispatch_tool_name(tool_name),
-            dispatch_payload(tool_name, payload),
-        ))
+    let future = mcp::invoke_gateway_cli_tool(
+        &context.config,
+        dispatch_tool_name(tool_name),
+        dispatch_payload(tool_name, payload),
+    );
+
+    match tokio::runtime::Handle::try_current() {
+        Ok(handle) => {
+            if matches!(
+                handle.runtime_flavor(),
+                tokio::runtime::RuntimeFlavor::MultiThread
+            ) {
+                tokio::task::block_in_place(|| handle.block_on(future))
+            } else {
+                std::thread::scope(|scope| {
+                    scope
+                        .spawn(|| {
+                            tokio::runtime::Builder::new_current_thread()
+                                .enable_all()
+                                .build()
+                                .map_err(|error| {
+                                    MaenifoldError::Message(format!(
+                                        "Failed to build runtime for gateway CLI tool '{tool_name}': {error}"
+                                    ))
+                                })?
+                                .block_on(future)
+                        })
+                        .join()
+                        .map_err(|_| {
+                            MaenifoldError::Message(format!(
+                                "Gateway tool '{tool_name}' thread panicked"
+                            ))
+                        })?
+                })
+            }
+        }
+        Err(_) => tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|error| {
+                MaenifoldError::Message(format!(
+                    "Failed to build runtime for gateway CLI tool '{tool_name}': {error}"
+                ))
+            })?
+            .block_on(future),
+    }
 }
 
 fn dispatch_tool_name(tool_name: &str) -> &str {

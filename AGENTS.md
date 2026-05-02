@@ -106,11 +106,13 @@ Use the native maenifold MCP Gateway surface. Do not fall back to a legacy gate 
 
 ### Authorization
 
-**The PM operates autonomously.** The PM owns the backlog, dispatches SWEs, advances gate stages, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects. Never stop voluntarily — groom, decompose, dispatch, ship, loop.
+**The PM operates autonomously.** The PM owns the backlog, builds pipeline DAGs, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects.
 
-**The PM never idles.** After dispatching agents, the PM continues working: grooming the next wave, writing specs for upcoming tasks, running `gate_Status` through `GatewayExecute` to find newly-ready items, or advancing gate stages for completed work. "Waiting for agents to finish" is not a valid PM state — there is always grooming, spec-writing, or gate bookkeeping to do while agents execute.
+**Pipeline-driven execution is the default.** The PM builds pipeline DAGs from the gate backlog using the `Pipeline` tool. Each gate task becomes pipeline nodes (tool nodes for `gate_Pass`/`gate_Fail`, prompt nodes for SWE/red-team/blue-team work). The pipeline engine handles dispatch, ordering, concurrency, and state persistence. Agents are stateless workers — they receive a prompt, do the work, return output. They do not know about gate, RACI, or process. The DAG topology IS the process.
 
-**Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for immediate dispatch. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get dispatched or triaged, never ignored.
+**The PM never idles.** While pipelines execute, the PM monitors progress (`Pipeline view`), intervenes on failures (`Pipeline rewind`), grafts remediation nodes, and builds the next pipeline. "Waiting for the pipeline to finish" is not a valid PM state.
+
+**Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for pipeline inclusion. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get included or triaged, never ignored.
 
 ### SWE Verification Requirements
 
@@ -127,15 +129,7 @@ SWE agents are unreliable narrators. These requirements exist because SWEs have:
 
 ### Sub-PM Verification Requirements
 
-Sub-PMs have accepted build-only verification as proof of behavioral correctness. This is wrong.
-
-**Sub-PM SWE acceptance requires:**
-
-1. **Delta verification.** `git diff --stat` confirms files were actually modified.
-2. **File match.** Modified files match the spec's file list or acceptance criteria.
-3. **Spot check.** At least one acceptance criterion verified against actual code (not the SWE's report).
-
-Build passing is necessary but not sufficient.
+**Sub-PMs are obsolete.** Pipeline DAGs replace them. Tool nodes advance gate state, prompt nodes dispatch agent work, conditional edges handle failure routing. The pipeline engine handles everything sub-PMs used to do.
 
 ### Test Policy
 
@@ -151,37 +145,28 @@ Build passing is necessary but not sufficient.
 - **Red-team:** Audit ONLY files modified by the SWE. Verdict on the delta. Pre-existing issues → informational, not FAIL.
 - **Blue-team:** Run ONLY tests for changed code. Unrelated compilation failure → report blockage, recommend waiver.
 - **SWE:** The task is the task. Adjacent problems → report, don't fix.
-- **Sub-PMs:** Max 2 remediation cycles. Unrelated breakage → escalate immediately.
+- **Sub-PMs:** Obsolete. Use pipelines instead.
 
-### Parallelization — Maximum Throughput Is Mandatory
+### Parallelization — Pipeline DAGs Handle It
 
-**The PM's job is to keep agents working.** An idle agent while work remains is a PM failure. Gate is a kanban board — if there is no dependency between two tasks, they run in parallel. Period.
+The `Pipeline` tool manages concurrency, ordering, and saturation. The PM builds DAGs; the engine runs them up to `maxConcurrency`. Manual wave dispatch is obsolete.
 
-**Dispatch rules:**
+**Pipeline DAG construction:**
 
-- **Priority first, then ID.** Sort `pending` by priority (P0 > P1 > P2 > P3) then by task ID ascending. Dispatch only from the highest non-empty priority bucket. Within a bucket, lowest ID wins. Never dispatch P2/P3 while any P0/P1 is dispatchable. Re-dispatched failures keep their original priority.
-- **Saturate the pipeline.** Every pending task whose dependencies are met MUST be dispatched immediately. Do not wait for one task to complete before starting the next. Use `gate_Status` through `GatewayExecute` to find all ready tasks, dispatch them all.
-- **Parallel frontend isolation.** CDP SWEs use the PM dispatch discipline: stable task-hash port computed with `printf '%s' "<task-id>" | shasum | cut -c1-4 | xargs -I{} printf '%d' 0x{} | awk '{print 9200 + ($1 % 400)}'`, `scripts/uat-launch.sh <task-id>` unless intentionally overriding the port, per-task TMPDIR/user-data-dir, no shared `out/` contention, and port-only kill.
-- **Wave-based execution.** Group independent tasks into waves. Dispatch the entire wave in one response using parallel `task` calls. Wait for the wave to complete. Dispatch the next wave.
-- **Per-agent build isolation.** Every dispatched SWE MUST run `cargo` with `CARGO_TARGET_DIR=target/agents/<task-id>` (set by the dispatching PM in the task prompt). Workspace-global `target/` is reserved for blue-team and the human. This is the rule that makes parallel SWEs across different crates actually work — without it, cargo's workspace lock silently serializes builds.
-- **Same file is still forbidden.** Different crates → fully parallel. Same file → edit conflict, not a build conflict; still forbidden.
-- **Cross-crate parallelism is the default.** If two tasks touch different crates, they run simultaneously. The PM must explicitly justify serial execution — "I chose not to parallelize because X" — not the reverse.
-- **Red-team parallelism.** After a SWE wave completes, dispatch ALL red-team audits in parallel (one per task). Red-team agents only read code — no conflicts.
-- **Blue-team batching.** After red-team wave completes, dispatch blue-team verification. Blue-team runs against workspace-global `target/`, so batch per-crate to avoid lock contention.
-- **One agent per CDP session.** Visual audits are serial — this is the only exception to the parallelism mandate.
+- **Priority first, then ID.** Pipelines are built priority bucket by priority bucket. Never include lower priority while higher priority tasks are unfinished.
+- **Contention lanes via edges.** Tasks that touch the same file get serial edges between them (chain). Tasks on different files have no edge (parallel).
+- **maxConcurrency** caps simultaneous active nodes — set to 6 for typical sprints, 1 for sequential debugging runs.
+- **Cross-crate parallelism is the default.** Different crates → no edge needed.
+- **Same file is forbidden parallel.** Add a serial edge between them.
+- **One agent per CDP session.** Visual audits get a dedicated lane with no parallel siblings.
 
-**Throughput targets:**
-
-- Sprint with 6 independent tasks across 3 crates → 2 SWE agents running simultaneously minimum.
-- Sprint with 8 test-only tasks → 4 SWE agents running simultaneously (tests don't conflict across files).
-- If only 1 agent is running at any time during a multi-task sprint, the PM is failing.
+**Per-agent build isolation.** SWE prompt nodes set `CARGO_TARGET_DIR=target/agents/<task-id>` in their build commands. Workspace-global `target/` is reserved for blue-team and the human.
 
 **Anti-patterns the PM must not exhibit:**
 
-- Dispatching one task, waiting for completion, dispatching the next. This is serial execution with extra steps.
-- "I'll start with T-X and then do T-Y" when X and Y have no dependency. Start both.
-- Waiting for user confirmation between independent tasks. The PM operates autonomously.
-- Running `gate_Status` and finding 5 pending tasks but only dispatching 1.
+- Manual `Task` tool dispatch when a pipeline DAG would do it. For >1 task, use a pipeline.
+- Building a single-lane pipeline when tasks are file-independent.
+- Using `maxConcurrency: 1` without justification.
 
 ### Formatting
 
@@ -210,7 +195,7 @@ Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based 
 ## Severity
 
 - **P0** — Compile errors. Breaks `cargo build --release` or `cargo test --no-run`. PM handles personally.
-- **P1** — Active work or blocked by P0. Dispatched to sub-PMs.
+- **P1** — Active work or blocked by P0. Included in pipeline DAGs.
 - **P2** — Discovered items. Backlog until prioritized.
 
 ---
@@ -346,6 +331,7 @@ Multiple 72h fires came from agents trying to mutate gate state directly: `mv` b
 ## ACP
 
 - Architecture: [docs/acp-client-architecture.md](docs/acp-client-architecture.md) is law.
+- **ACP UI reference:** canonical source is the sibling checkout `../acp-ui` from `https://github.com/formulahendry/acp-ui.git`; current reference commit `27e32022a854b40b944a5872a7211d6c027cdff8`. Before changing desktop ACP session/reconnect/stream handling, compare against this source (`src/lib/acp-bridge.ts`, `src/stores/session.ts`, and related components) instead of inferring behavior from memory.
 - **`prompt` is the only primitive.** Think and workflow chain prompt calls. No direct agent path.
 - All ACP calls MUST specify `model` explicitly. No defaults.
 - WebSocket URI requires `?agent=<name>`. Missing → reject. Bare `/ws/acp` is a test failure.
@@ -380,21 +366,15 @@ Launch binary directly (not `open -a`) with `--remote-debugging-port=<port>`. On
 Concrete launch sequence (macOS, after `npm run package`):
 
 ```bash
-# kill any prior instance
-ps aux | grep "maenifold.app/Contents/MacOS/maenifold" | grep -v grep | awk '{print $2}' | xargs -r kill -9
-mkdir -p /tmp/mae-uat-userdata
-nohup ./apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
-  --remote-debugging-port=9223 \
-  --remote-allow-origins='*' \
-  --user-data-dir=/tmp/mae-uat-userdata \
-  > /tmp/mae-cdp.log 2>&1 &
-disown
-sleep 8
-curl -s http://127.0.0.1:9223/json | head -c 200   # → JSON array with at least one page entry
-agent-browser connect 9223
+scripts/uat-launch.sh <task-id> [port]
+agent-browser connect <printed-port>
 ```
 
+`scripts/uat-launch.sh` is the canonical wrapper for packaged Electron UAT. It computes a stable task-specific port when one is not supplied, refuses to launch if the CDP port is already owned, starts the packaged binary directly with all three required flags, detaches with `nohup` + `disown`, verifies `/json`, and prints the exact `agent-browser connect <port>` command. If it reports a port owner, kill the exact printed PID yourself and re-run the wrapper; do not use name-based process cleanup.
+
 **Tooling:** Use `agent-browser` CLI for all CDP interaction. Load the `electron` skill first (`agent-browser skills get electron`). Connect with `agent-browser connect <port>`. Use `agent-browser snapshot` to get the accessibility tree with `@eN` element refs, then `agent-browser click @eN` / `agent-browser type @eN "text"` to interact. Use `agent-browser screenshot` for evidence.
+
+**CDP timeout discipline:** Interactive UI waits are assertions, not sleep buffers. Use single-digit waits only: 1-5 seconds by default, 8 seconds maximum for dynamic UI after a click/reload/navigation. If the expected control/text/state is not present within that window, capture the snapshot, console, errors, relevant log path, PID, and port, then treat it as a product or harness failure. Never use 30s/60s `agent-browser wait` calls to see whether the UI eventually settles; long waits are only acceptable for non-interactive build/package/launch commands, not renderer behavior.
 
 **Do NOT write custom Python/Playwright scripts for UI testing.** `agent-browser` is the tool. It handles Electron's CDP quirks, provides accessibility-tree snapshots, and gives you reliable element refs. Hand-written scripts get stuck in loops and miss elements.
 

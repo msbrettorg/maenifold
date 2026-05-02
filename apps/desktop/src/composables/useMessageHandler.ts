@@ -1,5 +1,5 @@
 import type { Ref } from 'vue';
-import type { ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
+import type { ChatMessage, ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
@@ -26,6 +26,38 @@ export function useMessageHandler({
   cancelPermission,
   resolveToolAppUi,
 }: UseMessageHandlerDeps) {
+  function cloneMessageForPersistence(message: ChatMessage): ChatMessage {
+    return {
+      id: message.id,
+      role: message.role,
+      content: message.content,
+      blocks: message.blocks?.map((block) => cloneContentBlock(block)),
+      thought: message.thought,
+      timestamp: message.timestamp,
+      toolCalls: message.toolCalls?.map((toolCall) => ({
+        ...toolCall,
+        locations: toolCall.locations?.map((location) => ({ ...location })),
+        content: toolCall.content?.map((block) => ({ ...block })),
+        rawInput: toolCall.rawInput ? { ...toolCall.rawInput } : undefined,
+        rawOutput: toolCall.rawOutput ? { ...toolCall.rawOutput } : undefined,
+      })),
+    };
+  }
+
+  async function persistSessionMessages(session: SessionState): Promise<void> {
+    const sessionInfo = session.session;
+    if (!sessionInfo) {
+      return;
+    }
+    const savedSession = savedSessions.value.find((entry) => entry.sessionId === sessionInfo.sessionId);
+    if (!savedSession) {
+      return;
+    }
+    savedSession.messages = session.messages.map((message) => cloneMessageForPersistence(message));
+    savedSession.lastUpdated = Date.now();
+    await saveSessionsToStore();
+  }
+
   async function renameSessionFromFirstPrompt(session: SessionState, text: string): Promise<void> {
     if (!session.session || session.messages.some((message) => message.role === 'user')) {
       return;
@@ -251,6 +283,7 @@ export function useMessageHandler({
       } finally {
         session.isLoading = false;
       }
+      await persistSessionMessages(session);
       return true;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);

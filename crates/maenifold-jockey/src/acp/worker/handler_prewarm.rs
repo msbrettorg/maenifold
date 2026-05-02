@@ -12,7 +12,10 @@ use super::handler_config::{
     apply_cold_start_config, spawn_connection_health_watch, structured_config_option_pairs,
 };
 use super::notify::notify_prewarm;
-use super::pool::{CONN_MAP, DELTA_CHANNEL_CAPACITY};
+use super::pool::{
+    CONN_MAP, DELTA_CHANNEL_CAPACITY, find_session_key, register_session_index,
+    remove_session_index,
+};
 use super::types::{AcpEvent, ConnectionDeathEvent, PrewarmStatus};
 
 #[allow(clippy::too_many_arguments)]
@@ -34,24 +37,7 @@ pub(crate) async fn handle_prewarm(
     result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
     resume_session_id: Option<String>,
 ) {
-    let already_live = CONN_MAP.with(|m| m.borrow().contains_key(&key));
-    if already_live {
-        if let Some(tx) = result_tx {
-            let session_id = CONN_MAP.with(|m| {
-                m.borrow()
-                    .get(&key)
-                    .map(|c| c.session_id.to_string())
-                    .unwrap_or_default()
-            });
-            let _ = tx.send((
-                list_discovered_config_options(runtime_key),
-                list_discovered_modes(runtime_key),
-                session_id,
-            ));
-        }
-        return;
-    }
-
+    let mut result_tx = result_tx;
     fn remember_prewarm_event(
         runtime_key: &str,
         role_name: &str,
@@ -89,6 +75,8 @@ pub(crate) async fn handle_prewarm(
         }
     }
 
+    let is_resume_replay = resume_session_id.is_some();
+
     let resolved = resolve_cwd(&cwd);
     acp_log(
         "prewarm.start",
@@ -124,10 +112,33 @@ pub(crate) async fn handle_prewarm(
         None
     };
 
+    if let Some(session_id) = resume_session_id.clone()
+        && find_session_key(runtime_key, &role_name, &session_id).is_some()
+        && complete_live_resume_prewarm(
+            &key,
+            runtime_key,
+            &role_name,
+            &app_session_id,
+            &cwd,
+            mcp_servers.clone(),
+            forwarded_delta_tx.clone(),
+            result_tx.take(),
+            &session_id,
+        )
+        .await
+    {
+        return;
+    }
+
+    let already_live = CONN_MAP.with(|m| m.borrow().contains_key(&key));
+    if already_live {
+        complete_already_live_prewarm(&key, runtime_key, forwarded_delta_tx, result_tx, false)
+            .await;
+        return;
+    }
+
     let flat_role_config_options =
         structured_config_option_pairs(&role_config_options, runtime_key);
-    let is_resume_replay = resume_session_id.is_some();
-
     match cold_start(
         runtime_key,
         &role_name,
@@ -161,6 +172,7 @@ pub(crate) async fn handle_prewarm(
             let health_rx_clone = conn.health_rx.clone();
 
             CONN_MAP.with(|m| m.borrow_mut().insert(key.clone(), conn));
+            register_session_index(runtime_key, &role_name, &session_id_str, &key);
 
             if let Some(forward_tx) = forwarded_delta_tx.as_ref() {
                 if is_resume_replay {
@@ -246,9 +258,128 @@ pub(crate) async fn handle_prewarm(
                 &app_session_id,
                 PrewarmStatus::Failed { error: e.clone() },
             );
-            if let Some(tx) = result_tx {
-                let _ = tx.send((vec![], vec![], String::new()));
-            }
+            complete_failed_prewarm(delta_tx, result_tx, is_resume_replay).await;
         }
     }
 }
+
+async fn complete_failed_prewarm(
+    delta_tx: Option<mpsc::Sender<AcpEvent>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    is_resume_replay: bool,
+) {
+    if is_resume_replay {
+        if let Some(tx) = delta_tx {
+            let _ = tx.send(AcpEvent::ReplayComplete).await;
+        }
+    }
+    if let Some(tx) = result_tx {
+        let _ = tx.send((vec![], vec![], String::new()));
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn complete_live_resume_prewarm(
+    key: &str,
+    runtime_key: &str,
+    role_name: &str,
+    _app_session_id: &str,
+    _cwd: &str,
+    _mcp_servers: Vec<acp::McpServer>,
+    delta_tx: Option<mpsc::Sender<AcpEvent>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    resume_session_id: &str,
+) -> bool {
+    let Some(existing_key) = find_session_key(runtime_key, role_name, resume_session_id) else {
+        return false;
+    };
+
+    if existing_key != key {
+        let moved = CONN_MAP.with(|m| {
+            let mut map = m.borrow_mut();
+            map.remove(&existing_key).map(|live| {
+                let old_session_id = live.session_id.to_string();
+                map.insert(key.to_string(), live);
+                old_session_id
+            })
+        });
+        if let Some(old_session_id) = moved {
+            remove_session_index(runtime_key, role_name, &old_session_id);
+            register_session_index(runtime_key, role_name, &old_session_id, key);
+        }
+    }
+
+    let live = CONN_MAP.with(|m| {
+        m.borrow().get(key).map(|live| {
+            (
+                live.delta_slot.clone(),
+                live.session_id.to_string(),
+            )
+        })
+    });
+    let Some((delta_slot, live_session_id)) = live else {
+        return false;
+    };
+    if live_session_id != resume_session_id {
+        return false;
+    }
+
+    if let Ok(mut slot) = delta_slot.lock() {
+        *slot = delta_tx.clone();
+    }
+
+    acp_log(
+        "session.live_attach.ok",
+        json!({ "runtime": runtime_key, "sessionId": resume_session_id }),
+    );
+
+    if let Some(tx) = delta_tx {
+        let _ = tx.send(AcpEvent::ReplayComplete).await;
+    }
+
+    if let Ok(mut slot) = delta_slot.lock() {
+        *slot = None;
+    }
+
+    if let Some(tx) = result_tx {
+        let _ = tx.send((
+            list_discovered_config_options(runtime_key),
+            list_discovered_modes(runtime_key),
+            resume_session_id.to_string(),
+        ));
+    }
+    true
+}
+
+async fn complete_already_live_prewarm(
+    key: &str,
+    runtime_key: &str,
+    delta_tx: Option<mpsc::Sender<AcpEvent>>,
+    result_tx: Option<oneshot::Sender<(Vec<Value>, Vec<String>, String)>>,
+    is_resume_replay: bool,
+) {
+    let session_id = CONN_MAP.with(|m| {
+        m.borrow()
+            .get(key)
+            .map(|c| c.session_id.to_string())
+            .unwrap_or_default()
+    });
+
+    if is_resume_replay {
+        if let Some(tx) = delta_tx {
+            let _ = tx.send(AcpEvent::ReplayComplete).await;
+        }
+    }
+
+    if let Some(tx) = result_tx {
+        let _ = tx.send((
+            list_discovered_config_options(runtime_key),
+            list_discovered_modes(runtime_key),
+            session_id,
+        ));
+    }
+}
+
+#[cfg(test)]
+#[path = "handler_prewarm_tests.rs"]
+mod tests;

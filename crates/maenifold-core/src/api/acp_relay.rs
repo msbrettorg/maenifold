@@ -63,6 +63,8 @@ pub(super) fn config_option_category(option: &Value) -> Option<ConfigCategory> {
 #[derive(Deserialize)]
 pub struct RelayQuery {
     agent: Option<String>,
+    #[serde(default, rename = "keepSessionAlive")]
+    keep_session_alive: bool,
 }
 
 #[derive(Clone)]
@@ -72,6 +74,7 @@ pub(super) struct RelayConfig {
     pub(super) default_cwd: String,
     /// MCP servers from maenifold.json (global + per-agent), pre-converted to ACP schema.
     pub(super) configured_mcp_servers: Vec<acp::McpServer>,
+    pub(super) keep_session_alive: bool,
 }
 
 pub(super) struct RelaySession {
@@ -132,6 +135,7 @@ pub async fn ws_handler(
                 adapter,
                 default_cwd,
                 configured_mcp_servers,
+                keep_session_alive: query.keep_session_alive,
             },
         )
     }))
@@ -218,14 +222,34 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
         }
     }
 
-    if let Some(active) = session.as_ref() {
-        let _ = jockey::acp::worker_tx().send(jockey::acp::WorkerMsg::Cancel {
-            runtime_key: relay.adapter.runtime_key.clone(),
-            role_name: relay.agent_name.clone(),
-            app_session_id: active.app_session_id.clone(),
-        });
+    if let Some(active) = session.as_ref()
+        && !relay.keep_session_alive
+    {
+        reset_session_on_socket_close(&relay, active);
     }
     cancel_permissions(permission_ids);
+}
+
+fn reset_session_on_socket_close(relay: &RelayConfig, active: &RelaySession) {
+    let (result_tx, _result_rx) = oneshot::channel();
+    let _ = jockey::acp::worker_tx().send(relay_reset_message(
+        relay,
+        &active.app_session_id,
+        result_tx,
+    ));
+}
+
+fn relay_reset_message(
+    relay: &RelayConfig,
+    app_session_id: &str,
+    result_tx: oneshot::Sender<Result<(), String>>,
+) -> jockey::acp::WorkerMsg {
+    jockey::acp::WorkerMsg::Reset {
+        runtime_key: relay.adapter.runtime_key.clone(),
+        role_name: relay.agent_name.clone(),
+        app_session_id: app_session_id.to_string(),
+        result_tx,
+    }
 }
 
 fn prompt_result_payload(

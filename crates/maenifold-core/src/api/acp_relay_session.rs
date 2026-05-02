@@ -69,8 +69,8 @@ fn initialize_response(relay: &RelayConfig, caps: AgentCaps) -> Value {
                 "audio": caps.audio,
                 "embeddedContext": caps.embedded_context
             },
-            "sessionCapabilities": {},
-            "_meta": { "maenifold/extensions": { "supportedAgentMethods": ["session/set_config_option"] } }
+            "sessionCapabilities": { "close": true },
+            "_meta": { "maenifold/extensions": { "supportedAgentMethods": ["session/set_config_option", "session/close"] } }
         },
         "authMethods": [],
         "agentInfo": { "name": relay.agent_name, "title": relay.agent_name, "version": "0.1.0" }
@@ -205,6 +205,7 @@ pub(super) async fn handle_session_load(
         tokio::select! {
             event = event_rx.recv() => {
                 let Some(event) = event else {
+                    cleanup_failed_session_load(relay, &app_session_id).await;
                     return Err(rpc_error(request_id.clone(), -32000, "ACP replay channel closed before completion"));
                 };
                 if matches!(event, jockey::acp::AcpEvent::ReplayComplete) {
@@ -223,12 +224,22 @@ pub(super) async fn handle_session_load(
                         next_permission_id,
                     ).await
                 {
+                    cleanup_failed_session_load(relay, &app_session_id).await;
                     return Err(rpc_error(request_id.clone(), -32000, "websocket closed during session/load replay"));
                 }
             }
             result = &mut rx => {
                 let result = result
-                    .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker disconnected"))?;
+                    .map_err(|_| {
+                        rpc_error(request_id.clone(), -32000, "ACP worker disconnected")
+                    });
+                let result = match result {
+                    Ok(result) => result,
+                    Err(error) => {
+                        cleanup_failed_session_load(relay, &app_session_id).await;
+                        return Err(error);
+                    }
+                };
                 if replay_complete {
                     break result;
                 }
@@ -237,6 +248,7 @@ pub(super) async fn handle_session_load(
         }
     };
     if session_id.is_empty() {
+        cleanup_failed_session_load(relay, &app_session_id).await;
         return Err(rpc_error(
             request_id,
             -32603,
@@ -266,6 +278,10 @@ pub(super) async fn handle_session_load(
         ),
         "modes": modes,
     }))
+}
+
+async fn cleanup_failed_session_load(relay: &RelayConfig, app_session_id: &str) {
+    let _ = reset_session_connection(relay, app_session_id, Value::Null).await;
 }
 
 fn reject_client_mcp_servers(params: &Value, request_id: Value, method: &str) -> Result<(), Value> {

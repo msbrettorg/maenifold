@@ -48,27 +48,27 @@ pub(crate) struct GatewayIntentParams {
 pub(crate) fn gateway_index_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayIndexParams>(
         "GatewayIndex",
-        "Lists deterministic gateway domains and commands. Filter by domain and command to inspect exact schemas.",
+        "Start here on cold start. Lists the live gateway domains and commands currently exposed by Maenifold, including gateway-backed MCP server domains. Use domain/command filters plus includeSchemas or includeExamples to inspect exact call shapes before GatewayExecute.",
     )
 }
 
 pub(crate) fn gateway_execute_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayExecuteParams>(
         "GatewayExecute",
-        "Executes an exact gateway command by domain and command using the provided parameters object.",
+        "Runs one exact gateway command by domain and command with the provided parameters object. Use it after GatewayIndex has identified the target domain, command, schema, and safety class. It does not infer intent or choose commands from natural language.",
     )
 }
 
 pub(crate) fn gateway_batch_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayBatchParams>(
         "GatewayBatch",
-        "Submits multiple exact gateway commands sequentially or reads bounded in-memory batch status.",
+        "Submits multiple exact gateway domain+command calls in sequence, or reads bounded in-memory status for an existing batch. Use it only when every item is already known from GatewayIndex or GetHelp. It is not a discovery or intent-resolution surface.",
     )
 }
 
 pub(crate) fn gateway_intent_tool() -> McpToolDefinition {
     derived_tool_definition::<GatewayIntentParams>(
         "GatewayIntent",
-        "Resolves natural language to deterministic gateway candidates, auto-executing only safe single read operations when configured.",
+        "Translates a natural-language request into likely gateway domain+command candidates when the exact command is unknown. Prefer GatewayIndex for deterministic cold-start discovery and schema inspection. Review candidates before executing anything with GatewayExecute.",
     )
 }

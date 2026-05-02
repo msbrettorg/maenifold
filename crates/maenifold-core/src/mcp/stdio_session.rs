@@ -1,4 +1,5 @@
 use crate::error::{MaenifoldError, Result};
+use crate::mcp::gateway_metadata;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::{
     Peer, RoleClient, ServiceExt,
@@ -51,6 +52,7 @@ pub struct StdioSession {
     stderr_task: StdMutex<Option<tokio::task::JoinHandle<()>>>,
     pub(super) stderr: Arc<Mutex<String>>,
     tools: Arc<[Tool]>,
+    initialize_description: Option<String>,
     pub(super) call_timeout: Duration,
     pub(super) server_name: String,
     process_group_id: Option<i32>,
@@ -78,15 +80,10 @@ impl StdioSession {
                 .serve(transport)
                 .await
                 .map_err(to_message_error)?;
-            let protocol = client
-                .peer()
-                .peer_info()
-                .map(|info| info.protocol_version.clone())
-                .ok_or_else(|| {
-                    MaenifoldError::Message(
-                        "MCP server did not return initialize result".to_string(),
-                    )
-                })?;
+            let server_info = client.peer().peer_info().cloned().ok_or_else(|| {
+                MaenifoldError::Message("MCP server did not return initialize result".to_string())
+            })?;
+            let protocol = server_info.protocol_version.clone();
             if !is_supported_version(&protocol) {
                 let _ = client.close_with_timeout(SHUTDOWN_WAIT).await;
                 super::stdio_process_group::terminate_process_group_id(process_group_id).await;
@@ -100,27 +97,28 @@ impl StdioSession {
                 .list_all_tools()
                 .await
                 .map_err(map_service_error)?;
-            Ok((client, tools))
+            Ok((client, tools, server_info))
         };
-        let (client, tools) = match tokio::time::timeout(startup_timeout, startup).await {
-            Ok(Ok(started)) => started,
-            Ok(Err(error)) => {
-                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
-                return Err(StdioStartupError::new(error, stderr));
-            }
-            Err(_) => {
-                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
-                return Err(StdioStartupError::new(
-                    MaenifoldError::Message(format!(
-                        "MCP server startup timed out after {}s",
-                        startup_timeout.as_secs()
-                    )),
-                    stderr,
-                ));
-            }
-        };
+        let (client, tools, server_info) =
+            match tokio::time::timeout(startup_timeout, startup).await {
+                Ok(Ok(started)) => started,
+                Ok(Err(error)) => {
+                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                    let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
+                    return Err(StdioStartupError::new(error, stderr));
+                }
+                Err(_) => {
+                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                    let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
+                    return Err(StdioStartupError::new(
+                        MaenifoldError::Message(format!(
+                            "MCP server startup timed out after {}s",
+                            startup_timeout.as_secs()
+                        )),
+                        stderr,
+                    ));
+                }
+            };
         let peer = client.peer().clone();
         Ok(Self {
             client: StdMutex::new(Some(client)),
@@ -128,6 +126,7 @@ impl StdioSession {
             stderr_task: StdMutex::new(Some(stderr_task)),
             stderr,
             tools: tools.into(),
+            initialize_description: gateway_metadata::upstream_initialize_description(&server_info),
             call_timeout,
             server_name: entry.name.to_string(),
             process_group_id,
@@ -138,6 +137,10 @@ impl StdioSession {
 
     pub fn tools(&self) -> Arc<[Tool]> {
         Arc::clone(&self.tools)
+    }
+
+    pub fn initialize_description(&self) -> Option<String> {
+        self.initialize_description.clone()
     }
 
     pub fn is_usable(&self) -> bool {

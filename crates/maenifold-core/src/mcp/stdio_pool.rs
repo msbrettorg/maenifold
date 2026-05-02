@@ -7,7 +7,7 @@ use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdio
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
 use serde_json::Value;
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex as StdMutex, RwLock as StdRwLock, RwLockReadGuard};
 use std::time::Duration;
 use tokio::sync::{Mutex, RwLock};
@@ -17,6 +17,7 @@ pub struct StdioPool {
     pub(super) servers: RwLock<HashMap<String, ManagedServer>>,
     pub(super) tools: StdRwLock<Vec<Tool>>,
     pub(super) gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
+    pub(super) gateway_descriptions: StdRwLock<BTreeMap<String, String>>,
 }
 #[derive(Debug, Clone)]
 pub struct StdioServerConfig {
@@ -89,7 +90,7 @@ impl StdioPool {
                 Err(error) => warn!(error = %error, "stdio MCP startup task failed"),
             }
         }
-        let (tools, gateway_tools) = match collect_gateway_tools(&started) {
+        let (tools, gateway_tools, gateway_descriptions) = match collect_gateway_tools(&started) {
             Ok(tool_state) => tool_state,
             Err(error) => {
                 shutdown_servers(started).await;
@@ -100,6 +101,7 @@ impl StdioPool {
             servers: RwLock::new(started),
             tools: StdRwLock::new(tools),
             gateway_tools: StdRwLock::new(gateway_tools),
+            gateway_descriptions: StdRwLock::new(gateway_descriptions),
         })
     }
     pub async fn call_tool(
@@ -133,6 +135,12 @@ impl StdioPool {
             .unwrap_or_else(|error| error.into_inner())
             .clone()
     }
+    pub fn all_gateway_descriptions(&self) -> BTreeMap<String, String> {
+        self.gateway_descriptions
+            .read()
+            .unwrap_or_else(|error| error.into_inner())
+            .clone()
+    }
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -149,6 +157,10 @@ impl StdioPool {
             .gateway_tools
             .write()
             .unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self
+            .gateway_descriptions
+            .write()
+            .unwrap_or_else(|error| error.into_inner()) = BTreeMap::new();
         let mut shutdowns = FuturesUnordered::new();
         for session in sessions {
             shutdowns.push(async move { session.shutdown().await });

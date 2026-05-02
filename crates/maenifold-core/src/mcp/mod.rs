@@ -6,6 +6,7 @@ pub(crate) mod gateway_batch_types;
 pub(crate) mod gateway_catalog;
 #[cfg(test)]
 mod gateway_catalog_domain_tests;
+mod gateway_catalog_render;
 mod gateway_cli;
 pub mod gateway_consolidation;
 pub mod gateway_dispatch;
@@ -23,6 +24,9 @@ mod gateway_integration_tests;
 mod gateway_intent;
 #[cfg(test)]
 mod gateway_intent_tests;
+mod gateway_metadata;
+#[cfg(test)]
+mod gateway_metadata_tests;
 mod gateway_resolver;
 #[cfg(test)]
 mod gateway_resolver_tests;
@@ -121,14 +125,24 @@ impl ServerHandler for MaenifoldHandler {
                 .enable_resources_subscribe()
                 .build(),
         };
+        let domain_names = self
+            .gateway
+            .as_ref()
+            .map(|gateway| {
+                gateway
+                    .catalog
+                    .domains()
+                    .into_iter()
+                    .map(|domain| domain.name)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
         ServerInfo::new(capabilities)
-            .with_server_info(Implementation::new("maenifold", env!("CARGO_PKG_VERSION")))
-            .with_instructions(
-                "Use maenifold tools to read, write, search, and organize memory files, \
-                 inspect graph relationships, and run workflow or thinking sessions. \
-                 Prefer exact tool names from tools/list and pass JSON arguments that \
-                 match each tool schema.",
+            .with_server_info(
+                Implementation::new("maenifold", env!("CARGO_PKG_VERSION"))
+                    .with_description(gateway_metadata::server_description(&domain_names)),
             )
+            .with_instructions(gateway_metadata::server_instructions(&domain_names))
     }
     fn list_tools(
         &self,

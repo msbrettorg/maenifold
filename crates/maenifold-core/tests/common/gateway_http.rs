@@ -16,6 +16,7 @@ const TEST_SERVER: &str = r#"
 import json, sys
 server_name = sys.argv[1]
 tool_specs = {spec["name"]: spec for spec in json.loads(sys.argv[2])}
+metadata = json.loads(sys.argv[3]) if len(sys.argv) > 3 else {}
 
 def read_message():
     while True:
@@ -37,7 +38,13 @@ while True:
     method = message.get("method")
     message_id = message.get("id")
     if method == "initialize":
-        write_message({"jsonrpc":"2.0","id":message_id,"result":{"protocolVersion":"2025-03-26","capabilities":{"tools":{},"resources":{}},"serverInfo":{"name":server_name,"version":"0.0.1"}}})
+        server_info = {"name":server_name,"version":"0.0.1"}
+        if metadata.get("description"):
+            server_info["description"] = metadata["description"]
+        result = {"protocolVersion":"2025-03-26","capabilities":{"tools":{},"resources":{}},"serverInfo":server_info}
+        if metadata.get("instructions"):
+            result["instructions"] = metadata["instructions"]
+        write_message({"jsonrpc":"2.0","id":message_id,"result":result})
     elif method == "notifications/initialized":
         continue
     elif method == "tools/list":
@@ -171,11 +178,31 @@ pub fn gateway_config(servers: Vec<Value>) -> Value {
 }
 
 pub fn stdio_server(name: &str, tool_specs: Vec<Value>) -> Value {
+    stdio_server_with_metadata(name, tool_specs, None, None)
+}
+
+pub fn stdio_server_with_metadata(
+    name: &str,
+    tool_specs: Vec<Value>,
+    description: Option<&str>,
+    instructions: Option<&str>,
+) -> Value {
+    let metadata = json!({
+        "description": description,
+        "instructions": instructions,
+    });
     json!({
         "type": "stdio",
         "name": name,
         "command": PYTHON,
-        "args": ["-u", "-c", TEST_SERVER, name, serde_json::to_string(&tool_specs).expect("tool specs serialize")],
+        "args": [
+            "-u",
+            "-c",
+            TEST_SERVER,
+            name,
+            serde_json::to_string(&tool_specs).expect("tool specs serialize"),
+            serde_json::to_string(&metadata).expect("metadata serializes")
+        ],
         "timeout": 2,
         "gateway": true
     })

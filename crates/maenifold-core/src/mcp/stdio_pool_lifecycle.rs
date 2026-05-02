@@ -89,7 +89,7 @@ impl StdioPool {
                 return Err(error);
             }
         };
-        if let Some((tools, gateway_tools)) = tool_state {
+        if let Some((tools, gateway_tools, gateway_descriptions)) = tool_state {
             *self
                 .tools
                 .write()
@@ -98,6 +98,10 @@ impl StdioPool {
                 .gateway_tools
                 .write()
                 .unwrap_or_else(|error| error.into_inner()) = gateway_tools;
+            *self
+                .gateway_descriptions
+                .write()
+                .unwrap_or_else(|error| error.into_inner()) = gateway_descriptions;
         }
         if let Some(session) = replacement {
             session.shutdown().await;

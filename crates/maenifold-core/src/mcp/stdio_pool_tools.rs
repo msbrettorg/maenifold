@@ -2,18 +2,26 @@ use crate::error::{MaenifoldError, Result};
 use crate::mcp::stdio_pool::ManagedServer;
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::Tool;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 pub(super) fn collect_gateway_tools(
     servers: &HashMap<String, ManagedServer>,
-) -> Result<(Vec<Tool>, Vec<(String, Vec<Tool>)>)> {
+) -> Result<(
+    Vec<Tool>,
+    Vec<(String, Vec<Tool>)>,
+    BTreeMap<String, String>,
+)> {
     let mut owners = HashMap::<String, String>::new();
     let mut tools = Vec::new();
     let mut gateway_tools = Vec::new();
+    let mut gateway_descriptions = BTreeMap::new();
     for (server_name, server) in servers {
         let Some(session) = &server.session else {
             continue;
         };
+        if let Some(description) = session.initialize_description() {
+            gateway_descriptions.insert(server_name.clone(), description);
+        }
         let mut server_tools = session.tools().iter().cloned().collect::<Vec<_>>();
         server_tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
         for tool in &server_tools {
@@ -29,7 +37,7 @@ pub(super) fn collect_gateway_tools(
     }
     gateway_tools.sort_by(|(left, _), (right, _)| left.cmp(right));
     tools.sort_by(|left, right| left.name.to_string().cmp(&right.name.to_string()));
-    Ok((tools, gateway_tools))
+    Ok((tools, gateway_tools, gateway_descriptions))
 }
 
 pub(super) fn ensure_replacement_tools(

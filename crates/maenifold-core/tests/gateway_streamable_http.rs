@@ -2,7 +2,7 @@ mod common;
 
 use common::gateway_http::{
     TestServer, error_tool, gateway_config, initialize, ok_tool, result_text, rpc, stdio_server,
-    tool_names, ui_tool,
+    stdio_server_with_metadata, tool_names, ui_tool,
 };
 use reqwest::header::{HeaderMap, HeaderValue};
 use serde_json::{Value, json};
@@ -12,7 +12,7 @@ use serial_test::serial;
 #[serial]
 async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_resources() {
     let server = TestServer::start(gateway_config(vec![
-        stdio_server(
+        stdio_server_with_metadata(
             "big-server",
             vec![
                 ok_tool("big_alpha", "handled alpha through facade"),
@@ -30,8 +30,10 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
                     "<section>big dashboard</section>",
                 ),
             ],
+            Some("Big upstream MCP server description."),
+            Some("Use big-server for facade command coverage."),
         ),
-        stdio_server(
+        stdio_server_with_metadata(
             "small-server",
             vec![
                 ok_tool("small_ping", "handled by passthrough"),
@@ -42,12 +44,26 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
                     json!({"detail":"passthrough boom"}),
                 ),
             ],
+            None,
+            Some("Use small-server for passthrough command coverage."),
         ),
     ]))
     .await;
 
     let init = initialize(&server).await;
     assert!(init["result"]["protocolVersion"].as_str().is_some());
+    let server_description = init["result"]["serverInfo"]["description"]
+        .as_str()
+        .expect("server description");
+    let instructions = init["result"]["instructions"]
+        .as_str()
+        .expect("server instructions");
+    assert!(server_description.contains("big-server"));
+    assert!(server_description.contains("small-server"));
+    assert!(server_description.contains("GatewayIndex"));
+    assert!(instructions.contains("GatewayIndex first"));
+    assert!(instructions.contains("DiscoverMcpTools only for per-server"));
+    assert!(instructions.contains("ReadMcpResource only for concrete resource URIs"));
 
     let list = rpc(&server, "tools/list", Value::Null, None).await;
     let names = tool_names(&list);
@@ -68,6 +84,41 @@ async fn streamable_http_gateway_exercises_native_facade_passthrough_errors_and_
     assert!(!names.iter().any(|name| name == "small_fail"));
     assert!(!names.iter().any(|name| name == "big_alpha"));
     assert!(!names.iter().any(|name| name == "big_dashboard"));
+    let tools = list["result"]["tools"].as_array().expect("tools array");
+    assert_tool_description(
+        tools,
+        "GatewayIndex",
+        "Start here on cold start. Lists the live gateway domains",
+    );
+    assert_tool_description(
+        tools,
+        "DiscoverMcpTools",
+        "Do not use it as the first-call gateway domain lister",
+    );
+    assert_tool_description(
+        tools,
+        "ReadMcpResource",
+        "It does not discover gateway domains or read memory:// notes",
+    );
+    assert_tool_description(
+        tools,
+        "GetHelp",
+        "it is not the first cold-start domain discovery call",
+    );
+
+    let domain_index = rpc(
+        &server,
+        "tools/call",
+        json!({"name":"GatewayIndex","arguments":{}}),
+        None,
+    )
+    .await;
+    let domain_index_text = result_text(&domain_index);
+    assert!(domain_index_text.contains("\"name\": \"big-server\""));
+    assert!(domain_index_text.contains("Big upstream MCP server description."));
+    assert!(domain_index_text.contains("Use big-server for facade command coverage."));
+    assert!(domain_index_text.contains("\"name\": \"small-server\""));
+    assert!(domain_index_text.contains("Use small-server for passthrough command coverage."));
 
     let config_index = rpc(
         &server,
@@ -230,4 +281,16 @@ fn assert_tool_names(actual: &[String], expected: &[&str]) {
     let mut expected: Vec<String> = expected.iter().map(|name| (*name).to_string()).collect();
     expected.sort();
     assert_eq!(actual, expected);
+}
+
+fn assert_tool_description(tools: &[Value], name: &str, expected: &str) {
+    let description = tools
+        .iter()
+        .find(|tool| tool["name"] == name)
+        .and_then(|tool| tool["description"].as_str())
+        .expect("tool description");
+    assert!(
+        description.contains(expected),
+        "{name} description did not contain {expected:?}: {description}"
+    );
 }

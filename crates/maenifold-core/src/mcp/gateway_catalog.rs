@@ -1,7 +1,9 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::domain_mapping;
+use crate::mcp::gateway_catalog_render::strip_schemas;
 use crate::mcp::gateway_consolidation::ConsolidatedServerTool;
 use crate::mcp::gateway_gate;
+use crate::mcp::gateway_metadata;
 use crate::mcp::list_mcp_tools;
 use crate::mcp::tool_routing::ToolRoutingRegistry;
 use crate::registry::ToolRegistry;
@@ -62,20 +64,37 @@ impl GatewayCatalog {
         passthrough: &[Tool],
         routing: &ToolRoutingRegistry,
     ) -> Result<Self> {
+        Self::build_with_upstream_descriptions(consolidated, passthrough, routing, &BTreeMap::new())
+    }
+
+    pub(crate) fn build_with_upstream_descriptions(
+        consolidated: &[ConsolidatedServerTool],
+        passthrough: &[Tool],
+        routing: &ToolRoutingRegistry,
+        upstream_descriptions: &BTreeMap<String, String>,
+    ) -> Result<Self> {
         let mut catalog = Self {
             domains: BTreeMap::new(),
         };
         catalog.add_native_tools()?;
         catalog.add_gate_tools()?;
         for server in consolidated {
+            let description = gateway_metadata::upstream_domain_description(
+                &server.server_name,
+                upstream_descriptions,
+            );
             for tool in &server.tool_catalog {
-                catalog.add_upstream_tool(&server.server_name, tool)?;
+                catalog.add_upstream_tool(&server.server_name, tool, &description)?;
             }
         }
         for tool in passthrough {
             let name = tool.name.to_string();
             if let Some(server_name) = routing.lookup(&name) {
-                catalog.add_upstream_tool(server_name, tool)?;
+                let description = gateway_metadata::upstream_domain_description(
+                    server_name,
+                    upstream_descriptions,
+                );
+                catalog.add_upstream_tool(server_name, tool, &description)?;
             }
         }
         Ok(catalog)
@@ -153,7 +172,10 @@ impl GatewayCatalog {
             let Some(domain_name) = domain_mapping::tool_domain(&tool.name) else {
                 continue;
             };
-            let domain = self.insert_domain(domain_name, domain_description(domain_name))?;
+            let domain = self.insert_domain(
+                domain_name,
+                gateway_metadata::native_domain_description(domain_name),
+            )?;
             let entry = CommandEntry {
                 name: tool.name.clone(),
                 description: tool.description,
@@ -190,8 +212,13 @@ impl GatewayCatalog {
         Ok(())
     }
 
-    fn add_upstream_tool(&mut self, server_name: &str, tool: &Tool) -> Result<()> {
-        let domain = self.insert_domain(server_name, "Gateway MCP server commands.")?;
+    fn add_upstream_tool(
+        &mut self,
+        server_name: &str,
+        tool: &Tool,
+        domain_description: &str,
+    ) -> Result<()> {
+        let domain = self.insert_domain(server_name, domain_description)?;
         let name = tool.name.to_string();
         let safety = if server_name == "gate" {
             domain_mapping::gate_tool_safety(&name)
@@ -268,33 +295,5 @@ fn command_entry(tool: &Tool, safety_class: String) -> CommandEntry {
         description: tool.description.as_deref().unwrap_or("").to_string(),
         schema: Value::Object((*tool.input_schema).clone()),
         safety_class,
-    }
-}
-
-fn domain_description(domain: &str) -> &'static str {
-    match domain {
-        "maenifold.memory" => "Maenifold memory file read/write commands.",
-        "maenifold.graph" => "Maenifold graph traversal and repair commands.",
-        "maenifold.workflow" => "Maenifold workflow and pipeline orchestration commands.",
-        "maenifold.thinking" => "Maenifold thinking and assumption tracking commands.",
-        "maenifold.system" => "Maenifold system, asset, ACP, and diagnostics commands.",
-        _ => "Native Maenifold commands backed by typed handlers.",
-    }
-}
-
-fn strip_schemas(value: &mut Value) {
-    match value {
-        Value::Object(map) => {
-            map.remove("schema");
-            for child in map.values_mut() {
-                strip_schemas(child);
-            }
-        }
-        Value::Array(items) => {
-            for item in items {
-                strip_schemas(item);
-            }
-        }
-        _ => {}
     }
 }

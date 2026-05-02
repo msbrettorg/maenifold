@@ -81,10 +81,11 @@ pub(super) async fn build_gateway(config: &Config) -> Result<GatewayStartup> {
                             Ok(registry) => {
                                 let resource_routing =
                                     ResourceRoutingRegistry::build(pool.as_ref())?;
-                                let catalog = GatewayCatalog::build(
+                                let catalog = GatewayCatalog::build_with_upstream_descriptions(
                                     &consolidated_tools,
                                     &passthrough_tools,
                                     &registry,
+                                    &pool.all_gateway_descriptions(),
                                 )?;
                                 resources::set_gateway_catalog(Arc::new(catalog.clone()));
                                 let counts = gateway_tool_counts(

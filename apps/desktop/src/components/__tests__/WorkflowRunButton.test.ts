@@ -66,7 +66,10 @@ describe('WorkflowRunButton', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     callTool.mockReset();
-    callTool.mockResolvedValue('Created session: wf-session-1\n\nStep 1/1');
+    callTool.mockResolvedValue({
+      sessionId: 'wf-session-1',
+      message: 'Created session: wf-session-1',
+    });
   });
 
   afterEach(() => {

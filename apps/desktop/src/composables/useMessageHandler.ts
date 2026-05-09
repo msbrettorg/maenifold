@@ -58,7 +58,7 @@ export function useMessageHandler({
     await saveSessionsToStore();
   }
 
-  async function renameSessionFromFirstPrompt(session: SessionState, text: string): Promise<void> {
+  function renameSessionFromFirstPrompt(session: SessionState, text: string): void {
     if (!session.session || session.messages.some((message) => message.role === 'user')) {
       return;
     }
@@ -77,7 +77,6 @@ export function useMessageHandler({
     if (savedSession) {
       savedSession.title = nextTitle;
     }
-    await saveSessionsToStore();
   }
 
   function pushSystemMessage(session: SessionState, content: string): void {
@@ -226,7 +225,7 @@ export function useMessageHandler({
     try {
       const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
       activeSession = session;
-      await renameSessionFromFirstPrompt(session, text);
+      renameSessionFromFirstPrompt(session, text);
 
       const prompt = [
         { type: 'text', text } as const,

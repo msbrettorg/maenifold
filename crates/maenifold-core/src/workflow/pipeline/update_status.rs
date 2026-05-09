@@ -103,7 +103,7 @@ pub(super) fn update_pipeline_node_status(
                             "ERROR: Pipeline session missing node state for '{unreachable_node_id}'"
                         ))
                     })?;
-                unreachable_state.status = NodeStatus::Skipped;
+                unreachable_state.status = NodeStatus::Abandoned;
                 unreachable_state.completed_at = Some(Utc::now());
                 unreachable_state.acp_session_id = None;
                 unreachable_state.thinking_session_id = None;
@@ -135,27 +135,22 @@ pub(super) fn update_pipeline_node_status(
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
 
-            let mut skipped_node_ids = unreachable_node_ids.clone();
-            skipped_node_ids.extend(cascaded_node_ids);
-            for skipped_node_id in &skipped_node_ids {
-                let skipped_session_id = node_states
-                    .get(skipped_node_id)
+            let mut inactive_node_ids = unreachable_node_ids.clone();
+            inactive_node_ids.extend(cascaded_node_ids);
+            for inactive_node_id in &inactive_node_ids {
+                let inactive_session_id = node_states
+                    .get(inactive_node_id)
                     .ok_or_else(|| {
                         MaenifoldError::Message(format!(
-                            "ERROR: Pipeline session missing node state for '{skipped_node_id}'"
+                            "ERROR: Pipeline session missing node state for '{inactive_node_id}'"
                         ))
                     })?
                     .session_id
                     .clone();
-                let skipped_status = if unreachable_node_ids.contains(skipped_node_id) {
-                    "skipped"
-                } else {
-                    "abandoned"
-                };
                 update_workflow_node_frontmatter(
                     context,
-                    &skipped_session_id,
-                    skipped_status,
+                    &inactive_session_id,
+                    "abandoned",
                     None,
                 )?;
             }

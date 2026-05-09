@@ -42,7 +42,7 @@ fn gateway_meta_tools_accept_minimal_valid_payloads() {
 fn gate_read_tools_accept_minimal_valid_payloads() {
     let root = gate_fixture_root("read-tools");
     let root_json = json_string(&root.display().to_string());
-    let task_id = "T-242.16-cli-parity";
+    let task_id = "T-242.16";
 
     let cases = [
         (
@@ -120,9 +120,9 @@ fn gate_fixture_root(name: &str) -> PathBuf {
     fs::create_dir_all(root.join("todo")).expect("create fixture todo");
     fs::create_dir_all(root.join("done")).expect("create fixture done");
     fs::write(
-        root.join("todo").join("T-242.16-cli-parity.md"),
+        root.join("todo").join("T-242.16.md"),
         "---\n\
-         id: T-242.16-cli-parity\n\
+         id: T-242.16\n\
          title: CLI gateway parity fixture\n\
          pipeline: sdd\n\
          ---\n\

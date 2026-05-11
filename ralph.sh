@@ -61,7 +61,7 @@ MAX_RUNTIME_SECONDS=0        # 0 = unlimited; e.g. 14400 = 4 hours
 STUCK_TIMEOUT_SECONDS=600    # 10 min without log output = stuck
 CRATE=""
 SCOPE_PATH=""
-AGENT="product-manager"
+AGENT="outer-loop"
 SESSION_NAME=""
 NO_CUSTOM_INSTRUCTIONS=false
 NO_ASK_USER=false

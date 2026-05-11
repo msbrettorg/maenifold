@@ -7,7 +7,9 @@
 Look for opportunities to automate repetative tasks, but KISS and make sure you update the documentation to reflect the new process. 
 At a bare minimum it should be mentioned in this file.
 
-Always start with the lowest numbered gate items and work your way up. New gate items assume the old ones have been addressed. If you skip around you WILL cause problems. Do not mix items between sprints. Do not start work on a new sprint before the current one is closed.
+Always start with the LOWEST numbered gate items and work your way up. New gate items assume the old ones have been addressed. If you skip around you WILL cause problems. Do not mix items between sprints. Do not start work on a new sprint before the current one is closed.
+
+**UAT is OUT OF SCOPE.** Do not create, run, or dispatch UAT tests. We have hundreds of bugs to fix — your job is to fix them, not generate more test work. If you see UAT-related gate items, skip them and move to the next bug fix.
 
 If you encounter issues with the MCP or CLI maenifold tools you should immediately pivot to using the CLI and raise an issue via gate - that's the entire point of you being the PM and using these tools. If you can't use the tools, that's a problem that needs to be solved, not a reason to stop or switch to a less effective workflow.
   
@@ -32,7 +34,7 @@ If you encounter issues with the MCP or CLI maenifold tools you should immediate
 **MCP (preferred):** Use the gate MCP `status` tool with root `.`
 **CLI fallback:** `gate status --root .`
 
-**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x.
+**Priority rule:** Tasks are ordered by ID. Lower sprint numbers = higher priority. Always work the lowest-numbered pending task first. T-01.x before T-203.x before T-204.x. **UAT items are out of scope — skip them.**
 
 ### 4. Read project conventions
 
@@ -385,3 +387,5 @@ You are the PM. The PM doesn't punch out — the PM ships, then ships the next t
 ## Final note
 
 Lowest numbered gate items first. If you are caught jumping ahead and prioritizing new items whilst leaving the old harder stuff in gate your agents will be terminated without warning. This is a hard rule. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.
+
+**UAT is OUT OF SCOPE.** Do not create, run, or dispatch UAT work. Fix the bugs.

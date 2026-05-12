@@ -73,6 +73,7 @@ objc2-core-foundation = { version = "0.3", default-features = false, features = 
 [dev-dependencies]
 reqwest.workspace = true
 serial_test = "3"
+tempfile.workspace = true
 tower = "0.5"
 
 [[test]]
@@ -86,6 +87,10 @@ path = "tests/gateway_streamable_http.rs"
 [[test]]
 name = "gateway_streamable_http_cors"
 path = "tests/gateway_streamable_http_cors.rs"
+
+[[test]]
+name = "list_memories_dataless"
+path = "tests/list_memories_dataless.rs"
 
 
 

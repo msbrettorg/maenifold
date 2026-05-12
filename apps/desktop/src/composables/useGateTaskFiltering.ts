@@ -3,7 +3,7 @@ import type { GateSnapshot, GateTask } from '../lib/gate';
 import { getTaskPipelineLabel } from '../lib/gate-display';
 
 export type GateReadinessFilter = 'all' | 'ready' | 'blocked';
-export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority';
+export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority' | 'default';
 export type GateSortDirection = 'asc' | 'desc';
 
 type GateTaskReadiness = GateTask & {
@@ -16,7 +16,7 @@ type GateTaskReadiness = GateTask & {
   in_cycle?: boolean | null;
 };
 
-const defaultSortColumn: GateSortColumn = 'id';
+const defaultSortColumn: GateSortColumn = 'default';
 const defaultSortDirection: GateSortDirection = 'asc';
 
 function initialSortDirection(column: GateSortColumn): GateSortDirection {
@@ -28,6 +28,39 @@ export function priorityRank(task: GateTask): number {
   if (!p) return Number.MAX_SAFE_INTEGER;
   const rank: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
   return rank[p] ?? Number.MAX_SAFE_INTEGER;
+}
+
+const SORT_PREF_KEY = 'maenifold.gateTab.sort';
+const READINESS_PREF_KEY = 'maenifold.gateTab.readiness';
+
+type SortPref = { column: GateSortColumn; direction: GateSortDirection };
+
+function readSortPref(): SortPref | null {
+  try {
+    const raw = localStorage.getItem(SORT_PREF_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const { column, direction } = parsed as Record<string, unknown>;
+    if (typeof column !== 'string' || (direction !== 'asc' && direction !== 'desc')) return null;
+    return { column: column as GateSortColumn, direction };
+  } catch {
+    return null;
+  }
+}
+
+function readReadinessPref(): GateReadinessFilter | null {
+  try {
+    const raw = localStorage.getItem(READINESS_PREF_KEY);
+    if (raw === 'all' || raw === 'ready' || raw === 'blocked') return raw;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function sprintNum(task: GateTask): number {
+  return typeof task.sprint === 'number' ? task.sprint : -1;
 }
 
 function oppositeDirection(direction: GateSortDirection): GateSortDirection {
@@ -90,14 +123,17 @@ function matchesReadiness(task: GateTaskReadiness, filter: GateReadinessFilter) 
 }
 
 export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
+  const storedSort = readSortPref();
+  const storedReadiness = readReadinessPref();
+
   const searchText = ref('');
   const selectedProcess = ref('all');
   const selectedState = ref('all');
   const selectedLocation = ref('todo');
-  const readinessFilter = ref<GateReadinessFilter>('all');
+  const readinessFilter = ref<GateReadinessFilter>(storedReadiness ?? 'ready');
   const issuesOnly = ref(false);
-  const sortColumn = ref<GateSortColumn>(defaultSortColumn);
-  const sortDirection = ref<GateSortDirection>(defaultSortDirection);
+  const sortColumn = ref<GateSortColumn>(storedSort?.column ?? defaultSortColumn);
+  const sortDirection = ref<GateSortDirection>(storedSort?.direction ?? defaultSortDirection);
   const selectedSprints = ref<Set<number>>(new Set());
 
   const processOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map(processValue)));
@@ -134,6 +170,13 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
           && (selectedSprints.value.size === 0 || (typeof task.sprint === 'number' && selectedSprints.value.has(task.sprint)));
       })
       .sort((left, right) => {
+        if (sortColumn.value === 'default') {
+          const pr = priorityRank(left) - priorityRank(right);
+          if (pr !== 0) return pr;
+          const sr = sprintNum(right) - sprintNum(left);
+          if (sr !== 0) return sr;
+          return (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true });
+        }
         const direction = sortDirection.value === 'asc' ? 1 : -1;
         const compare = {
           id: (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true }),
@@ -186,6 +229,22 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
   watch(locationOptions, (options) => {
     if (selectedLocation.value !== 'all' && !options.includes(selectedLocation.value)) {
       selectedLocation.value = 'all';
+    }
+  });
+
+  watch([sortColumn, sortDirection], ([col, dir]) => {
+    try {
+      localStorage.setItem(SORT_PREF_KEY, JSON.stringify({ column: col, direction: dir }));
+    } catch {
+      // localStorage unavailable — proceed without persistence
+    }
+  });
+
+  watch(readinessFilter, (filter) => {
+    try {
+      localStorage.setItem(READINESS_PREF_KEY, filter);
+    } catch {
+      // localStorage unavailable — proceed without persistence
     }
   });
 

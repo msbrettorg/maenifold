@@ -35,7 +35,7 @@ import {
   isTaskPipelineDigestStale,
 } from '../lib/gate-display';
 
-type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority';
+type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority' | 'default';
 type SortDirection = 'asc' | 'desc';
 
 const props = defineProps<{

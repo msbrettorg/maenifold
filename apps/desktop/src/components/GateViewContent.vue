@@ -9,7 +9,7 @@ import GateTaskDetail from './GateTaskDetail.vue';
 import GateTaskTable from './GateTaskTable.vue';
 import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 
-type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority';
+type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority' | 'default';
 type SortDirection = 'asc' | 'desc';
 
 defineProps<{

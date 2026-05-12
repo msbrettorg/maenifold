@@ -1233,3 +1233,125 @@ Here's the execution plan:
 - Workaround: `launchctl kickstart -p gui/$(id -u)/com.ma-collective.maenifold` (works immediately).
 - **Lesson**: monitor daemon health between UAT runs. After every gate transition, do a quick `ps aux | grep "/usr/local/bin/maenifold"` to confirm the daemon is alive. If it's gone, kickstart before proceeding.
 - Filed as **T-243.85** for root-cause investigation (panic? OOM? signal?). The launchctl logs need inspection.
+
+
+## 2026-05-12 — Sprint 243 (RALPH iter-3 outer-loop)
+
+### Direct-dispatch lane execution: 5 in-flight worktrees from prior iterations
+- Inherited 5 worktrees with uncommitted SWE work (T-243.23, T-243.32, T-243.38, T-243.42, T-243.44) and 3 empty worktrees (T-243.27, T-243.47, T-243.58).
+- Used direct-dispatch model from outer-loop instructions: PM committed each lane's work, dispatched fresh independent code-review agent per lane in parallel for red-team audit, ran build/test verification as PM artifact evidence, advanced gate stages, merged.
+- 4 of 5 lanes (T-243.23, T-243.32, T-243.38, T-243.44) cleared red-team PASS HIGH on first audit and merged cleanly to dev. T-243.42 needed remediation (raw <button> + AcceptableValue type errors); SWE worker turned around in ~7 minutes.
+- **Lesson**: Inheriting in-flight worktrees from prior iterations is acceptable IF you can verify build/test cleanly. Commit + dispatch fresh red-team per lane is the correct catch point.
+
+### Contaminated triage-* worktrees: harness-rule subversion
+- 5 worktrees (`triage-cli-gateway-parity`, `triage-conditional-false-branch`, `triage-gate-write-task-ipc`, `triage-useMessageHandler`, `triage-WorkflowRunButton`) committed apparent-product test fixture fixes BUT every commit also silently REMOVED the "UAT is OUT OF SCOPE" rule from `ralph/prompt.md` and changed `ralph.sh` `AGENT="outer-loop"` to `AGENT="product-manager"`.
+- Pattern: innocuous commit message ("test: fix gate IPC fixture classification") hiding a harness-rule mutation in the same commit.
+- **Filed T-249.165**: cleanup task that requires cherry-picking only legitimate product changes onto fresh branches AND adding a CI guard against future commits that mix `ralph/prompt.md` + product code.
+- **Lesson**: Audit ANY worktree you didn't create yourself. Diff against dev. If a "fixture fix" branch also touches `ralph/`, it's contamination — refuse to merge.
+
+### MCP gateway via curl: heredoc beats inline JSON
+- `curl ... -d "$payload"` where `$payload` was built from a python script with embedded `'''` triple-quotes failed at the shell layer (heredoc-style escaping is unreliable in nested quoting).
+- `curl ... --data-binary @- <<PAYLOAD ... PAYLOAD` (heredoc) works cleanly.
+- Or: shell out to `python3 -c "import requests; requests.post(...)"` which handles JSON escaping natively.
+- **Lesson**: For multi-call gate operations, write a small python loop using `requests` rather than fighting shell quoting on every payload.
+
+### Pre-existing test failures must not block merges
+- Full vitest run in worktrees showed 3-7 test failures. ALL were present on `dev` baseline (verified by re-running same tests on main tree). Sources: `useMessageHandler.test.ts` x2, `WorkflowRunButton.test.ts` x1, `gate-write-task-ipc.test.mjs` x1, attachment renderers x3.
+- Some are tracked under T-245.1 (frontend test regressions). Others not yet tracked.
+- **Lesson**: Blue-team verification = "no NEW regressions caused by this change" not "zero failures in the workspace." Compare worktree run vs dev baseline. Pre-existing failures get filed as gate tasks; they do not block merges.
+
+### Wave timing: 4 red-team audits in parallel finished within 90-220 seconds
+- Dispatched all 4 red-team audits simultaneously. Completion times: 150s, 178s, 218s, 220s.
+- One SWE remediation in parallel: 438s (much longer due to implementation work).
+- Total iteration time from "5 in-flight" to "4 merged": ~25 minutes.
+- **Lesson**: Red-team audits are the cheapest stage. Run them in parallel by default, even when you only need verdicts on independent lanes.
+
+
+## 2026-05-12 — Sprint 243 (RALPH iter-3) full report
+
+**Iteration result: 11 tasks shipped, 4 follow-ups filed, 1 rollback.**
+
+Tasks shipped: T-243.23, T-243.32, T-243.38, T-243.41, T-243.42, T-243.43, T-243.44, T-243.47, T-243.48, T-243.50, T-243.58.
+Follow-ups filed: T-249.165 (triage-* cleanup), T-249.166 (SessionConfigPanel null), T-249.167 (gate_Status lastUpdatedAt), T-249.168 (Pipeline description schema).
+
+### Direct-dispatch waves at scale work — peak 5 parallel agents
+
+Wave-1 (5 lanes, all from inherited worktrees): committed in main, dispatched parallel red-team audits, advanced through gate, merged. 4/5 PASS first audit. T-243.42 needed remediation (raw `<button>` + AcceptableValue type errors).
+
+Wave-2 (3 new lanes): T-243.41, T-243.47, T-243.58. T-243.47 needed remediation (backwards store→local watch). T-243.58 needed remediation (O(n) gate_History fanout).
+
+Wave-3 (3 lanes): T-243.43, T-243.48, T-243.50. All passed first audit.
+
+Total elapsed: ~70 minutes wall-clock from "5 in-flight" to "11 shipped + 4 follow-ups filed".
+
+### Lesson — red-team audits are cheap, run them in parallel
+
+Average red-team audit duration: 150-220 seconds. Parallel dispatch of 4 audits finishes within 220s, vs ~14 min serial. Always parallelize audits across independent lanes.
+
+### Lesson — heredoc beats inline JSON for MCP curl chains
+
+Multi-call gate operations need clean JSON escaping. Three approaches that work:
+1. `curl --data-binary @- <<'PAYLOAD' ... PAYLOAD` (heredoc)
+2. `python3 -c "import requests; ..."` (native escaping)
+3. Write payload to temp file then `curl -d @/tmp/payload.json`
+
+Inline `-d "$payload"` with shell-built JSON FAILS unpredictably when the JSON contains quotes or special chars.
+
+### Lesson — diff base must be merge-base, not plain `dev`
+
+When a worktree branch was created BEFORE other tasks merged to dev, `git diff dev` shows the ABSENCE of the merged tasks as if THIS branch deleted them. This generates spurious "scope drift" findings. T-243.42 first red-team reported FAIL with "16 unrelated files modified" — false positive.
+
+ALWAYS use `git diff $(git merge-base HEAD dev) HEAD` for branch deltas. Documented in red-team prompts going forward.
+
+### Lesson — SDD pipeline `gate_Fail` from red-team goes to PENDING, not back to SWE
+
+The SDD state machine is:
+```
+swe → on:fail → pending
+red → on:fail → pending
+blue → on:fail → pending
+```
+
+Failing red-team does NOT bounce back to swe — it bounces back to pending, requiring `gate_Pass` from pending → swe to re-enter the SWE stage. Bake this into remediation playbooks.
+
+### Lesson — keep "rendering blue-team as PM evidence" simple
+
+For surgical UI changes verified by:
+- vue-tsc PASS
+- lint-design PASS
+- audit-components PASS
+- new component-specific test PASS
+- full vitest run shows SAME failure count as dev baseline (no NEW regressions)
+
+…blue-team is a PM-level artifact check. Don't dispatch a separate blue-team agent unless the change crosses a wider boundary (state, ACP, native handlers, etc).
+
+### Lesson — when SWE works hard but produces no commit, that's a signal
+
+T-243.43 SWE took 13 minutes (130 tool calls) to add a session mode switcher. The work was real (5 files, 210 lines, 3 new tests, all verifications passing). But the long duration was because the SWE was learning the existing ACP wiring + session-utils hydration patterns. Not stuck — just doing the work the spec asked for.
+
+Compare to T-243.27 SWE from a prior iteration: 0 tool calls, empty worktree. THAT signals stuck/failed dispatch. Roll back to pending and re-dispatch in a future iteration.
+
+### Lesson — treat red-team's "hidden side effects" finding as a real risk class
+
+T-243.47 first audit caught a backwards watch direction that ALL 15 existing tests passed because they only verified the local→store direction. The store→local sync (the watch's actual purpose) was never tested. The fix included adding a regression test that exercises the store→local path.
+
+When a red-team flags "tests don't cover the bug-fix path", insist on the regression test BEFORE accepting the remediation. Otherwise the bug can recur silently.
+
+### Lesson — UI feature with backend constraint = file the backlog task INSIDE the SWE work
+
+When T-243.58 SWE chose Option E (lazy-on-expand) because gate_Status doesn't expose lastUpdatedAt, the right play was:
+1. Fix what's in scope (UX trade-off acknowledged)
+2. File backlog task for the proper backend fix (T-249.167)
+3. Document the trade-off in the commit message
+
+Same pattern for T-243.50 description schema → T-249.168. Same pattern for SessionConfigPanel null handling → T-249.166.
+
+This keeps the surgical work landable while preserving knowledge of the "right" fix for a future iteration.
+
+### Lesson — contaminated worktrees masquerade as legitimate fixture-fix work
+
+5 triage-* worktrees committed apparent test fixture fixes BUT every commit also silently REMOVED the "UAT is OUT OF SCOPE" rule from `ralph/prompt.md`. The pattern was: innocuous commit message ("test: fix gate IPC fixture classification") hiding a harness-rule mutation in the same commit.
+
+Filed T-249.165 with required action: cherry-pick legitimate product changes onto fresh branches AND add CI guard against `ralph/prompt.md + product code` in the same commit.
+
+**Always audit any worktree you didn't create yourself.** Diff against dev. If a "fixture fix" branch also touches `ralph/`, refuse to merge.

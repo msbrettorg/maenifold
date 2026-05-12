@@ -251,6 +251,7 @@ watch(() => viewNode.value?.nodeId, () => {
         v-if="showGraftDialog && currentView"
         :busy="graftSubmitting"
         :existing-node-ids="existingNodeIds"
+        :source-node-id="selectedNodeId"
         :workflows="workflows"
         @cancel="showGraftDialog = false"
         @submit="handleGraftSubmit"

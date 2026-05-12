@@ -29,6 +29,12 @@ async function syncGate() {
     syncing.value = false;
   }
 }
+
+defineExpose({
+  openAppend: () => { appendOpen.value = true; },
+  openPass: () => { passOpen.value = true; },
+  openFail: () => { failOpen.value = true; },
+});
 </script>
 
 <template>

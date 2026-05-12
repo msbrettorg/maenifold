@@ -6,8 +6,14 @@ import { Pause, Play, RotateCcw, Trash2, XCircle } from 'lucide-vue-next';
 import type { PipelineStatus } from '../lib/pipeline-types';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
+import PipelineCreateForm from './PipelineCreateForm.vue';
 
 type ActionKey = 'create' | 'run' | 'pause' | 'resume' | 'cancel' | 'rewind' | 'delete';
+
+interface PipelineCreateFormSubmit {
+  name?: string;
+  description?: string;
+}
 
 interface ActionConfig {
   key: ActionKey;
@@ -26,6 +32,7 @@ const { currentView, designMode, isRunning, localDefinition } = storeToRefs(stor
 const busyAction = ref<ActionKey | null>(null);
 
 const hasDraftNodes = computed(() => (localDefinition.value?.nodes?.length ?? 0) > 0);
+const showCreateForm = computed(() => designMode.value && hasDraftNodes.value);
 const currentStatus = computed<PipelineActionStatus | null>(
   () => (currentView.value?.status as PipelineActionStatus | undefined) ?? null,
 );
@@ -37,15 +44,7 @@ const rewindableNodeIds = computed(() =>
 
 const actions = computed((): ActionConfig[] => {
   if (designMode.value) {
-    return hasDraftNodes.value
-        ? [{
-            key: 'create',
-            label: 'Create',
-            icon: Play,
-            variant: 'default',
-            run: () => store.createPipeline(),
-          }]
-      : [];
+    return [];
   }
 
   switch (currentStatus.value) {
@@ -198,6 +197,15 @@ async function runAction(action: ActionConfig): Promise<void> {
   }
 }
 
+async function handleCreate(details: PipelineCreateFormSubmit): Promise<void> {
+  busyAction.value = 'create';
+  try {
+    await store.createPipeline(undefined, details);
+  } finally {
+    busyAction.value = null;
+  }
+}
+
 async function handleDelete(): Promise<void | undefined> {
   const confirmed = await confirmDialogStore.confirm(
     'Delete this pipeline?',
@@ -220,9 +228,15 @@ function handleRewind(): Promise<void | undefined> {
 </script>
 
 <template>
-  <div v-if="actions.length > 0" class="ml-1 flex flex-wrap items-center gap-2 rounded-lg border border-border-subtle/80 bg-surface-container p-2 shadow-fluent-16" role="group" aria-label="Pipeline quick actions">
+  <div v-if="showCreateForm || actions.length > 0" class="ml-1 flex flex-wrap items-center gap-2 rounded-lg border border-border-subtle/80 bg-surface-container p-2 shadow-fluent-16" role="group" aria-label="Pipeline quick actions">
+    <PipelineCreateForm
+      v-if="showCreateForm"
+      :disabled="busyAction !== null"
+      @submit="handleCreate"
+    />
     <Button
       v-for="action in actions"
+      v-else
       :key="action.key"
       type="button"
       :variant="action.variant"

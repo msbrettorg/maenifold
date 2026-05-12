@@ -27,6 +27,10 @@ export interface PipelineAssetSummary {
   multiAgent?: boolean;
 }
 
+export interface PipelineCreateOptions {
+  name?: string;
+}
+
 const sharedMcpClients = new Map<string, ReturnType<typeof useMcpClient>>();
 
 export function getSharedMcpClient(baseUrl?: string) {
@@ -62,8 +66,17 @@ export function usePipelineMcp(baseUrl?: string) {
     return callPipeline<PipelineListResult>({ list: true });
   }
 
-  function createPipeline(definition: PipelineDefinition, maxConcurrency = 8) {
-    return callPipeline({ definition, maxConcurrency });
+  function createPipeline(
+    definition: PipelineDefinition,
+    maxConcurrency = 8,
+    options: PipelineCreateOptions = {},
+  ) {
+    const name = options.name?.trim();
+    return callPipeline({
+      definition,
+      maxConcurrency,
+      ...(name ? { name } : {}),
+    });
   }
 
   function viewPipeline(sessionId: string): Promise<PipelineView> {

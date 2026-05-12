@@ -1,10 +1,12 @@
 use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError};
 use crate::mcp::{discovery_tools, gateway_handler::GatewayState};
 use crate::registry::ToolRegistry;
+use crate::tools::with_cancellation_scope;
 use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content};
 use serde_json::Value;
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 pub(crate) async fn handle_tool_call(
     tool_name: String,
@@ -31,8 +33,12 @@ async fn invoke_native(
     arguments: Value,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     let tool_name_for_invoke = tool_name.clone();
+    let cancellation_token = CancellationToken::new();
+    let _cancel_on_drop = RequestCancelOnDrop(cancellation_token.clone());
     let result = tokio::task::spawn_blocking(move || {
-        ToolRegistry::global().try_invoke(&tool_name_for_invoke, &arguments, OutputFormat::Json)
+        with_cancellation_scope(cancellation_token, || {
+            ToolRegistry::global().try_invoke(&tool_name_for_invoke, &arguments, OutputFormat::Json)
+        })
     })
     .await
     .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?;
@@ -43,6 +49,14 @@ async fn invoke_native(
         Err(err) => Ok(CallToolResult::error(vec![Content::text(
             super::tool_utils::format_tool_error(&tool_name, &err),
         )])),
+    }
+}
+
+struct RequestCancelOnDrop(CancellationToken);
+
+impl Drop for RequestCancelOnDrop {
+    fn drop(&mut self) {
+        self.0.cancel();
     }
 }
 

@@ -47,10 +47,16 @@ pub(super) async fn await_terminal_view(
     timeout_ms: Option<u64>,
 ) -> Result<Value> {
     let notifier = subscribe_pipeline_updates(session_id);
+    let cancel = context.cancellation_token.clone();
     let timeout = timeout_ms.map(|ms| tokio::time::sleep(Duration::from_millis(ms)));
     tokio::pin!(timeout);
 
     loop {
+        if cancel.as_ref().is_some_and(|token| token.is_cancelled()) {
+            return Err(MaenifoldError::Message(
+                "Pipeline wait cancelled by MCP request abort".to_string(),
+            ));
+        }
         let notified = notifier.notified();
         let mut view = view_pipeline_session_value(context, session_id)?;
         let status = view.get("status").and_then(Value::as_str).unwrap_or("");
@@ -60,14 +66,35 @@ pub(super) async fn await_terminal_view(
             return Ok(view);
         }
 
-        match timeout.as_mut().as_pin_mut() {
-            Some(timeout) => {
+        match (timeout.as_mut().as_pin_mut(), cancel.as_ref()) {
+            (Some(timeout), Some(cancel)) => {
+                tokio::select! {
+                    () = notified => {}
+                    () = cancel.cancelled() => {
+                        return Err(MaenifoldError::Message(
+                            "Pipeline wait cancelled by MCP request abort".to_string(),
+                        ));
+                    }
+                    () = timeout => return timed_out_view(context, session_id),
+                }
+            }
+            (Some(timeout), None) => {
                 tokio::select! {
                     () = notified => {}
                     () = timeout => return timed_out_view(context, session_id),
                 }
             }
-            None => notified.await,
+            (None, Some(cancel)) => {
+                tokio::select! {
+                    () = notified => {}
+                    () = cancel.cancelled() => {
+                        return Err(MaenifoldError::Message(
+                            "Pipeline wait cancelled by MCP request abort".to_string(),
+                        ));
+                    }
+                }
+            }
+            (None, None) => notified.await,
         }
     }
 }

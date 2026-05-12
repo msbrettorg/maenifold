@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import { HelpCircle, MoreHorizontal } from 'lucide-vue-next';
+import { SHORTCUTS } from '../composables/useGateKeyboard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -52,6 +53,12 @@ const emit = defineEmits<{
 }>();
 
 const helpOpen = ref(false);
+const searchInputRef = useTemplateRef<InstanceType<typeof Input>>('searchInput');
+
+defineExpose({
+  searchInputEl: computed(() => (searchInputRef.value as any)?.$el ?? null),
+  openHelp: () => { helpOpen.value = true; },
+});
 
 const currentRootBasename = computed(() =>
   props.selectedGateRoot ? getWorkspaceLabel(props.selectedGateRoot) : 'No workspace',
@@ -162,6 +169,7 @@ function sprintActive(sprint: number) {
     <div class="flex items-center gap-2 ml-auto">
       <Input
         v-if="props.hasGateRoot"
+        ref="searchInput"
         :model-value="props.searchText"
         type="search"
         placeholder="Search…"
@@ -192,7 +200,17 @@ function sprintActive(sprint: number) {
         <SheetHeader>
           <SheetTitle>Keyboard shortcuts</SheetTitle>
         </SheetHeader>
-        <p class="text-text-secondary mt-4">Coming soon — keyboard shortcuts</p>
+        <p class="text-text-secondary mt-4 mb-2 text-tiny">Gate tab keyboard shortcuts</p>
+        <dl class="space-y-1">
+          <div
+            v-for="shortcut in SHORTCUTS"
+            :key="shortcut.key"
+            class="flex items-center justify-between gap-4"
+          >
+            <kbd class="font-mono text-tiny bg-surface-high px-1.5 py-0.5 rounded shrink-0">{{ shortcut.key }}</kbd>
+            <span class="text-text-secondary text-tiny text-right">{{ shortcut.description }}</span>
+          </div>
+        </dl>
       </SheetContent>
     </Sheet>
   </header>

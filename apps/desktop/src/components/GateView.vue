@@ -12,6 +12,8 @@ import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
 import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
+import { useAppShellStore } from '../stores/app-shell';
+import { useGateKeyboard } from '../composables/useGateKeyboard';
 import type { GateSnapshot, GateTaskHistoryEntry } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
 
@@ -26,6 +28,8 @@ const isLoading = ref(false);
 const error = ref('');
 const lastRefreshLabel = ref('');
 const createTaskOpen = ref(false);
+const toolbarRef = ref<{ searchInputEl: HTMLElement | null; openHelp?: () => void } | null>(null);
+const isActive = computed(() => useAppShellStore().activeTab === 'gate');
 const lastUpdatedByTaskKey = ref<Record<string, string | null>>({});
 
 const gateRoot = computed(() => registry.selectedGateRoot.value);
@@ -99,6 +103,11 @@ function recordActiveTaskLastUpdated() {
   lastUpdatedByTaskKey.value = { ...cache, [key]: value };
 }
 
+function navigateTask(delta: 1 | -1) {
+  const tasks = filtering.visibleTasks.value;
+  const cur = tasks.findIndex((t) => gateTaskSelectionKey(t) === detail.selectedTaskKey.value);
+  if (tasks.length) void detail.selectTask(tasks[Math.max(0, Math.min(tasks.length - 1, cur < 0 ? (delta > 0 ? 0 : tasks.length - 1) : cur + delta))]!);
+}
 function stopStatusWatch() {
   stopStatusSubscription?.();
   stopStatusSubscription = null;
@@ -189,8 +198,21 @@ watch([() => provenance.pendingGateTaskId, enrichedSnapshot], async ([pendingTas
   }
 });
 
-onBeforeUnmount(() => {
-  stopStatusWatch();
+onBeforeUnmount(() => { stopStatusWatch(); });
+useGateKeyboard({
+  isActive,
+  selectedTaskKey: detail.selectedTaskKey,
+  searchInputEl: computed(() => toolbarRef.value?.searchInputEl ?? null),
+  onNext: () => navigateTask(1),
+  onPrev: () => navigateTask(-1),
+  onOpen: () => { const t = detail.activeTask.value; if (t) void detail.selectTask(t); },
+  onClose: () => detail.clearSelection(),
+  onNew: () => { createTaskOpen.value = true; },
+  onPass: () => (document.querySelector('[data-testid="gate-pass-trigger"]') as HTMLButtonElement)?.click(),
+  onFail: () => (document.querySelector('[data-testid="gate-fail-trigger"]') as HTMLButtonElement)?.click(),
+  onAppend: () => (document.querySelector('[data-testid="gate-append-trigger"]') as HTMLButtonElement)?.click(),
+  onRefresh: () => void refreshSnapshot(),
+  onHelp: () => toolbarRef.value?.openHelp?.(),
 });
 </script>
 
@@ -204,6 +226,7 @@ onBeforeUnmount(() => {
         @navigate="navigateTo"
       />
       <GateViewToolbar
+        ref="toolbarRef"
         :has-gate-root="hasGateRoot"
         :todo-count="todoCount"
         :done-count="doneCount"

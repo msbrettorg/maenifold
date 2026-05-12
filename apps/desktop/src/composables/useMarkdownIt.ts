@@ -65,6 +65,90 @@ function wikilinkPlugin(md: MarkdownIt): void {
   };
 }
 
+// Injected into the preprocessed source to mark where a fence was force-closed.
+// The span uses a class so consumers can style it; html:true lets it pass through.
+const FENCE_ERROR_HTML =
+  '<span class="md-fence-error">⚠ unterminated code fence</span>';
+
+/**
+ * Detects language-tagged code fences (` ```lang `) that are truly unclosed and
+ * repairs them by injecting a synthetic closing fence plus an inline error marker.
+ *
+ * Two-pass nesting-aware algorithm:
+ *   Pass 1 — collect language-tagged openers and plain closers, then match them
+ *             with a LIFO stack (innermost opener takes the next available closer).
+ *             Openers remaining on the stack after all closers are consumed are
+ *             genuinely unclosed.
+ *   Pass 2 — for each unclosed opener, inject a closer + error span immediately
+ *             before the first column-0 heading that follows it (or at EOF).
+ *
+ * This avoids the false-positive that fires when a well-formed fence body contains
+ * a line starting with `#` (shell comments, Python comments, YAML keys, etc.).
+ */
+export function repairUnterminatedFences(source: string): string {
+  const lines = source.split('\n');
+
+  // --- Pass 1: collect events, match with stack ---
+  type FenceEvent = { type: 'open' | 'close'; lineIdx: number; char: string; len: number };
+  const events: FenceEvent[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const openM = /^(`{3,}|~{3,})\w/.exec(line);
+    if (openM) {
+      events.push({ type: 'open', lineIdx: i, char: line[0], len: openM[1].length });
+    } else {
+      const closeM = /^(`{3,}|~{3,})\s*$/.exec(line);
+      if (closeM) {
+        events.push({ type: 'close', lineIdx: i, char: closeM[1][0], len: closeM[1].length });
+      }
+    }
+  }
+
+  type StackEntry = { lineIdx: number; char: string; len: number };
+  const stack: StackEntry[] = [];
+
+  for (const ev of events) {
+    if (ev.type === 'open') {
+      stack.push({ lineIdx: ev.lineIdx, char: ev.char, len: ev.len });
+    } else if (stack.length > 0) {
+      const top = stack[stack.length - 1];
+      if (top.char === ev.char && ev.len >= top.len) stack.pop();
+    }
+  }
+
+  if (stack.length === 0) return source;
+
+  // --- Pass 2: determine injection points, rebuild ---
+  // For each unclosed opener, inject before the first column-0 heading that
+  // follows it, or at EOF.  Multiple unclosed openers targeting the same line
+  // produce only one injection (first one wins).
+  const injections = new Map<number, string>(); // lineIdx → closer string
+  for (const entry of stack) {
+    let injIdx = lines.length;
+    for (let j = entry.lineIdx + 1; j < lines.length; j++) {
+      if (/^#{1,6} /.test(lines[j])) {
+        injIdx = j;
+        break;
+      }
+    }
+    if (!injections.has(injIdx)) injections.set(injIdx, entry.char.repeat(entry.len));
+  }
+
+  const out: string[] = [];
+  for (let i = 0; i <= lines.length; i++) {
+    const inj = injections.get(i);
+    if (inj !== undefined) {
+      out.push(inj);
+      out.push(FENCE_ERROR_HTML);
+      out.push('');
+    }
+    if (i < lines.length) out.push(lines[i]);
+  }
+
+  return out.join('\n');
+}
+
 function katexCompatibilityPlugin(md: MarkdownIt): void {
   md.block.ruler.before('math_block', 'literal_triple_dollar', (state, startLine, _endLine, silent) => {
     const start = state.bMarks[startLine] + state.tShift[startLine];
@@ -155,6 +239,11 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
           ? defaultFence(tokens, idx, options, env, self)
           : self.renderToken(tokens, idx, options);
       };
+
+      // Wrap md.render so all consumers get unterminated-fence repair automatically.
+      const originalRender = md.render.bind(md);
+      md.render = (src: string, env?: unknown): string =>
+        originalRender(repairUnterminatedFences(src), env);
 
       return md;
     })();

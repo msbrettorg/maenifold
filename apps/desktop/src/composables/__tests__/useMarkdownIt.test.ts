@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import DOMPurify from 'dompurify';
-import { getMarkdownIt } from '../useMarkdownIt';
+import { getMarkdownIt, repairUnterminatedFences } from '../useMarkdownIt';
 
 describe('useMarkdownIt SVG passthrough regression', () => {
   let render: (source: string) => string;
@@ -215,5 +215,76 @@ describe('useMarkdownIt SVG passthrough regression', () => {
       expect(html).toContain('aria-hidden="true"');
       expect(html).not.toContain('onclick=');
     });
+  });
+});
+
+// Fixture mirroring the spec repro: rust fence missing its closing ``` before ## Section B.
+const UNTERMINATED_FENCE_FIXTURE = [
+  '## Section A',
+  'Plain text here.',
+  '',
+  '```rust',
+  'fn unterminated() {',
+  '    // missing closing fence',
+  '## Section B',
+  'Next section content here.',
+  '',
+  '```python',
+  'print("more code")',
+  '```',
+].join('\n');
+
+describe('unterminated fence repair', () => {
+  let render: (source: string) => string;
+
+  beforeAll(async () => {
+    const md = await getMarkdownIt();
+    render = (source: string) => md.render(source);
+  });
+
+  it('does not corrupt a well-formed fence containing a column-0 hash line', () => {
+    const src = '```bash\n## section header comment\necho hi\n```\n';
+    expect(repairUnterminatedFences(src)).toBe(src);
+  });
+
+  it('does not corrupt python code with hash comments', () => {
+    const src = '```python\n# main entry\nimport os\n## helper\ndef foo(): pass\n```\n## Real heading\n';
+    expect(repairUnterminatedFences(src)).toBe(src);
+  });
+
+  it('does not corrupt the auditor-found rust+heading case', () => {
+    const src = '```rust\n## Comment in code\n```\n## Real heading\n';
+    expect(repairUnterminatedFences(src)).toBe(src);
+  });
+
+  it('Section B heading text appears in rendered output (not swallowed)', () => {
+    const html = render(UNTERMINATED_FENCE_FIXTURE);
+
+    const doc = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    const headings = Array.from(doc.body.querySelectorAll('h1,h2,h3,h4,h5,h6'));
+    const sectionBHeading = headings.find((h) => (h.textContent ?? '').includes('Section B'));
+    expect(sectionBHeading).toBeDefined();
+  });
+
+  it('inline error marker is visible in output', () => {
+    const html = render(UNTERMINATED_FENCE_FIXTURE);
+
+    expect(html).toContain('md-fence-error');
+  });
+
+  it('repairUnterminatedFences: truly unterminated fence (no heading trigger) gets closer appended', () => {
+    const src = '```ts\nconst x = 1;\n// still open';
+    const fixed = repairUnterminatedFences(src);
+
+    expect(fixed).toContain('md-fence-error');
+    expect(fixed).toContain('```\n');
+  });
+
+  it('repairUnterminatedFences: well-formed fences are returned unchanged', () => {
+    const src = '## Heading\n\n```ts\nconst x = 1;\n```\n\n## Next\n';
+    const result = repairUnterminatedFences(src);
+
+    expect(result).toBe(src);
+    expect(result).not.toContain('md-fence-error');
   });
 });

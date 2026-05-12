@@ -3,20 +3,23 @@ import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import DOMPurify from 'dompurify';
 import { getMarkdownIt } from '../composables/useMarkdownIt';
 import { useMermaid } from '../composables/useMermaid';
+import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
 
 const props = withDefaults(
   defineProps<{
     content: string;
     clamp?: boolean;
+    wikilinkAction?: 'open-note' | 'search-knowledge';
   }>(),
-  { clamp: false },
+  { clamp: false, wikilinkAction: 'open-note' },
 );
 
 const containerRef = useTemplateRef<HTMLElement>('containerRef');
 const rendered = ref('');
 let renderVersion = 0;
 const { renderMermaidBlocks } = useMermaid();
+const appShellStore = useAppShellStore();
 const knowledgeStore = useKnowledgeStore();
 
 // Keep data URI rendering to inert raster image formats. SVG data URIs are
@@ -150,6 +153,12 @@ function handleClick(event: MouseEvent): void {
   if (!concept) return;
 
   event.preventDefault();
+  if (props.wikilinkAction === 'search-knowledge') {
+    knowledgeStore.setSearchQuery(concept);
+    appShellStore.setActiveTab('knowledge');
+    return;
+  }
+
   const uri = `memory://${concept}`;
   if (event.metaKey || event.ctrlKey) {
     knowledgeStore.openInNewTab(uri);

@@ -14,19 +14,15 @@ use super::engine_status::{
     completed_node_count, definition_node_count, derive_pipeline_list_status, pipeline_node_states,
 };
 use super::handler_validation::{validate_workflow_node_definitions, workflow_node_file};
-use super::resource_notifications::{
-    clear_pipeline_resource_state, emit_pipeline_sessions_resource_updated,
-};
+#[cfg(test)]
+use super::lease;
+#[cfg(test)]
+use super::session_io::{frontmatter_value, read_pipeline_session};
 use super::session_io::{
-    delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
-    generate_pipeline_node_session_id, read_pipeline_session, write_pipeline_session,
-    write_workflow_node_session,
+    generate_pipeline_node_session_id, write_pipeline_session, write_workflow_node_session,
 };
-use super::session_write_files::delete_file_verified;
 use super::view::view_pipeline_session;
-use super::{
-    NodeState, NodeStatus, PipelineDefinition, compute_ready_set, lease, validate_pipeline,
-};
+use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     let Some(definition_value) = payload.get("definition") else {
         return Err(MaenifoldError::Message(
@@ -188,112 +184,9 @@ fn list_pipelines_impl(
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
     })
 }
-pub(super) fn delete_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
-    delete_pipeline_with_force(context, session_id, false)
-}
-
-pub(super) fn delete_pipeline_with_force(
-    context: &ToolContext,
-    session_id: &str,
-    force: bool,
-) -> Result<String> {
-    lease::with_exclusive_session_lock(
-        session_id,
-        &context.config,
-        || {
-            MaenifoldError::InvalidArgument(format!(
-                "Pipeline {session_id} is running; cancel it before deleting"
-            ))
-        },
-        || {
-            let (_, frontmatter, _) = match read_pipeline_session(context, session_id) {
-                Ok(session) => session,
-                Err(error @ MaenifoldError::FileDataless { .. }) => {
-                    return delete_unreadable_pipeline(context, session_id, force, error);
-                }
-                Err(error) => return Err(error),
-            };
-            if !force && frontmatter.get("status").and_then(YamlValue::as_str) == Some("completed")
-            {
-                return Err(MaenifoldError::InvalidArgument(format!(
-                    "Pipeline {session_id} is completed; pass force:true to delete completed pipelines"
-                )));
-            }
-            let node_states = match frontmatter_value(&frontmatter, "nodeStates") {
-                Ok(raw_node_states) => match derive_pipeline_node_states(context, &raw_node_states)
-                {
-                    Ok(derived_node_states) => derived_node_states,
-                    Err(err) => {
-                        eprintln!(
-                            "Warning: failed to derive node states for pipeline {session_id}; \
-                             falling back to raw frontmatter nodeStates: {err}"
-                        );
-                        raw_node_states
-                    }
-                },
-                Err(err) => {
-                    eprintln!(
-                        "Warning: failed to read raw nodeStates for corrupted pipeline \
-                         {session_id}; deleting pipeline without node cleanup metadata: {err}"
-                    );
-                    HashMap::new()
-                }
-            };
-            if !force
-                && node_states
-                    .values()
-                    .any(|state| matches!(state.status, NodeStatus::Active | NodeStatus::Retrying))
-            {
-                return Err(MaenifoldError::InvalidArgument(format!(
-                    "Pipeline {session_id} has active work; cancel it before deleting"
-                )));
-            }
-            let deleted_files = delete_pipeline_session_files(context, session_id, &node_states)?;
-            let result = json!({
-                "deletedSessionId": session_id,
-                "cleanedUpFiles": deleted_files.cleaned_up_files,
-                "skippedFiles": deleted_files.skipped_files,
-                "deletedFiles": deleted_files.deleted_files,
-            });
-            Ok(match context.output_format {
-                OutputFormat::Json => success(result),
-                OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-            })
-        },
-    )
-}
-
-pub(super) fn delete_unreadable_pipeline(
-    context: &ToolContext,
-    session_id: &str,
-    force: bool,
-    read_error: MaenifoldError,
-) -> Result<String> {
-    if !force {
-        return Err(MaenifoldError::InvalidArgument(format!(
-            "Pipeline {session_id} is unreadable ({read_error}); pass force:true to delete unreadable pipelines"
-        )));
-    }
-    let pipeline_uri = crate::sessions::pipeline_session_uri(session_id);
-    let deleted_file = delete_file_verified(&pipeline_uri, &context.config)?;
-    clear_pipeline_resource_state(session_id);
-    emit_pipeline_sessions_resource_updated();
-    let result = json!({
-        "deletedSessionId": session_id,
-        "cleanedUpFiles": 1,
-        "skippedFiles": 0,
-        "deletedFiles": [deleted_file],
-        "degraded": {
-            "reason": "dataless",
-            "nodeCleanup": "skipped_unreadable_parent",
-            "readError": read_error.to_string(),
-        },
-    });
-    Ok(match context.output_format {
-        OutputFormat::Json => success(result),
-        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-    })
-}
+#[cfg(test)]
+pub(super) use super::handler_delete::delete_unreadable_pipeline;
+pub(super) use super::handler_delete::{delete_pipeline, delete_pipeline_with_force};
 pub(super) fn view_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
     view_pipeline_session(context, session_id)
 }

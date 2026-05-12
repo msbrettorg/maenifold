@@ -9,6 +9,7 @@ use crate::{
     tools::ToolContext,
 };
 
+mod audit;
 pub(super) mod circuit_breaker;
 #[cfg(test)]
 mod delete_verification_tests;
@@ -58,6 +59,9 @@ mod failure_reason_scope_tests_edge;
 mod handler;
 mod handler_crud;
 #[cfg(test)]
+mod handler_crud_audit_tests;
+mod handler_delete;
+#[cfg(test)]
 mod handler_delete_degraded_tests;
 mod handler_lifecycle;
 mod handler_nodes;
@@ -78,6 +82,7 @@ mod orphan_cascade_tests;
 #[cfg(test)]
 mod orphan_recovery_tests;
 mod resource_notifications;
+mod session_delete_files;
 mod session_io;
 mod session_read;
 mod session_write;

@@ -52,6 +52,15 @@ fi
 rm -rf "$pkg_tmp"
 mkdir -p "$user_data_dir"
 
+# T-249.192: always set MAENIFOLD_UAT for agent-driven CDP runs so the native
+# folder-picker IPC short-circuits to a synthetic value instead of opening an
+# OS-level modal that CDP cannot dismiss. MAENIFOLD_UAT_FOLDER_PICKER_PATH
+# may be overridden by the caller; default points at a writable temp dir.
+fixture_dir="${MAENIFOLD_UAT_FOLDER_PICKER_PATH:-$pkg_tmp/uat-fixture-folder}"
+mkdir -p "$fixture_dir"
+export MAENIFOLD_UAT=1
+export MAENIFOLD_UAT_FOLDER_PICKER_PATH="$fixture_dir"
+
 export TMPDIR="$pkg_tmp"
 nohup "$binary" \
   --remote-debugging-port="$port" \
@@ -70,6 +79,15 @@ if ! ps -p "$pid" >/dev/null 2>&1; then
   exit 1
 fi
 
+if ! grep -q "MAENIFOLD_UAT mode active" "$log_path"; then
+  echo "error: MAENIFOLD_UAT guard did not activate in launched binary" >&2
+  echo "the [uat] startup banner is missing from $log_path" >&2
+  echo "this means the binary may pre-date T-249.192; rebuild with: cd apps/desktop && npm run package" >&2
+  echo "log tail:" >&2
+  tail -n 40 "$log_path" >&2 || true
+  exit 1
+fi
+
 if ! curl -fsS "http://127.0.0.1:$port/json" >/tmp/mae-cdp-targets-"$port".json; then
   echo "error: CDP endpoint did not respond on port $port" >&2
   echo "pid: $pid" >&2
@@ -81,6 +99,8 @@ fi
 echo "pid: $pid"
 echo "port: $port"
 echo "TMPDIR: $TMPDIR"
+echo "MAENIFOLD_UAT: $MAENIFOLD_UAT"
+echo "MAENIFOLD_UAT_FOLDER_PICKER_PATH: $MAENIFOLD_UAT_FOLDER_PICKER_PATH"
 echo "user-data-dir: $user_data_dir"
 echo "log: $log_path"
 echo "pid-file: $pid_path"

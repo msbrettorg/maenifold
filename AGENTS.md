@@ -363,6 +363,29 @@ Launch binary directly (not `open -a`) with `--remote-debugging-port=<port>`. On
 2. `--remote-allow-origins=*` — **Chromium 111+ (Electron 24+) requires this for any non-DevTools WebSocket CDP client**. Without it `agent-browser connect` returns `Target.createTarget: Not supported` and `WebSocket Handshake status 403 Forbidden`. The `*` wildcard is fine for local dev / sprint UAT (no remote callers can reach a localhost-only port).
 3. `--user-data-dir=<temp dir>` — recommended for UAT to avoid stale state from prior sessions corrupting first-run tests. The default user-data-dir at `~/Library/Application Support/maenifold/` accumulates settings across runs.
 
+**Required env vars for ALL CDP UAT launches** (added 2026-05-12, T-249.192):
+
+- `MAENIFOLD_UAT=1` — bypasses the native `dialog.showOpenDialog` folder picker so agents can never hang on an OS-level modal that CDP cannot dismiss. **Always set this for any agent-driven CDP run.** Without it, the agent will hang the first time the UAT path clicks any "Choose folder", "Memory root", "Working directory", or similar affordance — verified failure mode that has burned multiple iterations.
+- `MAENIFOLD_UAT_FOLDER_PICKER_PATH=<path>` (optional) — when `MAENIFOLD_UAT=1`, the folder-picker IPC returns this path verbatim instead of `null`. Use a real existing path (e.g. `/tmp/uat-fixture-folder`) so the consuming code paths get exercised with non-null data. Omit to test the cancel branch (returns `null`).
+- Startup proof: when `MAENIFOLD_UAT=1` is active, the main process logs `[uat] MAENIFOLD_UAT mode active - native dialogs return synthetic results` to stdout. Always grep the launch log for this line to confirm the guard is active before invoking any agent-browser command.
+
+Concrete launch sequence example (replaces direct `nohup` invocation):
+
+```bash
+mkdir -p /tmp/uat-fixture-folder
+nohup env \
+  MAENIFOLD_UAT=1 \
+  MAENIFOLD_UAT_FOLDER_PICKER_PATH=/tmp/uat-fixture-folder \
+  ./apps/desktop/out/maenifold-darwin-arm64/maenifold.app/Contents/MacOS/maenifold \
+  --remote-debugging-port=<port> \
+  --remote-allow-origins='*' \
+  --user-data-dir=/tmp/maenifold-uat-<port> \
+  > /tmp/uat-<port>.log 2>&1 &
+disown
+sleep 6
+grep "uat" /tmp/uat-<port>.log | head -3   # must show the [uat] line
+```
+
 Concrete launch sequence (macOS, after `npm run package`):
 
 ```bash

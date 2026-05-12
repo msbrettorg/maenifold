@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import type { PipelineListItem, PipelineStatus } from '../lib/pipeline-types';
+import type { PipelineListItem, PipelineRunSummary, PipelineStatus } from '../lib/pipeline-types';
 
 const props = defineProps<{
   item: PipelineListItem;
@@ -25,6 +25,8 @@ const beadClass = computed(() => beadClassFor(props.item.status));
 const statusTextClass = computed(() => statusTextClassFor(props.item.status));
 const progressBarClass = computed(() => progressBarClassFor(props.item.status));
 const statusLabel = computed(() => formatStatus(props.item.status));
+const descriptionText = computed(() => props.item.description?.trim() || '—');
+const lastRunTimestamp = computed(() => resolveLastRunTimestamp(props.item));
 
 function beadClassFor(status: PipelineStatus): string {
   switch (status) {
@@ -61,6 +63,54 @@ function progressBarClassFor(status: PipelineStatus): string {
   }
 }
 
+function normalizeTimestamp(value?: string | number | null): { iso: string; time: number } | null {
+  if (value === undefined || value === null || value === '') return null;
+  const date = new Date(value);
+  const time = date.getTime();
+  if (Number.isNaN(time)) return null;
+  return { iso: date.toISOString(), time };
+}
+
+function latestRunTimestamp(runs?: PipelineRunSummary[] | null): string | null {
+  if (!Array.isArray(runs)) return null;
+  let latest: { iso: string; time: number } | null = null;
+  for (const run of runs) {
+    const candidates = [run.timestamp, run.completedAt, run.startedAt, run.updatedAt, run.createdAt];
+    for (const candidate of candidates) {
+      const normalized = normalizeTimestamp(candidate);
+      if (normalized && (!latest || normalized.time > latest.time)) {
+        latest = normalized;
+      }
+    }
+  }
+  return latest?.iso ?? null;
+}
+
+function resolveLastRunTimestamp(item: PipelineListItem): string | null {
+  return latestRunTimestamp(item.runs)
+    ?? normalizeTimestamp(item.lastRunAt)?.iso
+    ?? normalizeTimestamp(item.updatedAt)?.iso
+    ?? normalizeTimestamp(item.modifiedAt)?.iso
+    ?? null;
+}
+
+function formatLastUpdated(value?: string | number | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  const time = date.getTime();
+  if (Number.isNaN(time)) return '—';
+  const minutes = Math.floor((Date.now() - time) / 60000);
+  if (minutes < 0) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function formatStatus(status: PipelineStatus): string {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
@@ -91,8 +141,21 @@ function formatStatus(status: PipelineStatus): string {
           class="truncate text-sm font-medium text-text-primary"
           :title="item.pipelineId"
         >{{ item.pipelineId }}</span>
+        <span
+          class="line-clamp-2 text-xs leading-4 text-text-secondary"
+          :title="descriptionText"
+        >{{ descriptionText }}</span>
         <span class="text-xs text-text-secondary">
           {{ item.completedCount }}/{{ item.nodeCount }} nodes
+        </span>
+        <span class="text-xs text-text-tertiary">
+          Last run:
+          <time
+            v-if="lastRunTimestamp"
+            :datetime="lastRunTimestamp"
+            :title="lastRunTimestamp"
+          >{{ formatLastUpdated(lastRunTimestamp) }}</time>
+          <span v-else>—</span>
         </span>
         <Progress
           :model-value="progressPct"

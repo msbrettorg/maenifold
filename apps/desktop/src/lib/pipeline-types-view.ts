@@ -159,11 +159,24 @@ export interface PipelineView {
   running: boolean;
 }
 
+export interface PipelineRunSummary {
+  timestamp?: string | number | null;
+  startedAt?: string | number | null;
+  completedAt?: string | number | null;
+  updatedAt?: string | number | null;
+  createdAt?: string | number | null;
+}
+
 export interface PipelineListItem {
   pipelineId: string;
   status: PipelineStatus;
   nodeCount: number;
   completedCount: number;
+  description?: string | null;
+  lastRunAt?: string | number | null;
+  updatedAt?: string | number | null;
+  modifiedAt?: string | number | null;
+  runs?: PipelineRunSummary[] | null;
 }
 
 export interface LogEntry {

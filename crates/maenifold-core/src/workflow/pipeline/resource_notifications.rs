@@ -1,11 +1,12 @@
 use std::{
     collections::HashMap,
-    sync::LazyLock,
+    sync::{Arc, LazyLock},
     time::{Duration, Instant},
 };
 
 use parking_lot::Mutex;
 use tokio::runtime::{Builder, Handle, Runtime};
+use tokio::sync::Notify;
 
 use crate::mcp::resources::{
     notify_resource_updated,
@@ -22,6 +23,8 @@ static NOTIFICATION_RUNTIME: LazyLock<std::result::Result<Runtime, String>> = La
 });
 
 static PIPELINE_RESOURCE_STATES: LazyLock<Mutex<HashMap<String, PipelineResourceEmitState>>> =
+    LazyLock::new(|| Mutex::new(HashMap::new()));
+static PIPELINE_UPDATE_NOTIFIERS: LazyLock<Mutex<HashMap<String, Arc<Notify>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 struct PipelineResourceEmitState {
@@ -58,6 +61,15 @@ pub(super) fn emit_pipeline_sessions_resource_updated() {
 
 pub(super) fn clear_pipeline_resource_state(session_id: &str) {
     PIPELINE_RESOURCE_STATES.lock().remove(session_id);
+    PIPELINE_UPDATE_NOTIFIERS.lock().remove(session_id);
+}
+
+pub(super) fn subscribe_pipeline_updates(session_id: &str) -> Arc<Notify> {
+    PIPELINE_UPDATE_NOTIFIERS
+        .lock()
+        .entry(session_id.to_string())
+        .or_insert_with(|| Arc::new(Notify::new()))
+        .clone()
 }
 
 fn run_notification(future: impl std::future::Future<Output = ()> + Send + 'static) {
@@ -136,4 +148,11 @@ fn spawn_trailing_session_update(session_id: String, delay: Duration) {
 async fn emit_pipeline_resource_update_pair(session_id: &str) {
     notify_resource_updated(PIPELINE_SESSIONS_URI).await;
     notify_resource_updated(&format!("{PIPELINE_SESSION_PREFIX}{session_id}")).await;
+    notify_pipeline_waiters(session_id);
+}
+
+fn notify_pipeline_waiters(session_id: &str) {
+    if let Some(notifier) = PIPELINE_UPDATE_NOTIFIERS.lock().get(session_id).cloned() {
+        notifier.notify_waiters();
+    }
 }

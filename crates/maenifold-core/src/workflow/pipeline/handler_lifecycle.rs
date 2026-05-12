@@ -6,6 +6,7 @@ use serde_json::{Map as JsonMap, Value, json};
 use serde_yml::Value as YamlValue;
 use std::process::Command;
 
+use super::handler_wait::{await_terminal, parse_timeout_ms, wait_requested};
 use super::lease;
 use super::resource_notifications::emit_pipeline_resource_updated;
 use super::session_io::read_pipeline_session;
@@ -26,7 +27,11 @@ pub(super) fn handle_lifecycle_operation(
     if payload.get("run").and_then(Value::as_bool).unwrap_or(false) {
         let prompt = payload.get("prompt").and_then(Value::as_str);
         let inputs = parse_inputs_payload(payload.get("inputs"))?;
-        return run_pipeline(context, session_id, prompt, inputs.as_ref()).map(Some);
+        let started = run_pipeline(context, session_id, prompt, inputs.as_ref())?;
+        if wait_requested(payload) {
+            return await_terminal(context, session_id, parse_timeout_ms(payload)?).map(Some);
+        }
+        return Ok(Some(started));
     }
     if payload
         .get("cancel")

@@ -57,6 +57,17 @@ pub(crate) fn parse_datetime(value: &str) -> Option<DateTime<Utc>> {
 }
 
 pub(crate) fn read_created_date(file_path: &Path) -> Result<DateTime<Utc>> {
+    // Short-circuit: OneDrive dataless files block on fs::read_to_string until
+    // the cloud provider materialises the content — this can exceed the MCP
+    // request timeout.  We detect the com.apple.decmpfs extended attribute and
+    // fall back directly to filesystem timestamps, which are always local.
+    if crate::util::is_dataless(file_path) {
+        tracing::debug!(
+            file = %file_path.display(),
+            "skipping dataless file content read; using filesystem timestamps"
+        );
+        return system_time_to_datetime(file_path);
+    }
     match fs::read_to_string(file_path) {
         Ok(full_text) => {
             let (frontmatter, _) = match parse_frontmatter_map(&full_text) {

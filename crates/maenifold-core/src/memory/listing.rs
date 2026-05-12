@@ -116,12 +116,19 @@ pub fn list_memories(context: &ToolContext, payload: &serde_json::Value) -> Resu
                 info.len() as f64 / 1024.0
             ));
 
-            let decay_metadata = get_decay_metadata_for_file(
+            let decay_metadata = match get_decay_metadata_for_file(
                 &file_uri,
                 &file_path,
                 &last_accessed_cache,
                 &context.config,
-            )?;
+            ) {
+                Ok(m) => m,
+                Err(_) => DecayMetadata {
+                    created: "degraded".to_string(),
+                    last_accessed: "degraded".to_string(),
+                    decay_weight: 1.0,
+                },
+            };
             output.push_str(&format!("   created: {}\n", decay_metadata.created));
             output.push_str(&format!(
                 "   last_accessed: {}\n",

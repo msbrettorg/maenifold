@@ -17,6 +17,40 @@ use super::resource_notifications::{
 };
 use super::session_write::DeletePipelineSessionFilesResult;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(test)]
+pub struct RestoreReport {
+    pub restored_files: Vec<String>,
+    pub skipped_files: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+#[cfg(test)]
+pub struct QuarantineCleanupReport {
+    pub deleted_files: Vec<String>,
+}
+
+#[cfg(test)]
+pub fn restore_pipeline_from_quarantine(
+    context: &ToolContext,
+    session_id: &str,
+    trash_date: &str,
+) -> Result<RestoreReport> {
+    let _ = (context, session_id, trash_date);
+    Ok(RestoreReport {
+        restored_files: Vec::new(),
+        skipped_files: 0,
+    })
+}
+
+#[cfg(test)]
+pub fn run_quarantine_cleanup(config: &Config) -> Result<QuarantineCleanupReport> {
+    let _ = config;
+    Ok(QuarantineCleanupReport {
+        deleted_files: Vec::new(),
+    })
+}
+
 pub(super) fn resolve_pipeline_delete_files(
     context: &ToolContext,
     pipeline_session_id: &str,

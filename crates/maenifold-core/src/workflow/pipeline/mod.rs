@@ -66,6 +66,8 @@ mod handler_crud_audit_tests;
 mod handler_delete;
 #[cfg(test)]
 mod handler_delete_degraded_tests;
+#[cfg(test)]
+mod handler_delete_quarantine_tests;
 mod handler_lifecycle;
 mod handler_nodes;
 mod handler_surgery;

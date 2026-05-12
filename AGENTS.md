@@ -108,13 +108,17 @@ Use the native maenifold MCP Gateway surface. Do not fall back to a legacy gate 
 
 ### Authorization
 
-**The PM operates autonomously.** The PM owns the backlog, builds pipeline DAGs, and ships work without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects.
+**The PM operates autonomously.** The PM owns the backlog, dispatches work, and ships without waiting for per-task user authorization. The user sets direction; the PM executes continuously until the backlog drains or the user redirects.
 
-**Pipeline-driven execution is the default.** The PM builds pipeline DAGs from the gate backlog using the `Pipeline` tool. Each gate task becomes pipeline nodes (tool nodes for `gate_Pass`/`gate_Fail`, prompt nodes for SWE/red-team/blue-team work). The pipeline engine handles dispatch, ordering, concurrency, and state persistence. Agents are stateless workers — they receive a prompt, do the work, return output. They do not know about gate, RACI, or process. The DAG topology IS the process.
+**Dogfood Pipeline when it fits, fall back to direct-dispatch when it doesn't.** We use our own Pipeline tool whenever it can host the work cleanly — that's how we keep the tool honest. But Pipeline has known sharp edges (T-300.1 is a P0 umbrella documenting them), and any time the work is *fixing Pipeline itself* the tool can't host its own repair. In those cases — and any other case where direct-dispatch via the `Task` tool with isolated worktrees is materially safer or simpler — direct-dispatch is fine. Don't paint yourself into a corner where the broken tool is the only way to fix the broken tool.
 
-**The PM never idles.** While pipelines execute, the PM monitors progress (`Pipeline view`), intervenes on failures (`Pipeline rewind`), grafts remediation nodes, and builds the next pipeline. "Waiting for the pipeline to finish" is not a valid PM state.
+**Default execution model:** the PM picks the cheapest substrate that gives full visibility:
+- **Pipeline tool** — preferred when the DAG is well-formed (same gate process for every node, no need to mid-flight regraft based on agent output, no dependency on an unfinished Pipeline feature)
+- **Direct-dispatch with worktrees + visible `Task` agents + PM-owned gate transitions** — the fallback. Same Gate/confession/audit catch points, same isolation, same evidence chain. Not weaker, just lower-level.
 
-**Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for pipeline inclusion. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get included or triaged, never ignored.
+**The PM doesn't idle.** While work runs (Pipeline OR direct-dispatch lanes), the PM uses the time to prep the next worktree, draft the next prompt, run PM-only artifact checks, or read the next ready item. "Waiting for a worker to finish" is not a valid PM state.
+
+**Gate is a kanban board.** Every task in `todo/` with state `pending` and no unmet dependencies is eligible for dispatch. The PM scans the full board on every cycle — not just the current sprint. Stale pending items from prior sprints get included or triaged, never ignored.
 
 ### SWE Verification Requirements
 
@@ -166,7 +170,7 @@ The `Pipeline` tool manages concurrency, ordering, and saturation. The PM builds
 
 **Anti-patterns the PM must not exhibit:**
 
-- Manual `Task` tool dispatch when a pipeline DAG would do it. For >1 task, use a pipeline.
+- Manual `Task` tool dispatch when a Pipeline DAG would clearly host the work better (well-formed DAG, no need for mid-flight regraft). Direct-dispatch is fine when Pipeline can't host the work or is itself under repair.
 - Building a single-lane pipeline when tasks are file-independent.
 - Using `maxConcurrency: 1` without justification.
 

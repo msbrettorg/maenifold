@@ -75,3 +75,61 @@ describe('useGateTaskFiltering readiness filter', () => {
     ]);
   });
 });
+
+describe('useGateTaskFiltering — sprint chips', () => {
+  function sprintTask(taskId: string, sprint: number | null | undefined): GateTask {
+    return { ...baseTask, taskId, canonicalTaskId: taskId, sprint } as GateTask;
+  }
+
+  const taskList: GateTask[] = [
+    sprintTask('T-1', 250),
+    sprintTask('T-2', 251),
+    sprintTask('T-3', 250),
+    sprintTask('T-4', null),
+    sprintTask('T-5', 249),
+  ];
+
+  it('shows all tasks when no sprint selected', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    expect(filtering.visibleTasks.value).toHaveLength(5);
+  });
+
+  it('toggleSprint adds a sprint to selectedSprints', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    filtering.toggleSprint(250);
+    expect(filtering.selectedSprints.value.has(250)).toBe(true);
+  });
+
+  it('toggleSprint removes an already-selected sprint', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    filtering.toggleSprint(250);
+    filtering.toggleSprint(250);
+    expect(filtering.selectedSprints.value.has(250)).toBe(false);
+  });
+
+  it('filters to only matching sprint tasks (OR semantics, single sprint)', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    filtering.toggleSprint(250);
+    const ids = filtering.visibleTasks.value.map((t) => t.taskId);
+    expect(ids).toEqual(['T-1', 'T-3']);
+  });
+
+  it('filters to union of tasks when two sprints selected', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    filtering.toggleSprint(250);
+    filtering.toggleSprint(251);
+    const ids = filtering.visibleTasks.value.map((t) => t.taskId);
+    expect(ids).toEqual(['T-1', 'T-2', 'T-3']);
+  });
+
+  it('sprintOptions returns top 5 sprints descending, null excluded', () => {
+    const snapshot = ref(createGateSnapshot('/', taskList));
+    const filtering = useGateTaskFiltering(snapshot);
+    expect(filtering.sprintOptions.value).toEqual([251, 250, 249]);
+  });
+});

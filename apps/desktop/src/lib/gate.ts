@@ -16,6 +16,8 @@ export interface GateTask {
   attempts: number;
   lastUpdatedAt?: string | null;
   last_updated_at?: string | null;
+  priority?: string | null;
+  sprint?: number | null;
   location: string;
   path: string;
   issue: string;

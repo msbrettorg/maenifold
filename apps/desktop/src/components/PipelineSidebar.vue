@@ -245,7 +245,11 @@ onBeforeUnmount(() => {
       <p>No pipelines yet</p>
     </div>
 
-    <ScrollArea v-else class="min-h-0 flex-1">
+    <ScrollArea
+      v-else
+      data-testid="pipeline-sidebar-scroll"
+      class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+    >
       <ul class="m-0 flex list-none flex-col gap-2 p-3">
         <PipelineSidebarItem
           v-for="item in pipelineItems"

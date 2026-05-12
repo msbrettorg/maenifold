@@ -57,6 +57,8 @@ One product, one monorepo. `crates/` = Rust backend. `apps/desktop/` = Electron 
 
 **Monorepo ≠ architecture waiver.** No path dependencies from desktop app to backend domain crates. If it's domain truth, it goes through MCP.
 
+**Localhost trust model — no in-process access control.** MCP gateway tools (e.g., `gate_Create`, `gate_Pass`, `gate_Sync`, write tools generally) accept caller-supplied parameters at face value. Specifically: `gate_Create`'s `root` parameter is NOT validated against the desktop app's "selected gate root" — any caller may write tasks under any directory tree it has filesystem permission to. This is intentional per P0 trigger #5: the security boundary is APIM at the edge, not Rust middleware. The Electron IPC path (`gate:write-task-file`) does enforce selected-root for UI-driven creates because the renderer is an untrusted-input boundary; the MCP path is a localhost loopback agents call directly. Do not add validation, ACLs, or auth to the MCP path. (T-248.4 closure rationale, 2026-05-12.)
+
 ---
 
 ## Gate — The Law

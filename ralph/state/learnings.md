@@ -1427,3 +1427,72 @@ For changes that mutate shared state, modify backend, or change critical-path co
 Auditor hallucination rate: 4 of ~14 audits (29%). Mitigation paths: PM source verification + R2 dispatch + PM override. All hallucinations caught + resolved without false-positive merges.
 
 PM-level git ops: 19 merges, 19 worktree creations + prunes, 0 destructive git operations by agents.
+
+
+### Iteration ralph-5 — 2026-05-12 (8 tasks shipped)
+
+**Done this iteration:** T-243.126 (wikilink chips a11y), T-243.127 (markdown unterminated-fence recovery, r2 after corruption-regression catch), T-244.10 (Knowledge live-refresh polling), T-244.12 (gate stage-history timeline, r2 after case-sensitive append filter catch), T-244.33 (chat input draft autosave), T-244.12.1 (superseded by T-244.12 r2), T-249.165 (5 contaminated triage worktrees cleaned + CI guard scripts/ci-no-ralph-product-mix.sh + 5 cherry-picked task branches T-249.184-188 landed inline), T-249.177 (SaveWorkflowAsset MCP tool gateway-wired, r2 after missing TOOL_DOMAINS+schema+gateway-test catch).
+
+### Lesson — auditor LIVE PROBE catches what test fixtures mask
+
+T-244.12 SWE wrote a test fixture with `event: 'APPEND'` (uppercase). Test passed. Filter `e.event !== 'APPEND'` worked against the fabricated fixture. Real backend at `crates/maenifold-gate-core/src/lifecycle.rs:255` only `to_uppercase()`'s the outcome — append entries flow through with `record_kind = "append"` (lowercase). Filter button was DEAD on real data.
+
+Red-team caught this by making a LIVE MCP probe of `gate_History` for a task with multiple stage-history entries (T-243.46) and inspecting the actual event-case distribution: `Counter({'PASS': 15, 'FAIL': 5, 'append': 1})`.
+
+**Mitigation pattern:** every red-team prompt for a UI task that consumes backend data must include "live-probe the backend payload via curl + document the actual response shape; assert your test fixtures match the real shape, not the spec's wishful description." Red-team T-244.12 followed exactly this pattern and caught the bug.
+
+### Lesson — wiring tasks need integration tests against the canonical resolution surface
+
+T-249.177 SWE r1 added the registry entry + wrote an integration test. Tests passed. PM verified release build clean, all 14 tests pass. Looked good.
+
+Red-team r1 found the test went through `ToolRegistry::try_invoke` directly. Frontend uses `GatewayExecute` which routes through `gateway_catalog::resolve` → `domain_mapping::tool_domain` → REJECT (no entry for SaveWorkflowAsset). The test BYPASSED the failing surface.
+
+**Mitigation pattern:** for any "wire X" task, the spec MUST require integration test against the canonical user-facing resolution surface (gateway, not registry; HTTP, not handler; renderer DOM, not store mutation). PM-author and red-team-auditor must both verify this. SWE r2 added 3 new gateway tests probing `tool_domain()`, `tool_safety()`, `mcp_tool_from_registry_name()` — exactly the surfaces that mattered.
+
+### Lesson — merge-base diff is required to verify ANY auditor's "branch is contaminated" claim
+
+T-249.165 spec said 5 triage-* worktree branches contaminated `ralph/prompt.md`. PM merge-base diff showed: ZERO ralph/* files in any of them — 0 ralph/* in `git diff $(git merge-base HEAD dev)..HEAD`. The previous PM audited via plain `git diff dev..HEAD` which shows merged tasks since branch creation as if THIS branch deleted them. Same wrong-base diff failure mode burned T-243.42, T-243.53, T-243.54 last iteration (per learnings).
+
+**Mitigation:** PM must NEVER trust a contamination claim without independently re-running with `git merge-base $BRANCH dev` as the diff base. Code-reading "the branch deletes 100 files" is a near-certain wrong-base signal.
+
+### Lesson — empty SequentialThinking session ID rejected by maenifold.thinking
+
+`ralph.sh` exports `RALPH_THINKING_SESSION=ralph-N-{timestamp}` and the prompt instructs the PM to append a thought to that existing session. The maenifold.thinking SequentialThinking command rejects that ID format with `INVALID_SESSION_ID`. The prior 4 iterations may have all silently failed at this step.
+
+**Workaround for ralph-5:** PM submitted with NO sessionId, thoughtNumber=0, nextThoughtNeeded=false → maenifold.thinking auto-generated `session-{timestamp}-{rand}` and the thought + conclusion landed there. The runtime-fact session ID is effectively a label, not a real session.
+
+**Recommend:** either (a) ralph.sh should call maenifold.thinking SequentialThinking itself to actually pre-create thought 0, OR (b) the runtime fact text should explicitly tell the PM "the env var is a label; create a fresh session yourself when appending".
+
+### Lesson — the SDD pipeline state machine resets between calls when called via gate_Pass
+
+Observed during T-249.177 close: I called gate_Pass thinking the state was `red-team` (verified via gate_Status before the call). After gate_Pass it returned `state: swe`. That's because the pipeline is `pending → blue-team → swe → red-team → done` (TDD), and the state field shows the NEW state after the pass — but the gate cache was stale from earlier fast-forwards. Always verify with `gate_Status` AFTER each gate_Pass to confirm the actual state, never assume.
+
+
+### Lesson — partial node_modules state surfaces ONLY at packaging time
+
+After ralph-5 closed, user reported `npm run package` failing with:
+```
+Failed to locate module "acorn" from /apps/desktop/node_modules/svelte"
+```
+
+PM diagnosis: `apps/desktop/node_modules/` was missing exactly 2 packages from `package-lock.json`:
+- `acorn` (direct dep of `svelte@5.55.5` which is transitive of `vanilla-jsoneditor`)
+- `acorn-import-phases` (npm 10 plugin)
+
+Other "missing" entries in the diff were 10 platform-specific `lightningcss-*` binaries — those have `os`/`cpu` filters in the lock and are correctly absent on darwin-arm64.
+
+Root cause: T-249.165 SWE worker confessed to running `npm install`-equivalent commands in a worktree whose `apps/desktop/node_modules` was a symlink to main's. The install resolver got confused and the main tree ended up partially-installed. Vue-tsc + vitest + cargo build all succeeded against this partial tree because they don't follow the full transitive dep tree the way `electron-packager`'s `flora-colossus` walker does.
+
+PM fix: `cd apps/desktop && npm install` (NOT `npm ci` — that wipes everything and re-downloads ~900 packages). `package-lock.json` md5 unchanged before/after → only the 2 missing packages added; no surprise upgrades. Re-run `npm run package` succeeded.
+
+**Mitigation filed as T-249.189:**
+1. Add `apps/desktop/scripts/check-node-modules-integrity.mjs` — reads package-lock.json, asserts every non-platform-specific dir exists, exits non-zero on missing.
+2. Wire into `package` script as pre-step: `"package": "npm run check:node-modules && electron-forge package"`.
+3. Update AGENTS.md → "Frontend worktrees" with explicit forbidden-action clause.
+
+**Pattern:** if vue-tsc + vitest + cargo build all pass but `npm run package` fails, ALWAYS suspect partial node_modules state, not source code. Fix order:
+1. `npm ls <missing-package>` to confirm and find depender chain.
+2. Compare `node_modules/` count vs package-lock expected (script in T-249.189).
+3. `npm install` (not `npm ci`) to surgically reconcile.
+4. Verify package-lock md5 unchanged.
+

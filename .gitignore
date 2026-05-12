@@ -39,3 +39,10 @@ apps/desktop/evidence/
 # See AGENTS.md for the operating model change.
 todo/
 done/
+
+# UAT runtime junk (Electron user-data-dir, launch logs)
+# scripts/uat-launch.sh writes user-data to /tmp; these patterns catch any
+# stray non-wrapper launches that escape to repo root
+mae-uat-*.log
+uat-data-*/
+uat-evidence/

@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { defineComponent, h } from 'vue';
 import SemanticZoomOverlayContent from '../SemanticZoomOverlayContent.vue';
 import type { ToolProvenance } from '../../lib/pipeline-types';
-import type { DispatchedResource } from '../../lib/resource-mime-dispatcher';
+import { dispatchResource, type DispatchedResource } from '../../lib/resource-mime-dispatcher';
+
+vi.mock('../../lib/resource-mime-dispatcher', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/resource-mime-dispatcher')>();
+  return {
+    ...actual,
+    dispatchResource: vi.fn(actual.dispatchResource),
+  };
+});
 
 type ContentProps = InstanceType<typeof SemanticZoomOverlayContent>['$props'];
 
@@ -61,7 +69,16 @@ function resourcePreviewProps(wrapper: ReturnType<typeof mountContent>): Dispatc
   return preview.exists() ? preview.props('dispatched') as DispatchedResource : null;
 }
 
+function nodeOutputMimeType(): string | undefined {
+  return vi.mocked(dispatchResource).mock.calls
+    .find(([content]) => content.uri === 'pipeline-node-output')?.[0].mimeType;
+}
+
 describe('SemanticZoomOverlayContent unified output rendering', () => {
+  beforeEach(() => {
+    vi.mocked(dispatchResource).mockClear();
+  });
+
   it('renders node output via MarkdownView or the unified dispatcher, not raw pre', () => {
     const output = '# title\n\n```ts\nconst ok = true;\n```';
     const wrapper = mountContent({ nodeOutput: output });
@@ -91,6 +108,28 @@ describe('SemanticZoomOverlayContent unified output rendering', () => {
       kind: 'json',
       pretty: '{\n  "ok": true,\n  "items": [\n    1,\n    2\n  ]\n}',
     });
+
+    wrapper.unmount();
+  });
+
+  it('renders plain-text node output as text/plain', () => {
+    const output = 'INFO start\n  indented line\nDONE';
+    const wrapper = mountContent({ nodeOutput: output });
+    const dispatched = resourcePreviewProps(wrapper);
+
+    expect(nodeOutputMimeType()).toBe('text/plain');
+    expect(dispatched).toMatchObject({ kind: 'code', language: 'text', text: output });
+
+    wrapper.unmount();
+  });
+
+  it('renders obvious-markdown node output as text/markdown', () => {
+    const output = '# title\n\n- item';
+    const wrapper = mountContent({ nodeOutput: output });
+    const dispatched = resourcePreviewProps(wrapper);
+
+    expect(nodeOutputMimeType()).toBe('text/markdown');
+    expect(dispatched).toEqual({ kind: 'markdown', text: output });
 
     wrapper.unmount();
   });

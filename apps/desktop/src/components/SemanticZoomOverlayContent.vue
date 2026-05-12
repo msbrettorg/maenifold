@@ -25,7 +25,24 @@ const props = defineProps<{
 
 function textMimeType(text: string): string {
   const trimmed = text.trim();
-  return trimmed.startsWith('{') || trimmed.startsWith('[') ? 'application/json' : 'text/markdown';
+  if ((trimmed.startsWith('{') || trimmed.startsWith('['))) {
+    try {
+      JSON.parse(trimmed);
+      return 'application/json';
+    } catch {
+      return 'text/plain';
+    }
+  }
+
+  if (/(^|\n)#{1,6}\s+\S/.test(text)
+    || text.includes('```')
+    || /(^|\n)\s*[-*+]\s+\S/.test(text)
+    || /(^|\n)\s*\d+\.\s+\S/.test(text)
+    || /(^|\n)>\s+\S/.test(text)) {
+    return 'text/markdown';
+  }
+
+  return 'text/plain';
 }
 
 const nodeOutputResource = computed(() => props.nodeOutput

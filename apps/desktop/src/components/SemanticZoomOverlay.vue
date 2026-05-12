@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
+import { toast } from 'vue-sonner';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
 import { usePipelineStore } from '../stores/pipeline';
@@ -10,6 +11,7 @@ import { usePromptDialogStore } from '../stores/prompt-dialog';
 import type { PipelineEdge, PipelineNode, ViewNode } from '../lib/pipeline-types';
 import { getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { useInspectorActions } from '../composables/useInspectorActions';
+import { latestAssistantMessageForRemoteSession } from '../composables/usePipelineRefinementSession';
 import GraftNodesDialog from './GraftNodesDialog.vue';
 import PromotionDialog from './PromotionDialog.vue';
 import SemanticZoomOverlayContent from './SemanticZoomOverlayContent.vue';
@@ -109,18 +111,13 @@ watch(
   },
   { flush: 'post' },
 );
-function latestAssistantMessage(): { content: string; sessionId: string } | null {
-  const localId = sessionStore.activeSessionId;
-  const session = localId ? sessionStore.sessions.get(localId) : null;
-  const messages = session?.messages ?? [];
-  const message = [...messages].reverse().find((candidate) => candidate.role === 'assistant');
-  const sessionId = session?.session?.sessionId ?? session?.sessionId;
-  return message && sessionId ? { content: message.content, sessionId } : null;
-}
 function handleTakeRefined(): void {
   const nodeId = viewNode.value?.nodeId;
-  const latest = latestAssistantMessage();
-  if (!nodeId || !latest) return;
+  const latest = latestAssistantMessageForRemoteSession(sessionStore, viewNode.value?.provenance?.detail.sessionId);
+  if (!nodeId || !latest) {
+    toast.error('Unable to take refined output: reconnected session is no longer open.');
+    return;
+  }
   pipeline.replaceNodeOutput(nodeId, latest.content, {
     sessionId: latest.sessionId,
     takenAt: Date.now(),

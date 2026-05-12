@@ -32,15 +32,26 @@ function downstreamNodeIds(view: PipelineView, nodeId: string): Set<string> {
 export function createPipelineReconnectActions(deps: ReconnectActionsDeps) {
   const { currentView } = deps;
 
+  function updateNode(nodeId: string, update: (node: ViewNode) => ViewNode): void {
+    const view = currentView.value;
+    const node = view ? findNode(view, nodeId) : undefined;
+    if (!view || !node) return;
+    currentView.value = {
+      ...view,
+      nodes: view.nodes.map((candidate) =>
+        candidate.nodeId === nodeId ? update(candidate) : candidate,
+      ),
+    };
+  }
+
   function markNodeReconnected(nodeId: string): void {
-    const node = currentView.value ? findNode(currentView.value, nodeId) : undefined;
-    if (!node || node.type === 'tool') return;
-    node.reconnected = true;
+    updateNode(nodeId, (node) => (
+      node.type === 'tool' ? node : { ...node, reconnected: true }
+    ));
   }
 
   function clearNodeReconnected(nodeId: string): void {
-    const node = currentView.value ? findNode(currentView.value, nodeId) : undefined;
-    if (node) node.reconnected = false;
+    updateNode(nodeId, (node) => ({ ...node, reconnected: false }));
   }
 
   function replaceNodeOutput(
@@ -51,13 +62,23 @@ export function createPipelineReconnectActions(deps: ReconnectActionsDeps) {
     const view = currentView.value;
     const node = view ? findNode(view, nodeId) : undefined;
     if (!view || !node) return;
-    node.output = output;
-    node.reconnected = false;
-    node.refinement = metadata;
     const staleNodeIds = downstreamNodeIds(view, nodeId);
-    view.nodes.forEach((candidate) => {
-      if (staleNodeIds.has(candidate.nodeId)) candidate.stale = true;
-    });
+    currentView.value = {
+      ...view,
+      nodes: view.nodes.map((candidate) => {
+        if (candidate.nodeId === nodeId) {
+          return {
+            ...candidate,
+            output,
+            reconnected: false,
+            refinement: metadata,
+          };
+        }
+        return staleNodeIds.has(candidate.nodeId)
+          ? { ...candidate, stale: true }
+          : candidate;
+      }),
+    };
   }
 
   return {

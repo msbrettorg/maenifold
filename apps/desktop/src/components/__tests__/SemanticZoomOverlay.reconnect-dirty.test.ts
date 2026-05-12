@@ -148,6 +148,42 @@ describe('SemanticZoomOverlay reconnect dirty controls', () => {
     wrapper.unmount();
   });
 
+  it('takes refined output from the node session when another session is active', async () => {
+    const { wrapper, pipeline } = setupOverlay(node({ reconnected: true } as Partial<ViewNode>));
+    const sessionStore = useSessionStore() as unknown as {
+      activeSessionId: string;
+      sessions: Map<string, unknown>;
+    };
+    sessionStore.activeSessionId = 'local-b';
+    sessionStore.sessions = new Map([
+      ['local-a', {
+        sessionId: 'local-a',
+        session: { sessionId: 'acp-remote-1' },
+        messages: [
+          { id: 'assistant-a', role: 'assistant', content: 'node session answer', timestamp: 3 },
+        ],
+      }],
+      ['local-b', {
+        sessionId: 'local-b',
+        session: { sessionId: 'acp-other' },
+        messages: [
+          { id: 'assistant-b', role: 'assistant', content: 'active session answer', timestamp: 4 },
+        ],
+      }],
+    ]);
+    await flushPromises();
+
+    button('Take refined output').click();
+    await flushPromises();
+
+    expect(pipeline.replaceNodeOutput).toHaveBeenCalledWith(
+      'node-1',
+      'node session answer',
+      expect.objectContaining({ sessionId: 'acp-remote-1' }),
+    );
+    wrapper.unmount();
+  });
+
   it('discard refinement clears the reconnected flag without replacing stored output', async () => {
     const { wrapper, pipeline } = setupOverlay(node({ reconnected: true } as Partial<ViewNode>));
     await flushPromises();

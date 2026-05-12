@@ -4,6 +4,11 @@ import { createPinia, setActivePinia } from 'pinia';
 
 import { usePipelineStore } from '../pipeline';
 import type { PipelineView, ViewNode } from '../../lib/pipeline-types';
+import {
+  pipelineNodesToFlow,
+  toPipelineNodeFromViewNode,
+  type FlowNodeData,
+} from '../../lib/pipeline-composer-flow';
 
 type ReconnectApi = {
   markNodeReconnected: (nodeId: string) => void;
@@ -104,5 +109,20 @@ describe('pipeline store reconnect dirty tracking', () => {
     api.markNodeReconnected('tool-node');
 
     expect((store.currentView!.nodes[0] as ViewNode & { reconnected?: boolean }).reconnected).not.toBe(true);
+  });
+
+  it('threads reconnected state into rebuilt Vue Flow node data', () => {
+    const store = usePipelineStore();
+    store.currentView = view([node('node-a')]);
+    const api = store as unknown as ReconnectApi;
+
+    api.markNodeReconnected('node-a');
+
+    const flowNodes = pipelineNodesToFlow(
+      store.currentView!.nodes.map(toPipelineNodeFromViewNode),
+      store.currentView!.pipelineId,
+      store.currentView!.nodes,
+    );
+    expect((flowNodes[0].data as FlowNodeData).reconnected).toBe(true);
   });
 });

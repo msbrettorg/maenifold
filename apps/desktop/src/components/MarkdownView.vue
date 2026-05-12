@@ -167,6 +167,15 @@ function handleClick(event: MouseEvent): void {
   knowledgeStore.openNote(uri);
 }
 
+function handleKeydown(event: KeyboardEvent): void {
+  if (event.key !== ' ') return;
+  if (!(event.target instanceof Element)) return;
+  const target = event.target.closest<HTMLElement>('[data-wikilink]');
+  if (!target) return;
+  event.preventDefault();
+  target.click();
+}
+
 watch(() => props.content, updateRendered, { immediate: true });
 </script>
 
@@ -176,6 +185,7 @@ watch(() => props.content, updateRendered, { immediate: true });
     class="prose prose-sm min-w-0 max-w-full [overflow-wrap:anywhere] dark:prose-invert [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre [&_pre_code]:whitespace-pre [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
     :class="clamp ? 'line-clamp-6' : ''"
     @click="handleClick"
+    @keydown="handleKeydown"
     v-html="rendered"
   />
 </template>

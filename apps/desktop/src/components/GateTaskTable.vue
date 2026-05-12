@@ -33,6 +33,7 @@ import {
   getTaskPathHint,
   getTaskPipelineLabel,
   isTaskPipelineDigestStale,
+  isTaskStale,
 } from '../lib/gate-display';
 
 type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority' | 'default';
@@ -261,14 +262,23 @@ const table = useVueTable<GateTask>({
             </TableCell>
             <TableCell
               :style="getColumnWidthStyle('lastUpdated')"
-              class="truncate text-xs text-text-secondary"
+              class="text-xs text-text-secondary"
             >
-              <time
-                v-if="row.original.lastUpdatedAt"
-                :datetime="row.original.lastUpdatedAt"
-                :title="row.original.lastUpdatedAt"
-              >{{ formatLastUpdated(row.original.lastUpdatedAt) }}</time>
-              <span v-else>—</span>
+              <div class="flex min-w-0 items-center gap-1.5">
+                <time
+                  v-if="row.original.lastUpdatedAt"
+                  :datetime="row.original.lastUpdatedAt"
+                  :title="row.original.lastUpdatedAt"
+                  class="min-w-0 truncate"
+                >{{ formatLastUpdated(row.original.lastUpdatedAt) }}</time>
+                <span v-else class="truncate">—</span>
+                <span
+                  v-if="isTaskStale(row.original)"
+                  aria-hidden="true"
+                  class="h-2 w-2 shrink-0 rounded-full bg-status-stuck"
+                  title="No activity in 24h"
+                />
+              </div>
             </TableCell>
           </TableRow>
           <TableRow v-if="!props.tasks.length" class="hover:bg-transparent">

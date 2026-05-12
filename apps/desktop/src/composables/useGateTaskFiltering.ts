@@ -2,7 +2,7 @@ import { computed, ref, watch, type Ref } from 'vue';
 import type { GateSnapshot, GateTask } from '../lib/gate';
 import { getTaskPipelineLabel } from '../lib/gate-display';
 
-export type GateSortColumn = 'id' | 'name' | 'process' | 'progress';
+export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
 export type GateSortDirection = 'asc' | 'desc';
 
 function uniqueValues(values: string[]) {
@@ -18,6 +18,12 @@ export function progressRank(task: GateTask) {
   if (!task.stages?.length) return task.state === 'pending' ? 0 : 1;
   const index = task.stages.indexOf(task.state);
   return index < 0 ? 0 : index;
+}
+
+function lastUpdatedTime(task: GateTask) {
+  if (!task.lastUpdatedAt) return 0;
+  const time = Date.parse(task.lastUpdatedAt);
+  return Number.isNaN(time) ? 0 : time;
 }
 
 export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
@@ -61,6 +67,7 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
           name: (left.title ?? '').localeCompare(right.title ?? ''),
           process: processValue(left).localeCompare(processValue(right)),
           progress: progressRank(left) - progressRank(right),
+          lastUpdated: lastUpdatedTime(left) - lastUpdatedTime(right),
         }[sortColumn.value];
 
         return (compare ?? 0) * direction || (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true });

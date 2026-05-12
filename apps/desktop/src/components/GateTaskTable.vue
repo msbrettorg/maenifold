@@ -28,7 +28,7 @@ import {
   isTaskPipelineDigestStale,
 } from '../lib/gate-display';
 
-type SortColumn = 'id' | 'name' | 'process' | 'progress';
+type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
 type SortDirection = 'asc' | 'desc';
 
 const props = defineProps<{
@@ -59,6 +59,23 @@ function rowTitle(task: GateTask) {
   ]
     .filter(Boolean)
     .join('\n');
+}
+
+function formatLastUpdated(value?: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  const time = date.getTime();
+  if (Number.isNaN(time)) return '—';
+  const minutes = Math.floor((Date.now() - time) / 60000);
+  if (minutes < 0) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (minutes < 1) return 'just now';
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
 function sortAriaOrder(column: SortColumn): 'ascending' | 'descending' | 'none' {
@@ -125,6 +142,14 @@ const columns: ColumnDef<GateTask>[] = [
     size: 160,
     minSize: 140,
     maxSize: 260,
+  },
+  {
+    id: 'lastUpdated',
+    accessorKey: 'lastUpdatedAt',
+    header: () => SortableHeader('Last Updated', 'lastUpdated'),
+    size: 140,
+    minSize: 120,
+    maxSize: 220,
   },
 ];
 
@@ -224,9 +249,20 @@ const table = useVueTable<GateTask>({
                 <GateTaskProgress :task="row.original" />
               </div>
             </TableCell>
+            <TableCell
+              :style="getColumnWidthStyle('lastUpdated')"
+              class="truncate text-xs text-text-secondary"
+            >
+              <time
+                v-if="row.original.lastUpdatedAt"
+                :datetime="row.original.lastUpdatedAt"
+                :title="row.original.lastUpdatedAt"
+              >{{ formatLastUpdated(row.original.lastUpdatedAt) }}</time>
+              <span v-else>—</span>
+            </TableCell>
           </TableRow>
           <TableRow v-if="!props.tasks.length" class="hover:bg-transparent">
-            <TableCell colspan="4" class="text-center text-text-secondary">
+            <TableCell colspan="5" class="text-center text-text-secondary">
               No gate tasks match the current filters.
             </TableCell>
           </TableRow>

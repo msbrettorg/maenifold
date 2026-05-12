@@ -12,7 +12,7 @@ import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
 import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
-import type { GateSnapshot } from '../lib/gate';
+import type { GateSnapshot, GateTaskHistoryEntry } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
 
 const props = defineProps<{ cwd: string }>();
@@ -26,11 +26,26 @@ const isLoading = ref(false);
 const error = ref('');
 const lastRefreshLabel = ref('');
 const createTaskOpen = ref(false);
+const lastUpdatedByTaskKey = ref<Record<string, string | null>>({});
 
 const gateRoot = computed(() => registry.selectedGateRoot.value);
+const enrichedSnapshot = computed<GateSnapshot | null>(() => {
+  const current = snapshot.value;
+  if (!current) return null;
+  return {
+    ...current,
+    tasks: current.tasks.map((task) => ({
+      ...task,
+      lastUpdatedAt: task.lastUpdatedAt
+        ?? task.last_updated_at
+        ?? lastUpdatedByTaskKey.value[gateTaskSelectionKey(task)]
+        ?? null,
+    })),
+  };
+});
 
-const filtering = useGateTaskFiltering(snapshot);
-const detail = useGateTaskDetail({ snapshot, gateRoot, gateMcp, provenance });
+const filtering = useGateTaskFiltering(enrichedSnapshot);
+const detail = useGateTaskDetail({ snapshot: enrichedSnapshot, gateRoot, gateMcp, provenance });
 
 let snapshotRequestToken = 0;
 let stopStatusSubscription: (() => void) | null = null;
@@ -52,6 +67,38 @@ function formatRefreshTime() {
   return `Last synced: ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 }
 
+function resetLastUpdatedCache() {
+  lastUpdatedByTaskKey.value = {};
+}
+
+function latestHistoryTimestamp(history: GateTaskHistoryEntry[]) {
+  let latestValue: string | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+  for (const entry of history) {
+    if (!entry.timestamp) continue;
+    const time = Date.parse(entry.timestamp);
+    if (Number.isNaN(time)) {
+      if (latestValue === null) latestValue = entry.timestamp;
+      continue;
+    }
+    if (time >= latestTime) {
+      latestTime = time;
+      latestValue = entry.timestamp;
+    }
+  }
+  return latestValue;
+}
+
+function recordActiveTaskLastUpdated() {
+  const task = detail.activeTask.value;
+  if (!task) return;
+  const key = gateTaskSelectionKey(task);
+  const value = latestHistoryTimestamp(detail.selectedTaskHistory.value);
+  const cache = lastUpdatedByTaskKey.value;
+  if (Object.prototype.hasOwnProperty.call(cache, key) && cache[key] === value) return;
+  lastUpdatedByTaskKey.value = { ...cache, [key]: value };
+}
+
 function stopStatusWatch() {
   stopStatusSubscription?.();
   stopStatusSubscription = null;
@@ -65,6 +112,7 @@ async function refreshSnapshot(background = false) {
     snapshot.value = null;
     error.value = '';
     lastRefreshLabel.value = '';
+    resetLastUpdatedCache();
     detail.clearSelection();
     return;
   }
@@ -77,6 +125,7 @@ async function refreshSnapshot(background = false) {
     const nextSnapshot = createGateSnapshot(root, Array.isArray(tasks) ? tasks : []);
     if (requestId !== snapshotRequestToken || gateRoot.value !== root) return;
     snapshot.value = nextSnapshot;
+    resetLastUpdatedCache();
     lastRefreshLabel.value = formatRefreshTime();
     if (!detail.selectedTaskId.value) return;
     const resolved = detail.activeTask.value;
@@ -129,9 +178,11 @@ watch(gateRoot, async (root) => {
   await startStatusWatch(root);
 }, { immediate: true });
 
-watch([() => provenance.pendingGateTaskId, snapshot], async ([pendingTaskId]) => {
+watch(detail.selectedTaskHistory, () => recordActiveTaskLastUpdated());
+
+watch([() => provenance.pendingGateTaskId, enrichedSnapshot], async ([pendingTaskId]) => {
   if (!pendingTaskId) return;
-  const task = findTaskByLineageId(snapshot.value?.tasks ?? [], pendingTaskId);
+  const task = findTaskByLineageId(enrichedSnapshot.value?.tasks ?? [], pendingTaskId);
   if (task) {
     await detail.selectTask(task);
     provenance.clearQueuedGateTaskSelection();

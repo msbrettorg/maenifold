@@ -116,6 +116,7 @@ describe('GateTaskTable', () => {
       createGateSnapshot('/repo', [emptyTask, newerTask, olderTask]),
     );
     const filtering = useGateTaskFiltering(snapshot);
+    filtering.readinessFilter.value = 'all';
 
     expect(filtering.visibleTasks.value.map((gateTask) => gateTask.taskId)).toEqual([
       'T-238.48',
@@ -141,7 +142,7 @@ describe('GateTaskTable', () => {
     ]);
 
     filtering.toggleSort('lastUpdated');
-    expect(filtering.sortColumn.value).toBe('id');
+    expect(filtering.sortColumn.value).toBe('default');
     expect(filtering.sortDirection.value).toBe('asc');
     expect(filtering.visibleTasks.value.map((gateTask) => gateTask.taskId)).toEqual([
       'T-238.48',

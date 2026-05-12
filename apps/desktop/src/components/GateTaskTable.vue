@@ -65,8 +65,9 @@ function formatLastUpdated(value?: string | null) {
   if (!value) return '—';
   const date = new Date(value);
   const time = date.getTime();
-  if (Number.isNaN(time)) return value;
+  if (Number.isNaN(time)) return '—';
   const minutes = Math.floor((Date.now() - time) / 60000);
+  if (minutes < 0) return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   if (minutes < 1) return 'just now';
   if (minutes < 60) return `${minutes}m ago`;
   const hours = Math.floor(minutes / 60);

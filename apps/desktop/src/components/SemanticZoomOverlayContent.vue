@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { SequentialThinkingViewNode, ToolProvenance, WorkflowStepEntry } from '../lib/pipeline-types';
+import { dispatchResource } from '../lib/resource-mime-dispatcher';
 import {
   Accordion,
   AccordionContent,
@@ -8,6 +10,7 @@ import {
 } from '@/components/ui/accordion';
 import ThinkingTraceView from './ThinkingTraceView.vue';
 import PromptAssemblyPreview from './PromptAssemblyPreview.vue';
+import ResourcePreview from './ResourcePreview.vue';
 import WorkflowStepProgress from './WorkflowStepProgress.vue';
 
 type ThinkingTraceEntry = NonNullable<SequentialThinkingViewNode['thinking_trace']>[number];
@@ -20,9 +23,34 @@ const props = defineProps<{
   workflowSteps: WorkflowStepEntry[] | null;
 }>();
 
-function formatJson(value: Record<string, unknown> | null | undefined): string {
-  return value ? JSON.stringify(value, null, 2) : '—';
+function textMimeType(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.startsWith('{') || trimmed.startsWith('[') ? 'application/json' : 'text/markdown';
 }
+
+const nodeOutputResource = computed(() => props.nodeOutput
+  ? dispatchResource({
+    uri: 'pipeline-node-output',
+    mimeType: textMimeType(props.nodeOutput),
+    text: props.nodeOutput,
+  })
+  : null);
+
+const toolArgsResource = computed(() => props.toolProvenance?.resolvedArgs
+  ? dispatchResource({
+    uri: 'pipeline-tool-args',
+    mimeType: 'application/json',
+    text: JSON.stringify(props.toolProvenance.resolvedArgs),
+  })
+  : null);
+
+const responseSummaryResource = computed(() => props.toolProvenance?.responseSummary
+  ? dispatchResource({
+    uri: 'pipeline-tool-response-summary',
+    mimeType: 'text/markdown',
+    text: props.toolProvenance.responseSummary,
+  })
+  : null);
 </script>
 
 <template>
@@ -41,7 +69,7 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
       <AccordionItem v-if="props.nodeOutput" value="output">
         <AccordionTrigger class="cursor-pointer list-none px-0 py-2 font-display text-caption font-semibold text-text-primary before:content-['▸_'] data-[state=open]:before:content-['▾_']">Output</AccordionTrigger>
         <AccordionContent>
-          <pre class="mt-2 mb-0 mx-0 max-h-[300px] overflow-y-auto rounded-lg bg-bg-app p-3 font-mono text-text-secondary text-tiny leading-[1.5] whitespace-pre-wrap break-words">{{ props.nodeOutput }}</pre>
+          <ResourcePreview v-if="nodeOutputResource" :dispatched="nodeOutputResource" />
         </AccordionContent>
       </AccordionItem>
 
@@ -52,8 +80,8 @@ function formatJson(value: Record<string, unknown> | null | undefined): string {
             <span class="font-mono text-tiny font-semibold text-text-primary">Tool</span>
             <strong>{{ props.toolProvenance.toolName }}</strong>
           </div>
-          <pre class="mt-2 mb-0 mx-0 max-h-[300px] overflow-y-auto rounded-lg bg-bg-app p-3 font-mono text-text-secondary text-tiny leading-[1.5] whitespace-pre-wrap break-words">{{ formatJson(props.toolProvenance.resolvedArgs ?? null) }}</pre>
-          <pre v-if="props.toolProvenance.responseSummary" class="mt-2 mb-0 mx-0 max-h-[300px] overflow-y-auto rounded-lg bg-bg-app p-3 font-mono text-text-secondary text-tiny leading-[1.5] whitespace-pre-wrap break-words">{{ props.toolProvenance.responseSummary }}</pre>
+          <ResourcePreview v-if="toolArgsResource" class="mt-2" :dispatched="toolArgsResource" />
+          <ResourcePreview v-if="responseSummaryResource" class="mt-2" :dispatched="responseSummaryResource" />
         </AccordionContent>
       </AccordionItem>
     </Accordion>

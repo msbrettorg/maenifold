@@ -157,3 +157,5 @@ fn create_pipeline_persists_effective_inputs_on_definition_and_session() {
 
 #[path = "handler_crud_tests_more.rs"]
 mod more;
+#[path = "handler_crud_tests_runs.rs"]
+mod runs;

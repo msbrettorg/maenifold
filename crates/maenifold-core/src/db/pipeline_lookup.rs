@@ -32,6 +32,7 @@ pub(crate) fn lookup_pipeline_degraded_json(
     Ok(lookup_pipeline_by_uri(connection, uri)?.map(|row| {
         json!({ "pipelineId": row.file_path, "status": row.status, "nodeCount": Value::Null,
             "completedCount": Value::Null,
+            "runs": Value::Array(vec![]),
             "degraded": { "source": "db", "reason": reason, "readError": read_error } })
     }))
 }

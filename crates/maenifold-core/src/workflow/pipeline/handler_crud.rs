@@ -9,6 +9,7 @@ use serde_json::{Map as JsonMap, Value, json};
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
+use super::engine_runs::compute_pipeline_runs;
 use super::engine_status::{
     completed_node_count, definition_node_count, derive_pipeline_list_status, pipeline_node_states,
 };
@@ -144,6 +145,7 @@ fn list_pipelines_impl(
                         "status": status,
                         "nodeCount": definition_node_count(frontmatter.get("definition")),
                         "completedCount": completed_node_count(&node_states),
+                        "runs": compute_pipeline_runs(&node_states),
                     }));
                 }
                 Ok((None, _, _)) => {

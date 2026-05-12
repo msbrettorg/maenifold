@@ -23,6 +23,7 @@ import PermissionGhostNotifications from './components/PermissionGhostNotificati
 import DaemonBanner from './components/DaemonBanner.vue';
 import SettingsView from './components/SettingsView.vue';
 import EmptyState from './components/EmptyState.vue';
+import SessionConfigPanel from './components/SessionConfigPanel.vue';
 import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
@@ -222,13 +223,23 @@ const agentsEmptyDescription = computed(() =>
           <SettingsView />
         </div>
 
-        <EmptyState
+        <div
           v-if="visitedTabs.has('agents')"
           v-show="!showHome && activeTab === 'agents' && !showAgentsChat"
-          :icon="MessageSquare"
-          :title="agentsEmptyTitle"
-          :description="agentsEmptyDescription"
-        />
+          class="flex flex-1 flex-col overflow-hidden"
+        >
+          <SessionConfigPanel
+            v-if="selectedAgent"
+            :agent-name="selectedAgent"
+            :cwd="selectedCwd"
+            :is-read-only="false"
+          />
+          <EmptyState
+            :icon="MessageSquare"
+            :title="agentsEmptyTitle"
+            :description="agentsEmptyDescription"
+          />
+        </div>
         </main>
 
         <!-- Traffic Monitor Panel -->

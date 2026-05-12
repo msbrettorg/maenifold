@@ -6,10 +6,13 @@ import { useMermaid } from '../composables/useMermaid';
 import { useMcpClient } from '../composables/useMcpClient';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
+import SessionConfigPanel from './SessionConfigPanel.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Card } from './ui/card';
+import { Settings } from 'lucide-vue-next';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock } from '../lib/types';
 
@@ -27,9 +30,11 @@ const pendingAttachments = ref<PendingAttachment[]>([]);
 const attachmentError = ref<string | null>(null);
 const expandedThoughts = ref<Set<string>>(new Set());
 const expandedToolCalls = ref<Set<string>>(new Set());
+const showConfig = ref(false);
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const currentSession = computed(() => sessionStore.currentSession);
+const sessionCwd = computed(() => currentSession.value?.cwd ?? '/');
 const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 'plan');
 const configOptions = computed(() => sessionStore.configOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
@@ -42,9 +47,7 @@ const supportsEmbeddedContext = computed(() => capabilities.value.embeddedContex
 const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? 'Attach image' : 'This agent does not support image attachments.');
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
-const inputPlaceholder = computed(() =>
-  activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...')
-);
+const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
 const agentSessionStatus = computed(() => {
   if (
     currentSession.value?.sessionId
@@ -107,8 +110,6 @@ watch(messages, async () => {
 onMounted(async () => {
   await nextTick();
   if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
-});
-onMounted(() => {
   void agentStore.start();
 });
 onBeforeUnmount(() => {
@@ -228,8 +229,25 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
           {{ currentSession?.agentName }}
           <span v-if="agentSessionStatusLabel">({{ agentSessionStatusLabel }})</span>
         </span>
+        <Button
+          variant="ghost"
+          size="icon"
+          class="size-7 text-text-secondary"
+          :aria-label="showConfig ? 'Hide session config' : 'Show session config'"
+          :aria-expanded="showConfig"
+          @click="showConfig = !showConfig"
+        >
+          <Settings class="w-4 h-4" />
+        </Button>
       </div>
     </div>
+
+    <SessionConfigPanel
+      v-if="showConfig && currentSession"
+      :agent-name="currentSession.agentName"
+      :cwd="sessionCwd"
+      :is-read-only="true"
+    />
 
     <div
       v-if="isPlanMode"

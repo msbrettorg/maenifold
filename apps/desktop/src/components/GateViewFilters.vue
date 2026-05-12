@@ -1,13 +1,22 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { GateReadinessFilter } from '../composables/useGateTaskFiltering';
+
+const readinessOptions: { value: GateReadinessFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'ready', label: 'Ready' },
+  { value: 'blocked', label: 'Blocked' },
+];
 
 const props = defineProps<{
   searchText: string;
   selectedProcess: string;
   selectedState: string;
+  readinessFilter: GateReadinessFilter;
   issuesOnly: boolean;
   processOptions: string[];
   stateOptions: string[];
@@ -15,15 +24,27 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:issuesOnly': [value: boolean];
+  'update:readinessFilter': [value: GateReadinessFilter];
   'update:searchText': [value: string];
   'update:selectedProcess': [value: string];
   'update:selectedState': [value: string];
 }>();
+
+function setReadiness(value: GateReadinessFilter) {
+  if (props.readinessFilter === value) return;
+  emit('update:readinessFilter', value);
+}
+
+function readinessClass(value: GateReadinessFilter) {
+  return props.readinessFilter === value
+    ? 'bg-brand/15 text-text-primary ring-1 ring-brand/40'
+    : 'text-text-secondary';
+}
 </script>
 
 <template>
   <div
-    class="grid gap-3 rounded bg-surface px-4 py-[0.9rem] grid-cols-[minmax(14rem,1.5fr)_repeat(2,minmax(10rem,1fr))_auto] max-[1100px]:grid-cols-1"
+    class="grid gap-3 rounded bg-surface px-4 py-[0.9rem] grid-cols-[minmax(14rem,1.5fr)_repeat(2,minmax(10rem,1fr))_minmax(13rem,auto)_auto] max-[1100px]:grid-cols-1"
     role="search"
     aria-label="Task filters"
   >
@@ -54,6 +75,21 @@ const emit = defineEmits<{
         <SelectItem v-for="value in props.stateOptions" :key="value" :value="value">{{ value }}</SelectItem>
       </SelectContent>
     </Select>
+
+    <div class="inline-flex min-h-10 items-center gap-1 rounded bg-surface-container px-1.5" role="group" aria-label="Filter by readiness">
+      <Button
+        v-for="option in readinessOptions"
+        :key="option.value"
+        type="button"
+        variant="outline"
+        size="sm"
+        :class="readinessClass(option.value)"
+        :aria-pressed="props.readinessFilter === option.value"
+        @click="setReadiness(option.value)"
+      >
+        {{ option.label }}
+      </Button>
+    </div>
 
     <div
       class="inline-flex min-h-10 items-center gap-2 rounded border border-border-subtle bg-surface-container px-3 whitespace-nowrap text-caption text-text-primary [&_input]:accent-brand"

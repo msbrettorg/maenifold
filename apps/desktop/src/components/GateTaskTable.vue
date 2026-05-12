@@ -11,6 +11,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   ChevronUp,
+  Circle,
   TriangleAlert,
 } from 'lucide-vue-next';
 
@@ -34,7 +35,7 @@ import {
   isTaskPipelineDigestStale,
 } from '../lib/gate-display';
 
-type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
+type SortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority';
 type SortDirection = 'asc' | 'desc';
 
 const props = defineProps<{
@@ -126,52 +127,30 @@ function SortableHeader(label: string, column: SortColumn) {
   );
 }
 
+const PRIORITY_META: Record<string, { colorClass: string; filled: boolean }> = {
+  P0: { colorClass: 'text-status-error', filled: true },
+  P1: { colorClass: 'text-status-stuck', filled: true },
+  P2: { colorClass: 'text-status-pending', filled: true },
+  P3: { colorClass: 'text-muted-foreground', filled: true },
+  P4: { colorClass: 'text-muted-foreground', filled: false },
+};
+
+function priorityMeta(p: string | null | undefined) {
+  return p ? (PRIORITY_META[p] ?? null) : null;
+}
+
 function getColumnWidthStyle(columnId: SortColumn) {
   const column = table.getColumn(columnId);
   return column ? { width: `${column.getSize()}px` } : undefined;
 }
 
 const columns: ColumnDef<GateTask>[] = [
-  {
-    id: 'id',
-    accessorKey: 'taskId',
-    header: () => SortableHeader('Task ID', 'id'),
-    size: 120,
-    minSize: 100,
-    maxSize: 180,
-  },
-  {
-    id: 'name',
-    accessorKey: 'title',
-    header: () => SortableHeader('Task', 'name'),
-    size: 320,
-    minSize: 180,
-    maxSize: 9999,
-  },
-  {
-    id: 'process',
-    accessorFn: (task) => getTaskPipelineLabel(task),
-    header: () => SortableHeader('Process', 'process'),
-    size: 140,
-    minSize: 120,
-    maxSize: 220,
-  },
-  {
-    id: 'progress',
-    accessorKey: 'state',
-    header: () => SortableHeader('Stage', 'progress'),
-    size: 160,
-    minSize: 140,
-    maxSize: 260,
-  },
-  {
-    id: 'lastUpdated',
-    accessorKey: 'lastUpdatedAt',
-    header: () => SortableHeader('Last Updated', 'lastUpdated'),
-    size: 140,
-    minSize: 120,
-    maxSize: 220,
-  },
+  { id: 'priority', accessorKey: 'priority', header: () => SortableHeader('Priority', 'priority'), size: 64, minSize: 56, maxSize: 96 },
+  { id: 'id', accessorKey: 'taskId', header: () => SortableHeader('Task ID', 'id'), size: 120, minSize: 100, maxSize: 180 },
+  { id: 'name', accessorKey: 'title', header: () => SortableHeader('Task', 'name'), size: 320, minSize: 180, maxSize: 9999 },
+  { id: 'process', accessorFn: (task) => getTaskPipelineLabel(task), header: () => SortableHeader('Process', 'process'), size: 140, minSize: 120, maxSize: 220 },
+  { id: 'progress', accessorKey: 'state', header: () => SortableHeader('Stage', 'progress'), size: 160, minSize: 140, maxSize: 260 },
+  { id: 'lastUpdated', accessorKey: 'lastUpdatedAt', header: () => SortableHeader('Last Updated', 'lastUpdated'), size: 140, minSize: 120, maxSize: 220 },
 ];
 
 const sortingState = computed<SortingState>(() => [
@@ -237,6 +216,13 @@ const table = useVueTable<GateTask>({
             class="cursor-pointer hover:bg-surface-high data-[state=selected]:bg-surface-high data-[state=selected]:text-text-primary"
             @click="emit('select', row.original)"
           >
+            <TableCell :style="getColumnWidthStyle('priority')" class="w-16 text-xs">
+              <span v-if="row.original.priority" class="inline-flex items-center gap-1.5" :class="priorityMeta(row.original.priority)?.colorClass">
+                <Circle class="h-2.5 w-2.5 shrink-0" :class="priorityMeta(row.original.priority)?.filled ? 'fill-current' : ''" />
+                <span class="font-mono font-medium">{{ row.original.priority }}</span>
+              </span>
+              <span v-else class="text-muted-foreground">—</span>
+            </TableCell>
             <TableCell
               :style="getColumnWidthStyle('id')"
               class="truncate font-mono text-xs text-text-secondary"
@@ -286,7 +272,7 @@ const table = useVueTable<GateTask>({
             </TableCell>
           </TableRow>
           <TableRow v-if="!props.tasks.length" class="hover:bg-transparent">
-            <TableCell colspan="5" class="text-center text-text-secondary">
+            <TableCell colspan="6" class="text-center text-text-secondary">
               No gate tasks match the current filters.
             </TableCell>
           </TableRow>

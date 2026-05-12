@@ -175,3 +175,52 @@ describe('GateStageChip', () => {
     });
   });
 });
+
+describe('priority column', () => {
+  const priorityCases = [
+    { priority: 'P0', colorClass: 'text-status-error', filled: true },
+    { priority: 'P1', colorClass: 'text-status-stuck', filled: true },
+    { priority: 'P2', colorClass: 'text-status-pending', filled: true },
+    { priority: 'P3', colorClass: 'text-muted-foreground', filled: true },
+    { priority: 'P4', colorClass: 'text-muted-foreground', filled: false },
+  ] as const;
+
+  priorityCases.forEach(({ priority, colorClass, filled }) => {
+    it(`${priority}: badge has class "${colorClass}" and circle is ${filled ? 'filled' : 'outlined'}`, () => {
+      const pTask = { ...task, priority };
+      const wrapper = mount(GateTaskTable, {
+        props: { tasks: [pTask], selectedTaskKey: '', sortColumn: 'priority', sortDirection: 'asc' },
+      });
+      const cell = wrapper.findAll('td').at(0)!;
+      const badge = cell.find('.inline-flex');
+      expect(badge.classes()).toContain(colorClass);
+      expect(cell.text()).toContain(priority);
+      const icon = cell.find('svg');
+      expect(icon.exists()).toBe(true);
+      if (filled) {
+        expect(icon.classes()).toContain('fill-current');
+      } else {
+        expect(icon.classes()).not.toContain('fill-current');
+      }
+    });
+  });
+
+  it('null priority: shows "—" dash and no icon', () => {
+    const pTask = { ...task, priority: null };
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [pTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    const cell = wrapper.findAll('td').at(0)!;
+    expect(cell.text()).toContain('—');
+    expect(cell.find('svg').exists()).toBe(false);
+  });
+
+  it('clicking Priority header emits sort with "priority"', async () => {
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [task], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    const btn = wrapper.findAll('button').find((b) => b.text().includes('Priority'));
+    await btn?.trigger('click');
+    expect(wrapper.emitted('sort')).toEqual([['priority']]);
+  });
+});

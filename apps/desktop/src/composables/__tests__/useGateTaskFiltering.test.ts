@@ -133,3 +133,24 @@ describe('useGateTaskFiltering — sprint chips', () => {
     expect(filtering.sprintOptions.value).toEqual([251, 250, 249]);
   });
 });
+
+describe('useGateTaskFiltering — priority sort', () => {
+  function priorityTask(taskId: string, priority: string | null): GateTask {
+    return { ...baseTask, taskId, canonicalTaskId: taskId, path: `/repo/todo/${taskId}.md`, priority } as GateTask;
+  }
+
+  it('sorts P0 first ascending, null sorts last', () => {
+    const tasks = [
+      priorityTask('T-A', null),
+      priorityTask('T-B', 'P2'),
+      priorityTask('T-C', 'P0'),
+      priorityTask('T-D', 'P4'),
+    ];
+    const snapshot = ref(createGateSnapshot('/', tasks));
+    const filtering = useGateTaskFiltering(snapshot);
+    filtering.toggleSort('priority');
+    expect(filtering.sortColumn.value).toBe('priority');
+    expect(filtering.sortDirection.value).toBe('asc');
+    expect(filtering.visibleTasks.value.map((t) => t.taskId)).toEqual(['T-C', 'T-B', 'T-D', 'T-A']);
+  });
+});

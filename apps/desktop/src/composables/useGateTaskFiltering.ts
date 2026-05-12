@@ -3,7 +3,7 @@ import type { GateSnapshot, GateTask } from '../lib/gate';
 import { getTaskPipelineLabel } from '../lib/gate-display';
 
 export type GateReadinessFilter = 'all' | 'ready' | 'blocked';
-export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
+export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated' | 'priority';
 export type GateSortDirection = 'asc' | 'desc';
 
 type GateTaskReadiness = GateTask & {
@@ -21,6 +21,13 @@ const defaultSortDirection: GateSortDirection = 'asc';
 
 function initialSortDirection(column: GateSortColumn): GateSortDirection {
   return column === 'lastUpdated' ? 'desc' : 'asc';
+}
+
+export function priorityRank(task: GateTask): number {
+  const p = task.priority;
+  if (!p) return Number.MAX_SAFE_INTEGER;
+  const rank: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3, P4: 4 };
+  return rank[p] ?? Number.MAX_SAFE_INTEGER;
 }
 
 function oppositeDirection(direction: GateSortDirection): GateSortDirection {
@@ -134,6 +141,7 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
           process: processValue(left).localeCompare(processValue(right)),
           progress: progressRank(left) - progressRank(right),
           lastUpdated: lastUpdatedTime(left) - lastUpdatedTime(right),
+          priority: priorityRank(left) - priorityRank(right),
         }[sortColumn.value];
 
         return (compare ?? 0) * direction || (left.taskId ?? '').localeCompare(right.taskId ?? '', undefined, { numeric: true });

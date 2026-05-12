@@ -7,6 +7,7 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import SessionConfigPanel from './SessionConfigPanel.vue';
+import SessionModeSwitcher from './SessionModeSwitcher.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,6 @@ const agentSessionStatusLabel = computed(() => {
 });
 const expandedThoughtIds = computed(() => Array.from(expandedThoughts.value));
 const expandedToolCallIds = computed(() => Array.from(expandedToolCalls.value));
-
 function resolveScrollViewport(): HTMLElement | null {
   const root = (scrollAreaRef.value as unknown as { $el?: HTMLElement } | null)?.$el ?? null;
   if (!root) return null;
@@ -211,7 +211,6 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
   return attachments;
 }
 </script>
-
 <template>
   <Card class="flex flex-col h-full rounded-none border-0 bg-bg-app shadow-none gap-0 py-0" role="region" aria-label="Chat">
     <div class="flex items-center justify-between gap-4 px-4 py-3 bg-surface border-b border-border-subtle">
@@ -219,6 +218,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
         {{ currentSession?.title || 'Chat' }}
       </h2>
       <div class="flex flex-wrap items-center justify-end gap-3">
+        <SessionModeSwitcher />
         <ConfigOptionPicker
           v-for="option in configOptions"
           :key="option.id"

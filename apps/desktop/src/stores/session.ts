@@ -1,5 +1,6 @@
 // Session store — thin orchestrator that composes focused composables
 // while preserving the full external API contract unchanged.
+import { AGENT_METHODS } from '@agentclientprotocol/sdk';
 import { defineStore } from 'pinia';
 import { ref, computed, reactive } from 'vue';
 import { toast } from 'vue-sonner';
@@ -157,6 +158,30 @@ export const useSessionStore = defineStore('session', () => {
     }
 
     applyConfigOptionsUpdate(session, response.configOptions);
+  }
+
+  async function setSessionMode(modeId: string): Promise<void> {
+    const context = requireActiveSessionContext(activeSessionId, sessions, bridges);
+    const { session, bridge } = context;
+    const modeClient = bridge as unknown as {
+      sendRequest<T>(method: string, params?: unknown): Promise<T>;
+    };
+
+    try {
+      await modeClient.sendRequest(AGENT_METHODS.session_set_mode, {
+        sessionId: session.session.sessionId,
+        modeId,
+      });
+    } catch (error) {
+      if (!session.error) {
+        session.error = error instanceof Error ? error.message : String(error);
+      }
+      throw error;
+    }
+
+    if (isActiveSessionContextCurrent(context, sessions, bridges)) {
+      session.currentModeId = modeId;
+    }
   }
 
   function findLocalSessionByRemoteSessionId(
@@ -395,6 +420,7 @@ export const useSessionStore = defineStore('session', () => {
     disconnect,
     deleteSession,
     setConfigOption,
+    setSessionMode,
     focusOrResumeRemoteSession,
     setError,
     clearError,

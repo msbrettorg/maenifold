@@ -1,7 +1,7 @@
 use crate::error::Result;
 use crate::tools::ToolContext;
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use super::view::node_state_for;
 use super::view_cognitive::{
@@ -9,11 +9,29 @@ use super::view_cognitive::{
 };
 use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 
+#[cfg(test)]
 pub(super) fn pipeline_nodes_json(
     context: &ToolContext,
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
     ambient_prompt: &str,
+) -> Result<Vec<Value>> {
+    let live_sessions = super::acp_reaper::live_acp_sessions();
+    pipeline_nodes_json_with_live_sessions(
+        context,
+        definition,
+        node_states,
+        ambient_prompt,
+        &live_sessions,
+    )
+}
+
+pub(super) fn pipeline_nodes_json_with_live_sessions(
+    context: &ToolContext,
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+    ambient_prompt: &str,
+    live_sessions: &HashSet<String>,
 ) -> Result<Vec<Value>> {
     definition
         .nodes
@@ -67,6 +85,10 @@ pub(super) fn pipeline_nodes_json(
                 }
                 if let Some(acp_session_id) = &state.acp_session_id {
                     node_object.insert("acpSessionId".to_string(), json!(acp_session_id));
+                    node_object.insert(
+                        "acpProcessAlive".to_string(),
+                        json!(live_sessions.contains(acp_session_id)),
+                    );
                 }
                 if let Some(thinking_session_id) = &state.thinking_session_id {
                     node_object.insert("thinkingSessionId".to_string(), json!(thinking_session_id));

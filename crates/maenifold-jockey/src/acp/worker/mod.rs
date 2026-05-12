@@ -15,14 +15,10 @@ pub use types::{
     ConnectionDeathEvent, PrewarmEvent, WorkerMsg,
 };
 
-use handlers::{
-    handle_execute, handle_prewarm, reconnect_worker_session, reset_worker_session,
-    shutdown_worker_state,
-};
 pub(crate) use permission::permission_requests;
+pub use pool::TrackedSessionReap;
 pub(crate) use pool::{
-    CANCEL_HANDLES, CONN_MAP, DELTA_CHANNEL_CAPACITY, DeltaSlot, LiveConnection, pool_key,
-    register_child_pid,
+    CONN_MAP, DELTA_CHANNEL_CAPACITY, DeltaSlot, LiveConnection, pool_key, register_child_pid,
 };
 use serde_json::json;
 use std::sync::OnceLock;
@@ -87,7 +83,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
-                    handle_execute(
+                    handlers::handle_execute(
                         key,
                         &runtime_key,
                         binary,
@@ -130,7 +126,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
-                    handle_prewarm(
+                    handlers::handle_prewarm(
                         key,
                         &runtime_key,
                         binary,
@@ -156,29 +152,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 role_name,
                 app_session_id,
             } => {
-                let key = pool_key(&app_session_id, &runtime_key, &role_name);
-                let handle = CANCEL_HANDLES.with(|m| {
-                    m.borrow().get(&key).map(|h| {
-                        h.mark_cancelled();
-                        (h.conn.clone(), h.session_id.clone())
-                    })
-                });
-                if let Some((conn, session_id)) = handle {
-                    acp_log(
-                        "cancel.sending",
-                        json!({ "runtime": &runtime_key, "role": role_name }),
-                    );
-                    tokio::task::spawn_local(async move {
-                        let _ = conn
-                            .cancel(agent_client_protocol::CancelNotification::new(session_id))
-                            .await;
-                    });
-                } else {
-                    acp_log(
-                        "cancel.no_active_session",
-                        json!({ "runtime": &runtime_key, "role": role_name }),
-                    );
-                }
+                handlers::handle_cancel(runtime_key, role_name, app_session_id);
             }
             WorkerMsg::Reset {
                 runtime_key,
@@ -188,7 +162,8 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
             } => {
                 tokio::task::spawn_local(async move {
                     let result =
-                        reset_worker_session(&runtime_key, &role_name, &app_session_id).await;
+                        handlers::reset_worker_session(&runtime_key, &role_name, &app_session_id)
+                            .await;
                     let _ = result_tx.send(result);
                 });
             }
@@ -199,8 +174,12 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 result_tx,
             } => {
                 tokio::task::spawn_local(async move {
-                    let result =
-                        reconnect_worker_session(&runtime_key, &role_name, &app_session_id).await;
+                    let result = handlers::reconnect_worker_session(
+                        &runtime_key,
+                        &role_name,
+                        &app_session_id,
+                    )
+                    .await;
                     let _ = result_tx.send(result);
                 });
             }
@@ -287,9 +266,18 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                     let _ = result_tx.send(result);
                 });
             }
+            WorkerMsg::CancelTrackedSession {
+                session_id,
+                result_tx,
+            } => {
+                handlers::handle_cancel_tracked_session(session_id, result_tx);
+            }
+            WorkerMsg::ListLiveSessions { result_tx } => {
+                let _ = result_tx.send(handlers::live_session_ids());
+            }
             WorkerMsg::Shutdown { done_tx } => {
                 acp_log("shutdown.start", json!({}));
-                shutdown_worker_state().await;
+                handlers::shutdown_worker_state().await;
                 let _ = done_tx.send(());
                 break;
             }

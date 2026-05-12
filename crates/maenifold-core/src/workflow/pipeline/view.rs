@@ -5,10 +5,11 @@ use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use std::collections::HashMap;
 
+use super::acp_reaper::{live_acp_sessions, orphaned_acp_worker_count};
 use super::lease;
 use super::session_io::{derive_pipeline_node_states, frontmatter_value, read_pipeline_session};
 use super::view_mermaid::{edge_type_name, render_pipeline_mermaid};
-use super::view_nodes::pipeline_nodes_json;
+use super::view_nodes::pipeline_nodes_json_with_live_sessions;
 use super::{
     NodeState, NodeStatus, PipelineDefinition, compute_pipeline_status_with_definition,
     compute_ready_set,
@@ -92,11 +93,13 @@ pub(super) fn build_pipeline_view_result(
         .unwrap_or_else(|| compute_pipeline_status_with_definition(definition, node_states));
     let active = node_ids_with_status(definition, node_states, NodeStatus::Active)?;
     let completed = node_ids_with_status(definition, node_states, NodeStatus::Completed)?;
-    let nodes = pipeline_nodes_json(
+    let live_sessions = live_acp_sessions();
+    let nodes = pipeline_nodes_json_with_live_sessions(
         context,
         definition,
         node_states,
         ambient_prompt.unwrap_or(""),
+        &live_sessions,
     )?;
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
@@ -117,6 +120,14 @@ pub(super) fn build_pipeline_view_result(
     });
     if let Some(template_id) = definition.template_id.as_deref() {
         result["templateId"] = json!(template_id);
+    }
+    let orphaned_workers = orphaned_acp_worker_count(node_states, &live_sessions);
+    if !running && orphaned_workers > 0 {
+        result["degraded"] = json!({
+            "reason": "orphaned-acp-workers",
+            "count": orphaned_workers,
+            "orphanedAcpWorkers": orphaned_workers,
+        });
     }
 
     Ok(result)

@@ -15,5 +15,6 @@ pub use prewarm::{
     prewarm_role, prewarm_role_for_config, prewarm_role_with_session_id, refresh_role_config_defs,
 };
 pub use session_cmds::{
-    cancel_session, reconnect_session, reset_session, set_config_option, set_mode,
+    cancel_session, cancel_tracked_session_blocking, list_live_sessions_blocking,
+    reconnect_session, reset_session, set_config_option, set_mode,
 };

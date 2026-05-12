@@ -24,8 +24,14 @@ fn node_state(status: NodeStatus, session_id: &str) -> NodeState {
     }
 }
 
+fn node_state_with_acp(status: NodeStatus, session_id: &str, acp_session_id: &str) -> NodeState {
+    let mut state = node_state(status, session_id);
+    state.acp_session_id = Some(acp_session_id.to_string());
+    state
+}
+
 #[test]
-fn active_node_session_targets_only_returns_active_nodes_with_agents() {
+fn acp_session_targets_only_returns_prompt_and_thinking_nodes_with_acp_lineage() {
     let definition = PipelineDefinition {
         nodes: vec![
             PipelineNode::Prompt {
@@ -90,7 +96,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
     let node_states = HashMap::from([
         (
             "prompt-active".to_string(),
-            node_state(NodeStatus::Active, "session-active"),
+            node_state_with_acp(NodeStatus::Active, "session-active", "acp-active"),
         ),
         (
             "tool-without-agent".to_string(),
@@ -98,17 +104,17 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
         ),
         (
             "think-ready".to_string(),
-            node_state(NodeStatus::Ready, "session-ready"),
+            node_state_with_acp(NodeStatus::Ready, "session-ready", "acp-ready"),
         ),
     ]);
 
-    let targets = cancellable_node_session_targets(&definition, &node_states);
+    let mut targets = cancellable_node_session_targets(&definition, &node_states);
+    targets.sort();
     assert_eq!(
         targets,
-        vec![(
-            "prompt-active".to_string(),
-            "agent-a".to_string(),
-            "session-active".to_string()
-        )]
+        vec![
+            ("prompt-active".to_string(), "acp-active".to_string()),
+            ("think-ready".to_string(), "acp-ready".to_string())
+        ]
     );
 }

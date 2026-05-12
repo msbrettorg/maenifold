@@ -1,12 +1,13 @@
 use std::collections::HashMap;
 
 use chrono::Utc;
-use tracing::{debug, warn};
+use tracing::warn;
 
 use crate::markdown::read_markdown;
 use crate::sessions::pipeline_session_uri;
 use crate::tools::ToolContext;
 
+use super::acp_reaper::{ReapResult, reap_acp_sessions};
 use super::executor_helpers::load_pipeline_node_states;
 use super::session_io::{
     frontmatter_value, persist_pipeline_state_with_status, update_workflow_node_frontmatter,
@@ -16,34 +17,15 @@ use super::{NodeState, NodeStatus, PipelineDefinition};
 pub(super) async fn terminate_node_sessions(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
-) {
-    for (node_id, agent, session_id) in cancellable_node_session_targets(definition, node_states) {
-        match jockey::acp::reset_session(&agent, &agent, Some(&session_id)).await {
-            Ok(()) => {
-                debug!(
-                    node_id = %node_id,
-                    session_id = %session_id,
-                    agent = %agent,
-                    "terminated ACP session after pipeline cancellation"
-                );
-            }
-            Err(error) => {
-                debug!(
-                    node_id = %node_id,
-                    session_id = %session_id,
-                    agent = %agent,
-                    error = %error,
-                    "ACP session already exited or could not be terminated"
-                );
-            }
-        }
-    }
+) -> ReapResult {
+    reap_acp_sessions(definition, node_states)
 }
 
+#[cfg(test)]
 pub(super) fn cancellable_node_session_targets(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
-) -> Vec<(String, String, String)> {
+) -> Vec<(String, String)> {
     let nodes_by_id = definition
         .nodes
         .iter()
@@ -54,25 +36,18 @@ pub(super) fn cancellable_node_session_targets(
         .iter()
         .filter_map(|(node_id, state)| {
             let node = nodes_by_id.get(node_id)?;
-            let agent = node.acp_client()?.trim();
-            if agent.is_empty() {
+            if !matches!(
+                node,
+                super::PipelineNode::Prompt { .. } | super::PipelineNode::SequentialThinking { .. }
+            ) {
                 return None;
             }
-
-            let session_id = match state.status {
-                NodeStatus::Active => state.session_id.as_str(),
-                _ => state.acp_session_id.as_deref()?,
-            }
-            .trim();
+            let session_id = state.acp_session_id.as_deref()?.trim();
             if session_id.is_empty() {
                 return None;
             }
 
-            Some((
-                node_id.to_string(),
-                agent.to_string(),
-                session_id.to_string(),
-            ))
+            Some((node_id.to_string(), session_id.to_string()))
         })
         .collect()
 }

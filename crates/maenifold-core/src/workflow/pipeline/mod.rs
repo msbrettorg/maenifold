@@ -9,6 +9,7 @@ use crate::{
     tools::ToolContext,
 };
 
+mod acp_reaper;
 mod audit;
 pub(super) mod circuit_breaker;
 #[cfg(test)]
@@ -69,6 +70,7 @@ mod handler_delete;
 #[cfg(test)]
 mod handler_delete_degraded_tests;
 mod handler_lifecycle;
+mod handler_list_lineage;
 mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
@@ -87,6 +89,8 @@ mod mapping_predecessor;
 mod mapping_resolve;
 #[cfg(test)]
 mod orphan_cascade_tests;
+#[cfg(test)]
+mod orphan_recovery_acp_tests;
 #[cfg(test)]
 mod orphan_recovery_tests;
 mod resource_notifications;

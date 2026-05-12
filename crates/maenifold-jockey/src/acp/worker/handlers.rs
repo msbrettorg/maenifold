@@ -1,11 +1,13 @@
 use agent_client_protocol::{self as acp, Agent as _};
 use serde_json::json;
+use tokio::sync::oneshot;
 
 use super::super::adapter::acp_log;
 use super::super::runtime_state::clear_all as clear_runtime_state_fn;
 use super::super::session::cold_start;
 use super::pool::{
-    CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, pool_key, remove_session_index,
+    CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, TrackedSessionReap, child_pids, pool_key,
+    remove_session_index, remove_session_index_for_pool_key,
 };
 
 // Re-exports from extracted modules
@@ -95,6 +97,81 @@ pub(crate) async fn reset_worker_session(
     use super::super::runtime_state::clear_session as clear_session_runtime_state;
     clear_session_runtime_state(app_session_id, runtime_key, role_name);
     Ok(())
+}
+
+pub(crate) async fn cancel_tracked_session(session_id: &str) -> Result<TrackedSessionReap, String> {
+    let target = CONN_MAP.with(|m| {
+        m.borrow()
+            .iter()
+            .find(|(_, live)| live.session_id.to_string() == session_id)
+            .map(|(key, live)| (key.clone(), live.child_pid.is_some()))
+    });
+    let Some((key, had_process_group)) = target else {
+        return Ok(TrackedSessionReap {
+            acp_session: false,
+            killed_process_group: false,
+        });
+    };
+
+    let cancel = CANCEL_HANDLES.with(|m| m.borrow_mut().remove(&key));
+    if let Some(h) = cancel {
+        let _ = h
+            .conn
+            .cancel(acp::CancelNotification::new(h.session_id))
+            .await;
+    }
+
+    if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(&key)) {
+        remove_session_index_for_pool_key(&key);
+        drop(live);
+    }
+    Ok(TrackedSessionReap {
+        acp_session: true,
+        killed_process_group: had_process_group,
+    })
+}
+
+pub(crate) fn handle_cancel_tracked_session(
+    session_id: String,
+    result_tx: oneshot::Sender<Result<TrackedSessionReap, String>>,
+) {
+    tokio::task::spawn_local(async move {
+        let result = cancel_tracked_session(&session_id).await;
+        let _ = result_tx.send(result);
+    });
+}
+
+pub(crate) fn handle_cancel(runtime_key: String, role_name: String, app_session_id: String) {
+    let key = pool_key(&app_session_id, &runtime_key, &role_name);
+    let handle = CANCEL_HANDLES.with(|m| {
+        m.borrow().get(&key).map(|h| {
+            h.mark_cancelled();
+            (h.conn.clone(), h.session_id.clone())
+        })
+    });
+    if let Some((conn, session_id)) = handle {
+        acp_log(
+            "cancel.sending",
+            json!({ "runtime": &runtime_key, "role": role_name }),
+        );
+        tokio::task::spawn_local(async move {
+            let _ = conn.cancel(acp::CancelNotification::new(session_id)).await;
+        });
+    } else {
+        acp_log(
+            "cancel.no_active_session",
+            json!({ "runtime": &runtime_key, "role": role_name }),
+        );
+    }
+}
+
+pub(crate) fn live_session_ids() -> Vec<String> {
+    CONN_MAP.with(|m| {
+        m.borrow()
+            .values()
+            .map(|live| live.session_id.to_string())
+            .collect()
+    })
 }
 
 pub(crate) async fn reconnect_worker_session(

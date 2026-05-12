@@ -233,6 +233,7 @@ onBeforeUnmount(() => {
         v-model:searchText="filtering.searchText.value"
         v-model:selectedProcess="filtering.selectedProcess.value"
         v-model:selectedState="filtering.selectedState.value"
+        v-model:readinessFilter="filtering.readinessFilter.value"
         v-model:issuesOnly="filtering.issuesOnly.value"
         :process-options="filtering.processOptions.value"
         :state-options="filtering.stateOptions.value"

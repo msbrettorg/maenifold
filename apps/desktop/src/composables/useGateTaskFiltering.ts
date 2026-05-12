@@ -2,8 +2,19 @@ import { computed, ref, watch, type Ref } from 'vue';
 import type { GateSnapshot, GateTask } from '../lib/gate';
 import { getTaskPipelineLabel } from '../lib/gate-display';
 
+export type GateReadinessFilter = 'all' | 'ready' | 'blocked';
 export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
 export type GateSortDirection = 'asc' | 'desc';
+
+type GateTaskReadiness = GateTask & {
+  ready?: boolean | null;
+  blockedBy?: string[] | null;
+  blocked_by?: string[] | null;
+  missingDependencies?: string[] | null;
+  missing_dependencies?: string[] | null;
+  inCycle?: boolean | null;
+  in_cycle?: boolean | null;
+};
 
 const defaultSortColumn: GateSortColumn = 'id';
 const defaultSortDirection: GateSortDirection = 'asc';
@@ -37,11 +48,46 @@ function lastUpdatedTime(task: GateTask) {
   return Number.isNaN(time) ? 0 : time;
 }
 
+function hasValues(values: string[] | null | undefined) {
+  return Array.isArray(values) && values.length > 0;
+}
+
+function hasUnmetDependency(task: GateTaskReadiness) {
+  return hasValues(task.blockedBy)
+    || hasValues(task.blocked_by)
+    || hasValues(task.missingDependencies)
+    || hasValues(task.missing_dependencies)
+    || task.inCycle === true
+    || task.in_cycle === true;
+}
+
+function hasTaskError(task: GateTask) {
+  return task.state === 'error' || Boolean(task.issue?.trim());
+}
+
+export function isReadyTask(task: GateTaskReadiness) {
+  return task.state === 'pending'
+    && !hasTaskError(task)
+    && (task.ready === true || (task.ready !== false && !hasUnmetDependency(task)));
+}
+
+export function isBlockedTask(task: GateTaskReadiness) {
+  return task.state === 'error'
+    || (task.state === 'pending' && (hasTaskError(task) || hasUnmetDependency(task) || task.ready === false));
+}
+
+function matchesReadiness(task: GateTaskReadiness, filter: GateReadinessFilter) {
+  if (filter === 'ready') return isReadyTask(task);
+  if (filter === 'blocked') return isBlockedTask(task);
+  return true;
+}
+
 export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
   const searchText = ref('');
   const selectedProcess = ref('all');
   const selectedState = ref('all');
   const selectedLocation = ref('todo');
+  const readinessFilter = ref<GateReadinessFilter>('all');
   const issuesOnly = ref(false);
   const sortColumn = ref<GateSortColumn>(defaultSortColumn);
   const sortDirection = ref<GateSortDirection>(defaultSortDirection);
@@ -69,6 +115,7 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
           && (selectedProcess.value === 'all' || processValue(task) === selectedProcess.value)
           && (selectedState.value === 'all' || task.state === selectedState.value)
           && (selectedLocation.value === 'all' || task.location === selectedLocation.value)
+          && matchesReadiness(task, readinessFilter.value)
           && (!issuesOnly.value || Boolean(task.issue));
       })
       .sort((left, right) => {
@@ -121,6 +168,7 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
     selectedProcess,
     selectedState,
     selectedLocation,
+    readinessFilter,
     issuesOnly,
     sortColumn,
     sortDirection,

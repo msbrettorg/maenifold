@@ -18,6 +18,13 @@ pub enum PipelineNodeSchema {
     Tool(PipelineToolNodeSchema),
 }
 #[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum PipelineJoinPolicySchema {
+    All,
+    Any,
+    First,
+}
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PipelineWorkflowNodeSchema {
     /// New node identifier
@@ -36,6 +43,9 @@ pub struct PipelineWorkflowNodeSchema {
     /// Optional per-node adopt configuration
     #[serde(default)]
     pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Fan-in join policy.
+    #[serde(default)]
+    pub join_policy: Option<PipelineJoinPolicySchema>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -92,6 +102,9 @@ pub struct PipelinePromptNodeSchema {
     /// Optional per-node adopt configuration
     #[serde(default)]
     pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Fan-in join policy.
+    #[serde(default)]
+    pub join_policy: Option<PipelineJoinPolicySchema>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -162,6 +175,9 @@ pub struct PipelineSequentialThinkingNodeSchema {
     /// Optional per-node adopt configuration
     #[serde(default)]
     pub adopt: Option<PipelineNodeAdoptSchema>,
+    /// Fan-in join policy.
+    #[serde(default)]
+    pub join_policy: Option<PipelineJoinPolicySchema>,
     /// Optional required role identifier for adopt validation
     #[serde(default)]
     pub requires_role: Option<String>,
@@ -222,6 +238,9 @@ pub struct PipelineToolNodeSchema {
     /// Optional ACP agent for tool nodes
     #[serde(default)]
     pub agent: Option<String>,
+    /// Fan-in join policy.
+    #[serde(default)]
+    pub join_policy: Option<PipelineJoinPolicySchema>,
     /// Model override for tool nodes
     #[serde(default)]
     pub model: Option<String>,

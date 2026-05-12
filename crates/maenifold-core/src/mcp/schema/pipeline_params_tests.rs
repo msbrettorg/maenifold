@@ -82,6 +82,34 @@ fn pipeline_schema_includes_conditional_edge_fields() {
 }
 
 #[test]
+fn pipeline_node_schema_exposes_join_policy_for_all_variants() {
+    let schema = schema_value_no_null_options::<PipelineParams>();
+    let variants =
+        schema["properties"]["definition"]["allOf"][0]["properties"]["nodes"]["items"]["oneOf"]
+            .as_array()
+            .expect("pipeline definition node variants");
+    assert_eq!(variants.len(), 4);
+
+    for node_type in ["workflow", "prompt", "sequentialThinking", "tool"] {
+        let variant = variants
+            .iter()
+            .find(|variant| variant["properties"]["type"]["enum"][0] == node_type)
+            .expect("variant exists");
+        let join_policy = &variant["properties"]["joinPolicy"];
+        assert_eq!(join_policy["type"], "string");
+        assert_eq!(join_policy["enum"], json!(["all", "any", "first"]));
+        assert!(
+            !variant["required"]
+                .as_array()
+                .expect("required array")
+                .iter()
+                .any(|field| field == "joinPolicy"),
+            "joinPolicy must remain optional for {node_type}"
+        );
+    }
+}
+
+#[test]
 fn conditional_edge_deserializes_to_domain_and_drives_ready_set() {
     let definition: PipelineDefinition = serde_json::from_value(json!({
         "nodes": [

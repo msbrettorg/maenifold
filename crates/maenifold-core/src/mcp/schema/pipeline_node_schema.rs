@@ -97,6 +97,14 @@ pub(super) fn node_adopt_schema() -> serde_json::Value {
     })
 }
 
+pub(super) fn join_policy_schema() -> serde_json::Value {
+    json!({
+        "type": "string",
+        "enum": ["all", "any", "first"],
+        "description": "Fan-in join policy. 'all' (default) waits for every inbound predecessor; 'any' fires when at least one completes and the rest are terminal; 'first' fires as soon as any completes."
+    })
+}
+
 // T-01.9: Variant bodies were extracted to sibling modules; this entry point
 // just composes the `oneOf` array so the file stays well under the 300 LOC ceiling.
 fn node_schema_value() -> serde_json::Value {

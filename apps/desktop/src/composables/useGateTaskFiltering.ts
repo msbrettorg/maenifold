@@ -91,10 +91,17 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
   const issuesOnly = ref(false);
   const sortColumn = ref<GateSortColumn>(defaultSortColumn);
   const sortDirection = ref<GateSortDirection>(defaultSortDirection);
+  const selectedSprints = ref<Set<number>>(new Set());
 
   const processOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map(processValue)));
   const stateOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.state)));
   const locationOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.location)));
+  const sprintOptions = computed(() => {
+    const sprints = (snapshot.value?.tasks ?? [])
+      .map((task) => task.sprint)
+      .filter((s): s is number => typeof s === 'number');
+    return [...new Set(sprints)].sort((a, b) => b - a).slice(0, 5);
+  });
 
   const visibleTasks = computed(() => {
     const search = searchText.value.trim().toLowerCase();
@@ -116,7 +123,8 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
           && (selectedState.value === 'all' || task.state === selectedState.value)
           && (selectedLocation.value === 'all' || task.location === selectedLocation.value)
           && matchesReadiness(task, readinessFilter.value)
-          && (!issuesOnly.value || Boolean(task.issue));
+          && (!issuesOnly.value || Boolean(task.issue))
+          && (selectedSprints.value.size === 0 || (typeof task.sprint === 'number' && selectedSprints.value.has(task.sprint)));
       })
       .sort((left, right) => {
         const direction = sortDirection.value === 'asc' ? 1 : -1;
@@ -147,6 +155,16 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
     sortDirection.value = defaultSortDirection;
   }
 
+  function toggleSprint(sprint: number): void {
+    const next = new Set(selectedSprints.value);
+    if (next.has(sprint)) {
+      next.delete(sprint);
+    } else {
+      next.add(sprint);
+    }
+    selectedSprints.value = next;
+  }
+
   watch(processOptions, (options) => {
     if (selectedProcess.value !== 'all' && !options.includes(selectedProcess.value)) {
       selectedProcess.value = 'all';
@@ -175,7 +193,10 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
     processOptions,
     stateOptions,
     locationOptions,
+    sprintOptions,
+    selectedSprints,
     visibleTasks,
     toggleSort,
+    toggleSprint,
   };
 }

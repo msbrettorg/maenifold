@@ -14,6 +14,8 @@ export interface GateTask {
   state: string;
   stages: string[];
   attempts: number;
+  lastUpdatedAt?: string | null;
+  last_updated_at?: string | null;
   location: string;
   path: string;
   issue: string;

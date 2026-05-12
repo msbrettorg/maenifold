@@ -12,7 +12,7 @@ import { useGateRegistry } from '../composables/useGateRegistry';
 import { useProvenanceStore } from '../stores/provenance';
 import { useGateTaskFiltering } from '../composables/useGateTaskFiltering';
 import { findTaskByLineageId, gateTaskSelectionKey, useGateTaskDetail } from '../composables/useGateTaskDetail';
-import type { GateSnapshot } from '../lib/gate';
+import type { GateSnapshot, GateTask, GateTaskHistoryEntry } from '../lib/gate';
 import { createGateSnapshot } from '../lib/gate';
 
 const props = defineProps<{ cwd: string }>();
@@ -26,14 +26,31 @@ const isLoading = ref(false);
 const error = ref('');
 const lastRefreshLabel = ref('');
 const createTaskOpen = ref(false);
+const lastUpdatedByTaskKey = ref<Record<string, string | null>>({});
 
 const gateRoot = computed(() => registry.selectedGateRoot.value);
+const enrichedSnapshot = computed<GateSnapshot | null>(() => {
+  const current = snapshot.value;
+  if (!current) return null;
+  return {
+    ...current,
+    tasks: current.tasks.map((task) => ({
+      ...task,
+      lastUpdatedAt: task.lastUpdatedAt
+        ?? task.last_updated_at
+        ?? lastUpdatedByTaskKey.value[gateTaskSelectionKey(task)]
+        ?? null,
+    })),
+  };
+});
 
-const filtering = useGateTaskFiltering(snapshot);
-const detail = useGateTaskDetail({ snapshot, gateRoot, gateMcp, provenance });
+const filtering = useGateTaskFiltering(enrichedSnapshot);
+const detail = useGateTaskDetail({ snapshot: enrichedSnapshot, gateRoot, gateMcp, provenance });
 
 let snapshotRequestToken = 0;
+let lastUpdatedRequestToken = 0;
 let stopStatusSubscription: (() => void) | null = null;
+const pendingLastUpdatedKeys = new Set<string>();
 
 const hasGateRoot = computed(() => gateRoot.value.length > 0);
 const uiError = computed(() => registry.error.value || error.value || '');
@@ -52,6 +69,61 @@ function formatRefreshTime() {
   return `Last synced: ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
 }
 
+function resetLastUpdatedCache() {
+  lastUpdatedRequestToken += 1;
+  pendingLastUpdatedKeys.clear();
+  lastUpdatedByTaskKey.value = {};
+}
+
+function latestHistoryTimestamp(history: GateTaskHistoryEntry[]) {
+  let latestValue: string | null = null;
+  let latestTime = Number.NEGATIVE_INFINITY;
+  for (const entry of history) {
+    if (!entry.timestamp) continue;
+    const time = Date.parse(entry.timestamp);
+    if (Number.isNaN(time)) {
+      if (latestValue === null) latestValue = entry.timestamp;
+      continue;
+    }
+    if (time >= latestTime) {
+      latestTime = time;
+      latestValue = entry.timestamp;
+    }
+  }
+  return latestValue;
+}
+
+function hasLastUpdatedKey(task: GateTask) {
+  return Object.prototype.hasOwnProperty.call(
+    lastUpdatedByTaskKey.value,
+    gateTaskSelectionKey(task),
+  );
+}
+
+function loadVisibleLastUpdated() {
+  const root = gateRoot.value;
+  if (!root) return;
+  const requestId = lastUpdatedRequestToken;
+  for (const task of filtering.visibleTasks.value) {
+    const key = gateTaskSelectionKey(task);
+    if (task.lastUpdatedAt || hasLastUpdatedKey(task) || pendingLastUpdatedKeys.has(key)) continue;
+    pendingLastUpdatedKeys.add(key);
+    void gateMcp.readTaskHistory(task.taskId, root)
+      .then((history) => {
+        if (requestId !== lastUpdatedRequestToken || gateRoot.value !== root) return;
+        lastUpdatedByTaskKey.value = {
+          ...lastUpdatedByTaskKey.value,
+          [key]: latestHistoryTimestamp(history),
+        };
+      })
+      .catch(() => {
+        if (requestId !== lastUpdatedRequestToken || gateRoot.value !== root) return;
+        lastUpdatedByTaskKey.value = { ...lastUpdatedByTaskKey.value, [key]: null };
+      })
+      .finally(() => pendingLastUpdatedKeys.delete(key));
+  }
+}
+
 function stopStatusWatch() {
   stopStatusSubscription?.();
   stopStatusSubscription = null;
@@ -65,6 +137,7 @@ async function refreshSnapshot(background = false) {
     snapshot.value = null;
     error.value = '';
     lastRefreshLabel.value = '';
+    resetLastUpdatedCache();
     detail.clearSelection();
     return;
   }
@@ -77,6 +150,8 @@ async function refreshSnapshot(background = false) {
     const nextSnapshot = createGateSnapshot(root, Array.isArray(tasks) ? tasks : []);
     if (requestId !== snapshotRequestToken || gateRoot.value !== root) return;
     snapshot.value = nextSnapshot;
+    resetLastUpdatedCache();
+    loadVisibleLastUpdated();
     lastRefreshLabel.value = formatRefreshTime();
     if (!detail.selectedTaskId.value) return;
     const resolved = detail.activeTask.value;
@@ -129,9 +204,14 @@ watch(gateRoot, async (root) => {
   await startStatusWatch(root);
 }, { immediate: true });
 
-watch([() => provenance.pendingGateTaskId, snapshot], async ([pendingTaskId]) => {
+watch(
+  () => filtering.visibleTasks.value.map(gateTaskSelectionKey).join('\n'),
+  () => loadVisibleLastUpdated(),
+);
+
+watch([() => provenance.pendingGateTaskId, enrichedSnapshot], async ([pendingTaskId]) => {
   if (!pendingTaskId) return;
-  const task = findTaskByLineageId(snapshot.value?.tasks ?? [], pendingTaskId);
+  const task = findTaskByLineageId(enrichedSnapshot.value?.tasks ?? [], pendingTaskId);
   if (task) {
     await detail.selectTask(task);
     provenance.clearQueuedGateTaskSelection();

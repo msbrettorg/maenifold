@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Search, X } from 'lucide-vue-next';
+import { Pin, Search, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSessionStore } from '../stores/session';
 import { useAgentStore } from '../stores/agent';
+import { usePinnedSessionsStore } from '../stores/pinned-sessions';
 import type { SavedSession } from '../lib/types';
 
 const emit = defineEmits<{
@@ -17,19 +18,27 @@ const emit = defineEmits<{
 
 const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
+const pinnedSessionsStore = usePinnedSessionsStore();
 
-const sessions = computed(() =>
-  [...sessionStore.savedSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
-);
-
+const sessions = computed(() => [...sessionStore.savedSessions]);
 const searchQuery = ref('');
+
+function sortSessionsForList(items: SavedSession[]): SavedSession[] {
+  // Pinned and unpinned groups both keep the existing newest-first ordering.
+  return [...items].sort((a, b) => {
+    const aPinned = pinnedSessionsStore.isPinned(a.id);
+    const bPinned = pinnedSessionsStore.isPinned(b.id);
+    if (aPinned !== bPinned) return aPinned ? -1 : 1;
+    return b.lastUpdated - a.lastUpdated;
+  });
+}
 
 const filteredSessions = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
-  if (!q) return sessions.value;
-  return sessions.value.filter((s) =>
-    (s.title || s.agentName).toLowerCase().includes(q),
-  );
+  const matches = q
+    ? sessions.value.filter((s) => (s.title || s.agentName).toLowerCase().includes(q))
+    : sessions.value;
+  return sortSessionsForList(matches);
 });
 
 const liveSessionsByRemoteId = computed(() => {
@@ -256,15 +265,31 @@ function handleSearchKeydown(event: KeyboardEvent) {
             </span>
             <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="size-7 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-            :title="getDeleteTitle(session)"
-            @click="(e: Event) => handleDelete(session, e)"
-          >
-            <X class="size-4" />
-          </Button>
+          <div class="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-7 text-muted-foreground hover:bg-bg-surface-hover hover:text-text-primary"
+              :title="pinnedSessionsStore.isPinned(session.id) ? 'Unpin session' : 'Pin session'"
+              :aria-label="pinnedSessionsStore.isPinned(session.id) ? 'Unpin session' : 'Pin session'"
+              :aria-pressed="pinnedSessionsStore.isPinned(session.id)"
+              @click.stop="pinnedSessionsStore.togglePinnedSession(session.id)"
+            >
+              <Pin
+                class="size-4"
+                :class="pinnedSessionsStore.isPinned(session.id) ? 'fill-current text-brand' : ''"
+              />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-7 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+              :title="getDeleteTitle(session)"
+              @click="(e: Event) => handleDelete(session, e)"
+            >
+              <X class="size-4" />
+            </Button>
+          </div>
         </li>
       </ul>
     </ScrollArea>

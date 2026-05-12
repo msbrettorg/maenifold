@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { AlertTriangle, Plus, RefreshCw } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,7 @@ const store = usePipelineStore();
 const resources = useMcpResources();
 const confirmDialogStore = useConfirmDialogStore();
 const { connected, pipelines, currentPipelineId, hasDirtyDraft } = storeToRefs(store);
+const designMode = inject('pipelineDesignMode', ref(false));
 const resourceError = ref<string | null>(null);
 let disposeSessionSubscription: (() => void) | null = null;
 
@@ -172,6 +173,7 @@ async function handleNew() {
     }
   }
   store.newPipeline();
+  designMode.value = false;
 }
 
 async function handleDelete(item: PipelineListItem, event: Event) {
@@ -221,6 +223,7 @@ onBeforeUnmount(() => {
           <RefreshCw class="size-4" aria-hidden="true" />
         </Button>
         <Button
+          v-if="designMode"
           type="button"
           variant="ghost"
           size="sm"

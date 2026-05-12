@@ -35,7 +35,7 @@ function createStore() {
   const pinia = createPinia();
   setActivePinia(pinia);
   const store = usePipelineStore();
-  store.designMode = true;
+  store.designMode = false;
   store.localDefinition = { nodes: [], edges: [] };
   store.currentPipelineId = null;
   store.currentView = null;
@@ -195,7 +195,7 @@ describe('PipelineView layout behavior', () => {
   it('keeps the flyout open for cancelled or failed switches and closes it after a successful switch', async () => {
     const { wrapper, store } = mountPipelineView({
       setupStore(currentStore) {
-        currentStore.designMode = true;
+        currentStore.designMode = false;
         currentStore.localDefinition = {
           nodes: [{ id: 'draft-node', workflowId: 'workflow.alpha' }],
           edges: [],
@@ -213,6 +213,8 @@ describe('PipelineView layout behavior', () => {
       .mockResolvedValueOnce(false)
       .mockResolvedValueOnce(true);
 
+    await flushPromises();
+    await wrapper.get('button[aria-label="Toggle pipeline design mode"]').trigger('click');
     await flushPromises();
     await openFlyout(wrapper);
 

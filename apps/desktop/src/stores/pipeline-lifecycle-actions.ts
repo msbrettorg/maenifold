@@ -142,6 +142,15 @@ export function createPipelineLifecycleActions({
     });
   }
 
+  async function resumeFromNode(nodeId: string) {
+    await withCurrentPipeline('resume_from_node', async (sessionId) => {
+      await mcp.restartNode(sessionId, nodeId);
+      await mcp.runPipeline(sessionId);
+      startViewPolling();
+      await refreshView({ resetEventLog: true });
+    });
+  }
+
   async function updateNodeStatus(
     nodeId: string,
     status: 'completed' | 'abandoned',
@@ -173,6 +182,7 @@ export function createPipelineLifecycleActions({
     deletePipelineById,
     rewindNodes,
     restartNode,
+    resumeFromNode,
     updateNodeStatus,
     graftNodes,
   };

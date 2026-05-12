@@ -69,6 +69,8 @@ fn document(state: Option<&str>, records: Vec<TaskStageRecord>) -> TaskDocument 
             state: state.map(str::to_string),
             session_id: None,
             depends_on: Vec::new(),
+            priority: None,
+            sprint: None,
         },
         records,
     }

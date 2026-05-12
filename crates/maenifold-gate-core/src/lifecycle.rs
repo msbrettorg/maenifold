@@ -392,6 +392,9 @@ fn error_status_row(root: &std::path::Path, task: &TaskPathSet, error: GateError
         "path": task.path.display().to_string(),
         "linked": false,
         "issue": format!("{error}"),
+        "priority": serde_json::Value::Null,
+        "sprint": serde_json::Value::Null,
+        "lastUpdatedAt": serde_json::Value::Null,
     })
 }
 

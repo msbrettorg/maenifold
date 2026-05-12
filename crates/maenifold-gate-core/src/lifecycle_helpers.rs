@@ -121,6 +121,7 @@ pub(super) fn status_row(
     let document = TaskRepository::read_task_document(root, task)?;
     let definition = resolve_definition_for_task(root, &document.metadata, requested_pipeline)?;
     let effective = TaskStatusDeriver::derive(&document, &definition, &task.location)?;
+    let last_updated = document.records.iter().map(|r| r.recorded_at.as_str()).max();
     Ok(json!({
         "taskId": task.task_id,
         "canonicalTaskId": document.metadata.id,
@@ -132,7 +133,10 @@ pub(super) fn status_row(
         "location": task.location,
         "path": task.path,
         "linked": is_linked_session_id(document.metadata.session_id.as_deref()),
-        "issue": ""
+        "issue": "",
+        "priority": document.metadata.priority,
+        "sprint": document.metadata.sprint,
+        "lastUpdatedAt": last_updated,
     }))
 }
 

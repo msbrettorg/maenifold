@@ -423,3 +423,55 @@ fn default_filter() -> StatusFilter {
         include_done: true,
     }
 }
+
+// --- T-250.0.1: priority / sprint / lastUpdatedAt in status_row ---
+
+#[test]
+fn status_row_includes_priority_sprint_and_last_updated_at_when_present() {
+    let root = new_root();
+    fs::write(
+        task_path(root.path(), "T-250.99", "todo"),
+        "---\nid: T-250.99\ntitle: T-250.99 task\npipeline: sdd\npriority: P1\nsprint: 250\n---\n# T-250.99 task\n\n## Acceptance Criteria\n\n1. test task\n",
+    )
+    .expect("write task");
+
+    // pending → swe
+    GateLifecycle::pass(note(root.path(), "T-250.99", "pm", "first pass")).expect("pass 1");
+    // swe → red-team; returned row has 2 records
+    let row = GateLifecycle::pass(note(root.path(), "T-250.99", "swe", "second pass"))
+        .expect("pass 2");
+
+    assert_eq!(row["priority"], "P1", "priority should be P1");
+    assert_eq!(row["sprint"], 250u64, "sprint should be 250");
+    assert!(
+        row["lastUpdatedAt"]
+            .as_str()
+            .map(|s| !s.is_empty())
+            .unwrap_or(false),
+        "lastUpdatedAt should be a non-empty RFC 3339 string"
+    );
+    assert_eq!(
+        row.as_object().unwrap().len(),
+        14,
+        "status_row must emit exactly 14 fields"
+    );
+}
+
+#[test]
+fn status_row_emits_null_priority_sprint_and_last_updated_at_when_absent() {
+    let root = new_root();
+    write_task(root.path(), "T-250.100", "sdd");
+    let row = single_status(root.path());
+
+    assert!(row["priority"].is_null(), "priority should be null");
+    assert!(row["sprint"].is_null(), "sprint should be null");
+    assert!(
+        row["lastUpdatedAt"].is_null(),
+        "lastUpdatedAt should be null when there are no records"
+    );
+    assert_eq!(
+        row.as_object().unwrap().len(),
+        14,
+        "status_row must emit exactly 14 fields"
+    );
+}

@@ -14,6 +14,7 @@ import PipelineNodeInspector from './PipelineNodeInspector.vue';
 import PipelineActionBar from './PipelineActionBar.vue';
 import PipelineDesignToggle from './PipelineDesignToggle.vue';
 import PipelineRunner from './PipelineRunner.vue';
+import PipelineSaveStatusBadge from './PipelineSaveStatusBadge.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
 import PromotionDialog from './PromotionDialog.vue';
@@ -32,7 +33,7 @@ import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 type PipelineIconRailExpose = { focusPipelineToggle: () => void }; type TemplateGalleryExpose = { resetForNewPipeline: () => void };
 const store = usePipelineStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
 const { navigateTo } = useProvenanceNavigation();
-const { currentPipelineId, currentView, designMode: storeDesignMode, error, localDefinition, successMessage, workflows } = storeToRefs(store);
+const { currentPipelineId, currentView, designMode: storeDesignMode, error, hasDirtyDraft, localDefinition, savingState, successMessage, workflows } = storeToRefs(store);
 const designMode = ref(false); provide('pipelineDesignMode', designMode);
 const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
@@ -45,6 +46,8 @@ const promotionNode = ref<ViewNode | null>(null);
 const isPipelineFlyoutOpen = computed(() => !isNarrowViewport.value && activeFlyout.value === 'pipelines');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
 const activePipelineLabel = computed(() => currentView.value?.pipelineId ?? currentPipelineId.value ?? '');
+const draftPipelineLabel = computed(() => activePipelineLabel.value || 'Draft pipeline');
+const hasDraftNodes = computed(() => (localDefinition.value?.nodes?.length ?? 0) > 0);
 const showFullScreenEmpty = computed(() => designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
 const showBrowseExistingEntry = computed(() => !designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
 const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrowseExistingEntry.value);
@@ -101,6 +104,7 @@ function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
 }
 function handleTogglePipelineFlyout() { toggleFlyout('pipelines'); }
 function handlePipelineSelected() { clearInspectorSelection(); closePipelineFlyout(); }
+async function handleSaveDraft() { if (hasDraftNodes.value && savingState.value !== 'saving') await store.createPipeline(); }
 function handleNewPipeline() {
   clearInspectorSelection();
   closeConfigModal();
@@ -194,6 +198,7 @@ onBeforeUnmount(() => {
             >
               Browse existing pipelines
             </Button>
+            <PipelineSaveStatusBadge :design-mode="designMode" :dirty="hasDirtyDraft" :has-draft-nodes="hasDraftNodes" :pipeline-name="draftPipelineLabel" :saving-state="savingState" @save="handleSaveDraft" />
             <TemplateGallery ref="templateGalleryRef" />
           </div>
           <template v-else>
@@ -210,6 +215,7 @@ onBeforeUnmount(() => {
               @open-promotion="handleOpenPromotion"
             >
               <template #toolbar-actions>
+                <PipelineSaveStatusBadge :design-mode="designMode" :dirty="hasDirtyDraft" :has-draft-nodes="hasDraftNodes" :pipeline-name="draftPipelineLabel" :saving-state="savingState" @save="handleSaveDraft" />
                 <PipelineDesignToggle :design-mode="designMode" @update:design-mode="(value: boolean) => designMode = value" />
                 <PipelineActionBar />
               </template>

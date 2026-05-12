@@ -1,6 +1,6 @@
 // Design-mode and creation actions extracted from pipeline.ts
 // to keep the main store under the 300 LOC ceiling.
-import type { Ref } from 'vue';
+import { ref, type Ref } from 'vue';
 import type { usePipelineMcp } from '../composables/usePipelineMcp';
 import type { useConfigStore } from './config';
 import {
@@ -39,6 +39,7 @@ export interface CreatePipelineOptions {
   name?: string;
   description?: string;
 }
+export type PipelineSavingState = 'idle' | 'saving' | 'saved' | 'error';
 
 interface DesignActionsDeps {
   mcp: ReturnType<typeof usePipelineMcp>;
@@ -103,10 +104,23 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     withError,
     withLoading,
   } = deps;
+  const savingState = ref<PipelineSavingState>('idle');
+  let savingStateTimer: ReturnType<typeof setTimeout> | null = null;
 
   // unused `currentView` and `pipelines` would be needed later; keep optional silent
   void currentView;
   void pipelines;
+
+  function markSavingState(state: PipelineSavingState): void {
+    if (savingStateTimer) clearTimeout(savingStateTimer);
+    savingState.value = state;
+    if (state === 'saved' || state === 'error') {
+      savingStateTimer = setTimeout(() => {
+        savingState.value = 'idle';
+        savingStateTimer = null;
+      }, 2000);
+    }
+  }
 
   function appendNode(node: PipelineNode): PipelineNode {
     localDefinition.value = {
@@ -144,6 +158,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     currentPipelineId.value = pipelineId;
     setView(view);
     designMode.value = false;
+    markSavingState('idle');
     eventLog.value = hydrateEventLogFromView(view);
     return true;
   }
@@ -154,6 +169,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     setView(null);
     maxConcurrency.value = 8;
     designMode.value = true;
+    markSavingState('idle');
     eventLog.value = [];
   }
 
@@ -161,7 +177,8 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     definitionOverride?: PipelineDefinition,
     options: CreatePipelineOptions = {},
   ) {
-    return withError('create_pipeline', async () => {
+    markSavingState('saving');
+    const result = await withError('create_pipeline', async () => {
       const definition = withDescriptionMetadata(
         serializePipelineDefinition(definitionOverride ?? localDefinition.value),
         options.description,
@@ -194,6 +211,8 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
       }
       return result;
     });
+    markSavingState(result === undefined ? 'error' : 'saved');
+    return result;
   }
 
   async function applyTemplate(
@@ -249,6 +268,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
   }
 
   return {
+    savingState,
     addNode,
     loadPipeline,
     newPipeline,

@@ -49,6 +49,14 @@ fn current_cancellation_token() -> Option<CancellationToken> {
     CURRENT_CANCELLATION_TOKEN.with(|current| current.borrow().clone())
 }
 
+pub(crate) struct RequestCancelOnDrop(pub(crate) CancellationToken);
+
+impl Drop for RequestCancelOnDrop {
+    fn drop(&mut self) {
+        self.0.cancel();
+    }
+}
+
 struct CancellationScopeReset {
     previous: Option<CancellationToken>,
 }

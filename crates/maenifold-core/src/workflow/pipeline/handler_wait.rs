@@ -10,6 +10,9 @@ use crate::util::json::{OutputFormat, success};
 use super::resource_notifications::subscribe_pipeline_updates;
 use super::view::{is_pipeline_terminal_status, view_pipeline_session_value};
 
+#[cfg(test)]
+static ACTIVE_WAITS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
 pub(super) fn wait_requested(payload: &Value) -> bool {
     payload
         .get("wait")
@@ -46,6 +49,8 @@ pub(super) async fn await_terminal_view(
     session_id: &str,
     timeout_ms: Option<u64>,
 ) -> Result<Value> {
+    #[cfg(test)]
+    let _guard = ActiveWaitGuard::new();
     let notifier = subscribe_pipeline_updates(session_id);
     let cancel = context.cancellation_token.clone();
     let timeout = timeout_ms.map(|ms| tokio::time::sleep(Duration::from_millis(ms)));
@@ -96,6 +101,29 @@ pub(super) async fn await_terminal_view(
             }
             (None, None) => notified.await,
         }
+    }
+}
+
+#[cfg(test)]
+pub(super) fn active_wait_count() -> usize {
+    ACTIVE_WAITS.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+#[cfg(test)]
+struct ActiveWaitGuard;
+
+#[cfg(test)]
+impl ActiveWaitGuard {
+    fn new() -> Self {
+        ACTIVE_WAITS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Self
+    }
+}
+
+#[cfg(test)]
+impl Drop for ActiveWaitGuard {
+    fn drop(&mut self) {
+        ACTIVE_WAITS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
     }
 }
 

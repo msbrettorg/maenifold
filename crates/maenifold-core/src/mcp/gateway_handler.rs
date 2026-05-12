@@ -13,12 +13,14 @@ use crate::mcp::schema::gateway_tools::{
 use crate::mcp::stdio_pool::StdioPool;
 use crate::mcp::tool_utils::format_tool_error;
 use crate::registry::ToolRegistry;
+use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content, ReadResourceResult, Resource, Tool};
 use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use tokio_util::sync::CancellationToken;
 
 #[derive(Clone)]
 pub(crate) struct GatewayState {
@@ -238,13 +240,17 @@ fn render_json(value: Value) -> String {
     serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
 }
 
-async fn invoke_native(
+pub(crate) async fn invoke_native(
     tool_name: String,
     parameters: Value,
 ) -> std::result::Result<CallToolResult, rmcp::ErrorData> {
     let display_name = tool_name.clone();
+    let cancellation_token = CancellationToken::new();
+    let _cancel_on_drop = RequestCancelOnDrop(cancellation_token.clone());
     let result = tokio::task::spawn_blocking(move || {
-        ToolRegistry::global().try_invoke(&tool_name, &parameters, OutputFormat::Json)
+        with_cancellation_scope(cancellation_token, || {
+            ToolRegistry::global().try_invoke(&tool_name, &parameters, OutputFormat::Json)
+        })
     })
     .await
     .map_err(|err| rmcp::ErrorData::internal_error(err.to_string(), None))?;

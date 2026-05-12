@@ -17,7 +17,7 @@ use crate::tools::with_cancellation_scope;
 use crate::util::json::OutputFormat;
 
 use super::handler::pipeline;
-use super::handler_wait::await_terminal_view;
+use super::handler_wait::{active_wait_count, await_terminal_view};
 use super::lease::pipeline_lock_path;
 use super::session_write::persist_final_pipeline_status;
 use super::test_support::{pipeline_test_context, seed_pipeline_session_with_node_sessions};
@@ -247,6 +247,42 @@ async fn drop_mcp_blocking_wait_observes_request_cancel() {
     assert!(
         finished.load(Ordering::SeqCst),
         "blocking MCP wait did not observe request cancellation"
+    );
+}
+
+#[tokio::test]
+#[serial]
+async fn drop_gateway_native_wait_observes_request_cancel() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-1700000000000-wait-gateway-drop";
+    seed_active(&context, session_id);
+
+    let request = tokio::spawn(async move {
+        let _ = crate::mcp::gateway_handler::invoke_native(
+            "Pipeline".to_string(),
+            json!({ "sessionId": session_id, "wait": true }),
+        )
+        .await;
+    });
+
+    let start_deadline = Instant::now() + Duration::from_secs(3);
+    while active_wait_count() == 0 && Instant::now() < start_deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert!(
+        active_wait_count() > 0,
+        "gateway native wait did not start a pipeline waiter"
+    );
+
+    request.abort();
+    let stop_deadline = Instant::now() + Duration::from_secs(3);
+    while active_wait_count() > 0 && Instant::now() < stop_deadline {
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    assert_eq!(
+        active_wait_count(),
+        0,
+        "gateway native wait did not observe request cancellation"
     );
 }
 

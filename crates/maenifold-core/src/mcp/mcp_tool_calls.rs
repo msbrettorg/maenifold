@@ -1,7 +1,7 @@
 use crate::error::{JSONRPC_METHOD_NOT_FOUND, MaenifoldError};
 use crate::mcp::{discovery_tools, gateway_handler::GatewayState};
 use crate::registry::ToolRegistry;
-use crate::tools::with_cancellation_scope;
+use crate::tools::{RequestCancelOnDrop, with_cancellation_scope};
 use crate::util::json::OutputFormat;
 use rmcp::model::{CallToolResult, Content};
 use serde_json::Value;
@@ -49,14 +49,6 @@ async fn invoke_native(
         Err(err) => Ok(CallToolResult::error(vec![Content::text(
             super::tool_utils::format_tool_error(&tool_name, &err),
         )])),
-    }
-}
-
-struct RequestCancelOnDrop(CancellationToken);
-
-impl Drop for RequestCancelOnDrop {
-    fn drop(&mut self) {
-        self.0.cancel();
     }
 }
 

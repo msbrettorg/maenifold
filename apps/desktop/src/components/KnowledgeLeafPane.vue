@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { BookOpenText, Clock, FileText, Pencil, X } from 'lucide-vue-next';
 import { storeToRefs } from 'pinia';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
+import { createKnowledgePoller } from '../composables/useKnowledgePoller';
 import { useMemoryApi } from '../composables/useMemoryApi';
 import { useKnowledgeStore } from '../stores/knowledge';
-import type { RecentActivityItem } from '../lib/workflow-types';
+import type { MemoryFile, RecentActivityItem } from '../lib/workflow-types';
 import EmptyState from './EmptyState.vue';
 import KnowledgeInlineEditor from './KnowledgeInlineEditor.vue';
 import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
@@ -20,6 +21,7 @@ const recentNotes = ref<RecentActivityItem[]>([]);
 const recentLoading = ref(false);
 const recentError = ref<string | null>(null);
 const editing = ref(false);
+const pendingExternalNote = ref<MemoryFile | null>(null);
 const noteErrorTitle = computed(() => (
   /not\s*found|no such|missing|404/i.test(noteError.value ?? '')
     ? 'Note not found'
@@ -40,12 +42,48 @@ async function loadRecentNotes(): Promise<void> {
   }
 }
 
+function keepEdits(): void {
+  pendingExternalNote.value = null;
+}
+
+async function reloadFromExternal(): Promise<void> {
+  const uri = activeTabUri.value;
+  if (!uri) return;
+  await store.reloadNote(uri);
+  editing.value = false;
+  pendingExternalNote.value = null;
+}
+
+const poller = createKnowledgePoller(
+  {
+    listMemories: () => memoryApi.listMemories(),
+    readMemory: (uri) => memoryApi.readMemory(uri),
+    activeTabUri,
+  },
+  {
+    onTreeChanged: () => { void store.loadRootFolders(); },
+    onActiveNoteChanged: (note) => {
+      if (editing.value) {
+        pendingExternalNote.value = note;
+      } else {
+        void store.reloadNote(note.uri);
+      }
+    },
+  },
+);
+
 onMounted(() => {
   void loadRecentNotes();
+  poller.start();
+});
+
+onUnmounted(() => {
+  poller.stop();
 });
 
 watch(activeTabUri, () => {
   editing.value = false;
+  pendingExternalNote.value = null;
 });
 
 function closeActiveTab(): void {
@@ -141,12 +179,25 @@ function closeActiveTab(): void {
           </div>
         </div>
 
-        <KnowledgeInlineEditor
-          v-else-if="editing"
-          :note="activeNote"
-          @saved="editing = false"
-          @cancel="editing = false"
-        />
+        <template v-else-if="editing">
+          <div
+            v-if="pendingExternalNote"
+            data-testid="external-change-banner"
+            class="rounded-[6px] border border-border-subtle bg-bg-surface p-3"
+          >
+            <p class="text-body-sm font-semibold text-text-primary">Note changed externally</p>
+            <p class="mt-1 text-body-sm text-text-secondary">Reload to see the latest version.</p>
+            <div class="mt-2 flex gap-2">
+              <Button type="button" size="sm" variant="ghost" @click="keepEdits">Keep my edits</Button>
+              <Button type="button" size="sm" @click="reloadFromExternal">Reload</Button>
+            </div>
+          </div>
+          <KnowledgeInlineEditor
+            :note="activeNote"
+            @saved="editing = false"
+            @cancel="editing = false"
+          />
+        </template>
 
         <div v-else-if="!activeNote.content?.trim()" class="flex min-h-[18rem] items-center justify-center">
           <EmptyState :icon="FileText" title="Empty note" description="This note has no content yet." />

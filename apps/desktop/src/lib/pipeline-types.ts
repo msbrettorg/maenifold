@@ -50,6 +50,7 @@ export type {
   ViewNode,
   PipelineView,
   PipelineListItem,
+  PipelineRunSummary,
   LogEntry,
 } from "./pipeline-types-view";
 

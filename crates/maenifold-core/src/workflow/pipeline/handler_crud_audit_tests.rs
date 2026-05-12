@@ -36,6 +36,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

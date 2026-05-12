@@ -39,6 +39,7 @@ fn make_tool_node(id: &str) -> PipelineNode {
         model: None,
         thought_level: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

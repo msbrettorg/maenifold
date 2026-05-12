@@ -184,6 +184,7 @@ mod tests {
                 timeout: None,
                 agent_config: None,
                 retry_policy: None,
+                join_policy: None,
             }],
             edges: vec![PipelineEdge {
                 source: "source".to_string(),

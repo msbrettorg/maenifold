@@ -121,6 +121,7 @@ mod terminal_node_tests {
             model: None,
             thought_level: None,
             retry_policy: None,
+            join_policy: None,
         }
     }
 

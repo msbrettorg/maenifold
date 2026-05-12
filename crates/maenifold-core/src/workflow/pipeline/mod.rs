@@ -27,6 +27,8 @@ mod durable_retry_tests;
 mod engine_cascade;
 mod engine_ready;
 #[cfg(test)]
+mod engine_ready_join_policy_tests;
+#[cfg(test)]
 mod engine_ready_tests;
 mod engine_runs;
 mod engine_status;
@@ -132,8 +134,8 @@ pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
-    EdgeType, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,
-    PredecessorOutput, RetryPolicy, SessionRef, ToolProvenance,
+    EdgeType, JoinPolicy, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge,
+    PipelineNode, PredecessorOutput, RetryPolicy, SessionRef, ToolProvenance,
 };
 pub use validation::validate_pipeline;
 use workflow_id::workflow_id_for_node;

@@ -62,6 +62,7 @@ fn make_thinking_node(id: &str) -> PipelineNode {
         requires_role: None,
         model: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

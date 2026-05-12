@@ -30,6 +30,7 @@ fn tool_node(id: &str) -> PipelineNode {
         timeout: None,
         agent_config: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

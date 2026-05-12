@@ -14,7 +14,7 @@ use super::super::session_io::{
     write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
-use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
+use super::super::{validate_pipeline, NodeState, NodeStatus, PipelineDefinition};
 use super::ForkRequest;
 
 #[path = "handler_surgery_fork_helpers.rs"]
@@ -62,12 +62,7 @@ pub(super) fn fork_pipeline(
     let reachable = reachable_node_ids(&graph, node_index);
     let node_id_map = reachable
         .iter()
-        .map(|node_id| {
-            (
-                node_id.clone(),
-                format!("fork-{}-{}", new_session_id, node_id),
-            )
-        })
+        .map(|node_id| (node_id.clone(), format!("fork-{}-{}", new_session_id, node_id)))
         .collect::<HashMap<_, _>>();
     let fork_root_predecessor_context =
         collect_fork_predecessor_context(&graph, &reachable, &source_node_states);
@@ -89,6 +84,7 @@ pub(super) fn fork_pipeline(
                     adopt,
                     requires_role,
                     retry_policy,
+                    join_policy,
                     ..
                 } => super::super::PipelineNode::Workflow {
                     id: node_id_map[node.id()].clone(),
@@ -102,6 +98,7 @@ pub(super) fn fork_pipeline(
                     adopt: adopt.clone(),
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
+                    join_policy: join_policy.clone(),
                 },
                 super::super::PipelineNode::Prompt {
                     display_label,
@@ -118,6 +115,7 @@ pub(super) fn fork_pipeline(
                     adopt,
                     requires_role,
                     retry_policy,
+                    join_policy,
                     session_ref,
                     ..
                 } => super::super::PipelineNode::Prompt {
@@ -136,6 +134,7 @@ pub(super) fn fork_pipeline(
                     adopt: adopt.clone(),
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
+                    join_policy: join_policy.clone(),
                     session_ref: session_ref.clone(),
                 },
                 super::super::PipelineNode::SequentialThinking {
@@ -153,6 +152,7 @@ pub(super) fn fork_pipeline(
                     adopt,
                     requires_role,
                     retry_policy,
+                    join_policy,
                     ..
                 } => super::super::PipelineNode::SequentialThinking {
                     id: node_id_map[node.id()].clone(),
@@ -170,6 +170,7 @@ pub(super) fn fork_pipeline(
                     adopt: adopt.clone(),
                     requires_role: requires_role.clone(),
                     retry_policy: retry_policy.clone(),
+                    join_policy: join_policy.clone(),
                 },
                 super::super::PipelineNode::Tool {
                     display_label,
@@ -184,6 +185,7 @@ pub(super) fn fork_pipeline(
                     timeout,
                     agent_config,
                     retry_policy,
+                    join_policy,
                     ..
                 } => super::super::PipelineNode::Tool {
                     id: node_id_map[node.id()].clone(),
@@ -199,6 +201,7 @@ pub(super) fn fork_pipeline(
                     timeout: *timeout,
                     agent_config: agent_config.clone(),
                     retry_policy: retry_policy.clone(),
+                    join_policy: join_policy.clone(),
                 },
             })
             .collect(),

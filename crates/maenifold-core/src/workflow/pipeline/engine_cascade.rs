@@ -1,4 +1,4 @@
-use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
+use super::{EdgeType, JoinPolicy, NodeState, NodeStatus, PipelineDefinition};
 use petgraph::{
     Direction::{Incoming, Outgoing},
     prelude::NodeIndex,
@@ -11,6 +11,11 @@ pub fn compute_blocked_cascade(
     node_states: &HashMap<String, NodeState>,
 ) -> Vec<String> {
     let graph = definition.build_graph();
+    let join_policies = definition
+        .nodes
+        .iter()
+        .map(|node| (node.id().to_string(), node.join_policy()))
+        .collect::<HashMap<_, _>>();
     let mut blocked_queue = graph
         .node_indices()
         .filter(|&node_index| {
@@ -38,7 +43,13 @@ pub fn compute_blocked_cascade(
             let target_index = edge.target();
             let target_id = graph[target_index].clone();
             if cascaded_set.contains(target_id.as_str())
-                || !is_cascade_eligible(&graph, target_index, node_states, &cascaded_set)
+                || !is_cascade_eligible(
+                    &graph,
+                    target_index,
+                    node_states,
+                    &cascaded_set,
+                    &join_policies,
+                )
             {
                 continue;
             }
@@ -51,12 +62,12 @@ pub fn compute_blocked_cascade(
 
     cascaded
 }
-
 fn is_cascade_eligible(
     graph: &petgraph::stable_graph::StableGraph<String, EdgeType>,
     node_index: NodeIndex,
     node_states: &HashMap<String, NodeState>,
     cascaded: &HashSet<String>,
+    join_policies: &HashMap<String, JoinPolicy>,
 ) -> bool {
     let node_id = graph[node_index].as_str();
     if !matches!(
@@ -64,6 +75,10 @@ fn is_cascade_eligible(
         Some(NodeStatus::Pending | NodeStatus::Ready | NodeStatus::Retrying)
     ) {
         return false;
+    }
+    let join_policy = join_policies.get(node_id).unwrap_or(&JoinPolicy::All);
+    if !matches!(join_policy, JoinPolicy::All) {
+        return is_any_or_first_cascade_eligible(graph, node_index, node_states, cascaded);
     }
 
     let mut has_incoming_requirement = false;
@@ -91,10 +106,60 @@ fn is_cascade_eligible(
             }
         }
     }
-
     has_incoming_requirement
 }
+fn is_any_or_first_cascade_eligible(
+    graph: &petgraph::stable_graph::StableGraph<String, EdgeType>,
+    node_index: NodeIndex,
+    node_states: &HashMap<String, NodeState>,
+    cascaded: &HashSet<String>,
+) -> bool {
+    let mut has_incoming_requirement = false;
+    let mut has_firing_predecessor = false;
+    let mut all_requirements_resolved = true;
 
+    for source_index in graph.neighbors_directed(node_index, Incoming) {
+        let source_id = graph[source_index].as_str();
+        for edge in graph.edges_connecting(source_index, node_index) {
+            match edge.weight() {
+                EdgeType::Always => {
+                    if !matches!(
+                        effective_node_status(source_id, node_states, cascaded),
+                        Some(NodeStatus::Abandoned | NodeStatus::Stuck)
+                    ) {
+                        return false;
+                    }
+                }
+                EdgeType::Success => {
+                    has_incoming_requirement = true;
+                    match effective_node_status(source_id, node_states, cascaded) {
+                        Some(NodeStatus::Completed) => has_firing_predecessor = true,
+                        Some(NodeStatus::Skipped | NodeStatus::Abandoned | NodeStatus::Stuck) => {}
+                        _ => all_requirements_resolved = false,
+                    }
+                }
+                EdgeType::Conditional { .. } => {
+                    has_incoming_requirement = true;
+                    if super::engine_ready::is_edge_satisfied(edge.weight(), source_id, node_states)
+                    {
+                        has_firing_predecessor = true;
+                    } else if !matches!(
+                        effective_node_status(source_id, node_states, cascaded),
+                        Some(
+                            NodeStatus::Completed
+                                | NodeStatus::Skipped
+                                | NodeStatus::Abandoned
+                                | NodeStatus::Stuck,
+                        )
+                    ) {
+                        all_requirements_resolved = false;
+                    }
+                }
+            }
+        }
+    }
+    has_incoming_requirement && !has_firing_predecessor && all_requirements_resolved
+}
 fn effective_node_status<'a>(
     node_id: &'a str,
     node_states: &'a HashMap<String, NodeState>,
@@ -129,6 +194,7 @@ mod tests {
             requires_role: None,
             model: None,
             retry_policy: None,
+            join_policy: None,
         }
     }
 

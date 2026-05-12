@@ -138,6 +138,7 @@ mod tests {
                     adopt: None,
                     requires_role: None,
                     retry_policy: None,
+                    join_policy: None,
                 },
                 PipelineNode::Workflow {
                     id: "target".to_string(),
@@ -151,6 +152,7 @@ mod tests {
                     adopt: None,
                     requires_role: None,
                     retry_policy: None,
+                    join_policy: None,
                 },
             ],
             edges: vec![PipelineEdge {

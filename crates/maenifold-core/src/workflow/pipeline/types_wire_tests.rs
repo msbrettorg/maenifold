@@ -34,6 +34,7 @@ fn tool_node_serialization_emits_timeout() {
         timeout: Some(21),
         agent_config: None,
         retry_policy: None,
+        join_policy: None,
     };
 
     let value = serde_json::to_value(node).expect("serialize tool node");

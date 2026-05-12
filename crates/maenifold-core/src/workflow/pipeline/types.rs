@@ -54,6 +54,18 @@ pub struct RetryPolicy {
     pub jitter: bool,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum JoinPolicy {
+    /// Wait for every inbound success predecessor to complete.
+    #[default]
+    All,
+    /// Wait for one success predecessor to complete and all siblings to reach terminal states.
+    Any,
+    /// Fire on the first completed success predecessor; active siblings may still be running.
+    First,
+}
+
 impl PipelineDefinition {
     pub(crate) fn build_graph(&self) -> StableGraph<String, EdgeType> {
         let mut graph = StableGraph::with_capacity(self.nodes.len(), self.edges.len());

@@ -197,6 +197,17 @@ describe('PipelineView design mode toggle', () => {
     expect(wrapper.get('[data-testid="composer"]').attributes('data-design-mode')).toBe('false');
   });
 
+  it('syncs external store design mode changes into local composer state', async () => {
+    const { store, wrapper } = mountPipelineView();
+
+    await flushPromises();
+    store.designMode = true;
+    await nextTick();
+
+    expect(wrapper.get('[data-testid="composer"]').attributes('data-design-mode')).toBe('true');
+    expect(designToggle(wrapper).attributes('aria-pressed')).toBe('true');
+  });
+
   it('resets to viewer mode when switching pipelines', async () => {
     const { store, wrapper } = mountPipelineView();
 

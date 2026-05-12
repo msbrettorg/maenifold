@@ -53,7 +53,7 @@ const {
 } = usePipelineViewState({ currentView, currentPipelineId });
 const lastStatusByPipeline = ref<Record<string, string | null>>({});
 watch(designMode, (value) => { storeDesignMode.value = value; }, { immediate: true });
-watch(storeDesignMode, (value) => { if (value !== designMode.value) storeDesignMode.value = designMode.value; });
+watch(storeDesignMode, (value) => { if (value !== designMode.value) designMode.value = value; });
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; });
 watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? ''), () => currentView.value?.nodes.some((node) => node.type === 'prompt' && node.status === 'active') ?? false], ([pipelineId, status, hasActivePrompt], [prevPipelineId]) => {
   if (!pipelineId) return;

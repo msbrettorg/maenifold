@@ -24,10 +24,11 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import GateTaskProgress from './GateTaskProgress.vue';
 import type { GateTask } from '../lib/gate';
 import { gateTaskSelectionKey } from '../composables/useGateTaskDetail';
 import {
+  formatStageLabel,
+  gateStageFamily,
   getTaskPathHint,
   getTaskPipelineLabel,
   isTaskPipelineDigestStale,
@@ -50,6 +51,21 @@ const emit = defineEmits<{
 
 function processLabel(task: GateTask) {
   return getTaskPipelineLabel(task);
+}
+
+const STAGE_CHIP_CLASS: Record<string, string> = {
+  pending: 'bg-status-pending/15 text-status-pending',
+  swe: 'bg-status-active/15 text-status-active',
+  'red-team': 'bg-status-stuck/15 text-status-stuck',
+  'blue-team': 'bg-status-ready/15 text-status-ready',
+  done: 'bg-status-completed/15 text-status-completed',
+  failed: 'bg-status-error/15 text-status-error',
+  neutral: 'bg-status-pending/15 text-status-pending',
+};
+
+function stageChipClass(task: GateTask) {
+  const family = gateStageFamily(task.state ?? '');
+  return STAGE_CHIP_CLASS[family] ?? STAGE_CHIP_CLASS.pending;
 }
 
 function pipelineStaleTitle(task: GateTask) {
@@ -143,7 +159,7 @@ const columns: ColumnDef<GateTask>[] = [
   {
     id: 'progress',
     accessorKey: 'state',
-    header: () => SortableHeader('Progress', 'progress'),
+    header: () => SortableHeader('Stage', 'progress'),
     size: 160,
     minSize: 140,
     maxSize: 260,
@@ -250,9 +266,12 @@ const table = useVueTable<GateTask>({
               />
             </TableCell>
             <TableCell :style="getColumnWidthStyle('progress')">
-              <div class="flex flex-wrap gap-1">
-                <GateTaskProgress :task="row.original" />
-              </div>
+              <span
+                role="status"
+                :aria-label="`Stage: ${formatStageLabel(row.original.state ?? '')}`"
+                class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="stageChipClass(row.original)"
+              >{{ formatStageLabel(row.original.state ?? '') }}</span>
             </TableCell>
             <TableCell
               :style="getColumnWidthStyle('lastUpdated')"

@@ -150,3 +150,28 @@ describe('GateTaskTable', () => {
     ]);
   });
 });
+
+describe('GateStageChip', () => {
+  const cases = [
+    { state: 'pending',   chipClass: 'bg-status-pending/15',   label: 'Pending'   },
+    { state: 'swe',       chipClass: 'bg-status-active/15',    label: 'SWE'       },
+    { state: 'red-team',  chipClass: 'bg-status-stuck/15',     label: 'Red-team'  },
+    { state: 'blue-team', chipClass: 'bg-status-ready/15',     label: 'Blue-team' },
+    { state: 'done',      chipClass: 'bg-status-completed/15', label: 'Done'      },
+    { state: 'error',     chipClass: 'bg-status-error/15',     label: 'Error'     },
+  ] as const;
+
+  cases.forEach(({ state, chipClass, label }) => {
+    it(`${state}: chip has class "${chipClass}" and aria-label "Stage: ${label}"`, () => {
+      const stageTask = { ...task, state, location: state === 'done' ? 'done' : 'todo' };
+      const wrapper = mount(GateTaskTable, {
+        props: { tasks: [stageTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+      });
+      const chip = wrapper.find('[role="status"]');
+      expect(chip.exists()).toBe(true);
+      expect(chip.classes()).toContain(chipClass);
+      expect(chip.text()).toBe(label);
+      expect(chip.attributes('aria-label')).toBe(`Stage: ${label}`);
+    });
+  });
+});

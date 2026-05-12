@@ -108,6 +108,7 @@ describe('useMessageHandler', () => {
 
     const saveSessionsToStore = vi.fn(async () => {});
     const sessions = ref(new Map([[session.sessionId, session]]));
+    const savedSessions = ref<SavedSession[]>([{ ...session.session }]);
     const handler = useMessageHandler({
       sessions,
       bridges: new Map([
@@ -119,7 +120,7 @@ describe('useMessageHandler', () => {
         ],
       ]),
       activeSessionId: ref(session.sessionId),
-      savedSessions: ref<SavedSession[]>([{ ...session.session }]),
+      savedSessions,
       saveSessionsToStore,
       cancelPermission: () => {},
     });
@@ -127,6 +128,10 @@ describe('useMessageHandler', () => {
     await handler.sendPrompt('A first visible prompt should not replace the saved title');
 
     expect(session.session.title).toBe('Bug triage session');
-    expect(saveSessionsToStore).not.toHaveBeenCalled();
+    expect(savedSessions.value[0]?.title).toBe('Bug triage session');
+    expect(savedSessions.value[0]?.messages?.[0]?.content).toBe(
+      'A first visible prompt should not replace the saved title',
+    );
+    expect(saveSessionsToStore).toHaveBeenCalledTimes(1);
   });
 });

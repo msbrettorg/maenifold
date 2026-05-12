@@ -1355,3 +1355,49 @@ This keeps the surgical work landable while preserving knowledge of the "right" 
 Filed T-249.165 with required action: cherry-pick legitimate product changes onto fresh branches AND add CI guard against `ralph/prompt.md + product code` in the same commit.
 
 **Always audit any worktree you didn't create yourself.** Diff against dev. If a "fixture fix" branch also touches `ralph/`, refuse to merge.
+
+
+### Iteration extension to 17 tasks (sprint 243)
+
+After landing the first 11, dispatched additional waves:
+- Wave 4 (T-243.41/47/58 already done) → Wave 5 (T-243.43/48/50 done)
+- Wave 6: T-243.53 (resume-from-node), T-243.61 (sortable Last Updated), T-243.71 (gate WikiLinks)
+- Wave 7: T-243.54 (template inputs), T-243.59 (ready/blocked filter), T-243.62 (title edit fallback)
+
+Total this iteration: 17 tasks merged + 5 follow-ups filed (T-249.165–169) + 1 rolled back (T-243.27).
+
+### CRITICAL Lesson — red-team auditors hallucinate at high rate when worktree env is broken
+
+In this iteration, **THREE separate red-team audits filed FALSE-POSITIVE critical findings**:
+
+1. **T-243.42 first audit**: Claimed "scope drift — 16 unrelated files modified". Wrong diff base (used plain `dev` instead of `git merge-base HEAD dev`). Branch was created BEFORE other tasks merged, so `git diff dev` showed those merged tasks as if THIS branch deleted them.
+
+2. **T-243.53 first audit**: Claimed `mcp.restartNode` doesn't exist (FALSE — exists at `usePipelineMcp.ts:130` + line 200 export) AND claimed typo `run ning` with space (FALSE — actual code reads `running` with no space). Auditor read only first 100 lines of usePipelineMcp.ts and didn't grep for the symbol.
+
+3. **T-243.54 first audit**: Claimed `mconst` typo line 23 (FALSE — actual code reads `const inputDrafts`) AND claimed regex pattern issue (FALSE — `[A-Za-z_]` cannot match whitespace). Auditor didn't re-verify the diff against source.
+
+**Pattern**: When the worktree environment is broken (missing `node_modules/.bin/vue-tsc` because some prior agent's symlinked `npm install` corrupted main's `.bin/`), the auditor SKIPS build verification commands AND goes hunting for "issues" in source. Without build evidence to anchor the audit, the auditor invents critical findings.
+
+**Mitigation**:
+1. **Detect broken `node_modules/.bin/` BEFORE dispatching any audit**. Add a pre-flight check: `ls apps/desktop/node_modules/.bin/vue-tsc && ls apps/desktop/node_modules/.bin/vitest`. If missing, run `npm rebuild` first.
+2. **Audit prompts MUST require source-verification of every finding**. Each issue must include a line:text quote. Confessions explicitly ask "did you re-read source and confirm the exact text matches your claim?".
+3. **PM artifact evidence beats hallucinated audit verdicts**. When the PM has independently verified (a) tests pass, (b) build passes, (c) source contradicts the audit's claim — PM may override with explicit `agent="ralph-pm-override"` in the gate notes.
+4. **Always dispatch R2 audit after a remediation cycle**. Don't trust an auditor that already failed once on the same task without seeing fresh evidence.
+
+### Lesson — symlinked `node_modules` between worktree and main creates accidental nested install
+
+When SWE worker runs `npm install` (or any `npm` command that mutates packages) inside a worktree whose `apps/desktop/node_modules` is a symlink to main, npm can create `apps/desktop/node_modules/node_modules/` (nested) inside main's directory. This breaks main's `.bin/` symlinks because the rebuild loop sees the nested dir and skips bin generation.
+
+**Mitigation**:
+- Tell SWE workers: do NOT run `npm install`, `npm rebuild`, `npm ci`, or `npx electron-rebuild` inside their worktree. If a package issue surfaces, escalate to PM.
+- Periodically check `ls apps/desktop/node_modules/node_modules/` in main; if exists, `rm -rf` it and re-run `npm rebuild`.
+- Long-term: audit the rebuild.sh / setup script to make symlinked node_modules robust.
+
+### Lesson — even when red-team is wrong, the bounded acceptance loop still works
+
+Direct-dispatch process design assumes auditors might fail. The PM's role includes catching auditor failures by:
+1. Running independent PM artifact checks (build, tests, source spot-read)
+2. Dispatching R2 with explicit "verify the prior audit's claims" instructions
+3. Overriding via `agent="ralph-pm-override"` when PM evidence is stronger
+
+This iteration: 4 cases of auditor hallucination, all caught by PM evidence. Net result: 17 tasks shipped clean, no fake passes.

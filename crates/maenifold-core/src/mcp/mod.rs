@@ -21,6 +21,8 @@ mod gateway_gate;
 mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
+#[cfg(test)]
+mod save_workflow_asset_gateway_tests;
 mod gateway_intent;
 #[cfg(test)]
 mod gateway_intent_tests;

@@ -164,5 +164,5 @@ fn sync_directory(path: &Path) {
 // ── T-122.3: SaveWorkflowAsset contract tests ──────────────────────────────
 
 #[cfg(test)]
-#[path = "save_tests.rs"]
+#[path = "asset_save_tests.rs"]
 mod tests;

@@ -7,7 +7,12 @@ import {
   getCoreRowModel,
   useVueTable,
 } from '@tanstack/vue-table';
-import { ArrowDown, ArrowUp, ArrowUpDown, TriangleAlert } from 'lucide-vue-next';
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  ChevronUp,
+  TriangleAlert,
+} from 'lucide-vue-next';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -85,11 +90,11 @@ function sortAriaOrder(column: SortColumn): 'ascending' | 'descending' | 'none' 
 
 function SortIcon(column: SortColumn) {
   if (props.sortColumn !== column) {
-    return h(ArrowUpDown, { class: 'h-3.5 w-3.5 opacity-50' });
+    return h(ChevronsUpDown, { class: 'h-3.5 w-3.5 opacity-50' });
   }
   return props.sortDirection === 'asc'
-    ? h(ArrowUp, { class: 'h-3.5 w-3.5' })
-    : h(ArrowDown, { class: 'h-3.5 w-3.5' });
+    ? h(ChevronUp, { class: 'h-3.5 w-3.5' })
+    : h(ChevronDown, { class: 'h-3.5 w-3.5' });
 }
 
 function SortableHeader(label: string, column: SortColumn) {

@@ -5,6 +5,17 @@ import { getTaskPipelineLabel } from '../lib/gate-display';
 export type GateSortColumn = 'id' | 'name' | 'process' | 'progress' | 'lastUpdated';
 export type GateSortDirection = 'asc' | 'desc';
 
+const defaultSortColumn: GateSortColumn = 'id';
+const defaultSortDirection: GateSortDirection = 'asc';
+
+function initialSortDirection(column: GateSortColumn): GateSortDirection {
+  return column === 'lastUpdated' ? 'desc' : 'asc';
+}
+
+function oppositeDirection(direction: GateSortDirection): GateSortDirection {
+  return direction === 'asc' ? 'desc' : 'asc';
+}
+
 function uniqueValues(values: string[]) {
   return [...new Set(values.filter(Boolean))].sort((left, right) => left.localeCompare(right));
 }
@@ -32,8 +43,8 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
   const selectedState = ref('all');
   const selectedLocation = ref('todo');
   const issuesOnly = ref(false);
-  const sortColumn = ref<GateSortColumn>('id');
-  const sortDirection = ref<GateSortDirection>('asc');
+  const sortColumn = ref<GateSortColumn>(defaultSortColumn);
+  const sortDirection = ref<GateSortDirection>(defaultSortDirection);
 
   const processOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map(processValue)));
   const stateOptions = computed(() => uniqueValues((snapshot.value?.tasks ?? []).map((task) => task.state)));
@@ -75,12 +86,18 @@ export function useGateTaskFiltering(snapshot: Ref<GateSnapshot | null>) {
   });
 
   function toggleSort(column: GateSortColumn) {
-    if (sortColumn.value === column) {
-      sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    const firstDirection = initialSortDirection(column);
+    if (sortColumn.value !== column) {
+      sortColumn.value = column;
+      sortDirection.value = firstDirection;
       return;
     }
-    sortColumn.value = column;
-    sortDirection.value = 'asc';
+    if (sortDirection.value === firstDirection) {
+      sortDirection.value = oppositeDirection(firstDirection);
+      return;
+    }
+    sortColumn.value = defaultSortColumn;
+    sortDirection.value = defaultSortDirection;
   }
 
   watch(processOptions, (options) => {

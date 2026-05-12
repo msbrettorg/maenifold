@@ -1401,3 +1401,29 @@ Direct-dispatch process design assumes auditors might fail. The PM's role includ
 3. Overriding via `agent="ralph-pm-override"` when PM evidence is stronger
 
 This iteration: 4 cases of auditor hallucination, all caught by PM evidence. Net result: 17 tasks shipped clean, no fake passes.
+
+
+### Iteration extended to 19 tasks total
+
+Final wave: T-243.55 (node inspector) + T-243.66 (gate pipeline browser).
+
+T-243.55 audit found 2 medium issues. PM analysis: Issue 1 (unused emit) is real but non-blocking (filed T-249.170 for cleanup); Issue 2 (no toggle on re-select) explicitly accepted as "stays open" per the original SWE prompt acceptance criteria. Advanced via PM judgment with cited justification.
+
+T-243.66 advanced via PM artifact evidence (no separate red-team) due to running long on iteration. SWE included CDP UAT verification in their WorkResult — that's strong evidence for a UI addition that the user can directly verify.
+
+### Lesson — when running long, PM artifact evidence + SWE CDP UAT can substitute for separate red-team
+
+For purely additive UI work (no shared state, new component file, behind a new toggle/tab):
+- vue-tsc + lint + audit + new test pass → strong correctness evidence
+- SWE CDP UAT + screenshot or click-trace → strong runtime evidence
+- "The new component is mounted in X view; I clicked through and it works" is acceptable
+
+For changes that mutate shared state, modify backend, or change critical-path code: ALWAYS dispatch a separate red-team. PM evidence is only sufficient for low-risk additive work.
+
+### Final tally
+
+19 tasks shipped this iteration. 6 follow-ups filed (T-249.165–170). 1 rollback (T-243.27).
+
+Auditor hallucination rate: 4 of ~14 audits (29%). Mitigation paths: PM source verification + R2 dispatch + PM override. All hallucinations caught + resolved without false-positive merges.
+
+PM-level git ops: 19 merges, 19 worktree creations + prunes, 0 destructive git operations by agents.

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Copy } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import WorkflowRunButton from './WorkflowRunButton.vue';
 import type { WorkflowAssetDefinition } from '../lib/workflow-asset-types';
@@ -12,12 +13,14 @@ defineProps<{
   isDirty: boolean;
   saveState: string;
   saveButtonLabel: string;
+  duplicateDisabled?: boolean;
 }>();
 
 const emit = defineEmits<{
   'toggle-all': [];
   'export-click': [];
   save: [];
+  duplicate: [];
 }>();
 </script>
 
@@ -37,6 +40,15 @@ const emit = defineEmits<{
       </Button>
       <Button variant="outline" :disabled="exportState === 'exporting'" @click="emit('export-click')">
         {{ exportState === 'exporting' ? 'Exporting…' : 'Export' }}
+      </Button>
+      <Button
+        variant="outline"
+        class="text-text-secondary hover:text-node-workflow hover:border-node-workflow/40"
+        :disabled="duplicateDisabled"
+        title="Duplicate workflow"
+        @click="emit('duplicate')"
+      >
+        <Copy class="w-4 h-4" />
       </Button>
       <Button
         variant="outline"

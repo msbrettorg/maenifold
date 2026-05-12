@@ -24,8 +24,7 @@ const {
   currentDefinition,
   definitionLoading,
   draftDefinition,
-  exportError,
-  exportState,
+  exportError, exportState,
   isDirty,
   origin,
   pendingWorkflowId,
@@ -104,8 +103,7 @@ const saveButtonLabel = computed(() => {
   return origin.value === 'packaged' ? 'Save Copy' : 'Save'
 })
 
-const exportPromptVisible = ref(false)
-const lastExportVersion = ref<'draft' | 'saved'>('draft')
+const exportPromptVisible = ref(false); const lastExportVersion = ref<'draft' | 'saved'>('draft')
 let exportFeedbackTimer: ReturnType<typeof setTimeout> | null = null
 
 function handleDiscard() {
@@ -215,6 +213,8 @@ watch(exportState, (state) => {
       @toggle-all="toggleAllExpanded"
       @export-click="handleExportClick"
       @save="emit('save')"
+      @duplicate="void store.duplicateCurrentWorkflow()"
+      :duplicate-disabled="!store.canDuplicate"
     />
 
     <WorkflowExportBar

@@ -1,5 +1,6 @@
 import type { Ref } from 'vue'
-import type { WorkflowAssetDefinition } from '../lib/workflow-asset-types'
+import { toast } from 'vue-sonner'
+import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types'
 import { usePipelineMcp } from '../composables/usePipelineMcp'
 import {
   cloneDefinition,
@@ -28,8 +29,10 @@ interface SaveActionContext {
   rawJson: Ref<WorkflowRaw | null>
   saveError: Ref<string | null>
   saveState: Ref<WorkflowSaveState>
+  summaries: Ref<WorkflowAssetSummary[]>
   fetchSummaries: () => Promise<void>
   loadWorkflow: (id: string) => Promise<void>
+  selectWorkflow: (id: string) => Promise<void>
 }
 
 function validateDraft(draft: WorkflowAssetDefinition): string | null {
@@ -143,8 +146,38 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
     }
   }
 
+  function nextDuplicateId(id: string): string {
+    let suffix = 1
+    let candidate = `${id}-copy`
+    while (context.summaries.value.some((w) => w.id === candidate)) {
+      suffix += 1
+      candidate = `${id}-copy-${suffix}`
+    }
+    return candidate
+  }
+
+  async function duplicateCurrentWorkflow(): Promise<string | null> {
+    if (!context.currentId.value || !context.rawJson.value) return null
+    const copyId = nextDuplicateId(context.currentId.value)
+    const raw = { ...context.rawJson.value }
+    raw.id = copyId
+    raw.name = typeof raw.name === 'string' && raw.name.trim() ? `${raw.name} Copy` : copyId
+    const content = `${JSON.stringify(raw, null, 2)}\n`
+    try {
+      if (!workflowMcp.connected.value) await workflowMcp.connect()
+      await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+      return null
+    }
+    await context.fetchSummaries()
+    await context.selectWorkflow(copyId)
+    return copyId
+  }
+
   return {
     exportWorkflow,
     saveDraft,
+    duplicateCurrentWorkflow,
   }
 }

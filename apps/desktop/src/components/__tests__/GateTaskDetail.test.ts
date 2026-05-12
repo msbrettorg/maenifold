@@ -1,0 +1,79 @@
+// @vitest-environment jsdom
+import { flushPromises, mount } from '@vue/test-utils';
+import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createPinia, setActivePinia } from 'pinia';
+import { nextTick } from 'vue';
+import GateTaskDetail from '../GateTaskDetail.vue';
+import { getMarkdownIt } from '../../composables/useMarkdownIt';
+import type { GateTask } from '../../lib/gate';
+import { useAppShellStore } from '../../stores/app-shell';
+import { useKnowledgeStore } from '../../stores/knowledge';
+
+const task: GateTask = {
+  taskId: 'T-243.71',
+  canonicalTaskId: 'T-243.71',
+  title: 'Gate WikiLinks navigate to Knowledge search',
+  pipeline: 'sdd',
+  state: 'done',
+  stages: ['pending', 'swe', 'red-team', 'blue-team', 'done'],
+  attempts: 0,
+  location: 'done',
+  path: '/repo/done/T-243.71-gate-wikilinks.md',
+  issue: '',
+};
+
+async function settle(): Promise<void> {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await flushPromises();
+    await nextTick();
+    await new Promise((resolve) => window.setTimeout(resolve, 10));
+  }
+}
+
+describe('GateTaskDetail', () => {
+  beforeAll(async () => {
+    await getMarkdownIt();
+  });
+
+  beforeEach(() => {
+    setActivePinia(createPinia());
+    document.body.innerHTML = '';
+  });
+
+  it('renders task body WikiLinks as Knowledge search affordances', async () => {
+    const wrapper = mount(GateTaskDetail, {
+      props: {
+        task,
+        body: 'Review [[Shared Concept]] before passing.',
+        history: [],
+        bodyLoading: false,
+        historyLoading: false,
+        bodyError: '',
+        historyError: '',
+        root: '/repo',
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          GateTaskDetailHistory: { template: '<div />' },
+          GateTaskDetailMeta: { template: '<div />' },
+          GateTaskDetailStages: { template: '<div />' },
+        },
+      },
+    });
+    await settle();
+
+    const link = wrapper.find('[data-wikilink="Shared Concept"]');
+    expect(link.exists()).toBe(true);
+    expect(link.element.tagName).toBe('A');
+
+    await link.trigger('click');
+
+    const appShell = useAppShellStore();
+    const knowledge = useKnowledgeStore();
+    expect(appShell.activeTab).toBe('knowledge');
+    expect(knowledge.searchQuery).toBe('Shared Concept');
+    expect(knowledge.activeTabUri).toBeNull();
+    wrapper.unmount();
+  });
+});

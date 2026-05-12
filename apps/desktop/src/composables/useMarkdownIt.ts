@@ -58,8 +58,10 @@ function wikilinkPlugin(md: MarkdownIt): void {
   });
 
   md.renderer.rules.wikilink = (tokens, idx) => {
-    const conceptName = md.utils.escapeHtml(tokens[idx].content);
-    return `<span class="wiki-pill cursor-pointer hover:underline" data-wikilink="${conceptName}">${conceptName}</span>`;
+    const rawConceptName = tokens[idx].content;
+    const conceptName = md.utils.escapeHtml(rawConceptName);
+    const target = encodeURIComponent(rawConceptName);
+    return `<a class="wiki-pill cursor-pointer hover:underline" href="#knowledge-${target}" data-wikilink="${conceptName}" aria-label="Open Knowledge link for ${conceptName}">${conceptName}</a>`;
   };
 }
 

@@ -8,7 +8,7 @@ import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
 import GateTaskDetailMeta from './GateTaskDetailMeta.vue';
 import GateTaskDetailStages from './GateTaskDetailStages.vue';
 import GateStageActions from './GateStageActions.vue';
-import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
+import MarkdownView from './MarkdownView.vue';
 import type { GateTask, GateTaskHistoryEntry } from '../lib/gate';
 import { getTaskPipelineLabel, isTaskPipelineDigestStale } from '../lib/gate-display';
 
@@ -89,9 +89,10 @@ const detailTitleId = computed(() =>
           >
             No task body content found.
           </p>
-          <KnowledgeNoteRenderer
+          <MarkdownView
             v-else
             :content="body"
+            wikilink-action="search-knowledge"
             class="p-4 border border-border rounded-md bg-muted/30"
           />
         </section>

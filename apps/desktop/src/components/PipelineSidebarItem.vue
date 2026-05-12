@@ -71,12 +71,10 @@ function normalizeTimestamp(value?: string | number | null): { iso: string; time
   return { iso: date.toISOString(), time };
 }
 
-function latestRunTimestamp(runs?: PipelineRunSummary[] | null): string | null {
-  if (!Array.isArray(runs)) return null;
+function latestRunTimestamp(runs: PipelineRunSummary[]): string | null {
   let latest: { iso: string; time: number } | null = null;
   for (const run of runs) {
-    const candidates = [run.timestamp, run.completedAt, run.startedAt, run.updatedAt, run.createdAt];
-    for (const candidate of candidates) {
+    for (const candidate of [run.completedAt, run.startedAt]) {
       const normalized = normalizeTimestamp(candidate);
       if (normalized && (!latest || normalized.time > latest.time)) {
         latest = normalized;

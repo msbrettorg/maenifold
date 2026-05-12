@@ -160,11 +160,11 @@ export interface PipelineView {
 }
 
 export interface PipelineRunSummary {
-  timestamp?: string | number | null;
-  startedAt?: string | number | null;
-  completedAt?: string | number | null;
-  updatedAt?: string | number | null;
-  createdAt?: string | number | null;
+  nodeId: string;
+  startedAt: number | null;
+  completedAt: number | null;
+  status: string;
+  outcome: string | null;
 }
 
 export interface PipelineListItem {
@@ -176,7 +176,7 @@ export interface PipelineListItem {
   lastRunAt?: string | number | null;
   updatedAt?: string | number | null;
   modifiedAt?: string | number | null;
-  runs?: PipelineRunSummary[] | null;
+  runs: PipelineRunSummary[];
 }
 
 export interface LogEntry {

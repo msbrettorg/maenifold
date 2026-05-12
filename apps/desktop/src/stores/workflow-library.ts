@@ -43,6 +43,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
   const searchQuery = ref(''), categoryFilter = ref<WorkflowCategory | 'all'>('all')
   const isDirty = computed(() => !definitionsEqual(draftDefinition.value, currentDefinition.value))
   const currentStepCount = computed(() => draftDefinition.value?.steps.length ?? 0), categories = computed(() => Array.from(new Set(summaries.value.map(categorizeWorkflow))).sort())
+  const canDuplicate = computed(() => !!currentId.value && currentId.value !== NEW_WORKFLOW_PENDING_ID && currentId.value !== IMPORT_WORKFLOW_PENDING_ID)
 
   async function fetchSummaries() {
     if (!pipelineStore.connected) return
@@ -208,7 +209,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     onMutate: resetSaveFeedback,
     rawJson,
   })
-  const { exportWorkflow, saveDraft } = createWorkflowLibrarySaveActions({
+  const { exportWorkflow, saveDraft, duplicateCurrentWorkflow } = createWorkflowLibrarySaveActions({
     applyPendingImport,
     createNewWorkflow,
     currentDefinition,
@@ -221,8 +222,9 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     origin,
     pendingWorkflowId,
     rawJson,
-    saveError,
-    saveState,
+    saveError, saveState,
+    summaries,
+    selectWorkflow,
   })
 
   function clearSelection() {
@@ -256,10 +258,8 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     error,
     exportError,
     exportState,
-    saveError,
-    saveState,
-    searchQuery,
-    categoryFilter,
+    saveError, saveState,
+    searchQuery, categoryFilter,
     filteredWorkflows,
     isDirty,
     currentStepCount,
@@ -289,8 +289,8 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     updateWorkflowCategory,
     updateWorkflowSequentialThinkingEnabled,
     updateWorkflowMultiAgent,
-    exportWorkflow,
-    saveDraft,
+    exportWorkflow, saveDraft,
+    duplicateCurrentWorkflow, canDuplicate,
     clearSelection,
     setSearchQuery,
     setCategoryFilter,

@@ -4,6 +4,7 @@ import { useSessionStore } from '../stores/session';
 import { useAgentStore } from '../stores/agent';
 import { useMermaid } from '../composables/useMermaid';
 import { useMcpClient } from '../composables/useMcpClient';
+import { useChatDraft } from '../composables/useChatDraft';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import SessionConfigPanel from './SessionConfigPanel.vue';
@@ -23,7 +24,8 @@ const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
 const { renderMermaidBlocks } = useMermaid();
 const mcpClient = useMcpClient();
-const inputText = ref('');
+const currentSession = computed(() => sessionStore.currentSession);
+const { inputText, clearDraft } = useChatDraft(computed(() => currentSession.value?.sessionId ?? null));
 const activeCommandHint = ref<string | null>(null);
 const scrollAreaRef = ref<InstanceType<typeof ScrollArea> | null>(null);
 const messagesContainer = ref<HTMLElement | null>(null);
@@ -34,7 +36,6 @@ const expandedToolCalls = ref<Set<string>>(new Set());
 const showConfig = ref(false);
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
-const currentSession = computed(() => sessionStore.currentSession);
 const sessionCwd = computed(() => currentSession.value?.cwd ?? '/');
 const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 'plan');
 const configOptions = computed(() => sessionStore.configOptions);
@@ -137,7 +138,7 @@ async function handleSend(): Promise<void> {
     ];
     const success = await sessionStore.sendPrompt(text, attachments);
     if (success) {
-      inputText.value = '';
+      inputText.value = ''; clearDraft();
       pendingAttachments.value = [];
     }
   } catch (error) {

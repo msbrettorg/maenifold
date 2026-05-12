@@ -40,6 +40,13 @@ pub(crate) struct LiveConnection {
     pub(crate) health_rx: tokio::sync::watch::Receiver<bool>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrackedSessionReap {
+    pub acp_session: bool,
+    pub killed_process_group: bool,
+    pub clean_cancel_completed: bool,
+}
+
 impl Drop for LiveConnection {
     fn drop(&mut self) {
         if let Some(pid) = self.child_pid {
@@ -131,8 +138,10 @@ pub(crate) fn register_session_index(
     key: &str,
 ) {
     SESSION_INDEX.with(|m| {
-        m.borrow_mut()
-            .insert(session_index_key(runtime_key, role_name, session_id), key.to_string());
+        m.borrow_mut().insert(
+            session_index_key(runtime_key, role_name, session_id),
+            key.to_string(),
+        );
     });
 }
 
@@ -140,6 +149,12 @@ pub(crate) fn remove_session_index(runtime_key: &str, role_name: &str, session_i
     SESSION_INDEX.with(|m| {
         m.borrow_mut()
             .remove(&session_index_key(runtime_key, role_name, session_id));
+    });
+}
+
+pub(crate) fn remove_session_index_for_pool_key(key: &str) {
+    SESSION_INDEX.with(|m| {
+        m.borrow_mut().retain(|_, value| value != key);
     });
 }
 

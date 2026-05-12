@@ -140,11 +140,20 @@ async fn execute_pipeline_inner(
         counts.abandoned += cancel_active_nodes(&json_context, session_id)?;
     }
     log_incomplete_execution(&json_context, session_id)?;
+    let status = derive_execution_status(&json_context, session_id, cancelled)?;
+    if matches!(
+        status.as_str(),
+        "completed" | "failed" | "cancelled" | "abandoned" | "stuck"
+    ) {
+        if let Ok(node_states) = load_pipeline_node_states(&json_context, session_id) {
+            terminate_node_sessions(&execution_config.definition, &node_states).await;
+        }
+    }
 
     Ok(ExecutionResult {
         completed: counts.completed,
         abandoned: counts.abandoned,
-        status: derive_execution_status(&json_context, session_id, cancelled)?,
+        status,
     })
 }
 #[allow(clippy::too_many_arguments)]

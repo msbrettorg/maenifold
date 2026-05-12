@@ -205,6 +205,13 @@ pub enum WorkerMsg {
         value: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
+    CancelTrackedSession {
+        session_id: String,
+        result_tx: oneshot::Sender<Result<super::pool::TrackedSessionReap, String>>,
+    },
+    ListLiveSessions {
+        result_tx: oneshot::Sender<Vec<String>>,
+    },
     Shutdown {
         done_tx: oneshot::Sender<()>,
     },

@@ -9,6 +9,7 @@ use super::pool::{
 };
 
 // Re-exports from extracted modules
+pub(crate) use super::handler_cancel_tracked::handle_cancel_tracked_session;
 #[allow(unused_imports)]
 pub(crate) use super::handler_config::{
     apply_cold_start_config, build_prompt_blocks, spawn_connection_health_watch,
@@ -95,6 +96,39 @@ pub(crate) async fn reset_worker_session(
     use super::super::runtime_state::clear_session as clear_session_runtime_state;
     clear_session_runtime_state(app_session_id, runtime_key, role_name);
     Ok(())
+}
+
+pub(crate) fn handle_cancel(runtime_key: String, role_name: String, app_session_id: String) {
+    let key = pool_key(&app_session_id, &runtime_key, &role_name);
+    let handle = CANCEL_HANDLES.with(|m| {
+        m.borrow().get(&key).map(|h| {
+            h.mark_cancelled();
+            (h.conn.clone(), h.session_id.clone())
+        })
+    });
+    if let Some((conn, session_id)) = handle {
+        acp_log(
+            "cancel.sending",
+            json!({ "runtime": &runtime_key, "role": role_name }),
+        );
+        tokio::task::spawn_local(async move {
+            let _ = conn.cancel(acp::CancelNotification::new(session_id)).await;
+        });
+    } else {
+        acp_log(
+            "cancel.no_active_session",
+            json!({ "runtime": &runtime_key, "role": role_name }),
+        );
+    }
+}
+
+pub(crate) fn live_session_ids() -> Vec<String> {
+    CONN_MAP.with(|m| {
+        m.borrow()
+            .values()
+            .map(|live| live.session_id.to_string())
+            .collect()
+    })
 }
 
 pub(crate) async fn reconnect_worker_session(

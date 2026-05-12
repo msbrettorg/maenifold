@@ -1,6 +1,18 @@
 use tokio::sync::oneshot;
 
-use super::super::worker::{WorkerMsg, worker_tx};
+use super::super::worker::{TrackedSessionReap, WorkerMsg, worker_tx};
+
+fn recv_blocking<T: Send + 'static>(rx: oneshot::Receiver<T>) -> Result<T, String> {
+    if tokio::runtime::Handle::try_current().is_ok() {
+        std::thread::spawn(move || rx.blocking_recv())
+            .join()
+            .map_err(|_| "worker wait thread panicked".to_string())?
+            .map_err(|_| "worker disconnected".to_string())
+    } else {
+        rx.blocking_recv()
+            .map_err(|_| "worker disconnected".to_string())
+    }
+}
 
 fn normalize_runtime_key(runtime_kind: &str) -> String {
     runtime_kind.trim().to_ascii_lowercase()
@@ -25,6 +37,30 @@ pub async fn cancel_session(runtime_kind: &str, role_name: &str, app_session_id:
         role_name: role_name.to_string(),
         app_session_id: resolved_session_id,
     });
+}
+
+pub fn cancel_tracked_session_blocking(session_id: &str) -> Result<TrackedSessionReap, String> {
+    let session_id = session_id.trim();
+    if session_id.is_empty() {
+        return Err("session id required".to_string());
+    }
+    let (tx, rx) = oneshot::channel();
+    let _ = worker_tx().send(WorkerMsg::CancelTrackedSession {
+        session_id: session_id.to_string(),
+        result_tx: tx,
+    });
+    recv_blocking(rx)?
+}
+
+pub fn list_live_sessions_blocking() -> Vec<String> {
+    let (tx, rx) = oneshot::channel();
+    if worker_tx()
+        .send(WorkerMsg::ListLiveSessions { result_tx: tx })
+        .is_err()
+    {
+        return Vec::new();
+    }
+    recv_blocking(rx).unwrap_or_default()
 }
 
 pub async fn reset_session(

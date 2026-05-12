@@ -86,7 +86,11 @@ fn seed_running_pipeline(
     set_pipeline_status(context, session_id, "running");
 }
 
-fn set_pipeline_status(context: &crate::tools::ToolContext, session_id: &str, status: &str) {
+pub(super) fn set_pipeline_status(
+    context: &crate::tools::ToolContext,
+    session_id: &str,
+    status: &str,
+) {
     let uri = pipeline_session_uri(session_id);
     let (frontmatter, content, _) =
         read_markdown(&uri, &context.config).expect("read pipeline markdown");

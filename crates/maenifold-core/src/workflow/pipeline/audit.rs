@@ -37,7 +37,8 @@ impl<'a> JsonlAuditWriter<'a> {
 impl AuditWriter for JsonlAuditWriter<'_> {
     fn write_pipeline_delete(&self, record: &PipelineDeleteAuditRecord) -> Result<()> {
         let path = pipeline_delete_audit_path(self.config);
-        let line = serde_json::to_string(record).map_err(|err| audit_error(&path, err))?;
+        let mut line = serde_json::to_vec(record).map_err(|err| audit_error(&path, err))?;
+        line.push(b'\n');
         let parent = path.parent().ok_or_else(|| {
             MaenifoldError::Message(format!(
                 "audit write failed for {}: missing parent directory",
@@ -50,9 +51,7 @@ impl AuditWriter for JsonlAuditWriter<'_> {
             .append(true)
             .open(&path)
             .map_err(|err| audit_error(&path, err))?;
-        file.write_all(line.as_bytes())
-            .map_err(|err| audit_error(&path, err))?;
-        file.write_all(b"\n")
+        file.write_all(&line)
             .map_err(|err| audit_error(&path, err))?;
         file.flush().map_err(|err| audit_error(&path, err))?;
         file.sync_all().map_err(|err| audit_error(&path, err))?;

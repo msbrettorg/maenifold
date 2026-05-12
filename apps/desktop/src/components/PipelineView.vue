@@ -10,6 +10,7 @@ import JoinPipelineDialog from './JoinPipelineDialog.vue';
 import PipelineComposer from './PipelineComposer.vue';
 import PipelineFlyout from './PipelineFlyout.vue';
 import PipelineIconRail from './PipelineIconRail.vue';
+import PipelineNodeInspector from './PipelineNodeInspector.vue';
 import PipelineActionBar from './PipelineActionBar.vue';
 import PipelineDesignToggle from './PipelineDesignToggle.vue';
 import PipelineRunner from './PipelineRunner.vue';
@@ -48,7 +49,7 @@ const showFullScreenEmpty = computed(() => designMode.value && !currentView.valu
 const showBrowseExistingEntry = computed(() => !designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
 const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrowseExistingEntry.value);
 const {
-  configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds, currentPipelineLineageId, provenanceLinks,
+  configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds, currentPipelineLineageId, provenanceLinks, selectedNode,
   handleNodeSelected, handleEdgeSelected, clearInspectorSelection, handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
 } = usePipelineViewState({ currentView, currentPipelineId });
 const lastStatusByPipeline = ref<Record<string, string | null>>({});
@@ -270,15 +271,9 @@ onBeforeUnmount(() => {
           <PipelineRunner :collapsed="!runnerExpanded" />
         </section>
       </div>
+      <PipelineNodeInspector v-if="selectedNode" :node="selectedNode" @close="clearInspectorSelection" />
     </div>
-    <GraftNodesDialog
-      v-if="graftDialogOpen && currentView"
-      :busy="graftSubmitting"
-      :existing-node-ids="existingNodeIds"
-      :workflows="workflows"
-      @cancel="graftDialogOpen = false"
-      @submit="handleGraftSubmit"
-    />
+    <GraftNodesDialog v-if="graftDialogOpen && currentView" :busy="graftSubmitting" :existing-node-ids="existingNodeIds" :workflows="workflows" @cancel="graftDialogOpen = false" @submit="handleGraftSubmit" />
     <JoinPipelineDialog v-if="joinDialogOpen && currentView" :busy="joinSubmitting" @cancel="joinDialogOpen = false" @submit="handleJoinSubmit" />
     <PromotionDialog
       v-if="promotionNode && currentView?.pipelineId"

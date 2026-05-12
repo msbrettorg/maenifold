@@ -63,4 +63,12 @@ describe('PipelineNodeCard resume action', () => {
 
     expect(wrapper.find('button[aria-label="Resume pipeline from this node"]').exists()).toBe(false);
   });
+
+  it('emits nodeClick when the card surface is clicked', async () => {
+    const wrapper = mountCard('completed');
+
+    await wrapper.get('[role="button"]').trigger('click');
+
+    expect(wrapper.emitted('nodeClick')).toEqual([['failed-node']]);
+  });
 });

@@ -27,7 +27,7 @@ const swePass: GateTaskHistoryEntry = {
 
 const sweAppend: GateTaskHistoryEntry = {
   stage: 'swe',
-  event: 'APPEND',
+  event: 'append',
   agent: 'copilot-swe',
   model: null,
   notes: 'Appended extra context.',
@@ -69,7 +69,7 @@ describe('GateTaskDetailHistory', () => {
     expect(text).toContain('copilot-swe');
     expect(text).toContain('claude-opus-4.7');
     expect(text).toContain('PASS');
-    expect(text).toContain('APPEND');
+    expect(text).toContain('append');
 
     wrapper.unmount();
   });
@@ -105,7 +105,7 @@ describe('GateTaskDetailHistory', () => {
     });
     await settle();
 
-    expect(wrapper.text()).toContain('APPEND');
+    expect(wrapper.text()).toContain('append');
 
     const filterBtn = wrapper.find('[data-testid="gate-history-toggle-append"]');
     expect(filterBtn.exists()).toBe(true);
@@ -114,13 +114,13 @@ describe('GateTaskDetailHistory', () => {
     await filterBtn.trigger('click');
     await settle();
 
-    expect(wrapper.text()).not.toContain('APPEND');
+    expect(wrapper.text()).not.toContain('append');
     expect(filterBtn.text()).toBe('Show all');
 
     await filterBtn.trigger('click');
     await settle();
 
-    expect(wrapper.text()).toContain('APPEND');
+    expect(wrapper.text()).toContain('append');
 
     wrapper.unmount();
   });
@@ -134,6 +134,42 @@ describe('GateTaskDetailHistory', () => {
 
     expect(wrapper.text()).toContain('PM advancing pending to swe.');
     expect(wrapper.text()).toContain('SWE stage complete.');
+
+    wrapper.unmount();
+  });
+
+  it('hides records with event "append" (lowercase, real backend shape) when filter is on', async () => {
+    const appendRecord: GateTaskHistoryEntry = {
+      stage: 'swe',
+      event: 'append',
+      agent: 'copilot-swe',
+      model: null,
+      notes: 'lowercase-append-notes',
+      timestamp: '2026-01-01T00:00:01.000Z',
+    };
+    const passRecord: GateTaskHistoryEntry = {
+      stage: 'swe',
+      event: 'PASS',
+      agent: 'copilot-swe',
+      model: null,
+      notes: 'pass-notes',
+      timestamp: '2026-01-01T00:00:00.000Z',
+    };
+    const wrapper = mount(GateTaskDetailHistory, {
+      props: { history: [passRecord, appendRecord], historyLoading: false, historyError: '' },
+      attachTo: document.body,
+    });
+    await settle();
+
+    expect(wrapper.text()).toContain('lowercase-append-notes');
+    expect(wrapper.text()).toContain('pass-notes');
+
+    const filterBtn = wrapper.find('[data-testid="gate-history-toggle-append"]');
+    await filterBtn.trigger('click');
+    await settle();
+
+    expect(wrapper.text()).not.toContain('lowercase-append-notes');
+    expect(wrapper.text()).toContain('pass-notes');
 
     wrapper.unmount();
   });

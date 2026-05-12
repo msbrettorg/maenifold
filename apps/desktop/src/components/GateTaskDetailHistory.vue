@@ -28,7 +28,7 @@ const historySummaryId = computed(
 
 const filteredHistory = computed(() => {
   const entries = hideAppend.value
-    ? props.history.filter((e) => e.event !== 'APPEND')
+    ? props.history.filter((e) => e.event.toLowerCase() !== 'append')
     : props.history.slice();
   return sortDesc.value ? entries.slice().reverse() : entries;
 });

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRef } from 'vue';
+import { computed, toRef, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -27,6 +27,7 @@ const props = defineProps<{
   existingNodeIds: string[];
   workflows: string[];
   busy?: boolean;
+  sourceNodeId?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -63,6 +64,14 @@ const {
 });
 
 const NO_EDGE_VALUE = '__none__';
+
+watch(
+  () => props.sourceNodeId,
+  (sourceNodeId) => {
+    connectFrom.value = sourceNodeId?.trim() || '';
+  },
+  { immediate: true },
+);
 
 const connectFromValue = computed({
   get: () => connectFrom.value || NO_EDGE_VALUE,

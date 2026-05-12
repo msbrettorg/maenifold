@@ -273,7 +273,7 @@ onBeforeUnmount(() => {
       </div>
       <PipelineNodeInspector v-if="selectedNode" :node="selectedNode" @close="clearInspectorSelection" />
     </div>
-    <GraftNodesDialog v-if="graftDialogOpen && currentView" :busy="graftSubmitting" :existing-node-ids="existingNodeIds" :workflows="workflows" @cancel="graftDialogOpen = false" @submit="handleGraftSubmit" />
+    <GraftNodesDialog v-if="graftDialogOpen && currentView" :busy="graftSubmitting" :existing-node-ids="existingNodeIds" :source-node-id="null" :workflows="workflows" @cancel="graftDialogOpen = false" @submit="handleGraftSubmit" />
     <JoinPipelineDialog v-if="joinDialogOpen && currentView" :busy="joinSubmitting" @cancel="joinDialogOpen = false" @submit="handleJoinSubmit" />
     <PromotionDialog
       v-if="promotionNode && currentView?.pipelineId"

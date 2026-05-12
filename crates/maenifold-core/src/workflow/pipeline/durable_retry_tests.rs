@@ -32,6 +32,7 @@ fn retrying_workflow_node(id: &str, max_attempts: u32) -> PipelineNode {
             backoff_max_ms: 5_000,
             jitter: false,
         }),
+        join_policy: None,
     }
 }
 

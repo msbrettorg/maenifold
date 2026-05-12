@@ -20,6 +20,7 @@ fn make_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 
@@ -49,6 +50,7 @@ fn make_prompt_node(id: &str, session_ref: Option<SessionRef>) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
         session_ref,
     }
 }

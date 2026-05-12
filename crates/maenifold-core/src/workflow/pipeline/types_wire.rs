@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use super::types::{AgentConfig, NodeAdopt, PipelineNode, RetryPolicy, SessionRef};
+use super::types::{AgentConfig, JoinPolicy, NodeAdopt, PipelineNode, RetryPolicy, SessionRef};
 
 const EXPECTED_TYPES: &str = "workflow, prompt, sequentialThinking, tool";
 
@@ -35,6 +35,12 @@ pub(super) struct PipelineNodeWire {
     agent_config: Option<AgentConfig>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     adopt: Option<NodeAdopt>,
+    #[serde(
+        default,
+        rename = "joinPolicy",
+        skip_serializing_if = "is_default_join_policy"
+    )]
+    join_policy: Option<JoinPolicy>,
     #[serde(
         default,
         rename = "requiresRole",
@@ -114,6 +120,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
     fn try_from(wire: PipelineNodeWire) -> Result<Self, Self::Error> {
         let node_id = wire.id.clone();
         let retry_policy = parse_retry_policy(&wire, &node_id)?;
+        let join_policy = wire.join_policy.clone();
 
         let required = |value: Option<String>, name: &str| -> Result<String, String> {
             value.ok_or_else(|| format!("Node '{node_id}': missing '{name}' field"))
@@ -146,6 +153,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 adopt: wire.adopt,
                 requires_role: wire.requires_role,
                 retry_policy,
+                join_policy,
             },
             "prompt" => {
                 let prompt = required(wire.prompt, "prompt")?;
@@ -176,6 +184,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                     requires_role: wire.requires_role,
                     retry_policy,
                     session_ref: wire.session_ref,
+                    join_policy,
                 }
             }
             "sequentialThinking" => Self::SequentialThinking {
@@ -194,6 +203,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 adopt: wire.adopt,
                 requires_role: wire.requires_role,
                 retry_policy,
+                join_policy,
             },
             "tool" => Self::Tool {
                 id: wire.id,
@@ -209,6 +219,7 @@ impl TryFrom<PipelineNodeWire> for PipelineNode {
                 timeout: wire.timeout,
                 agent_config: wire.agent_config,
                 retry_policy,
+                join_policy,
             },
             other => {
                 return Err(format!(
@@ -265,7 +276,9 @@ pub(super) fn default_prompt_tool_mode() -> String {
 fn is_default_prompt_tool_mode(value: &String) -> bool {
     value == "disabled"
 }
-
+fn is_default_join_policy(value: &Option<JoinPolicy>) -> bool {
+    matches!(value, None | Some(JoinPolicy::All))
+}
 pub(super) fn default_total_thoughts() -> u32 {
     5
 }

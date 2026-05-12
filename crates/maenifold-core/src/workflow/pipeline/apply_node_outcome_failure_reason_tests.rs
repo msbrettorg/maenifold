@@ -35,6 +35,7 @@ fn apply_node_outcome_forwards_abandoned_failure_reason() {
             adopt: None,
             requires_role: None,
             retry_policy: None,
+            join_policy: None,
         }],
         edges: vec![],
         inputs: None,

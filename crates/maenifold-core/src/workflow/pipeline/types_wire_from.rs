@@ -17,6 +17,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 adopt,
                 requires_role,
                 retry_policy,
+                join_policy,
             } => Self {
                 kind: Some("workflow".to_string()),
                 id,
@@ -38,6 +39,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 max_turns: None,
                 timeout,
                 adopt,
+                join_policy,
                 requires_role,
                 session_ref: None,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
@@ -62,6 +64,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 requires_role,
                 retry_policy,
                 session_ref,
+                join_policy,
             } => Self {
                 kind: Some("prompt".to_string()),
                 id,
@@ -83,6 +86,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 max_turns,
                 timeout,
                 adopt,
+                join_policy,
                 requires_role,
                 session_ref,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
@@ -106,6 +110,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 adopt,
                 requires_role,
                 retry_policy,
+                join_policy,
             } => Self {
                 kind: Some("sequentialThinking".to_string()),
                 id,
@@ -127,6 +132,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 max_turns,
                 timeout,
                 adopt,
+                join_policy,
                 requires_role,
                 session_ref: None,
                 retry_max_attempts: retry_policy.as_ref().map(|policy| policy.max_attempts),
@@ -148,6 +154,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 timeout,
                 agent_config,
                 retry_policy,
+                join_policy,
             } => Self {
                 kind: Some("tool".to_string()),
                 id,
@@ -168,6 +175,7 @@ impl From<PipelineNode> for PipelineNodeWire {
                 allowed_tools,
                 max_turns,
                 timeout,
+                join_policy,
                 adopt: None,
                 requires_role: None,
                 session_ref: None,

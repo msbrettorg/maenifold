@@ -35,6 +35,7 @@ fn build_node_execution_request_errors_when_tool_mapping_fails() {
             timeout: None,
             agent_config: None,
             retry_policy: None,
+            join_policy: None,
         }],
         edges: vec![super::super::types::PipelineEdge {
             source: "source".to_string(),
@@ -121,6 +122,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
         session_ref: None,
     };
     let dispatch = DispatchedNode {
@@ -159,6 +161,7 @@ fn build_node_execution_request_interpolates_inputs_in_prompt_and_tool_args() {
         timeout: None,
         agent_config: None,
         retry_policy: None,
+        join_policy: None,
     };
     let tool_dispatch = DispatchedNode {
         node_id: tool_node.id().to_string(),
@@ -212,6 +215,7 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     };
     let workflow_dispatch = DispatchedNode {
         node_id: workflow_node.id().to_string(),
@@ -248,6 +252,7 @@ fn build_node_execution_request_does_not_interpolate_workflow_id_or_tool_name() 
         timeout: None,
         agent_config: None,
         retry_policy: None,
+        join_policy: None,
     };
     let tool_dispatch = DispatchedNode {
         node_id: tool_node.id().to_string(),

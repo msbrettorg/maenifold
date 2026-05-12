@@ -44,6 +44,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 adopt: None,
                 requires_role: None,
                 retry_policy: None,
+                join_policy: None,
                 session_ref: None,
             },
             PipelineNode::Tool {
@@ -60,6 +61,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 timeout: None,
                 agent_config: None,
                 retry_policy: None,
+                join_policy: None,
             },
             PipelineNode::SequentialThinking {
                 id: "think-ready".to_string(),
@@ -77,6 +79,7 @@ fn active_node_session_targets_only_returns_active_nodes_with_agents() {
                 adopt: None,
                 requires_role: None,
                 retry_policy: None,
+                join_policy: None,
             },
         ],
         edges: vec![],

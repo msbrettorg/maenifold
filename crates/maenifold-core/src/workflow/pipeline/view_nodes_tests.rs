@@ -22,6 +22,7 @@ fn workflow_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 
@@ -42,6 +43,7 @@ fn thinking_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 
@@ -60,6 +62,7 @@ fn tool_node(id: &str) -> PipelineNode {
         timeout: None,
         agent_config: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

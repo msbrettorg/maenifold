@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::path::{Path, PathBuf};
 
-use super::types::{AgentConfig, NodeAdopt, RetryPolicy};
+use super::types::{AgentConfig, JoinPolicy, NodeAdopt, RetryPolicy};
 use super::types_wire::PipelineNodeWire;
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
@@ -27,6 +27,7 @@ pub enum PipelineNode {
         adopt: Option<NodeAdopt>,
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
+        join_policy: Option<JoinPolicy>,
     },
     Prompt {
         id: String,
@@ -45,6 +46,7 @@ pub enum PipelineNode {
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
         session_ref: Option<SessionRef>,
+        join_policy: Option<JoinPolicy>,
     },
     SequentialThinking {
         id: String,
@@ -62,6 +64,7 @@ pub enum PipelineNode {
         adopt: Option<NodeAdopt>,
         requires_role: Option<String>,
         retry_policy: Option<RetryPolicy>,
+        join_policy: Option<JoinPolicy>,
     },
     Tool {
         id: String,
@@ -77,6 +80,7 @@ pub enum PipelineNode {
         timeout: Option<u64>,
         agent_config: Option<AgentConfig>,
         retry_policy: Option<RetryPolicy>,
+        join_policy: Option<JoinPolicy>,
     },
 }
 
@@ -159,6 +163,15 @@ impl PipelineNode {
             | Self::Prompt { retry_policy, .. }
             | Self::SequentialThinking { retry_policy, .. }
             | Self::Tool { retry_policy, .. } => retry_policy.as_ref(),
+        }
+    }
+
+    pub fn join_policy(&self) -> JoinPolicy {
+        match self {
+            Self::Workflow { join_policy, .. }
+            | Self::Prompt { join_policy, .. }
+            | Self::SequentialThinking { join_policy, .. }
+            | Self::Tool { join_policy, .. } => join_policy.clone().unwrap_or_default(),
         }
     }
 

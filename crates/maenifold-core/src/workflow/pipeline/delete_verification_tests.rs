@@ -61,7 +61,8 @@ fn states(specs: &[(&str, NodeStatus, u32)]) -> HashMap<String, NodeState> {
 #[test]
 #[serial]
 fn delete_pipeline_returns_actual_file_paths() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
     let session_id = "pipeline-1735689600000-delete-files-list";
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],

@@ -69,6 +69,8 @@ mod handler_crud_audit_tests;
 mod handler_delete;
 #[cfg(test)]
 mod handler_delete_degraded_tests;
+#[cfg(test)]
+mod handler_delete_quarantine_tests;
 mod handler_lifecycle;
 mod handler_list_lineage;
 mod handler_nodes;
@@ -93,6 +95,7 @@ mod orphan_cascade_tests;
 mod orphan_recovery_acp_tests;
 #[cfg(test)]
 mod orphan_recovery_tests;
+mod quarantine;
 mod resource_notifications;
 mod session_delete_files;
 mod session_io;
@@ -136,6 +139,10 @@ pub use executor_cleanup::{
 pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
+pub use quarantine::{
+    QuarantineCleanupReport, RestoreReport, restore_pipeline_from_quarantine,
+    run_quarantine_cleanup,
+};
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
     EdgeType, JoinPolicy, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge,

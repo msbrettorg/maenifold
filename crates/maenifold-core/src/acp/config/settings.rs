@@ -118,6 +118,8 @@ pub struct MaenifoldSettings {
     #[serde(default)]
     pub session_abandon_minutes: Option<u64>,
     #[serde(default)]
+    pub quarantine_retention_days: Option<u32>,
+    #[serde(default)]
     pub snippet_length: Option<u64>,
     #[serde(default)]
     pub sync_role: Option<String>,
@@ -150,6 +152,7 @@ impl Default for MaenifoldSettings {
             incremental_optimize_every: default_optimize_every(),
             incremental_vacuum_minutes: default_vacuum_minutes(),
             session_abandon_minutes: None,
+            quarantine_retention_days: None,
             snippet_length: None,
             sync_role: None,
             decay: DecaySettings::default(),

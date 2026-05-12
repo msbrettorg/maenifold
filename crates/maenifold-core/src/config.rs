@@ -26,6 +26,11 @@ pub struct Config {
     pub settings: MaenifoldSettings,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuarantineConfig {
+    pub retention_days: u32,
+}
+
 impl Config {
     pub fn current() -> Self {
         let overrides = OVERRIDES.read().clone();
@@ -169,6 +174,12 @@ impl Config {
     // T-10.9: RTM FR-15
     pub fn enable_session_cleanup(&self) -> bool {
         env_bool("MAENIFOLD_SESSION_CLEANUP", self.settings.session_cleanup)
+    }
+
+    pub fn quarantine_config(&self) -> Option<QuarantineConfig> {
+        self.settings
+            .quarantine_retention_days
+            .map(|retention_days| QuarantineConfig { retention_days })
     }
 
     // T-10.9: RTM FR-15

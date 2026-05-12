@@ -12,7 +12,8 @@ pub(super) fn pipeline_test_context(
     let tmp = TempDir::new().expect("temp dir");
     Config::override_root(tmp.path());
     Config::set_database_path(tmp.path().join("memory.db"));
-    let config = Config::current();
+    let mut config = Config::current();
+    config.settings.quarantine_retention_days = Some(30);
     config.ensure_directories().expect("ensure directories");
     fs::write(
         config.maenifold_root.join("maenifold.json"),

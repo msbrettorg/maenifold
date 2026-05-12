@@ -102,7 +102,8 @@ fn audit_record_for_session(audit_jsonl: &str, session_id: &str) -> Value {
 #[test]
 #[serial]
 fn delete_pipeline_writes_audit_before_unlinking_pipeline_and_workflow_files() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
     let session_id = "pipeline-1735689600000-delete-audit-success";
     let (pipeline_uri, workflow_uri) = seed_completed_pipeline(&context, session_id);
     let pipeline_path = absolute_path(&context, &pipeline_uri);

@@ -9,11 +9,12 @@ use std::collections::HashMap;
 
 use super::audit::{AuditWriter, JsonlAuditWriter, PipelineDeleteAuditRecord};
 use super::lease;
+use super::quarantine::quarantine_file;
 use super::resource_notifications::{
     clear_pipeline_resource_state, emit_pipeline_sessions_resource_updated,
 };
 use super::session_delete_files::{
-    delete_file_verified, resolve_pipeline_delete_files, resolve_unreadable_pipeline_delete_files,
+    resolve_pipeline_delete_files, resolve_unreadable_pipeline_delete_files,
 };
 use super::session_io::{
     delete_pipeline_session_files, derive_pipeline_node_states, frontmatter_value,
@@ -84,7 +85,7 @@ pub(super) fn delete_unreadable_pipeline(
     let files = resolve_unreadable_pipeline_delete_files(context, session_id)?;
     audit_pipeline_delete(context, session_id, force, files)?;
     let pipeline_uri = pipeline_session_uri(session_id);
-    let deleted_file = delete_file_verified(&pipeline_uri, &context.config)?;
+    let deleted_file = quarantine_file(&pipeline_uri, &context.config, session_id)?;
     clear_pipeline_resource_state(session_id);
     emit_pipeline_sessions_resource_updated();
     let degraded = json!({

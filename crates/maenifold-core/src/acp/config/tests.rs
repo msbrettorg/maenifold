@@ -62,6 +62,7 @@ fn expected_settings() -> MaenifoldSettings {
         incremental_optimize_every: 55,
         incremental_vacuum_minutes: 360,
         session_abandon_minutes: Some(45),
+        quarantine_retention_days: None,
         snippet_length: Some(512),
         sync_role: Some("leader".to_string()),
         decay: DecaySettings {

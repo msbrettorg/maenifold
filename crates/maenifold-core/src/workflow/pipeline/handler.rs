@@ -2,7 +2,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::sessions::load_help_doc;
 use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
-use serde_json::Value;
+use serde_json::{Value, json};
 
 use super::handler_crud::{
     create_pipeline, delete_pipeline, delete_pipeline_with_force, list_pipelines, view_pipeline,
@@ -11,6 +11,7 @@ use super::handler_lifecycle::handle_lifecycle_operation;
 use super::handler_nodes::handle_node_operation;
 use super::handler_surgery::handle_surgery_operation;
 use super::handler_wait::{await_terminal, parse_timeout_ms, wait_requested};
+use super::quarantine::restore_pipeline_from_quarantine;
 
 // T-45.6a: RTM-333 / RTM-334 / RTM-314 / RTM-315 / RTM-316 / RTM-317
 // Pipeline create validates graph structure, persists pipeline state, and pre-creates node sessions.
@@ -64,6 +65,24 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
             };
         }
 
+        if restore_requested(payload) {
+            let trash_date = payload
+                .get("fromTrashDate")
+                .or_else(|| payload.get("trashDate"))
+                .and_then(Value::as_str)
+                .ok_or(MaenifoldError::MissingProperty("fromTrashDate"))?;
+            let report = restore_pipeline_from_quarantine(context, &session_id, trash_date)?;
+            let result = json!({
+                "restoredSessionId": session_id,
+                "restoredFiles": report.restored_files,
+                "skippedFiles": report.skipped_files,
+            });
+            return Ok(match context.output_format {
+                OutputFormat::Json => success(result),
+                OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+            });
+        }
+
         if let Some(result) = handle_lifecycle_operation(context, &session_id, payload)? {
             return Ok(result);
         }
@@ -97,7 +116,8 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
           Run pipeline: sessionId + run=true\n  \
           Cancel pipeline: sessionId + cancel=true\n  \
           Rewind pipeline: sessionId + rewind\n  \
-          Delete pipeline: sessionId + delete=true\n  \
+           Delete pipeline: sessionId + delete=true\n  \
+           Restore pipeline: sessionId + restore=true + fromTrashDate\n  \
           Join pipeline: sessionId + join\n  \
           Fork pipeline: sessionId + fork\n  \
           Graft pipeline: sessionId + graft\n  \
@@ -109,6 +129,14 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
           TIP: lifecycle, topology, and view operations all require a sessionId to identify which pipeline session to inspect."
             .to_string(),
     ))
+}
+
+fn restore_requested(payload: &Value) -> bool {
+    payload
+        .get("restore")
+        .or_else(|| payload.get("restoreFromQuarantine"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
 }
 
 fn normalize_pipeline_session_id(identifier: &str) -> Result<String> {

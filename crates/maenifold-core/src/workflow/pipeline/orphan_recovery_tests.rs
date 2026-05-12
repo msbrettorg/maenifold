@@ -179,7 +179,8 @@ fn cancel_pipeline_succeeds_when_lock_missing_and_status_running() {
 #[test]
 #[serial]
 fn delete_pipeline_force_true_bypasses_active_work_check() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
     let session_id = "pipeline-1735689600000-orphan-force-delete";
     seed_running_pipeline(
         &context,

@@ -71,7 +71,8 @@ fn seed_single_node_pipeline(context: &crate::tools::ToolContext, session_id: &s
 #[test]
 #[serial]
 fn delete_pipeline_accepts_pipeline_uri_session_id() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = Some(30);
     let session_id = "pipeline-1735689600000-delete-uri-id";
     seed_single_node_pipeline(&context, session_id);
 

@@ -3,6 +3,8 @@ use serde_json::Value as JsonValue;
 
 use crate::error::{MaenifoldError, Result};
 
+use super::conditional_output::extract_conditional_json_value;
+
 pub(super) fn resolve_dot_path(value: &JsonValue, path: &str) -> Result<JsonValue> {
     let segments = parse_dot_path(path).ok_or_else(|| {
         MaenifoldError::InvalidArgument(format!("Invalid pipeline mapping path: {path}"))
@@ -95,29 +97,58 @@ fn parse_dot_path(path: &str) -> Option<Vec<String>> {
     Some(segments)
 }
 
+pub(super) const CONDITIONAL_NOT_SATISFIED_REASON: &str = "conditional predicate not satisfied";
+pub(super) const CONDITIONAL_PARSE_FAILURE_REASON: &str =
+    "conditional predicate could not parse JSON from prompt output";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(super) enum ConditionalPredicateResult {
+    Satisfied,
+    NotSatisfied,
+    Unparseable,
+}
+
+pub(super) fn conditional_parse_failure_reason(source_id: &str) -> String {
+    format!("{CONDITIONAL_PARSE_FAILURE_REASON} (source node: {source_id})")
+}
+
+pub(super) fn conditional_output_has_json(upstream_output: Option<&str>) -> bool {
+    upstream_output
+        .and_then(extract_conditional_json_value)
+        .is_some()
+}
+
 /// Test whether a `Conditional` edge predicate is satisfied for the upstream
 /// node's output.
-///
-/// Returns `true` iff the upstream output text parses as JSON, the dot-path
-/// resolves to a value, and that value equals `equals` (JSON value equality).
-/// A missing path or non-JSON output is treated as a non-match (NOT an
-/// error) so pipeline definitions remain resilient to optional output fields.
 pub(super) fn conditional_predicate_satisfied(
     upstream_output: Option<&str>,
     path: &str,
     equals: &JsonValue,
 ) -> bool {
+    conditional_predicate_result(upstream_output, path, equals)
+        == ConditionalPredicateResult::Satisfied
+}
+
+pub(super) fn conditional_predicate_result(
+    upstream_output: Option<&str>,
+    path: &str,
+    equals: &JsonValue,
+) -> ConditionalPredicateResult {
     let Some(output) = upstream_output else {
-        return false;
+        return ConditionalPredicateResult::Unparseable;
     };
-    let trimmed = output.trim();
-    if trimmed.is_empty() {
-        return false;
+    let Some(parsed) = extract_conditional_json_value(output) else {
+        return ConditionalPredicateResult::Unparseable;
+    };
+    let resolved = if path.starts_with('/') {
+        parsed.pointer(path).cloned()
+    } else {
+        resolve_dot_path(&parsed, path).ok()
+    };
+    match resolved {
+        Some(value) if &value == equals => ConditionalPredicateResult::Satisfied,
+        _ => ConditionalPredicateResult::NotSatisfied,
     }
-    let Ok(parsed) = serde_json::from_str::<JsonValue>(trimmed) else {
-        return false;
-    };
-    matches!(resolve_dot_path(&parsed, path), Ok(value) if &value == equals)
 }
 
 pub(super) fn pipeline_inputs_scope(inputs: &serde_json::Map<String, JsonValue>) -> JsonValue {

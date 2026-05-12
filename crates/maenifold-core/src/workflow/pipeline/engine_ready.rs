@@ -1,4 +1,7 @@
-use super::mapping_resolve::conditional_predicate_satisfied;
+use super::mapping_resolve::{
+    CONDITIONAL_NOT_SATISFIED_REASON, ConditionalPredicateResult, conditional_parse_failure_reason,
+    conditional_predicate_result,
+};
 use super::{EdgeType, NodeState, NodeStatus, PipelineDefinition};
 use petgraph::{Direction::Incoming, prelude::NodeIndex};
 use std::collections::HashMap;
@@ -37,10 +40,21 @@ pub fn compute_ready_set(
         .collect()
 }
 
+#[cfg(test)]
 pub fn compute_unreachable_conditional_set(
     definition: &PipelineDefinition,
     node_states: &HashMap<String, NodeState>,
 ) -> Vec<String> {
+    compute_unreachable_conditional_failures(definition, node_states)
+        .into_iter()
+        .map(|(node_id, _)| node_id)
+        .collect()
+}
+
+pub(super) fn compute_unreachable_conditional_failures(
+    definition: &PipelineDefinition,
+    node_states: &HashMap<String, NodeState>,
+) -> Vec<(String, String)> {
     let graph = definition.build_graph();
     let node_indices = graph
         .node_indices()
@@ -63,9 +77,13 @@ pub fn compute_unreachable_conditional_set(
             let Some(&node_index) = node_indices.get(node.id()) else {
                 return false;
             };
-            is_conditional_only_unreachable(&graph, node_index, node_states)
+            conditional_only_unreachable_reason(&graph, node_index, node_states).is_some()
         })
-        .map(|node| node.id().to_string())
+        .filter_map(|node| {
+            let node_index = *node_indices.get(node.id())?;
+            let reason = conditional_only_unreachable_reason(&graph, node_index, node_states)?;
+            Some((node.id().to_string(), reason))
+        })
         .collect()
 }
 
@@ -145,16 +163,17 @@ fn incoming_edges_satisfy_ready_rule(
     }
 }
 
-fn is_conditional_only_unreachable(
+fn conditional_only_unreachable_reason(
     graph: &petgraph::stable_graph::StableGraph<String, EdgeType>,
     node_index: NodeIndex,
     node_states: &HashMap<String, NodeState>,
-) -> bool {
+) -> Option<String> {
     let mut has_incoming = false;
     let mut has_conditional = false;
     let mut has_non_conditional = false;
     let mut all_sources_terminal = true;
     let mut any_conditional_matched = false;
+    let mut parse_failure_reason = None;
 
     for source_index in graph.neighbors_directed(node_index, Incoming) {
         let source_id = graph[source_index].as_str();
@@ -174,8 +193,29 @@ fn is_conditional_only_unreachable(
                     ) {
                         all_sources_terminal = false;
                     }
-                    if is_edge_satisfied(edge.weight(), source_id, node_states) {
-                        any_conditional_matched = true;
+                    if let Some(state) = node_states.get(source_id)
+                        && state.status == NodeStatus::Completed
+                    {
+                        match edge.weight() {
+                            EdgeType::Conditional { path, equals } => {
+                                match conditional_predicate_result(
+                                    state.output.as_deref(),
+                                    path,
+                                    equals,
+                                ) {
+                                    ConditionalPredicateResult::Satisfied => {
+                                        any_conditional_matched = true;
+                                    }
+                                    ConditionalPredicateResult::Unparseable => {
+                                        parse_failure_reason.get_or_insert_with(|| {
+                                            conditional_parse_failure_reason(source_id)
+                                        });
+                                    }
+                                    ConditionalPredicateResult::NotSatisfied => {}
+                                }
+                            }
+                            EdgeType::Success | EdgeType::Always => {}
+                        }
                     }
                 }
                 EdgeType::Success | EdgeType::Always => {
@@ -185,11 +225,16 @@ fn is_conditional_only_unreachable(
         }
     }
 
-    has_incoming
+    if has_incoming
         && has_conditional
         && !has_non_conditional
         && all_sources_terminal
         && !any_conditional_matched
+    {
+        Some(parse_failure_reason.unwrap_or_else(|| CONDITIONAL_NOT_SATISFIED_REASON.to_string()))
+    } else {
+        None
+    }
 }
 
 pub(super) fn is_edge_satisfied(
@@ -207,7 +252,8 @@ pub(super) fn is_edge_satisfied(
         }
         (EdgeType::Conditional { path, equals }, Some(state)) => {
             matches!(state.status, NodeStatus::Completed)
-                && conditional_predicate_satisfied(state.output.as_deref(), path, equals)
+                && conditional_predicate_result(state.output.as_deref(), path, equals)
+                    == ConditionalPredicateResult::Satisfied
         }
         (_, None) => false,
     }

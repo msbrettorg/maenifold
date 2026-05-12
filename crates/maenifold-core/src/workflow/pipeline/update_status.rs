@@ -5,7 +5,8 @@ use chrono::Utc;
 use serde_yml::Value as YamlValue;
 
 use super::compute_blocked_cascade;
-use super::engine_ready::compute_unreachable_conditional_set;
+use super::engine_ready::compute_unreachable_conditional_failures;
+use super::mapping_resolve::{conditional_output_has_json, conditional_parse_failure_reason};
 use super::session_io::{
     derive_pipeline_node_states, frontmatter_value, persist_pipeline_state, read_pipeline_session,
     update_workflow_node_frontmatter,
@@ -92,11 +93,23 @@ pub(super) fn update_pipeline_node_status(
                 state.output = Some(conclusion.to_string());
                 state.failure_reason = None;
             }
+            if definition.edges.iter().any(|edge| {
+                edge.source == node_id
+                    && matches!(edge.edge_type, super::EdgeType::Conditional { .. })
+            }) && !conditional_output_has_json(Some(conclusion))
+            {
+                let state = node_states.get_mut(node_id).ok_or_else(|| {
+                    MaenifoldError::Message(format!(
+                        "ERROR: Pipeline session missing node state for '{node_id}'"
+                    ))
+                })?;
+                state.failure_reason = Some(conditional_parse_failure_reason(node_id));
+            }
             inject_predecessor_context(context, &definition, &node_states, node_id)?;
 
-            let unreachable_node_ids =
-                compute_unreachable_conditional_set(&definition, &node_states);
-            for unreachable_node_id in &unreachable_node_ids {
+            let unreachable_failures =
+                compute_unreachable_conditional_failures(&definition, &node_states);
+            for (unreachable_node_id, failure_reason) in &unreachable_failures {
                 let unreachable_state =
                     node_states.get_mut(unreachable_node_id).ok_or_else(|| {
                         MaenifoldError::Message(format!(
@@ -112,8 +125,7 @@ pub(super) fn update_pipeline_node_status(
                 unreachable_state.output_tokens = None;
                 unreachable_state.model = None;
                 unreachable_state.output = None;
-                unreachable_state.failure_reason =
-                    Some("conditional predicate not satisfied".to_string());
+                unreachable_state.failure_reason = Some(failure_reason.clone());
             }
 
             let cascaded_node_ids = compute_blocked_cascade(&definition, &node_states);
@@ -135,7 +147,10 @@ pub(super) fn update_pipeline_node_status(
                 cascaded_state.failure_reason = Some("predecessor abandoned".to_string());
             }
 
-            let mut inactive_node_ids = unreachable_node_ids.clone();
+            let mut inactive_node_ids = unreachable_failures
+                .iter()
+                .map(|(node_id, _)| node_id.clone())
+                .collect::<Vec<_>>();
             inactive_node_ids.extend(cascaded_node_ids);
             for inactive_node_id in &inactive_node_ids {
                 let inactive_session_id = node_states
@@ -147,12 +162,7 @@ pub(super) fn update_pipeline_node_status(
                     })?
                     .session_id
                     .clone();
-                update_workflow_node_frontmatter(
-                    context,
-                    &inactive_session_id,
-                    "abandoned",
-                    None,
-                )?;
+                update_workflow_node_frontmatter(context, &inactive_session_id, "abandoned", None)?;
             }
         }
         "abandoned" | "stuck" => {

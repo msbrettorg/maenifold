@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import GatePipelineBrowser from './GatePipelineBrowser.vue';
 import GateViewContent from './GateViewContent.vue';
 import GateViewFilters from './GateViewFilters.vue';
 import GateViewStatus from './GateViewStatus.vue';
@@ -229,6 +230,7 @@ onBeforeUnmount(() => {
         :tasks="snapshot?.tasks ?? []"
         @created="handleTaskCreated"
       />
+      <GatePipelineBrowser />
       <GateViewFilters
         v-model:searchText="filtering.searchText.value"
         v-model:selectedProcess="filtering.selectedProcess.value"

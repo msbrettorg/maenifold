@@ -44,6 +44,7 @@ pub(crate) struct LiveConnection {
 pub struct TrackedSessionReap {
     pub acp_session: bool,
     pub killed_process_group: bool,
+    pub clean_cancel_completed: bool,
 }
 
 impl Drop for LiveConnection {

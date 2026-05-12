@@ -1,3 +1,4 @@
+mod handler_cancel_tracked;
 mod handler_config;
 mod handler_execute;
 mod handler_prewarm;

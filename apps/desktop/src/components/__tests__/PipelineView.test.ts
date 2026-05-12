@@ -118,7 +118,7 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
         GraftNodesDialog: true,
         JoinPipelineDialog: true,
         PipelineActionBar: true,
-        PipelineComposer: { template: '<div data-testid="composer"><slot name="toolbar-actions" /></div>' },
+        PipelineComposer: { props: ['designMode'], template: '<div data-testid="composer" :data-design-mode="String(designMode)"><slot name="toolbar-actions" /></div>' },
         PipelineFlyout: true,
         PipelineIconRail: true,
         PipelineRunner: {
@@ -139,6 +139,10 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
 
 function runnerToggle(wrapper: ReturnType<typeof mount>) {
   return wrapper.get('button[aria-label="Toggle runner"]');
+}
+
+function designToggle(wrapper: ReturnType<typeof mount>) {
+  return wrapper.get('button[aria-label="Toggle pipeline design mode"]');
 }
 
 async function expectRunnerCollapsed(wrapper: ReturnType<typeof mount>) {
@@ -165,6 +169,49 @@ beforeEach(() => {
   mcpState.connected.value = true;
   mcpState.error.value = null;
   mcpState.reconnecting.value = false;
+});
+
+describe('PipelineView design mode toggle', () => {
+  it('starts in viewer mode and toggles the composer design controls', async () => {
+    const { store, wrapper } = mountPipelineView();
+
+    await flushPromises();
+
+    expect(store.designMode).toBe(false);
+    expect(wrapper.get('[data-testid="composer"]').attributes('data-design-mode')).toBe('false');
+    expect(designToggle(wrapper).text()).toContain('Design');
+    expect(designToggle(wrapper).attributes('aria-pressed')).toBe('false');
+
+    await designToggle(wrapper).trigger('click');
+    await nextTick();
+
+    expect(store.designMode).toBe(true);
+    expect(wrapper.get('[data-testid="composer"]').attributes('data-design-mode')).toBe('true');
+    expect(designToggle(wrapper).text()).toContain('Done');
+    expect(designToggle(wrapper).attributes('aria-pressed')).toBe('true');
+
+    await designToggle(wrapper).trigger('click');
+    await nextTick();
+
+    expect(store.designMode).toBe(false);
+    expect(wrapper.get('[data-testid="composer"]').attributes('data-design-mode')).toBe('false');
+  });
+
+  it('resets to viewer mode when switching pipelines', async () => {
+    const { store, wrapper } = mountPipelineView();
+
+    await flushPromises();
+    await designToggle(wrapper).trigger('click');
+    await nextTick();
+    expect(store.designMode).toBe(true);
+
+    store.currentPipelineId = 'pipeline-2';
+    store.currentView = createView('paused', 'pipeline-2');
+    await settleRunnerWatchers();
+
+    expect(store.designMode).toBe(false);
+    expect(designToggle(wrapper).text()).toContain('Design');
+  });
 });
 
 describe('PipelineView runner expansion state', () => {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { ChevronDown, ChevronUp, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import PipelineComposer from './PipelineComposer.vue';
 import PipelineFlyout from './PipelineFlyout.vue';
 import PipelineIconRail from './PipelineIconRail.vue';
 import PipelineActionBar from './PipelineActionBar.vue';
+import PipelineDesignToggle from './PipelineDesignToggle.vue';
 import PipelineRunner from './PipelineRunner.vue';
 import PipelineSidebar from './PipelineSidebar.vue';
 import ProvenanceBreadcrumbs from './ProvenanceBreadcrumbs.vue';
@@ -30,7 +31,8 @@ import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 type PipelineIconRailExpose = { focusPipelineToggle: () => void }; type TemplateGalleryExpose = { resetForNewPipeline: () => void };
 const store = usePipelineStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
 const { navigateTo } = useProvenanceNavigation();
-const { currentPipelineId, currentView, designMode, error, localDefinition, successMessage, workflows } = storeToRefs(store);
+const { currentPipelineId, currentView, designMode: storeDesignMode, error, localDefinition, successMessage, workflows } = storeToRefs(store);
+const designMode = ref(false); provide('pipelineDesignMode', designMode);
 const runnerExpanded = ref(false);
 const iconRailRef = ref<PipelineIconRailExpose | null>(null);
 const templateGalleryRef = ref<TemplateGalleryExpose | null>(null);
@@ -42,19 +44,21 @@ const promotionNode = ref<ViewNode | null>(null);
 const isPipelineFlyoutOpen = computed(() => !isNarrowViewport.value && activeFlyout.value === 'pipelines');
 const hasLoadedPipeline = computed(() => Boolean(currentView.value?.pipelineId));
 const activePipelineLabel = computed(() => currentView.value?.pipelineId ?? currentPipelineId.value ?? '');
-const showFullScreenEmpty = computed(() =>
-  designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
-const showBrowseExistingEntry = computed(() => !designMode.value && !currentView.value);
+const showFullScreenEmpty = computed(() => designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
+const showBrowseExistingEntry = computed(() => !designMode.value && !currentView.value && (localDefinition.value?.nodes?.length ?? 0) === 0);
 const showTemplateGallery = computed(() => showFullScreenEmpty.value || showBrowseExistingEntry.value);
 const {
   configModalNodeId, configModalEdge, isConfigModalOpen, existingNodeIds, currentPipelineLineageId, provenanceLinks,
   handleNodeSelected, handleEdgeSelected, clearInspectorSelection, handleNodeDoubleClick, handleEdgeDoubleClick, closeConfigModal,
 } = usePipelineViewState({ currentView, currentPipelineId });
 const lastStatusByPipeline = ref<Record<string, string | null>>({});
+watch(designMode, (value) => { storeDesignMode.value = value; }, { immediate: true });
+watch(storeDesignMode, (value) => { if (value !== designMode.value) storeDesignMode.value = designMode.value; });
 watch(() => error.value, (message) => { if (message) runnerExpanded.value = true; });
 watch([() => currentPipelineId.value, () => String(currentView.value?.status ?? ''), () => currentView.value?.nodes.some((node) => node.type === 'prompt' && node.status === 'active') ?? false], ([pipelineId, status, hasActivePrompt], [prevPipelineId]) => {
   if (!pipelineId) return;
   if (pipelineId !== prevPipelineId) {
+    designMode.value = false;
     runnerExpanded.value = hasActivePrompt;
     lastStatusByPipeline.value[pipelineId] = status;
     return;
@@ -95,16 +99,14 @@ function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
   if (options?.restoreFocus) focusRailToggle();
 }
 function handleTogglePipelineFlyout() { toggleFlyout('pipelines'); }
-function handlePipelineSelected() {
-  clearInspectorSelection();
-  closePipelineFlyout();
-}
+function handlePipelineSelected() { clearInspectorSelection(); closePipelineFlyout(); }
 function handleNewPipeline() {
   clearInspectorSelection();
   closeConfigModal();
   store.clearError();
   store.clearSuccess();
   store.newPipeline();
+  designMode.value = false;
   closePipelineFlyout();
   if (isNarrowViewport.value) mobileSidebarOpen.value = false;
   nextTick(() => templateGalleryRef.value?.resetForNewPipeline());
@@ -112,13 +114,8 @@ function handleNewPipeline() {
 function handleRunnerToggleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') event.stopPropagation();
 }
-function handleOpenGraft() {
-  if (hasLoadedPipeline.value) graftDialogOpen.value = true;
-}
-function handleOpenPromotion() {
-  const node = currentView.value?.nodes.find((n) => n.status === 'completed' && n.output);
-  if (node) promotionNode.value = node;
-}
+function handleOpenGraft() { if (hasLoadedPipeline.value) graftDialogOpen.value = true; }
+function handleOpenPromotion() { const node = currentView.value?.nodes.find((n) => n.status === 'completed' && n.output); if (node) promotionNode.value = node; }
 function handleWindowKeyDown(event: KeyboardEvent) {
   if (event.key !== 'Escape') return;
   if (isPipelineFlyoutOpen.value) {
@@ -212,6 +209,7 @@ onBeforeUnmount(() => {
               @open-promotion="handleOpenPromotion"
             >
               <template #toolbar-actions>
+                <PipelineDesignToggle :design-mode="designMode" @update:design-mode="(value: boolean) => designMode = value" />
                 <PipelineActionBar />
               </template>
             </PipelineComposer>

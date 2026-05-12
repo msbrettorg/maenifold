@@ -93,3 +93,21 @@ export function isTaskPipelineDigestStale(task: PipelineBindingTaskFields): bool
   const hasIssue = Boolean(task.issue?.trim());
   return hasIssue;
 }
+
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
+
+interface TaskStalenessFields {
+  lastUpdatedAt?: string | null;
+  state?: string | null;
+}
+
+// True when a non-terminal task has had no gate activity in the last 24 hours.
+// Tasks in a terminal state (done/completed) are never considered stale.
+// If lastUpdatedAt is absent or unparseable we conservatively return false.
+export function isTaskStale(task: TaskStalenessFields): boolean {
+  if (!task.lastUpdatedAt) return false;
+  if (gateStageFamily(task.state ?? '') === 'done') return false;
+  const ts = new Date(task.lastUpdatedAt).getTime();
+  if (Number.isNaN(ts)) return false;
+  return Date.now() - ts > STALE_THRESHOLD_MS;
+}

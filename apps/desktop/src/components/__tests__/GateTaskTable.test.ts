@@ -150,6 +150,68 @@ describe('GateTaskTable', () => {
       'T-238.50',
     ]);
   });
+
+  it('fresh task (1h old, pending): no stale dot', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+    const freshTask = {
+      ...task,
+      state: 'pending',
+      location: 'todo',
+      lastUpdatedAt: new Date(new Date('2026-06-01T12:00:00.000Z').getTime() - 60 * 60 * 1000).toISOString(),
+    };
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [freshTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    expect(wrapper.find('[title="No activity in 24h"]').exists()).toBe(false);
+  });
+
+  it('stale task (25h old, pending): dot present with correct tooltip', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+    const staleTask = {
+      ...task,
+      state: 'pending',
+      location: 'todo',
+      lastUpdatedAt: new Date(new Date('2026-06-01T12:00:00.000Z').getTime() - 25 * 60 * 60 * 1000).toISOString(),
+    };
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [staleTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    const dot = wrapper.find('[title="No activity in 24h"]');
+    expect(dot.exists()).toBe(true);
+    expect(dot.attributes('title')).toBe('No activity in 24h');
+  });
+
+  it('done-but-old task (25h old, done): no stale dot', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+    const doneOldTask = {
+      ...task,
+      state: 'done',
+      location: 'done',
+      lastUpdatedAt: new Date(new Date('2026-06-01T12:00:00.000Z').getTime() - 25 * 60 * 60 * 1000).toISOString(),
+    };
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [doneOldTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    expect(wrapper.find('[title="No activity in 24h"]').exists()).toBe(false);
+  });
+
+  it('null timestamp task: no stale dot', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-06-01T12:00:00.000Z'));
+    const nullTimestampTask = {
+      ...task,
+      state: 'pending',
+      location: 'todo',
+      lastUpdatedAt: null,
+    };
+    const wrapper = mount(GateTaskTable, {
+      props: { tasks: [nullTimestampTask], selectedTaskKey: '', sortColumn: 'id', sortDirection: 'asc' },
+    });
+    expect(wrapper.find('[title="No activity in 24h"]').exists()).toBe(false);
+  });
 });
 
 describe('GateStageChip', () => {

@@ -4,6 +4,7 @@ mod agent_session_config;
 mod agent_session_open;
 mod agent_session_resume;
 mod asset_delete;
+mod asset_save;
 mod handler;
 mod handler_helpers;
 mod handler_session;
@@ -33,6 +34,7 @@ use crate::mcp::resources::{notify_resource_updated, workflow::WORKFLOW_SESSIONS
 
 // T-12.0: RTM NFR-1 consolidates the workflow facade, helpers, and session logic under one module.
 pub(crate) use asset_delete::delete_workflow_asset;
+pub(crate) use asset_save::save_workflow_asset;
 pub(crate) use handler::workflow;
 pub(crate) use handler_helpers::{
     build_workflow_response_content, format_workflow_step, parse_workflow_identifiers,

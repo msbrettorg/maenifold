@@ -92,6 +92,10 @@ path = "tests/gateway_streamable_http_cors.rs"
 name = "list_memories_dataless"
 path = "tests/list_memories_dataless.rs"
 
+[[test]]
+name = "save_workflow_asset_dispatch"
+path = "tests/save_workflow_asset_dispatch.rs"
+
 
 
 

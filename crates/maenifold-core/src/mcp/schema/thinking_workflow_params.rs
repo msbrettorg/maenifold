@@ -132,6 +132,15 @@ pub struct DeleteWorkflowAssetParams {
 }
 
 #[derive(Deserialize, JsonSchema)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct SaveWorkflowAssetParams {
+    /// Workflow asset id (kebab-case, no extension). Used as the filename.
+    pub id: String,
+    /// JSON content of the workflow. Must be a valid JSON object containing an "id" field matching this id.
+    pub content: String,
+}
+
+#[derive(Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum RecentActivityFilter {
     Thinking,

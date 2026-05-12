@@ -156,6 +156,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: workflow::delete_workflow_asset,
     },
     ToolDescriptor {
+        name: "SaveWorkflowAsset",
+        aliases: &["saveworkflowasset", "save_workflow_asset"],
+        invoke: workflow::save_workflow_asset,
+    },
+    ToolDescriptor {
         name: "Pipeline",
         aliases: &["pipeline"],
         invoke: workflow::pipeline::pipeline,

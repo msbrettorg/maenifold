@@ -8,6 +8,7 @@ import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand } from '../lib/types';
+import { DEFAULT_SLASH_COMMANDS } from '../lib/default-commands';
 
 const props = defineProps<{
   modelValue: string;
@@ -40,8 +41,11 @@ const text = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
 });
+const effectiveCommands = computed<AvailableCommand[]>(() =>
+  props.availableCommands.length ? props.availableCommands : DEFAULT_SLASH_COMMANDS
+);
 const showCommandPalette = computed(() => {
-  if (!props.availableCommands.length || !props.modelValue.startsWith('/')) {
+  if (!effectiveCommands.value.length || !props.modelValue.startsWith('/')) {
     return false;
   }
   return props.modelValue.indexOf(' ') === -1;
@@ -56,8 +60,13 @@ function submit(): void {
 }
 
 function handleKeyDown(event: KeyboardEvent): void {
-  if (showCommandPalette.value && commandPaletteRef.value) {
-    if (['ArrowDown', 'ArrowUp', 'Enter', 'Tab', 'Escape'].includes(event.key)) {
+  if (showCommandPalette.value) {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      emit('update:modelValue', '');
+      return;
+    }
+    if (commandPaletteRef.value && ['ArrowDown', 'ArrowUp', 'Enter', 'Tab'].includes(event.key)) {
       commandPaletteRef.value.handleKeyDown(event);
       return;
     }
@@ -92,7 +101,7 @@ function handleClose(): void {}
   >
     <CommandPalette
       ref="commandPaletteRef"
-      :commands="availableCommands"
+      :commands="effectiveCommands"
       :filter="commandFilter"
       :visible="showCommandPalette"
       @select="handleCommandSelect"

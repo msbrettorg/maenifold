@@ -10,6 +10,7 @@ function pipelineItem(overrides: Partial<PipelineListItem> = {}): PipelineListIt
     status: 'completed',
     nodeCount: 4,
     completedCount: 3,
+    runs: [],
     ...overrides,
   };
 }
@@ -45,10 +46,12 @@ describe('PipelineSidebarItem', () => {
   });
 
   it('uses the most recent run timestamp before update fallbacks', () => {
+    // startedAt: 2026-05-01T08:00:00Z = 1746086400000ms
+    // completedAt: 2026-05-01T11:30:00Z = 1746098400000ms (30m before noon)
     const wrapper = mountItem(pipelineItem({
       runs: [
-        { startedAt: '2026-05-01T08:00:00.000Z' },
-        { completedAt: '2026-05-01T11:30:00.000Z' },
+        { nodeId: 'node-a', startedAt: 1777622400000, completedAt: null, status: 'abandoned', outcome: null },
+        { nodeId: 'node-b', startedAt: 1777622400000, completedAt: 1777635000000, status: 'completed', outcome: 'succeeded' },
       ],
       updatedAt: '2026-05-01T10:00:00.000Z',
     }));

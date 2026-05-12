@@ -110,7 +110,7 @@ describe('PipelineView layout behavior', () => {
     const { wrapper } = mountPipelineView({
       setupStore(store) {
         store.pipelines = [
-          { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0 },
+          { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0, runs: [] },
         ];
       },
     });
@@ -202,8 +202,8 @@ describe('PipelineView layout behavior', () => {
         };
         currentStore.currentPipelineId = 'pipeline-current';
         currentStore.pipelines = [
-          { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0 },
-          { pipelineId: 'pipeline-next', status: 'paused', nodeCount: 1, completedCount: 0 },
+          { pipelineId: 'pipeline-current', status: 'paused', nodeCount: 1, completedCount: 0, runs: [] },
+          { pipelineId: 'pipeline-next', status: 'paused', nodeCount: 1, completedCount: 0, runs: [] },
         ];
       },
     });

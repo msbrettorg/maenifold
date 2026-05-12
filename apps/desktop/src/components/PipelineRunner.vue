@@ -9,11 +9,17 @@ import type { LogEntry } from '../lib/pipeline-types';
 import { getPipelineNodeDisplayLabel, getViewNodeDisplayLabel } from '../lib/pipeline-types';
 import { buildNodeOutputPreview, buildAbandonedNodePreview } from '../composables/pipeline-view-diff';
 import PipelineAcpSessionInspectors from './PipelineAcpSessionInspectors.vue';
+import PipelineRunHistoryPanel from './PipelineRunHistoryPanel.vue';
 
 const props = defineProps<{ collapsed?: boolean }>();
 
 const store = usePipelineStore();
-const { currentView, designMode, eventLog, localDefinition } = storeToRefs(store);
+const { currentView, currentPipelineId, designMode, eventLog, localDefinition, pipelines } = storeToRefs(store);
+
+const currentRuns = computed(() => {
+  if (!currentPipelineId.value) return [];
+  return pipelines.value.find((p) => p.pipelineId === currentPipelineId.value)?.runs ?? [];
+});
 
 const logAnchor = ref<HTMLElement | null>(null);
 
@@ -133,6 +139,10 @@ function formatLogEntry(entry: LogEntry) {
     </div>
 
     <PipelineAcpSessionInspectors v-show="!props.collapsed" />
+    <PipelineRunHistoryPanel
+      v-show="!props.collapsed"
+      :runs="currentRuns"
+    />
     <ScrollArea
       v-show="!props.collapsed"
       class="flex-1 min-h-0 bg-surface-container"

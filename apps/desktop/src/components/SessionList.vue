@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted } from 'vue';
-import { X } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { Search, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,6 +21,16 @@ const agentStore = useAgentStore();
 const sessions = computed(() =>
   [...sessionStore.savedSessions].sort((a, b) => b.lastUpdated - a.lastUpdated)
 );
+
+const searchQuery = ref('');
+
+const filteredSessions = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return sessions.value;
+  return sessions.value.filter((s) =>
+    (s.title || s.agentName).toLowerCase().includes(q),
+  );
+});
 
 const liveSessionsByRemoteId = computed(() => {
   const liveSessions = new Map<
@@ -147,6 +158,12 @@ async function handleDelete(session: SavedSession, event: Event) {
     emit('delete', session.id);
   }
 }
+
+function handleSearchKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    searchQuery.value = '';
+  }
+}
 </script>
 
 <template>
@@ -154,6 +171,17 @@ async function handleDelete(session: SavedSession, event: Event) {
     <h3 class="mb-3 text-tiny font-normal text-text-tertiary">
       Sessions
     </h3>
+
+    <div class="relative mb-3">
+      <Search class="absolute left-2.5 top-2.5 size-4 text-muted-foreground pointer-events-none" aria-hidden="true" />
+      <Input
+        v-model="searchQuery"
+        class="pl-8"
+        placeholder="Filter sessions…"
+        aria-label="Filter sessions"
+        @keydown="handleSearchKeydown"
+      />
+    </div>
 
     <ScrollArea class="max-h-[calc(100vh-12rem)]">
       <ul class="m-0 p-0 list-none flex flex-col gap-1.5" role="list" aria-label="Sessions">
@@ -166,7 +194,14 @@ async function handleDelete(session: SavedSession, event: Event) {
           <p class="mt-2 text-caption">Create a new session to get started.</p>
         </li>
         <li
-          v-for="session in sessions"
+          v-else-if="filteredSessions.length === 0"
+          class="p-8 text-muted-foreground text-center"
+          role="listitem"
+        >
+          <p>No sessions match your search.</p>
+        </li>
+        <li
+          v-for="session in filteredSessions"
           :key="session.id"
           role="listitem"
           class="flex cursor-pointer items-center justify-between rounded-md border border-border-card bg-bg-elevated p-2.5 transition-colors duration-150 hover:bg-bg-surface-hover"

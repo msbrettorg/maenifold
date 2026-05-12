@@ -76,4 +76,40 @@ describe('GateTaskDetail', () => {
     expect(knowledge.activeTabUri).toBeNull();
     wrapper.unmount();
   });
+
+  it('opens raw markdown guidance from the title edit affordance', async () => {
+    const wrapper = mount(GateTaskDetail, {
+      props: {
+        task,
+        body: 'Review the task title.',
+        history: [],
+        bodyLoading: false,
+        historyLoading: false,
+        bodyError: '',
+        historyError: '',
+        root: '/repo',
+      },
+      attachTo: document.body,
+      global: {
+        stubs: {
+          GateTaskDetailHistory: { template: '<div />' },
+          GateTaskDetailMeta: { template: '<div />' },
+          GateTaskDetailStages: { template: '<div />' },
+        },
+      },
+    });
+    await settle();
+
+    const affordance = wrapper.find('[data-testid="gate-task-title-edit"]');
+    expect(affordance.exists()).toBe(true);
+    expect(affordance.find('svg').exists()).toBe(true);
+
+    await affordance.trigger('click');
+    await settle();
+
+    expect(document.body.textContent).toContain('Title editing requires backend gate_UpdateTitle (filed T-249.169).');
+    expect(document.body.textContent).toContain('For now, edit the markdown file directly.');
+    expect(document.body.textContent).toContain('/repo/done/T-243.71-gate-wikilinks.md');
+    wrapper.unmount();
+  });
 });

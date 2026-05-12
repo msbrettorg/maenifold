@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
+import { Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import GateTaskDetailHistory from './GateTaskDetailHistory.vue';
@@ -24,6 +26,12 @@ const props = defineProps<{
 }>();
 
 defineEmits<{ close: []; 'action-complete': [] }>();
+
+const titleHelpOpen = ref(false);
+
+function openTitleHelp() {
+  if (props.task) titleHelpOpen.value = true;
+}
 
 const processLabel = computed(() => {
   if (!props.task) return '';
@@ -50,7 +58,20 @@ const detailTitleId = computed(() =>
         <div class="flex flex-col min-w-0 gap-2">
           <p class="text-xs text-muted-foreground uppercase tracking-wide">Task detail</p>
           <h3 :id="detailTitleId" class="text-base font-semibold text-foreground truncate">
-            {{ task ? `${task.taskId} ${task.title}` : 'Select a task' }}
+            <Button
+              v-if="task"
+              type="button"
+              variant="ghost"
+              size="sm"
+              class="-ml-2 h-auto max-w-full justify-start px-2 py-1 text-base font-semibold text-foreground hover:underline"
+              :aria-label="`Edit raw markdown title for ${task.taskId}`"
+              data-testid="gate-task-title-edit"
+              @click="openTitleHelp"
+            >
+              <span class="truncate">{{ `${task.taskId} ${task.title}` }}</span>
+              <Pencil class="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+            </Button>
+            <span v-else>Select a task</span>
           </h3>
           <GateTaskDetailMeta
             v-if="task"
@@ -130,4 +151,21 @@ const detailTitleId = computed(() =>
       </p>
     </CardContent>
   </Card>
+
+  <Dialog :open="titleHelpOpen" @update:open="titleHelpOpen = $event">
+    <DialogContent v-if="titleHelpOpen && task" class="border-border-card bg-bg-surface text-text-primary sm:max-w-lg">
+      <DialogHeader>
+        <DialogTitle>Edit raw markdown</DialogTitle>
+        <DialogDescription>
+          Title editing requires backend gate_UpdateTitle (filed T-249.169). For now, edit the markdown file directly.
+        </DialogDescription>
+      </DialogHeader>
+      <p class="rounded-md border border-border bg-muted/30 p-3 font-mono text-xs text-muted-foreground break-all">
+        {{ task.path }}
+      </p>
+      <DialogFooter>
+        <Button type="button" variant="ghost" @click="titleHelpOpen = false">Close</Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

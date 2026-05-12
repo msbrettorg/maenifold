@@ -27,6 +27,7 @@ export type NodeCardData = {
   toolName?: string;
   toolArgs?: Record<string, unknown>;
   failureReason?: string | null;
+  reconnected?: boolean;
 };
 
 const PROMPT_PREFIX = 'prompt: ';

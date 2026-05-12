@@ -60,6 +60,7 @@ const toolProvenance = computed(() => {
   return node.toolProvenance ?? null;
 });
 const reconnectSessionId = computed<string | null>(() => {
+  if (nodeType.value === 'tool') return null;
   const sid = viewNode.value?.provenance?.detail.sessionId;
   if (!sid) return null;
   const trimmed = sid.trim();
@@ -69,6 +70,11 @@ const canConnectLive = computed(() =>
   viewNode.value?.status === 'active'
   && nodeType.value !== 'tool'
   && !!reconnectSessionId.value,
+);
+const canTakeRefinement = computed(() =>
+  viewNode.value?.reconnected === true
+  && viewNode.value.status === 'completed'
+  && nodeType.value !== 'tool',
 );
 const reconnectBusy = ref(false);
 async function handleReconnect(): Promise<void> {
@@ -82,6 +88,7 @@ async function handleReconnect(): Promise<void> {
       { suppressErrors: true },
     );
     if (result.status === 'activated' || result.status === 'resumed') {
+      pipeline.markNodeReconnected(viewNode.value!.nodeId);
       appShellStore.openAgents();
       zoom.back();
     }
@@ -102,6 +109,27 @@ watch(
   },
   { flush: 'post' },
 );
+function latestAssistantMessage(): { content: string; sessionId: string } | null {
+  const localId = sessionStore.activeSessionId;
+  const session = localId ? sessionStore.sessions.get(localId) : null;
+  const messages = session?.messages ?? [];
+  const message = [...messages].reverse().find((candidate) => candidate.role === 'assistant');
+  const sessionId = session?.session?.sessionId ?? session?.sessionId;
+  return message && sessionId ? { content: message.content, sessionId } : null;
+}
+function handleTakeRefined(): void {
+  const nodeId = viewNode.value?.nodeId;
+  const latest = latestAssistantMessage();
+  if (!nodeId || !latest) return;
+  pipeline.replaceNodeOutput(nodeId, latest.content, {
+    sessionId: latest.sessionId,
+    takenAt: Date.now(),
+  });
+}
+function handleDiscardRefined(): void {
+  const nodeId = viewNode.value?.nodeId;
+  if (nodeId) pipeline.clearNodeReconnected(nodeId);
+}
 const failureReason = computed<string | null>(() => {
   const reason = viewNode.value?.failureReason?.trim();
   return reason && reason.length > 0 ? reason : null;
@@ -232,6 +260,7 @@ watch(() => viewNode.value?.nodeId, () => {
         :busy-action="busyAction"
         :can-connect-live="canConnectLive"
         :can-promote="canPromote"
+        :can-take-refinement="canTakeRefinement"
         :forked-session-id="forkedSessionId"
         :graft-submitting="graftSubmitting"
         :has-results="hasResults"
@@ -244,6 +273,8 @@ watch(() => viewNode.value?.nodeId, () => {
         @graft="openGraftDialog"
         @promote="openPromotionDialog"
         @reconnect="handleReconnect"
+        @take-refinement="handleTakeRefined"
+        @discard-refinement="handleDiscardRefined"
         @restart="restartNode"
         @rewind="rewindNode"
       />

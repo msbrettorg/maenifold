@@ -12,44 +12,12 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 
 use super::NodeState;
+#[cfg(test)]
+pub use super::quarantine::{restore_pipeline_from_quarantine, run_quarantine_cleanup};
 use super::resource_notifications::{
     clear_pipeline_resource_state, emit_pipeline_sessions_resource_updated,
 };
 use super::session_write::DeletePipelineSessionFilesResult;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg(test)]
-pub struct RestoreReport {
-    pub restored_files: Vec<String>,
-    pub skipped_files: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[cfg(test)]
-pub struct QuarantineCleanupReport {
-    pub deleted_files: Vec<String>,
-}
-
-#[cfg(test)]
-pub fn restore_pipeline_from_quarantine(
-    context: &ToolContext,
-    session_id: &str,
-    trash_date: &str,
-) -> Result<RestoreReport> {
-    let _ = (context, session_id, trash_date);
-    Ok(RestoreReport {
-        restored_files: Vec::new(),
-        skipped_files: 0,
-    })
-}
-
-#[cfg(test)]
-pub fn run_quarantine_cleanup(config: &Config) -> Result<QuarantineCleanupReport> {
-    let _ = config;
-    Ok(QuarantineCleanupReport {
-        deleted_files: Vec::new(),
-    })
-}
 
 pub(super) fn resolve_pipeline_delete_files(
     context: &ToolContext,
@@ -104,6 +72,7 @@ pub(super) fn delete_pipeline_session_files(
     pipeline_session_id: &str,
     node_states: &HashMap<String, NodeState>,
 ) -> Result<DeletePipelineSessionFilesResult> {
+    super::quarantine::require_quarantine_config(&context.config)?;
     let mut deleted_files = Vec::new();
     let mut skipped_files = 0usize;
     let mut workflow_session_ids = HashSet::with_capacity(node_states.len());
@@ -120,12 +89,18 @@ pub(super) fn delete_pipeline_session_files(
                 );
                 continue;
             }
-            record_deleted_file(&mut deleted_files, &workflow_uri, &context.config, |err| {
-                format!(
-                    "Failed to delete workflow session {}: {err}",
-                    state.session_id
-                )
-            })?;
+            record_deleted_file(
+                &mut deleted_files,
+                &workflow_uri,
+                &context.config,
+                pipeline_session_id,
+                |err| {
+                    format!(
+                        "Failed to delete workflow session {}: {err}",
+                        state.session_id
+                    )
+                },
+            )?;
         }
         if let Some(thinking_session_id) = &state.thinking_session_id
             && workflow_session_ids.insert(thinking_session_id.clone())
@@ -140,9 +115,13 @@ pub(super) fn delete_pipeline_session_files(
                 );
                 continue;
             }
-            record_deleted_file(&mut deleted_files, &thinking_uri, &context.config, |err| {
-                format!("Failed to delete thinking session {thinking_session_id}: {err}")
-            })?;
+            record_deleted_file(
+                &mut deleted_files,
+                &thinking_uri,
+                &context.config,
+                pipeline_session_id,
+                |err| format!("Failed to delete thinking session {thinking_session_id}: {err}"),
+            )?;
         }
     }
 
@@ -154,7 +133,11 @@ pub(super) fn delete_pipeline_session_files(
     )?;
 
     let pipeline_uri = pipeline_session_uri(pipeline_session_id);
-    deleted_files.push(delete_file_verified(&pipeline_uri, &context.config)?);
+    deleted_files.push(super::quarantine::quarantine_file(
+        &pipeline_uri,
+        &context.config,
+        pipeline_session_id,
+    )?);
     clear_pipeline_resource_state(pipeline_session_id);
     emit_pipeline_sessions_resource_updated();
 
@@ -212,9 +195,13 @@ fn delete_orphaned_workflows(
     for (session_id, workflow_uri) in
         orphaned_workflows(context, pipeline_session_id, workflow_session_ids)?
     {
-        record_deleted_file(deleted_files, &workflow_uri, &context.config, |err| {
-            format!("Failed to delete orphaned workflow session {session_id}: {err}")
-        })?;
+        record_deleted_file(
+            deleted_files,
+            &workflow_uri,
+            &context.config,
+            pipeline_session_id,
+            |err| format!("Failed to delete orphaned workflow session {session_id}: {err}"),
+        )?;
     }
     Ok(())
 }
@@ -276,9 +263,10 @@ fn record_deleted_file(
     deleted_files: &mut Vec<String>,
     uri: &str,
     config: &Config,
+    pipeline_session_id: &str,
     failure_message: impl FnOnce(MaenifoldError) -> String,
 ) -> Result<()> {
-    match delete_file_verified(uri, config) {
+    match super::quarantine::quarantine_file(uri, config, pipeline_session_id) {
         Ok(deleted_path) => {
             deleted_files.push(deleted_path);
             Ok(())

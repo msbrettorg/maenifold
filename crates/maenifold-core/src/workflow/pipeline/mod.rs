@@ -86,6 +86,7 @@ mod mapping_resolve;
 mod orphan_cascade_tests;
 #[cfg(test)]
 mod orphan_recovery_tests;
+mod quarantine;
 mod resource_notifications;
 mod session_delete_files;
 mod session_io;
@@ -129,6 +130,10 @@ pub use executor_cleanup::{
 pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
 pub use lease::pipeline_lock_path;
+pub use quarantine::{
+    QuarantineCleanupReport, RestoreReport, restore_pipeline_from_quarantine,
+    run_quarantine_cleanup,
+};
 pub use session_write::persist_final_pipeline_status;
 pub use types::{
     EdgeType, NodeAdopt, NodeState, NodeStatus, PipelineDefinition, PipelineEdge, PipelineNode,

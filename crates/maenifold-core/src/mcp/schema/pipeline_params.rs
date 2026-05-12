@@ -50,6 +50,12 @@ pub struct PipelineParams {
     /// Delete the pipeline session and all associated workflow sessions
     #[serde(default)]
     pub delete: bool,
+    /// Restore the pipeline session from quarantine
+    #[serde(default)]
+    pub restore: bool,
+    /// Quarantine date to restore from, formatted YYYY-MM-DD
+    #[serde(default)]
+    pub from_trash_date: Option<String>,
     /// Add new nodes and edges onto an existing pipeline session
     #[serde(default)]
     pub graft: Option<PipelineGraftSchema>,

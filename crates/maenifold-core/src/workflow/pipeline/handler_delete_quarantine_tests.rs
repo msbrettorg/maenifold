@@ -180,7 +180,8 @@ fn delete_quarantines_all_files_for_one_session_under_one_directory() {
 #[test]
 #[serial]
 fn delete_pipeline_session_files_fails_closed_without_retention_config() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = None;
     let session_id = "pipeline-1735689600000-quarantine-no-retention";
     let definition = PipelineDefinition {
         nodes: vec![workflow_node("node")],
@@ -212,7 +213,8 @@ fn delete_pipeline_session_files_fails_closed_without_retention_config() {
 #[test]
 #[serial]
 fn quarantine_cleanup_scheduler_refuses_to_run_without_retention_config() {
-    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = None;
 
     let error = match run_quarantine_cleanup(&context.config) {
         Ok(_) => panic!("scheduler must refuse missing retention config"),

@@ -140,4 +140,15 @@ describe('useGateKeyboard', () => {
     input.blur();
     document.body.removeChild(input);
   });
+
+  it('Escape fires onClose even when an input element is focused', () => {
+    const { cbs } = makeWrapper({ taskKey: 'T-1' });
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+    pressKey('Escape');
+    expect(cbs.onClose).toHaveBeenCalledOnce();
+    input.blur();
+    document.body.removeChild(input);
+  });
 });

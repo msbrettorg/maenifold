@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, useTemplateRef } from 'vue';
 import { Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -44,6 +44,14 @@ const pipelineStale = computed(() => Boolean(props.task && isTaskPipelineDigestS
 const detailTitleId = computed(() =>
   props.task ? `gate-task-detail-title-${props.task.taskId}` : 'gate-task-detail-title-empty'
 );
+
+type StageActionsExposed = { openAppend: () => void; openPass: () => void; openFail: () => void };
+const stageActions = useTemplateRef<StageActionsExposed>('stageActions');
+defineExpose({
+  openAppend: () => stageActions.value?.openAppend(),
+  openPass: () => stageActions.value?.openPass(),
+  openFail: () => stageActions.value?.openFail(),
+});
 </script>
 
 <template>
@@ -119,6 +127,7 @@ const detailTitleId = computed(() =>
         </section>
 
         <GateStageActions
+          ref="stageActions"
           v-if="task.location === 'todo'"
           :task="task"
           :root="root"

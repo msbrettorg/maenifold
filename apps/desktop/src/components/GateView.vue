@@ -29,6 +29,7 @@ const error = ref('');
 const lastRefreshLabel = ref('');
 const createTaskOpen = ref(false);
 const toolbarRef = ref<{ searchInputEl: HTMLElement | null; openHelp?: () => void } | null>(null);
+const contentPanelRef = ref<{ openAppend: () => void; openPass: () => void; openFail: () => void } | null>(null);
 const isActive = computed(() => useAppShellStore().activeTab === 'gate');
 const lastUpdatedByTaskKey = ref<Record<string, string | null>>({});
 
@@ -208,13 +209,12 @@ useGateKeyboard({
   onOpen: () => { const t = detail.activeTask.value; if (t) void detail.selectTask(t); },
   onClose: () => detail.clearSelection(),
   onNew: () => { createTaskOpen.value = true; },
-  onPass: () => (document.querySelector('[data-testid="gate-pass-trigger"]') as HTMLButtonElement)?.click(),
-  onFail: () => (document.querySelector('[data-testid="gate-fail-trigger"]') as HTMLButtonElement)?.click(),
-  onAppend: () => (document.querySelector('[data-testid="gate-append-trigger"]') as HTMLButtonElement)?.click(),
+  onPass: () => contentPanelRef.value?.openPass(),
+  onFail: () => contentPanelRef.value?.openFail(),
+  onAppend: () => contentPanelRef.value?.openAppend(),
   onRefresh: () => void refreshSnapshot(),
   onHelp: () => toolbarRef.value?.openHelp?.(),
-});
-</script>
+});</script>
 
 <template>
   <div class="flex flex-1 flex-col min-h-0 p-4 gap-3" role="region" aria-label="Gate tasks">
@@ -276,6 +276,7 @@ useGateKeyboard({
         :selected-gate-root="gateRoot"
       />
       <GateViewContent
+        ref="contentPanelRef"
         v-else
         :tasks="filtering.visibleTasks.value"
         :selected-task-key="detail.selectedTaskKey.value"

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useTemplateRef } from 'vue';
 import {
   ResizableHandle,
   ResizablePanel,
@@ -32,6 +33,14 @@ defineEmits<{
   close: [];
   'action-complete': [];
 }>();
+
+type DetailExposed = { openAppend: () => void; openPass: () => void; openFail: () => void };
+const detailPanel = useTemplateRef<DetailExposed>('detailPanel');
+defineExpose({
+  openAppend: () => detailPanel.value?.openAppend(),
+  openPass: () => detailPanel.value?.openPass(),
+  openFail: () => detailPanel.value?.openFail(),
+});
 </script>
 
 <template>
@@ -70,6 +79,7 @@ defineEmits<{
         >
           <div class="flex h-full w-full min-h-0 min-w-0 pl-4" data-testid="gate-detail-panel">
             <GateTaskDetail
+              ref="detailPanel"
               :task="activeTask"
               :body="body"
               :history="history"

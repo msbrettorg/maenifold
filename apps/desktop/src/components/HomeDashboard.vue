@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Brain, Send, Pencil } from 'lucide-vue-next';
+import { Brain, Search, Send, Pencil } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import HomeRecentActivity from './HomeRecentActivity.vue';
 import { useDaemonHealth } from '../composables/useDaemonHealth';
+import { useAppShellStore } from '../stores/app-shell';
+import { useKnowledgeStore } from '../stores/knowledge';
 import type { SavedSession } from '../lib/types';
 import type { AppShellTab } from '../stores/app-shell';
 import pkg from '../../package.json';
@@ -46,6 +48,19 @@ const composerError = ref('');
 const isSubmittingPrompt = ref(false);
 const daemonHealth = useDaemonHealth();
 const { daemonOnline, lastErrorMessage } = daemonHealth;
+
+const appShellStore = useAppShellStore();
+const knowledgeStore = useKnowledgeStore();
+const searchInput = ref('');
+const canSearch = computed(() => searchInput.value.trim().length > 0);
+
+function handleSearchSubmit(): void {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  knowledgeStore.setSearchQuery(q);
+  appShellStore.setActiveTab('knowledge');
+  searchInput.value = '';
+}
 
 const connectionStatus = computed(() => {
   if (!daemonOnline.value) {
@@ -239,6 +254,30 @@ watch(composerInput, () => {
           >
             {{ composerError }}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card class="mt-2 w-full max-w-[800px] rounded-xl py-0 shadow-fluent-8 ring-0 border border-border-card bg-bg-elevated">
+        <CardContent class="px-4 py-3">
+          <form data-testid="home-search-form" class="flex items-center gap-2" @submit.prevent="handleSearchSubmit">
+            <Search class="size-4 shrink-0 text-text-tertiary" :stroke-width="1.5" aria-hidden="true" />
+            <Input
+              v-model="searchInput"
+              type="text"
+              placeholder="Search notes..."
+              aria-label="Search Knowledge"
+              class="flex-1 border-0 bg-transparent text-sm text-text-primary shadow-none outline-none ring-0 placeholder:text-text-tertiary focus-visible:border-transparent focus-visible:ring-0 h-auto px-0 py-0 rounded-none"
+            />
+            <Button
+              type="submit"
+              variant="ghost"
+              size="icon"
+              :disabled="!canSearch"
+              class="flex size-9 items-center justify-center rounded-[4px] text-text-tertiary transition-colors hover:text-text-primary disabled:opacity-40"
+            >
+              <Search class="size-4" :stroke-width="1.5" />
+            </Button>
+          </form>
         </CardContent>
       </Card>
 

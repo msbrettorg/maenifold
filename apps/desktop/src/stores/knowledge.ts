@@ -169,6 +169,9 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     }
   }
 
+  // Seeds searchQuery without an API call; HomeDashboard uses this to pre-fill the Knowledge tab.
+  function setSearchQuery(value: string): void { searchQuery.value = value; }
+
   const { loadRelatedConceptsForNote } = createKnowledgeRelatedActions({
     relatedConcepts,
     relatedConceptsSource,
@@ -288,7 +291,7 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
     selectedConcept, selectedConceptContext, conceptContextLoading, conceptContextError,
     relatedConcepts, relatedConceptsSource,
     relatedConceptsLoading, relatedConceptsError,
-    loadRootFolders, loadFolder, setFolderOpen, search,
+    loadRootFolders, loadFolder, setFolderOpen, search, setSearchQuery,
     openNote, openInNewTab, closeTab, setActiveTab, setActiveSubtab,
     ...memoryActions,
     ...graphActions,

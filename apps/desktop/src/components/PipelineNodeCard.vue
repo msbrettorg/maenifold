@@ -1,15 +1,5 @@
 <script setup lang="ts">
-import {
-  Brain,
-  Loader2,
-  Lock,
-  MessageCircleMore,
-  MessageSquare,
-  Palette,
-  RotateCcw,
-  Settings,
-  Wrench,
-} from 'lucide-vue-next';
+import { Brain, Loader2, Lock, MessageCircleMore, MessageSquare, Palette, RotateCcw, Settings, Wrench } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 
@@ -37,6 +27,7 @@ import { getToolCategory } from '../lib/tool-categories';
 import { usePipelineStore } from '../stores/pipeline';
 
 const props = defineProps<{ id: string; data: NodeCardData; selected?: boolean }>();
+const emit = defineEmits<{ (e: 'nodeClick', nodeId: string): void }>();
 const store = usePipelineStore();
 const resumeBusy = ref(false);
 
@@ -140,6 +131,7 @@ async function resumeFromNode() {
     resumeBusy.value = false;
   }
 }
+function handleCardClick() { emit('nodeClick', props.data.nodeId); }
 </script>
 
 <template>
@@ -155,6 +147,7 @@ async function resumeFromNode() {
     tabindex="0"
     :title="`${titleText} • ${data.status ?? 'pending'}`"
     :aria-label="ariaLabel"
+    @click="handleCardClick"
   >
     <span
       :class="['absolute inset-y-0 left-0 w-1 rounded-l-xl', accentBarClass]"

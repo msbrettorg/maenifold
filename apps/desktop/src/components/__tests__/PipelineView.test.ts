@@ -118,7 +118,11 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
         GraftNodesDialog: true,
         JoinPipelineDialog: true,
         PipelineActionBar: true,
-        PipelineComposer: { props: ['designMode'], template: '<div data-testid="composer" :data-design-mode="String(designMode)"><slot name="toolbar-actions" /></div>' },
+        PipelineComposer: {
+          props: ['designMode'],
+          emits: ['nodeSelected'],
+          template: '<div data-testid="composer" :data-design-mode="String(designMode)"><button data-testid="select-node" type="button" @click="$emit(\'nodeSelected\', \'prompt-node\')">Select node</button><slot name="toolbar-actions" /></div>',
+        },
         PipelineFlyout: true,
         PipelineIconRail: true,
         PipelineRunner: {
@@ -222,6 +226,43 @@ describe('PipelineView design mode toggle', () => {
 
     expect(store.designMode).toBe(false);
     expect(designToggle(wrapper).text()).toContain('Design');
+  });
+});
+
+describe('PipelineView node inspector', () => {
+  it('opens from node selection, shows config and output, and closes', async () => {
+    const { wrapper } = mountPipelineView((store) => {
+      store.currentView = {
+        ...createView(),
+        nodes: [{
+          nodeId: 'prompt-node',
+          sessionId: 'runtime-session',
+          status: 'completed',
+          attempts: 2,
+          type: 'prompt',
+          prompt: 'Explain the selected pipeline node.',
+          agent: 'copilot',
+          model: 'gpt-5',
+          output: 'Inspector output preview text.',
+        }],
+      };
+    });
+
+    await flushPromises();
+    expect(wrapper.find('[aria-label="Node inspector"]').exists()).toBe(false);
+
+    await wrapper.get('[data-testid="select-node"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.get('[aria-label="Node inspector"]').text()).toContain('prompt-node');
+    expect(wrapper.get('[aria-label="Node inspector"]').text()).toContain('completed');
+    expect(wrapper.get('[aria-label="Node inspector"]').text()).toContain('Explain the selected pipeline node.');
+    expect(wrapper.get('[aria-label="Node inspector"]').text()).toContain('Inspector output preview text.');
+
+    await wrapper.get('button[aria-label="Close node inspector"]').trigger('click');
+    await nextTick();
+
+    expect(wrapper.find('[aria-label="Node inspector"]').exists()).toBe(false);
   });
 });
 

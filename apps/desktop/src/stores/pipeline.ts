@@ -164,6 +164,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     deletePipelineById,
     rewindNodes,
     restartNode,
+    resumeFromNode,
     updateNodeStatus,
     graftNodes,
   } = createPipelineLifecycleActions({
@@ -236,6 +237,7 @@ export const usePipelineStore = defineStore('pipeline', () => {
     joinPipeline,
     dispatchPipeline,
     restartNode,
+    resumeFromNode,
     updateNodeStatus,
     graftNodes,
     refreshWorkflows,

@@ -6,16 +6,18 @@ import {
   MessageCircleMore,
   MessageSquare,
   Palette,
+  RotateCcw,
   Settings,
   Wrench,
 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import type { Component } from 'vue';
 
 import PipelineNodeCardPorts from './PipelineNodeCardPorts.vue';
 import PipelineNodeCardStatus from './PipelineNodeCardStatus.vue';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 import { normalizeNodeStatusAppearance } from '../lib/pipeline-node-status';
 import {
@@ -32,8 +34,11 @@ import {
   nodeLabel,
 } from '../lib/pipeline-types';
 import { getToolCategory } from '../lib/tool-categories';
+import { usePipelineStore } from '../stores/pipeline';
 
 const props = defineProps<{ id: string; data: NodeCardData; selected?: boolean }>();
+const store = usePipelineStore();
+const resumeBusy = ref(false);
 
 const node = computed(() => inferPipelineNodeFromCardData(props.data));
 const nodeType = computed(() => getNodeType(node.value));
@@ -73,6 +78,7 @@ const showSubtitle = computed(() => !hasCustomLabel.value || titleText.value !==
 const currentStatus = computed(() => props.data.status ?? 'pending');
 const statusAppearance = computed(() => normalizeNodeStatusAppearance(currentStatus.value));
 const isActive = computed(() => statusAppearance.value === 'active');
+const canResumeFromNode = computed(() => ['abandoned', 'stuck'].includes(currentStatus.value) && store.currentView?.running !== true);
 const ariaLabel = computed(() => `${typeLabel.value} node: ${displayLabel.value}`);
 const attempts = computed(() =>
   props.data.attempts && props.data.attempts > 1 ? `×${props.data.attempts}` : '',
@@ -124,6 +130,16 @@ const failureSummary = computed(() => {
   if (!failureReason) return null;
   return shortenText(failureReason, 100);
 });
+
+async function resumeFromNode() {
+  if (!canResumeFromNode.value || resumeBusy.value) return;
+  resumeBusy.value = true;
+  try {
+    await store.resumeFromNode(props.data.nodeId);
+  } finally {
+    resumeBusy.value = false;
+  }
+}
 </script>
 
 <template>
@@ -262,6 +278,19 @@ const failureSummary = computed(() => {
           <Badge v-if="attempts" variant="outline" class="font-normal">{{ attempts }}</Badge>
         </div>
       </template>
+
+      <Button
+        v-if="canResumeFromNode"
+        type="button"
+        size="xs"
+        class="mt-1 self-start"
+        :disabled="resumeBusy"
+        aria-label="Resume pipeline from this node"
+        @click.stop="resumeFromNode"
+      >
+        <RotateCcw class="size-3" :stroke-width="1.5" aria-hidden="true" />
+        {{ resumeBusy ? 'Resuming...' : 'Resume from this node' }}
+      </Button>
     </CardContent>
 
     <PipelineNodeCardPorts />

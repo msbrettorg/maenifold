@@ -258,14 +258,18 @@ window.parent.postMessage({jsonrpc:"2.0",method:"ui/notifications/sandbox-proxy-
     });
   });
 }
+export async function openDirectoryDialog(): Promise<string | null> {
+  if (process.env.MAENIFOLD_UAT === '1') {
+    return process.env.MAENIFOLD_UAT_FOLDER_PICKER_PATH ?? null;
+  }
+  const ownerWindow = mainWindow ?? BrowserWindow.getFocusedWindow();
+  const result = ownerWindow
+    ? await dialog.showOpenDialog(ownerWindow, { properties: ['openDirectory'] })
+    : await dialog.showOpenDialog({ properties: ['openDirectory'] });
+  return result.canceled ? null : (result.filePaths[0] ?? null);
+}
 function registerIpcHandlers(): void {
-  ipcMain.handle('dialog:open-directory', async () => {
-    const ownerWindow = mainWindow ?? BrowserWindow.getFocusedWindow();
-    const result = ownerWindow
-      ? await dialog.showOpenDialog(ownerWindow, { properties: ['openDirectory'] })
-      : await dialog.showOpenDialog({ properties: ['openDirectory'] });
-    return result.canceled ? null : (result.filePaths[0] ?? null);
-  });
+  ipcMain.handle('dialog:open-directory', () => openDirectoryDialog());
   ipcMain.handle('app:get-version', () => app.getVersion());
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};
@@ -349,6 +353,9 @@ app.on('will-quit', () => { terminalManager.dispose(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) await createWindow(); else mainWindow?.show(); });
 app.whenReady().then(async () => {
+  if (process.env.MAENIFOLD_UAT === '1') {
+    console.log('[uat] MAENIFOLD_UAT mode active - native dialogs return synthetic results');
+  }
   registerIpcHandlers();
   registerSandboxProtocol();
   await ensureServices();

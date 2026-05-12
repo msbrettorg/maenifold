@@ -1,3 +1,4 @@
+use crate::error::MaenifoldError;
 use crate::markdown::{file_exists, uri_to_path};
 use crate::sessions::{pipeline_session_uri, workflow_session_uri};
 use crate::util::json::OutputFormat;
@@ -8,7 +9,7 @@ use std::path::PathBuf;
 
 use super::audit;
 use super::handler::pipeline;
-use super::handler_crud::delete_pipeline_with_force;
+use super::handler_crud::{delete_pipeline_with_force, delete_unreadable_pipeline};
 use super::session_delete_files::{
     delete_pipeline_session_files, restore_pipeline_from_quarantine, run_quarantine_cleanup,
 };
@@ -18,57 +19,20 @@ use super::{NodeState, NodeStatus, PipelineDefinition, PipelineNode};
 const TS: i64 = 1_735_689_600_000;
 const TRASH_DATE: &str = "2025-01-01";
 
+#[rustfmt::skip]
 fn workflow_node(id: &str) -> PipelineNode {
-    PipelineNode::Workflow {
-        id: id.to_string(),
-        display_label: None,
-        workflow_id: "test-workflow-a".to_string(),
-        acp_client: Some(format!("agent-{id}")),
-        prompt: None,
-        cwd: None,
-        timeout: None,
-        agent_config: None,
-        adopt: None,
-        requires_role: None,
-        retry_policy: None,
-    }
+    PipelineNode::Workflow { id: id.to_string(), display_label: None, workflow_id: "test-workflow-a".to_string(), acp_client: Some(format!("agent-{id}")), prompt: None, cwd: None, timeout: None, agent_config: None, adopt: None, requires_role: None, retry_policy: None }
 }
 
+#[rustfmt::skip]
 fn node_state(node_id: &str) -> NodeState {
-    NodeState {
-        session_id: format!("workflow-{TS}-{node_id}"),
-        status: NodeStatus::Completed,
-        attempts: 1,
-        started_at: None,
-        completed_at: None,
-        acp_session_id: None,
-        thinking_session_id: None,
-        tool_provenance: None,
-        input_tokens: None,
-        output_tokens: None,
-        model: None,
-        output: None,
-        failure_reason: None,
-        retry_after: None,
-        retry_count: None,
-    }
+    NodeState { session_id: format!("workflow-{TS}-{node_id}"), status: NodeStatus::Completed, attempts: 1, started_at: None, completed_at: None, acp_session_id: None, thinking_session_id: None, tool_provenance: None, input_tokens: None, output_tokens: None, model: None, output: None, failure_reason: None, retry_after: None, retry_count: None }
 }
 
-fn context_with_retention() -> (
-    tempfile::TempDir,
-    crate::tools::ToolContext,
-    crate::test_util::ConfigResetGuard,
-) {
+#[rustfmt::skip]
+fn context_with_retention() -> (tempfile::TempDir, crate::tools::ToolContext, crate::test_util::ConfigResetGuard) {
     let (tmp, mut context, guard) = pipeline_test_context(OutputFormat::Json);
     context.config.settings.quarantine_retention_days = Some(30);
-    assert_eq!(
-        context
-            .config
-            .quarantine_config()
-            .expect("explicit retention config")
-            .retention_days,
-        30
-    );
     (tmp, context, guard)
 }
 
@@ -106,13 +70,27 @@ fn file_name(context: &crate::tools::ToolContext, uri: &str) -> String {
 }
 
 fn quarantined(context: &crate::tools::ToolContext, session_id: &str, name: &str) -> PathBuf {
+    trash_dir(context, session_id).join(name)
+}
+
+fn trash_dir(context: &crate::tools::ToolContext, session_id: &str) -> PathBuf {
     context
         .config
         .maenifold_root
         .join(".trash")
         .join(TRASH_DATE)
         .join(session_id)
-        .join(name)
+}
+
+fn dataless(context: &crate::tools::ToolContext, session_id: &str) -> MaenifoldError {
+    MaenifoldError::FileDataless {
+        path: uri_to_path(
+            &pipeline_session_uri(session_id),
+            &context.config.memory_path,
+        )
+        .expect("pipeline path"),
+        size: 64,
+    }
 }
 
 #[test]
@@ -163,12 +141,7 @@ fn delete_quarantines_all_files_for_one_session_under_one_directory() {
 
     delete_pipeline_with_force(&context, session_id, true).expect("delete pipeline");
 
-    let expected_dir = context
-        .config
-        .maenifold_root
-        .join(".trash")
-        .join(TRASH_DATE)
-        .join(session_id);
+    let expected_dir = trash_dir(&context, session_id);
     assert!(expected_dir.is_dir(), "single quarantine directory missing");
     for uri in uris {
         let path = quarantined(&context, session_id, &file_name(&context, &uri));
@@ -183,17 +156,11 @@ fn delete_pipeline_session_files_fails_closed_without_retention_config() {
     let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
     context.config.settings.quarantine_retention_days = None;
     let session_id = "pipeline-1735689600000-quarantine-no-retention";
-    let definition = PipelineDefinition {
-        nodes: vec![workflow_node("node")],
-        edges: vec![],
-        inputs: None,
-        template_id: None,
-    };
     let state = node_state("node");
     let states = HashMap::from([("node".to_string(), state.clone())]);
     let pipeline_uri = pipeline_session_uri(session_id);
     let workflow_uri = workflow_session_uri(&state.session_id);
-    seed_pipeline_session_with_workflows(&context, session_id, definition, states.clone(), 1);
+    seed_pipeline(&context, session_id, &["node"]);
 
     let error = match delete_pipeline_session_files(&context, session_id, &states) {
         Ok(_) => panic!("missing retention must refuse quarantine"),
@@ -208,6 +175,47 @@ fn delete_pipeline_session_files_fails_closed_without_retention_config() {
     );
     assert!(file_exists(&pipeline_uri, &context.config).expect("pipeline remains"));
     assert!(file_exists(&workflow_uri, &context.config).expect("workflow remains"));
+}
+
+#[test]
+#[serial]
+fn delete_unreadable_pipeline_quarantines_files() {
+    let (_tmp, context, _guard) = context_with_retention();
+    let session_id = "pipeline-1735689600000-quarantine-unreadable";
+    let pipeline_uri = pipeline_session_uri(session_id);
+    seed_pipeline(&context, session_id, &["node"]);
+    let name = file_name(&context, &pipeline_uri);
+
+    let response =
+        delete_unreadable_pipeline(&context, session_id, true, dataless(&context, session_id))
+            .expect("delete unreadable pipeline");
+    let payload: Value = serde_json::from_str(&response).expect("json response");
+
+    assert_eq!(payload["data"]["deletedSessionId"], session_id);
+    assert!(!file_exists(&pipeline_uri, &context.config).expect("source absent"));
+    assert!(quarantined(&context, session_id, &name).is_file());
+}
+
+#[test]
+#[serial]
+fn delete_unreadable_fails_closed_without_retention() {
+    let (_tmp, mut context, _guard) = pipeline_test_context(OutputFormat::Json);
+    context.config.settings.quarantine_retention_days = None;
+    let session_id = "pipeline-1735689600000-quarantine-unreadable-no-retention";
+    let pipeline_uri = pipeline_session_uri(session_id);
+    seed_pipeline(&context, session_id, &["node"]);
+
+    let error =
+        delete_unreadable_pipeline(&context, session_id, true, dataless(&context, session_id))
+            .expect_err("missing retention must refuse unreadable delete");
+
+    assert!(
+        error
+            .to_string()
+            .contains("quarantine retention not configured")
+    );
+    assert!(file_exists(&pipeline_uri, &context.config).expect("pipeline remains"));
+    assert!(!trash_dir(&context, session_id).exists());
 }
 
 #[test]

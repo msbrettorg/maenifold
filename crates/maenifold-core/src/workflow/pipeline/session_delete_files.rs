@@ -1,6 +1,8 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{delete_file, file_exists, path_to_uri, read_markdown, uri_to_path};
+#[cfg(test)]
+use crate::markdown::delete_file;
+use crate::markdown::{file_exists, path_to_uri, read_markdown, uri_to_path};
 use crate::sessions::{
     date_parts_from_session_id, extract_session_timestamp_millis, pipeline_session_uri,
     workflow_session_uri,
@@ -148,10 +150,7 @@ pub(super) fn delete_pipeline_session_files(
     })
 }
 
-pub(super) fn delete_file_verified(uri: &str, config: &Config) -> Result<String> {
-    delete_file_verified_with(uri, config, file_exists)
-}
-
+#[cfg(test)]
 pub(super) fn delete_file_verified_with<F>(
     uri: &str,
     config: &Config,

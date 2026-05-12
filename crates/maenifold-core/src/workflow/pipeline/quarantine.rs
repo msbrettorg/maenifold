@@ -26,6 +26,7 @@ pub(super) fn require_quarantine_config(config: &Config) -> Result<QuarantineCon
 }
 
 pub(super) fn quarantine_file(uri: &str, config: &Config, session_id: &str) -> Result<String> {
+    require_quarantine_config(config)?;
     let path = uri_to_path(uri, &config.memory_path)?;
     let absolute_path = path.canonicalize().unwrap_or(path);
     let name = absolute_path

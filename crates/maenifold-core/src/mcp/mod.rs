@@ -18,11 +18,9 @@ mod gateway_experiment_fixtures;
 #[cfg(test)]
 mod gateway_experiment_tests;
 mod gateway_gate;
-mod gateway_handler;
+pub(crate) mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
-#[cfg(test)]
-mod save_workflow_asset_gateway_tests;
 mod gateway_intent;
 #[cfg(test)]
 mod gateway_intent_tests;
@@ -39,6 +37,8 @@ pub mod http;
 mod mcp_tool_calls;
 mod resource_routing;
 pub mod resources;
+#[cfg(test)]
+mod save_workflow_asset_gateway_tests;
 pub mod schema;
 pub mod stdio_pool;
 mod stdio_pool_health;

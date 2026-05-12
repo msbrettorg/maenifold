@@ -179,6 +179,7 @@ pub enum NodeStatus {
     Active,
     Completed,
     Skipped,
+    #[serde(alias = "cancelled")]
     Abandoned,
     Stuck,
     Retrying,

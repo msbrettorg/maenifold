@@ -23,6 +23,12 @@ pub struct PipelineParams {
     /// Start autonomous execution for an existing pipeline
     #[serde(default)]
     pub run: bool,
+    /// Block until the pipeline reaches a terminal status
+    #[serde(default)]
+    pub wait: Option<bool>,
+    /// Maximum wait duration in milliseconds; omitted means unlimited
+    #[serde(default, rename = "timeoutMs")]
+    pub timeout_ms: Option<u64>,
     /// Ambient prompt for autonomous pipeline execution
     #[serde(default)]
     pub prompt: Option<String>,

@@ -70,6 +70,9 @@ mod handler_lifecycle;
 mod handler_nodes;
 mod handler_surgery;
 mod handler_validation;
+mod handler_wait;
+#[cfg(test)]
+mod handler_wait_tests;
 #[cfg(test)]
 mod integration_tests;
 #[cfg(test)]

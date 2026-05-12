@@ -10,6 +10,7 @@ use super::handler_crud::{
 use super::handler_lifecycle::handle_lifecycle_operation;
 use super::handler_nodes::handle_node_operation;
 use super::handler_surgery::handle_surgery_operation;
+use super::handler_wait::{await_terminal, parse_timeout_ms, wait_requested};
 
 // T-45.6a: RTM-333 / RTM-334 / RTM-314 / RTM-315 / RTM-316 / RTM-317
 // Pipeline create validates graph structure, persists pipeline state, and pre-creates node sessions.
@@ -65,6 +66,10 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
 
         if let Some(result) = handle_lifecycle_operation(context, &session_id, payload)? {
             return Ok(result);
+        }
+
+        if wait_requested(payload) {
+            return await_terminal(context, &session_id, parse_timeout_ms(payload)?);
         }
 
         if payload

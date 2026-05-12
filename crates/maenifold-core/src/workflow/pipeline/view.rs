@@ -15,6 +15,18 @@ use super::{
 };
 
 pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> Result<String> {
+    let result = view_pipeline_session_value(context, session_id)?;
+
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+pub(super) fn view_pipeline_session_value(
+    context: &ToolContext,
+    session_id: &str,
+) -> Result<Value> {
     let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
     let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
     let node_states =
@@ -40,11 +52,7 @@ pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> 
         ambient_prompt,
         persisted_status.as_deref(),
     )?;
-
-    Ok(match context.output_format {
-        OutputFormat::Json => success(result),
-        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
-    })
+    Ok(result)
 }
 
 pub(super) fn node_ids_with_status(
@@ -93,10 +101,12 @@ pub(super) fn build_pipeline_view_result(
     let edges = pipeline_edges_json(definition);
     let mermaid = render_pipeline_mermaid(definition, node_states)?;
     let running = lease::session_lock_is_held(session_id, &context.config);
+    let final_status = is_pipeline_terminal_status(status);
 
     let mut result = json!({
         "pipelineId": session_id,
         "status": status,
+        "final": final_status,
         "nodes": nodes,
         "edges": edges,
         "ready": ready,
@@ -110,6 +120,13 @@ pub(super) fn build_pipeline_view_result(
     }
 
     Ok(result)
+}
+
+pub(super) fn is_pipeline_terminal_status(status: &str) -> bool {
+    matches!(
+        status,
+        "completed" | "failed" | "cancelled" | "abandoned" | "stuck"
+    )
 }
 
 pub(super) fn node_state_for<'a>(

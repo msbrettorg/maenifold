@@ -14,10 +14,11 @@ import type { PipelineDefinition } from './pipeline-types';
 // Types
 // ---------------------------------------------------------------------------
 
-/** Structural variables the runtime must interpolate before creating the pipeline. */
+/** Structural and user-provided variables interpolated before creating the pipeline. */
 export interface TemplateVariables {
   primaryAgent: string;
   criticAgent: string;
+  inputs?: TemplateInputValues;
 }
 
 /** A tool that must be discovered via MCP for the template to be available. */
@@ -27,17 +28,21 @@ export interface TemplateCapabilityGate {
 }
 
 export type TemplateCategory = 'universal' | 'enterprise';
+export type TemplateInputType = 'text' | 'textarea';
+export type TemplateInputValues = Record<string, string>;
 
 export interface TemplateInputDefinition {
-  /** Key passed to MCP `Pipeline run` as `inputs[key]`. */
+  /** Key used by `{{inputs.key}}` placeholders. */
   key: string;
-  /** Human-readable label shown in the run form. */
+  /** Human-readable label shown in the create form. */
   label: string;
   /** Optional helper copy shown under the field label. */
   description?: string;
-  /** Placeholder text for the runtime field. */
+  /** Placeholder text for the create-time field. */
   placeholder?: string;
-  /** Whether the run is blocked until a non-empty value is provided. */
+  /** Preferred editor for the create-time field. */
+  type?: TemplateInputType;
+  /** Whether create is blocked until a non-empty value is provided. */
   required?: boolean;
 }
 
@@ -55,7 +60,7 @@ export interface PipelineTemplate {
   capabilities: readonly TemplateCapabilityGate[];
   /** Raw pipeline definition with `{{variable}}` placeholders in string values. */
   definition: PipelineDefinition;
-  /** Explicit runtime inputs shown only when the user runs the pipeline. */
+  /** Inputs collected before instantiation to resolve `{{inputs.*}}` placeholders. */
   runInputs: readonly TemplateInputDefinition[];
   /** Map from node id → human-readable label. */
   nodeLabels: Readonly<Record<string, string>>;

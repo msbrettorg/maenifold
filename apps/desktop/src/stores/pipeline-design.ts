@@ -20,7 +20,7 @@ import type {
   ToolNodeInput,
   WorkflowNodeInput,
 } from '../lib/pipeline-node-factory';
-import { type PipelineTemplate } from '../lib/pipeline-templates';
+import { type PipelineTemplate, type TemplateInputValues } from '../lib/pipeline-templates';
 import { instantiateTemplate, resolveAgents } from '../lib/pipeline-template-runtime';
 import { resolvePreferredAgent } from '../lib/preferred-agent';
 import {
@@ -196,7 +196,10 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     });
   }
 
-  async function applyTemplate(template: PipelineTemplate): Promise<boolean> {
+  async function applyTemplate(
+    template: PipelineTemplate,
+    inputs: TemplateInputValues = {},
+  ): Promise<boolean> {
     const agents = resolveAgents(
       configStore.agentNames,
       resolvePreferredAgent(configStore.agentNames),
@@ -207,7 +210,10 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
       return false;
     }
 
-    const result = instantiateTemplate(template, agents);
+    const templateInputs = Object.fromEntries(
+      template.runInputs.map((input) => [input.key, inputs[input.key] ?? '']),
+    );
+    const result = instantiateTemplate(template, { ...agents, inputs: templateInputs });
     newPipeline();
     localDefinition.value = withLocalMetadata(result.definition, { templateId: template.id });
     return true;

@@ -5,6 +5,7 @@ import type {
   SessionConfigSelectGroup,
   SessionConfigSelectOption,
   SessionConfigSelectOptions,
+  SessionMode,
   SessionState,
 } from '../lib/types';
 
@@ -153,15 +154,46 @@ function applyConfigOptionsState(
   session.configOptions = session.hasConfigOptions ? normalizeConfigOptions(response.configOptions) : [];
 }
 
+function normalizeSessionMode(mode: unknown): SessionMode | null {
+  if (!isRecord(mode) || typeof mode.id !== 'string' || typeof mode.name !== 'string') return null;
+  return {
+    id: mode.id,
+    name: mode.name,
+    description: typeof mode.description === 'string' ? mode.description : undefined,
+    _meta: isRecord(mode._meta) ? mode._meta : null,
+  };
+}
+
+function applyModeState(
+  session: SessionState,
+  response: { modes?: unknown | null }
+): void {
+  if (!('modes' in response)) return;
+  const modeSession = session as SessionState & { modes?: SessionMode[] };
+  const modeState = response.modes;
+  if (!isRecord(modeState)) {
+    modeSession.modes = [];
+    return;
+  }
+  modeSession.modes = Array.isArray(modeState.availableModes)
+    ? modeState.availableModes.map(normalizeSessionMode).filter((mode): mode is SessionMode => mode !== null)
+    : [];
+  if (typeof modeState.currentModeId === 'string') {
+    session.currentModeId = modeState.currentModeId;
+  }
+}
+
 export function applySessionConfigurationState(
   session: SessionState,
   response: {
     configOptions?: unknown[] | null;
     availableCommands?: unknown[] | null;
+    modes?: unknown | null;
   }
 ): void {
   applyConfigOptionsState(session, response);
   applyAvailableCommandsState(session, response);
+  applyModeState(session, response);
 }
 
 function applyAvailableCommandsState(

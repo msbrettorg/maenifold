@@ -7,6 +7,7 @@ import {
   createNode,
   type LogEntry,
   type PipelineDefinition,
+  type PipelineInputs,
   type PipelineListItem,
   type PipelineNode,
   type PipelineNodeType,
@@ -34,6 +35,11 @@ import {
   withLocalMetadata,
 } from './pipeline-sync';
 
+export interface CreatePipelineOptions {
+  name?: string;
+  description?: string;
+}
+
 interface DesignActionsDeps {
   mcp: ReturnType<typeof usePipelineMcp>;
   configStore: ReturnType<typeof useConfigStore>;
@@ -51,6 +57,31 @@ interface DesignActionsDeps {
   setError: (tool: string, err: unknown) => void;
   withError: <T>(tool: string, fn: () => Promise<T>) => Promise<T | undefined>;
   withLoading: <T>(fn: () => Promise<T>) => Promise<T>;
+}
+
+function pipelineMetadata(inputs?: PipelineInputs): Record<string, unknown> {
+  const value = inputs?.__pipelineMetadata;
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? { ...(value as Record<string, unknown>) }
+    : {};
+}
+
+function withDescriptionMetadata(
+  definition: PipelineDefinition,
+  description?: string,
+): PipelineDefinition {
+  const trimmed = description?.trim();
+  if (!trimmed) return definition;
+  return {
+    ...definition,
+    inputs: {
+      ...(definition.inputs ?? {}),
+      __pipelineMetadata: {
+        ...pipelineMetadata(definition.inputs),
+        description: trimmed,
+      },
+    },
+  };
 }
 
 export function createPipelineDesignActions(deps: DesignActionsDeps) {
@@ -126,9 +157,15 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
     eventLog.value = [];
   }
 
-  async function createPipeline(definitionOverride?: PipelineDefinition) {
+  async function createPipeline(
+    definitionOverride?: PipelineDefinition,
+    options: CreatePipelineOptions = {},
+  ) {
     return withError('create_pipeline', async () => {
-      const definition = serializePipelineDefinition(definitionOverride ?? localDefinition.value);
+      const definition = withDescriptionMetadata(
+        serializePipelineDefinition(definitionOverride ?? localDefinition.value),
+        options.description,
+      );
       definition.nodes.forEach((node) => {
         if (node.type === 'workflow' && !('workflowId' in node && node.workflowId)) {
           throw new Error(`Workflow node '${node.id}' is missing workflowId`);
@@ -137,7 +174,7 @@ export function createPipelineDesignActions(deps: DesignActionsDeps) {
       const result = await mcp.createPipeline({
         ...definition,
         edges: definition.edges.map(serializeEdge),
-      }, maxConcurrency.value);
+      }, maxConcurrency.value, { name: options.name });
       if (
         isCreateResult(result)
         && typeof result.pipelineId === 'string'

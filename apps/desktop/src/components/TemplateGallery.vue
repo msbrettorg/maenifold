@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia';
 import { usePipelineStore } from '../stores/pipeline';
 import { useConfigStore } from '../stores/config';
 import { useMcpToolDiscoveryStore } from '../stores/mcp-tool-discovery';
-import type { PipelineTemplate } from '../lib/pipeline-templates';
+import type { PipelineTemplate, TemplateInputValues } from '../lib/pipeline-templates';
 import { getAvailableTemplates, resolveAgents } from '../lib/pipeline-template-runtime';
 import TemplateGalleryCard from './TemplateGalleryCard.vue';
 import TemplateGalleryIntentForm from './TemplateGalleryIntentForm.vue';
@@ -46,9 +46,9 @@ function selectTemplate(template: PipelineTemplate): void {
   creationNoticeVisible.value = false;
 }
 
-async function handleInstantiate(): Promise<void> {
+async function handleInstantiate(inputValues: TemplateInputValues): Promise<void> {
   if (selectedTemplate.value && canInstantiate.value && hasIntentAgent.value) {
-    await store.applyTemplate(selectedTemplate.value);
+    await store.applyTemplate(selectedTemplate.value, inputValues);
   }
 }
 

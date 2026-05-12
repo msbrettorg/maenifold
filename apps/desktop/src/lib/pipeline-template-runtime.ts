@@ -89,9 +89,9 @@ export function getAvailableTemplates(
 // Interpolation
 // ---------------------------------------------------------------------------
 
-const VARIABLE_PATTERN = /\{\{(\w+)\}\}/g;
+const VARIABLE_PATTERN = /\{\{\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)\s*\}\}/g;
 
-/** Interpolate `{{key}}` placeholders in a single string. */
+/** Interpolate `{{key}}` and `{{inputs.key}}` placeholders in a string. */
 function interpolateString(
   text: string,
   variables: TemplateVariables,
@@ -99,6 +99,11 @@ function interpolateString(
   return text.replace(VARIABLE_PATTERN, (match, key: string) => {
     if (key === 'primaryAgent' || key === 'criticAgent') {
       return variables[key];
+    }
+
+    if (key.startsWith('inputs.')) {
+      const inputKey = key.slice('inputs.'.length);
+      return variables.inputs?.[inputKey] ?? match;
     }
 
     return match;

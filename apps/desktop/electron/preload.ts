@@ -140,5 +140,20 @@ const electronAPI = {
   },
 };
 
+/**
+ * Two parallel preload bridges — T-302.40 / T-302.38.
+ *
+ * window.electronAPI  — legacy broad surface (~30 IPC methods).
+ *   Typed as `ElectronApi` in vite-env.d.ts (optional: `electronAPI?: ElectronApi`).
+ *   All existing callers use `window.electronAPI?.foo` with the `?.` guard.
+ *
+ * window.api  — narrow, non-optional typed contract (currently exposes `quit` only).
+ *   Typed as `AppApi` in vite-env.d.ts (required: `api: AppApi`).
+ *   `useBuiltInSlashCommands.ts` calls `window.api.quit()` without a null guard.
+ *
+ * Convention: NEW IPC MUST be added to `window.api` (extend the `AppApi` interface),
+ *   NOT to `window.electronAPI`. Existing electronAPI methods stay in place pending
+ *   a full migration to window.api (Option B) in a future sprint.
+ */
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
 contextBridge.exposeInMainWorld('api', { quit: electronAPI.quit });

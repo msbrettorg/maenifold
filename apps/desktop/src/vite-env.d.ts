@@ -110,6 +110,12 @@ type Vec0Status = {
   downloadProgress: Vec0DownloadProgress | null;
 };
 
+/**
+ * Two parallel preload bridges — T-302.40 / T-302.38.
+ * `api` is the narrow non-optional contract; add NEW IPC here (extend AppApi).
+ * `electronAPI` is the legacy broad surface; existing callers stay as-is
+ * pending a future full-migration sprint (Option B, deferred from T-302.40).
+ */
 interface Window {
   api: AppApi;
   electronAPI?: ElectronApi;

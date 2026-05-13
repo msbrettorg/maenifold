@@ -15,6 +15,12 @@ const mcpState = vi.hoisted(() => {
     reconnecting: vue.ref(false),
   };
 });
+const guard = vi.hoisted(() => ({
+  markDirty: vi.fn(),
+  markClean: vi.fn(),
+  confirmIfDirty: vi.fn(async () => true),
+  attachBeforeUnload: vi.fn(() => vi.fn()),
+}));
 
 vi.mock('elkjs/lib/elk-api', () => ({
   default: class {
@@ -62,6 +68,16 @@ vi.mock('../../composables/usePipelineMcp', () => ({
     supportsResourceSubscribe: vi.fn(() => true),
     startPolling: vi.fn(() => vi.fn()),
   }),
+}));
+
+vi.mock('../../composables/useUnsavedChangesGuard', () => ({
+  useUnsavedChangesGuard: vi.fn(() => ({
+    isDirty: { value: false },
+    markDirty: guard.markDirty,
+    markClean: guard.markClean,
+    confirmIfDirty: guard.confirmIfDirty,
+    attachBeforeUnload: guard.attachBeforeUnload,
+  })),
 }));
 
 function createView(status: PipelineViewModel['status'] = 'paused', pipelineId = 'pipeline-1'): PipelineViewModel {
@@ -120,8 +136,8 @@ function mountPipelineView(setupStore?: (store: ReturnType<typeof usePipelineSto
         PipelineActionBar: true,
         PipelineComposer: {
           props: ['designMode'],
-          emits: ['nodeSelected'],
-          template: '<div data-testid="composer" :data-design-mode="String(designMode)"><button data-testid="select-node" type="button" @click="$emit(\'nodeSelected\', \'prompt-node\')">Select node</button><slot name="toolbar-actions" /></div>',
+          emits: ['nodeSelected', 'update:localDefinition'],
+          template: '<div data-testid="composer" :data-design-mode="String(designMode)"><button data-testid="select-node" type="button" @click="$emit(\'nodeSelected\', \'prompt-node\')">Select node</button><button data-testid="mutate-pipeline" type="button" @click="$emit(\'update:localDefinition\', { nodes: [{ id: \'draft-node\', type: \'tool\', toolName: \'example.tool\' }], edges: [] })">Mutate</button><slot name="toolbar-actions" /></div>',
         },
         PipelineFlyout: true,
         PipelineIconRail: true,
@@ -173,6 +189,11 @@ beforeEach(() => {
   mcpState.connected.value = true;
   mcpState.error.value = null;
   mcpState.reconnecting.value = false;
+  guard.markDirty.mockClear();
+  guard.markClean.mockClear();
+  guard.confirmIfDirty.mockClear();
+  guard.attachBeforeUnload.mockClear();
+  guard.confirmIfDirty.mockResolvedValue(true);
 });
 
 describe('PipelineView design mode toggle', () => {
@@ -226,6 +247,25 @@ describe('PipelineView design mode toggle', () => {
 
     expect(store.designMode).toBe(false);
     expect(designToggle(wrapper).text()).toContain('Design');
+  });
+
+  it('uses the shared unsaved changes guard for edit, save, and design-mode exit', async () => {
+    const { store, wrapper } = mountPipelineView();
+    vi.spyOn(store, 'createPipeline').mockResolvedValue({ pipelineId: 'pipeline-saved' });
+
+    await flushPromises();
+    await designToggle(wrapper).trigger('click');
+    await wrapper.get('[data-testid="mutate-pipeline"]').trigger('click');
+    await nextTick();
+    expect(guard.markDirty).toHaveBeenCalled();
+
+    const saveButton = wrapper.findAll('button').find((button) => button.text().includes('Save pipeline'));
+    expect(saveButton).toBeDefined();
+    await saveButton!.trigger('click');
+    expect(guard.markClean).toHaveBeenCalled();
+
+    await designToggle(wrapper).trigger('click');
+    expect(guard.confirmIfDirty).toHaveBeenCalled();
   });
 });
 

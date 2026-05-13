@@ -11,9 +11,11 @@ import { Mode } from 'vanilla-jsoneditor';
 import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
 import { Button } from '@/components/ui/button';
 import { useConfigStore } from '../stores/config';
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 
 const configStore = useConfigStore();
+const guard = useUnsavedChangesGuard({ title: 'Discard settings changes?' });
 
 const editorText = ref<string>('');
 const filePath = ref('');
@@ -38,6 +40,7 @@ async function load() {
     suppressNextDirty = true;
     editorText.value = result.content;
     isDirty.value = false;
+    guard.markClean();
   } catch (error) {
     feedback.value = {
       type: 'error',
@@ -55,6 +58,7 @@ async function save() {
     JSON.parse(editorText.value);
     await configStore.writeRaw(editorText.value);
     isDirty.value = false;
+    guard.markClean();
     feedback.value = { type: 'success', message: `Saved to ${filePath.value}.` };
   } catch (error) {
     feedback.value = {
@@ -67,6 +71,7 @@ async function save() {
 }
 
 async function revert() {
+  if (!(await guard.confirmIfDirty())) return;
   await load();
   feedback.value = { type: 'info', message: 'Reverted to file on disk.' };
 }
@@ -77,9 +82,12 @@ watch(editorText, () => {
     return;
   }
   isDirty.value = true;
+  guard.markDirty();
 });
 
+let detachBeforeUnload: (() => void) | null = null;
 onMounted(async () => {
+  detachBeforeUnload = guard.attachBeforeUnload();
   await load();
   if (window.electronAPI?.onConfigChanged) {
     unsubscribeWatcher = window.electronAPI.onConfigChanged(() => {
@@ -96,6 +104,7 @@ onMounted(async () => {
 });
 
 onBeforeUnmount(() => {
+  detachBeforeUnload?.();
   unsubscribeWatcher?.();
 });
 </script>

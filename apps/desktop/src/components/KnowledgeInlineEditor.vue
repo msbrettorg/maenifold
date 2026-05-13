@@ -1,16 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -23,6 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import type { MemoryFile } from '../lib/workflow-types';
 import { useKnowledgeStore } from '../stores/knowledge';
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 
 const props = defineProps<{
   note: MemoryFile;
@@ -34,10 +25,11 @@ const emit = defineEmits<{
 }>();
 
 const store = useKnowledgeStore();
+const guard = useUnsavedChangesGuard({ title: 'Discard knowledge note changes?' });
 const draft = ref(props.note.content);
 const saving = ref(false);
 const error = ref<string | null>(null);
-type ActiveDialog = 'discard' | 'conflict' | null;
+type ActiveDialog = 'conflict' | null;
 const activeDialog = ref<ActiveDialog>(null);
 
 function setActiveDialog(dialog: Exclude<ActiveDialog, null>, open: boolean): void {
@@ -54,17 +46,21 @@ const conflictOpen = computed({
     setActiveDialog('conflict', open);
   },
 });
-const discardOpen = computed({
-  get: () => activeDialog.value === 'discard',
-  set: (open: boolean) => {
-    setActiveDialog('discard', open);
-  },
-});
 const hasUnsavedChanges = computed(() => draft.value !== props.note.content);
 
 watch(() => props.note.content, (content) => {
   draft.value = content;
+  guard.markClean();
 });
+
+let detachBeforeUnload: (() => void) | null = null;
+onMounted(() => { detachBeforeUnload = guard.attachBeforeUnload(); });
+onBeforeUnmount(() => { detachBeforeUnload?.(); });
+
+function updateDraft(value: string): void {
+  draft.value = value;
+  guard.markDirty();
+}
 
 function isStaleEditError(errorValue: unknown): boolean {
   const message = errorValue instanceof Error ? errorValue.message : String(errorValue);
@@ -81,6 +77,7 @@ async function save(): Promise<void> {
       content: draft.value,
       checksum: props.note.checksum,
     });
+    guard.markClean();
     emit('saved');
   } catch (errorValue) {
     if (isStaleEditError(errorValue)) {
@@ -95,17 +92,17 @@ async function save(): Promise<void> {
 
 function exitEditor(): void {
   draft.value = props.note.content;
-  discardOpen.value = false;
+  guard.markClean();
   emit('cancel');
 }
 
-function requestCancel(): void {
+async function requestCancel(): Promise<void> {
   error.value = null;
   if (!hasUnsavedChanges.value) {
     exitEditor();
     return;
   }
-  discardOpen.value = true;
+  if (await guard.confirmIfDirty()) exitEditor();
 }
 
 async function discardAndReload(): Promise<void> {
@@ -119,6 +116,7 @@ async function forceOverwrite(): Promise<void> {
   try {
     await store.forceSaveNoteContent(props.note.uri, draft.value);
     conflictOpen.value = false;
+    guard.markClean();
     emit('saved');
   } catch (errorValue) {
     error.value = errorValue instanceof Error ? errorValue.message : String(errorValue);
@@ -135,10 +133,11 @@ async function forceOverwrite(): Promise<void> {
     </Alert>
 
     <Textarea
-      v-model="draft"
+      :model-value="draft"
       data-testid="inline-editor-content"
       class="min-h-[28rem] border-border-subtle bg-bg-surface font-mono text-body-sm text-text-primary"
       placeholder="Use [[WikiLinks]] to connect concepts"
+      @update:model-value="(value: string | number) => updateDraft(String(value))"
     />
 
     <div class="flex justify-end gap-2">
@@ -162,20 +161,5 @@ async function forceOverwrite(): Promise<void> {
         </DialogFooter>
       </DialogContent>
     </Dialog>
-
-    <AlertDialog :open="discardOpen" @update:open="(value: boolean) => { discardOpen = value; }">
-      <AlertDialogContent class="sm:max-w-[28rem]">
-        <AlertDialogHeader>
-          <AlertDialogTitle>Discard unsaved changes?</AlertDialogTitle>
-          <AlertDialogDescription>
-            Your local edits will be discarded and the note preview will be restored.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Keep editing</AlertDialogCancel>
-          <AlertDialogAction @click="exitEditor">Discard</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   </div>
 </template>

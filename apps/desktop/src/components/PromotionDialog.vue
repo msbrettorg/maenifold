@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import type { ViewNode } from '../lib/pipeline-types';
 import type { MemoryPromotionSource, NormalizedMemoryDocument, NormalizedMemorySearchItem } from '../composables/useMemoryPromotion';
 import { buildPromotionPreview, hasWikiLinkConnection, isStaleMemoryEditError, useMemoryPromotion } from '../composables/useMemoryPromotion';
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import PromotionDialogConfirm from './PromotionDialogConfirm.vue';
 import PromotionDialogEditor from './PromotionDialogEditor.vue';
 import PromotionDialogPreview from './PromotionDialogPreview.vue';
@@ -23,6 +24,7 @@ const props = defineProps<{ node: ViewNode; pipelineId: string }>();
 const emit = defineEmits<{ (event: 'close'): void; (event: 'busy-change', busy: boolean): void }>();
 
 const promotion = useMemoryPromotion();
+const guard = useUnsavedChangesGuard({ title: 'Discard promotion changes?' });
 const step = ref<PromotionStep>('preview');
 const searchQuery = ref(createDefaultTitle(props.node.nodeId));
 const title = ref(createDefaultTitle(props.node.nodeId)), folder = ref(''), tagsInput = ref(''), wikiLinkInput = ref('');
@@ -65,7 +67,14 @@ const submitLabel = computed(() => {
 });
 
 watch(() => promotion.busy.value, (busy) => emit('busy-change', busy), { immediate: true });
-onMounted(() => { void runSearch(); });
+let detachBeforeUnload: (() => void) | null = null;
+onMounted(() => {
+  detachBeforeUnload = guard.attachBeforeUnload();
+  void runSearch();
+});
+onBeforeUnmount(() => {
+  detachBeforeUnload?.();
+});
 
 function createDefaultTitle(nodeId: string): string {
   const normalized = nodeId.replace(/[_-]+/g, ' ').trim();
@@ -179,6 +188,16 @@ function continueToConfirm(): void {
   }
 }
 
+function updateTitle(value: string): void { title.value = value; guard.markDirty(); }
+function updateFolder(value: string): void { folder.value = value; guard.markDirty(); }
+function updateTagsInput(value: string): void { tagsInput.value = value; guard.markDirty(); }
+function updateWikiLinkInput(value: string): void { wikiLinkInput.value = value; guard.markDirty(); }
+
+async function backToPreview(): Promise<void> {
+  if (!(await guard.confirmIfDirty())) return;
+  step.value = 'preview';
+}
+
 async function handleSubmit(): Promise<void> {
   promotion.resetResultState();
   if (!validateCurrentAction()) return;
@@ -189,6 +208,7 @@ async function handleSubmit(): Promise<void> {
         identifier: selectedResult.value.uri,
         wikiLinkInput: wikiLinkInput.value,
       });
+      guard.markClean();
       return;
     }
 
@@ -206,6 +226,7 @@ async function handleSubmit(): Promise<void> {
         }
         throw errorValue;
       }
+      guard.markClean();
       return;
     }
 
@@ -215,6 +236,7 @@ async function handleSubmit(): Promise<void> {
       folder: folder.value,
       tags: tags.value,
     });
+    guard.markClean();
   } catch {
     if (!formError.value && promotion.error.value) {
       formError.value = promotion.error.value;
@@ -222,7 +244,8 @@ async function handleSubmit(): Promise<void> {
   }
 }
 
-function closeDialog(): void {
+async function closeDialog(): Promise<void> {
+  if (!(await guard.confirmIfDirty())) return;
   emit('close');
 }
 </script>
@@ -247,7 +270,7 @@ function closeDialog(): void {
           </div>
         </section>
         <PromotionDialogPreview v-else-if="step === 'preview'" :search-query="searchQuery" :search-results="searchResults" :searching="promotion.searching.value" :writing="promotion.writing.value" :info-message="infoMessage" :form-error="formError" :promotion-error="promotion.error.value" :busy="promotion.busy.value" @update:search-query="searchQuery = $event" @search="runSearch" @select-action="selectAction" @close="closeDialog" />
-        <PromotionDialogEditor v-else-if="selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="title = $event" @update:folder="folder = $event" @update:tags-input="tagsInput = $event" @update:wiki-link-input="wikiLinkInput = $event" @back="step = 'preview'" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
+        <PromotionDialogEditor v-else-if="step === 'editor' && selectedAction" :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :loading-memory="loadingMemory" :title="title" :folder="folder" :tags-input="tagsInput" :wiki-link-input="wikiLinkInput" :wiki-link-error="wikiLinkError" :next-preview="nextPreview" :form-error="formError" :update-disabled-message="updateDisabledMessage" :busy="promotion.busy.value" @update:title="updateTitle" @update:folder="updateFolder" @update:tags-input="updateTagsInput" @update:wiki-link-input="updateWikiLinkInput" @back="backToPreview" @continue="continueToConfirm" @retry="retryCurrentAction" @close="closeDialog" />
         <PromotionDialogConfirm v-else :selected-action="selectedAction" :selected-result="selectedResult" :selected-memory="selectedMemory" :title="title" :folder="folder" :tags="tags" :next-preview="nextPreview" :form-error="formError" :submit-label="submitLabel" :busy="promotion.busy.value" :can-submit-update="canSubmitUpdate" :update-disabled-message="updateDisabledMessage" @back="step = 'editor'" @submit="handleSubmit" @retry="retryCurrentAction" @close="closeDialog" />
       </ScrollArea>
     </DialogContent>

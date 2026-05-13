@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { Brain, Loader2 } from 'lucide-vue-next'
 import { usePipelineStore } from '../stores/pipeline'
@@ -10,10 +10,12 @@ import WorkflowLiveProgress from './WorkflowLiveProgress.vue'
 import WorkflowStepTimeline from './WorkflowStepTimeline.vue'
 import WorkflowStepInspector from './WorkflowStepInspector.vue'
 import { useWorkflowStore } from '../stores/workflow'
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
 const pipelineStore = usePipelineStore()
 const store = useWorkflowLibraryStore()
 const workflowStore = useWorkflowStore()
+const guard = useUnsavedChangesGuard({ title: 'Discard workflow changes?' })
 const {
   currentDefinition,
   currentId,
@@ -39,8 +41,8 @@ function handleSelectStep(stepId: string) {
   selectedStepId.value = selectedStepId.value === stepId ? null : stepId
 }
 
-function handleSave() {
-  void store.saveDraft()
+async function handleSave() {
+  if (await store.saveDraft()) guard.markClean()
 }
 
 watch(currentId, () => {
@@ -54,7 +56,20 @@ watch(displayedDefinition, (definition) => {
   }
 })
 
+watch(() => store.isDirty, (isDirty) => {
+  if (isDirty) guard.markDirty()
+  else guard.markClean()
+})
+
+watch(() => store.pendingWorkflowId, async (pendingWorkflowId) => {
+  if (!pendingWorkflowId) return
+  if (await guard.confirmIfDirty()) await store.confirmDiscardAndContinue()
+  else store.cancelPendingSelection()
+})
+
+let detachBeforeUnload: (() => void) | null = null
 onMounted(async () => {
+  detachBeforeUnload = guard.attachBeforeUnload()
   if (!pipelineStore.connected) {
     try {
       await pipelineStore.connect()
@@ -65,6 +80,10 @@ onMounted(async () => {
 
   await store.fetchSummaries()
   await store.ensureVisibleWorkflowSelected()
+})
+
+onBeforeUnmount(() => {
+  detachBeforeUnload?.()
 })
 </script>
 

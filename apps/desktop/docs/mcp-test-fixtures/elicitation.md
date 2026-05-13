@@ -46,32 +46,27 @@ npx tsx elicitationFormExample.ts
 The copied upstream example is a Streamable HTTP server and prints its MCP URL
 as `http://localhost:3000/mcp`.
 
-### `maenifold.json` stdio launch shape
+### `maenifold.json` HTTP launch shape
 
-The `McpServerEntry::Stdio` variant in
-`crates/maenifold-core/src/acp/config/types.rs` requires `type`, `name`, and
-`command`; `args`, `timeout`, `env`, and `gateway` are optional/defaulted.
+The `McpServerEntry::Http` variant in
+`crates/maenifold-core/src/acp/config/types.rs` requires `type` and `url`.
+Use this when the upstream example is run as a Streamable HTTP server.
 
 ```json
 {
   "mcpServers": [
     {
-      "type": "stdio",
+      "type": "http",
       "name": "elicitation-form",
-      "command": "npx",
-      "args": [
-        "tsx",
-        "apps/desktop/test-fixtures/mcp-elicitation-form/elicitationFormExample.ts"
-      ],
-      "env": {}
+      "url": "http://localhost:3000/mcp"
     }
   ]
 }
 ```
 
-> **Transport note:** The upstream example source is HTTP-based. The snippet
-> above documents the requested stdio process-launch shape; use the printed
-> `/mcp` URL when exercising HTTP transport manually.
+> **Run order:** start the upstream HTTP server first
+> (`npx tsx elicitationFormExample.ts`) so `http://localhost:3000/mcp` is
+> reachable before maenifold connects.
 
 ---
 
@@ -111,34 +106,30 @@ The copied upstream example starts an MCP HTTP endpoint on
 `http://localhost:3000/mcp` and an auxiliary auth endpoint on
 `http://localhost:3001`.
 
-### `maenifold.json` stdio launch shape
+### `maenifold.json` HTTP launch shape
 
 ```json
 {
   "mcpServers": [
     {
-      "type": "stdio",
+      "type": "http",
       "name": "elicitation-url",
-      "command": "npx",
-      "args": [
-        "tsx",
-        "apps/desktop/test-fixtures/mcp-elicitation-url/elicitationUrlExample.ts"
-      ],
-      "env": {}
+      "url": "http://localhost:3000/mcp"
     }
   ]
 }
 ```
 
-> **Transport note:** The upstream example source is HTTP-based. The snippet
-> above documents the requested stdio process-launch shape; use the printed
-> `/mcp` URL when exercising HTTP transport manually.
+> **Run order:** start the upstream HTTP server first
+> (`npx tsx elicitationUrlExample.ts`) so `http://localhost:3000/mcp` and
+> the auxiliary auth endpoint on `http://localhost:3001` are reachable
+> before maenifold connects.
 
 ---
 
-## Sampling fixture (deferred)
+## Sampling fixture (blocked on T-303.4.3)
 
 The third upstream example, `toolWithSampleServer.ts`, is intentionally not
-copied in this fixture set. Sampling fixture wiring is deferred to T-303.15.1
-because daemon-side LLM dispatch is still covered by T-303.4.1 and has no
-accepted design path yet.
+copied in this fixture set. Sampling fixture wiring is replanned to T-303.15.1
+because daemon-side LLM dispatch is blocked on T-303.4.2 architectural
+research and has no accepted design path yet.

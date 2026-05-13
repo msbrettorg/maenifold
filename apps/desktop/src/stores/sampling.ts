@@ -19,12 +19,6 @@ export interface SamplingRequest {
   queuedAt: number;
 }
 
-type SamplingResolvePayload = {
-  kind: 'sampling';
-  id: string;
-  response: SamplingDecision;
-};
-
 export const useSamplingStore = defineStore('sampling', () => {
   const queue = ref<SamplingRequest[]>([]);
   const current = computed(() => queue.value[0] ?? null);
@@ -35,15 +29,16 @@ export const useSamplingStore = defineStore('sampling', () => {
   }
 
   async function resolve(id: string, decision: SamplingDecision): Promise<void> {
-    queue.value = queue.value.filter((request) => request.id !== id);
-    const api = window.api as typeof window.api & {
-      resolveUserPrompt: (payload: SamplingResolvePayload) => Promise<{ ok: true }>;
-    };
+    const api = window.api;
+    if (!api) {
+      throw new Error('preload bridge unavailable');
+    }
     await api.resolveUserPrompt({
       kind: 'sampling',
       id,
       response: decision,
     });
+    queue.value = queue.value.filter((request) => request.id !== id);
   }
 
   function dismissExpired(id: string): void {

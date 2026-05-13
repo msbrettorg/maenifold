@@ -80,6 +80,7 @@ describe('useUserPromptStore', () => {
     await store.cancel();
 
     expect(resolveUserPrompt).toHaveBeenCalledWith({
+      kind: 'elicitation',
       id: 'prompt-1',
       response: { action: 'cancel' },
     });
@@ -93,6 +94,7 @@ describe('useUserPromptStore', () => {
     await store.submit({ reason: 'approved' });
 
     expect(resolveUserPrompt).toHaveBeenCalledWith({
+      kind: 'elicitation',
       id: 'prompt-accept',
       response: { action: 'accept', content: { reason: 'approved' } },
     });

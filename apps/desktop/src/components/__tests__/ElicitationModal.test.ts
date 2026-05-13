@@ -111,6 +111,7 @@ describe('ElicitationModal', () => {
     await wrapper.findAll('button').find((button) => button.text() === 'Submit')!.trigger('click');
 
     expect(resolveUserPrompt).toHaveBeenCalledWith({
+      kind: 'elicitation',
       id: 'prompt-1',
       response: { action: 'accept', content: { reason: 'approved' } },
     });
@@ -125,6 +126,7 @@ describe('ElicitationModal', () => {
     await wrapper.findAll('button').find((button) => button.text() === 'Cancel')!.trigger('click');
 
     expect(resolveUserPrompt).toHaveBeenCalledWith({
+      kind: 'elicitation',
       id: 'prompt-1',
       response: { action: 'cancel' },
     });
@@ -141,6 +143,7 @@ describe('ElicitationModal', () => {
     await wrapper.findAll('button').find((button) => button.text() === 'Submit')!.trigger('click');
 
     expect(resolveUserPrompt).toHaveBeenCalledWith({
+      kind: 'elicitation',
       id: 'prompt-1',
       response: { action: 'accept', content: { 'x-reason': 'manual' } },
     });

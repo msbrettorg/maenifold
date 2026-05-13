@@ -83,9 +83,7 @@ function handleResume(session: SavedSession) {
   emit('resume', session);
 }
 
-function isAgentSession(session: SavedSession): boolean {
-  return session.id.startsWith('agent:');
-}
+function isAgentOnlySession(session: SavedSession): boolean { return session.id.startsWith('agent:'); }
 
 function isCurrentConnectedSession(session: SavedSession): boolean {
   return liveSessionsByRemoteId.value.get(session.sessionId)?.isConnected ?? false;
@@ -106,13 +104,16 @@ function isResumeUnavailable(session: SavedSession): boolean {
 }
 
 function getDeleteTitle(session: SavedSession): string {
-  if (isCurrentConnectedSession(session)) return 'Disconnect';
-  if (isCurrentConnectingSession(session)) return 'Cancel';
-  return 'Delete session';
+  if (isCurrentConnectedSession(session)) return `Disconnect '${session.title}'?`;
+  if (isCurrentConnectingSession(session)) return `Cancel '${session.title}'?`;
+  return `Delete '${session.title}'?`;
 }
 
-async function handleDelete(session: SavedSession, event: Event) {
+async function handleDelete(sessionId: string, event: Event) {
   event.stopPropagation();
+  const session = sessions.value.find((item) => item.id === sessionId);
+  if (!session) return;
+
   const liveSession = liveSessionsByRemoteId.value.get(session.sessionId);
   if (liveSession?.isConnected) {
     await sessionStore.closeSession(liveSession.localId);
@@ -126,7 +127,7 @@ async function handleDelete(session: SavedSession, event: Event) {
     await sessionStore.cancelConnection();
     return;
   }
-  if (confirm('Delete this session?')) emit('delete', session.id);
+  emit('delete', session.id);
 }
 
 function handleSearchKeydown(event: KeyboardEvent) {
@@ -184,11 +185,11 @@ function handleSearchKeydown(event: KeyboardEvent) {
             </div>
             <span class="text-tiny text-muted-foreground inline-flex items-center gap-1.5">
               {{ session.agentName }}
-              <Badge v-if="isAgentSession(session)" variant="secondary" class="lowercase">from agent</Badge>
+              <Badge v-if="isAgentOnlySession(session)" variant="secondary" class="lowercase">from agent</Badge>
             </span>
             <span class="text-xs text-text-tertiary">{{ formatRelative(session.lastUpdated) }}</span>
           </div>
-          <SessionRowActions :session="session" :delete-title="getDeleteTitle(session)" @delete="handleDelete" />
+          <SessionRowActions v-if="!isAgentOnlySession(session)" :session="session" :delete-title="getDeleteTitle(session)" @delete="handleDelete" />
         </li>
       </ul>
     </ScrollArea>

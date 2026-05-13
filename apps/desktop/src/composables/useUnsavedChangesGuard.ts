@@ -1,5 +1,5 @@
 import type { ComputedRef } from 'vue';
-import { computed, defineComponent, h, ref, render } from 'vue';
+import { computed, defineComponent, getCurrentScope, h, onScopeDispose, ref, render } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -101,11 +101,21 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions = {})
     resolve(value);
   }
 
+  function cleanupDialog() {
+    if (container) {
+      render(null, container);
+      container.remove();
+      container = null;
+    }
+    dialogOpen.value = false;
+  }
+
   function ensureDialog() {
     if (container || typeof document === 'undefined') {
       return;
     }
     container = document.createElement('div');
+    container.setAttribute('data-unsaved-guard-host', 'true');
     document.body.appendChild(container);
     const Host = defineComponent({
       name: 'UnsavedChangesGuardHost',
@@ -127,7 +137,14 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions = {})
     render(h(Host), container);
   }
 
+  /**
+   * Reject reentrant confirmations instead of queuing them. Each surface owns its own
+   * guard instance, so overlapping prompts from one instance indicate a caller bug.
+   */
   function confirmIfDirty() {
+    if (pendingResolve) {
+      return Promise.reject(new Error('useUnsavedChangesGuard: confirmIfDirty already pending'));
+    }
     if (!dirty.value) {
       return Promise.resolve(true);
     }
@@ -148,6 +165,10 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions = {})
     };
     window.addEventListener('beforeunload', listener);
     return () => window.removeEventListener('beforeunload', listener);
+  }
+
+  if (getCurrentScope()) {
+    onScopeDispose(cleanupDialog);
   }
 
   return {

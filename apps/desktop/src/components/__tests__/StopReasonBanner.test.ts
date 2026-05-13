@@ -17,6 +17,12 @@ describe('StopReasonBanner', () => {
     expect(wrapper.find('.lucide-circle-alert').exists()).toBe(true);
   });
 
+  it('renders the turn-limit banner for max_turn_requests', () => {
+    const wrapper = mount(StopReasonBanner, { props: { stopReason: 'max_turn_requests' } });
+
+    expect(wrapper.text()).toContain('Turn limit reached.');
+  });
+
   it('renders the cancelled banner with XCircle icon', () => {
     const wrapper = mount(StopReasonBanner, { props: { stopReason: 'cancelled' } });
 
@@ -28,6 +34,12 @@ describe('StopReasonBanner', () => {
     const wrapper = mount(StopReasonBanner, { props: { stopReason: 'refusal' } });
 
     expect(wrapper.text()).toContain('The agent refused this request.');
+  });
+
+  it('renders the awaiting-tool banner for tool_use', () => {
+    const wrapper = mount(StopReasonBanner, { props: { stopReason: 'tool_use' } });
+
+    expect(wrapper.text()).toContain('Awaiting tool result.');
   });
 
   it('renders the error banner', () => {

@@ -1,4 +1,7 @@
 mod cors;
+mod client_handler;
+#[cfg(test)]
+mod client_handler_tests;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
@@ -60,6 +63,7 @@ use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
 use crate::registry::ToolRegistry;
 pub(crate) use cors::localhost_cors;
+pub use client_handler::MaenifoldClient;
 pub(crate) use gateway_cli::{gateway_cli_help, invoke_gateway_cli_tool};
 pub use resources::*;
 use rmcp::model::{

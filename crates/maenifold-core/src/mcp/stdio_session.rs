@@ -1,9 +1,10 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_metadata;
+use crate::mcp::MaenifoldClient;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::{
     Peer, RoleClient, ServiceExt,
-    model::{ClientCapabilities, ClientInfo, Implementation, ProtocolVersion, Tool},
+    model::{ProtocolVersion, Tool},
     service::{RunningService, ServiceError},
     transport::TokioChildProcess,
 };
@@ -24,7 +25,7 @@ const STDERR_LIMIT: usize = 4096;
 const STDERR_JOIN_TIMEOUT: Duration = Duration::from_secs(1);
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 
-type RmcpClient = RunningService<RoleClient, ClientInfo>;
+type RmcpClient = RunningService<RoleClient, MaenifoldClient>;
 
 #[derive(Debug)]
 pub struct StdioStartupError {
@@ -76,7 +77,7 @@ impl StdioSession {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let mut client = client_info()
+            let mut client = MaenifoldClient::new()
                 .serve(transport)
                 .await
                 .map_err(to_message_error)?;
@@ -179,14 +180,6 @@ impl StdioSession {
     pub(super) async fn terminate_process_group(&self) {
         super::stdio_process_group::terminate_process_group_id(self.process_group_id).await;
     }
-}
-
-fn client_info() -> ClientInfo {
-    ClientInfo::new(
-        ClientCapabilities::default(),
-        Implementation::new("maenifold-core", "0.1.0"),
-    )
-    .with_protocol_version(MCP_PROTOCOL_VERSION)
 }
 
 fn is_supported_version(version: &ProtocolVersion) -> bool {

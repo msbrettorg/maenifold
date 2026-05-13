@@ -2058,3 +2058,43 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 
 **Lesson — flaky tests in blue-team should be PM-overridable with evidence.** Both T-302.40 + T-302.41 blue-teams hit `SemanticZoomOverlay.test.ts:133` flake on first run, passed on retry. PM-direct rerun confirmed clean. PM-evidence override is appropriate when (a) the flaking test is unrelated to the change scope, (b) PM-direct rerun confirms cleanness, AND (c) a follow-up gate item is filed for the flakiness (T-302.43). Don't re-dispatch SWE/blue-team for known flakiness.
 
+
+### Iter-9 final tally — 2026-05-13 03:30
+
+**Tasks shipped this iter (3 substantive + 1 P0 recovery):**
+- T-302.40 (window.api parallel-bridge documentation, Option C). Merged 378fd25a0.
+- T-302.41 (useConfirmDialogStore FIFO queue, Option A, 5 vitest cases). Merged 8269eb3a6.
+- T-303.3 Phase 1 (MaenifoldClient ClientHandler scaffolding, daemon-side elicitation cancel-stub, 2 integration tests against real rmcp duplex transport). Merged a059df8a9.
+- P0 recovery: dev fast-forwarded from 887955f96 → a43ef8210, restoring 14 dropped commits across T-302.{37,38,42} + T-303.{1,2,5,6,7}. Recovery commit 6c2ac7ab6.
+
+**Follow-ups filed:**
+- T-302.43 (SemanticZoomOverlay vitest flakiness, P3, blue-team blocker pattern).
+- T-303.3.1 (MCP elicitation Phase 2 UI/IPC, P1 SLC, parent T-303.3).
+
+**Sprint status:**
+- Sprint 302: 23 + 2 = 25 done. Remaining: T-302.11/.12/.35 (UAT, OUT OF SCOPE), T-302.43 (P3 follow-up).
+- Sprint 303: 7 + 1 = 8 done. Remaining: T-303.0 umbrella, T-303.4 (sampling, ready for SWE dispatch using same Phase 1 pattern as T-303.3), T-303.9/.10 (UAT), T-303.12-17 (wiring follow-ups), T-303.3.1 (NEW Phase 2 UI follow-up).
+
+**Process rigor:**
+- 3 SWE dispatches, all returned WorkResults + confessions.
+- 3 red-team audits (claude-opus-4.6), all PASS HIGH first-pass.
+- 3 blue-team audits (gpt-5.5), 2 hit known SemanticZoomOverlay flakiness, all confirmed clean on retry.
+- 0 destructive git operations by agents. PM owns all merges + worktree lifecycle.
+- 0 sprint-discarding gate violations.
+
+**Lesson — pre-flight reflog check should be standing PM duty.** Iter-9 startup discovered 14 orphaned iter-8 commits via `git reflog | head -3` showing HEAD@{0}: reset:. This check costs 1 second; without it, this iter would have re-implemented 3500 LOC of work that was already done. Add to iter-N pre-flight: if HEAD@{0} or {1} is "reset:", investigate before doing ANY work. This is now in standing PM checks.
+
+**Lesson — when PM design references a library API, verify it exists.** PM design notes for T-303.3 referenced `ClientCapabilities::default_with_tasks()` based on a (correct) reading of capabilities.rs:128. SWE discovered the helper does NOT exist as a method on ClientCapabilities (the rmcp source declares the values but not a constructor with that name). SWE adapted to builder pattern. Red-team independently verified absence via `rg`. Lesson: PM design notes should cite the EXACT method signature line number that proves the API exists, not a paraphrased "default helper."
+
+**Lesson — the "Cancel proves override fired" test discriminator pattern is good practice.** T-303.3 test asserted `result.action == ElicitationAction::Cancel`. Red-team verified rmcp default returns `Decline`, not Cancel. Therefore receiving Cancel is a positive proof the override fired (vs. a no-op test where the default would also return what's expected). When testing trait overrides, choose a discriminator value that the default cannot produce.
+
+**Lesson — phasing greenfield features into "scaffolding" + "UI wiring" is dispatchable.** T-303.3 was initially specified as end-to-end ("listen for elicitation/create requests, render the form, return values"). PM split into Phase 1 (3-file daemon scaffolding, ~150 LOC, dispatchable as one SWE task) + Phase 2 (cross-stack IPC + UI, file as new SLC task). Phase 1 ships incremental visible value (capability advertisement) and unblocks Phase 2 design with concrete daemon entry point. Future T-303.4 + similar greenfield MCP features should follow this pattern.
+
+**Standing PM pre-flight checks (codified for next iter):**
+1. `git reflog | head -3` — investigate any HEAD@{0/1}: reset: entries.
+2. `ls apps/desktop/node_modules/.bin/{vue-tsc,vitest}` — both must exist; if missing, `npm install` (NOT `npm ci`).
+3. `git worktree list` — prune any stale worktrees from prior iters.
+4. `git status --short` — must be clean (no uncommitted changes).
+5. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only, NOT mid-sprint) — confirm dev tip builds before dispatching any SWE.
+6. Read learnings.md tail for the previous iter's final tally and any P0 escalations.
+

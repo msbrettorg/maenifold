@@ -50,16 +50,13 @@ const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? '
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
-const agentSessionStatus = computed(() => {
-  const selected = agentStore.selectedSession;
-  return selected && currentSession.value?.sessionId === selected.sessionId ? selected.status : null;
-});
+const agentSessionStatus = computed(() =>
+  currentSession.value?.sessionId && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
+    ? agentStore.selectedSession?.status ?? null
+    : null);
 const agentSessionStatusLabel = computed(() => {
   const status = agentSessionStatus.value;
-  if (!status) return '';
-  if (status === 'resumable') return 'resumable';
-  if (status === 'listed') return 'listed';
-  return status;
+  return status === 'resumable' || status === 'listed' ? status : status ?? '';
 });
 const expandedThoughtIds = computed(() => Array.from(expandedThoughts.value));
 const expandedToolCallIds = computed(() => Array.from(expandedToolCalls.value));
@@ -103,25 +100,27 @@ watch(messages, async () => {
   if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
 }, { deep: true });
 
-onMounted(async () => {
-  await nextTick();
-  if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
-  void agentStore.start();
-});
+onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); void agentStore.start(); });
 onBeforeUnmount(() => {
   void mcpClient.disconnect();
   void agentStore.stop();
 });
-watch(
-  () => currentSession.value?.sessionId ?? null,
-  (sessionId) => {
-    void agentStore.refreshSelectedSession(sessionId);
-  },
-  { immediate: true },
-);
+watch(() => currentSession.value?.sessionId ?? null, (sessionId) => { void agentStore.refreshSelectedSession(sessionId); }, { immediate: true });
 watch(inputText, (text) => { if (!text.startsWith('/')) activeCommandHint.value = null; });
 function setInputText(value: string): void { inputText.value = value; }
-
+function trimMessagesAt(index: number): void { const session = sessionStore.activeSession; if (!session) return; session.messages = session.messages.slice(0, index); session.toolCalls.clear(); session.currentPlan = null; }
+function findPromptIndex(index: number): number { for (let i = index; i >= 0; i -= 1) if (messages.value[i]?.role === 'user') return i; return -1; }
+async function handleRegenerate(messageId: string): Promise<void> {
+  const promptIndex = findPromptIndex(messages.value.findIndex((m) => m.id === messageId));
+  const text = messages.value[promptIndex]?.content.trim();
+  if (!text || isLoading.value) return;
+  trimMessagesAt(promptIndex); await sessionStore.sendPrompt(text);
+}
+function handleEdit(payload: { messageId: string; text: string }): void {
+  const index = messages.value.findIndex((m) => m.id === payload.messageId);
+  if (index < 0 || isLoading.value) return;
+  trimMessagesAt(index); pendingAttachments.value = []; inputText.value = payload.text;
+}
 async function handleSend(): Promise<void> {
   const text = inputText.value.trim();
   if (!text || isLoading.value) return;
@@ -173,9 +172,7 @@ async function fetchEmbeddedContextFile(path: string, cwd?: string): Promise<Fil
 }
 
 async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlock[]> {
-  if (!supportsEmbeddedContext.value) {
-    return [];
-  }
+  if (!supportsEmbeddedContext.value) return [];
   const attachments: ContentBlock[] = [];
   const seenPaths = new Set<string>();
   const cwd = currentSession.value?.cwd;
@@ -262,10 +259,12 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
           :pending-permission-count="pendingPermissionCount"
           :is-loading="isLoading"
           @toggle-thought="toggleThought"
-          @toggle-tool-call="toggleToolCall"
-          @cancel="handleCancel"
-          @prefill="setInputText"
-        />
+           @toggle-tool-call="toggleToolCall"
+           @cancel="handleCancel"
+           @prefill="setInputText"
+           @regenerate="handleRegenerate"
+           @edit="handleEdit"
+         />
       </div>
     </ScrollArea>
 

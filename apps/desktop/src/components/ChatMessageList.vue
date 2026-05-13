@@ -20,6 +20,8 @@ const emit = defineEmits<{
   'toggle-thought': [messageId: string];
   'toggle-tool-call': [toolCallId: string];
   prefill: [text: string];
+  regenerate: [messageId: string];
+  edit: [{ messageId: string; text: string }];
 }>();
 
 const starterChips: { icon: Component; label: string }[] = [
@@ -55,10 +57,13 @@ const starterChips: { icon: Component; label: string }[] = [
       :key="message.id"
       :message="message"
       :is-streaming="isLoading && message.role === 'assistant' && message === messages[messages.length - 1]"
+      :actions-disabled="isLoading"
       :expanded-thought-ids="expandedThoughtIds"
       :expanded-tool-call-ids="expandedToolCallIds"
       @toggle-thought="emit('toggle-thought', $event)"
       @toggle-tool-call="emit('toggle-tool-call', $event)"
+      @regenerate="emit('regenerate', message.id)"
+      @edit="emit('edit', { messageId: message.id, text: $event.text })"
     />
 
     <div v-if="pendingPermissionCount > 0" class="mt-4 px-4 py-3 rounded bg-bg-warning border border-border-subtle text-text-primary">

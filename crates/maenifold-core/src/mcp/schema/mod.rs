@@ -57,6 +57,7 @@ pub(crate) fn mcp_tool_from_registry_name(registry_name: &str) -> Result<McpTool
                 name: registry_name.to_string(),
                 description: "Gateway tool (use learn=true for details)".to_string(),
                 input_schema: json!({ "type": "object" }),
+                execution: None,
             }
         }))
 }

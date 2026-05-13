@@ -21,7 +21,7 @@ const TRASH_DATE: &str = "2025-01-01";
 
 #[rustfmt::skip]
 fn workflow_node(id: &str) -> PipelineNode {
-    PipelineNode::Workflow { id: id.to_string(), display_label: None, workflow_id: "test-workflow-a".to_string(), acp_client: Some(format!("agent-{id}")), prompt: None, cwd: None, timeout: None, agent_config: None, adopt: None, requires_role: None, retry_policy: None }
+    PipelineNode::Workflow { id: id.to_string(), display_label: None, workflow_id: "test-workflow-a".to_string(), acp_client: Some(format!("agent-{id}")), prompt: None, cwd: None, timeout: None, agent_config: None, adopt: None, requires_role: None, retry_policy: None, join_policy: None }
 }
 
 #[rustfmt::skip]

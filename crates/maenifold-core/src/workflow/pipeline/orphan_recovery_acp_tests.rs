@@ -30,6 +30,7 @@ fn prompt_node(id: &str) -> PipelineNode {
         requires_role: None,
         retry_policy: None,
         session_ref: None,
+        join_policy: None,
     }
 }
 
@@ -50,6 +51,7 @@ fn thinking_node(id: &str) -> PipelineNode {
         adopt: None,
         requires_role: None,
         retry_policy: None,
+        join_policy: None,
     }
 }
 

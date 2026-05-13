@@ -28,6 +28,6 @@ onMounted(() => {
     <ElicitationModal />
   </div>
   <div v-if="samplingOpen && samplingCurrent" class="relative z-[1000]">
-    <SamplingApprovalModal :request="samplingCurrent" @resolve="onSamplingResolve" />
+    <SamplingApprovalModal :key="samplingCurrent.id" :request="samplingCurrent" @resolve="onSamplingResolve" />
   </div>
 </template>

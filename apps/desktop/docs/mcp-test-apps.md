@@ -30,6 +30,7 @@ The desktop renderer supports more MCP result shapes than the current configured
 - **MCP Apps UI:** `agent-capabilities-helpers.ts` extracts `_meta.ui.resourceUri` or `appUi.resourceUri` only when it starts with `ui://`; `McpAppFrame.vue` fetches that resource, sends sandbox HTML through `@modelcontextprotocol/ext-apps/app-bridge`, passes raw input/output into the app, handles iframe size changes, supports safe open-link handling, and scopes app tool calls to tools advertised by the originating MCP server.
 - **Sandbox CSP:** `electron/main.ts` registers `mcp-app-sandbox://` as a privileged scheme and serves sandbox pages with a restrictive CSP, with optional safe `connectDomains` additions from UI metadata.
 - **Permission-request detail rendering:** `PermissionDialog.vue` displays raw input, raw output, and content blocks in permission prompts.
+- **Prompt templates and argument completion: not implemented.** The renderer does not call `prompts/list`, `prompts/get`, or `completion/complete`. The `createMcpClientOps` factory in `mcpClientOps.ts` exposes only tools and resources; no prompt-template enumeration or argument auto-completion path exists in any composable or component.
 
 ## Coverage matrix
 
@@ -52,8 +53,10 @@ The desktop renderer supports more MCP result shapes than the current configured
 | Logging notifications | Transport-level support likely; UI coverage not proven | N | Adopt Everything `toggle-simulated-logging` and TypeScript SDK logging examples |
 | Resource subscriptions / updates | Partial | Partial | Current loopback emits `notifications/resources/updated`; adopt Everything `toggle-subscriber-updates` for real server behavior |
 | Binary/download fallback | Y | N | Adopt Everything `gzip-file-as-resource` or ext-apps `pdf-server` for non-previewable resources |
+| Prompt templates (`prompts/list` + `prompts/get`) | N | N | Adopt `@modelcontextprotocol/server-everything` `simple-prompt` / `args-prompt` / `completable-prompt` |
+| Argument completion (`completion/complete`) | N | N | Adopt `@modelcontextprotocol/server-everything` `completable-prompt` (declares completable args) |
 
-Total content type / edge-case rows audited: 17.
+Total content type / edge-case rows audited: 19.
 
 ## Everything server coverage
 

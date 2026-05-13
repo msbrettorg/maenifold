@@ -5,7 +5,8 @@ use super::super::adapter::acp_log;
 use super::super::runtime_state::clear_all as clear_runtime_state_fn;
 use super::super::session::cold_start;
 use super::pool::{
-    CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, pool_key, remove_session_index,
+    CANCEL_HANDLES, CONN_MAP, PROMPT_LOCKS, child_pids, find_session_key, pool_key,
+    remove_session_index, remove_session_index_for_pool_key,
 };
 
 // Re-exports from extracted modules
@@ -81,8 +82,33 @@ pub(crate) async fn reset_worker_session(
     app_session_id: &str,
 ) -> Result<(), String> {
     let key = pool_key(app_session_id, runtime_key, role_name);
+    reset_worker_session_by_pool_key(runtime_key, role_name, app_session_id, &key).await;
+    Ok(())
+}
 
-    let cancel = CANCEL_HANDLES.with(|m| m.borrow_mut().remove(&key));
+pub(crate) async fn reset_worker_session_by_session_id(
+    runtime_key: &str,
+    role_name: &str,
+    session_id: &str,
+) -> Result<bool, String> {
+    let Some(key) = find_session_key(runtime_key, role_name, session_id) else {
+        return Ok(false);
+    };
+    let suffix = format!(":{runtime_key}:{role_name}");
+    let Some(app_session_id) = key.strip_suffix(&suffix) else {
+        return Err("invalid ACP session pool key".to_string());
+    };
+    reset_worker_session_by_pool_key(runtime_key, role_name, app_session_id, &key).await;
+    Ok(true)
+}
+
+async fn reset_worker_session_by_pool_key(
+    runtime_key: &str,
+    role_name: &str,
+    app_session_id: &str,
+    key: &str,
+) {
+    let cancel = CANCEL_HANDLES.with(|m| m.borrow_mut().remove(key));
     if let Some(h) = cancel {
         let _ = h
             .conn
@@ -90,12 +116,12 @@ pub(crate) async fn reset_worker_session(
             .await;
     }
 
-    if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(&key)) {
+    if let Some(live) = CONN_MAP.with(|m| m.borrow_mut().remove(key)) {
         remove_session_index(runtime_key, role_name, &live.session_id.to_string());
     }
     use super::super::runtime_state::clear_session as clear_session_runtime_state;
     clear_session_runtime_state(app_session_id, runtime_key, role_name);
-    Ok(())
+    remove_session_index_for_pool_key(key);
 }
 
 pub(crate) fn handle_cancel(runtime_key: String, role_name: String, app_session_id: String) {

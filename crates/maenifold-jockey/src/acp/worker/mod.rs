@@ -168,6 +168,22 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                     let _ = result_tx.send(result);
                 });
             }
+            WorkerMsg::ResetBySession {
+                runtime_key,
+                role_name,
+                session_id,
+                result_tx,
+            } => {
+                tokio::task::spawn_local(async move {
+                    let result = handlers::reset_worker_session_by_session_id(
+                        &runtime_key,
+                        &role_name,
+                        &session_id,
+                    )
+                    .await;
+                    let _ = result_tx.send(result);
+                });
+            }
             WorkerMsg::Reconnect {
                 runtime_key,
                 role_name,

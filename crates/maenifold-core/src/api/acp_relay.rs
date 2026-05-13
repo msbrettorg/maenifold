@@ -2,21 +2,27 @@ use crate::api::routes::{ApiError, ApiResult, ApiState};
 use agent_client_protocol as acp;
 use axum::{
     extract::{
-        Query, State,
+        Path, Query, State,
         ws::{WebSocket, WebSocketUpgrade},
     },
-    response::IntoResponse,
+    response::{IntoResponse, Json},
 };
 use futures_util::StreamExt;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::time::Duration;
 use tokio::sync::{mpsc, oneshot};
 
 use super::acp_relay_dispatch::{apply_event_state, forward_event, handle_incoming};
 use super::acp_relay_helpers::{cancel_permissions, rpc_error, rpc_ok, send_json};
 use super::acp_relay_mcp::load_configured_mcp_servers;
+
+// Keep-alive relay sessions are retained briefly so a renderer can reconnect
+// after a transient WebSocket drop. No daemon setting exists for this relay yet;
+// keep this local default until ACP relay settings are added.
+const RELAY_IDLE_CLEANUP_TTL: Duration = Duration::from_secs(5 * 60);
 
 // ── Structured config option types (ACP protocol § SessionConfigOption) ──────
 //
@@ -141,6 +147,33 @@ pub async fn ws_handler(
     }))
 }
 
+pub async fn close_session_handler(
+    Path(session_id): Path<String>,
+    Query(query): Query<RelayQuery>,
+) -> ApiResult<impl IntoResponse> {
+    let agent_name = query
+        .agent
+        .filter(|value| !value.trim().is_empty())
+        .ok_or_else(|| ApiError::bad_request("Missing ?agent="))?;
+    let adapter = jockey::acp::build_stdio_adapter(&agent_name)
+        .map_err(ApiError::bad_request)?
+        .ok_or_else(|| ApiError::bad_request(format!("agent '{agent_name}' is not configured")))?;
+    let (result_tx, result_rx) = oneshot::channel();
+    jockey::acp::worker_tx()
+        .send(relay_reset_by_session_message(
+            adapter.runtime_key,
+            agent_name,
+            session_id,
+            result_tx,
+        ))
+        .map_err(|_| ApiError::internal("ACP worker unavailable"))?;
+    let closed = result_rx
+        .await
+        .map_err(|_| ApiError::internal("ACP worker disconnected"))?
+        .map_err(ApiError::internal)?;
+    Ok(Json(json!({ "closed": closed })))
+}
+
 async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
     let (mut sender, mut receiver) = socket.split();
     let mut session: Option<RelaySession> = None;
@@ -223,11 +256,26 @@ async fn relay_socket(socket: WebSocket, relay: RelayConfig) {
     }
 
     if let Some(active) = session.as_ref()
-        && !relay.keep_session_alive
+        && relay.keep_session_alive
     {
+        schedule_session_idle_cleanup(relay.clone(), active.app_session_id.clone());
+    } else if let Some(active) = session.as_ref() {
         reset_session_on_socket_close(&relay, active);
     }
     cancel_permissions(permission_ids);
+}
+
+fn schedule_session_idle_cleanup(relay: RelayConfig, app_session_id: String) {
+    tokio::spawn(async move {
+        tokio::time::sleep(relay_idle_cleanup_ttl()).await;
+        let (result_tx, _result_rx) = oneshot::channel();
+        let _ =
+            jockey::acp::worker_tx().send(relay_reset_message(&relay, &app_session_id, result_tx));
+    });
+}
+
+pub(super) fn relay_idle_cleanup_ttl() -> Duration {
+    RELAY_IDLE_CLEANUP_TTL
 }
 
 fn reset_session_on_socket_close(relay: &RelayConfig, active: &RelaySession) {
@@ -239,7 +287,7 @@ fn reset_session_on_socket_close(relay: &RelayConfig, active: &RelaySession) {
     ));
 }
 
-fn relay_reset_message(
+pub(super) fn relay_reset_message(
     relay: &RelayConfig,
     app_session_id: &str,
     result_tx: oneshot::Sender<Result<(), String>>,
@@ -248,6 +296,20 @@ fn relay_reset_message(
         runtime_key: relay.adapter.runtime_key.clone(),
         role_name: relay.agent_name.clone(),
         app_session_id: app_session_id.to_string(),
+        result_tx,
+    }
+}
+
+pub(super) fn relay_reset_by_session_message(
+    runtime_key: String,
+    role_name: String,
+    session_id: String,
+    result_tx: oneshot::Sender<Result<bool, String>>,
+) -> jockey::acp::WorkerMsg {
+    jockey::acp::WorkerMsg::ResetBySession {
+        runtime_key,
+        role_name,
+        session_id,
         result_tx,
     }
 }

@@ -3,11 +3,11 @@ use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::PendingRequestRegistry;
+use crate::mcp::gateway_handler::GatewayState;
 use crate::mcp::stdio_pool::StdioPool;
 use axum::Router;
-use axum::routing::get;
+use axum::routing::{delete, get};
 use rmcp::transport::streamable_http_server::{
     StreamableHttpServerConfig, StreamableHttpService, session::never::NeverSessionManager,
 };
@@ -25,6 +25,10 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
         .route(
             "/api/acp/session",
             get(crate::api::acp_relay::ws_handler).with_state(relay_state),
+        )
+        .route(
+            "/api/acp/session/{session_id}",
+            delete(crate::api::acp_relay::close_session_handler),
         )
 }
 

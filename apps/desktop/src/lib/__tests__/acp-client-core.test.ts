@@ -271,6 +271,37 @@ describe('AcpClientBridgeCore request hardening', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('sends session/close before an explicit disconnect closes the relay socket', async () => {
+    const { bridge, socket } = await connectBridge();
+
+    await bridge.disconnect();
+
+    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+      method: 'session/close',
+      params: { _meta: expect.any(Object) },
+    });
+    expect(socket.readyState).toBe(MockWebSocket.CLOSED);
+  });
+
+  it('includes the active session id in explicit disconnect close', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const newSession = bridge.newSession({ cwd: '/repo', mcpServers: [] });
+
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: 0,
+      result: { sessionId: 'sess-1' },
+    }));
+    await expect(newSession).resolves.toEqual({ sessionId: 'sess-1' });
+
+    await bridge.disconnect();
+
+    expect(JSON.parse(socket.sent[1] ?? '{}')).toMatchObject({
+      method: 'session/close',
+      params: { sessionId: 'sess-1' },
+    });
+  });
+
   it('rejects pending requests when the websocket closes unexpectedly', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request('session/new', {});

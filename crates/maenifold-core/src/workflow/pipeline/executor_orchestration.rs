@@ -52,7 +52,6 @@ pub(super) fn spawn_dispatched_node_task(
     initial_retry_attempts: u32,
     pipeline_session_id: String,
 ) {
-    let _legacy_execute_node_request = super::executor_nodes::execute_node_request;
     join_set.spawn(async move {
         let _permit = permit;
         let run_once = || {

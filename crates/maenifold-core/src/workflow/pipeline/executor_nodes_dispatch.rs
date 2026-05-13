@@ -5,24 +5,6 @@ use crate::tools::ToolContext;
 use super::executor_nodes::NodeExecutionRequest;
 use super::executor_run::NodeTaskResult;
 
-pub(super) async fn execute_node_request(
-    context: ToolContext,
-    node_id: String,
-    execution: NodeExecutionRequest,
-    agent: Option<String>,
-    event_tx: EventSender,
-) -> (String, NodeTaskResult) {
-    execute_node_request_with_pipeline_session(
-        context,
-        node_id.clone(),
-        node_id,
-        execution,
-        agent,
-        event_tx,
-    )
-    .await
-}
-
 pub(super) async fn execute_node_request_with_pipeline_session(
     context: ToolContext,
     pipeline_session_id: String,

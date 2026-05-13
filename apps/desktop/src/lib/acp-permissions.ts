@@ -1,3 +1,8 @@
+/**
+ * ACP permission handling. Plan mode fails closed: only normalized tool kinds in
+ * PLAN_MODE_SAFE_TOOL_KINDS are auto-eligible; every other kind auto-rejects
+ * because unknown or write-like classifications may have side effects.
+ */
 import type { RequestPermissionRequest, RequestPermissionResponse } from '@agentclientprotocol/sdk';
 import { ref, type Ref } from 'vue';
 import { normalizePermissionToolCallPayload } from './acp-meta';
@@ -14,6 +19,8 @@ import {
 } from './permission-ledger/ledger';
 import { normalizePermissionToolKind } from './permission-ledger/equivalence-key';
 export { setChatNotificationSink, type ChatNotificationSink } from './acp-chat-notifications';
+
+const PLAN_MODE_SAFE_TOOL_KINDS = new Set(['read', 'fetch', 'search', 'think']);
 
 type PermissionResolver = (response: RequestPermissionResponse) => void;
 export type InlinePermissionMessageSink = (message: {
@@ -200,17 +207,20 @@ export class PermissionHandler {
 
   private tryModeSupersede(request: LocalPermissionRequest): 'allow' | 'reject' | null {
     const modeId = this.context.currentModeId();
-    if (modeId === 'plan' && normalizePermissionToolKind(request.toolCall.kind) === 'edit') {
-      if (request.toolCall.kind === 'fs/write_text_file') {
-        this.context.onInlineMessage?.({
-          toolCallId: request.toolCall.toolCallId,
-          message: 'Write blocked by plan mode',
-          severity: 'warning',
-        });
-      }
-      return 'reject';
+    const kind = normalizePermissionToolKind(request.toolCall.kind);
+    if (modeId !== 'plan' || PLAN_MODE_SAFE_TOOL_KINDS.has(kind)) {
+      return null;
     }
-    return null;
+
+    // Plan mode allows only side-effect-free normalized kinds: read, fetch, search, think.
+    // Unknown, write-like, executable, mode-switching, and file-mutating kinds fail closed.
+    const toolName = request.toolCall.title || request.toolCall.kind || 'unknown';
+    this.context.onInlineMessage?.({
+      toolCallId: request.toolCall.toolCallId,
+      message: `Plan mode auto-rejected tool '${toolName}' (kind '${kind}' is not in the safe-kind whitelist).`,
+      severity: 'warning',
+    });
+    return 'reject';
   }
 
   private selectedResponse(

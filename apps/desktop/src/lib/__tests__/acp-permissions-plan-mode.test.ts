@@ -3,13 +3,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { PermissionHandler } from '../acp-permissions';
 import type { PermissionLedger } from '../permission-ledger/ledger';
 
-function writePermissionParams(toolCallId = 'tool-write-1'): RequestPermissionRequest {
+function permissionParams(
+  toolCallId: string,
+  kind: string,
+  title = `${kind} tool`
+): RequestPermissionRequest {
   return {
     sessionId: 'session-1',
     toolCall: {
       toolCallId,
-      title: 'Write text file',
-      kind: 'fs/write_text_file',
+      title,
+      kind,
       status: 'pending',
       rawInput: {
         path: '/tmp/foo',
@@ -33,8 +37,25 @@ class StaticLedger implements PermissionLedger {
   resetDecisions(): never { throw new Error('not needed'); }
 }
 
-describe('PermissionHandler plan-mode fs/write visibility', () => {
-  it('pushes a chat-visible inline message when plan mode blocks a write', async () => {
+describe('PermissionHandler plan-mode safe-kind whitelist', () => {
+  it('does not auto-reject read tools in plan mode because read is safe', async () => {
+    const inlineMessageSink = vi.fn();
+    const handler = new PermissionHandler(new StaticLedger('allow'), {
+      agent: 'agent-a',
+      currentModeId: () => 'plan',
+      onInlineMessage: inlineMessageSink,
+    } as never);
+
+    const response = await handler.requestPermission(permissionParams('tool-read', 'read'));
+
+    expect(response.outcome).toEqual({
+      outcome: 'selected',
+      optionId: 'tool-read-allow-once',
+    });
+    expect(inlineMessageSink).not.toHaveBeenCalled();
+  });
+
+  it('pushes a chat-visible inline message when plan mode blocks an edit', async () => {
     const inlineMessageSink = vi.fn();
     const handler = new PermissionHandler(new StaticLedger(null), {
       agent: 'agent-a',
@@ -42,7 +63,9 @@ describe('PermissionHandler plan-mode fs/write visibility', () => {
       onInlineMessage: inlineMessageSink,
     } as never);
 
-    const response = await handler.requestPermission(writePermissionParams());
+    const response = await handler.requestPermission(
+      permissionParams('tool-write-1', 'fs/write_text_file', 'Write text file')
+    );
 
     expect(response.outcome).toEqual({
       outcome: 'selected',
@@ -50,10 +73,59 @@ describe('PermissionHandler plan-mode fs/write visibility', () => {
     });
     expect(inlineMessageSink).toHaveBeenCalledWith({
       toolCallId: 'tool-write-1',
-      message: 'Write blocked by plan mode',
+      message:
+        "Plan mode auto-rejected tool 'Write text file' (kind 'edit' is not in the safe-kind whitelist).",
       severity: 'warning',
     });
   });
+
+  it('auto-rejects unknown tool kinds in plan mode instead of failing open', async () => {
+    const handler = new PermissionHandler(new StaticLedger('allow'), {
+      currentModeId: () => 'plan',
+    } as never);
+
+    const response = await handler.requestPermission(permissionParams('tool-unknown', 'unknown-kind'));
+
+    expect(response.outcome).toEqual({
+      outcome: 'selected',
+      optionId: 'tool-unknown-reject-once',
+    });
+  });
+
+  it.each(['write', 'modify', 'patch', 'apply'])(
+    'auto-rejects custom write-like kind %s in plan mode',
+    async (kind) => {
+      const handler = new PermissionHandler(new StaticLedger('allow'), {
+        currentModeId: () => 'plan',
+      } as never);
+
+      const response = await handler.requestPermission(permissionParams(`tool-${kind}`, kind));
+
+      expect(response.outcome).toEqual({
+        outcome: 'selected',
+        optionId: `tool-${kind}-reject-once`,
+      });
+    }
+  );
+
+  it.each(['edit', 'unknown-kind', 'write', 'modify', 'patch', 'apply'])(
+    'does not auto-reject kind %s when plan mode is disabled',
+    async (kind) => {
+      const inlineMessageSink = vi.fn();
+      const handler = new PermissionHandler(new StaticLedger('allow'), {
+        currentModeId: () => 'default',
+        onInlineMessage: inlineMessageSink,
+      } as never);
+
+      const response = await handler.requestPermission(permissionParams(`tool-normal-${kind}`, kind));
+
+      expect(response.outcome).toEqual({
+        outcome: 'selected',
+        optionId: `tool-normal-${kind}-allow-once`,
+      });
+      expect(inlineMessageSink).not.toHaveBeenCalled();
+    }
+  );
 
   it('stops auto-rejecting after the mode switches away from plan', async () => {
     let mode = 'plan';
@@ -64,9 +136,9 @@ describe('PermissionHandler plan-mode fs/write visibility', () => {
       onInlineMessage: inlineMessageSink,
     } as never);
 
-    const rejected = await handler.requestPermission(writePermissionParams('tool-write-plan'));
+    const rejected = await handler.requestPermission(permissionParams('tool-write-plan', 'edit'));
     mode = 'architect';
-    const allowed = await handler.requestPermission(writePermissionParams('tool-write-normal'));
+    const allowed = await handler.requestPermission(permissionParams('tool-write-normal', 'apply'));
 
     expect(rejected.outcome).toEqual({
       outcome: 'selected',

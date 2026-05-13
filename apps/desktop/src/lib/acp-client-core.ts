@@ -383,14 +383,18 @@ export class AcpClientBridgeCore implements Client {
       start: (controller) => {
         socket.addEventListener('message', (event) => {
           if (typeof event.data !== 'string' || readableClosed) return;
-          try {
-            const message = asJsonRpcRecord(JSON.parse(event.data)) as AnyMessage;
-            if (this.resolveManualResponse(message)) return;
-            if (this.handleAcpUiNotification(message)) return;
-            this.recordTraffic('in', message);
-            controller.enqueue(message);
-          } catch (error) {
-            console.error('Failed to handle ACP relay message:', error);
+          for (const line of event.data.split('\n')) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            try {
+              const message = asJsonRpcRecord(JSON.parse(trimmed)) as AnyMessage;
+              if (this.resolveManualResponse(message)) continue;
+              if (this.handleAcpUiNotification(message)) continue;
+              this.recordTraffic('in', message);
+              controller.enqueue(message);
+            } catch (error) {
+              console.error('Failed to handle ACP relay message:', error);
+            }
           }
         });
         socket.addEventListener('close', () => closeReadable(controller));

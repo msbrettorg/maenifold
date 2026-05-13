@@ -369,6 +369,85 @@ describe('AcpClientBridgeCore request hardening', () => {
     );
   });
 
+  it('parses a single-message websocket frame', async () => {
+    const { bridge, socket } = await connectBridge();
+    const promise = bridge.request<{ ok: boolean }>('initialize', {});
+
+    socket.triggerMessage(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } }));
+
+    await expect(promise).resolves.toEqual({ ok: true });
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('parses multiple newline-delimited websocket messages from one frame', async () => {
+    const { bridge, socket } = await connectBridge();
+    const first = bridge.request<{ first: boolean }>('initialize', {});
+    const second = bridge.request<{ second: boolean }>('session/new', {});
+
+    socket.triggerMessage([
+      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+    ].join('\n'));
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { first: true },
+      { second: true },
+    ]);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('skips a trailing newline in a websocket frame', async () => {
+    const { bridge, socket } = await connectBridge();
+    const promise = bridge.request<{ ok: boolean }>('initialize', {});
+
+    socket.triggerMessage(`${JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } })}\n`);
+
+    await expect(promise).resolves.toEqual({ ok: true });
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('skips mixed empty websocket frame lines while parsing non-empty lines', async () => {
+    const { bridge, socket } = await connectBridge();
+    const first = bridge.request<{ first: boolean }>('initialize', {});
+    const second = bridge.request<{ second: boolean }>('session/new', {});
+
+    socket.triggerMessage([
+      '',
+      '   ',
+      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
+      '',
+      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+      ' ',
+    ].join('\n'));
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { first: true },
+      { second: true },
+    ]);
+    expect(console.error).not.toHaveBeenCalled();
+  });
+
+  it('surfaces malformed JSON per line while other websocket lines flow', async () => {
+    const { bridge, socket } = await connectBridge();
+    const first = bridge.request<{ first: boolean }>('initialize', {});
+    const second = bridge.request<{ second: boolean }>('session/new', {});
+
+    socket.triggerMessage([
+      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
+      'not-json',
+      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+    ].join('\n'));
+
+    await expect(Promise.all([first, second])).resolves.toEqual([
+      { first: true },
+      { second: true },
+    ]);
+    expect(console.error).toHaveBeenCalledWith(
+      'Failed to handle ACP relay message:',
+      expect.any(Error)
+    );
+  });
+
   it('uses long-lived timeouts for ACP control mutations', () => {
     const bridge = new TestAcpClientBridgeCore('agent-1', 'agent-1', new PermissionHandler());
 

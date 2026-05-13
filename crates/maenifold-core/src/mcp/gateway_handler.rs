@@ -286,7 +286,9 @@ fn tool_from_definition(definition: crate::mcp::McpToolDefinition) -> Tool {
         Value::Object(map) => map,
         _ => serde_json::Map::new(),
     };
-    Tool::new(definition.name, definition.description, Arc::new(schema))
+    let mut tool = Tool::new(definition.name, definition.description, Arc::new(schema));
+    tool.execution = definition.execution;
+    tool
 }
 
 #[cfg(test)]

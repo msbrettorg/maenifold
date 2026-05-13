@@ -1,0 +1,199 @@
+use super::*;
+use rmcp::model::TasksCapability;
+use rmcp::model::{
+    CancelTaskParams, CancelTaskResult, CreateTaskResult, GetTaskInfoParams, GetTaskPayloadResult,
+    GetTaskResult, GetTaskResultParams, ListTasksResult, PaginatedRequestParams,
+};
+use rmcp::service::RequestContext;
+use rmcp::{ErrorData, RoleServer, ServerHandler};
+
+impl ServerHandler for MaenifoldHandler {
+    fn get_info(&self) -> ServerInfo {
+        let capabilities = match self.transport {
+            TransportKind::Stdio => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .enable_resources_list_changed()
+                .enable_tasks_with(TasksCapability::server_default())
+                .build(),
+            TransportKind::Http => ServerCapabilities::builder()
+                .enable_tools()
+                .enable_resources()
+                .enable_resources_subscribe()
+                .enable_tasks_with(TasksCapability::server_default())
+                .build(),
+        };
+        let domain_names = self
+            .gateway
+            .as_ref()
+            .map(|gateway| {
+                gateway
+                    .catalog
+                    .domains()
+                    .into_iter()
+                    .map(|domain| domain.name)
+                    .collect::<Vec<_>>()
+            })
+            .unwrap_or_default();
+        ServerInfo::new(capabilities)
+            .with_server_info(
+                Implementation::new("maenifold", env!("CARGO_PKG_VERSION"))
+                    .with_description(gateway_metadata::server_description(&domain_names)),
+            )
+            .with_instructions(gateway_metadata::server_instructions(&domain_names))
+    }
+    fn list_tools(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListToolsResult, rmcp::ErrorData>> + Send + '_
+    {
+        if let Some(error) = &self.gateway_startup_error {
+            return std::future::ready(Err(rmcp::ErrorData::internal_error(
+                format!("Gateway startup failed: {error}"),
+                None,
+            )));
+        }
+        let tools = if let Some(gateway) = &self.gateway {
+            let mut tools: Vec<Tool> = self
+                .tools
+                .iter()
+                .filter(|tool| {
+                    tool.name == "GetHelp"
+                        || tool.name == "ReadMcpResource"
+                        || self::discovery_tools::is_discovery_tool(tool.name.as_ref())
+                })
+                .cloned()
+                .collect();
+            tools.extend(gateway.list_tools());
+            tools
+        } else {
+            self.tools.clone()
+        };
+        std::future::ready(Ok(ListToolsResult {
+            tools,
+            next_cursor: None,
+            meta: None,
+        }))
+    }
+    async fn list_resources(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> std::result::Result<ListResourcesResult, rmcp::ErrorData> {
+        let mut result =
+            tokio::task::spawn_blocking(|| with_lock_retry(self::resources::handle_list_resources))
+                .await
+                .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+                .map_err(self::resources::map_resource_error)?;
+        if let Some(gateway) = &self.gateway {
+            result.resources.extend(gateway.list_resources());
+        }
+        Ok(result)
+    }
+    fn list_resource_templates(
+        &self,
+        _request: Option<rmcp::model::PaginatedRequestParams>,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListResourceTemplatesResult, rmcp::ErrorData>>
+    + Send
+    + '_ {
+        std::future::ready(
+            self::resources::handle_list_resource_templates()
+                .map_err(self::resources::map_resource_error),
+        )
+    }
+    fn read_resource(
+        &self,
+        request: ReadResourceRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ReadResourceResult, rmcp::ErrorData>> + Send + '_
+    {
+        let uri = request.uri.to_string();
+        let gateway = self.gateway.clone();
+        let gateway_diagnostics = self.gateway_diagnostics.clone();
+        async move {
+            if self::resources::is_gateway_uri(&uri) {
+                return self::resources::handle_gateway_read_resource(&uri, gateway_diagnostics)
+                    .await
+                    .map_err(self::resources::map_resource_error);
+            }
+            if uri.starts_with("ui://")
+                && let Some(gateway) = gateway
+            {
+                return gateway.read_resource(&uri).await;
+            }
+            tokio::task::spawn_blocking(move || {
+                with_lock_retry(|| self::resources::handle_read_resource(&uri))
+            })
+            .await
+            .map_err(|e| rmcp::ErrorData::internal_error(e.to_string(), None))?
+            .map_err(self::resources::map_resource_error)
+        }
+    }
+    fn subscribe(
+        &self,
+        request: SubscribeRequestParams,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
+        std::future::ready(self::resources::handle_subscribe(&request.uri, &context))
+    }
+    fn unsubscribe(
+        &self,
+        request: UnsubscribeRequestParams,
+        context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<(), rmcp::ErrorData>> + Send + '_ {
+        std::future::ready(self::resources::handle_unsubscribe(&request.uri, &context))
+    }
+    fn call_tool(
+        &self,
+        request: CallToolRequestParams,
+        _context: rmcp::service::RequestContext<rmcp::RoleServer>,
+    ) -> impl Future<Output = std::result::Result<CallToolResult, rmcp::ErrorData>> + Send + '_
+    {
+        let tool_name = request.name.to_string();
+        let arguments: Value = match request.arguments {
+            Some(map) => Value::Object(map),
+            None => json!({}),
+        };
+        let gateway = self.gateway.clone();
+        async move { self::mcp_tool_calls::handle_tool_call(tool_name, arguments, gateway).await }
+    }
+    fn enqueue_task(
+        &self,
+        request: CallToolRequestParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<CreateTaskResult, ErrorData>> + Send + '_ {
+        self::task_hooks::enqueue_task(request)
+    }
+    fn list_tasks(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<ListTasksResult, ErrorData>> + Send + '_ {
+        std::future::ready(self::task_hooks::list_tasks(request))
+    }
+    fn get_task_info(
+        &self,
+        request: GetTaskInfoParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<GetTaskResult, ErrorData>> + Send + '_ {
+        std::future::ready(self::task_hooks::get_task_info(request))
+    }
+    fn get_task_result(
+        &self,
+        request: GetTaskResultParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<GetTaskPayloadResult, ErrorData>> + Send + '_
+    {
+        self::task_hooks::get_task_result(request)
+    }
+    fn cancel_task(
+        &self,
+        request: CancelTaskParams,
+        _context: RequestContext<RoleServer>,
+    ) -> impl Future<Output = std::result::Result<CancelTaskResult, ErrorData>> + Send + '_ {
+        std::future::ready(self::task_hooks::cancel_task(request))
+    }
+}

@@ -173,6 +173,18 @@ describe('ChatInputBar', () => {
     expect(wrapper.emitted('cancel-turn')).toHaveLength(1);
   });
 
+  it('renders the stop icon button while loading', () => {
+    const wrapper = mountInput({ disabled: true });
+
+    expect(wrapper.find('button[aria-label="Cancel turn (Esc)"]').exists()).toBe(true);
+  });
+
+  it('does not render the stop icon button when idle', () => {
+    const wrapper = mountInput({ disabled: false });
+
+    expect(wrapper.find('button[aria-label="Cancel turn (Esc)"]').exists()).toBe(false);
+  });
+
   it('opens a clear conversation AlertDialog on Cmd+L', async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);

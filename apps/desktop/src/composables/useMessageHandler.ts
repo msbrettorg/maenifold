@@ -34,6 +34,7 @@ export function useMessageHandler({
       blocks: message.blocks?.map((block) => cloneContentBlock(block)),
       thought: message.thought,
       timestamp: message.timestamp,
+      stopReason: message.stopReason,
       toolCalls: message.toolCalls?.map((toolCall) => ({
         ...toolCall,
         locations: toolCall.locations?.map((location) => ({ ...location })),
@@ -240,12 +241,16 @@ export function useMessageHandler({
         timestamp: Date.now(),
       });
 
+      const assistantMessageStart = session.messages.length;
       session.isLoading = true;
       try {
         const response = await bridge.prompt({
           sessionId: session.session.sessionId,
           prompt,
         });
+
+        const lastAssistantMessage = session.messages.slice(assistantMessageStart).findLast((message) => message.role === 'assistant');
+        if (lastAssistantMessage) lastAssistantMessage.stopReason = response.stopReason ?? null;
 
         switch (response.stopReason) {
           case 'refusal':

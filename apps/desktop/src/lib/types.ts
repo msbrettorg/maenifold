@@ -9,6 +9,7 @@ import type { AppAuthMethod } from './auth-methods';
 // Types for maenifold application
 
 export type AcpMetadata = Record<string, unknown> | null;
+export type StopReason = 'end_turn' | 'max_tokens' | 'tool_use' | 'cancelled' | 'refusal' | 'error' | 'max_turn_requests';
 
 interface AcpMetadataCarrier {
   _meta?: AcpMetadata;
@@ -146,6 +147,7 @@ export interface ChatMessage {
   thought?: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
+  stopReason?: StopReason | string | null;
 }
 
 export interface ToolCallInfo extends AcpMetadataCarrier {

@@ -162,6 +162,10 @@ export function useMcpClient(baseUrl?: string) {
     return serverCapabilities.value?.prompts != null;
   }
 
+  function supportsCompletion(): boolean {
+    return serverCapabilities.value?.completions != null;
+  }
+
   function onDisconnect(handler: () => void): () => void {
     disconnectListeners.add(handler);
     return () => {
@@ -188,8 +192,10 @@ export function useMcpClient(baseUrl?: string) {
     listResourceTemplates: ops.listResourceTemplates,
     listPrompts: ops.listPrompts,
     getPrompt: ops.getPrompt,
+    complete: ops.complete,
     supportsResourceSubscribe,
     supportsPrompts,
+    supportsCompletion,
     onNotification: notificationRouter.onNotification,
     onDisconnect,
   };

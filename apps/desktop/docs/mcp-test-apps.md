@@ -30,7 +30,7 @@ The desktop renderer supports more MCP result shapes than the current configured
 - **MCP Apps UI:** `agent-capabilities-helpers.ts` extracts `_meta.ui.resourceUri` or `appUi.resourceUri` only when it starts with `ui://`; `McpAppFrame.vue` fetches that resource, sends sandbox HTML through `@modelcontextprotocol/ext-apps/app-bridge`, passes raw input/output into the app, handles iframe size changes, supports safe open-link handling, and scopes app tool calls to tools advertised by the originating MCP server.
 - **Sandbox CSP:** `electron/main.ts` registers `mcp-app-sandbox://` as a privileged scheme and serves sandbox pages with a restrictive CSP, with optional safe `connectDomains` additions from UI metadata.
 - **Permission-request detail rendering:** `PermissionDialog.vue` displays raw input, raw output, and content blocks in permission prompts.
-- **Prompt templates: implemented.** T-303.18.1 wires `prompts/list` + `prompts/get` through `useMcpPrompts` + `useMcpPromptCommands` + `McpPromptPicker.vue`, surfaced as `mcp.<server>.<prompt>` slash commands in the chat composer. `completion/complete` (argument auto-completion) remains unimplemented; tracked as T-303.19.
+- **Prompt templates and argument completion: implemented.** T-303.18.1 wires `prompts/list` + `prompts/get` through `useMcpPrompts` + `useMcpPromptCommands` + `McpPromptPicker.vue`, surfaced as `mcp.<server>.<prompt>` slash commands in the chat composer. T-303.19 wires `completion/complete` into prompt argument entry when the server advertises the `completions` capability.
 
 ## Coverage matrix
 
@@ -54,7 +54,7 @@ The desktop renderer supports more MCP result shapes than the current configured
 | Resource subscriptions / updates | Partial | Partial | Current loopback emits `notifications/resources/updated`; adopt Everything `toggle-subscriber-updates` for real server behavior |
 | Binary/download fallback | Y | N | Adopt Everything `gzip-file-as-resource` or ext-apps `pdf-server` for non-previewable resources |
 | Prompt templates (`prompts/list` + `prompts/get`) | Y | Y | T-303.18.1 wired `mcp.<server>.<prompt>` slash commands; `server-everything` `simple-prompt`/`args-prompt`/`completable-prompt` exercise the path. CDP UAT filed as T-303.18.2. |
-| Argument completion (`completion/complete`) | N | N | Adopt `@modelcontextprotocol/server-everything` `completable-prompt` (declares completable args) |
+| Argument completion (`completion/complete`) | Y | Y | Adopt `@modelcontextprotocol/server-everything` `completable-prompt` (declares completable args) |
 
 Total content type / edge-case rows audited: 19.
 

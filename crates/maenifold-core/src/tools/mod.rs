@@ -2,6 +2,7 @@ mod acp_exec;
 mod acp_exec_context;
 mod acp_exec_payload;
 mod catalog;
+mod cancel_sampling;
 mod context;
 mod diagnostics;
 mod embedding_catalog;
@@ -23,6 +24,7 @@ mod sessions_query;
 
 pub use acp_exec::acp_exec;
 pub use catalog::{list_assets, read_mcp_resource};
+pub use cancel_sampling::cancel_sampling_session;
 pub(crate) use context::{RequestCancelOnDrop, with_cancellation_scope};
 pub use context::{ToolContext, not_yet_implemented, render};
 pub use diagnostics::{get_config, memory_status};

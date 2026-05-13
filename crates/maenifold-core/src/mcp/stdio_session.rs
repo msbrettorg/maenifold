@@ -95,7 +95,8 @@ impl StdioSession {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let mut client = MaenifoldClient::new(registry)
+            let sampling_agent = None;
+            let mut client = MaenifoldClient::new_with_sampling(registry, sampling_agent)
                 .serve(transport)
                 .await
                 .map_err(to_message_error)?;

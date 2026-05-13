@@ -57,6 +57,7 @@ pub(crate) const TOOL_DOMAINS: &[(&str, &str)] = &[
     ("EmbeddingModels", "maenifold.system"),
     ("ReadTextFile", "maenifold.system"),
     ("Schedule", "maenifold.system"),
+    ("CancelSamplingSession", "maenifold.system"),
     ("RecentActivity", "maenifold.system"),
 ];
 

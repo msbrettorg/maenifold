@@ -13,6 +13,7 @@ fn config_with_agent(name: &str) -> AgentsConfig {
         },
     );
     AgentsConfig {
+        sampling_agent: None,
         mcp_servers: Vec::new(),
         agents,
         settings: None,

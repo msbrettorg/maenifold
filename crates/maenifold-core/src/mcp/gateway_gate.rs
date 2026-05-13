@@ -4,8 +4,12 @@ use maenifold_gate_core::lifecycle::{
 };
 use maenifold_gate_core::status_filter::StatusFilter;
 use rmcp::model::{CallToolResult, Content};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use std::path::PathBuf;
+
+#[path = "gateway_gate_schema.rs"]
+mod gateway_gate_schema;
+use gateway_gate_schema::{create_schema, note_schema, status_schema, sync_schema, task_schema};
 
 pub(crate) const DOMAIN_NAME: &str = "maenifold.gate";
 pub(crate) const DOMAIN_DESCRIPTION: &str =
@@ -97,6 +101,7 @@ fn call_gate(
                 blocked_only: optional_bool(&args, "blocked")?.unwrap_or(false),
                 include_done: optional_bool(&args, "includeDone")?.unwrap_or(false),
             },
+            summary: optional_bool(&args, "summary")?.unwrap_or(false),
         }),
         "gate_Append" => GateLifecycle::append(note_args(&args)?),
         "gate_Pass" => GateLifecycle::pass(note_args(&args)?),
@@ -246,76 +251,4 @@ fn optional_u64(
 
 fn render_json(value: Value) -> String {
     serde_json::to_string_pretty(&value).unwrap_or_else(|_| value.to_string())
-}
-
-fn base_properties() -> Map<String, Value> {
-    let mut properties = Map::new();
-    properties.insert(
-        "root".to_string(),
-        json!({"type": "string", "description": "Absolute repository root containing todo/ and done/."}),
-    );
-    properties.insert(
-        "pipeline".to_string(),
-        json!({"type": "string", "description": "Optional pipeline id to require for task resolution."}),
-    );
-    properties
-}
-
-fn create_schema() -> Value {
-    let mut properties = Map::new();
-    properties.insert(
-        "root".to_string(),
-        json!({"type": "string", "description": "Absolute repository root containing todo/ and done/."}),
-    );
-    properties.insert(
-        "taskId".to_string(),
-        json!({"type": "string", "pattern": "^T-\\d+\\.\\d+$"}),
-    );
-    properties.insert(
-        "title".to_string(),
-        json!({"type": "string", "minLength": 1}),
-    );
-    properties.insert("pipeline".to_string(), json!({"type": "string"}));
-    properties.insert("body".to_string(), json!({"type": "string"}));
-    properties.insert(
-        "priority".to_string(),
-        json!({"type": "string", "enum": ["P0", "P1", "P2", "P3", "P4"]}),
-    );
-    properties.insert("sprint".to_string(), json!({"type": "integer"}));
-    properties.insert("parent".to_string(), json!({"type": "string"}));
-    json!({"type": "object", "properties": properties, "required": ["root", "taskId", "title", "pipeline"], "additionalProperties": false})
-}
-
-fn status_schema() -> Value {
-    let mut properties = base_properties();
-    properties.insert("state".to_string(), json!({"type": "string"}));
-    properties.insert("ready".to_string(), json!({"type": "boolean"}));
-    properties.insert("blocked".to_string(), json!({"type": "boolean"}));
-    properties.insert("includeDone".to_string(), json!({"type": "boolean"}));
-    json!({"type": "object", "properties": properties, "required": ["root"], "additionalProperties": false})
-}
-
-fn note_schema() -> Value {
-    let mut properties = base_properties();
-    properties.insert("taskId".to_string(), json!({"type": "string"}));
-    properties.insert("agent".to_string(), json!({"type": "string"}));
-    properties.insert("notes".to_string(), json!({"type": "string"}));
-    properties.insert("model".to_string(), json!({"type": "string"}));
-    properties.insert(
-        "expectedStage".to_string(),
-        json!({"type": "string", "description": "Optional guard requiring the task's current stage to match before advancing."}),
-    );
-    json!({"type": "object", "properties": properties, "required": ["root", "taskId", "agent", "notes"], "additionalProperties": false})
-}
-
-fn task_schema() -> Value {
-    let mut properties = base_properties();
-    properties.insert("taskId".to_string(), json!({"type": "string"}));
-    json!({"type": "object", "properties": properties, "required": ["root", "taskId"], "additionalProperties": false})
-}
-
-fn sync_schema() -> Value {
-    let mut properties = base_properties();
-    properties.insert("rebuild".to_string(), json!({"type": "boolean"}));
-    json!({"type": "object", "properties": properties, "required": ["root"], "additionalProperties": false})
 }

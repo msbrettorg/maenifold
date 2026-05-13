@@ -423,7 +423,7 @@ for ((iteration=1; iteration<=MAX_ITERATIONS; iteration++)); do
 
   # Build copilot args
   COPILOT_ARGS=(
-    -p "$(build_copilot_prompt)"
+    -i "$(build_copilot_prompt)"
     --agent "$AGENT"
     --yolo
     --autopilot

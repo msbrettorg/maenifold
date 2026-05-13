@@ -7,11 +7,15 @@
 Look for opportunities to automate repetative tasks, but KISS and make sure you update the documentation to reflect the new process. 
 At a bare minimum it should be mentioned in this file.
 
-Always start with the LOWEST numbered gate items and work your way up. New gate items assume the old ones have been addressed. If you skip around you WILL cause problems. Do not mix items between sprints. Do not start work on a new sprint before the current one is closed.
-
 If you encounter issues with the MCP or CLI maenifold tools you should immediately pivot to using the CLI and raise an issue via gate - that's the entire point of you being the PM and using these tools. If you can't use the tools, that's a problem that needs to be solved, not a reason to stop or switch to a less effective workflow.
-  
+
 ---
+
+## Sprint selection.
+
+Always start with the lowest numbered sprint. Do not mix work between sprints. 
+Do not mix sprints in iterations. When you finish the sprint you're done with the iteration too.
+Within the sprint start with the lowest numbered gate items and work your way up. Do not skip items or work on items out of order. The backlog is ordered for a reason. New items assume the old ones are done. If you skip around you WILL cause problems.
 
 ## Bootstrap (mandatory, every iteration)
 

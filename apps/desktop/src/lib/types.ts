@@ -278,7 +278,7 @@ export interface PlanEntry extends AcpMetadataCarrier {
 /**
  * Session origin discriminator. `agents` sessions belong to the Agents tab.
  */
-export type SessionSource = 'agents';
+export type SessionSource = 'agents' | 'sampling';
 
 export interface SessionState {
   sessionId: string;

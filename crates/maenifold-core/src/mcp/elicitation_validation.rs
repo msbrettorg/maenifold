@@ -1,9 +1,6 @@
 use serde_json::Value;
 
-pub fn validate_elicitation_response(
-    schema: &Value,
-    content: &Value,
-) -> Result<(), Vec<String>> {
+pub fn validate_elicitation_response(schema: &Value, content: &Value) -> Result<(), Vec<String>> {
     // JSONForms uses AJV Draft-07 in the renderer; the daemon validates with
     // jsonschema's default Draft 2020-12 support so the MCP response path is
     // authoritative for schemas the renderer can only show as raw JSON.

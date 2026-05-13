@@ -47,9 +47,15 @@ struct CatalogCommand {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum CommandTarget {
-    Native { tool_name: String },
-    Gate { command: String },
-    Tasks { command: String },
+    Native {
+        tool_name: String,
+    },
+    Gate {
+        command: String,
+    },
+    Tasks {
+        command: String,
+    },
     Upstream {
         server_name: String,
         tool_name: String,
@@ -112,7 +118,11 @@ impl GatewayCatalog {
 
     pub(crate) fn commands(&self, domain: &str) -> Result<Vec<CommandEntry>> {
         let domain = self.domain(domain)?;
-        Ok(domain.commands.values().map(|cmd| cmd.entry.clone()).collect())
+        Ok(domain
+            .commands
+            .values()
+            .map(|cmd| cmd.entry.clone())
+            .collect())
     }
 
     pub(crate) fn resolve(&self, domain: &str, command: &str) -> Result<CommandTarget> {
@@ -191,25 +201,34 @@ impl GatewayCatalog {
     }
 
     fn add_gate_tools(&mut self) -> Result<()> {
-        let domain = self.insert_domain(gateway_gate::DOMAIN_NAME, gateway_gate::DOMAIN_DESCRIPTION)?;
+        let domain =
+            self.insert_domain(gateway_gate::DOMAIN_NAME, gateway_gate::DOMAIN_DESCRIPTION)?;
         for command in gateway_gate::commands() {
             let name = command.name.clone();
             domain.commands.insert(
                 name.clone(),
-                CatalogCommand { target: CommandTarget::Gate { command: name }, entry: command },
+                CatalogCommand {
+                    target: CommandTarget::Gate { command: name },
+                    entry: command,
+                },
             );
         }
         Ok(())
     }
 
     fn add_tasks_tools(&mut self) -> Result<()> {
-        let domain =
-            self.insert_domain(gateway_tasks::DOMAIN_NAME, gateway_tasks::DOMAIN_DESCRIPTION)?;
+        let domain = self.insert_domain(
+            gateway_tasks::DOMAIN_NAME,
+            gateway_tasks::DOMAIN_DESCRIPTION,
+        )?;
         for command in gateway_tasks::commands() {
             let name = command.name.clone();
             domain.commands.insert(
                 name.clone(),
-                CatalogCommand { target: CommandTarget::Tasks { command: name }, entry: command },
+                CatalogCommand {
+                    target: CommandTarget::Tasks { command: name },
+                    entry: command,
+                },
             );
         }
         Ok(())
@@ -242,10 +261,13 @@ impl GatewayCatalog {
     }
 
     fn insert_domain(&mut self, name: &str, description: &str) -> Result<&mut CatalogDomain> {
-        Ok(self.domains.entry(name.to_string()).or_insert_with(|| CatalogDomain {
-            description: description.to_string(),
-            commands: BTreeMap::new(),
-        }))
+        Ok(self
+            .domains
+            .entry(name.to_string())
+            .or_insert_with(|| CatalogDomain {
+                description: description.to_string(),
+                commands: BTreeMap::new(),
+            }))
     }
 
     fn domain(&self, domain: &str) -> Result<&CatalogDomain> {
@@ -265,7 +287,11 @@ impl GatewayCatalog {
                 .map(|(name, _)| format!("{name}/{command}"))
                 .collect::<Vec<_>>();
 
-            let available = domain_record.commands.keys().map(String::as_str).collect::<Vec<_>>();
+            let available = domain_record
+                .commands
+                .keys()
+                .map(String::as_str)
+                .collect::<Vec<_>>();
 
             let mut message = format!("Unknown gateway command '{command}' for domain '{domain}'.");
             if !suggestions.is_empty() {
@@ -273,7 +299,10 @@ impl GatewayCatalog {
             }
 
             if !available.is_empty() {
-                message.push_str(&format!(" Available commands in '{domain}': {}.", available.join(", ")));
+                message.push_str(&format!(
+                    " Available commands in '{domain}': {}.",
+                    available.join(", ")
+                ));
             }
 
             MaenifoldError::GatewayInvalidParams(message)

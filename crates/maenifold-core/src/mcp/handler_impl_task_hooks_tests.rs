@@ -3,10 +3,10 @@ use crate::test_util::ConfigResetGuard;
 use crate::tools::ToolContext;
 use crate::util::json::OutputFormat;
 use crate::workflow::pipeline::persist_final_pipeline_status;
+use rmcp::ServerHandler;
 use rmcp::model::{
     CallToolRequestParams, CancelTaskParams, GetTaskInfoParams, TaskSupport, ToolExecution,
 };
-use rmcp::ServerHandler;
 use serde_json::{Map, Value, json};
 use serial_test::serial;
 use std::fs;
@@ -114,7 +114,10 @@ async fn cancel_task_idempotent_on_terminal_pipeline() {
     })
     .expect("cancel");
     assert_eq!(result.task.task_id, task_id);
-    assert_eq!(result.task.status_message.as_deref(), Some("alreadyTerminal"));
+    assert_eq!(
+        result.task.status_message.as_deref(),
+        Some("alreadyTerminal")
+    );
 }
 
 #[tokio::test]

@@ -9,7 +9,7 @@ use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
-use crate::mcp::PendingRequestRegistry;
+use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
 use rmcp::model::Tool;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -38,13 +38,16 @@ pub(super) async fn build_gateway_with_registry(
             return Ok(GatewayStartup::Disabled);
         }
     };
+    let sampling_registry = Arc::new(SamplingSessionRegistry::new());
+    resources::sampling::set_registry(Arc::clone(&sampling_registry));
+    let sampling_agent = agents_config.sampling_agent.clone();
     let gateway_servers: Vec<_> = agents_config
         .mcp_servers
         .iter()
         .filter(|server| server.is_gateway())
         .collect();
     if gateway_servers.is_empty() {
-        return native_only_gateway(config, registry).await;
+        return native_only_gateway(config, registry, sampling_registry, sampling_agent).await;
     }
 
     let configs: Vec<StdioServerConfig> = gateway_servers
@@ -68,7 +71,8 @@ pub(super) async fn build_gateway_with_registry(
         })
         .collect();
 
-    match StdioPool::start_with_registry(configs, registry).await {
+    match StdioPool::start_with_sampling(configs, registry, sampling_registry, sampling_agent).await
+    {
         Ok(pool) => {
             let pool = Arc::new(pool);
             if pool.all_gateway_tools().is_empty() {
@@ -172,8 +176,13 @@ pub(super) async fn build_gateway_with_registry(
 async fn native_only_gateway(
     config: &Config,
     registry: Arc<PendingRequestRegistry>,
+    sampling_registry: Arc<SamplingSessionRegistry>,
+    sampling_agent: Option<String>,
 ) -> Result<GatewayStartup> {
-    let pool = Arc::new(StdioPool::start_with_registry(Vec::new(), registry).await?);
+    let pool = Arc::new(
+        StdioPool::start_with_sampling(Vec::new(), registry, sampling_registry, sampling_agent)
+            .await?,
+    );
     let native_tools = tool_registry_tools()?;
     let routing = ToolRoutingRegistry::build(&native_tools, pool.as_ref())?;
     let resource_routing = ResourceRoutingRegistry::build(pool.as_ref())?;

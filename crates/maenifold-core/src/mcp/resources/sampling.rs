@@ -24,7 +24,10 @@ pub(crate) fn set_registry(registry: Arc<SamplingSessionRegistry>) {
 }
 
 pub(crate) fn registry() -> Option<Arc<SamplingSessionRegistry>> {
-    SAMPLING_REGISTRY.read().ok().and_then(|guard| guard.clone())
+    SAMPLING_REGISTRY
+        .read()
+        .ok()
+        .and_then(|guard| guard.clone())
 }
 
 pub fn list_resources() -> Vec<Resource> {
@@ -66,7 +69,9 @@ fn read_snapshot(
     registry: Arc<SamplingSessionRegistry>,
 ) -> Result<Vec<crate::mcp::sampling_session_registry::SamplingDispatch>> {
     match tokio::runtime::Handle::try_current() {
-        Ok(handle) => Ok(tokio::task::block_in_place(|| handle.block_on(registry.snapshot()))),
+        Ok(handle) => Ok(tokio::task::block_in_place(|| {
+            handle.block_on(registry.snapshot())
+        })),
         Err(_) => {
             let runtime = tokio::runtime::Builder::new_current_thread()
                 .enable_all()

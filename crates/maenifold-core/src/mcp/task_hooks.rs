@@ -158,7 +158,10 @@ fn task(task_id: &str, pipeline_status: &str, ttl: Option<u64>) -> Task {
 }
 
 fn view_task(context: &ToolContext, task_id: &str) -> Result<Value> {
-    let viewed = pipeline(context, &json!({ "sessionId": task_id, "view": true, "summary": true }))?;
+    let viewed = pipeline(
+        context,
+        &json!({ "sessionId": task_id, "view": true, "summary": true }),
+    )?;
     envelope_data(&viewed)
 }
 
@@ -167,7 +170,9 @@ fn pipeline_status(context: &ToolContext, task_id: &str) -> Result<String> {
 }
 
 fn view_status(view: &Value) -> &str {
-    view.get("status").and_then(Value::as_str).unwrap_or("pending")
+    view.get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("pending")
 }
 
 fn envelope_data(output: &str) -> Result<Value> {

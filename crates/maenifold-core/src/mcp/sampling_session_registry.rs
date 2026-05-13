@@ -20,8 +20,20 @@ pub(crate) struct SamplingDispatch {
     pub runtime_kind: String,
     pub role_name: String,
     pub status: SamplingSessionStatus,
+    pub decision: SamplingDecisionRecord,
     pub created_at: String,
     pub token_usage: Option<TokenUsage>,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+#[allow(dead_code)]
+pub(crate) enum SamplingDecisionRecord {
+    AllowOnce,
+    AllowAlways,
+    Deny,
+    Cancelled,
+    Expired,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq)]
@@ -33,6 +45,7 @@ pub(crate) enum SamplingSessionStatus {
     Streaming,
     Completed,
     Cancelled,
+    Denied,
     Failed,
 }
 
@@ -80,6 +93,7 @@ impl SamplingSessionRegistry {
         if matches!(
             dispatch.status,
             SamplingSessionStatus::Cancelled
+                | SamplingSessionStatus::Denied
                 | SamplingSessionStatus::Failed
                 | SamplingSessionStatus::Completed
         ) {
@@ -124,7 +138,13 @@ impl SamplingSessionRegistry {
     }
 
     pub(crate) async fn snapshot(&self) -> Vec<SamplingDispatch> {
-        let mut sessions = self.sessions.lock().await.values().cloned().collect::<Vec<_>>();
+        let mut sessions = self
+            .sessions
+            .lock()
+            .await
+            .values()
+            .cloned()
+            .collect::<Vec<_>>();
         sessions.sort_by(|left, right| left.created_at.cmp(&right.created_at));
         sessions
     }

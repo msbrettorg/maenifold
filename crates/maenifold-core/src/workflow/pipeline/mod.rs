@@ -140,6 +140,7 @@ pub use executor_cleanup::{
 };
 pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
+pub(crate) use handler_wait::wait_for_pipeline_terminal;
 pub use lease::pipeline_lock_path;
 pub use quarantine::{
     QuarantineCleanupReport, RestoreReport, restore_pipeline_from_quarantine,

@@ -17,8 +17,7 @@ mod gateway_experiment;
 mod gateway_experiment_fixtures;
 #[cfg(test)]
 mod gateway_experiment_tests;
-mod gateway_gate;
-pub(crate) mod gateway_handler;
+mod gateway_gate; pub(crate) mod gateway_handler;
 #[cfg(test)]
 mod gateway_integration_tests;
 mod gateway_intent;
@@ -32,10 +31,10 @@ mod gateway_resolver;
 mod gateway_resolver_tests;
 mod gateway_resolver_types;
 mod gateway_schema_validation;
-mod gateway_startup;
-pub mod http;
-mod mcp_tool_calls;
-mod resource_routing;
+mod gateway_startup; mod gateway_tasks;
+#[cfg(test)]
+mod gateway_tasks_tests;
+pub mod http; mod mcp_tool_calls; mod resource_routing;
 pub mod resources;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;
@@ -291,7 +290,6 @@ impl MaenifoldMcpServer {
         Ok(())
     }
 }
-
 pub fn initialize_runtime(config: &Config) -> Result<()> {
     config.ensure_directories()?;
     AssetManager::initialize_assets(config)?;

@@ -2012,3 +2012,28 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 **Iter-8 final dev tip:** cb43af812 (after this commit). HEAD includes Settings MCP Servers UI, daemon tasks/* spec Phase 1, KEYSTONE Task* MCP tools, packaging fix, summary modes for Pipeline + gate_Status, useMessageHandler split, built-in slash commands.
 
 **Iter-8 process score: PASS.** 0 sprint-discarding violations. 0 destructive git ops. 4 remediation cycles all caught and closed in a single retry. 8 substantive tasks shipped + 1 P0 + 2 obsolete-closures = 9 done. Strongest iter-tally for backend MCP infrastructure to date.
+
+### Iter-9 START — 2026-05-13 — P0 RECOVERY: dev branch was reset, iter-8 work orphaned
+
+**Discovered at iter-9 startup:** dev branch HEAD was at `887955f96` (iter-7 absolute final tally) but the done/ directory had T-302.{37,38,42} and T-303.{1,2,5,6,7,8,11} present with full PASS chains. Code expected by those done files (useBuiltInSlashCommands.ts, useMessagePersistence.ts, useTitleRename.ts, the second `exposeInMainWorld('api', ...)` bridge in preload.ts, the `ignore: [...]` in forge.config.ts) was MISSING from the working tree.
+
+**Root cause:** Reflog shows two `reset: moving to 887955f9683826abfbdc4336bafc2389606b6b2e` entries at HEAD@{0}. Someone (agent or user) did a `git reset --hard` that dropped 14 commits — the entire iter-8 substantive output (~3500 LOC across 43 files): T-302.{37,38,42} sprint 302 closure + T-303.{1,2,5,6,7} sprint 303 progress + multiple PM ralph-state checkpoint commits.
+
+**Forensic chain:**
+- Reflog `dev@{1}` was `a43ef8210 ralph: iter-8 ABSOLUTE END`. That commit still resolves in the object database.
+- `git log a43ef8210` showed all 14 dropped commits with normal merge structure rooted in `887955f96`.
+- Created `worktrees/inspect-iter8` at the orphan tip. All claimed files present. `vue-tsc --noEmit` exit 0. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` exit 0 (1m13s). `vitest run` 807 passed / 14 skipped / 0 failed (10.74s). 
+
+**Recovery action:** PM-direct fast-forward `git merge --ff-only a43ef8210`. Constructive (no commits dropped, no history rewritten). Adds the orphan commits onto dev's tip. Authorized by the PM-owns-merges constitution clause and the corroborating evidence in done/.
+
+**Lesson — reflog is the source of truth when dev disagrees with done/.** Always check reflog when:
+1. Lowest-numbered todo/T-XXX appears for a sprint that done/ files claim is closed.
+2. A file the done/ frontmatter or PM-evidence note says was created is missing from the working tree.
+3. The wc -l count in PM-evidence disagrees with the wc -l count in dev.
+
+**Lesson — never accept "files missing from working tree" at face value.** Three corroborating data points (done/ files + reflog orphan + iter-7 retrospective claiming "iter-7 absolute final tally") together tell a different story than `ls apps/desktop/src/composables/useBuiltInSlashCommands.ts: No such file or directory`. Reconcile before redoing any work.
+
+**Lesson — destructive reset by agents violates the constitution.** AGENTS.md explicitly forbids `git reset` for any agent including PM. If the previous iter-8 PM did this reset, that's a constitution violation that must be escalated. If a human did it, it should be documented WITH a recovery decision (recover or accept-loss). Going forward: any iteration that ends with a reset must record the reset rationale in learnings.md or the recovery is impossible to verify after-the-fact.
+
+**Filed as standing PM check.** Pre-flight every iter: `git reflog | head -3` — if HEAD@{0} is "reset:", investigate before starting work.
+

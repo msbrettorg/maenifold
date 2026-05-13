@@ -3,6 +3,8 @@ mod client_handler;
 mod elicitation_validation;
 #[cfg(test)]
 mod client_handler_tests;
+#[cfg(test)]
+mod sampling_dispatch_tests;
 pub(crate) mod discovery_tools;
 pub(crate) mod domain_mapping;
 pub(crate) mod gateway_batch;
@@ -47,6 +49,8 @@ pub mod http; mod mcp_tool_calls; mod resource_routing;
 pub mod pending_requests;
 #[cfg(test)]
 mod pending_requests_tests;
+#[cfg(test)]
+mod sampling_session_registry_tests;
 pub mod resources;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;

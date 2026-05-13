@@ -1,11 +1,13 @@
 import type { Ref } from 'vue';
-import type { ChatMessage, ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
+import type { ContentBlock, McpAppUiMetadata, SavedSession, SessionState, AvailableCommand } from '../lib/types';
 import type { AcpClientBridge } from '../lib/acp-client';
 import type { SessionNotification } from '@agentclientprotocol/sdk';
 import { trackEvent } from '../lib/telemetry';
-import { deriveSessionTitleFromFirstMessage, isGeneratedSessionTitle, parseUpdatedAt } from './session-utils';
+import { parseUpdatedAt } from './session-utils';
 import { applyConfigOptionsUpdate, getActiveSessionContext, requireActiveSessionContext } from './session-state-helpers';
 import { cloneContentBlock, handleUserMessageChunk, handleAgentMessageChunk, handleAgentThoughtChunk, handleToolCall, handleToolCallUpdate } from './useStreamHandler';
+import { useMessagePersistence } from './useMessagePersistence';
+import { useTitleRename } from './useTitleRename';
 
 interface UseMessageHandlerDeps {
   sessions: Ref<Map<string, SessionState>>;
@@ -26,59 +28,8 @@ export function useMessageHandler({
   cancelPermission,
   resolveToolAppUi,
 }: UseMessageHandlerDeps) {
-  function cloneMessageForPersistence(message: ChatMessage): ChatMessage {
-    return {
-      id: message.id,
-      role: message.role,
-      content: message.content,
-      blocks: message.blocks?.map((block) => cloneContentBlock(block)),
-      thought: message.thought,
-      timestamp: message.timestamp,
-      stopReason: message.stopReason,
-      toolCalls: message.toolCalls?.map((toolCall) => ({
-        ...toolCall,
-        locations: toolCall.locations?.map((location) => ({ ...location })),
-        content: toolCall.content?.map((block) => ({ ...block })),
-        rawInput: toolCall.rawInput ? { ...toolCall.rawInput } : undefined,
-        rawOutput: toolCall.rawOutput ? { ...toolCall.rawOutput } : undefined,
-      })),
-    };
-  }
-
-  async function persistSessionMessages(session: SessionState): Promise<void> {
-    const sessionInfo = session.session;
-    if (!sessionInfo) {
-      return;
-    }
-    const savedSession = savedSessions.value.find((entry) => entry.sessionId === sessionInfo.sessionId);
-    if (!savedSession) {
-      return;
-    }
-    savedSession.messages = session.messages.map((message) => cloneMessageForPersistence(message));
-    savedSession.lastUpdated = Date.now();
-    await saveSessionsToStore();
-  }
-
-  function renameSessionFromFirstPrompt(session: SessionState, text: string): void {
-    if (!session.session || session.messages.some((message) => message.role === 'user')) {
-      return;
-    }
-
-    if (!isGeneratedSessionTitle(session.session.title, session.session.agentName || session.agentName)) {
-      return;
-    }
-
-    const nextTitle = deriveSessionTitleFromFirstMessage(text);
-    if (!nextTitle) {
-      return;
-    }
-
-    session.session.title = nextTitle;
-    const savedSession = savedSessions.value.find((entry) => entry.sessionId === session.session?.sessionId);
-    if (savedSession) {
-      savedSession.title = nextTitle;
-    }
-  }
+  const { persistSessionMessages } = useMessagePersistence({ savedSessions, saveSessionsToStore });
+  const { renameSessionFromFirstPrompt } = useTitleRename({ savedSessions });
 
   function pushSystemMessage(session: SessionState, content: string): void {
     session.messages.push({

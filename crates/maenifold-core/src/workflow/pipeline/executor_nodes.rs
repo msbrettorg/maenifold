@@ -1,6 +1,5 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use jockey::EventSender;
 use serde_json::Value as JsonValue;
 
 use crate::error::Result;
@@ -263,19 +262,6 @@ pub(super) fn build_node_execution_request(
             timeout_seconds: *timeout,
         },
     })
-}
-
-pub(super) async fn execute_node_request(
-    context: ToolContext,
-    node_id: String,
-    execution: NodeExecutionRequest,
-    agent: Option<String>,
-    event_tx: EventSender,
-) -> (String, NodeTaskResult) {
-    super::executor_nodes_dispatch::execute_node_request(
-        context, node_id, execution, agent, event_tx,
-    )
-    .await
 }
 
 #[cfg(test)]

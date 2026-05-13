@@ -90,6 +90,8 @@ mod mapping_apply;
 mod mapping_predecessor;
 mod mapping_resolve;
 #[cfg(test)]
+mod no_legacy_execute_wrapper_tests;
+#[cfg(test)]
 mod orphan_cascade_tests;
 #[cfg(test)]
 mod orphan_recovery_acp_tests;

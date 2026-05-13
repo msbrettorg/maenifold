@@ -72,6 +72,9 @@ function parseAgentsConfig(content: string): AgentsConfig {
   if (parsed.settings !== undefined) {
     config.settings = parsed.settings as AgentsConfig['settings'];
   }
+  if (typeof parsed.samplingAgent === 'string') {
+    config.samplingAgent = parsed.samplingAgent;
+  }
   const samplingPreferences = parseSamplingPreferences(parsed.samplingPreferences);
   if (samplingPreferences !== undefined) {
     config.samplingPreferences = samplingPreferences;
@@ -131,6 +134,7 @@ function serializeConfig(config: AgentsConfig): string {
   out.agents = Object.entries(config.agents).map(([name, agent]) => agentToEntry(name, agent));
   if (config.settings !== undefined) out.settings = config.settings;
   if (config.samplingPreferences !== undefined) out.samplingPreferences = config.samplingPreferences;
+  if (config.samplingAgent !== undefined) out.samplingAgent = config.samplingAgent;
   return `${JSON.stringify(out, null, 2)}\n`;
 }
 
@@ -194,6 +198,28 @@ export const useConfigStore = defineStore('config', () => {
     }
   }
 
+  async function setSamplingPreference(
+    serverName: string,
+    pref: { alwaysAllow: boolean; modelOverride?: string },
+  ): Promise<void> {
+    const current = config.value.samplingPreferences?.perServer ?? {};
+    await writeConfig({
+      samplingPreferences: {
+        perServer: { ...current, [serverName]: pref },
+      },
+    });
+  }
+
+  async function clearSamplingPreference(serverName: string): Promise<void> {
+    const current = config.value.samplingPreferences?.perServer ?? {};
+    const { [serverName]: _removed, ...rest } = current;
+    await writeConfig({
+      samplingPreferences: {
+        perServer: rest,
+      },
+    });
+  }
+
   // Replace the entire config and persist; the file watcher will echo back to ensure consistency.
   async function writeRaw(rawText: string): Promise<void> {
     const api = getConfigApi();
@@ -254,6 +280,8 @@ export const useConfigStore = defineStore('config', () => {
     reload,
     save,
     writeConfig,
+    setSamplingPreference,
+    clearSamplingPreference,
     writeRaw,
     getAgent,
     setupHotReload,

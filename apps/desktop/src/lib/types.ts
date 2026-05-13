@@ -61,6 +61,7 @@ export interface AgentConfig {
 export interface AgentsConfig {
   mcpServers?: McpServerEntry[];
   agents: Record<string, AgentConfig>;
+  samplingAgent?: string;
   settings?: MaenifoldSettings;
   samplingPreferences?: {
     perServer?: Record<string, {

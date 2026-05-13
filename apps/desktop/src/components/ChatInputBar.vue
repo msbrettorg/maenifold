@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
+import { useChatShortcuts } from '../composables/useChatShortcuts';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand } from '../lib/types';
 import { mergeWithBuiltInSlashCommands } from '../lib/default-commands';
@@ -24,6 +26,7 @@ const props = defineProps<{
   pendingAttachments: PendingAttachment[];
   attachmentError: string | null;
   accent?: 'normal' | 'plan';
+  isStreaming?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -34,9 +37,13 @@ const emit = defineEmits<{
   'insert-embedded-context-hint': [];
   'add-attachments': [attachments: PendingAttachment[]];
   'attachment-error': [message: string | null];
+  'recall-last': [];
+  'cancel-turn': [];
+  'clear-chat': [];
 }>();
 
 const commandPaletteRef = ref<InstanceType<typeof CommandPalette> | null>(null);
+const clearDialogOpen = ref(false);
 const text = computed({
   get: () => props.modelValue,
   set: (value: string) => emit('update:modelValue', value),
@@ -59,8 +66,13 @@ function submit(): void {
   emit('send');
 }
 
+const { handleShortcut } = useChatShortcuts({ submit, recallLast: () => emit('recall-last'), cancelTurn: () => emit('cancel-turn'), requestClear: () => { clearDialogOpen.value = true; }, isStreaming: computed(() => props.isStreaming === true), isInputEmpty: computed(() => !props.modelValue.trim()) });
+
+function confirmClearChat(): void { clearDialogOpen.value = false; emit('clear-chat'); }
+
 function handleKeyDown(event: KeyboardEvent): void {
   if (event.isComposing || event.keyCode === 229) return;
+  if (handleShortcut(event)) return;
   if (showCommandPalette.value) {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -165,5 +177,13 @@ function handleClose(): void {}
       :disabled="!modelValue.trim() || disabled"
       @click="submit"
     >Send</Button>
+    <AlertDialog :open="clearDialogOpen" @update:open="(value: boolean) => { clearDialogOpen = value; }">
+      <AlertDialogContent class="sm:max-w-[28rem]"><AlertDialogHeader>
+        <AlertDialogTitle>Clear conversation?</AlertDialogTitle>
+        <AlertDialogDescription>This will remove all messages from this session. This cannot be undone.</AlertDialogDescription>
+      </AlertDialogHeader><AlertDialogFooter>
+        <AlertDialogAction variant="destructive" @click="confirmClearChat">Clear</AlertDialogAction><AlertDialogCancel>Cancel</AlertDialogCancel>
+      </AlertDialogFooter></AlertDialogContent>
+    </AlertDialog>
   </div>
 </template>

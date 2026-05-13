@@ -12,6 +12,13 @@ const ALLOWLIST = new Set([
   'components.json',
 ]);
 
+// Prefixes excluded entirely from the design lint (not Maenifold source — verbatim
+// upstream code, test fixtures, or generated artifacts that we cannot or should not
+// reformat to our design tokens).
+const IGNORED_PREFIXES = [
+  'test-fixtures/', // verbatim upstream MCP test servers (T-303.14, T-303.15, T-303.16)
+];
+
 // Paths where hex literals are legitimate (shadcn primitives, canvas rendering, test evidence)
 const HEX_ALLOWLIST_PREFIXES = [
   'src/components/ui/',
@@ -38,6 +45,9 @@ const violations = [];
 
 for (const [relativeFile, changedLines] of candidates.entries()) {
   if (ALLOWLIST.has(relativeFile)) {
+    continue;
+  }
+  if (IGNORED_PREFIXES.some((prefix) => relativeFile.startsWith(prefix))) {
     continue;
   }
   if (HEX_ALLOWLIST_PREFIXES.some((prefix) => relativeFile.startsWith(prefix))) {

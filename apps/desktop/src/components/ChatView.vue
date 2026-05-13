@@ -7,6 +7,7 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
+import ModePicker from './ModePicker.vue';
 import SessionConfigPanel from './SessionConfigPanel.vue';
 import SessionModeSwitcher from './SessionModeSwitcher.vue';
 import ChatInputBar from './ChatInputBar.vue';
@@ -16,7 +17,7 @@ import { ScrollArea } from './ui/scroll-area';
 import { Card } from './ui/card';
 import { Settings } from 'lucide-vue-next';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
-import type { AvailableCommand, ContentBlock } from '../lib/types';
+import type { AvailableCommand, ContentBlock, SessionMode } from '../lib/types';
 
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
@@ -41,6 +42,7 @@ const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 
 const configOptions = computed(() => sessionStore.configOptions);
 const availableCommands = computed(() => sessionStore.availableCommands);
 const currentPlan = computed(() => sessionStore.currentPlan);
+const sessionModes = computed(() => (sessionStore.activeSession as ({ modes?: SessionMode[] } | null))?.modes ?? []);
 const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
 const capabilities = computed(() => sessionStore.agentPromptCapabilities);
 const supportsImageAttachments = computed(() => capabilities.value.image === true);
@@ -143,6 +145,7 @@ function handleCommandSelect(command: AvailableCommand): void {
   inputText.value = `/${command.name} `;
   activeCommandHint.value = command.input?.hint ?? null;
 }
+async function handleModeSelect(payload: { modeId: string }): Promise<void> { await sessionStore.setSessionMode(payload.modeId); }
 async function handleConfigOptionChange(configId: string, value: string): Promise<void> {
   try {
     await sessionStore.setConfigOption(configId, value);
@@ -248,7 +251,6 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
     >
       PLAN MODE — no execution will occur.
     </div>
-
     <ScrollArea ref="scrollAreaRef" class="flex-1 min-h-0">
       <div ref="messagesContainer" class="p-4">
         <ChatMessageList
@@ -267,7 +269,7 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
          />
       </div>
     </ScrollArea>
-
+    <ModePicker v-if="sessionModes.length > 0" :modes="sessionModes" :current-mode-id="sessionStore.activeSession?.currentModeId ?? null" @select-mode="handleModeSelect" />
     <ChatInputBar
       :model-value="inputText"
       :placeholder="inputPlaceholder"

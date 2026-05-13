@@ -1813,3 +1813,35 @@ Identical to T-303.5 v1: SWE ran `rustfmt --edition 2024 <list>` and rustfmt for
 #### Lesson — pre-creating worktrees that aren't used wastes 30s git checkout
 
 PM created worktrees/T-303.3 then realized the spec needed more research and pruned it. The git checkout to populate the worktree took ~30 seconds. Trivial cost but worth noting: only create worktrees AFTER the spec is fully prepared and the SWE prompt is ready to dispatch.
+
+
+### Iter-8 progress checkpoint #2 — sprint 303 mid-flight 2026-05-13
+
+#### Sprint 303 status
+- DONE: T-303.1 (research), T-303.5 (summary modes), T-303.7 (KEYSTONE Task* MCP tools), T-303.6 PENDING (blue-team retry in flight; SWE+RT passed).
+- STUCK: T-303.2 (Settings MCP Servers UI Phase 1) — blue-team CDP UAT BLOCKED on packaging OOM (T-302.42 P0 filed).
+- PENDING: 13 more sprint 303 items.
+
+#### Lesson — Forge npm run package OOMs across dev tip (T-302.42 P0)
+
+`cd apps/desktop && npm run package` consistently exhausts Node's heap, even with `NODE_OPTIONS=--max-old-space-size=12288` (12GB). Reproduces in BOTH the worktree and the main dev tree. Per the DoD constitutional rule "UI: Typecheck passes + app launches + visual verification", CDP UAT is now impossible until the packaging issue is resolved. T-302.42 filed as P0 to investigate root cause (likely a dep version regression). Until then, ALL UI work in sprint 303 (T-303.2 Settings MCP Servers UI is the first victim) cannot pass blue-team's CDP UAT.
+
+PM did NOT waive the CDP UAT requirement (per constitution "PM skips stages ONLY with explicit written user authorization"). T-303.2 remains at red-team stage until either packaging is fixed or user authorizes a waiver.
+
+#### Lesson — wrong-test-selector is a worker P1 false-positive
+
+T-303.6 blue-team v1 BLOCKED because PM-prompt-supplied `handler_crud_tests::` selector matched 0 tests. Correct path is `workflow::pipeline::handler_crud::tests::view_pipeline_*`. PM verified the actual T-303.5 tests still pass under T-303.6 (3/3 view_pipeline_* names). Dispatched fresh blue-team retry with corrected selectors. Cost: one extra dispatch round.
+
+**Mitigation pattern:** When prescribing test selectors in worker prompts, FIRST verify the selector matches actual tests via `cargo test --list` or by reading the test file's `mod` nesting. PM error here was assuming `<file>_tests` filename → `<file>_tests::` test path. Actual mapping: file `handler_crud_tests.rs` → test path `workflow::pipeline::handler_crud::tests::*` (because the tests are inside `mod tests {}` inside the file).
+
+#### Lesson — gate transition note attribution drift
+
+PM accidentally called gate_Pass for T-303.6 with note "swe→red-team" before realizing the prior gate state was "pending" not "swe". The transition was actually pending→swe. PM corrected with a follow-up gate_Pass + a self-correcting note. State machine is now correct but the audit log shows two transitions where the first had a misattributed comment.
+
+**Mitigation pattern:** Before every gate_Pass, run `gate_Status` to confirm current state, then write the note based on `current_state → next_state`. Don't assume the state machine position from session memory.
+
+#### Mid-iter throughput
+- 4 sprint 303 P1s active or done in iter-8 alone (T-303.1, T-303.5, T-303.6 in-progress, T-303.7).
+- 1 P1 stuck (T-303.2 — packaging gap).
+- 6 follow-up tasks filed (T-303.12-17).
+- 1 P0 filed (T-302.42 — packaging OOM).

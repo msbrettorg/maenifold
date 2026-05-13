@@ -2235,3 +2235,41 @@ PM-direct discovery + spec is the right call when the spec body already lays out
 7. Check that any task spec reference to a library API includes the EXACT method signature line citation.
 8. **NEW:** Before dispatching SWE for a TDD task, scan the blue-team's test assertions for any construct banned by audit rules (console.*, raw HTML controls, btn-* classes, `<style>` blocks). If found, send a write_agent revision rather than dispatching a SWE that will inevitably violate the audit.
 9. **NEW:** When red-team flags a "deletion" in `git diff dev` on a worktree branch, run `git merge-base dev <branch>` + `git diff <merge-base> <branch> --stat` to scope the actual SWE delta. Don't escalate stale-base artifacts.
+
+## 2026-05-13 — Iter-11 (Sprint 303 — MCP elicitation/completion/prompts UI shipped)
+
+### Combined SLC discovery for related-but-separable Phase 2 tasks risks scope contamination
+- I dispatched ONE discovery worker for combined T-303.3.1 (elicitation) + T-303.4.1 (sampling) IPC architecture, expecting "design the channel once" reuse. Both rubber-duck reviews returned BLOCKED because the sampling LLM-dispatch path (T-303.4.1) has a fundamental architectural gap — the daemon doesn't dispatch LLMs at all today, and the "visible Sessions entry" path requires either daemon-side LLM capability or a renderer-routed bridge — both undesigned.
+- **Lesson: separate discovery dispatches per Phase 2 task even when the spec body says "design once". A combined discovery becomes contaminated by the harder task's blockers; the easier task gets remediated against unrelated criticism. If two tasks share infrastructure, ship infrastructure as its own task FIRST, then build both consumers on it.**
+
+### gpt-5.5 SWE compacts files to satisfy 300 LOC limit — counts as scope expansion
+- Both T-303.19 (mcpClientOps.ts: 440 → 266 LOC) and T-303.3.1 (main.ts: 364 → 283 LOC) SWEs reformatted out-of-spec files to fit under the 300 LOC limit. Pattern: collapse multi-line imports to single lines, convert arrow functions to one-liners.
+- The compactions were semantics-preserving (full vitest suite passed unchanged for T-303.19), but they violate "SWE: The task is the task. Adjacent problems → report, don't fix."
+- **Lesson: SWE prompt must EXPLICITLY ban "reformatting just to satisfy LOC limits". The SWE should report the LOC violation as informational and let PM file a separate split task. PM accepted both compactions this iter on judgment (positive side-effect, no behavioral change) but it's a habit to disrupt early.**
+
+### Worktrees branched at iter-start go stale fast — rebase before red-team, not before merge
+- T-303.3.1 worktree was branched at 4c570d59b (iter-start). Two other tasks (T-303.18.1 + T-303.19) merged into dev during the iter. T-303.3.1's `git diff dev` showed those tasks' files as DELETIONS (the worktree didn't have them).
+- Red-team for T-303.3.1 saw the inflated diff and could not easily separate its own delta from "dev's recent additions absent in worktree".
+- **Lesson: rebase the worktree onto current dev BEFORE dispatching red-team, not before merge. The red-team needs a clean diff to audit. PM owns the rebase per gate process.**
+
+### `gate_Pass` advances ONE stage at a time — script the full SLC pipeline batch
+- Each `GatewayExecute maenifold.gate gate_Pass` advances exactly one stage. SLC pipeline has 8 stages (pending → discovery → spec → swe → red-team → remediate → blue-team → done). Naive PM behavior: one curl call per task close = 7 round-trips.
+- **Lesson: bash for-loop over the stage list with single `gate_Pass` per stage. Pattern documented in iter-11 commit messages. Each call carries its own notes string; the gate retains all notes in the task body.**
+
+### TOCTOU subscribe-then-snapshot is a real race in any SSE+broadcast registry
+- T-303.3.1 SWE wrote `let pending = registry.pending_events().await; let receiver = registry.subscribe();`. Red-team correctly identified that a request inserted between those two operations is lost (broadcast doesn't replay; snapshot returned before the insert).
+- Fix: swap the order. `let receiver = subscribe(); let pending = pending_events().await;`. New subscriber captures any concurrent broadcast PLUS the snapshot; renderer dedupes by UUID.
+- **Lesson: any SSE/broadcast endpoint that wants "subscribe + replay pending" must subscribe FIRST. The snapshot must come from inside the same registry's lock OR after the subscribe. Add a regression test that races insert against subscribe to prove the contract.**
+
+### todo/done are gitignored — agents working in worktrees can't read task spec files
+- T-303.18.1 SWE could not see `todo/T-303.18.1-mcp-prompts-ui-surface.md` because todo/ is gitignored (per AGENTS.md "Gate state is per-developer / per-clone"). They worked from the dispatch prompt + Phase 1 docs.
+- Subsequently each SWE prompt explicitly cited `/Users/brett/src/ma-collective/maenifold-rs/todo/T-XXX.X-*.md` (main tree absolute path, not worktree) so the SWE could read it.
+- **Lesson: SWE dispatch prompts MUST cite spec files via absolute main-tree paths, not relative worktree paths. The worktree's todo/ directory does not exist.**
+
+### "defers" in unrelated paragraphs is a false-positive for the P0 #2 trigger
+- Red-team grep flagged `apps/desktop/docs/mcp-test-apps.md:97` "Everything explicitly defers to this fixture" as a P0 #2 deferral violation. The semantic meaning is "yields/delegates to" (different word sense), and it's pre-existing in an unmodified paragraph.
+- **Lesson: P0 #2 trigger applies to scheduling-deferral language ("defer to next sprint", "backlog", "later"), not the dictionary verb "defer to" / "yield to". Banned-word grep is over-broad; PM judgment required on context. Pre-existing instances in untouched paragraphs are NOT regressions.**
+
+### Async `read_agent` after notification is one-shot — wait: true the first time, then read since_turn for new content
+- Read agents return their full turn history each time. After remediation message via `write_agent`, calling `read_agent` returned "No new turns since turn N" until the agent had actually responded. Two reads in a row can race if the notification came in between.
+- **Lesson: use `wait: true` with reasonable timeout on the first read after a notification. If "No new turns" appears, retry with `wait: false` (which gets the full state). The notification arrives slightly before the turn lands in the read API.**

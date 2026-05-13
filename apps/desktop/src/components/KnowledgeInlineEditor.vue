@@ -27,6 +27,7 @@ const emit = defineEmits<{
 const store = useKnowledgeStore();
 const guard = useUnsavedChangesGuard({ title: 'Discard knowledge note changes?' });
 const draft = ref(props.note.content);
+const pendingExternalContent = ref<string | null>(null);
 const saving = ref(false);
 const error = ref<string | null>(null);
 type ActiveDialog = 'conflict' | null;
@@ -48,9 +49,14 @@ const conflictOpen = computed({
 });
 const hasUnsavedChanges = computed(() => draft.value !== props.note.content);
 
-watch(() => props.note.content, (content) => {
-  draft.value = content;
-  guard.markClean();
+watch(() => props.note.content, (content, previousContent) => {
+  if (draft.value !== previousContent) {
+    pendingExternalContent.value = content;
+    setActiveDialog('conflict', true);
+  } else {
+    draft.value = content;
+    guard.markClean();
+  }
 });
 
 let detachBeforeUnload: (() => void) | null = null;
@@ -110,6 +116,17 @@ async function discardAndReload(): Promise<void> {
   conflictOpen.value = false;
 }
 
+function keepEdits(): void { setActiveDialog('conflict', false); pendingExternalContent.value = null; }
+
+function discardEdits(): void {
+  if (pendingExternalContent.value !== null) {
+    draft.value = pendingExternalContent.value;
+    guard.markClean();
+    pendingExternalContent.value = null;
+  }
+  setActiveDialog('conflict', false);
+}
+
 async function forceOverwrite(): Promise<void> {
   saving.value = true;
   error.value = null;
@@ -150,14 +167,20 @@ async function forceOverwrite(): Promise<void> {
     <Dialog v-model:open="conflictOpen">
       <DialogContent class="border-border-card bg-bg-surface text-text-primary sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Edit conflict</DialogTitle>
+          <DialogTitle>{{ pendingExternalContent === null ? 'Edit conflict' : 'Note changed externally' }}</DialogTitle>
           <DialogDescription>
-            This note changed since it was opened. Reload or overwrite with your draft.
+            {{ pendingExternalContent === null
+              ? 'This note changed since it was opened. Reload or overwrite with your draft.'
+              : 'The underlying note was modified outside the editor. Keep your unsaved edits or discard them and load the new content?' }}
           </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
+        <DialogFooter v-if="pendingExternalContent === null">
           <Button type="button" variant="ghost" @click="discardAndReload">Discard mine and reload</Button>
           <Button type="button" :disabled="saving" @click="forceOverwrite">Force overwrite</Button>
+        </DialogFooter>
+        <DialogFooter v-else>
+          <Button type="button" variant="ghost" @click="keepEdits">Keep my edits</Button>
+          <Button type="button" variant="destructive" @click="discardEdits">Discard my edits</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

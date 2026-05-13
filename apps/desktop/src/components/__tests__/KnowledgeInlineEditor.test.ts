@@ -36,7 +36,7 @@ vi.mock('../../composables/useUnsavedChangesGuard', () => ({
 }));
 
 const dialogStubs = {
-  Dialog: { template: '<div><slot /></div>', props: ['open'] },
+  Dialog: { template: '<div v-if="open"><slot /></div>', props: ['open'] },
   DialogContent: { template: '<div><slot /></div>' },
   DialogHeader: { template: '<div><slot /></div>' },
   DialogTitle: { template: '<h2><slot /></h2>' },
@@ -106,6 +106,7 @@ describe('KnowledgeInlineEditor', () => {
 
     await wrapper.find('[data-testid="inline-editor-content"]').setValue('Conflicting [[knowledge-crud]] content.');
     await wrapper.find('[data-testid="inline-editor-save"]').trigger('click');
+    await flushPromises();
 
     expect(wrapper.text()).toContain('Edit conflict');
     expect(wrapper.text()).toContain('Discard mine and reload');
@@ -139,5 +140,78 @@ describe('KnowledgeInlineEditor', () => {
     await wrapper.find('[data-testid="inline-editor-content"]').setValue('Dirty again [[knowledge-crud]].');
     await wrapper.get('button').trigger('click');
     expect(guard.confirmIfDirty).toHaveBeenCalled();
+  });
+
+  it('updates the draft and marks clean when external content changes without unsaved edits', async () => {
+    const baseNote = note();
+    const wrapper = mount(KnowledgeInlineEditor, {
+      props: { note: baseNote },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.setProps({
+      note: { ...baseNote, content: 'Externally refreshed [[knowledge-crud]] content.' },
+    });
+
+    expect((wrapper.find('[data-testid="inline-editor-content"]').element as HTMLTextAreaElement).value)
+      .toBe('Externally refreshed [[knowledge-crud]] content.');
+    expect(guard.markClean).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a conflict without overwriting dirty draft when external content changes', async () => {
+    const baseNote = note();
+    const wrapper = mount(KnowledgeInlineEditor, {
+      props: { note: baseNote },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.find('[data-testid="inline-editor-content"]').setValue('Unsaved [[knowledge-crud]] draft.');
+    guard.markClean.mockClear();
+    await wrapper.setProps({
+      note: { ...baseNote, content: 'Externally refreshed [[knowledge-crud]] content.' },
+    });
+
+    expect((wrapper.find('[data-testid="inline-editor-content"]').element as HTMLTextAreaElement).value)
+      .toBe('Unsaved [[knowledge-crud]] draft.');
+    expect(guard.markClean).not.toHaveBeenCalled();
+    expect(wrapper.text()).toContain('Note changed externally');
+  });
+
+  it('discards dirty draft and loads pending external content from the conflict dialog', async () => {
+    const baseNote = note();
+    const wrapper = mount(KnowledgeInlineEditor, {
+      props: { note: baseNote },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.find('[data-testid="inline-editor-content"]').setValue('Unsaved [[knowledge-crud]] draft.');
+    guard.markClean.mockClear();
+    await wrapper.setProps({
+      note: { ...baseNote, content: 'Externally refreshed [[knowledge-crud]] content.' },
+    });
+    await wrapper.findAll('button').find((button) => button.text() === 'Discard my edits')?.trigger('click');
+
+    expect((wrapper.find('[data-testid="inline-editor-content"]').element as HTMLTextAreaElement).value)
+      .toBe('Externally refreshed [[knowledge-crud]] content.');
+    expect(guard.markClean).toHaveBeenCalledTimes(1);
+    expect(wrapper.text()).not.toContain('Note changed externally');
+  });
+
+  it('keeps dirty draft when choosing to keep edits in the conflict dialog', async () => {
+    const baseNote = note();
+    const wrapper = mount(KnowledgeInlineEditor, {
+      props: { note: baseNote },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.find('[data-testid="inline-editor-content"]').setValue('Unsaved [[knowledge-crud]] draft.');
+    await wrapper.setProps({
+      note: { ...baseNote, content: 'Externally refreshed [[knowledge-crud]] content.' },
+    });
+    await wrapper.findAll('button').find((button) => button.text() === 'Keep my edits')?.trigger('click');
+
+    expect((wrapper.find('[data-testid="inline-editor-content"]').element as HTMLTextAreaElement).value)
+      .toBe('Unsaved [[knowledge-crud]] draft.');
+    expect(wrapper.text()).not.toContain('Note changed externally');
   });
 });

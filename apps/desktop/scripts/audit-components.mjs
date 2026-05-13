@@ -17,6 +17,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { countLinesForMaxLoc } from './audit-loc.mjs';
 
 const APP_ROOT = process.cwd();
 const COMPONENTS_DIR = path.join(APP_ROOT, 'src', 'components');
@@ -81,8 +82,9 @@ function auditVueFile(relPath) {
   if (source == null) return;
 
   const lines = source.split(/\r?\n/);
-  if (lines.length > MAX_LOC) {
-    addViolation(relPath, lines.length, 'max-loc', `${lines.length} lines exceeds ${MAX_LOC} limit — split this component.`);
+  const lineCount = countLinesForMaxLoc(source);
+  if (lineCount > MAX_LOC) {
+    addViolation(relPath, lineCount, 'max-loc', `${lineCount} lines exceeds ${MAX_LOC} limit — split this component.`);
   }
 
   for (const range of findBlockRanges(lines, 'style')) {

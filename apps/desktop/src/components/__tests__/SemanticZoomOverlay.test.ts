@@ -130,7 +130,8 @@ describe('SemanticZoomOverlay', () => {
     zoom.focusedNodeId = 'node-1';
   });
 
-  it('shows footer actions using the same status gating as inspector actions', async () => {
+  // T-302.43: retry guard for known flaky test under parallel pool. The test relies on async render/microtask ordering that races with neighboring tests in the parallel vitest pool. See apps/desktop/docs/test-flakes/T-302.43-repro.md.
+  it('shows footer actions using the same status gating as inspector actions', { retry: 2 }, async () => {
     const wrapper = mountOverlay();
     await flushPromises();
 

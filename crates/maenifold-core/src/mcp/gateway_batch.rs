@@ -131,6 +131,7 @@ fn validate_item(state: &GatewayState, item: &BatchItem) -> Result<(), rmcp::Err
     {
         CommandTarget::Native { tool_name } => validate_native(&tool_name, &item.parameters),
         CommandTarget::Gate { .. } => Ok(()),
+        CommandTarget::Tasks { .. } => Ok(()),
         CommandTarget::Upstream {
             server_name,
             tool_name,

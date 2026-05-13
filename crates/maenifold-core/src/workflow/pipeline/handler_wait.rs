@@ -1,4 +1,7 @@
-use std::{future::Future, time::Duration};
+use std::{
+    future::Future,
+    time::{Duration, Instant},
+};
 
 use serde_json::Value;
 use tokio::runtime::{Builder, Handle};
@@ -8,7 +11,11 @@ use crate::tools::ToolContext;
 use crate::util::json::{OutputFormat, success};
 
 use super::resource_notifications::subscribe_pipeline_updates;
-use super::view::{is_pipeline_terminal_status, view_pipeline_session_value};
+use super::view::{
+    is_pipeline_terminal_status, view_pipeline_session_value, view_pipeline_summary_session_value,
+};
+
+const POLL_INTERVAL_MS: u64 = 500;
 
 #[cfg(test)]
 static ACTIVE_WAITS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
@@ -41,6 +48,44 @@ pub(super) fn await_terminal(
     Ok(match context.output_format {
         OutputFormat::Json => success(result),
         OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
+pub(crate) async fn wait_for_pipeline_terminal(
+    context: &ToolContext,
+    session_id: &str,
+    timeout_ms: Option<u64>,
+) -> Result<String> {
+    let deadline = timeout_ms.map(|ms| Instant::now() + Duration::from_millis(ms));
+    loop {
+        let view = view_pipeline_session_value(context, session_id)?;
+        let status = view.get("status").and_then(Value::as_str).unwrap_or("");
+        if is_pipeline_terminal_status(status) {
+            return render_summary_view(context, session_id, false);
+        }
+        if deadline.is_some_and(|deadline| Instant::now() >= deadline) {
+            return render_summary_view(context, session_id, true);
+        }
+        let sleep_ms = deadline
+            .map(|deadline| {
+                deadline
+                    .saturating_duration_since(Instant::now())
+                    .as_millis() as u64
+            })
+            .map(|remaining| remaining.min(POLL_INTERVAL_MS))
+            .unwrap_or(POLL_INTERVAL_MS);
+        tokio::time::sleep(Duration::from_millis(sleep_ms)).await;
+    }
+}
+
+fn render_summary_view(context: &ToolContext, session_id: &str, timed_out: bool) -> Result<String> {
+    let mut view = view_pipeline_summary_session_value(context, session_id)?;
+    if timed_out {
+        view["timed_out"] = Value::Bool(true);
+    }
+    Ok(match context.output_format {
+        OutputFormat::Json => success(view),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&view)?,
     })
 }
 

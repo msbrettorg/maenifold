@@ -12,6 +12,7 @@ export type DispatchedResource =
   | { kind: 'json'; pretty: string }
   | { kind: 'code'; text: string; language: string }
   | { kind: 'image'; src: string; alt: string }
+  | { kind: 'video'; src: string; mimeType: string }
   | { kind: 'audio'; src: string }
   | { kind: 'download'; name: string; size?: number; uri: string };
 
@@ -83,6 +84,10 @@ export function dispatchResource(content: ResourceContent): DispatchedResource {
       src: `data:${mimeType};base64,${content.blob}`,
       alt: content.name || nameFromUri(content.uri),
     };
+  }
+
+  if (mimeType.startsWith('video/') && content.blob) {
+    return { kind: 'video', src: `data:${mimeType};base64,${content.blob}`, mimeType };
   }
 
   if (mimeType.startsWith('audio/') && content.blob) {

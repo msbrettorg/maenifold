@@ -1,0 +1,18 @@
+{
+  "name": "@maenifold/test-fixture-mcp-sampling-tool",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx toolWithSampleServer.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.0.0-alpha.0",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.16.5",
+    "typescript": "^5.9.3"
+  }
+}

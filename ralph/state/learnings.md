@@ -2098,3 +2098,46 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 5. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only, NOT mid-sprint) — confirm dev tip builds before dispatching any SWE.
 6. Read learnings.md tail for the previous iter's final tally and any P0 escalations.
 
+
+### Iter-9 ABSOLUTE FINAL tally — 2026-05-13 03:50
+
+**Tasks shipped (4 substantive + 1 P0 recovery):**
+1. P0 RECOVERY: dev fast-forward 887955f96 → a43ef8210. Restored 14 dropped iter-8 commits (T-302.{37,38,42} + T-303.{1,2,5,6,7}). Recovery commit 6c2ac7ab6.
+2. T-302.40 — window.api parallel-bridge documentation (Option C). Merged 378fd25a0.
+3. T-302.41 — useConfirmDialogStore FIFO queue (Option A) + 5 vitest cases. Merged 8269eb3a6.
+4. T-303.3 Phase 1 — MaenifoldClient ClientHandler scaffolding + elicitation cancel-stub + 2 integration tests. Merged a059df8a9.
+5. T-303.4 Phase 1 — create_message deny-stub correctness fix (T-303.3 Phase 1 advertised sampling; default method_not_found was misleading). Merged b4705c033.
+
+**Follow-ups filed:**
+- T-302.43 (SemanticZoomOverlay vitest flakiness, P3).
+- T-303.3.1 (MCP elicitation Phase 2 UI/IPC, P1 SLC).
+- T-303.4.1 (MCP sampling Phase 2 UI/LLM with mandatory P0 #6 dual rubber-duck review, P1 SLC).
+
+**Sprint status (final):**
+- Sprint 302: 25 done. Remaining: T-302.11/.12/.35 (UAT, OUT OF SCOPE), T-302.43 (P3 follow-up).
+- Sprint 303: 9 done. Remaining: T-303.0 umbrella, T-303.9/.10 (UAT), T-303.12-17 (wiring follow-ups), T-303.3.1 + T-303.4.1 (NEW Phase 2 follow-ups).
+
+**Process rigor (this iter):**
+- 4 SWE dispatches, all returned WorkResults + confessions.
+- 4 red-team audits (claude-opus-4.6), 4/4 PASS HIGH first-pass.
+- 4 blue-team audits (gpt-5.5), 2 hit known SemanticZoomOverlay flake (overridden by PM evidence + filed T-302.43); 2 PASS first-pass.
+- 0 destructive git ops by agents.
+- 0 sprint-discarding gate violations.
+
+**Lesson — iterating on the same module pays off.** T-303.3 Phase 1 + T-303.4 Phase 1 both modified `crates/maenifold-core/src/mcp/client_handler.rs`. The second SWE benefited from the existing test patterns (duplex transport, ServerHandler test fixture) and could just add one more test case + one more impl method. Total added LOC for Phase 4 (T-303.4): only +18 in client_handler.rs + +33 in tests. When dispatching follow-up tasks on the same file, lean into the existing patterns explicitly in the SWE prompt — do not let the worker re-invent.
+
+**Lesson — discovering a misleading capability advertisement is a meaningful task.** T-303.4 Phase 1 was originally framed as "add sampling deny-stub" — a feature add. Halfway through PM analysis, it became clear the deny-stub was actually a CORRECTNESS FIX: T-303.3 Phase 1 already advertised sampling capability via `enable_sampling()`, but the default rmcp `create_message` returns `method_not_found`. Without T-303.4 Phase 1, upstream MCP servers see "we support sampling" → send a request → get a method_not_found error. That is a contract violation. Reframing the task in the SWE prompt from "add feature" to "fix correctness" got cleaner buy-in and cleaner code.
+
+**Lesson — P0 #6 awareness must be baked into every Phase 2 spec.** T-303.4.1 spec explicitly enumerates 5 P0 #6 guard rails: mandatory approval modal, visible Sessions entry, agent+model visibility, per-server always-allow scoping, no silent automated approvals. Filed before the next iter PM has a chance to skip them. Phase 1 ships SAFE (deny-stub, no LLM); Phase 2 must not regress that safety.
+
+**Lesson — the Phase 1 / Phase 2 split scales.** Both T-303.3 and T-303.4 used the same pattern: Phase 1 = daemon scaffolding (≤4 files, ≤200 LOC, dispatchable as one SDD task), Phase 2 = cross-stack UI + IPC (filed as separate SLC task). This pattern works when the daemon-side capability advertisement is honest in Phase 1 (returns a structured "not yet" response, not an error). When considering greenfield client-handler features in MCP, default to this pattern.
+
+**Standing PM pre-flight checks (codified for next iter, updated):**
+1. `git reflog | head -3` — investigate any HEAD@{0/1}: reset: entries.
+2. `ls apps/desktop/node_modules/.bin/{vue-tsc,vitest}` — both must exist.
+3. `git worktree list` — prune any stale worktrees.
+4. `git status --short` — must be clean.
+5. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only).
+6. Read learnings.md tail for previous iter's final tally.
+7. **NEW:** Check that any task spec reference to a library API includes the EXACT method signature line citation. Vague "use the default helper" pointers cause SWE adaptation rounds.
+

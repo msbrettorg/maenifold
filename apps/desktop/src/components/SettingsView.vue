@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { useConfigStore } from '../stores/config';
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
+import SettingsMcpServers from './SettingsMcpServers.vue';
 
 const configStore = useConfigStore();
 const guard = useUnsavedChangesGuard({ title: 'Discard settings changes?' });
@@ -162,6 +163,10 @@ onBeforeUnmount(() => {
         <span v-else-if="isDirty" class="text-xs text-warning">Unsaved changes</span>
         <span v-else class="text-xs text-text-tertiary">In sync with disk</span>
       </footer>
+    </section>
+
+    <section class="flex flex-col gap-3">
+      <SettingsMcpServers />
     </section>
 
     <section class="flex flex-col gap-3">

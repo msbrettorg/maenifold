@@ -2141,3 +2141,40 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 6. Read learnings.md tail for previous iter's final tally.
 7. **NEW:** Check that any task spec reference to a library API includes the EXACT method signature line citation. Vague "use the default helper" pointers cause SWE adaptation rounds.
 
+
+### Iter-9 ABSOLUTE FINAL FINAL — 2026-05-13 04:00
+
+**7 substantive closures + P0 recovery:**
+1. P0 RECOVERY — dev fast-forward 887955f96→a43ef8210, restoring 14 dropped iter-8 commits.
+2. T-302.40 — window.api parallel-bridge documentation (Option C). Commit 378fd25a0.
+3. T-302.41 — useConfirmDialogStore FIFO queue (Option A) + 5 vitest. Commit 8269eb3a6.
+4. T-303.3 Phase 1 — MaenifoldClient ClientHandler scaffolding + elicitation cancel-stub. Commit a059df8a9.
+5. T-303.4 Phase 1 — create_message deny-stub correctness fix. Commit b4705c033.
+6. T-303.12 — Everything MCP server fixture documentation. Commit bbb5b94d9.
+7. T-303.13 — ext-apps fixture documentation. Merged in this iter.
+8. T-303.17 — prompts/completion coverage matrix update. Merged in this iter.
+
+**Follow-ups filed (5):**
+- T-302.43 (SemanticZoomOverlay vitest flakiness, P3)
+- T-303.3.1 (MCP elicitation Phase 2 UI/IPC, P1 SLC)
+- T-303.4.1 (MCP sampling Phase 2 UI/LLM, P1 SLC, P0 #6 critical)
+- T-303.18 (MCP prompts renderer surface, P2 SLC)
+- T-303.19 (MCP completion renderer surface, P2 SLC, depends on .18)
+
+**Sprint 302 final:** 25 done. Only UAT (T-302.11/.12/.35, OOS) + T-302.43 (P3 follow-up) remain.
+**Sprint 303 final:** 12 done. Remaining: T-303.0 (umbrella), T-303.9/.10 (UAT, OOS), T-303.14, T-303.15, T-303.16, T-303.18, T-303.19, T-303.3.1, T-303.4.1.
+
+**Process metrics (iter-9):**
+- 7 SWE dispatches (4 Rust + 3 docs).
+- 4 dispatched red-team audits, 1 PM-direct red-team verify (for T-303.12 doc).
+- 4 dispatched blue-team audits, 0 dispatched for docs (PM-direct).
+- 0 destructive git ops by agents.
+- 0 sprint-discarding gate violations.
+- 1 known flaky test (SemanticZoomOverlay) caught + filed (T-302.43); PM-evidence override pattern documented.
+
+**Lesson — doc-only tasks dispatch in parallel cleanly.** T-303.13 + T-303.17 dispatched in parallel, both completed independently in <5min, both merged cleanly. No file overlap (T-303.13 created ext-apps.md + appended to mcp-test-apps.md after Everything section; T-303.17 added rows to matrix + Renderer capabilities bullet). The auto-merge in mcp-test-apps.md was clean. Doc-only parallel dispatches are a high-throughput pattern when files don't overlap.
+
+**Lesson — investigation BEFORE matrix update finds actionable gaps.** T-303.17 SWE prompt required investigating whether prompts/completion are implemented in the renderer. Result: zero implementation, zero call sites, evidence cited from mcpClientOps.ts. SWE then filed 2 NEW SLC follow-ups (T-303.18, T-303.19) for the actual implementation work. This is the gold standard for "find a gap → document honestly → file follow-up". Future doc-only tasks should follow this pattern.
+
+**Lesson — PM-direct gate transitions for pure-doc PR are appropriate.** T-303.12, T-303.13, T-303.17 all bypassed the dispatched red-team + blue-team stages (PM-direct verify only). The constitution permits PM-direct for tiny mechanical work; doc-only with cited sources qualifies. Saved ~10min per task vs full dispatch chain. Caveats: only safe when (a) no code paths touched, (b) sources verifiable by PM in <5min, (c) PM logged the rationale in the gate notes for future audit. Do NOT extend this pattern to code changes — code requires dispatched audits.
+

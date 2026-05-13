@@ -49,7 +49,9 @@ describe('StopReasonBanner', () => {
   });
 
   it('renders nothing for an unknown stop reason', () => {
-    const wrapper = mount(StopReasonBanner, { props: { stopReason: 'unknown_reason' } });
+    // Type system rejects unknown strings; this runtime safety check verifies the
+    // default arm handles JSON-parsed values that bypass type narrowing.
+    const wrapper = mount(StopReasonBanner, { props: { stopReason: 'unknown_reason' as unknown as 'error' } });
 
     expect(wrapper.text()).toBe('');
   });

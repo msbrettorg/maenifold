@@ -4,7 +4,7 @@ import { AlertCircle, Clock, XCircle } from 'lucide-vue-next';
 import type { StopReason } from '../lib/types';
 
 const props = defineProps<{
-  stopReason?: StopReason | string | null;
+  stopReason?: StopReason | null;
 }>();
 
 const banner = computed(() => {
@@ -21,8 +21,16 @@ const banner = computed(() => {
       return { text: 'Awaiting tool result.', icon: Clock };
     case 'error':
       return { text: 'Error: see message.', icon: AlertCircle };
-    default:
+    case 'end_turn':
+    case null:
+    case undefined:
       return null;
+    default: {
+      // Compile-time exhaustiveness: a future StopReason value MUST add a case above.
+      const _exhaustive: never = props.stopReason;
+      void _exhaustive;
+      return null;
+    }
   }
 });
 </script>

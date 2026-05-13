@@ -147,7 +147,7 @@ export interface ChatMessage {
   thought?: string;
   timestamp: number;
   toolCalls?: ToolCallInfo[];
-  stopReason?: StopReason | string | null;
+  stopReason?: StopReason | null;
 }
 
 export interface ToolCallInfo extends AcpMetadataCarrier {

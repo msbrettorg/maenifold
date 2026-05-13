@@ -15,6 +15,7 @@ import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import SamplingHistory from './SamplingHistory.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
+import SettingsMcpSamplingPrefs from './SettingsMcpSamplingPrefs.vue';
 
 const configStore = useConfigStore();
 const guard = useUnsavedChangesGuard({ title: 'Discard settings changes?' });
@@ -171,6 +172,10 @@ onBeforeUnmount(() => {
     </section>
 
     <SamplingHistory />
+
+    <section class="flex flex-col gap-3">
+      <SettingsMcpSamplingPrefs />
+    </section>
 
     <section class="flex flex-col gap-3">
       <header class="flex flex-col gap-1">

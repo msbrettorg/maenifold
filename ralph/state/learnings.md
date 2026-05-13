@@ -1496,3 +1496,65 @@ PM fix: `cd apps/desktop && npm install` (NOT `npm ci` — that wipes everything
 3. `npm install` (not `npm ci`) to surgically reconcile.
 4. Verify package-lock md5 unchanged.
 
+
+### Iteration ralph-6 — 2026-05-12 (12 tasks shipped)
+
+**Done this iteration:** T-300.3, T-300.6 (r2), T-300.7, T-300.9 (r2), T-300.10 (r2), T-300.11 (r2), T-300.12, T-300.13 (r2), T-300.14 (r3), T-300.15 (r2), T-300.16, T-300.17 (verify-by-evidence). 3 follow-ups filed (T-300.31 cross-process ACP PID persistence, T-300.32 quarantine cleanup scheduler, T-300.33 refined-session tiebreak).
+
+### Lesson — `todo/` is gitignored, workers can't read spec files from worktree filesystem
+
+Workers consistently reported "the assigned spec file did not exist in the worktree". This is by design (T-244.71/72 incidents — gate state is local). Workaround: PM inlines the full spec text in the dispatch prompt. Never rely on the worker to read `todo/T-XXX.md` from its own worktree.
+
+### Lesson — Workers run rustfmt and silently churn unrelated files
+
+`handler_crud_tests_runs.rs` and `update_status.rs` were reformatted by 4 separate workers across this iteration despite explicit instructions to use file-by-file `rustfmt --edition 2024 <specific-file>`. The pattern: worker invokes rustfmt with what it thinks is a single file, but tooling expands to neighbors OR the IDE auto-formats on save. Caught by PM `git diff --stat` review and reverted via `git checkout HEAD --` before commit (or amended out of commit).
+
+**Mitigation pattern:** PM MUST run `git diff --stat` against the merge-base BEFORE every merge. Any file outside the spec's stated scope is a candidate to revert. The cost of revert-and-rebuild is small; the cost of merging churn is rebase pain in subsequent merges.
+
+### Lesson — Adding a new field to a Rust enum variant cascades through every test fixture
+
+T-300.15 added `join_policy: Option<JoinPolicy>` to `PipelineNode` variants. Result: 33 test files needed +1 line each (`join_policy: None,`) for exhaustive struct-literal compilation. Most fixtures were caught at rebase time, but TWO test files merged AFTER T-300.15 from independent branches (T-300.11 + T-300.13) had constructors that lacked the field. The workspace global `target/` showed the compile error only when ALL three commits coexisted on dev.
+
+**Mitigation:** When adding a field to a widely-constructed enum variant, the SWE prompt MUST require:
+1. Find ALL `PipelineNode::{Variant}` literal constructors via `rg "PipelineNode::(Workflow|Prompt|SequentialThinking|Tool)\s*\{"`.
+2. Add `join_policy: None,` (or whatever default) to EVERY one.
+3. Build with `cargo test --no-run -p maenifold-core` to verify exhaustiveness across the lib + tests.
+
+PM should also do a workspace-global build after the merge to catch cross-branch coexistence issues. Filed as a process improvement implicit in the iteration retrospective.
+
+### Lesson — Pipeline tool has TWO `invoke_native` functions (gateway + direct)
+
+T-300.14 needed 3 SWE iterations because:
+- r1: only added cancellation to `mcp_tool_calls.rs::invoke_native`
+- r2: red-team caught that real MCP path goes through `gateway_handler.rs::invoke_native` (Pipeline is mapped as hidden domain `maenifold.workflow`, so direct invocation is rejected by gateway_handler.rs:141-146)
+- r3: applied same pattern to `gateway_handler.rs::invoke_native` + factored RequestCancelOnDrop into shared `tools/context.rs`
+
+**Mitigation:** When making an MCP-facing change to a tool, ALWAYS check `mcp/domain_mapping.rs` to see if the tool is mapped to a hidden domain. If yes, the real call path is `GatewayExecute → gateway_handler.rs::invoke_native`, NOT `mcp_tool_calls.rs::invoke_native`. Both paths must be updated together.
+
+### Lesson — Cross-branch engine_ready.rs conflicts require careful manual resolution
+
+T-300.12 (conditional verdict JSON extraction) and T-300.15 (per-node joinPolicy) both touched `engine_ready.rs` in compatible-but-overlapping ways. T-300.12 renamed `is_conditional_only_unreachable` → `conditional_only_unreachable_reason` and added new conditional predicate API. T-300.15 added `incoming_edges_satisfy_any_rule` + `incoming_edges_satisfy_first_rule` + dispatch logic.
+
+The rebase produced a 50-line conflict region. PM resolution: keep T-300.12's renamed function + new predicate API (it's the current dev API), KEEP T-300.15's any/first rule helpers BEFORE the renamed function. Critical: any callers of the OLD `is_conditional_only_unreachable` must be updated to call `conditional_only_unreachable_reason`.
+
+**Mitigation:** When dispatching parallel SWE waves that touch the same file, PM should (a) sequence them serially OR (b) accept that rebase conflicts are inevitable and budget time for resolution. Direct-dispatch with worktrees prevents working-tree stomps but does NOT prevent rebase conflicts.
+
+### Lesson — `delete_unreadable_pipeline` is the dataless-delete entry point
+
+T-300.17 ("delete fails for OneDrive-dataless pipelines") was already implemented as a side-effect of T-300.10 (audit log) + T-300.11 (quarantine). The `delete_pipeline_with_force` handler catches `MaenifoldError::FileDataless` from `read_pipeline_session` and routes to `delete_unreadable_pipeline`, which now (post T-300.11 r2) goes through the same audit + quarantine path with retention guard fail-closed.
+
+**Mitigation:** When closing tasks, ALWAYS check whether the spec is satisfied by adjacent already-merged work BEFORE dispatching new SWE. PM evidence + verify-by-evidence audit can close tasks honestly (i.e., no skipped agent stages — a real audit confirms the spec is satisfied by existing code).
+
+### Lesson — verify-by-evidence audit must run the actual test command
+
+T-300.17 r1 verify-by-evidence audit caught a workspace-global compile error when running the requested test command (the `join_policy: None` cascade above). Without that build attempt, PM would have closed T-300.17 prematurely with broken tests on main.
+
+**Pattern:** Verification audits MUST execute the requested commands, not just inspect source. Source inspection alone misses cross-branch compile-time issues.
+
+### Final tally
+
+12 tasks shipped this iteration. 3 follow-ups filed (T-300.31, T-300.32, T-300.33). 0 destructive git operations by agents.
+
+Auditor hallucination rate: 0 false-positive critical findings (down from 29% in ralph-4). Findings broke down: 5 critical (all real and fixed), 5 medium (all real, mix of fixed-in-r2 and filed-as-followup), 3 low (informational).
+
+PM-level git ops: 12 task merges + 3 PM-amended commits (rustfmt churn revert) + 12 worktree creations/prunes + 3 rebases (T-300.13, T-300.14 conflicts dropped, T-300.15 conflicts resolved manually) + 1 cross-branch field-cascade fix on dev.

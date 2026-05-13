@@ -39,6 +39,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function parseSamplingPreferences(value: unknown): AgentsConfig['samplingPreferences'] | undefined {
+  if (!isRecord(value) || !isRecord(value.perServer)) return undefined;
+
+  const perServer: NonNullable<AgentsConfig['samplingPreferences']>['perServer'] = {};
+  for (const [serverName, preference] of Object.entries(value.perServer)) {
+    if (!isRecord(preference) || typeof preference.alwaysAllow !== 'boolean') continue;
+    const entry: { alwaysAllow: boolean; modelOverride?: string } = {
+      alwaysAllow: preference.alwaysAllow,
+    };
+    if (typeof preference.modelOverride === 'string') {
+      entry.modelOverride = preference.modelOverride;
+    }
+    perServer[serverName] = entry;
+  }
+
+  return { perServer };
+}
+
 function parseAgentsConfig(content: string): AgentsConfig {
   if (content.trim().length === 0) return { mcpServers: [], agents: {} };
   const parsed: unknown = JSON.parse(content);
@@ -53,6 +71,10 @@ function parseAgentsConfig(content: string): AgentsConfig {
   };
   if (parsed.settings !== undefined) {
     config.settings = parsed.settings as AgentsConfig['settings'];
+  }
+  const samplingPreferences = parseSamplingPreferences(parsed.samplingPreferences);
+  if (samplingPreferences !== undefined) {
+    config.samplingPreferences = samplingPreferences;
   }
   return config;
 }
@@ -108,6 +130,7 @@ function serializeConfig(config: AgentsConfig): string {
   if (config.mcpServers !== undefined) out.mcpServers = config.mcpServers;
   out.agents = Object.entries(config.agents).map(([name, agent]) => agentToEntry(name, agent));
   if (config.settings !== undefined) out.settings = config.settings;
+  if (config.samplingPreferences !== undefined) out.samplingPreferences = config.samplingPreferences;
   return `${JSON.stringify(out, null, 2)}\n`;
 }
 
@@ -153,6 +176,22 @@ export const useConfigStore = defineStore('config', () => {
     if (!api) throw new Error('Config file IPC unavailable');
     const serialized = serializeConfig(config.value);
     await api.write(serialized);
+  }
+
+  async function writeConfig(partial: Partial<AgentsConfig>): Promise<void> {
+    loading.value = true;
+    error.value = null;
+    try {
+      config.value = { ...config.value, ...partial };
+      await save();
+    } catch (e) {
+      const message = getErrorMessage(e);
+      error.value = message;
+      toast.error(`Config save failed: ${message}`);
+      throw new Error(message);
+    } finally {
+      loading.value = false;
+    }
   }
 
   // Replace the entire config and persist; the file watcher will echo back to ensure consistency.
@@ -214,6 +253,7 @@ export const useConfigStore = defineStore('config', () => {
     loadConfig,
     reload,
     save,
+    writeConfig,
     writeRaw,
     getAgent,
     setupHotReload,

@@ -102,6 +102,11 @@ export function useUnsavedChangesGuard(options: UnsavedChangesGuardOptions = {})
   }
 
   function cleanupDialog() {
+    if (pendingResolve) {
+      const resolve = pendingResolve;
+      pendingResolve = null;
+      resolve(false);
+    }
     if (container) {
       render(null, container);
       container.remove();

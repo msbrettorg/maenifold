@@ -93,10 +93,11 @@ describe('useUnsavedChangesGuard', () => {
 
   it('removes the dialog container when the owning effect scope is disposed', async () => {
     const scope = effectScope();
+    let confirmation: Promise<boolean> | null = null;
     scope.run(() => {
       const guard = useUnsavedChangesGuard();
       guard.markDirty();
-      void guard.confirmIfDirty();
+      confirmation = guard.confirmIfDirty();
     });
     await nextTick();
 
@@ -104,6 +105,29 @@ describe('useUnsavedChangesGuard', () => {
     scope.stop();
     await nextTick();
     expect(document.body.querySelector('[data-unsaved-guard-host="true"]')).toBeNull();
+    expect(confirmation).not.toBeNull();
+    await expect(Promise.race([
+      confirmation!,
+      rejectSoon('scope disposal did not resolve'),
+    ])).resolves.toBe(false);
+  });
+
+  it('resolves a pending confirmIfDirty to false when the owning effect scope is disposed', async () => {
+    const scope = effectScope();
+    let confirmation: Promise<boolean> | null = null;
+    scope.run(() => {
+      const guard = useUnsavedChangesGuard();
+      guard.markDirty();
+      confirmation = guard.confirmIfDirty();
+    });
+    await nextTick();
+
+    scope.stop();
+    expect(confirmation).not.toBeNull();
+    await expect(Promise.race([
+      confirmation!,
+      rejectSoon('scope disposal did not resolve'),
+    ])).resolves.toBe(false);
   });
 
   it('attachBeforeUnload returns cleanup and prevents unload while dirty', () => {

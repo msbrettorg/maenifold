@@ -51,14 +51,8 @@ const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? '
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
 const agentSessionStatus = computed(() => {
-  if (
-    currentSession.value?.sessionId
-    && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
-    && agentStore.selectedSession
-  ) {
-    return agentStore.selectedSession.status;
-  }
-  return null;
+  const selected = agentStore.selectedSession;
+  return selected && currentSession.value?.sessionId === selected.sessionId ? selected.status : null;
 });
 const agentSessionStatusLabel = computed(() => {
   const status = agentSessionStatus.value;
@@ -100,6 +94,7 @@ async function toggleToolCall(toolCallId: string): Promise<void> {
 }
 
 function handleCancel(): void { void sessionStore.cancelOperation(); }
+function recallLastMessage(): void { inputText.value = [...messages.value].reverse().find((message) => message.role === 'user')?.content ?? inputText.value; }
 
 watch(messages, async () => {
   await nextTick();
@@ -288,8 +283,12 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       :pending-attachments="pendingAttachments"
       :attachment-error="attachmentError"
       :accent="isPlanMode ? 'plan' : 'normal'"
+      :is-streaming="isLoading"
       @update:model-value="setInputText"
       @send="handleSend"
+      @recall-last="recallLastMessage"
+      @cancel-turn="handleCancel"
+      @clear-chat="sessionStore.clearMessages"
       @select-command="handleCommandSelect"
       @add-attachments="addPendingAttachments"
       @attachment-error="setAttachmentError"

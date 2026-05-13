@@ -22,9 +22,13 @@ const stubs = {
   }),
 };
 
-function mountInput(props: Partial<InstanceType<typeof ChatInputBar>['$props']> = {}): VueWrapper {
+function mountInput(
+  props: Partial<InstanceType<typeof ChatInputBar>['$props']> = {},
+  options: { attachTo?: HTMLElement } = {},
+): VueWrapper {
   commandPaletteHandleKeyDown.mockClear();
   return mount(ChatInputBar, {
+    attachTo: options.attachTo,
     props: {
       modelValue: 'hello',
       placeholder: '',
@@ -44,10 +48,11 @@ function mountInput(props: Partial<InstanceType<typeof ChatInputBar>['$props']> 
   });
 }
 
-function enterEvent(options: { isComposing?: boolean; keyCode?: number; shiftKey?: boolean } = {}) {
+function keyEvent(key: string, options: { isComposing?: boolean; keyCode?: number; shiftKey?: boolean; metaKey?: boolean } = {}) {
   const event = new KeyboardEvent('keydown', {
-    key: 'Enter',
+    key,
     shiftKey: options.shiftKey ?? false,
+    metaKey: options.metaKey ?? false,
     bubbles: true,
     cancelable: true,
   });
@@ -65,7 +70,16 @@ function enterEvent(options: { isComposing?: boolean; keyCode?: number; shiftKey
   return { event, preventDefault };
 }
 
+function enterEvent(options: { isComposing?: boolean; keyCode?: number; shiftKey?: boolean; metaKey?: boolean } = {}) {
+  return keyEvent('Enter', options);
+}
+
 async function dispatchEnter(wrapper: VueWrapper, event: KeyboardEvent): Promise<void> {
+  wrapper.find('textarea').element.dispatchEvent(event);
+  await nextTick();
+}
+
+async function dispatchKey(wrapper: VueWrapper, event: KeyboardEvent): Promise<void> {
   wrapper.find('textarea').element.dispatchEvent(event);
   await nextTick();
 }
@@ -127,5 +141,51 @@ describe('ChatInputBar', () => {
 
     expect(preventDefault).not.toHaveBeenCalled();
     expect(wrapper.emitted('send')).toBeUndefined();
+  });
+
+  it('submits non-empty text on Cmd+Enter through the existing submit pathway', async () => {
+    const wrapper = mountInput();
+    const { event, preventDefault } = enterEvent({ metaKey: true });
+
+    await dispatchEnter(wrapper, event);
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('send')).toHaveLength(1);
+  });
+
+  it('emits recall-last on Up-arrow with empty input', async () => {
+    const wrapper = mountInput({ modelValue: '' });
+    const { event, preventDefault } = keyEvent('ArrowUp');
+
+    await dispatchKey(wrapper, event);
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('recall-last')).toHaveLength(1);
+  });
+
+  it('emits cancel-turn on Esc while streaming', async () => {
+    const wrapper = mountInput({ isStreaming: true });
+    const { event, preventDefault } = keyEvent('Escape');
+
+    await dispatchKey(wrapper, event);
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted('cancel-turn')).toHaveLength(1);
+  });
+
+  it('opens a clear conversation AlertDialog on Cmd+L', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const wrapper = mountInput({}, { attachTo: host });
+    const { event, preventDefault } = keyEvent('l', { metaKey: true });
+
+    await dispatchKey(wrapper, event);
+    await nextTick();
+
+    expect(preventDefault).toHaveBeenCalledTimes(1);
+    expect(document.body.textContent).toContain('Clear conversation?');
+    expect(document.body.textContent).toContain('This will remove all messages from this session. This cannot be undone.');
+    wrapper.unmount();
+    host.remove();
   });
 });

@@ -46,6 +46,9 @@ impl MaenifoldClient {
         )
     }
 
+    /// Constructs a client with the already-selected sampling-session registry.
+    /// The process-wide sampling resource pointer is owned by
+    /// `build_gateway_with_registry`, not by per-server client construction.
     pub(crate) fn new_with_sampling_registry(
         registry: Arc<PendingRequestRegistry>,
         sampling_agent: Option<String>,
@@ -59,7 +62,6 @@ impl MaenifoldClient {
             .build();
         let info = ClientInfo::new(capabilities, Implementation::new("maenifold-core", "0.1.0"))
             .with_protocol_version(ProtocolVersion::V_2025_03_26);
-        crate::mcp::resources::sampling::set_registry(Arc::clone(&sampling_registry));
         Self {
             info,
             registry,

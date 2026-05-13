@@ -3,8 +3,8 @@ use super::params::{
     ListSessionsParams, MemoryStatusParams, ReadMcpResourceParams, RunFullBenchmarkParams,
     UpdateAssetsParams,
 };
-use super::system_params::CancelSamplingSessionParams;
 use super::support::derived_tool_definition;
+use super::system_params::CancelSamplingSessionParams;
 use crate::mcp::McpToolDefinition;
 
 pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {

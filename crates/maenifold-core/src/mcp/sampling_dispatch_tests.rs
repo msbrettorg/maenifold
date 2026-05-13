@@ -9,10 +9,10 @@
 // Happy-path approve test belongs to the SWE delta — they need to wire
 // `execute_runtime_sampling` first.
 
+use crate::mcp::MaenifoldClient;
 use crate::mcp::pending_requests::{
     PendingRequestRegistry, SamplingAction, SamplingDecision, UserPromptResponse,
 };
-use crate::mcp::MaenifoldClient;
 use rmcp::{
     ServerHandler, ServiceExt,
     model::{
@@ -73,8 +73,9 @@ async fn sampling_deny_returns_negative_1() -> anyhow::Result<()> {
         anyhow::Ok(error)
     });
 
-    let mut client =
-        client_with_sampling_agent(registry, Some("copilot".to_string())).serve(client_transport).await?;
+    let mut client = client_with_sampling_agent(registry, Some("copilot".to_string()))
+        .serve(client_transport)
+        .await?;
     let id = wait_for_sampling_pending_id(&registry_for_response).await?;
     registry_for_response
         .respond_typed(UserPromptResponse::Sampling {

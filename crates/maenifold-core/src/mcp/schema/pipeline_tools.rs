@@ -11,8 +11,7 @@ pub(super) fn tool(registry_name: &str) -> Option<McpToolDefinition> {
                 "Creates and manages pipeline sessions composed of DAG nodes.",
                 schema_value_no_null_options::<PipelineParams>(),
             );
-            tool.execution =
-                Some(ToolExecution::new().with_task_support(TaskSupport::Optional));
+            tool.execution = Some(ToolExecution::new().with_task_support(TaskSupport::Optional));
             tool
         }
         _ => return None,

@@ -45,7 +45,8 @@ mod handler_impl_task_hooks_tests;
 mod task_hooks;
 #[cfg(test)]
 mod gateway_tasks_tests;
-pub mod http; mod mcp_tool_calls; mod resource_routing;
+pub mod http;
+mod mcp_tool_calls; mod resource_routing;
 pub mod pending_requests;
 #[cfg(test)]
 mod pending_requests_tests;
@@ -61,6 +62,7 @@ mod stdio_pool_health;
 mod stdio_pool_lifecycle;
 mod stdio_pool_tools;
 mod stdio_process_group;
+mod stdio_session_support;
 pub mod stdio_session;
 mod stdio_session_ops;
 pub mod tool_routing;

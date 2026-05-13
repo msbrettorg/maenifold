@@ -1,28 +1,24 @@
-use crate::error::{MaenifoldError, Result};
+use crate::error::MaenifoldError;
 use crate::mcp::MaenifoldClient;
-use crate::mcp::PendingRequestRegistry;
 use crate::mcp::gateway_metadata;
-use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
+use crate::mcp::stdio_session_support::{
+    collect_failure_stderr, lock_std, map_service_error, spawn, to_message_error,
+};
+use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
+use agent_client_protocol_schema::McpServerStdio as McpServerStdioConfig;
 use rmcp::{
     Peer, RoleClient, ServiceExt,
     model::{ProtocolVersion, Tool},
-    service::{RunningService, ServiceError},
-    transport::TokioChildProcess,
+    service::RunningService,
 };
-use serde_json::Value;
-use std::io;
-use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex as StdMutex, MutexGuard};
+use std::sync::{Arc, Mutex as StdMutex};
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::{ChildStderr, Command};
 use tokio::sync::Mutex;
 
 const MCP_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2025_03_26;
 const LEGACY_PROTOCOL_VERSION: ProtocolVersion = ProtocolVersion::V_2024_11_05;
 const STARTUP_TIMEOUT: Duration = Duration::from_secs(60);
-const STDERR_LIMIT: usize = 4096;
 const STDERR_JOIN_TIMEOUT: Duration = Duration::from_secs(1);
 const SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 
@@ -76,11 +72,30 @@ impl StdioSession {
         call_timeout: Duration,
         registry: Arc<PendingRequestRegistry>,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout_and_registry(
+        Self::start_with_registry_and_sampling(
+            entry,
+            call_timeout,
+            registry,
+            Arc::new(SamplingSessionRegistry::new()),
+            None,
+        )
+        .await
+    }
+
+    pub(crate) async fn start_with_registry_and_sampling(
+        entry: &McpServerStdioConfig,
+        call_timeout: Duration,
+        registry: Arc<PendingRequestRegistry>,
+        sampling_registry: Arc<SamplingSessionRegistry>,
+        sampling_agent: Option<String>,
+    ) -> std::result::Result<Self, StdioStartupError> {
+        Self::start_with_startup_timeout_registry_and_sampling(
             entry,
             STARTUP_TIMEOUT,
             call_timeout,
             registry,
+            sampling_registry,
+            sampling_agent,
         )
         .await
     }
@@ -105,14 +120,32 @@ impl StdioSession {
         call_timeout: Duration,
         registry: Arc<PendingRequestRegistry>,
     ) -> std::result::Result<Self, StdioStartupError> {
+        Self::start_with_startup_timeout_registry_and_sampling(
+            entry,
+            startup_timeout,
+            call_timeout,
+            registry,
+            Arc::new(SamplingSessionRegistry::new()),
+            None,
+        )
+        .await
+    }
+
+    pub(crate) async fn start_with_startup_timeout_registry_and_sampling(
+        entry: &McpServerStdioConfig,
+        startup_timeout: Duration,
+        call_timeout: Duration,
+        registry: Arc<PendingRequestRegistry>,
+        sampling_registry: Arc<SamplingSessionRegistry>,
+        sampling_agent: Option<String>,
+    ) -> std::result::Result<Self, StdioStartupError> {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let sampling_agent = None;
             let mut client = MaenifoldClient::new_with_sampling_registry(
                 registry,
                 sampling_agent,
-                Arc::new(super::sampling_session_registry::SamplingSessionRegistry::new()),
+                sampling_registry,
                 entry.name.as_str(),
             )
             .serve(transport)
@@ -137,26 +170,31 @@ impl StdioSession {
                 .map_err(map_service_error)?;
             Ok((client, tools, server_info))
         };
-        let (client, tools, server_info) =
-            match tokio::time::timeout(startup_timeout, startup).await {
-                Ok(Ok(started)) => started,
-                Ok(Err(error)) => {
-                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                    let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
-                    return Err(StdioStartupError::new(error, stderr));
-                }
-                Err(_) => {
-                    super::stdio_process_group::terminate_process_group_id(process_group_id).await;
-                    let stderr = collect_failure_stderr(stderr_task, Arc::clone(&stderr)).await;
-                    return Err(StdioStartupError::new(
-                        MaenifoldError::Message(format!(
-                            "MCP server startup timed out after {}s",
-                            startup_timeout.as_secs()
-                        )),
-                        stderr,
-                    ));
-                }
-            };
+        let (client, tools, server_info) = match tokio::time::timeout(startup_timeout, startup)
+            .await
+        {
+            Ok(Ok(started)) => started,
+            Ok(Err(error)) => {
+                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                let stderr =
+                    collect_failure_stderr(stderr_task, Arc::clone(&stderr), STDERR_JOIN_TIMEOUT)
+                        .await;
+                return Err(StdioStartupError::new(error, stderr));
+            }
+            Err(_) => {
+                super::stdio_process_group::terminate_process_group_id(process_group_id).await;
+                let stderr =
+                    collect_failure_stderr(stderr_task, Arc::clone(&stderr), STDERR_JOIN_TIMEOUT)
+                        .await;
+                return Err(StdioStartupError::new(
+                    MaenifoldError::Message(format!(
+                        "MCP server startup timed out after {}s",
+                        startup_timeout.as_secs()
+                    )),
+                    stderr,
+                ));
+            }
+        };
         let peer = client.peer().clone();
         Ok(Self {
             client: StdMutex::new(Some(client)),
@@ -221,90 +259,6 @@ impl StdioSession {
 
 fn is_supported_version(version: &ProtocolVersion) -> bool {
     version == &MCP_PROTOCOL_VERSION || version == &LEGACY_PROTOCOL_VERSION
-}
-
-fn spawn(
-    entry: &McpServerStdioConfig,
-) -> Result<(
-    TokioChildProcess,
-    tokio::task::JoinHandle<()>,
-    Arc<Mutex<String>>,
-    Option<i32>,
-)> {
-    let mut command = Command::new(&entry.command);
-    command.args(&entry.args);
-    if !entry.env.is_empty() {
-        command.envs(
-            entry
-                .env
-                .iter()
-                .map(|entry: &EnvVariable| (entry.name.as_str(), entry.value.as_str())),
-        );
-    }
-    #[cfg(unix)]
-    unsafe {
-        command.pre_exec(|| {
-            if libc::setsid() == -1 {
-                return Err(io::Error::last_os_error());
-            }
-            Ok(())
-        });
-    }
-    let (transport, stderr) = TokioChildProcess::builder(command)
-        .stderr(Stdio::piped())
-        .spawn()?;
-    let process_group_id = transport.id().and_then(|pid| i32::try_from(pid).ok());
-    let stderr =
-        stderr.ok_or_else(|| MaenifoldError::Message("child stderr was not piped".to_string()))?;
-    let sink = Arc::new(Mutex::new(String::new()));
-    let task = tokio::spawn(collect_stderr(stderr, Arc::clone(&sink)));
-    Ok((transport, task, sink, process_group_id))
-}
-
-async fn collect_stderr(stderr: ChildStderr, sink: Arc<Mutex<String>>) {
-    let mut reader = BufReader::new(stderr);
-    loop {
-        let mut line = String::new();
-        match reader.read_line(&mut line).await {
-            Ok(0) | Err(_) => break,
-            Ok(_) => {
-                let mut sink = sink.lock().await;
-                sink.push_str(&line);
-                let overflow = sink.len().saturating_sub(STDERR_LIMIT);
-                if overflow > 0 {
-                    sink.drain(..overflow);
-                }
-            }
-        }
-    }
-}
-
-async fn collect_failure_stderr(
-    stderr_task: tokio::task::JoinHandle<()>,
-    stderr: Arc<Mutex<String>>,
-) -> Option<String> {
-    let _ = tokio::time::timeout(STDERR_JOIN_TIMEOUT, stderr_task).await;
-    let stderr = stderr.lock().await.trim().to_string();
-    (!stderr.is_empty()).then_some(stderr)
-}
-
-fn lock_std<T>(mutex: &StdMutex<T>) -> MutexGuard<'_, T> {
-    mutex.lock().unwrap_or_else(|error| error.into_inner())
-}
-
-fn to_message_error(error: impl std::fmt::Display) -> MaenifoldError {
-    MaenifoldError::Message(error.to_string())
-}
-
-fn map_service_error(error: ServiceError) -> MaenifoldError {
-    match error {
-        ServiceError::McpError(error) => MaenifoldError::JsonRpc {
-            code: i64::from(error.code.0),
-            message: error.message.to_string(),
-            data: error.data.unwrap_or(Value::Null),
-        },
-        other => MaenifoldError::Message(other.to_string()),
-    }
 }
 
 #[cfg(test)]

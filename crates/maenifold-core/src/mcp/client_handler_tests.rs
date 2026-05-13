@@ -5,10 +5,9 @@ use rmcp::{
     ServerHandler, ServiceExt,
     model::{
         ClientResult, CreateElicitationRequest, CreateElicitationRequestParams,
-        CreateElicitationResult,
-        CreateMessageRequest, CreateMessageRequestParams, ElicitationAction, ElicitationSchema,
-        PrimitiveSchema, SamplingMessage, ServerCapabilities, ServerInfo, ServerRequest,
-        StringSchema,
+        CreateElicitationResult, CreateMessageRequest, CreateMessageRequestParams,
+        ElicitationAction, ElicitationSchema, PrimitiveSchema, SamplingMessage, ServerCapabilities,
+        ServerInfo, ServerRequest, StringSchema,
     },
     service::ServiceError,
 };
@@ -46,7 +45,9 @@ async fn advertises_elicitation_capability() -> anyhow::Result<()> {
     });
 
     let registry = Arc::new(PendingRequestRegistry::new());
-    let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
+    let mut client = MaenifoldClient::new(registry)
+        .serve(client_transport)
+        .await?;
     let info = info_rx.await?;
     stop_tx
         .send(())
@@ -94,7 +95,9 @@ async fn elicitation_create_returns_cancel_without_renderer() -> anyhow::Result<
     });
 
     let registry = Arc::new(PendingRequestRegistry::new());
-    let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
+    let mut client = MaenifoldClient::new(registry)
+        .serve(client_transport)
+        .await?;
     let result = server_task.await??;
     client.close().await?;
 
@@ -124,7 +127,9 @@ async fn elicitation_create_round_trips_registry_response() -> anyhow::Result<()
         }
     });
 
-    let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
+    let mut client = MaenifoldClient::new(registry)
+        .serve(client_transport)
+        .await?;
     let id = wait_for_pending_id(&registry_for_response).await?;
     registry_for_response
         .respond_typed(UserPromptResponse::Elicitation {
@@ -167,7 +172,9 @@ async fn concurrent_elicitations_each_receive_matching_response() -> anyhow::Res
         Ok::<_, anyhow::Error>((extract_elicitation(first)?, extract_elicitation(second)?))
     });
 
-    let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
+    let mut client = MaenifoldClient::new(registry)
+        .serve(client_transport)
+        .await?;
     let ids = wait_for_pending_count(&registry_for_response, 2).await?;
     for (index, id) in ids.into_iter().enumerate() {
         registry_for_response
@@ -215,7 +222,9 @@ async fn create_message_without_sampling_agent_returns_negative_32603() -> anyho
     });
 
     let registry = Arc::new(PendingRequestRegistry::new());
-    let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
+    let mut client = MaenifoldClient::new(registry)
+        .serve(client_transport)
+        .await?;
     let error = server_task.await??;
     client.close().await?;
 

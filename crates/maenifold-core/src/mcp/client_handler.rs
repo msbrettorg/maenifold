@@ -36,7 +36,7 @@ impl ClientHandler for MaenifoldClient {
         _context: RequestContext<RoleClient>,
     ) -> Result<CreateElicitationResult, rmcp::ErrorData> {
         tracing::info!(?request, "received MCP elicitation request");
-        let response = self.registry.register(request).await.await;
+        let response = self.registry.register_elicitation(request).await.await;
         let Ok(response) = response else {
             tracing::warn!("MCP elicitation request expired before user response");
             return Ok(CreateElicitationResult::new(ElicitationAction::Cancel));
@@ -61,8 +61,10 @@ impl ClientHandler for MaenifoldClient {
             Role::Assistant,
             "User has not yet approved sampling requests. T-303.4.1 will add the approval modal.",
         );
-        Ok(CreateMessageResult::new(denial, "maenifold-stub".to_string())
-            .with_stop_reason("user_denied"))
+        Ok(
+            CreateMessageResult::new(denial, "maenifold-stub".to_string())
+                .with_stop_reason("user_denied"),
+        )
     }
 
     fn get_info(&self) -> ClientInfo {

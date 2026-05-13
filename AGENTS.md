@@ -338,6 +338,7 @@ Multiple 72h fires came from agents trying to mutate gate state directly: `mv` b
 
 - Architecture: [docs/acp-client-architecture.md](docs/acp-client-architecture.md) is law.
 - **ACP UI reference:** canonical source is the sibling checkout `../acp-ui` from `https://github.com/formulahendry/acp-ui.git`; current reference commit `27e32022a854b40b944a5872a7211d6c027cdff8`. Before changing desktop ACP session/reconnect/stream handling, compare against this source (`src/lib/acp-bridge.ts`, `src/stores/session.ts`, and related components) instead of inferring behavior from memory.
+- When adopting a new upstream wholesale (lift), follow the commit-hygiene protocol in `docs/wholesale-lift-protocol.md`.
 - **`prompt` is the only primitive.** Think and workflow chain prompt calls. No direct agent path.
 - All ACP calls MUST specify `model` explicitly. No defaults.
 - WebSocket URI requires `?agent=<name>`. Missing → reject. Bare `/ws/acp` is a test failure.

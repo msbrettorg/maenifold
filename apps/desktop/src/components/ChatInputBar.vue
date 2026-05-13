@@ -8,7 +8,7 @@ import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand } from '../lib/types';
-import { DEFAULT_SLASH_COMMANDS } from '../lib/default-commands';
+import { mergeWithBuiltInSlashCommands } from '../lib/default-commands';
 
 const props = defineProps<{
   modelValue: string;
@@ -42,7 +42,7 @@ const text = computed({
   set: (value: string) => emit('update:modelValue', value),
 });
 const effectiveCommands = computed<AvailableCommand[]>(() =>
-  props.availableCommands.length ? props.availableCommands : DEFAULT_SLASH_COMMANDS
+  mergeWithBuiltInSlashCommands(props.availableCommands)
 );
 const showCommandPalette = computed(() => {
   if (!effectiveCommands.value.length || !props.modelValue.startsWith('/')) {

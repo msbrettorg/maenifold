@@ -25,6 +25,7 @@ type SamplingRequestPayload = {
   id: string;
   kind: 'sampling';
   payload: {
+    serverName?: unknown;
     messages?: unknown;
     modelPreferences?: unknown;
     systemPrompt?: unknown;
@@ -98,7 +99,9 @@ function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
     : [];
   return {
     id: payload.id,
-    serverName: 'MCP server',
+    serverName: typeof inner.serverName === 'string' && inner.serverName.length > 0
+      ? inner.serverName
+      : 'unidentified-server',
     modelHint: modelHintFrom(inner),
     messages,
     systemPrompt: typeof inner.systemPrompt === 'string'

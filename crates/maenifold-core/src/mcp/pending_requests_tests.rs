@@ -67,7 +67,9 @@ async fn register_elicitation_then_respond_succeeds() {
 #[tokio::test]
 async fn register_sampling_then_respond_succeeds() {
     let registry = Arc::new(PendingRequestRegistry::new());
-    let receiver = registry.register_sampling(sampling_params()).await;
+    let receiver = registry
+        .register_sampling(sampling_params(), "test-server-x")
+        .await;
     let id = registry.pending_events().await[0].id;
     let response = sampling_decision(SamplingAction::AllowOnce);
 
@@ -110,7 +112,9 @@ async fn cross_kind_rejection_sampling_to_elicitation_fails() {
 #[tokio::test]
 async fn cross_kind_rejection_elicitation_to_sampling_fails() {
     let registry = Arc::new(PendingRequestRegistry::new());
-    let receiver = registry.register_sampling(sampling_params()).await;
+    let receiver = registry
+        .register_sampling(sampling_params(), "test-server-x")
+        .await;
     let id = registry.pending_events().await[0].id;
 
     let result = registry
@@ -137,7 +141,9 @@ async fn sampling_register_does_not_start_elicitation_timeout() {
     tokio::time::pause();
     let registry = Arc::new(PendingRequestRegistry::new());
     let _subscription = registry.subscribe();
-    let _receiver = registry.register_sampling(sampling_params()).await;
+    let _receiver = registry
+        .register_sampling(sampling_params(), "test-server-x")
+        .await;
 
     tokio::time::advance(ELICITATION_TIMEOUT + Duration::from_secs(1)).await;
     tokio::task::yield_now().await;
@@ -157,7 +163,9 @@ async fn sampling_backstop_expires_pending_after_constant() {
     tokio::time::pause();
     let registry = Arc::new(PendingRequestRegistry::new());
     let _subscription = registry.subscribe();
-    let receiver = registry.register_sampling(sampling_params()).await;
+    let receiver = registry
+        .register_sampling(sampling_params(), "test-server-x")
+        .await;
 
     tokio::time::advance(SAMPLING_BACKSTOP_TIMEOUT + Duration::from_secs(1)).await;
     tokio::task::yield_now().await;
@@ -170,7 +178,9 @@ async fn sampling_backstop_expires_pending_after_constant() {
 async fn pending_events_returns_both_kinds() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let _elicitation_receiver = registry.register_elicitation(elicitation_params()).await;
-    let _sampling_receiver = registry.register_sampling(sampling_params()).await;
+    let _sampling_receiver = registry
+        .register_sampling(sampling_params(), "test-server-x")
+        .await;
 
     let mut kinds = registry
         .pending_events()

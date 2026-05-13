@@ -10,22 +10,28 @@ use rmcp::{
 };
 use std::sync::Arc;
 
+use super::PendingRequestRegistry;
 use super::pending_requests::SamplingAction;
 use super::sampling_session_registry::{
-    SamplingDispatch, SamplingSessionRegistry, SamplingSessionStatus,
+    SamplingDecisionRecord, SamplingDispatch, SamplingSessionRegistry, SamplingSessionStatus,
 };
-use super::PendingRequestRegistry;
 
 pub struct MaenifoldClient {
     info: ClientInfo,
     registry: Arc<PendingRequestRegistry>,
     sampling_agent: Option<String>,
     sampling_registry: Arc<SamplingSessionRegistry>,
+    server_name: String,
 }
 
 impl MaenifoldClient {
     pub fn new(registry: Arc<PendingRequestRegistry>) -> Self {
-        Self::new_with_sampling_registry(registry, None, Arc::new(SamplingSessionRegistry::new()))
+        Self::new_with_sampling_registry(
+            registry,
+            None,
+            Arc::new(SamplingSessionRegistry::new()),
+            "maenifold",
+        )
     }
 
     pub fn new_with_sampling(
@@ -36,6 +42,7 @@ impl MaenifoldClient {
             registry,
             sampling_agent,
             Arc::new(SamplingSessionRegistry::new()),
+            "maenifold",
         )
     }
 
@@ -43,6 +50,7 @@ impl MaenifoldClient {
         registry: Arc<PendingRequestRegistry>,
         sampling_agent: Option<String>,
         sampling_registry: Arc<SamplingSessionRegistry>,
+        server_name: impl Into<String>,
     ) -> Self {
         let capabilities = ClientCapabilities::builder()
             .enable_sampling()
@@ -57,6 +65,7 @@ impl MaenifoldClient {
             registry,
             sampling_agent,
             sampling_registry,
+            server_name: server_name.into(),
         }
     }
 }
@@ -83,7 +92,7 @@ impl ClientHandler for MaenifoldClient {
     async fn create_message(
         &self,
         request: CreateMessageRequestParams,
-        _context: RequestContext<RoleClient>,
+        context: RequestContext<RoleClient>,
     ) -> Result<CreateMessageResult, rmcp::ErrorData> {
         if request.tools.is_some() {
             return Err(rmcp::ErrorData::invalid_params(
@@ -99,14 +108,46 @@ impl ClientHandler for MaenifoldClient {
             ));
         };
 
-        let receiver = self.registry.register_sampling(request.clone()).await;
+        let server_name = if self.server_name.is_empty() {
+            server_name_from_context(&context).unwrap_or_else(|| "maenifold".to_string())
+        } else {
+            self.server_name.clone()
+        };
+        let receiver = self
+            .registry
+            .register_sampling(request.clone(), &server_name)
+            .await;
         let decision = receiver.await.map_err(|_| {
-            rmcp::ErrorData::new(
-                rmcp::model::ErrorCode(-1),
-                "Sampling request expired",
-                None,
-            )
+            rmcp::ErrorData::new(rmcp::model::ErrorCode(-1), "Sampling request expired", None)
         })?;
+        let decision_record = sampling_decision_record(&decision.action);
+        let dispatch_id = uuid::Uuid::new_v4();
+        let app_session_id = uuid::Uuid::new_v4();
+        let model = decision
+            .selected_model
+            .clone()
+            .unwrap_or_else(|| sampling_agent.clone());
+        let role_name = decision.selected_agent.unwrap_or(sampling_agent);
+        let status = if matches!(decision_record, SamplingDecisionRecord::Deny) {
+            SamplingSessionStatus::Denied
+        } else {
+            SamplingSessionStatus::Dispatching
+        };
+        self.sampling_registry
+            .insert(SamplingDispatch {
+                sampling_request_id: dispatch_id,
+                app_session_id,
+                acp_session_id: None,
+                server_name,
+                model: model.clone(),
+                runtime_kind: role_name.clone(),
+                role_name: role_name.clone(),
+                status,
+                decision: decision_record,
+                created_at: chrono::Utc::now().to_rfc3339(),
+                token_usage: None,
+            })
+            .await;
 
         match decision.action {
             SamplingAction::Deny => Err(rmcp::ErrorData::new(
@@ -115,28 +156,6 @@ impl ClientHandler for MaenifoldClient {
                 None,
             )),
             SamplingAction::AllowOnce | SamplingAction::AllowAlways => {
-                let dispatch_id = uuid::Uuid::new_v4();
-                let app_session_id = uuid::Uuid::new_v4();
-                let model = decision
-                    .selected_model
-                    .clone()
-                    .unwrap_or_else(|| sampling_agent.clone());
-                let role_name = decision.selected_agent.unwrap_or(sampling_agent);
-                self.sampling_registry
-                    .insert(SamplingDispatch {
-                        sampling_request_id: dispatch_id,
-                        app_session_id,
-                        acp_session_id: None,
-                        server_name: "<unknown>".to_string(),
-                        model: model.clone(),
-                        runtime_kind: role_name.clone(),
-                        role_name: role_name.clone(),
-                        status: SamplingSessionStatus::Dispatching,
-                        created_at: chrono::Utc::now().to_rfc3339(),
-                        token_usage: None,
-                    })
-                    .await;
-
                 let prompt = sampling_messages_to_prompt(&request.messages)?;
                 let result = jockey::acp::execute_runtime_sampling(
                     &role_name,
@@ -193,9 +212,23 @@ impl ClientHandler for MaenifoldClient {
     }
 }
 
-fn sampling_messages_to_prompt(
-    messages: &[SamplingMessage],
-) -> Result<String, rmcp::ErrorData> {
+fn server_name_from_context(context: &RequestContext<RoleClient>) -> Option<String> {
+    context
+        .peer
+        .peer_info()
+        .map(|info| info.server_info.name.clone())
+        .filter(|name| !name.is_empty())
+}
+
+fn sampling_decision_record(action: &SamplingAction) -> SamplingDecisionRecord {
+    match action {
+        SamplingAction::AllowOnce => SamplingDecisionRecord::AllowOnce,
+        SamplingAction::AllowAlways => SamplingDecisionRecord::AllowAlways,
+        SamplingAction::Deny => SamplingDecisionRecord::Deny,
+    }
+}
+
+fn sampling_messages_to_prompt(messages: &[SamplingMessage]) -> Result<String, rmcp::ErrorData> {
     let mut prompt = String::new();
     for message in messages {
         if !prompt.is_empty() {
@@ -223,9 +256,7 @@ fn sampling_messages_to_prompt(
     Ok(prompt)
 }
 
-fn sampling_content_text(
-    content: &SamplingMessageContent,
-) -> Result<&str, rmcp::ErrorData> {
+fn sampling_content_text(content: &SamplingMessageContent) -> Result<&str, rmcp::ErrorData> {
     match content {
         SamplingMessageContent::Text(text) => Ok(&text.text),
         _ => Err(rmcp::ErrorData::invalid_params(

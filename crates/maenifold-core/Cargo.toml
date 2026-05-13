@@ -96,6 +96,10 @@ path = "tests/list_memories_dataless.rs"
 name = "save_workflow_asset_dispatch"
 path = "tests/save_workflow_asset_dispatch.rs"
 
+[[test]]
+name = "sampling_registry_contract"
+path = "tests/sampling_registry_contract.rs"
+
 
 
 

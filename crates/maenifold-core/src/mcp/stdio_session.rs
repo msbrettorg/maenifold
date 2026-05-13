@@ -1,7 +1,7 @@
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::gateway_metadata;
 use crate::mcp::MaenifoldClient;
 use crate::mcp::PendingRequestRegistry;
+use crate::mcp::gateway_metadata;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::{
     Peer, RoleClient, ServiceExt,
@@ -67,7 +67,8 @@ impl StdioSession {
         entry: &McpServerStdioConfig,
         call_timeout: Duration,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_registry(entry, call_timeout, Arc::new(PendingRequestRegistry::new())).await
+        Self::start_with_registry(entry, call_timeout, Arc::new(PendingRequestRegistry::new()))
+            .await
     }
 
     pub async fn start_with_registry(
@@ -75,7 +76,13 @@ impl StdioSession {
         call_timeout: Duration,
         registry: Arc<PendingRequestRegistry>,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout_and_registry(entry, STARTUP_TIMEOUT, call_timeout, registry).await
+        Self::start_with_startup_timeout_and_registry(
+            entry,
+            STARTUP_TIMEOUT,
+            call_timeout,
+            registry,
+        )
+        .await
     }
 
     pub async fn start_with_startup_timeout(
@@ -83,7 +90,13 @@ impl StdioSession {
         startup_timeout: Duration,
         call_timeout: Duration,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout_and_registry(entry, startup_timeout, call_timeout, Arc::new(PendingRequestRegistry::new())).await
+        Self::start_with_startup_timeout_and_registry(
+            entry,
+            startup_timeout,
+            call_timeout,
+            Arc::new(PendingRequestRegistry::new()),
+        )
+        .await
     }
 
     pub async fn start_with_startup_timeout_and_registry(
@@ -96,10 +109,15 @@ impl StdioSession {
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
             let sampling_agent = None;
-            let mut client = MaenifoldClient::new_with_sampling(registry, sampling_agent)
-                .serve(transport)
-                .await
-                .map_err(to_message_error)?;
+            let mut client = MaenifoldClient::new_with_sampling_registry(
+                registry,
+                sampling_agent,
+                Arc::new(super::sampling_session_registry::SamplingSessionRegistry::new()),
+                entry.name.as_str(),
+            )
+            .serve(transport)
+            .await
+            .map_err(to_message_error)?;
             let server_info = client.peer().peer_info().cloned().ok_or_else(|| {
                 MaenifoldError::Message("MCP server did not return initialize result".to_string())
             })?;

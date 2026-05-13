@@ -102,6 +102,7 @@ type AppApi = {
         id: string;
         kind: 'sampling';
         payload: {
+          serverName?: unknown;
           messages?: unknown;
           modelPreferences?: unknown;
           systemPrompt?: unknown;

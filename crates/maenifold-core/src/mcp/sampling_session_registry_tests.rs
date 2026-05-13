@@ -1,6 +1,6 @@
 use crate::mcp::sampling_session_registry::{
-    SamplingDispatch, SamplingRegistryError, SamplingSessionRegistry, SamplingSessionStatus,
-    TokenUsage,
+    SamplingDecisionRecord, SamplingDispatch, SamplingRegistryError, SamplingSessionRegistry,
+    SamplingSessionStatus, TokenUsage,
 };
 use uuid::Uuid;
 
@@ -88,6 +88,7 @@ fn dispatch_fixture(server_name: &str) -> SamplingDispatch {
         runtime_kind: "copilot".to_string(),
         role_name: "copilot".to_string(),
         status: SamplingSessionStatus::PendingApproval,
+        decision: SamplingDecisionRecord::AllowOnce,
         created_at: "2026-05-13T00:00:00Z".to_string(),
         token_usage: None,
     }

@@ -32,8 +32,14 @@ pub(crate) struct UserPromptEvent {
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub(crate) enum UserPromptResponse {
-    Elicitation { id: Uuid, response: ElicitationResponse },
-    Sampling { id: Uuid, response: SamplingDecision },
+    Elicitation {
+        id: Uuid,
+        response: ElicitationResponse,
+    },
+    Sampling {
+        id: Uuid,
+        response: SamplingDecision,
+    },
 }
 
 #[derive(Debug, PartialEq)]
@@ -44,9 +50,15 @@ pub(crate) enum RespondError {
 }
 
 pub(crate) enum PendingPayload {
-    Elicitation { params: CreateElicitationRequestParams, sender: oneshot::Sender<ElicitationResponse> },
+    Elicitation {
+        params: CreateElicitationRequestParams,
+        sender: oneshot::Sender<ElicitationResponse>,
+    },
     #[allow(dead_code)]
-    Sampling { params: rmcp::model::CreateMessageRequestParams, sender: oneshot::Sender<SamplingDecision> },
+    Sampling {
+        params: rmcp::model::CreateMessageRequestParams,
+        sender: oneshot::Sender<SamplingDecision>,
+    },
 }
 
 struct PendingRequest {
@@ -101,11 +113,19 @@ impl PendingRequestRegistry {
     pub(crate) async fn register_sampling(
         self: &Arc<Self>,
         params: rmcp::model::CreateMessageRequestParams,
+        server_name: &str,
     ) -> oneshot::Receiver<SamplingDecision> {
+        let mut payload = serde_json::to_value(&params).unwrap_or(Value::Null);
+        if let Value::Object(fields) = &mut payload {
+            fields.insert(
+                "serverName".to_string(),
+                Value::String(server_name.to_string()),
+            );
+        }
         let event = UserPromptEvent {
             id: Uuid::new_v4(),
             kind: "sampling",
-            payload: serde_json::to_value(&params).unwrap_or(Value::Null),
+            payload,
             timeout_ms: SAMPLING_BACKSTOP_TIMEOUT.as_millis() as u64,
         };
         let (sender, receiver) = oneshot::channel();
@@ -241,7 +261,9 @@ mod tests {
             let _receiver = register_registry.register_elicitation(params()).await;
         });
         let snapshot = registry.pending_events().await;
-        register_task.await.expect("concurrent register task should finish");
+        register_task
+            .await
+            .expect("concurrent register task should finish");
         let live_event = tokio::time::timeout(Duration::from_secs(1), live_events.recv())
             .await
             .expect("live event should arrive")
@@ -249,7 +271,11 @@ mod tests {
         let snapshot_has_live_event = snapshot.iter().any(|event| event.id == live_event.id);
         assert!(
             snapshot_has_live_event
-                || registry.pending_events().await.iter().any(|event| event.id == live_event.id),
+                || registry
+                    .pending_events()
+                    .await
+                    .iter()
+                    .any(|event| event.id == live_event.id),
             "subscribing before the snapshot must retain either snapshot or live delivery"
         );
     }
@@ -270,6 +296,11 @@ mod tests {
             .await
             .expect("first response should resolve");
         assert_eq!(receiver.await.expect("response delivered"), response);
-        assert_eq!(registry.respond_typed(UserPromptResponse::Elicitation { id, response }).await, Err(RespondError::Gone));
+        assert_eq!(
+            registry
+                .respond_typed(UserPromptResponse::Elicitation { id, response })
+                .await,
+            Err(RespondError::Gone)
+        );
     }
 }

@@ -5,6 +5,7 @@
 Official sampling example copied from
 `modelcontextprotocol/typescript-sdk@2c0c481cb9dbfd15c8613f765c940a5f5bace94d`.
 The upstream repository is MIT licensed.
+Source file: https://github.com/modelcontextprotocol/typescript-sdk/blob/2c0c481cb9dbfd15c8613f765c940a5f5bace94d/examples/server/src/toolWithSampleServer.ts
 
 ## What it does
 

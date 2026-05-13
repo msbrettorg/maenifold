@@ -17,3 +17,4 @@ pub mod routes;
 pub(crate) mod routes_config;
 pub(crate) mod routes_data;
 pub(crate) mod routes_memory;
+pub(crate) mod user_prompt;

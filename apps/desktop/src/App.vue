@@ -28,6 +28,7 @@ import AuthMethodDialog from './components/AuthMethodDialog.vue';
 import FolderPickerDialog from './components/FolderPickerDialog.vue';
 import ConfirmDialog from './components/ConfirmDialog.vue';
 import PromptDialog from './components/PromptDialog.vue';
+import UserPromptHost from './components/UserPromptHost.vue';
 import TrafficMonitor from './components/TrafficMonitor.vue';
 import { Loader2, MessageSquare } from 'lucide-vue-next';
 import { Toaster } from 'vue-sonner';
@@ -274,6 +275,7 @@ const agentsEmptyDescription = computed(() =>
     />
     <ConfirmDialog />
     <PromptDialog />
+    <UserPromptHost />
     <PermissionManagementDialog
       :open="permissionManagementOpen"
       @close="permissionManagementOpen = false"

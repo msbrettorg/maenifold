@@ -1,9 +1,10 @@
-use super::gateway_startup::{GatewayStartup, build_gateway};
+use super::gateway_startup::{GatewayStartup, build_gateway_with_registry};
 use super::{MaenifoldHandler, TransportKind};
 use crate::api::routes::{ApiState, api_routes, endophasia_routes};
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_handler::GatewayState;
+use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool::StdioPool;
 use axum::Router;
 use axum::routing::get;
@@ -104,7 +105,9 @@ impl super::MaenifoldMcpServer {
     ) -> Result<()> {
         let config = Config::current();
         super::initialize_runtime(&config)?;
-        let gateway_startup = build_gateway(&config).await?;
+        let user_prompt_registry = Arc::new(PendingRequestRegistry::new());
+        let gateway_startup =
+            build_gateway_with_registry(&config, Arc::clone(&user_prompt_registry)).await?;
         let (gateway, gateway_startup_error, pool_for_api) = match gateway_startup {
             GatewayStartup::Disabled => (None, None, None),
             GatewayStartup::Ready(gateway) => {
@@ -120,7 +123,11 @@ impl super::MaenifoldMcpServer {
                 pool_for_api.clone(),
                 gateway_startup_error,
             ),
-            ApiState::new(Config::current(), pool_for_api),
+            ApiState::with_user_prompt_registry(
+                Config::current(),
+                pool_for_api,
+                user_prompt_registry,
+            ),
         )
         // T-17.2: RTM FR-23 (RTM-130) — allow browser-based MCP clients to reach the
         // shared tool surface over HTTP.

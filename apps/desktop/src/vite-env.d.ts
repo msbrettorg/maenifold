@@ -91,6 +91,16 @@ type ElectronApi = {
 
 type AppApi = {
   quit: () => Promise<void>;
+  onUserPromptRequest: (handler: (payload: {
+    id: string;
+    kind: 'elicitation';
+    payload: { message?: unknown; requestedSchema?: unknown };
+    timeoutMs: number;
+  }) => void) => () => void;
+  resolveUserPrompt: (payload: {
+    id: string;
+    response: { action: 'accept' | 'cancel' | 'dismiss'; content?: Record<string, unknown> };
+  }) => Promise<{ ok: true }>;
 };
 
 type Vec0DownloadProgress = {
@@ -114,7 +124,7 @@ type Vec0Status = {
  * Two parallel preload bridges — T-302.40 / T-302.38.
  * `api` is the narrow non-optional contract; add NEW IPC here (extend AppApi).
  * `electronAPI` is the legacy broad surface; existing callers stay as-is
- * pending a future full-migration sprint (Option B, deferred from T-302.40).
+ * pending a future full-migration sprint (Option B, scoped out from T-302.40).
  */
 interface Window {
   api: AppApi;

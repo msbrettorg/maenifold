@@ -8,6 +8,7 @@ use crate::api::{
     routes_data::{file_text, graph_edges, graph_nodes},
     routes_memory::{memory_read, memory_recent, memory_search},
 };
+use crate::mcp::PendingRequestRegistry;
 use crate::mcp::stdio_pool::StdioPool;
 use crate::{Config, db};
 use axum::{
@@ -30,13 +31,28 @@ pub struct ApiState {
     pub(super) config_manager: ConfigManager,
     pub(super) config_watch: ConfigWatchState,
     pub(crate) gateway_pool: Option<Arc<StdioPool>>,
+    pub(crate) user_prompt_registry: Arc<PendingRequestRegistry>,
 }
 
 impl ApiState {
     #[must_use]
+    #[allow(dead_code)]
     pub fn new(
         shared: impl Into<ApiStateSharedConfig>,
         gateway_pool: Option<Arc<StdioPool>>,
+    ) -> Self {
+        Self::with_user_prompt_registry(
+            shared,
+            gateway_pool,
+            Arc::new(PendingRequestRegistry::new()),
+        )
+    }
+
+    #[must_use]
+    pub fn with_user_prompt_registry(
+        shared: impl Into<ApiStateSharedConfig>,
+        gateway_pool: Option<Arc<StdioPool>>,
+        user_prompt_registry: Arc<PendingRequestRegistry>,
     ) -> Self {
         let shared = shared.into();
         let config_watch =
@@ -46,6 +62,7 @@ impl ApiState {
             config_manager: shared.config_manager,
             config_watch,
             gateway_pool,
+            user_prompt_registry,
         }
     }
 
@@ -152,6 +169,14 @@ pub fn api_routes(state: ApiState) -> Router {
         .route("/api/memory/search", get(memory_search))
         .route("/api/discovery/mcp-tools", get(discover_mcp_tools_handler))
         .route("/api/pipeline/stream", get(pipeline_stream_handler))
+        .route(
+            "/api/user-prompt/stream",
+            get(crate::api::user_prompt::stream_handler),
+        )
+        .route(
+            "/api/user-prompt/respond",
+            post(crate::api::user_prompt::respond_handler),
+        )
         .with_state(state)
 }
 

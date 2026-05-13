@@ -88,6 +88,23 @@ Everything closes **11 of 17** rows. Remaining gaps: audio, video, MCP Apps UI
 (ext-apps fixture required), long responses (local fixture required), and
 explicit tool-error rendering.
 
+## ext-apps server coverage
+
+`modelcontextprotocol/ext-apps` example servers (T-303.13, adopted 2026-05-13) close the
+**MCP Apps / chart-style UI** row that Everything explicitly defers to this fixture.
+
+Full config and install steps: [`apps/desktop/docs/mcp-test-fixtures/ext-apps.md`](mcp-test-fixtures/ext-apps.md)
+
+| Content type | Exercised by ext-apps? | ext-apps server |
+|---|---|---|
+| MCP Apps / chart-style UI (`_meta.ui.resourceUri`) | Y | `cohort-heatmap-server` or `basic-server-vanillajs` |
+| Video resource blob | Y | `video-resource-server` |
+| Binary/download fallback | Y | `pdf-server` |
+| All other 14 rows | N | ext-apps is UI-focused; use Everything for protocol coverage |
+
+ext-apps closes **3 of 17** rows. Combined with Everything, **14 of 17** rows now have
+a curated fixture. Remaining gaps: audio, long responses, and explicit tool-error rendering.
+
 ## Gaps
 
 - No configured or bundled MCP app currently exercises **image** content blocks in the packaged UI.

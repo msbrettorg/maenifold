@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import { Download } from 'lucide-vue-next';
 import type { DispatchedResource } from '../lib/resource-mime-dispatcher';
 import MarkdownView from './MarkdownView.vue';
+import VideoBlock from './VideoBlock.vue';
 import { Button } from './ui/button';
 import { Card, CardContent } from './ui/card';
 
@@ -78,6 +79,11 @@ function formatFileSize(bytes: number): string {
       {{ imageExpanded ? 'Click image to collapse' : 'Click image to enlarge' }}
     </span>
   </div>
+  <VideoBlock
+    v-else-if="dispatched.kind === 'video'"
+    :src="dispatched.src"
+    :mime-type="dispatched.mimeType"
+  />
   <audio
     v-else-if="dispatched.kind === 'audio'"
     class="w-[min(100%,28rem)]"

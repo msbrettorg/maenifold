@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { nextTick } from 'vue';
+import { effectScope, nextTick } from 'vue';
 import { useUnsavedChangesGuard } from '../useUnsavedChangesGuard';
 
 async function openDirtyDialog() {
@@ -18,6 +18,12 @@ function buttonNamed(name: string) {
     throw new Error(`Button not found: ${name}`);
   }
   return match;
+}
+
+function rejectSoon(message: string) {
+  return new Promise<Error>((resolve) => {
+    window.setTimeout(() => resolve(new Error(message)), 10);
+  });
 }
 
 describe('useUnsavedChangesGuard', () => {
@@ -63,6 +69,41 @@ describe('useUnsavedChangesGuard', () => {
     buttonNamed('Cancel').click();
     await expect(confirmation).resolves.toBe(false);
     expect(guard.isDirty.value).toBe(true);
+  });
+
+  it('rejects a concurrent confirmIfDirty call while preserving the first confirmation', async () => {
+    const guard = useUnsavedChangesGuard();
+    guard.markDirty();
+    const firstConfirmation = guard.confirmIfDirty();
+    await nextTick();
+
+    const secondConfirmation = guard.confirmIfDirty();
+    const observedError = await Promise.race([
+      secondConfirmation.then(
+        () => new Error('second call resolved instead of rejecting'),
+        (error: Error) => error,
+      ),
+      rejectSoon('second call did not reject'),
+    ]);
+    expect(observedError.message).toContain('already pending');
+
+    buttonNamed('Discard').click();
+    await expect(firstConfirmation).resolves.toBe(true);
+  });
+
+  it('removes the dialog container when the owning effect scope is disposed', async () => {
+    const scope = effectScope();
+    scope.run(() => {
+      const guard = useUnsavedChangesGuard();
+      guard.markDirty();
+      void guard.confirmIfDirty();
+    });
+    await nextTick();
+
+    expect(document.body.querySelector('[data-unsaved-guard-host="true"]')).not.toBeNull();
+    scope.stop();
+    await nextTick();
+    expect(document.body.querySelector('[data-unsaved-guard-host="true"]')).toBeNull();
   });
 
   it('attachBeforeUnload returns cleanup and prevents unload while dirty', () => {

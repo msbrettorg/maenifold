@@ -2,7 +2,8 @@ use rmcp::{
     ClientHandler,
     model::{
         ClientCapabilities, ClientInfo, CreateElicitationRequestParams, CreateElicitationResult,
-        ElicitationAction, Implementation, ProtocolVersion, TasksCapability,
+        CreateMessageRequestParams, CreateMessageResult, ElicitationAction, Implementation,
+        ProtocolVersion, Role, SamplingMessage, TasksCapability,
     },
     service::{RequestContext, RoleClient},
 };
@@ -35,6 +36,23 @@ impl ClientHandler for MaenifoldClient {
             "received MCP elicitation request; returning cancel"
         );
         Ok(CreateElicitationResult::new(ElicitationAction::Cancel))
+    }
+
+    async fn create_message(
+        &self,
+        request: CreateMessageRequestParams,
+        _context: RequestContext<RoleClient>,
+    ) -> Result<CreateMessageResult, rmcp::ErrorData> {
+        tracing::info!(
+            ?request,
+            "received MCP sampling request; returning user_denied stub"
+        );
+        let denial = SamplingMessage::new(
+            Role::Assistant,
+            "User has not yet approved sampling requests. T-303.4.1 will add the approval modal.",
+        );
+        Ok(CreateMessageResult::new(denial, "maenifold-stub".to_string())
+            .with_stop_reason("user_denied"))
     }
 
     fn get_info(&self) -> ClientInfo {

@@ -60,6 +60,7 @@ function submit(): void {
 }
 
 function handleKeyDown(event: KeyboardEvent): void {
+  if (event.isComposing || event.keyCode === 229) return;
   if (showCommandPalette.value) {
     if (event.key === 'Escape') {
       event.preventDefault();

@@ -18,3 +18,5 @@ pub(crate) mod routes_config;
 pub(crate) mod routes_data;
 pub(crate) mod routes_memory;
 pub(crate) mod user_prompt;
+#[cfg(test)]
+mod user_prompt_tests;

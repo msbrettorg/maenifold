@@ -45,6 +45,8 @@ mod task_hooks;
 mod gateway_tasks_tests;
 pub mod http; mod mcp_tool_calls; mod resource_routing;
 pub mod pending_requests;
+#[cfg(test)]
+mod pending_requests_tests;
 pub mod resources;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;

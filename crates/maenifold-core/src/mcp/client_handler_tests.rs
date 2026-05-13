@@ -10,6 +10,7 @@ use rmcp::{
         PrimitiveSchema, SamplingMessage, ServerCapabilities, ServerInfo, ServerRequest,
         StringSchema,
     },
+    service::ServiceError,
 };
 use serde_json::json;
 use std::sync::Arc;
@@ -191,12 +192,12 @@ async fn concurrent_elicitations_each_receive_matching_response() -> anyhow::Res
 }
 
 #[tokio::test]
-async fn create_message_returns_user_denied() -> anyhow::Result<()> {
+async fn create_message_without_sampling_agent_returns_negative_32603() -> anyhow::Result<()> {
     let (server_transport, client_transport) = tokio::io::duplex(4096);
 
     let server_task = tokio::spawn(async move {
         let mut server = TestServer.serve(server_transport).await?;
-        let response = server
+        let result = server
             .peer()
             .send_request(ServerRequest::CreateMessageRequest(
                 CreateMessageRequest::new(CreateMessageRequestParams::new(
@@ -204,21 +205,21 @@ async fn create_message_returns_user_denied() -> anyhow::Result<()> {
                     64,
                 )),
             ))
-            .await?;
+            .await;
         server.close().await?;
-        match response {
-            ClientResult::CreateMessageResult(result) => anyhow::Ok(result),
-            other => anyhow::bail!("unexpected response: {other:?}"),
+        match result {
+            Err(ServiceError::McpError(error)) => anyhow::Ok(error),
+            Err(other) => anyhow::bail!("unexpected service error: {other:?}"),
+            Ok(other) => anyhow::bail!("expected JSON-RPC error, got response: {other:?}"),
         }
     });
 
     let registry = Arc::new(PendingRequestRegistry::new());
     let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
-    let result = server_task.await??;
+    let error = server_task.await??;
     client.close().await?;
 
-    assert_eq!(result.stop_reason, Some("user_denied".to_string()));
-    assert_eq!(result.model, "maenifold-stub");
+    assert_eq!(error.code.0, -32603);
     Ok(())
 }
 

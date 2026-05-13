@@ -18,6 +18,8 @@ use super::types::{AgentEntry, McpServerEntry};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentsConfig {
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "samplingAgent")]
+    pub sampling_agent: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mcp_servers: Vec<McpServerEntry>,
     #[serde(default)]
@@ -46,6 +48,7 @@ impl AgentsConfig {
         }
 
         let config = Self {
+            sampling_agent: parsed.sampling_agent,
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,
@@ -89,6 +92,7 @@ impl AgentsConfig {
         }
 
         let config = Self {
+            sampling_agent: parsed.sampling_agent,
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,

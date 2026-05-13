@@ -12,6 +12,7 @@ mod gateway;
 pub mod graph;
 pub mod pipeline;
 pub mod schedule;
+pub mod sampling;
 pub mod subscription;
 mod subscription_worker;
 pub mod throttle;
@@ -39,6 +40,7 @@ pub fn handle_list_resources() -> Result<ListResourcesResult> {
     resources.extend(graph::list_resources());
     resources.extend(pipeline::list_resources()?);
     resources.extend(schedule::list_resources());
+    resources.extend(sampling::list_resources());
     resources.extend(workflow::list_resources());
     Ok(ListResourcesResult {
         resources,
@@ -73,6 +75,8 @@ pub fn handle_read_resource(uri: &str) -> Result<ReadResourceResult> {
         pipeline::handle_read_resource(uri)
     } else if schedule::is_schedule_uri(uri) {
         schedule::handle_read_resource(uri)
+    } else if sampling::is_sampling_uri(uri) {
+        sampling::handle_read_resource(uri)
     } else {
         asset::handle_read_resource(uri)
     }

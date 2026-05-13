@@ -6,7 +6,7 @@
 //   - error code path -32602 when sampling/createMessage carries tools
 //   - error code path -1 when user denies via UserPromptResponse::Sampling
 //
-// Happy-path approve test deferred to SWE delta — they need to wire
+// Happy-path approve test belongs to the SWE delta — they need to wire
 // `execute_runtime_sampling` first.
 
 use crate::mcp::pending_requests::{

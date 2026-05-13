@@ -258,6 +258,11 @@ const DESCRIPTORS: &[ToolDescriptor] = &[
         invoke: tools::acp_exec,
     },
     ToolDescriptor {
+        name: "CancelSamplingSession",
+        aliases: &["cancelsamplingsession", "cancel_sampling_session"],
+        invoke: tools::cancel_sampling_session,
+    },
+    ToolDescriptor {
         name: "EmbeddingModels",
         aliases: &["embeddingmodels", "embedding_models"],
         invoke: tools::embedding_models,

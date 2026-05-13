@@ -49,6 +49,7 @@ pub mod http; mod mcp_tool_calls; mod resource_routing;
 pub mod pending_requests;
 #[cfg(test)]
 mod pending_requests_tests;
+pub(crate) mod sampling_session_registry;
 #[cfg(test)]
 mod sampling_session_registry_tests;
 pub mod resources;
@@ -73,6 +74,7 @@ use crate::registry::ToolRegistry;
 pub(crate) use cors::localhost_cors;
 pub use client_handler::MaenifoldClient;
 pub use pending_requests::PendingRequestRegistry;
+pub(crate) use sampling_session_registry::SamplingSessionRegistry;
 pub(crate) use gateway_cli::{gateway_cli_help, invoke_gateway_cli_tool};
 pub use resources::*;
 use rmcp::model::{

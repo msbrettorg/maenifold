@@ -12,6 +12,7 @@ import 'vanilla-jsoneditor/themes/jse-theme-dark.css';
 import { Button } from '@/components/ui/button';
 import { useConfigStore } from '../stores/config';
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
+import SamplingHistory from './SamplingHistory.vue';
 import SettingsEmbeddings from './SettingsEmbeddings.vue';
 import SettingsMcpServers from './SettingsMcpServers.vue';
 
@@ -168,6 +169,8 @@ onBeforeUnmount(() => {
     <section class="flex flex-col gap-3">
       <SettingsMcpServers />
     </section>
+
+    <SamplingHistory />
 
     <section class="flex flex-col gap-3">
       <header class="flex flex-col gap-1">

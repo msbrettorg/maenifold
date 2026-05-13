@@ -5,7 +5,7 @@ import { defineComponent } from 'vue';
 import SamplingApprovalModal from '../SamplingApprovalModal.vue';
 import type { SamplingRequest } from '../../stores/sampling';
 
-function request(): SamplingRequest {
+function request(overrides: Partial<SamplingRequest> = {}): SamplingRequest {
   return {
     id: 'sampling-1',
     serverName: 'research-server',
@@ -17,12 +17,13 @@ function request(): SamplingRequest {
     systemPrompt: 'Be precise.',
     maxTokens: 1024,
     queuedAt: 1_700_000_000_000,
+    ...overrides,
   };
 }
 
-function mountModal() {
+function mountModal(overrides: Partial<SamplingRequest> = {}) {
   return mount(SamplingApprovalModal, {
-    props: { request: request() },
+    props: { request: request(overrides) },
     global: {
       stubs: {
         Dialog: { template: '<section><slot /></section>' },
@@ -88,5 +89,20 @@ describe('SamplingApprovalModal', () => {
     expect(wrapper.emitted('resolve')?.[0]).toEqual([
       { action: 'allow_once', selectedModel: 'gpt-4.1-mini' },
     ]);
+  });
+
+  it('selected_model_dropdown_choice_is_non_null_in_allow_once_payload', async () => {
+    const wrapper = mountModal({ modelHint: 'gpt-5.5' });
+    const select = wrapper.getComponent({ name: 'Select' });
+
+    await select.vm.$emit('update:modelValue', 'gpt-5.5');
+    await wrapper.findAll('button').find((button) => button.text() === 'Allow Once')!.trigger('click');
+
+    expect(wrapper.emitted('resolve')?.[0]?.[0]).toMatchObject({
+      action: 'allow_once',
+      selectedModel: 'gpt-5.5',
+    });
+    expect(wrapper.emitted('resolve')?.[0]?.[0]).toHaveProperty('selectedModel');
+    expect(wrapper.emitted('resolve')?.[0]?.[0]).not.toHaveProperty('selectedModel', null);
   });
 });

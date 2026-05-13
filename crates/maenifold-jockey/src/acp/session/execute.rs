@@ -269,15 +269,25 @@ pub async fn execute_runtime(
 }
 
 pub async fn execute_runtime_sampling(
-    runtime_kind: &str, role_name: &str, app_session_id: uuid::Uuid, prompt: String,
+    runtime_kind: &str,
+    role_name: &str,
+    app_session_id: uuid::Uuid,
+    prompt: String,
+    selected_model: Option<String>,
 ) -> Result<String, String> {
     let (event_tx, _event_rx) = tokio::sync::broadcast::channel::<crate::JockeyEvent>(32);
     let cwd = std::env::current_dir()
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|_| ".".to_string());
 
+    let role_config_options: Vec<(String, String)> = if let Some(m) = selected_model {
+        vec![("model".to_string(), m)]
+    } else {
+        vec![]
+    };
+
     let result = execute_runtime(
-        runtime_kind, role_name, &prompt, &[], &cwd, &event_tx, true, vec![], None, vec![], None,
+        runtime_kind, role_name, &prompt, &[], &cwd, &event_tx, true, vec![], None, role_config_options, None,
         &app_session_id.to_string(), None,
     )
     .await;

@@ -1786,3 +1786,30 @@ T-303.5 worker initially reported "cargo build exit 0" as test compile evidence.
 After T-303.5 ships, T-303.7 (KEYSTONE) should dispatch BEFORE T-303.6 because the prior iter5 attempt at T-303.6 was rolled back precisely because T-303.7 didn't exist yet — the spec impl was unreachable from inside agent sessions. T-303.7 first → T-303.6 second.
 
 Wave B dispatch decision: T-303.7 alone, NOT in parallel with T-303.2/.3/.4 (frontend MCP UI work) because both might touch `crates/maenifold-core/src/mcp/gateway_handler.rs` for different reasons (T-303.7 = task tools dispatch; T-303.3/.4 = elicitation/sampling broker routes). Serializing avoids merge conflicts on the central dispatch file.
+
+
+### Iter-8 progress checkpoint — sprint 303 mid-flight 2026-05-13
+
+#### Sprint 303 status
+- DONE: T-303.1 (research artifact), T-303.5 (Pipeline + gate_Status summary modes), T-303.7 (KEYSTONE: 5 Task* MCP tools).
+- IN-FLIGHT: T-303.2 (Settings MCP Servers UI Phase 1).
+- BLOCKED-BY-RESEARCH: T-303.3 (elicitation), T-303.4 (sampling) — these are full-stack greenfield, daemon-side broker + renderer modal. PM tried to dispatch T-303.3 in parallel but pruned the worktree on realizing the MCP elicitation architecture (client.setRequestHandler(ElicitRequestSchema, ...) on the daemon, then proxy to renderer) requires more spec work than a single SWE prompt can capture safely.
+- UNBLOCKED: T-303.6 (full daemon JSON-RPC tasks/* spec) now actionable since T-303.7 KEYSTONE shipped.
+- DEFERRED: T-303.8, T-303.11 (depend on T-303.2 component existing).
+
+#### Lesson — same rustfmt-churn defect class hit T-303.7 v1 too
+
+Identical to T-303.5 v1: SWE ran `rustfmt --edition 2024 <list>` and rustfmt formatted module-sibling/child files. T-303.7 v1 churned: workflow_tools.rs, handler_crud_tests_runs.rs, handler_surgery_fork.rs (the latter two NOT the same files as T-303.5 churn — different traversal). PM caught via `git diff --stat dev`; v2 remediation restored byte-identical.
+
+**This is now a STANDING SWE failure mode for Rust workers on this codebase.** The constitutional rule "SWEs format only files they created or modified" is violated by the default rustfmt invocation when files use `#[path = "..."]` to reference siblings.
+
+**Pattern adopted in T-303.7 worker prompt (and going forward):**
+1. PM explicitly requires `git status --short` and `git diff --stat dev` AFTER edits and BEFORE WorkResult.
+2. Worker must cite both outputs.
+3. Any unintended modification = caught immediately, not after PM diff.
+
+**Better pattern (not yet adopted):** PM should also require the SWE to NOT use `rustfmt --edition 2024 <list>` at all when `#[path = "..."]` modules are involved. Better tools: `rustfmt --skip-children <file>` if available; OR don't run rustfmt at all and let the audit-crates pipeline handle style separately.
+
+#### Lesson — pre-creating worktrees that aren't used wastes 30s git checkout
+
+PM created worktrees/T-303.3 then realized the spec needed more research and pruned it. The git checkout to populate the worktree took ~30 seconds. Trivial cost but worth noting: only create worktrees AFTER the spec is fully prepared and the SWE prompt is ready to dispatch.

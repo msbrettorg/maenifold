@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Sparkles } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import { Button } from './ui/button';
 import {
   Dialog,
@@ -16,6 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select';
+import { useConfigStore } from '../stores/config';
 import type { SamplingAction, SamplingDecision, SamplingRequest } from '../stores/sampling';
 
 const props = defineProps<{
@@ -26,13 +28,63 @@ const emit = defineEmits<{
   resolve: [decision: SamplingDecision];
 }>();
 
+let configStore: ReturnType<typeof useConfigStore> | null = null;
+try {
+  configStore = useConfigStore();
+} catch {
+  configStore = null;
+}
+
+function hasAlwaysAllowPreference(): boolean {
+  return (
+    configStore?.config.samplingPreferences?.perServer?.[props.request.serverName]?.alwaysAllow === true
+  );
+}
+
 const selectedModel = ref<string>('');
+const countingDown = ref(hasAlwaysAllowPreference());
+
+let countdownTimer: ReturnType<typeof setTimeout> | null = null;
 
 const visibleMessages = computed(() => props.request.messages.filter((message) => message.text));
 const modelChoices = computed(() => {
   const hint = props.request.modelHint;
   return hint ? [hint, `${hint}-mini`] : ['gpt-4.1', 'gpt-4.1-mini'];
 });
+function clearCountdownTimer(): void {
+  if (countdownTimer !== null) {
+    clearTimeout(countdownTimer);
+    countdownTimer = null;
+  }
+}
+
+function startCountdown(): void {
+  countingDown.value = true;
+  clearCountdownTimer();
+  countdownTimer = setTimeout(() => {
+    countdownTimer = null;
+    decide('allow_once');
+  }, 1000);
+}
+
+function cancelCountdown(): void {
+  clearCountdownTimer();
+  countingDown.value = false;
+}
+
+function reportPersistError(error: unknown): void {
+  const message = error instanceof Error ? error.message : String(error);
+  toast.warning(`Sampling preference was not saved: ${message}`);
+}
+
+function persistAllowAlways(): void {
+  try {
+    const pending = configStore?.setSamplingPreference(props.request.serverName, { alwaysAllow: true });
+    void Promise.resolve(pending).catch(reportPersistError);
+  } catch (error) {
+    reportPersistError(error);
+  }
+}
 
 function decide(action: SamplingAction): void {
   emit('resolve', {
@@ -40,6 +92,21 @@ function decide(action: SamplingAction): void {
     ...(selectedModel.value ? { selectedModel: selectedModel.value } : {}),
   });
 }
+
+function allowAlways(): void {
+  persistAllowAlways();
+  decide('allow_always');
+}
+
+onMounted(() => {
+  if (hasAlwaysAllowPreference()) {
+    startCountdown();
+  }
+});
+
+onUnmounted(() => {
+  clearCountdownTimer();
+});
 </script>
 
 <template>
@@ -68,7 +135,15 @@ function decide(action: SamplingAction): void {
           </div>
         </div>
 
-        <div class="grid gap-2 rounded-[12px] bg-bg-elevated p-3">
+        <div v-if="countingDown" class="grid gap-2 rounded-[12px] bg-bg-elevated p-3">
+          <p class="m-0 text-xs uppercase tracking-wide text-text-tertiary">Always allow enabled</p>
+          <p class="m-0 text-sm text-text-primary">Auto-approving in 1s</p>
+          <p class="m-0 text-sm text-text-secondary">
+            Cancel to review this request manually before it is sent.
+          </p>
+        </div>
+
+        <div v-else class="grid gap-2 rounded-[12px] bg-bg-elevated p-3">
           <p class="m-0 text-xs uppercase tracking-wide text-text-tertiary">Model</p>
           <p class="m-0 text-sm text-text-secondary">
             Requested model hint: <span class="text-text-primary">{{ request.modelHint ?? 'none' }}</span>
@@ -84,9 +159,13 @@ function decide(action: SamplingAction): void {
         </div>
       </div>
 
-      <DialogFooter class="gap-2 px-6 pb-6">
+      <DialogFooter v-if="countingDown" class="gap-2 px-6 pb-6">
+        <Button type="button" variant="outline" @click="cancelCountdown">Cancel</Button>
+      </DialogFooter>
+
+      <DialogFooter v-else class="gap-2 px-6 pb-6">
         <Button type="button" variant="ghost" @click="decide('deny')">Deny</Button>
-        <Button type="button" variant="outline" @click="decide('allow_always')">Allow Always</Button>
+        <Button type="button" variant="outline" @click="allowAlways">Allow Always</Button>
         <Button type="button" @click="decide('allow_once')">Allow Once</Button>
       </DialogFooter>
     </DialogContent>

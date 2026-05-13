@@ -5,6 +5,7 @@ import { useAgentStore } from '../stores/agent';
 import { useMermaid } from '../composables/useMermaid';
 import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
+import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ModePicker from './ModePicker.vue';
@@ -18,7 +19,6 @@ import { Card } from './ui/card';
 import { Settings } from 'lucide-vue-next';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock, SessionMode } from '../lib/types';
-
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
@@ -94,7 +94,7 @@ async function toggleToolCall(toolCallId: string): Promise<void> {
 
 function handleCancel(): void { void sessionStore.cancelOperation(); }
 function recallLastMessage(): void { inputText.value = [...messages.value].reverse().find((message) => message.role === 'user')?.content ?? inputText.value; }
-
+useEscCancelWhileStreaming(isLoading, handleCancel);
 watch(messages, async () => {
   await nextTick();
   const viewport = resolveScrollViewport();

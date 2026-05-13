@@ -17,6 +17,8 @@ pub(crate) struct SamplingDispatch {
     pub acp_session_id: Option<String>,
     pub server_name: String,
     pub model: String,
+    pub runtime_kind: String,
+    pub role_name: String,
     pub status: SamplingSessionStatus,
     pub created_at: String,
     pub token_usage: Option<TokenUsage>,
@@ -44,6 +46,7 @@ pub(crate) struct TokenUsage {
 #[derive(Debug, PartialEq)]
 pub(crate) enum SamplingRegistryError {
     NotFound,
+    AlreadyTerminal,
 }
 
 pub(crate) struct SamplingSessionRegistry {
@@ -74,6 +77,14 @@ impl SamplingSessionRegistry {
         let Some(dispatch) = sessions.get_mut(&id) else {
             return Err(SamplingRegistryError::NotFound);
         };
+        if matches!(
+            dispatch.status,
+            SamplingSessionStatus::Cancelled
+                | SamplingSessionStatus::Failed
+                | SamplingSessionStatus::Completed
+        ) {
+            return Err(SamplingRegistryError::AlreadyTerminal);
+        }
         dispatch.status = status;
         drop(sessions);
         notify_resource_updated(SAMPLING_SESSIONS_URI).await;
@@ -123,6 +134,16 @@ impl SamplingSessionRegistry {
         let removed = self.sessions.lock().await.remove(&id);
         notify_resource_updated(SAMPLING_SESSIONS_URI).await;
         removed
+    }
+}
+
+impl SamplingDispatch {
+    pub(crate) fn runtime_kind(&self) -> &str {
+        &self.runtime_kind
+    }
+
+    pub(crate) fn role_name(&self) -> &str {
+        &self.role_name
     }
 }
 

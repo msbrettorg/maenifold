@@ -85,6 +85,8 @@ fn dispatch_fixture(server_name: &str) -> SamplingDispatch {
         acp_session_id: None,
         server_name: server_name.to_string(),
         model: "copilot".to_string(),
+        runtime_kind: "copilot".to_string(),
+        role_name: "copilot".to_string(),
         status: SamplingSessionStatus::PendingApproval,
         created_at: "2026-05-13T00:00:00Z".to_string(),
         token_usage: None,

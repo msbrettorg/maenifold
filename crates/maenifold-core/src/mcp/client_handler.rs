@@ -129,6 +129,8 @@ impl ClientHandler for MaenifoldClient {
                         acp_session_id: None,
                         server_name: "<unknown>".to_string(),
                         model: model.clone(),
+                        runtime_kind: role_name.clone(),
+                        role_name: role_name.clone(),
                         status: SamplingSessionStatus::Dispatching,
                         created_at: chrono::Utc::now().to_rfc3339(),
                         token_usage: None,
@@ -146,10 +148,17 @@ impl ClientHandler for MaenifoldClient {
 
                 match result {
                     Ok(text_result) => {
-                        let _ = self
+                        if let Err(err) = self
                             .sampling_registry
                             .update_status(dispatch_id, SamplingSessionStatus::Completed)
-                            .await;
+                            .await
+                        {
+                            tracing::info!(
+                                ?err,
+                                dispatch_id = %dispatch_id,
+                                "sampling session terminal at completion"
+                            );
+                        }
                         Ok(CreateMessageResult::new(
                             SamplingMessage::new(Role::Assistant, text_result),
                             model,
@@ -157,10 +166,17 @@ impl ClientHandler for MaenifoldClient {
                         .with_stop_reason("endTurn"))
                     }
                     Err(err) => {
-                        let _ = self
+                        if let Err(reg_err) = self
                             .sampling_registry
                             .update_status(dispatch_id, SamplingSessionStatus::Failed)
-                            .await;
+                            .await
+                        {
+                            tracing::info!(
+                                ?reg_err,
+                                dispatch_id = %dispatch_id,
+                                "sampling session terminal at failure"
+                            );
+                        }
                         Err(rmcp::ErrorData::new(
                             rmcp::model::ErrorCode(-1),
                             format!("Sampling failed: {err}"),

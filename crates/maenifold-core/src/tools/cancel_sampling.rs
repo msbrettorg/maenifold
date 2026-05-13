@@ -44,8 +44,8 @@ pub fn cancel_sampling_session(context: &ToolContext, payload: &Value) -> Result
                     )
                 })?;
             jockey::acp::cancel_session(
-                &dispatch.model,
-                &dispatch.model,
+                dispatch.runtime_kind(),
+                dispatch.role_name(),
                 Some(&dispatch.app_session_id.to_string()),
             )
             .await;

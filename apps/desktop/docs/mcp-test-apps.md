@@ -55,6 +55,39 @@ The desktop renderer supports more MCP result shapes than the current configured
 
 Total content type / edge-case rows audited: 17.
 
+## Everything server coverage
+
+`@modelcontextprotocol/server-everything` (T-303.12, adopted 2026-05-13) is the
+first curated test fixture profile for maenifold. The table below maps each
+coverage matrix row to the specific Everything tool that exercises it, or
+explains why the row remains uncovered.
+
+Full config and install steps: [`apps/desktop/docs/mcp-test-fixtures/everything.md`](mcp-test-fixtures/everything.md)
+
+| Content type | Exercised by Everything? | Everything tool |
+|---|---|---|
+| Text response | Y | `echo` |
+| Image (base64 data URI) | Y | `get-tiny-image` |
+| Audio (base64 data URI) | N | No audio tool in upstream Everything |
+| Video resource blob | N | No video tool in upstream Everything |
+| Resource link (`file://` / `demo://`) | Y | `get-resource-links` |
+| Embedded resource | Y | `get-resource-reference` |
+| Structured content (`structuredContent`) | Y | `get-structured-content` |
+| MCP Apps / chart-style UI (`_meta.ui.resourceUri`) | N/A | `ext-apps` fixture, not Everything |
+| Long response (>25KB) | N | No deterministic large-payload tool in upstream Everything |
+| Elicitation request | Y | `simulate-research-query` (ambiguous=true) / `trigger-elicitation-request-async` |
+| Sampling request | Y | `trigger-sampling-request` |
+| Cancellation | Y | `simulate-research-query` (MCP Tasks cancel path via `tasks/cancel`) |
+| Tool error (`isError: true`) | N | No explicit tool-error fixture in upstream Everything |
+| Progress notifications | Y | `trigger-long-running-operation` |
+| Logging notifications | Y | `toggle-simulated-logging` |
+| Resource subscriptions / updates | Y | `toggle-subscriber-updates` |
+| Binary/download fallback | Y | `gzip-file-as-resource` |
+
+Everything closes **11 of 17** rows. Remaining gaps: audio, video, MCP Apps UI
+(ext-apps fixture required), long responses (local fixture required), and
+explicit tool-error rendering.
+
 ## Gaps
 
 - No configured or bundled MCP app currently exercises **image** content blocks in the packaged UI.

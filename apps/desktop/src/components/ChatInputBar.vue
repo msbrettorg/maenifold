@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
+import { Square } from 'lucide-vue-next';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import ChatAttachmentBar from './ChatAttachmentBar.vue';
 import CommandPalette from './CommandPalette.vue';
 import VoiceInputButton from './VoiceInputButton.vue';
@@ -171,6 +173,12 @@ function handleClose(): void {}
     </div>
 
     <VoiceInputButton />
+
+    <TooltipProvider v-if="disabled" :delay-duration="150"><Tooltip><TooltipTrigger as-child>
+      <Button type="button" variant="ghost" size="icon" class="size-9 text-text-secondary" title="Cancel turn (Esc)" aria-label="Cancel turn (Esc)" @click="emit('cancel-turn')">
+        <Square class="size-4 fill-current" aria-hidden="true" />
+      </Button>
+    </TooltipTrigger><TooltipContent>Cancel turn (Esc)</TooltipContent></Tooltip></TooltipProvider>
 
     <Button
       class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-medium cursor-pointer transition-colors duration-150 hover:not-disabled:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-[0.55]"

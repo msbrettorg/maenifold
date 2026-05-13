@@ -8,6 +8,7 @@ import ChatThoughtSection from './ChatThoughtSection.vue';
 import ChatToolCallList from './ChatToolCallList.vue';
 import KnowledgeNoteRenderer from './KnowledgeNoteRenderer.vue';
 import MessageActionToolbar from './MessageActionToolbar.vue';
+import StopReasonBanner from './StopReasonBanner.vue';
 import type { ChatMessage } from '../lib/types';
 
 const props = defineProps<{
@@ -127,6 +128,8 @@ const isAssistant = computed(() => props.message.role === 'assistant');
           :content="markdownContent"
           class="text-text-primary"
         />
+
+        <StopReasonBanner v-if="isAssistant" :stop-reason="message.stopReason" />
       </CardContent>
     </Card>
 

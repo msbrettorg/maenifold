@@ -1744,3 +1744,45 @@ Per constitution Scoping rules: "Pre-existing issues → informational, not FAIL
 - T-302.41 — confirm-dialog concurrent semantics (P3 follow-up, filed iter-8).
 
 **Final dev integrated state:** vitest useMessageHandler 4/4 + useBuiltInSlashCommands 9/9; useMessageHandler.ts 277 LOC; useMessagePersistence.ts 40; useTitleRename.ts 34; useSessionPersistence.ts 138 (byte-identical to dev pre-iter); ChatView.vue 300 (at limit); useBuiltInSlashCommands.ts 76. All composables ≤300 LOC. All commits include `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer.
+
+
+### Iteration ralph-8 continued — sprint 303 opening 2026-05-13
+
+#### Sprint 303 (mcp area) — early state
+
+After sprint 302 closure (20 done), opened sprint 303 with 16 actionable backlog items + the umbrella. Wave A dispatched:
+- **T-303.1** (research) — DONE. Research artifact at apps/desktop/docs/mcp-test-apps.md (187 LOC, 17 content types, 8 OSS adoption candidates, all MIT/Apache-2.0). Pipeline conversion gsd→sdd before first transition (per iter-7 lesson). 5 PM-filed follow-ups (T-303.12-16) plus 1 red-team-flagged gap (T-303.17 prompts/completion coverage rows).
+- **T-303.5** (Pipeline + gate_Status summary modes) — DONE. Added compact `summary:true` projection. Default behavior byte-for-byte preserved. Required 4 file splits (gateway_gate.rs → gateway_gate_schema.rs; lifecycle.rs → lifecycle_create.rs + lifecycle_status_output.rs; lifecycle_tests.rs → lifecycle_sync_status_tests.rs) — all verified pure cut-paste by red-team. 5 new tests cover compact shape + 50-node fixture <4KB + byte-equality. maenifold-core 507/0/1 pass; maenifold-gate-core 90/0/0; release builds clean for daemon + driver.
+- **T-303.7** (KEYSTONE: Task* MCP tools) — IN FLIGHT.
+
+#### Lesson — rustfmt churn on unrelated files (T-303.5)
+
+The SWE worker ran `rustfmt --edition 2024 <list>` and rustfmt followed `#[path = "..."]` references / mod children, formatting 2 unrelated files (handler_crud_tests_runs.rs + lifecycle_helpers.rs). Worker did not run `git status` after editing → did not catch the churn. PM-side `git diff --stat dev` caught it.
+
+**Mitigation pattern:** Worker prompts for Rust SWE work should explicitly require:
+- Run `git status --short` and `git diff --stat dev` (READ-ONLY git, allowed) AFTER all edits and BEFORE returning.
+- Cite the output in the WorkResult.
+- Any file in the diff that wasn't deliberately modified is a defect to investigate.
+
+This catches unintended formatting churn, accidental stray edits, and tool-induced byte changes BEFORE PM has to. (Adopted in T-303.7 worker prompt.)
+
+#### Lesson — file splits for 300 LOC standard need explicit spec
+
+T-303.5 worker had to split 3 files mid-implementation because each was at 250+ LOC and the new code pushed them over. Worker chose reasonable split lines but PM did not pre-prescribe them. Result: 4 NEW files in scope that PM didn't anticipate, requiring red-team to verify each split was pure cut-paste (it was).
+
+**Mitigation pattern:** PM specs for backend Rust work should:
+- Cite the current LOC of each file PM expects to modify.
+- If LOC + estimated additions > 300, pre-prescribe the split seam (which functions extract to which new file).
+- This avoids worker-chosen splits that PM has to audit post-hoc.
+
+#### Lesson — tests don't compile under cargo build (without --tests)
+
+T-303.5 worker initially reported "cargo build exit 0" as test compile evidence. Untrue: `cargo build -p <crate>` does NOT compile `#[cfg(test)]` code unless `--tests` is passed. PM remediation message added: SWE may run `cargo build --tests` (compile-only, no execution) — this is allowed under the constitution Test Policy and surfaces test compile errors before blue-team.
+
+**Adopted as T-303.7 worker prompt requirement.**
+
+#### Sprint 303 dispatch ordering decision
+
+After T-303.5 ships, T-303.7 (KEYSTONE) should dispatch BEFORE T-303.6 because the prior iter5 attempt at T-303.6 was rolled back precisely because T-303.7 didn't exist yet — the spec impl was unreachable from inside agent sessions. T-303.7 first → T-303.6 second.
+
+Wave B dispatch decision: T-303.7 alone, NOT in parallel with T-303.2/.3/.4 (frontend MCP UI work) because both might touch `crates/maenifold-core/src/mcp/gateway_handler.rs` for different reasons (T-303.7 = task tools dispatch; T-303.3/.4 = elicitation/sampling broker routes). Serializing avoids merge conflicts on the central dispatch file.

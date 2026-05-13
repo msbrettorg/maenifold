@@ -1845,3 +1845,87 @@ PM accidentally called gate_Pass for T-303.6 with note "swe→red-team" before r
 - 1 P1 stuck (T-303.2 — packaging gap).
 - 6 follow-up tasks filed (T-303.12-17).
 - 1 P0 filed (T-302.42 — packaging OOM).
+
+
+### Iter-8 final retrospective — 2026-05-13
+
+#### Sprint 303 final state (this iteration)
+- **DONE: 4 P1 tasks shipped** (T-303.1 research, T-303.5 summary modes, T-303.6 daemon tasks/* spec Phase 1, T-303.7 KEYSTONE Task* MCP tools).
+- **STUCK: 1 P1** (T-303.2 Settings MCP Servers UI — code complete in worktree, blue-team CDP UAT blocked on T-302.42 packaging P0).
+- **PENDING: 12 sprint 303 items** — most depend on either T-303.2 landing (T-303.8/T-303.11) or are UI-touching (T-303.4 sampling) and would also block on T-302.42.
+- **FILED: 6 sprint 302 follow-ups** (T-302.40 window.api consolidation, T-302.41 confirm-dialog concurrent, T-302.42 packaging P0) and 6 sprint 303 follow-ups (T-303.12-17 MCP test app fixtures from T-303.1 research).
+
+#### Iter-8 metrics
+
+- **Tasks shipped:** 6 (T-302.37 + T-302.38 + T-303.1 + T-303.5 + T-303.6 + T-303.7).
+- **Workers dispatched:** ~16 (8 SWE, 5 red-team, 5 blue-team — some retried).
+- **Remediations:** 3 (T-302.37 v2 reconstruction defect, T-303.5 v2 rustfmt churn, T-303.7 v2 rustfmt churn). All caught via PM-side `git diff --stat dev` after WorkResult; all remediated in one round.
+- **Blue-team retries:** 1 (T-303.6 — PM-prompt selector typo).
+- **Wave-boundary rubber-duck reviews:** 2 (gpt-5.5 + claude-opus-4.6 at sprint 302→303 boundary).
+- **Sprint-discarding gate violations:** 0.
+- **Destructive git operations by agents:** 0.
+- **PM circuit-breaker hits:** 0.
+
+#### Lesson — Forge + Node 25 packaging incompatibility (T-302.42 P0)
+
+The constitutional CDP UAT requirement is hard-blocked by a packager
+incompatibility: `electron-forge package` OOMs in Node 25.9.0 (likely
+`@electron-forge/plugin-auto-unpack-natives` recursive scan triggers
+unbounded allocation). PM diagnosed by isolating the build pipeline:
+- `vite build` PASS
+- `vite build:electron` PASS
+- `electron-forge package` FAILS (OOM)
+
+T-302.42 documents this with full diagnostic findings and a prioritized
+fix list (top suggestion: pin Node to v22 LTS via `.nvmrc`).
+
+**Implication for future iterations:** The CDP UAT requirement is
+inviolable per the constitution. Any iteration with UI work needs to
+either (a) fix T-302.42 first or (b) explicitly accept that UI work
+ships without CDP UAT verification (requires user authorization to
+waive).
+
+#### Lesson — rustfmt churn is a STANDING SWE failure mode for Rust workers
+
+3 of 8 SWE dispatches this iteration churned unintended files via
+`rustfmt --edition 2024 file1 file2`:
+- T-302.37 v1: 0 churn (was a different failure class — hallucinated
+  reconstruction)
+- T-303.5 v1: 2 unintended files reformatted (handler_crud_tests_runs.rs,
+  lifecycle_helpers.rs)
+- T-303.7 v1: 3 unintended files reformatted (workflow_tools.rs,
+  handler_crud_tests_runs.rs, handler_surgery_fork.rs)
+
+In all cases, PM caught via `git diff --stat dev`; remediated by
+restoring byte-identical to dev. Cost per incident: ~1 extra worker
+turn.
+
+**Pattern for next iter:** Worker prompts now MANDATE `git status
+--short` AND `git diff --stat dev` AFTER edits and BEFORE WorkResult.
+This caught all 3 incidents in iter-8. Going forward: also consider
+forbidding rustfmt entirely in the SWE prompt and let `audit-crates`
+handle style.
+
+#### Lesson — wrong-test-selector is a PM-prompt error class
+
+T-303.6 blue-team v1 BLOCKED on PM-supplied wrong test selector
+(`handler_crud_tests::` matched 0 tests; correct: `workflow::pipeline::
+handler_crud::tests::view_pipeline_*`). Cost: 1 extra dispatch.
+
+**Pattern for next iter:** When prescribing test selectors, FIRST
+verify by running `cargo test --list` or by reading the actual test
+file's `mod` nesting. Don't assume `<file>_tests.rs` → `<file>_tests::*`.
+
+#### Closing iteration thoughts
+
+- Sprint 303 went from 12 actionable items → 4 done + 1 stuck + 7
+  remaining-actionable (5 of which are UI-touching and now blocked by
+  T-302.42).
+- The hardest unblock for the next iteration is T-302.42 (packaging).
+  Without that, sprint 303 cannot close as a UI-bearing sprint.
+- The KEYSTONE T-303.7 + Phase 1 T-303.6 combo means external MCP
+  clients can now use the MCP 2025-11-25 task augmentation against
+  maenifold. Major capability unlock.
+- Code standards held: 0 LOC violations, 0 destructive git ops,
+  0 sprint-discarding violations, every gate stage backed by a real
+  dispatched agent.

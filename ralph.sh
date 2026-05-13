@@ -56,15 +56,15 @@ fi
 
 MODEL="claude-opus-4.7-1m-internal"
 REASONING_EFFORT="xhigh"
-MAX_ITERATIONS=5
+MAX_ITERATIONS=25
 MAX_RUNTIME_SECONDS=0        # 0 = unlimited; e.g. 14400 = 4 hours
-STUCK_TIMEOUT_SECONDS=600    # 10 min without log output = stuck
+STUCK_TIMEOUT_SECONDS=1800    # 30 min without log output = stuck
 CRATE=""
 SCOPE_PATH=""
 AGENT="outer-loop"
 SESSION_NAME=""
 NO_CUSTOM_INSTRUCTIONS=false
-NO_ASK_USER=false
+NO_ASK_USER=true
 CONTINUE=false
 NOTIFY=true
 EXTRA_COPILOT_ARGS=()

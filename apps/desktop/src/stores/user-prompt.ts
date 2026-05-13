@@ -83,8 +83,11 @@ function modelHintFrom(payload: SamplingRequestPayload['payload']): string | und
 }
 
 function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
-  const messages = Array.isArray(payload.payload.messages)
-    ? payload.payload.messages.flatMap((message) => {
+  const inner = (typeof payload.payload === 'object' && payload.payload !== null)
+    ? payload.payload
+    : ({} as SamplingRequestPayload['payload']);
+  const messages = Array.isArray(inner.messages)
+    ? inner.messages.flatMap((message) => {
         if (typeof message !== 'object' || message === null) return [];
         const record = message as Record<string, unknown>;
         return [{
@@ -96,12 +99,12 @@ function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
   return {
     id: payload.id,
     serverName: 'MCP server',
-    modelHint: modelHintFrom(payload.payload),
+    modelHint: modelHintFrom(inner),
     messages,
-    systemPrompt: typeof payload.payload.systemPrompt === 'string'
-      ? payload.payload.systemPrompt
+    systemPrompt: typeof inner.systemPrompt === 'string'
+      ? inner.systemPrompt
       : undefined,
-    maxTokens: typeof payload.payload.maxTokens === 'number' ? payload.payload.maxTokens : 0,
+    maxTokens: typeof inner.maxTokens === 'number' ? inner.maxTokens : 0,
     queuedAt: Date.now(),
   };
 }

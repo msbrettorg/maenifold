@@ -32,6 +32,10 @@ function setModelOverride(value: string) {
 }
 
 function handleModelChange(value: AcceptableValue) {
+  if (value == null) {
+    setModelOverride('');
+    return;
+  }
   if (typeof value !== 'string') return;
   setModelOverride(value);
 }

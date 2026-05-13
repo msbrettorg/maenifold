@@ -1,5 +1,5 @@
 use crate::api::routes::ApiState;
-use crate::mcp::pending_requests::{ElicitationResponse, RespondError, UserPromptEvent};
+use crate::mcp::pending_requests::{RespondError, UserPromptEvent};
 use axum::{
     Json,
     extract::State,
@@ -10,19 +10,13 @@ use axum::{
     },
 };
 use futures_util::stream::{self, Stream, StreamExt};
-use serde::Deserialize;
 use serde_json::json;
 use std::convert::Infallible;
 use std::time::Duration;
 use tokio::sync::broadcast;
 use tokio::sync::broadcast::error::RecvError;
-use uuid::Uuid;
 
-#[derive(Deserialize)]
-pub(crate) struct UserPromptRespondRequest {
-    id: Uuid,
-    response: ElicitationResponse,
-}
+pub(crate) use crate::mcp::pending_requests::UserPromptResponse;
 
 pub(crate) async fn stream_handler(
     State(state): State<ApiState>,
@@ -34,13 +28,9 @@ pub(crate) async fn stream_handler(
 
 pub(crate) async fn respond_handler(
     State(state): State<ApiState>,
-    Json(request): Json<UserPromptRespondRequest>,
+    Json(request): Json<UserPromptResponse>,
 ) -> impl IntoResponse {
-    match state
-        .user_prompt_registry
-        .respond(request.id, request.response)
-        .await
-    {
+    match state.user_prompt_registry.respond_typed(request).await {
         Ok(()) => (StatusCode::OK, Json(json!({ "ok": true }))).into_response(),
         // A UUID that is not currently pending is reported as 410 Gone whether it
         // was never registered, already answered, or expired.
@@ -52,6 +42,11 @@ pub(crate) async fn respond_handler(
         Err(RespondError::Invalid(errors)) => (
             StatusCode::UNPROCESSABLE_ENTITY,
             Json(json!({ "errors": errors })),
+        )
+            .into_response(),
+        Err(RespondError::KindMismatch) => (
+            StatusCode::UNPROCESSABLE_ENTITY,
+            Json(json!({ "error": "kind mismatch" })),
         )
             .into_response(),
     }

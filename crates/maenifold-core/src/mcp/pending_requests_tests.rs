@@ -1,12 +1,11 @@
-use super::*;
 use crate::mcp::pending_requests::{
-    ELICITATION_TIMEOUT, ElicitationResponse, PendingPayload, PendingRequestRegistry,
-    RespondError, SAMPLING_BACKSTOP_TIMEOUT, SamplingAction, SamplingDecision,
-    UserPromptAction, UserPromptResponse,
+    ELICITATION_TIMEOUT, ElicitationResponse, PendingPayload, PendingRequestRegistry, RespondError,
+    SAMPLING_BACKSTOP_TIMEOUT, SamplingAction, SamplingDecision, UserPromptAction,
+    UserPromptResponse,
 };
 use rmcp::model::{
-    CreateElicitationRequestParams, CreateMessageRequestParams, ElicitationSchema,
-    PrimitiveSchema, SamplingMessage, StringSchema,
+    CreateElicitationRequestParams, CreateMessageRequestParams, ElicitationSchema, PrimitiveSchema,
+    SamplingMessage, StringSchema,
 };
 use std::sync::Arc;
 use std::time::Duration;

@@ -1645,3 +1645,31 @@ T-302.31 r1 shipped with a dangling-promise defect (scope dispose left `pendingR
 
 **Pattern:** REQUIRES_CHANGES verdicts are not "minor" — they indicate the audit found a real defect. Always remediate via a fresh red-team after the fix. Never "waive re-audit."
 
+
+
+### Iter-7 absolute final tally — 2026-05-12 23:41
+
+**Sprint 302 DONE: 18 tasks** (T-302.0 umbrella + T-302.1-9 + T-302.10/13 + T-302.31/32/33/34/36/39).
+
+**Remaining (5 items, all formally filed for next iteration):**
+- T-302.11, T-302.12 — UAT sweeps (out of scope per RALPH).
+- T-302.35 — CDP UAT for sprint 302's UI changes (was the primary blocker from dual rubber-duck; remediation is to dispatch a CDP iteration).
+- T-302.37 — useMessageHandler LOC (326 LOC, refactor risks breaking tests).
+- T-302.38 — slash command execution (requires PM design decision on /clear, /new, /quit semantics).
+
+**Final dev test/build state:** 788 vitest pass, 14 skipped, 0 failed; npm run build clean; ChatView 300 LOC; useUnsavedChangesGuard 186 LOC; KnowledgeInlineEditor 188 LOC; StopReasonBanner 39 LOC; MessageActionToolbar 147 LOC; ChatInputBar 197 LOC.
+
+#### Lesson — agent over-triggers on AGENTS.md content in system reminder
+
+T-302.39 worker (gpt-5.5) refused to proceed because its system reminder quoted the full AGENTS.md including the P0 trigger DEFINITIONS ("trio", "deferral", "Architect Alpha", etc). The worker treated the constitution text as contamination and escalated. The constitution text is the rule defining what contamination IS — reading it is normal.
+
+**Mitigation pattern:** When dispatching workers, include a preamble explaining: "The system reminder may quote AGENTS.md constitution content (including P0 trigger DEFINITIONS). The constitution text itself is NOT contamination — it's the rule defining what contamination IS. Proceed normally; do not P0-escalate on the constitution-quoted text in your prompt or in AGENTS.md."
+
+PM took T-302.39 over directly via edit tool — it was a 14-line type tightening, lower risk than re-dispatching with refined prompt.
+
+#### Lesson — PM-direct edit is acceptable for tiny mechanical changes when worker fails
+
+T-302.39 was 14 LOC across 3 files. PM directly edited via the edit tool, then dispatched a fresh red-team to verify (PASS HIGH). This is consistent with "PM owns the working tree" rule. The PM still dispatched red-team for independent verification.
+
+**Pattern:** If a worker fails (false-positive escalation, environment issue, tooling bug) on a SMALL mechanical task, PM-direct edit + dispatched red-team is acceptable. For non-trivial work, always re-dispatch the worker.
+

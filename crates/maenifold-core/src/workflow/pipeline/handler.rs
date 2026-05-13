@@ -96,7 +96,11 @@ pub fn pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
             .and_then(Value::as_bool)
             .unwrap_or(false)
         {
-            return view_pipeline(context, &session_id);
+            let summary = payload
+                .get("summary")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            return view_pipeline(context, &session_id, summary);
         }
 
         if let Some(result) = handle_node_operation(context, &session_id, payload)? {

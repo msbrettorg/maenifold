@@ -44,6 +44,9 @@ pub struct PipelineParams {
     /// Return current pipeline state
     #[serde(default)]
     pub view: bool,
+    /// Compact one-row-per-node projection. Returns ≤4 KB for pipelines up to 50 nodes. Only valid with view=true.
+    #[serde(default)]
+    pub summary: bool,
     /// Claim ready nodes as active
     #[serde(default)]
     pub dispatch: bool,

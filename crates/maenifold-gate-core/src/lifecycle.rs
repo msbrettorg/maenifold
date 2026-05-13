@@ -1,5 +1,4 @@
 use std::fs;
-use std::io::Write;
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
@@ -11,17 +10,20 @@ use crate::section_factory::CanonicalSectionFactory;
 use crate::state_machine::StateMachine;
 use crate::status_filter::StatusFilter;
 use crate::task_file::{GateProjectLock, TaskFileLock};
-use crate::task_metadata::TaskMetadataParser;
-use crate::task_repository::TaskPathSet;
 use crate::task_repository::TaskRepository;
-use crate::task_title_slug;
 
+#[path = "lifecycle_create.rs"]
+mod lifecycle_create;
 #[path = "lifecycle_helpers.rs"]
 mod lifecycle_helpers;
+#[path = "lifecycle_status_output.rs"]
+mod lifecycle_status_output;
+use lifecycle_create::create_task;
 pub use lifecycle_helpers::resolve_definition;
 use lifecycle_helpers::{
     active_task_state, apply_outcome, canonical_root, status_for_document, status_row,
 };
+use lifecycle_status_output::{error_status_row, status_summary_row, write_gate_db_snapshot};
 
 #[derive(Debug, Clone)]
 pub struct GateContext {
@@ -33,6 +35,7 @@ pub struct GateContext {
 pub struct StatusArgs {
     pub context: GateContext,
     pub filter: StatusFilter,
+    pub summary: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -76,89 +79,7 @@ static CREATE_TASK_ID_RE: LazyLock<Regex> =
 
 impl GateLifecycle {
     pub fn create(args: CreateTaskArgs) -> Result<Value, GateError> {
-        let requested_root = args.context.root.clone();
-        let root = canonical_root(&args.context.root)?;
-
-        let captures = CREATE_TASK_ID_RE.captures(&args.task_id).ok_or_else(|| {
-            GateError::Cli(format!(
-                "invalid taskId '{}': expected regex ^T-\\d+\\.\\d+$",
-                args.task_id
-            ))
-        })?;
-        let title = args.title.trim();
-        if title.is_empty() {
-            return Err(GateError::Cli(
-                "title is required and must not be empty".to_string(),
-            ));
-        }
-        let pipeline = args
-            .context
-            .requested_pipeline_name
-            .clone()
-            .ok_or_else(|| GateError::Cli("pipeline is required".to_string()))?;
-        resolve_definition(&root, &pipeline).map_err(|error| {
-            GateError::Cli(format!(
-                "{error}. Known built-in pipelines include sdd, tdd, gsd, lightweight"
-            ))
-        })?;
-
-        let priority = args.priority.unwrap_or_else(|| "P2".to_string());
-        if !matches!(priority.as_str(), "P0" | "P1" | "P2" | "P3" | "P4") {
-            return Err(GateError::Cli(format!(
-                "invalid priority '{priority}': expected one of P0, P1, P2, P3, P4"
-            )));
-        }
-        let sprint = match args.sprint {
-            Some(value) => value,
-            None => captures
-                .get(1)
-                .expect("task id sprint capture")
-                .as_str()
-                .parse::<u64>()
-                .map_err(|error| {
-                    GateError::Cli(format!("failed to parse taskId sprint: {error}"))
-                })?,
-        };
-        if let Some(parent) = args.parent.as_deref()
-            && !CREATE_TASK_ID_RE.is_match(parent)
-        {
-            return Err(GateError::Cli(format!(
-                "invalid parent task id '{parent}': expected regex ^T-\\d+\\.\\d+$"
-            )));
-        }
-
-        let slug = task_title_slug(title);
-        let markdown = create_task_markdown(
-            &args.task_id,
-            title,
-            &pipeline,
-            &priority,
-            sprint,
-            args.parent.as_deref(),
-            args.body.as_deref(),
-        );
-        {
-            let _project_lock = GateProjectLock::acquire_exclusive(&root)?;
-            let _task_lock = TaskFileLock::acquire(&root, &args.task_id)?;
-            TaskRepository::create_task(&root, &args.task_id, &slug, &markdown)?;
-        }
-        let display_path = requested_root
-            .join("todo")
-            .join(format!("{}-{}.md", args.task_id, slug));
-        let _ = Self::sync(SyncArgs {
-            context: GateContext {
-                root: root.clone(),
-                requested_pipeline_name: args.context.requested_pipeline_name.clone(),
-            },
-            rebuild: false,
-        })?;
-
-        Ok(json!({
-            "taskId": args.task_id,
-            "path": display_path,
-            "pipeline": pipeline,
-            "sprint": sprint,
-        }))
+        create_task(args)
     }
 
     pub fn status(args: StatusArgs) -> Result<Value, GateError> {
@@ -180,7 +101,11 @@ impl GateLifecycle {
                 Err(e) => error_status_row(&root, &task, e),
             };
             if args.filter.matches(&row) {
-                rows.push(row);
+                rows.push(if args.summary {
+                    status_summary_row(&row)
+                } else {
+                    row
+                });
             }
         }
         Ok(Value::Array(rows))
@@ -313,127 +238,6 @@ impl GateLifecycle {
     pub fn fail(args: StageNoteArgs) -> Result<Value, GateError> {
         apply_outcome(args, "fail")
     }
-}
-
-fn create_task_markdown(
-    task_id: &str,
-    title: &str,
-    pipeline: &str,
-    priority: &str,
-    sprint: u64,
-    parent: Option<&str>,
-    body: Option<&str>,
-) -> String {
-    let mut frontmatter = vec![
-        "---".to_string(),
-        format!("id: {}", yaml_string(task_id)),
-        format!("title: {}", yaml_string(title)),
-        format!("pipeline: {}", yaml_string(pipeline)),
-        format!("priority: {}", yaml_string(priority)),
-        format!("sprint: {sprint}"),
-    ];
-    if let Some(parent) = parent {
-        frontmatter.push(format!("parent: {}", yaml_string(parent)));
-    }
-    frontmatter.push("---".to_string());
-
-    let body = match body {
-        Some(body) => normalize_body(body),
-        None => default_task_body(),
-    };
-    format!("{}\n\n{body}", frontmatter.join("\n"))
-}
-
-fn normalize_body(body: &str) -> String {
-    format!("{}\n", body.trim_end())
-}
-
-fn default_task_body() -> String {
-    normalize_body("## Problem\n\n## Plan\n\n## Acceptance\n\n## References\n")
-}
-
-fn yaml_string(value: &str) -> String {
-    serde_json::to_string(value).expect("serialize YAML-compatible JSON string")
-}
-
-fn error_status_row(root: &std::path::Path, task: &TaskPathSet, error: GateError) -> Value {
-    let mut title = format!("[error] {}", task.task_id);
-    let mut pipeline = "unknown".to_string();
-    let mut canonical_task_id = task.task_id.clone();
-
-    if let Ok(path) = TaskRepository::canonical_task_markdown_path(root, task)
-        && let Ok(text) = fs::read_to_string(&path)
-    {
-        let lines = text.lines().collect::<Vec<_>>();
-        if let Ok(metadata) = TaskMetadataParser::parse(&lines) {
-            title = metadata.title;
-            pipeline = metadata.pipeline;
-            if let Some(id) = metadata.id {
-                canonical_task_id = id;
-            }
-        } else if let Ok(metadata) = TaskMetadataParser::parse_lenient(&lines) {
-            title = metadata.title;
-            pipeline = metadata.pipeline;
-            if let Some(id) = metadata.id {
-                canonical_task_id = id;
-            }
-        }
-    }
-
-    json!({
-        "taskId": task.task_id,
-        "canonicalTaskId": canonical_task_id,
-        "title": title,
-        "pipeline": pipeline,
-        "state": "error",
-        "stages": [],
-        "attempts": 0,
-        "location": task.location,
-        "path": task.path.display().to_string(),
-        "linked": false,
-        "issue": format!("{error}"),
-        "priority": serde_json::Value::Null,
-        "sprint": serde_json::Value::Null,
-        "lastUpdatedAt": serde_json::Value::Null,
-    })
-}
-
-fn write_gate_db_snapshot(
-    root: &std::path::Path,
-    gate_dir: &std::path::Path,
-    tasks: &[TaskPathSet],
-) -> Result<(), GateError> {
-    let rows = tasks
-        .iter()
-        .map(|task| match status_row(root, task, None) {
-            Ok(row) => row,
-            Err(error) => error_status_row(root, task, error),
-        })
-        .collect::<Vec<_>>();
-    let snapshot = json!({
-        "schemaVersion": 1,
-        "source": "maenifold.gate markdown read model",
-        "tasks": rows,
-    });
-    let db_path = gate_dir.join("gate.db");
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open(&db_path)
-        .map_err(|error| {
-            GateError::Io(std::io::Error::new(
-                error.kind(),
-                format!(
-                    "failed to open gate.db read model '{}': {error}",
-                    db_path.display()
-                ),
-            ))
-        })?;
-    file.write_all(serde_json::to_string_pretty(&snapshot)?.as_bytes())?;
-    file.write_all(b"\n")?;
-    file.sync_all()?;
-    Ok(())
 }
 
 #[cfg(test)]

@@ -24,6 +24,17 @@ pub(super) fn view_pipeline_session(context: &ToolContext, session_id: &str) -> 
     })
 }
 
+pub(super) fn view_pipeline_summary_session(
+    context: &ToolContext,
+    session_id: &str,
+) -> Result<String> {
+    let result = view_pipeline_summary_session_value(context, session_id)?;
+    Ok(match context.output_format {
+        OutputFormat::Json => success(result),
+        OutputFormat::Markdown => serde_json::to_string_pretty(&result)?,
+    })
+}
+
 pub(super) fn view_pipeline_session_value(
     context: &ToolContext,
     session_id: &str,
@@ -54,6 +65,48 @@ pub(super) fn view_pipeline_session_value(
         persisted_status.as_deref(),
     )?;
     Ok(result)
+}
+
+pub(super) fn view_pipeline_summary_session_value(
+    context: &ToolContext,
+    session_id: &str,
+) -> Result<Value> {
+    let (_, frontmatter, _) = read_pipeline_session(context, session_id)?;
+    let definition: PipelineDefinition = frontmatter_value(&frontmatter, "definition")?;
+    let node_states =
+        derive_pipeline_node_states(context, &frontmatter_value(&frontmatter, "nodeStates")?)?;
+    let persisted_status = frontmatter
+        .get("status")
+        .and_then(YamlValue::as_str)
+        .map(str::to_owned);
+    let status = persisted_status
+        .as_deref()
+        .unwrap_or_else(|| compute_pipeline_status_with_definition(&definition, &node_states));
+    let nodes = definition
+        .nodes
+        .iter()
+        .map(|node| {
+            let state = node_state_for(&node_states, node.id())?;
+            Ok(json!({
+                "nodeId": node.id(),
+                "type": node.node_type_name(),
+                "status": state.status,
+                "attempts": state.attempts,
+                "acpSessionId": state.acp_session_id,
+            }))
+        })
+        .collect::<Result<Vec<_>>>()?;
+    let running = node_states
+        .values()
+        .filter(|state| matches!(state.status, NodeStatus::Active))
+        .count();
+
+    Ok(json!({
+        "pipelineId": session_id,
+        "status": compact_pipeline_status(status),
+        "running": running,
+        "nodes": nodes,
+    }))
 }
 
 pub(super) fn node_ids_with_status(
@@ -138,6 +191,16 @@ pub(super) fn is_pipeline_terminal_status(status: &str) -> bool {
         status,
         "completed" | "failed" | "cancelled" | "abandoned" | "stuck"
     )
+}
+
+fn compact_pipeline_status(status: &str) -> &str {
+    match status {
+        "active" | "retrying" | "running" => "running",
+        "completed" => "completed",
+        "abandoned" | "cancelled" | "failed" | "stuck" => "abandoned",
+        "pending" => "pending",
+        _ => "pending",
+    }
 }
 
 pub(super) fn node_state_for<'a>(

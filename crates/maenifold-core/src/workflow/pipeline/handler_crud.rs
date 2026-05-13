@@ -14,7 +14,7 @@ use super::session_io::{frontmatter_value, read_pipeline_session};
 use super::session_io::{
     generate_pipeline_node_session_id, write_pipeline_session, write_workflow_node_session,
 };
-use super::view::view_pipeline_session;
+use super::view::{view_pipeline_session, view_pipeline_summary_session};
 use super::{NodeState, NodeStatus, PipelineDefinition, compute_ready_set, validate_pipeline};
 pub(super) fn create_pipeline(context: &ToolContext, payload: &Value) -> Result<String> {
     let Some(definition_value) = payload.get("definition") else {
@@ -107,8 +107,20 @@ fn list_pipelines_impl(
 #[cfg(test)]
 pub(super) use super::handler_delete::delete_unreadable_pipeline;
 pub(super) use super::handler_delete::{delete_pipeline, delete_pipeline_with_force};
-pub(super) fn view_pipeline(context: &ToolContext, session_id: &str) -> Result<String> {
-    view_pipeline_session(context, session_id)
+pub(super) fn view_pipeline(
+    context: &ToolContext,
+    session_id: &str,
+    summary: bool,
+) -> Result<String> {
+    if summary {
+        view_pipeline_summary(context, session_id)
+    } else {
+        view_pipeline_session(context, session_id)
+    }
+}
+
+pub(super) fn view_pipeline_summary(context: &ToolContext, session_id: &str) -> Result<String> {
+    view_pipeline_summary_session(context, session_id)
 }
 
 fn parse_max_concurrency(payload: &Value) -> Result<u64> {

@@ -8,6 +8,8 @@ use std::io::Write as _;
 
 use super::super::PipelineNode;
 use super::super::test_support::{pipeline_test_context, seed_pipeline_session_with_workflows};
+use super::super::view::view_pipeline_session;
+use std::collections::BTreeSet;
 
 pub(super) const TS: i64 = 1_735_689_600_000;
 
@@ -155,6 +157,109 @@ fn create_pipeline_persists_effective_inputs_on_definition_and_session() {
             ("runtime".to_string(), json!("value")),
         ])
     );
+}
+
+#[test]
+#[serial]
+fn view_pipeline_summary_returns_compact_node_array_for_a_50_node_fixture() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "p";
+    let ids = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWX"
+        .chars()
+        .map(|ch| ch.to_string())
+        .collect::<Vec<_>>();
+    let definition = PipelineDefinition {
+        nodes: ids.iter().map(|id| tool_node(id)).collect(),
+        edges: vec![],
+        inputs: None,
+        template_id: None,
+    };
+    let specs = ids
+        .iter()
+        .map(|id| (id.clone(), NodeStatus::Ready, 0))
+        .collect::<Vec<_>>();
+    let state_specs = specs
+        .iter()
+        .map(|(id, status, attempts)| (id.as_str(), status.clone(), *attempts))
+        .collect::<Vec<_>>();
+    let mut node_states = states(&state_specs);
+    node_states
+        .get_mut(&ids[7])
+        .expect("node state")
+        .acp_session_id = Some("acp-session-7".to_string());
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 8);
+
+    let response = view_pipeline(&context, session_id, true).expect("summary view");
+    let payload: Value = serde_json::from_str(&response).expect("json response");
+    let data = &payload["data"];
+
+    assert!(
+        response.len() < 4096,
+        "summary was {} bytes",
+        response.len()
+    );
+    assert_eq!(data["pipelineId"], session_id);
+    assert_eq!(data["status"], "running");
+    assert_eq!(data["running"], 0);
+    let nodes = data["nodes"].as_array().expect("nodes");
+    assert_eq!(nodes.len(), 50);
+    assert_eq!(data["nodes"][7]["acpSessionId"], "acp-session-7");
+    let actual_ids = nodes
+        .iter()
+        .map(|node| node["nodeId"].as_str().expect("node id").to_string())
+        .collect::<BTreeSet<_>>();
+    assert_eq!(actual_ids, ids.into_iter().collect::<BTreeSet<_>>());
+}
+
+#[test]
+#[serial]
+fn view_pipeline_without_summary_matches_existing_full_view_bytes() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-1735689600000-full-view-unchanged";
+    let definition = PipelineDefinition {
+        nodes: vec![workflow_node("node")],
+        edges: vec![],
+        inputs: None,
+        template_id: None,
+    };
+    let node_states = states(&[("node", NodeStatus::Pending, 0)]);
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 1);
+
+    let existing = view_pipeline_session(&context, session_id).expect("existing view");
+    let routed = view_pipeline(&context, session_id, false).expect("routed view");
+
+    assert_eq!(routed, existing);
+}
+
+#[test]
+#[serial]
+fn view_pipeline_with_summary_returns_compact_shape() {
+    let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
+    let session_id = "pipeline-1735689600000-summary-shape";
+    let definition = PipelineDefinition {
+        nodes: vec![tool_node("tool")],
+        edges: vec![],
+        inputs: None,
+        template_id: None,
+    };
+    let node_states = states(&[("tool", NodeStatus::Active, 2)]);
+    seed_pipeline_session_with_workflows(&context, session_id, definition, node_states, 1);
+
+    let response = view_pipeline(&context, session_id, true).expect("summary view");
+    let payload: Value = serde_json::from_str(&response).expect("json response");
+    let data = payload["data"].as_object().expect("data object");
+    let node = data["nodes"].as_array().expect("nodes")[0]
+        .as_object()
+        .expect("node object");
+
+    assert_eq!(data.len(), 4);
+    assert_eq!(data["running"], 1);
+    assert_eq!(node.len(), 5);
+    assert_eq!(node["nodeId"], "tool");
+    assert_eq!(node["type"], "tool");
+    assert_eq!(node["status"], "active");
+    assert_eq!(node["attempts"], 2);
+    assert!(node["acpSessionId"].is_null());
 }
 
 #[path = "handler_crud_tests_more.rs"]

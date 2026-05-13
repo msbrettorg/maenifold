@@ -2037,3 +2037,24 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 
 **Filed as standing PM check.** Pre-flight every iter: `git reflog | head -3` — if HEAD@{0} is "reset:", investigate before starting work.
 
+
+### Iter-9 progress checkpoint — 2026-05-13 03:05
+
+**P0 recovery completed:** dev fast-forwarded from 887955f96 → a43ef8210 (iter-8 ABSOLUTE END), recovering 14 dropped commits across T-302.{37,38,42} + T-303.{1,2,5,6,7}. Verified clean: cargo build + vue-tsc + 807/14 vitest. Recovery commit at 6c2ac7ab6.
+
+**Sprint 302 fully closed (substantively):**
+- T-302.40 (window.api consolidation, Option C — document parallel bridges) — merged at 378fd25a0.
+- T-302.41 (useConfirmDialogStore FIFO queue, Option A) — merged at 8269eb3a6.
+- Both gates advanced through swe → red-team → blue-team → done with PM-evidence override on blue-team flakiness.
+- Remaining sprint 302 items: T-302.11/.12/.35 (UAT — out of scope per RALPH), T-302.43 (newly-filed flakiness follow-up).
+
+**Sprint 303 next-wave prep:**
+- T-303.3 (MCP elicitation) + T-303.4 (MCP sampling) — appended detailed PM design notes to both spec files. Documented the rmcp 1.5.0 ClientHandler trait shape, the 4-file Phase 1 daemon scaffolding scope, and the Phase 2 UI/IPC follow-up scope (filed conceptually as T-303.3.1 + T-303.4.1). Key constraint flagged for T-303.4 Phase 2: P0 #6 visibility — no hidden inference, sampling LLM calls MUST surface as visible Sessions entries.
+- T-303.3 Phase 1 dispatched in worktree T-303.3-p1 (gpt-5.5 SWE in flight).
+
+**Lesson — node_modules symlink for non-frontend cargo work is fine.** T-303.3-p1 worktree symlinks apps/desktop/node_modules but only does crate-level work. The symlink doesn't interfere because cargo never reads it.
+
+**Lesson — verify rmcp infra before authoring "wire X up" specs.** T-303.3/.4 specs pre-iter-9 said "listen for elicitation/sampling requests" without verifying rmcp::ClientHandler exists. PM verified the trait exists at `~/.cargo/registry/src/index.crates.io-*/rmcp-1.5.0/src/handler/client.rs:84` AND that `ClientCapabilities::default_with_tasks()` populates both elicitation + sampling capability slots (capabilities.rs:128-145). This grounding is what made the Phase 1 spec dispatchable.
+
+**Lesson — flaky tests in blue-team should be PM-overridable with evidence.** Both T-302.40 + T-302.41 blue-teams hit `SemanticZoomOverlay.test.ts:133` flake on first run, passed on retry. PM-direct rerun confirmed clean. PM-evidence override is appropriate when (a) the flaking test is unrelated to the change scope, (b) PM-direct rerun confirms cleanness, AND (c) a follow-up gate item is filed for the flakiness (T-302.43). Don't re-dispatch SWE/blue-team for known flakiness.
+

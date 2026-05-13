@@ -1673,3 +1673,74 @@ T-302.39 was 14 LOC across 3 files. PM directly edited via the edit tool, then d
 
 **Pattern:** If a worker fails (false-positive escalation, environment issue, tooling bug) on a SMALL mechanical task, PM-direct edit + dispatched red-team is acceptable. For non-trivial work, always re-dispatch the worker.
 
+
+
+### Iteration ralph-8 retrospective — 2026-05-13
+
+**Sprint 302 (chat-agents) sealed:** 20 substantive tasks done. T-302.37 (useMessageHandler split, 326 → 277 LOC + 2 new composables) and T-302.38 (built-in slash commands execute local actions) shipped this iter. Rubber-duck dual review (gpt-5.5 + claude-opus-4.6) ACCEPT_AND_OPEN for sprint 303.
+
+#### Sprint metrics (iter-8 only)
+- 2 SWE workers dispatched in parallel (gpt-5.5).
+- 2 red-team audits dispatched (claude-opus-4.6) — both PASS HIGH.
+- 2 blue-team audits dispatched (gpt-5.5) — both PASS HIGH with focused suite runs.
+- 1 confession-driven remediation cycle (T-302.37 v1 → v2).
+- 2 wave-boundary rubber-duck reviews (gpt-5.5 + claude-opus-4.6).
+- 0 sprint-discarding gate violations.
+- 0 destructive git operations by agents.
+- 2 follow-ups filed (T-302.40 window.api consolidation; T-302.41 confirm-dialog concurrent semantics).
+
+#### Lesson — confession protocol caught a hallucinated reconstruction (T-302.37 v1)
+
+The PM specification said `useSessionPersistence.ts` was a NEW file. The SWE failed to check whether the file already existed before writing. After a typecheck failure exposed an existing import in `stores/session.ts`, the SWE adapted by writing dual-API overloads — but reconstructed the original implementation from inferred usage rather than reading the actual file. The reconstruction had FOUR defects:
+1. STORAGE_KEY changed `'maenifold:sessions'` → `'maenifold.savedSessions'` (silent data loss for existing users on next launch).
+2. `mergeSessionsFromAgent` lost the cursor-based pagination loop (only sees first page of remote sessions).
+3. ID format changed from deterministic `agent:${agentName}:${sessionId}` → `crypto.randomUUID()` (unstable across reloads).
+4. `loadSavedSessions` lost SSR guard, JSON-parse try/catch, and the `supportsLoadSession=true` migration default.
+
+**Caught how:** PM-dispatched confession protocol (separate post-work prompt, no hint of confession in the original work prompt). The worker's own confession reported "I overwrote/expanded it ... Behavior preservation: partial/unknown." PM cross-checked against `git show dev:...` and found all 4 defects.
+
+**Pattern:** Whenever a "NEW file" instruction targets a path that may already exist, the worker MUST read the path first (or PM must verify file absence in the spec before dispatch). Reconstructing existing behavior from inference is a high-risk failure mode that ships silent regressions.
+
+**Remediation pattern:** Same-worker remediation via `write_agent` follow-up message. Asked worker to:
+1. Restore the existing file BYTE-IDENTICAL using `git show dev:...` as a READ-ONLY operation.
+2. Move the new helper to a renamed file (`useMessagePersistence.ts`) that avoids the collision.
+3. Re-verify with a `diff` against dev as part of the proof.
+The remediation completed in one round; fresh red-team PASS HIGH.
+
+#### Lesson — gate is per-developer/per-clone (todo/done not in git)
+
+Confirmed during iter-8: `git status` after committing T-302.37 in worktree showed NO files in `todo/` or `done/`. The gate state machine moved the task file from todo/ → done/ on the local disk (PM's working tree), but those directories are gitignored. The commit only contains the actual code changes. Source of truth for "what shipped" remains the commit message + the `T-XXX.X` task ID reference. This is the per-AGENTS.md design from the 2026-04-28 change.
+
+**Implication for parallel sprints:** When multiple worktrees are active, each worktree has its own copy of `todo/` and `done/` (worktree filesystem). Gate transitions made by the PM in the main tree do NOT propagate to active worktree filesystems. If a worker reads `todo/T-XXX.md` from its worktree after the PM moved the file in main, the worker sees stale state. Mitigation: workers should never need to read gate state directly — the spec is delivered in the dispatch prompt.
+
+#### Lesson — git worktree node_modules symlink works for non-package.json changes
+
+Both T-302.37 and T-302.38 worktrees used `ln -s /full/path/to/main/apps/desktop/node_modules apps/desktop/node_modules` per the AGENTS.md "Frontend worktrees" guidance. Both `vue-tsc`, `vitest`, and `npm run build` worked correctly. No `npm ci` needed since neither task modified `package.json`. Saved ~2 min per worktree compared to a full install.
+
+**Pattern:** Default to symlinked node_modules. Only use `npm ci` in the worktree when `package.json` itself changes.
+
+#### Lesson — wave-boundary dual rubber-duck timing matters
+
+The gpt-5.5 reviewer was dispatched WHILE T-302.38 was still in flight (worktree only, not yet merged to dev). Reviewer correctly reported that T-302.38's claimed implementation was not present in dev — accurate at the moment of review, but obsolete by the time the review came back (T-302.38 merged ~3 minutes after dispatch).
+
+**Mitigation pattern:** Dispatch wave-boundary rubber-duck reviews AFTER the last in-flight merge has landed, not in parallel. The gpt-5.5 reviewer's REQUIRES_REMEDIATION verdict was based on a stale snapshot — opus reviewer (dispatched same time but ran longer) saw the post-merge state and verified clean. PM's decision: trust the post-merge reviewer; treat the pre-merge reviewer's design feedback (Q3 concerns about /quit safety + parallel globals + confirm-dialog race) as advisory and file follow-ups (T-302.40, T-302.41).
+
+#### Lesson — non-blocking informational findings get follow-up tickets, not gate fails
+
+T-302.38 red-team raised 2 informational findings:
+1. Parallel `window.api` and `window.electronAPI` bridges — design smell vs. narrow-typed-contract trade-off.
+2. `/quit` safety net is the confirm dialog only — no in-flight-session protection.
+
+Per constitution Scoping rules: "Pre-existing issues → informational, not FAIL." These are NEW findings on the SWE delta, but they're acknowledged design trade-offs covered by the PM scope decision. Filed T-302.40 + T-302.41 as separate tasks for future iterations rather than blocking T-302.38.
+
+**Pattern:** Informational findings on PM-acknowledged trade-offs ship the delta + file the follow-up. Findings on UNDISCUSSED defects block.
+
+#### Final iter-8 state
+
+**Sprint 302 DONE: 20 tasks** (T-302.0 umbrella + .1-10 + .13 + .31-34 + .36-39).
+**Remaining (5 items, all formally tracked):**
+- T-302.11, T-302.12, T-302.35 — UAT items (out of scope per RALPH).
+- T-302.40 — window.api consolidation (P3 follow-up, filed iter-8).
+- T-302.41 — confirm-dialog concurrent semantics (P3 follow-up, filed iter-8).
+
+**Final dev integrated state:** vitest useMessageHandler 4/4 + useBuiltInSlashCommands 9/9; useMessageHandler.ts 277 LOC; useMessagePersistence.ts 40; useTitleRename.ts 34; useSessionPersistence.ts 138 (byte-identical to dev pre-iter); ChatView.vue 300 (at limit); useBuiltInSlashCommands.ts 76. All composables ≤300 LOC. All commits include `Co-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>` trailer.

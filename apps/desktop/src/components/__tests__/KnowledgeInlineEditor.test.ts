@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { mount } from '@vue/test-utils';
+import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ref } from 'vue';
@@ -7,6 +7,12 @@ import KnowledgeInlineEditor from '../KnowledgeInlineEditor.vue';
 import type { MemoryFile } from '../../lib/workflow-types';
 
 const mockCallTool = vi.fn();
+const guard = vi.hoisted(() => ({
+  markDirty: vi.fn(),
+  markClean: vi.fn(),
+  confirmIfDirty: vi.fn(async () => true),
+  attachBeforeUnload: vi.fn(() => vi.fn()),
+}));
 
 vi.mock('../../composables/usePipelineMcp', () => ({
   getSharedMcpClient: vi.fn(() => ({
@@ -16,6 +22,16 @@ vi.mock('../../composables/usePipelineMcp', () => ({
     onNotification: vi.fn(() => vi.fn()),
     onDisconnect: vi.fn(() => vi.fn()),
     callTool: mockCallTool,
+  })),
+}));
+
+vi.mock('../../composables/useUnsavedChangesGuard', () => ({
+  useUnsavedChangesGuard: vi.fn(() => ({
+    isDirty: ref(false),
+    markDirty: guard.markDirty,
+    markClean: guard.markClean,
+    confirmIfDirty: guard.confirmIfDirty,
+    attachBeforeUnload: guard.attachBeforeUnload,
   })),
 }));
 
@@ -43,6 +59,11 @@ describe('KnowledgeInlineEditor', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     mockCallTool.mockReset();
+    guard.markDirty.mockClear();
+    guard.markClean.mockClear();
+    guard.confirmIfDirty.mockClear();
+    guard.attachBeforeUnload.mockClear();
+    guard.confirmIfDirty.mockResolvedValue(true);
   });
 
   it('saves markdown through EditMemory with the last-read checksum', async () => {
@@ -89,5 +110,34 @@ describe('KnowledgeInlineEditor', () => {
     expect(wrapper.text()).toContain('Edit conflict');
     expect(wrapper.text()).toContain('Discard mine and reload');
     expect(wrapper.text()).toContain('Force overwrite');
+  });
+
+  it('uses the shared unsaved changes guard for edit, save, and cancel', async () => {
+    mockCallTool
+      .mockResolvedValueOnce({ success: true, data: { uri: 'memory://research/editor' } })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          ...note(),
+          content: 'Guarded [[knowledge-crud]] content.',
+          checksum: 'checksum-2',
+        },
+      });
+
+    const wrapper = mount(KnowledgeInlineEditor, {
+      props: { note: note() },
+      global: { stubs: dialogStubs },
+    });
+
+    await wrapper.find('[data-testid="inline-editor-content"]').setValue('Guarded [[knowledge-crud]] content.');
+    expect(guard.markDirty).toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="inline-editor-save"]').trigger('click');
+    await flushPromises();
+    expect(guard.markClean).toHaveBeenCalled();
+
+    await wrapper.find('[data-testid="inline-editor-content"]').setValue('Dirty again [[knowledge-crud]].');
+    await wrapper.get('button').trigger('click');
+    expect(guard.confirmIfDirty).toHaveBeenCalled();
   });
 });

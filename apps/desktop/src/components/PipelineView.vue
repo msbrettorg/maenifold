@@ -29,9 +29,11 @@ import { usePipelineMobile } from '../composables/usePipelineMobile';
 import { usePipelineViewState } from '../composables/usePipelineViewState';
 import { useProvenanceStore } from '../stores/provenance';
 import { useSemanticZoomStore } from '../stores/semantic-zoom';
+import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard';
 import type { PipelineDefinition, ViewNode } from '../lib/pipeline-types';
 type PipelineIconRailExpose = { focusPipelineToggle: () => void }; type TemplateGalleryExpose = { resetForNewPipeline: () => void };
 const store = usePipelineStore(); const provenance = useProvenanceStore(); const zoomStore = useSemanticZoomStore();
+const guard = useUnsavedChangesGuard({ title: 'Discard pipeline changes?' });
 const { navigateTo } = useProvenanceNavigation();
 const { currentPipelineId, currentView, designMode: storeDesignMode, error, hasDirtyDraft, localDefinition, savingState, successMessage, workflows } = storeToRefs(store);
 const designMode = ref(false); provide('pipelineDesignMode', designMode);
@@ -95,7 +97,7 @@ watch(
   },
   { immediate: true },
 );
-function handleDefinitionUpdate(nextDefinition: PipelineDefinition) { localDefinition.value = nextDefinition; }
+function handleDefinitionUpdate(nextDefinition: PipelineDefinition) { localDefinition.value = nextDefinition; guard.markDirty(); }
 function focusRailToggle() { nextTick(() => iconRailRef.value?.focusPipelineToggle()); }
 function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
   if (!isPipelineFlyoutOpen.value) return;
@@ -103,19 +105,12 @@ function closePipelineFlyout(options?: { restoreFocus?: boolean }) {
   if (options?.restoreFocus) focusRailToggle();
 }
 function handleTogglePipelineFlyout() { toggleFlyout('pipelines'); }
-function handlePipelineSelected() { clearInspectorSelection(); closePipelineFlyout(); }
-async function handleSaveDraft() { if (hasDraftNodes.value && savingState.value !== 'saving') await store.createPipeline(); }
-function handleNewPipeline() {
-  clearInspectorSelection();
-  closeConfigModal();
-  store.clearError();
-  store.clearSuccess();
-  store.newPipeline();
-  designMode.value = false;
-  closePipelineFlyout();
-  if (isNarrowViewport.value) mobileSidebarOpen.value = false;
-  nextTick(() => templateGalleryRef.value?.resetForNewPipeline());
+async function handlePipelineSelected() { if (await guard.confirmIfDirty()) { clearInspectorSelection(); closePipelineFlyout(); } }
+async function handleSaveDraft() {
+  if (hasDraftNodes.value && savingState.value !== 'saving' && await store.createPipeline() !== undefined) guard.markClean();
 }
+async function handleNewPipeline() { if (!(await guard.confirmIfDirty())) return; clearInspectorSelection(); closeConfigModal(); store.clearError(); store.clearSuccess(); store.newPipeline(); designMode.value = false; closePipelineFlyout(); if (isNarrowViewport.value) mobileSidebarOpen.value = false; nextTick(() => templateGalleryRef.value?.resetForNewPipeline()); }
+async function handleDesignModeChange(value: boolean) { if (!value && !(await guard.confirmIfDirty())) return; designMode.value = value; }
 function handleRunnerToggleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') event.stopPropagation();
 }
@@ -128,14 +123,9 @@ function handleWindowKeyDown(event: KeyboardEvent) {
     closePipelineFlyout({ restoreFocus: true });
   }
 }
-onMounted(() => {
-  window.addEventListener('keydown', handleWindowKeyDown);
-  store.resumePollingForActiveView();
-});
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', handleWindowKeyDown);
-  store.stopPolling();
-});
+let detachBeforeUnload: (() => void) | null = null;
+onMounted(() => { detachBeforeUnload = guard.attachBeforeUnload(); window.addEventListener('keydown', handleWindowKeyDown); store.resumePollingForActiveView(); });
+onBeforeUnmount(() => { detachBeforeUnload?.(); window.removeEventListener('keydown', handleWindowKeyDown); store.stopPolling(); });
 </script>
 <template>
   <div class="flex h-full flex-col overflow-hidden bg-bg-app">
@@ -216,7 +206,7 @@ onBeforeUnmount(() => {
             >
               <template #toolbar-actions>
                 <PipelineSaveStatusBadge :design-mode="designMode" :dirty="hasDirtyDraft" :has-draft-nodes="hasDraftNodes" :pipeline-name="draftPipelineLabel" :saving-state="savingState" @save="handleSaveDraft" />
-                <PipelineDesignToggle :design-mode="designMode" @update:design-mode="(value: boolean) => designMode = value" />
+                <PipelineDesignToggle :design-mode="designMode" @update:design-mode="handleDesignModeChange" />
                 <PipelineActionBar />
               </template>
             </PipelineComposer>

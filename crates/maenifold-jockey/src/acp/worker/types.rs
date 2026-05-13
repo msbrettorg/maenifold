@@ -178,6 +178,12 @@ pub enum WorkerMsg {
         app_session_id: String,
         result_tx: oneshot::Sender<Result<(), String>>,
     },
+    ResetBySession {
+        runtime_key: String,
+        role_name: String,
+        session_id: String,
+        result_tx: oneshot::Sender<Result<bool, String>>,
+    },
     Reconnect {
         runtime_key: String,
         role_name: String,

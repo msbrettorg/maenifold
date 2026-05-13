@@ -118,6 +118,7 @@ export class AcpClientBridgeCore implements Client {
     timeoutHandle: ReturnType<typeof setTimeout>;
   }> = new Map();
   private socket: WebSocket | null = null;
+  protected activeRelaySessionId: string | null = null;
   private transportClosed = false;
   private transportCloseReason: string | null = null;
   protected supportedAgentMethods = new Set<string>();
@@ -180,16 +181,30 @@ export class AcpClientBridgeCore implements Client {
   }
 
   async disconnect(): Promise<void> {
+    const socket = this.socket;
+    this.sendExplicitRelayClose(socket);
     this.supportedAgentMethods.clear();
     this.cancelPermission();
     this.rejectPendingRequests(new Error(`ACP client disconnected before response (${this.agentName})`));
     this.pendingMethods.clear();
+    this.activeRelaySessionId = null;
 
-    const socket = this.socket;
     this.socket = null;
     this.connection = null;
     if (socket && socket.readyState < WebSocket.CLOSING) {
       socket.close(1000, 'client disconnect');
+    }
+  }
+
+  protected rememberActiveRelaySession(sessionId: string | undefined): void {
+    if (typeof sessionId === 'string' && sessionId.trim()) {
+      this.activeRelaySessionId = sessionId;
+    }
+  }
+
+  protected clearActiveRelaySession(sessionId?: string): void {
+    if (!sessionId || this.activeRelaySessionId === sessionId) {
+      this.activeRelaySessionId = null;
     }
   }
 
@@ -511,6 +526,24 @@ export class AcpClientBridgeCore implements Client {
         timeoutHandle,
       });
     });
+  }
+
+  private sendExplicitRelayClose(socket: WebSocket | null): void {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    const payload = {
+      jsonrpc: '2.0',
+      id: this.nextRequestId() as JsonRpcId,
+      method: AGENT_METHODS.session_close,
+      params: withAcpMeta(this.activeRelaySessionId ? { sessionId: this.activeRelaySessionId } : {}),
+    };
+    try {
+      this.recordTraffic('out', payload as AnyMessage);
+      socket.send(JSON.stringify(payload));
+    } catch {
+      this.pendingMethods.delete(payload.id);
+    }
   }
 
   private resolveManualResponse(message: AnyMessage): boolean {

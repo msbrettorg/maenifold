@@ -48,11 +48,15 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Agent {
   }
 
   async newSession(params: NewSessionRequest): Promise<NewSessionResponse> {
-    return this.sendRequest<NewSessionResponse>(AGENT_METHODS.session_new, params);
+    const response = await this.sendRequest<NewSessionResponse>(AGENT_METHODS.session_new, params);
+    this.rememberActiveRelaySession(response.sessionId);
+    return response;
   }
 
   async loadSession(params: LoadSessionRequest): Promise<LoadSessionResponse> {
-    return this.sendRequest<LoadSessionResponse>(AGENT_METHODS.session_load, params);
+    const response = await this.sendRequest<LoadSessionResponse>(AGENT_METHODS.session_load, params);
+    this.rememberActiveRelaySession(params.sessionId);
+    return response;
   }
 
   async listSessions(params?: ListSessionsRequest): Promise<{
@@ -79,7 +83,11 @@ export class AcpClientBridge extends AcpClientBridgeCore implements Agent {
   }
 
   async closeSession(params: { sessionId: string }): Promise<void> {
-    await this.sendRequest(SESSION_CLOSE_METHOD, params);
+    try {
+      await this.sendRequest(SESSION_CLOSE_METHOD, params);
+    } finally {
+      this.clearActiveRelaySession(params.sessionId);
+    }
   }
 
   async authenticate(params: AuthenticateRequest): Promise<AuthenticateResponse> {

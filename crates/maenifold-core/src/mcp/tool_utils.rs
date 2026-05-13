@@ -5,6 +5,7 @@
 use super::schema::mcp_tool_from_registry_name;
 use crate::error::{MaenifoldError, Result};
 use crate::registry::ToolRegistry;
+use rmcp::model::ToolExecution;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -14,6 +15,8 @@ pub struct McpToolDefinition {
     pub name: String,
     pub description: String,
     pub input_schema: Value,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution: Option<ToolExecution>,
 }
 
 // T-5.2: RTM FR-22.4 maps the registry's canonical tool set into MCP tools/list metadata.

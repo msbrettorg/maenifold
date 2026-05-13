@@ -104,6 +104,22 @@ const config = {
     extraResource: [resolveMaenifoldBinaryPath()],
     icon: join(rootDir, 'assets', 'icons', 'icon.icns'),
     name: 'maenifold',
+    // Skip bundling node_modules — vite already produced dist-electron/ +
+    // dist/. Without this, electron-forge tries to bundle the entire 1.1GB
+    // node_modules tree and OOMs Node (T-302.42).
+    ignore: [
+      /^\/node_modules($|\/)/,
+      /^\/src($|\/)/,
+      /^\/electron($|\/)/,
+      /^\/scripts($|\/)/,
+      /^\/docs($|\/)/,
+      /^\/public($|\/)/,
+      /^\/test\b/,
+      /^\/.*\.config\.(ts|js|mjs)$/,
+      /^\/tsconfig.*\.json$/,
+      /^\/vite\..*$/,
+      /^\/forge\..*$/,
+    ],
     // Future CI/CD work: add macOS code signing via osxSign / notarization.
   },
   hooks: {

@@ -13,6 +13,7 @@ pub(super) fn tool_definition(
         name: name.to_string(),
         description: description.to_string(),
         input_schema,
+        execution: None,
     }
 }
 

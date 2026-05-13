@@ -55,6 +55,26 @@ describe('PermissionHandler plan-mode safe-kind whitelist', () => {
     expect(inlineMessageSink).not.toHaveBeenCalled();
   });
 
+  it.each(['query', 'list', 'view', 'inspect', 'describe', 'get'])(
+    'does not auto-reject read-only alias kind %s in plan mode',
+    async (kind) => {
+      const inlineMessageSink = vi.fn();
+      const handler = new PermissionHandler(new StaticLedger('allow'), {
+        agent: 'agent-a',
+        currentModeId: () => 'plan',
+        onInlineMessage: inlineMessageSink,
+      } as never);
+
+      const response = await handler.requestPermission(permissionParams(`tool-${kind}`, kind));
+
+      expect(response.outcome).toEqual({
+        outcome: 'selected',
+        optionId: `tool-${kind}-allow-once`,
+      });
+      expect(inlineMessageSink).not.toHaveBeenCalled();
+    }
+  );
+
   it('pushes a chat-visible inline message when plan mode blocks an edit', async () => {
     const inlineMessageSink = vi.fn();
     const handler = new PermissionHandler(new StaticLedger(null), {

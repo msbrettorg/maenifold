@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildPermissionEquivalenceKey, canonicalPermissionTarget } from '../equivalence-key';
+import { buildPermissionEquivalenceKey, canonicalPermissionTarget, normalizePermissionToolKind } from '../equivalence-key';
 import type { PermissionRequest } from '../../types';
 
 function request(overrides: Partial<PermissionRequest['toolCall']> = {}): PermissionRequest {
@@ -145,4 +145,13 @@ describe('canonicalPermissionTarget', () => {
       rawInput: { target: 'specific-thing' },
     }))).toBe('specific-thing');
   });
+});
+
+describe('normalizePermissionToolKind', () => {
+  it.each(['query', 'list', 'view', 'inspect', 'describe', 'get'])(
+    'normalizes read-only alias %s to read',
+    (kind) => {
+      expect(normalizePermissionToolKind(kind)).toBe('read');
+    }
+  );
 });

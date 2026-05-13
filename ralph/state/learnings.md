@@ -2178,3 +2178,60 @@ Two sprint 303 tasks (T-303.8 SSE removal, T-303.11 env editor visibility) becam
 
 **Lesson — PM-direct gate transitions for pure-doc PR are appropriate.** T-303.12, T-303.13, T-303.17 all bypassed the dispatched red-team + blue-team stages (PM-direct verify only). The constitution permits PM-direct for tiny mechanical work; doc-only with cited sources qualifies. Saved ~10min per task vs full dispatch chain. Caveats: only safe when (a) no code paths touched, (b) sources verifiable by PM in <5min, (c) PM logged the rationale in the gate notes for future audit. Do NOT extend this pattern to code changes — code requires dispatched audits.
 
+
+
+### Iter-10 final tally — 2026-05-13 04:37
+
+**6 substantive closures merged:**
+1. T-303.14 — local MCP long-text + audio test fixture (138 LOC). Merged 07e895fd2.
+2. T-303.16 — local MCP cancel/progress test fixture (293 LOC). Merged d318bcd46.
+3. T-302.43 — retry quarantine for flaky SemanticZoomOverlay test (109 LOC). Merged 1be19ecae.
+4. T-304.10 — SessionConfigPanel handleModelChange null/undefined guard (110 LOC). Merged bb5be13dc.
+5. T-304.8 — TrafficMonitor header wraps on narrow widths (36 LOC). Merged 7d9ad1975.
+6. T-303.18 Phase 1 — MCP prompts composable layer (232 LOC + 324 LOC of discovery/spec docs). Merged e0a0cbcb8.
+
+**Follow-ups filed (3):**
+- T-303.18.1 (MCP prompts UI surface — Phase 2 SLC).
+- T-309.5 (ralph/AGENTS.md is stale — describes SWE-worker mode but ralph operates as PM-orchestrator).
+- T-309.6 (SemanticZoomOverlay.test.ts 312 LOC pre-existing violation).
+
+**Sprint status (final):**
+- Sprint 302: 26 done. Remaining: T-302.11/.12/.35 (UAT, OOS).
+- Sprint 303: 13 done. Remaining: T-303.0 umbrella, T-303.9/.10 (UAT), T-303.3.1, T-303.4.1, T-303.15, T-303.18.1 (NEW), T-303.19.
+- Sprint 304: 2 done iter-10. Remaining: many — T-304.0 umbrella, T-304.1-7 (P1/P2 ACP work), T-304.9 (P3 LOC split).
+
+**Process rigor (this iter):**
+- 6 SWE dispatches (gpt-5.5 inner-loop). All returned WorkResults.
+- 6 red-team audits (claude-opus-4.6 inner-loop). 3 PASS HIGH, 3 PASS MEDIUM. 0 FAIL.
+- 1 SLC blue-team verification (gpt-5.5). PASS clean.
+- 5 wave-1 parallel dispatches + 1 wave-2 (T-303.18 SLC).
+- 0 destructive git ops by agents. PM owned all worktree lifecycle.
+- 0 sprint-discarding gate violations.
+- 1 PM-direct test-stabilization choice (T-302.43 retry quarantine, defensive insurance even though 5/5 passed locally).
+
+**Lesson — constitution conflicts must be caught at PM review of blue-team test contracts.** T-304.10 blue-team initially asserted `console.warn` was called for non-string non-null values. PM caught the conflict at audit-components.mjs:48 (no-console rule, build-enforced) BEFORE SWE was dispatched and gave bt-T-304.10 a follow-up message to revise. The revised test removed the warn assertion and KEPT the null/undefined-clear assertion. SWE then implemented cleanly without ever attempting a banned construct. This validates the multi-turn write_agent pattern: when a blue-team test conflicts with a constitutional rule, send a revision message rather than dispatching a flawed SWE prompt.
+
+**Lesson — stale-base diff "deletions" are non-blocking artifacts.** T-303.16 red-team flagged a 138-LOC "deletion" of mcp-long-audio/* in `git diff dev`. The deletion was an artifact of branch divergence (T-303.16 was forked from dev BEFORE T-303.14 merged onto dev). PM verified via merge-base analysis that the 3-way merge would preserve both fixtures (base=absent, ours=present, theirs=absent → ours wins). Confirmed in practice: post-merge `ls apps/desktop/test-fixtures/` showed both directories. **Process note:** when red-team flags large deletions outside scope on a worktree branch, the first PM response should be `git merge-base dev <branch>` + `git diff <merge-base> <branch> --stat` to see ONLY the branch's own delta. If clean, the deletions are stale-base artifacts and the merge will preserve both sets cleanly.
+
+**Lesson — SLC discovery + spec are PM-author-direct work, not worth dispatching.** T-303.18 SLC discovery + spec stages were authored by PM directly in ~10 minutes total. Dispatching a discovery agent would have:
+(a) consumed LLM tokens for what amounts to "read the existing useMcpResources pattern + decide where the new composable goes",
+(b) added context-handoff overhead,
+(c) needed a follow-up to translate research into a SWE-ready spec.
+PM-direct discovery + spec is the right call when the spec body already lays out the technical scope clearly. Save dispatched discovery for SLC features where the architectural decision is genuinely open (e.g., T-303.3.1 / T-303.4.1 IPC channel design, where PM doesn't know which approach is best).
+
+**Lesson — SLC Phase 1 / Phase 2 split keeps SWE prompts scoped.** T-303.18 spec body proposed 9 files, ~520 LOC. PM split into Phase 1 (3 files, ~225 LOC, composable layer) and Phase 2 (5 files, ~295 LOC, UI surface) and filed T-303.18.1 for Phase 2. Phase 1 ships standalone (capability advertised, API exposed), unblocks Phase 2 design with a concrete entry point, and keeps the SWE prompt focused enough to land cleanly in one go. Same pattern as iter-9's T-303.3 / T-303.4 splits.
+
+**Lesson — public API types should match protocol shape exactly, not be over-permissive.** T-303.18 SWE initially shipped `getPrompt(name, args?: Record<string, unknown>)` per spec, but red-team verified MCP Zod schema is `Record<string, string>` (apps/desktop/node_modules/@modelcontextprotocol/sdk/dist/esm/types.d.ts:1891 ZodRecord<ZodString, ZodString>). The cast was safe (Zod would throw at runtime, not corrupt) but the public type lied to callers. PM-directed SWE follow-up tightened the type. **Standing rule:** when authoring spec for a new public API that wraps a typed protocol, copy the protocol's exact type shape rather than choosing the loosest superset.
+
+**Lesson — when blue-team can't reproduce a flake, ship the retry quarantine anyway.** T-302.43 blue-team ran the SemanticZoomOverlay test 5x and observed 0 failures locally — but iter-9 evidence (T-302.40 + T-302.41 blue-team verifications) established the flake is real. PM chose Option 2 (retry quarantine) as defensive insurance. The retry adds ~0 cost (cite comment + `{retry: 2}` option) and is forward-compatible if the timing variance returns under different CI/local conditions. **Standing pattern:** flake tasks should ship a quarantine even when the current sample doesn't reproduce — the quarantine is cheap and the alternative (re-litigating "is it really flaky?") wastes more cycles.
+
+**Standing PM pre-flight checks (codified for next iter, refined):**
+1. `git reflog | head -3` — investigate any HEAD@{0/1}: reset: entries.
+2. `ls apps/desktop/node_modules/.bin/{vue-tsc,vitest}` — both must exist.
+3. `git worktree list` — prune any stale worktrees.
+4. `git status --short` — must be clean.
+5. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only).
+6. Read learnings.md tail for previous iter's final tally.
+7. Check that any task spec reference to a library API includes the EXACT method signature line citation.
+8. **NEW:** Before dispatching SWE for a TDD task, scan the blue-team's test assertions for any construct banned by audit rules (console.*, raw HTML controls, btn-* classes, `<style>` blocks). If found, send a write_agent revision rather than dispatching a SWE that will inevitably violate the audit.
+9. **NEW:** When red-team flags a "deletion" in `git diff dev` on a worktree branch, run `git merge-base dev <branch>` + `git diff <merge-base> <branch> --stat` to scope the actual SWE delta. Don't escalate stale-base artifacts.

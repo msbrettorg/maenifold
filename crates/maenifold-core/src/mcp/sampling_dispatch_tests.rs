@@ -96,6 +96,24 @@ async fn sampling_deny_returns_negative_1() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[test]
+fn sampling_allow_dispatch_passes_selected_model_to_runtime_sampling() {
+    let source = include_str!("client_handler.rs");
+    let dispatch_start = source
+        .find("jockey::acp::execute_runtime_sampling")
+        .expect("client_handler must dispatch approved sampling through execute_runtime_sampling");
+    let dispatch = &source[dispatch_start..];
+    let dispatch_end = dispatch
+        .find(".await")
+        .expect("execute_runtime_sampling call must be awaited");
+    let call = &dispatch[..dispatch_end];
+
+    assert!(
+        call.contains("decision.selected_model.clone()"),
+        "T-303.4.19: approved sampling must pass decision.selected_model.clone() to execute_runtime_sampling"
+    );
+}
+
 async fn send_sampling_request(
     params: CreateMessageRequestParams,
     sampling_agent: Option<String>,

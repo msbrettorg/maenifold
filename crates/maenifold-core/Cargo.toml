@@ -108,6 +108,10 @@ path = "tests/sampling_registry_shared_contract.rs"
 name = "sampling_agent_threading_contract"
 path = "tests/sampling_agent_threading_contract.rs"
 
+[[test]]
+name = "sampling_selected_model_contract"
+path = "tests/sampling_selected_model_contract.rs"
+
 
 
 

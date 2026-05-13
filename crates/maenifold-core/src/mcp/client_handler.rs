@@ -164,6 +164,7 @@ impl ClientHandler for MaenifoldClient {
                     &role_name,
                     app_session_id,
                     prompt,
+                    decision.selected_model.clone(),
                 )
                 .await;
 

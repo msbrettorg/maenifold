@@ -1627,3 +1627,21 @@ T-302.5 red-team flagged it as informational; T-302.31 follow-up filed for harde
 
 `KnowledgeInlineEditor.vue:51-54` watches `props.note.content` and unconditionally overwrites `draft` on prop change — even when `hasUnsavedChanges` is true. Filed as T-302.36 follow-up. **Pattern:** when refactoring/wiring an existing component (T-302.6 wrapped existing dirty-tracking logic with the new guard), PM should also audit the component existing logic for related conflicts, not just verify the wiring in isolation.
 
+
+#### Final iter-7 tally (after iter-7 retro entry above)
+
+After the initial 12-task close, the iteration continued and shipped:
+- **T-302.34** — Esc-cancel window-level listener (Esc-cancel bug from dual rubber-duck review).
+- **T-302.31** — useUnsavedChangesGuard hardening (concurrent reject + scope dispose cleanup). Required 2 rounds: r1 shipped with a dangling-promise defect; r2 remediated with full PM-evidence chain.
+- **T-302.33** — StopReasonBanner test coverage for max_turn_requests + tool_use.
+
+**Final iter-7 totals: 15 substantive tasks done (incl. 1 obsolete-closure + 1 umbrella). 6 remaining follow-ups in todo backlog. 2 UAT items deferred per RALPH rule.**
+
+**Final dev state (after 2026-05-12 23:22): 784 vitest passed, 14 skipped, 0 failed; npm run build exit 0; ChatView 300 LOC; useUnsavedChangesGuard 186 LOC.**
+
+#### Lesson — remediation cycles cost two extra dispatches but catch real defects
+
+T-302.31 r1 shipped with a dangling-promise defect (scope dispose left `pendingResolve` set, hanging callers forever). Red-team caught it on the FIRST audit. Cost of remediation: one extra SWE message + one fresh red-team agent. Total iteration time impact: ~5 minutes. The defect would have survived if PM had accepted the r1 audit informational findings without dispatching the fresh red-team.
+
+**Pattern:** REQUIRES_CHANGES verdicts are not "minor" — they indicate the audit found a real defect. Always remediate via a fresh red-team after the fix. Never "waive re-audit."
+

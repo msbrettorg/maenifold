@@ -35,6 +35,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string];
   send: [];
   'select-command': [command: AvailableCommand];
+  'select-mcp-prompt': [command: AvailableCommand];
   'remove-attachment': [attachmentId: string];
   'insert-embedded-context-hint': [];
   'add-attachments': [attachments: PendingAttachment[]];
@@ -94,6 +95,10 @@ function handleKeyDown(event: KeyboardEvent): void {
 }
 
 function handleCommandSelect(command: AvailableCommand): void {
+  if (command.name.startsWith('mcp.')) {
+    emit('select-mcp-prompt', command);
+    return;
+  }
   emit('select-command', command);
 }
 

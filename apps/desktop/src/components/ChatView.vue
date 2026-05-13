@@ -7,6 +7,8 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
 import { useBuiltInSlashCommands } from '../composables/useBuiltInSlashCommands';
+import { useMcpPrompts } from '../composables/useMcpPrompts';
+import { getMcpPromptCommandMeta, hasMcpPromptArguments, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import { useAppShellStore } from '../stores/app-shell';
 import { isAbsolutePath } from '../lib/acp-meta';
@@ -16,12 +18,14 @@ import SessionConfigPanel from './SessionConfigPanel.vue';
 import SessionModeSwitcher from './SessionModeSwitcher.vue';
 import ChatInputBar from './ChatInputBar.vue';
 import ChatMessageList from './ChatMessageList.vue';
+import McpPromptPicker from './McpPromptPicker.vue';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Card } from './ui/card';
 import { Settings } from 'lucide-vue-next';
 import type { PendingAttachment } from './ChatAttachmentBar.vue';
 import type { AvailableCommand, ContentBlock, SessionMode } from '../lib/types';
+import type { GetPromptResult, PromptMessage } from '@modelcontextprotocol/sdk/types';
 type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
@@ -30,6 +34,8 @@ const appShellStore = useAppShellStore();
 const confirmDialogStore = useConfirmDialogStore();
 const { renderMermaidBlocks } = useMermaid();
 const mcpClient = useMcpClient();
+const mcpPrompts = useMcpPrompts();
+const mcpPromptCommands = useMcpPromptCommands({ serverName: 'maenifold' });
 const currentSession = computed(() => sessionStore.currentSession);
 const { inputText, clearDraft } = useChatDraft(computed(() => currentSession.value?.sessionId ?? null));
 const activeCommandHint = ref<string | null>(null);
@@ -39,13 +45,15 @@ const pendingAttachments = ref<PendingAttachment[]>([]);
 const attachmentError = ref<string | null>(null);
 const expandedThoughts = ref<Set<string>>(new Set());
 const expandedToolCalls = ref<Set<string>>(new Set());
+const selectedMcpPromptCommand = ref<AvailableCommand | null>(null);
 const showConfig = ref(false);
 const messages = computed(() => sessionStore.messageList);
 const isLoading = computed(() => sessionStore.isLoading);
 const sessionCwd = computed(() => currentSession.value?.cwd ?? '/');
 const isPlanMode = computed(() => sessionStore.activeSession?.currentModeId === 'plan');
 const configOptions = computed(() => sessionStore.configOptions);
-const availableCommands = computed(() => sessionStore.availableCommands);
+const agentCommands = computed(() => sessionStore.availableCommands);
+const availableCommands = computed(() => [...agentCommands.value, ...mcpPromptCommands.commands.value]);
 const currentPlan = computed(() => sessionStore.currentPlan);
 const sessionModes = computed(() => (sessionStore.activeSession as ({ modes?: SessionMode[] } | null))?.modes ?? []);
 const pendingPermissionCount = computed(() => sessionStore.pendingPermissionCount);
@@ -144,10 +152,26 @@ async function handleSend(): Promise<void> {
   }
 }
 async function handleCommandSelect(command: AvailableCommand): Promise<void> {
-  const handled = await builtInSlash.tryHandle(command, availableCommands.value);
+  const handled = await builtInSlash.tryHandle(command, agentCommands.value);
   if (handled) return;
   inputText.value = `/${command.name} `;
   activeCommandHint.value = command.input?.hint ?? null;
+}
+async function handleMcpPromptSelect(command: AvailableCommand): Promise<void> {
+  const meta = getMcpPromptCommandMeta(command);
+  if (!meta) return;
+  if (hasMcpPromptArguments(command)) {
+    selectedMcpPromptCommand.value = command;
+    inputText.value = '';
+    return;
+  }
+  inputText.value = '';
+  try {
+    const result: GetPromptResult = await mcpPrompts.getPrompt(meta.promptName);
+    insertMcpPromptMessages(result.messages);
+  } catch (error) {
+    setAttachmentError(error instanceof Error ? error.message : 'Failed to resolve MCP prompt.');
+  }
 }
 async function handleModeSelect(payload: { modeId: string }): Promise<void> { await sessionStore.setSessionMode(payload.modeId); }
 async function handleConfigOptionChange(configId: string, value: string): Promise<void> {
@@ -165,6 +189,22 @@ function insertEmbeddedContextHint(): void {
   if (!supportsEmbeddedContext.value || isLoading.value) return;
   const snippet = '@"path/to/file"';
   inputText.value = inputText.value.trim().length ? `${inputText.value} ${snippet}` : `${snippet} `;
+}
+function promptContentText(content: PromptMessage['content']): string {
+  if ('text' in content && typeof content.text === 'string') return content.text;
+  if ('resource' in content && typeof content.resource === 'object' && content.resource && 'text' in content.resource && typeof content.resource.text === 'string') return content.resource.text;
+  return JSON.stringify(content);
+}
+function promptMessagesText(promptMessages: PromptMessage[]): string {
+  return promptMessages.map((message) => {
+    const text = promptContentText(message.content);
+    return promptMessages.length === 1 && message.role === 'user' ? text : `${message.role}: ${text}`;
+  }).join('\n\n');
+}
+function insertMcpPromptMessages(promptMessages: PromptMessage[]): void {
+  const text = promptMessagesText(promptMessages);
+  inputText.value = inputText.value.trim().length ? `${inputText.value.trim()}\n\n${text}` : text;
+  selectedMcpPromptCommand.value = null;
 }
 function isPathLikeMention(candidate: string): boolean {
   return candidate.includes('/') || candidate.includes('\\') || candidate.includes('.') || candidate.startsWith('~');
@@ -217,84 +257,27 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
       </h2>
       <div class="flex flex-wrap items-center justify-end gap-3">
         <SessionModeSwitcher />
-        <ConfigOptionPicker
-          v-for="option in configOptions"
-          :key="option.id"
-          :option="option"
-          @change="handleConfigOptionChange"
-        />
+        <ConfigOptionPicker v-for="option in configOptions" :key="option.id" :option="option" @change="handleConfigOptionChange" />
         <span class="text-sm text-text-secondary">
           {{ currentSession?.agentName }}
           <span v-if="agentSessionStatusLabel">({{ agentSessionStatusLabel }})</span>
         </span>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="size-7 text-text-secondary"
-          :aria-label="showConfig ? 'Hide session config' : 'Show session config'"
-          :aria-expanded="showConfig"
-          @click="showConfig = !showConfig"
-        >
+        <Button variant="ghost" size="icon" class="size-7 text-text-secondary" :aria-label="showConfig ? 'Hide session config' : 'Show session config'" :aria-expanded="showConfig" @click="showConfig = !showConfig">
           <Settings class="w-4 h-4" />
         </Button>
       </div>
     </div>
-    <SessionConfigPanel
-      v-if="showConfig && currentSession"
-      :agent-name="currentSession.agentName"
-      :cwd="sessionCwd"
-      :is-read-only="true"
-    />
-    <div
-      v-if="isPlanMode"
-      class="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm font-semibold tracking-wide text-warning"
-    >
+    <SessionConfigPanel v-if="showConfig && currentSession" :agent-name="currentSession.agentName" :cwd="sessionCwd" :is-read-only="true" />
+    <div v-if="isPlanMode" class="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm font-semibold tracking-wide text-warning">
       PLAN MODE — no execution will occur.
     </div>
     <ScrollArea ref="scrollAreaRef" class="flex-1 min-h-0">
       <div ref="messagesContainer" class="p-4">
-        <ChatMessageList
-          :messages="messages"
-          :current-plan="currentPlan"
-          :expanded-thought-ids="expandedThoughtIds"
-          :expanded-tool-call-ids="expandedToolCallIds"
-          :pending-permission-count="pendingPermissionCount"
-          :is-loading="isLoading"
-          @toggle-thought="toggleThought"
-           @toggle-tool-call="toggleToolCall"
-           @cancel="handleCancel"
-           @prefill="setInputText"
-           @regenerate="handleRegenerate"
-           @edit="handleEdit"
-         />
+        <ChatMessageList :messages="messages" :current-plan="currentPlan" :expanded-thought-ids="expandedThoughtIds" :expanded-tool-call-ids="expandedToolCallIds" :pending-permission-count="pendingPermissionCount" :is-loading="isLoading" @toggle-thought="toggleThought" @toggle-tool-call="toggleToolCall" @cancel="handleCancel" @prefill="setInputText" @regenerate="handleRegenerate" @edit="handleEdit" />
       </div>
     </ScrollArea>
     <ModePicker v-if="sessionModes.length > 0" :modes="sessionModes" :current-mode-id="sessionStore.activeSession?.currentModeId ?? null" @select-mode="handleModeSelect" />
-    <ChatInputBar
-      :model-value="inputText"
-      :placeholder="inputPlaceholder"
-      :disabled="isLoading"
-      :available-commands="availableCommands"
-      :supports-image-attachments="supportsImageAttachments"
-      :supports-audio-attachments="supportsAudioAttachments"
-      :supports-embedded-context="supportsEmbeddedContext"
-      :image-attachment-tooltip="imageAttachmentTooltip"
-      :audio-attachment-tooltip="audioAttachmentTooltip"
-      :embedded-context-tooltip="embeddedContextTooltip"
-      :pending-attachments="pendingAttachments"
-      :attachment-error="attachmentError"
-      :accent="isPlanMode ? 'plan' : 'normal'"
-      :is-streaming="isLoading"
-      @update:model-value="setInputText"
-      @send="handleSend"
-      @recall-last="recallLastMessage"
-      @cancel-turn="handleCancel"
-      @clear-chat="sessionStore.clearMessages"
-      @select-command="handleCommandSelect"
-      @add-attachments="addPendingAttachments"
-      @attachment-error="setAttachmentError"
-      @remove-attachment="removePendingAttachment"
-      @insert-embedded-context-hint="insertEmbeddedContextHint"
-    />
+    <ChatInputBar :model-value="inputText" :placeholder="inputPlaceholder" :disabled="isLoading" :available-commands="availableCommands" :supports-image-attachments="supportsImageAttachments" :supports-audio-attachments="supportsAudioAttachments" :supports-embedded-context="supportsEmbeddedContext" :image-attachment-tooltip="imageAttachmentTooltip" :audio-attachment-tooltip="audioAttachmentTooltip" :embedded-context-tooltip="embeddedContextTooltip" :pending-attachments="pendingAttachments" :attachment-error="attachmentError" :accent="isPlanMode ? 'plan' : 'normal'" :is-streaming="isLoading" @update:model-value="setInputText" @send="handleSend" @recall-last="recallLastMessage" @cancel-turn="handleCancel" @clear-chat="sessionStore.clearMessages" @select-command="handleCommandSelect" @select-mcp-prompt="handleMcpPromptSelect" @add-attachments="addPendingAttachments" @attachment-error="setAttachmentError" @remove-attachment="removePendingAttachment" @insert-embedded-context-hint="insertEmbeddedContextHint" />
+    <McpPromptPicker :command="selectedMcpPromptCommand" :open="selectedMcpPromptCommand !== null" @update:open="(open: boolean) => { if (!open) selectedMcpPromptCommand = null; }" @resolved="insertMcpPromptMessages" @error="setAttachmentError" />
   </Card>
 </template>

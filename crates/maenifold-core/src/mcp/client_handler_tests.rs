@@ -2,8 +2,9 @@ use crate::mcp::MaenifoldClient;
 use rmcp::{
     ServerHandler, ServiceExt,
     model::{
-        ClientResult, CreateElicitationRequest, CreateElicitationRequestParams, ElicitationAction,
-        ElicitationSchema, PrimitiveSchema, ServerCapabilities, ServerInfo, ServerRequest,
+        ClientResult, CreateElicitationRequest, CreateElicitationRequestParams,
+        CreateMessageRequest, CreateMessageRequestParams, ElicitationAction, ElicitationSchema,
+        PrimitiveSchema, SamplingMessage, ServerCapabilities, ServerInfo, ServerRequest,
         StringSchema,
     },
 };
@@ -46,6 +47,7 @@ async fn advertises_elicitation_capability() -> anyhow::Result<()> {
     client.close().await?;
 
     assert!(info.capabilities.elicitation.is_some());
+    assert!(info.capabilities.sampling.is_some());
     assert!(
         info.capabilities
             .tasks
@@ -89,5 +91,36 @@ async fn elicitation_create_returns_cancel() -> anyhow::Result<()> {
 
     assert_eq!(result.action, ElicitationAction::Cancel);
     assert!(result.content.is_none());
+    Ok(())
+}
+
+#[tokio::test]
+async fn create_message_returns_user_denied() -> anyhow::Result<()> {
+    let (server_transport, client_transport) = tokio::io::duplex(4096);
+
+    let server_task = tokio::spawn(async move {
+        let mut server = TestServer.serve(server_transport).await?;
+        let response = server
+            .peer()
+            .send_request(ServerRequest::CreateMessageRequest(
+                CreateMessageRequest::new(CreateMessageRequestParams::new(
+                    vec![SamplingMessage::user_text("Summarize this context")],
+                    64,
+                )),
+            ))
+            .await?;
+        server.close().await?;
+        match response {
+            ClientResult::CreateMessageResult(result) => anyhow::Ok(result),
+            other => anyhow::bail!("unexpected response: {other:?}"),
+        }
+    });
+
+    let mut client = MaenifoldClient::new().serve(client_transport).await?;
+    let result = server_task.await??;
+    client.close().await?;
+
+    assert_eq!(result.stop_reason, Some("user_denied".to_string()));
+    assert_eq!(result.model, "maenifold-stub");
     Ok(())
 }

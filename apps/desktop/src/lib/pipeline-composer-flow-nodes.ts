@@ -43,6 +43,7 @@ export type FlowNodeData = {
   status?: ViewNode['status'];
   attempts?: number;
   failureReason?: string | null;
+  reconnected?: boolean;
 };
 
 function getNodeModel(node: PipelineNode): string | undefined {
@@ -94,6 +95,7 @@ export function toFlowNodeData(
     status: viewNode?.status,
     attempts: viewNode?.attempts,
     failureReason: viewNode?.failureReason,
+    reconnected: viewNode?.reconnected,
   };
 
   if (isWorkflowNode(node)) {

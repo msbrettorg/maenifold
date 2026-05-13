@@ -166,6 +166,7 @@ function handleCardClick() { emit('nodeClick', props.data.nodeId); }
       <div v-if="showSubtitle" class="truncate text-xs text-muted-foreground">
         {{ titleText }}
       </div>
+      <Badge v-if="data.reconnected" variant="secondary" class="self-start font-normal">↻ refining</Badge>
 
       <template v-if="isWorkflowNode(node)">
         <div class="flex flex-wrap gap-1">

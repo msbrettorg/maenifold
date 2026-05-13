@@ -5,6 +5,7 @@ defineProps<{
   busyAction: string | null;
   canConnectLive: boolean;
   canPromote: boolean;
+  canTakeRefinement: boolean;
   forkedSessionId: string | null;
   graftSubmitting: boolean;
   hasResults: boolean;
@@ -19,6 +20,8 @@ defineEmits<{
   fork: [];
   graft: [];
   promote: [];
+  takeRefinement: [];
+  discardRefinement: [];
   reconnect: [];
   restart: [];
   rewind: [];
@@ -79,6 +82,23 @@ defineEmits<{
         @click="$emit('promote')"
       >
         {{ promotionBusy ? 'Promoting…' : 'Promote to Memory' }}
+      </Button>
+      <Button
+        v-if="canTakeRefinement"
+        :disabled="busyAction !== null"
+        type="button"
+        @click="$emit('takeRefinement')"
+      >
+        Take refined output
+      </Button>
+      <Button
+        v-if="canTakeRefinement"
+        variant="ghost"
+        :disabled="busyAction !== null"
+        type="button"
+        @click="$emit('discardRefinement')"
+      >
+        Discard refinement
       </Button>
       <Button
         v-if="reconnectSessionId"

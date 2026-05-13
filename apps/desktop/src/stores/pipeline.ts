@@ -18,6 +18,7 @@ import {
   toLocalDefinition,
 } from './pipeline-view-transforms';
 import { createPipelineRunnerActions } from './pipeline-runner';
+import { createPipelineReconnectActions } from './pipeline-reconnect-actions';
 import {
   createPipelineRefreshActions,
   createRunInputDraftActions,
@@ -91,6 +92,8 @@ export const usePipelineStore = defineStore('pipeline', () => {
   const isRunning = computed(() => currentView.value?.running === true);
   const pipelineStatus = computed(() => currentView.value?.status ?? null);
   const primaryAgent = computed(() => resolvePreferredAgent(configStore.agentNames).trim());
+  const { markNodeReconnected, clearNodeReconnected, replaceNodeOutput } =
+    createPipelineReconnectActions({ currentView });
 
   function setView(view: PipelineView | null, metadata?: { templateId?: string }) {
     currentView.value = view;
@@ -251,5 +254,8 @@ export const usePipelineStore = defineStore('pipeline', () => {
     resumePollingForActiveView,
     startViewPolling,
     stopPolling: stopCurrentPolling,
+    markNodeReconnected,
+    clearNodeReconnected,
+    replaceNodeOutput,
   };
 });

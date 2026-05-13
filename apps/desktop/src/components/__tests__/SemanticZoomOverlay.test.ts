@@ -228,13 +228,23 @@ describe('SemanticZoomOverlay', () => {
     ['workflow', completedNodeWithSession('workflow', 'acp-workflow-1')],
     ['prompt', completedNodeWithSession('prompt', 'acp-prompt-1')],
     ['sequentialThinking', completedNodeWithSession('sequentialThinking', 'acp-thinking-1')],
-    ['tool', completedNodeWithSession('tool', 'acp-tool-1')],
   ])('shows reconnect for completed %s nodes when an ACP session id exists', async (_label, node) => {
     setCurrentNode(node);
     const wrapper = mountOverlay();
     await flushPromises();
 
     expect(document.body.textContent).toContain('Reconnect');
+    expect(wrapper.html()).not.toContain('Connect to live session');
+
+    wrapper.unmount();
+  });
+
+  it('hides reconnect for completed tool nodes when an ACP session id exists', async () => {
+    setCurrentNode(completedNodeWithSession('tool', 'acp-tool-1'));
+    const wrapper = mountOverlay();
+    await flushPromises();
+
+    expect(document.body.textContent).not.toContain('Reconnect');
     expect(wrapper.html()).not.toContain('Connect to live session');
 
     wrapper.unmount();

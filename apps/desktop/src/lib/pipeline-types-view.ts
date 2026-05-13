@@ -23,6 +23,12 @@ interface ViewNodeBase {
   attempts: number;
   output?: string;
   failureReason?: string | null;
+  reconnected?: boolean;
+  stale?: boolean;
+  refinement?: {
+    sessionId: string;
+    takenAt: number;
+  };
 }
 
 export interface NodeProvenanceDetail {

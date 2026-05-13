@@ -2426,3 +2426,81 @@ T-304.5 audit cited specific file:line locations (e.g., `acp-client-core.ts:382-
 ### slc pipeline stage order: red-team → blue-team (NOT remediate)
 - T-303.4.3 PM-direct closure tried `expectedStage: 'remediate'` after red-team, got rejected because next stage was `blue-team`.
 - **Lesson**: slc stages: pending → discovery → spec → swe → red-team → remediate → blue-team → done. BUT `remediate` is a branch-back FROM red-team that triggers only on FAIL — successful red-team advances directly to blue-team. Closing a parent via decomposition follows the happy-path: red-team → blue-team → done (NOT red-team → remediate).
+
+## 2026-05-13 — Iter-13 (sampling contract fixes + decomposition + wave-boundary duck catches 2 latent prod bugs)
+
+**3 substantive tasks shipped:**
+1. T-303.15.1 — sampling test fixture (v1+v2 SWE, 2x red-team PASS, npm version corrected from non-existent alpha.0 to alpha.2).
+2. T-303.4.10 — config store partial-write API + samplingPreferences round-trip (Blue gpt-5.5 → SWE gpt-5.5 → Red opus-4.6, 6 TDD tests + 91 stores tests pass).
+3. T-303.4.9 — sampling registry contract fix: real serverName + decision tracking (AllowOnce/AllowAlways/Deny/Cancelled/Expired) + denied-request inclusion (Blue gpt-5.5 → SWE gpt-5.5 → Red opus-4.6, 4 contract + 560 lib tests pass).
+
+**7 follow-ups filed (all sprint 303):**
+- T-303.4.11 — sampling history view (read-only, depends on T-303.4.14)
+- T-303.4.12 — Settings sampling prefs toggle (depends on T-303.4.17 helper)
+- T-303.4.13 — modal countdown + auto-approve (depends on T-303.4.15 + .17)
+- T-303.4.14 — **shared SamplingSessionRegistry (P1 prod bug)** — discovered by wave-boundary duck
+- T-303.4.15 — **thread samplingAgent into stdio sampling clients (P1 prod bug)** — discovered by wave-boundary duck
+- T-303.4.16 — sampling inference visible in Sessions/ACP inspector (P2 enhancement)
+- T-303.4.17 — useConfigStore.setSamplingPreference helper (P3 defense-in-depth)
+- T-303.15.2 — daemon discovery smoke test follow-up (pipeline corrected from deprecated `lightweight` to `tdd`)
+
+**Wave-boundary dual rubber-duck verdict:**
+- gpt-5.5: REQUIRES-REMEDIATION — found 4 blocking findings (registry overwrite, samplingAgent not threaded, hidden inference wiring, preference clobber)
+- claude-opus-4.6: PASS-WITH-NOTES — agreed on preference clobber, disagreed on the other 3
+- PM resolution: filed all 4 as gate items (T-303.4.14/.15/.16/.17). T-303.4.14 + .15 are P1 production bugs (sampling Phase 2 doesn't actually work end-to-end for stdio MCP servers in production).
+
+**Key lesson — pre-existing latent production bugs surface only at wave boundaries.**
+
+T-303.4.14 (registry overwrite) and T-303.4.15 (samplingAgent not threaded) have been live since T-303.4.7 shipped iter-12. The iter-12 red-team didn't catch them because the audit was scope-bounded to client_handler.rs + sampling_session_registry.rs. The bugs live in:
+- Cross-cutting global state (`set_registry()` is in `resources/sampling.rs`)
+- Wiring layer (`stdio_session.rs:111` hardcodes `let sampling_agent = None;`)
+
+Both are outside any single SWE task's audit scope. Wave-boundary review with a different model (gpt-5.5 caught what opus missed) is the only catch.
+
+**Lesson — single-model wave-boundary reviews miss class-of-error blindspots.**
+
+opus duck PASSED with notes; gpt-5.5 duck REQUIRES-REMEDIATION on the same code. The disagreement WAS the value: opus checked the in-task delta, gpt-5.5 checked the system integration. Both readings are partly right. The dual model is non-negotiable per AGENTS.md.
+
+**Lesson — pre-design rubber-duck saved an entire iter of broken work.**
+
+Before SWE dispatch on T-303.4.4 (the original sampling history + Settings UI work), PM dispatched a rubber-duck on the proposed plan. The duck REJECTed with 6 critical findings — the plan would have produced polished UI over incomplete data with race-prone auto-approval. PM responded by:
+1. Filing T-303.4.9 (daemon contract gap) and T-303.4.10 (config store gap) as new prerequisite tasks
+2. Decomposing T-303.4.4 into 3 cleaner sub-tasks (T-303.4.11/.12/.13)
+3. Amending T-303.4.4 spec with all the consumption-path safety requirements
+
+Net iter outcome: 3 clean closures (T-303.15.1 + T-303.4.9 + T-303.4.10) instead of 1 broken closure (T-303.4.4 attempted as originally specced).
+
+**Lesson — gate task ID format is strict (T-{sprint}.{task}.{sub} max).**
+
+Initial decomposition tried T-303.4.4.1 and T-303.4.4.2 (3-segment sub-IDs). Gate sync errored with "expected format T-{sprint}.{N}.md or T-{sprint}.{N}.{M}.md". Fix: use next-available peer IDs under T-303.4 (T-303.4.9, T-303.4.10) with `parent: T-303.4.4` in YAML to preserve hierarchy.
+
+**Lesson — `--reporter=basic` was removed in vitest v4.**
+
+Both blue-team agents hit `Failed to load url basic` errors when running with the `--reporter=basic` flag I gave them. Vitest v4.1.4 doesn't have this reporter. Use `--reporter=default` (or omit). Encoded in agent prompts going forward.
+
+**Lesson — `autotests = false` in `crates/maenifold-core/Cargo.toml` requires explicit `[[test]]` registration for new integration tests.**
+
+Blue-team T-303.4.9 created `crates/maenifold-core/tests/sampling_registry_contract.rs` but couldn't register the target because the spec forbade Cargo.toml modifications. SWE then had to add the `[[test]]` entry. Fix: SWE prompts should allow Cargo.toml modifications when adding new test targets to the maenifold-core crate.
+
+**Lesson — `[[wikilinks]]` in memory writes cannot be file paths.**
+
+Memory write failed with `FILTERED_WIKILINKS` because I included `[[AGENTS.md]]` (a file path). The graph rejects file-path-shaped wikilinks. Use concept names like `[[constitution]]` or `[[P0-trigger-6]]` instead.
+
+**Lesson — memory uri normalization is silent.**
+
+Wrote to `memory://desktop/sampling-arch/iter-13-t303-4-4-rubber-duck-findings`, system stored as `memory://t303-4-4-rubberduck-findings-iter13-gpt5-5`. Future SearchMemories should still find it by content/concepts, but the URI path I expected didn't stick.
+
+**Standing pre-flight checks for next iter (refined from iter-12+13):**
+1. `git reflog | head -3` — investigate any HEAD@{0/1}: reset: entries.
+2. `git worktree list` — prune any stale worktrees.
+3. `git status --short` — must be clean.
+4. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only).
+5. `cd apps/desktop && npm run build` (PM-only).
+6. Read learnings.md tail for previous iter's final tally.
+7. **NEW (iter-13):** Check sprint 303 backlog for T-303.4.14/.15 status — these are P1 production bugs that block sampling Phase 2 end-to-end.
+8. **NEW (iter-13):** When dispatching SWE for cross-stack tasks involving cross-cutting global state, instruct red-team to grep for `set_*` global setters and `RwLock<Option<Arc<` static patterns.
+9. **NEW (iter-13):** Rubber-duck BEFORE SWE dispatch — for any non-trivial task, the design pre-flight saves wasted SWE cycles.
+10. **NEW (iter-13):** Vitest commands MUST NOT use `--reporter=basic` — removed in v4. Default reporter or omit.
+11. **NEW (iter-13):** When adding new integration test files in `crates/maenifold-core/tests/`, the SWE must also add the `[[test]]` entry to `Cargo.toml` because `autotests = false`.
+12. **NEW (iter-13):** Memory writes — avoid `[[file.md]]` style wikilinks; use concept names instead.
+13. **NEW (iter-13):** Gate task IDs are strictly T-{sprint}.{task}.{sub} (max 2 sub-segments). Use peer IDs under the grandparent for sub-sub-tasks.

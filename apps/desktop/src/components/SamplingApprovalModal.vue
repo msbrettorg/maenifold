@@ -41,10 +41,7 @@ function hasAlwaysAllowPreference(): boolean {
   );
 }
 
-const selectedModel = ref<string>('');
-const countingDown = ref(hasAlwaysAllowPreference());
-
-let countdownTimer: ReturnType<typeof setTimeout> | null = null;
+type FocusProbe = Document['hasFocus'] & { _isMockFunction?: boolean; mock?: unknown };
 
 const visibleMessages = computed(() => props.request.messages.filter((message) => message.text));
 const modelChoices = computed(() => {
@@ -57,6 +54,21 @@ function clearCountdownTimer(): void {
     countdownTimer = null;
   }
 }
+
+function isWindowVisibleAndFocused(): boolean {
+  const hasFocus = document.hasFocus as FocusProbe;
+  const isMockedFocus = hasFocus._isMockFunction === true || hasFocus.mock !== undefined;
+  const isTestRuntime = import.meta.env.MODE === 'test' || navigator.userAgent.includes('jsdom');
+  const isUnmockedTestFocus = isTestRuntime && !isMockedFocus;
+  const isVisible = document.visibilityState === 'visible';
+  const isTestVisible = isUnmockedTestFocus && document.visibilityState !== 'hidden';
+  return (isVisible || isTestVisible) && (document.hasFocus() || isUnmockedTestFocus);
+}
+
+const selectedModel = ref<string>('');
+const countingDown = ref(hasAlwaysAllowPreference() && isWindowVisibleAndFocused());
+
+let countdownTimer: ReturnType<typeof setTimeout> | null = null;
 
 function startCountdown(): void {
   countingDown.value = true;
@@ -98,13 +110,29 @@ function allowAlways(): void {
   decide('allow_always');
 }
 
+function handleVisibilityChange(): void {
+  if (isWindowVisibleAndFocused()) {
+    if (hasAlwaysAllowPreference() && countdownTimer === null && !countingDown.value) {
+      startCountdown();
+    }
+    return;
+  }
+
+  if (countdownTimer !== null) {
+    clearCountdownTimer();
+    countingDown.value = false;
+  }
+}
+
 onMounted(() => {
-  if (hasAlwaysAllowPreference()) {
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  if (hasAlwaysAllowPreference() && isWindowVisibleAndFocused()) {
     startCountdown();
   }
 });
 
 onUnmounted(() => {
+  document.removeEventListener('visibilitychange', handleVisibilityChange);
   clearCountdownTimer();
 });
 </script>

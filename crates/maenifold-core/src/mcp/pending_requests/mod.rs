@@ -160,16 +160,6 @@ impl PendingRequestRegistry {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) async fn respond(
-        &self,
-        id: Uuid,
-        response: ElicitationResponse,
-    ) -> Result<(), RespondError> {
-        self.respond_typed(UserPromptResponse::Elicitation { id, response })
-            .await
-    }
-
     async fn insert(self: &Arc<Self>, event: UserPromptEvent, payload: PendingPayload) {
         let id = event.id;
         let timeout = match &payload {

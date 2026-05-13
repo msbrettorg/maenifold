@@ -1,6 +1,6 @@
 use crate::mcp::MaenifoldClient;
 use crate::mcp::PendingRequestRegistry;
-use crate::mcp::pending_requests::{ElicitationResponse, UserPromptAction};
+use crate::mcp::pending_requests::{ElicitationResponse, UserPromptAction, UserPromptResponse};
 use rmcp::{
     ServerHandler, ServiceExt,
     model::{
@@ -126,13 +126,13 @@ async fn elicitation_create_round_trips_registry_response() -> anyhow::Result<()
     let mut client = MaenifoldClient::new(registry).serve(client_transport).await?;
     let id = wait_for_pending_id(&registry_for_response).await?;
     registry_for_response
-        .respond(
+        .respond_typed(UserPromptResponse::Elicitation {
             id,
-            ElicitationResponse {
+            response: ElicitationResponse {
                 action: UserPromptAction::Accept,
                 content: Some(json!({ "reason": "approved" })),
             },
-        )
+        })
         .await
         .map_err(|error| anyhow::anyhow!("respond failed: {error:?}"))?;
     let result = server_task.await??;
@@ -170,13 +170,13 @@ async fn concurrent_elicitations_each_receive_matching_response() -> anyhow::Res
     let ids = wait_for_pending_count(&registry_for_response, 2).await?;
     for (index, id) in ids.into_iter().enumerate() {
         registry_for_response
-            .respond(
+            .respond_typed(UserPromptResponse::Elicitation {
                 id,
-                ElicitationResponse {
+                response: ElicitationResponse {
                     action: UserPromptAction::Accept,
                     content: Some(json!({ "reason": format!("approved-{index}") })),
                 },
-            )
+            })
             .await
             .map_err(|error| anyhow::anyhow!("respond failed: {error:?}"))?;
     }

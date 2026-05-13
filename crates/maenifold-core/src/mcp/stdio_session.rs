@@ -1,6 +1,7 @@
 use crate::error::{MaenifoldError, Result};
 use crate::mcp::gateway_metadata;
 use crate::mcp::MaenifoldClient;
+use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use rmcp::{
     Peer, RoleClient, ServiceExt,
@@ -66,7 +67,15 @@ impl StdioSession {
         entry: &McpServerStdioConfig,
         call_timeout: Duration,
     ) -> std::result::Result<Self, StdioStartupError> {
-        Self::start_with_startup_timeout(entry, STARTUP_TIMEOUT, call_timeout).await
+        Self::start_with_registry(entry, call_timeout, Arc::new(PendingRequestRegistry::new())).await
+    }
+
+    pub async fn start_with_registry(
+        entry: &McpServerStdioConfig,
+        call_timeout: Duration,
+        registry: Arc<PendingRequestRegistry>,
+    ) -> std::result::Result<Self, StdioStartupError> {
+        Self::start_with_startup_timeout_and_registry(entry, STARTUP_TIMEOUT, call_timeout, registry).await
     }
 
     pub async fn start_with_startup_timeout(
@@ -74,10 +83,19 @@ impl StdioSession {
         startup_timeout: Duration,
         call_timeout: Duration,
     ) -> std::result::Result<Self, StdioStartupError> {
+        Self::start_with_startup_timeout_and_registry(entry, startup_timeout, call_timeout, Arc::new(PendingRequestRegistry::new())).await
+    }
+
+    pub async fn start_with_startup_timeout_and_registry(
+        entry: &McpServerStdioConfig,
+        startup_timeout: Duration,
+        call_timeout: Duration,
+        registry: Arc<PendingRequestRegistry>,
+    ) -> std::result::Result<Self, StdioStartupError> {
         let (transport, stderr_task, stderr, process_group_id) =
             spawn(entry).map_err(|error| StdioStartupError::new(error, None))?;
         let startup = async move {
-            let mut client = MaenifoldClient::new()
+            let mut client = MaenifoldClient::new(registry)
                 .serve(transport)
                 .await
                 .map_err(to_message_error)?;

@@ -7,13 +7,17 @@ use rmcp::{
     },
     service::{RequestContext, RoleClient},
 };
+use std::sync::Arc;
+
+use super::PendingRequestRegistry;
 
 pub struct MaenifoldClient {
     info: ClientInfo,
+    registry: Arc<PendingRequestRegistry>,
 }
 
 impl MaenifoldClient {
-    pub fn new() -> Self {
+    pub fn new(registry: Arc<PendingRequestRegistry>) -> Self {
         let capabilities = ClientCapabilities::builder()
             .enable_sampling()
             .enable_elicitation()
@@ -21,7 +25,7 @@ impl MaenifoldClient {
             .build();
         let info = ClientInfo::new(capabilities, Implementation::new("maenifold-core", "0.1.0"))
             .with_protocol_version(ProtocolVersion::V_2025_03_26);
-        Self { info }
+        Self { info, registry }
     }
 }
 
@@ -31,11 +35,17 @@ impl ClientHandler for MaenifoldClient {
         request: CreateElicitationRequestParams,
         _context: RequestContext<RoleClient>,
     ) -> Result<CreateElicitationResult, rmcp::ErrorData> {
-        tracing::info!(
-            ?request,
-            "received MCP elicitation request; returning cancel"
-        );
-        Ok(CreateElicitationResult::new(ElicitationAction::Cancel))
+        tracing::info!(?request, "received MCP elicitation request");
+        let response = self.registry.register(request).await.await;
+        let Ok(response) = response else {
+            tracing::warn!("MCP elicitation request expired before user response");
+            return Ok(CreateElicitationResult::new(ElicitationAction::Cancel));
+        };
+        let mut result = CreateElicitationResult::new(response.to_mcp_action());
+        if let Some(content) = response.content {
+            result = result.with_content(content);
+        }
+        Ok(result)
     }
 
     async fn create_message(

@@ -38,6 +38,24 @@ type WritePermissionResolvePayload = {
   decision: 'allow_once' | 'allow_always' | 'reject';
 };
 
+type UserPromptRequestPayload = {
+  id: string;
+  kind: 'elicitation';
+  payload: {
+    message?: unknown;
+    requestedSchema?: unknown;
+  };
+  timeoutMs: number;
+};
+
+type UserPromptResolvePayload = {
+  id: string;
+  response: {
+    action: 'accept' | 'cancel' | 'dismiss';
+    content?: Record<string, unknown>;
+  };
+};
+
 type TerminalCreatePayload = {
   sessionId?: string;
   command: string;
@@ -73,6 +91,14 @@ const electronAPI = {
   },
   resolveWritePermission: (payload: WritePermissionResolvePayload) =>
     ipcRenderer.invoke('acp:write-permission:resolve', payload) as Promise<{ ok: true }>,
+  onUserPromptRequest: (handler: (payload: UserPromptRequestPayload) => void) => {
+    const listener = (_event: IpcRendererEvent, payload: UserPromptRequestPayload) =>
+      handler(payload);
+    ipcRenderer.on('mcp:user-prompt:request', listener);
+    return () => ipcRenderer.removeListener('mcp:user-prompt:request', listener);
+  },
+  resolveUserPrompt: (payload: UserPromptResolvePayload) =>
+    ipcRenderer.invoke('mcp:user-prompt:resolve', payload) as Promise<{ ok: true }>,
   checkEnvVarPresence: (names: string[]) =>
     ipcRenderer.invoke('check-env-vars', names) as Promise<Record<string, boolean>>,
   gateSetRoot: (params: { root: string | null }) =>
@@ -156,4 +182,8 @@ const electronAPI = {
  *   a full migration to window.api (Option B) in a future sprint.
  */
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
-contextBridge.exposeInMainWorld('api', { quit: electronAPI.quit });
+contextBridge.exposeInMainWorld('api', {
+  quit: electronAPI.quit,
+  onUserPromptRequest: electronAPI.onUserPromptRequest,
+  resolveUserPrompt: electronAPI.resolveUserPrompt,
+});

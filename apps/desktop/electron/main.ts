@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, protocol, shell } from 'electron';
 import { registerAcpFileSystemHandlers } from './acp-file-system.js';
 import { registerConfigHandlers } from './config-file.js';
+import { registerUserPromptBridge } from './user-prompt-bridge.js';
 import { registerVec0Handlers } from './vec0.js';
 import { registerVoiceHandlers } from './voice.js';
 import { registerPermissionLedgerHandlers } from './permission-ledger.js';
@@ -16,12 +17,7 @@ import {
 
 function ignoreOnlyEpipe(error: NodeJS.ErrnoException) {
   if (error.code === 'EPIPE') return;
-  try {
-    appendFileSync(
-      join(app.getPath('userData'), 'crash.log'),
-      `[${new Date().toISOString()}] stdio error: ${error.stack || error}\n`,
-    );
-  } catch { /* pre-ready or write failure — nothing we can do */ }
+  try { appendFileSync(join(app.getPath('userData'), 'crash.log'), `[${new Date().toISOString()}] stdio error: ${error.stack || error}\n`); } catch { /* pre-ready or write failure — nothing we can do */ }
 }
 process.stdout?.on('error', ignoreOnlyEpipe);
 process.stderr?.on('error', ignoreOnlyEpipe);
@@ -29,6 +25,9 @@ process.stderr?.on('error', ignoreOnlyEpipe);
 const writeConsoleError = (...args: unknown[]) => console['error'](...args);
 function safeLogError(...args: unknown[]) {
   try { writeConsoleError(...args); } catch { /* crash-path: logging failure is non-fatal */ }
+}
+function safeLogInfo(message: string) {
+  try { process.stdout.write(`${message}\n`); } catch { /* crash-path: logging failure is non-fatal */ }
 }
 
 protocol.registerSchemesAsPrivileged([
@@ -47,44 +46,25 @@ const terminalManager = new TerminalManager(() => mainWindow?.webContents ?? nul
 const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const gateTaskFilenamePattern = /^T-\d+\.\d+-[a-z0-9]+(?:-[a-z0-9]+)*\.md$/;
 
-type GateWriteTaskFileParams = {
-  root?: unknown;
-  filename?: unknown;
-  content?: unknown;
-};
-
-type GateSetRootParams = {
-  root?: unknown;
-};
+type GateWriteTaskFileParams = { root?: unknown; filename?: unknown; content?: unknown };
+type GateSetRootParams = { root?: unknown };
 
 function validateGateWriteTaskFileParams(params: unknown) {
-  if (!params || typeof params !== 'object') {
-    throw new Error('parameters are required');
-  }
+  if (!params || typeof params !== 'object') throw new Error('parameters are required');
   const candidate = params as GateWriteTaskFileParams;
-  if (typeof candidate.root !== 'string' || candidate.root.length === 0) {
-    throw new Error('root is required');
-  }
+  if (typeof candidate.root !== 'string' || candidate.root.length === 0) throw new Error('root is required');
   if (typeof candidate.filename !== 'string' || !gateTaskFilenamePattern.test(candidate.filename)) {
     throw new Error('invalid task filename');
   }
-  if (typeof candidate.content !== 'string') {
-    throw new Error('content is required');
-  }
+  if (typeof candidate.content !== 'string') throw new Error('content is required');
   return { root: candidate.root, filename: candidate.filename, content: candidate.content };
 }
 
 function validateGateSetRootParams(params: unknown) {
-  if (!params || typeof params !== 'object') {
-    throw new Error('parameters are required');
-  }
+  if (!params || typeof params !== 'object') throw new Error('parameters are required');
   const candidate = params as GateSetRootParams;
-  if (candidate.root !== null && typeof candidate.root !== 'string') {
-    throw new Error('root is required');
-  }
-  if (candidate.root !== null && !isAbsolute(candidate.root)) {
-    throw new Error('gate:set-root requires an absolute path');
-  }
+  if (candidate.root !== null && typeof candidate.root !== 'string') throw new Error('root is required');
+  if (candidate.root !== null && !isAbsolute(candidate.root)) throw new Error('gate:set-root requires an absolute path');
   return { root: candidate.root as string | null };
 }
 
@@ -92,24 +72,16 @@ async function isServiceHealthy(url: string): Promise<boolean> {
   try {
     const response = await fetch(url);
     return response.status >= 200 && response.status < 500;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
-function launchAgentPath(label: string): string {
-  return join(app.getPath('home'), 'Library', 'LaunchAgents', `${label}.plist`);
-}
-function maenifoldRoot(): string {
-  return process.env.MAENIFOLD_ROOT || join(app.getPath('home'), 'maenifold');
-}
+function launchAgentPath(label: string): string { return join(app.getPath('home'), 'Library', 'LaunchAgents', `${label}.plist`); }
+function maenifoldRoot(): string { return process.env.MAENIFOLD_ROOT || join(app.getPath('home'), 'maenifold'); }
 function isLaunchctlServiceLoaded(label: string): boolean {
   if (!launchctlDomain) return false;
   try {
     execFileSync('launchctl', ['print', `${launchctlDomain}/${label}`], { stdio: 'ignore', timeout: 5_000 });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 function startLaunchctlService(label: string): void {
   if (!launchctlDomain) return;
@@ -129,7 +101,7 @@ function startLaunchctlService(label: string): void {
 }
 async function ensureServices(): Promise<void> {
   if (!(await isServiceHealthy(MAENIFOLD_HEALTH_URL))) {
-    console.log('[maenifold] Service not responding on 8080, starting via launchctl...');
+    safeLogInfo('[maenifold] Service not responding on 8080, starting via launchctl...');
     startLaunchctlService(MAENIFOLD_SERVICE);
   }
   for (let attempt = 0; attempt < 30; attempt += 1) {
@@ -149,19 +121,10 @@ async function createWindow(): Promise<void> {
     webPreferences: { preload: join(moduleDir, 'preload.mjs'), contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   mainWindow.on('ready-to-show', () => mainWindow?.show());
-  mainWindow.on('close', (event) => {
-    if (process.platform === 'darwin' && !isQuitting) {
-      event.preventDefault();
-      mainWindow?.hide();
-    }
-  });
+  mainWindow.on('close', (event) => { if (process.platform === 'darwin' && !isQuitting) { event.preventDefault(); mainWindow?.hide(); } });
   const rendererOrigin = process.env.ELECTRON_RENDERER_URL
     ? (() => {
-        try {
-          return new URL(process.env.ELECTRON_RENDERER_URL).origin;
-        } catch {
-          return null;
-        }
+        try { return new URL(process.env.ELECTRON_RENDERER_URL).origin; } catch { return null; }
       })()
     : null;
   const appPath = app.getAppPath();
@@ -174,9 +137,7 @@ async function createWindow(): Promise<void> {
     event.preventDefault();
   });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url);
-    } catch {}
+    try { if (['http:', 'https:'].includes(new URL(url).protocol)) void shell.openExternal(url); } catch {}
     return { action: 'deny' };
   });
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
@@ -184,21 +145,11 @@ async function createWindow(): Promise<void> {
       callback({ responseHeaders: details.responseHeaders });
       return;
     }
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';",
-        ],
-      },
-    });
+    callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': ["default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://localhost:* http://127.0.0.1:* ws://localhost:* ws://127.0.0.1:*; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-ancestors 'none';"] } });
   });
   mainWindow.webContents.session.setPermissionRequestHandler((_webContents, permission, callback, details) => {
     const isSandbox = details.requestingUrl?.startsWith('mcp-app-sandbox://');
-    if (isSandbox && new Set(['clipboard-write', 'clipboard-read']).has(permission)) {
-      callback(true);
-      return;
-    }
+    if (isSandbox && new Set(['clipboard-write', 'clipboard-read']).has(permission)) { callback(true); return; }
     callback(false);
   });
   const rendererUrl = process.env.ELECTRON_RENDERER_URL ?? process.env.VITE_DEV_SERVER_URL;
@@ -274,9 +225,7 @@ function registerIpcHandlers(): void {
   ipcMain.handle('app:quit', () => { app.quit(); });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};
-    for (const name of names) {
-      result[name] = !!process.env[name];
-    }
+    for (const name of names) result[name] = !!process.env[name];
     return result;
   });
   ipcMain.handle('gate:set-root', (_event, params: unknown) => {
@@ -287,58 +236,32 @@ function registerIpcHandlers(): void {
   ipcMain.handle('gate:write-task-file', (_event, params: unknown) => {
     const { root, filename, content } = validateGateWriteTaskFileParams(params);
     const resolvedRoot = realpathSync(root);
-    if (selectedGateRoot === null || resolvedRoot !== realpathSync(selectedGateRoot)) {
-      throw new Error('Root mismatch: provided root does not match selected gate root');
-    }
+    if (selectedGateRoot === null || resolvedRoot !== realpathSync(selectedGateRoot)) throw new Error('Root mismatch: provided root does not match selected gate root');
     const todoDir = join(root, 'todo');
-    if (lstatSync(todoDir).isSymbolicLink()) {
-      throw new Error('Refusing to write: todo/ is a symbolic link');
-    }
+    if (lstatSync(todoDir).isSymbolicLink()) throw new Error('Refusing to write: todo/ is a symbolic link');
     const resolvedTodo = realpathSync(todoDir);
-    if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) {
-      throw new Error('Refusing to write: todo/ resolves outside root');
-    }
+    if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) throw new Error('Refusing to write: todo/ resolves outside root');
     const taskPath = join(todoDir, filename);
     writeFileSync(taskPath, content, { flag: 'wx' });
     return { path: taskPath };
   });
-  ipcMain.handle('terminal:create', (_event, params) => {
-    const { sessionId: _sessionId, ...terminalParams } = validateCreateTerminalParams(params);
-    return terminalManager.createTerminal(terminalParams);
-  });
-  ipcMain.handle('terminal:output', (_event, params) => {
-    const { terminalId } = validateTerminalOperationParams(params);
-    return terminalManager.getOutput(terminalId);
-  });
-  ipcMain.handle('terminal:wait_for_exit', (_event, params) => {
-    const { terminalId } = validateTerminalOperationParams(params);
-    return terminalManager.waitForExit(terminalId);
-  });
-  ipcMain.handle('terminal:kill', (_event, params) => {
-    const { terminalId } = validateTerminalOperationParams(params);
-    return terminalManager.kill(terminalId);
-  });
-  ipcMain.handle('terminal:release', (_event, params) => {
-    const { terminalId } = validateTerminalOperationParams(params);
-    return terminalManager.release(terminalId);
-  });
+  ipcMain.handle('terminal:create', (_event, params) => terminalManager.createTerminal(validateCreateTerminalParams(params)));
+  ipcMain.handle('terminal:output', (_event, params) => terminalManager.getOutput(validateTerminalOperationParams(params).terminalId));
+  ipcMain.handle('terminal:wait_for_exit', (_event, params) => terminalManager.waitForExit(validateTerminalOperationParams(params).terminalId));
+  ipcMain.handle('terminal:kill', (_event, params) => terminalManager.kill(validateTerminalOperationParams(params).terminalId));
+  ipcMain.handle('terminal:release', (_event, params) => terminalManager.release(validateTerminalOperationParams(params).terminalId));
   registerAcpFileSystemHandlers();
   registerConfigHandlers();
+  registerUserPromptBridge(() => mainWindow?.webContents ?? null);
   registerVec0Handlers();
   registerVoiceHandlers();
   registerPermissionLedgerHandlers();
 }
 app.on('render-process-gone', async (_event, _webContents, details) => {
   safeLogError('[maenifold] Renderer process gone:', details.reason, details.exitCode);
-  if (details.reason !== 'clean-exit') {
-    mainWindow = null;
-    terminalManager.dispose();
-    await createWindow();
-  }
+  if (details.reason !== 'clean-exit') { mainWindow = null; terminalManager.dispose(); await createWindow(); }
 });
-app.on('child-process-gone', (_event, details) => {
-  safeLogError('[maenifold] Child process gone:', details.type, details.reason);
-});
+app.on('child-process-gone', (_event, details) => safeLogError('[maenifold] Child process gone:', details.type, details.reason));
 process.on('uncaughtException', (error) => {
   if ((error as NodeJS.ErrnoException).code === 'EPIPE') return;
   safeLogError('[maenifold] Uncaught exception:', error);
@@ -346,17 +269,13 @@ process.on('uncaughtException', (error) => {
   terminalManager.dispose();
   setImmediate(() => process.exit(1));
 });
-process.on('unhandledRejection', (reason) => {
-  safeLogError('[maenifold] Unhandled rejection:', reason);
-});
+process.on('unhandledRejection', (reason) => safeLogError('[maenifold] Unhandled rejection:', reason));
 app.on('before-quit', () => { isQuitting = true; terminalManager.dispose(); });
 app.on('will-quit', () => { terminalManager.dispose(); });
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
 app.on('activate', async () => { if (BrowserWindow.getAllWindows().length === 0) await createWindow(); else mainWindow?.show(); });
 app.whenReady().then(async () => {
-  if (process.env.MAENIFOLD_UAT === '1') {
-    console.log('[uat] MAENIFOLD_UAT mode active - native dialogs return synthetic results');
-  }
+  if (process.env.MAENIFOLD_UAT === '1') safeLogInfo('[uat] MAENIFOLD_UAT mode active - native dialogs return synthetic results');
   registerIpcHandlers();
   registerSandboxProtocol();
   await ensureServices();

@@ -3,6 +3,7 @@ use crate::mcp::stdio_pool_health::{RestartState, lock_state};
 pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
 use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
+use crate::mcp::PendingRequestRegistry;
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
@@ -58,6 +59,13 @@ impl ManagedServer {
 }
 impl StdioPool {
     pub async fn start(servers: Vec<StdioServerConfig>) -> Result<Self> {
+        Self::start_with_registry(servers, Arc::new(PendingRequestRegistry::new())).await
+    }
+
+    pub async fn start_with_registry(
+        servers: Vec<StdioServerConfig>,
+        registry: Arc<PendingRequestRegistry>,
+    ) -> Result<Self> {
         let mut seen = HashSet::new();
         for config in &servers {
             if !seen.insert(&config.name) {
@@ -69,9 +77,14 @@ impl StdioPool {
         }
         let mut tasks = JoinSet::new();
         for config in servers {
+            let registry = Arc::clone(&registry);
             tasks.spawn(async move {
                 let name = config.name.clone();
-                (name, config.clone(), start_session(&config).await)
+                (
+                    name,
+                    config.clone(),
+                    start_session_with_registry(&config, registry).await,
+                )
             });
         }
         let mut started = HashMap::new();
@@ -210,6 +223,13 @@ impl StdioPool {
 pub(super) async fn start_session(
     config: &StdioServerConfig,
 ) -> std::result::Result<StdioSession, StdioStartupError> {
+    start_session_with_registry(config, Arc::new(PendingRequestRegistry::new())).await
+}
+
+pub(super) async fn start_session_with_registry(
+    config: &StdioServerConfig,
+    registry: Arc<PendingRequestRegistry>,
+) -> std::result::Result<StdioSession, StdioStartupError> {
     let entry = McpServerStdioConfig::new(config.name.clone(), config.command.clone())
         .args(config.args.clone())
         .env(
@@ -219,7 +239,12 @@ pub(super) async fn start_session(
                 .map(|(name, value)| EnvVariable::new(name.clone(), value.clone()))
                 .collect(),
         );
-    StdioSession::start(&entry, config.timeout.unwrap_or(Duration::from_secs(60))).await
+    StdioSession::start_with_registry(
+        &entry,
+        config.timeout.unwrap_or(Duration::from_secs(60)),
+        registry,
+    )
+    .await
 }
 fn is_prewrite_failure(error: &MaenifoldError) -> bool {
     matches!(error, MaenifoldError::SessionUnusable)

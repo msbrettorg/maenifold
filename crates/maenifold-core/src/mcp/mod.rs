@@ -1,5 +1,6 @@
 mod cors;
 mod client_handler;
+mod elicitation_validation;
 #[cfg(test)]
 mod client_handler_tests;
 pub(crate) mod discovery_tools;
@@ -43,6 +44,7 @@ mod task_hooks;
 #[cfg(test)]
 mod gateway_tasks_tests;
 pub mod http; mod mcp_tool_calls; mod resource_routing;
+pub mod pending_requests;
 pub mod resources;
 #[cfg(test)]
 mod save_workflow_asset_gateway_tests;
@@ -64,6 +66,7 @@ use crate::mcp::gateway_handler::GatewayState;
 use crate::registry::ToolRegistry;
 pub(crate) use cors::localhost_cors;
 pub use client_handler::MaenifoldClient;
+pub use pending_requests::PendingRequestRegistry;
 pub(crate) use gateway_cli::{gateway_cli_help, invoke_gateway_cli_tool};
 pub use resources::*;
 use rmcp::model::{

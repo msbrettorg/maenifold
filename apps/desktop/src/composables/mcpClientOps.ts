@@ -4,9 +4,11 @@ import {
   StreamableHTTPError,
 } from '@modelcontextprotocol/sdk/client/streamableHttp';
 import type { Notification } from '@modelcontextprotocol/sdk/types';
+import type { GetPromptResult, Prompt as PromptDescriptor } from '@modelcontextprotocol/sdk/types';
 import {
   LoggingMessageNotificationSchema,
   ProgressNotificationSchema,
+  PromptListChangedNotificationSchema,
   ResourceListChangedNotificationSchema,
   ResourceUpdatedNotificationSchema,
   ToolListChangedNotificationSchema,
@@ -28,6 +30,9 @@ export type SdkClient = Client;
 export type SdkTransport = StreamableHTTPClientTransport;
 
 export interface McpServerCapabilities {
+  prompts?: {
+    listChanged?: boolean;
+  };
   resources?: {
     subscribe?: boolean;
     listChanged?: boolean;
@@ -90,6 +95,7 @@ export function createSdkMcpClient(options: {
     ToolListChangedNotificationSchema,
     ProgressNotificationSchema,
     LoggingMessageNotificationSchema,
+    PromptListChangedNotificationSchema,
   ]) {
     client.setNotificationHandler(schema, (notification) => {
       options.notificationRouter.dispatch(notification);
@@ -427,6 +433,17 @@ export function createMcpClientOps(options: {
     return (result.resourceTemplates ?? []) as ResourceTemplateDescriptor[];
   }
 
+  async function listPrompts(): Promise<PromptDescriptor[]> {
+    options.setError(null);
+    const result = await withReconnect((client) => client.listPrompts());
+    return (result.prompts ?? []) as PromptDescriptor[];
+  }
+
+  async function getPrompt(name: string, args?: Record<string, string>): Promise<GetPromptResult> {
+    options.setError(null);
+    return withReconnect((client) => client.getPrompt({ name, arguments: args }));
+  }
+
   return {
     callTool,
     callToolRaw,
@@ -436,5 +453,7 @@ export function createMcpClientOps(options: {
     unsubscribeResource,
     listResources,
     listResourceTemplates,
+    listPrompts,
+    getPrompt,
   };
 }

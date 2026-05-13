@@ -158,6 +158,10 @@ export function useMcpClient(baseUrl?: string) {
     return serverCapabilities.value?.resources?.subscribe === true;
   }
 
+  function supportsPrompts(): boolean {
+    return serverCapabilities.value?.prompts != null;
+  }
+
   function onDisconnect(handler: () => void): () => void {
     disconnectListeners.add(handler);
     return () => {
@@ -182,7 +186,10 @@ export function useMcpClient(baseUrl?: string) {
     unsubscribeResource: ops.unsubscribeResource,
     listResources: ops.listResources,
     listResourceTemplates: ops.listResourceTemplates,
+    listPrompts: ops.listPrompts,
+    getPrompt: ops.getPrompt,
     supportsResourceSubscribe,
+    supportsPrompts,
     onNotification: notificationRouter.onNotification,
     onDisconnect,
   };

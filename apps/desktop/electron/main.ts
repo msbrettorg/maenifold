@@ -271,6 +271,7 @@ export async function openDirectoryDialog(): Promise<string | null> {
 function registerIpcHandlers(): void {
   ipcMain.handle('dialog:open-directory', () => openDirectoryDialog());
   ipcMain.handle('app:get-version', () => app.getVersion());
+  ipcMain.handle('app:quit', () => { app.quit(); });
   ipcMain.handle('check-env-vars', (_event, names: string[]) => {
     const result: Record<string, boolean> = {};
     for (const name of names) {

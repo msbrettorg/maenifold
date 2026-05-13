@@ -27,6 +27,7 @@ type ElectronVoiceLaunchResult = {
 type ElectronApi = {
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
+  quit?: () => Promise<void>;
   readTextFile?: (params: { path: string; line?: number; limit?: number }) => Promise<{ content: string }>;
   writeTextFile?: (params: { path: string; content: string; sessionId?: string }) => Promise<Record<string, never>>;
   onWritePermissionPrompt?: (handler: (payload: {
@@ -88,6 +89,10 @@ type ElectronApi = {
   };
 };
 
+type AppApi = {
+  quit: () => Promise<void>;
+};
+
 type Vec0DownloadProgress = {
   current: number;
   total: number;
@@ -106,6 +111,7 @@ type Vec0Status = {
 };
 
 interface Window {
+  api: AppApi;
   electronAPI?: ElectronApi;
 }
 

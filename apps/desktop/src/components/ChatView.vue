@@ -6,6 +6,9 @@ import { useMermaid } from '../composables/useMermaid';
 import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
+import { useBuiltInSlashCommands } from '../composables/useBuiltInSlashCommands';
+import { useConfirmDialogStore } from '../stores/confirm-dialog';
+import { useAppShellStore } from '../stores/app-shell';
 import { isAbsolutePath } from '../lib/acp-meta';
 import ConfigOptionPicker from './ConfigOptionPicker.vue';
 import ModePicker from './ModePicker.vue';
@@ -23,6 +26,8 @@ type FileTextResponse = { path: string; content: string };
 const EMBEDDED_CONTEXT_MENTION = /(^|[\s(])@(?:"([^"\n]+)"|([^\s@]+))/g;
 const sessionStore = useSessionStore();
 const agentStore = useAgentStore();
+const appShellStore = useAppShellStore();
+const confirmDialogStore = useConfirmDialogStore();
 const { renderMermaidBlocks } = useMermaid();
 const mcpClient = useMcpClient();
 const currentSession = computed(() => sessionStore.currentSession);
@@ -52,6 +57,7 @@ const imageAttachmentTooltip = computed(() => supportsImageAttachments.value ? '
 const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? 'Attach audio' : 'This agent does not support audio attachments.');
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
+const builtInSlash = useBuiltInSlashCommands({ sessionStore, appShellStore, confirmDialogStore, currentAgentName: computed(() => currentSession.value?.agentName), currentCwd: sessionCwd });
 const agentSessionStatus = computed(() =>
   currentSession.value?.sessionId && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
     ? agentStore.selectedSession?.status ?? null
@@ -68,12 +74,10 @@ function resolveScrollViewport(): HTMLElement | null {
   const viewport = root.querySelector('[data-reka-scroll-area-viewport]') as HTMLElement | null;
   return viewport ?? root;
 }
-
 async function rerenderExpandedMarkdown(): Promise<void> {
   await nextTick();
   if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
 }
-
 async function toggleThought(messageId: string): Promise<void> {
   if (expandedThoughts.value.has(messageId)) {
     expandedThoughts.value.delete(messageId);
@@ -82,7 +86,6 @@ async function toggleThought(messageId: string): Promise<void> {
   expandedThoughts.value.add(messageId);
   await rerenderExpandedMarkdown();
 }
-
 async function toggleToolCall(toolCallId: string): Promise<void> {
   if (expandedToolCalls.value.has(toolCallId)) {
     expandedToolCalls.value.delete(toolCallId);
@@ -101,7 +104,6 @@ watch(messages, async () => {
   if (viewport) viewport.scrollTop = viewport.scrollHeight;
   if (!isLoading.value && messagesContainer.value) await renderMermaidBlocks(messagesContainer.value);
 }, { deep: true });
-
 onMounted(async () => { await nextTick(); if (messagesContainer.value) await renderMermaidBlocks(messagesContainer.value); void agentStore.start(); });
 onBeforeUnmount(() => {
   void mcpClient.disconnect();
@@ -141,7 +143,9 @@ async function handleSend(): Promise<void> {
     attachmentError.value = error instanceof Error ? error.message : 'Failed to send prompt.';
   }
 }
-function handleCommandSelect(command: AvailableCommand): void {
+async function handleCommandSelect(command: AvailableCommand): Promise<void> {
+  const handled = await builtInSlash.tryHandle(command, availableCommands.value);
+  if (handled) return;
   inputText.value = `/${command.name} `;
   activeCommandHint.value = command.input?.hint ?? null;
 }
@@ -166,14 +170,12 @@ function isPathLikeMention(candidate: string): boolean {
   return candidate.includes('/') || candidate.includes('\\') || candidate.includes('.') || candidate.startsWith('~');
 }
 function normalizeMentionPath(candidate: string): string { return candidate.trim().replace(/[),.;!?]+$/, ''); }
-
 async function fetchEmbeddedContextFile(path: string, cwd?: string): Promise<FileTextResponse> {
   if (!mcpClient.connected.value) {
     await mcpClient.connect();
   }
   return await mcpClient.callTool<FileTextResponse>('ReadTextFile', { path, cwd });
 }
-
 async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlock[]> {
   if (!supportsEmbeddedContext.value) return [];
   const attachments: ContentBlock[] = [];
@@ -237,14 +239,12 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
         </Button>
       </div>
     </div>
-
     <SessionConfigPanel
       v-if="showConfig && currentSession"
       :agent-name="currentSession.agentName"
       :cwd="sessionCwd"
       :is-read-only="true"
     />
-
     <div
       v-if="isPlanMode"
       class="border-b border-warning/30 bg-warning/10 px-4 py-2 text-sm font-semibold tracking-wide text-warning"

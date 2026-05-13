@@ -60,6 +60,7 @@ type TerminalExitStatus = {
 const electronAPI = {
   openDirectory: () => ipcRenderer.invoke('dialog:open-directory') as Promise<string | null>,
   getAppVersion: () => ipcRenderer.invoke('app:get-version') as Promise<string>,
+  quit: () => ipcRenderer.invoke('app:quit') as Promise<void>,
   readTextFile: (params: { path: string; line?: number; limit?: number }) =>
     ipcRenderer.invoke('acp:read-text-file', params) as Promise<{ content: string }>,
   writeTextFile: (params: { path: string; content: string; sessionId?: string }) =>
@@ -140,3 +141,4 @@ const electronAPI = {
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);
+contextBridge.exposeInMainWorld('api', { quit: electronAPI.quit });

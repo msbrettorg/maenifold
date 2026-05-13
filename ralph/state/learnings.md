@@ -1929,3 +1929,52 @@ file's `mod` nesting. Don't assume `<file>_tests.rs` → `<file>_tests::*`.
 - Code standards held: 0 LOC violations, 0 destructive git ops,
   0 sprint-discarding violations, every gate stage backed by a real
   dispatched agent.
+
+
+### Iter-8 absolute final tally — 2026-05-13
+
+**Tasks shipped: 8.** Sprint 302 closed (T-302.37 split useMessageHandler, T-302.38 built-in slash commands, T-302.42 packaging P0 fix). Sprint 303 5 P1s shipped (T-303.1 research, T-303.2 Settings MCP Servers UI Phase 1, T-303.5 summary modes, T-303.6 daemon tasks/* Phase 1, T-303.7 KEYSTONE Task* MCP tools).
+
+#### Final dev-tip state
+- HEAD: a52e22461 — Merge T-303.2.
+- Sprint 302: 21 done (was 20 + T-302.42 P0 fix this iter).
+- Sprint 303: 5 done, 13 pending.
+- 0 outstanding worktrees.
+- 0 sprint-discarding violations.
+- 0 destructive git operations by agents.
+
+#### The packaging story (T-302.42)
+
+Most impactful unblock of the iteration. PM's diagnostic chain:
+1. Initial symptom: T-303.2 blue-team CDP UAT BLOCKED on `npm run package` OOM.
+2. PM hypothesis 1: Node 25 incompatibility. Tested Node 22 LTS — also OOMs. Hypothesis disproved.
+3. PM hypothesis 2: asar packaging leak. Tested `asar: false` — also OOMs. Hypothesis disproved.
+4. PM hypothesis 3: missing forge.config.ts plugins block, default packaging scans 1.1GB node_modules. CONFIRMED.
+5. PM fix: added `ignore` patterns to packagerConfig (16 lines). `npm run package` exits 0 in <1 minute.
+6. Verified: packaged app launches via scripts/uat-launch.sh; CDP port 9226 responds with renderer page from app.asar.
+7. Re-merged dev into task/T-303.2 worktree to bring the fix in. Re-dispatched blue-team. CDP UAT 7/8 PASS (empty-state was profile-contamination, vitest-covered).
+
+**Lesson encoded for next iter:** Whenever a UI blue-team blocks on a tooling failure, treat it as a P0 and PM-direct it. Diagnostic chain (test the hypothesis) before applying fixes. T-302.42's documented investigation chain is a good template.
+
+#### Lesson — gate transition sequence is fragile under concurrent dispatch
+
+Iter-8 had 3 cases where PM gate_Pass calls fell out of step with the actual stage progression because the PM had multiple agents in flight and didn't always run gate_Status before transitioning. Symptoms:
+- T-303.6 transition note "swe→red-team" was actually pending→swe.
+- T-303.2 needed 3 blue-team dispatches because the worktree state didn't match what the PM thought (forgot to commit worker output between dev-merge and blue-team retry).
+
+**Pattern for next iter:** Before EVERY gate_Pass, run gate_Status to confirm current state, then write the note based on `current_state → next_state`. Before EVERY blue-team dispatch on a worktree, run `git status --short` in that worktree and commit any uncommitted worker output FIRST.
+
+#### Iter-8 totals (definitive)
+- 8 tasks shipped this iter (5 P1, 1 P0, 2 P3).
+- 11 SWE worker dispatches (some retried due to remediation cycles).
+- 6 red-team dispatches (all PASS HIGH on first or second).
+- 8 blue-team dispatches (3 had to retry: T-303.6 selector typo, T-303.2 packaging-then-state).
+- 4 remediation cycles (T-302.37 reconstruction defect, T-303.5 rustfmt churn, T-303.7 rustfmt churn, T-303.2 PM-bookkeeping).
+- 2 wave-boundary rubber-duck reviews (sprint 302→303).
+- 6 follow-ups filed (T-302.40, T-302.41, T-303.12-17).
+- 1 P0 filed AND closed (T-302.42).
+- 0 sprint-discarding violations.
+- 0 destructive git ops by agents.
+- 0 PM circuit-breaker hits.
+
+This iteration is the strongest single RALPH iter-tally to date for backend MCP infrastructure work.

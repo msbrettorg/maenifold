@@ -2318,3 +2318,73 @@ All 5 findings are legitimate process gaps. Without the dual-review at the wave 
 T-304.5 audit cited specific file:line locations (e.g., `acp-client-core.ts:382-418`). The PM filed 4 follow-up tasks (T-304.11/12/13/14) using these citations directly. The audit memory note was authored by the PM from worker output (worker had no MCP gateway access).
 
 **Standing rule:** SWE prompts derived from a research-worker audit MUST include a "verify the cited file:line still matches the described behavior" preamble. The worker's citations are an unverified secondary source until the implementing SWE re-checks.
+
+### Iter-12 final tally — 2026-05-13 06:50
+
+**12 substantive closures merged:**
+1. T-303.4.1 — sampling Phase 2 PM-direct close (BLOCKED architecturally; replaced by T-303.4.2 + T-303.15.1).
+2. T-303.4.2 — sampling architectural design memo (gsd, Option C ACP-tunneled chosen, v1→v2 amendment via dual rubber-duck).
+3. T-303.15 — MCP elicitation test fixtures from typescript-sdk@2c0c481cb (form + URL).
+4. T-304.5 — ACP UI drift audit (research, 4 HIGH findings → T-304.11/12/13/14 follow-ups).
+5. T-304.7 — wholesale-lift commit hygiene protocol docs (95 LOC + AGENTS.md pointer).
+6. T-304.9 — HomeDashboard.vue + SessionList.vue LOC split (4 new sub-components).
+7. T-304.11 — NDJSON framing in acp-client-core WebSocket stream (24+5 tests).
+8. T-304.12 — ACP relay explicit close on disconnect (5-min daemon TTL + DELETE endpoint + renderer session/close, 9 files / 263 LOC, 22 Rust + 26 vitest).
+9. T-304.14 — plan-mode safe-kind whitelist (fail-closed for unknown kinds, security-relevant fix for T-304.5 HIGH #4).
+10. T-304.16 — Home composer Textarea restoration (T-243.24 regression fix — IME guard + Enter handling).
+11. T-304.17 — Sessions delete AlertDialog restoration (T-243.37 regression fix).
+12. T-304.18 — normalizer maps query/list/view/inspect/describe/get to 'read' (closes T-304.14 false-deny gap).
+
+**14 follow-ups filed:**
+- T-303.4.2 (sampling architectural research — completed iter-12).
+- T-303.4.3 (sampling Phase 2 implementation — slc, P1, awaits PM-direct dispatch).
+- T-303.4.4 (sampling history surface + Settings UI — depends on T-303.4.3).
+- T-303.4.5 (sampling Phase 3 tool-enabled — depends on T-303.4.3).
+- T-303.15.1 (sampling test fixture — depends on T-303.4.3).
+- T-304.11/12/13/14 (ACP audit findings — T-304.11, .12, .14 shipped iter-12; T-304.13 pending).
+- T-304.15 (gate-write-task-ipc.test.mjs source-substring assertion mismatch — P3 pre-existing test flake).
+- T-304.16/17 (HomeComposer + Sessions delete regressions — both shipped iter-12).
+- T-304.18/19 (normalizer expand shipped; CDP UAT for T-304.16/17 pending).
+- T-309.7 (gate-process gap — no terminal "blocked" state distinct from dispatch).
+
+**2 hotfix commits:**
+- 77449b68e: lint-design IGNORED_PREFIXES adds test-fixtures/ (T-303.15 fixup discovered post-merge).
+- 003c7314e: wave-boundary remediation (filed T-304.16/17/18/19 + T-309.7 + acknowledged T-303.4.1 procedural violation).
+
+**Wave structure (3 waves total):**
+- Wave-1: 5 SWE/research + dual rubber-duck → 5 closures + 7 follow-ups + lessons.
+- Wave-2: 5 SWE/research + dual rubber-duck (memo critique → re-dispatch v2 + dual rubber-duck v2) → 4 closures + 5 follow-ups.
+- Wave-3: 2 SWE (T-304.12 cross-stack + T-304.18 mechanical) + dual rubber-duck on wave-2 + dual rubber-duck on T-303.4.2 v2 memo → 2 closures + 1 follow-up (T-304.19 CDP UAT).
+
+**Process rigor (this iter):**
+- 4 dual rubber-duck cycles (gpt-5.5 + claude-opus-4.6) — caught 17+ findings across waves.
+- All 4 wave-1/wave-2 substantive code merges + the cross-stack T-304.12 verified post-merge by PM-direct build.
+- 2 PM-direct memo amendments via EditMemory (B8 contamination strip).
+- Sub-PMs (legacy pattern) NOT used; pipeline DAG NOT used; outer-loop direct-dispatch with worktrees per task.
+
+**Lesson — wave-boundary dual rubber-duck is mandatory + catches real issues.** Wave-1 boundary caught T-303.4.1 PM-direct procedural violation + T-304.16/17 pre-existing regressions + T-303.18.3 priority violation. Wave-2 boundary caught T-304.14 whitelist false-deny gap + UI CDP-UAT skipping pattern. Without the duo, all of these would have shipped silently.
+
+**Lesson — single-model rubber-duck verdicts can disagree on real issues.** v2 memo dual review: opus = PASS, gpt-5.5 = FAIL. The disagreement was on B8 contamination ("deferred" wording in Open Questions — opus didn't run the AGENTS.md P0 #2 grep, gpt-5.5 did). PM must remediate the FAIL even when one reviewer passes — the "Both must PASS" rule is the conservative default.
+
+**Lesson — when amending memos via EditMemory find_replace, the schema requires `findText` + `content` (not `find` + `replace`).** First attempt failed on schema mismatch. Use `GatewayIndex domain="maenifold.memory" includeSchemas=true` to verify exact parameter shape before EditMemory dispatches.
+
+**Lesson — pre-existing regressions caught at wave boundaries can be confirmed via `git show <pre-iter-tip>:<path>`.** When rubber-duck claims a task introduced a regression, FIRST verify the regression existed before the task by reading git history at the pre-iter dev tip. T-304.9 was correctly absolved this way (HomeDashboard.vue at 08e823a7d already used Input + confirm). The actual fixes shipped as separate T-304.16/17 tasks.
+
+**Lesson — cross-stack SWE dispatches take ~3x as long as single-language work.** T-304.12 (Rust + TypeScript + tests + 9 files) took 13 minutes / 91 tool calls vs T-304.11/14 single-file SWE took ~4 minutes / 30-50 calls. Plan iter time accordingly.
+
+**Lesson — gate process has no terminal `blocked` state distinct from dispatch states.** Filed T-309.7 to add this. Until shipped, blocked tasks like T-303.4.1 either stay in pending forever (misleading `ready=true` results) or get PM-direct closed (procedural violation per AGENTS.md Gate Rule #8). The gap forces an unsafe choice every time.
+
+**Standing pre-flight checks for next iter (refined from iter-11+12):**
+1. `git reflog | head -3` — investigate any HEAD@{0/1}: reset: entries.
+2. `ls apps/desktop/node_modules/.bin/{vue-tsc,vitest}` — both must exist.
+3. `git worktree list` — prune any stale worktrees.
+4. `git status --short` — must be clean.
+5. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only).
+6. `cd apps/desktop && npm run build` (PM-only — catches lint-design / audit-components issues that worker tracked-file checks miss).
+7. Read learnings.md tail for previous iter's final tally.
+8. Check spec citations — every cited line range must be re-verified by SWE before edit (audit citations drift across merges).
+9. Before dispatching SWE for a TDD task, scan the blue-team's test assertions for any construct banned by audit rules.
+10. When red-team flags a "deletion" in `git diff dev`, run merge-base analysis to scope the actual SWE delta.
+11. **NEW:** Wave boundary = dual rubber-duck DISPATCH (gpt-5.5 + claude-opus-4.6). Both PASS or remediate findings before opening next wave.
+12. **NEW:** Pre-existing regression diagnostics = `git show <pre-iter-tip>:<path>` to distinguish task-introduced from inherited.
+13. **NEW:** Cross-stack SWE dispatches need 2-3x time budget. Plan accordingly.

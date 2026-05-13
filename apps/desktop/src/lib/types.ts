@@ -62,6 +62,12 @@ export interface AgentsConfig {
   mcpServers?: McpServerEntry[];
   agents: Record<string, AgentConfig>;
   settings?: MaenifoldSettings;
+  samplingPreferences?: {
+    perServer?: Record<string, {
+      alwaysAllow: boolean;
+      modelOverride?: string;
+    }>;
+  };
 }
 
 export interface DecaySettings {

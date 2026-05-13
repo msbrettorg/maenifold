@@ -37,6 +37,16 @@ export function normalizePermissionToolKind(kind: string | null | undefined): Pe
   if (normalized === 'write' || normalized === 'fs/write_text_file') return 'edit';
   if (normalized === 'fs/read_text_file') return 'read';
   if (
+    normalized === 'query' ||
+    normalized === 'list' ||
+    normalized === 'view' ||
+    normalized === 'inspect' ||
+    normalized === 'describe' ||
+    normalized === 'get'
+  ) {
+    return 'read';
+  }
+  if (
     normalized === 'read' ||
     normalized === 'edit' ||
     normalized === 'delete' ||

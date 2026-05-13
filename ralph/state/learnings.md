@@ -2388,3 +2388,41 @@ T-304.5 audit cited specific file:line locations (e.g., `acp-client-core.ts:382-
 11. **NEW:** Wave boundary = dual rubber-duck DISPATCH (gpt-5.5 + claude-opus-4.6). Both PASS or remediate findings before opening next wave.
 12. **NEW:** Pre-existing regression diagnostics = `git show <pre-iter-tip>:<path>` to distinguish task-introduced from inherited.
 13. **NEW:** Cross-stack SWE dispatches need 2-3x time budget. Plan accordingly.
+
+## 2026-05-13 — Iter-10 (MCP Sampling Phase 2 shipped end-to-end)
+
+### Constitution P0-trigger words in AGENTS.md are not contamination
+- Multiple agents (T-303.4.7 SWE, T-303.4.8 blue-team) escalated on AGENTS.md's P0 trigger list itself ("trio", "deferral", etc) treating the BAN definition as contamination.
+- **Lesson**: Future prompts must clarify: P0 contamination is ACTIVE USE of those words in code/specs/active design docs, not their definition in AGENTS.md as the canonical ban list. Add this clarification to every blue-team/SWE prompt that involves reading AGENTS.md.
+
+### `#[cfg(not(test))]` field gating IS a compat shim
+- T-303.4.7 SWE remediation tried to add new struct fields with `#[cfg(not(test))]` to avoid editing a forbidden test fixture. Created divergent test/production semantics — exactly what the Decision Rubric forbids.
+- **Lesson**: Any code that makes test-build-time semantics differ from production-build-time semantics is a shim. SWE prompts must explicitly forbid `#[cfg(test)]` field gating AND pre-authorize test fixture updates when adding required production fields.
+
+### Test fixture coupling: explicit struct literals + new fields = no-win
+- Tests using `MyStruct { field1, field2, field3 }` literal syntax break compile when SWE adds field4 to the struct, even with `#[serde(default)]`.
+- **Lesson**: Spec MUST either (a) authorize the test fixture update, or (b) provide a `MyStruct::for_test()` helper from the start, or (c) require `MyStruct { field1, field2, field3, ..Default::default() }` syntax in tests upfront.
+
+### Cargo test multi-arg syntax is invalid
+- `cargo test name1 name2` returns `error: unexpected argument 'name2' found`. Cargo accepts ONE positional substring filter.
+- **Lesson**: Use module-path filter `cargo test mcp::pending_requests::` to run a whole test module, OR run separate `cargo test` invocations. Codify the correct invocation in every SWE prompt's verification block.
+
+### HTTP-shape regressions slip past unit tests
+- T-303.4.6 changed `POST /api/user-prompt/respond` body shape. Backend tests passed (new shape). Frontend tests passed (mocked the IPC). But the actual electron bridge wasn't updated → elicitation silently broken in dev for ~2 days until T-303.4.8 caught it.
+- **Lesson**: Any cross-stack contract change MUST file the renderer-side update as a dependent gate task BEFORE landing the backend change. Add a "co-req: frontend HTTP body update" gate item alongside the backend PR. Red-team prompts for HTTP/IPC changes should require an end-to-end trace with file:line citations.
+
+### Red-team v1 vs v2 fresh-context catches different issues
+- T-303.4.8 v1 red-team (gpt-5.5, same context as PM) found 4 blockers. After remediation, v2 red-team (NEW context, same model) found 2 MORE blockers v1 missed (malformed-payload race + pre-existing LOC).
+- **Lesson**: For safety-critical work (P0 #6 visible-inference paths, destructive ops), invest in a fresh-context red-team v2 round even if v1 PASSed. Different context windows surface different blind spots.
+
+### Daemon restart procedure
+- HTTP daemon (`maenifold --http --port 8080`) dropped twice mid-iteration after long-running shell sessions / pushes / merges.
+- **Lesson**: Standing restart procedure: `nohup /usr/local/bin/maenifold --http --port 8080 > /tmp/mae-http.log 2>&1 & disown && sleep 5 && curl -sf http://127.0.0.1:8080/ | head -1`. Run at every PM cycle if `mcp_call` returns `INVALID JSON` or empty.
+
+### PM scope authorization gaps cascade
+- T-303.4.8 SWE round-1 delivered correct components but NOT the renderer wiring (UserPromptHost mount, user-prompt store routing, vite-env.d.ts ambient type) — because PM authorized only the new files, not the wiring chain.
+- **Lesson**: SWE prompts must enumerate the COMPLETE file list including all wiring touchpoints (mod registrations, type ambient declarations, host components, store routers). When in doubt: trace the full data path source→render BEFORE writing the auth list.
+
+### slc pipeline stage order: red-team → blue-team (NOT remediate)
+- T-303.4.3 PM-direct closure tried `expectedStage: 'remediate'` after red-team, got rejected because next stage was `blue-team`.
+- **Lesson**: slc stages: pending → discovery → spec → swe → red-team → remediate → blue-team → done. BUT `remediate` is a branch-back FROM red-team that triggers only on FAIL — successful red-team advances directly to blue-team. Closing a parent via decomposition follows the happy-path: red-team → blue-team → done (NOT red-team → remediate).

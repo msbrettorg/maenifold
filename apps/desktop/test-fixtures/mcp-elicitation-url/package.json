@@ -1,0 +1,26 @@
+{
+  "name": "@maenifold/test-fixture-mcp-elicitation-url",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "tsx elicitationUrlExample.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/examples-shared": "file:./examples-shared",
+    "@modelcontextprotocol/express": "2.0.0-alpha.0",
+    "@modelcontextprotocol/node": "2.0.0-alpha.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/server": "2.0.0-alpha.0",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "zod": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.16.5",
+    "typescript": "^5.9.3"
+  }
+}

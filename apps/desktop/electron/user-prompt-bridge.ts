@@ -1,13 +1,24 @@
 import type { WebContents } from 'electron';
 import { ipcMain } from 'electron';
 
-type UserPromptResolvePayload = {
-  id: string;
-  response: {
-    action: 'accept' | 'cancel' | 'dismiss';
-    content?: Record<string, unknown>;
-  };
-};
+type UserPromptResolvePayload =
+  | {
+      kind: 'elicitation';
+      id: string;
+      response: {
+        action: 'accept' | 'cancel' | 'dismiss';
+        content?: Record<string, unknown>;
+      };
+    }
+  | {
+      kind: 'sampling';
+      id: string;
+      response: {
+        action: 'allow_once' | 'allow_always' | 'deny';
+        selectedModel?: string;
+        selectedAgent?: string;
+      };
+    };
 
 const USER_PROMPT_STREAM_URL = 'http://localhost:8080/api/user-prompt/stream';
 const USER_PROMPT_RESPOND_URL = 'http://localhost:8080/api/user-prompt/respond';
@@ -21,20 +32,48 @@ function assertResolvePayload(value: unknown): UserPromptResolvePayload {
     throw new Error('invalid user prompt response');
   }
   const candidate = value as UserPromptResolvePayload;
+  if (candidate.kind !== 'elicitation' && candidate.kind !== 'sampling') {
+    throw new Error('invalid user prompt kind');
+  }
   if (typeof candidate.id !== 'string' || candidate.id.length === 0) {
     throw new Error('invalid user prompt id');
   }
-  const action = candidate.response?.action;
-  if (action !== 'accept' && action !== 'cancel' && action !== 'dismiss') {
-    throw new Error('invalid user prompt action');
-  }
   if (
-    candidate.response.content !== undefined
-    && (typeof candidate.response.content !== 'object'
-      || candidate.response.content === null
-      || Array.isArray(candidate.response.content))
+    typeof candidate.response !== 'object'
+    || candidate.response === null
+    || Array.isArray(candidate.response)
   ) {
-    throw new Error('invalid user prompt content');
+    throw new Error('invalid user prompt response');
+  }
+  const action = candidate.response?.action;
+  if (candidate.kind === 'elicitation') {
+    if (action !== 'accept' && action !== 'cancel' && action !== 'dismiss') {
+      throw new Error('invalid user prompt action');
+    }
+    if (
+      candidate.response.content !== undefined
+      && (typeof candidate.response.content !== 'object'
+        || candidate.response.content === null
+        || Array.isArray(candidate.response.content))
+    ) {
+      throw new Error('invalid user prompt content');
+    }
+  } else {
+    if (action !== 'allow_once' && action !== 'allow_always' && action !== 'deny') {
+      throw new Error('invalid user prompt action');
+    }
+    if (
+      candidate.response.selectedModel !== undefined
+      && typeof candidate.response.selectedModel !== 'string'
+    ) {
+      throw new Error('invalid user prompt selected model');
+    }
+    if (
+      candidate.response.selectedAgent !== undefined
+      && typeof candidate.response.selectedAgent !== 'string'
+    ) {
+      throw new Error('invalid user prompt selected agent');
+    }
   }
   return candidate;
 }

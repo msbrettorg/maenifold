@@ -91,6 +91,7 @@ describe('user prompt bridge', () => {
     const { fetchMock, resolve } = await loadBridge();
 
     await expect(resolve({}, {
+      kind: 'elicitation',
       id: 'prompt-accept',
       response: { action: 'accept', content: { reason: 'approved' } },
     })).resolves.toEqual({ ok: true });
@@ -99,6 +100,7 @@ describe('user prompt bridge', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        kind: 'elicitation',
         id: 'prompt-accept',
         response: { action: 'accept', content: { reason: 'approved' } },
       }),
@@ -110,6 +112,7 @@ describe('user prompt bridge', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 410 });
 
     await expect(resolve({}, {
+      kind: 'elicitation',
       id: 'prompt-duplicate',
       response: { action: 'cancel' },
     })).rejects.toThrow('user prompt response failed with 410');
@@ -119,6 +122,7 @@ describe('user prompt bridge', () => {
     const { fetchMock, resolve } = await loadBridge();
 
     await expect(resolve({}, {
+      kind: 'elicitation',
       id: '',
       response: { action: 'accept', content: {} },
     })).rejects.toThrow('invalid user prompt id');

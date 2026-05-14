@@ -303,6 +303,12 @@ Use symlink by default. Use `npm ci` only if the task modifies `package.json`.
 
 - Max 12 files changed **per task**. The iteration can touch many files across parallel tasks.
 - Max ~600 LOC net diff **per task**.
+- **Max ~10 minute SWE wall-clock per task.** If you find yourself authoring a spec whose SWE work plausibly takes longer than 10 minutes, SPLIT THE TASK before dispatch. Long-running SWEs are irresponsible: the agent's context grows, the failure blast radius widens, the runtime payload bloats, and a mid-task interrupt loses more work. Iter-14 had two offenders (T-305.2 SWE ran 23+ min, T-305.5 ran 11+ min before session interrupt forced a finish-implementation re-dispatch). That was a process violation, not a feature of throughput.
+- **Concrete sizing rules for SWE prompts:**
+  - 1 SWE = at most 1 backend module + 1 frontend component (or ≤ 5 files total).
+  - 1 SWE = at most ~12 tests authored.
+  - 1 SWE = at most ~250 net LOC across all files.
+  - If a spec exceeds any of these, split into sequential SWE dispatches (e.g., "T-305.2a backend pause_state + dispatcher" → "T-305.2b frontend Switch" → "T-305.2c help-doc + tests"). Each child gets its own gate row + commit + merge.
 - Prefer simplification and deletion over adding new complexity. The constitution says "the best code is no code" — that applies to specs and prompts too.
 
 ---

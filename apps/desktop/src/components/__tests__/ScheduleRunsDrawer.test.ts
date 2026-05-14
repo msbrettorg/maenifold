@@ -44,6 +44,19 @@ function mountDrawer() {
   });
 }
 
+function renderedBadges() {
+  return Array.from(document.body.querySelectorAll('[data-slot="badge"]')).map((badge) => ({
+    label: badge.textContent?.trim(),
+    variant: badge.getAttribute('data-variant'),
+    className: badge.getAttribute('class') ?? '',
+  }));
+}
+
+function retryButton() {
+  return Array.from(document.body.querySelectorAll('button'))
+    .find((button) => button.textContent?.includes('Retry now'));
+}
+
 describe('ScheduleRunsDrawer', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -109,12 +122,7 @@ describe('ScheduleRunsDrawer', () => {
 
     const wrapper = mountDrawer();
     await flushPromises();
-    const badges = Array.from(document.body.querySelectorAll('[data-slot="badge"]'));
-    const outcomes = badges.map((badge) => ({
-      label: badge.textContent?.trim(),
-      variant: badge.getAttribute('data-variant'),
-      className: badge.getAttribute('class') ?? '',
-    }));
+    const outcomes = renderedBadges();
 
     expect(outcomes).toEqual([
       expect.objectContaining({ label: 'cancelled', variant: 'secondary' }),
@@ -134,9 +142,7 @@ describe('ScheduleRunsDrawer', () => {
 
     const wrapper = mountDrawer();
     await flushPromises();
-    const retryButton = Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Retry now'));
-    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    retryButton()?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
     expect(document.body.textContent).toContain('failed');
@@ -155,15 +161,56 @@ describe('ScheduleRunsDrawer', () => {
 
     const wrapper = mountDrawer();
     await flushPromises();
-    const retryButton = Array.from(document.body.querySelectorAll('button'))
-      .find((button) => button.textContent?.includes('Retry now'));
-    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    const button = retryButton();
+    button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    button?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
     expect(callTool).toHaveBeenCalledTimes(1);
     retry.resolve({ message: 'ran' });
     await flushPromises();
+    wrapper.unmount();
+  });
+
+  it('normalizes cancelled status even when content contains "error"', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', status: 'cancelled', content: 'cancelled due to error in upstream dep' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(renderedBadges()).toEqual([expect.objectContaining({ label: 'cancelled', variant: 'secondary' })]);
+    expect(retryButton()).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('normalizes running status even when content contains "timed out"', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', status: 'in-progress', content: 'task timed out at 30s' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(renderedBadges()).toEqual([expect.objectContaining({ label: 'running', variant: 'secondary', className: expect.stringContaining('animate-pulse') })]);
+    expect(retryButton()).toBeUndefined();
+    wrapper.unmount();
+  });
+
+  it('normalizes statusless legacy run with error content as failed', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', content: 'exit code 1' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(renderedBadges()).toEqual([expect.objectContaining({ label: 'failed', variant: 'destructive' })]);
+    expect(retryButton()).toBeTruthy();
     wrapper.unmount();
   });
 

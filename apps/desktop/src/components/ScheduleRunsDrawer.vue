@@ -87,16 +87,19 @@ function formatTimestamp(value: string): string {
 function normalizeRun(raw: RawRun, index: number): ScheduleRunRow {
   const content = raw.content ?? '';
   const status = raw.status?.toLowerCase();
-  const failed = status === 'failed' || status === 'timeout' || /exit code|timed out|error/i.test(content);
-  const outcome: ScheduleRunRow['outcome'] = failed
-    ? 'failed'
-    : status === 'success'
-      ? 'success'
-      : status === 'cancelled'
-        ? 'cancelled'
-        : status === 'in-progress' || status === 'running'
-          ? 'running'
-          : 'unknown';
+  const legacyFailed = /exit code|timed out|error/i.test(content);
+  const outcome: ScheduleRunRow['outcome'] =
+    status === 'failed' || status === 'timeout'
+      ? 'failed'
+      : status === 'success'
+        ? 'success'
+        : status === 'cancelled'
+          ? 'cancelled'
+          : status === 'in-progress' || status === 'running'
+            ? 'running'
+            : status === 'skipped' || status === undefined
+              ? legacyFailed ? 'failed' : 'unknown'
+              : 'unknown';
   const seconds = raw.duration_seconds ?? raw.durationSeconds;
   return {
     id: raw.fileName ?? `${raw.timestamp ?? 'run'}-${index}`,

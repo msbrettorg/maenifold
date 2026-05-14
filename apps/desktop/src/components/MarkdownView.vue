@@ -26,7 +26,7 @@ const knowledgeStore = useKnowledgeStore();
 // intentionally excluded because nested SVG payloads can carry executable
 // script/event handlers that would bypass DOM-level SVG sanitization.
 const allowedUriRegexp =
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|memory):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$)|data:image\/(?:bmp|gif|jpe?g|png|webp);base64,)/i;
 const forbiddenTags = ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button', 'textarea'];
 const eventAttributeHookInstalledKey = '__maenifoldEventAttributeHookInstalled';
 
@@ -145,6 +145,19 @@ async function updateRendered(): Promise<void> {
 
 function handleClick(event: MouseEvent): void {
   if (!(event.target instanceof Element)) return;
+
+  const linkTarget = event.target.closest<HTMLAnchorElement>('a');
+  const href = linkTarget?.getAttribute('href') ?? '';
+  if (href.startsWith('memory://')) {
+    event.preventDefault();
+    if (event.metaKey || event.ctrlKey) {
+      knowledgeStore.openInNewTab(href);
+    } else {
+      knowledgeStore.openNote(href);
+    }
+    appShellStore.setActiveTab('knowledge');
+    return;
+  }
 
   const target = event.target.closest<HTMLElement>('[data-wikilink]');
   if (!target) return;

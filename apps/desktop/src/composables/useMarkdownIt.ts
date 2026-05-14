@@ -202,6 +202,9 @@ export function getMarkdownIt(): Promise<MarkdownIt> {
         breaks: false,
         typographer: false,
       });
+      const defaultValidateLink = md.validateLink.bind(md);
+      md.validateLink = (url: string): boolean =>
+        url.startsWith('memory://') || defaultValidateLink(url);
 
       const shikiHighlighter = await createHighlighter({
         themes: ['github-light', 'github-dark'],

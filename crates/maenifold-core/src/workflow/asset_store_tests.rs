@@ -137,7 +137,9 @@ fn delete_blocked_by_concurrent_pipeline_creation() {
 
 #[test]
 #[serial]
-fn delete_wins_then_create_observes_missing_asset() {
+fn create_after_delete_observes_missing_asset() {
+    // Pre-existing invariant — validate_workflow_node_definitions errors on missing assets.
+    // Not specifically a lock test.
     let (_tmp, context, _guard) = test_context();
     save_asset(&context, "foo");
 
@@ -152,7 +154,9 @@ fn delete_wins_then_create_observes_missing_asset() {
 
 #[test]
 #[serial]
-fn concurrent_creates_and_one_delete_no_torn_state() {
+fn concurrent_creates_and_one_delete_final_state_consistent() {
+    // Smoke check — does NOT exercise the lock; for race coverage see
+    // delete_blocked_by_concurrent_pipeline_creation.
     let (_tmp, context, _guard) = test_context();
     save_asset(&context, "foo");
     let config = context.config.clone();

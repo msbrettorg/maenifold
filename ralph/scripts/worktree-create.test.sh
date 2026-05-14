@@ -15,8 +15,13 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel)"
-HELPER="${REPO_ROOT}/ralph/scripts/worktree-create.sh"
+COMMON_GIT_DIR="$(git -C "${SCRIPT_DIR}" rev-parse --git-common-dir)"
+case "${COMMON_GIT_DIR}" in
+  /*) ;;
+  *) COMMON_GIT_DIR="$(cd "$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel)" && cd "${COMMON_GIT_DIR}" && pwd)" ;;
+esac
+REPO_ROOT="$(cd "$(dirname "${COMMON_GIT_DIR}")" && pwd)"
+HELPER="${SCRIPT_DIR}/worktree-create.sh"
 TEST_TASK_ID="T-303.4.23-smoketest-$$"
 WORKTREE_DIR="${REPO_ROOT}/worktrees/${TEST_TASK_ID}"
 BRANCH_NAME="worker-${TEST_TASK_ID}"
@@ -29,12 +34,16 @@ IDEMPOTENCY_BRANCH_B="worker-${IDEMPOTENCY_TASK_B}"
 SIGTERM_TASK="T-303.4.28-sigterm-fixture-$$"
 SIGINT_TASK="T-303.4.28-sigint-fixture-$$"
 STALE_LOCK_TASK="T-303.4.28-stale-fixture-$$"
+NESTED_PARENT_TASK="T-303.4.29-parent-fixture-$$"
+NESTED_CHILD_TASK="T-303.4.29-child-fixture-$$"
 SIGTERM_WORKTREE="${REPO_ROOT}/worktrees/${SIGTERM_TASK}"
 SIGINT_WORKTREE="${REPO_ROOT}/worktrees/${SIGINT_TASK}"
 STALE_LOCK_WORKTREE="${REPO_ROOT}/worktrees/${STALE_LOCK_TASK}"
 SIGTERM_BRANCH="worker-${SIGTERM_TASK}"
 SIGINT_BRANCH="worker-${SIGINT_TASK}"
 STALE_LOCK_BRANCH="worker-${STALE_LOCK_TASK}"
+NESTED_PARENT_BRANCH="worker-${NESTED_PARENT_TASK}"
+NESTED_CHILD_BRANCH="worker-${NESTED_CHILD_TASK}"
 SIGNAL_TEST_PIDS=()
 if [[ -L "${REPO_ROOT}/todo" ]]; then
   MAIN_REPO_ROOT="$(cd "$(dirname "$(readlink "${REPO_ROOT}/todo")")" && pwd)"
@@ -47,6 +56,9 @@ case "${COMMON_GIT_DIR}" in
   *) COMMON_GIT_DIR="${MAIN_REPO_ROOT}/${COMMON_GIT_DIR}" ;;
 esac
 EXCLUDE_FILE="${COMMON_GIT_DIR}/info/exclude"
+NESTED_PARENT_WORKTREE="${MAIN_REPO_ROOT}/worktrees/${NESTED_PARENT_TASK}"
+NESTED_CHILD_EXPECTED_WORKTREE="${MAIN_REPO_ROOT}/worktrees/${NESTED_CHILD_TASK}"
+NESTED_CHILD_WRONG_WORKTREE="${NESTED_PARENT_WORKTREE}/worktrees/${NESTED_CHILD_TASK}"
 
 if [[ -f "${EXCLUDE_FILE}" ]]; then
   ORIGINAL_EXCLUDE_EXISTS=1
@@ -97,6 +109,15 @@ cleanup() {
   if [[ -e "${STALE_LOCK_WORKTREE}" ]]; then
     git -C "${REPO_ROOT}" worktree remove --force "${STALE_LOCK_WORKTREE}" >/dev/null 2>&1 || true
   fi
+  if [[ -e "${NESTED_CHILD_WRONG_WORKTREE}" ]]; then
+    git -C "${MAIN_REPO_ROOT}" worktree remove --force "${NESTED_CHILD_WRONG_WORKTREE}" >/dev/null 2>&1 || true
+  fi
+  if [[ -e "${NESTED_CHILD_EXPECTED_WORKTREE}" ]]; then
+    git -C "${MAIN_REPO_ROOT}" worktree remove --force "${NESTED_CHILD_EXPECTED_WORKTREE}" >/dev/null 2>&1 || true
+  fi
+  if [[ -e "${NESTED_PARENT_WORKTREE}" ]]; then
+    git -C "${MAIN_REPO_ROOT}" worktree remove --force "${NESTED_PARENT_WORKTREE}" >/dev/null 2>&1 || true
+  fi
   if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
     git -C "${REPO_ROOT}" branch -D "${BRANCH_NAME}" >/dev/null 2>&1 || true
   fi
@@ -114,6 +135,12 @@ cleanup() {
   fi
   if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${STALE_LOCK_BRANCH}"; then
     git -C "${REPO_ROOT}" branch -D "${STALE_LOCK_BRANCH}" >/dev/null 2>&1 || true
+  fi
+  if git -C "${MAIN_REPO_ROOT}" show-ref --verify --quiet "refs/heads/${NESTED_CHILD_BRANCH}"; then
+    git -C "${MAIN_REPO_ROOT}" branch -D "${NESTED_CHILD_BRANCH}" >/dev/null 2>&1 || true
+  fi
+  if git -C "${MAIN_REPO_ROOT}" show-ref --verify --quiet "refs/heads/${NESTED_PARENT_BRANCH}"; then
+    git -C "${MAIN_REPO_ROOT}" branch -D "${NESTED_PARENT_BRANCH}" >/dev/null 2>&1 || true
   fi
   rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
   if [[ "${ORIGINAL_EXCLUDE_EXISTS}" == "1" ]]; then
@@ -432,9 +459,33 @@ else
 fi
 rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
 
+# Test 20: creating a worktree from inside an existing worktree still uses the main repo worktrees dir
+(cd "${MAIN_REPO_ROOT}" && "${HELPER}" "${NESTED_PARENT_TASK}") >/dev/null 2>&1 \
+  || fail "Test 20: failed to create parent fixture worktree ${NESTED_PARENT_TASK}"
+[[ -d "${NESTED_PARENT_WORKTREE}" ]] \
+  || fail "Test 20: parent fixture worktree was not created at ${NESTED_PARENT_WORKTREE}"
+
+set +e
+(cd "${NESTED_PARENT_WORKTREE}" && "${HELPER}" "${NESTED_CHILD_TASK}") >/dev/null 2>&1
+NESTED_CHILD_RC=$?
+set -e
+if [[ ${NESTED_CHILD_RC} -ne 0 ]]; then
+  record_failure "Test 20: worktree-create.sh failed from inside ${NESTED_PARENT_WORKTREE}"
+elif [[ -d "${NESTED_CHILD_EXPECTED_WORKTREE}" ]]; then
+  if [[ -e "${NESTED_CHILD_WRONG_WORKTREE}" ]]; then
+    record_failure "Test 20: expected only ${NESTED_CHILD_EXPECTED_WORKTREE}, but nested path also exists at ${NESTED_CHILD_WRONG_WORKTREE}"
+  else
+    echo "PASS: Test 20 created child worktree at main repo path ${NESTED_CHILD_EXPECTED_WORKTREE}"
+  fi
+elif [[ -e "${NESTED_CHILD_WRONG_WORKTREE}" ]]; then
+  record_failure "Test 20: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but found ${NESTED_CHILD_WRONG_WORKTREE}"
+else
+  record_failure "Test 20: expected new worktree at ${NESTED_CHILD_EXPECTED_WORKTREE} but neither it nor ${NESTED_CHILD_WRONG_WORKTREE} exists"
+fi
+
 if [[ ${TEST_FAILURES} -gt 0 ]]; then
   echo "FAIL: ${TEST_FAILURES} worktree-create.sh regression checks failed" >&2
   exit 1
 fi
 
-echo "PASS: all 19 worktree-create.sh checks passed"
+echo "PASS: all 20 worktree-create.sh checks passed"

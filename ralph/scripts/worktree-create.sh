@@ -33,8 +33,17 @@ fi
 TASK_ID="$1"
 BASE_BRANCH="${2:-dev}"
 
-# Find repo root regardless of CWD
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# Locate the main repo root via the common git dir, not the current worktree's top.
+COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
+case "${COMMON_GIT_DIR}" in
+  /*) ;;
+  *) COMMON_GIT_DIR="$(cd "$(git rev-parse --show-toplevel)" && cd "${COMMON_GIT_DIR}" && pwd)" ;;
+esac
+REPO_ROOT="$(cd "$(dirname "${COMMON_GIT_DIR}")" && pwd)"
+if [[ ! -d "${REPO_ROOT}/todo" ]] || [[ ! -d "${REPO_ROOT}/done" ]]; then
+  echo "error: derived REPO_ROOT (${REPO_ROOT}) is missing todo/ or done/ — is this a maenifold-rs checkout?" >&2
+  exit 1
+fi
 WORKTREE_DIR="${REPO_ROOT}/worktrees/${TASK_ID}"
 BRANCH_NAME="worker-${TASK_ID}"
 

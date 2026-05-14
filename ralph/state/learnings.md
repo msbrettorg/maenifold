@@ -3228,3 +3228,90 @@ git log --oneline --diff-filter=A -- <expected-file>
 ```
 
 If any of these returns nothing/empty, the spec's premise is stale. Either close as "stub never landed" or amend the scope to include the missing implementation. Document the finding in the gate notes for the closed/amended task.
+
+---
+
+## Iter-14 lessons (2026-05-14, sprint 305)
+
+### Lesson 95: PM gate transitions need a Python heredoc wrapper for notes containing quotes
+
+**Symptom.** Iter-14 made 4 gate transitions for T-305.3 in a single bash heredoc using `printf "$(printf ...)"` style nested quoting. The 3rd call (red-team notes) had escaped quotes in the notes string ("Cannot enable schedule") — JSON parsing failed at column 391 with "expected , or }". The advance silently merged red-team-stage notes into what should have been the done-stage record.
+
+**Root cause.** Bash → printf → JSON quoting compounds. Even with careful `\"` escaping inside `printf`, complex notes strings break JSON parsing.
+
+**Lesson — use Python heredoc for any gate_Pass with non-trivial notes.** Pattern that works (used iter-14 for T-305.4, T-305.2, T-305.8, T-305.9):
+
+```bash
+python3 << 'PYEOF'
+import json, subprocess
+ROOT = "/Users/brett/src/ma-collective/maenifold-rs"
+def gate_pass(task_id, notes):
+    payload = json.dumps({
+        "domain": "maenifold.gate",
+        "command": "gate_Pass",
+        "parameters": {"root": ROOT, "taskId": task_id, "agent": "ralph", "notes": notes}
+    })
+    res = subprocess.run(["maenifold", "tool", "GatewayExecute", payload],
+                         capture_output=True, text=True)
+    print(f"  -> {res.stdout.strip().splitlines()[-1] if res.stdout else res.stderr.strip()}")
+
+gate_pass("T-XXX.Y", "...notes with 'quotes' and \"double quotes\"...")
+PYEOF
+```
+
+This delegates JSON escaping to Python's `json.dumps` which handles all edge cases. Fixed 4-stage transition becomes a single PYEOF block that runs all 4 gate_Pass calls atomically.
+
+### Lesson 96: Blue-team prompt MUST acknowledge audit-crates exit-code discipline
+
+**Symptom.** Iter-14 blue-team for T-305.4 reported FAIL because `bash scripts/audit-crates.sh` exits 1 whenever ANY violations exist (even at baseline). The blue-team agent treated non-zero exit as failure, even though count = baseline = no new violations introduced.
+
+**Lesson — audit-crates exit code semantics need to be in the prompt.** Add to every blue-team prompt that runs audit-crates:
+
+> Note: audit-crates script always exits non-zero when ANY violations exist (this is the script's design). The acceptance criterion is "violation count equals baseline of N" not "exit code == 0". Report the count explicitly. Do NOT fail on the script's exit code if the count matches baseline.
+
+This is exactly the wording used for T-305.2 blue-team after the T-305.4 fail-by-design — the prompt fix prevented a repeat.
+
+### Lesson 97: Spec-amendment LOC budgets should match audit-crates baseline reality
+
+**Symptom.** Iter-14 T-305.2 SWE spec said "schedule.rs delta ≤ +25" AND "if schedule.rs grows past 383 in your delta, that's a baseline regression — split logic until you fit within +25 lines net". These two clauses are mutually contradictory: a +25 delta on a 383-LOC file produces 408 LOC, which exceeds 300. The SWE confessed the contradiction; red-team accepted as engineering compromise.
+
+**Lesson — when the file is already over the LOC limit (max-loc baseline violation), the spec budget should explicitly state "growth within the existing violation is acceptable; new files must fit under 300 each; audit-crates count must not increase."** Don't write self-contradictory budgets.
+
+### Lesson 98: Help doc location is canonical — verify before extending
+
+**Symptom.** T-305.4 SWE created `crates/maenifold-core/assets/help/Schedule.md` for the env-isolation doc. T-305.2 SWE correctly extended `assets/usage/tools/schedule.md` (the canonical path that `load_help_doc` reads, per `crates/maenifold-core/src/tools/context.rs:83-91`). The T-305.4 file was orphaned — never loaded. PM cleanup commit ported the content into the canonical file and deleted the orphan.
+
+**Lesson — every help-doc spec must include the explicit verification step:** `grep -n "load_help_doc" crates/maenifold-core/src/tools/context.rs` and `find crates -name "Schedule.md" -o -name "schedule.md"` BEFORE extending. The path is `assets/usage/tools/{tool_lowercase}.md`. The constitution-level pattern: any "extend the help doc" task includes the verify-canonical-path step in its acceptance.
+
+### Lesson 99: Iter throughput pattern that works — 4 SWE in flight, staged red-team / blue-team
+
+Iter-14 successfully kept the team busy across the full iteration:
+
+- 09:53 — Iter starts. Bootstrap, sprint scan, T-305.2 spec amendment.
+- 10:08 — Architect duo dispatched (gpt-5.5 + opus-4.6) for T-305.2 spec.
+- 10:08 — T-305.3 SWE dispatched (worktree).
+- 10:13 — T-305.2 SWE dispatched after duo review converged.
+- 10:18 — T-305.4 SWE dispatched (independent file).
+- 10:21 — T-305.3 SWE returns; PM verify; red-team dispatched same worktree.
+- 10:23 — T-305.3 red-team PASS; blue-team dispatched.
+- 10:24 — T-305.3 blue-team PASS; merged to dev.
+- 10:25 — T-305.4 SWE returns; PM verify clippy delta; commit; red-team dispatched.
+- 10:30 — T-305.4 red-team PASS-WITH-NOTES; blue-team dispatched.
+- 10:31 — T-305.4 blue-team flagged FAIL on audit-crates exit code (script exits 1 by design); PM accepted with baseline=baseline check; merged.
+- 10:34 — T-305.2 SWE returns; PM verify; cleanup amend; red-team dispatched.
+- 10:38 — T-305.2 red-team PASS-WITH-NOTES; one-line missingSchedules cleanup; commit amend; blue-team dispatched.
+- 10:43 — T-305.2 blue-team PASS; merge with conflict on schedule.rs (T-305.4 + T-305.2 both modified imports + resolve_maenifold_bin); resolved manually; merged.
+- 10:45 — T-305.8 spec amended for current LOC reality; SWE dispatched.
+- 10:53 — T-305.8 SWE returns 415→72 LOC, audit drops 17→16; PM verify; commit; red-team dispatched.
+- 10:55 — T-305.8 red-team PASS; blue-team dispatched.
+- 10:56 — T-305.8 blue-team PASS; merged.
+
+**Pattern keys:**
+
+1. **Architect duo BEFORE SWE dispatch** for any spec with significant blockers risk. T-305.2 caught 4 blockers + multiple non-blockers; would have wasted SWE iterations otherwise.
+2. **Cargo target dir per worktree** (`CARGO_TARGET_DIR=target/agent`) prevents build-cache contention.
+3. **Symlink node_modules** into worktree apps/desktop instead of `npm ci` — saves ~3 min per worktree creation and is fine for non-deps changes.
+4. **Pre-flight LOC + grep checks** before scoping (per Lesson 92) caught 3 orphan-commit / spec-staleness issues this iter (T-305.2 frontend stub absent, T-305.5 mcpAction absent, T-305.4 wrong help-doc path).
+5. **Same-worker confession** dispatched right after PM verifies — reveals issues SWE may have hidden (T-305.2 confession revealed weakened test assertions + JSON shape gap that red-team then confirmed).
+6. **One-line cleanup via SWE follow-up message** instead of waking new agent — T-305.2 missingSchedules fix turnaround was <1min via write_agent vs ~3min for new dispatch.
+7. **PM-direct git merge conflict resolution** when both SWE branches touched the same file. T-305.2 + T-305.4 conflicted on schedule.rs imports + resolve_maenifold_bin visibility. PM combined both changes, verified build, completed merge — under 5 min.

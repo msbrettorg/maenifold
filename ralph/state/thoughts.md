@@ -241,3 +241,45 @@ Multiple Sprint 243 "frontend stub" commits NEVER MERGED to dev despite being ma
 2. **PRE-FLIGHT:** verify the frontend "Pause all" button exists in SchedulesTab.vue (per orphan-commit pattern caution). If yes, scope is backend-only. If no, scope includes both.
 3. Dispatch architect-duo if scope is non-trivial; otherwise SWE direct.
 4. After T-305.2: T-305.3 (ScheduleRunsDrawer hardening), then T-305.4 (launchd env disclosure — sdd, P1, security-adjacent — extra care).
+
+### Iter-14 close (2026-05-14)
+
+**Headline:** 4 sprint-305 tasks shipped end-to-end (T-305.2 + T-305.3 + T-305.4 + T-305.8) + T-305.9 closed-as-merged + 2 follow-ups filed.
+
+**Shipped:**
+- **T-305.2** (full-stack, P1) — Schedules global Pause-all toggle. Backend: pause_state.rs (O_CREAT|O_EXCL), schedule_batch.rs (4 actions: pause_all/resume_all/set_all_enabled/pause_status with structured JSON), create/update enabled-during-pause guard. Frontend: SchedulesTab Switch + ScheduleFormDialog warning banner + composable + store. 28 tests. Subsumes T-305.9. Architect duo (gpt-5.5 + opus-4.6) caught 4 blockers fixed in Amendment 2 before dispatch.
+- **T-305.3** (frontend, P1) — ScheduleRunsDrawer hardening: subscription generation token, outcome union extension (cancelled/running/unknown), retry handler early-return guard. 3 new tests.
+- **T-305.4** (backend, P1, security-adjacent) — launchd schedule env scrub at fire time. New env_allowlist.rs (89 LOC, 7 unit tests + 1 integration). Supervisor::run env_clear + allowlist before spawn. Schedule MCP envScrub disclosure field. PM cleanup commit ported help-doc into canonical path.
+- **T-305.8** (refactor, P3) — split tools/schedule.rs (415 → 72 LOC) into validation/crud/helpers. Audit count drops 17→16. Sets up T-305.5/6/10/11 to add new dispatcher arms with minimal churn.
+
+**Closed as merged:**
+- **T-305.9** — set_all_enabled subsumed by T-305.2 implementation (PM-direct close through all stages).
+
+**Follow-ups filed for future iters:**
+- **T-305.12** (P3) — ScheduleRunsDrawer normalizeRun: content regex can override status enum (T-305.3 red-team nb1).
+- **T-305.13** (P3) — schedule_tests: restore exact-string assertions for create/update pause-rejection error message (T-305.2 red-team nb2).
+
+**Remaining sprint 305 todo:**
+- T-305.0 (umbrella — closes when remaining children done).
+- T-305.5 (P1, full-stack — orphan stub for mcpAction frontend; needs amendment).
+- T-305.6 (P2, backend — Schedule action=clear_history daemon command).
+- T-305.10 (P3, backend — Schedule action=backfill daemon command).
+- T-305.11 (P3, mixed — verify_installed UX hardening, T-305.1 follow-ups).
+- T-305.12 (P3, frontend — normalizeRun fix).
+- T-305.13 (P3, test polish).
+
+**Iter-15 playbook:**
+1. T-305.5 next (P1, lowest-numbered remaining). Apply orphan-commit pattern: add ScheduleFormDialog mcpAction + parameters fields (frontend stub never landed) AND backend daemon dispatch (per the original spec). Architect duo recommended.
+2. T-305.6 (P2) and T-305.10 (P3) in parallel — both backend-only, both add dispatcher arms to the now-slim schedule.rs. Independent files (will add new modules per T-305.8 split pattern).
+3. T-305.11 (mixed P3) after the backend bumps — touches verify_installed_action which now lives in schedule_validation.rs.
+4. T-305.12 + T-305.13 are quick frontend / test-polish fillers.
+5. Once all done, close T-305.0 umbrella and move to sprint 306 (workflow umbrella).
+
+**Standing directives reaffirmed:**
+- Lowest-numbered first remains absolute.
+- UAT items stay out of scope (sprints 301-304 are RALPH-converged with only UAT items remaining in todo/).
+- Architect duo (gpt-5.5 + opus-4.6) BEFORE SWE dispatch for any non-trivial spec.
+- TDD default; SDD acceptable for refactors (T-305.8 is TDD because existing tests prove correctness).
+- Use Python heredoc for gate_Pass with non-trivial notes (Lesson 95).
+- Add audit-crates exit-code disclaimer to every blue-team prompt (Lesson 96).
+- Pre-flight orphan-commit grep is mandatory (Lesson 92, applied successfully iter-14).

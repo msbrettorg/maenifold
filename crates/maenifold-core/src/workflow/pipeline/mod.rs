@@ -142,6 +142,9 @@ pub(crate) use executor_run::persist_active_node_session;
 pub use handler::pipeline;
 pub(crate) use handler_wait::wait_for_pipeline_terminal;
 pub use lease::pipeline_lock_path;
+pub(super) fn session_lock_is_held(session_id: &str, config: &crate::config::Config) -> bool {
+    lease::session_lock_is_held(session_id, config)
+}
 pub use quarantine::{
     QuarantineCleanupReport, RestoreReport, restore_pipeline_from_quarantine,
     run_quarantine_cleanup,

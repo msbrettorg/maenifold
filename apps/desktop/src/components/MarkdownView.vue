@@ -2,9 +2,12 @@
 import { nextTick, ref, useTemplateRef, watch } from 'vue';
 import DOMPurify from 'dompurify';
 import { getMarkdownIt } from '../composables/useMarkdownIt';
+import { useMemoryApi } from '../composables/useMemoryApi';
 import { useMermaid } from '../composables/useMermaid';
+import { collectFolderPaths } from '../lib/knowledge-helpers';
 import { useAppShellStore } from '../stores/app-shell';
 import { useKnowledgeStore } from '../stores/knowledge';
+import WikilinkCreateDialog from './WikilinkCreateDialog.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -21,6 +24,10 @@ let renderVersion = 0;
 const { renderMermaidBlocks } = useMermaid();
 const appShellStore = useAppShellStore();
 const knowledgeStore = useKnowledgeStore();
+const memoryApi = useMemoryApi();
+const createDialogOpen = ref(false), unresolvedConcept = ref('');
+const wikilinkExistsCache = new Map<string, boolean>();
+let unresolvedCheckTimer: number | null = null;
 
 // Keep data URI rendering to inert raster image formats. SVG data URIs are
 // intentionally excluded because nested SVG payloads can carry executable
@@ -42,6 +49,12 @@ function installEventAttributeHook(): void {
 }
 
 installEventAttributeHook();
+
+async function conceptExists(concept: string): Promise<boolean> { const cached = wikilinkExistsCache.get(concept); if (cached !== undefined) return cached; try { await memoryApi.readMemory(`memory://${concept}`); wikilinkExistsCache.set(concept, true); return true; } catch { wikilinkExistsCache.set(concept, false); return false; } }
+
+async function markUnresolvedWikilinks(): Promise<void> { await Promise.all(Array.from(containerRef.value?.querySelectorAll<HTMLElement>('[data-wikilink]') ?? []).map(async (chip) => { const concept = chip.getAttribute('data-wikilink'); if (!concept) return; if (await conceptExists(concept)) chip.removeAttribute('data-unresolved'); else chip.setAttribute('data-unresolved', 'true'); })); }
+
+function scheduleUnresolvedCheck(): void { if (unresolvedCheckTimer !== null) window.clearTimeout(unresolvedCheckTimer); unresolvedCheckTimer = window.setTimeout(() => { void markUnresolvedWikilinks(); }, 60); }
 
 function restoreForeignObjectText(safeHtml: string, originalHtml: string): string {
   if (!originalHtml.includes('<foreignObject') && !originalHtml.includes('<foreignobject')) {
@@ -140,21 +153,19 @@ async function updateRendered(): Promise<void> {
   if (thisVersion !== renderVersion) return;
   if (containerRef.value) {
     await renderMermaidBlocks(containerRef.value);
+    scheduleUnresolvedCheck();
   }
 }
 
-function handleClick(event: MouseEvent): void {
+async function handleClick(event: MouseEvent): Promise<void> {
   if (!(event.target instanceof Element)) return;
 
   const linkTarget = event.target.closest<HTMLAnchorElement>('a');
   const href = linkTarget?.getAttribute('href') ?? '';
   if (href.startsWith('memory://')) {
     event.preventDefault();
-    if (event.metaKey || event.ctrlKey) {
-      knowledgeStore.openInNewTab(href);
-    } else {
-      knowledgeStore.openNote(href);
-    }
+    if (event.metaKey || event.ctrlKey) knowledgeStore.openInNewTab(href);
+    else knowledgeStore.openNote(href);
     appShellStore.setActiveTab('knowledge');
     return;
   }
@@ -173,10 +184,11 @@ function handleClick(event: MouseEvent): void {
   }
 
   const uri = `memory://${concept}`;
-  if (event.metaKey || event.ctrlKey) {
-    knowledgeStore.openInNewTab(uri);
+  if (!(await conceptExists(concept))) {
+    unresolvedConcept.value = concept; createDialogOpen.value = true;
     return;
   }
+  if (event.metaKey || event.ctrlKey) { knowledgeStore.openInNewTab(uri); return; }
   knowledgeStore.openNote(uri);
 }
 
@@ -189,16 +201,19 @@ function handleKeydown(event: KeyboardEvent): void {
   target.click();
 }
 
-watch(() => props.content, updateRendered, { immediate: true });
+function handleCreated(): void {
+  wikilinkExistsCache.set(unresolvedConcept.value, true); void knowledgeStore.loadRootFolders(); void markUnresolvedWikilinks();
+} watch(() => props.content, updateRendered, { immediate: true });
 </script>
 
 <template>
   <article
     ref="containerRef"
-    class="prose prose-sm min-w-0 max-w-full [overflow-wrap:anywhere] dark:prose-invert [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre [&_pre_code]:whitespace-pre [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
+    class="prose prose-sm min-w-0 max-w-full [overflow-wrap:anywhere] dark:prose-invert [&_a[data-wikilink][data-unresolved=true]]:border-dashed [&_a[data-wikilink][data-unresolved=true]]:opacity-70 [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_pre]:whitespace-pre [&_pre_code]:whitespace-pre [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto"
     :class="clamp ? 'line-clamp-6' : ''"
     @click="handleClick"
     @keydown="handleKeydown"
     v-html="rendered"
   />
+  <WikilinkCreateDialog v-model:open="createDialogOpen" :concept="unresolvedConcept" :available-folders="collectFolderPaths(knowledgeStore.folders)" @created="handleCreated" />
 </template>

@@ -1,11 +1,17 @@
 // @vitest-environment jsdom
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { nextTick } from 'vue';
 import MarkdownView from '../MarkdownView.vue';
 import { getMarkdownIt } from '../../composables/useMarkdownIt';
 import { useKnowledgeStore } from '../../stores/knowledge';
+
+const memoryApi = vi.hoisted(() => ({
+  readMemory: vi.fn(),
+  listMemories: vi.fn(),
+}));
+vi.mock('../../composables/useMemoryApi', () => ({ useMemoryApi: () => memoryApi }));
 
 async function settle(): Promise<void> {
   for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -23,6 +29,15 @@ describe('WikiPill accessibility', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     document.body.innerHTML = '';
+    memoryApi.readMemory.mockResolvedValue({
+      uri: 'memory://Concept',
+      title: 'Concept',
+      content: '[[Concept]]',
+      checksum: 'cs1',
+      created: null,
+      modified: null,
+    });
+    memoryApi.listMemories.mockResolvedValue('');
   });
 
   it('renders [[concept]] as an anchor element with implicit link role', async () => {

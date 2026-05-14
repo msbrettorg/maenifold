@@ -15,6 +15,8 @@ import KnowledgeVaultBrowser from './KnowledgeVaultBrowser.vue';
 const store = useKnowledgeStore();
 const relatedRailCollapsed = ref(false);
 const relatedRailPanel = ref<{ collapse: () => void; expand: () => void } | null>(null);
+const newNoteDialog = ref<{ openDialog: () => void } | null>(null);
+const vaultBrowser = ref<{ focusSearchInput: () => void } | null>(null);
 
 onMounted(() => {
   void store.loadRootFolders();
@@ -27,6 +29,16 @@ watch(relatedRailCollapsed, (collapsed) => {
   }
   relatedRailPanel.value?.expand();
 });
+
+function focusSearchInput(): void {
+  vaultBrowser.value?.focusSearchInput();
+}
+
+function openNewNoteDialog(): void {
+  newNoteDialog.value?.openDialog();
+}
+
+defineExpose({ focusSearchInput, openNewNoteDialog });
 </script>
 
 <template>
@@ -46,9 +58,9 @@ watch(relatedRailCollapsed, (collapsed) => {
         <div class="flex h-full w-full min-h-0 min-w-0">
           <div class="flex h-full min-h-0 w-full flex-col">
             <div class="border-r border-b border-border-subtle bg-bg-sidebar px-3 py-3">
-              <KnowledgeNewNoteDialog />
+              <KnowledgeNewNoteDialog ref="newNoteDialog" />
             </div>
-            <KnowledgeVaultBrowser />
+            <KnowledgeVaultBrowser ref="vaultBrowser" />
           </div>
         </div>
       </ResizablePanel>

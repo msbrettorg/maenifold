@@ -50,20 +50,26 @@ add_worktree_symlink_excludes() {
   mkdir -p "$(dirname "${exclude_file}")"
 
   local lock_dir="${exclude_file}.lock"
-  (
-    lock_acquired=0
+  local lock_acquired=0
+  {
     cleanup_exclude_lock() {
+      local status=$?
       if [[ ${lock_acquired} -eq 1 ]]; then
         rmdir "${lock_dir}"
+        lock_acquired=0
       fi
+      trap - INT TERM HUP EXIT
+      return "${status}"
     }
-    trap cleanup_exclude_lock EXIT
+    trap 'cleanup_exclude_lock; exit $?' INT TERM HUP EXIT
 
     attempts=0
     while ! mkdir "${lock_dir}" 2>/dev/null; do
       attempts=$((attempts + 1))
       if [[ ${attempts} -ge 50 ]]; then
         echo "error: timed out waiting for lock ${lock_dir}" >&2
+        echo "  if no other worktree-create.sh is running, recover with:" >&2
+        echo "    rmdir ${lock_dir}" >&2
         exit 1
       fi
       sleep 0.1
@@ -88,7 +94,8 @@ add_worktree_symlink_excludes() {
     else
       echo "  /todo, /done already present in common .git/info/exclude (no change)"
     fi
-  )
+    cleanup_exclude_lock
+  }
 }
 
 if [[ -e "${WORKTREE_DIR}" ]]; then

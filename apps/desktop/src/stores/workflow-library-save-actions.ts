@@ -2,7 +2,7 @@ import type { Ref } from 'vue'
 import { toast } from 'vue-sonner'
 import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types'
 import { usePipelineMcp } from '../composables/usePipelineMcp'
-import { unwrapToolData } from '../composables/pipeline-mcp-transport'
+import { validateWorkflowDefinition } from '../lib/workflow-asset-runtime'
 import {
   cloneDefinition,
   mergeDraftIntoRaw,
@@ -183,9 +183,9 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
 
     try {
       if (!workflowMcp.connected.value) await workflowMcp.connect()
-      const sourceRaw = unwrapToolData<WorkflowRaw>(
-        await workflowMcp.callTool('ReadMcpResource', { uri: `asset://workflows/${source.id}` }),
-      )
+      const sourceRaw = validateWorkflowDefinition(
+        await workflowMcp.readWorkflowDefinition(source.id),
+      ) as unknown as WorkflowRaw
       const raw = { ...sourceRaw }
       raw.id = copyId
       raw.name = typeof raw.name === 'string' && raw.name.trim() ? `${raw.name} Copy` : copyId
@@ -197,6 +197,7 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
     }
 
     await context.fetchSummaries()
+    toast.success(`Duplicated as ${copyId}`)
     return copyId
   }
 

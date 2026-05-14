@@ -88,3 +88,30 @@
   - 25. `npm run build:electron` is vite-only; `npm run build` runs full audit:components which can fail on pre-existing baseline. Use `build:electron` for renderer-only blue-team verification.
 - **Sprint 304 status:** 1/7 non-UAT items done. Remaining open in sprint 304 (excluding UAT items T-304.2, T-304.3, T-304.6, T-304.19): T-304.4 (superseded, awaiting user auth to close), T-304.13 (next actionable — acp-client-core terminal extMethod refactor), T-304.15 (small P3 test fix).
 - **Next iter:** T-304.13 (P1, tdd, focused refactor in `apps/desktop/src/lib/acp-client-core.ts`). Note: spec body says "near audit ceiling at 605 LOC" but audit-components.mjs MAX_LOC only applies to Vue files (Lesson 24); TS LOC is uncapped. The "audit ceiling" concern in the spec body is wrong — proceed without LOC anxiety.
+
+## Iter 2026-05-13 EVEN LATER (T-304.13 SHIPPED — sprint 304 progress 2/7)
+
+- **T-304.13 done** via TDD pipeline + 2-cycle pre-impl rubber-duck. ACP terminal request migration: 5 WebSocket-bound terminal methods routed through SDK extMethod (via existing sendRequest helper). Manual `sendTerminalRequest` + `resolveManualResponse` + `pendingManualRequests` deleted. Commit 28f6da2ce → merged 470a8f9bb. 3 files, 183 insertions, 133 deletions (-67 net LOC).
+- **Pipeline**: pending → blue-team (rubber-duck pre-impl review) → swe (gpt-5.5 inner-loop) → red-team (claude-opus-4.6 PASS) → blue-team verification (gpt-5.5 inner-loop, 7 gates clean) → done.
+- **Pre-impl review caught**: (1) Amendment 1 missed `terminalCreate` — there are 5 sites not 4 (createTerminal/releaseTerminal use IPC, terminalCreate/terminalRelease use WebSocket — the naming similarity is a trap). (2) SDK extMethod writes asynchronously through #writeQueue.then() — existing tests assuming synchronous socket.sent[0] would break.
+- **Lessons (NEW for future iters):**
+  - 26. SDK extMethod async writes vs manual sync writes — tests need `vi.waitFor(() => socket.sent.length >= N)` and real frame IDs, NOT hardcoded id: 0.
+  - 27. Method-name lookalikes (createTerminal IPC vs terminalCreate WebSocket) easy to miss in spec amendments. Always grep ALL methods that call the helper being deleted before claiming a count.
+- **Sprint 304 status: 2/7 non-UAT items shipped (T-304.1, T-304.13).** Remaining open: T-304.4 (superseded, awaiting user auth to close), T-304.15 (in flight — small P3 test fix).
+- **Iter rolling close:** T-304.15 in red-team review. Then this iter is at natural stopping point (3 sprint 304 items shipped).
+
+## Iter 2026-05-13 CLOSE-OUT (3 sprint 304 items shipped)
+
+- **Shipped this iter:** T-304.1, T-304.13, T-304.15. All sdd/tdd pipelines clean (swe → red → blue verification with real dispatched agents at each stage).
+- **Filed this iter:** T-303.4.30 (sampling test debt, P3), T-303.4.31 (no-mock audit violations in spec files, P3), T-304.20 (harden permission:try-auto-decide IPC, P2 — successor to superseded T-304.4).
+- **Sprint 304 RALPH-converged.** Remaining open items in sprint 304:
+  - T-304.2 (UAT, out of RALPH scope)
+  - T-304.3 (UAT-flavored CDP perf harness, out of RALPH scope)
+  - T-304.4 (superseded by 11/12/13/14/18 + filed-as-follow-up T-304.20; iter-12 PM left in todo/ pending USER AUTHORIZATION to close — not within RALPH PM authority to override)
+  - T-304.6 (UAT, out of scope)
+  - T-304.19 (UAT, out of scope)
+  - T-304.20 (filed by this iter for next iter)
+- **Lessons accumulated this iter:** Lessons 21-27 in learnings.md cover wave-boundary duo cycles, pre-existing-failure-as-tracked-items, async SDK writes, method-name lookalike risks.
+- **Pattern that worked best**: pre-impl rubber-duck (single or duo) BEFORE SWE dispatch. T-304.1 took 4 amendment cycles, T-304.13 took 2. Each cycle costs ~5-10 min vs a wasted SWE cycle (~15-20 min + lost context).
+- **Next iter starting point:** sprint 304 RALPH-converged. T-304.20 (the filed follow-up) is next-numbered actionable in sprint 304 — but it requires architect-duo decision between option (a) and option (b) BEFORE SWE dispatch. After T-304.20, iter advances to sprint 305 (schedule items, T-305.1 first).
+- **No convergence marker created** because UAT items + T-304.4 + T-304.20 remain in todo/ — sprint 304 not closed, just RALPH-converged for this iter.

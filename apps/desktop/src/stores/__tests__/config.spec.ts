@@ -64,6 +64,21 @@ describe('config store agents serializer contract', () => {
     expect(parsed.agents.claude.command).toBe('/usr/local/bin/claude');
   });
 
+  it('serializeConfig_does_not_split_command_into_args_field', async () => {
+    const { store, configWrite } = await setupConfigStore();
+
+    // User's actual config: copilot agent with --acp flag (verified in ~/maenifold/maenifold.json).
+    await store.addAgent('copilot', { command: '/path/to/copilot --acp' });
+
+    const lastCall = configWrite.mock.calls[configWrite.mock.calls.length - 1];
+    const parsed = JSON.parse(lastCall?.[0] ?? '{}') as AgentsConfig;
+
+    // The on-disk shape must match Rust AgentEntry: command is the FULL joined string,
+    // no separate args field (Rust struct has no args field — would silently drop them).
+    expect(parsed.agents.copilot.command).toBe('/path/to/copilot --acp');
+    expect((parsed.agents.copilot as unknown as Record<string, unknown>).args).toBeUndefined();
+  });
+
   it('serializeConfig_round_trips_through_parseAgentsConfig', async () => {
     const { store, configWrite } = await setupConfigStore();
 

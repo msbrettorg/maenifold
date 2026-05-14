@@ -25,6 +25,7 @@ type ElectronVoiceLaunchResult = {
 };
 
 type ElectronApi = {
+  [key: string]: unknown;
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
   quit?: () => Promise<void>;
@@ -50,11 +51,11 @@ type ElectronApi = {
   vec0Download?: () => Promise<Vec0Status>;
   voiceCheck?: () => Promise<ElectronVoiceCheckResult>;
   voiceLaunch?: () => Promise<ElectronVoiceLaunchResult>;
-  permissionTryAutoDecide?: (payload: unknown) => Promise<{
-    decision: 'allow' | 'reject' | null;
-    event: import('./lib/permission-ledger/ledger').LastAutoPermissionDecision | null;
-    token?: string | null;
-  }>;
+  /** IPC channel: permission:evaluate-request */
+  permissionEvaluateRequest?: (payload: {
+    request: import('./lib/types').PermissionRequest;
+    context: import('./lib/permission-ledger/ledger').PermissionLookupContext;
+  }) => Promise<import('./lib/permission-ledger/types').PermissionEvaluateRequestResult>;
   permissionResolveDecision?: (payload: {
     token: string;
     optionId: string;
@@ -88,6 +89,7 @@ type ElectronApi = {
     onOutput?: (handler: (terminalId: string, chunk: string) => void) => () => void;
   };
 };
+
 
 type AppApi = {
   quit: () => Promise<void>;

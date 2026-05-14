@@ -13,11 +13,17 @@ import type {
   PermissionAuditEvent,
   PermissionDecision,
   PermissionLookupContext,
+  PermissionRecordContext,
   PermissionScope,
   PersistedPermissionDecision,
 } from '../src/lib/permission-ledger/ledger.js';
 import { createPermissionDecisionRegistry } from '../src/lib/permission-ledger/decision-registry.js';
+import type {
+  PermissionEvaluateRequestResult,
+  PermissionPromptPayload,
+} from '../src/lib/permission-ledger/types.js';
 import type { PermissionRequest } from '../src/lib/types.js';
+import type { RequestPermissionResponse } from '@agentclientprotocol/sdk';
 
 type DbRow = {
   id: number;
@@ -255,7 +261,7 @@ function assertLookupContext(value: unknown): PermissionLookupContext {
   };
 }
 
-function assertTryAutoPayload(payload: unknown): {
+function assertEvaluateRequestPayload(payload: unknown): {
   request: PermissionRequest;
   context: PermissionLookupContext;
 } {
@@ -263,6 +269,29 @@ function assertTryAutoPayload(payload: unknown): {
   return {
     request: assertPermissionRequest(payload.request),
     context: assertLookupContext(payload.context),
+  };
+}
+
+function selectedResponse(
+  request: PermissionRequest,
+  decision: PermissionDecision
+): RequestPermissionResponse {
+  const option = request.options.find(
+    (candidate) => candidate.kind === `${decision}_once` || candidate.kind === `${decision}_always`
+  );
+  if (!option) {
+    throw new Error(`missing ${decision} permission option`);
+  }
+  return {
+    outcome: { outcome: 'selected', optionId: option.optionId },
+    _meta: null,
+  };
+}
+
+function permissionPromptPayload(request: PermissionRequest): PermissionPromptPayload {
+  return {
+    toolCall: request.toolCall,
+    options: request.options,
   };
 }
 
@@ -290,12 +319,18 @@ const decisionRegistry = createPermissionDecisionRegistry({
 let resetConfirmToken: { token: string; expiresAt: number } | null = null;
 
 export function registerPermissionLedgerHandlers(): void {
-  ipcMain.handle('permission:try-auto-decide', (_event, payload: unknown) => {
-    const { request, context } = assertTryAutoPayload(payload);
+  ipcMain.handle('permission:evaluate-request', (_event, payload: unknown): PermissionEvaluateRequestResult => {
+    const { request, context } = assertEvaluateRequestPayload(payload);
     const activeLedger = getLedger();
     const decision = activeLedger.tryAutoDecide(request, context);
-    const token = decision === null ? decisionRegistry.register(request, context) : null;
-    return { decision, event: activeLedger.getLastAutoDecision(), token };
+    if (decision) {
+      return { autoDecided: true, response: selectedResponse(request, decision) };
+    }
+    return {
+      autoDecided: false,
+      token: decisionRegistry.register(request, context),
+      prompt: permissionPromptPayload(request),
+    };
   });
   ipcMain.handle('permission:resolve-decision', (_event, payload: unknown) => {
     decisionRegistry.resolve(assertResolveDecisionPayload(payload));

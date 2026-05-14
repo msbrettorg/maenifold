@@ -9,7 +9,7 @@ use crate::mcp::resource_routing::ResourceRoutingRegistry;
 use crate::mcp::resources;
 use crate::mcp::stdio_pool::{StdioPool, StdioServerConfig};
 use crate::mcp::tool_routing::ToolRoutingRegistry;
-use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
+use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry, loop_correlator};
 use rmcp::model::Tool;
 use std::sync::Arc;
 use tracing::{info, warn};
@@ -38,7 +38,29 @@ pub(super) async fn build_gateway_with_registry(
             return Ok(GatewayStartup::Disabled);
         }
     };
-    let sampling_registry = Arc::new(SamplingSessionRegistry::new());
+    let default_budget = agents_config
+        .sampling_preferences
+        .as_ref()
+        .and_then(|prefs| prefs.default_tool_loop_budget)
+        .unwrap_or(10);
+    let per_server_budget = agents_config
+        .sampling_preferences
+        .as_ref()
+        .map(|prefs| {
+            prefs
+                .per_server
+                .iter()
+                .filter_map(|(server, pref)| {
+                    pref.tool_loop_budget.map(|budget| (server.clone(), budget))
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let sampling_registry = Arc::new(SamplingSessionRegistry::with_tool_loop_budgets(
+        default_budget,
+        per_server_budget,
+    ));
+    loop_correlator::spawn_cleanup_task();
     resources::sampling::set_registry(Arc::clone(&sampling_registry));
     let sampling_agent = agents_config.sampling_agent.clone();
     let gateway_servers: Vec<_> = agents_config

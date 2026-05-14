@@ -227,6 +227,7 @@ pub(crate) async fn handle_execute(
                     output: String::new(),
                     session_id: session_id.to_string(),
                     resumed,
+                    stop_reason: resp.stop_reason,
                 }),
                 was_cancelled,
                 &session_id,

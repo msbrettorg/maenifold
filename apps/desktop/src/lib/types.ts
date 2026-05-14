@@ -67,7 +67,9 @@ export interface AgentsConfig {
     perServer?: Record<string, {
       alwaysAllow: boolean;
       modelOverride?: string;
+      toolLoopBudget?: number;
     }>;
+    defaultToolLoopBudget?: number;
   };
 }
 
@@ -157,13 +159,16 @@ export interface SamplingHistoryEntry {
   model: string;
   runtimeKind: string;
   roleName: string;
-  status: string;
+  status: 'pendingApproval' | 'dispatching' | 'streaming' | 'budgetExceeded' | 'completed' | 'cancelled' | 'denied' | 'failed' | string;
   decision: string;
   createdAt: string;
   tokenUsage: SamplingHistoryTokenUsage | null;
   acpSessionId?: string | null;
   appSessionId?: string;
   currentDelta?: string;
+  toolCallCount?: number;
+  toolLoopBudget?: number;
+  turnCount?: number;
 }
 
 export interface ChatMessage {

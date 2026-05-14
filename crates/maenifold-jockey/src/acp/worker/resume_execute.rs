@@ -52,6 +52,7 @@ pub(crate) fn normalize_prompt_result_after_cancel(
             output: String::new(),
             session_id: session_id.to_string(),
             resumed,
+            stop_reason: acp::StopReason::Cancelled,
         })
     } else {
         result

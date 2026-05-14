@@ -17,6 +17,7 @@ fn config_with_agent(name: &str) -> AgentsConfig {
         mcp_servers: Vec::new(),
         agents,
         settings: None,
+        sampling_preferences: None,
     }
 }
 

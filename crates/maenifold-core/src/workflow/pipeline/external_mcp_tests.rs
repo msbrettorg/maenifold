@@ -26,6 +26,7 @@ fn config_with_global_and_agents(
             })
             .collect(),
         settings: None,
+        sampling_preferences: None,
     }
 }
 

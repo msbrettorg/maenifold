@@ -15,9 +15,11 @@ pub use runtime_state::{
     list_discovered_modes,
 };
 pub use session::{
-    cancel_session, cancel_tracked_session_blocking, execute_runtime, execute_runtime_sampling,
-    list_live_sessions_blocking, prewarm_role, prewarm_role_for_config, prewarm_role_with_session_id,
-    reconnect_session, refresh_role_config_defs, reset_session, set_config_option, set_mode,
+    SamplingResult, SamplingStopReason, ToolUseBlock, cancel_session,
+    cancel_tracked_session_blocking, execute_runtime, execute_runtime_sampling,
+    list_live_sessions_blocking, prewarm_role, prewarm_role_for_config,
+    prewarm_role_with_session_id, reconnect_session, refresh_role_config_defs, reset_session,
+    set_config_option, set_mode,
 };
 pub use worker::{
     AcpEvent, AcpExecuteError, AcpExecuteResult, AcpExecuteSuccess, AcpPromptResult,

@@ -17,11 +17,10 @@ use rmcp::{
     ServerHandler, ServiceExt,
     model::{
         ClientResult, CreateMessageRequest, CreateMessageRequestParams, ErrorData, SamplingMessage,
-        ServerCapabilities, ServerInfo, ServerRequest, Tool,
+        ServerCapabilities, ServerInfo, ServerRequest,
     },
     service::ServiceError,
 };
-use serde_json::Map;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -41,17 +40,19 @@ async fn sampling_with_unconfigured_sampling_agent_rejects_negative_32603() -> a
     Ok(())
 }
 
-#[tokio::test]
-async fn sampling_with_tools_field_rejects_negative_32602() -> anyhow::Result<()> {
-    let params = valid_sampling_params().with_tools(vec![Tool::new(
-        "lookup",
-        "test tool",
-        Arc::new(Map::new()),
-    )]);
-    let error = send_sampling_request(params, Some("copilot".to_string()), None).await?;
+#[test]
+fn sampling_with_tools_field_uses_tool_enabled_runtime_flow_source_contract() {
+    let handler_source = include_str!("client_handler.rs");
+    let flow_source = include_str!("sampling_client_flow.rs");
 
-    assert_eq!(error.code.0, -32602);
-    Ok(())
+    assert!(
+        handler_source.contains("enable_sampling_tools"),
+        "T-303.4.5: MCP client capabilities must advertise sampling tool support"
+    );
+    assert!(
+        flow_source.contains("request.tools.clone()"),
+        "T-303.4.5: sampling/createMessage tools must be passed into runtime sampling"
+    );
 }
 
 #[tokio::test]
@@ -98,7 +99,7 @@ async fn sampling_deny_returns_negative_1() -> anyhow::Result<()> {
 
 #[test]
 fn sampling_allow_dispatch_passes_selected_model_to_runtime_sampling() {
-    let source = include_str!("client_handler.rs");
+    let source = include_str!("sampling_client_flow.rs");
     let dispatch_start = source
         .find("jockey::acp::execute_runtime_sampling")
         .expect("client_handler must dispatch approved sampling through execute_runtime_sampling");

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
 import {
   Card,
   CardContent,
@@ -26,6 +27,15 @@ function isAlwaysAllowed(serverName: string): boolean {
   return configStore.config.samplingPreferences?.perServer?.[serverName]?.alwaysAllow ?? false;
 }
 
+function defaultToolLoopBudget(): number {
+  return configStore.config.samplingPreferences?.defaultToolLoopBudget ?? 10;
+}
+
+function toolLoopBudget(serverName: string): number {
+  return configStore.config.samplingPreferences?.perServer?.[serverName]?.toolLoopBudget
+    ?? defaultToolLoopBudget();
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
@@ -36,12 +46,30 @@ async function setAlwaysAllowed(serverName: string, alwaysAllow: boolean): Promi
   errorByServer.value = remainingErrors;
 
   try {
-    await configStore.setSamplingPreference(serverName, { alwaysAllow });
+    const existing = configStore.config.samplingPreferences?.perServer?.[serverName];
+    await configStore.setSamplingPreference(serverName, { ...existing, alwaysAllow });
   } catch (error) {
     errorByServer.value = { ...errorByServer.value, [serverName]: errorMessage(error) };
   } finally {
     savingByServer.value = { ...savingByServer.value, [serverName]: false };
   }
+}
+
+async function setServerToolLoopBudget(serverName: string, value: string): Promise<void> {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return;
+  const existing = configStore.config.samplingPreferences?.perServer?.[serverName];
+  await configStore.setSamplingPreference(serverName, {
+    alwaysAllow: existing?.alwaysAllow ?? false,
+    modelOverride: existing?.modelOverride,
+    toolLoopBudget: parsed,
+  });
+}
+
+async function setDefaultToolLoopBudget(value: string): Promise<void> {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return;
+  await configStore.setDefaultToolLoopBudget(parsed);
 }
 </script>
 
@@ -56,6 +84,20 @@ async function setAlwaysAllowed(serverName: string, alwaysAllow: boolean): Promi
       </CardHeader>
 
       <CardContent class="flex flex-col gap-4">
+        <div class="flex flex-col gap-2 sm:max-w-xs">
+          <label class="text-sm font-medium text-text-primary" for="default-tool-loop-budget">
+            Default tool loop budget
+          </label>
+          <Input
+            id="default-tool-loop-budget"
+            type="number"
+            min="1"
+            :model-value="defaultToolLoopBudget()"
+            @update:model-value="(value: string | number) => setDefaultToolLoopBudget(String(value))"
+            @change="(event: Event) => setDefaultToolLoopBudget((event.target as HTMLInputElement).value)"
+          />
+        </div>
+
         <div
           v-if="servers.length === 0"
           class="rounded-md bg-muted/40 p-4 text-sm text-muted-foreground"
@@ -92,6 +134,20 @@ async function setAlwaysAllowed(serverName: string, alwaysAllow: boolean): Promi
                     @update:model-value="(value: boolean) => setAlwaysAllowed(server.name, value)"
                   />
                 </div>
+              </div>
+              <div class="mt-3 flex flex-col gap-2 sm:max-w-xs">
+                <label class="text-sm font-medium text-text-primary" :for="`tool-loop-budget-${server.name}`">
+                  Tool loop budget
+                </label>
+                <Input
+                  :id="`tool-loop-budget-${server.name}`"
+                  type="number"
+                  min="1"
+                  :model-value="toolLoopBudget(server.name)"
+                  :disabled="savingByServer[server.name] ?? false"
+                  @update:model-value="(value: string | number) => setServerToolLoopBudget(server.name, String(value))"
+                  @change="(event: Event) => setServerToolLoopBudget(server.name, (event.target as HTMLInputElement).value)"
+                />
               </div>
               <p
                 v-if="errorByServer[server.name]"

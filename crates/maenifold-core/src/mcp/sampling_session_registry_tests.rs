@@ -2,6 +2,7 @@ use crate::mcp::sampling_session_registry::{
     SamplingDecisionRecord, SamplingDispatch, SamplingRegistryError, SamplingSessionRegistry,
     SamplingSessionStatus, TokenUsage,
 };
+use std::sync::{Arc, atomic::AtomicBool};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -134,5 +135,9 @@ fn dispatch_fixture(server_name: &str) -> SamplingDispatch {
         decision: SamplingDecisionRecord::AllowOnce,
         created_at: "2026-05-13T00:00:00Z".to_string(),
         token_usage: None,
+        tool_call_count: 0,
+        tool_loop_budget: 10,
+        turn_count: 0,
+        status_handle: Arc::new(AtomicBool::new(false)),
     }
 }

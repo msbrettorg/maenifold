@@ -18,7 +18,11 @@ use super::types::{AgentEntry, McpServerEntry};
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct AgentsConfig {
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "samplingAgent")]
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        rename = "samplingAgent"
+    )]
     pub sampling_agent: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub mcp_servers: Vec<McpServerEntry>,
@@ -26,6 +30,28 @@ pub struct AgentsConfig {
     pub agents: HashMap<String, AgentEntry>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub settings: Option<MaenifoldSettings>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub sampling_preferences: Option<SamplingPreferences>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SamplingPreferences {
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub per_server: HashMap<String, SamplingServerPreference>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub default_tool_loop_budget: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SamplingServerPreference {
+    #[serde(default)]
+    pub always_allow: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub model_override: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub tool_loop_budget: Option<u32>,
 }
 
 impl AgentsConfig {
@@ -52,6 +78,7 @@ impl AgentsConfig {
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,
+            sampling_preferences: parsed.sampling_preferences,
         };
 
         if let Some(settings) = config.settings.as_ref() {
@@ -96,6 +123,7 @@ impl AgentsConfig {
             mcp_servers: parsed.mcp_servers,
             agents,
             settings: parsed.settings,
+            sampling_preferences: parsed.sampling_preferences,
         };
 
         if let Some(settings) = config.settings.as_ref() {

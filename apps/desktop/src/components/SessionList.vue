@@ -172,7 +172,15 @@ function isSamplingStoppable(session: SamplingHistoryEntry): boolean {
 }
 
 function statusLabel(status: string): string {
-  return status.split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+  return status.replace(/([A-Z])/g, ' $1').split('_').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
+}
+
+function samplingBudgetClass(session: SamplingHistoryEntry): string {
+  const used = session.toolCallCount ?? 0;
+  const budget = session.toolLoopBudget ?? 10;
+  if (session.status === 'budgetExceeded') return 'bg-destructive/10 text-destructive';
+  if (used >= budget * 0.8) return 'bg-warning/10 text-warning';
+  return '';
 }
 
 function showRowActions(row: SessionListRow): boolean {
@@ -258,6 +266,13 @@ function handleSearchKeydown(event: KeyboardEvent) {
                 <Skeleton v-if="row.session.status === 'streaming'" class="size-1.5 rounded-sm bg-success" aria-hidden="true" />
                 {{ statusLabel(row.session.status) }}
               </span>
+              <Badge
+                v-if="row.source === 'sampling'"
+                variant="secondary"
+                :class="samplingBudgetClass(row.session)"
+              >
+                Tool calls: {{ row.session.toolCallCount ?? 0 }}/{{ row.session.toolLoopBudget ?? 10 }}
+              </Badge>
             </div>
             <span class="text-tiny text-muted-foreground inline-flex items-center gap-1.5">
               {{ row.subtitle }}

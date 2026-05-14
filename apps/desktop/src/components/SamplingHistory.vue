@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -38,6 +39,14 @@ function formatTokens(entry: SamplingHistoryEntry): string {
   }
   return `${entry.tokenUsage.inputTokens} / ${entry.tokenUsage.outputTokens}`;
 }
+
+function budgetClass(entry: SamplingHistoryEntry): string {
+  const used = entry.toolCallCount ?? 0;
+  const budget = entry.toolLoopBudget ?? 10;
+  if (entry.status === 'budgetExceeded') return 'bg-destructive/10 text-destructive';
+  if (used >= budget * 0.8) return 'bg-warning/10 text-warning';
+  return '';
+}
 </script>
 
 <template>
@@ -70,6 +79,7 @@ function formatTokens(entry: SamplingHistoryEntry): string {
             <TableHead>Model</TableHead>
             <TableHead>Decision</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Tool calls</TableHead>
             <TableHead>Tokens</TableHead>
           </TableRow>
         </TableHeader>
@@ -89,6 +99,11 @@ function formatTokens(entry: SamplingHistoryEntry): string {
             </TableCell>
             <TableCell class="text-text-secondary">
               {{ entry.status }}
+            </TableCell>
+            <TableCell>
+              <Badge variant="secondary" :class="budgetClass(entry)">
+                Tool calls: {{ entry.toolCallCount ?? 0 }}/{{ entry.toolLoopBudget ?? 10 }}
+              </Badge>
             </TableCell>
             <TableCell class="font-mono text-xs text-text-secondary">
               {{ formatTokens(entry) }}

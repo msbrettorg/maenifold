@@ -1,4 +1,5 @@
 use super::*;
+use agent_client_protocol::StopReason;
 
 #[test]
 fn cancelled_worker_error_returns_cancelled_stop_reason() {
@@ -27,6 +28,7 @@ fn cancelled_worker_success_returns_cancelled_stop_reason() {
             output: String::new(),
             session_id: "session-1".to_string(),
             resumed: false,
+            stop_reason: StopReason::Cancelled,
         }),
         true,
     );

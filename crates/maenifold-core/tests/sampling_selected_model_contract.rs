@@ -6,13 +6,10 @@
 // https://doc.rust-lang.org/std/macro.include_str.html.
 
 fn execute_runtime_sampling_source() -> &'static str {
-    include_str!("../../maenifold-jockey/src/acp/session/execute.rs")
+    include_str!("../../maenifold-jockey/src/acp/session/sampling.rs")
 }
 
-fn sampling_channels() -> (
-    tokio::sync::oneshot::Sender<String>,
-    jockey::EventSender,
-) {
+fn sampling_channels() -> (tokio::sync::oneshot::Sender<String>, jockey::EventSender) {
     let (session_id_tx, _session_id_rx) = tokio::sync::oneshot::channel();
     let (event_tx, _event_rx) = tokio::sync::broadcast::channel(1);
     (session_id_tx, event_tx)
@@ -32,6 +29,8 @@ async fn execute_runtime_sampling_accepts_selected_model_some_contract() {
         Some(expected_model),
         session_id_tx,
         event_tx,
+        None,
+        None,
     )
     .await;
 }
@@ -49,6 +48,8 @@ async fn execute_runtime_sampling_accepts_selected_model_none_contract() {
         None,
         session_id_tx,
         event_tx,
+        None,
+        None,
     )
     .await;
 }

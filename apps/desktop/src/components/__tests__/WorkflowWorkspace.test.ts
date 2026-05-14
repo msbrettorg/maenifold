@@ -77,6 +77,11 @@ const WorkflowStepTimelineStub = defineComponent({
   template: '<button data-testid="workflow-save" type="button" @click="$emit(\'save\')">Save</button>',
 });
 
+const WorkflowViewStub = defineComponent({
+  props: { filterWorkflowId: { type: String, required: false, default: null } },
+  template: '<section data-testid="workflow-view-stub">{{ filterWorkflowId }}</section>',
+});
+
 describe('WorkflowWorkspace unsaved changes guard', () => {
   beforeEach(() => {
     pinia = createPinia();
@@ -117,6 +122,7 @@ describe('WorkflowWorkspace unsaved changes guard', () => {
           WorkflowLiveProgress: true,
           WorkflowStepInspector: WorkflowStepInspectorStub,
           WorkflowStepTimeline: WorkflowStepTimelineStub,
+          WorkflowView: WorkflowViewStub,
         },
       },
     });
@@ -132,5 +138,34 @@ describe('WorkflowWorkspace unsaved changes guard', () => {
     store.pendingWorkflowId = 'workflow-b';
     await flushPromises();
     expect(guard.confirmIfDirty).toHaveBeenCalled();
+  });
+
+  it('renders WorkflowView for the selected workflow', async () => {
+    const store = useWorkflowLibraryStore();
+    store.currentId = 'workflow-a';
+    store.currentDefinition = workflow();
+    store.summaries = [
+      summary('workflow-a', 'Workflow A', 'A workflow'),
+      summary('workflow-b', 'Workflow B', 'B workflow'),
+    ];
+    vi.spyOn(store, 'fetchSummaries').mockResolvedValue();
+    vi.spyOn(store, 'ensureVisibleWorkflowSelected').mockResolvedValue();
+
+    const wrapper = mount(WorkflowWorkspace, {
+      global: {
+        plugins: [pinia],
+        stubs: {
+          WorkflowBrowser: true,
+          WorkflowLiveProgress: true,
+          WorkflowStepInspector: WorkflowStepInspectorStub,
+          WorkflowStepTimeline: WorkflowStepTimelineStub,
+          WorkflowView: WorkflowViewStub,
+        },
+      },
+    });
+    await flushPromises();
+
+    const workflowView = wrapper.get('[data-testid="workflow-view-stub"]');
+    expect(workflowView.text()).toContain('workflow-a');
   });
 });

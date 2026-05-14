@@ -9,6 +9,7 @@ import WorkflowBrowser from './WorkflowBrowser.vue'
 import WorkflowLiveProgress from './WorkflowLiveProgress.vue'
 import WorkflowStepTimeline from './WorkflowStepTimeline.vue'
 import WorkflowStepInspector from './WorkflowStepInspector.vue'
+import WorkflowView from './WorkflowView.vue'
 import { useWorkflowStore } from '../stores/workflow'
 import { useUnsavedChangesGuard } from '../composables/useUnsavedChangesGuard'
 
@@ -90,7 +91,7 @@ onBeforeUnmount(() => {
 <template>
   <div role="main" aria-label="Workflow editor" class="flex h-full w-full overflow-hidden">
     <WorkflowBrowser class="h-full shrink-0 overflow-y-auto bg-surface" />
-    <section class="flex min-w-0 flex-1 overflow-hidden border-l border-border" aria-label="Workflow detail">
+    <section class="flex min-w-0 flex-1 flex-col overflow-hidden border-l border-border" aria-label="Workflow detail">
       <div
         v-if="!isSelectionVisibleInFilter && isInitialLoad"
         class="grid h-full min-w-0 flex-1 place-items-center overflow-hidden"
@@ -109,22 +110,30 @@ onBeforeUnmount(() => {
           description="Choose a workflow from the browser to view its steps and details."
         />
       </div>
-      <WorkflowLiveProgress
-        v-else-if="showLiveProgress"
-        class="h-full min-w-0 flex-1"
-        :workflow-name="displayedDefinition?.name ?? currentId ?? 'Workflow'"
-        :workflow="displayedDefinition"
-      />
       <template v-else>
-        <WorkflowStepTimeline
-          class="h-full min-w-0 flex-1 overflow-y-auto bg-bg-app"
-          :selected-step-id="selectedStepId"
-          @save="handleSave"
-          @select-step="handleSelectStep"
-        />
-        <WorkflowStepInspector
-          class="h-full w-80 shrink-0 overflow-y-auto border-l border-border bg-surface"
-          :selected-step-id="selectedStepId"
+        <div class="flex min-h-0 flex-1 overflow-hidden">
+          <WorkflowLiveProgress
+            v-if="showLiveProgress"
+            class="h-full min-w-0 flex-1"
+            :workflow-name="displayedDefinition?.name ?? currentId ?? 'Workflow'"
+            :workflow="displayedDefinition"
+          />
+          <template v-else>
+            <WorkflowStepTimeline
+              class="h-full min-w-0 flex-1 overflow-y-auto bg-bg-app"
+              :selected-step-id="selectedStepId"
+              @save="handleSave"
+              @select-step="handleSelectStep"
+            />
+            <WorkflowStepInspector
+              class="h-full w-80 shrink-0 overflow-y-auto border-l border-border bg-surface"
+              :selected-step-id="selectedStepId"
+            />
+          </template>
+        </div>
+        <WorkflowView
+          class="h-72 shrink-0 border-t border-border bg-bg-app"
+          :filter-workflow-id="currentId"
         />
       </template>
     </section>

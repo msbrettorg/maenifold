@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown, write_markdown};
+use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
 use crate::sessions::{display_utc_now, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::{
@@ -7,7 +7,7 @@ use crate::workflow::{
     read_workflow_definition, workflow_steps,
 };
 use chrono::Utc;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
@@ -55,7 +55,7 @@ pub(crate) fn start_workflow_session(
 
     Ok(json!({
         "sessionId": session_id,
-        "message": format!("Created session: {session_id}"),
+        "message": "Workflow session created",
     })
     .to_string())
 }

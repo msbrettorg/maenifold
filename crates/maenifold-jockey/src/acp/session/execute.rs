@@ -23,6 +23,7 @@ pub async fn execute_runtime(
     _state: Option<(&crate::types::AppState, &str)>,
     app_session_id: &str,
     resume_session_id: Option<String>,
+    session_id_tx: Option<oneshot::Sender<String>>,
 ) -> AcpPromptResult {
     let normalized = runtime_kind.trim().to_ascii_lowercase();
     let requested_resume = resume_session_id.is_some();
@@ -147,6 +148,7 @@ pub async fn execute_runtime(
             role_mode,
             role_config_options,
             resume_session_id,
+            session_id_tx,
         })
         .is_err()
     {
@@ -274,8 +276,9 @@ pub async fn execute_runtime_sampling(
     app_session_id: uuid::Uuid,
     prompt: String,
     selected_model: Option<String>,
+    session_id_tx: oneshot::Sender<String>,
+    event_tx: crate::EventSender,
 ) -> Result<String, String> {
-    let (event_tx, _event_rx) = tokio::sync::broadcast::channel::<crate::JockeyEvent>(32);
     let cwd = std::env::current_dir()
         .map(|path| path.to_string_lossy().into_owned())
         .unwrap_or_else(|_| ".".to_string());
@@ -286,11 +289,8 @@ pub async fn execute_runtime_sampling(
         vec![]
     };
 
-    let result = execute_runtime(
-        runtime_kind, role_name, &prompt, &[], &cwd, &event_tx, true, vec![], None, role_config_options, None,
-        &app_session_id.to_string(), None,
-    )
-    .await;
+    let result = execute_runtime(runtime_kind, role_name, &prompt, &[], &cwd, &event_tx, true,
+        vec![], None, role_config_options, None, &app_session_id.to_string(), None, Some(session_id_tx)).await;
 
     if result.ok {
         Ok(result.output)

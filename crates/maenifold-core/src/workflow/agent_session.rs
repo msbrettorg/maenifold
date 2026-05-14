@@ -117,6 +117,7 @@ impl AgentSession {
             None,
             &self.session_id,
             resume_id.clone(),
+            None,
         )
         .await;
         if !result.ok && prompt_result_is_failed_resume(&result.meta) {

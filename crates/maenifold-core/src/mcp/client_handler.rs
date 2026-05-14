@@ -159,14 +159,37 @@ impl ClientHandler for MaenifoldClient {
             )),
             SamplingAction::AllowOnce | SamplingAction::AllowAlways => {
                 let prompt = sampling_messages_to_prompt(&request.messages)?;
+                let (session_id_tx, session_id_rx) = tokio::sync::oneshot::channel::<String>();
+                let event_tx = crate::mcp::sampling_events::sender_for(app_session_id);
+                let streaming_registry = Arc::clone(&self.sampling_registry);
+                tokio::spawn(async move {
+                    match session_id_rx.await {
+                        Ok(acp_session_id) => {
+                            let _ = streaming_registry
+                                .update_acp_session(dispatch_id, acp_session_id)
+                                .await;
+                            let _ = streaming_registry
+                                .update_status(dispatch_id, SamplingSessionStatus::Streaming)
+                                .await;
+                        }
+                        Err(_) => {
+                            let _ = streaming_registry
+                                .update_status(dispatch_id, SamplingSessionStatus::Failed)
+                                .await;
+                        }
+                    }
+                });
                 let result = jockey::acp::execute_runtime_sampling(
                     &role_name,
                     &role_name,
                     app_session_id,
                     prompt,
                     decision.selected_model.clone(),
+                    session_id_tx,
+                    event_tx,
                 )
                 .await;
+                crate::mcp::sampling_events::unregister(app_session_id);
 
                 match result {
                     Ok(text_result) => {

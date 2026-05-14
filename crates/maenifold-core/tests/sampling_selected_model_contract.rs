@@ -9,10 +9,20 @@ fn execute_runtime_sampling_source() -> &'static str {
     include_str!("../../maenifold-jockey/src/acp/session/execute.rs")
 }
 
+fn sampling_channels() -> (
+    tokio::sync::oneshot::Sender<String>,
+    jockey::EventSender,
+) {
+    let (session_id_tx, _session_id_rx) = tokio::sync::oneshot::channel();
+    let (event_tx, _event_rx) = tokio::sync::broadcast::channel(1);
+    (session_id_tx, event_tx)
+}
+
 #[tokio::test]
 async fn execute_runtime_sampling_accepts_selected_model_some_contract() {
     let app_session_id = uuid::Uuid::new_v4();
     let expected_model = "gpt-5.5".to_string();
+    let (session_id_tx, event_tx) = sampling_channels();
 
     let _ = jockey::acp::execute_runtime_sampling(
         "mock",
@@ -20,6 +30,8 @@ async fn execute_runtime_sampling_accepts_selected_model_some_contract() {
         app_session_id,
         "Summarize this context".to_string(),
         Some(expected_model),
+        session_id_tx,
+        event_tx,
     )
     .await;
 }
@@ -27,6 +39,7 @@ async fn execute_runtime_sampling_accepts_selected_model_some_contract() {
 #[tokio::test]
 async fn execute_runtime_sampling_accepts_selected_model_none_contract() {
     let app_session_id = uuid::Uuid::new_v4();
+    let (session_id_tx, event_tx) = sampling_channels();
 
     let _ = jockey::acp::execute_runtime_sampling(
         "mock",
@@ -34,6 +47,8 @@ async fn execute_runtime_sampling_accepts_selected_model_none_contract() {
         app_session_id,
         "Summarize this context".to_string(),
         None,
+        session_id_tx,
+        event_tx,
     )
     .await;
 }

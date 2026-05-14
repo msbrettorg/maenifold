@@ -24,6 +24,10 @@ impl super::MaenifoldMcpServer {
 
         let api = axum::Router::new()
             .merge(api_routes(api_state))
+            .route(
+                "/events/sampling/{app_session_id}",
+                axum::routing::get(crate::mcp::sampling_events::sse_handler),
+            )
             .fallback(static_handler);
 
         let router = axum::Router::new()

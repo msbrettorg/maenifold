@@ -81,6 +81,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                 role_mode,
                 role_config_options,
                 resume_session_id,
+                session_id_tx,
             } => {
                 let key = pool_key(&app_session_id, &runtime_key, &role_name);
                 tokio::task::spawn_local(async move {
@@ -104,6 +105,7 @@ async fn run_worker(mut rx: mpsc::UnboundedReceiver<WorkerMsg>) {
                         role_mode,
                         role_config_options,
                         resume_session_id,
+                        session_id_tx,
                     )
                     .await;
                 });

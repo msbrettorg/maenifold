@@ -300,10 +300,13 @@ describe('ScheduleRunsDrawer', () => {
     const clearButtons = Array.from(document.body.querySelectorAll('button'))
       .filter((button) => button.textContent?.includes('Clear history'))
     const confirmButton = clearButtons[clearButtons.length - 1];
+    const callsBefore = readResource.mock.calls.length;
     confirmButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     await flushPromises();
 
     expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'clear_history', id: 'daily-summary' });
+    expect(readResource.mock.calls.length).toBeGreaterThan(callsBefore);
+    expect(readResource.mock.calls[readResource.mock.calls.length - 1]?.[0]).toBe('schedule://logs/daily-summary');
     wrapper.unmount();
   });
 

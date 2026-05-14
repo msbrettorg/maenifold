@@ -214,6 +214,8 @@ Rich-renderer surfaces (the maenifold desktop app, GitHub web UI, browser-based 
 
 **Both:** Release build works or it's not done.
 
+**Side-effect contract:** Build/test invocations MUST NOT leave orphan processes (>50% CPU, started during the iter) or grow `target/` past 50 GB. `make audit` enforces both via `audit-runaway-procs` and `audit-disk-budget`. A green test result with a stuck process is a FAIL — file a P0.
+
 ---
 
 ## Build

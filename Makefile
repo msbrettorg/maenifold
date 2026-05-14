@@ -1,4 +1,4 @@
-.PHONY: release audit audit-parity audit-crates audit-frontend test-electron-launch quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
+.PHONY: release audit audit-parity audit-crates audit-frontend test-electron-launch audit-runaway-procs audit-disk-budget quality-lint quality-tools quality-coverage quality-coverage-html quality-metrics quality-dead-code quality-unused-deps quality-duplicates quality-report
 
 QUALITY_DIR := target/quality
 QUALITY_COVERAGE_DIR := $(QUALITY_DIR)/coverage
@@ -12,7 +12,7 @@ release:
 	cargo build --release -p maenifold-cli
 	cargo build --release -p maenifold-pipeline-driver
 
-audit: audit-parity audit-crates audit-frontend test-electron-launch
+audit: audit-parity audit-crates audit-frontend test-electron-launch audit-runaway-procs audit-disk-budget
 
 audit-parity:
 	@./scripts/audit-parity.sh
@@ -25,6 +25,12 @@ audit-frontend:
 
 test-electron-launch:
 	@cd apps/desktop && npm run test:electron-launch
+
+audit-runaway-procs:
+	@bash scripts/audit-runaway-procs.sh
+
+audit-disk-budget:
+	@bash scripts/audit-disk-budget.sh
 
 quality-lint:
 	cargo clippy --workspace --lib --bins -- -A clippy::all -W clippy::correctness -W clippy::suspicious -W clippy::perf -W dead_code -W unused -D warnings -A clippy::too-many-lines -A clippy::cognitive-complexity -A clippy::too-many-arguments

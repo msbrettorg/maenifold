@@ -23,7 +23,9 @@ describe('electron permission IPC surface contract', () => {
       },
     });
 
-    expect(window.electronAPI?.permissionTryAutoDecide).toBeUndefined();
+    expect(
+      (window.electronAPI as unknown as Record<string, unknown>)?.permissionTryAutoDecide
+    ).toBeUndefined();
     expect(
       typeof (window.electronAPI as unknown as { permissionEvaluateRequest?: unknown })
         .permissionEvaluateRequest

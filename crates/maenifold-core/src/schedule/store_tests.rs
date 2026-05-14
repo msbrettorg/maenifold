@@ -19,6 +19,8 @@ fn test_task(id: &str) -> ScheduledTask {
         workdir: Some(PathBuf::from("/tmp/workdir")),
         auto_grant_permissions: false,
         allowed_tools: Vec::new(),
+        mcp_action: None,
+        mcp_parameters: None,
         timeout_seconds: 900,
         enabled: true,
         created_at: Utc

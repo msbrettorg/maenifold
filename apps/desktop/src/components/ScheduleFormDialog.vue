@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue';
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,49 @@ const emit = defineEmits<{
   submit: [];
   'update-preview-valid': [valid: boolean];
 }>();
+
+const mcpActionOptions = [
+  'maenifold.gate.gate_Status',
+  'maenifold.gate.gate_Sync',
+  'maenifold.memory.ReadMemory',
+  'maenifold.memory.ListMemories',
+  'maenifold.memory.MemoryStatus',
+  'maenifold.graph.BuildContext',
+  'maenifold.graph.RecentActivity',
+];
+const customMcpAction = ref(false);
+const selectedMcpAction = computed(() => {
+  if (customMcpAction.value) return '__custom__';
+  if (!props.form.mcpAction) return '__none__';
+  return mcpActionOptions.includes(props.form.mcpAction) ? props.form.mcpAction : '__custom__';
+});
+const mcpParametersInvalid = computed(() => {
+  if (!props.form.mcpAction.trim()) return false;
+  const raw = props.form.mcpParameters.trim();
+  if (!raw) return false;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    return !(typeof parsed === 'object' && !Array.isArray(parsed) && parsed !== null);
+  } catch {
+    return true;
+  }
+});
+
+function selectMcpAction(value: unknown): void {
+  const selected = String(value ?? '__none__');
+  if (selected === '__none__') {
+    customMcpAction.value = false;
+    props.form.mcpAction = '';
+    return;
+  }
+  if (selected === '__custom__') {
+    customMcpAction.value = true;
+    props.form.mcpAction = '';
+    return;
+  }
+  customMcpAction.value = false;
+  props.form.mcpAction = selected;
+}
 </script>
 
 <template>
@@ -104,6 +148,42 @@ const emit = defineEmits<{
             Threaded to ACP as <code>allowedTools</code>; leave blank for no per-schedule allowlist.
           </p>
         </div>
+        <div class="grid gap-2">
+          <Label for="schedule-mcp-action">MCP action</Label>
+          <Select :model-value="selectedMcpAction" :disabled="isSubmitting" @update:model-value="selectMcpAction">
+            <SelectTrigger id="schedule-mcp-action">
+              <SelectValue placeholder="Agent prompt (no MCP action)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__none__">Agent prompt (no MCP action)</SelectItem>
+              <SelectItem v-for="action in mcpActionOptions" :key="action" :value="action">{{ action }}</SelectItem>
+              <SelectItem value="__custom__">(custom)</SelectItem>
+            </SelectContent>
+          </Select>
+          <Input
+            v-if="selectedMcpAction === '__custom__'"
+            id="schedule-mcp-action-custom"
+            v-model="form.mcpAction"
+            :disabled="isSubmitting"
+            placeholder="maenifold.gate.gate_Status"
+          />
+          <Textarea
+            id="schedule-mcp-parameters"
+            v-model="form.mcpParameters"
+            :disabled="isSubmitting"
+            class="font-mono"
+            placeholder="{&#10;  &quot;root&quot;: &quot;/workspace&quot;&#10;}"
+          />
+          <p class="text-sm text-muted-foreground">
+            Parameters must be a JSON object. Allowlisted examples include maenifold.gate.gate_Status and maenifold.graph.BuildContext.
+          </p>
+          <p v-if="form.mcpAction.trim()" class="text-sm text-muted-foreground">
+            MCP action mode: prompt is ignored at fire time.
+          </p>
+          <p v-if="mcpParametersInvalid" class="text-sm text-destructive">
+            Parameters must be a JSON object.
+          </p>
+        </div>
         <div class="flex items-center justify-between rounded-md border bg-muted/40 px-4 py-3">
           <div class="flex flex-col gap-1">
             <Label for="schedule-enabled">Enabled</Label>
@@ -124,7 +204,7 @@ const emit = defineEmits<{
 
         <DialogFooter>
           <Button type="button" variant="outline" :disabled="isSubmitting" @click="emit('update:open', false)">Cancel</Button>
-          <Button type="submit" :disabled="!canSubmit">
+          <Button type="submit" :disabled="!canSubmit || mcpParametersInvalid">
             {{ isSubmitting ? 'Saving…' : mode === 'create' ? 'Create schedule' : 'Save changes' }}
           </Button>
         </DialogFooter>

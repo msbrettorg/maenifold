@@ -16,6 +16,8 @@ export interface ScheduleForm {
   enabled: boolean;
   autoGrantPermissions: boolean;
   allowedTools: string;
+  mcpAction: string;
+  mcpParameters: string;
 }
 
 type DialogMode = 'create' | 'edit';
@@ -51,22 +53,28 @@ export function useSchedulesSettings() {
     enabled: true,
     autoGrantPermissions: false,
     allowedTools: '',
+    mcpAction: '',
+    mcpParameters: '',
   });
 
   const dialogTitle = computed(() => dialogMode.value === 'create' ? 'Create schedule' : 'Edit schedule');
   const dialogDescription = computed(() => dialogMode.value === 'create'
     ? 'Create a recurring agent task using a cron expression or natural language schedule.'
     : 'Update the agent, cadence, and prompt for this recurring task.');
-  const canSubmit = computed(() =>
-    !!form.id.trim()
-    && !!form.schedule.trim()
-    && !!form.agent
-    && !!form.prompt.trim()
-    && !isSubmitting.value
-    && agentNames.value.length > 0
-    && previewIsValid.value
-    && (!form.enabled || schedulePlatform.supportsEnabledSchedules),
-  );
+  const mcpActionSet = computed(() => !!form.mcpAction.trim());
+  const mcpParametersValid = computed(() => parseMcpParameters().ok);
+  const canSubmit = computed(() => {
+    const hasRunnableTarget = mcpActionSet.value || !!form.prompt.trim();
+    return !!form.id.trim()
+      && !!form.schedule.trim()
+      && !!form.agent
+      && hasRunnableTarget
+      && (!mcpActionSet.value || mcpParametersValid.value)
+      && !isSubmitting.value
+      && agentNames.value.length > 0
+      && previewIsValid.value
+      && (!form.enabled || schedulePlatform.supportsEnabledSchedules);
+  });
 
   function resetForm(): void {
     form.id = '';
@@ -77,6 +85,8 @@ export function useSchedulesSettings() {
     form.enabled = schedulePlatform.supportsEnabledSchedules;
     form.autoGrantPermissions = false;
     form.allowedTools = '';
+    form.mcpAction = '';
+    form.mcpParameters = '';
     previewIsValid.value = false;
   }
 
@@ -151,6 +161,8 @@ export function useSchedulesSettings() {
     form.enabled = schedulePlatform.supportsEnabledSchedules ? job.enabled : false;
     form.autoGrantPermissions = Boolean(job.auto_grant_permissions);
     form.allowedTools = job.allowed_tools?.join(', ') ?? '';
+    form.mcpAction = job.mcp_action ?? '';
+    form.mcpParameters = job.mcp_parameters == null ? '' : JSON.stringify(job.mcp_parameters, null, 2);
     ensureDialogAgent();
     previewIsValid.value = false;
     dialogOpen.value = true;
@@ -161,6 +173,11 @@ export function useSchedulesSettings() {
   }
 
   async function saveSchedule(): Promise<void> {
+    const parsedMcpParameters = parseMcpParameters();
+    if (form.mcpAction.trim() && !parsedMcpParameters.ok) {
+      error.value = 'Parameters must be a JSON object.';
+      return;
+    }
     if (!canSubmit.value) return;
     isSubmitting.value = true;
     error.value = '';
@@ -179,6 +196,11 @@ export function useSchedulesSettings() {
       };
       const description = form.description.trim();
       if (description) payload.description = description;
+      const mcpAction = form.mcpAction.trim();
+      if (mcpAction) {
+        payload.mcp_action = mcpAction;
+        payload.mcp_parameters = parsedMcpParameters.ok ? parsedMcpParameters.value : {};
+      }
       const result = await callTool<{ message?: string }>('Schedule', payload);
       statusMessage.value = result?.message ?? `Schedule ${dialogMode.value === 'create' ? 'created' : 'updated'}.`;
       dialogOpen.value = false;
@@ -188,6 +210,20 @@ export function useSchedulesSettings() {
     } finally {
       isSubmitting.value = false;
     }
+  }
+
+  function parseMcpParameters(): { ok: true; value: Record<string, unknown> } | { ok: false } {
+    const raw = form.mcpParameters.trim();
+    if (!raw) return { ok: true, value: {} };
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (typeof parsed === 'object' && !Array.isArray(parsed) && parsed !== null) {
+        return { ok: true, value: parsed as Record<string, unknown> };
+      }
+    } catch {
+      return { ok: false };
+    }
+    return { ok: false };
   }
 
   async function pauseAll(): Promise<void> {

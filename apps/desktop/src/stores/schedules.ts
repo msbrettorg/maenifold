@@ -16,6 +16,8 @@ export interface ScheduleJob {
   enabled: boolean;
   auto_grant_permissions: boolean;
   allowed_tools: string[];
+  mcp_action?: string | null;
+  mcp_parameters?: unknown | null;
   last_run?: ScheduleRun | null;
 }
 

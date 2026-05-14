@@ -134,6 +134,38 @@ The `Schedule action=create` and `Schedule action=update` responses include an `
 
 The launchd plist's `EnvironmentVariables` key remains intentionally sparse (`PATH` only). The actual scrub happens at fire time inside `maenifold schedule run` to give a single source of truth across launchd / systemd.
 
+## MCP action mode
+
+Schedules normally fire the prompt through `AcpExec`. Set `mcp_action` to run a
+deterministic Gateway command instead. The syntax is `<domain>.<command>` using
+the last dot as the separator, for example `maenifold.gate.gate_Status`. When
+`mcp_action` is set, the prompt is ignored at fire time.
+
+`mcp_parameters` is optional. When present, it must be a JSON object. Omit it or
+use `{}` for parameterless commands; arrays, strings, numbers, booleans, and
+`null` are rejected.
+
+Allowed `mcp_action` values are:
+
+- `maenifold.gate.gate_Status`
+- `maenifold.gate.gate_Sync`
+- `maenifold.memory.ReadMemory`
+- `maenifold.memory.ListMemories`
+- `maenifold.memory.MemoryStatus`
+- `maenifold.graph.BuildContext`
+- `maenifold.graph.RecentActivity`
+- `maenifold.system.Schedule`
+
+Inference-capable commands such as `AcpExec`, `GatewayIntent`, `Workflow`,
+`Pipeline`, `SequentialThinking`, and semantic `SearchMemories` cannot be
+scheduled. Run them from the desktop Sessions / ACP inspector instead, where
+the session is visible and can be stopped.
+
+Scheduled MCP actions run under the same scrubbed environment described above.
+API keys and cloud credentials such as `*_API_KEY`, `AZURE_*`, and `OPENAI_*`
+are stripped before fire time. Cloud-key-dependent actions may fail in scheduled
+runs; this is intentional safety behavior.
+
 ## Domain
 
 MCP clients invoke this as `GatewayExecute` with domain `maenifold.system` and

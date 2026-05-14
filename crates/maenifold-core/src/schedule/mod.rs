@@ -1,6 +1,7 @@
 mod config;
 mod cron;
 pub mod env_allowlist;
+pub(crate) mod mcp_action_allowlist;
 mod launchd;
 mod lock;
 pub mod pause_state;

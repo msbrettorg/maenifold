@@ -283,3 +283,28 @@ Multiple Sprint 243 "frontend stub" commits NEVER MERGED to dev despite being ma
 - Use Python heredoc for gate_Pass with non-trivial notes (Lesson 95).
 - Add audit-crates exit-code disclaimer to every blue-team prompt (Lesson 96).
 - Pre-flight orphan-commit grep is mandatory (Lesson 92, applied successfully iter-14).
+
+### Iter-14 update post-restart (2026-05-14)
+
+**T-305.5 SHIPPED end-to-end despite mid-iteration session restart.**
+
+**Pattern:** SWE was terminated after writing tests but before writing production code. PM dispatched a focused finish-implementation SWE with explicit current-state mapping + code snippets for blocker-mandated patterns. Recovered cleanly. 5 new lessons (95-101) appended to learnings.md.
+
+**Iter-14 final tally:**
+- Shipped: T-305.2, T-305.3, T-305.4, T-305.5, T-305.8 (5 tasks).
+- Closed-as-merged: T-305.9 (set_all_enabled subsumed by T-305.2).
+- Follow-ups filed: T-305.12, T-305.13, T-305.14.
+
+**Sprint 305 remaining:**
+- T-305.0 (umbrella, closes when children done)
+- T-305.6 (P2, backend-only — Schedule action=clear_history)
+- T-305.10 (P3, backend-only — Schedule action=backfill)
+- T-305.11 (P3, mixed — verify_installed UX hardening from T-305.1 follow-ups)
+- T-305.12, T-305.13, T-305.14 (P3 follow-ups)
+
+**Iter-15 playbook:**
+1. T-305.6 + T-305.10 in parallel (both add Schedule actions to schedule.rs dispatcher; independent files).
+2. T-305.11 (touches verify_installed_action which now lives in schedule_validation.rs after T-305.8 split).
+3. T-305.12 + T-305.13 + T-305.14 quick fillers.
+4. Close T-305.0 umbrella; move to sprint 306 (workflow umbrella).
+

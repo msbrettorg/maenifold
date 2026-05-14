@@ -3315,3 +3315,40 @@ Iter-14 successfully kept the team busy across the full iteration:
 5. **Same-worker confession** dispatched right after PM verifies — reveals issues SWE may have hidden (T-305.2 confession revealed weakened test assertions + JSON shape gap that red-team then confirmed).
 6. **One-line cleanup via SWE follow-up message** instead of waking new agent — T-305.2 missingSchedules fix turnaround was <1min via write_agent vs ~3min for new dispatch.
 7. **PM-direct git merge conflict resolution** when both SWE branches touched the same file. T-305.2 + T-305.4 conflicted on schedule.rs imports + resolve_maenifold_bin visibility. PM combined both changes, verified build, completed merge — under 5 min.
+
+### Lesson 100: SWE termination mid-task → finish-implementation pattern
+
+**Iter-14 incident:** swe-t305-5 SWE was terminated by session interrupt (background agent runtime restart) after writing all 20 tests + module declarations + config round-trip tests, but BEFORE writing any production code. Worktree had:
+
+- `mcp_action_allowlist.rs` with `#[cfg(test)] mod tests` referring to `default_allowlist` and `is_allowed` — neither function defined.
+- `config.rs` with 2 round-trip tests referencing `mcp_action` / `mcp_parameters` fields on `ScheduledTask` — fields not added to the struct.
+- `supervisor_tests.rs`, `schedule_tests.rs`, `useSchedulesSettings.test.ts`, `ScheduleFormDialog.test.ts` all extended with new test functions that reference helpers / types that don't exist.
+
+PM dispatched a follow-up `swe-t305-5-finish` SWE with:
+
+1. Explicit listing of which files had tests vs missing implementation.
+2. Exact code snippets to drop in for the missing parts (`default_allowlist`, `is_allowed`, `validate_mcp_action`, supervisor branching, frontend Select/Textarea, etc.).
+3. Forbidden actions list updated to include "DO NOT touch ScheduleRunsDrawer (Blocker 4)" since the spec scope was explicit.
+
+The finish SWE delivered cleanly with appropriate LOC-management refactors (split supervisor.rs into supervisor_mcp.rs to keep under 300; extracted pause+mcp tests into separate files to keep schedule_tests.rs under 300). Red-team verified all 4 architect-duo blockers addressed.
+
+**Lesson — when a SWE terminates mid-task, the finish-implementation prompt should:**
+- Enumerate the EXACT current state (what tests/files exist, what's missing).
+- Provide concrete code snippets where the implementation is non-obvious or has architect-blocker requirements.
+- Re-state ALL forbidden actions explicitly — the new SWE has no memory of the original prompt.
+- Run a TDD discipline check: cargo build --tests should fail with the right errors before the new SWE starts work, proving the test contract was correctly authored.
+
+This pattern recovered T-305.5 cleanly. Without the structured handoff, the finish SWE would likely have either (a) re-read the spec from scratch and re-derived everything, wasting time, or (b) made implementation choices inconsistent with the test expectations.
+
+### Lesson 101: Blue-team test-path filters need to match nested module structure
+
+**Iter-14 incident:** blue-t305-5 ran `cargo test -p maenifold-core --lib tools::schedule_mcp_tests` and reported FAIL because the filter matched 0 tests. The actual module path was `tools::schedule::schedule_tests::schedule_mcp_tests` (via `#[path] mod` nesting). PM re-ran with the correct path: 6/6 + 14/14 etc. all pass.
+
+**Lesson — for Rust nested test modules with `#[path = "..."] mod` declarations, blue-team prompts must include the FULL module path.** When the SWE creates nested `mod` declarations, the test runner sees them as `parent::child::grandchild`. A simple `#[path]` `mod foo;` inside `bar.rs` produces test path `tools::bar::foo::test_name`, not `tools::foo::test_name`.
+
+For PM authoring blue-team prompts: either (a) verify the actual test path with `cargo test --list` before writing the prompt, or (b) use a less-specific filter (e.g., grep the test name itself) that's robust to module nesting.
+
+### Standing directives reaffirmed (post-iter-14)
+
+- T-305.5 caught a critical P0 trigger #6 violation pattern (hidden inference via scheduled MCP actions) — the architect duo correctly identified that `GatewayExecute` is deterministic but its DOWNSTREAM commands include inference-capable ones. Allowlist defense at the schedule entry point is the canonical pattern. Future task specs that introduce new "background dispatch" surfaces MUST consider hidden-inference and apply allowlist defense.
+- The orphan-commit pre-flight check (Lesson 92) is now a verified-effective pattern: caught T-305.2 (frontend pause_all stub absent), T-305.5 (mcpAction frontend AND backend absent), T-305.4 (help-doc orphan at wrong path).

@@ -33,6 +33,8 @@ pub(super) fn task_value(task: &ScheduledTask) -> Value {
         "enabled": task.enabled,
         "auto_grant_permissions": task.auto_grant_permissions,
         "allowed_tools": task.allowed_tools,
+        "mcp_action": task.mcp_action,
+        "mcp_parameters": task.mcp_parameters,
         "created_at": task.created_at,
         "updated_at": task.updated_at,
         "last_run": task.last_run,
@@ -62,6 +64,50 @@ pub(super) fn optional_string(payload: &Value, key: &'static str) -> Result<Opti
         .as_str()
         .map(|text| Some(text.to_string()))
         .ok_or_else(|| MaenifoldError::InvalidArgument(format!("'{key}' must be a string")))
+}
+
+pub(super) fn optional_value(payload: &Value, key: &'static str) -> Result<Option<Value>> {
+    Ok(payload.get(key).cloned())
+}
+
+pub(super) fn validate_mcp_action(action: Option<&str>, parameters: Option<&Value>) -> Result<()> {
+    let Some(action) = action else {
+        return Ok(());
+    };
+    let Some((domain, command)) = action.rsplit_once('.') else {
+        return Err(MaenifoldError::InvalidArgument(
+            "mcp_action must be in domain.command form (<domain>.<command>, e.g. maenifold.gate.gate_Status)"
+                .into(),
+        ));
+    };
+    if domain.is_empty() || command.is_empty() {
+        return Err(MaenifoldError::InvalidArgument(
+            "mcp_action domain and command must both be non-empty".into(),
+        ));
+    }
+    if let Some(params) = parameters {
+        if !params.is_object() {
+            return Err(MaenifoldError::InvalidArgument(
+                "mcp_parameters must be a JSON object (or omitted)".into(),
+            ));
+        }
+    }
+    let allowlist = crate::schedule::mcp_action_allowlist::default_allowlist();
+    if !crate::schedule::mcp_action_allowlist::is_allowed(&allowlist, domain, command) {
+        let allowed = allowlist
+            .iter()
+            .map(|(d, c)| format!("{}.{}", d, c))
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "mcp_action '{}' is not on the schedule allowlist. Inference-capable commands \
+             (AcpExec, GatewayIntent, Workflow, Pipeline, SequentialThinking, semantic SearchMemories) \
+             cannot be scheduled — they must run under the desktop Sessions/ACP inspector. \
+             Allowed actions: {}",
+            action, allowed
+        )));
+    }
+    Ok(())
 }
 
 pub(super) fn optional_bool(payload: &Value, key: &'static str) -> Result<Option<bool>> {

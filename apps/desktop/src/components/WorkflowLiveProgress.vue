@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { WorkflowStep } from '../lib/workflow-types';
+import { stepDurationLabel } from '../lib/workflow-step-duration';
 import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { useWorkflowStore } from '../stores/workflow';
 import WorkflowRunButton from './WorkflowRunButton.vue';
@@ -78,21 +79,8 @@ function statusForLabel(label: LiveStep['label']): WorkflowStep['status'] {
   return 'pending';
 }
 
-function formatDurationMs(ms: number): string {
-  if (!Number.isFinite(ms) || ms < 0) return '—';
-  if (ms < 1000) return `${Math.max(1, Math.round(ms))}ms`;
-  const seconds = ms / 1000;
-  if (seconds < 60) return `${Number(seconds.toFixed(1))}s`;
-  return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
-}
-
-function stepDurationLabel(stepNumber: number): string {
-  const timing = selectedSession.value?.step_timings?.[String(stepNumber)];
-  if (!timing?.started_at) return '';
-  if (!timing.ended_at) return 'In progress';
-  const ms = new Date(timing.ended_at).getTime() - new Date(timing.started_at).getTime();
-  const duration = formatDurationMs(ms);
-  return duration === '—' ? '' : `Duration: ${duration}`;
+function durationLabel(stepNumber: number): string {
+  return stepDurationLabel(selectedSession.value?.step_timings, stepNumber);
 }
 
 const liveSteps = computed<LiveStep[]>(() => {
@@ -288,8 +276,8 @@ onBeforeUnmount(() => {
                   Stale
                 </Badge>
               </div>
-              <span v-if="stepDurationLabel(step.stepNumber)" class="text-xs text-muted-foreground">
-                {{ stepDurationLabel(step.stepNumber) }}
+              <span v-if="durationLabel(step.stepNumber)" class="text-xs text-muted-foreground">
+                {{ durationLabel(step.stepNumber) }}
               </span>
             </div>
             <WorkflowStepDetail

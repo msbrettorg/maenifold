@@ -54,6 +54,18 @@ class MockWebSocket {
   }
 }
 
+type JsonRpcTestFrame = {
+  id?: string | number | null;
+  method?: string;
+};
+
+async function readLatestSentFrame(socket: MockWebSocket): Promise<JsonRpcTestFrame> {
+  await vi.waitFor(() => {
+    expect(socket.sent.length).toBeGreaterThan(0);
+  });
+  return JSON.parse(socket.sent[socket.sent.length - 1]) as JsonRpcTestFrame;
+}
+
 describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
   const originalWebSocket = globalThis.WebSocket;
 
@@ -94,9 +106,11 @@ describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
     const promise = (bridge as unknown as {
       terminalCreate(params: { sessionId: string; command: string }): Promise<{ terminalId: string }>;
     }).terminalCreate({ sessionId: 'sess-1', command: 'npm' });
+    const frame = await readLatestSentFrame(socket);
+    expect(frame.method).toBe('terminal/create');
     socket.triggerMessage(JSON.stringify({
       jsonrpc: '2.0',
-      id: 0,
+      id: frame.id,
       result: { terminalId: 'term-default', outputByteLimit: DEFAULT_OUTPUT_BYTE_LIMIT },
     }));
     await promise;
@@ -122,9 +136,11 @@ describe('AcpClientBridgeCore terminal outputByteLimit propagation', () => {
       command: 'npm',
       outputByteLimit: 50_000_000,
     });
+    const frame = await readLatestSentFrame(socket);
+    expect(frame.method).toBe('terminal/create');
     socket.triggerMessage(JSON.stringify({
       jsonrpc: '2.0',
-      id: 0,
+      id: frame.id,
       result: { terminalId: 'term-explicit', outputByteLimit: 50_000_000 },
     }));
     await promise;

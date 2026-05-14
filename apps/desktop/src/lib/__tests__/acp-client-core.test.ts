@@ -134,6 +134,12 @@ type TerminalBridgeMethods = {
   terminalRelease?: (params: { sessionId: string; terminalId: string }) => Promise<unknown>;
 };
 
+type JsonRpcTestFrame = {
+  id?: string | number | null;
+  method?: string;
+  params?: unknown;
+};
+
 async function loadUseTerminalsStoreModule(): Promise<UseTerminalsStoreModule> {
   return vi.importActual<UseTerminalsStoreModule>('../../stores/useTerminalsStore');
 }
@@ -169,6 +175,32 @@ describe('AcpClientBridgeCore request hardening', () => {
     return { bridge, socket };
   }
 
+  async function readSentFrame(socket: MockWebSocket, index: number): Promise<JsonRpcTestFrame> {
+    await vi.waitFor(() => {
+      expect(socket.sent.length).toBeGreaterThan(index);
+    });
+    return JSON.parse(socket.sent[index]) as JsonRpcTestFrame;
+  }
+
+  async function readLatestSentFrame(socket: MockWebSocket): Promise<JsonRpcTestFrame> {
+    await vi.waitFor(() => {
+      expect(socket.sent.length).toBeGreaterThan(0);
+    });
+    return JSON.parse(socket.sent[socket.sent.length - 1]) as JsonRpcTestFrame;
+  }
+
+  function respondWithResult(socket: MockWebSocket, frame: JsonRpcTestFrame, result: unknown): void {
+    socket.triggerMessage(JSON.stringify({ jsonrpc: '2.0', id: frame.id, result }));
+  }
+
+  function respondWithError(socket: MockWebSocket, frame: JsonRpcTestFrame, message: string): void {
+    socket.triggerMessage(JSON.stringify({
+      jsonrpc: '2.0',
+      id: frame.id,
+      error: { code: -32000, message },
+    }));
+  }
+
   beforeEach(() => {
     vi.useFakeTimers();
     setActivePinia(createPinia());
@@ -200,10 +232,11 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('clears request timeout handles after a successful response', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request<{ ok: boolean }>('initialize', {});
+    const frame = await readSentFrame(socket, 0);
 
     expect(vi.getTimerCount()).toBe(1);
 
-    socket.triggerMessage(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } }));
+    respondWithResult(socket, frame, { ok: true });
 
     await expect(promise).resolves.toEqual({ ok: true });
     expect(vi.getTimerCount()).toBe(0);
@@ -219,16 +252,11 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('clears request timeout handles after an error response', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request('initialize', {});
+    const frame = await readSentFrame(socket, 0);
 
     expect(vi.getTimerCount()).toBe(1);
 
-    socket.triggerMessage(
-      JSON.stringify({
-        jsonrpc: '2.0',
-        id: 0,
-        error: { code: -32000, message: 'backend failed' },
-      })
-    );
+    respondWithError(socket, frame, 'backend failed');
 
     await expect(promise).rejects.toThrow('backend failed');
     expect(vi.getTimerCount()).toBe(0);
@@ -286,12 +314,9 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('includes the active session id in explicit disconnect close', async () => {
     const { bridge, socket } = await connectAcpBridge();
     const newSession = bridge.newSession({ cwd: '/repo', mcpServers: [] });
+    const frame = await readSentFrame(socket, 0);
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: { sessionId: 'sess-1' },
-    }));
+    respondWithResult(socket, frame, { sessionId: 'sess-1' });
     await expect(newSession).resolves.toEqual({ sessionId: 'sess-1' });
 
     await bridge.disconnect();
@@ -351,6 +376,7 @@ describe('AcpClientBridgeCore request hardening', () => {
       cwd: '/repo',
       mcpServers: [],
     });
+    const frame = await readSentFrame(socket, 0);
     const replayNotification = {
       jsonrpc: '2.0',
       method: 'session/update',
@@ -364,11 +390,7 @@ describe('AcpClientBridgeCore request hardening', () => {
     };
 
     socket.triggerMessage(JSON.stringify(replayNotification));
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: {},
-    }));
+    respondWithResult(socket, frame, {});
 
     await expect(loadPromise).resolves.toEqual({});
     expect(console.error).toHaveBeenCalledWith(
@@ -385,13 +407,10 @@ describe('AcpClientBridgeCore request hardening', () => {
       cwd: '/repo',
       mcpServers: [],
     });
+    const frame = await readSentFrame(socket, 0);
 
     socket.triggerMessage('not-json');
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: {},
-    }));
+    respondWithResult(socket, frame, {});
 
     await expect(loadPromise).resolves.toEqual({});
     expect(console.error).toHaveBeenCalledWith(
@@ -403,8 +422,9 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('parses a single-message websocket frame', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request<{ ok: boolean }>('initialize', {});
+    const frame = await readSentFrame(socket, 0);
 
-    socket.triggerMessage(JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } }));
+    respondWithResult(socket, frame, { ok: true });
 
     await expect(promise).resolves.toEqual({ ok: true });
     expect(console.error).not.toHaveBeenCalled();
@@ -414,10 +434,12 @@ describe('AcpClientBridgeCore request hardening', () => {
     const { bridge, socket } = await connectBridge();
     const first = bridge.request<{ first: boolean }>('initialize', {});
     const second = bridge.request<{ second: boolean }>('session/new', {});
+    const firstFrame = await readSentFrame(socket, 0);
+    const secondFrame = await readSentFrame(socket, 1);
 
     socket.triggerMessage([
-      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
-      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: firstFrame.id, result: { first: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: secondFrame.id, result: { second: true } }),
     ].join('\n'));
 
     await expect(Promise.all([first, second])).resolves.toEqual([
@@ -430,8 +452,9 @@ describe('AcpClientBridgeCore request hardening', () => {
   it('skips a trailing newline in a websocket frame', async () => {
     const { bridge, socket } = await connectBridge();
     const promise = bridge.request<{ ok: boolean }>('initialize', {});
+    const frame = await readSentFrame(socket, 0);
 
-    socket.triggerMessage(`${JSON.stringify({ jsonrpc: '2.0', id: 0, result: { ok: true } })}\n`);
+    socket.triggerMessage(`${JSON.stringify({ jsonrpc: '2.0', id: frame.id, result: { ok: true } })}\n`);
 
     await expect(promise).resolves.toEqual({ ok: true });
     expect(console.error).not.toHaveBeenCalled();
@@ -441,13 +464,15 @@ describe('AcpClientBridgeCore request hardening', () => {
     const { bridge, socket } = await connectBridge();
     const first = bridge.request<{ first: boolean }>('initialize', {});
     const second = bridge.request<{ second: boolean }>('session/new', {});
+    const firstFrame = await readSentFrame(socket, 0);
+    const secondFrame = await readSentFrame(socket, 1);
 
     socket.triggerMessage([
       '',
       '   ',
-      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: firstFrame.id, result: { first: true } }),
       '',
-      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: secondFrame.id, result: { second: true } }),
       ' ',
     ].join('\n'));
 
@@ -462,11 +487,13 @@ describe('AcpClientBridgeCore request hardening', () => {
     const { bridge, socket } = await connectBridge();
     const first = bridge.request<{ first: boolean }>('initialize', {});
     const second = bridge.request<{ second: boolean }>('session/new', {});
+    const firstFrame = await readSentFrame(socket, 0);
+    const secondFrame = await readSentFrame(socket, 1);
 
     socket.triggerMessage([
-      JSON.stringify({ jsonrpc: '2.0', id: 0, result: { first: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: firstFrame.id, result: { first: true } }),
       'not-json',
-      JSON.stringify({ jsonrpc: '2.0', id: 1, result: { second: true } }),
+      JSON.stringify({ jsonrpc: '2.0', id: secondFrame.id, result: { second: true } }),
     ].join('\n'));
 
     await expect(Promise.all([first, second])).resolves.toEqual([
@@ -505,8 +532,9 @@ describe('AcpClientBridgeCore request hardening', () => {
       cwd: '/repo',
       outputByteLimit: 1024,
     });
+    const frame = await readLatestSentFrame(socket);
 
-    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+    expect(frame).toMatchObject({
       method: 'terminal/create',
       params: {
         sessionId: 'sess-1',
@@ -518,11 +546,7 @@ describe('AcpClientBridgeCore request hardening', () => {
       },
     });
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: { terminalId: 'term-1' },
-    }));
+    respondWithResult(socket, frame, { terminalId: 'term-1' });
 
     await expect(promise).resolves.toEqual({ terminalId: 'term-1' });
   });
@@ -537,21 +561,18 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'term-1',
     });
+    const frame = await readLatestSentFrame(socket);
 
-    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+    expect(frame).toMatchObject({
       method: 'terminal/output',
       params: { sessionId: 'sess-1', terminalId: 'term-1' },
     });
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: {
-        output: 'hello\n',
-        truncated: false,
-        exitStatus: { exitCode: 0, signal: null },
-      },
-    }));
+    respondWithResult(socket, frame, {
+      output: 'hello\n',
+      truncated: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
 
     await expect(promise).resolves.toEqual({
       output: 'hello\n',
@@ -570,17 +591,14 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'term-1',
     });
+    const frame = await readLatestSentFrame(socket);
 
-    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+    expect(frame).toMatchObject({
       method: 'terminal/wait_for_exit',
       params: { sessionId: 'sess-1', terminalId: 'term-1' },
     });
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: { exitCode: 0, signal: null },
-    }));
+    respondWithResult(socket, frame, { exitCode: 0, signal: null });
 
     await expect(promise).resolves.toEqual({ exitCode: 0, signal: null });
   });
@@ -595,17 +613,14 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'term-1',
     });
+    const frame = await readLatestSentFrame(socket);
 
-    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+    expect(frame).toMatchObject({
       method: 'terminal/kill',
       params: { sessionId: 'sess-1', terminalId: 'term-1' },
     });
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: {},
-    }));
+    respondWithResult(socket, frame, {});
 
     await expect(promise).resolves.toEqual({});
   });
@@ -629,21 +644,91 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'term-1',
     });
+    const frame = await readLatestSentFrame(socket);
 
-    expect(JSON.parse(socket.sent[0] ?? '{}')).toMatchObject({
+    expect(frame).toMatchObject({
       method: 'terminal/release',
       params: { sessionId: 'sess-1', terminalId: 'term-1' },
     });
 
-    socket.triggerMessage(JSON.stringify({
-      jsonrpc: '2.0',
-      id: 0,
-      result: {},
-    }));
+    respondWithResult(socket, frame, {});
 
     await expect(promise).resolves.toEqual({});
     await nextTick();
     expect(store.getTerminalState('term-1').value?.released).toBe(true);
+  });
+
+  it('terminalOutput uses extMethod and arrives via SDK readable stream', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalOutput = (bridge as unknown as TerminalBridgeMethods).terminalOutput;
+
+    expect(terminalOutput).toBeTypeOf('function');
+    expect((bridge as unknown as { pendingManualRequests?: unknown }).pendingManualRequests).toBeUndefined();
+
+    const promise = terminalOutput!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+    const frame = await readLatestSentFrame(socket);
+
+    expect(frame.method).toBe('terminal/output');
+    expect((bridge as unknown as { pendingMethods: Map<unknown, string> }).pendingMethods.size).toBeGreaterThan(0);
+
+    respondWithResult(socket, frame, {
+      output: 'sdk-stream\n',
+      truncated: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
+
+    await expect(promise).resolves.toMatchObject({
+      output: 'sdk-stream\n',
+      truncated: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
+  });
+
+  it('terminal request races with session/new without desync', async () => {
+    const { bridge, socket } = await connectAcpBridge();
+    const terminalOutput = (bridge as unknown as TerminalBridgeMethods).terminalOutput;
+
+    expect(terminalOutput).toBeTypeOf('function');
+
+    const terminalPromise = terminalOutput!.call(bridge, {
+      sessionId: 'sess-1',
+      terminalId: 'term-1',
+    });
+    const sessionPromise = bridge.newSession({ cwd: '/repo', mcpServers: [] });
+
+    await vi.waitFor(() => {
+      expect(socket.sent.length).toBeGreaterThanOrEqual(2);
+    });
+    const frames = socket.sent.map((value) => JSON.parse(value) as JsonRpcTestFrame);
+    const terminalFrame = frames.find((frame) => frame.method === 'terminal/output');
+    const sessionFrame = frames.find((frame) => frame.method === 'session/new');
+
+    expect(terminalFrame).toBeDefined();
+    expect(sessionFrame).toBeDefined();
+
+    respondWithResult(socket, terminalFrame!, {
+      output: 'terminal first\n',
+      truncated: false,
+      exitStatus: { exitCode: 0, signal: null },
+    });
+    respondWithResult(socket, sessionFrame!, { sessionId: 'sess-new' });
+
+    await expect(terminalPromise).resolves.toMatchObject({
+      output: 'terminal first\n',
+      truncated: false,
+    });
+    await expect(sessionPromise).resolves.toEqual({ sessionId: 'sess-new' });
+  });
+
+  it('removed manual-correlation methods are gone', async () => {
+    const { bridge } = await connectAcpBridge();
+
+    expect((bridge as unknown as { sendTerminalRequest?: unknown }).sendTerminalRequest).toBeUndefined();
+    expect((bridge as unknown as { resolveManualResponse?: unknown }).resolveManualResponse).toBeUndefined();
+    expect((bridge as unknown as { pendingManualRequests?: unknown }).pendingManualRequests).toBeUndefined();
   });
 
   it('terminalOutput surfaces unknown terminalId errors', async () => {
@@ -656,10 +741,11 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'missing-terminal',
     });
+    const frame = await readLatestSentFrame(socket);
 
     socket.triggerMessage(JSON.stringify({
       jsonrpc: '2.0',
-      id: 0,
+      id: frame.id,
       error: { code: -32001, message: 'Unknown terminalId: missing-terminal' },
     }));
 
@@ -690,10 +776,11 @@ describe('AcpClientBridgeCore request hardening', () => {
       sessionId: 'sess-1',
       terminalId: 'term-1',
     });
+    const frame = await readLatestSentFrame(socket);
 
     socket.triggerMessage(JSON.stringify({
       jsonrpc: '2.0',
-      id: 0,
+      id: frame.id,
       result: { exitCode: '0', signal: 9 },
     }));
 

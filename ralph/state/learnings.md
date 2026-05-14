@@ -3093,3 +3093,45 @@ turn around and dispatch it immediately if iter budget remains.
 ### Sprint 304 RALPH-converged for this iter
 Remaining: T-304.4 (user-auth pending), T-304.21 (next iter — needs duo
 review), UAT items.
+
+## 2026-05-14 — Iter close FINAL² (T-304.21 duo R1 done, deferred to next iter)
+
+T-304.21 duo R1 completed. Same split-verdict pattern as T-304.20:
+- opus-4.6: PASS (high confidence) — existing decision-registry.ts already
+  implements TTL/single-use/optionId-match; net-new is small (IPC error
+  wrapping + negative-path tests + audit-log fields)
+- gpt-5.5: FAIL — spec overstates security guarantee (same overstatement
+  the T-304.20 round-3 amendment fixed) + audit-log shape underspecified
+
+Per learnings 67/78, gpt-5.5 stricter wins. Spec amended in todo/ with
+duo R1 findings + recommended next-iter PM workflow + dependency confirmation
+that T-304.20 landed. Next iter PM picks up with concrete amendment plan,
+likely converges in 1-2 duo rounds + small SWE work.
+
+### Lesson 85: Duo R1 results are valuable iter-close artifacts even when work doesn't ship
+
+When iter budget runs out before a multi-stage task can complete, BUT
+duo review has run, capture the duo findings IN THE SPEC BODY (not just
+in learnings.md). The next iter PM should be able to read the spec and
+immediately know:
+1. What the architecture review surfaced
+2. Which option/approach to pursue
+3. What amendments are needed before SWE dispatch
+4. Estimated remaining work
+
+T-304.21 spec now includes this handoff. Pattern: when a task's duo R1
+catches BLOCKING findings, do the spec amendment EVEN IF you can't dispatch
+the rest of the pipeline this iter. The amendment cost is ~5-10 min;
+the next iter saves the duo R1 cost (~5-15 min) and starts from a more
+mature spec.
+
+### Final-final iter ledger
+
+- ✅ T-303.4.30, T-303.4.31, T-303.0 (sprint 303 closed)
+- ✅ T-304.20 (permission IPC consolidation)
+- ✅ T-304.22 (index sig cleanup, filed + shipped same iter)
+- 📋 T-322.2 (filed for next iter — SequentialThinking CLI hang)
+- 📋 T-304.21 (filed + duo R1 done + spec amended for next-iter handoff)
+
+5 substantive items shipped. 3 follow-ups filed (1 ready for next iter
+with duo R1 already in the spec).

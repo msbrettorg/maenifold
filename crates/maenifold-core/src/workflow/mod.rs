@@ -7,7 +7,11 @@ mod asset_delete;
 mod asset_save;
 mod handler;
 mod handler_helpers;
+#[cfg(test)]
+#[path = "handler_inputs_validation_tests.rs"]
+mod handler_inputs_validation;
 mod handler_session;
+mod inputs_validation;
 pub mod output_parser;
 pub mod output_types;
 pub mod pipeline;
@@ -40,6 +44,7 @@ pub(crate) use handler_helpers::{
     build_workflow_response_content, format_workflow_step, parse_workflow_identifiers,
     read_workflow_definition, set_current_step, workflow_steps,
 };
+pub(crate) use inputs_validation::validate_workflow_inputs;
 pub(crate) use queue::{
     append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_queue,
     start_workflow_session, view_workflow_session,

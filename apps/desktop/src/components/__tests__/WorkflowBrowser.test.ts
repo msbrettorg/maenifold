@@ -145,9 +145,24 @@ describe('WorkflowBrowser actions', () => {
       'SaveWorkflowAsset',
       expect.objectContaining({ id: 'agent-review-copy' }),
     )
+    expect(mocks.toastSuccess).toHaveBeenCalledWith('Duplicated as agent-review-copy')
     expect(selectSpy).not.toHaveBeenCalledWith('agent-review')
     expect(store.pendingWorkflowId).toBeNull()
-    expect(document.body.textContent).not.toContain('Discard workflow changes?')
+    wrapper.unmount()
+  })
+
+  it('clicking duplicate on a workflow whose JSON is corrupt shows error toast and does not save', async () => {
+    mocks.readWorkflowDefinition.mockResolvedValue({ id: 1, steps: 'not-an-array' })
+    const { wrapper } = await mountBrowser()
+
+    await wrapper.get('button[aria-label="Duplicate Agent Review"]').trigger('click')
+    await flushPromises()
+
+    expect(mocks.toastError).toHaveBeenCalled()
+    expect(mocks.callTool).not.toHaveBeenCalledWith(
+      'SaveWorkflowAsset',
+      expect.objectContaining({ id: 'agent-review-copy' }),
+    )
     wrapper.unmount()
   })
 

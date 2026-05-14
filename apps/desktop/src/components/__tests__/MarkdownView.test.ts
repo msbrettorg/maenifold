@@ -7,6 +7,13 @@ import { useAppShellStore } from '../../stores/app-shell';
 import { useKnowledgeStore } from '../../stores/knowledge';
 import { getMarkdownIt } from '../../composables/useMarkdownIt';
 
+const memoryApi = vi.hoisted(() => ({
+  readMemory: vi.fn(),
+  writeMemory: vi.fn(),
+  listMemories: vi.fn(),
+}));
+vi.mock('../../composables/useMemoryApi', () => ({ useMemoryApi: () => memoryApi }));
+
 async function settle(): Promise<void> {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     await flushPromises();
@@ -32,6 +39,16 @@ describe('MarkdownView rendering regression coverage', () => {
 
   beforeEach(() => {
     document.body.innerHTML = '';
+    memoryApi.readMemory.mockResolvedValue({
+      uri: 'memory://Shared Concept',
+      title: 'Shared Concept',
+      content: '[[Shared Concept]]',
+      checksum: 'cs1',
+      created: null,
+      modified: null,
+    });
+    memoryApi.writeMemory.mockResolvedValue('memory://Created');
+    memoryApi.listMemories.mockResolvedValue('');
   });
 
   describe('SVG sanitization in markdown', () => {
@@ -277,6 +294,7 @@ describe('MarkdownView rendering regression coverage', () => {
     it('WikiLink [[concept]] still renders as pill', async () => {
       const wrapper = await mountMarkdown('Open [[Shared Concept]].');
       await wrapper.find('.wiki-pill').trigger('click');
+      await settle();
 
       const store = useKnowledgeStore();
       expect(store.activeTabUri).toBe('memory://Shared Concept');
@@ -337,6 +355,41 @@ describe('MarkdownView rendering regression coverage', () => {
 
       expect(link.exists()).toBe(true);
       expect(link.attributes('href')).toBe('memory://foo/bar');
+      wrapper.unmount();
+    });
+
+    it('unresolved WikiLink click opens the focused create dialog instead of opening a note', async () => {
+      memoryApi.readMemory.mockRejectedValue(new Error('not found'));
+      const wrapper = await mountMarkdown('Open [[Missing Concept]].');
+      const store = useKnowledgeStore();
+      const openNote = vi.spyOn(store, 'openNote');
+
+      await wrapper.find('.wiki-pill').trigger('click');
+      await settle();
+
+      expect(openNote).not.toHaveBeenCalled();
+      expect(document.body.textContent).toContain('Create note for “Missing Concept”?');
+      wrapper.unmount();
+    });
+
+    it('resolved WikiLink click preserves the existing openNote route', async () => {
+      memoryApi.readMemory.mockResolvedValue({
+        uri: 'memory://Existing Concept',
+        title: 'Existing Concept',
+        content: '[[Existing Concept]]',
+        checksum: 'cs1',
+        created: null,
+        modified: null,
+      });
+      const wrapper = await mountMarkdown('Open [[Existing Concept]].');
+      const store = useKnowledgeStore();
+      const openNote = vi.spyOn(store, 'openNote');
+
+      await wrapper.find('.wiki-pill').trigger('click');
+      await settle();
+
+      expect(openNote).toHaveBeenCalledWith('memory://Existing Concept');
+      expect(document.body.textContent).not.toContain('Create note for “Existing Concept”?');
       wrapper.unmount();
     });
 

@@ -26,6 +26,16 @@ IDEMPOTENCY_WORKTREE_A="${REPO_ROOT}/worktrees/${IDEMPOTENCY_TASK_A}"
 IDEMPOTENCY_WORKTREE_B="${REPO_ROOT}/worktrees/${IDEMPOTENCY_TASK_B}"
 IDEMPOTENCY_BRANCH_A="worker-${IDEMPOTENCY_TASK_A}"
 IDEMPOTENCY_BRANCH_B="worker-${IDEMPOTENCY_TASK_B}"
+SIGTERM_TASK="T-303.4.28-sigterm-fixture-$$"
+SIGINT_TASK="T-303.4.28-sigint-fixture-$$"
+STALE_LOCK_TASK="T-303.4.28-stale-fixture-$$"
+SIGTERM_WORKTREE="${REPO_ROOT}/worktrees/${SIGTERM_TASK}"
+SIGINT_WORKTREE="${REPO_ROOT}/worktrees/${SIGINT_TASK}"
+STALE_LOCK_WORKTREE="${REPO_ROOT}/worktrees/${STALE_LOCK_TASK}"
+SIGTERM_BRANCH="worker-${SIGTERM_TASK}"
+SIGINT_BRANCH="worker-${SIGINT_TASK}"
+STALE_LOCK_BRANCH="worker-${STALE_LOCK_TASK}"
+SIGNAL_TEST_PIDS=()
 if [[ -L "${REPO_ROOT}/todo" ]]; then
   MAIN_REPO_ROOT="$(cd "$(dirname "$(readlink "${REPO_ROOT}/todo")")" && pwd)"
 else
@@ -62,6 +72,13 @@ REAL_TASK_SPEC_BASENAME="$(basename "${REAL_TASK_SPEC}")"
 
 cleanup() {
   local rc=$?
+  local pid
+  for pid in "${SIGNAL_TEST_PIDS[@]}"; do
+    if kill -0 "${pid}" >/dev/null 2>&1; then
+      terminate_process_tree "${pid}" TERM
+      wait "${pid}" >/dev/null 2>&1 || true
+    fi
+  done
   if [[ -e "${WORKTREE_DIR}" ]]; then
     git -C "${REPO_ROOT}" worktree remove --force "${WORKTREE_DIR}" >/dev/null 2>&1 || true
   fi
@@ -70,6 +87,15 @@ cleanup() {
   fi
   if [[ -e "${IDEMPOTENCY_WORKTREE_B}" ]]; then
     git -C "${REPO_ROOT}" worktree remove --force "${IDEMPOTENCY_WORKTREE_B}" >/dev/null 2>&1 || true
+  fi
+  if [[ -e "${SIGTERM_WORKTREE}" ]]; then
+    git -C "${REPO_ROOT}" worktree remove --force "${SIGTERM_WORKTREE}" >/dev/null 2>&1 || true
+  fi
+  if [[ -e "${SIGINT_WORKTREE}" ]]; then
+    git -C "${REPO_ROOT}" worktree remove --force "${SIGINT_WORKTREE}" >/dev/null 2>&1 || true
+  fi
+  if [[ -e "${STALE_LOCK_WORKTREE}" ]]; then
+    git -C "${REPO_ROOT}" worktree remove --force "${STALE_LOCK_WORKTREE}" >/dev/null 2>&1 || true
   fi
   if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
     git -C "${REPO_ROOT}" branch -D "${BRANCH_NAME}" >/dev/null 2>&1 || true
@@ -80,6 +106,16 @@ cleanup() {
   if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${IDEMPOTENCY_BRANCH_B}"; then
     git -C "${REPO_ROOT}" branch -D "${IDEMPOTENCY_BRANCH_B}" >/dev/null 2>&1 || true
   fi
+  if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${SIGTERM_BRANCH}"; then
+    git -C "${REPO_ROOT}" branch -D "${SIGTERM_BRANCH}" >/dev/null 2>&1 || true
+  fi
+  if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${SIGINT_BRANCH}"; then
+    git -C "${REPO_ROOT}" branch -D "${SIGINT_BRANCH}" >/dev/null 2>&1 || true
+  fi
+  if git -C "${REPO_ROOT}" show-ref --verify --quiet "refs/heads/${STALE_LOCK_BRANCH}"; then
+    git -C "${REPO_ROOT}" branch -D "${STALE_LOCK_BRANCH}" >/dev/null 2>&1 || true
+  fi
+  rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
   if [[ "${ORIGINAL_EXCLUDE_EXISTS}" == "1" ]]; then
     python3 -c 'import pathlib, sys; pathlib.Path(sys.argv[1]).write_bytes(bytes.fromhex(sys.argv[2]))' \
       "${EXCLUDE_FILE}" "${ORIGINAL_EXCLUDE_HEX}" || true
@@ -93,6 +129,129 @@ trap cleanup EXIT
 fail() {
   echo "FAIL: $1" >&2
   exit 1
+}
+
+TEST_FAILURES=0
+
+record_failure() {
+  echo "FAIL: $1" >&2
+  TEST_FAILURES=$((TEST_FAILURES + 1))
+}
+
+wait_for_lock() {
+  local lock_path="$1"
+  local timeout_ms="${2:-2000}"
+  local elapsed_ms=0
+  local poll_ms=50
+  while [[ ! -d "${lock_path}" ]]; do
+    sleep 0.05
+    elapsed_ms=$((elapsed_ms + poll_ms))
+    if [[ ${elapsed_ms} -ge ${timeout_ms} ]]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+wait_for_process_exit() {
+  local pid="$1"
+  local timeout_ms="${2:-2000}"
+  local elapsed_ms=0
+  local poll_ms=50
+  while kill -0 "${pid}" >/dev/null 2>&1; do
+    sleep 0.05
+    elapsed_ms=$((elapsed_ms + poll_ms))
+    if [[ ${elapsed_ms} -ge ${timeout_ms} ]]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
+terminate_process_tree() {
+  local root_pid="$1"
+  local signal_name="${2:-KILL}"
+  local child_pid
+  while IFS= read -r child_pid; do
+    [[ -n "${child_pid}" ]] || continue
+    terminate_process_tree "${child_pid}" "${signal_name}"
+  done < <(pgrep -P "${root_pid}" 2>/dev/null || true)
+  kill "-${signal_name}" "${root_pid}" >/dev/null 2>&1 || true
+}
+
+run_helper_holding_exclude_lock() {
+  local task_id="$1"
+  exec python3 -c '
+import os
+import signal
+import sys
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)
+signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
+bash_script = r"""
+set -euo pipefail
+helper="$1"
+exclude_file="$2"
+task_id="$3"
+touch() {
+  command touch "$@"
+  local touch_rc=$?
+  if [[ ${touch_rc} -eq 0 ]] && [[ "${1:-}" == "${exclude_file}" ]]; then
+    while [[ -d "${1}.lock" ]]; do
+      :
+    done
+  fi
+  return "${touch_rc}"
+}
+source "${helper}" "${task_id}"
+"""
+
+os.execv("/bin/bash", ["bash", "-c", bash_script, "bash", sys.argv[1], sys.argv[2], sys.argv[3]])
+' "${HELPER}" "${EXCLUDE_FILE}" "${task_id}"
+}
+
+run_signal_lock_cleanup_test() {
+  local test_number="$1"
+  local signal_name="$2"
+  local task_id="$3"
+  local lock_path="${EXCLUDE_FILE}.lock"
+  local pid
+
+  rmdir "${lock_path}" >/dev/null 2>&1 || true
+  run_helper_holding_exclude_lock "${task_id}" >/dev/null 2>&1 &
+  pid=$!
+  SIGNAL_TEST_PIDS+=("${pid}")
+
+  if ! wait_for_lock "${lock_path}" 60000; then
+    kill -TERM "${pid}" >/dev/null 2>&1 || true
+    wait "${pid}" >/dev/null 2>&1 || true
+    record_failure "Test ${test_number}: could not observe lock acquisition at ${lock_path}"
+    return
+  fi
+
+  kill "-${signal_name}" "${pid}" >/dev/null 2>&1 || true
+
+  if ! wait_for_process_exit "${pid}" 2000; then
+    terminate_process_tree "${pid}" KILL
+    wait "${pid}" >/dev/null 2>&1 || true
+    if [[ -d "${lock_path}" ]]; then
+      record_failure "Test ${test_number}: SIG${signal_name} did not terminate cleanly and left stale lock dir at ${lock_path}"
+    else
+      record_failure "Test ${test_number}: worktree-create.sh did not terminate after SIG${signal_name}"
+    fi
+    rmdir "${lock_path}" >/dev/null 2>&1 || true
+    return
+  fi
+  wait "${pid}" >/dev/null 2>&1 || true
+
+  if [[ -d "${lock_path}" ]]; then
+    record_failure "Test ${test_number}: SIG${signal_name} left stale lock dir at ${lock_path}"
+    rmdir "${lock_path}" >/dev/null 2>&1 || true
+    return
+  fi
+
+  echo "PASS: Test ${test_number} SIG${signal_name} released ${lock_path}"
 }
 
 assert_no_status_entry() {
@@ -249,3 +408,33 @@ if [[ "${CURRENT_EXCLUDE_SHA}" == "${ORIGINAL_EXCLUDE_SHA}" ]]; then
 fi
 
 echo "PASS: all 16 worktree-create.sh smoke checks passed"
+
+# Test 17: SIGTERM during lock cleanup leaves no .lock dir
+run_signal_lock_cleanup_test 17 TERM "${SIGTERM_TASK}"
+
+# Test 18: SIGINT during lock cleanup leaves no .lock dir
+run_signal_lock_cleanup_test 18 INT "${SIGINT_TASK}"
+
+# Test 19: stale lock timeout tells the operator how to recover
+rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
+mkdir "${EXCLUDE_FILE}.lock"
+set +e
+STALE_LOCK_STDERR="$("${HELPER}" "${STALE_LOCK_TASK}" 2>&1 >/dev/null)"
+STALE_LOCK_RC=$?
+set -e
+if [[ ${STALE_LOCK_RC} -eq 0 ]]; then
+  record_failure "Test 19: expected stale lock invocation to exit non-zero"
+fi
+if [[ "${STALE_LOCK_STDERR}" != *rmdir* ]] || [[ "${STALE_LOCK_STDERR}" != *"${EXCLUDE_FILE}.lock"* ]]; then
+  record_failure "Test 19: stale lock stderr did not mention both rmdir and ${EXCLUDE_FILE}.lock; stderr was: ${STALE_LOCK_STDERR}"
+else
+  echo "PASS: Test 19 stale lock stderr includes rmdir recovery instructions"
+fi
+rmdir "${EXCLUDE_FILE}.lock" >/dev/null 2>&1 || true
+
+if [[ ${TEST_FAILURES} -gt 0 ]]; then
+  echo "FAIL: ${TEST_FAILURES} worktree-create.sh regression checks failed" >&2
+  exit 1
+fi
+
+echo "PASS: all 19 worktree-create.sh checks passed"

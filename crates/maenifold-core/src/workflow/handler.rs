@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use super::handler_session::continue_workflow_session;
 use super::{
     append_workflow_queue, parse_workflow_identifiers, start_workflow_session,
-    view_workflow_session,
+    validate_workflow_inputs, view_workflow_session,
 };
 
 // T-12.0: RTM NFR-1 keeps Workflow request dispatch in a focused handler entrypoint.
@@ -58,6 +58,7 @@ pub fn workflow(context: &ToolContext, payload: &Value) -> Result<String> {
     AssetManager::initialize_assets(&context.config)?;
 
     if let Some(workflow_ids) = workflow_ids {
+        validate_workflow_inputs(&context.config, &workflow_ids, inputs.as_ref())?;
         return start_workflow_session(context, &workflow_ids, inputs);
     }
 

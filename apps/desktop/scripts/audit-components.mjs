@@ -235,13 +235,14 @@ function walkDir(dir, results, ext = null) {
 }
 
 function collectChangedFiles(ext) {
-  const result = spawnSync('git', ['diff', '--name-only', '--diff-filter=ACMR', 'HEAD~1...HEAD', '--', 'src/'], {
+  const result = spawnSync('git', ['diff', '--name-only', '--relative', '--diff-filter=ACMR', 'HEAD~1...HEAD', '--', 'src/'], {
     cwd: APP_ROOT,
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
   if (result.status !== 0 || !result.stdout.trim()) return [];
   return result.stdout.trim().split('\n')
+    .map((f) => f.replace(/^apps\/desktop\//, ''))
     .filter((f) => f.endsWith(ext) && !f.includes('/ui/') && !f.includes('__tests__'));
 }
 

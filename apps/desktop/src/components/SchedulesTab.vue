@@ -3,6 +3,7 @@ import { ref } from 'vue';
 import { History, Loader2, Pencil, Play, Plus, RefreshCw, Trash2, Wrench } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -33,6 +34,8 @@ const {
   previewIsValid,
   form,
   schedulePlatform,
+  pauseState,
+  isPausedAll,
   scheduleLabel,
   statusFor,
   installBadgeFor,
@@ -40,7 +43,9 @@ const {
   permissionVariant,
   allowedToolsLabel,
   formatLastRun,
+  formatPausedAt,
   loadSchedules,
+  setPauseAll,
   openCreateDialog,
   openEditDialog,
   saveSchedule,
@@ -82,6 +87,25 @@ function openRunsDrawer(id: string): void {
       <Button type="button" variant="outline" size="sm" @click="loadSchedules">Retry</Button>
     </div>
     <p v-else-if="statusMessage" class="text-sm text-primary" role="status">{{ statusMessage }}</p>
+
+    <div class="flex items-center gap-3 rounded-md border px-4 py-3">
+      <Switch
+        id="pause-all-schedules"
+        :model-value="isPausedAll"
+        :disabled="isLoading || isSubmitting || jobs.length === 0"
+        @update:model-value="setPauseAll"
+      />
+      <div class="flex flex-col gap-1">
+        <label for="pause-all-schedules" class="text-sm font-medium text-text-primary">Pause all schedules</label>
+        <p class="text-sm text-muted-foreground">
+          <template v-if="isPausedAll">
+            {{ pauseState.schedulesPaused ?? 0 }} schedules paused since {{ formatPausedAt(pauseState.pausedAt) }}. Toggle off to resume prior state.
+          </template>
+          <template v-else-if="jobs.length > 0">All schedules running normally.</template>
+          <template v-else>No schedules to pause.</template>
+        </p>
+      </div>
+    </div>
 
     <div class="rounded-md border px-4 py-3 text-sm" :class="schedulePlatform.supportsEnabledSchedules ? 'border-primary/30 bg-primary/5 text-text-primary' : 'border-destructive/30 bg-destructive/10 text-destructive'">
       <div class="font-medium">{{ schedulePlatform.label }}</div>
@@ -174,6 +198,7 @@ function openRunsDrawer(id: string): void {
       :is-submitting="isSubmitting"
       :can-submit="canSubmit"
       :schedule-platform="schedulePlatform"
+      :is-paused-all="isPausedAll"
       @submit="saveSchedule"
       @update-preview-valid="(valid) => { previewIsValid = valid; }"
     />

@@ -33,6 +33,7 @@ const props = defineProps<{
   isSubmitting: boolean;
   canSubmit: boolean;
   schedulePlatform: SchedulePlatformSupport;
+  isPausedAll: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -51,6 +52,9 @@ const emit = defineEmits<{
       </DialogHeader>
 
       <form class="grid gap-4" @submit.prevent="emit('submit')">
+        <div v-if="isPausedAll" class="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          ⚠ Pause-all is active. Saving with "Enabled" turned on will fail. Resume schedules first to enable individual jobs.
+        </div>
         <div class="grid gap-2">
           <Label for="schedule-id">ID</Label>
           <Input id="schedule-id" v-model="form.id" :disabled="mode === 'edit' || isSubmitting" placeholder="daily-triage" />

@@ -1,19 +1,21 @@
-use super::context::{load_help_doc, render, required_string, ToolContext};
+use super::context::{ToolContext, load_help_doc, render, required_string};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
 use crate::schedule::{
-    env_allowlist::default_allowlist, parse_schedule, ParsedSchedule, ScheduleStore, ScheduledTask,
-    Supervisor,
+    ParsedSchedule, ScheduleStore, ScheduledTask, Supervisor,
+    env_allowlist::default_allowlist, parse_schedule, pause_state,
 };
-use crate::util::json::{success, OutputFormat};
+use crate::util::json::{OutputFormat, success};
 use chrono::{SecondsFormat, Utc};
 use croner::parser::CronParser;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
 use tracing::warn;
 
+#[path = "schedule_batch.rs"]
+pub(super) mod schedule_batch;
 #[path = "schedule_os.rs"]
-mod schedule_os;
+pub(super) mod schedule_os;
 #[cfg(test)]
 #[path = "schedule_tests.rs"]
 mod schedule_tests;
@@ -46,8 +48,12 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "logs" => get_logs(context, payload),
         "preview" => preview_schedule(context, payload),
         "verify_installed" => verify_installed_action(context, payload),
+        "pause_all" => schedule_batch::pause_all(context, payload),
+        "resume_all" => schedule_batch::resume_all(context, payload),
+        "set_all_enabled" => schedule_batch::set_all_enabled(context, payload),
+        "pause_status" => schedule_batch::pause_status(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview, verify_installed",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
             action
         ))),
     }
@@ -158,17 +164,18 @@ fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> R
             "scheduled task '{id}' already exists"
         )));
     }
+    reject_enabled_while_paused(context, task.enabled)?;
     if task.enabled {
         sync_os_scheduler(&task, bin)?;
     }
     if let Err(error) = store.create(&task) {
-        if task.enabled {
-            if let Err(rollback_error) = uninstall_os_scheduler(&task.id, bin) {
-                return Err(MaenifoldError::Message(format!(
-                    "failed to persist scheduled task '{}' after OS scheduler install; rollback uninstall also failed: {}; original store error: {}",
-                    task.id, rollback_error, error
-                )));
-            }
+        if task.enabled
+            && let Err(rollback_error) = uninstall_os_scheduler(&task.id, bin)
+        {
+            return Err(MaenifoldError::Message(format!(
+                "failed to persist scheduled task '{}' after OS scheduler install; rollback uninstall also failed: {}; original store error: {}",
+                task.id, rollback_error, error
+            )));
         }
         return Err(MaenifoldError::Message(error.to_string()));
     }
@@ -214,6 +221,7 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     if let Some(description) = optional_string(payload, "description")? {
         task.name = description;
     }
+    reject_enabled_while_paused(context, task.enabled)?;
     store
         .update(&task)
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
@@ -294,8 +302,20 @@ fn run_now(context: &ToolContext, payload: &Value) -> Result<String> {
     ))
 }
 
-fn schedule_store(context: &ToolContext) -> ScheduleStore {
+pub(super) fn schedule_store(context: &ToolContext) -> ScheduleStore {
     ScheduleStore::new(context.config.maenifold_root.join("schedules"))
+}
+
+fn reject_enabled_while_paused(context: &ToolContext, enabled: bool) -> Result<()> {
+    if enabled
+        && pause_state::is_paused(&context.config.maenifold_root)
+            .map_err(|error| MaenifoldError::Message(error.to_string()))?
+    {
+        return Err(MaenifoldError::InvalidArgument(
+            "Cannot enable schedule while pause-all is active. Resume schedules first (Schedule action=resume_all) or save with enabled=false.".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn task_value(task: &ScheduledTask) -> Value {
@@ -324,7 +344,7 @@ fn env_allowlist_view() -> Value {
     json!({"enabled":true,"allowlistExact":exact,"allowlistPrefixes":prefixes})
 }
 
-fn resolve_maenifold_bin() -> Result<PathBuf> {
+pub(super) fn resolve_maenifold_bin() -> Result<PathBuf> {
     std::env::current_exe().map_err(|error| {
         MaenifoldError::Message(format!("failed to resolve current executable: {error}"))
     })

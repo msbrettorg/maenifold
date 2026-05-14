@@ -54,7 +54,7 @@ describe('gate:write-task-file IPC contract', () => {
     expect(handlerSource).toMatch(/lstatSync\(todoDir\)\.isSymbolicLink\(\)/);
     expect(handlerSource).toMatch(/Refusing to write: todo\/ is a symbolic link/);
     expect(handlerSource).toMatch(/realpathSync\(todoDir\)/);
-    expect(handlerSource).toContain('if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) {');
+    expect(handlerSource).toContain("if (!resolvedTodo.startsWith(`${resolvedRoot}/`)) throw new Error('Refusing to write: todo/ resolves outside root');");
     expect(handlerSource).toMatch(/Refusing to write: todo\/ resolves outside root/);
     expect(handlerSource).toContain("writeFileSync(taskPath, content, { flag: 'wx' });");
   });

@@ -2,7 +2,8 @@ use crate::error::{GATEWAY_TIMEOUT_ERROR, JSONRPC_INTERNAL_ERROR, MaenifoldError
 use rmcp::{
     model::{
         CallToolRequest, CallToolRequestParams, CallToolResult, ClientRequest, ReadResourceRequest,
-        ReadResourceRequestParams, ReadResourceResult, ServerResult,
+        GetPromptRequest, GetPromptRequestParams, GetPromptResult, ReadResourceRequestParams,
+        ReadResourceResult, ServerResult,
     },
     service::{PeerRequestOptions, ServiceError},
 };
@@ -45,6 +46,24 @@ impl StdioSession {
             ServerResult::ReadResourceResult(result) => Ok(result),
             _ => Err(MaenifoldError::Message(
                 "unexpected MCP resources/read response".to_string(),
+            )),
+        }
+    }
+
+    pub async fn get_prompt(
+        &self,
+        name: &str,
+        arguments: Option<serde_json::Map<String, Value>>,
+    ) -> Result<GetPromptResult> {
+        let mut params = GetPromptRequestParams::new(name.to_string());
+        if let Some(arguments) = arguments {
+            params = params.with_arguments(arguments);
+        }
+        let request = ClientRequest::GetPromptRequest(GetPromptRequest::new(params));
+        match self.send_request(request, format!("prompt '{name}'")).await? {
+            ServerResult::GetPromptResult(result) => Ok(result),
+            _ => Err(MaenifoldError::Message(
+                "unexpected MCP prompts/get response".to_string(),
             )),
         }
     }

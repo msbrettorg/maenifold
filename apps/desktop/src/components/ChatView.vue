@@ -7,8 +7,7 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
 import { useBuiltInSlashCommands } from '../composables/useBuiltInSlashCommands';
-import { useMcpPrompts } from '../composables/useMcpPrompts';
-import { getMcpPromptCommandMeta, hasMcpPromptArguments, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
+import { getMcpPromptCommandMeta, hasMcpPromptArguments, parseGetPromptResult, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import { useAppShellStore } from '../stores/app-shell';
 import { isAbsolutePath } from '../lib/acp-meta';
@@ -34,7 +33,6 @@ const appShellStore = useAppShellStore();
 const confirmDialogStore = useConfirmDialogStore();
 const { renderMermaidBlocks } = useMermaid();
 const mcpClient = useMcpClient();
-const mcpPrompts = useMcpPrompts();
 const mcpPromptCommands = useMcpPromptCommands({ serverName: 'maenifold' });
 const currentSession = computed(() => sessionStore.currentSession);
 const { inputText, clearDraft } = useChatDraft(computed(() => currentSession.value?.sessionId ?? null));
@@ -167,7 +165,12 @@ async function handleMcpPromptSelect(command: AvailableCommand): Promise<void> {
   }
   inputText.value = '';
   try {
-    const result: GetPromptResult = await mcpPrompts.getPrompt(meta.promptName);
+    if (!mcpClient.connected.value) await mcpClient.connect();
+    const raw = await mcpClient.callTool('GetMcpPrompt', {
+      server: meta.serverName,
+      name: meta.promptName,
+    });
+    const result: GetPromptResult = parseGetPromptResult(raw);
     insertMcpPromptMessages(result.messages);
   } catch (error) {
     setAttachmentError(error instanceof Error ? error.message : 'Failed to resolve MCP prompt.');

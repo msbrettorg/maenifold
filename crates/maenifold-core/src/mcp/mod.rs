@@ -66,6 +66,7 @@ pub mod schema;
 pub mod stdio_pool;
 mod stdio_pool_health;
 mod stdio_pool_lifecycle;
+mod stdio_pool_prompts;
 mod stdio_pool_tools;
 mod stdio_process_group;
 pub mod stdio_session;

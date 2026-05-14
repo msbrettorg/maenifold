@@ -13,6 +13,8 @@ const gatewayPassthroughTools = new Set([
   'GatewayBatch',
   'GatewayIntent',
   'DiscoverMcpTools',
+  'DiscoverMcpPrompts',
+  'GetMcpPrompt',
   'gate_Create',
 ]);
 

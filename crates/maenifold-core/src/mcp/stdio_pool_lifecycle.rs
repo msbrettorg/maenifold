@@ -1,6 +1,7 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
 use crate::mcp::stdio_pool::{StdioPool, start_session_with_registry_and_sampling};
 use crate::mcp::stdio_pool_health::lock_state;
+use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, ensure_replacement_tools};
 use serde_json::Value;
 use std::sync::Arc;
@@ -82,7 +83,10 @@ impl StdioPool {
                             })?),
                         )
                     };
-                    Ok((Some(old), Some(collect_gateway_tools(&servers)?)))
+                    Ok((
+                        Some(old),
+                        Some((collect_gateway_tools(&servers)?, collect_gateway_prompts(&servers))),
+                    ))
                 }
             }
         };
@@ -96,7 +100,7 @@ impl StdioPool {
                 return Err(error);
             }
         };
-        if let Some((tools, gateway_tools, gateway_descriptions)) = tool_state {
+        if let Some(((tools, gateway_tools, gateway_descriptions), gateway_prompts)) = tool_state {
             *self
                 .tools
                 .write()
@@ -105,6 +109,10 @@ impl StdioPool {
                 .gateway_tools
                 .write()
                 .unwrap_or_else(|error| error.into_inner()) = gateway_tools;
+            *self
+                .gateway_prompts
+                .write()
+                .unwrap_or_else(|error| error.into_inner()) = gateway_prompts;
             *self
                 .gateway_descriptions
                 .write()

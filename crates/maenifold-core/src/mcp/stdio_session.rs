@@ -8,7 +8,7 @@ use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
 use agent_client_protocol_schema::McpServerStdio as McpServerStdioConfig;
 use rmcp::{
     Peer, RoleClient, ServiceExt,
-    model::{ProtocolVersion, Tool},
+    model::{Prompt, ProtocolVersion, Tool},
     service::RunningService,
 };
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -50,6 +50,7 @@ pub struct StdioSession {
     stderr_task: StdMutex<Option<tokio::task::JoinHandle<()>>>,
     pub(super) stderr: Arc<Mutex<String>>,
     tools: Arc<[Tool]>,
+    prompts: Arc<[Prompt]>,
     initialize_description: Option<String>,
     pub(super) call_timeout: Duration,
     pub(super) server_name: String,
@@ -168,9 +169,20 @@ impl StdioSession {
                 .list_all_tools()
                 .await
                 .map_err(map_service_error)?;
-            Ok((client, tools, server_info))
+            let prompts = if server_info.capabilities.prompts.is_some() {
+                match client.peer().list_all_prompts().await {
+                    Ok(prompts) => prompts,
+                    Err(error) => {
+                        tracing::debug!(server = %entry.name, error = %error, "failed to list MCP prompts");
+                        Vec::new()
+                    }
+                }
+            } else {
+                Vec::new()
+            };
+            Ok((client, tools, prompts, server_info))
         };
-        let (client, tools, server_info) = match tokio::time::timeout(startup_timeout, startup)
+        let (client, tools, prompts, server_info) = match tokio::time::timeout(startup_timeout, startup)
             .await
         {
             Ok(Ok(started)) => started,
@@ -202,6 +214,7 @@ impl StdioSession {
             stderr_task: StdMutex::new(Some(stderr_task)),
             stderr,
             tools: tools.into(),
+            prompts: prompts.into(),
             initialize_description: gateway_metadata::upstream_initialize_description(&server_info),
             call_timeout,
             server_name: entry.name.to_string(),
@@ -213,6 +226,10 @@ impl StdioSession {
 
     pub fn tools(&self) -> Arc<[Tool]> {
         Arc::clone(&self.tools)
+    }
+
+    pub fn prompts(&self) -> Arc<[Prompt]> {
+        Arc::clone(&self.prompts)
     }
 
     pub fn initialize_description(&self) -> Option<String> {

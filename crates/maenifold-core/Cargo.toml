@@ -112,6 +112,10 @@ path = "tests/sampling_agent_threading_contract.rs"
 name = "sampling_selected_model_contract"
 path = "tests/sampling_selected_model_contract.rs"
 
+[[test]]
+name = "prompt_aggregation_contract"
+path = "tests/prompt_aggregation_contract.rs"
+
 
 
 

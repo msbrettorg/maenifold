@@ -55,8 +55,9 @@ export function toServerCapabilities(client: SdkClient): McpServerCapabilities |
 }
 
 export const gatewayPassthroughTools = new Set([
-  'GatewayIndex', 'GatewayExecute', 'GatewayBatch', 'GatewayIntent', 'DiscoverMcpTools', 'gate_Create',
-  'ReadMcpResource', 'GetHelp',
+  'GatewayIndex', 'GatewayExecute', 'GatewayBatch', 'GatewayIntent',
+  'DiscoverMcpTools', 'DiscoverMcpPrompts', 'GetMcpPrompt',
+  'gate_Create', 'ReadMcpResource', 'GetHelp',
 ]);
 
 function isSessionExpiredError(err: unknown): boolean {

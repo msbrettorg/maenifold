@@ -3,7 +3,7 @@ use std::sync::{Arc, atomic::AtomicBool};
 use rmcp::model::{CreateMessageRequestParams, CreateMessageResult};
 
 use super::PendingRequestRegistry;
-use super::loop_correlator;
+use super::loop_correlator::{self, LookupResult};
 use super::pending_requests::SamplingAction;
 use super::sampling_client_helpers::{
     incoming_tool_result_ids, sampling_messages_to_prompt, text_result, tool_use_ids,
@@ -23,18 +23,19 @@ pub(crate) async fn create_message(
     let incoming_tool_ids = incoming_tool_result_ids(&request.messages);
     let continuation = if incoming_tool_ids.is_empty() {
         None
-    } else if let Some(id) = loop_correlator::lookup(&server_name, &incoming_tool_ids) {
-        Some(id)
     } else {
-        return Err(rmcp::ErrorData::invalid_request(
-            "Sampling loop expired or unknown",
-            None,
-        ));
+        match loop_correlator::lookup(&server_name, &incoming_tool_ids) {
+            Some(LookupResult::Active(id)) => Some(id),
+            Some(LookupResult::Cancelled(_)) => return Err(rmcp::ErrorData::invalid_request("Sampling session cancelled", None)),
+            None => return Err(rmcp::ErrorData::invalid_request("Sampling loop expired or unknown", None)),
+        }
     };
 
     let (dispatch_id, app_session_id, model, role_name, resume_session_id) =
         if let Some(existing_id) = continuation {
-            existing_dispatch(&sampling_registry, existing_id, incoming_tool_ids.len()).await?
+            existing_dispatch(Arc::clone(&registry), &sampling_registry, existing_id,
+                incoming_tool_ids.len(), &server_name, &request)
+            .await?
         } else {
             new_dispatch(
                 registry,
@@ -104,36 +105,43 @@ pub(crate) async fn create_message(
 }
 
 async fn existing_dispatch(
-    registry: &SamplingSessionRegistry,
+    request_registry: Arc<PendingRequestRegistry>,
+    sampling_registry: &SamplingSessionRegistry,
     existing_id: uuid::Uuid,
     incoming_count: usize,
+    server_name: &str,
+    request: &CreateMessageRequestParams,
 ) -> Result<(uuid::Uuid, uuid::Uuid, String, String, Option<String>), rmcp::ErrorData> {
-    let Some(dispatch) = registry.get(existing_id).await else {
-        return Err(rmcp::ErrorData::invalid_request(
-            "Sampling loop expired or unknown",
-            None,
-        ));
+    let Some(dispatch) = sampling_registry.get(existing_id).await else {
+        return Err(rmcp::ErrorData::invalid_request("Sampling loop expired or unknown", None));
     };
-    let count = registry
+    let count = sampling_registry
         .increment_tool_calls(existing_id, incoming_count as u32)
         .await
         .map_err(|err| rmcp::ErrorData::internal_error(err, None))?;
-    if count > dispatch.tool_loop_budget {
-        let _ = registry
-            .update_status(
-                existing_id,
-                SamplingSessionStatus::BudgetExceeded {
-                    allowed_so_far: count,
-                    budget: dispatch.tool_loop_budget,
-                },
-            )
-            .await;
-        return Err(rmcp::ErrorData::invalid_request(
-            "Sampling loop budget exceeded — user re-approval required",
-            None,
-        ));
+    if count >= dispatch.tool_loop_budget {
+        let _ = sampling_registry.update_status(existing_id, SamplingSessionStatus::BudgetExceeded {
+            allowed_so_far: count, budget: dispatch.tool_loop_budget,
+        }).await;
+        let receiver = request_registry.register_sampling(request.clone(), server_name).await;
+        match receiver.await {
+            Ok(decision) if matches!(decision.action, SamplingAction::AllowOnce | SamplingAction::AllowAlways) => {
+                sampling_registry.reset_tool_calls(existing_id).await
+                    .map_err(|err| rmcp::ErrorData::internal_error(err, None))?;
+                sampling_registry.update_status(existing_id, SamplingSessionStatus::Streaming).await
+                    .map_err(|err| rmcp::ErrorData::internal_error(format!("{err:?}"), None))?;
+            }
+            Ok(_) => {
+                let _ = sampling_registry.update_status(existing_id, SamplingSessionStatus::Cancelled).await;
+                return Err(rmcp::ErrorData::invalid_request("Sampling session denied by user", None));
+            }
+            Err(_) => {
+                let _ = sampling_registry.update_status(existing_id, SamplingSessionStatus::Cancelled).await;
+                return Err(rmcp::ErrorData::invalid_request("Sampling session cancelled", None));
+            }
+        }
     }
-    let resume = registry.acp_session_id(existing_id).await;
+    let resume = sampling_registry.acp_session_id(existing_id).await;
     Ok((
         existing_id,
         dispatch.app_session_id,
@@ -150,11 +158,8 @@ async fn new_dispatch(
     sampling_agent: String,
     request: &CreateMessageRequestParams,
 ) -> Result<(uuid::Uuid, uuid::Uuid, String, String, Option<String>), rmcp::ErrorData> {
-    let receiver = registry
-        .register_sampling(request.clone(), server_name)
-        .await;
-    let decision = receiver
-        .await
+    let receiver = registry.register_sampling(request.clone(), server_name).await;
+    let decision = receiver.await
         .map_err(|_| rmcp::ErrorData::invalid_request("Sampling session cancelled", None))?;
     let decision_record = sampling_decision_record(&decision.action);
     let dispatch_id = uuid::Uuid::new_v4();
@@ -188,11 +193,7 @@ async fn new_dispatch(
         })
         .await;
     match decision.action {
-        SamplingAction::Deny => Err(rmcp::ErrorData::new(
-            rmcp::model::ErrorCode(-1),
-            "User rejected sampling request",
-            None,
-        )),
+        SamplingAction::Deny => Err(rmcp::ErrorData::invalid_request("Sampling session denied by user", None)),
         SamplingAction::AllowOnce | SamplingAction::AllowAlways => {
             Ok((dispatch_id, app_session_id, model, role_name, None))
         }

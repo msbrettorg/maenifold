@@ -198,6 +198,17 @@ impl SamplingSessionRegistry {
         Ok(count)
     }
 
+    pub(crate) async fn reset_tool_calls(&self, dispatch_id: Uuid) -> Result<(), String> {
+        let mut sessions = self.sessions.lock().await;
+        let dispatch = sessions
+            .get_mut(&dispatch_id)
+            .ok_or_else(|| "sampling dispatch not found".to_string())?;
+        dispatch.tool_call_count = 0;
+        drop(sessions);
+        notify_resource_updated(SAMPLING_SESSIONS_URI).await;
+        Ok(())
+    }
+
     #[allow(dead_code)]
     pub(crate) async fn record_usage(
         &self,

@@ -22,6 +22,12 @@ pub(crate) struct LoopCorrelator {
     entries: Arc<RwLock<HashMap<(String, BTreeSet<String>), CorrelatorEntry>>>,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub(crate) enum LookupResult {
+    Active(Uuid),
+    Cancelled(Uuid),
+}
+
 impl LoopCorrelator {
     pub fn record(
         &self,
@@ -43,7 +49,7 @@ impl LoopCorrelator {
         }
     }
 
-    pub fn lookup(&self, server: &str, tool_use_ids: &BTreeSet<String>) -> Option<Uuid> {
+    pub fn lookup(&self, server: &str, tool_use_ids: &BTreeSet<String>) -> Option<LookupResult> {
         if tool_use_ids.is_empty() {
             return None;
         }
@@ -54,9 +60,9 @@ impl LoopCorrelator {
             if entry.terminal_at.is_none() {
                 entry.terminal_at = Some(Instant::now());
             }
-            return None;
+            return Some(LookupResult::Cancelled(entry.sampling_request_id));
         }
-        Some(entry.sampling_request_id)
+        Some(LookupResult::Active(entry.sampling_request_id))
     }
 
     pub async fn cleanup_expired(&self) {
@@ -89,7 +95,7 @@ pub(crate) fn record(
     global().record(server, tool_use_ids, request_id, status_handle);
 }
 
-pub(crate) fn lookup(server: &str, tool_use_ids: &BTreeSet<String>) -> Option<Uuid> {
+pub(crate) fn lookup(server: &str, tool_use_ids: &BTreeSet<String>) -> Option<LookupResult> {
     global().lookup(server, tool_use_ids)
 }
 

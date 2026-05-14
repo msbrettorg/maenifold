@@ -17,3 +17,14 @@ pub(crate) struct SamplingDecision {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub selected_agent: Option<String>,
 }
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(
+    tag = "kind",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
+pub(crate) enum SamplingPromptReason {
+    NewRequest,
+    BudgetExceeded { used: u32, budget: u32 },
+}

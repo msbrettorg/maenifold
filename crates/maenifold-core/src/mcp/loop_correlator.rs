@@ -25,7 +25,7 @@ pub(crate) struct LoopCorrelator {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum LookupResult {
     Active(Uuid),
-    Cancelled(Uuid),
+    Terminal(Uuid),
 }
 
 impl LoopCorrelator {
@@ -60,7 +60,7 @@ impl LoopCorrelator {
             if entry.terminal_at.is_none() {
                 entry.terminal_at = Some(Instant::now());
             }
-            return Some(LookupResult::Cancelled(entry.sampling_request_id));
+            return Some(LookupResult::Terminal(entry.sampling_request_id));
         }
         Some(LookupResult::Active(entry.sampling_request_id))
     }

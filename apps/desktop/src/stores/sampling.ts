@@ -9,6 +9,10 @@ export interface SamplingDecision {
   selectedAgent?: string;
 }
 
+export type SamplingPromptReason =
+  | { kind: 'newRequest' }
+  | { kind: 'budgetExceeded'; used: number; budget: number };
+
 export interface SamplingRequest {
   id: string;
   serverName: string;
@@ -17,6 +21,7 @@ export interface SamplingRequest {
   systemPrompt?: string;
   maxTokens: number;
   queuedAt: number;
+  reason?: SamplingPromptReason;
 }
 
 export const useSamplingStore = defineStore('sampling', () => {

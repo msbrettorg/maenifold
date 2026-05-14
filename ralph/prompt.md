@@ -428,7 +428,7 @@ Banned actions outside scope: workspace-wide formatters, workspace-wide builds, 
 ## Convergence rule
 
 Create the convergence marker only when:
-- All `T-XXX.YY` tasks in your scope are in `done/`, AND
+- All `T-XXX.YY` tasks are in `done/`, AND
 - No remaining task is an epic awaiting decomposition, AND
 - No grooming work remains.
 
@@ -436,7 +436,7 @@ Create the convergence marker only when:
 touch ralph/state/converged
 ```
 
-**Epics are NOT a convergence reason.** **Backlog grooming gaps are NOT a convergence reason.** **A non-empty `todo/` is NOT a convergence reason** unless every entry is genuinely blocked by an external dependency you have documented.
+Do not converge if any pending or in-progress items remain, even if not in scope for you - end your turn and let the next PM pick them up.
 
 ---
 

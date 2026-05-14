@@ -3376,3 +3376,74 @@ For PM authoring blue-team prompts: either (a) verify the actual test path with 
 **Recovery validation:** when the user terminated and restarted, my session had only the live `swe-t305-5` work to recover. Because the gate transitions, git commits, and worktree disk state were all durable, NO work was lost. The cost of the wedge was ~10 minutes of user time + the SWE finish-implementation re-dispatch (Lesson 100). Acceptable cost; the durable evidence chain saved the iter.
 
 **Iter-15 commitment:** after each task closes (gate done + merge + worktree prune), I drop all references to its SWE/red/blue agent IDs from my working state. The next `list_agents` is purely informational; only currently-dispatched-this-iter lanes count.
+
+---
+
+## Iter-15 lessons (2026-05-14, sprint 305 close)
+
+Sprint 305 (schedule backlog) fully drained: 14 children + umbrella in `done/`. Iter-15 specifically closed T-305.6 (clear_history daemon + frontend), T-305.10 (backfill daemon + ScheduleRowActions), T-305.11 (verify_installed UX hardening), T-305.12 (normalizeRun status priority), T-305.13 (pause-rejection assertion tightening), T-305.14 (RunRecord MCP rendering + sidecar persistence). Two needed a second SWE cycle after red-team v1 found real defects.
+
+### Lesson 103: shell-mcp's "swallow uncaughtException + never exit" pattern produces runaway 100% CPU loops
+
+**Iter-15 incident (2026-05-14, ~08:20 PDT, ~100min into iter).** User: "millions of node processes hammering my CPU. You are not cleaning up properly and hurting system stability." Investigation found 6 stuck `node /Users/brett/src/mcp/shell-mcp/dist/index.js` processes at 96-100% CPU each (~580% combined load), started 06:40-06:41 during burst-parallel `git worktree add` + `ln -s` calls, still running ~100 min later. SIGTERM ignored — only SIGKILL worked.
+
+**Root cause** (verified by reading `/Users/brett/src/mcp/shell-mcp/src/index.ts:218-251`):
+
+1. `process.on('uncaughtException')` swallows ALL exceptions. Comment literally reads "Don't exit - try to continue serving requests." Canonical Node.js anti-pattern; V8 considers process state undefined after uncaught throw.
+2. `process.on('unhandledRejection')` does the same. Promise loops that reject keep re-firing forever.
+3. MCP `StdioServerTransport` exposes `onclose` / `onerror` callbacks (verified in `@modelcontextprotocol/sdk/dist/esm/server/stdio.js:21,64`) but shell-mcp never binds them. When parent Copilot CLI closes stdio:
+   - stdin emits error/end → SDK calls `this.onerror?.()` / `this.onclose?.()` → both undefined → server doesn't notice.
+   - Whatever async retry loop runs on the dead pipe spins at 100% CPU forever.
+   - SIGTERM handler IS registered (line 247) but JS event loop is starved by the busy loop in another path; only SIGKILL breaks it.
+
+**Fix path** (T-305.19, P1, gsd pipeline): bind `transport.onclose = () => process.exit(0)` and `transport.onerror = (err) => { log; process.exit(1) }`; remove the uncaughtException swallow (Node's recommended pattern is log+exit; SDK retries at JSON-RPC layer where appropriate).
+
+**Trigger conditions**: race during burst parallel bash calls — parent Copilot CLI tears down faster than MCP handshake completes, leaving shell-mcp half-initialized; first I/O fails → uncaughtException → "continue serving" → busy loop.
+
+### Lesson 104: PM-side process+disk audit must be mechanical, not human discipline
+
+**Iter-15 secondary incident.** Beyond the runaway shell-mcp, `target/` had grown to **195 GB** (141 GB in `target/agents/<task-id>` legacy caches from prior iters). PM completed gate transitions while system load was critical — never noticed because `make audit` doesn't check process or disk state. User: "A runaway process means the test failed. You can't claim it works if it's pegging the CPU at 100% and not exiting — that's broken."
+
+**Lesson — output checks aren't enough; build/test invocations must verify they left no orphan processes or unbounded disk.** A green PASS that ships a stuck process is a false positive. Mechanical enforcement via two new audit hooks:
+
+- `scripts/audit-runaway-procs.sh` — detects build-toolchain processes >50% CPU, started since iter-start, running >5min. Fail non-zero with PIDs.
+- `scripts/audit-disk-budget.sh` — fails if `target/` exceeds 50 GB (configurable).
+- Both hooked into `make audit`. Definition of Done in AGENTS.md gets a side-effect contract clause: "A green test result with a stuck process is a FAIL — file a P0."
+- `ralph/scripts/iter-{start,end}-snapshot.sh` captures `ps` + `du` snapshots; iter-end diff fails if leak or growth >5 GB.
+
+Filed as T-305.18 (P1) with full acceptance criteria. T-305.19 (P1) covers the shell-mcp fix; T-305.20 (P2) covers `target/agents/` cache eviction policy. The audit-pipeline change is the durable prevention; the shell-mcp fix removes one specific cause; the eviction policy stops the legacy growth pattern.
+
+### Lesson 105: orphan-stub pre-flight (Lesson 92) continues to catch real defects
+
+Iter-15 caught TWO orphan-stub specs at pre-flight: T-305.6 (assumed T-243.110's frontend Clear history button shipped — it didn't) and T-305.10 (assumed T-243.113's ScheduleRowActions component shipped — it didn't). Both spec markdowns amended in-place with "Amendment 1" sections expanding scope to include the missing frontend before SWE dispatch. Pattern is now self-perpetuating: the more amendments accumulate in the corpus, the more obvious the orphan-stub failure mode becomes to future PMs.
+
+### Lesson 106: SWE rework on red-team v1 FAIL is the catch point — trust it
+
+Two of six iter-15 tasks (T-305.10 cron iter_after exclusivity; T-305.14 sidecar resource handler missing) had red-team v1 FAIL with real architectural defects, not surface-level lint issues. The constitution rule "no waived re-audit" worked exactly as designed:
+
+1. Red-team v1 FAIL with cited file:line.
+2. PM rework directive: narrow scope, exact fix, re-verify.
+3. Same SWE worker applies the targeted fix (NOT a fresh SWE — the worker has full context from v1 and the rework is a local correction).
+4. PM dispatches FRESH red-team v2 with the v1 finding referenced in the prompt.
+5. Red-team v2 PASS-WITH-NOTES → blue-team → merge.
+
+Both reworks landed cleanly (T-305.10 net +30 LOC delta in 3 files; T-305.14 net +303 LOC delta in 8 files). Total wall-clock cost: ~12 min per task above the no-rework path. Acceptable cost for catching architectural bugs that would have shipped broken.
+
+**Anti-pattern to avoid**: re-spinning a fresh SWE on red-team FAIL is wasteful unless red-team finds systemic contamination. The original SWE owns the context; the PM owns the narrow remediation directive.
+
+### Lesson 107: SWE prompt's "Forbidden actions" must distinguish scope-fence from cascade-block
+
+T-305.11 SWE correctly escalated when its Fix 1 (verify_installed contract change to array) cascaded into a single-line assertion update needed in `schedule_pause_tests.rs` — a file the prompt's Forbidden Actions list said NOT to touch. The forbidden line was meant to prevent T-305.13 scope absorption, NOT to forbid legitimate contract cascades. PM authorized the one-line cascade fix via `write_agent`.
+
+**Lesson — when authoring "Forbidden actions" lists, separate scope-fences (don't absorb sibling-task scope) from immutable-state guards (don't touch this file at all).** The phrasing "Do NOT touch X — that's task Y's scope" implies absorption avoidance, not absolute immutability. When in doubt, the SWE escalates — the PM authorizes or refuses.
+
+### Iter-15 throughput pattern (extends Lesson 99)
+
+Closed 6 child tasks + 1 umbrella in ~3.5 hours of wall-clock with 2 of 6 needing v2 SWE cycles. Active SWE-lane count peaked at 3 (well under Lesson 102 cap of 4). Pattern that worked:
+
+1. **Wave 0 dispatch immediately at iter-start** — 3 SWEs dispatched in parallel within first 15 min of grooming complete (T-305.6, T-305.12, T-305.13). Independent files, no contention.
+2. **Mid-iter rebase before red-team** — when later tasks (T-305.6) needed to incorporate earlier merges (T-305.12, T-305.13 already in dev), PM rebased the worktree onto current dev BEFORE dispatching red-team. Clean rebase; no merge conflicts.
+3. **Worktree per task; symlink node_modules** — saved ~3 min per worktree creation vs `npm ci`. Per-worktree CARGO_TARGET_DIR INSIDE the worktree (not under workspace `target/agents/`) — auto-cleans when worktree pruned.
+4. **Same-worker confession after WorkResult, NOT before** — preserves the honesty channel boundary per outer-loop confessor instructions.
+5. **Fresh red-team auditor per task** — never the same gpt-5.5 instance that did the SWE work.
+6. **`audit-components --all` flag** — changed-mode is broken (T-305.16); `--all` is the reliable check that actually sees the new file.

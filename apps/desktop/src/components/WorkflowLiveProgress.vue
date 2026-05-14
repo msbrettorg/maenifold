@@ -1,15 +1,19 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { WorkflowStep } from '../lib/workflow-types';
+import { usePipelineMcp } from '../composables/usePipelineMcp';
 import { useWorkflowStore } from '../stores/workflow';
 import WorkflowRunButton from './WorkflowRunButton.vue';
 import WorkflowStepDetail from './WorkflowStepDetail.vue';
 import WorkflowStopButton from './WorkflowStopButton.vue';
 import type { WorkflowAssetDefinition } from '../lib/workflow-asset-types';
+
+const STALE_TIMEOUT_MS = 60_000;
 
 const props = defineProps<{
   workflowName: string;
@@ -27,8 +31,12 @@ interface LiveStep {
 }
 
 const workflowStore = useWorkflowStore();
+const pipelineMcp = usePipelineMcp();
 const { selectedSession } = storeToRefs(workflowStore);
+const { connected: isMcpConnected } = pipelineMcp;
 const expandedSteps = ref<Set<number>>(new Set());
+const isStale = ref(false);
+let staleTimer: ReturnType<typeof setTimeout> | null = null;
 
 function parseStepNumber(heading: string): number | null {
   const match = /^Step\s+(\d+)\//.exec(heading.trim());
@@ -110,6 +118,11 @@ const isComplete = computed(() => {
   return status === 'completed' || status === 'cancelled' || status === 'abandoned';
 });
 
+const isActiveRun = computed(() => {
+  const status = selectedSession.value?.status;
+  return status === 'running' || status === 'active';
+});
+
 const outcome = computed(() => {
   if (selectedSession.value?.status === 'completed') return 'Run completed';
   if (selectedSession.value?.status === 'cancelled') return 'Run cancelled';
@@ -144,11 +157,64 @@ function badgeVariant(label: LiveStep['label']): 'default' | 'secondary' | 'dest
   return 'outline';
 }
 
+function clearStaleTimer(): void {
+  if (!staleTimer) return;
+  clearTimeout(staleTimer);
+  staleTimer = null;
+}
+
+function armStaleTimer(): void {
+  clearStaleTimer();
+  if (!isActiveRun.value) {
+    isStale.value = false;
+    return;
+  }
+  staleTimer = setTimeout(() => {
+    if (isActiveRun.value) {
+      isStale.value = true;
+    }
+  }, STALE_TIMEOUT_MS);
+}
+
+function resetStaleTimer(): void {
+  isStale.value = false;
+  armStaleTimer();
+}
+
+async function retryConnection(): Promise<void> {
+  await pipelineMcp.connect();
+}
+
+async function resubscribeWorkflowResources(): Promise<void> {
+  await workflowStore.resubscribe();
+}
+
+watch(selectedSession, () => {
+  resetStaleTimer();
+});
+
+watch(isActiveRun, (active) => {
+  if (active) {
+    resetStaleTimer();
+  } else {
+    clearStaleTimer();
+    isStale.value = false;
+  }
+}, { immediate: true });
+
+watch(isMcpConnected, (connected, previous) => {
+  if (connected && previous === false) {
+    resetStaleTimer();
+    void resubscribeWorkflowResources();
+  }
+});
+
 onMounted(() => {
   void workflowStore.mount();
 });
 
 onBeforeUnmount(() => {
+  clearStaleTimer();
   workflowStore.unmount();
 });
 </script>
@@ -183,10 +249,28 @@ onBeforeUnmount(() => {
           </CardContent>
         </Card>
 
+        <Card v-if="!isMcpConnected" role="alert" class="border-amber-600/50">
+          <CardContent class="flex items-center justify-between gap-3 p-3 text-sm">
+            <span class="text-amber-600">Lost connection to daemon. Run state may be stale.</span>
+            <Button variant="outline" size="sm" @click="retryConnection">
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
+
         <ol class="m-0 flex list-none flex-col gap-2 p-0">
           <li v-for="{ step, label } in liveSteps" :key="step.stepNumber" class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
-              <Badge :variant="badgeVariant(label)" class="capitalize">{{ label }}</Badge>
+              <div class="flex items-center gap-2">
+                <Badge :variant="badgeVariant(label)" class="capitalize">{{ label }}</Badge>
+                <Badge
+                  v-if="label === 'running' && isStale"
+                  variant="outline"
+                  class="border-amber-600/50 text-amber-600"
+                >
+                  Stale
+                </Badge>
+              </div>
               <span class="text-xs text-muted-foreground">
                 Updated: {{ step.respondedAt ? totalDuration : '—' }}
               </span>

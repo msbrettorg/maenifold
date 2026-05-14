@@ -3062,3 +3062,34 @@ Verified at `apps/desktop/scripts/audit-components.mjs:86-87` — MAX_LOC enforc
 21. **NEW (this iter):** When writing blue-team negative-type-existence assertions, use the cast pattern (`as unknown as Record<string, unknown>`) instead of relying on the property existing in the type. Per learning 81.
 22. **NEW (this iter):** Distinguish "test semantics sacrosanct" from "test syntax sacrosanct" in SWE prompts — allow ergonomic syntax adjustments (casts, type imports) when semantics are preserved. Per learning 82.
 
+
+## 2026-05-14 — Iter close UPDATE (T-304.22 shipped same iter as filed)
+
+Sixth substantive item shipped: **T-304.22** (sdd, P3) — removed `[key: string]: unknown`
+from ElectronApi (introduced by T-304.20 SWE) and updated test cast pattern.
+2 files, 3 insertions, 2 deletions. SWE→red→blue all PASS first attempt.
+Worker worktree was created AFTER PM committed learnings → no staleness
+(pre-flight refinement #20 worked).
+
+### Lesson 84: Same-iter file-and-ship cycles are possible for small follow-ups
+
+T-304.22 was filed during T-304.20 red-team audit, then shipped 30 minutes
+later (after T-304.20 merged). The follow-up was filed with full acceptance
+criteria + verification commands, so the SDD pipeline ran with zero spec
+ambiguity. Standing rule: when filing a same-iter follow-up, write the spec
+with the rigor you'd want for a delegated next-iter task — that lets you
+turn around and dispatch it immediately if iter budget remains.
+
+### Final iter ledger (6 substantive items + 3 follow-ups)
+
+- ✅ T-303.4.30 (sdd, P3) — sampling test shape drift
+- ✅ T-303.4.31 (sdd, P3) — relocate spec.ts to __tests__/
+- ✅ T-303.0 (umbrella) — sprint 303 closed
+- ✅ T-304.20 (tdd, P2) — permission:try-auto-decide → evaluate-request
+- ✅ T-304.22 (sdd, P3) — ElectronApi index sig cleanup (filed + shipped same iter)
+- 📋 T-322.2 (filed) — SequentialThinking CLI hang
+- 📋 T-304.21 (filed) — resolve-decision IPC hardening (depends on T-304.20)
+
+### Sprint 304 RALPH-converged for this iter
+Remaining: T-304.4 (user-auth pending), T-304.21 (next iter — needs duo
+review), UAT items.

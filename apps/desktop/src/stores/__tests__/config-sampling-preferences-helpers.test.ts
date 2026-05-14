@@ -218,13 +218,12 @@ describe('useConfigStore sampling preference helpers', () => {
 
     const saved = lastSavedConfig(configWrite);
     expect(saved.mcpServers).toEqual([{ type: 'stdio', name: 'server-a', command: 'npx' }]);
-    expect(saved.agents).toEqual([
-      {
-        name: 'copilot',
+    expect(saved.agents).toEqual({
+      copilot: {
         command: 'copilot',
         env: { NODE_ENV: 'test' },
       },
-    ]);
+    });
     expect(store.config.agents).toEqual({ copilot: { command: 'copilot', env: { NODE_ENV: 'test' } } });
     expect(saved.settings).toEqual(settings);
     expect(saved.samplingPreferences?.perServer?.foo).toEqual({ alwaysAllow: true });

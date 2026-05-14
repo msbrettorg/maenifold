@@ -66,7 +66,7 @@ function parseSamplingPreferences(value: unknown): AgentsConfig['samplingPrefere
   return preferences;
 }
 
-function parseAgentsConfig(content: string): AgentsConfig {
+export function parseAgentsConfig(content: string): AgentsConfig {
   if (content.trim().length === 0) return { mcpServers: [], agents: {} };
   const parsed: unknown = JSON.parse(content);
   if (!isRecord(parsed)) {
@@ -124,7 +124,7 @@ function entryToAgent(entry: Record<string, unknown>): AgentConfig {
 }
 
 // Reverse `entryToAgent`: explode the joined command into command+args for on-disk storage.
-function agentToEntry(name: string, agent: AgentConfig): Record<string, unknown> {
+function agentToEntry(_name: string, agent: AgentConfig): Record<string, unknown> {
   const tokens = (agent.command ?? '').trim().split(/\s+/).filter(Boolean);
   const [command = '', ...args] = tokens;
   const rest: Record<string, unknown> = {};
@@ -132,7 +132,7 @@ function agentToEntry(name: string, agent: AgentConfig): Record<string, unknown>
     if (key === 'command') continue;
     rest[key] = value;
   }
-  const entry: Record<string, unknown> = { name, command, ...rest };
+  const entry: Record<string, unknown> = { command, ...rest };
   if (args.length > 0) entry.args = args;
   return entry;
 }
@@ -140,7 +140,9 @@ function agentToEntry(name: string, agent: AgentConfig): Record<string, unknown>
 function serializeConfig(config: AgentsConfig): string {
   const out: Record<string, unknown> = {};
   if (config.mcpServers !== undefined) out.mcpServers = config.mcpServers;
-  out.agents = Object.entries(config.agents).map(([name, agent]) => agentToEntry(name, agent));
+  out.agents = Object.fromEntries(
+    Object.entries(config.agents).map(([name, agent]) => [name, agentToEntry(name, agent)]),
+  );
   if (config.settings !== undefined) out.settings = config.settings;
   if (config.samplingPreferences !== undefined) out.samplingPreferences = config.samplingPreferences;
   if (config.samplingAgent !== undefined) out.samplingAgent = config.samplingAgent;

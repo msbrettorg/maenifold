@@ -2692,3 +2692,38 @@ The rollback heuristic (`exit_code != 0 → revert`) does not distinguish betwee
 21. **Final-stage gate_Pass moves the file todo/ → done/ correctly.** After `gate_Pass` on blue-team (the slc terminal-1 stage), the task file `T-303.4.16-sampling-acp-inspector-wiring.md` was moved to `done/T-303.4.16.md` (gate normalized the filename to canonical id). Subsequent `gate_Status` queries without `includeDone:true` won't find it — that's correct behavior. To confirm the task landed in done/, either pass `includeDone:true` to gate_Status or just check `ls done/T-303.4.16.md`.
 
 22. **PM-level merge commit message can be short; the branch commit holds the detail.** The branch commit `57a4fe95d` carries the full multi-paragraph T-303.4.16 description. The merge commit `2a8f1ca52` is a one-line summary referencing the merge — git log shows both. This matches the merge --no-ff convention and avoids redundant commit-message text.
+
+## 2026-05-14 — Iter-N+1 close — T-303.4.5 shipped (1 remediation cycle, full slc + 17 tests)
+
+**1 substantive task shipped:**
+- T-303.4.5 (P3, slc) — MCP sampling Phase 3 tool-enabled multi-turn sampling. Cross-stack PR (33 files / +1520 / -272) across maenifold-jockey + maenifold-core + apps/desktop. Three commits on worker-T-303.4.5: initial SWE (da7d74ea6), remediation after red-team round 1 (3719926c2), blue-team tests (41eada65b). Merged to dev at 925acb8e7.
+
+**Process flow:**
+- swe → red-team round 1 FAIL (3 BLOCKING + 1 NOTE per opus-4.6 code-review) → remediate → red-team round 2 PASS-WITH-NOTES → blue-team PASS-WITH-NOTES → done. Two NOTE-level UX findings (LookupResult naming, modal context payload) filed as T-303.4.5.2 follow-up.
+
+**Lessons appended:**
+
+23. **Spec-vs-reality mismatches happen when prereq hasn't shipped yet.** T-303.4.5 spec was authored anticipating T-303.4.16's signature for `execute_runtime_sampling`. The spec said `session_id_tx: Option<oneshot::Sender<String>>`. Actual T-303.4.16 shipped non-Option `oneshot::Sender<String>`. PM caught this in pre-flight and explicitly called it out in the SWE prompt. SWE preserved the non-Option form correctly. **Standing rule:** when authoring spec for a task whose prerequisite is in-flight, mark every API reference as "to-be-verified post-prerequisite-landing". Don't lock the spec until the prereq merges.
+
+24. **`todo/` is gitignored — dispatched SWE cannot read spec from worktree.** Per AGENTS.md (2026-04-28), `todo/` + `done/` are gitignored to avoid parallel-worktree merge conflicts. When PM does `git worktree add worktrees/T-XXX.Y -b worker-T-XXX.Y`, the new worktree has all tracked files but NOT the spec. SWE in worktree at `cd worktrees/T-XXX.Y && cat todo/T-XXX.Y-*.md` finds nothing. **Workaround:** SWE reads from main repo absolute path (e.g. `/Users/brett/src/ma-collective/maenifold-rs/todo/T-XXX.Y-...md`). PM should always include the absolute main-repo spec path in the SWE dispatch prompt. Filed T-303.4.5.3 to either symlink todo/done into worktrees or document the convention in ralph/AGENTS.md.
+
+25. **Red-team opus-4.6 + spec scrutiny is genuinely high-signal.** Round 1 caught FOUR distinct issues: (a) the SWE skipped the entire re-prompt-on-budget-exceeded loop (~30 LOC of behavior); (b) off-by-one in budget comparison `>` vs `>=`; (c) fabricated JSON-RPC error code `-1` for deny path that the spec explicitly forbade; (d) `lookup` returning `None` for both "not found" and "found-but-terminal" (caller couldn't emit correct error message). Two of these would have shipped a SUBTLE behavioral bug to production (re-prompt missing, off-by-one). One was a spec-violating error code. One was a UX inconsistency. **All four were named in the spec's acceptance criteria** — the SWE just didn't implement them. The lesson: even with a detailed spec, SWEs can short-circuit acceptance criteria. Red-team's job is to verify EACH criterion against the code, not just verify it compiles.
+
+26. **Same-SWE remediation via `write_agent` is highly efficient.** Instead of dispatching a fresh SWE for the remediation cycle, I sent a follow-up message to the SAME agent (idle after WorkResult). The agent retained full context — knew the codebase layout, the new files, the design choices. ~30 LOC remediation across 3 files in ~10 minutes wall-clock vs. ~25 minutes for a fresh agent that would have to re-discover the structure. **Standing rule for slc remediation cycles:** prefer `write_agent` to the same SWE over a new dispatch unless the original SWE failed badly enough that you don't trust them.
+
+27. **Spec said one thing, SWE refactored further (and was right).** Spec authorized `client_handler.rs` to grow because of the tools-removal + correlator integration. SWE instead REDUCED the file from 188 LOC to 129 LOC by extracting two new sibling modules (`sampling_client_flow.rs` 270 LOC, `sampling_client_helpers.rs` 99 LOC). Total LOC went up but no file exceeded 300. Spec's "DO NOT make this worse... if it grows, you MUST split into a sibling module" gave the SWE permission to do this proactively. **Lesson:** specs that authorize defensive refactoring (don't break LOC, split if needed) get cleaner deltas than specs that try to constrain decomposition.
+
+28. **The 4 ErrorCode(-1) instances were not all in scope for remediation.** Red-team flagged ErrorCode(-1) at line 99 ("Sampling failed: {err}") as still-fabricated, but THAT path is for generic LLM failure (not cancellation/denial/expiry). Spec only mandated `invalid_request` for cancellation/denial/expiry. SWE correctly preserved the line-99 path. **Lesson:** when red-team finds N instances of an anti-pattern, verify the spec mandate scope before requiring all N to change. Don't broaden remediation scope past what the spec actually required.
+
+29. **Blue-team "PASS-WITH-NOTES medium confidence" is honest, not weak.** The blue-team's coverage acknowledges that some acceptance criteria (re-prompt allow/deny FULL flow, concurrent cancel race) are deferred to integration tests / CDP UAT — not part of the unit-test scope. Marking these as "covered at registry-level only" with a CDP UAT follow-up reference is more honest than claiming full coverage. Future blue-teams should explicitly note "deferred to follow-up T-XXX.Y.Z" rather than implicitly skipping.
+
+30. **Final-stage gate_Pass DID move the file todo/ → done/.** As expected per gate doc; no manual file ops needed. `ls done/T-303.4.5*` confirmed `done/T-303.4.5.md` exists post-pass. Gate sync after creating new follow-ups (T-303.4.5.2, T-303.4.5.3) bumped task count from 1163 → 1165 cleanly.
+
+**Standing pre-flight checks for next iter (refined from iter-N+1):**
+1. `git reflog | head -5` — investigate any `reset:` entries.
+2. `git worktree list` — prune any stale worktrees.
+3. `git status --short` — must be clean.
+4. `cargo build --release -p maenifold-cli -p maenifold-pipeline-driver` (PM-only).
+5. Check sprint 303 backlog: T-303.4.5 done; remaining non-UAT items are T-303.15.2 (apps/test-fixtures, lightweight) + T-303.18.3 (frontend tdd) + the new T-303.4.5.2/.3 follow-ups (also touch apps/).
+6. **NEW (iter-N+1):** When dispatching SWE to a worktree for a task whose spec is in `todo/`, ALWAYS provide the main-repo absolute path to the spec in the prompt (`/Users/brett/src/ma-collective/maenifold-rs/todo/T-XXX.Y-*.md`). Otherwise SWE will report "spec missing from worktree" and may proceed without the spec.
+7. **NEW (iter-N+1):** When the SWE returns WorkResult after substantial work, run a PM read-back check: look for spec-mandated APIs/methods/error-codes by grep before commit. Catches obvious omissions (e.g., re-prompt loop missing) earlier than red-team. Doesn't replace red-team but reduces remediation cycles.

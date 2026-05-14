@@ -180,17 +180,19 @@ fn delete_workflow_asset_rejects_symlink() {
 
 #[test]
 #[serial]
-fn delete_workflow_asset_ignores_abandoned_pipeline() {
+fn delete_workflow_asset_refuses_running_status_without_fd_lock() {
     let (_tmp, context, _guard) = test_context();
     save_asset(&context, "delete-me");
     let pipeline_id = create_referencing_pipeline(&context, "delete-me");
     mark_pipeline_running(&context, &pipeline_id);
-    let path = asset_path(&context, "delete-me");
 
-    delete_workflow_asset(&context, &json!({ "name": "delete-me" }))
-        .expect("abandoned running-status pipeline without lock should not block delete");
+    let error = delete_workflow_asset(&context, &json!({ "name": "delete-me" }))
+        .expect_err("running-status pipeline should block delete without an fd lock");
 
-    assert!(!path.exists(), "asset should be removed");
+    let message = error.to_string();
+    assert!(message.contains("delete-me"), "message: {message}");
+    assert!(message.contains(&pipeline_id), "message: {message}");
+    assert!(asset_path(&context, "delete-me").exists());
 }
 
 #[test]

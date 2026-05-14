@@ -4,7 +4,10 @@ mod agent_session_config;
 mod agent_session_open;
 mod agent_session_resume;
 mod asset_delete;
+#[cfg(test)]
+mod asset_store_tests;
 mod asset_save;
+pub(crate) mod asset_store;
 mod handler;
 mod handler_helpers;
 #[cfg(test)]

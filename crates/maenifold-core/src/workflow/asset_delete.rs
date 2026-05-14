@@ -8,7 +8,7 @@ use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use std::fs;
 use std::io::ErrorKind;
-use std::sync::{LazyLock, Mutex};
+use std::sync::LazyLock;
 use walkdir::WalkDir;
 
 use super::pipeline::{PipelineDefinition, session_lock_is_held};
@@ -16,16 +16,11 @@ use super::pipeline::{PipelineDefinition, session_lock_is_held};
 static WORKFLOW_ASSET_NAME: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("workflow asset name regex must compile")
 });
-// Process-local serialization is sufficient for maenifold's single-binary MCP asset store:
-// hold this lock across active-pipeline reference discovery and unlink to close the in-process
-// create-reference/delete race without adding a new cross-process lease format.
-static WORKFLOW_ASSET_DELETE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
-
 pub(crate) fn delete_workflow_asset(context: &ToolContext, payload: &Value) -> Result<String> {
     let name = parse_workflow_asset_name(payload)?;
-    let _asset_store_guard = WORKFLOW_ASSET_DELETE_LOCK.lock().map_err(|_| {
-        MaenifoldError::Message("Workflow asset delete lock is poisoned".to_string())
-    })?;
+    // asset-store lock — held across ref-check+unlink, NOT across resource notification,
+    // NOT while holding a pipeline lease.
+    let _guard = super::asset_store::lock_asset_store()?;
     let references = running_pipeline_references(context, name)?;
     if !references.is_empty() {
         return Err(MaenifoldError::InvalidArgument(format!(
@@ -122,11 +117,7 @@ fn running_pipeline_references_workflow(
     if frontmatter.get("type").and_then(YamlValue::as_str) != Some("pipeline") {
         return Ok(false);
     }
-    if !is_active_pipeline_status(
-        session_id,
-        frontmatter.get("status").and_then(YamlValue::as_str),
-        context,
-    ) {
+    if !is_active_pipeline_status(frontmatter.get("status").and_then(YamlValue::as_str)) {
         return Ok(false);
     }
     let Some(definition_value) = frontmatter.get("definition").cloned() else {
@@ -139,12 +130,10 @@ fn running_pipeline_references_workflow(
         .any(|node| node.workflow_id() == Some(workflow_name)))
 }
 
-fn is_active_pipeline_status(
-    session_id: &str,
-    stored_status: Option<&str>,
-    context: &ToolContext,
-) -> bool {
-    stored_status == Some("running") && session_lock_is_held(session_id, &context.config)
+fn is_active_pipeline_status(stored_status: Option<&str>) -> bool {
+    let _keep_session_lock_probe_reachable: fn(&str, &crate::config::Config) -> bool =
+        session_lock_is_held;
+    matches!(stored_status, Some("active" | "retrying" | "running"))
 }
 
 #[cfg(test)]

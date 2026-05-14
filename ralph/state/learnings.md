@@ -3618,3 +3618,60 @@ T-306.11 SWE confession Q4 + Q5 explicitly asked: "These tests passed in initial
 T-306.16 SWE expanded scope to `pipeline/mod.rs` (outside spec's allowed-file list) to remove a now-dead wrapper that would have failed `-D warnings` build. SWE confessed the scope expansion explicitly with justification. Red-team validated the expansion was forced by the in-spec deletion + minimal. PM accepted.
 
 **Pattern: when a SWE NEEDS to touch a file outside scope to keep the build green (warnings, type errors, etc.), they should: (a) make the change, (b) explicitly confess the scope expansion in the WorkResult, (c) cite the build constraint that forced it. PM evaluates whether the expansion was forced + minimal. If yes, accept. If suspicious, fail.**
+
+
+## 2026-05-14 — Iter-4 (Sprint 307 close — settings)
+
+### Lesson 87: Renumbering passes lose PM-decision context unless you grep done/
+
+Sprint 307 inherited 7 child task specs from a 2026-05-12 grooming/renumbering pass that renumbered T-244.x and T-249.x items into T-307.x. Five of the seven had specs whose premise (e.g., "T-243.118 shipped Settings Agents structured UI") was FALSE — the parent commits had been DELETED in commit cf9e08706 (T-244.15) which explicitly cancelled T-244.16 and T-244.17.
+
+The renumber pass copied the spec body verbatim but missed the surrounding cancellation context that lived in:
+- `done/T-244.15.md` (close-rationale)
+- The T-244.15 commit message ("Cancels: T-244.16, T-244.17")
+- Commit 16006c060 ("PM decisions on T-244.15 + T-244.58")
+
+**Lesson — every renumber pass MUST grep `done/` for the predecessor ID before authoring the new spec.** Specifically: `grep -rn "T-244.17" done/` would have surfaced the cancellation note. Add this to the standing groom-pass checklist.
+
+### Lesson 88: "Parent shipped X" is a verifiable claim, not a fact
+
+Five sprint-307 task specs cited shipped UI components that did not exist:
+- T-307.1 cited SettingsAgents.vue → never shipped
+- T-307.2 cited SettingsBackupControls.vue → never shipped
+- T-307.6 cited SettingsGeneral.vue → never shipped
+- T-307.7 cited apps/desktop/src/lib/config-backup.ts → never shipped
+- T-307.4 cited "T-243.118 shipped Settings Agents structured UI" → never shipped
+
+A 2-second `find apps/desktop/src -name "Settings*.vue"` would have surfaced the discrepancy at spec-author time. Pre-flight orphan-stub grep (Lesson 92) generalizes: ANY spec premise that cites a file/symbol/commit/ID must be verified to exist before the spec is finalized.
+
+**Lesson — `grep -rln <symbol>` and `find -name <file>` are the cheapest possible pre-flight check. Run them on every spec premise before authoring or accepting.**
+
+### Lesson 89: Bug classes can fragment into bug instances at multiple layers
+
+The "silent drop on hot-reload" symptom for T-307.4 had TWO independent layers:
+
+1. **Outer layer (T-307.4)**: `serializeConfig` wrote agents as a JSON array; Rust expected an object. Daemon dropped EVERY agent on every save.
+2. **Inner layer (T-307.8)**: `agentToEntry` split command-with-spaces into `command` + `args` fields; Rust `AgentEntry` has no `args` field. Daemon dropped the user's command-line FLAGS on every save.
+
+Fixing only the outer layer would have left a quieter version of the same class of bug: instead of "all agents lost", users would see "agents preserved but their flags silently disappeared" — harder to diagnose because the agent still appears in the Settings list.
+
+The PM caught the inner layer ONLY by reading the user's actual `~/maenifold/maenifold.json` post-WorkResult. The SWE's tests covered the outer layer (matching the spec) but did not exercise commands-with-spaces against the FULL Rust struct contract.
+
+**Lesson — for any "silent drop" or "silent corruption" class, audit ALL layers between in-memory representation and on-disk shape against the canonical type definition (in this case, the Rust struct). The frontend's tolerance of legacy shapes can mask whether the on-disk shape matches the consumer's expectation.**
+
+### Lesson 90: Iter-4 throughput pattern (pure-frontend, two-task chain)
+
+Iter-4 closed 9 sprint-307 items (1 umbrella + 8 children) in ~1.5h:
+
+- 5 closures done in parallel as PM-direct gate_Pass batches (2 minutes total) — these were grooming-discovered stale specs.
+- T-307.4: full TDD cycle including 1 narrow remediation round, 1 fresh red-team, 1 blue-team verification, PM-owned commit + merge. Wall: ~25 min.
+- T-307.8: filed mid-iter (P2 follow-up discovered during T-307.4 PM artifact check), then immediately dispatched as a wave-2 SWE while T-307.4 was clearing red-team. Wall: ~12 min.
+- T-307.0 umbrella: 4 chained gate_Pass calls. Wall: 30 sec.
+
+**Pattern reaffirmed (Lesson 73 + Lesson 83):** filing AND dispatching wave-2 follow-ups during wave-1 cleanup is the throughput unlock. T-307.8 was discovered during T-307.4 PM verification — instead of holding it for next iter, file the spec + dispatch the SWE in the same response that closes T-307.4.
+
+### Lesson 91: PM artifact check on real config files surfaces silent-drop bugs
+
+The args-fragmentation defect (T-307.8) was discovered ONLY by reading the user's actual `~/maenifold/maenifold.json` after T-307.4 SWE returned. The user's Copilot agent had `command: "/path/to/copilot --acp"` — a command with embedded args. The SWE's tests used `command: 'gpt5 --fast'` and `command: 'claude --model opus'`, which exhibit the same fragmentation in test mocks but the SWE didn't trace through to the Rust struct.
+
+**Lesson — when the spec involves any cross-process round-trip (frontend → file → daemon), the PM artifact check MUST include reading the actual production data file (`~/maenifold/maenifold.json`, `.gate/gate.db`, etc.) and tracing the user's real-world data shape through every transformation layer.** Test mocks can mask whether the production data path actually works.

@@ -29,6 +29,7 @@ const props = defineProps<{
   attachmentError: string | null;
   accent?: 'normal' | 'plan';
   isStreaming?: boolean;
+  agentConnected?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -189,7 +190,15 @@ function handleClose(): void {}
       class="px-6 py-3 border-none rounded bg-brand text-text-primary text-base font-medium cursor-pointer transition-colors duration-150 hover:not-disabled:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-[0.55]"
       :disabled="!modelValue.trim() || disabled"
       @click="submit"
-    >Send</Button>
+    >
+      <span
+        v-if="agentConnected !== undefined"
+        class="mr-2 inline-block size-2 rounded-full animate-pulse"
+        :class="agentConnected ? 'bg-success' : 'bg-danger'"
+        :aria-label="agentConnected ? 'Agent connected' : 'Agent connection lost'"
+      ></span>
+      Send
+    </Button>
     <AlertDialog :open="clearDialogOpen" @update:open="(value: boolean) => { clearDialogOpen = value; }">
       <AlertDialogContent class="sm:max-w-[28rem]"><AlertDialogHeader>
         <AlertDialogTitle>Clear conversation?</AlertDialogTitle>

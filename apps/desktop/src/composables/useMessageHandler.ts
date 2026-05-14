@@ -60,6 +60,28 @@ export function useMessageHandler({
     }
   }
 
+  function markAssistantInterrupted(session: SessionState): void {
+    let lastUserIndex = -1;
+    let lastAssistantIndex = -1;
+    for (let i = session.messages.length - 1; i >= 0; i -= 1) {
+      const role = session.messages[i].role;
+      if (role === 'user' && lastUserIndex === -1) lastUserIndex = i;
+      if (role === 'assistant' && lastAssistantIndex === -1) lastAssistantIndex = i;
+      if (lastUserIndex !== -1 && lastAssistantIndex !== -1) break;
+    }
+    if (lastAssistantIndex > lastUserIndex && lastAssistantIndex >= 0) {
+      session.messages[lastAssistantIndex].stopReason = 'connection_lost';
+      return;
+    }
+    session.messages.push({
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      content: '',
+      timestamp: Date.now(),
+      stopReason: 'connection_lost',
+    });
+  }
+
   function handleSessionUpdate(localSessionId: string, notification: SessionNotification) {
     const session = sessions.value.get(localSessionId);
     if (!session) return;
@@ -174,9 +196,11 @@ export function useMessageHandler({
 
   async function sendPrompt(text: string, attachments: ContentBlock[] = []): Promise<boolean> {
     let activeSession: SessionState | null = null;
+    let activeBridge: AcpClientBridge | null = null;
     try {
       const { session, bridge } = requireActiveSessionContext(activeSessionId, sessions, bridges);
       activeSession = session;
+      activeBridge = bridge;
       renameSessionFromFirstPrompt(session, text);
 
       const prompt = [
@@ -244,7 +268,13 @@ export function useMessageHandler({
       const errorMessage = err instanceof Error ? err.message : String(err);
       if (activeSession) {
         activeSession.error = errorMessage;
-        pushSystemMessage(activeSession, errorMessage);
+        const isTransportClose = activeBridge?.isTransportClosed() ?? false;
+        if (isTransportClose) {
+          activeSession.isConnected = false;
+          markAssistantInterrupted(activeSession);
+        } else {
+          pushSystemMessage(activeSession, errorMessage);
+        }
       }
       return false;
     }

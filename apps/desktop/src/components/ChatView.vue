@@ -7,6 +7,7 @@ import { useMcpClient } from '../composables/useMcpClient';
 import { useChatDraft } from '../composables/useChatDraft';
 import { useEscCancelWhileStreaming } from '../composables/useEscCancelWhileStreaming';
 import { useBuiltInSlashCommands } from '../composables/useBuiltInSlashCommands';
+import { useChatReconnect } from '../composables/useChatReconnect';
 import { getMcpPromptCommandMeta, hasMcpPromptArguments, parseGetPromptResult, useMcpPromptCommands } from '../composables/useMcpPromptCommands';
 import { useConfirmDialogStore } from '../stores/confirm-dialog';
 import { useAppShellStore } from '../stores/app-shell';
@@ -64,6 +65,7 @@ const audioAttachmentTooltip = computed(() => supportsAudioAttachments.value ? '
 const embeddedContextTooltip = computed(() => supportsEmbeddedContext.value ? 'Type @README.md or @"notes/file name.md" to embed a file.' : 'This agent does not support embedded file context.');
 const inputPlaceholder = computed(() => activeCommandHint.value ?? (isPlanMode.value ? 'Ask a question (read-only)...' : 'Type your message...'));
 const builtInSlash = useBuiltInSlashCommands({ sessionStore, appShellStore, confirmDialogStore, currentAgentName: computed(() => currentSession.value?.agentName), currentCwd: sessionCwd });
+const { canReconnect, reconnect } = useChatReconnect();
 const agentSessionStatus = computed(() =>
   currentSession.value?.sessionId && currentSession.value.sessionId === agentStore.selectedSession?.sessionId
     ? agentStore.selectedSession?.status ?? null
@@ -126,6 +128,7 @@ async function handleRegenerate(messageId: string): Promise<void> {
   if (!text || isLoading.value) return;
   trimMessagesAt(promptIndex); await sessionStore.sendPrompt(text);
 }
+async function handleReconnect(): Promise<void> { await reconnect(); }
 function handleEdit(payload: { messageId: string; text: string }): void {
   const index = messages.value.findIndex((m) => m.id === payload.messageId);
   if (index < 0 || isLoading.value) return;
@@ -276,11 +279,11 @@ async function buildEmbeddedContextAttachments(text: string): Promise<ContentBlo
     </div>
     <ScrollArea ref="scrollAreaRef" class="flex-1 min-h-0">
       <div ref="messagesContainer" class="p-4">
-        <ChatMessageList :messages="messages" :current-plan="currentPlan" :expanded-thought-ids="expandedThoughtIds" :expanded-tool-call-ids="expandedToolCallIds" :pending-permission-count="pendingPermissionCount" :is-loading="isLoading" @toggle-thought="toggleThought" @toggle-tool-call="toggleToolCall" @cancel="handleCancel" @prefill="setInputText" @regenerate="handleRegenerate" @edit="handleEdit" />
+        <ChatMessageList :messages="messages" :current-plan="currentPlan" :expanded-thought-ids="expandedThoughtIds" :expanded-tool-call-ids="expandedToolCallIds" :pending-permission-count="pendingPermissionCount" :is-loading="isLoading" :can-reconnect="canReconnect" @toggle-thought="toggleThought" @toggle-tool-call="toggleToolCall" @cancel="handleCancel" @prefill="setInputText" @regenerate="handleRegenerate" @edit="handleEdit" @reconnect="handleReconnect" />
       </div>
     </ScrollArea>
     <ModePicker v-if="sessionModes.length > 0" :modes="sessionModes" :current-mode-id="sessionStore.activeSession?.currentModeId ?? null" @select-mode="handleModeSelect" />
-    <ChatInputBar :model-value="inputText" :placeholder="inputPlaceholder" :disabled="isLoading" :available-commands="availableCommands" :supports-image-attachments="supportsImageAttachments" :supports-audio-attachments="supportsAudioAttachments" :supports-embedded-context="supportsEmbeddedContext" :image-attachment-tooltip="imageAttachmentTooltip" :audio-attachment-tooltip="audioAttachmentTooltip" :embedded-context-tooltip="embeddedContextTooltip" :pending-attachments="pendingAttachments" :attachment-error="attachmentError" :accent="isPlanMode ? 'plan' : 'normal'" :is-streaming="isLoading" @update:model-value="setInputText" @send="handleSend" @recall-last="recallLastMessage" @cancel-turn="handleCancel" @clear-chat="sessionStore.clearMessages" @select-command="handleCommandSelect" @select-mcp-prompt="handleMcpPromptSelect" @add-attachments="addPendingAttachments" @attachment-error="setAttachmentError" @remove-attachment="removePendingAttachment" @insert-embedded-context-hint="insertEmbeddedContextHint" />
+    <ChatInputBar :model-value="inputText" :placeholder="inputPlaceholder" :disabled="isLoading" :available-commands="availableCommands" :supports-image-attachments="supportsImageAttachments" :supports-audio-attachments="supportsAudioAttachments" :supports-embedded-context="supportsEmbeddedContext" :image-attachment-tooltip="imageAttachmentTooltip" :audio-attachment-tooltip="audioAttachmentTooltip" :embedded-context-tooltip="embeddedContextTooltip" :pending-attachments="pendingAttachments" :attachment-error="attachmentError" :accent="isPlanMode ? 'plan' : 'normal'" :is-streaming="isLoading" :agent-connected="sessionStore.isConnected" @update:model-value="setInputText" @send="handleSend" @recall-last="recallLastMessage" @cancel-turn="handleCancel" @clear-chat="sessionStore.clearMessages" @select-command="handleCommandSelect" @select-mcp-prompt="handleMcpPromptSelect" @add-attachments="addPendingAttachments" @attachment-error="setAttachmentError" @remove-attachment="removePendingAttachment" @insert-embedded-context-hint="insertEmbeddedContextHint" />
     <McpPromptPicker :command="selectedMcpPromptCommand" :open="selectedMcpPromptCommand !== null" @update:open="(open: boolean) => { if (!open) selectedMcpPromptCommand = null; }" @resolved="insertMcpPromptMessages" @error="setAttachmentError" />
   </Card>
 </template>

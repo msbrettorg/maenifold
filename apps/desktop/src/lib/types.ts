@@ -9,7 +9,7 @@ import type { AppAuthMethod } from './auth-methods';
 // Types for maenifold application
 
 export type AcpMetadata = Record<string, unknown> | null;
-export type StopReason = 'end_turn' | 'max_tokens' | 'tool_use' | 'cancelled' | 'refusal' | 'error' | 'max_turn_requests';
+export type StopReason = 'end_turn' | 'max_tokens' | 'tool_use' | 'cancelled' | 'refusal' | 'error' | 'max_turn_requests' | 'connection_lost';
 
 interface AcpMetadataCarrier {
   _meta?: AcpMetadata;

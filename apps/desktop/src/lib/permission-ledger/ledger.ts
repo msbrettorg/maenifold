@@ -1,9 +1,14 @@
 import type { PermissionRequest } from '../types';
 import type { PermissionEvaluateRequestResult } from './types';
+import type { PermissionRejectionReason } from './decision-registry';
 
 export type PermissionScope = 'session' | 'agent' | 'forever';
 export type PermissionDecision = 'allow' | 'reject';
+export type PermissionAuditSource = 'main_auto_decide' | 'renderer_user_choice';
 type MaybePromise<T> = T | Promise<T>;
+
+export { PermissionResolveError } from './decision-registry';
+export type { PermissionRejectionReason } from './decision-registry';
 
 export interface PersistedPermissionDecision {
   id: number;
@@ -25,8 +30,13 @@ export interface PermissionAuditEvent {
   sessionId: string;
   toolKind: string;
   canonicalTarget: string | null;
-  decision: PermissionDecision;
+  decision: PermissionDecision | null;
   createdAt: string;
+  source: PermissionAuditSource | null;
+  tokenId: string | null;
+  offeredOptionIds: string[] | null;
+  selectedOptionId: string | null;
+  rejectionReason: PermissionRejectionReason | null;
 }
 
 export interface PermissionLookupContext {

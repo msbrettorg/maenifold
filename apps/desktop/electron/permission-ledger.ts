@@ -11,13 +11,18 @@ import {
 import type {
   LastAutoPermissionDecision,
   PermissionAuditEvent,
+  PermissionAuditSource,
   PermissionDecision,
   PermissionLookupContext,
   PermissionRecordContext,
+  PermissionRejectionReason,
   PermissionScope,
   PersistedPermissionDecision,
 } from '../src/lib/permission-ledger/ledger.js';
-import { createPermissionDecisionRegistry } from '../src/lib/permission-ledger/decision-registry.js';
+import {
+  createPermissionDecisionRegistry,
+  PermissionResolveError,
+} from '../src/lib/permission-ledger/decision-registry.js';
 import type {
   PermissionEvaluateRequestResult,
   PermissionPromptPayload,
@@ -38,6 +43,33 @@ type DbRow = {
   last_used_at: string | null;
 };
 
+type AuditRow = {
+  id: number;
+  permissionId: number | null;
+  agent: string;
+  sessionId: string;
+  toolKind: string;
+  canonicalTarget: string | null;
+  decision: PermissionDecision | null;
+  createdAt: string;
+  source: PermissionAuditSource | null;
+  tokenId: string | null;
+  offeredOptionIds: string | null;
+  selectedOptionId: string | null;
+  rejectionReason: PermissionRejectionReason | null;
+};
+
+type ResolveAuditInput = {
+  request: PermissionRequest | null;
+  context: PermissionLookupContext;
+  token: string;
+  offeredOptionIds: string[] | null;
+  selectedOptionId: string;
+  decision: PermissionDecision | null;
+  permissionId: number | null;
+  rejectionReason: PermissionRejectionReason | null;
+};
+
 function mapDecision(row: DbRow): PersistedPermissionDecision {
   return {
     id: row.id,
@@ -53,6 +85,36 @@ function mapDecision(row: DbRow): PersistedPermissionDecision {
   };
 }
 
+function mapAuditEvent(row: AuditRow): PermissionAuditEvent {
+  return {
+    ...row,
+    offeredOptionIds: parseOfferedOptionIds(row.offeredOptionIds),
+  };
+}
+
+function parseOfferedOptionIds(value: string | null): string[] | null {
+  if (value === null) return null;
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string') ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function selectedOptionIdForDecision(
+  request: PermissionRequest,
+  decision: PermissionDecision
+): string | null {
+  return request.options.find(
+    (option) => option.kind === `${decision}_once` || option.kind === `${decision}_always`
+  )?.optionId ?? null;
+}
+
+function decisionFromOptionKind(optionKind: string): PermissionDecision {
+  return optionKind.startsWith('allow') ? 'allow' : 'reject';
+}
+
 function defaultDatabasePath(): string {
   return join(app.getPath('home'), '.maenifold', 'permissions.db');
 }
@@ -66,6 +128,7 @@ export class NodeSqlitePermissionLedger {
       mkdirSync(dirname(databasePath), { recursive: true });
     }
     this.db = new DatabaseSync(databasePath);
+    this.migrateAuditTable();
     this.db.exec(`
       CREATE TABLE IF NOT EXISTS permissions (
         id INTEGER PRIMARY KEY,
@@ -87,9 +150,48 @@ export class NodeSqlitePermissionLedger {
         session_id TEXT NOT NULL,
         tool_kind TEXT NOT NULL,
         canonical_target TEXT,
-        decision TEXT NOT NULL,
-        created_at TEXT NOT NULL
+        decision TEXT,
+        created_at TEXT NOT NULL,
+        source TEXT,
+        token_id TEXT,
+        offered_option_ids TEXT,
+        selected_option_id TEXT,
+        rejection_reason TEXT
       );
+    `);
+  }
+
+  private migrateAuditTable(): void {
+    const auditCols = (
+      this.db.prepare('PRAGMA table_info(permission_audit)').all() as Array<{ name: string }>
+    );
+    const isLegacyV1 = auditCols.length > 0 && !auditCols.some((column) => column.name === 'source');
+    if (!isLegacyV1) return;
+    this.db.exec(`
+      BEGIN;
+      CREATE TABLE permission_audit_v3 (
+        id INTEGER PRIMARY KEY,
+        permission_id INTEGER,
+        agent TEXT NOT NULL,
+        session_id TEXT NOT NULL,
+        tool_kind TEXT NOT NULL,
+        canonical_target TEXT,
+        decision TEXT,
+        created_at TEXT NOT NULL,
+        source TEXT,
+        token_id TEXT,
+        offered_option_ids TEXT,
+        selected_option_id TEXT,
+        rejection_reason TEXT
+      );
+      INSERT INTO permission_audit_v3
+        (id, permission_id, agent, session_id, tool_kind, canonical_target, decision, created_at)
+      SELECT
+        id, permission_id, agent, session_id, tool_kind, canonical_target, decision, created_at
+      FROM permission_audit;
+      DROP TABLE permission_audit;
+      ALTER TABLE permission_audit_v3 RENAME TO permission_audit;
+      COMMIT;
     `);
   }
 
@@ -131,9 +233,25 @@ export class NodeSqlitePermissionLedger {
     const now = new Date().toISOString();
     this.db.prepare('UPDATE permissions SET last_used_at = ? WHERE id = ?').run(now, row.id);
     this.db.prepare(`
-      INSERT INTO permission_audit(permission_id, agent, session_id, tool_kind, canonical_target, decision, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(row.id, context.agent, context.sessionId, toolKind, canonicalTarget, row.decision, now);
+      INSERT INTO permission_audit(
+        permission_id, agent, session_id, tool_kind, canonical_target, decision, created_at,
+        source, token_id, offered_option_ids, selected_option_id, rejection_reason
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      row.id,
+      context.agent,
+      context.sessionId,
+      toolKind,
+      canonicalTarget,
+      row.decision,
+      now,
+      'main_auto_decide',
+      null,
+      JSON.stringify(request.options.map((option) => option.optionId)),
+      selectedOptionIdForDecision(request, row.decision),
+      null
+    );
     this.lastAutoDecision = {
       permissionId: row.id,
       agent: context.agent,
@@ -170,6 +288,34 @@ export class NodeSqlitePermissionLedger {
     return mapDecision(this.db.prepare('SELECT * FROM permissions WHERE id = ?').get(result.lastInsertRowid) as DbRow);
   }
 
+  recordResolveAttempt(input: ResolveAuditInput): void {
+    const toolKind = input.request ? normalizePermissionToolKind(input.request.toolCall.kind) : 'unknown';
+    const canonicalTarget = input.request
+      ? canonicalPermissionTarget(input.request, normalizePermissionToolKind(input.request.toolCall.kind))
+      : null;
+    const now = new Date().toISOString();
+    this.db.prepare(`
+      INSERT INTO permission_audit(
+        permission_id, agent, session_id, tool_kind, canonical_target, decision, created_at,
+        source, token_id, offered_option_ids, selected_option_id, rejection_reason
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      input.permissionId,
+      input.context.agent,
+      input.context.sessionId,
+      toolKind,
+      canonicalTarget,
+      input.decision,
+      now,
+      'renderer_user_choice',
+      input.token,
+      input.offeredOptionIds === null ? null : JSON.stringify(input.offeredOptionIds),
+      input.selectedOptionId,
+      input.rejectionReason
+    );
+  }
+
   listDecisions(): PersistedPermissionDecision[] {
     return (this.db.prepare('SELECT * FROM permissions ORDER BY agent, id DESC').all() as DbRow[]).map(mapDecision);
   }
@@ -184,11 +330,16 @@ export class NodeSqlitePermissionLedger {
         tool_kind AS toolKind,
         canonical_target AS canonicalTarget,
         decision,
-        created_at AS createdAt
+        created_at AS createdAt,
+        source,
+        token_id AS tokenId,
+        offered_option_ids AS offeredOptionIds,
+        selected_option_id AS selectedOptionId,
+        rejection_reason AS rejectionReason
       FROM permission_audit
       ORDER BY id DESC
       LIMIT 200
-    `).all() as PermissionAuditEvent[];
+    `).all().map((row) => mapAuditEvent(row as AuditRow));
   }
 
   revokeDecision(id: number): void {
@@ -312,7 +463,7 @@ function assertPositiveInteger(value: unknown, label: string): number {
 const decisionRegistry = createPermissionDecisionRegistry({
   tokenFactory: () => randomUUID(),
   recordDecision: (request, context) => {
-    getLedger().recordDecision(request, context);
+    return getLedger().recordDecision(request, context);
   },
 });
 
@@ -333,7 +484,36 @@ export function registerPermissionLedgerHandlers(): void {
     };
   });
   ipcMain.handle('permission:resolve-decision', (_event, payload: unknown) => {
-    decisionRegistry.resolve(assertResolveDecisionPayload(payload));
+    const input = assertResolveDecisionPayload(payload);
+    try {
+      const result = decisionRegistry.resolve(input);
+      const decision = decisionFromOptionKind(result.selectedOption.kind);
+      getLedger().recordResolveAttempt({
+        request: result.request,
+        context: result.context,
+        token: input.token,
+        offeredOptionIds: result.request.options.map((option) => option.optionId),
+        selectedOptionId: input.optionId,
+        decision,
+        permissionId: result.persistedDecision?.id ?? null,
+        rejectionReason: null,
+      });
+    } catch (err) {
+      if (err instanceof PermissionResolveError) {
+        getLedger().recordResolveAttempt({
+          request: null,
+          context: { agent: 'unknown', sessionId: 'unknown' },
+          token: input.token,
+          offeredOptionIds: null,
+          selectedOptionId: input.optionId,
+          decision: null,
+          permissionId: null,
+          rejectionReason: err.code,
+        });
+        throw new Error(JSON.stringify({ code: err.code, message: err.message }));
+      }
+      throw err;
+    }
   });
   ipcMain.handle('permission:list-decisions', () => getLedger().listDecisions());
   ipcMain.handle('permission:list-audit-events', () => getLedger().listAuditEvents());

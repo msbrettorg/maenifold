@@ -3,12 +3,60 @@ use crate::error::MaenifoldError;
 use crate::schedule::ScheduledTask;
 use anyhow::{Context, Result};
 use serde_json::{Map, Value, json};
+use std::fs::File;
+use std::io::{Read, Write};
 use std::path::Path;
+use std::process::Child;
+use std::thread::{self, JoinHandle};
+use tracing::warn;
 
 pub(super) struct Invocation {
     pub(super) tool_name: String,
     pub(super) payload: String,
     pub(super) args: Vec<String>,
+}
+
+pub(super) struct ExecutionOutcome {
+    pub(super) status: crate::schedule::RunStatus,
+    pub(super) error: Option<String>,
+    pub(super) stdout: String,
+    pub(super) sidecar_path: std::path::PathBuf,
+}
+
+pub(super) fn write_runrecord_sidecar(record: &crate::schedule::RunRecord, path: &Path) {
+    let result = serde_json::to_vec_pretty(record)
+        .map_err(std::io::Error::other)
+        .and_then(|payload| std::fs::write(path, payload));
+    if let Err(error) = result {
+        warn!(path = %path.display(), error = %error, "failed to write schedule run sidecar");
+    }
+}
+
+pub(super) fn capture_stdout(
+    child: &mut Child,
+    mut log_file: File,
+) -> Option<JoinHandle<std::io::Result<String>>> {
+    child.stdout.take().map(|mut stdout| {
+        thread::spawn(move || {
+            let mut bytes = Vec::new();
+            stdout.read_to_end(&mut bytes)?;
+            log_file.write_all(&bytes)?;
+            log_file.flush()?;
+            Ok(String::from_utf8_lossy(&bytes).to_string())
+        })
+    })
+}
+
+pub(super) fn join_stdout(
+    handle: Option<JoinHandle<std::io::Result<String>>>,
+) -> Result<String> {
+    match handle {
+        Some(handle) => handle
+            .join()
+            .map_err(|_| MaenifoldError::InvalidArgument("stdout capture thread panicked".into()))?
+            .context("failed to capture scheduled task stdout"),
+        None => Ok(String::new()),
+    }
 }
 
 pub(super) fn build_invocation(task: &ScheduledTask, workdir: Option<&Path>) -> Result<Invocation> {

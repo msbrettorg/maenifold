@@ -19,20 +19,8 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-vi.mock('@/composables/useMcpResources', () => ({
-  useMcpResources: () => ({
-    readResource,
-    subscribeResource,
-  }),
-}));
-
-vi.mock('@/composables/useMcpClient', () => ({
-  useMcpClient: () => ({
-    callTool,
-    connect,
-    connected,
-  }),
-}));
+vi.mock('@/composables/useMcpResources', () => ({ useMcpResources: () => ({ readResource, subscribeResource }) }));
+vi.mock('@/composables/useMcpClient', () => ({ useMcpClient: () => ({ callTool, connect, connected }) }));
 
 function mountDrawer() {
   return mount(ScheduleRunsDrawer, {
@@ -55,6 +43,11 @@ function renderedBadges() {
 function retryButton() {
   return Array.from(document.body.querySelectorAll('button'))
     .find((button) => button.textContent?.includes('Retry now'));
+}
+
+async function expandFirstRun() {
+  document.body.querySelector('tbody tr')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  await flushPromises();
 }
 
 describe('ScheduleRunsDrawer', () => {
@@ -222,11 +215,47 @@ describe('ScheduleRunsDrawer', () => {
 
     const wrapper = mountDrawer();
     await flushPromises();
-    document.body.querySelector('tbody tr')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-    await flushPromises();
+    await expandFirstRun();
 
     expect(document.body.textContent).toContain('stdout');
     expect(document.body.textContent).toContain('hello from log');
+    wrapper.unmount();
+  });
+
+  it('renders MCP action badge and parameters when run.mcp_action is set', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{
+        fileName: '20260429T140000Z.log', status: 'success', mcp_action: 'maenifold.gate.gate_Status',
+        mcp_parameters: { root: '/workspace' }, mcp_result: { ok: true },
+      }, { fileName: '20260429T150000Z.log', status: 'success', mcp_action: 'maenifold.gate.gate_Status', mcp_result: null }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+    await expandFirstRun();
+
+    expect(document.body.textContent).toContain('MCP action:');
+    expect(renderedBadges()).toContainEqual(expect.objectContaining({ label: 'maenifold.gate.gate_Status', variant: 'outline' }));
+    expect(document.body.textContent).toContain('"root": "/workspace"');
+    expect(document.body.textContent).toContain('"ok": true');
+    document.body.querySelectorAll('tbody tr.cursor-pointer')[1]?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+    expect(document.body.textContent).toContain('No structured result');
+    wrapper.unmount();
+  });
+
+  it('omits MCP rendering for non-MCP runs (regression)', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T140000Z.log', status: 'success', content: 'ok' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+    await expandFirstRun();
+
+    expect(document.body.textContent).not.toContain('MCP action:');
     wrapper.unmount();
   });
 

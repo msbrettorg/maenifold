@@ -5,21 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useMcpClient } from '@/composables/useMcpClient';
 import { useMcpResources } from '@/composables/useMcpResources';
 
@@ -33,6 +20,9 @@ interface RawRun {
   stdout?: string;
   stderr?: string;
   error?: string;
+  mcp_action?: string | null;
+  mcp_parameters?: unknown;
+  mcp_result?: unknown;
 }
 
 interface ScheduleRunRow {
@@ -42,6 +32,9 @@ interface ScheduleRunRow {
   duration: string;
   stdout: string;
   stderr: string;
+  mcpAction?: string;
+  mcpParameters?: unknown;
+  mcpResult?: unknown;
 }
 
 const props = defineProps<{
@@ -111,6 +104,9 @@ function normalizeRun(raw: RawRun, index: number): ScheduleRunRow {
     duration: typeof seconds === 'number' ? `${seconds}s` : '—',
     stdout: raw.stdout ?? content,
     stderr: raw.stderr ?? raw.error ?? '',
+    ...(raw.mcp_action != null ? { mcpAction: raw.mcp_action } : {}),
+    ...(raw.mcp_parameters != null ? { mcpParameters: raw.mcp_parameters } : {}),
+    ...('mcp_result' in raw ? { mcpResult: raw.mcp_result } : {}),
   };
 }
 
@@ -258,7 +254,6 @@ onBeforeUnmount(() => {
                 </TableCell>
                 <TableCell>{{ run.duration }}</TableCell>
                 <TableCell class="text-right">
-                  <!-- Retry only failed/unknown; cancelled is intentional and running is active. -->
                   <Button
                     v-if="run.outcome === 'failed' || run.outcome === 'unknown'"
                     type="button"
@@ -276,12 +271,21 @@ onBeforeUnmount(() => {
               <TableRow v-if="expandedRunId === run.id">
                 <TableCell colspan="4" class="bg-muted/30">
                   <div class="grid gap-3 text-xs">
-                    <div>
-                      <div class="mb-1 font-medium text-text-primary">stdout</div>
+                    <div v-if="run.mcpAction" class="grid gap-2">
+                      <div><span class="font-medium text-text-primary">MCP action: </span><Badge variant="outline">{{ run.mcpAction }}</Badge></div>
+                      <div v-if="run.mcpParameters !== undefined">
+                        <div class="mb-1 font-medium text-text-primary">Parameters</div>
+                        <pre class="max-h-32 overflow-auto rounded-md bg-background p-3 text-muted-foreground">{{ JSON.stringify(run.mcpParameters, null, 2) }}</pre>
+                      </div>
+                      <div v-if="run.mcpResult !== undefined">
+                        <div class="mb-1 font-medium text-text-primary">Result</div>
+                        <pre class="max-h-48 overflow-auto rounded-md bg-background p-3 text-muted-foreground">{{ run.mcpResult === null ? 'No structured result' : JSON.stringify(run.mcpResult, null, 2) }}</pre>
+                      </div>
+                    </div>
+                    <div><div class="mb-1 font-medium text-text-primary">stdout</div>
                       <pre class="max-h-48 overflow-auto rounded-md bg-background p-3 text-muted-foreground">{{ run.stdout || 'No stdout captured.' }}</pre>
                     </div>
-                    <div v-if="run.stderr">
-                      <div class="mb-1 font-medium text-text-primary">stderr</div>
+                    <div v-if="run.stderr"><div class="mb-1 font-medium text-text-primary">stderr</div>
                       <pre class="max-h-48 overflow-auto rounded-md bg-background p-3 text-destructive">{{ run.stderr }}</pre>
                     </div>
                   </div>

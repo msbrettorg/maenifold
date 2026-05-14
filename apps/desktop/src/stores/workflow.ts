@@ -62,6 +62,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
   const sessionsUnsubscribe = ref<(() => void) | null>(null);
   const detailUnsubscribe = ref<(() => void) | null>(null);
   const subscriberCount = ref(0);
+  let resubscribePromise: Promise<void> | null = null;
 
   const hasSessions = computed(() => activeSessions.value.length > 0);
 
@@ -145,6 +146,33 @@ export const useWorkflowStore = defineStore('workflow', () => {
     );
   }
 
+  async function resubscribeSessionsList() {
+    sessionsUnsubscribe.value?.();
+    sessionsUnsubscribe.value = null;
+    sessionsUnsubscribe.value = await resources.subscribeResource('workflow://sessions', () => {
+      void refreshSessions().then(() => refreshSelectedSession());
+    });
+  }
+
+  async function resubscribe() {
+    if (resubscribePromise) {
+      return resubscribePromise;
+    }
+
+    resubscribePromise = (async () => {
+      await refreshSessions();
+      await refreshSelectedSession();
+      await resubscribeSessionsList();
+      await resubscribeSelectedSessionDetail();
+    })();
+
+    try {
+      await resubscribePromise;
+    } finally {
+      resubscribePromise = null;
+    }
+  }
+
   async function selectSession(id: string) {
     selectedSessionId.value = id;
     await refreshSelectedSession();
@@ -198,10 +226,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
 
     await refreshSessions();
     await refreshSelectedSession();
-
-    sessionsUnsubscribe.value = await resources.subscribeResource('workflow://sessions', () => {
-      void refreshSessions().then(() => refreshSelectedSession());
-    });
+    await resubscribeSessionsList();
     await resubscribeSelectedSessionDetail();
   }
 
@@ -233,6 +258,7 @@ export const useWorkflowStore = defineStore('workflow', () => {
     selectSession,
     runWorkflow,
     cancelWorkflow,
+    resubscribe,
     mount,
     unmount,
   };

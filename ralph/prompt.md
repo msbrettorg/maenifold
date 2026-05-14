@@ -110,6 +110,51 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 - **Manage a team, don't be a team of one.** Dispatch multiple SWEs to independent worktrees simultaneously. While SWE agents implement, dispatch red-team audits on completed work (in the SWE's worktree). While red-team runs, start the next SWE in a fresh worktree.
 - **Wave pattern:** Dispatch a wave of SWEs → as each completes, immediately dispatch its red-team audit (same worktree) → as red-team clears, merge + blue-team in main tree. Stagger by task, not by stage.
 
+### D.1 Concurrency floor (NON-NEGOTIABLE)
+
+**If a ready task is not blocked, it MUST be dispatched. Period. No excuses.**
+
+- **Floor: ≥3 active SWE lanes at all times** when the board has ≥3 ready independent tasks.
+- **Ceiling: 4 SWE lanes** (per Lesson 102, the working-set cap; reaped once their stage closes).
+- **Saturation rule before any single-task verification work:** when you finish writing a confession audit, a red-team prompt, a blue-team prompt, OR you finish merging a task, your IMMEDIATE next action is `list_agents` count → if active SWEs <3, dispatch the next ready task BEFORE doing anything else.
+- **Iter-14 anti-pattern:** the PM ran T-305.3 → wait → red-team → wait → blue-team → wait → merge → THEN started T-305.4. That is one-task-at-a-time serial execution dressed up as "process discipline." It IS process failure. Iter-14 had 4 P1 tasks ready at hour 0 (T-305.2, T-305.3, T-305.4, T-305.5) — they should have been dispatched as a wave in the first 5 minutes, not over 90 minutes serially.
+
+### D.2 Wave-0 dispatch rules
+
+At iter start AND after every gate transition:
+
+1. List ALL ready tasks (`gate_Status` → state=pending OR state=blue-team OR state=swe → no unmet deps).
+2. Identify file/CDP/process contention groups. Tasks in different groups are parallel-safe.
+3. Dispatch UP TO `min(ready_count, 4 - active_count)` SWEs immediately.
+4. The architect-duo review for any spec MUST happen in parallel with already-running SWE work, NEVER as a serial gate that blocks dispatch.
+5. If the only "blocker" is "I want to wait until T-305.X red-team finishes" — that's not a blocker. Dispatch T-305.Y SWE in parallel.
+
+**Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active SWE lane.
+
+### D.3 Decomposition — CARVE BEFORE DISPATCH
+
+Every spec amendment MUST estimate: files touched + LOC + tests + wall-clock. If any exceed the per-task limits below, SPLIT the spec into 2+ child tasks BEFORE the first SWE dispatch:
+
+- 1 SWE = at most 1 backend module + 1 frontend component (or ≤5 files total).
+- 1 SWE = at most ~12 tests authored.
+- 1 SWE = at most ~250 net LOC.
+- **1 SWE = at most ~10 minutes wall-clock** (Lesson 14-cap).
+
+**Decomposition templates:**
+
+- **Full-stack feature** → split into:
+  - `T-XXX.Ya` Backend schema + tool + tests
+  - `T-XXX.Yb` Frontend store + composable + component (depends on Ya merged for the API contract)
+  - `T-XXX.Yc` Help doc + integration test (parallelizable with Yb)
+- **Big refactor** → split into one task per file or one task per module boundary. Each child task ≤250 LOC.
+- **Spec with >12 named tests** → split tests across 2+ children; each child also implements the production code its tests cover.
+
+The child tasks ship as separate gate rows + commits + merges. Each child can run in parallel with siblings IF they don't share a file. Even sequential children (Yb depends on Ya) parallelize across UNRELATED tasks: while Ya SWE is running, an unrelated T-305.Z SWE can also be running.
+
+**Iter-14 retrospective application:**
+- T-305.2 (28 tests, 16 files, 23 min) SHOULD have been: T-305.2a backend (~8 tests, ~6 files, ~8 min) + T-305.2b frontend (~8 tests, ~6 files, ~6 min) + T-305.2c help-doc + remaining tests (~12 tests, ~4 files, ~5 min). All 3 children have a single SWE-implementer in ≤10 min each, and Yb+Yc parallelize after Ya merges.
+- T-305.5 (20 tests, 17 files, 11+ min before interrupt) SHOULD have been: T-305.5a backend allowlist module + supervisor branching (~8 tests, ~5 files, ~7 min) + T-305.5b backend CRUD validation + helpers (~6 tests, ~3 files, ~5 min) + T-305.5c frontend Select + Textarea (~4 tests, ~3 files, ~5 min) + T-305.5d help doc (~2 tests, ~1 file, ~3 min).
+
 ### E. Ship the work (gate ops)
 - Drive tasks through their pipeline stages: SWE → red-team → blue-team → done.
 - The PM relays real agent verdicts. The PM does **not** author notes for another role's stage. **Files move through gate, never via `mv`.** This is sacrosanct.

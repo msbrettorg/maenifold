@@ -208,13 +208,7 @@ async fn new_dispatch(
         })
         .await;
     match decision.action {
-        SamplingAction::Deny => {
-            Err(rmcp::ErrorData::new(
-                rmcp::model::ErrorCode(-1),
-                "Sampling session denied by user",
-                None,
-            ))
-        }
+        SamplingAction::Deny => Err(rmcp::ErrorData::invalid_request("Sampling session denied by user", None)),
         SamplingAction::AllowOnce | SamplingAction::AllowAlways => {
             Ok((dispatch_id, app_session_id, model, role_name, None, decision))
         }

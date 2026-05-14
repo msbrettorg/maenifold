@@ -197,3 +197,47 @@
 3. Pipeline = SDD per spec.
 4. Likely no architect duo needed (small focused work). Dispatch SWE directly with explicit spec narrowing if needed.
 5. After T-305.1 ships, T-305.2 (Pause-all toggle, TDD, P1) is next.
+
+## Iter-13 close (2026-05-14, T-305.1 shipped + 2 grooming closures)
+
+- **Shipped:** T-305.1 (Schedules verify-installed probe) — SDD pipeline, end-to-end cross-stack. Backend `verify_installed` action (schedule.rs + schedule_os.rs, +44 + +85 LOC) + 2 new tests + frontend per-row install-state badges + conditional Repair button + new useSchedulesStore Pinia store. ~50 min from worker dispatch to merge. Merge commit `6f90d31c1`.
+- **Groomed (PM-direct closures, both as superseded):**
+  - **T-304.4** — wholesale-lift acp-ui main-process transport. SUPERSEDED by T-304.5 drift audit (we are AHEAD of acp-ui on SDK adoption). Iter-12 PM left it pending user auth; iter-13 PM closed under autonomous PM rule (consistent with done/T-303.4.1.md PM-direct precedent).
+  - **T-305.7** — verify_installed daemon action. SUPERSEDED as duplicate of T-305.1. The premise (existing Verify button to enable) was stale.
+- **Filed during this iter:** T-305.11 (P3, sdd) — three follow-ups from T-305.1 red-team (cross-stack contract, probe-failure UX, manager-instance reuse).
+- **Sprint 304 RALPH-converged.** Remaining open items: T-304.0 (umbrella, blocked on UAT children), T-304.2/.3/.6/.19 (UAT, out of RALPH scope).
+- **Sprint 305 first item shipped.** Remaining: T-305.0 (umbrella), T-305.2 through T-305.6, T-305.8 through T-305.11. T-305.7 closed.
+
+### Critical discovery (orphan-commit pattern)
+
+Multiple Sprint 243 "frontend stub" commits NEVER MERGED to dev despite being marked PASS in gate:
+- T-243.108 commit `315c2fde8` (Verify installed button stub) — `git branch --contains` returns empty.
+- Same likely true for: ScheduleRowActions.vue (T-305.10's "frontend stub" reference) — file doesn't exist in dev.
+- mcpAction/parameters fields in ScheduleFormDialog.vue (T-305.5's reference) — fields don't exist in dev.
+- Backfill button (T-305.10) — doesn't exist anywhere in apps/desktop/src/components/.
+
+**Implication for next iter:** every Sprint 305 task that says "after T-243.X frontend stub" must verify the stub actually exists in dev before scoping. If the stub is orphaned, the task scope expands to include the frontend implementation. Treat the spec's "Related: T-243.X" claims with suspicion and grep dev for the actual stub.
+
+### Iter-13 process patterns that worked
+
+- **PM-direct closure for superseded tasks** is established practice (precedented by done/T-303.4.1.md). Iter-13 used it for T-304.4 + T-305.7. Both passed through all 4-5 stages with clear PM-DIRECT notes citing the supersession reason and the replacement task IDs.
+- **Spec amendment in the markdown file** (Amendment 1 section) is preferable to gate_Append — the file IS the spec contract, and worker symlinks see the current file content. SWE worker correctly executed against the amended scope.
+- **Build/test verification by the PM after worker WorkResult, BEFORE dispatching red-team**, catches obvious failures fast (per learning #75/#90). Used for T-305.1: cargo build + cargo test + vue-tsc all PASS confirmed before red-team dispatch.
+- **Red-team dispatched with concrete diff stats + audit checklist** (instead of "review this commit") gets more actionable findings. red-t-305-1 returned 3 specific notes with file:line + severity + suggested fix in <10 min.
+- **Blue-team given EXPLICIT scoped commands** (numbered 1-6 with expected outputs) returned clean PASS in 4 min. Faster + more reliable than open-ended "verify this is good".
+
+### Standing directives reaffirmed
+
+- Lowest-numbered first remains absolute (Sprint 304 had no actionable RALPH work after T-304.4 closed; pivot to Sprint 305 was correct).
+- UAT items stay out of RALPH scope.
+- TDD remains default; SDD for cross-stack work where the frontend integration contract is well-defined.
+- Use inner-loop + gpt-5.5 for SWE; code-review (claude-opus-4.6) for red-team; inner-loop + gpt-5.5 for blue-team scoped command runner.
+- Always include MAIN REPO absolute spec path in dispatch prompts.
+- File same-iter follow-ups during dispatch (T-305.11 was filed BEFORE blue-team finished).
+
+### Next iter playbook (T-305.2 — Schedules global Pause-all toggle)
+
+1. Read T-305.2 spec (TDD pipeline, P1).
+2. **PRE-FLIGHT:** verify the frontend "Pause all" button exists in SchedulesTab.vue (per orphan-commit pattern caution). If yes, scope is backend-only. If no, scope includes both.
+3. Dispatch architect-duo if scope is non-trivial; otherwise SWE direct.
+4. After T-305.2: T-305.3 (ScheduleRunsDrawer hardening), then T-305.4 (launchd env disclosure — sdd, P1, security-adjacent — extra care).

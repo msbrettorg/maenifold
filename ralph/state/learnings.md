@@ -3173,3 +3173,58 @@ Worktrees: 3 created + 3 cleaned (T-304.21, .23, .24).
 Memory notes: pending — will file at iter close commit.
 Sprint 304: RALPH-converged.
 Next iter: starts at sprint 305 (T-305.1 verify-installed probe; SDD pipeline).
+
+## 2026-05-14 — Iter-13 (Sprint 305 first ship + orphan-commit discovery)
+
+### Lesson 92: Verify frontend stub claims actually shipped to dev BEFORE scoping
+
+**Symptom.** T-305.7 spec said "T-243.108 shipped a 'Verify installed' button in the Schedules tab toolbar; backend probe pending." The actual SchedulesTab.vue (173 LOC) had no Verify button. `git show 315c2fde8` confirmed the stub WAS written, but `git branch --contains 315c2fde8` returned empty — the commit was orphaned, never merged to dev. Same pattern for T-305.5 (mcpAction fields in ScheduleFormDialog.vue — don't exist), T-305.10 (Backfill button + ScheduleRowActions.vue — don't exist).
+
+**Root cause.** Sprint 243 (or thereabouts) marked many tasks PASS in gate based on the SWE worker's commit existing, but the merge step didn't land. The gate state recorded "shipped"; the dev branch shows the work never happened.
+
+**Lesson.** For any task whose spec references a "previously shipped frontend stub" or "field already captured by [prior task]":
+1. **Pre-flight verification (mandatory, takes <30 sec):** `grep -n <feature-keyword> apps/desktop/src/<expected-file>` AND `git log --oneline -- <expected-file> | head -5`. If the keyword is missing OR the expected commit isn't reachable from dev (`git branch --contains <sha>` returns empty), the stub doesn't exist.
+2. **If the stub doesn't exist:** the task scope expands. Either (a) close the task as "stub never landed; new task needed" and file a fresh comprehensive spec, or (b) amend the spec to include the missing stub + the new work.
+3. **Pattern alert:** if you find ONE orphan-commit case in a sprint, scan the sprint's other tasks for the same pattern proactively. T-305.7 + T-305.5 + T-305.10 all share the orphan-commit assumption.
+
+**Pre-flight refinement.** Add to next-iter playbook: when scoping any task that references a prior sprint's stub, run the 2-command pre-flight verification (`grep` + `git log --oneline`) BEFORE writing the dispatch prompt. The 30 seconds saves 30 minutes of SWE confusion.
+
+### Lesson 93: SDD pipeline blue-team is a scoped command runner, not a test author
+
+**What worked.** For T-305.1 SDD pipeline, blue-team was dispatched with EXPLICIT numbered commands (1-6) including expected outputs:
+- Each command had a fixed `cd` + a fixed test/audit invocation + a `tail -N` to limit output.
+- Each command was named with what it verifies (schedule_tests, vue-tsc, audit:components, vitest schedule subset, cargo build release, tools::schedule full).
+- WorkResult format requested: each command's last 10 lines + final PASS/FAIL verdict.
+
+Result: blue-t-305-1 returned in 4 minutes with a clean WorkResult. No ambiguity, no verbose narrative, no missed commands.
+
+**Anti-pattern.** Open-ended blue-team prompts ("verify the tests are good") get verbose narratives, partial test runs, and self-reported confidence without concrete evidence. They take 10-20 min and require follow-up clarification.
+
+**Lesson.** Blue-team prompts should be a numbered command list with expected outputs and a fixed result format. The SWE wrote the tests; blue-team's job is to run them and report.
+
+### Lesson 94: Spec amendment via markdown edit is preferable to gate_Append for scope changes
+
+**Context.** T-305.1 had a 36-LOC original spec. Iter-13 PM merged T-305.7's scope into it (probe + status fields + UAT shape + backend command). Two options:
+1. Use `gate_Append` to add notes to the active stage. This puts the amendment in `.gate/gate.db` and the task body's appended stage notes — but the SPEC FILE in todo/ stays the original 36 LOC.
+2. Edit the spec markdown file directly to add an "Amendment 1" section. The file IS the spec contract; the SWE worker reads it via the worktree symlink.
+
+**Iter-13 used option 2.** The SWE worker's WorkResult cited the amended spec verbatim, indicating it correctly read the amendment. No confusion.
+
+**Lesson.** For scope amendments that change the WORK CONTRACT for the SWE, edit the spec markdown directly with a clearly-headed "Amendment N (iter-X PM, YYYY-MM-DD)" section. Use `gate_Append` only for stage-process notes that don't change the work contract (e.g., "PM verified build on commit X before red-team dispatch").
+
+### Pre-flight 25 (orphan-commit verification — added to scoped task pre-flight)
+
+Before scoping any task that references a prior sprint's frontend stub or backend handler:
+
+```bash
+# 1. Does the assumed feature exist in dev?
+grep -rn "<feature-keyword>" apps/desktop/src/components/ crates/maenifold-core/src/ 2>/dev/null | head -5
+
+# 2. If a specific commit is referenced, is it reachable from dev?
+git branch --contains <referenced-sha>   # empty result = orphan
+
+# 3. If the file is named, was it ever created?
+git log --oneline --diff-filter=A -- <expected-file>
+```
+
+If any of these returns nothing/empty, the spec's premise is stale. Either close as "stub never landed" or amend the scope to include the missing implementation. Document the finding in the gate notes for the closed/amended task.

@@ -1,7 +1,9 @@
+use super::apply_env_scrub;
 use super::build_payload;
 use crate::schedule::ScheduledTask;
 use chrono::Utc;
-use serde_json::{Value, json};
+use serde_json::{json, Value};
+use std::process::Command;
 
 fn task() -> ScheduledTask {
     ScheduledTask {
@@ -58,4 +60,26 @@ fn payload_threads_explicit_permission_fields() {
         payload["allowedTools"],
         json!(["ReadMemory", "SearchMemories"])
     );
+}
+
+#[test]
+#[serial_test::serial]
+fn supervisor_run_scrubs_environment() {
+    let key = "FAKE_API_KEY_T3054";
+    let original = std::env::var_os(key);
+    unsafe { std::env::set_var(key, "secret123") };
+
+    let mut command = Command::new("/usr/bin/env");
+    // Testing the scrub helper directly keeps this focused on T-305.4. A full
+    // Supervisor::run fixture would need to emulate the maenifold AcpExec CLI.
+    apply_env_scrub(&mut command);
+    let output = command.output().expect("env should run");
+
+    match original {
+        Some(value) => unsafe { std::env::set_var(key, value) },
+        None => unsafe { std::env::remove_var(key) },
+    }
+    let stdout = String::from_utf8(output.stdout).expect("env stdout should be utf-8");
+    assert!(!stdout.contains(key));
+    assert!(!stdout.contains("secret123"));
 }

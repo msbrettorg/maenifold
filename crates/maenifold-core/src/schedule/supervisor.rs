@@ -1,4 +1,7 @@
-use super::{LockGuard, RunRecord, RunStatus, ScheduleStore, ScheduledTask};
+use super::{
+    env_allowlist::{default_allowlist, matches},
+    LockGuard, RunRecord, RunStatus, ScheduleStore, ScheduledTask,
+};
 use anyhow::{Context, Result};
 use chrono::Utc;
 use serde_json::json;
@@ -141,6 +144,7 @@ impl Supervisor {
         if let Some(dir) = workdir.as_deref() {
             command.current_dir(dir);
         }
+        apply_env_scrub(&mut command);
         configure_command(&mut command);
         let mut child = command.spawn().with_context(|| {
             format!(
@@ -189,6 +193,19 @@ impl Supervisor {
             .task_dir(task_id)
             .join("logs")
             .join(format!("{timestamp}.log"))
+    }
+}
+
+/// T-305.4: scheduled fire-time children must not inherit the daemon's
+/// full launchd/user environment. Re-apply only the explicit allowlist so
+/// API keys, tokens, and SSH agent sockets are stripped before AcpExec.
+fn apply_env_scrub(command: &mut Command) {
+    let allowlist = default_allowlist();
+    command.env_clear();
+    for (key, value) in std::env::vars() {
+        if matches(&allowlist, &key) {
+            command.env(key, value);
+        }
     }
 }
 

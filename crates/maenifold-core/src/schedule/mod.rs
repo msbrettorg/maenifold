@@ -1,5 +1,6 @@
 mod config;
 mod cron;
+pub mod env_allowlist;
 mod launchd;
 mod lock;
 mod store;
@@ -7,7 +8,7 @@ mod supervisor;
 mod systemd;
 
 pub use config::{RunRecord, RunStatus, ScheduledTask};
-pub use cron::{ParsedSchedule, parse_schedule};
+pub use cron::{parse_schedule, ParsedSchedule};
 pub use launchd::LaunchdManager;
 pub use lock::LockGuard;
 pub use store::ScheduleStore;

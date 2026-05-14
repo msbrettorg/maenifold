@@ -1,7 +1,10 @@
 use super::context::{load_help_doc, render, required_string, ToolContext};
 use super::schedule_logs::get_logs;
 use crate::error::{MaenifoldError, Result};
-use crate::schedule::{parse_schedule, ParsedSchedule, ScheduleStore, ScheduledTask, Supervisor};
+use crate::schedule::{
+    env_allowlist::default_allowlist, parse_schedule, ParsedSchedule, ScheduleStore, ScheduledTask,
+    Supervisor,
+};
 use crate::util::json::{success, OutputFormat};
 use chrono::{SecondsFormat, Utc};
 use croner::parser::CronParser;
@@ -171,7 +174,7 @@ fn create_task_with_bin(context: &ToolContext, payload: &Value, bin: &Path) -> R
     }
     Ok(render(
         context.output_format,
-        json!({"action":"create","task":task_value(&task),"message":format!("Scheduled task '{}' created.", id)}),
+        json!({"action":"create","task":task_value(&task),"envScrub":env_allowlist_view(),"message":format!("Scheduled task '{}' created.", id)}),
     ))
 }
 
@@ -232,7 +235,7 @@ fn update_task(context: &ToolContext, payload: &Value) -> Result<String> {
     }
     Ok(render(
         context.output_format,
-        json!({"action":"update","task":task_value(&task),"message":format!("Scheduled task '{}' updated.", id)}),
+        json!({"action":"update","task":task_value(&task),"envScrub":env_allowlist_view(),"message":format!("Scheduled task '{}' updated.", id)}),
     ))
 }
 
@@ -310,6 +313,15 @@ fn task_value(task: &ScheduledTask) -> Value {
         "updated_at": task.updated_at,
         "last_run": task.last_run,
     })
+}
+
+fn env_allowlist_view() -> Value {
+    let allowlist = default_allowlist();
+    let mut exact = allowlist.exact.into_iter().collect::<Vec<_>>();
+    exact.sort();
+    let mut prefixes = allowlist.prefixes;
+    prefixes.sort();
+    json!({"enabled":true,"allowlistExact":exact,"allowlistPrefixes":prefixes})
 }
 
 fn resolve_maenifold_bin() -> Result<PathBuf> {

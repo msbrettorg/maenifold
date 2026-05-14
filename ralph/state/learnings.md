@@ -3490,3 +3490,15 @@ Closed 6 child tasks + 1 umbrella in ~3.5 hours of wall-clock with 2 of 6 needin
 - Set `agent` to ralph-pm for stages where the PM is the actor, swe-name for swe stage, red-team-name for red-team stage.
 - This is the canonical "test-only / pure-test-add" pattern — there's no separate impl, the SWE work IS the test addition.
 - **Lesson: for tdd tasks where SWE delivered tests-only (no production change), you can chain pending→blue-team→swe→red-team→done in one for-loop. Each step records the actual agent and model that did the work for that stage.**
+
+
+## 2026-05-14 — Iter-2 (Sprint 306 open) — pre-flight findings
+
+### Lesson 71: workflow asset_delete rework, not greenfield (T-306.7)
+
+T-306.7 markdown shows historic gate stages pending→blue-team→swe→red-team with red-team FAIL recording 3 BLOCKERs (symlink TOCTOU, ref-check race, status-only running detection). Cache is now `pending` after a sync rebuild. Production code (`asset_delete.rs`, registry, schema, domain mapping, 4 tests) DID ship — only the 3 blockers were never fixed. SWE prompt for T-306.7 must reference the existing code + existing 3 blockers with file:line + ask for narrow remediation, NOT a from-scratch rewrite.
+
+### Lesson 72: WorkflowView orphan-stub regression (T-306.10)
+
+T-244.22 (sprint 244) mounted WorkflowView.vue as third pane in WorkflowWorkspace. As of iter-2 pre-flight, that mount is GONE — `grep -rn "WorkflowView" apps/desktop/src/` finds only unrelated `WorkflowViewNode` type references. Likely regressed during T-242.14 redesign or a later refactor. T-306.10 spec assumed the mount existed. Amended T-306.10 in-place with "Amendment 1" expanding scope: SWE must re-mount AND add filter. Pattern: orphan-stub regressions are accumulating in the workflow surface — pre-flight EVERY spec that says "panel X exists, just modify it."
+

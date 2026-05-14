@@ -2,6 +2,7 @@ import type { Ref } from 'vue'
 import { toast } from 'vue-sonner'
 import type { WorkflowAssetDefinition, WorkflowAssetSummary } from '../lib/workflow-asset-types'
 import { usePipelineMcp } from '../composables/usePipelineMcp'
+import { unwrapToolData } from '../composables/pipeline-mcp-transport'
 import {
   cloneDefinition,
   mergeDraftIntoRaw,
@@ -175,9 +176,34 @@ export function createWorkflowLibrarySaveActions(context: SaveActionContext) {
     return copyId
   }
 
+  async function duplicateWorkflowById(id: string): Promise<string | null> {
+    const source = context.summaries.value.find((workflow) => workflow.id === id)
+    if (!source) return null
+    const copyId = nextDuplicateId(source.id)
+
+    try {
+      if (!workflowMcp.connected.value) await workflowMcp.connect()
+      const sourceRaw = unwrapToolData<WorkflowRaw>(
+        await workflowMcp.callTool('ReadMcpResource', { uri: `asset://workflows/${source.id}` }),
+      )
+      const raw = { ...sourceRaw }
+      raw.id = copyId
+      raw.name = typeof raw.name === 'string' && raw.name.trim() ? `${raw.name} Copy` : copyId
+      const content = `${JSON.stringify(raw, null, 2)}\n`
+      await workflowMcp.callTool('SaveWorkflowAsset', { id: copyId, content })
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : String(err))
+      return null
+    }
+
+    await context.fetchSummaries()
+    return copyId
+  }
+
   return {
     exportWorkflow,
     saveDraft,
     duplicateCurrentWorkflow,
+    duplicateWorkflowById,
   }
 }

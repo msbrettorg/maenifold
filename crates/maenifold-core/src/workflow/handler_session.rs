@@ -10,7 +10,8 @@ use super::{
     emit_workflow_resource_updated, format_workflow_step, frontmatter_usize,
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
     maybe_resume_submachine, parse_submachine_type, read_workflow_definition, read_workflow_queue,
-    register_workflow_submachine, set_current_step, transition_to_next_workflow, workflow_steps,
+    record_workflow_step_ended, record_workflow_step_started, register_workflow_submachine,
+    set_current_step, transition_to_next_workflow, workflow_steps,
 };
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
@@ -70,6 +71,7 @@ pub(crate) fn continue_workflow_session(
         .ok_or_else(|| MaenifoldError::Message("Workflow queue is empty".to_string()))?;
     let workflow_value = read_workflow_definition(&context.config, current_workflow_id)?;
     let steps = workflow_steps(&workflow_value, current_workflow_id)?;
+    record_workflow_step_ended(&mut frontmatter, current_workflow_index, current_step + 1)?;
 
     append_h2_section(
         &uri,
@@ -134,6 +136,7 @@ pub(crate) fn continue_workflow_session(
         &uri,
         session_id,
         current_workflow_id,
+        current_workflow_index,
         frontmatter,
         &existing_content,
         current_step,
@@ -181,7 +184,8 @@ fn advance_to_next_workflow_step(
     workflow_uri: &str,
     session_id: &str,
     workflow_id: &str,
-    frontmatter: crate::markdown::Frontmatter,
+    workflow_index: usize,
+    mut frontmatter: crate::markdown::Frontmatter,
     existing_content: &str,
     current_step: usize,
     steps: &[Value],
@@ -192,6 +196,7 @@ fn advance_to_next_workflow_step(
             steps.len()
         ))
     })?;
+    record_workflow_step_started(&mut frontmatter, workflow_index, current_step + 1)?;
     let rendered_step = format_workflow_step(next_step)?;
     write_markdown(
         workflow_uri,

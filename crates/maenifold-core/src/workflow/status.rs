@@ -3,7 +3,8 @@ use crate::markdown::{Frontmatter, append_h2_section, read_markdown, write_markd
 use crate::sessions::now_iso8601_roundtrip;
 use crate::tools::ToolContext;
 use crate::workflow::{
-    emit_workflow_resource_updated, format_workflow_step, read_workflow_definition, workflow_steps,
+    emit_workflow_resource_updated, format_workflow_step, read_workflow_definition,
+    record_workflow_step_started, workflow_steps,
 };
 use serde_json::json;
 use serde_yml::Value as YamlValue;
@@ -99,6 +100,7 @@ pub(crate) fn transition_to_next_workflow(
         "currentStep".to_string(),
         YamlValue::Number(serde_yml::Number::from(0)),
     );
+    record_workflow_step_started(&mut frontmatter, current_workflow_index, 1)?;
     write_markdown(
         workflow_uri,
         Some(&frontmatter),

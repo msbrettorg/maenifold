@@ -1,13 +1,13 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
+use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown, write_markdown};
 use crate::sessions::{display_utc_now, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::{
     emit_workflow_resource_updated, format_workflow_step, parse_workflow_identifiers,
-    read_workflow_definition, workflow_steps,
+    read_workflow_definition, record_step_started, workflow_steps,
 };
 use chrono::Utc;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
@@ -42,7 +42,8 @@ pub(crate) fn start_workflow_session(
     let first_step = steps.first().cloned().unwrap_or_else(|| json!({}));
     let rendered_step = format_workflow_step(&first_step)?;
     let uri = workflow_session_uri(&session_id);
-    let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
+    let mut frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
+    record_step_started(&mut frontmatter, 1)?;
 
     let file_content = format!(
         "# Workflow Session\n\nStarted: {}\n\n## Step 1/{}\n\n{}\n",
@@ -263,42 +264,4 @@ pub(crate) fn initial_workflow_frontmatter(
 
 fn generate_workflow_session_id() -> String {
     format!("workflow-{}", Utc::now().timestamp_millis())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::start_workflow_session;
-    use crate::{
-        config::Config, test_util::ConfigResetGuard, tools::ToolContext, util::json::OutputFormat,
-    };
-    use serde_json::Value;
-    use serial_test::serial;
-    use tempfile::TempDir;
-
-    #[test]
-    #[serial]
-    fn workflow_start_returns_structured_session_id_json() {
-        let temp = TempDir::new().expect("temp dir");
-        Config::override_root(temp.path());
-        Config::set_database_path(temp.path().join("memory.db"));
-        let config = Config::current();
-        config.ensure_directories().expect("ensure directories");
-        std::fs::create_dir_all(config.assets_path.join("workflows"))
-            .expect("create workflows dir");
-        std::fs::write(
-            config.assets_path.join("workflows/test.json"),
-            r#"{"steps":[{"name":"Step 1"}]}"#,
-        )
-        .expect("write workflow");
-        let _guard = ConfigResetGuard;
-        let response = start_workflow_session(
-            &ToolContext::new(config, OutputFormat::Markdown),
-            &["test".to_string()],
-            None,
-        )
-        .expect("start workflow");
-        let value: Value =
-            serde_json::from_str(&response).expect("workflow start should return JSON");
-        assert!(value.get("sessionId").and_then(Value::as_str).is_some());
-    }
 }

@@ -70,6 +70,23 @@ function statusForLabel(label: LiveStep['label']): WorkflowStep['status'] {
   return 'pending';
 }
 
+function formatDurationMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms < 0) return '—';
+  if (ms < 1000) return `${Math.max(1, Math.round(ms))}ms`;
+  const seconds = ms / 1000;
+  if (seconds < 60) return `${Number(seconds.toFixed(1))}s`;
+  return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+}
+
+function stepDurationLabel(stepNumber: number): string {
+  const timing = selectedSession.value?.step_timings?.[String(stepNumber)];
+  if (!timing?.started_at) return '';
+  if (!timing.ended_at) return 'In progress';
+  const ms = new Date(timing.ended_at).getTime() - new Date(timing.started_at).getTime();
+  const duration = formatDurationMs(ms);
+  return duration === '—' ? '' : `Duration: ${duration}`;
+}
+
 const liveSteps = computed<LiveStep[]>(() => {
   const session = selectedSession.value;
   if (!session) return [];
@@ -187,8 +204,8 @@ onBeforeUnmount(() => {
           <li v-for="{ step, label } in liveSteps" :key="step.stepNumber" class="flex flex-col gap-1">
             <div class="flex items-center justify-between gap-2">
               <Badge :variant="badgeVariant(label)" class="capitalize">{{ label }}</Badge>
-              <span class="text-xs text-muted-foreground">
-                Updated: {{ step.respondedAt ? totalDuration : '—' }}
+              <span v-if="stepDurationLabel(step.stepNumber)" class="text-xs text-muted-foreground">
+                {{ stepDurationLabel(step.stepNumber) }}
               </span>
             </div>
             <WorkflowStepDetail

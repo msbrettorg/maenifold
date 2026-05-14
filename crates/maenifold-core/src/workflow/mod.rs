@@ -16,11 +16,16 @@ pub mod output_parser;
 pub mod output_types;
 pub mod pipeline;
 mod queue;
+#[cfg(test)]
+mod queue_tests;
 pub mod runner;
 pub(crate) mod runner_helpers;
 mod runner_prompt;
 mod runner_state;
 mod status;
+mod step_timings;
+#[cfg(test)]
+mod step_timings_tests;
 mod submachine;
 mod submachine_gate;
 mod submachine_link;
@@ -54,6 +59,10 @@ pub use runner::{WorkflowResult, WorkflowRunStatus};
 pub(crate) use status::{
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
     transition_to_next_workflow,
+};
+pub(crate) use step_timings::{
+    WorkflowStepTimings, read_step_timings, record_step_started, record_workflow_step_ended,
+    record_workflow_step_started,
 };
 #[allow(unused_imports)]
 pub(crate) use submachine::{

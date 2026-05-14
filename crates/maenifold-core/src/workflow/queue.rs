@@ -1,13 +1,13 @@
 use crate::error::{MaenifoldError, Result};
-use crate::markdown::{append_h2_section, file_exists, read_markdown, write_markdown, Frontmatter};
+use crate::markdown::{Frontmatter, append_h2_section, file_exists, read_markdown, write_markdown};
 use crate::sessions::{display_utc_now, workflow_session_uri};
 use crate::tools::ToolContext;
 use crate::workflow::{
-    emit_workflow_resource_updated, format_workflow_step, parse_workflow_identifiers,
+    emit_workflow_resource_updated, format_workflow_step_with_inputs, parse_workflow_identifiers,
     read_workflow_definition, workflow_steps,
 };
 use chrono::Utc;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use std::collections::{BTreeMap, HashMap};
 
@@ -40,7 +40,9 @@ pub(crate) fn start_workflow_session(
 
     let session_id = generate_workflow_session_id();
     let first_step = steps.first().cloned().unwrap_or_else(|| json!({}));
-    let rendered_step = format_workflow_step(&first_step)?;
+    let empty_inputs = HashMap::new();
+    let rendered_step =
+        format_workflow_step_with_inputs(&first_step, inputs.as_ref().unwrap_or(&empty_inputs))?;
     let uri = workflow_session_uri(&session_id);
     let frontmatter = initial_workflow_frontmatter(&session_id, workflow_ids, "active", inputs);
 
@@ -180,6 +182,15 @@ pub(crate) fn read_workflow_queue(frontmatter: &Frontmatter) -> Vec<String> {
         }
         _ => Vec::new(),
     }
+}
+
+pub(crate) fn read_workflow_inputs(frontmatter: &Frontmatter) -> HashMap<String, Value> {
+    frontmatter
+        .get("inputs")
+        .and_then(|value| serde_json::to_value(value).ok())
+        .and_then(|value| value.as_object().cloned())
+        .map(|values| values.into_iter().collect())
+        .unwrap_or_default()
 }
 
 pub(crate) fn yaml_sequence_from_strings(values: &[String]) -> YamlValue {

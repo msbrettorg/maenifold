@@ -17,8 +17,7 @@ fn state_with_ts(
             session_id: format!("workflow-{TS}-{node_id}"),
             status,
             attempts: 1,
-            started_at: started_ms
-                .map(|ms| DateTime::from_timestamp_millis(ms).expect("valid ts")),
+            started_at: started_ms.map(|ms| DateTime::from_timestamp_millis(ms).expect("valid ts")),
             completed_at: completed_ms
                 .map(|ms| DateTime::from_timestamp_millis(ms).expect("valid ts")),
             acp_session_id: None,
@@ -37,8 +36,7 @@ fn state_with_ts(
 
 fn seed_db(context: &crate::tools::ToolContext, session_id: &str, status: &str) {
     crate::db::GraphDatabase::initialize_database(&context.config).expect("init db");
-    let conn =
-        crate::db::open_connection(&context.config.database_path).expect("open db");
+    let conn = crate::db::open_connection(&context.config.database_path).expect("open db");
     conn.execute(
         "INSERT INTO file_content (file_path, status) VALUES (?1, ?2)",
         rusqlite::params![pipeline_session_uri(session_id), status],
@@ -68,8 +66,18 @@ fn list_pipelines_runs_three_completed_nodes() {
     let end = start + 60_000_i64;
     let node_states: HashMap<String, NodeState> = [
         state_with_ts("a", NodeStatus::Completed, Some(start), Some(end)),
-        state_with_ts("b", NodeStatus::Completed, Some(start + 1_000), Some(end + 1_000)),
-        state_with_ts("c", NodeStatus::Completed, Some(start + 2_000), Some(end + 2_000)),
+        state_with_ts(
+            "b",
+            NodeStatus::Completed,
+            Some(start + 1_000),
+            Some(end + 1_000),
+        ),
+        state_with_ts(
+            "c",
+            NodeStatus::Completed,
+            Some(start + 2_000),
+            Some(end + 2_000),
+        ),
     ]
     .into_iter()
     .collect();
@@ -83,7 +91,10 @@ fn list_pipelines_runs_three_completed_nodes() {
     assert_eq!(runs.len(), 3, "expected 3 run entries");
     for run in runs {
         assert!(run["startedAt"].is_number(), "startedAt should be a number");
-        assert!(run["completedAt"].is_number(), "completedAt should be a number");
+        assert!(
+            run["completedAt"].is_number(),
+            "completedAt should be a number"
+        );
         assert_eq!(run["status"].as_str(), Some("completed"));
         assert_eq!(run["outcome"].as_str(), Some("succeeded"));
     }
@@ -95,14 +106,23 @@ fn list_pipelines_runs_mixed_status_nodes() {
     let (_tmp, context, _guard) = pipeline_test_context(OutputFormat::Json);
     let session_id = "pipeline-1735689600000-runs-mixed-status";
     let definition = PipelineDefinition {
-        nodes: vec![tool_node("done"), tool_node("running"), tool_node("waiting")],
+        nodes: vec![
+            tool_node("done"),
+            tool_node("running"),
+            tool_node("waiting"),
+        ],
         edges: vec![],
         inputs: None,
         template_id: None,
     };
     let start = 1_735_689_600_000_i64;
     let node_states: HashMap<String, NodeState> = [
-        state_with_ts("done", NodeStatus::Completed, Some(start), Some(start + 60_000)),
+        state_with_ts(
+            "done",
+            NodeStatus::Completed,
+            Some(start),
+            Some(start + 60_000),
+        ),
         state_with_ts("running", NodeStatus::Active, Some(start + 1_000), None),
         state_with_ts("waiting", NodeStatus::Pending, None, None),
     ]
@@ -124,11 +144,17 @@ fn list_pipelines_runs_mixed_status_nodes() {
 
     let running_run = find("running");
     assert_eq!(running_run["status"].as_str(), Some("active"));
-    assert!(running_run["outcome"].is_null(), "active node has no outcome");
+    assert!(
+        running_run["outcome"].is_null(),
+        "active node has no outcome"
+    );
 
     let waiting_run = find("waiting");
     assert_eq!(waiting_run["status"].as_str(), Some("pending"));
-    assert!(waiting_run["outcome"].is_null(), "pending node has no outcome");
+    assert!(
+        waiting_run["outcome"].is_null(),
+        "pending node has no outcome"
+    );
 }
 
 #[test]
@@ -152,7 +178,10 @@ fn list_pipelines_runs_pending_node_appears_in_runs() {
 
     assert_eq!(runs.len(), 1, "pending node still appears in runs");
     assert_eq!(runs[0]["status"].as_str(), Some("pending"));
-    assert!(runs[0]["startedAt"].is_null(), "pending node has no startedAt");
+    assert!(
+        runs[0]["startedAt"].is_null(),
+        "pending node has no startedAt"
+    );
     assert!(runs[0]["outcome"].is_null(), "pending node has no outcome");
 }
 
@@ -181,6 +210,8 @@ fn list_pipelines_degraded_fallback_has_empty_runs() {
         .iter()
         .find(|e| e["pipelineId"] == pipeline_uri)
         .expect("degraded pipeline entry");
-    let runs = entry["runs"].as_array().expect("degraded entry must have runs array");
+    let runs = entry["runs"]
+        .as_array()
+        .expect("degraded entry must have runs array");
     assert!(runs.is_empty(), "degraded entry runs must be empty");
 }

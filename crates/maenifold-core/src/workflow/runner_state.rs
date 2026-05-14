@@ -153,9 +153,11 @@ mod tests {
             init_workflow_session(&context, "runner-state-test", None, None).expect("init session");
 
         assert!(sid.starts_with("workflow-"));
-        assert!(sid["workflow-".len()..]
-            .chars()
-            .all(|ch| ch.is_ascii_digit()));
+        assert!(
+            sid["workflow-".len()..]
+                .chars()
+                .all(|ch| ch.is_ascii_digit())
+        );
         let value: serde_json::Value =
             serde_json::from_str(&text).expect("workflow start response should be JSON");
         assert_eq!(value["sessionId"].as_str(), Some(sid.as_str()));

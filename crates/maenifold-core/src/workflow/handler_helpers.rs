@@ -1,6 +1,8 @@
 use crate::config::Config;
 use crate::error::{MaenifoldError, Result};
+use crate::workflow::inputs_template::expand_inputs_template;
 use serde_json::Value;
+use std::collections::HashMap;
 use std::fs;
 
 // T-12.0: RTM NFR-1 consolidates shared workflow helpers used by queue, status, and submachine.
@@ -11,6 +13,13 @@ use std::fs;
 // re-serialises via serde, so we pretty-print (2-space) then pad every line after
 // the opening brace with 4 extra spaces to recreate the same visual layout.
 pub(crate) fn format_workflow_step(step: &Value) -> Result<String> {
+    format_workflow_step_with_inputs(step, &HashMap::new())
+}
+
+pub(crate) fn format_workflow_step_with_inputs(
+    step: &Value,
+    inputs: &HashMap<String, Value>,
+) -> Result<String> {
     let pretty = serde_json::to_string_pretty(step)?;
     let mut result = String::with_capacity(pretty.len() + pretty.lines().count() * 4);
     for (i, line) in pretty.lines().enumerate() {
@@ -22,7 +31,7 @@ pub(crate) fn format_workflow_step(step: &Value) -> Result<String> {
         }
         result.push_str(line);
     }
-    Ok(result)
+    expand_inputs_template(&result, inputs)
 }
 
 pub(crate) fn build_workflow_response_content(response: &str, thoughts: Option<&str>) -> String {

@@ -14,7 +14,7 @@ use super::super::session_io::{
     write_workflow_node_session,
 };
 use super::super::view::build_pipeline_view_result;
-use super::super::{validate_pipeline, NodeState, NodeStatus, PipelineDefinition};
+use super::super::{NodeState, NodeStatus, PipelineDefinition, validate_pipeline};
 use super::ForkRequest;
 
 #[path = "handler_surgery_fork_helpers.rs"]
@@ -62,7 +62,12 @@ pub(super) fn fork_pipeline(
     let reachable = reachable_node_ids(&graph, node_index);
     let node_id_map = reachable
         .iter()
-        .map(|node_id| (node_id.clone(), format!("fork-{}-{}", new_session_id, node_id)))
+        .map(|node_id| {
+            (
+                node_id.clone(),
+                format!("fork-{}-{}", new_session_id, node_id),
+            )
+        })
         .collect::<HashMap<_, _>>();
     let fork_root_predecessor_context =
         collect_fork_predecessor_context(&graph, &reachable, &source_node_states);

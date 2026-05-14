@@ -10,10 +10,10 @@ use crate::{
 };
 
 mod acp_reaper;
-mod audit;
-pub(super) mod circuit_breaker;
 #[cfg(test)]
 mod active_session_persistence_tests;
+mod audit;
+pub(super) mod circuit_breaker;
 #[cfg(test)]
 mod conditional_extraction_tests;
 mod conditional_output;

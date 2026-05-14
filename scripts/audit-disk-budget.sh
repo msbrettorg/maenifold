@@ -5,12 +5,30 @@
 set -u
 
 BUDGET_GB="${MAENIFOLD_TARGET_BUDGET_GB:-50}"
-AGENTS_WARN_GB=20
+AGENTS_WARN_GB="${MAENIFOLD_AGENTS_WARN_GB:-20}"
 
 if [[ ! "$BUDGET_GB" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
 	echo "❌ Invalid MAENIFOLD_TARGET_BUDGET_GB: $BUDGET_GB"
 	exit 1
 fi
+
+if [[ ! "$AGENTS_WARN_GB" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+	echo "❌ Invalid MAENIFOLD_AGENTS_WARN_GB: $AGENTS_WARN_GB"
+	exit 1
+fi
+
+emit_agents_warning() {
+	if [[ ! -d target/agents ]]; then
+		return 0
+	fi
+
+	local agents_kb agents_warn_kb
+	agents_kb="$(du -sk target/agents/ 2>/dev/null | awk '{print $1}')"
+	agents_warn_kb="$(awk -v gb="$AGENTS_WARN_GB" 'BEGIN { printf "%.0f\n", gb * 1048576 }')"
+	if ((agents_kb > agents_warn_kb)) || [[ "$AGENTS_WARN_GB" =~ ^0+([.]0+)?$ ]]; then
+		echo "target/agents/ exceeds ${AGENTS_WARN_GB}G; consider: bash scripts/clean-stale-agent-caches.sh --apply"
+	fi
+}
 
 if [[ ! -d target ]]; then
 	echo "✅ audit-disk-budget passed (target/ missing, budget ${BUDGET_GB}G)."
@@ -26,7 +44,8 @@ fi
 target_kb="$(du -sk target/ | awk '{print $1}')"
 budget_kb="$(awk -v gb="$BUDGET_GB" 'BEGIN { printf "%.0f\n", gb * 1048576 }')"
 
-if ((target_kb <= budget_kb)); then
+if ((target_kb <= budget_kb)) && [[ ! "$BUDGET_GB" =~ ^0+([.]0+)?$ ]]; then
+	emit_agents_warning
 	echo "✅ audit-disk-budget passed (target/ ${target_human}, target/agents/ ${agents_human}, budget ${BUDGET_GB}G)."
 	exit 0
 fi
@@ -35,12 +54,6 @@ echo "❌ target/ disk budget exceeded: target/ ${target_human} > ${BUDGET_GB}G"
 echo "Per-subdir usage:"
 du -sh -d 1 target/ 2>/dev/null | sort -hr
 
-if [[ -d target/agents ]]; then
-	agents_kb="$(du -sk target/agents/ 2>/dev/null | awk '{print $1}')"
-	agents_warn_kb=$((AGENTS_WARN_GB * 1048576))
-	if ((agents_kb > agents_warn_kb)); then
-		echo "target/agents/ exceeds ${AGENTS_WARN_GB}G; consider: bash scripts/clean-stale-agent-caches.sh --apply"
-	fi
-fi
+emit_agents_warning
 
 exit 1

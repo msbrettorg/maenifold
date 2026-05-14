@@ -25,7 +25,6 @@ type ElectronVoiceLaunchResult = {
 };
 
 type ElectronApi = {
-  [key: string]: unknown;
   openDirectory?: () => Promise<string | null>;
   getAppVersion?: () => Promise<string>;
   quit?: () => Promise<void>;

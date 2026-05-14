@@ -16,7 +16,7 @@ pub(super) fn verify_installed_action(context: &ToolContext, payload: &Value) ->
         let bin = resolve_maenifold_bin()?;
         return Ok(render(
             context.output_format,
-            serde_json::to_value(super::schedule_os::verify_installed(&task, &bin)?)?,
+            serde_json::to_value(vec![super::schedule_os::verify_installed(&task, &bin)?])?,
         ));
     }
     let tasks = store

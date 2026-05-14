@@ -51,7 +51,7 @@ fn pause_all_uninstalls_disabled_with_discrepancy() {
         )
         .expect("verify"),
     );
-    assert_eq!(p["installed"], false);
+    assert_eq!(p[0]["installed"], false);
 }
 #[test]
 fn pause_all_partial_os_failure() {

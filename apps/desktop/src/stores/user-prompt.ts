@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
 import type { JsonSchema } from '@jsonforms/core';
-import { useSamplingStore, type SamplingRequest } from './sampling';
+import { useSamplingStore, type SamplingPromptReason, type SamplingRequest } from './sampling';
 
 export type UserPromptEntry = {
   id: string;
@@ -31,6 +31,7 @@ type SamplingRequestPayload = {
     systemPrompt?: unknown;
     maxTokens?: unknown;
     metadata?: unknown;
+    reason?: unknown;
   };
   timeoutMs?: number;
 };
@@ -83,6 +84,24 @@ function modelHintFrom(payload: SamplingRequestPayload['payload']): string | und
   return firstNamedHint?.name;
 }
 
+function parseReason(raw: unknown): SamplingPromptReason | undefined {
+  if (typeof raw !== 'object' || raw === null) return undefined;
+  const reason = raw as Record<string, unknown>;
+  if (reason.kind === 'newRequest') return { kind: 'newRequest' };
+  if (
+    reason.kind === 'budgetExceeded'
+    && typeof reason.used === 'number'
+    && typeof reason.budget === 'number'
+  ) {
+    return {
+      kind: 'budgetExceeded',
+      used: reason.used,
+      budget: reason.budget,
+    };
+  }
+  return undefined;
+}
+
 function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
   const inner = (typeof payload.payload === 'object' && payload.payload !== null)
     ? payload.payload
@@ -109,6 +128,7 @@ function toSamplingRequest(payload: SamplingRequestPayload): SamplingRequest {
       : undefined,
     maxTokens: typeof inner.maxTokens === 'number' ? inner.maxTokens : 0,
     queuedAt: Date.now(),
+    reason: parseReason(inner.reason),
   };
 }
 
@@ -166,6 +186,7 @@ export const useUserPromptStore = defineStore('userPrompt', () => {
     front,
     open,
     setupIpcListener,
+    enqueue,
     submit,
     cancel,
   };

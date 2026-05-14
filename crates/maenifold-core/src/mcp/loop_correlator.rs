@@ -25,7 +25,7 @@ pub(crate) struct LoopCorrelator {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(crate) enum LookupResult {
     Active(Uuid),
-    Cancelled(Uuid),
+    Terminal(Uuid),
 }
 
 impl LoopCorrelator {
@@ -60,7 +60,7 @@ impl LoopCorrelator {
             if entry.terminal_at.is_none() {
                 entry.terminal_at = Some(Instant::now());
             }
-            return Some(LookupResult::Cancelled(entry.sampling_request_id));
+            return Some(LookupResult::Terminal(entry.sampling_request_id));
         }
         Some(LookupResult::Active(entry.sampling_request_id))
     }
@@ -178,13 +178,13 @@ mod tests {
         status_handle.store(true, Ordering::SeqCst);
         assert_eq!(
             correlator.lookup("server", &key),
-            Some(LookupResult::Cancelled(request_id))
+            Some(LookupResult::Terminal(request_id))
         );
         correlator.cleanup_expired().await;
 
         assert_eq!(
             correlator.lookup("server", &key),
-            Some(LookupResult::Cancelled(request_id))
+            Some(LookupResult::Terminal(request_id))
         );
     }
 
@@ -201,7 +201,7 @@ mod tests {
         );
         assert_eq!(
             correlator.lookup("server", &key),
-            Some(LookupResult::Cancelled(request_id))
+            Some(LookupResult::Terminal(request_id))
         );
 
         {
@@ -225,7 +225,7 @@ mod tests {
     }
 
     #[test]
-    fn cancelled_entry_is_distinct_from_unknown_entry() {
+    fn terminal_entry_is_distinct_from_unknown_entry() {
         let correlator = LoopCorrelator::default();
         let request_id = Uuid::from_u128(0x55555555555555555555555555555555);
         let status_handle = Arc::new(AtomicBool::new(false));
@@ -241,7 +241,7 @@ mod tests {
 
         assert_eq!(
             correlator.lookup("server", &known_key),
-            Some(LookupResult::Cancelled(request_id))
+            Some(LookupResult::Terminal(request_id))
         );
         assert_eq!(correlator.lookup("server", &ids(&["other-tool"])), None);
     }

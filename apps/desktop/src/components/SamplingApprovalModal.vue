@@ -44,6 +44,18 @@ function hasAlwaysAllowPreference(): boolean {
 type FocusProbe = Document['hasFocus'] & { _isMockFunction?: boolean; mock?: unknown };
 
 const visibleMessages = computed(() => props.request.messages.filter((message) => message.text));
+const dialogTitle = computed(() => {
+  return props.request.reason?.kind === 'budgetExceeded'
+    ? 'Tool-call budget exceeded'
+    : 'Approve sampling request';
+});
+const headerCopy = computed(() => {
+  const reason = props.request.reason;
+  if (reason?.kind === 'budgetExceeded') {
+    return `${props.request.serverName} reached its tool-call budget (${reason.used}/${reason.budget}). Continue?`;
+  }
+  return `${props.request.serverName} wants to sample a model response.`;
+});
 const modelChoices = computed(() => {
   const hint = props.request.modelHint;
   return hint ? [hint, `${hint}-mini`] : ['gpt-4.1', 'gpt-4.1-mini'];
@@ -146,9 +158,9 @@ onUnmounted(() => {
             <Sparkles class="size-4" aria-hidden="true" />
           </div>
           <div class="min-w-0">
-            <DialogTitle>Approve sampling request</DialogTitle>
+            <DialogTitle>{{ dialogTitle }}</DialogTitle>
             <p class="m-0 mt-2 text-sm text-text-secondary">
-              {{ request.serverName }} wants to sample a model response.
+              {{ headerCopy }}
             </p>
           </div>
         </div>

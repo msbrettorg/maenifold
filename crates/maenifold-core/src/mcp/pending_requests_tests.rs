@@ -1,7 +1,7 @@
 use crate::mcp::pending_requests::{
     ELICITATION_TIMEOUT, ElicitationResponse, PendingPayload, PendingRequestRegistry, RespondError,
-    SAMPLING_BACKSTOP_TIMEOUT, SamplingAction, SamplingDecision, UserPromptAction,
-    UserPromptResponse,
+    SAMPLING_BACKSTOP_TIMEOUT, SamplingAction, SamplingDecision, SamplingPromptReason,
+    UserPromptAction, UserPromptResponse,
 };
 use rmcp::model::{
     CreateElicitationRequestParams, CreateMessageRequestParams, ElicitationSchema, PrimitiveSchema,
@@ -68,7 +68,11 @@ async fn register_elicitation_then_respond_succeeds() {
 async fn register_sampling_then_respond_succeeds() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let receiver = registry
-        .register_sampling(sampling_params(), "test-server-x")
+        .register_sampling(
+            sampling_params(),
+            "test-server-x",
+            SamplingPromptReason::NewRequest,
+        )
         .await;
     let id = registry.pending_events().await[0].id;
     let response = sampling_decision(SamplingAction::AllowOnce);
@@ -113,7 +117,11 @@ async fn cross_kind_rejection_sampling_to_elicitation_fails() {
 async fn cross_kind_rejection_elicitation_to_sampling_fails() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let receiver = registry
-        .register_sampling(sampling_params(), "test-server-x")
+        .register_sampling(
+            sampling_params(),
+            "test-server-x",
+            SamplingPromptReason::NewRequest,
+        )
         .await;
     let id = registry.pending_events().await[0].id;
 
@@ -142,7 +150,11 @@ async fn sampling_register_does_not_start_elicitation_timeout() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let _subscription = registry.subscribe();
     let _receiver = registry
-        .register_sampling(sampling_params(), "test-server-x")
+        .register_sampling(
+            sampling_params(),
+            "test-server-x",
+            SamplingPromptReason::NewRequest,
+        )
         .await;
 
     tokio::time::advance(ELICITATION_TIMEOUT + Duration::from_secs(1)).await;
@@ -164,7 +176,11 @@ async fn sampling_backstop_expires_pending_after_constant() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let _subscription = registry.subscribe();
     let receiver = registry
-        .register_sampling(sampling_params(), "test-server-x")
+        .register_sampling(
+            sampling_params(),
+            "test-server-x",
+            SamplingPromptReason::NewRequest,
+        )
         .await;
 
     tokio::time::advance(SAMPLING_BACKSTOP_TIMEOUT + Duration::from_secs(1)).await;
@@ -179,7 +195,11 @@ async fn pending_events_returns_both_kinds() {
     let registry = Arc::new(PendingRequestRegistry::new());
     let _elicitation_receiver = registry.register_elicitation(elicitation_params()).await;
     let _sampling_receiver = registry
-        .register_sampling(sampling_params(), "test-server-x")
+        .register_sampling(
+            sampling_params(),
+            "test-server-x",
+            SamplingPromptReason::NewRequest,
+        )
         .await;
 
     let mut kinds = registry
@@ -191,4 +211,53 @@ async fn pending_events_returns_both_kinds() {
     kinds.sort_unstable();
 
     assert_eq!(kinds, vec!["elicitation", "sampling"]);
+}
+
+#[tokio::test]
+async fn register_sampling_serializes_new_request_reason_into_payload() {
+    let registry = Arc::new(PendingRequestRegistry::new());
+    let mut subscription = registry.subscribe();
+
+    let _receiver = registry
+        .register_sampling(
+            sampling_params(),
+            "test-server",
+            SamplingPromptReason::NewRequest,
+        )
+        .await;
+
+    let event = subscription
+        .recv()
+        .await
+        .expect("sampling prompt event should broadcast");
+    assert_eq!(
+        event.payload["reason"],
+        serde_json::json!({ "kind": "newRequest" })
+    );
+}
+
+#[tokio::test]
+async fn register_sampling_serializes_budget_exceeded_reason_into_payload() {
+    let registry = Arc::new(PendingRequestRegistry::new());
+    let mut subscription = registry.subscribe();
+
+    let _receiver = registry
+        .register_sampling(
+            sampling_params(),
+            "test-server",
+            SamplingPromptReason::BudgetExceeded {
+                used: 10,
+                budget: 10,
+            },
+        )
+        .await;
+
+    let event = subscription
+        .recv()
+        .await
+        .expect("sampling prompt event should broadcast");
+    assert_eq!(
+        event.payload["reason"],
+        serde_json::json!({ "kind": "budgetExceeded", "used": 10, "budget": 10 })
+    );
 }

@@ -106,6 +106,7 @@ fn exec_with_jockey(
                 None,
                 &app_session_id,
                 None,
+                None,
             )
             .await;
             acp_prompt_result_into_result(result)

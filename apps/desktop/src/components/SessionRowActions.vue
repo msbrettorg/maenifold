@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Pin, X } from 'lucide-vue-next';
+import { Pin, Square, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -13,44 +13,66 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { usePinnedSessionsStore } from '../stores/pinned-sessions';
-import type { SavedSession } from '../lib/types';
+import type { SamplingHistoryEntry, SavedSession } from '../lib/types';
 
 const props = defineProps<{
-  session: SavedSession;
-  deleteTitle: string;
+  session: SavedSession | SamplingHistoryEntry;
+  deleteTitle?: string;
+  source?: 'agent' | 'sampling';
+  canStop?: boolean;
 }>();
 
 const emit = defineEmits<{
   delete: [sessionId: string, event: Event];
+  stop: [samplingRequestId: string, event: Event];
 }>();
 
 const pinnedSessionsStore = usePinnedSessionsStore();
+
+function isSamplingSession(): boolean {
+  return props.source === 'sampling';
+}
+
+function actionId(): string {
+  return isSamplingSession()
+    ? (props.session as SamplingHistoryEntry).samplingRequestId
+    : (props.session as SavedSession).id;
+}
+
+function isPinned(): boolean {
+  return !isSamplingSession() && pinnedSessionsStore.isPinned((props.session as SavedSession).id);
+}
+
+function togglePinned(): void {
+  if (!isSamplingSession()) pinnedSessionsStore.togglePinnedSession((props.session as SavedSession).id);
+}
 </script>
 
 <template>
   <div class="flex items-center gap-1">
     <Button
+      v-if="!isSamplingSession()"
       variant="ghost"
       size="icon"
       class="size-7 text-muted-foreground hover:bg-bg-surface-hover hover:text-text-primary"
-      :title="pinnedSessionsStore.isPinned(session.id) ? 'Unpin session' : 'Pin session'"
-      :aria-label="pinnedSessionsStore.isPinned(session.id) ? 'Unpin session' : 'Pin session'"
-      :aria-pressed="pinnedSessionsStore.isPinned(session.id)"
-      @click.stop="pinnedSessionsStore.togglePinnedSession(session.id)"
+      :title="isPinned() ? 'Unpin session' : 'Pin session'"
+      :aria-label="isPinned() ? 'Unpin session' : 'Pin session'"
+      :aria-pressed="isPinned()"
+      @click.stop="togglePinned"
     >
       <Pin
         class="size-4"
-        :class="pinnedSessionsStore.isPinned(session.id) ? 'fill-current text-brand' : ''"
+        :class="isPinned() ? 'fill-current text-brand' : ''"
       />
     </Button>
     <AlertDialog>
-      <AlertDialogTrigger as-child>
+      <AlertDialogTrigger v-if="!isSamplingSession()" as-child>
         <Button
           variant="ghost"
           size="icon"
           class="size-7 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
-          :title="deleteTitle"
-          :aria-label="deleteTitle"
+          :title="deleteTitle ?? 'Delete session'"
+          :aria-label="deleteTitle ?? 'Delete session'"
           @click.stop
         >
           <X class="size-4" />
@@ -58,7 +80,7 @@ const pinnedSessionsStore = usePinnedSessionsStore();
       </AlertDialogTrigger>
       <AlertDialogContent class="sm:max-w-[28rem]">
         <AlertDialogHeader>
-          <AlertDialogTitle>{{ deleteTitle }}</AlertDialogTitle>
+          <AlertDialogTitle>{{ deleteTitle ?? 'Delete session' }}</AlertDialogTitle>
           <AlertDialogDescription>
             This will remove the local cache; the agent's server-side session is unaffected.
           </AlertDialogDescription>
@@ -67,12 +89,23 @@ const pinnedSessionsStore = usePinnedSessionsStore();
           <AlertDialogCancel>Cancel</AlertDialogCancel>
           <AlertDialogAction
             variant="destructive"
-            @click="(event: Event) => emit('delete', session.id, event)"
+            @click="(event: Event) => emit('delete', actionId(), event)"
           >
             Confirm
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+    <Button
+      v-if="isSamplingSession() && canStop"
+      variant="ghost"
+      size="icon"
+      class="size-7 text-muted-foreground hover:bg-destructive/20 hover:text-destructive"
+      title="Stop sampling session"
+      aria-label="Stop sampling session"
+      @click.stop="(event: Event) => emit('stop', actionId(), event)"
+    >
+      <Square class="size-3.5 fill-current" />
+    </Button>
   </div>
 </template>

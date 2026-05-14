@@ -105,7 +105,6 @@ impl SamplingSessionRegistry {
         Ok(())
     }
 
-    #[allow(dead_code)]
     pub(crate) async fn update_acp_session(
         &self,
         id: Uuid,

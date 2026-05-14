@@ -50,6 +50,7 @@ mod mcp_tool_calls; mod resource_routing;
 pub mod pending_requests;
 #[cfg(test)]
 mod pending_requests_tests;
+pub(crate) mod sampling_events;
 pub(crate) mod sampling_session_registry;
 #[cfg(test)]
 mod sampling_session_registry_tests;

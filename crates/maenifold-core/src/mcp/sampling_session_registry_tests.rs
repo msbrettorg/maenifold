@@ -39,6 +39,49 @@ async fn update_status_transitions_pending_to_streaming() {
 }
 
 #[tokio::test]
+async fn test_update_acp_session_transitions_status() {
+    let registry = SamplingSessionRegistry::new();
+    let mut dispatch = dispatch_fixture("test-server");
+    dispatch.status = SamplingSessionStatus::Dispatching;
+    let id = dispatch.sampling_request_id;
+    registry.insert(dispatch).await;
+
+    registry
+        .update_acp_session(id, "abc".to_string())
+        .await
+        .expect("known dispatch should store ACP session id");
+    registry
+        .update_status(id, SamplingSessionStatus::Streaming)
+        .await
+        .expect("dispatching session should become streaming");
+    registry
+        .update_status(id, SamplingSessionStatus::Completed)
+        .await
+        .expect("streaming session should become completed");
+
+    let snapshot = registry.snapshot().await;
+    assert_eq!(snapshot[0].acp_session_id.as_deref(), Some("abc"));
+    assert_eq!(snapshot[0].status, SamplingSessionStatus::Completed);
+}
+
+#[tokio::test]
+async fn test_update_acp_session_is_referenced_from_dispatch_path() {
+    let source = include_str!("client_handler.rs");
+    assert!(source.contains(".update_acp_session(dispatch_id, acp_session_id)"));
+    assert!(source.contains("session_id_rx.await"));
+
+    let registry = SamplingSessionRegistry::new();
+    let dispatch = dispatch_fixture("test-server");
+    let id = dispatch.sampling_request_id;
+    registry.insert(dispatch).await;
+
+    registry
+        .update_acp_session(id, "live-acp-session".to_string())
+        .await
+        .expect("test call keeps symbol reachable from crate tests");
+}
+
+#[tokio::test]
 async fn update_status_unknown_id_returns_not_found() {
     let registry = SamplingSessionRegistry::new();
 

@@ -41,6 +41,7 @@ pub(crate) async fn handle_execute(
     role_mode: Option<String>,
     role_config_options: Vec<(String, String)>,
     resume_session_id: Option<String>,
+    session_id_tx: Option<oneshot::Sender<String>>,
 ) {
     let prompt_lock = PROMPT_LOCKS.with(|m| {
         let mut map = m.borrow_mut();
@@ -111,6 +112,10 @@ pub(crate) async fn handle_execute(
         let _ = result_tx.send(Err(prompt_error(message, requested_resume, resumed)));
         return;
     };
+    let session_id_text = session_id.to_string();
+    if let (false, Some(tx)) = (session_id_text.is_empty(), session_id_tx) {
+        let _ = tx.send(session_id_text);
+    }
 
     if is_cold {
         let health_rx_clone = CONN_MAP.with(|m| m.borrow().get(&key).map(|c| c.health_rx.clone()));
@@ -428,6 +433,7 @@ mod tests {
                     Vec::new(),
                     None,
                     Vec::new(),
+                    None,
                     None,
                 )
                 .await;

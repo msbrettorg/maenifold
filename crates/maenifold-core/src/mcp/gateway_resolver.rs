@@ -76,6 +76,7 @@ pub(crate) async fn resolve_intent(
         None,
         &app_session_id,
         None,
+        None,
     );
     let result = tokio::time::timeout(Duration::from_secs(timeout_seconds), future)
         .await

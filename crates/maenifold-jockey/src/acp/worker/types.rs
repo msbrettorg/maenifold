@@ -149,6 +149,7 @@ pub enum WorkerMsg {
         role_mode: Option<String>,
         role_config_options: Vec<(String, String)>,
         resume_session_id: Option<String>,
+        session_id_tx: Option<oneshot::Sender<String>>,
     },
     Prewarm {
         runtime_key: String,

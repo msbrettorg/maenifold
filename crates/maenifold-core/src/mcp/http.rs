@@ -30,6 +30,10 @@ pub(super) fn router(service: MaenifoldHttpService, state: ApiState) -> Router {
             "/api/acp/session/{session_id}",
             delete(crate::api::acp_relay::close_session_handler),
         )
+        .route(
+            "/events/sampling/{app_session_id}",
+            get(crate::mcp::sampling_events::sse_handler),
+        )
 }
 
 // Stateless MCP service — no session affinity, no keepalive timeout, no

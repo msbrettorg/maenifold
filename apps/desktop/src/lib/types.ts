@@ -146,6 +146,26 @@ export interface SavedSession {
   messages?: ChatMessage[];
 }
 
+export interface SamplingHistoryTokenUsage {
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface SamplingHistoryEntry {
+  samplingRequestId: string;
+  serverName: string;
+  model: string;
+  runtimeKind: string;
+  roleName: string;
+  status: string;
+  decision: string;
+  createdAt: string;
+  tokenUsage: SamplingHistoryTokenUsage | null;
+  acpSessionId?: string | null;
+  appSessionId?: string;
+  currentDelta?: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system';

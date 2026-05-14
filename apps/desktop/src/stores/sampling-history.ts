@@ -1,28 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useMcpResources } from '../composables/useMcpResources';
+import { useMcpClient } from '../composables/useMcpClient';
+import { getApiBase } from '../lib/api-base';
+import type { SamplingHistoryEntry, SamplingHistoryTokenUsage } from '../lib/types';
+export type { SamplingHistoryEntry, SamplingHistoryTokenUsage } from '../lib/types';
 
 const SAMPLING_SESSIONS_URI = 'sampling://sessions';
 const MAX_HISTORY_ENTRIES = 50;
-
-export interface SamplingHistoryTokenUsage {
-  inputTokens: number;
-  outputTokens: number;
-}
-
-export interface SamplingHistoryEntry {
-  samplingRequestId: string;
-  serverName: string;
-  model: string;
-  runtimeKind: string;
-  roleName: string;
-  status: string;
-  decision: string;
-  createdAt: string;
-  tokenUsage: SamplingHistoryTokenUsage | null;
-  acpSessionId?: string | null;
-  appSessionId?: string;
-}
+const LIVE_STATUSES = new Set(['dispatching', 'streaming']);
 
 interface SamplingSessionsPayload {
   sessions?: unknown;
@@ -107,15 +93,100 @@ function parseSessions(text: string | undefined): SamplingHistoryEntry[] {
 export const useSamplingHistoryStore = defineStore('sampling-history', () => {
   const entries = ref<SamplingHistoryEntry[]>([]);
   const resources = useMcpResources();
+  const mcp = useMcpClient();
+  const eventSources = new Map<string, EventSource>();
+  let unsubscribeResource: (() => void) | null = null;
+  let started = false;
+
+  function liveKey(entry: SamplingHistoryEntry): string | null {
+    return entry.appSessionId ?? null;
+  }
+
+  function mergeCurrentDeltas(nextEntries: SamplingHistoryEntry[]): SamplingHistoryEntry[] {
+    const currentByRequest = new Map(entries.value.map((entry) => [entry.samplingRequestId, entry.currentDelta]));
+    return nextEntries.map((entry) => ({
+      ...entry,
+      currentDelta: currentByRequest.get(entry.samplingRequestId) ?? entry.currentDelta,
+    }));
+  }
+
+  function applySsePayload(appSessionId: string, rawData: string): void {
+    let payload: { type?: string; appSessionId?: string; delta?: string };
+    try {
+      payload = JSON.parse(rawData) as { type?: string; appSessionId?: string; delta?: string };
+    } catch {
+      return;
+    }
+    if (payload.appSessionId !== appSessionId || payload.type !== 'acpDelta' || typeof payload.delta !== 'string') {
+      return;
+    }
+    entries.value = entries.value.map((entry) => {
+      if (entry.appSessionId !== appSessionId) return entry;
+      return { ...entry, currentDelta: `${entry.currentDelta ?? ''}${payload.delta}` };
+    });
+  }
+
+  function syncEventSources(): void {
+    const activeKeys = new Set<string>();
+    for (const entry of entries.value) {
+      const key = liveKey(entry);
+      if (!key || !LIVE_STATUSES.has(entry.status)) continue;
+      activeKeys.add(key);
+      if (eventSources.has(key)) continue;
+      const source = new EventSource(`${getApiBase()}/events/sampling/${encodeURIComponent(key)}`);
+      source.onmessage = (event) => applySsePayload(key, event.data);
+      source.onerror = () => {
+        source.close();
+        eventSources.delete(key);
+      };
+      eventSources.set(key, source);
+    }
+    for (const [key, source] of eventSources.entries()) {
+      if (activeKeys.has(key)) continue;
+      source.close();
+      eventSources.delete(key);
+    }
+  }
 
   async function refresh(): Promise<void> {
     const resource = await resources.readResource(SAMPLING_SESSIONS_URI);
-    entries.value = parseSessions(resource.text);
+    entries.value = mergeCurrentDeltas(parseSessions(resource.text));
+    syncEventSources();
   }
 
   async function init(): Promise<void> {
+    await start();
+  }
+
+  async function start(): Promise<void> {
+    if (started) return;
+    started = true;
+    await refresh();
+    unsubscribeResource = await resources.subscribeResource(SAMPLING_SESSIONS_URI, () => {
+      void refresh();
+    }).catch(() => null);
+  }
+
+  async function stop(): Promise<void> {
+    started = false;
+    if (unsubscribeResource) {
+      await unsubscribeResource();
+      unsubscribeResource = null;
+    }
+    for (const source of eventSources.values()) {
+      source.close();
+    }
+    eventSources.clear();
+  }
+
+  async function cancelSamplingSession(samplingRequestId: string): Promise<void> {
+    entries.value = entries.value.map((entry) => (
+      entry.samplingRequestId === samplingRequestId ? { ...entry, status: 'cancelled' } : entry
+    ));
+    await mcp.connect().catch(() => undefined);
+    await mcp.callTool('CancelSamplingSession', { samplingRequestId });
     await refresh();
   }
 
-  return { entries, init, refresh };
+  return { entries, init, start, stop, refresh, cancelSamplingSession };
 });

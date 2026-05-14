@@ -1,6 +1,8 @@
 mod cold_start;
 mod cold_start_helpers;
 mod execute;
+#[cfg(test)]
+mod execute_tests;
 mod execute_stream;
 mod mcp;
 mod prewarm;

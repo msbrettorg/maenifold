@@ -68,6 +68,7 @@ pub(super) fn handle_prompt(
             role_mode: None,
             role_config_options: vec![],
             resume_session_id: None,
+            session_id_tx: None,
         })
         .map_err(|_| rpc_error(request_id.clone(), -32000, "ACP worker unavailable"))?;
     *pending_prompt = Some(PendingPrompt {

@@ -1,19 +1,25 @@
-import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
+import type { RequestPermissionRequest, RequestPermissionResponse } from '@agentclientprotocol/sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createPermissionDecisionRegistry } from '../decision-registry';
 import { NodeSqlitePermissionLedger } from '../node-sqlite-ledger';
 import type { PermissionLookupContext } from '../ledger';
 import type { PermissionRequest } from '../../types';
 
+type PermissionPromptPayload = {
+  toolCall: PermissionRequest['toolCall'];
+  options: PermissionRequest['options'];
+  message?: string;
+};
+
+type PermissionEvaluateRequestResult =
+  | { autoDecided: true; response: RequestPermissionResponse }
+  | { autoDecided: false; token: string; prompt: PermissionPromptPayload };
+
 type ElectronApiMock = {
-  permissionTryAutoDecide: (payload: {
+  permissionEvaluateRequest: (payload: {
     request: PermissionRequest;
     context: PermissionLookupContext;
-  }) => Promise<{
-    decision: 'allow' | 'reject' | null;
-    event: unknown;
-    token: string | null;
-  }>;
+  }) => Promise<PermissionEvaluateRequestResult>;
   permissionResolveDecision: (payload: {
     token: string;
     optionId: string;
@@ -74,12 +80,26 @@ describe('permission persistence integration', () => {
       },
     });
     const electronApi: ElectronApiMock = {
-      async permissionTryAutoDecide({ request, context }) {
+      async permissionEvaluateRequest({ request, context }) {
         const decision = database.tryAutoDecide(request, context);
+        if (decision) {
+          const option = request.options.find((candidate) => candidate.kind === `${decision}_once`);
+          if (!option) throw new Error(`missing ${decision}_once option`);
+          return {
+            autoDecided: true,
+            response: {
+              outcome: { outcome: 'selected', optionId: option.optionId },
+              _meta: null,
+            },
+          };
+        }
         return {
-          decision,
-          event: database.getLastAutoDecision(),
-          token: decision === null ? registry.register(request, context) : null,
+          autoDecided: false,
+          token: registry.register(request, context),
+          prompt: {
+            toolCall: request.toolCall,
+            options: request.options,
+          },
         };
       },
       async permissionResolveDecision(payload) {
@@ -124,6 +144,7 @@ describe('permission persistence integration', () => {
       outcome: { outcome: 'selected', optionId: 'allow-once' },
       _meta: null,
     });
+    expect(electronApi.permissionEvaluateRequest).toBeDefined();
     expect(handler.getPermissions()).toHaveLength(0);
     expect(database.listAuditEvents()).toEqual([
       expect.objectContaining({
@@ -151,11 +172,14 @@ describe('permission persistence integration', () => {
       },
     });
     const electronApi: ElectronApiMock = {
-      async permissionTryAutoDecide({ request, context }) {
+      async permissionEvaluateRequest({ request, context }) {
         return {
-          decision: null,
-          event: null,
+          autoDecided: false,
           token: registry.register(request, context),
+          prompt: {
+            toolCall: request.toolCall,
+            options: request.options,
+          },
         };
       },
       async permissionResolveDecision() {

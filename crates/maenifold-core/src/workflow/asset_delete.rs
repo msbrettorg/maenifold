@@ -11,7 +11,7 @@ use std::io::ErrorKind;
 use std::sync::LazyLock;
 use walkdir::WalkDir;
 
-use super::pipeline::{PipelineDefinition, session_lock_is_held};
+use super::pipeline::PipelineDefinition;
 
 static WORKFLOW_ASSET_NAME: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("workflow asset name regex must compile")
@@ -131,8 +131,6 @@ fn running_pipeline_references_workflow(
 }
 
 fn is_active_pipeline_status(stored_status: Option<&str>) -> bool {
-    let _keep_session_lock_probe_reachable: fn(&str, &crate::config::Config) -> bool =
-        session_lock_is_held;
     matches!(stored_status, Some("active" | "retrying" | "running"))
 }
 

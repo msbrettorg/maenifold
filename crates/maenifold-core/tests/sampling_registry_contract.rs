@@ -4,6 +4,11 @@ fn client_handler_source() -> &'static str {
     include_str!("../src/mcp/client_handler.rs")
 }
 
+// Post-T-303.4.5 refactor extracted SamplingAction/SamplingDecisionRecord match arms into sampling_client_flow.rs.
+fn sampling_client_flow_source() -> &'static str {
+    include_str!("../src/mcp/sampling_client_flow.rs")
+}
+
 fn registry_source() -> &'static str {
     include_str!("../src/mcp/sampling_session_registry.rs")
 }
@@ -24,7 +29,7 @@ async fn serverName_propagated_through_create_message() {
 
 #[tokio::test]
 async fn denied_sampling_request_appears_in_registry() {
-    let handler = client_handler_source();
+    let handler = sampling_client_flow_source();
     let registry = registry_source();
     let deny = handler.find("SamplingAction::Deny").expect("deny branch exists");
     let insert = handler.find(".insert(SamplingDispatch").expect("registry insert exists");
@@ -37,7 +42,7 @@ async fn denied_sampling_request_appears_in_registry() {
 
 #[tokio::test]
 async fn decision_field_recorded_for_allow_once_vs_allow_always() {
-    let handler = client_handler_source();
+    let handler = sampling_client_flow_source();
     let registry = registry_source();
 
     assert!(registry.contains("pub decision: SamplingDecisionRecord"));

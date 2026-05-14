@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/resizable';
 import { useKnowledgeStore } from '../stores/knowledge';
 import KnowledgeLeafPane from './KnowledgeLeafPane.vue';
+import KnowledgeBacklinksPanel from './KnowledgeBacklinksPanel.vue';
 import KnowledgeNewNoteDialog from './KnowledgeNewNoteDialog.vue';
 import KnowledgeRelatedConcepts from './KnowledgeRelatedConcepts.vue';
 import KnowledgeTabStrip from './KnowledgeTabStrip.vue';
@@ -85,11 +86,18 @@ watch(relatedRailCollapsed, (collapsed) => {
         @collapse="relatedRailCollapsed = true"
         @expand="relatedRailCollapsed = false"
       >
-        <KnowledgeRelatedConcepts
-          v-model:collapsed="relatedRailCollapsed"
-          rail
-          open-in-memory
-        />
+        <div class="flex h-full min-h-0 flex-col">
+          <div class="min-h-0 flex-1">
+            <KnowledgeRelatedConcepts
+              v-model:collapsed="relatedRailCollapsed"
+              rail
+              open-in-memory
+            />
+          </div>
+          <div v-if="!relatedRailCollapsed" class="min-h-0 flex-1 border-t border-border-subtle">
+            <KnowledgeBacklinksPanel rail />
+          </div>
+        </div>
       </ResizablePanel>
     </ResizablePanelGroup>
   </section>

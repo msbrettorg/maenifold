@@ -3502,3 +3502,51 @@ T-306.7 markdown shows historic gate stages pending→blue-team→swe→red-team
 
 T-244.22 (sprint 244) mounted WorkflowView.vue as third pane in WorkflowWorkspace. As of iter-2 pre-flight, that mount is GONE — `grep -rn "WorkflowView" apps/desktop/src/` finds only unrelated `WorkflowViewNode` type references. Likely regressed during T-242.14 redesign or a later refactor. T-306.10 spec assumed the mount existed. Amended T-306.10 in-place with "Amendment 1" expanding scope: SWE must re-mount AND add filter. Pattern: orphan-stub regressions are accumulating in the workflow surface — pre-flight EVERY spec that says "panel X exists, just modify it."
 
+
+
+## 2026-05-14 — Iter-2 close (Sprint 306 RALPH-converged)
+
+### Lesson 73: Wave-0 saturation works — 6 SWEs + 1 holdback in pocket → all 10 children ship in 1 iter
+
+Iter-2 dispatched 6 parallel SWEs at iter-start (T-306.3, .6, .7, .8, .9, .10), held T-306.4 in pocket for the next free backend slot. Once any SWE completed (idle), confession + red-team + (after merge) wave-1 SWE filled the slot. Total wall: ~2.5h for 10 children + 1 cycle of T-306.6 v2 rework + 1 narrow LOC fix. No SWE blocked another. Pattern that worked:
+
+1. Wave-0 dispatch in ONE response (8 parallel agents counting wave-0 + wave-0a holdback).
+2. Confession sent as soon as each SWE returned WorkResult.
+3. Fresh red-team launched as soon as confession returned.
+4. PM merged in dependency-clean order (T-306.8 first, then T-306.3/.7 cleanly, T-306.9 with auto-merge on pipeline/mod.rs, T-306.10 frontend, T-306.4 backend test, T-306.6 v2 after rework, T-306.1 + T-306.2 frontend/backend pair, T-306.5 with 5-conflict PM merge resolution).
+
+### Lesson 74: Worktrees go stale when iter is long-lived; PM must rebase OR resolve conflicts at merge
+
+T-306.5 was dispatched at the same time as T-306.1/T-306.2 (wave-1) but ran ~17 min, by which point T-306.6 + T-306.4 + T-306.10 had merged. T-306.5's branch base predated those merges. At PM merge time, 5 conflicts surfaced (handler_session.rs, queue.rs, status.rs, WorkflowLiveProgress.vue, WorkflowLiveProgress.test.ts). All were resolvable via union of intent. PM-resolved + ran full test suite (289 backend + 10 frontend) before committing the merge.
+
+**Pattern**: when a wave-1 SWE is started against an old base AND wave-0 changes touch overlapping files, expect non-trivial merge work. Two mitigations:
+- (a) Rebase the worktree onto current dev BEFORE the SWE starts work (when feasible — the SWE prompt would need clarification that it's on a moving target).
+- (b) Accept the merge work as PM responsibility; document the conflict resolution in the merge commit message; verify with full test suite.
+
+Iter-2 used (b) for T-306.5. Worked but required ~10 min of PM-side conflict reconciliation. (a) might be cheaper at iter scale; consider for iter-3+.
+
+### Lesson 75: Rustfmt churn in unrelated files keeps recurring — accept as harmless noise
+
+T-306.3, T-306.7, T-306.2 SWEs all introduced whitespace-only rustfmt changes in unrelated workflow/ files (asset_save_tests.rs, pipeline/handler_crud_tests_runs.rs, pipeline/handler_surgery_fork.rs, pipeline/mod.rs, runner_state.rs). Pattern: SWE runs `rustfmt --edition 2024 <my_file>` and rustfmt cascades across imports. Functionally inert.
+
+PM stance: ACCEPT as noise. Do NOT request reverts (forbidden git operations + manual revert wastes time). Future workspaces should run `cargo fmt --check` post-iter to surface drift; but per-task remediation is wrong cost ratio.
+
+### Lesson 76: Per-confession-question prompts surface real defects fast
+
+The confession prompts for T-306.6, T-306.7, T-306.5 included ENUMERATED specifically-asked questions in the "Deviations and Shortcuts" + "Uncertainty and Risk" sections (not just the generic "tell us anything"). Examples:
+- "Specifically: when an unrelated UI component is mounting the workflow store (so subscriberCount > 1), does your reconnect path correctly resubscribe its handlers?" (T-306.6)
+- "Specifically: under heavy load, could the static Mutex become a contention point that serializes ALL delete operations across the asset store?" (T-306.7)
+- "Specifically: queue.rs is now 315 LOC. Did you check?" (T-306.2)
+
+In every case, the SWE confessed honestly to the specific concern. This caught the T-306.6 v1 reconnect-primitive defect (later confirmed by red-team), the T-306.5 queued-workflow keying mismatch (filed as T-306.13), the T-306.7 cross-cutting create-vs-delete race (filed as T-306.11). Pattern: when PM has a specific concern about an SWE's work, ASK IT EXPLICITLY in the confession prompt — don't rely on the SWE's voluntary disclosure.
+
+### Iter-2 throughput (extends Lesson 99 + Lesson 73)
+
+- 1 umbrella + 10 child tasks closed (Sprint 306 fully RALPH-converged).
+- 3 follow-ups filed for future iterations (T-306.11, T-306.12, T-306.13).
+- 1 v2 SWE rework cycle (T-306.6 reconnect primitive).
+- 1 PM-only narrow remediation (T-306.5 WLP LOC fix via library extraction).
+- Cumulative wall-clock: ~2.5 hours (vs iter-1 close at ~3.5 hours for 6 + umbrella).
+- Active SWE-lane peak: 6 simultaneous (well within Lesson 102's cap of 4 considering 4 backend builders + 2 frontend = mixed I/O profile).
+- Zero broken commits to dev. Zero rollbacks. All merges + verifications green.
+

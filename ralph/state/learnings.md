@@ -2960,3 +2960,37 @@ The rollback heuristic (`exit_code != 0 → revert`) does not distinguish betwee
 14. **NEW (this iter):** When a fix touches path resolution or git invocation, PM must re-run tests from BOTH the worker worktree AND main repo cwd post-merge. Per lesson 61.
 15. **NEW (this iter):** Before each `gate_Pass`, call `gate_Status` to confirm the current state matches the agent name being passed. Per lesson 62.
 16. **NEW (this iter):** PM may skip formal confession when the WorkResult is fully artifactable from diff + test output + cleanup verification. Reserve confession for tasks with synthetic harnesses, complex implementation choices, or PM-uncertainty. Per lesson 63.
+
+## 2026-05-13 — Sprint 304 — T-304.1 wave-boundary duo iterations
+
+### Lesson 65: Pre-existing failures get tracked as new gate items, not glossed
+When the SWE worker reports test/audit failures outside the task's file scope, verify they exist on the dev baseline (without the SWE's changes), then file new gate items for them. Do NOT just write "pre-existing" in the gate-pass notes. The constitution's "Audit baselines are evidence" rule requires explicit tracking.
+
+Concrete pattern:
+1. Switch to dev branch in main repo (NOT the SWE's worktree)
+2. Run the failing commands fresh
+3. If same failures appear → confirmed pre-existing → file new T-XX.YY items
+4. The SWE's work passes if the failure list IDENTITY matches (no NEW failures introduced)
+
+### Lesson 66: Wave-boundary duo can take 4+ amendment cycles for non-trivial specs
+T-304.1 went through Amendment 1 (FAIL/FAIL) → Amendment 2 (FAIL/FAIL) → Amendment 3 (FAIL/PASS) → Amendment 4 (PASS/PASS). Each cycle was ~5-10 minutes. Total spec convergence: ~30-45 minutes. Compare to one wasted SWE cycle: 15-20 minutes plus full context loss. Spec convergence is dramatically cheaper than SWE remediation.
+
+Pattern that worked: After each duo critique, identify which findings are ARCHITECTURAL (require design change) vs PROCEDURAL (require detail correction). ARCH findings invalidate the whole approach; PROC findings just need a patch. Amendment 4 was 100% PROC (3 specific patches to Amendment 3's design).
+
+### Lesson 67: gpt-5.5 catches races and API correctness; opus-4.6 catches design coherence
+Empirically across T-303.18.3 (6 cycles) and T-304.1 (4 cycles), the two reviewers have complementary strengths:
+- gpt-5.5: procedural blockers, race conditions, exact API signatures, ES version compatibility, test coverage gaps
+- opus-4.6: architectural coherence, abstraction boundaries, lifecycle interactions, edge cases in existing code paths
+
+When they disagree on severity (BLOCKING vs NON-BLOCKING for the same finding), default to gpt-5.5's stricter interpretation. opus is more permissive on UX-flavored or "harmless in practice" issues that turn out to matter when shipped.
+
+### Lesson 68: Augmenting an existing handler is often cleaner than adding a new callback
+T-304.1 Amendment 1 proposed adding a new `onTransportClose` callback to the bridge. Both reviewers caught that this introduced a race with the EXISTING `bridgeClosePoll` in `useSessionLifecycle.ts:56-68` that already calls `handleAgentClosed`. Amendment 2 pivoted to augmenting the existing handler — but discovered the close-handler runs AFTER `sendPrompt` finally has cleared `isLoading`, so the `if (isLoading)` guard never fires. Amendment 3 moved the marker to `sendPrompt`'s catch block, which runs synchronously after `bridge.prompt()` rejection.
+
+The lesson: when there's an existing handler for the lifecycle event you care about, prefer extending it over adding a parallel callback. But verify the handler runs at the RIGHT time relative to your other state changes — race conditions with `finally` blocks and 500ms polls are subtle.
+
+### Lesson 69: `apps/desktop` TS files are NOT 300-LOC capped
+Verified at `apps/desktop/scripts/audit-components.mjs:86-87` — MAX_LOC enforcement only fires inside `auditVueFile()`. TS files only get console/TODO/mock audits via `auditCodeFile()`. So `acp-client-core.ts` at 605 LOC is fine; only Vue components are subject to the 300 LOC ceiling. Spec authors who reference "near audit ceiling" for TS files are mistaken.
+
+### Lesson 70: `build:electron` vs `build` distinction matters for renderer verification
+`npm run build` runs the full audit:components step which can fail on pre-existing baseline violations OUTSIDE the current task's scope. `npm run build:electron` is `vite build` only — pure renderer compilation, no audit. For SDD blue-team verification of UI changes, prefer `build:electron` to isolate "did the SWE break the build?" from "is the workspace's audit baseline dirty?".

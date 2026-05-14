@@ -70,3 +70,21 @@
   - 20. **gpt-5.5 + opus-4.6 are complementary reviewers.** gpt-5.5 = procedural / executability. opus-4.6 = code correctness / API surface. Always dispatch BOTH for wave-boundary reviews; they catch different classes of bug.
 - **Sprint 303 RALPH-converged.** All non-UAT items shipped. Remaining todo/T-303.* items are all UAT (out of RALPH scope per protocol). T-303.0 umbrella can close once T-303.18.6 lands.
 - **Next iter: sprint 304.**
+
+## Iter 2026-05-13 LATER (T-304.1 SHIPPED — sprint 304 in flight)
+
+- **T-304.1 done** via SDD pipeline + 4-cycle wave-boundary architect duo. Inline `connection_lost` indicator on the in-flight assistant message + Reconnect button + Send-button health pulse. Commit 18a7576ce → merged a9d75cf80. 12 files, 365 insertions, 12 deletions.
+- **Pipeline**: pending → swe (gpt-5.5 inner-loop) → red-team (claude-opus-4.6 PASS, 0 blockers) → blue-team (gpt-5.5 inner-loop, all 7 acceptance gates clean) → done.
+- **Duo took 4 amendment cycles** before SWE-dispatchable:
+  - Amendment 1: `onTransportClose` callback API. FAIL — wrong wiring location, race with bridgeClosePoll, cross-session ID issues.
+  - Amendment 2: Augment handleAgentClosed. FAIL — `if (session.isLoading)` guard never fires because sendPrompt finally clears isLoading 500ms before bridgeClosePoll fires.
+  - Amendment 3: Move marker to sendPrompt catch (synchronous). PASS opus, FAIL gpt — cross-session race + wrong API references.
+  - Amendment 4: Capture activeBridge at prompt start, set isConnected=false eagerly. PASS BOTH.
+- **Lessons (NEW for future iters):**
+  - 21. Pre-existing test/audit failures get filed as new gate items so the SWE delta is clean and baseline drift is tracked. Filed T-303.4.30 (8 sampling test failures) + T-303.4.31 (9 no-mock audit violations in spec files) during T-304.1 verification.
+  - 22. Wave-boundary duo iterations are CHEAP (~2-5 min each) relative to a wasted SWE cycle (~15-20 min + context loss). Always converge the spec FIRST.
+  - 23. When the duo disagrees (gpt-5.5 BLOCKING, opus-4.6 NON-BLOCKING for the same finding), adopt gpt-5.5 stricter interpretation. opus is more permissive on UX-flavored issues; gpt is more rigorous on race conditions and API correctness.
+  - 24. `apps/desktop` TS files are NOT subject to the 300 LOC limit (only Vue files are). Verified at `apps/desktop/scripts/audit-components.mjs` line 86-87. Useful for sizing TS-only refactors.
+  - 25. `npm run build:electron` is vite-only; `npm run build` runs full audit:components which can fail on pre-existing baseline. Use `build:electron` for renderer-only blue-team verification.
+- **Sprint 304 status:** 1/7 non-UAT items done. Remaining open in sprint 304 (excluding UAT items T-304.2, T-304.3, T-304.6, T-304.19): T-304.4 (superseded, awaiting user auth to close), T-304.13 (next actionable — acp-client-core terminal extMethod refactor), T-304.15 (small P3 test fix).
+- **Next iter:** T-304.13 (P1, tdd, focused refactor in `apps/desktop/src/lib/acp-client-core.ts`). Note: spec body says "near audit ceiling at 605 LOC" but audit-components.mjs MAX_LOC only applies to Vue files (Lesson 24); TS LOC is uncapped. The "audit ceiling" concern in the spec body is wrong — proceed without LOC anxiety.

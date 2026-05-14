@@ -53,7 +53,9 @@ mcpServer.registerTool(
 async function main() {
     const transport = new StdioServerTransport();
     await mcpServer.connect(transport);
-    console.log('MCP server is running...');
+    // STDIO MCP transports MUST NOT write to process.stdout outside the SDK's framed channel.
+    // Use process.stderr for human-facing logs.
+    process.stderr.write('MCP server is running...\n');
 }
 
 try {

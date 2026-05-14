@@ -8,7 +8,9 @@ interface WorkflowSessionSummary {
   id: string;
   uri: string;
   status: string;
+  queue?: string[];
   workflow_id?: string | null;
+  current_workflow_index?: number;
   current_step?: number;
   total_steps?: number;
   started_at?: string | null;
@@ -28,7 +30,9 @@ interface WorkflowSessionDetail {
   id: string;
   uri: string;
   status: string;
+  queue?: string[];
   workflow_id?: string | null;
+  current_workflow_index?: number;
   current_step?: number;
   total_steps?: number;
   started_at?: string | null;

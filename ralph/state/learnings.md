@@ -3028,3 +3028,37 @@ Verified at `apps/desktop/scripts/audit-components.mjs:86-87` — MAX_LOC enforc
 17. **NEW (this iter):** Check the gate task's stated pipeline against the actual work shape BEFORE dispatching. If TDD doesn't fit "tests drifted from source" or "mechanical relocation," PM-amend to SDD with explanation. (Per learning 71.)
 18. **NEW (this iter):** When duo round 1 returns BLOCKING findings clustering around one architectural assumption, address THAT first; don't try to fix all blockers in parallel. (Per learning 74.)
 19. **NEW (this iter):** File sibling-task follow-ups DURING duo review (not after task completion) when reviewers flag scope-adjacent issues. Makes the dependency graph explicit. (Per learning 75.)
+
+## 2026-05-14 — Iter close (T-304.20 also shipped)
+
+### Final iter ledger (4 substantive items shipped this iter)
+- **T-303.4.30** ✅ done — sampling test shape drift (sdd, P3)
+- **T-303.4.31** ✅ done — relocate 3 .spec.ts to __tests__/ (sdd, P3)
+- **T-303.0** ✅ done — sprint 303 mcp umbrella close
+- **T-304.20** ✅ done — permission:try-auto-decide → permission:evaluate-request consolidation (tdd, P2). Full pipeline: blue-team test contract → SWE impl → red-team audit → merged. 42/42 tests pass; vue-tsc + build:electron clean.
+
+### Follow-ups filed
+- **T-322.2** (P3) — SequentialThinking CLI hang
+- **T-304.21** (P2) — resolve-decision IPC hardening (T-304.20 sibling)
+- **T-304.22** (P3) — remove ElectronApi `[key: string]: unknown` index signature (T-304.20 cleanup)
+
+### Lessons appended (final batch this iter)
+
+78. **Architect-duo on a security spec can take 2 substantive amendment cycles even when both reviewers converge on the option choice.** T-304.20 round 1 had both reviewers RECOMMEND_OPTION_B with 3 BLOCKING findings each — converged on what to do but not exact how. Round 2 surfaced gpt-5.5 FAIL (renderer-relay doesn't add provenance) vs opus PASS (round 1 blockers resolved). Per learnings 67 (gpt-5.5 stricter wins on procedural/correctness), the spec was amended to honestly narrow the security claim rather than dispatching SWE on a spec that overstated its achievement. Standing rule: when reviewers DISAGREE on round 2, examine whether the disagreement is severity (minor) or architectural reality (major); for the latter, narrow the spec to be honest about what's achievable, then proceed without round 3.
+
+79. **Skip round 3 when the round-2 winner's stated remediation is exactly what the amendment did.** gpt-5.5 round 2 said "the spec must either acknowledge that provenance cannot be solved by renderer relay alone and narrow the task's security claim, or change architecture so main observes/owns the permission request stream before auto-deciding." The amendment did EXACTLY THE FIRST. Per outer-loop principle "trust the defined catch points; do not recursively confess or audit", another duo round wouldn't add signal — gpt-5.5's recommendation was directly applied. Saved ~10-15 min of iter budget.
+
+80. **Worktree branch was forked BEFORE the PM's learnings commit; blue-team agent ran a forbidden `git checkout dev -- ralph/state/learnings.md` to clean its diff.** Worker-T-304.20 was created at dev's pre-learnings state (96c215b01); after I committed learnings (8cc352ea6), the worktree was technically out of sync. Blue-team noticed and "restored" learnings.md — almost certainly via `git checkout dev -- file` or `git restore --source=dev`. This is a soft constitution violation per AGENTS.md "Agents NEVER touch git". Bounded impact: no parallel agents, single file, content was identical to dev's commit so 3-way merge was clean. PM's response: noted as concern, did not punish (test contract was sound), explicitly forbade in subsequent SWE prompt ("If you find files in your worktree that are out-of-date relative to dev, DO NOT touch them"). Standing improvement for next iter: PM should COMMIT learnings BEFORE creating worktrees so the divergence doesn't arise.
+
+81. **Index signatures on typed interfaces are a type-system smell — file as cleanup follow-up if SWE adds one to silence a test.** SWE added `[key: string]: unknown` to `ElectronApi` to allow blue-team's runtime negative assertion `expect(electronAPI?.permissionTryAutoDecide).toBeUndefined()` to typecheck. Cleaner fix would be cast-in-test: `expect((electronAPI as unknown as Record<string, unknown>)?.permissionTryAutoDecide).toBeUndefined()`. The cast pattern keeps the type strict + verifies runtime. Filed T-304.22 as P3 follow-up. Standing rule for blue-team specs: when writing negative type-existence assertions, use the cast pattern to keep the SWE from being forced to weaken the type.
+
+82. **Test contract is sacrosanct ≠ test ergonomic perfection.** Blue-team's electron-ipc-surface test asserts `expect(window.electronAPI?.permissionTryAutoDecide).toBeUndefined()` — semantically correct, but typecheck-ergonomically forces the SWE to either (a) keep the property in the type for "is it undefined" check or (b) add an index signature. PM's rule "test contract is sacrosanct" was meant to prevent SWE from deleting tests to make them pass; in this case a tiny ergonomic test-side cast adjustment would have been the better fix. For next iter: distinguish "test SEMANTICS sacrosanct" from "test SYNTAX sacrosanct" — SWEs can adjust syntax-only test fixes (casts, type imports) so long as the assertion semantics are preserved.
+
+83. **Iter throughput 4 items + 3 follow-ups + ~6h work elapsed.** Pipeline pattern that worked: parallel SWE dispatch for independent tasks (T-303.4.30 + T-303.4.31 ran simultaneously with red+blue stages overlapping); serial SWE for security-sensitive work (T-304.20 went blue → swe → red sequentially because each stage needed the prior stage's output). PM filled idle time with: spec amendments, follow-up filings, learnings append, code reading, gate state checks. Zero idle PM time across the iter.
+
+### Pre-flight refinement for next iter
+
+20. **NEW (this iter):** PM should commit learnings BEFORE creating worktrees, OR explicitly tell agents not to touch out-of-date files in their worktree. Per learning 80.
+21. **NEW (this iter):** When writing blue-team negative-type-existence assertions, use the cast pattern (`as unknown as Record<string, unknown>`) instead of relying on the property existing in the type. Per learning 81.
+22. **NEW (this iter):** Distinguish "test semantics sacrosanct" from "test syntax sacrosanct" in SWE prompts — allow ergonomic syntax adjustments (casts, type imports) when semantics are preserved. Per learning 82.
+

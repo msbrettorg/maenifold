@@ -56,3 +56,17 @@
 - Memory notes filed for each closed task in mae-auto/iterations/.
 - Lessons 51-64 + pre-flight 14-16 appended to learnings.md.
 - Filed P3 follow-ups: T-303.4.28, T-303.4.29 (both done this iter — quick triple-iter shipping).
+
+## Iter 2026-05-13 LATE (T-303.18.3 SHIPPED — sprint 303 RALPH-converged)
+
+- **T-303.18.3 done** via 6-iteration wave-boundary duo review converged at Amendment 8. Two sidecar META-tools (`DiscoverMcpPrompts` + `GetMcpPrompt {server, name, arguments}`). NO wire-level prompts capability advertised. Overlapping prompt names natively supported via explicit server param. Commit 1185b9e3d → merged 3facb647f. 21 files, 586 insertions, 53 deletions.
+- **Pipeline**: pending → discovery (PM-direct) → spec (Amendment 8 wave-boundary PASS) → swe → red-team (PASS-WITH-NOTES, 0 blockers) → blue-team (Stage 1 + Stage 2 backend PASS, Stage 2 renderer SKIPPED → filed T-303.18.6) → done.
+- **Wave-boundary duo took 6 iterations** — gpt-5.5 caught all 7 procedural blockers across 5 iterations (AC scope deferral, daemon launch, maenifold.json content, gateway empty-tools, /healthz endpoint, forge prePackage rebuild, log grep, JSON-RPC wrapper escape). opus-4.6 caught code-correctness in iteration 1 (callTool shape, lifecycle rebuild, parsing helpers, frontend integration target) then PASSed every subsequent iter.
+- **Architecture-vs-procedural split:** Amendment 3 established the architecture (two META-tools, no wire prompts capability). Amendments 4-8 were 100% procedural detail without changing the architecture. Pattern: classify each duo finding as ARCH (changes design) vs PROC (changes execution detail) — PROC iterations are cheap.
+- **Lessons (NEW for future iters):**
+  - 17. SWE inner-loop over-escalates on P0 trigger keywords seen in AGENTS.md (where the rules describe what triggers ARE). PM dispatch must clarify: P0 triggers apply to WORK INPUT, not to reading the rules.
+  - 18. `npm run build` runs full `--all` audit which catches pre-existing baseline violations. Use `npm run build:electron` (vite build only) for renderer builds in UAT contexts. `npm run package`'s prePackage hook does this automatically.
+  - 19. Blue-team CDP UAT needs ACP agents in test maenifold.json, not just MCP servers — chat composer/slash palette is in ChatView which requires an active ACP session. Filed T-303.18.6 to extend the test fixture template.
+  - 20. **gpt-5.5 + opus-4.6 are complementary reviewers.** gpt-5.5 = procedural / executability. opus-4.6 = code correctness / API surface. Always dispatch BOTH for wave-boundary reviews; they catch different classes of bug.
+- **Sprint 303 RALPH-converged.** All non-UAT items shipped. Remaining todo/T-303.* items are all UAT (out of RALPH scope per protocol). T-303.0 umbrella can close once T-303.18.6 lands.
+- **Next iter: sprint 304.**

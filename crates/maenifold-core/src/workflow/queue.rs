@@ -275,6 +275,9 @@ mod tests {
     use serial_test::serial;
     use tempfile::TempDir;
 
+    #[path = "queue_inputs_test.rs"]
+    mod workflow_start_persists_inputs_to_session_frontmatter;
+
     #[test]
     #[serial]
     fn workflow_start_returns_structured_session_id_json() {

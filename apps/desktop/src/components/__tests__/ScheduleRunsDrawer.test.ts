@@ -207,6 +207,32 @@ describe('ScheduleRunsDrawer', () => {
     wrapper.unmount();
   });
 
+  it('normalizes success status as success even when content contains "error"', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', status: 'success', content: 'completed but exit code 0 with error logged' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(renderedBadges()).toEqual([expect.objectContaining({ label: 'success', variant: 'default' })]);
+    wrapper.unmount();
+  });
+
+  it('normalizes skipped status with error content as failed (legacy heuristic)', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', status: 'skipped', content: 'exit code 1' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(renderedBadges()).toEqual([expect.objectContaining({ label: 'failed', variant: 'destructive' })]);
+    wrapper.unmount();
+  });
+
   it('expands run log content', async () => {
     readResource.mockResolvedValue({
       uri: 'schedule://logs/daily-summary',

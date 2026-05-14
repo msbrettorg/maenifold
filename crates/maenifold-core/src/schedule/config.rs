@@ -38,6 +38,12 @@ pub struct RunRecord {
     pub duration_seconds: u64,
     #[serde(default)]
     pub error: Option<String>,
+    #[serde(default)]
+    pub mcp_action: Option<String>,
+    #[serde(default)]
+    pub mcp_parameters: Option<serde_json::Value>,
+    #[serde(default)]
+    pub mcp_result: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +65,8 @@ fn default_true() -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::ScheduledTask;
+    use super::{RunRecord, RunStatus, ScheduledTask};
+    use chrono::Utc;
     use serde_json::json;
 
     #[test]
@@ -115,5 +122,41 @@ mod tests {
 
         assert_eq!(rendered["mcp_action"], serde_json::Value::Null);
         assert_eq!(rendered["mcp_parameters"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn runrecord_serde_round_trip_with_mcp_fields() {
+        let record = RunRecord {
+            status: RunStatus::Success,
+            timestamp: Utc::now(),
+            duration_seconds: 2,
+            error: None,
+            mcp_action: Some("maenifold.gate.gate_Status".to_string()),
+            mcp_parameters: Some(json!({"root": "/workspace"})),
+            mcp_result: Some(json!({"ok": true})),
+        };
+
+        let rendered = serde_json::to_value(&record).expect("serialize run record");
+        let round_trip =
+            serde_json::from_value::<RunRecord>(rendered).expect("deserialize run record");
+
+        assert_eq!(round_trip.mcp_action.as_deref(), Some("maenifold.gate.gate_Status"));
+        assert_eq!(round_trip.mcp_parameters, Some(json!({"root": "/workspace"})));
+        assert_eq!(round_trip.mcp_result, Some(json!({"ok": true})));
+    }
+
+    #[test]
+    fn runrecord_serde_default_mcp_fields_none() {
+        let record = serde_json::from_value::<RunRecord>(json!({
+            "status": "success",
+            "timestamp": "2026-04-21T07:00:00Z",
+            "duration_seconds": 1,
+            "error": null
+        }))
+        .expect("legacy run record should deserialize");
+
+        assert!(record.mcp_action.is_none());
+        assert!(record.mcp_parameters.is_none());
+        assert!(record.mcp_result.is_none());
     }
 }

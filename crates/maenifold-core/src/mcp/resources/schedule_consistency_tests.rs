@@ -5,6 +5,7 @@ use crate::tools::schedule as schedule_tool;
 use rmcp::model::ErrorCode;
 use serde_json::json;
 use serial_test::serial;
+use std::fs;
 
 #[test]
 #[serial]
@@ -115,4 +116,32 @@ fn schedule_log_tool_and_resource_share_bounds() {
     let resource_logs = resource_json(&format!("schedule://logs/{id}"));
     assert_eq!(tool_logs, resource_logs);
     assert_logs_within_bounds(&tool_logs);
+}
+
+#[test]
+fn read_recent_logs_merges_runrecord_sidecar_fields() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let log_dir = temp.path().join("logs");
+    fs::create_dir_all(&log_dir).expect("create logs");
+    fs::write(log_dir.join("20260514T120000Z.log"), "stdout").expect("write log");
+    fs::write(
+        log_dir.join("20260514T120000Z.json"),
+        serde_json::to_string(&json!({
+            "status": "success",
+            "duration_seconds": 2,
+            "mcp_action": "maenifold.gate.gate_Status",
+            "mcp_parameters": {"root": "/workspace"},
+            "mcp_result": null
+        }))
+        .expect("serialize sidecar"),
+    )
+    .expect("write sidecar");
+
+    let logs = super::read_recent_logs(&log_dir, 10).expect("read logs");
+
+    assert_eq!(logs[0]["fileName"], "20260514T120000Z.log");
+    assert_eq!(logs[0]["status"], "success");
+    assert_eq!(logs[0]["duration_seconds"], 2);
+    assert_eq!(logs[0]["mcp_action"], "maenifold.gate.gate_Status");
+    assert_eq!(logs[0]["mcp_result"], serde_json::Value::Null);
 }

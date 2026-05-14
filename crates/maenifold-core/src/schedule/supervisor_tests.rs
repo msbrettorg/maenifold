@@ -1,8 +1,13 @@
 use super::apply_env_scrub;
 use super::{build_invocation, build_payload, parse_mcp_action};
-use crate::schedule::ScheduledTask;
+use super::Supervisor;
+use crate::schedule::{ScheduleStore, ScheduledTask};
 use chrono::Utc;
 use serde_json::{Value, json};
+use std::fs;
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 fn task() -> ScheduledTask {
@@ -133,4 +138,59 @@ fn parameters_omitted_treated_as_empty_object() {
     let payload: Value = serde_json::from_str(&invocation.payload).expect("json payload");
 
     assert_eq!(payload["parameters"], json!({}));
+}
+
+#[test]
+#[serial_test::serial]
+fn supervisor_run_persists_runrecord_sidecar_json() {
+    let (_temp, store, task, bin) = supervisor_fixture("sidecar-non-mcp", "plain stdout\n");
+    store.create(&task).expect("create task");
+    let record = Supervisor::new(store, bin).run(&task.id).expect("run task");
+    let sidecar = read_only_sidecar(task.id.as_str(), _temp.path());
+
+    assert_eq!(record.mcp_action, None);
+    assert_eq!(sidecar["status"], "success");
+    assert_eq!(sidecar["mcp_action"], Value::Null);
+}
+
+#[test]
+#[serial_test::serial]
+fn supervisor_run_with_mcp_action_populates_sidecar_mcp_fields() {
+    let (_temp, store, mut task, bin) = supervisor_fixture("sidecar-mcp", "{\"ok\":true}\n");
+    task.mcp_action = Some("maenifold.gate.gate_Status".to_string());
+    task.mcp_parameters = Some(json!({"root": "/workspace"}));
+    store.create(&task).expect("create task");
+    Supervisor::new(store, bin).run(&task.id).expect("run task");
+    let sidecar = read_only_sidecar(task.id.as_str(), _temp.path());
+
+    assert_eq!(sidecar["mcp_action"], "maenifold.gate.gate_Status");
+    assert_eq!(sidecar["mcp_parameters"], json!({"root": "/workspace"}));
+    assert_eq!(sidecar["mcp_result"], json!({"ok": true}));
+}
+
+fn supervisor_fixture(id: &str, stdout: &str) -> (tempfile::TempDir, ScheduleStore, ScheduledTask, PathBuf) {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let bin = temp.path().join("maenifold-fixture");
+    fs::write(&bin, format!("#!/bin/sh\nprintf '{}'\n", stdout.replace('\'', "'\\''"))).expect("write fixture");
+    #[cfg(unix)]
+    fs::set_permissions(&bin, fs::Permissions::from_mode(0o755)).expect("chmod fixture");
+    let store = ScheduleStore::new(temp.path().join("schedules"));
+    (temp, store, task_with_id(id), bin)
+}
+
+fn task_with_id(id: &str) -> ScheduledTask {
+    let mut task = task();
+    task.id = id.to_string();
+    task.timeout_seconds = 5;
+    task
+}
+
+fn read_only_sidecar(id: &str, root: &Path) -> Value {
+    let logs = root.join("schedules").join(id).join("logs");
+    let path = fs::read_dir(logs)
+        .expect("read logs")
+        .filter_map(|entry| entry.ok().map(|entry| entry.path()))
+        .find(|path| path.extension().and_then(|value| value.to_str()) == Some("json"))
+        .expect("sidecar json exists");
+    serde_json::from_slice(&fs::read(path).expect("read sidecar")).expect("parse sidecar")
 }

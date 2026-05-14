@@ -166,10 +166,27 @@ fn read_recent_logs(log_dir: &Path, limit: usize) -> Result<Vec<Value>> {
             total_bytes += content.len();
             content
         };
-        logs.push(json!({"fileName": file_name, "content": output}));
+        logs.push(log_entry(&path, file_name, output));
     }
 
     Ok(logs)
+}
+
+fn log_entry(path: &Path, file_name: &str, content: String) -> Value {
+    let mut entry = serde_json::Map::from_iter([
+        ("fileName".to_string(), json!(file_name)),
+        ("content".to_string(), json!(content)),
+    ]);
+    if let Ok(Value::Object(sidecar)) = fs::read_to_string(path.with_extension("json"))
+        .and_then(|text| serde_json::from_str::<Value>(&text).map_err(std::io::Error::other))
+    {
+        for key in ["status", "duration_seconds", "mcp_action", "mcp_parameters", "mcp_result"] {
+            if let Some(value) = sidecar.get(key) {
+                entry.insert(key.to_string(), value.clone());
+            }
+        }
+    }
+    Value::Object(entry)
 }
 
 fn read_log_tail(path: &Path) -> Result<String> {

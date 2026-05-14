@@ -5,10 +5,10 @@ Manages recurring agent tasks and automations.
 ## Parameters
 
 - `action` (string, required): `create`, `update`, `delete`, `list`, `get`,
-  `run_now`, `logs`, `clear_history`, `preview`, `verify_installed`, `pause_all`,
-  `resume_all`, `set_all_enabled`, or `pause_status`.
+  `run_now`, `logs`, `clear_history`, `backfill`, `preview`, `verify_installed`,
+  `pause_all`, `resume_all`, `set_all_enabled`, or `pause_status`.
 - `id` (string, required for `create`, `update`, `delete`, `get`, `run_now`,
-  `logs`, and `clear_history`): Scheduled task ID.
+  `logs`, `clear_history`, and `backfill`): Scheduled task ID.
 - `schedule` (string, required for `create` and `preview`, optional for
   `update`): Schedule expression accepted by the scheduler parser.
 - `agent` (string, required for `create`, optional for `update`): ACP agent.
@@ -116,6 +116,32 @@ no log files remain, and returns the resolved paths it removed.
   "id": "daily-summary",
   "deletedCount": 2,
   "deletedFiles": ["/path/to/20260429T140000Z.log", "/path/to/20260429T150000Z.log"]
+}
+```
+
+`backfill` enumerates scheduled fire times between `since` and `until`, skips
+times that already have a matching run log prefix, and writes placeholder marker
+logs for missing occurrences. It does not invoke agents or replay prompts.
+Omit `until` to use the current UTC time.
+
+Parameters:
+
+- `id` (string, required): Scheduled task ID.
+- `since` (string, required): RFC3339 timestamp.
+- `until` (string, optional): RFC3339 timestamp. Defaults to now.
+
+```json
+{ "action": "backfill", "id": "daily-summary", "since": "2026-05-10T00:00:00Z", "until": "2026-05-12T00:00:00Z" }
+```
+
+```json
+{
+  "action": "backfill",
+  "scheduleId": "daily-summary",
+  "plannedCount": 2,
+  "executedCount": 2,
+  "skippedCount": 0,
+  "runIds": ["20260510T090000Z.log", "20260511T090000Z.log"]
 }
 ```
 

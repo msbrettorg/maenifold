@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AgentsConfig } from '../lib/types';
+import type { AgentsConfig } from '../../lib/types';
 
 async function setupConfigStore(content = '{"mcpServers":[],"agents":{}}') {
   vi.resetModules();
@@ -17,7 +17,7 @@ async function setupConfigStore(content = '{"mcpServers":[],"agents":{}}') {
     },
     configurable: true,
   });
-  const { useConfigStore } = await import('./config');
+  const { useConfigStore } = await import('../config');
   const store = useConfigStore();
   await store.loadConfig();
   return { store, configWrite };

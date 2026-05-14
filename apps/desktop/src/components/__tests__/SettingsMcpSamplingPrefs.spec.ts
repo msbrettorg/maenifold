@@ -2,9 +2,9 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import { createPinia, setActivePinia } from 'pinia';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import SettingsMcpSamplingPrefs from './SettingsMcpSamplingPrefs.vue';
-import type { AgentsConfig } from '../lib/types';
-import { useConfigStore } from '../stores/config';
+import SettingsMcpSamplingPrefs from '../SettingsMcpSamplingPrefs.vue';
+import type { AgentsConfig } from '../../lib/types';
+import { useConfigStore } from '../../stores/config';
 
 const stubs = {
   Badge: { template: '<span><slot /></span>' },

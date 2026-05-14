@@ -25,7 +25,7 @@ const samplingHistoryStore = reactive({
   refresh: vi.fn(),
 });
 
-vi.mock('../stores/sampling-history', () => ({
+vi.mock('../../stores/sampling-history', () => ({
   useSamplingHistoryStore: () => samplingHistoryStore,
 }));
 
@@ -48,7 +48,7 @@ function makeEntry(overrides: Partial<SamplingHistoryEntry> = {}): SamplingHisto
 
 async function mountSubject(entries: SamplingHistoryEntry[]) {
   samplingHistoryStore.entries = entries;
-  const { default: SamplingHistory } = await import('./SamplingHistory.vue');
+  const { default: SamplingHistory } = await import('../SamplingHistory.vue');
   return mount(SamplingHistory, {
     global: {
       stubs: {

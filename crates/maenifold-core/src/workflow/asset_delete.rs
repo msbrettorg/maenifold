@@ -7,17 +7,25 @@ use regex::Regex;
 use serde_json::{Value, json};
 use serde_yml::Value as YamlValue;
 use std::fs;
-use std::sync::LazyLock;
+use std::io::ErrorKind;
+use std::sync::{LazyLock, Mutex};
 use walkdir::WalkDir;
 
-use super::pipeline::PipelineDefinition;
+use super::pipeline::{PipelineDefinition, session_lock_is_held};
 
 static WORKFLOW_ASSET_NAME: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("workflow asset name regex must compile")
 });
+// Process-local serialization is sufficient for maenifold's single-binary MCP asset store:
+// hold this lock across active-pipeline reference discovery and unlink to close the in-process
+// create-reference/delete race without adding a new cross-process lease format.
+static WORKFLOW_ASSET_DELETE_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
 pub(crate) fn delete_workflow_asset(context: &ToolContext, payload: &Value) -> Result<String> {
     let name = parse_workflow_asset_name(payload)?;
+    let _asset_store_guard = WORKFLOW_ASSET_DELETE_LOCK.lock().map_err(|_| {
+        MaenifoldError::Message("Workflow asset delete lock is poisoned".to_string())
+    })?;
     let references = running_pipeline_references(context, name)?;
     if !references.is_empty() {
         return Err(MaenifoldError::InvalidArgument(format!(
@@ -31,11 +39,21 @@ pub(crate) fn delete_workflow_asset(context: &ToolContext, payload: &Value) -> R
         .assets_path
         .join("workflows")
         .join(format!("{name}.json"));
-    let absolute_path = fs::canonicalize(&path)
-        .map_err(|_| MaenifoldError::AssetNotFound("workflow".to_string(), name.to_string()))?;
-    fs::remove_file(&absolute_path)?;
+    let metadata = fs::symlink_metadata(&path).map_err(|error| {
+        if error.kind() == ErrorKind::NotFound {
+            MaenifoldError::AssetNotFound("workflow".to_string(), name.to_string())
+        } else {
+            MaenifoldError::from(error)
+        }
+    })?;
+    if metadata.file_type().is_symlink() {
+        return Err(MaenifoldError::InvalidArgument(format!(
+            "Workflow asset '{name}' is a symlink; refusing to delete"
+        )));
+    }
+    fs::remove_file(&path)?;
 
-    let deleted_files = vec![absolute_path.to_string_lossy().to_string()];
+    let deleted_files = vec![path.to_string_lossy().to_string()];
     let result = json!({
         "name": name,
         "deletedFiles": deleted_files,
@@ -104,7 +122,11 @@ fn running_pipeline_references_workflow(
     if frontmatter.get("type").and_then(YamlValue::as_str) != Some("pipeline") {
         return Ok(false);
     }
-    if !is_running_pipeline_status(frontmatter.get("status").and_then(YamlValue::as_str)) {
+    if !is_active_pipeline_status(
+        session_id,
+        frontmatter.get("status").and_then(YamlValue::as_str),
+        context,
+    ) {
         return Ok(false);
     }
     let Some(definition_value) = frontmatter.get("definition").cloned() else {
@@ -117,11 +139,12 @@ fn running_pipeline_references_workflow(
         .any(|node| node.workflow_id() == Some(workflow_name)))
 }
 
-fn is_running_pipeline_status(status: Option<&str>) -> bool {
-    matches!(
-        status,
-        Some("active" | "running" | "retrying" | "pending" | "ready") | None
-    )
+fn is_active_pipeline_status(
+    session_id: &str,
+    stored_status: Option<&str>,
+    context: &ToolContext,
+) -> bool {
+    stored_status == Some("running") && session_lock_is_held(session_id, &context.config)
 }
 
 #[cfg(test)]

@@ -11,6 +11,9 @@ mod handler_helpers;
 #[path = "handler_inputs_validation_tests.rs"]
 mod handler_inputs_validation;
 mod handler_session;
+mod inputs_template;
+#[cfg(test)]
+mod inputs_template_tests;
 mod inputs_validation;
 pub mod output_parser;
 pub mod output_types;
@@ -41,13 +44,13 @@ pub(crate) use asset_delete::delete_workflow_asset;
 pub(crate) use asset_save::save_workflow_asset;
 pub(crate) use handler::workflow;
 pub(crate) use handler_helpers::{
-    build_workflow_response_content, format_workflow_step, parse_workflow_identifiers,
-    read_workflow_definition, set_current_step, workflow_steps,
+    build_workflow_response_content, format_workflow_step, format_workflow_step_with_inputs,
+    parse_workflow_identifiers, read_workflow_definition, set_current_step, workflow_steps,
 };
 pub(crate) use inputs_validation::validate_workflow_inputs;
 pub(crate) use queue::{
-    append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_queue,
-    start_workflow_session, view_workflow_session,
+    append_workflow_queue, frontmatter_usize, initial_workflow_frontmatter, read_workflow_inputs,
+    read_workflow_queue, start_workflow_session, view_workflow_session,
 };
 pub use runner::{WorkflowResult, WorkflowRunStatus};
 #[allow(unused_imports)]

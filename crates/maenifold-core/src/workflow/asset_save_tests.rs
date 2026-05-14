@@ -19,21 +19,18 @@ fn valid_ids_are_accepted() {
 fn invalid_ids_are_rejected() {
     for id in [
         "",
-        "MyWorkflow",          // uppercase
-        "my_workflow",         // underscore
-        "my workflow",         // space
-        "-leading",            // leading dash
-        "trailing-",           // trailing dash
-        "double--dash",        // consecutive dashes
-        "../../etc/passwd",    // path traversal
-        "a/b",                 // forward slash
-        r"a\b",                // backslash
-        "workflow.json",       // dot
+        "MyWorkflow",       // uppercase
+        "my_workflow",      // underscore
+        "my workflow",      // space
+        "-leading",         // leading dash
+        "trailing-",        // trailing dash
+        "double--dash",     // consecutive dashes
+        "../../etc/passwd", // path traversal
+        "a/b",              // forward slash
+        r"a\b",             // backslash
+        "workflow.json",    // dot
     ] {
-        assert!(
-            validate_workflow_id(id).is_err(),
-            "should reject '{id}'"
-        );
+        assert!(validate_workflow_id(id).is_err(), "should reject '{id}'");
     }
 }
 
@@ -94,8 +91,7 @@ fn save_workflow_asset_writes_file_and_returns_success() {
 
     let result = save_workflow_asset(&ctx, &payload).expect("save should succeed");
 
-    let parsed: serde_json::Value =
-        serde_json::from_str(&result).expect("response is JSON");
+    let parsed: serde_json::Value = serde_json::from_str(&result).expect("response is JSON");
     assert_eq!(parsed["success"], true);
     assert_eq!(parsed["data"]["id"], "test-flow");
 
@@ -156,4 +152,3 @@ fn save_workflow_asset_rejects_id_mismatch() {
     });
     assert!(save_workflow_asset(&ctx, &payload).is_err());
 }
-

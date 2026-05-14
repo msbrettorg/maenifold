@@ -3,7 +3,8 @@ use crate::markdown::{Frontmatter, append_h2_section, read_markdown, write_markd
 use crate::sessions::now_iso8601_roundtrip;
 use crate::tools::ToolContext;
 use crate::workflow::{
-    emit_workflow_resource_updated, format_workflow_step, read_workflow_definition, workflow_steps,
+    emit_workflow_resource_updated, format_workflow_step_with_inputs, read_workflow_definition,
+    read_workflow_inputs, workflow_steps,
 };
 use serde_json::json;
 use serde_yml::Value as YamlValue;
@@ -112,7 +113,8 @@ pub(crate) fn transition_to_next_workflow(
     let workflow_value = read_workflow_definition(&context.config, next_workflow_id)?;
     let next_steps = workflow_steps(&workflow_value, next_workflow_id)?;
     let next_step = next_steps.first().cloned().unwrap_or_else(|| json!({}));
-    let rendered_step = format_workflow_step(&next_step)?;
+    let inputs = read_workflow_inputs(&frontmatter);
+    let rendered_step = format_workflow_step_with_inputs(&next_step, &inputs)?;
     append_h2_section(
         workflow_uri,
         &format!("Step 1/{}", next_steps.len()),

@@ -7,10 +7,11 @@ use serde_yml::Value as YamlValue;
 
 use super::{
     HostSessionType, ResumeSubmachineResult, build_workflow_response_content,
-    emit_workflow_resource_updated, format_workflow_step, frontmatter_usize,
+    emit_workflow_resource_updated, format_workflow_step_with_inputs, frontmatter_usize,
     handle_cancelled_workflow_status, handle_completed_workflow_status, handle_queue_exhaustion,
-    maybe_resume_submachine, parse_submachine_type, read_workflow_definition, read_workflow_queue,
-    register_workflow_submachine, set_current_step, transition_to_next_workflow, workflow_steps,
+    maybe_resume_submachine, parse_submachine_type, read_workflow_definition, read_workflow_inputs,
+    read_workflow_queue, register_workflow_submachine, set_current_step,
+    transition_to_next_workflow, workflow_steps,
 };
 
 #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
@@ -192,7 +193,8 @@ fn advance_to_next_workflow_step(
             steps.len()
         ))
     })?;
-    let rendered_step = format_workflow_step(next_step)?;
+    let inputs = read_workflow_inputs(&frontmatter);
+    let rendered_step = format_workflow_step_with_inputs(next_step, &inputs)?;
     write_markdown(
         workflow_uri,
         Some(&frontmatter),

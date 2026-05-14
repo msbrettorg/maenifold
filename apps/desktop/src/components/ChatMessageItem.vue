@@ -17,6 +17,7 @@ const props = defineProps<{
   expandedToolCallIds: string[];
   isStreaming?: boolean;
   actionsDisabled?: boolean;
+  canReconnect?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -24,6 +25,7 @@ const emit = defineEmits<{
   'toggle-tool-call': [toolCallId: string];
   regenerate: [];
   edit: [{ text: string }];
+  reconnect: [];
 }>();
 
 const toolCalls = computed(() => props.message.toolCalls ?? []);
@@ -129,7 +131,12 @@ const isAssistant = computed(() => props.message.role === 'assistant');
           class="text-text-primary"
         />
 
-        <StopReasonBanner v-if="isAssistant" :stop-reason="message.stopReason" />
+        <StopReasonBanner
+          v-if="isAssistant"
+          :stop-reason="message.stopReason"
+          :can-reconnect="canReconnect"
+          @reconnect="emit('reconnect')"
+        />
       </CardContent>
     </Card>
 

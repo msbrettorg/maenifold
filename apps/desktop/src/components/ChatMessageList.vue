@@ -13,6 +13,7 @@ defineProps<{
   expandedToolCallIds: string[];
   pendingPermissionCount: number;
   isLoading: boolean;
+  canReconnect?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -22,6 +23,7 @@ const emit = defineEmits<{
   prefill: [text: string];
   regenerate: [messageId: string];
   edit: [{ messageId: string; text: string }];
+  reconnect: [];
 }>();
 
 const starterChips: { icon: Component; label: string }[] = [
@@ -58,12 +60,14 @@ const starterChips: { icon: Component; label: string }[] = [
       :message="message"
       :is-streaming="isLoading && message.role === 'assistant' && message === messages[messages.length - 1]"
       :actions-disabled="isLoading"
+      :can-reconnect="canReconnect"
       :expanded-thought-ids="expandedThoughtIds"
       :expanded-tool-call-ids="expandedToolCallIds"
       @toggle-thought="emit('toggle-thought', $event)"
       @toggle-tool-call="emit('toggle-tool-call', $event)"
       @regenerate="emit('regenerate', message.id)"
       @edit="emit('edit', { messageId: message.id, text: $event.text })"
+      @reconnect="emit('reconnect')"
     />
 
     <div v-if="pendingPermissionCount > 0" class="mt-4 px-4 py-3 rounded bg-bg-warning border border-border-subtle text-text-primary">

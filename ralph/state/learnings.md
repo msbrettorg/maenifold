@@ -2921,3 +2921,42 @@ The rollback heuristic (`exit_code != 0 → revert`) does not distinguish betwee
 11. **NEW (this iter):** Before recommending a git mechanism in a spec, empirically reproduce it in `/tmp/wt-test/`. Per-worktree info/exclude phantom (lesson 51) cost 5 minutes to verify; would have cost a full SWE iteration if dispatched without verification.
 12. **NEW (this iter):** When a fix touches the worktree-create script itself, the worktree used to test the fix was created with the OLD script — so the worktree under test still shows the bug. The TEST creates fresh worktrees with the NEW script and asserts on those. This is correct TDD — don't be confused that the testing-worktree itself shows the bug.
 13. **NEW (this iter):** Co-located follow-up filings: when SWE/red-team confession surfaces a real concern that's out of scope for the current task, file it as a NEW task in the same sprint (next free `<parent>.<n>` ID) immediately after passing the parent. T-303.4.28 and T-303.4.29 were filed in this iter with reproduction steps, fix candidates, and acceptance criteria already drafted from the SWE/red-team disclosures — saves a future iter from re-discovering.
+
+## 2026-05-13 — RALPH iter cont. (T-303.4.28 + T-303.4.29 — three-task close)
+
+### What shipped (since T-303.4.27)
+- **T-303.4.28** (P3, tdd) — SIGTERM/SIGINT/SIGHUP release lock + recovery hint. SWE escalated `(...)` subshell → `{...}` brace block; tests 17-19 added; all 19 pass. Branch worker-T-303.4.28 (commit ecc0c851f), merged at 2f3ce580b.
+- **T-303.4.29** (P3, tdd) — derive REPO_ROOT from common git dir so worktree-create from inside a worktree doesn't nest. SWE expanded scope to test file (PM authorized); test 20 added; PM-direct follow-up (d9df34c21) fixed cwd-resolution bug in test. All 20 pass from main repo cwd AND worker worktree cwd. Branch worker-T-303.4.29 (commit cd616bc1a), merged at HEAD.
+
+### Lessons appended
+
+57. **`(...)` subshell traps don't catch signals delivered to the parent.** When a script receives SIGTERM, the parent shell process gets it — the `(...)` subshell child does NOT. The subshell only sees the signal when it completes naturally. For lock cleanup that needs to fire on signals, use `{...}` brace block (current shell) with the trap installed there. Verified empirically — SWE for T-303.4.28 first tried the literal `trap INT TERM HUP EXIT` inside the subshell; tests 17/18 still failed with stale lock dirs.
+
+58. **`{...}` brace block + `trap - INT TERM HUP EXIT` (disarm) pattern** for "do the lock-protected work, release on any exit including signals, prevent double-release". The trap is installed in the current shell; the cleanup function disarms the trap after running. An explicit final cleanup call ensures release on the success path. `lock_acquired=0` guard prevents double-rmdir.
+
+59. **`git rev-parse --git-common-dir` returns absolute when called from a worktree, relative when called from the main repo.** Specifically `.git` (relative to cwd) or `../../.git` (relative to the path passed via `-C`). Resolution requires `cd <git-invocation-cwd> && cd ${COMMON_GIT_DIR}` — the relative path is relative to where git was invoked, not to the repo toplevel.
+
+60. **The fix for "REPO_ROOT in main repo" pattern that works in BOTH contexts:**
+   ```bash
+   COMMON_GIT_DIR="$(git rev-parse --git-common-dir)"
+   case "${COMMON_GIT_DIR}" in
+     /*) ;;
+     *) COMMON_GIT_DIR="$(cd "$(git rev-parse --show-toplevel)" && cd "${COMMON_GIT_DIR}" && pwd)" ;;
+   esac
+   REPO_ROOT="$(cd "$(dirname "${COMMON_GIT_DIR}")" && pwd)"
+   ```
+   For tests using `-C SCRIPT_DIR`, the case branch must `cd "${SCRIPT_DIR}"` (NOT show-toplevel) before cd-ing into the relative common-dir.
+
+61. **PM read-back of post-merge tests catches defects SWE didn't see.** SWE's verification was from worker-T-303.4.29 cwd where git returned absolute paths (case branch never fired). PM ran the test from main repo cwd post-merge, hit the relative-path resolution bug. PM-direct fix landed as a follow-up commit (d9df34c21). Standing rule for any change touching path resolution / git invocation: PM MUST re-run tests from BOTH worker worktree cwd AND main repo cwd post-merge.
+
+62. **Gate sequencing — always check gate_Status between stage transitions when the same agent role spans multiple PASS calls.** I called `gate_Pass` once with `agent: red-team` thinking I was advancing red→done; but the gate state was actually swe (because I'd skipped the explicit swe→red `gate_Pass`), so the call advanced swe→red. Required a SECOND `gate_Pass` to actually advance red→done. Standing pattern: BEFORE each `gate_Pass`, call `gate_Status` to see the current state; the agent name should match the CURRENT state (not the intended next one).
+
+63. **Skip formal post-work confession for clean blue-team work to save iter budget.** Per outer-loop protocol, confession is required for verification — but for simple tasks where the WorkResult is fully artifactable (test diff + test output exit code + cleanup verified), PM can independently verify all claims without the formal confession round. T-303.4.29 blue-team did this — saved ~5 minutes of confession dance for a clean test addition. Reserve formal confession for tasks with synthetic test harnesses, complex implementation choices, or PM-uncertainty about correctness.
+
+64. **Three-iter dogfooding loop closed.** T-303.4.27 → T-303.4.28 → T-303.4.29 — each subsequent task's worker worktree was created with the previous fix in place, validating in production conditions. T-303.4.27 worktree showed "?? todo, ?? done" before fix; T-303.4.28 worktree showed clean status (T-303.4.27 fix worked); T-303.4.29 worktree showed clean status + brace-block + signal traps. The fixes successfully self-applied to subsequent worktrees.
+
+### Pre-flight refinement for next iter
+
+14. **NEW (this iter):** When a fix touches path resolution or git invocation, PM must re-run tests from BOTH the worker worktree AND main repo cwd post-merge. Per lesson 61.
+15. **NEW (this iter):** Before each `gate_Pass`, call `gate_Status` to confirm the current state matches the agent name being passed. Per lesson 62.
+16. **NEW (this iter):** PM may skip formal confession when the WorkResult is fully artifactable from diff + test output + cleanup verification. Reserve confession for tasks with synthetic harnesses, complex implementation choices, or PM-uncertainty. Per lesson 63.

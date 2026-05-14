@@ -80,8 +80,7 @@ function statusForLabel(label: LiveStep['label']): WorkflowStep['status'] {
 }
 
 const currentWorkflowIndex = computed(() => {
-  const session = selectedSession.value as ({ current_workflow_index?: unknown } | null);
-  const index = session?.current_workflow_index;
+  const index = selectedSession.value?.current_workflow_index;
   return typeof index === 'number' && Number.isFinite(index) && index >= 0 ? index : 0;
 });
 

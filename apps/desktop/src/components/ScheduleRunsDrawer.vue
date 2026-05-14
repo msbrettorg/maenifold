@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
-import { Loader2, RotateCcw } from 'lucide-vue-next';
+import { Loader2, RotateCcw, Trash2 } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import {
   Sheet,
   SheetContent,
@@ -58,8 +59,10 @@ const { callTool, connect, connected } = useMcpClient();
 const runs = ref<ScheduleRunRow[]>([]);
 const expandedRunId = ref('');
 const loading = ref(false);
+const clearing = ref(false);
 const retryingRunId = ref('');
 const error = ref('');
+const clearError = ref('');
 let unsubscribe: (() => void) | null = null;
 let generation = 0;
 
@@ -158,6 +161,21 @@ async function retryRun(run: ScheduleRunRow): Promise<void> {
   }
 }
 
+async function confirmClearHistory(): Promise<void> {
+  if (clearing.value) return;
+  clearing.value = true;
+  clearError.value = '';
+  try {
+    if (!connected.value) await connect();
+    await callTool('Schedule', { action: 'clear_history', id: props.scheduleId });
+    await loadRuns();
+  } catch (clearHistoryError) {
+    clearError.value = clearHistoryError instanceof Error ? clearHistoryError.message : String(clearHistoryError);
+  } finally {
+    clearing.value = false;
+  }
+}
+
 watch(() => [props.open, props.scheduleId], () => {
   void resubscribe();
 }, { immediate: true });
@@ -174,7 +192,34 @@ onBeforeUnmount(() => {
       <SheetHeader>
         <SheetTitle>Schedule runs</SheetTitle>
         <SheetDescription>Recent runs and logs for {{ scheduleId }}.</SheetDescription>
+        <AlertDialog v-if="runs.length > 0">
+          <AlertDialogTrigger as-child>
+            <Button type="button" variant="destructive" size="sm" class="w-fit" :disabled="clearing">
+              <Loader2 v-if="clearing" class="h-3.5 w-3.5 animate-spin" />
+              <Trash2 v-else class="h-3.5 w-3.5" />
+              Clear history
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear run history?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Delete all run logs for {{ scheduleId }}? This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" :disabled="clearing" @click="confirmClearHistory">
+                Clear history
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetHeader>
+
+      <div v-if="clearError" class="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
+        {{ clearError }}
+      </div>
 
       <div v-if="error" class="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">
         {{ error }}

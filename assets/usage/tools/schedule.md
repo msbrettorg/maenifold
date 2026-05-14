@@ -5,10 +5,10 @@ Manages recurring agent tasks and automations.
 ## Parameters
 
 - `action` (string, required): `create`, `update`, `delete`, `list`, `get`,
-  `run_now`, `logs`, `preview`, `verify_installed`, `pause_all`,
+  `run_now`, `logs`, `clear_history`, `preview`, `verify_installed`, `pause_all`,
   `resume_all`, `set_all_enabled`, or `pause_status`.
 - `id` (string, required for `create`, `update`, `delete`, `get`, `run_now`,
-  and `logs`): Scheduled task ID.
+  `logs`, and `clear_history`): Scheduled task ID.
 - `schedule` (string, required for `create` and `preview`, optional for
   `update`): Schedule expression accepted by the scheduler parser.
 - `agent` (string, required for `create`, optional for `update`): ACP agent.
@@ -100,6 +100,24 @@ When not paused:
 ```
 
 **Warning (create / update during pause):** While pause-all is active, you cannot create or update a schedule with `enabled=true`. Resume first via `Schedule action=resume_all`, or save the schedule with `enabled=false`.
+
+## Log history actions
+
+`clear_history` deletes all files in the schedule log directory, verifies that
+no log files remain, and returns the resolved paths it removed.
+
+```json
+{ "action": "clear_history", "id": "daily-summary" }
+```
+
+```json
+{
+  "action": "clear_history",
+  "id": "daily-summary",
+  "deletedCount": 2,
+  "deletedFiles": ["/path/to/20260429T140000Z.log", "/path/to/20260429T150000Z.log"]
+}
+```
 
 ## Examples
 

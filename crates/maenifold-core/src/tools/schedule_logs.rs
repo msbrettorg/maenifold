@@ -4,7 +4,7 @@ use crate::schedule::ScheduleStore;
 use serde_json::{Value, json};
 use std::fs;
 use std::io::{Read, Seek, SeekFrom};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 const MAX_LOG_BYTES_PER_FILE: u64 = 64 * 1024;
 const MAX_TOTAL_LOG_BYTES: usize = 256 * 1024;
@@ -19,6 +19,55 @@ pub(super) fn get_logs(context: &ToolContext, payload: &Value) -> Result<String>
         .map_err(|error| MaenifoldError::Message(error.to_string()))?;
     let logs = read_recent_logs(&store.task_dir(id).join("logs"), limit)?;
     Ok(render(context.output_format, json!(logs)))
+}
+
+pub(super) fn clear_history(context: &ToolContext, payload: &Value) -> Result<String> {
+    let id = required_string(payload, "id")?;
+    let store = ScheduleStore::new(context.config.maenifold_root.join("schedules"));
+    store
+        .read(id)
+        .map_err(|_| MaenifoldError::InvalidArgument(format!("unknown scheduleId '{id}'")))?;
+    let log_dir = store.task_dir(id).join("logs");
+    let files = list_log_files(&log_dir)?;
+    let deleted_files = files
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>();
+    for path in files {
+        fs::remove_file(&path)?;
+    }
+    let remaining = list_log_files(&log_dir)?;
+    if !remaining.is_empty() {
+        return Err(MaenifoldError::Message(format!(
+            "failed to clear schedule history for '{}': {} log files remain",
+            id,
+            remaining.len()
+        )));
+    }
+    Ok(render(
+        context.output_format,
+        json!({
+            "action": "clear_history",
+            "id": id,
+            "deletedCount": deleted_files.len(),
+            "deletedFiles": deleted_files,
+        }),
+    ))
+}
+
+fn list_log_files(log_dir: &Path) -> Result<Vec<PathBuf>> {
+    if !log_dir.exists() {
+        return Ok(Vec::new());
+    }
+    let mut files = Vec::new();
+    for entry in fs::read_dir(log_dir)? {
+        let entry = entry?;
+        if entry.file_type()?.is_file() {
+            files.push(entry.path());
+        }
+    }
+    files.sort();
+    Ok(files)
 }
 
 fn read_recent_logs(log_dir: &Path, limit: usize) -> Result<Vec<Value>> {

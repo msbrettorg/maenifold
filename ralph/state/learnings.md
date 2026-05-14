@@ -3135,3 +3135,41 @@ mature spec.
 
 5 substantive items shipped. 3 follow-ups filed (1 ready for next iter
 with duo R1 already in the spec).
+
+## 2026-05-14 — RALPH iter-12 (3 sprint 304 items shipped)
+
+### What shipped
+- **T-304.21** (TDD, P2) — harden permission:resolve-decision IPC + v3 audit log. Full duo R2 → blue-team test contract → SWE → red-team → PM merge. 6 files, +826/-30 LOC. ~22 min.
+- **T-304.23** (SDD, P3) — consolidate dual NodeSqlitePermissionLedger classes. Filed during T-304.21 amendment 3, shipped same iter. 1 file, -331 LOC. ~6 min.
+- **T-304.24** (SDD, P3) — PermissionManagementDialog v3 audit field rendering. Filed during T-304.21 SWE phase, shipped same iter. 1 file, +44 LOC. ~14 min.
+
+Sprint 304 RALPH-converged. Remaining: T-304.0 umbrella (depends on UAT children), T-304.4 (superseded, awaiting user auth), UAT items (out of scope).
+
+### Lessons appended
+
+86. **Always grep for duplicate class/function names BEFORE finalizing file scope in a spec amendment.** T-304.21 spec round-2 listed 5 files; round-3 discovered there are TWO `NodeSqlitePermissionLedger` classes (lib + electron) with separate `permission_audit` CREATE statements. Schema migration must touch BOTH symmetrically. Filed T-304.23 for consolidation. Pre-flight: `grep -rn "export class <Name>" <scope>` before claiming scope is complete.
+
+87. **PRAGMA-detected migration is the right pattern for SQLite "drop NOT NULL" changes.** SQLite has no `ALTER COLUMN DROP NOT NULL`; only `ALTER ADD COLUMN`. The CREATE-INSERT-DROP-RENAME dance under a `BEGIN/COMMIT` block is the standard idiom. Wrap in PRAGMA-detected branch so it runs once on legacy DBs and is no-op on fresh installs.
+
+88. **IPC custom error subclass loses prototype across Electron's serialization boundary.** `Error.message` survives but `.code` doesn't. Standard pattern: encode the code into a JSON message at the throw site (`throw new Error(JSON.stringify({code, message}))`). Renderer can opt-in to parsing.
+
+89. **Architect-duo R3 can be skipped when R2 winner's recommendations are applied verbatim** (extends learning #79). T-304.21 amendment 3 directly applied gpt-5.5 R2's stated remediations (table-rebuild migration + token_replayed taxonomy fix); no R3 needed. Saved ~5-10 min iter budget. Standing rule: when amendment N+1 directly implements amendment N's BLOCKING winner's stated remediation language, skip review N+1 and proceed to next stage.
+
+90. **File same-iter follow-ups during the dispatch phase, not post-merge.** T-304.23 (consolidation) was filed BEFORE T-304.21 SWE finished (during spec amendment 3, when PM noticed the duplicated class). T-304.24 (UI rendering) was filed BEFORE merge (during PM diff verification, when PM noticed the dialog would mis-render new rejection rows). Both shipped same iter as filed because they had full specs at file-time. This generalizes learnings #75 + #84 to multi-task iters: ALWAYS file same-iter when you spot the gap, not after closing the parent task.
+
+91. **PRAGMA migration test should also verify post-migration writes work.** Blue-team's migration test for T-304.21 included BOTH directions: (a) legacy v1 row preserved with `source: null` for v3 fields, (b) post-migration insert with `decision: null` works. The second assertion is what catches "schema migration didn't actually drop NOT NULL" failure mode. Standing rule for any schema-evolution test: insert a NEW row that exercises the relaxed constraint.
+
+### Pre-flight refinements for next iter
+
+23. **NEW (this iter):** Grep for duplicate class/function definitions BEFORE finalizing file scope in any spec amendment that touches refactored shared logic. Per learning #86.
+
+24. **NEW (this iter):** When a spec amendment requires schema-evolution writes, the test contract MUST include a "post-migration insert with the relaxed constraint" assertion. Per learning #91.
+
+### Final-final iter ledger
+
+Shipped (3): T-304.21, T-304.23, T-304.24. All sprint 304.
+Filed and shipped same iter (2): T-304.23, T-304.24.
+Worktrees: 3 created + 3 cleaned (T-304.21, .23, .24).
+Memory notes: pending — will file at iter close commit.
+Sprint 304: RALPH-converged.
+Next iter: starts at sprint 305 (T-305.1 verify-installed probe; SDD pipeline).

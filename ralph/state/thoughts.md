@@ -115,3 +115,85 @@
 - **Pattern that worked best**: pre-impl rubber-duck (single or duo) BEFORE SWE dispatch. T-304.1 took 4 amendment cycles, T-304.13 took 2. Each cycle costs ~5-10 min vs a wasted SWE cycle (~15-20 min + lost context).
 - **Next iter starting point:** sprint 304 RALPH-converged. T-304.20 (the filed follow-up) is next-numbered actionable in sprint 304 — but it requires architect-duo decision between option (a) and option (b) BEFORE SWE dispatch. After T-304.20, iter advances to sprint 305 (schedule items, T-305.1 first).
 - **No convergence marker created** because UAT items + T-304.4 + T-304.20 remain in todo/ — sprint 304 not closed, just RALPH-converged for this iter.
+
+## Iter 2026-05-14 (RALPH iter-12) — T-304.21 in flight
+
+### Pipeline progress so far
+- Spec amendment 2 (initial honest narrowing + audit-log shape) → duo R2 dispatched.
+- gpt-5.5 R2 FAIL with 2 BLOCKING (schema NOT NULL prevents null decision; token_replayed taxonomy contradiction).
+- opus-4.6 R2 PASS-WITH-NOTES (4 helpful notes adopted: PRAGMA migration idempotency, IPC error JSON encoding, etc.).
+- Spec amendment 3 written addressing both blockers verbatim → R3 SKIPPED per learning #79 (winner's stated remediation == amendment).
+- Worktree created via worktree-create.sh.
+- Blue-team dispatched (TDD test contract).
+- **Discovered mid-flight:** TWO `NodeSqlitePermissionLedger` classes (`electron/permission-ledger.ts` + `lib/permission-ledger/node-sqlite-ledger.ts`). Lib version used by tests; electron version used at runtime. Spec amendment + write_agent message to blue-team to handle both.
+
+### Lessons in-flight (will append to learnings.md at iter close)
+
+86. **Always grep for duplicate class names BEFORE finalizing file scope in a spec amendment.** T-304.21 spec round-2 listed 5 files; round-3 discovered there are TWO `NodeSqlitePermissionLedger` classes with separate `permission_audit` CREATE statements — schema migration must touch BOTH. Filed T-304.23 (lib/electron permission-ledger consolidation, P3 follow-up). Pre-flight refinement: grep `class <Name>` and `function <Name>` patterns across the codebase before claiming file scope is complete.
+
+87. **PRAGMA-detected migration is the right pattern for SQLite "drop NOT NULL" changes.** SQLite has no `ALTER COLUMN DROP NOT NULL`; only `ALTER ADD COLUMN`. The CREATE-INSERT-DROP-RENAME dance under a `BEGIN/COMMIT` block is the standard idiom. Wrap in a PRAGMA-detected branch so it runs once on legacy DBs and is a no-op on fresh installs.
+
+88. **IPC custom error subclass loses prototype across Electron's serialization boundary.** `Error.message` survives but `.code` doesn't. Standard pattern: encode the code into a JSON message at the throw site (`throw new Error(JSON.stringify({code, message}))`). Renderer can opt-in to parsing.
+
+### In-flight follow-ups filed during this iter
+- T-304.23 (filed during T-304.21 amendment 3) — consolidate the two `NodeSqlitePermissionLedger` classes (electron vs lib) into a single shared implementation. P3, sdd. Rationale: the duplication caused this iter's spec scope churn and will cause more if not fixed.
+
+### Iter-12 update (T-304.21 SHIPPED, T-304.23 + T-304.24 in flight)
+
+- **T-304.21** ✅ done — merged at b04cae439. Full TDD pipeline: blue-team test contract (gpt-5.5, 14 failing tests, 421 LOC) → SWE impl (gpt-5.5, 4 files +400/-26 LOC) → red-team audit (claude-opus-4.6 PASS no blockers) → PM merge. ~22 min wall-clock.
+- **T-304.23** in flight — SDD pipeline. SWE dispatched (gpt-5.5) to consolidate the dual NodeSqlitePermissionLedger classes (lib + electron). Target: drop ~280 LOC from electron/permission-ledger.ts.
+- **T-304.24** in flight — SDD pipeline (PM-amended from tdd per learning #71). SWE dispatched (gpt-5.5) to update PermissionManagementDialog.vue rendering for the 4 audit row types (auto-decide / user-choice success / user-choice rejection / legacy).
+- Both T-304.23 + T-304.24 dispatched IN PARALLEL — different files, no contention.
+
+### Lessons appended this iter (will land in learnings.md at iter close)
+
+86. **Always grep for duplicate class/function names BEFORE finalizing file scope in a spec amendment.** T-304.21 round-2 spec listed 5 files; round-3 discovered there are TWO `NodeSqlitePermissionLedger` classes with separate `permission_audit` CREATE statements. Pre-flight: `grep -rn "export class <Name>" <scope>` before claiming scope is complete.
+
+87. **PRAGMA-detected migration is the right pattern for SQLite "drop NOT NULL" changes.** SQLite has no `ALTER COLUMN DROP NOT NULL`; only `ALTER ADD COLUMN`. The CREATE-INSERT-DROP-RENAME dance under `BEGIN/COMMIT` is the standard idiom. Wrap in PRAGMA-detected branch so it runs once on legacy DBs and is no-op on fresh installs.
+
+88. **IPC custom error subclass loses prototype across Electron's serialization boundary.** `Error.message` survives but `.code` doesn't. Standard pattern: encode the code into a JSON message at the throw site (`throw new Error(JSON.stringify({code, message}))`). Renderer can opt-in to parsing.
+
+89. **Architect-duo R3 can be skipped when R2 winner's recommendations are applied verbatim** (per existing learning #79). T-304.21 amendment 3 directly applied gpt-5.5 R2's stated remediations (table-rebuild migration + token_replayed taxonomy fix); no R3 needed. Saved ~5-10 min iter budget.
+
+90. **File same-iter follow-ups during the dispatch phase, not post-merge.** T-304.23 (consolidation) was filed BEFORE T-304.21 SWE finished (during spec amendment 3). T-304.24 (UI rendering) was filed BEFORE merge (during PM diff verification). Both shipped same iter as filed because they had full specs at file-time — proving learning #75/#84 generalize to multi-task iters.
+
+91. **PRAGMA migration test should also verify post-migration writes work.** Blue-team's migration test for T-304.21 included BOTH directions: (a) legacy v1 row preserved with `source: null` for v3 fields (b) post-migration insert with `decision: null` works. The second assertion is what catches the "schema migration didn't actually drop NOT NULL" failure mode. Standing rule for any schema-evolution test: insert a NEW row that exercises the relaxed constraint.
+
+### Iter close projection
+- 3 substantive items shipping (T-304.21 done; T-304.23 + T-304.24 in flight).
+- 0 follow-ups filed during this iter that aren't being shipped this iter (T-304.23 + .24 were filed AND shipped same iter).
+- Sprint 304 will be RALPH-converged after .23 + .24 land. Remaining sprint 304: UAT items + T-304.4 (superseded, awaiting user auth) + T-304.0 umbrella (depends on all children).
+- Next iter starts at sprint 305 (T-305.1 verify-installed probe).
+
+## Iter 2026-05-14 LATE (RALPH iter-12 close — 3 items shipped)
+
+- **Final ledger:** T-304.21 ✅ (TDD, P2), T-304.23 ✅ (SDD, P3), T-304.24 ✅ (SDD, P3). All sprint 304.
+- **Same-iter file-and-ship:** T-304.23 + T-304.24 were both filed during T-304.21's pipeline phases (during amendment 3 + during PM diff verification respectively) and shipped same iter. Both had concrete specs at file-time, enabling immediate dispatch.
+- **Total iter wall-clock:** ~50 min for the 3-task pipeline (architect-duo R2 + 4 stages × 3 tasks). Roughly 14 min/task average for SDD; longer for the TDD-pipeline T-304.21 that included the architect duo.
+- **Sprint 304 RALPH-converged.** Remaining open items in sprint 304:
+  - T-304.0 (umbrella) — depends on UAT children, can't close.
+  - T-304.4 (superseded by T-304.20 + filed-as-follow-up T-304.21; awaiting USER AUTHORIZATION to close, not within RALPH PM authority).
+  - T-304.2, .3, .6, .19 (UAT, out of RALPH scope).
+- **Next iter start:** sprint 305. First non-UAT item is T-305.1 (verify-installed probe, SDD, P1, cross-stack daemon + UI). Spec is short (36 LOC) — straightforward dispatch.
+
+### Standing directives reaffirmed
+- Lowest-numbered first remains absolute (T-304.21 → .23 → .24 done in order; .23/.24 filed AFTER .21 but were the lowest-numbered actionable in sprint 304 once .21 landed).
+- UAT items stay out of RALPH scope.
+- TDD remains default; SDD for cleanups + UI rendering changes that don't have strong test-first value.
+- Use inner-loop + gpt-5.5 for cross-stack SWE; rubber-duck/code-review (claude-opus-4.6) for review stages.
+- Always include MAIN REPO absolute spec path in dispatch prompts.
+- Same-SWE remediation via write_agent for narrow remediation cycles.
+- File same-iter follow-ups during dispatch, not post-merge (per new learning #90).
+
+### Iter-close health
+- All commits in dev branch; no orphan worker branches.
+- 3 worktrees created + cleaned this iter (T-304.21, .23, .24).
+- Memory notes: pending file at iter close commit (will be added in mae-auto/iterations/).
+- Lessons 86-91 + pre-flight 23-24 appended to learnings.md.
+
+### Next iter playbook (T-305.1)
+1. Read T-305.1 spec (36 LOC, schedules verify-installed probe).
+2. The work is cross-stack: Rust daemon-side probe (`crates/maenifold-core/src/tools/schedule_os.rs` likely) + UI badge + repair button.
+3. Pipeline = SDD per spec.
+4. Likely no architect duo needed (small focused work). Dispatch SWE directly with explicit spec narrowing if needed.
+5. After T-305.1 ships, T-305.2 (Pause-all toggle, TDD, P1) is next.

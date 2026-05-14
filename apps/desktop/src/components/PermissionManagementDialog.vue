@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   getDefaultPermissionLedger,
   type PermissionAuditEvent,
+  type PermissionRejectionReason,
   type PersistedPermissionDecision,
 } from '../lib/permission-ledger/ledger';
 
@@ -32,6 +33,46 @@ const groupedDecisions = computed(() => {
   }
   return [...groups.entries()];
 });
+
+type AuditBadgeVariant = 'default' | 'destructive' | 'secondary' | 'outline';
+
+function formatReason(reason: PermissionRejectionReason): string {
+  switch (reason) {
+    case 'token_invalid':
+      return 'invalid token';
+    case 'token_expired':
+      return 'expired token';
+    case 'option_mismatch':
+      return 'wrong option';
+    case 'scope_invalid':
+      return 'invalid scope';
+  }
+}
+
+function auditRowDescriptor(event: PermissionAuditEvent): {
+  label: string;
+  variant: AuditBadgeVariant;
+} {
+  if (event.source === 'main_auto_decide') {
+    if (event.decision === 'allow') return { label: 'Auto-allowed', variant: 'default' };
+    if (event.decision === 'reject') return { label: 'Auto-denied', variant: 'destructive' };
+  }
+
+  if (event.source === 'renderer_user_choice') {
+    if (event.decision === 'allow') return { label: 'User allowed', variant: 'default' };
+    if (event.decision === 'reject') return { label: 'User denied', variant: 'destructive' };
+    if (event.decision === null && event.rejectionReason !== null) {
+      return { label: `Rejected: ${formatReason(event.rejectionReason)}`, variant: 'destructive' };
+    }
+  }
+
+  if (event.source === null) {
+    if (event.decision === 'allow') return { label: 'Auto-allowed', variant: 'default' };
+    if (event.decision === 'reject') return { label: 'Auto-denied', variant: 'destructive' };
+  }
+
+  return { label: 'Unknown', variant: 'outline' };
+}
 
 async function refresh(): Promise<void> {
   const ledger = getDefaultPermissionLedger();
@@ -105,12 +146,15 @@ onMounted(refresh);
           No automatic decisions yet.
         </div>
         <div v-for="event in auditEvents" :key="event.id" class="grid grid-cols-[auto_1fr] gap-3 border-b border-border-subtle py-2 text-sm last:border-b-0">
-          <Badge :variant="event.decision === 'allow' ? 'default' : 'destructive'">
-            Auto-{{ event.decision === 'allow' ? 'allowed' : 'denied' }}
-          </Badge>
+          <Badge :variant="auditRowDescriptor(event).variant">{{ auditRowDescriptor(event).label }}</Badge>
           <div class="min-w-0">
             <div>{{ event.agent }} · {{ event.toolKind }} · {{ new Date(event.createdAt).toLocaleString() }}</div>
-            <div class="break-all font-mono text-xs text-text-secondary">{{ event.canonicalTarget ?? 'any target' }}</div>
+            <div class="break-all font-mono text-xs text-text-secondary">
+              {{ event.canonicalTarget ?? 'any target' }}
+              <template v-if="event.source === 'renderer_user_choice' && event.tokenId">
+                · token {{ event.tokenId.slice(0, 8) }}…
+              </template>
+            </div>
           </div>
         </div>
       </section>

@@ -13,6 +13,8 @@ mod acp_reaper;
 mod audit;
 pub(super) mod circuit_breaker;
 #[cfg(test)]
+mod active_session_persistence_tests;
+#[cfg(test)]
 mod conditional_extraction_tests;
 mod conditional_output;
 #[cfg(test)]

@@ -111,16 +111,43 @@ describe('WorkflowBrowser actions', () => {
     mocks.connect.mockResolvedValue(undefined)
   })
 
-  it('duplicate selects the row then calls store duplicate action', async () => {
+  it('duplicate calls the by-id store action without selecting the row', async () => {
     const { wrapper, store } = await mountBrowser()
     const selectSpy = vi.spyOn(store, 'selectWorkflow')
-    const duplicateSpy = vi.spyOn(store, 'duplicateCurrentWorkflow').mockResolvedValue('agent-review-copy')
+    const duplicateSpy = vi.spyOn(store, 'duplicateWorkflowById').mockResolvedValue('agent-review-copy')
 
     await wrapper.get('button[aria-label="Duplicate Agent Review"]').trigger('click')
     await flushPromises()
 
-    expect(selectSpy).toHaveBeenCalledWith('agent-review')
-    expect(duplicateSpy).toHaveBeenCalled()
+    expect(selectSpy).not.toHaveBeenCalledWith('agent-review')
+    expect(duplicateSpy).toHaveBeenCalledWith('agent-review')
+    wrapper.unmount()
+  })
+
+  it('clicking duplicate on a different workflow does not lose unsaved edits in the current one', async () => {
+    mocks.callTool.mockImplementation((tool: string, payload: { uri?: string }) => {
+      if (tool === 'ReadMcpResource') {
+        const id = payload.uri?.replace('asset://workflows/', '') ?? ''
+        return Promise.resolve(definition(id))
+      }
+      return Promise.resolve({ data: true })
+    })
+    const { wrapper, store } = await mountBrowser()
+    await store.selectWorkflow('reasoning-loop')
+    store.updateWorkflowName('Unsaved Reasoning Loop')
+    const selectSpy = vi.spyOn(store, 'selectWorkflow')
+
+    await wrapper.get('button[aria-label="Duplicate Agent Review"]').trigger('click')
+    await flushPromises()
+
+    expect(store.currentId).toBe('reasoning-loop')
+    expect(mocks.callTool).toHaveBeenCalledWith(
+      'SaveWorkflowAsset',
+      expect.objectContaining({ id: 'agent-review-copy' }),
+    )
+    expect(selectSpy).not.toHaveBeenCalledWith('agent-review')
+    expect(store.pendingWorkflowId).toBeNull()
+    expect(document.body.textContent).not.toContain('Discard workflow changes?')
     wrapper.unmount()
   })
 

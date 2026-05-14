@@ -209,7 +209,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     onMutate: resetSaveFeedback,
     rawJson,
   })
-  const { exportWorkflow, saveDraft, duplicateCurrentWorkflow } = createWorkflowLibrarySaveActions({
+  const { exportWorkflow, saveDraft, duplicateCurrentWorkflow, duplicateWorkflowById } = createWorkflowLibrarySaveActions({
     applyPendingImport,
     createNewWorkflow,
     currentDefinition,
@@ -290,7 +290,7 @@ export const useWorkflowLibraryStore = defineStore('workflow-library', () => {
     updateWorkflowSequentialThinkingEnabled,
     updateWorkflowMultiAgent,
     exportWorkflow, saveDraft,
-    duplicateCurrentWorkflow, canDuplicate,
+    duplicateCurrentWorkflow, duplicateWorkflowById, canDuplicate,
     clearSelection,
     setSearchQuery,
     setCategoryFilter,

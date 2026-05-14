@@ -163,8 +163,7 @@ async function handleRetry() {
 }
 
 async function handleDuplicateWorkflow(id: string) {
-  await store.selectWorkflow(id)
-  await store.duplicateCurrentWorkflow()
+  await store.duplicateWorkflowById(id)
 }
 
 async function handleDeleteWorkflow(id: string) {

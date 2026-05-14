@@ -1,9 +1,13 @@
 // Lifted from modelcontextprotocol/typescript-sdk@2c0c481cb9dbfd15c8613f765c940a5f5bace94d — MIT
-// Run with: pnpm tsx src/toolWithSampleServer.ts
+// Adapted to use the published @modelcontextprotocol/sdk@^1.29.0 because
+// @modelcontextprotocol/server@2.0.0-alpha.{1,2} (the package the source
+// repo's workspace points at) ships without `./stdio` in its npm `exports`
+// map. See T-303.4.24 closure for full reproduction. Same wire behavior.
+// Run with: pnpm tsx toolWithSampleServer.ts
 
-import { McpServer } from '@modelcontextprotocol/server';
-import { StdioServerTransport } from '@modelcontextprotocol/server/stdio';
-import * as z from 'zod/v4';
+import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { z } from 'zod';
 
 const mcpServer = new McpServer({
     name: 'tools-with-sample-server',

@@ -166,7 +166,7 @@ The `Pipeline` tool manages concurrency, ordering, and saturation. The PM builds
 - **Same file is forbidden parallel.** Add a serial edge between them.
 - **One agent per CDP session.** Visual audits get a dedicated lane with no parallel siblings.
 
-**Per-agent build isolation.** SWE prompt nodes set `CARGO_TARGET_DIR=target/agents/<task-id>` in their build commands. Workspace-global `target/` is reserved for blue-team and the human. Caches under `target/agents/<task-id>` are evicted after 7 days by `scripts/clean-stale-agent-caches.sh` (run with `--apply` to actually delete; dry-run by default).
+**Per-agent build isolation.** SWE prompt nodes set `CARGO_TARGET_DIR=target/agents/<task-id>` in their build commands. Workspace-global `target/` is reserved for blue-team and the human. Caches under `target/agents/<task-id>` are evicted after 7 days by `scripts/clean-stale-agent-caches.sh` (dry-run by default; pass `--apply` to delete). Run as part of the iter-end cleanup or via cron.
 
 **Anti-patterns the PM must not exhibit:**
 

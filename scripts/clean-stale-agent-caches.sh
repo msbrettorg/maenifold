@@ -4,7 +4,7 @@ set -euo pipefail
 # Evict stale per-agent Cargo build caches under target/agents/<task-id>.
 # The TTL defaults to 7 days and can be overridden with
 # MAENIFOLD_AGENT_CACHE_TTL_DAYS. The script is a dry run by default:
-# it lists cache directories and the bytes that would be reclaimed. Pass
+# it lists cache directories and the KB that would be reclaimed. Pass
 # --apply to actually delete stale caches.
 
 apply=0
@@ -35,13 +35,9 @@ case "$(uname -s)" in
   *) stat_mtime() { stat -c %Y "$1"; } ;;
 esac
 
-cache_size() {
-  if size_line="$(du -sb "$1" 2>/dev/null)"; then
-    printf '%s\n' "${size_line%%[[:space:]]*}"
-  else
-    size_line="$(du -sk "$1")"
-    printf '%s\n' "$(( ${size_line%%[[:space:]]*} * 1024 ))"
-  fi
+cache_kb() {
+  size_line="$(du -sk "$1")"
+  printf '%s\n' "${size_line%%[[:space:]]*}"
 }
 
 now="$(date +%s)"
@@ -56,8 +52,8 @@ while IFS= read -r path; do
     age_seconds=0
   fi
   age_days=$(( age_seconds / 86400 ))
-  size="$(cache_size "$path")"
-  printf '%dd  %s  %s\n' "$age_days" "$size" "$path"
+  size="$(cache_kb "$path")"
+  printf '%dd  %sK  %s\n' "$age_days" "$size" "$path"
   count=$(( count + 1 ))
 
   if (( age_days < ttl_days )); then
@@ -73,7 +69,7 @@ while IFS= read -r path; do
 done < <(find target/agents -mindepth 1 -maxdepth 1 -type d | sort)
 
 if (( apply == 1 )); then
-  echo "Reclaimed: $reclaimed bytes from $stale_count caches"
+  echo "Reclaimed: $reclaimed KB from $stale_count caches"
 else
-  echo "Total: $count caches, $reclaimed would-be reclaimed bytes"
+  echo "Total: $count caches, $reclaimed would-be reclaimed KB"
 fi

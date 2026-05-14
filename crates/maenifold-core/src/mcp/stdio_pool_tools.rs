@@ -1,5 +1,5 @@
 use crate::error::{MaenifoldError, Result};
-use crate::mcp::stdio_pool::ManagedServer;
+use crate::mcp::stdio_pool::{ManagedServer, StdioPool};
 use futures_util::stream::{FuturesUnordered, StreamExt};
 use rmcp::model::Tool;
 use std::collections::{BTreeMap, HashMap};
@@ -66,6 +66,20 @@ pub(super) fn ensure_replacement_tools(
         }
     }
     Ok(())
+}
+
+pub(super) fn all_gateway_tools(pool: &StdioPool) -> Vec<(String, Vec<Tool>)> {
+    pool.gateway_tools
+        .read()
+        .unwrap_or_else(|error| error.into_inner())
+        .clone()
+}
+
+pub(super) fn all_gateway_descriptions(pool: &StdioPool) -> BTreeMap<String, String> {
+    pool.gateway_descriptions
+        .read()
+        .unwrap_or_else(|error| error.into_inner())
+        .clone()
 }
 
 pub(super) async fn shutdown_servers(servers: HashMap<String, ManagedServer>) {

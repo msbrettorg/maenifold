@@ -1,12 +1,13 @@
 use crate::error::{JSONRPC_INVALID_PARAMS, MaenifoldError, Result};
 use crate::mcp::stdio_pool_health::{RestartState, lock_state};
 pub use crate::mcp::stdio_pool_health::{ServerStartupStatus, StdioPoolHealth, StdioServerHealth};
+use crate::mcp::stdio_pool_prompts::collect_gateway_prompts;
 use crate::mcp::stdio_pool_tools::{collect_gateway_tools, shutdown_servers};
 use crate::mcp::stdio_session::{StdioSession, StdioStartupError};
 use crate::mcp::{PendingRequestRegistry, SamplingSessionRegistry};
 use agent_client_protocol_schema::{EnvVariable, McpServerStdio as McpServerStdioConfig};
 use futures_util::stream::{FuturesUnordered, StreamExt};
-use rmcp::model::{CallToolResult, ReadResourceResult, Tool};
+use rmcp::model::{CallToolResult, GetPromptResult, Prompt, ReadResourceResult, Tool};
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::{Arc, Mutex as StdMutex, RwLock as StdRwLock, RwLockReadGuard};
@@ -18,6 +19,7 @@ pub struct StdioPool {
     pub(super) servers: RwLock<HashMap<String, ManagedServer>>,
     pub(super) tools: StdRwLock<Vec<Tool>>,
     pub(super) gateway_tools: StdRwLock<Vec<(String, Vec<Tool>)>>,
+    pub(super) gateway_prompts: StdRwLock<Vec<(String, Vec<Prompt>)>>,
     pub(super) gateway_descriptions: StdRwLock<BTreeMap<String, String>>,
     pub(super) pending_request_registry: Arc<PendingRequestRegistry>,
     pub(super) sampling_registry: Arc<SamplingSessionRegistry>,
@@ -142,10 +144,12 @@ impl StdioPool {
                 return Err(error);
             }
         };
+        let gateway_prompts = collect_gateway_prompts(&started);
         Ok(Self {
             servers: RwLock::new(started),
             tools: StdRwLock::new(tools),
             gateway_tools: StdRwLock::new(gateway_tools),
+            gateway_prompts: StdRwLock::new(gateway_prompts),
             gateway_descriptions: StdRwLock::new(gateway_descriptions),
             pending_request_registry: registry,
             sampling_registry,
@@ -174,21 +178,15 @@ impl StdioPool {
         })
         .await
     }
+    pub async fn get_prompt(&self, server_name: &str, name: &str, arguments: Option<serde_json::Map<String, Value>>) -> Result<GetPromptResult> {
+        crate::mcp::stdio_pool_prompts::get_prompt(self, server_name, name, arguments).await
+    }
     pub fn all_tools(&self) -> Vec<Tool> {
         lock_tools(&self.tools).clone()
     }
-    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> {
-        self.gateway_tools
-            .read()
-            .unwrap_or_else(|error| error.into_inner())
-            .clone()
-    }
-    pub fn all_gateway_descriptions(&self) -> BTreeMap<String, String> {
-        self.gateway_descriptions
-            .read()
-            .unwrap_or_else(|error| error.into_inner())
-            .clone()
-    }
+    pub fn all_gateway_tools(&self) -> Vec<(String, Vec<Tool>)> { crate::mcp::stdio_pool_tools::all_gateway_tools(self) }
+    pub fn all_gateway_prompts(&self) -> Vec<(String, Vec<Prompt>)> { crate::mcp::stdio_pool_prompts::all_gateway_prompts(self) }
+    pub fn all_gateway_descriptions(&self) -> BTreeMap<String, String> { crate::mcp::stdio_pool_tools::all_gateway_descriptions(self) }
     pub async fn shutdown(&self) {
         let sessions = {
             let mut servers = self.servers.write().await;
@@ -197,25 +195,17 @@ impl StdioPool {
                 .filter_map(|server| server.session)
                 .collect::<Vec<_>>()
         };
-        *self
-            .tools
-            .write()
-            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self
-            .gateway_tools
-            .write()
-            .unwrap_or_else(|error| error.into_inner()) = Vec::new();
-        *self
-            .gateway_descriptions
-            .write()
-            .unwrap_or_else(|error| error.into_inner()) = BTreeMap::new();
+        *self.tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self.gateway_tools.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self.gateway_prompts.write().unwrap_or_else(|error| error.into_inner()) = Vec::new();
+        *self.gateway_descriptions.write().unwrap_or_else(|error| error.into_inner()) = BTreeMap::new();
         let mut shutdowns = FuturesUnordered::new();
         for session in sessions {
             shutdowns.push(async move { session.shutdown().await });
         }
         while shutdowns.next().await.is_some() {}
     }
-    async fn with_restart<T: Send>(
+    pub(super) async fn with_restart<T: Send>(
         &self,
         server_name: &str,
         f: impl Fn(

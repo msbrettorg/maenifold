@@ -1,16 +1,55 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Prompt } from '@modelcontextprotocol/sdk/types';
 import {
   getMcpPromptCommandMeta,
   hasMcpPromptArguments,
   toMcpPromptCommands,
+  useMcpPromptCommands,
 } from '../useMcpPromptCommands';
+
+const mocks = vi.hoisted(() => ({
+  callTool: vi.fn(),
+  connect: vi.fn(),
+  connected: { value: true },
+  listPrompts: vi.fn(),
+  onPromptListChanged: vi.fn(() => () => undefined),
+}));
+
+vi.mock('../usePipelineMcp', () => ({
+  getSharedMcpClient: () => ({
+    callTool: mocks.callTool,
+    connect: mocks.connect,
+    connected: mocks.connected,
+  }),
+}));
+
+vi.mock('../useMcpPrompts', () => ({
+  useMcpPrompts: () => ({
+    listPrompts: mocks.listPrompts,
+    onPromptListChanged: mocks.onPromptListChanged,
+  }),
+}));
 
 function prompt(name: string, description?: string, args: Prompt['arguments'] = []): Prompt {
   return { name, description, arguments: args };
 }
 
+async function flushPromises(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
+}
+
 describe('useMcpPromptCommands', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    mocks.callTool.mockReset();
+    mocks.connect.mockReset();
+    mocks.connected.value = true;
+    mocks.listPrompts.mockReset();
+    mocks.onPromptListChanged.mockClear();
+    mocks.onPromptListChanged.mockReturnValue(() => undefined);
+  });
+
   it('returns an empty command list when no prompts are advertised', () => {
     expect(toMcpPromptCommands([{ serverName: 'server-everything', prompts: [] }])).toEqual([]);
   });
@@ -56,6 +95,18 @@ describe('useMcpPromptCommands', () => {
     ]);
   });
 
+  it('multi source groups produce per-server commands for overlapping names', () => {
+    const commands = toMcpPromptCommands([
+      { serverName: 'A', prompts: [prompt('summarize')] },
+      { serverName: 'B', prompts: [prompt('summarize')] },
+    ]);
+
+    expect(commands.map((command) => command.name)).toEqual([
+      'mcp.A.summarize',
+      'mcp.B.summarize',
+    ]);
+  });
+
   it('includes prompt argument metadata and command input hint', () => {
     const commands = toMcpPromptCommands([
       {
@@ -78,5 +129,42 @@ describe('useMcpPromptCommands', () => {
         { name: 'count', description: 'Repeat count' },
       ],
     });
+  });
+
+  it('refresh calls DiscoverMcpPrompts via gateway', async () => {
+    mocks.callTool.mockResolvedValue([
+      { server: 'fixtureA', prompts: [prompt('summarize', 'from A')] },
+      { server: 'fixtureB', prompts: [prompt('summarize', 'from B')] },
+    ]);
+
+    const client = useMcpPromptCommands();
+    await flushPromises();
+
+    expect(mocks.callTool).toHaveBeenCalledWith('DiscoverMcpPrompts', {});
+    expect(client.commands.value.map((command) => command.name)).toEqual([
+      'mcp.fixtureA.summarize',
+      'mcp.fixtureB.summarize',
+    ]);
+  });
+
+  it('refresh falls back to listPrompts on empty DiscoverMcpPrompts result', async () => {
+    mocks.callTool.mockResolvedValue([]);
+    mocks.listPrompts.mockResolvedValue([prompt('foo')]);
+
+    const client = useMcpPromptCommands();
+    await flushPromises();
+
+    expect(client.commands.value.map((command) => command.name)).toEqual(['mcp.default.foo']);
+  });
+
+  it('refresh handles DiscoverMcpPrompts errors gracefully', async () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.callTool.mockRejectedValue(new Error('gateway unavailable'));
+
+    const client = useMcpPromptCommands();
+    await flushPromises();
+
+    expect(client.commands.value).toEqual([]);
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 });

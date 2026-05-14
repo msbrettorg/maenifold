@@ -13,8 +13,8 @@ import {
 import SchemaFormRenderer from './SchemaFormRenderer.vue';
 import type { AvailableCommand } from '../lib/types';
 import { useMcpCompletion } from '../composables/useMcpCompletion';
-import { getMcpPromptCommandMeta } from '../composables/useMcpPromptCommands';
-import { useMcpPrompts } from '../composables/useMcpPrompts';
+import { getMcpPromptCommandMeta, parseGetPromptResult } from '../composables/useMcpPromptCommands';
+import { getSharedMcpClient } from '../composables/usePipelineMcp';
 
 const props = defineProps<{
   command: AvailableCommand | null;
@@ -27,7 +27,7 @@ const emit = defineEmits<{
   error: [message: string];
 }>();
 
-const prompts = useMcpPrompts();
+const mcpClient = getSharedMcpClient();
 const completion = useMcpCompletion();
 const formValues = ref<Record<string, unknown>>({});
 const isSubmitting = ref(false);
@@ -143,7 +143,13 @@ async function submitPrompt(): Promise<void> {
     const args = Object.fromEntries(
       Object.entries(formValues.value).filter(([, value]) => value !== undefined && value !== '')
     );
-    const result: GetPromptResult = await prompts.getPrompt(meta.value.promptName, args as Record<string, string>);
+    if (!mcpClient.connected.value) await mcpClient.connect();
+    const raw = await mcpClient.callTool('GetMcpPrompt', {
+      server: meta.value.serverName,
+      name: meta.value.promptName,
+      arguments: args,
+    });
+    const result: GetPromptResult = parseGetPromptResult(raw);
     emit('resolved', result.messages);
     emit('update:open', false);
   } catch (error) {

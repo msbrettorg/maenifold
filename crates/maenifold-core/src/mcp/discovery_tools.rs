@@ -3,18 +3,37 @@
 use crate::acp_config::AgentsConfig;
 use crate::api::mcp_discovery;
 use crate::config::Config;
+use crate::error::MaenifoldError;
 use crate::mcp::gateway_handler::GatewayState;
-use rmcp::model::{CallToolResult, Content};
+use rmcp::model::{CallToolResult, Content, Prompt};
 use schemars::JsonSchema;
-use serde::Deserialize;
-use serde_json::{Value, json};
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value, json};
 use std::sync::Arc;
 
-const DISCOVERY_TOOLS: &[&str] = &["DiscoverMcpTools"];
+const DISCOVERY_TOOLS: &[&str] = &["DiscoverMcpTools", "DiscoverMcpPrompts", "GetMcpPrompt"];
 
 #[derive(Debug, Default, Deserialize, JsonSchema)]
 #[serde(default)]
 pub(crate) struct DiscoverMcpToolsParams {}
+
+#[derive(Debug, Default, Deserialize, JsonSchema)]
+#[serde(default)]
+pub(crate) struct DiscoverMcpPromptsParams {}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct GetMcpPromptParams {
+    pub(crate) server: String,
+    pub(crate) name: String,
+    pub(crate) arguments: Option<Map<String, Value>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct McpPromptDiscoveryResult {
+    server: String,
+    prompts: Vec<Prompt>,
+}
 
 pub(crate) fn is_discovery_tool(tool_name: &str) -> bool {
     DISCOVERY_TOOLS.contains(&tool_name)
@@ -39,6 +58,20 @@ pub(crate) async fn handle_gateway_tool_call(
                 serde_json::from_value(arguments).map_err(invalid_params)?;
             let results = discover_mcp_tools(gateway).await;
             let output = serde_json::to_string_pretty(&results).map_err(internal_error)?;
+            Ok(CallToolResult::success(vec![Content::text(output)]))
+        }
+        "DiscoverMcpPrompts" => {
+            let _params: DiscoverMcpPromptsParams =
+                serde_json::from_value(arguments).map_err(invalid_params)?;
+            let results = discover_mcp_prompts(gateway).await;
+            let output = serde_json::to_string_pretty(&results).map_err(internal_error)?;
+            Ok(CallToolResult::success(vec![Content::text(output)]))
+        }
+        "GetMcpPrompt" => {
+            let params: GetMcpPromptParams =
+                serde_json::from_value(arguments).map_err(invalid_params)?;
+            let result = get_mcp_prompt(gateway, params).await?;
+            let output = serde_json::to_string_pretty(&result).map_err(internal_error)?;
             Ok(CallToolResult::success(vec![Content::text(output)]))
         }
         _ => Err(rmcp::ErrorData::invalid_params(
@@ -94,10 +127,78 @@ async fn discover_mcp_tools(
     results
 }
 
+async fn discover_mcp_prompts(gateway: Option<&GatewayState>) -> Vec<McpPromptDiscoveryResult> {
+    gateway
+        .map(|gateway| {
+            gateway
+                .pool()
+                .all_gateway_prompts()
+                .into_iter()
+                .map(|(server, prompts)| McpPromptDiscoveryResult { server, prompts })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+async fn get_mcp_prompt(
+    gateway: Option<&GatewayState>,
+    params: GetMcpPromptParams,
+) -> std::result::Result<rmcp::model::GetPromptResult, rmcp::ErrorData> {
+    let gateway = gateway.ok_or_else(|| {
+        rmcp::ErrorData::invalid_params(
+            format!("Gateway: unknown server '{}'", params.server),
+            Some(json!(null)),
+        )
+    })?;
+    gateway
+        .pool()
+        .get_prompt(&params.server, &params.name, params.arguments)
+        .await
+        .map_err(maenifold_error)
+}
+
 fn invalid_params(error: impl std::fmt::Display) -> rmcp::ErrorData {
     rmcp::ErrorData::invalid_params(error.to_string(), Some(json!(null)))
 }
 
 fn internal_error(error: impl std::fmt::Display) -> rmcp::ErrorData {
     rmcp::ErrorData::internal_error(error.to_string(), Some(json!(null)))
+}
+
+fn maenifold_error(error: MaenifoldError) -> rmcp::ErrorData {
+    match error {
+        MaenifoldError::JsonRpc {
+            code,
+            message,
+            data,
+        } if code == crate::error::JSONRPC_INVALID_PARAMS => {
+            rmcp::ErrorData::invalid_params(message, Some(data))
+        }
+        other => internal_error(other),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn discover_mcp_prompts_returns_empty_when_no_pool() {
+        assert!(discover_mcp_prompts(None).await.is_empty());
+    }
+
+    #[tokio::test]
+    async fn get_mcp_prompt_unknown_server_returns_error() {
+        let error = get_mcp_prompt(
+            None,
+            GetMcpPromptParams {
+                server: "missing".to_string(),
+                name: "summarize".to_string(),
+                arguments: None,
+            },
+        )
+        .await
+        .expect_err("missing gateway should fail");
+        assert!(error.message.contains("unknown server 'missing'"));
+    }
 }

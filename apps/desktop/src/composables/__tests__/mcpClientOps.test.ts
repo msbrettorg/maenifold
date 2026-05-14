@@ -36,12 +36,14 @@ function createOps(
 }
 
 describe('createMcpClientOps gateway routing', () => {
-  it('allowlist contains all 8 canonical passthrough MCP tools', () => {
+  it('allowlist contains all 10 canonical passthrough MCP tools', () => {
     expect(gatewayPassthroughTools.has('GatewayIndex')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayExecute')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayBatch')).toBe(true);
     expect(gatewayPassthroughTools.has('GatewayIntent')).toBe(true);
     expect(gatewayPassthroughTools.has('DiscoverMcpTools')).toBe(true);
+    expect(gatewayPassthroughTools.has('DiscoverMcpPrompts')).toBe(true);
+    expect(gatewayPassthroughTools.has('GetMcpPrompt')).toBe(true);
     expect(gatewayPassthroughTools.has('gate_Create')).toBe(true);
     expect(gatewayPassthroughTools.has('ReadMcpResource')).toBe(true);
     expect(gatewayPassthroughTools.has('GetHelp')).toBe(true);

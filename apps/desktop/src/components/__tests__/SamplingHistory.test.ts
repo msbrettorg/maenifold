@@ -14,6 +14,8 @@ type SamplingHistoryEntry = {
   status: string;
   decision: string;
   createdAt: string;
+  toolCallCount?: number;
+  toolLoopBudget?: number;
   tokenUsage: { inputTokens: number; outputTokens: number } | null;
 };
 
@@ -63,7 +65,7 @@ describe('SamplingHistory', () => {
     wrapper.unmount();
   });
 
-  it('renders one row per entry with all 6 columns (Time, Server, Model, Decision, Status, Tokens)', async () => {
+  it('renders one row per entry with all 7 columns (Time, Server, Model, Decision, Status, Tool calls, Tokens)', async () => {
     const entries = [
       makeEntry({ serverName: 'github', model: 'gpt-5.4' }),
       makeEntry({
@@ -77,7 +79,7 @@ describe('SamplingHistory', () => {
 
     const wrapper = await mountSamplingHistory(entries);
 
-    for (const heading of ['Time', 'Server', 'Model', 'Decision', 'Status', 'Tokens']) {
+    for (const heading of ['Time', 'Server', 'Model', 'Decision', 'Status', 'Tool calls', 'Tokens']) {
       expect(wrapper.text()).toContain(heading);
     }
     const rows = wrapper.findAll('tbody tr');
@@ -86,18 +88,19 @@ describe('SamplingHistory', () => {
     expect(rows[0]?.text()).toContain('gpt-5.4');
     expect(rows[0]?.text()).toContain('allow_once');
     expect(rows[0]?.text()).toContain('completed');
-    expect(rows[0]?.findAll('td')).toHaveLength(6);
-    expect(rows[0]?.findAll('td')[5]?.text()).toContain('12');
-    expect(rows[0]?.findAll('td')[5]?.text()).toContain('34');
+    expect(rows[0]?.findAll('td')).toHaveLength(7);
+    expect(rows[0]?.findAll('td')[5]?.text()).toContain('Tool calls:');
+    expect(rows[0]?.findAll('td')[6]?.text()).toContain('12');
+    expect(rows[0]?.findAll('td')[6]?.text()).toContain('34');
     expect(rows[1]?.text()).toContain('filesystem');
     expect(rows[1]?.text()).toContain('claude-sonnet-4.6');
-    expect(rows[1]?.findAll('td')).toHaveLength(6);
+    expect(rows[1]?.findAll('td')).toHaveLength(7);
     wrapper.unmount();
   });
 
   it('renders "not reported" for tokenUsage === null', async () => {
     const wrapper = await mountSamplingHistory([makeEntry({ tokenUsage: null })]);
-    const tokenCell = wrapper.findAll('tbody tr')[0]?.findAll('td')[5];
+    const tokenCell = wrapper.findAll('tbody tr')[0]?.findAll('td')[6];
 
     expect(tokenCell?.text()).toBe('not reported');
     wrapper.unmount();

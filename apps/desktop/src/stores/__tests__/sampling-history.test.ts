@@ -28,10 +28,12 @@ type SamplingHistoryStore = {
 };
 
 const readResource = vi.fn();
+const subscribeResource = vi.fn().mockResolvedValue(() => Promise.resolve());
 
 vi.mock('../../composables/useMcpResources', () => ({
   useMcpResources: () => ({
     readResource,
+    subscribeResource,
   }),
 }));
 
@@ -77,6 +79,8 @@ describe('sampling-history store', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     readResource.mockReset();
+    subscribeResource.mockReset();
+    subscribeResource.mockResolvedValue(() => Promise.resolve());
   });
 
   it('sampling-history store loads entries from sampling://sessions on init', async () => {

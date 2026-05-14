@@ -112,24 +112,29 @@ You are the PM. The PM does the full lifecycle, not just task dispatch. **In one
 
 ### D.1 Concurrency floor (NON-NEGOTIABLE)
 
-**If a ready task is not blocked, it MUST be dispatched. Period. No excuses.**
+**ALL tasks in the sprint MUST be in flight in parallel unless they have an explicit dependency. Period. No excuses.**
 
-- **Floor: ≥3 active SWE lanes at all times** when the board has ≥3 ready independent tasks.
-- **Ceiling: 4 SWE lanes** (per Lesson 102, the working-set cap; reaped once their stage closes).
-- **Saturation rule before any single-task verification work:** when you finish writing a confession audit, a red-team prompt, a blue-team prompt, OR you finish merging a task, your IMMEDIATE next action is `list_agents` count → if active SWEs <3, dispatch the next ready task BEFORE doing anything else.
+The PM's job at iter start is to dispatch every ready task in the sprint as a SWE in its own worktree, simultaneously. The only valid reason a task is NOT in flight is:
+
+1. It has an explicit `depends_on:` in its frontmatter pointing at a task that is not yet in `done/`, OR
+2. It edits the SAME file as a task that already has a SWE in flight (file contention — serialize), OR
+3. It's a UAT item (out of RALPH scope per protocol).
+
+Anything else is a process violation. "I'm waiting for red-team on T-X" is NOT a reason to delay T-Y. "I'm writing a confession audit" is NOT a reason to delay T-Z. The PM is the dispatcher; dispatch is THE job.
+
+**Saturation rule:** the active SWE-lane count must equal `min(ready_tasks_in_sprint, max_practical_concurrency)`. There is no upper-bound concept of "too many in flight" — only the per-runtime ceiling enforced by Lesson 102 (reap completed-stage agents from the working set so payload doesn't grow unbounded). If 7 P1 tasks are ready and 6 are independent, you have 6 SWEs in flight. Not 2. Not 4. Six.
+
 - **Iter-14 anti-pattern:** the PM ran T-305.3 → wait → red-team → wait → blue-team → wait → merge → THEN started T-305.4. That is one-task-at-a-time serial execution dressed up as "process discipline." It IS process failure. Iter-14 had 4 P1 tasks ready at hour 0 (T-305.2, T-305.3, T-305.4, T-305.5) — they should have been dispatched as a wave in the first 5 minutes, not over 90 minutes serially.
 
 ### D.2 Wave-0 dispatch rules
 
-At iter start AND after every gate transition:
+**At iter start: the FIRST action is to dispatch a SWE for every ready task in the sprint, simultaneously, in one tool-call batch.** Not after spec amendments. Not after architect duo review. Not after any other prep. Read the backlog → identify ready tasks → batch-dispatch.
 
-1. List ALL ready tasks (`gate_Status` → state=pending OR state=blue-team OR state=swe → no unmet deps).
-2. Identify file/CDP/process contention groups. Tasks in different groups are parallel-safe.
-3. Dispatch UP TO `min(ready_count, 4 - active_count)` SWEs immediately.
-4. The architect-duo review for any spec MUST happen in parallel with already-running SWE work, NEVER as a serial gate that blocks dispatch.
-5. If the only "blocker" is "I want to wait until T-305.X red-team finishes" — that's not a blocker. Dispatch T-305.Y SWE in parallel.
+Spec amendments and architect-duo reviews happen IN PARALLEL with already-running SWE work, never as a serial gate. If a spec needs amendment before dispatch, do that amendment in the SAME response that dispatches the unrelated tasks.
 
 **Define "ready":** a task is ready iff (a) it's in `todo/` with state=pending or stage in-progress, AND (b) every dep listed in its frontmatter is in `done/`, AND (c) it doesn't share a same-file edit surface with a currently-active SWE lane.
+
+**At each gate transition:** re-list ready tasks. If any is not currently in flight AND not blocked, dispatch it before doing anything else.
 
 ### D.3 Decomposition — CARVE BEFORE DISPATCH
 

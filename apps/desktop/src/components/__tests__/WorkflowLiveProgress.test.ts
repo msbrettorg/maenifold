@@ -63,12 +63,13 @@ vi.mock('../../composables/usePipelineMcp', () => ({
   }),
 }));
 
-function session(status: string, currentStep: number, stepTimings = {}) {
+function session(status: string, currentStep: number, stepTimings = {}, currentWorkflowIndex = 0) {
   return {
     id: 'wf-session-1',
     uri: 'memory://thinking/workflow/wf-session-1',
     status,
     workflow_id: 'demo-workflow',
+    current_workflow_index: currentWorkflowIndex,
     current_step: currentStep,
     total_steps: 2,
     started_at: '2026-04-29T12:00:00Z',
@@ -316,6 +317,25 @@ describe('WorkflowLiveProgress', () => {
     });
 
     expect(wrapper.text()).toContain('Duration: 1.2s');
+  });
+
+  it('renders per-step duration for second workflow in queue', () => {
+    const pinia = createPinia();
+    setActivePinia(pinia);
+    const store = useWorkflowStore();
+    store.selectedSession = session('active', 1, {
+      '2:1': {
+        started_at: '2026-04-29T12:00:00Z',
+        ended_at: '2026-04-29T12:00:05Z',
+      },
+    }, 1);
+
+    const wrapper = mount(WorkflowLiveProgress, {
+      props: { workflowName: 'Demo workflow' },
+      global: { plugins: [pinia] },
+    });
+
+    expect(wrapper.text()).toContain('Duration: 5s');
   });
 
   it('hides duration label when step has no timing', () => {

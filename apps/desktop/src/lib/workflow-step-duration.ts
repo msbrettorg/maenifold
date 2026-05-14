@@ -11,8 +11,10 @@ export function formatDurationMs(ms: number): string {
 export function stepDurationLabel(
   stepTimings: WorkflowStepTimings | undefined,
   stepNumber: number,
+  workflowIndex: number = 0,
 ): string {
-  const timing = stepTimings?.[String(stepNumber)];
+  const lookupKey = workflowIndex === 0 ? String(stepNumber) : `${workflowIndex + 1}:${stepNumber}`;
+  const timing = stepTimings?.[lookupKey];
   if (!timing?.started_at) return '';
   if (!timing.ended_at) return 'In progress';
   const ms = new Date(timing.ended_at).getTime() - new Date(timing.started_at).getTime();

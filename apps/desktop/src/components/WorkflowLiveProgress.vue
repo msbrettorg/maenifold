@@ -79,8 +79,14 @@ function statusForLabel(label: LiveStep['label']): WorkflowStep['status'] {
   return 'pending';
 }
 
+const currentWorkflowIndex = computed(() => {
+  const session = selectedSession.value as ({ current_workflow_index?: unknown } | null);
+  const index = session?.current_workflow_index;
+  return typeof index === 'number' && Number.isFinite(index) && index >= 0 ? index : 0;
+});
+
 function durationLabel(stepNumber: number): string {
-  return stepDurationLabel(selectedSession.value?.step_timings, stepNumber);
+  return stepDurationLabel(selectedSession.value?.step_timings, stepNumber, currentWorkflowIndex.value);
 }
 
 const liveSteps = computed<LiveStep[]>(() => {

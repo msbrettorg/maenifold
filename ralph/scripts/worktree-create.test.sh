@@ -18,7 +18,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 COMMON_GIT_DIR="$(git -C "${SCRIPT_DIR}" rev-parse --git-common-dir)"
 case "${COMMON_GIT_DIR}" in
   /*) ;;
-  *) COMMON_GIT_DIR="$(cd "$(git -C "${SCRIPT_DIR}" rev-parse --show-toplevel)" && cd "${COMMON_GIT_DIR}" && pwd)" ;;
+  *) COMMON_GIT_DIR="$(cd "${SCRIPT_DIR}" && cd "${COMMON_GIT_DIR}" && pwd)" ;;
 esac
 REPO_ROOT="$(cd "$(dirname "${COMMON_GIT_DIR}")" && pwd)"
 HELPER="${SCRIPT_DIR}/worktree-create.sh"

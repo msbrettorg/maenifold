@@ -19,7 +19,7 @@ import {
   type KillTerminalRequest,
   type KillTerminalResponse,
   type ReleaseTerminalRequest,
-type ReleaseTerminalResponse,
+  type ReleaseTerminalResponse,
   type WriteTextFileRequest,
   type WriteTextFileResponse,
 } from '@agentclientprotocol/sdk';
@@ -112,11 +112,6 @@ export class AcpClientBridgeCore implements Client {
   private pendingMethods: Map<JsonRpcId, string> = new Map();
   private timeoutHandles: Map<number, ReturnType<typeof setTimeout>> = new Map();
   private pendingRequests: Map<number, { reject: (error: Error) => void }> = new Map();
-  private pendingManualRequests: Map<JsonRpcId, {
-    resolve: (value: unknown) => void;
-    reject: (error: Error) => void;
-    timeoutHandle: ReturnType<typeof setTimeout>;
-  }> = new Map();
   private socket: WebSocket | null = null;
   protected activeRelaySessionId: string | null = null;
   private transportClosed = false;
@@ -213,6 +208,11 @@ export class AcpClientBridgeCore implements Client {
   }
 
   protected async sendRequest<T>(method: string, params?: unknown): Promise<T> {
+    // All ACP relay requests flow through sendRequest, which combines:
+    // 1. SDK ClientSideConnection.extMethod for request/response correlation.
+    // 2. Bridge-level withTimeout for per-method timeout enforcement.
+    // There is intentionally no redundant timeout in the SDK config or in a
+    // terminal-specific request path; withTimeout is the single timeout layer.
     const connection = this.requireConnection();
     const request = connection.extMethod(method, withAcpMeta(params ?? {}));
     return this.withTimeout(method, request as Promise<T>);
@@ -284,7 +284,7 @@ export class AcpClientBridgeCore implements Client {
     requireNonBlank(params.terminalId, 'terminalId');
     const store = useTerminalsStore();
     const response = validateTerminalOutput(
-      await this.sendTerminalRequest<TerminalOutputResponse>('terminal/output', params)
+      await this.sendRequest<TerminalOutputResponse>('terminal/output', params)
     );
     store.setTerminal(params.terminalId, {
       terminalId: params.terminalId,
@@ -328,7 +328,7 @@ export class AcpClientBridgeCore implements Client {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.command, 'command');
     const store = useTerminalsStore();
-    const response = await this.sendTerminalRequest<CreateTerminalResponseWithLimit>('terminal/create', params);
+    const response = await this.sendRequest<CreateTerminalResponseWithLimit>('terminal/create', params);
     store.setTerminal(response.terminalId, {
       terminalId: response.terminalId,
       output: '',
@@ -345,7 +345,7 @@ export class AcpClientBridgeCore implements Client {
     requireNonBlank(params.terminalId, 'terminalId');
     const store = useTerminalsStore();
     const response = validateExitStatus(
-      await this.sendTerminalRequest<WaitForTerminalExitResponse>('terminal/wait_for_exit', params)
+      await this.sendRequest<WaitForTerminalExitResponse>('terminal/wait_for_exit', params)
     );
     store.markExited(params.terminalId, response);
     return response;
@@ -354,14 +354,14 @@ export class AcpClientBridgeCore implements Client {
   async terminalKill(params: KillTerminalRequest): Promise<KillTerminalResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.terminalId, 'terminalId');
-    return this.sendTerminalRequest<KillTerminalResponse>('terminal/kill', params);
+    return this.sendRequest<KillTerminalResponse>('terminal/kill', params);
   }
 
   async terminalRelease(params: ReleaseTerminalRequest): Promise<ReleaseTerminalResponse> {
     requireNonBlank(params.sessionId, 'sessionId');
     requireNonBlank(params.terminalId, 'terminalId');
     const store = useTerminalsStore();
-    const response = await this.sendTerminalRequest<ReleaseTerminalResponse>('terminal/release', params);
+    const response = await this.sendRequest<ReleaseTerminalResponse>('terminal/release', params);
     store.markReleased(params.terminalId);
     return response;
   }
@@ -403,7 +403,6 @@ export class AcpClientBridgeCore implements Client {
             if (!trimmed) continue;
             try {
               const message = asJsonRpcRecord(JSON.parse(trimmed)) as AnyMessage;
-              if (this.resolveManualResponse(message)) continue;
               if (this.handleAcpUiNotification(message)) continue;
               this.recordTraffic('in', message);
               controller.enqueue(message);
@@ -502,32 +501,6 @@ export class AcpClientBridgeCore implements Client {
     }
   }
 
-  private sendTerminalRequest<T>(method: string, params: unknown): Promise<T> {
-    const socket = this.socket;
-    if (!socket || socket.readyState !== WebSocket.OPEN) {
-      return Promise.reject(new Error(`ACP relay socket is not connected (${this.agentName})`));
-    }
-
-    const id = this.nextRequestId() as JsonRpcId;
-    const payload = { jsonrpc: '2.0', id, method, params: withAcpMeta(params ?? {}) };
-    this.pendingMethods.set(id, method);
-    this.recordTraffic('out', payload as AnyMessage);
-    socket.send(JSON.stringify(payload));
-
-    return new Promise<T>((resolve, reject) => {
-      const timeoutHandle = setTimeout(() => {
-        this.pendingManualRequests.delete(id);
-        this.pendingMethods.delete(id);
-        reject(new Error(`Request timeout: ${method}`));
-      }, this.getTimeoutForMethod(method));
-      this.pendingManualRequests.set(id, {
-        resolve: (value) => resolve(value as T),
-        reject,
-        timeoutHandle,
-      });
-    });
-  }
-
   private sendExplicitRelayClose(socket: WebSocket | null): void {
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       return;
@@ -544,26 +517,6 @@ export class AcpClientBridgeCore implements Client {
     } catch {
       this.pendingMethods.delete(payload.id);
     }
-  }
-
-  private resolveManualResponse(message: AnyMessage): boolean {
-    const parsed = asJsonRpcRecord(message);
-    if (!isJsonRpcResponse(parsed)) return false;
-
-    const id = parsed.id as JsonRpcId;
-    const pending = this.pendingManualRequests.get(id);
-    if (!pending) return false;
-
-    this.recordTraffic('in', message);
-    this.pendingManualRequests.delete(id);
-    clearTimeout(pending.timeoutHandle);
-    if ('error' in parsed) {
-      const error = parsed.error as { message?: unknown };
-      pending.reject(new Error(typeof error.message === 'string' ? error.message : 'ACP terminal request failed'));
-      return true;
-    }
-    pending.resolve(parsed.result);
-    return true;
   }
 
   private withTimeout<T>(method: string, request: Promise<T>): Promise<T> {
@@ -617,12 +570,6 @@ export class AcpClientBridgeCore implements Client {
       pending.reject(error);
     }
     this.pendingRequests.clear();
-    for (const [requestId, pending] of this.pendingManualRequests) {
-      clearTimeout(pending.timeoutHandle);
-      this.pendingMethods.delete(requestId);
-      pending.reject(error);
-    }
-    this.pendingManualRequests.clear();
   }
 
   private getTimeoutForMethod(method: string): number {

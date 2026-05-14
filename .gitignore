@@ -46,3 +46,7 @@ done/
 mae-uat-*.log
 uat-data-*/
 uat-evidence/
+
+# T-305.18 iter snapshots (per-iter debug artifacts, never useful in git)
+ralph/state/iter-snapshots/*.ps.txt
+ralph/state/iter-snapshots/*.du.txt

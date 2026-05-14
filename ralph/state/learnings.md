@@ -3352,3 +3352,27 @@ For PM authoring blue-team prompts: either (a) verify the actual test path with 
 
 - T-305.5 caught a critical P0 trigger #6 violation pattern (hidden inference via scheduled MCP actions) — the architect duo correctly identified that `GatewayExecute` is deterministic but its DOWNSTREAM commands include inference-capable ones. Allowlist defense at the schedule entry point is the canonical pattern. Future task specs that introduce new "background dispatch" surfaces MUST consider hidden-inference and apply allowlist defense.
 - The orphan-commit pre-flight check (Lesson 92) is now a verified-effective pattern: caught T-305.2 (frontend pause_all stub absent), T-305.5 (mcpAction frontend AND backend absent), T-305.4 (help-doc orphan at wrong path).
+
+
+### Lesson 102: PM unbounded background-agent retention wedges the session
+
+**Iter-14 incident (2026-05-14, ~05:55 PDT).** The user terminated the iter because everything had stopped processing. Investigation:
+
+- At interrupt time my `list_agents` reported **17 background agents attached** (1 running `swe-t305-5`, 16 idle from completed tasks).
+- `events.jsonl` for the session was 13.7 MB (compared to prior iter logs of 200-500 KB).
+- One `read_agent` call had returned 27.4 KB, large enough that the runtime diverted output to a temp file.
+- Subsequent `read_agent` polls returned "No new turns since turn 1" — the agent was idle, but my polling pattern kept including it in the session payload.
+
+**Wrong belief at the time:** I assumed the SIGHUP visible in `ralph/state/ralph-run.log` was the cause. It was the *symptom* — the user terminated a wedged process. The cause was on my side: I never reaped completed agents from the live agent inventory, so each prompt turn carried an ever-growing per-agent state tail.
+
+**Lesson — in CLI sessions with background `task` agents, treat each agent as a heavy resource that must be released the moment its scope is acceptably closed.** The runtime does not expose a release-agent verb; the practical equivalents are:
+
+1. Once a task gate stage advances to done AND its worktree is pruned, STOP calling `list_agents` / `read_agent` / `write_agent` against that agent ID. From the next prompt onward, it does not exist.
+2. Cap concurrent in-flight at <= 4 dispatched-this-iter agents AT ANY TIME. Iter-14 had 17 attached at interrupt time. The Lesson 99 throughput pattern (3-4 SWE in flight) ONLY works if completed lanes are dropped from the working set.
+3. If `read_agent` ever truncates output to a temp file (>20 KB), treat it as a session-payload warning. Pivot to bash-based PM verification rather than dispatching another `task` agent until the in-flight count drops.
+4. After every gate-pass closure, do NOT include the closed agent ID in the next iter list_agents mental model.
+5. Do not re-poll an agent that returned a complete WorkResult. The since_turn pattern is for genuinely multi-turn refinement (write_agent then wait for next turn). Polling an idle agent that has nothing more to say grows the session payload for nothing.
+
+**Recovery validation:** when the user terminated and restarted, my session had only the live `swe-t305-5` work to recover. Because the gate transitions, git commits, and worktree disk state were all durable, NO work was lost. The cost of the wedge was ~10 minutes of user time + the SWE finish-implementation re-dispatch (Lesson 100). Acceptable cost; the durable evidence chain saved the iter.
+
+**Iter-15 commitment:** after each task closes (gate done + merge + worktree prune), I drop all references to its SWE/red/blue agent IDs from my working state. The next `list_agents` is purely informational; only currently-dispatched-this-iter lanes count.

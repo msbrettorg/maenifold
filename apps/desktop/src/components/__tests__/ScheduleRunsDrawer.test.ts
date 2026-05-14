@@ -9,6 +9,16 @@ const callTool = vi.fn();
 const connect = vi.fn();
 const connected = { value: true };
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 vi.mock('@/composables/useMcpResources', () => ({
   useMcpResources: () => ({
     readResource,
@@ -60,7 +70,7 @@ describe('ScheduleRunsDrawer', () => {
     readResource.mockResolvedValue({
       uri: 'schedule://logs/daily-summary',
       text: JSON.stringify([
-        { fileName: '20260429T140000Z.log', content: 'ok' },
+        { fileName: '20260429T140000Z.log', status: 'success', content: 'ok' },
         { fileName: '20260429T150000Z.log', content: 'exit code: 1' },
       ]),
     });
@@ -70,6 +80,49 @@ describe('ScheduleRunsDrawer', () => {
 
     expect(document.body.textContent).toContain('success');
     expect(document.body.textContent).toContain('failed');
+    wrapper.unmount();
+  });
+
+  it('does not subscribe after the drawer closes while runs are loading', async () => {
+    const pendingRuns = deferred<{ uri: string; text: string }>();
+    readResource.mockReturnValue(pendingRuns.promise);
+
+    const wrapper = mountDrawer();
+    await wrapper.setProps({ open: false });
+
+    pendingRuns.resolve({ uri: 'schedule://logs/daily-summary', text: '[]' });
+    await flushPromises();
+
+    expect(subscribeResource).not.toHaveBeenCalled();
+    wrapper.unmount();
+  });
+
+  it('renders cancelled, running, and unknown outcomes with explicit badge variants', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([
+        { fileName: '20260429T160000Z.log', status: 'cancelled', content: 'cancelled by user' },
+        { fileName: '20260429T170000Z.log', status: 'in-progress', content: 'running' },
+        { fileName: '20260429T180000Z.log', status: 'skipped', content: 'not scheduled' },
+      ]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+    const badges = Array.from(document.body.querySelectorAll('[data-slot="badge"]'));
+    const outcomes = badges.map((badge) => ({
+      label: badge.textContent?.trim(),
+      variant: badge.getAttribute('data-variant'),
+      className: badge.getAttribute('class') ?? '',
+    }));
+
+    expect(outcomes).toEqual([
+      expect.objectContaining({ label: 'cancelled', variant: 'secondary' }),
+      expect.objectContaining({ label: 'running', variant: 'secondary' }),
+      expect.objectContaining({ label: 'unknown', variant: 'outline' }),
+    ]);
+    expect(outcomes[1].className).toContain('animate-pulse');
+    expect(document.body.textContent).not.toContain('success');
     wrapper.unmount();
   });
 
@@ -89,6 +142,28 @@ describe('ScheduleRunsDrawer', () => {
     expect(document.body.textContent).toContain('failed');
     expect(document.body.textContent).toContain('Retry now');
     expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'run_now', id: 'daily-summary' });
+    wrapper.unmount();
+  });
+
+  it('guards Retry now against immediate duplicate clicks', async () => {
+    const retry = deferred<{ message: string }>();
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T150000Z.log', content: 'exit code: 1' }]),
+    });
+    callTool.mockReturnValue(retry.promise);
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+    const retryButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Retry now'));
+    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    retryButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(callTool).toHaveBeenCalledTimes(1);
+    retry.resolve({ message: 'ran' });
+    await flushPromises();
     wrapper.unmount();
   });
 

@@ -1,5 +1,5 @@
 use super::context::{ToolContext, load_help_doc, render, required_string};
-use super::schedule_logs::get_logs;
+use super::schedule_logs::{clear_history, get_logs};
 use crate::error::{MaenifoldError, Result};
 #[cfg(test)]
 use crate::schedule::ScheduledTask;
@@ -59,6 +59,7 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "get" => get_task(context, payload),
         "run_now" => run_now(context, payload),
         "logs" => get_logs(context, payload),
+        "clear_history" => clear_history(context, payload),
         "preview" => preview_schedule(context, payload),
         "verify_installed" => verify_installed_action(context, payload),
         "pause_all" => schedule_batch::pause_all(context, payload),
@@ -66,7 +67,7 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "set_all_enabled" => schedule_batch::set_all_enabled(context, payload),
         "pause_status" => schedule_batch::pause_status(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
             action
         ))),
     }

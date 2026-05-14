@@ -229,4 +229,36 @@ describe('ScheduleRunsDrawer', () => {
     expect(document.body.textContent).toContain('hello from log');
     wrapper.unmount();
   });
+
+  it('Clear history button calls Schedule clear_history with the schedule id', async () => {
+    readResource.mockResolvedValue({
+      uri: 'schedule://logs/daily-summary',
+      text: JSON.stringify([{ fileName: '20260429T140000Z.log', content: 'ok' }]),
+    });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+    const clearButton = Array.from(document.body.querySelectorAll('button'))
+      .find((button) => button.textContent?.includes('Clear history'));
+    clearButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+    const clearButtons = Array.from(document.body.querySelectorAll('button'))
+      .filter((button) => button.textContent?.includes('Clear history'))
+    const confirmButton = clearButtons[clearButtons.length - 1];
+    confirmButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await flushPromises();
+
+    expect(callTool).toHaveBeenCalledWith('Schedule', { action: 'clear_history', id: 'daily-summary' });
+    wrapper.unmount();
+  });
+
+  it('Clear history button is hidden when runs list is empty', async () => {
+    readResource.mockResolvedValue({ uri: 'schedule://logs/daily-summary', text: '[]' });
+
+    const wrapper = mountDrawer();
+    await flushPromises();
+
+    expect(document.body.textContent).not.toContain('Clear history');
+    wrapper.unmount();
+  });
 });

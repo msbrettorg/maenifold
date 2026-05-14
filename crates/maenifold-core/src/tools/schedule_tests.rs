@@ -79,6 +79,8 @@ fn action(context: &ToolContext, name: &str) -> Value {
     parse(&schedule(context, &json!({"action": name})).expect("schedule action"))
 }
 
+#[path = "schedule_clear_history_tests.rs"]
+mod schedule_clear_history_tests;
 #[path = "schedule_mcp_tests.rs"]
 mod schedule_mcp_tests;
 #[path = "schedule_pause_tests.rs"]

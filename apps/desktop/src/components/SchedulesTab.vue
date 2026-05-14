@@ -13,6 +13,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import ScheduleFormDialog from '@/components/ScheduleFormDialog.vue';
+import ScheduleRowActions from '@/components/ScheduleRowActions.vue';
 import ScheduleRunsDrawer from '@/components/ScheduleRunsDrawer.vue';
 import SchedulesEmptyState from '@/components/SchedulesEmptyState.vue';
 import { useSchedulesSettings } from '@/composables/useSchedulesSettings';
@@ -177,6 +178,7 @@ function openRunsDrawer(id: string): void {
                   <History class="h-3.5 w-3.5" />
                   View runs
                 </Button>
+                <ScheduleRowActions :schedule-id="job.id" @backfilled="loadSchedules" />
                 <Button type="button" variant="destructive" size="sm" :disabled="isActionInProgress(job.id) || isSubmitting" @click="deleteSchedule(job)">
                   <Trash2 class="h-3.5 w-3.5" />
                   Delete

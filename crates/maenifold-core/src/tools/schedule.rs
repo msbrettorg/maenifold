@@ -12,6 +12,8 @@ use serde_json::json;
 #[cfg(test)]
 use std::path::PathBuf;
 
+#[path = "schedule_backfill.rs"]
+pub(super) mod schedule_backfill;
 #[path = "schedule_batch.rs"]
 pub(super) mod schedule_batch;
 #[path = "schedule_crud.rs"]
@@ -60,6 +62,7 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "run_now" => run_now(context, payload),
         "logs" => get_logs(context, payload),
         "clear_history" => clear_history(context, payload),
+        "backfill" => schedule_backfill::backfill_action(context, payload),
         "preview" => preview_schedule(context, payload),
         "verify_installed" => verify_installed_action(context, payload),
         "pause_all" => schedule_batch::pause_all(context, payload),
@@ -67,7 +70,7 @@ pub fn schedule(context: &ToolContext, payload: &Value) -> Result<String> {
         "set_all_enabled" => schedule_batch::set_all_enabled(context, payload),
         "pause_status" => schedule_batch::pause_status(context),
         _ => Err(MaenifoldError::InvalidArgument(format!(
-            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
+            "unknown action '{}'. Available: create, update, delete, list, get, run_now, logs, clear_history, backfill, preview, verify_installed, pause_all, resume_all, set_all_enabled, pause_status",
             action
         ))),
     }

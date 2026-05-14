@@ -123,18 +123,17 @@ function entryToAgent(entry: Record<string, unknown>): AgentConfig {
   return { ...rest, command: fullCommand } as AgentConfig;
 }
 
-// Reverse `entryToAgent`: explode the joined command into command+args for on-disk storage.
+// Build the on-disk JSON entry for an agent. Rust AgentEntry has only
+// `command`/`env`/`mcp_servers` — `command` carries the full whitespace-joined
+// invocation; the daemon splits it via command_parts() at use time.
 function agentToEntry(_name: string, agent: AgentConfig): Record<string, unknown> {
-  const tokens = (agent.command ?? '').trim().split(/\s+/).filter(Boolean);
-  const [command = '', ...args] = tokens;
+  const command = (agent.command ?? '').trim();
   const rest: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(agent)) {
     if (key === 'command') continue;
     rest[key] = value;
   }
-  const entry: Record<string, unknown> = { command, ...rest };
-  if (args.length > 0) entry.args = args;
-  return entry;
+  return { command, ...rest };
 }
 
 function serializeConfig(config: AgentsConfig): string {
